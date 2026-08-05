@@ -38,10 +38,6 @@ vi.mock('../domains/index.js', () => {
 })
 
 vi.mock('../repositories/index.js', () => ({
-  createAuthoredDefinitionRepository: vi.fn(() => ({
-    syncMaster: vi.fn(),
-    syncMasters: vi.fn()
-  })),
   createAuthoredRouteIdRepository: vi.fn(() => ({
     seedSrdSubjects: vi.fn()
   }))
@@ -326,20 +322,6 @@ describe('seedBaselineContent', () => {
         { id: 'owned-background', system_id: 'system-1', is_master: false },
         { id: 'other-system-background', system_id: 'system-2', is_master: true }
       ],
-      authored_definitions: [
-        {
-          subject_id: 'current-background',
-          subject_kind: 'BACKGROUND',
-          system_id: 'system-1',
-          is_master: true
-        },
-        {
-          subject_id: 'owned-background',
-          subject_kind: 'BACKGROUND',
-          system_id: 'system-1',
-          is_master: false
-        }
-      ],
       authored_route_ids: [
         { subject_id: 'current-background', subject_kind: 'BACKGROUND' },
         { subject_id: 'owned-background', subject_kind: 'BACKGROUND' }
@@ -350,12 +332,6 @@ describe('seedBaselineContent', () => {
       if (table !== 'backgrounds') {
         initialTables[table] = [{ id: `stale-${table}`, system_id: 'system-1', is_master: true }]
       }
-      initialTables.authored_definitions?.push({
-        subject_id: `stale-${table}`,
-        subject_kind: subjectKind,
-        system_id: 'system-1',
-        is_master: true
-      })
       initialTables.authored_route_ids?.push({
         subject_id: `stale-${table}`,
         subject_kind: subjectKind
@@ -375,13 +351,6 @@ describe('seedBaselineContent', () => {
         expect.objectContaining({ id: 'other-system-background', system_id: 'system-2' })
       ])
     )
-    expect(tables.authored_definitions).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ subject_id: 'current-background', is_master: true }),
-        expect.objectContaining({ subject_id: 'owned-background', is_master: false })
-      ])
-    )
-    expect(tables.authored_definitions).toHaveLength(2)
     expect(tables.authored_route_ids).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ subject_id: 'current-background' }),

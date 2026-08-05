@@ -77,6 +77,9 @@ describe('unsupported authored effect paths fail loudly', () => {
         target_disposition_kind: null,
         max_targets: null,
         max_targets_scaling: null,
+        resolution_count: null,
+        resolution_count_scaling: null,
+        allow_repeated_targets: null,
         excluded_creature_type_ids: null,
         result_block_id: 'PATH_CODE-unsupported-heal__result',
         roll_table_kind: null,
@@ -147,6 +150,7 @@ describe('unsupported authored effect paths fail loudly', () => {
                   id: 'PATH_CODE-unsupported-roll-table-entry',
                   order: 1,
                   rollValue: 1,
+                  resolutionKind: 'RESULT',
                   resultBlock: {
                     id: 'PATH_CODE-unsupported-roll-table-entry__result',
                     resultKind: 'SINGLE' as const,
@@ -178,6 +182,9 @@ describe('unsupported authored effect paths fail loudly', () => {
         target_disposition_kind: null,
         max_targets: null,
         max_targets_scaling: null,
+        resolution_count: null,
+        resolution_count_scaling: null,
+        allow_repeated_targets: null,
         excluded_creature_type_ids: null,
         result_block_id: null,
         roll_table_kind: PATH_ROLL_TABLE_KIND.EXACT,
@@ -192,7 +199,9 @@ describe('unsupported authored effect paths fail loudly', () => {
         sort_order: 1,
         roll_value: 1,
         roll_min: null,
-        roll_max: null
+        roll_max: null,
+        resolution_kind: 'RESULT',
+        repeat_config: null
       }
     ])
     expect(db.snapshot('effect_result_blocks')).toEqual([

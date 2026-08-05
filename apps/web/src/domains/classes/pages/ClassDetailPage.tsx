@@ -21,6 +21,7 @@ import {
   resolveAuthoredDetailState,
   toDetailItems,
   useAuthoredDetailActions,
+  useAuthoredExportAction,
   type GrantDetailLine,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
@@ -111,6 +112,13 @@ export function ClassDetailPage({
     draft?.publicId ?? response?.publicId ?? classId,
     item.label
   )
+  const exportAction = useAuthoredExportAction({
+    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
+    id: classId,
+    label: item.label,
+    subjectKind: 'CLASS',
+    view: detailState.mode === 'draft' ? 'draft' : 'active'
+  })
   const parentClassLabel = getParentClassLabel(item, response)
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
@@ -163,6 +171,7 @@ export function ClassDetailPage({
             })
         }
       : null,
+    exportAction,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/classes/new' }) }
   ])
 

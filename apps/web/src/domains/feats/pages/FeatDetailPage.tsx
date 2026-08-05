@@ -18,6 +18,7 @@ import {
   resolveAuthoredDetailState,
   toDetailItems,
   useAuthoredDetailActions,
+  useAuthoredExportAction,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
 import { api } from '#app/lib/api'
@@ -101,6 +102,13 @@ export function FeatDetailPage({
     draft?.publicId ?? response?.publicId ?? featId,
     item.label
   )
+  const exportAction = useAuthoredExportAction({
+    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
+    id: featId,
+    label: item.label,
+    subjectKind: 'FEAT',
+    view: detailState.mode === 'draft' ? 'draft' : 'active'
+  })
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
       ? {
@@ -151,6 +159,7 @@ export function FeatDetailPage({
             })
         }
       : null,
+    exportAction,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/feats/new' }) }
   ])
 

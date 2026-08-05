@@ -32,10 +32,7 @@ function createDraft(): AuthoredDraftDto {
     label: 'Spell Draft',
     status: 'DRAFT',
     draftState: 'ACTIVE_WITH_DRAFT',
-    revisionId: 'draft-revision-id',
-    revisionNumber: 2,
-    activeRevisionId: 'active-revision-id',
-    baseActiveRevisionId: 'active-revision-id',
+    baseActiveUpdatedAt: '2026-01-01T00:00:00.000Z',
     payload: {
       id: 'spell-id',
       label: 'Spell Draft'

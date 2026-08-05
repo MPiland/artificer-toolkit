@@ -15,7 +15,7 @@ it('maps authored creation limits to a rate-limit response', () => {
   const error = new Error(
     'You can create at most 10 authored records per minute. Try again when the minute resets.'
   )
-  error.name = 'AuthoredDefinitionCreationRateLimitError'
+  error.name = 'AuthoredContentCreationRateLimitError'
 
   expect(toTrpcError(error)).toMatchObject({
     code: 'TOO_MANY_REQUESTS',

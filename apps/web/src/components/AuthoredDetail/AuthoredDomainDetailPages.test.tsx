@@ -26,7 +26,7 @@ import { VehicleDetailPage } from '#domains/vehicles/pages/VehicleDetailPage'
 
 const spellResponse: NonNullable<SpellResponseDto> = {
   publicId: '1',
-  activeRevisionId: 'spell-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: {
     kind: 'SPELL',
@@ -115,10 +115,7 @@ function draft(payload: Record<string, unknown>): AuthoredDraftDto {
     label: 'Draft Class',
     status: 'DRAFT',
     draftState: 'ACTIVE_WITH_DRAFT',
-    revisionId: 'class-draft-revision',
-    revisionNumber: 2,
-    activeRevisionId: 'class-active-revision',
-    baseActiveRevisionId: 'class-active-revision',
+    baseActiveUpdatedAt: '2026-01-01T00:00:00.000Z',
     payload
   }
 }
@@ -170,7 +167,7 @@ const detailReferences = {
 
 const dragonbornResponse: NonNullable<RaceResponseDto> = {
   publicId: 'dragonborn',
-  activeRevisionId: 'dragonborn-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: {
     id: 'dragonborn',
@@ -239,7 +236,7 @@ const dragonbornResponse: NonNullable<RaceResponseDto> = {
 
 const brassDragonResponse: NonNullable<CreatureResponseDto> = {
   publicId: 'adult-brass-dragon',
-  activeRevisionId: 'adult-brass-dragon-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: {
     id: 'adult-brass-dragon',
@@ -371,7 +368,7 @@ const brassDragonResponse: NonNullable<CreatureResponseDto> = {
 
 const grapplerResponse: NonNullable<FeatResponseDto> = {
   publicId: 'grappler',
-  activeRevisionId: 'grappler-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: {
     id: 'grappler',

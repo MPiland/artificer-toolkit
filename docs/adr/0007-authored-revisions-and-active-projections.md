@@ -1,12 +1,14 @@
 # ADR 0007: Immutable authored revisions with normalized active projections
 
-- **Status:** decision
+- **Status:** historical
 - **Date:** 2026-07-13
 - **Scope:** authored root identity, drafts, detail reads, activation, persistence, and SRD master synchronization
 - **Update when:** revision payloads, activation semantics, root taxonomy, projection writes, or master seeding changes
 - **Verification:** `packages/db/src/domains/subjects/tables/authored_definitions.sql`; `packages/db/src/domains/subjects/repositories/authoredDefinition.ts`; `packages/functions/src/services/authoredContent`; root aggregate upserts and round-trip tests
 
 ## Context
+
+> Superseded by [ADR 0011](0011-active-authored-content-and-json-drafts.md). This record remains as historical context for the removed immutable-revision model.
 
 Authors need recoverable drafts and deterministic activation without exposing normalized child tables. The relational shape is useful for queries and hydration, but treating both JSON drafts and normalized rows as independent truth creates drift. Independently versioning every feature, option, grant, and effect would also make one authored edit span an unnecessary revision graph.
 

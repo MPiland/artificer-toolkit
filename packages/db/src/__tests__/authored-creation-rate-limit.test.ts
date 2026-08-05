@@ -9,28 +9,33 @@ function read(relativePath: string): string {
 }
 
 describe('authored creation rate-limit schema', () => {
-  const sources = [
-    read('packages/db/src/domains/subjects/tables/authored_definitions.sql'),
-    read('packages/db/src/domains/bootstrap/generated/create_database.bundle.sql'),
-    read('supabase/migrations/20260802040515_add_authored_creation_rate_limits.sql')
-  ]
-  const migration = sources[2]
+  const canonical = read('packages/db/src/domains/subjects/tables/authored_content.sql')
+  const generatedBundle = read(
+    'packages/db/src/domains/bootstrap/generated/create_database.bundle.sql'
+  )
+  const publicApiAccess = read('packages/db/src/domains/bootstrap/security/public_api_access.sql')
+  const migration = read(
+    'supabase/migrations/20260804203049_remove_authored_revisions_add_import_refs.sql'
+  )
 
   it('keeps one private account counter with fixed minute and hour ceilings', () => {
-    for (const source of sources) {
+    for (const source of [canonical, generatedBundle]) {
       expect(source).toMatch(
-        /CREATE TABLE(?: IF NOT EXISTS)? public\.authored_definition_creation_rate_limits/
+        /CREATE TABLE(?: IF NOT EXISTS)? public\.authored_creation_rate_limits/
       )
       expect(source).toContain(
-        'ALTER TABLE public.authored_definition_creation_rate_limits ENABLE ROW LEVEL SECURITY'
+        'ALTER TABLE public.authored_creation_rate_limits ENABLE ROW LEVEL SECURITY'
       )
-      expect(source).toContain('minute_count BETWEEN 0 AND 10')
+      expect(source).toContain('minute_count BETWEEN 0 AND 25')
       expect(source).toContain('hour_count BETWEEN 0 AND 100')
-      expect(source).toContain('FROM anon, authenticated')
+      expect(source).toMatch(/FROM\s+anon,\s+authenticated/)
     }
 
-    expect(migration).not.toContain('CREATE POLICY')
+    expect(migration).toContain('RENAME TO authored_creation_rate_limits')
+    expect(migration).toContain('RENAME CONSTRAINT authored_definition_creation_rate_limits')
+    expect(migration).toContain('minute_count BETWEEN 0 AND 25')
+    expect(migration).not.toContain('ON public.authored_creation_rate_limits FOR')
     expect(migration).not.toContain('GRANT')
-    expect(sources[1]).toContain("c.relname <> 'authored_definition_creation_rate_limits'")
+    expect(publicApiAccess).toContain("c.relname <> 'authored_creation_rate_limits'")
   })
 })

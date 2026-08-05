@@ -86,7 +86,7 @@ function listItem(id: string, label: string, systemId: string) {
   return {
     id,
     publicId: id,
-    activeRevisionId: `${id}-active-revision`,
+    activeUpdatedAt: '2026-01-01T00:00:00.000Z',
     label,
     description: null,
     status: 'ACTIVE' as const,

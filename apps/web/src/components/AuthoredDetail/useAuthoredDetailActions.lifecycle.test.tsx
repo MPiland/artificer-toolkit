@@ -37,10 +37,7 @@ function createCopiedDraft(): AuthoredDraftDto {
     label: 'Dragonborn Copy',
     status: 'DRAFT',
     draftState: 'DRAFT_ONLY',
-    revisionId: 'draft-revision-id',
-    revisionNumber: 1,
-    activeRevisionId: null,
-    baseActiveRevisionId: null,
+    baseActiveUpdatedAt: null,
     payload: {
       id: 'race-copy',
       label: 'Dragonborn Copy'

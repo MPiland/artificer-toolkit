@@ -25,7 +25,7 @@ The character model keeps these views explicit:
 - `CharacterBuildSnapshot` is ephemeral engine input;
 - `EngineCharacterOutput` is derived sheet output.
 
-Character structural selections currently use stable authored-definition IDs and follow active content. Equipment engine inputs additionally carry an explicit active `ContentRef`; other compiled records are supplied through the assembly registry. Persisted active-or-pinned bindings across all selections are target work and require character DTO/persistence plus revision-aware loading changes.
+Character structural selections currently use stable authored root IDs and follow active content. Equipment engine inputs additionally carry an explicit active `ContentRef`; other compiled records are supplied through the assembly registry. Historical pinning is unsupported without a separate authored history store, character DTO/persistence bindings, and revision-aware loading.
 
 Character screens may reuse lower-level controls, vocabulary selectors, authored-content DTOs, and engine output. They may use Authoring Schemas for isolated authored-content editors where that is a good fit, but the character workflow itself remains domain-specific and typed rather than being encoded as an Authoring Schema graph.
 

@@ -36,6 +36,7 @@ export {
 } from './grantDetailPresenters'
 export { resolveAuthoredDetailState } from './authoredDetailState'
 export { useAuthoredDetailActions } from './useAuthoredDetailActions'
+export { useAuthoredExportAction } from './useAuthoredExportAction'
 export type { LabelDescriptionRecord } from './detailModels'
 export type { ReferenceLabelOption } from './detailFormatters'
 export type { GrantDetailLine } from './grantDetailPresenters'

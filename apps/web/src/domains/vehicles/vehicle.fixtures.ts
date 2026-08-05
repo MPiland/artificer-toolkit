@@ -11,7 +11,7 @@ import {
 
 export const ownedVehicleResponseFixture = {
   publicId: 'vehicle-owned',
-  activeRevisionId: 'vehicle-owned-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: {
     id: 'vehicle-owned',
@@ -66,7 +66,7 @@ export const ownedVehicleResponseFixture = {
 
 export const masterVehicleResponseFixture = {
   publicId: 'vehicle-master',
-  activeRevisionId: 'vehicle-master-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: {
     id: 'vehicle-master',
@@ -99,7 +99,7 @@ export const vehicleListFixture = {
     {
       id: ownedVehicleResponseFixture.item.id,
       publicId: ownedVehicleResponseFixture.publicId,
-      activeRevisionId: ownedVehicleResponseFixture.activeRevisionId,
+      activeUpdatedAt: ownedVehicleResponseFixture.activeUpdatedAt,
       label: ownedVehicleResponseFixture.item.label,
       description: ownedVehicleResponseFixture.item.description,
       status: 'ACTIVE',
@@ -112,7 +112,7 @@ export const vehicleListFixture = {
     {
       id: masterVehicleResponseFixture.item.id,
       publicId: masterVehicleResponseFixture.publicId,
-      activeRevisionId: masterVehicleResponseFixture.activeRevisionId,
+      activeUpdatedAt: masterVehicleResponseFixture.activeUpdatedAt,
       label: masterVehicleResponseFixture.item.label,
       description: masterVehicleResponseFixture.item.description,
       status: 'ACTIVE',

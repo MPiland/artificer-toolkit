@@ -16,7 +16,7 @@ import { cloneAuthoredItem } from '@artificer-toolkit/shared/utils'
 
 import { createDb } from '../client.js'
 import {
-  createAuthoredDefinitionRepository,
+  createAuthoredContentRepository,
   createBackgroundRepository,
   createClassRepository,
   createCreatureRepository,
@@ -50,19 +50,11 @@ interface RootCloneCase {
   schema: ZodType
 }
 
-interface RevisionSnapshot {
-  subjectId: string
-  subjectKind: string
-  activeRevisionId: string
-  revisionNumber: number
-  payload: Json
-}
-
 interface DatabaseFingerprint {
-  definitions: Array<{
+  roots: Array<{
     subjectId: string
-    activeRevisionId: string | null
-    nextRevisionNumber: number
+    subjectKind: string
+    updatedAt: string
   }>
   routes: Array<{
     subjectId: string
@@ -79,7 +71,6 @@ interface IdOccurrence {
 interface OwnedCloneDraftSnapshot {
   label: string
   payload: Json
-  revisionId: string
   subjectId: string
   subjectKind: AuthoredSubjectKindDto
   systemId: string
@@ -91,6 +82,32 @@ interface OwnedCloneAudit {
 }
 
 const LOCAL_DATABASE_HOSTS = new Set(['127.0.0.1', '::1', 'localhost'])
+
+const masterRoots = sql`
+  select 'BACKGROUND'::text as subject_kind, id as subject_id, updated_at
+  from backgrounds where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+  union all
+  select 'CLASS', id, updated_at from classes
+  where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+  union all
+  select 'CREATURE', id, updated_at from creatures
+  where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+  union all
+  select 'EQUIPMENT', id, updated_at from equipment
+  where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+  union all
+  select 'FEAT', id, updated_at from feats
+  where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+  union all
+  select 'RACE', id, updated_at from races
+  where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+  union all
+  select 'SPELL', id, updated_at from spells
+  where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+  union all
+  select 'VEHICLE', id, updated_at from vehicles
+  where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+`
 
 function requireLocalDatabaseUrl(): string {
   const connectionString = process.env.DATABASE_CONNECTION_STRING
@@ -362,75 +379,41 @@ function allRootCloneCases(bundle: BaselineContentBundle): RootCloneCase[] {
   ]
 }
 
-async function readRevisionSnapshot(db: SrdTransaction): Promise<RevisionSnapshot[]> {
-  const result = await sql<{
-    subject_id: string
-    subject_kind: string
-    active_revision_id: string
-    revision_number: number
-    payload: Json
-  }>`
-    select
-      definition.subject_id::text,
-      definition.subject_kind,
-      definition.active_revision_id::text,
-      revision.revision_number,
-      revision.payload
-    from authored_definitions definition
-    join authored_definition_revisions revision
-      on revision.definition_id = definition.subject_id
-      and revision.id = definition.active_revision_id
-    where definition.system_id = ${SRD_SYSTEM_ID}::uuid
-      and definition.is_master is true
-    order by definition.subject_kind, definition.subject_id
-  `.execute(db)
-
-  return result.rows.map((row) => ({
-    subjectId: row.subject_id,
-    subjectKind: row.subject_kind,
-    activeRevisionId: row.active_revision_id,
-    revisionNumber: row.revision_number,
-    payload: row.payload
-  }))
-}
-
 async function readDatabaseFingerprint(db: Db): Promise<DatabaseFingerprint> {
-  const [definitionResult, routeResult] = await Promise.all([
+  const [rootResult, routeResult] = await Promise.all([
     sql<{
       subject_id: string
-      active_revision_id: string | null
-      next_revision_number: number
+      subject_kind: string
+      updated_at: string
     }>`
+      with roots as (${masterRoots})
       select
         subject_id::text,
-        active_revision_id::text,
-        next_revision_number
-      from authored_definitions
-      where system_id = ${SRD_SYSTEM_ID}::uuid
-        and is_master is true
-      order by subject_id
+        subject_kind,
+        updated_at::text
+      from roots
+      order by subject_kind, subject_id
     `.execute(db),
     sql<{
       subject_id: string
       subject_kind: string
       public_id: string
     }>`
+      with roots as (${masterRoots})
       select route.subject_id::text, route.subject_kind, route.public_id
       from authored_route_ids route
-      join authored_definitions definition
-        on definition.subject_id = route.subject_id
-        and definition.subject_kind = route.subject_kind
-      where definition.system_id = ${SRD_SYSTEM_ID}::uuid
-        and definition.is_master is true
+      join roots
+        on roots.subject_id = route.subject_id
+        and roots.subject_kind = route.subject_kind
       order by route.subject_kind, route.subject_id
     `.execute(db)
   ])
 
   return {
-    definitions: definitionResult.rows.map((row) => ({
+    roots: rootResult.rows.map((row) => ({
       subjectId: row.subject_id,
-      activeRevisionId: row.active_revision_id,
-      nextRevisionNumber: row.next_revision_number
+      subjectKind: row.subject_kind,
+      updatedAt: row.updated_at
     })),
     routes: routeResult.rows.map((row) => ({
       subjectId: row.subject_id,
@@ -499,40 +482,14 @@ async function assertHydratedCorpus(
   )
 }
 
-function assertRevisionPayloads(
-  revisions: readonly RevisionSnapshot[],
-  bundle: BaselineContentBundle
-): void {
-  const expectedRecords = new Map(allRootRecords(bundle).map((record) => [record.id, record]))
-  assert.equal(
-    revisions.length,
-    expectedRecords.size,
-    'Every seeded root must have one active master revision.'
-  )
-
-  for (const revision of revisions) {
-    const expected = expectedRecords.get(revision.subjectId)
-    assert.ok(
-      expected,
-      `Unexpected master revision for ${revision.subjectKind} ${revision.subjectId}.`
-    )
-    assert.deepStrictEqual(
-      canonicalize(revision.payload),
-      canonicalize(expected),
-      `Active revision payload diverged for ${revision.subjectKind} "${expected.label}".`
-    )
-  }
-}
-
 async function assertRoutes(db: SrdTransaction, bundle: BaselineContentBundle): Promise<void> {
   const result = await sql<{ subject_id: string }>`
+    with roots as (${masterRoots})
     select route.subject_id::text
     from authored_route_ids route
-    join authored_definitions definition
-      on definition.subject_id = route.subject_id
-      and definition.subject_kind = route.subject_kind
-    where definition.system_id = ${SRD_SYSTEM_ID}::uuid
-      and definition.is_master is true
+    join roots
+      on roots.subject_id = route.subject_id
+      and roots.subject_kind = route.subject_kind
   `.execute(db)
   const actualIds = new Set(result.rows.map((row) => row.subject_id))
   const expectedIds = new Set(allRootRecords(bundle).map((record) => record.id))
@@ -549,7 +506,7 @@ async function assertOwnedClones(
   bundle: BaselineContentBundle,
   userId: string
 ): Promise<OwnedCloneAudit> {
-  const repository = createAuthoredDefinitionRepository(db)
+  const repository = createAuthoredContentRepository(db)
   const cloneIds = new Set<string>()
   const cloneOwnedIds = new Set<string>()
   const cloneDraftsBySourceId = new Map<string, OwnedCloneDraftSnapshot>()
@@ -669,7 +626,6 @@ async function assertOwnedClones(
       cloneDraftsBySourceId.set(source.id, {
         label: parsed.label,
         payload: draft.payload,
-        revisionId: draft.revisionId,
         subjectId: parsed.id,
         subjectKind: domainCase.subjectKind,
         systemId: parsed.systemId
@@ -681,10 +637,8 @@ async function assertOwnedClones(
   return { cloneDraftsBySourceId, count: cloneIds.size }
 }
 
-async function runRollbackAudit(
-  db: Db
-): Promise<{ clones: number; roots: number; revisions: number }> {
-  let completed: { clones: number; roots: number; revisions: number } | undefined
+async function runRollbackAudit(db: Db): Promise<{ clones: number; roots: number }> {
+  let completed: { clones: number; roots: number } | undefined
   const rollback = new Error('ROLLBACK_SRD_INTEGRATION_GATE')
 
   try {
@@ -693,8 +647,6 @@ async function runRollbackAudit(
       const bundle = assignBaselineContentOwner(srdBaselineContent, userId)
 
       await seedBaselineContent({ db: transaction, systemId: SRD_SYSTEM_ID }, bundle)
-      const firstRevisions = await readRevisionSnapshot(transaction)
-      assertRevisionPayloads(firstRevisions, bundle)
       await assertRoutes(transaction, bundle)
       await assertHydratedCorpus(transaction, bundle)
       await assertStartingEquipmentEligibilityOwnership(transaction, bundle)
@@ -715,7 +667,7 @@ async function runRollbackAudit(
         cloneDraftSnapshot,
         `The controlled source ${cloneIsolationSource.id} has no owned clone draft.`
       )
-      const sourceBeforeCloneRevision = canonicalize(cloneIsolationSource)
+      const sourceBeforeCloneEdit = canonicalize(cloneIsolationSource)
       const revisedClonePayload = classAuthoredDtoSchema.parse(cloneDraftSnapshot.payload)
       assert.equal(
         revisedClonePayload.category,
@@ -731,14 +683,14 @@ async function runRollbackAudit(
         .find((option) => option.eligibility)
       assert.ok(
         revisedCloneOption?.eligibility,
-        'The controlled clone revision target must own an eligibility facet.'
+        'The controlled clone edit target must own an eligibility facet.'
       )
       revisedCloneOption.eligibility = cloneAuthoredItem({
         id: revisedCloneOption.eligibility.id,
         label: 'Starting Equipment Eligibility',
         eligibility: revisedCloneOption.eligibility
       }).eligibility
-      const revisedCloneDraft = await createAuthoredDefinitionRepository(transaction).saveDraft({
+      const revisedCloneDraft = await createAuthoredContentRepository(transaction).saveDraft({
         subjectKind: cloneDraftSnapshot.subjectKind,
         subjectId: cloneDraftSnapshot.subjectId,
         userId,
@@ -746,35 +698,14 @@ async function runRollbackAudit(
         label: cloneDraftSnapshot.label,
         payload: canonicalize(revisedClonePayload) as Json
       })
-      assert.equal(revisedCloneDraft.revisionNumber, 2)
       assert.deepStrictEqual(
         canonicalize(cloneIsolationSource),
-        sourceBeforeCloneRevision,
+        sourceBeforeCloneEdit,
         'Revising a nested clone payload mutated its source object graph.'
       )
       cloneDraftSnapshot.payload = revisedCloneDraft.payload
-      cloneDraftSnapshot.revisionId = revisedCloneDraft.revisionId
-      assert.deepStrictEqual(
-        canonicalize(await readRevisionSnapshot(transaction)),
-        canonicalize(firstRevisions),
-        'Creating and revising owned clones changed a source master revision.'
-      )
 
       await seedBaselineContent({ db: transaction, systemId: SRD_SYSTEM_ID }, bundle)
-      const secondRevisions = await readRevisionSnapshot(transaction)
-      assert.deepStrictEqual(
-        secondRevisions.map(({ subjectId, activeRevisionId, revisionNumber }) => ({
-          subjectId,
-          activeRevisionId,
-          revisionNumber
-        })),
-        firstRevisions.map(({ subjectId, activeRevisionId, revisionNumber }) => ({
-          subjectId,
-          activeRevisionId,
-          revisionNumber
-        })),
-        'Reseeding unchanged SRD content must not create revision churn.'
-      )
       await assertHydratedCorpus(transaction, bundle)
       await assertStartingEquipmentEligibilityOwnership(transaction, bundle)
 
@@ -806,22 +737,7 @@ async function runRollbackAudit(
       }).eligibility
 
       await seedBaselineContent({ db: transaction, systemId: SRD_SYSTEM_ID }, deltaBundle)
-      const deltaRevisions = await readRevisionSnapshot(transaction)
-      const priorById = new Map(secondRevisions.map((revision) => [revision.subjectId, revision]))
-      const changed = deltaRevisions.filter((revision) => {
-        return revision.activeRevisionId !== priorById.get(revision.subjectId)?.activeRevisionId
-      })
-
-      assert.deepStrictEqual(
-        changed.map((revision) => revision.subjectId),
-        [deltaClass.id],
-        'A controlled source delta must create exactly one new active revision.'
-      )
-      assert.equal(
-        changed[0]?.revisionNumber,
-        (priorById.get(deltaClass.id)?.revisionNumber ?? 0) + 1
-      )
-      const cloneAfterSourceRevision = await createAuthoredDefinitionRepository(
+      const cloneAfterSourceUpdate = await createAuthoredContentRepository(
         transaction
       ).findDraftBySubject({
         subjectKind: cloneDraftSnapshot.subjectKind,
@@ -829,18 +745,13 @@ async function runRollbackAudit(
         userId
       })
       assert.ok(
-        cloneAfterSourceRevision,
-        'The controlled clone draft disappeared after revising its source.'
-      )
-      assert.equal(
-        cloneAfterSourceRevision.revisionId,
-        cloneDraftSnapshot.revisionId,
-        'Revising the source changed the clone revision identity.'
+        cloneAfterSourceUpdate,
+        'The controlled clone draft disappeared after updating its source.'
       )
       assert.deepStrictEqual(
-        canonicalize(cloneAfterSourceRevision.payload),
+        canonicalize(cloneAfterSourceUpdate.payload),
         canonicalize(cloneDraftSnapshot.payload),
-        'Revising the source changed the clone revision payload.'
+        'Updating the source changed the clone draft payload.'
       )
       await assertHydratedRecords(
         [deltaClass],
@@ -860,8 +771,7 @@ async function runRollbackAudit(
 
       completed = {
         clones: cloneAudit.count,
-        roots: allRootRecords(bundle).length,
-        revisions: firstRevisions.length
+        roots: allRootRecords(bundle).length
       }
       throw rollback
     })

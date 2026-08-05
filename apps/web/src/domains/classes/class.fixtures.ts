@@ -8,7 +8,7 @@ import {
 
 export const ownedClassResponseFixture = {
   publicId: 'class-owned',
-  activeRevisionId: 'class-owned-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: {
     id: 'class-owned',
@@ -57,7 +57,7 @@ export const ownedClassResponseFixture = {
 
 export const masterSubclassResponseFixture = {
   publicId: 'class-master-subclass',
-  activeRevisionId: 'class-master-subclass-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: {
     id: 'class-master-subclass',
@@ -91,7 +91,7 @@ export const classListFixture = {
     {
       id: ownedClassResponseFixture.item.id,
       publicId: ownedClassResponseFixture.publicId,
-      activeRevisionId: ownedClassResponseFixture.activeRevisionId,
+      activeUpdatedAt: ownedClassResponseFixture.activeUpdatedAt,
       label: ownedClassResponseFixture.item.label,
       description: ownedClassResponseFixture.item.description,
       status: 'ACTIVE',
@@ -104,7 +104,7 @@ export const classListFixture = {
     {
       id: masterSubclassResponseFixture.item.id,
       publicId: masterSubclassResponseFixture.publicId,
-      activeRevisionId: masterSubclassResponseFixture.activeRevisionId,
+      activeUpdatedAt: masterSubclassResponseFixture.activeUpdatedAt,
       label: masterSubclassResponseFixture.item.label,
       description: masterSubclassResponseFixture.item.description,
       status: 'ACTIVE',

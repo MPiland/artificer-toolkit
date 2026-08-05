@@ -7,7 +7,11 @@ import { sentryTanstackStart } from '@sentry/tanstackstart-react/vite'
 import viteReact from '@vitejs/plugin-react'
 
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url))
-const serverOnlyEnvKeys = ['DATABASE_CONNECTION_STRING', 'PUBLIC_SIGN_UP_ENABLED'] as const
+const serverOnlyEnvKeys = [
+  'DATABASE_CONNECTION_STRING',
+  'LIBRARY_IMPORT_ENABLED',
+  'PUBLIC_SIGN_UP_ENABLED'
+] as const
 type ServerOnlyEnvKey = (typeof serverOnlyEnvKeys)[number]
 
 function setServerOnlyEnv(
@@ -22,6 +26,7 @@ function setServerOnlyEnv(
 
 function loadServerOnlyEnv(mode: string) {
   const rootEnv = loadEnv(mode, repoRoot, '')
+  setServerOnlyEnv('LIBRARY_IMPORT_ENABLED', rootEnv.LIBRARY_IMPORT_ENABLED)
   setServerOnlyEnv('PUBLIC_SIGN_UP_ENABLED', rootEnv.PUBLIC_SIGN_UP_ENABLED)
   setServerOnlyEnv('DATABASE_CONNECTION_STRING', rootEnv.DATABASE_CONNECTION_STRING)
 

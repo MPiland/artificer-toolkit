@@ -85,7 +85,7 @@ function createCopySourceHandler(
         items: [
           {
             ...record,
-            activeRevisionId: `${record.id}-active-revision`,
+            activeUpdatedAt: '2026-01-01T00:00:00.000Z',
             description: record.description,
             id: record.id,
             label: record.label,

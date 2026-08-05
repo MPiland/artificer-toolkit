@@ -50,7 +50,7 @@ export const featListResponseFixture: FeatListResponseDto = {
     {
       id: masterFeatFixture.id,
       publicId: masterFeatFixture.id,
-      activeRevisionId: 'grappler-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: masterFeatFixture.label,
       description: masterFeatFixture.description,
       status: 'ACTIVE',
@@ -70,7 +70,7 @@ export const featListResponseFixture: FeatListResponseDto = {
     {
       id: ownedFeatFixture.id,
       publicId: ownedFeatFixture.id,
-      activeRevisionId: 'battlefield-reader-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: ownedFeatFixture.label,
       description: ownedFeatFixture.description,
       status: 'DRAFT',
@@ -94,7 +94,7 @@ export const featListResponseFixture: FeatListResponseDto = {
 
 export const ownedFeatResponseFixture: NonNullable<FeatResponseDto> = {
   publicId: ownedFeatFixture.id,
-  activeRevisionId: 'battlefield-reader-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: ownedFeatFixture,
   provenance: {
@@ -111,7 +111,7 @@ export const ownedFeatResponseFixture: NonNullable<FeatResponseDto> = {
 
 export const masterFeatResponseFixture: NonNullable<FeatResponseDto> = {
   publicId: masterFeatFixture.id,
-  activeRevisionId: 'grappler-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: masterFeatFixture,
   provenance: {

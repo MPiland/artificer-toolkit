@@ -1,7 +1,7 @@
 import type { z } from 'zod'
-import type { AuthoredDefinitionSelectedRevision, DBLike, Json } from '@artificer-toolkit/db'
+import type { AuthoredActiveMetadata, AuthoredDraft, DBLike } from '@artificer-toolkit/db'
 import {
-  createAuthoredDefinitionRepository,
+  createAuthoredContentRepository,
   createAuthoredRouteIdRepository,
   getBackgroundListQuery,
   getClassListQuery,
@@ -41,7 +41,6 @@ import { vehicleAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/veh
 import { cloneAuthoredItem } from '@artificer-toolkit/shared/utils'
 import {
   activeAuthoredSubjectExists,
-  assertDeletableActiveAuthoredSubject,
   assertWritableAuthoredSubject,
   deleteActiveAuthoredSubject,
   discardAuthoredDraft,
@@ -52,7 +51,6 @@ import {
   normalizeAuthoredListResponseWithDrafts,
   normalizeAuthoringResult,
   normalizeStoredDraftPayloadForActivation,
-  requireAuthoredDraft,
   saveAuthoredDraft,
   AuthoredContentNotFoundError,
   type AuthoredListRow,
@@ -87,6 +85,7 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 
 type AuthoringService = {
   execute(input: AuthoredRecord): Promise<AuthoringResult>
+  findById(id: string): Promise<AuthoredRecord | null>
 }
 
 type DetailReferenceOption = {
@@ -146,25 +145,6 @@ export function buildDraftRequest<TInput extends AuthoredContentInput>(
   }
 }
 
-async function saveActivationRevision(
-  db: DBLike,
-  config: AuthoredDomainRuntimeConfig,
-  input: AuthoredRecord,
-  userId: string
-) {
-  const authored = normalizeActivatedAuthoringInput(input, userId)
-  const revision = await createAuthoredDefinitionRepository(db).saveDraft({
-    subjectKind: config.subjectKind,
-    subjectId: authored.id,
-    userId,
-    systemId: authored.systemId,
-    label: authored.label,
-    payload: authored as unknown as Json
-  })
-
-  return { authored, revision }
-}
-
 export function getDetailItem<TInput extends AuthoredContentInput>(detail: unknown): TInput | null {
   if (typeof detail !== 'object' || detail === null || !('item' in detail)) {
     return null
@@ -192,37 +172,31 @@ export async function getAuthoredDomain(
   input: AuthoredDetailRequestDto,
   userId: string
 ) {
-  const repository = createAuthoredDefinitionRepository(db)
-  let draftDetail: Awaited<ReturnType<typeof buildSelectedRevisionDetail>> | null = null
+  const repository = createAuthoredContentRepository(db)
+  let draftDetail: Awaited<ReturnType<typeof buildDraftDetail>> | null = null
   if (input.view === 'draft') {
-    const selectedDraft = await repository.findSelectedRevision({
+    const selectedDraft = await repository.findDraftByRoute({
       routeId: input.id,
       subjectKind: config.subjectKind,
-      userId,
-      view: 'draft'
+      userId
     })
     draftDetail = selectedDraft
-      ? await buildSelectedRevisionDetail(db, config, selectedDraft, userId, 'draft', input.meta)
+      ? await buildDraftDetail(db, config, selectedDraft, input.meta)
       : null
     if (draftDetail?.item) return draftDetail
   }
 
-  const selectedActive = await repository.findSelectedRevision({
+  const selectedActive = await repository.findActiveByRoute({
     routeId: input.id,
     subjectKind: config.subjectKind,
-    userId,
-    view: 'active'
+    userId
   })
   if (!selectedActive) return draftDetail
-  const response = await buildSelectedRevisionDetail(
-    db,
-    config,
-    selectedActive,
-    userId,
-    'active',
-    input.meta
-  )
-  if (!response) return draftDetail
+  const item = await config.createService(db).findById(selectedActive.subjectId)
+  if (!item) {
+    throw new Error(`${config.subjectKind} "${selectedActive.subjectId}" could not be hydrated.`)
+  }
+  const response = await buildActiveDetail(db, config, selectedActive, item, userId, input.meta)
 
   return {
     ...response,
@@ -243,58 +217,38 @@ export async function getAuthoredDomainDraft(
   return subjectId ? getAuthoredDraft(db, config.subjectKind, subjectId, userId) : null
 }
 
-async function buildSelectedRevisionDetail(
+async function buildDraftDetail(
   db: DBLike,
   config: AuthoredDomainRuntimeConfig,
-  selected: AuthoredDefinitionSelectedRevision,
-  userId: string,
-  view: 'active' | 'draft',
+  selected: AuthoredDraft & { publicId: string },
   metaKeys: string[] | undefined
 ) {
-  const itemUserId = selected.ownerUserId ?? 'master'
   const parsedItem = config.schema.safeParse({
     ...(selected.payload as Record<string, unknown>),
     id: selected.subjectId,
     label: selected.label,
-    status: view === 'draft' ? 'DRAFT' : 'ACTIVE',
+    status: 'DRAFT',
     systemId: selected.systemId,
-    userId: itemUserId
+    userId: selected.userId
   })
   const ownership = {
-    isMaster: selected.isMaster,
-    ownerUserId: selected.ownerUserId
+    isMaster: false,
+    ownerUserId: selected.userId
   }
-  const permissions =
-    view === 'draft'
-      ? { canView: true, canEdit: true, canCopy: false, canDelete: true }
-      : getAuthoredPermissions(ownership, userId)
-  const draft =
-    view === 'draft'
-      ? {
+  const permissions = { canView: true, canEdit: true, canCopy: false, canDelete: true }
+  const draft = { ...selected }
+  const active =
+    selected.draftState === 'ACTIVE_WITH_DRAFT'
+      ? await createAuthoredContentRepository(db).findActiveBySubject({
           subjectKind: selected.subjectKind,
-          subjectId: selected.subjectId,
-          publicId: selected.publicId,
-          userId: itemUserId,
-          systemId: selected.systemId,
-          label: selected.label,
-          status: 'DRAFT' as const,
-          payload: selected.payload,
-          draftState: selected.activeRevisionId
-            ? ('ACTIVE_WITH_DRAFT' as const)
-            : ('DRAFT_ONLY' as const),
-          revisionId: selected.revisionId,
-          revisionNumber: selected.revisionNumber,
-          activeRevisionId: selected.activeRevisionId,
-          baseActiveRevisionId: selected.baseActiveRevisionId,
-          createdAt: selected.createdAt,
-          updatedAt: selected.updatedAt
-        }
-      : undefined
+          subjectId: selected.subjectId
+        })
+      : null
   if (!parsedItem.success) {
     return {
-      ...(draft ? { draft } : {}),
-      activeRevisionId: selected.activeRevisionId,
-      hasDraft: selected.draftRevisionId !== null,
+      draft,
+      activeUpdatedAt: active?.updatedAt ?? null,
+      hasDraft: true,
       item: null,
       validationIssues: toAuthoredValidationIssues(parsedItem.error.issues),
       publicId: selected.publicId,
@@ -307,15 +261,44 @@ async function buildSelectedRevisionDetail(
   const meta = await resolveDetailMeta(db, config, item, metaKeys)
 
   return {
-    ...(draft ? { draft } : {}),
-    activeRevisionId: selected.activeRevisionId,
-    hasDraft: selected.draftRevisionId !== null,
+    draft,
+    activeUpdatedAt: active?.updatedAt ?? null,
+    hasDraft: true,
     item,
     publicId: selected.publicId,
     provenance: getAuthoredProvenance(ownership),
     permissions,
     ...(meta ? { meta } : {})
   }
+}
+
+async function buildActiveDetail(
+  db: DBLike,
+  config: AuthoredDomainRuntimeConfig,
+  selected: AuthoredActiveMetadata & { publicId: string },
+  item: AuthoredRecord,
+  userId: string,
+  metaKeys: string[] | undefined
+) {
+  const parsedItem = config.schema.safeParse(item)
+  const ownership = { isMaster: selected.isMaster, ownerUserId: selected.ownerUserId }
+  const base = {
+    activeUpdatedAt: selected.updatedAt,
+    hasDraft: selected.hasDraft,
+    publicId: selected.publicId,
+    provenance: getAuthoredProvenance(ownership),
+    permissions: getAuthoredPermissions(ownership, userId)
+  }
+  if (!parsedItem.success) {
+    return {
+      ...base,
+      item: null,
+      validationIssues: toAuthoredValidationIssues(parsedItem.error.issues)
+    }
+  }
+
+  const meta = await resolveDetailMeta(db, config, parsedItem.data, metaKeys)
+  return { ...base, item: parsedItem.data, ...(meta ? { meta } : {}) }
 }
 
 async function resolveDetailMeta(
@@ -444,14 +427,6 @@ export async function deleteAuthoredDomainActive(
     }
 
     const draft = await getAuthoredDraft(trx, config.subjectKind, subjectId, userId)
-    await assertDeletableActiveAuthoredSubject(
-      trx,
-      config.table,
-      config.subjectKind,
-      subjectId,
-      userId
-    )
-
     await deleteActiveAuthoredSubject(trx, config.table, config.subjectKind, subjectId, userId)
 
     if (!draft) {
@@ -472,7 +447,12 @@ export async function activateAuthoredDomainDraft(
   userId: string
 ) {
   return withTransaction(db, async (trx) => {
-    const draft = await requireAuthoredDraft(trx, config.subjectKind, subjectId, userId)
+    const repository = createAuthoredContentRepository(trx)
+    const draft = await repository.lockDraftForActivation({
+      subjectKind: config.subjectKind,
+      subjectId,
+      userId
+    })
     await assertWritableAuthoredSubject(trx, config.subjectKind, subjectId, userId)
     const input = config.schema.parse(normalizeStoredDraftPayloadForActivation(draft, userId))
     const normalized = await normalizeNodeRuntimeValues(trx, {
@@ -481,13 +461,13 @@ export async function activateAuthoredDomainDraft(
       systemId: input.systemId
     })
     const normalizedBody = config.schema.parse(normalized.values)
-    const activation = await saveActivationRevision(trx, config, normalizedBody, userId)
-    const result = await config.createService(trx).execute(activation.authored)
-    await createAuthoredDefinitionRepository(trx).activateDraft({
+    const result = await config
+      .createService(trx)
+      .execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+    await repository.deleteDraft({
       subjectKind: config.subjectKind,
       subjectId,
-      userId,
-      revisionId: activation.revision.revisionId
+      userId
     })
     return normalizeAuthoringResult(trx, config.table, result, userId)
   })
@@ -511,13 +491,20 @@ export async function activateAuthoredDomainInput<TInput extends AuthoredContent
       systemId: input.systemId
     })
     const normalizedBody = config.schema.parse(normalized.values)
-    const activation = await saveActivationRevision(trx, config, normalizedBody, userId)
-    const result = await config.createService(trx).execute(activation.authored)
-    await createAuthoredDefinitionRepository(trx).activateDraft({
+    await saveAuthoredDraft(trx, buildDraftRequest(config.subjectKind, normalizedBody), userId)
+    const repository = createAuthoredContentRepository(trx)
+    await repository.lockDraftForActivation({
       subjectKind: config.subjectKind,
       subjectId: normalizedBody.id,
-      userId,
-      revisionId: activation.revision.revisionId
+      userId
+    })
+    const result = await config
+      .createService(trx)
+      .execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+    await repository.deleteDraft({
+      subjectKind: config.subjectKind,
+      subjectId: normalizedBody.id,
+      userId
     })
     return normalizeAuthoringResult(trx, config.table, result, userId)
   })

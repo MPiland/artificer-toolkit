@@ -147,6 +147,7 @@ describe('tRPC router auth', () => {
     const caller = appRouter.createCaller({ userId: null })
 
     await expect(caller.application.featureFlags()).resolves.toEqual({
+      libraryImportEnabled: expect.any(Boolean),
       publicSignUpEnabled: expect.any(Boolean)
     })
   })

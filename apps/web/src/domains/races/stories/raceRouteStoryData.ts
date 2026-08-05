@@ -229,10 +229,7 @@ export const raceStoryDraft = {
   status: 'DRAFT',
   category: draftDragonbornRace.category,
   draftState: 'ACTIVE_WITH_DRAFT',
-  revisionId: `${seedDerivedDragonbornRace.id}-draft-revision`,
-  revisionNumber: 2,
-  activeRevisionId: `${seedDerivedDragonbornRace.id}-active-revision`,
-  baseActiveRevisionId: `${seedDerivedDragonbornRace.id}-active-revision`,
+  baseActiveUpdatedAt: '2026-01-01T00:00:00.000Z',
   createdAt: '2024-04-01T12:00:00.000Z',
   updatedAt: '2024-04-01T12:00:00.000Z',
   payload: draftDragonbornRace
@@ -240,7 +237,7 @@ export const raceStoryDraft = {
 
 export const activeRaceResponse = {
   publicId: DRAGONBORN_PUBLIC_ID,
-  activeRevisionId: `${seedDerivedDragonbornRace.id}-active-revision`,
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: true,
   item: seedDerivedDragonbornRace,
   draft: raceStoryDraft,

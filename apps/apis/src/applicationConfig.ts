@@ -3,6 +3,7 @@ import {
   type ApplicationFeatureFlagsDto
 } from '@artificer-toolkit/schema/api/applicationConfig'
 
+const libraryImportEnabledEnvKey = 'LIBRARY_IMPORT_ENABLED'
 const publicSignUpEnabledEnvKey = 'PUBLIC_SIGN_UP_ENABLED'
 const runtimeGlobals = globalThis as typeof globalThis & {
   process?: {
@@ -10,7 +11,7 @@ const runtimeGlobals = globalThis as typeof globalThis & {
   }
 }
 
-export function parsePublicSignUpEnabled(value: string | undefined): boolean {
+export function parseEnabledFeatureFlag(value: string | undefined): boolean {
   return value === 'true'
 }
 
@@ -18,6 +19,7 @@ export function getApplicationFeatureFlags(
   environment: Record<string, string | undefined> = runtimeGlobals.process?.env ?? {}
 ): ApplicationFeatureFlagsDto {
   return applicationFeatureFlagsDtoSchema.parse({
-    publicSignUpEnabled: parsePublicSignUpEnabled(environment[publicSignUpEnabledEnvKey])
+    libraryImportEnabled: parseEnabledFeatureFlag(environment[libraryImportEnabledEnvKey]),
+    publicSignUpEnabled: parseEnabledFeatureFlag(environment[publicSignUpEnabledEnvKey])
   })
 }

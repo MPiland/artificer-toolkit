@@ -24,10 +24,8 @@ const copiedRaceAuthoringData = {
   response: null,
   draft: {
     ...ownedDraft,
-    activeRevisionId: null,
-    baseActiveRevisionId: null,
-    draftState: 'DRAFT_ONLY' as const,
-    revisionNumber: 1
+    baseActiveUpdatedAt: null,
+    draftState: 'DRAFT_ONLY' as const
   }
 }
 const ownedRace = ownedBaseRaceResponseFixture.item!
@@ -108,7 +106,9 @@ describe('Guided authored entry journeys', () => {
     await user.click(within(elfRow).getByRole('button', { name: /Duplicate/i }))
 
     expect(await screen.findByRole('heading', { name: 'Start with the basics' })).toHaveFocus()
-    expect(screen.queryByRole('heading', { name: 'How do you want to begin?' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: 'How do you want to begin?' })
+    ).not.toBeInTheDocument()
   })
 
   it('opens Guided Basics after copying from an item detail page', async () => {
@@ -123,6 +123,8 @@ describe('Guided authored entry journeys', () => {
     await user.click(await screen.findByRole('button', { name: 'Duplicate' }))
 
     expect(await screen.findByRole('heading', { name: 'Start with the basics' })).toHaveFocus()
-    expect(screen.queryByRole('heading', { name: 'How do you want to begin?' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: 'How do you want to begin?' })
+    ).not.toBeInTheDocument()
   })
 })

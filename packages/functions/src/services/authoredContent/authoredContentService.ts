@@ -1,7 +1,7 @@
 import {
   createAuthoredRouteIdRepository,
-  createAuthoredDefinitionRepository,
-  type AuthoredDefinitionDraft,
+  createAuthoredContentRepository,
+  type AuthoredDraft,
   type AuthoredSubjectKind,
   type DBLike,
   type Json,
@@ -90,9 +90,7 @@ export function normalizeAuthoredListResponse<
   }
 }
 
-function toDraftSummary(
-  draft: AuthoredDefinitionDraft & { publicId?: string }
-): AuthoredDraftSummaryDto {
+function toDraftSummary(draft: AuthoredDraft & { publicId?: string }): AuthoredDraftSummaryDto {
   return {
     subjectKind: draft.subjectKind,
     subjectId: draft.subjectId,
@@ -102,16 +100,13 @@ function toDraftSummary(
     label: draft.label,
     status: draft.status,
     draftState: draft.draftState,
-    revisionId: draft.revisionId,
-    revisionNumber: draft.revisionNumber,
-    activeRevisionId: draft.activeRevisionId,
-    baseActiveRevisionId: draft.baseActiveRevisionId,
+    baseActiveUpdatedAt: draft.baseActiveUpdatedAt,
     createdAt: draft.createdAt,
     updatedAt: draft.updatedAt
   }
 }
 
-function getDraftPayloadRecord(draft: AuthoredDefinitionDraft): Record<string, unknown> {
+function getDraftPayloadRecord(draft: AuthoredDraft): Record<string, unknown> {
   return typeof draft.payload === 'object' &&
     draft.payload !== null &&
     !Array.isArray(draft.payload)
@@ -119,7 +114,7 @@ function getDraftPayloadRecord(draft: AuthoredDefinitionDraft): Record<string, u
     : {}
 }
 
-function getDraftListMetadata(draft: AuthoredDefinitionDraft) {
+function getDraftListMetadata(draft: AuthoredDraft) {
   const payload = getDraftPayloadRecord(draft)
   const description = typeof payload.description === 'string' ? payload.description : null
   const category = typeof payload.category === 'string' ? payload.category : undefined
@@ -159,8 +154,8 @@ export async function normalizeAuthoredListResponseWithDrafts<
   TResponse extends { items: TItem[]; meta: unknown }
 >(db: DBLike, response: TResponse, userId: string, subjectKind: AuthoredSubjectKind) {
   const normalized = normalizeAuthoredListResponse(response, userId)
-  const definitionRepository = createAuthoredDefinitionRepository(db)
-  const drafts = await definitionRepository.listDraftsByUser({
+  const contentRepository = createAuthoredContentRepository(db)
+  const drafts = await contentRepository.listDraftsByUser({
     userId,
     subjectKind
   })
@@ -172,12 +167,12 @@ export async function normalizeAuthoredListResponseWithDrafts<
   const publicIdBySubjectId = await createAuthoredRouteIdRepository(db).ensureMany(subjectKind, [
     ...routeSubjectIds
   ])
-  const definitions = await definitionRepository.findBySubjects({
+  const activeMetadata = await contentRepository.findActiveBySubjects({
     subjectKind,
     subjectIds: normalized.items.map((item) => item.id)
   })
-  const definitionBySubjectId = new Map(
-    definitions.map((definition) => [definition.subjectId, definition])
+  const activeMetadataBySubjectId = new Map(
+    activeMetadata.map((metadata) => [metadata.subjectId, metadata])
   )
 
   return {
@@ -196,15 +191,15 @@ export async function normalizeAuthoredListResponseWithDrafts<
     items: normalized.items.map((item) => {
       const publicId = getPublicId(publicIdBySubjectId, item.id)
       const draft = draftBySubjectId.get(item.id)
-      const definition = definitionBySubjectId.get(item.id)
-      if (!definition?.activeRevisionId) {
-        throw new Error(`${subjectKind} "${item.id}" is missing its canonical active revision.`)
+      const metadata = activeMetadataBySubjectId.get(item.id)
+      if (!metadata) {
+        throw new Error(`${subjectKind} "${item.id}" is missing its canonical active metadata.`)
       }
 
       return {
         ...item,
         publicId,
-        activeRevisionId: definition.activeRevisionId,
+        activeUpdatedAt: metadata.updatedAt,
         draft: draft
           ? {
               ...toDraftSummary({
@@ -224,15 +219,15 @@ export async function getAuthoredOwnership(
   subjectKind: AuthoredSubjectKind,
   id: string
 ): Promise<AuthoredOwnership | null> {
-  const definition = await createAuthoredDefinitionRepository(db).findBySubject({
+  const active = await createAuthoredContentRepository(db).findActiveBySubject({
     subjectKind,
     subjectId: id
   })
-  if (!definition) return null
+  if (!active) return null
 
   return {
-    isMaster: definition.isMaster,
-    ownerUserId: definition.ownerUserId
+    isMaster: active.isMaster,
+    ownerUserId: active.ownerUserId
   }
 }
 
@@ -245,16 +240,16 @@ export async function normalizeAuthoredDetailResponse<TRecord extends AuthoredRe
   if (!item) return null
 
   const subjectKind = getSubjectKindForTable(table)
-  const definition = await createAuthoredDefinitionRepository(db).findBySubject({
+  const active = await createAuthoredContentRepository(db).findActiveBySubject({
     subjectKind,
     subjectId: item.id
   })
-  if (!definition?.activeRevisionId) {
-    throw new Error(`${subjectKind} "${item.id}" is missing its canonical active revision.`)
+  if (!active) {
+    throw new Error(`${subjectKind} "${item.id}" is missing its canonical active metadata.`)
   }
   const ownership = {
-    isMaster: definition.isMaster,
-    ownerUserId: definition.ownerUserId
+    isMaster: active.isMaster,
+    ownerUserId: active.ownerUserId
   }
 
   const routeIdentity = await createAuthoredRouteIdRepository(db).ensure({
@@ -265,8 +260,8 @@ export async function normalizeAuthoredDetailResponse<TRecord extends AuthoredRe
   return {
     item,
     publicId: routeIdentity.publicId,
-    activeRevisionId: definition.activeRevisionId,
-    hasDraft: definition.draftRevisionId !== null,
+    activeUpdatedAt: active.updatedAt,
+    hasDraft: active.hasDraft,
     provenance: getAuthoredProvenance(ownership),
     permissions: getAuthoredPermissions(ownership, userId)
   }
@@ -310,7 +305,7 @@ export async function getAuthoredDraft(
   subjectId: string,
   userId: string
 ) {
-  const draft = await createAuthoredDefinitionRepository(db).findDraftBySubject({
+  const draft = await createAuthoredContentRepository(db).findDraftBySubject({
     subjectKind,
     subjectId,
     userId
@@ -381,11 +376,11 @@ export async function activeAuthoredSubjectExists(
   subjectKind: AuthoredSubjectKind,
   subjectId: string
 ): Promise<boolean> {
-  const definition = await createAuthoredDefinitionRepository(db).findBySubject({
+  const active = await createAuthoredContentRepository(db).findActiveBySubject({
     subjectKind,
     subjectId
   })
-  return Boolean(definition?.activeRevisionId)
+  return active !== null
 }
 
 export async function assertNoActiveDeleteDependents(
@@ -428,7 +423,7 @@ export async function deleteActiveAuthoredSubject(
     .deleteFrom(table as TableName)
     .where('id', '=', subjectId)
     .execute()
-  await createAuthoredDefinitionRepository(db).deleteActive({
+  await createAuthoredContentRepository(db).clearDraftBaseAfterActiveDelete({
     subjectKind,
     subjectId,
     userId
@@ -475,7 +470,7 @@ export async function requireAuthoredDraft(
   subjectKind: AuthoredSubjectKind,
   subjectId: string,
   userId: string
-): Promise<AuthoredDefinitionDraft> {
+): Promise<AuthoredDraft> {
   const draft = await getAuthoredDraft(db, subjectKind, subjectId, userId)
   if (!draft) {
     throw new AuthoredDraftNotFoundError(subjectKind, subjectId)
@@ -489,7 +484,7 @@ export async function saveAuthoredDraft(
   body: AuthoredDraftSaveRequestDto,
   userId: string
 ) {
-  const draft = await createAuthoredDefinitionRepository(db).saveDraft({
+  const draft = await createAuthoredContentRepository(db).saveDraft({
     subjectKind: body.subjectKind,
     subjectId: body.subjectId,
     userId,
@@ -533,7 +528,7 @@ export function normalizeAuthoredDraftPayload(
 }
 
 export function normalizeStoredDraftPayloadForActivation(
-  draft: AuthoredDefinitionDraft,
+  draft: AuthoredDraft,
   userId: string
 ): Json {
   return normalizeAuthoredDraftPayload(draft.payload, {
@@ -550,7 +545,7 @@ export async function discardAuthoredDraft(
   subjectId: string,
   userId: string
 ) {
-  await createAuthoredDefinitionRepository(db).discardDraft({
+  await createAuthoredContentRepository(db).deleteDraft({
     subjectKind,
     subjectId,
     userId

@@ -5,11 +5,11 @@ import { sql } from 'kysely'
 
 import { createDb } from '../client.js'
 import {
-  AuthoredDefinitionCreationRateLimitError,
-  createAuthoredDefinitionRepository,
+  AuthoredContentCreationRateLimitError,
+  createAuthoredContentRepository,
   type AuthoredSubjectKind,
-  type SaveAuthoredDefinitionDraftInput
-} from '../domains/subjects/repositories/authoredDefinition.js'
+  type SaveAuthoredDraftInput
+} from '../domains/subjects/repositories/authoredContent.js'
 import type { DBLike } from '../types/index.js'
 
 const LOCAL_DATABASE_HOSTS = new Set(['127.0.0.1', '::1', 'localhost'])
@@ -86,7 +86,7 @@ function createDraftInput(
   systemId: string,
   userId: string,
   subjectKind: AuthoredSubjectKind = 'SPELL'
-): SaveAuthoredDefinitionDraftInput {
+): SaveAuthoredDraftInput {
   return {
     label: `Rate limit proof ${subjectId}`,
     payload: { id: subjectId, label: 'Rate limit proof', systemId },
@@ -100,7 +100,7 @@ function createDraftInput(
 async function readCounter(db: DBLike, userId: string): Promise<CounterRow | null> {
   const result = await sql<CounterRow>`
     select *
-    from authored_definition_creation_rate_limits
+    from authored_creation_rate_limits
     where user_id = ${userId}
   `.execute(db)
 
@@ -114,7 +114,7 @@ async function setCounter(
   hourCount: number
 ): Promise<void> {
   await sql`
-    insert into authored_definition_creation_rate_limits (
+    insert into authored_creation_rate_limits (
       user_id,
       minute_window_start,
       minute_count,
@@ -142,14 +142,14 @@ async function restoreCounter(
   original: CounterRow | null
 ): Promise<void> {
   await sql`
-    delete from authored_definition_creation_rate_limits
+    delete from authored_creation_rate_limits
     where user_id = ${userId}
   `.execute(db)
 
   if (!original) return
 
   await sql`
-    insert into authored_definition_creation_rate_limits (
+    insert into authored_creation_rate_limits (
       user_id,
       minute_window_start,
       minute_count,
@@ -170,7 +170,7 @@ async function expectLimit(
   messageFragment: 'per minute' | 'per hour'
 ): Promise<void> {
   await assert.rejects(promise, (error: unknown) => {
-    assert.ok(error instanceof AuthoredDefinitionCreationRateLimitError)
+    assert.ok(error instanceof AuthoredContentCreationRateLimitError)
     assert.match(error.message, new RegExp(messageFragment))
     return true
   })
@@ -186,7 +186,7 @@ async function main(): Promise<void> {
 
     try {
       await restoreCounter(db, userId, null)
-      const repository = createAuthoredDefinitionRepository(db)
+      const repository = createAuthoredContentRepository(db)
 
       const firstId = randomUUID()
       createdSubjectIds.add(firstId)
@@ -194,7 +194,7 @@ async function main(): Promise<void> {
       await repository.saveDraft(createDraftInput(firstId, systemId, userId))
       assert.equal((await readCounter(db, userId))?.minute_count, 1)
 
-      for (let index = 1; index < 10; index += 1) {
+      for (let index = 1; index < 25; index += 1) {
         const subjectId = randomUUID()
         createdSubjectIds.add(subjectId)
         await repository.saveDraft(
@@ -208,10 +208,10 @@ async function main(): Promise<void> {
         repository.saveDraft(createDraftInput(minuteRejectedId, systemId, userId, 'VEHICLE')),
         'per minute'
       )
-      assert.equal((await readCounter(db, userId))?.minute_count, 10)
+      assert.equal((await readCounter(db, userId))?.minute_count, 25)
 
-      await repository.discardDraft({ subjectId: firstId, subjectKind: 'SPELL', userId })
-      assert.equal((await readCounter(db, userId))?.minute_count, 10)
+      await repository.deleteDraft({ subjectId: firstId, subjectKind: 'SPELL', userId })
+      assert.equal((await readCounter(db, userId))?.minute_count, 25)
 
       await setCounter(db, userId, 0, 99)
       const hourAllowedId = randomUUID()
@@ -232,7 +232,7 @@ async function main(): Promise<void> {
       const rollback = new Error('ROLLBACK_AUTHORED_CREATION_RATE_LIMIT_PROOF')
       await assert.rejects(
         db.transaction().execute(async (trx) => {
-          await createAuthoredDefinitionRepository(trx).saveDraft(
+          await createAuthoredContentRepository(trx).saveDraft(
             createDraftInput(rolledBackId, systemId, userId)
           )
           throw rollback
@@ -242,14 +242,26 @@ async function main(): Promise<void> {
       assert.equal(await readCounter(db, userId), null)
       assert.equal(
         await db
-          .selectFrom('authored_definitions')
+          .selectFrom('authored_drafts')
           .select('subject_id')
           .where('subject_id', '=', rolledBackId)
           .executeTakeFirst(),
         undefined
       )
 
-      await setCounter(db, userId, 9, 9)
+      const concurrentSameSubjectId = randomUUID()
+      createdSubjectIds.add(concurrentSameSubjectId)
+      const concurrentSameSubjectResults = await Promise.allSettled([
+        repository.saveDraft(createDraftInput(concurrentSameSubjectId, systemId, userId)),
+        repository.saveDraft(createDraftInput(concurrentSameSubjectId, systemId, userId))
+      ])
+      assert.equal(
+        concurrentSameSubjectResults.filter((result) => result.status === 'fulfilled').length,
+        2
+      )
+      assert.equal((await readCounter(db, userId))?.minute_count, 1)
+
+      await setCounter(db, userId, 24, 24)
       const concurrentIds = [randomUUID(), randomUUID()]
       concurrentIds.forEach((id) => createdSubjectIds.add(id))
       const concurrentResults = await Promise.allSettled(
@@ -260,7 +272,7 @@ async function main(): Promise<void> {
         concurrentResults.filter(
           (result) =>
             result.status === 'rejected' &&
-            result.reason instanceof AuthoredDefinitionCreationRateLimitError
+            result.reason instanceof AuthoredContentCreationRateLimitError
         ).length,
         1
       )
@@ -270,14 +282,14 @@ async function main(): Promise<void> {
           hour: concurrentCounter?.hour_count,
           minute: concurrentCounter?.minute_count
         },
-        { hour: 10, minute: 10 }
+        { hour: 25, minute: 25 }
       )
 
       const createdConcurrentId = concurrentResults.find((result) => result.status === 'fulfilled')
         ?.value.subjectId
       assert.ok(createdConcurrentId)
       await repository.saveDraft(createDraftInput(createdConcurrentId, systemId, userId))
-      assert.equal((await readCounter(db, userId))?.minute_count, 10)
+      assert.equal((await readCounter(db, userId))?.minute_count, 25)
 
       console.info(
         JSON.stringify({
@@ -286,13 +298,14 @@ async function main(): Promise<void> {
           existingDraftSave: 'verified',
           hourlyBoundary: 'verified',
           minuteBoundary: 'verified',
-          rollback: 'verified'
+          rollback: 'verified',
+          sameSubjectConcurrency: 'verified'
         })
       )
     } finally {
       if (createdSubjectIds.size > 0) {
         await db
-          .deleteFrom('authored_definitions')
+          .deleteFrom('authored_drafts')
           .where('subject_id', 'in', [...createdSubjectIds])
           .execute()
       }

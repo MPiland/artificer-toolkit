@@ -20,7 +20,11 @@ const ALLOW_LOCAL_TARGET_FLAG = '--allow-local-target'
 const DRY_RUN_FLAG = '--dry-run'
 const LOCAL_FLAG = '--local'
 const INSERT_BATCH_SIZE = 500
-const AUTHORED_TABLES = new Set(['authored_definitions', 'authored_definition_revisions'])
+const NON_CORPUS_TABLES = new Set([
+  'authored_creation_rate_limits',
+  'authored_drafts',
+  'authored_import_refs'
+])
 const ROOT_TABLES = [
   'backgrounds',
   'classes',
@@ -67,14 +71,6 @@ interface SequenceState extends SequenceColumn {
 
 interface QueryClient {
   query(queryText: string, values?: unknown[]): Promise<unknown>
-}
-
-interface AuthoredDefinitionSnapshot {
-  subjectId: string
-  subjectKind: string
-  systemId: string
-  label: string
-  payload: Record<string, unknown>
 }
 
 function quoteIdentifier(value: string): string {
@@ -397,7 +393,9 @@ async function readSystemOwner(client: PoolClient): Promise<string> {
   `)
   const ownerId = result.rows[0]?.user_id
   if (!ownerId)
-    throw new Error('The local SRD system and its seed owner must exist before bulk synchronization.')
+    throw new Error(
+      'The local SRD system and its seed owner must exist before bulk synchronization.'
+    )
   return ownerId
 }
 
@@ -436,17 +434,15 @@ async function assertMasterOnlySource(client: PoolClient): Promise<void> {
     tableResult.rows.map((row) => row.table_name)
   )
   const ownedRoots = await countOwnedRoots(client)
-  const definitionResult = await client.query<{ count: string }>(`
-    select count(*)::text as count
-    from public.authored_definitions
-    where not is_master
-  `)
-  const ownedDefinitions = Number(definitionResult.rows[0]?.count ?? 0)
+  const authoredSidecarRows = await countRowsInTables(client, [
+    'authored_drafts',
+    'authored_import_refs'
+  ])
 
-  if (characterRows > 0 || ownedRoots > 0 || ownedDefinitions > 0) {
+  if (characterRows > 0 || ownedRoots > 0 || authoredSidecarRows > 0) {
     throw new Error(
       `Local source contains user-authored or character data; refusing the master-corpus sync ` +
-        `(character rows: ${characterRows}, owned roots: ${ownedRoots}, owned definitions: ${ownedDefinitions}).`
+        `(character rows: ${characterRows}, owned roots: ${ownedRoots}, authored sidecars: ${authoredSidecarRows}).`
     )
   }
 }
@@ -477,180 +473,6 @@ async function loadSnapshots(
     })
   }
   return snapshots
-}
-
-async function loadAuthoredDefinitions(
-  client: PoolClient,
-  sourceOwnerId: string,
-  targetOwnerId: string
-): Promise<AuthoredDefinitionSnapshot[]> {
-  const result = await client.query<{
-    subject_id: string
-    subject_kind: string
-    system_id: string
-    label: string
-    payload: Record<string, unknown>
-  }>(`
-    select
-      definition.subject_id::text,
-      definition.subject_kind,
-      definition.system_id::text,
-      definition.label,
-      revision.payload
-    from public.authored_definitions definition
-    join public.authored_definition_revisions revision
-      on revision.definition_id = definition.subject_id
-      and revision.id = definition.active_revision_id
-    where definition.is_master
-    order by definition.subject_kind, definition.subject_id
-  `)
-
-  return result.rows.map((row) =>
-    remapOwner(
-      {
-        subjectId: row.subject_id,
-        subjectKind: row.subject_kind,
-        systemId: row.system_id,
-        label: row.label,
-        payload: row.payload
-      },
-      sourceOwnerId,
-      targetOwnerId
-    )
-  )
-}
-
-async function synchronizeAuthoredDefinitions(
-  client: PoolClient,
-  definitions: readonly AuthoredDefinitionSnapshot[]
-): Promise<void> {
-  if (definitions.length === 0) return
-  const serializedDefinitions = JSON.stringify(definitions)
-
-  const conflictResult = await client.query<{ subject_id: string }>(
-    `
-    with input as (
-      select *
-      from jsonb_to_recordset($1::jsonb) as record(
-        "subjectId" uuid,
-        "subjectKind" text,
-        "systemId" uuid,
-        label text,
-        payload jsonb
-      )
-    )
-    select definition.subject_id::text
-    from public.authored_definitions definition
-    join input on input."subjectId" = definition.subject_id
-    where not definition.is_master
-      or definition.subject_kind <> input."subjectKind"
-    limit 1
-    for update of definition
-  `,
-    [serializedDefinitions]
-  )
-  const conflictingSubjectId = conflictResult.rows[0]?.subject_id
-  if (conflictingSubjectId) {
-    throw new Error(
-      `Master authored definition "${conflictingSubjectId}" conflicts with owned content.`
-    )
-  }
-
-  await client.query(
-    `
-    with input as (
-      select *
-      from jsonb_to_recordset($1::jsonb) as record(
-        "subjectId" uuid,
-        "subjectKind" text,
-        "systemId" uuid,
-        label text,
-        payload jsonb
-      )
-    )
-    insert into public.authored_definitions (
-      subject_id,
-      subject_kind,
-      owner_user_id,
-      system_id,
-      label,
-      is_master,
-      next_revision_number
-    )
-    select
-      input."subjectId",
-      input."subjectKind",
-      null,
-      input."systemId",
-      input.label,
-      true,
-      1
-    from input
-    on conflict (subject_id) do nothing
-  `,
-    [serializedDefinitions]
-  )
-
-  await client.query(
-    `
-    with input as (
-      select *
-      from jsonb_to_recordset($1::jsonb) as record(
-        "subjectId" uuid,
-        "subjectKind" text,
-        "systemId" uuid,
-        label text,
-        payload jsonb
-      )
-    ),
-    revision_candidates as (
-      select
-        definition.subject_id,
-        definition.active_revision_id,
-        definition.next_revision_number,
-        input.payload
-      from input
-      join public.authored_definitions definition
-        on definition.subject_id = input."subjectId"
-      left join public.authored_definition_revisions active_revision
-        on active_revision.definition_id = definition.subject_id
-        and active_revision.id = definition.active_revision_id
-      where active_revision.payload is distinct from input.payload
-    ),
-    inserted_revisions as (
-      insert into public.authored_definition_revisions (
-        definition_id,
-        revision_number,
-        payload,
-        base_active_revision_id,
-        created_by_user_id
-      )
-      select
-        candidate.subject_id,
-        candidate.next_revision_number,
-        candidate.payload,
-        candidate.active_revision_id,
-        null
-      from revision_candidates candidate
-      returning id, definition_id, revision_number
-    )
-    update public.authored_definitions definition
-    set
-      system_id = input."systemId",
-      label = input.label,
-      active_revision_id = coalesce(inserted_revision.id, definition.active_revision_id),
-      next_revision_number = coalesce(
-        inserted_revision.revision_number + 1,
-        definition.next_revision_number
-      ),
-      updated_at = now()
-    from input
-    left join inserted_revisions inserted_revision
-      on inserted_revision.definition_id = input."subjectId"
-    where definition.subject_id = input."subjectId"
-  `,
-    [serializedDefinitions]
-  )
 }
 
 function assertMatchingShapes(
@@ -868,51 +690,9 @@ async function assertSnapshotsMatch(
   }
 }
 
-async function assertAuthoredDefinitionsMatch(
-  client: PoolClient,
-  definitions: readonly AuthoredDefinitionSnapshot[]
-): Promise<void> {
-  if (definitions.length === 0) return
-  const result = await client.query<{ subject_id: string }>(
-    `
-    with input as (
-      select *
-      from jsonb_to_recordset($1::jsonb) as record(
-        "subjectId" uuid,
-        "subjectKind" text,
-        "systemId" uuid,
-        label text,
-        payload jsonb
-      )
-    )
-    select input."subjectId"::text as subject_id
-    from input
-    left join public.authored_definitions definition
-      on definition.subject_id = input."subjectId"
-    left join public.authored_definition_revisions revision
-      on revision.definition_id = definition.subject_id
-      and revision.id = definition.active_revision_id
-    where definition.subject_id is null
-      or not definition.is_master
-      or definition.owner_user_id is not null
-      or definition.subject_kind is distinct from input."subjectKind"
-      or definition.system_id is distinct from input."systemId"
-      or definition.label is distinct from input.label
-      or revision.payload is distinct from input.payload
-    limit 1
-  `,
-    [JSON.stringify(definitions)]
-  )
-  const mismatch = result.rows[0]?.subject_id
-  if (mismatch) {
-    throw new Error(`Target authored-definition parity mismatch for ${mismatch}.`)
-  }
-}
-
 async function applyCorpusSync(
   target: PoolClient,
   snapshots: readonly TableSnapshot[],
-  authoredDefinitions: readonly AuthoredDefinitionSnapshot[],
   replaceExistingTables: ReadonlySet<string>
 ): Promise<void> {
   for (const snapshot of snapshots) {
@@ -929,12 +709,8 @@ async function applyCorpusSync(
     await synchronizeSnapshot(target, snapshot, false)
   }
 
-  await synchronizeAuthoredDefinitions(target, authoredDefinitions)
-  console.info(`Seeded authored projections: ${authoredDefinitions.length}`)
-
   await target.query('set constraints all immediate')
   await assertSnapshotsMatch(target, snapshots)
-  await assertAuthoredDefinitionsMatch(target, authoredDefinitions)
 }
 
 async function main() {
@@ -1036,7 +812,7 @@ async function main() {
     const sequenceColumns = targetMetadata.sequenceColumns
     assertMatchingShapes(sourceShapes, targetShapes, sourceTableNames)
     const orderedTables = orderTables(
-      sourceTableNames.filter((tableName) => !AUTHORED_TABLES.has(tableName)),
+      sourceTableNames.filter((tableName) => !NON_CORPUS_TABLES.has(tableName)),
       foreignKeys
     )
     const referencedTargetTables = new Set(
@@ -1057,21 +833,21 @@ async function main() {
     )
 
     console.info('Loading the validated local corpus into memory...')
-    const [snapshots, authoredDefinitions] = await Promise.all([
-      loadSnapshots(source, orderedTables, sourceShapes, sourceOwnerId, targetOwnerId),
-      loadAuthoredDefinitions(source, sourceOwnerId, targetOwnerId)
-    ])
+    const snapshots = await loadSnapshots(
+      source,
+      orderedTables,
+      sourceShapes,
+      sourceOwnerId,
+      targetOwnerId
+    )
     const totalRows = snapshots.reduce((total, snapshot) => total + snapshot.rows.length, 0)
     const includedTables = new Set(orderedTables)
-    console.info(
-      `Loaded ${totalRows} relational rows across ${snapshots.length} tables and ` +
-        `${authoredDefinitions.length} authored projections.`
-    )
+    console.info(`Loaded ${totalRows} relational rows across ${snapshots.length} tables.`)
 
     if (dryRun) {
       console.info(
-        `Bulk SRD dry run complete: ${totalRows} relational rows and ` +
-          `${authoredDefinitions.length} authored projections are ready to synchronize; no database was modified.`
+        `Bulk SRD dry run complete: ${totalRows} relational rows are ready to synchronize; ` +
+          `no database was modified.`
       )
       return
     }
@@ -1080,7 +856,7 @@ async function main() {
     await target.query('begin')
     try {
       await target.query('set constraints all deferred')
-      await applyCorpusSync(target, snapshots, authoredDefinitions, replaceExistingTables)
+      await applyCorpusSync(target, snapshots, replaceExistingTables)
       const sequenceStates = await readSequenceStates(target, sequenceColumns, includedTables)
 
       await synchronizeSequences(target, sequenceStates)
@@ -1090,10 +866,7 @@ async function main() {
       throw error
     }
 
-    console.info(
-      `Bulk SRD master corpus synchronization complete: ${totalRows} relational rows and ` +
-        `${authoredDefinitions.length} authored projections.`
-    )
+    console.info(`Bulk SRD master corpus synchronization complete: ${totalRows} relational rows.`)
     console.info('Run the production SRD audit to verify target hydration and source parity.')
   } finally {
     source.release()

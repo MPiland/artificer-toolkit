@@ -21,6 +21,7 @@ import {
   resolveAuthoredDetailState,
   toDetailItems,
   useAuthoredDetailActions,
+  useAuthoredExportAction,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
@@ -110,6 +111,13 @@ export function BackgroundDetailPage({
     draft?.publicId ?? response?.publicId ?? backgroundId,
     item.label
   )
+  const exportAction = useAuthoredExportAction({
+    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
+    id: backgroundId,
+    label: item.label,
+    subjectKind: 'BACKGROUND',
+    view: detailState.mode === 'draft' ? 'draft' : 'active'
+  })
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
       ? {
@@ -167,6 +175,7 @@ export function BackgroundDetailPage({
             })
         }
       : null,
+    exportAction,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/backgrounds/new' }) }
   ])
 

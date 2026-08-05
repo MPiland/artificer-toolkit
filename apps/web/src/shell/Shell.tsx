@@ -11,7 +11,7 @@ import {
 } from '@mantine/core'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { Link } from '@tanstack/react-router'
-import { type ReactNode, useMemo, useRef, useState } from 'react'
+import { Fragment, type ReactNode, useMemo, useRef, useState } from 'react'
 import { BookOpen, LogOut, Monitor, Moon, PlusCircle, Search, Settings, Sun } from 'lucide-react'
 import clsx from 'clsx'
 import IUser from '#assets/icons/IUser'
@@ -33,6 +33,7 @@ export interface ShellProps {
   currentPath: string
   currentHref?: string
   isAuthenticated?: boolean
+  libraryImportEnabled?: boolean
   publicSignUpEnabled?: boolean
   userEmail?: string | null
   children: ReactNode
@@ -46,6 +47,7 @@ export interface PageHeaderProps {
 }
 
 type NavigationMenuItem = {
+  dividerBefore?: boolean
   href: string
   id: string
   isActive?: boolean
@@ -57,6 +59,7 @@ export function Shell({
   currentPath,
   currentHref = currentPath,
   isAuthenticated,
+  libraryImportEnabled = false,
   publicSignUpEnabled = false,
   userEmail,
   children
@@ -71,8 +74,21 @@ export function Shell({
     false
   )
   const libraryItems = useMemo(
-    () => toNavigationMenuItems(navigation, currentPath),
-    [currentPath, navigation]
+    () => [
+      ...toNavigationMenuItems(navigation, currentPath),
+      ...(libraryImportEnabled
+        ? [
+            {
+              dividerBefore: true,
+              href: '/library/import',
+              id: 'library-import',
+              isActive: currentPath === '/library/import',
+              label: 'Import'
+            }
+          ]
+        : [])
+    ],
+    [currentPath, libraryImportEnabled, navigation]
   )
   const createItems = useMemo(() => toCreateMenuItems(navigation), [navigation])
   const mobileFooterItems = useMemo(
@@ -290,16 +306,18 @@ function NavigationMenu({
       </Menu.Target>
       <Menu.Dropdown>
         {items.map((item) => (
-          <Menu.Item
-            key={item.id}
-            component={Link}
-            to={item.href}
-            aria-current={item.isActive ? 'page' : undefined}
-          >
-            <span className={styles.menuItemText}>
-              <span>{item.label}</span>
-            </span>
-          </Menu.Item>
+          <Fragment key={item.id}>
+            {item.dividerBefore ? <Menu.Divider /> : null}
+            <Menu.Item
+              component={Link}
+              to={item.href}
+              aria-current={item.isActive ? 'page' : undefined}
+            >
+              <span className={styles.menuItemText}>
+                <span>{item.label}</span>
+              </span>
+            </Menu.Item>
+          </Fragment>
         ))}
       </Menu.Dropdown>
     </Menu>
@@ -391,6 +409,7 @@ function toMobileMenuItems(
   items: readonly NavigationMenuItem[]
 ): readonly MobileAppFooterMenuItem[] {
   return items.map((item) => ({
+    dividerBefore: item.dividerBefore,
     href: item.href,
     id: item.id,
     isActive: item.isActive,

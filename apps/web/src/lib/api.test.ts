@@ -7,7 +7,7 @@ import { server } from '#test/msw/server'
 const spellItem = {
   id: 'magic-missile',
   publicId: '1',
-  activeRevisionId: 'revision-1',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   label: 'Magic Missile',
   description: 'Force darts that strike unerringly.',
   status: 'ACTIVE',
@@ -31,7 +31,7 @@ const spellItem = {
 
 const spellDetail = {
   publicId: '2',
-  activeRevisionId: 'revision-2',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   draft: null,
   item: {
@@ -72,15 +72,11 @@ const spellDraft = {
   label: 'Magic Missile Copy',
   status: 'DRAFT',
   draftState: 'DRAFT_ONLY',
-  revisionId: 'draft-revision-1',
-  revisionNumber: 1,
-  activeRevisionId: null,
-  baseActiveRevisionId: null,
+  baseActiveUpdatedAt: null,
   payload: {
     ...spellDetail.item,
     status: 'DRAFT'
   },
-  baseActiveUpdatedAt: null,
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z'
 }
