@@ -1,10 +1,46 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { vi } from 'vitest'
+import { afterEach, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { AuthoredListPage } from './AuthoredListPage'
 import type { AuthoredListItem } from './AuthoredList.types'
 import { spellListFilters, spellListItems } from './spellList.fixtures'
+
+const originalScrollIntoView = Element.prototype.scrollIntoView
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  if (originalScrollIntoView) {
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: originalScrollIntoView
+    })
+  } else {
+    Reflect.deleteProperty(Element.prototype, 'scrollIntoView')
+  }
+})
+
+function useMobileViewport() {
+  Object.defineProperty(Element.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: vi.fn()
+  })
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(
+      (query: string): MediaQueryList => ({
+        matches: query === '(max-width: 760px)' || query === '(max-width: 1120px)',
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(() => false)
+      })
+    )
+  )
+}
 
 function renderSpellList() {
   return renderWithAppProviders(
@@ -382,6 +418,68 @@ describe('AuthoredListPage', () => {
 
     expect(screen.getByText('Ember Lace')).toBeInTheDocument()
     expect(screen.queryByText('Magic Missile')).not.toBeInTheDocument()
+  })
+
+  it('keeps mobile search visible and moves filters and sort into a results drawer', async () => {
+    useMobileViewport()
+    const user = userEvent.setup()
+
+    renderWithAppProviders(
+      <AuthoredListPage
+        title='Spells'
+        summary='312 spells / 312 SRD / 0 homebrew'
+        createLabel='Create Spell'
+        items={spellListItems}
+        filters={spellListFilters}
+        sortOptions={[
+          { value: 'name', label: 'Name A-Z' },
+          { value: 'level', label: 'Level' }
+        ]}
+      />
+    )
+
+    expect(screen.getByRole('textbox', { name: /search spells/i })).toBeVisible()
+    expect(screen.queryByRole('button', { name: /table view/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /card view/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'School' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Filters' }))
+
+    const drawerTitle = await screen.findByText('Spells filters and sort')
+    await waitFor(() => expect(drawerTitle).toBeVisible())
+    expect(screen.getByRole('dialog', { name: /spells filters and sort/i })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Close filters' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Show 5 results' })).toBeVisible()
+
+    const schoolFilter = screen.getByRole('combobox', { name: 'School' })
+    await user.click(schoolFilter)
+    await user.type(schoolFilter, 'Abjuration')
+    await user.keyboard('{ArrowDown}{Enter}')
+
+    expect(screen.getByRole('button', { name: 'Filters (1)' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Show 1 result' })).toBeVisible()
+
+    const sortControl = screen.getByRole('combobox', { name: 'Sort' })
+    await user.click(sortControl)
+    await user.type(sortControl, 'Level')
+    await user.keyboard('{ArrowDown}{Enter}')
+
+    expect(screen.getByRole('combobox', { name: 'Sort' })).toHaveValue('Level')
+
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Clear filters' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Show 5 results' })).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: 'Show 5 results' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: 'Filters' }))
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeVisible())
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
   })
 
   it('switches between table and card views from icon actions', async () => {

@@ -39,6 +39,7 @@ import {
   itemMatchesSelectedFilters,
   type AuthoredListFilterValues
 } from './AuthoredList.filters'
+import { MobileAuthoredListTools } from './MobileAuthoredListTools'
 import * as styles from './AuthoredList.css'
 
 const mobileQuery = '(max-width: 760px)'
@@ -176,8 +177,8 @@ export function AuthoredListPage({
         title={title}
         description={summary}
         actions={
-          <Button leftSection={<ICreate />} onClick={onCreate}>
-            {createLabel}
+          <Button aria-label={createLabel} leftSection={<ICreate />} onClick={onCreate}>
+            Create
           </Button>
         }
       />
@@ -194,79 +195,109 @@ export function AuthoredListPage({
         />
       </div>
 
-      <div className={styles.toolbar} aria-label={`${title} list tools`}>
-        <div className={styles.filterControls}>
-          <TextInput
-            aria-label={`Search ${title.toLowerCase()}`}
-            classNames={{ input: inputStyles.input }}
-            placeholder='Search...'
-            value={query}
-            onChange={(event) => setQuery(event.currentTarget.value)}
-          />
-          {filters.map((filter) => (
-            <AppSelect
-              key={filter.key}
-              label={filter.label}
-              placeholder={filter.placeholder}
-              data={facetedFilterOptions[filter.key] ?? filter.options}
-              value={filterValues[filter.key]}
-              clearable
-              onChange={(value) => {
-                setFilterValues((current) => ({
-                  ...current,
-                  [filter.key]: value
-                }))
-              }}
+      {isMobile ? (
+        <MobileAuthoredListTools
+          title={title}
+          query={query}
+          filters={filters}
+          filterOptions={facetedFilterOptions}
+          filterValues={filterValues}
+          sortOptions={sortOptions}
+          sort={sort}
+          defaultSort={defaultSort}
+          defaultSortLabel={defaultSortLabel}
+          resultCount={filteredItems.length}
+          onQueryChange={setQuery}
+          onFilterChange={(key, value) => {
+            setFilterValues((current) => ({ ...current, [key]: value }))
+          }}
+          onClearFilters={() => setFilterValues(buildInitialFilters(filters))}
+          onSortChange={setSort}
+        />
+      ) : (
+        <div className={styles.toolbar} aria-label={`${title} list tools`}>
+          <div className={styles.filterControls}>
+            <TextInput
+              aria-label={`Search ${title.toLowerCase()}`}
+              classNames={{ input: inputStyles.input }}
+              placeholder='Search...'
+              value={query}
+              onChange={(event) => setQuery(event.currentTarget.value)}
             />
-          ))}
-          <AppSelect
-            label='Sort'
-            data={sortOptions}
-            placeholder={defaultSortLabel}
-            value={sort === defaultSort ? null : sort}
-            allowDeselect={false}
-            onChange={(value) => setSort(value ?? defaultSort)}
-          />
+            {filters.map((filter) => (
+              <AppSelect
+                key={filter.key}
+                label={filter.label}
+                placeholder={filter.placeholder}
+                data={facetedFilterOptions[filter.key] ?? filter.options}
+                value={filterValues[filter.key]}
+                clearable
+                onChange={(value) => {
+                  setFilterValues((current) => ({
+                    ...current,
+                    [filter.key]: value
+                  }))
+                }}
+              />
+            ))}
+            <AppSelect
+              label='Sort'
+              data={sortOptions}
+              placeholder={defaultSortLabel}
+              value={sort === defaultSort ? null : sort}
+              allowDeselect={false}
+              onChange={(value) => setSort(value ?? defaultSort)}
+            />
+          </div>
+          <Group
+            className={styles.viewToggleGroup}
+            gap={4}
+            role='group'
+            aria-label='Choose list layout'
+          >
+            <Tooltip label='Table view' withArrow>
+              <ActionIcon
+                aria-label='Table view'
+                aria-pressed={viewMode === 'table'}
+                className={clsx(
+                  styles.viewToggleButton,
+                  viewMode === 'table' && styles.viewToggleButtonActive
+                )}
+                variant='subtle'
+                onClick={() => setViewMode('table')}
+              >
+                <IList size={18} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label='Card view' withArrow>
+              <ActionIcon
+                aria-label='Card view'
+                aria-pressed={viewMode === 'cards'}
+                className={clsx(
+                  styles.viewToggleButton,
+                  viewMode === 'cards' && styles.viewToggleButtonActive
+                )}
+                variant='subtle'
+                onClick={() => setViewMode('cards')}
+              >
+                <IGrid size={18} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
         </div>
-        <Group
-          className={styles.viewToggleGroup}
-          gap={4}
-          role='group'
-          aria-label='Choose list layout'
-        >
-          <Tooltip label='Table view' withArrow>
-            <ActionIcon
-              aria-label='Table view'
-              aria-pressed={viewMode === 'table'}
-              className={clsx(
-                styles.viewToggleButton,
-                viewMode === 'table' && styles.viewToggleButtonActive
-              )}
-              disabled={isMobile}
-              variant='subtle'
-              onClick={() => setViewMode('table')}
-            >
-              <IList size={18} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label='Card view' withArrow>
-            <ActionIcon
-              aria-label='Card view'
-              aria-pressed={viewMode === 'cards'}
-              className={clsx(
-                styles.viewToggleButton,
-                viewMode === 'cards' && styles.viewToggleButtonActive
-              )}
-              variant='subtle'
-              onClick={() => setViewMode('cards')}
-            >
-              <IGrid size={18} />
-            </ActionIcon>
-          </Tooltip>
-        </Group>
-      </div>
+      )}
 
-      <section className={styles.tableShell} aria-label={`${title} results`}>
+      <section
+        className={clsx(
+          styles.tableShell,
+          viewMode === 'cards' &&
+            !loading &&
+            !error &&
+            filteredItems.length > 0 &&
+            styles.cardResultsShell
+        )}
+        aria-label={`${title} results`}
+      >
         {loading ? <LoadingRows /> : null}
         {!loading && error ? <StatePanel title='Something went sideways.' copy={error} /> : null}
         {!loading && !error && filteredItems.length === 0
@@ -498,7 +529,13 @@ function SpacerRow({ height, columnCount }: { height: number; columnCount: numbe
   )
 }
 
-function AuthoredListAccentDot({ item }: { item: AuthoredListItem }) {
+function AuthoredListAccentDot({
+  item,
+  className
+}: {
+  item: AuthoredListItem
+  className?: string
+}) {
   if (!hasAuthoredListAccent(item)) {
     return null
   }
@@ -506,7 +543,12 @@ function AuthoredListAccentDot({ item }: { item: AuthoredListItem }) {
   const style = { '--authored-list-accent': item.accentColor } as CSSProperties
 
   return (
-    <span aria-hidden='true' className={styles.sourceDot} style={style} title={item.accentLabel} />
+    <span
+      aria-hidden='true'
+      className={clsx(styles.sourceDot, className)}
+      style={style}
+      title={item.accentLabel}
+    />
   )
 }
 
@@ -711,7 +753,7 @@ function AuthoredListCard({
     >
       <div className={styles.cardHeader}>
         <div className={styles.cardTitleGroup}>
-          <AuthoredListAccentDot item={item} />
+          <AuthoredListAccentDot className={styles.cardSourceDot} item={item} />
           <div className={styles.cardTitleStack}>
             <h2 className={styles.cardTitle}>
               {item.permissions.canView ? (

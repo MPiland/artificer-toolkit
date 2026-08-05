@@ -275,26 +275,23 @@ export const themeSelectorOption = style({
 export const pageHeader = style({
   '@layer': {
     [app]: {
-      display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'space-between',
-      gap: foundationVars.space[6],
-      '@media': {
-        [mobile]: {
-          alignItems: 'stretch',
-          flexDirection: 'column'
-        }
-      }
+      display: 'grid',
+      gap: '0.25rem',
+      minInlineSize: 0,
+      maxInlineSize: '100%'
     }
   }
 })
 
-export const pageHeaderCopy = style({
+export const pageHeaderTitleRow = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gap: '0.25rem',
-      maxInlineSize: '44rem'
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      alignItems: 'center',
+      gap: foundationVars.space[4],
+      minInlineSize: 0,
+      maxInlineSize: '100%'
     }
   }
 })
@@ -328,6 +325,8 @@ export const pageDescription = style({
   '@layer': {
     [app]: {
       margin: 0,
+      minInlineSize: 0,
+      maxInlineSize: 'min(100%, 44rem)',
       color: foundationVars.color.text.secondary,
       fontSize: foundationVars.typography.caption.fontSize,
       lineHeight: foundationVars.typography.caption.lineHeight
@@ -341,6 +340,7 @@ export const headerActions = style({
       display: 'inline-flex',
       alignItems: 'center',
       justifyContent: 'flex-end',
+      justifySelf: 'end',
       gap: foundationVars.space[2]
     }
   }

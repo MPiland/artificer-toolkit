@@ -155,12 +155,12 @@ export function Shell({
 export function PageHeader({ eyebrow, title, description, actions }: PageHeaderProps) {
   return (
     <header className={styles.pageHeader}>
-      <div className={styles.pageHeaderCopy}>
-        {eyebrow ? <span className={styles.eyebrow}>{eyebrow}</span> : null}
+      {eyebrow ? <span className={styles.eyebrow}>{eyebrow}</span> : null}
+      <div className={styles.pageHeaderTitleRow}>
         <h1 className={styles.pageTitle}>{title}</h1>
-        {description ? <p className={styles.pageDescription}>{description}</p> : null}
+        {actions ? <div className={styles.headerActions}>{actions}</div> : null}
       </div>
-      {actions ? <div className={styles.headerActions}>{actions}</div> : null}
+      {description ? <p className={styles.pageDescription}>{description}</p> : null}
     </header>
   )
 }
