@@ -1,6 +1,6 @@
 # Phase 00 — Character Sheet play depth and overrides
 
-> **Status:** active — tracked in the [Phase 00 implementation ledger](00-character-sheet-play-depth-and-overrides-implementation.md)
+> **Status:** complete — final-validated in the [Phase 00 implementation ledger](00-character-sheet-play-depth-and-overrides-implementation.md)
 > **Depends on:** current authenticated Character Builder, Sheet, engine, and web baseline
 > **Unlocks:** transparent Character inspection, complete web play controls, portable Sheet panels, native Sheet parity, and future Campaign GM inspection
 > **Primary ADRs:** [0001 package boundaries](../adr/0001-package-boundaries.md), [0005 pure rules-system engine](../adr/0005-pure-rules-system-engine.md), [0006 Builder/Sheet boundary](../adr/0006-character-builder-sheet-boundary.md), [0010 portable semantics](../adr/0010-platform-neutral-design-system.md)
@@ -318,4 +318,4 @@ Each workstream becomes one or more independently reviewable branches. Do not im
 
 ## New-session instruction
 
-Continue from the [implementation ledger](00-character-sheet-play-depth-and-overrides-implementation.md). Verify the prior branch handoff and integration SHA before starting the next child branch. Preserve current Sheet commands and projections where they already satisfy the requirement; do not rebuild working inspiration, action, HP, condition, spell, resource, inventory, currency, or note behavior merely to adopt the new panel contract.
+Phase 00 is complete. Later phases consume its Sheet commands, semantic panels, adjustment provenance, and calculation breakdowns without reopening the Builder/Sheet ownership decision.
