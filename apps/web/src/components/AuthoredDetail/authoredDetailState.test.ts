@@ -10,7 +10,7 @@ const itemSchema = z.object({
 
 const response = {
   publicId: '1',
-  activeRevisionId: 'active-revision-id',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: {
     id: 'active-id',
@@ -42,10 +42,7 @@ function draft(
     label: 'Draft Record',
     status: 'DRAFT',
     draftState: 'ACTIVE_WITH_DRAFT',
-    revisionId: 'draft-revision-id',
-    revisionNumber: 2,
-    activeRevisionId: 'active-revision-id',
-    baseActiveRevisionId: 'active-revision-id',
+    baseActiveUpdatedAt: '2026-01-01T00:00:00.000Z',
     payload,
     ...overrides
   }

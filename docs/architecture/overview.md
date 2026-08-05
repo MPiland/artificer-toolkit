@@ -50,6 +50,6 @@ The intended dependency direction is web → APIs → functions → (shared, db)
 
 ## Current versus target
 
-**Current.** The router is a thin transport layer over functions-owned authored-domain orchestration. Authored roots use immutable full-payload revisions and normalized active projections. The engine consumes the canonical build snapshot directly.
+**Current.** The router is a thin transport layer over functions-owned authored-domain orchestration. Normalized authored roots are canonical active aggregates, with complete JSON drafts stored separately. The engine consumes the canonical build snapshot directly.
 
 **Target.** Keep product data behind the API boundary; keep orchestration in functions; keep repositories authored-shaped; and keep engine/resolution pure. When changing a boundary, update the relevant guide and ADR rather than introducing a second path.

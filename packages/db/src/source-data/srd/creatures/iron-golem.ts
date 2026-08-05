@@ -90,16 +90,10 @@ export const ironGolem: CreatureAuthored = {
           id: S.actionId(175, 503),
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(175, 603),
-              dcMethod: 'SOURCE_SAVE_DC',
-              ability: S.ABILITY_CODE.WISDOM
-            },
+            triggerCode: S.TRIGGER.ACTIVATED,
             range: { id: S.actionId(175, 604), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
           ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
         })
       ],

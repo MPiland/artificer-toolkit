@@ -120,6 +120,20 @@ export function handleAuthoringRequest<TBody, TResult>(
         })
       }
 
+      if (err instanceof Error && err.name === 'AuthoredContentConflictError') {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+
+      if (err instanceof Error && err.name === 'AuthoredContentCreationRateLimitError') {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+
       if (err instanceof Error && err.name === 'NotFoundError') {
         return new Response(JSON.stringify({ error: err.message }), {
           status: 404,

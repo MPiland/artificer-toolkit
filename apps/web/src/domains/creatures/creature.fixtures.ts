@@ -147,7 +147,7 @@ export const summonFixture: CreatureAuthoredDto = {
 
 export const ownedCreatureResponseFixture: NonNullable<CreatureResponseDto> = {
   publicId: ownedMonsterFixture.id,
-  activeRevisionId: 'owned-owlbear-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: ownedMonsterFixture,
   provenance: {
@@ -164,7 +164,7 @@ export const ownedCreatureResponseFixture: NonNullable<CreatureResponseDto> = {
 
 export const masterCreatureResponseFixture: NonNullable<CreatureResponseDto> = {
   publicId: 'master-owlbear',
-  activeRevisionId: 'master-owlbear-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: {
     ...ownedMonsterFixture,
@@ -189,7 +189,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     {
       id: ownedMonsterFixture.id,
       publicId: ownedMonsterFixture.id,
-      activeRevisionId: 'owned-owlbear-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: ownedMonsterFixture.label,
       description: ownedMonsterFixture.description,
       status: 'ACTIVE',
@@ -202,7 +202,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     {
       id: beastMountFixture.id,
       publicId: beastMountFixture.id,
-      activeRevisionId: 'owned-river-hart-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: beastMountFixture.label,
       description: beastMountFixture.description,
       status: 'DRAFT',
@@ -220,16 +220,13 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
         label: beastMountFixture.label,
         status: 'DRAFT',
         draftState: 'DRAFT_ONLY',
-        revisionId: 'owned-river-hart-draft-revision',
-        revisionNumber: 1,
-        activeRevisionId: null,
-        baseActiveRevisionId: null
+        baseActiveUpdatedAt: null
       }
     },
     {
       id: npcFixture.id,
       publicId: npcFixture.id,
-      activeRevisionId: 'owned-sable-informant-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: npcFixture.label,
       description: npcFixture.description,
       status: 'ACTIVE',
@@ -242,7 +239,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     {
       id: companionFixture.id,
       publicId: companionFixture.id,
-      activeRevisionId: 'owned-ashwing-familiar-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: companionFixture.label,
       description: companionFixture.description,
       status: 'ACTIVE',
@@ -255,7 +252,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     {
       id: summonFixture.id,
       publicId: summonFixture.id,
-      activeRevisionId: 'owned-cinder-sentinel-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: summonFixture.label,
       description: summonFixture.description,
       status: 'ACTIVE',
@@ -268,7 +265,7 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     {
       id: masterCreatureResponseFixture.item!.id,
       publicId: masterCreatureResponseFixture.publicId,
-      activeRevisionId: 'master-owlbear-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: masterCreatureResponseFixture.item!.label,
       description: masterCreatureResponseFixture.item!.description,
       status: 'ACTIVE',

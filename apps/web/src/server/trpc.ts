@@ -1,42 +1,12 @@
-import {
-  createServerClient,
-  parseCookieHeader,
-  serializeCookieHeader,
-  type CookieOptions
-} from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { handleTrpcFetchRequest } from '@artificer-toolkit/apis/trpc-handler'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { crossSiteRequestResponse, isTrustedSameOriginRequest } from '#app/lib/trpcRequestSecurity'
-
-interface ResponseCookie {
-  name: string
-  options: CookieOptions
-  value: string
-}
-
-function getRequestCookies(request: Request) {
-  return parseCookieHeader(request.headers.get('Cookie') ?? '').map((cookie) => ({
-    name: cookie.name,
-    value: cookie.value ?? ''
-  }))
-}
-
-function appendResponseCookies(response: Response, cookies: ResponseCookie[]): Response {
-  if (cookies.length === 0) {
-    return response
-  }
-
-  const headers = new Headers(response.headers)
-  for (const cookie of cookies) {
-    headers.append('Set-Cookie', serializeCookieHeader(cookie.name, cookie.value, cookie.options))
-  }
-
-  return new Response(response.body, {
-    headers,
-    status: response.status,
-    statusText: response.statusText
-  })
-}
+import {
+  appendResponseCookies,
+  getRequestCookies,
+  type ResponseCookie
+} from './auth/requestCookies'
 
 function getDatabaseConnectionString(): string | undefined {
   return process.env.DATABASE_CONNECTION_STRING

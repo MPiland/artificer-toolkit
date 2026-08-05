@@ -154,7 +154,7 @@ describe('SRD manifest coverage', () => {
     expectUniqueIds(srdSpells, 'srdSpells')
     expect(srdSpells.every((record) => Object.values(SPELL_IDS).includes(record.id))).toBe(true)
     expect(srdSpells).toHaveLength(Object.keys(SPELL_IDS).length)
-    expect(srdSpells.length).toBe(313)
+    expect(srdSpells.length).toBe(319)
   })
 
   it('models legendary action choices as feature options', () => {

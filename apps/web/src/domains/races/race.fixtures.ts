@@ -97,7 +97,7 @@ export const raceListResponseFixture: RaceListResponseDto = {
     {
       id: masterRaceFixture.id,
       publicId: masterRaceFixture.id,
-      activeRevisionId: 'elf-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: masterRaceFixture.label,
       description: masterRaceFixture.description,
       status: 'ACTIVE',
@@ -118,7 +118,7 @@ export const raceListResponseFixture: RaceListResponseDto = {
     {
       id: ownedSubraceFixture.id,
       publicId: ownedSubraceFixture.id,
-      activeRevisionId: 'wood-elf-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: ownedSubraceFixture.label,
       description: ownedSubraceFixture.description,
       status: 'DRAFT',
@@ -143,7 +143,7 @@ export const raceListResponseFixture: RaceListResponseDto = {
 
 export const ownedBaseRaceResponseFixture: NonNullable<RaceResponseDto> = {
   publicId: ownedBaseRaceFixture.id,
-  activeRevisionId: 'dragonborn-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: ownedBaseRaceFixture,
   provenance: {
@@ -160,7 +160,7 @@ export const ownedBaseRaceResponseFixture: NonNullable<RaceResponseDto> = {
 
 export const ownedSubraceResponseFixture: NonNullable<RaceResponseDto> = {
   publicId: ownedSubraceFixture.id,
-  activeRevisionId: 'wood-elf-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: ownedSubraceFixture,
   provenance: {
@@ -177,7 +177,7 @@ export const ownedSubraceResponseFixture: NonNullable<RaceResponseDto> = {
 
 export const masterRaceResponseFixture: NonNullable<RaceResponseDto> = {
   publicId: masterRaceFixture.id,
-  activeRevisionId: 'elf-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: masterRaceFixture,
   provenance: {

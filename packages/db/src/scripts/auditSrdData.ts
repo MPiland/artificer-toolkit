@@ -480,28 +480,30 @@ async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
       )
     })
   )
-  const revisionResult = await sql<{
-    subject_id: string
-    subject_kind: string
-    payload: unknown
-  }>`
-    select definition.subject_id::text, definition.subject_kind, revision.payload
-    from authored_definitions definition
-    join authored_definition_revisions revision
-      on revision.definition_id = definition.subject_id
-      and revision.id = definition.active_revision_id
-    where definition.system_id = ${SRD_SYSTEM_ID}::uuid
-      and definition.is_master is true
-  `.execute(db)
-  const revisionById = new Map(revisionResult.rows.map((row) => [row.subject_id, row]))
   const routeResult = await sql<{ subject_id: string }>`
+    with master_roots as (
+      select 'BACKGROUND'::text as subject_kind, id as subject_id
+      from backgrounds where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+      union all
+      select 'CLASS', id from classes where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+      union all
+      select 'CREATURE', id from creatures where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+      union all
+      select 'EQUIPMENT', id from equipment where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+      union all
+      select 'FEAT', id from feats where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+      union all
+      select 'RACE', id from races where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+      union all
+      select 'SPELL', id from spells where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+      union all
+      select 'VEHICLE', id from vehicles where system_id = ${SRD_SYSTEM_ID}::uuid and is_master is true
+    )
     select route.subject_id::text
     from authored_route_ids route
-    join authored_definitions definition
-      on definition.subject_id = route.subject_id
-      and definition.subject_kind = route.subject_kind
-    where definition.system_id = ${SRD_SYSTEM_ID}::uuid
-      and definition.is_master is true
+    join master_roots root
+      on root.subject_id = route.subject_id
+      and root.subject_kind = route.subject_kind
   `.execute(db)
   const routeIds = new Set(routeResult.rows.map((row) => row.subject_id))
   const issues: RootCorpusIssue[] = []
@@ -582,23 +584,6 @@ async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
             })
           }
 
-          const revision = revisionById.get(record.id)
-          if (!revision) {
-            issues.push({
-              domain: domainCase.domain,
-              id: record.id,
-              label: record.label,
-              issue: 'missing active master revision'
-            })
-          } else if (!isDeepStrictEqual(canonicalize(revision.payload), canonicalize(record))) {
-            issues.push({
-              domain: domainCase.domain,
-              id: record.id,
-              label: record.label,
-              issue: 'active revision payload differs from source payload'
-            })
-          }
-
           if (!routeIds.has(record.id)) {
             issues.push({
               domain: domainCase.domain,
@@ -609,17 +594,6 @@ async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
           }
         })
       )
-    }
-  }
-
-  for (const revision of revisionResult.rows) {
-    if (!expectedById.has(revision.subject_id)) {
-      issues.push({
-        domain: revision.subject_kind.toLowerCase(),
-        id: revision.subject_id,
-        label: '<unexpected master revision>',
-        issue: 'active master revision is absent from the SRD source corpus'
-      })
     }
   }
 

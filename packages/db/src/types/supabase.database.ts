@@ -47,116 +47,7 @@ export type Database = {
           }
         ]
       }
-      authored_definition_revisions: {
-        Row: {
-          base_active_revision_id: string | null
-          created_at: string
-          created_by_user_id: string | null
-          definition_id: string
-          id: string
-          payload: Json
-          revision_number: number
-        }
-        Insert: {
-          base_active_revision_id?: string | null
-          created_at?: string
-          created_by_user_id?: string | null
-          definition_id: string
-          id?: string
-          payload: Json
-          revision_number: number
-        }
-        Update: {
-          base_active_revision_id?: string | null
-          created_at?: string
-          created_by_user_id?: string | null
-          definition_id?: string
-          id?: string
-          payload?: Json
-          revision_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'authored_definition_revisions_base_revision_fk'
-            columns: ['definition_id', 'base_active_revision_id']
-            isOneToOne: false
-            referencedRelation: 'authored_definition_revisions'
-            referencedColumns: ['definition_id', 'id']
-          },
-          {
-            foreignKeyName: 'authored_definition_revisions_definition_id_fkey'
-            columns: ['definition_id']
-            isOneToOne: false
-            referencedRelation: 'authored_definitions'
-            referencedColumns: ['subject_id']
-          }
-        ]
-      }
-      authored_definitions: {
-        Row: {
-          active_revision_id: string | null
-          created_at: string
-          draft_revision_id: string | null
-          is_master: boolean
-          label: string
-          next_revision_number: number
-          owner_user_id: string | null
-          subject_id: string
-          subject_kind: string
-          system_id: string
-          updated_at: string
-        }
-        Insert: {
-          active_revision_id?: string | null
-          created_at?: string
-          draft_revision_id?: string | null
-          is_master?: boolean
-          label: string
-          next_revision_number?: number
-          owner_user_id?: string | null
-          subject_id: string
-          subject_kind: string
-          system_id: string
-          updated_at?: string
-        }
-        Update: {
-          active_revision_id?: string | null
-          created_at?: string
-          draft_revision_id?: string | null
-          is_master?: boolean
-          label?: string
-          next_revision_number?: number
-          owner_user_id?: string | null
-          subject_id?: string
-          subject_kind?: string
-          system_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'authored_definitions_active_revision_fk'
-            columns: ['subject_id', 'active_revision_id']
-            isOneToOne: false
-            referencedRelation: 'authored_definition_revisions'
-            referencedColumns: ['definition_id', 'id']
-          },
-          {
-            foreignKeyName: 'authored_definitions_draft_revision_fk'
-            columns: ['subject_id', 'draft_revision_id']
-            isOneToOne: false
-            referencedRelation: 'authored_definition_revisions'
-            referencedColumns: ['definition_id', 'id']
-          },
-          {
-            foreignKeyName: 'authored_definitions_system_id_fkey'
-            columns: ['system_id']
-            isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
-        ]
-      }
-      authored_definition_creation_rate_limits: {
+      authored_creation_rate_limits: {
         Row: {
           hour_count: number
           hour_window_start: string
@@ -176,6 +67,80 @@ export type Database = {
           hour_window_start?: string
           minute_count?: number
           minute_window_start?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      authored_drafts: {
+        Row: {
+          base_active_updated_at: string | null
+          created_at: string
+          label: string
+          payload: Json
+          subject_id: string
+          subject_kind: string
+          system_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_active_updated_at?: string | null
+          created_at?: string
+          label: string
+          payload: Json
+          subject_id: string
+          subject_kind: string
+          system_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_active_updated_at?: string | null
+          created_at?: string
+          label?: string
+          payload?: Json
+          subject_id?: string
+          subject_kind?: string
+          system_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'authored_drafts_system_id_fkey'
+            columns: ['system_id']
+            isOneToOne: false
+            referencedRelation: 'systems'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      authored_import_refs: {
+        Row: {
+          created_at: string
+          external_id: string
+          source: string
+          subject_id: string
+          subject_kind: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          external_id: string
+          source: string
+          subject_id: string
+          subject_kind: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          external_id?: string
+          source?: string
+          subject_id?: string
+          subject_kind?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -4050,66 +4015,6 @@ export type Database = {
           }
         ]
       }
-      user_roll_history: {
-        Row: {
-          character_id: string | null
-          character_label: string
-          consumed_at: string | null
-          created_at: string
-          evidence: Json
-          id: string
-          normalized_expression: string
-          ruleset_code: string
-          ruleset_version: string
-          source: Json
-          system_id: string
-          user_id: string
-        }
-        Insert: {
-          character_id?: string | null
-          character_label: string
-          consumed_at?: string | null
-          created_at?: string
-          evidence: Json
-          id?: string
-          normalized_expression: string
-          ruleset_code: string
-          ruleset_version: string
-          source: Json
-          system_id: string
-          user_id: string
-        }
-        Update: {
-          character_id?: string | null
-          character_label?: string
-          consumed_at?: string | null
-          created_at?: string
-          evidence?: Json
-          id?: string
-          normalized_expression?: string
-          ruleset_code?: string
-          ruleset_version?: string
-          source?: Json
-          system_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'user_roll_history_character_id_fkey'
-            columns: ['character_id']
-            isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'user_roll_history_system_id_fkey'
-            columns: ['system_id']
-            isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
-        ]
-      }
       charge_bonuses: {
         Row: {
           ability_code: string | null
@@ -5849,9 +5754,9 @@ export type Database = {
           excluded_creature_type_ids: string[] | null
           max_targets: number | null
           max_targets_scaling: Json | null
+          range_characteristic_id: string
           resolution_count: number | null
           resolution_count_scaling: Json | null
-          range_characteristic_id: string
           saving_throw_id: string | null
           shape_characteristic_id: string | null
           target_disposition_kind: string | null
@@ -5868,9 +5773,9 @@ export type Database = {
           excluded_creature_type_ids?: string[] | null
           max_targets?: number | null
           max_targets_scaling?: Json | null
+          range_characteristic_id: string
           resolution_count?: number | null
           resolution_count_scaling?: Json | null
-          range_characteristic_id: string
           saving_throw_id?: string | null
           shape_characteristic_id?: string | null
           target_disposition_kind?: string | null
@@ -5887,9 +5792,9 @@ export type Database = {
           excluded_creature_type_ids?: string[] | null
           max_targets?: number | null
           max_targets_scaling?: Json | null
+          range_characteristic_id?: string
           resolution_count?: number | null
           resolution_count_scaling?: Json | null
-          range_characteristic_id?: string
           saving_throw_id?: string | null
           shape_characteristic_id?: string | null
           target_disposition_kind?: string | null
@@ -6038,11 +5943,11 @@ export type Database = {
           id: string
           max_targets: number | null
           max_targets_scaling: Json | null
-          resolution_count: number | null
-          resolution_count_scaling: Json | null
           origin_kind: string | null
           path_code: string
           range_override_characteristic_id: string | null
+          resolution_count: number | null
+          resolution_count_scaling: Json | null
           result_block_id: string | null
           roll_table_kind: string | null
           selection_kind: string
@@ -6061,11 +5966,11 @@ export type Database = {
           id: string
           max_targets?: number | null
           max_targets_scaling?: Json | null
-          resolution_count?: number | null
-          resolution_count_scaling?: Json | null
           origin_kind?: string | null
           path_code: string
           range_override_characteristic_id?: string | null
+          resolution_count?: number | null
+          resolution_count_scaling?: Json | null
           result_block_id?: string | null
           roll_table_kind?: string | null
           selection_kind: string
@@ -6084,11 +5989,11 @@ export type Database = {
           id?: string
           max_targets?: number | null
           max_targets_scaling?: Json | null
-          resolution_count?: number | null
-          resolution_count_scaling?: Json | null
           origin_kind?: string | null
           path_code?: string
           range_override_characteristic_id?: string | null
+          resolution_count?: number | null
+          resolution_count_scaling?: Json | null
           result_block_id?: string | null
           roll_table_kind?: string | null
           selection_kind?: string
@@ -11455,6 +11360,66 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: 'terrains_system_id_fkey'
+            columns: ['system_id']
+            isOneToOne: false
+            referencedRelation: 'systems'
+            referencedColumns: ['id']
+          }
+        ]
+      }
+      user_roll_history: {
+        Row: {
+          character_id: string | null
+          character_label: string
+          consumed_at: string | null
+          created_at: string
+          evidence: Json
+          id: string
+          normalized_expression: string
+          ruleset_code: string
+          ruleset_version: string
+          source: Json
+          system_id: string
+          user_id: string
+        }
+        Insert: {
+          character_id?: string | null
+          character_label: string
+          consumed_at?: string | null
+          created_at?: string
+          evidence: Json
+          id?: string
+          normalized_expression: string
+          ruleset_code: string
+          ruleset_version: string
+          source: Json
+          system_id: string
+          user_id: string
+        }
+        Update: {
+          character_id?: string | null
+          character_label?: string
+          consumed_at?: string | null
+          created_at?: string
+          evidence?: Json
+          id?: string
+          normalized_expression?: string
+          ruleset_code?: string
+          ruleset_version?: string
+          source?: Json
+          system_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'user_roll_history_character_id_fkey'
+            columns: ['character_id']
+            isOneToOne: false
+            referencedRelation: 'characters'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'user_roll_history_system_id_fkey'
             columns: ['system_id']
             isOneToOne: false
             referencedRelation: 'systems'

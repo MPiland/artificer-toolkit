@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 export type MobileAppFooterMenuItem = {
+  dividerBefore?: boolean
   href: string
   id: string
   isActive?: boolean

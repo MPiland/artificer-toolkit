@@ -16,6 +16,7 @@ import {
   resolveAuthoredDetailState,
   toDetailItems,
   useAuthoredDetailActions,
+  useAuthoredExportAction,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
@@ -104,6 +105,13 @@ export function RaceDetailPage({
     draft?.publicId ?? response?.publicId ?? raceId,
     item.label
   )
+  const exportAction = useAuthoredExportAction({
+    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
+    id: raceId,
+    label: item.label,
+    subjectKind: 'RACE',
+    view: detailState.mode === 'draft' ? 'draft' : 'active'
+  })
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
       ? {
@@ -154,6 +162,7 @@ export function RaceDetailPage({
             })
         }
       : null,
+    exportAction,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/races/new' }) }
   ])
 

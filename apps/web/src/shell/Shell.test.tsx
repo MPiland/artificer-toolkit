@@ -82,6 +82,27 @@ describe('Shell', () => {
     )
   })
 
+  it('hides the Library importer unless its feature flag is enabled', async () => {
+    const navigation = [
+      { label: 'Workspace', items: [{ label: 'Home', href: '/home', icon: () => null }] }
+    ]
+    const { rerender } = renderWithAppProviders(
+      <Shell currentPath='/home' isAuthenticated navigation={navigation}>
+        <div>Page content</div>
+      </Shell>
+    )
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /library/i }))
+    expect(screen.queryByRole('menuitem', { name: 'Import' })).not.toBeInTheDocument()
+
+    rerender(
+      <Shell currentPath='/home' isAuthenticated libraryImportEnabled navigation={navigation}>
+        <div>Page content</div>
+      </Shell>
+    )
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /library/i }))
+    expect(await screen.findAllByRole('menuitem', { name: 'Import' })).toHaveLength(1)
+  })
+
   it('offers system, light, and dark themes before settings', async () => {
     renderShell('/home')
 

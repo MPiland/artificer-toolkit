@@ -22,6 +22,7 @@ import {
   resolveAuthoredDetailState,
   toDetailItems,
   useAuthoredDetailActions,
+  useAuthoredExportAction,
   type AuthoredDetailFact,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
@@ -114,6 +115,13 @@ export function VehicleDetailPage({
     draft?.publicId ?? response?.publicId ?? vehicleId,
     item.label
   )
+  const exportAction = useAuthoredExportAction({
+    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
+    id: vehicleId,
+    label: item.label,
+    subjectKind: 'VEHICLE',
+    view: detailState.mode === 'draft' ? 'draft' : 'active'
+  })
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
       ? {
@@ -168,6 +176,7 @@ export function VehicleDetailPage({
             })
         }
       : null,
+    exportAction,
     { label: 'Create New', tone: 'secondary', onClick: () => navigate({ to: '/vehicles/new' }) }
   ])
 

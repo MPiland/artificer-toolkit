@@ -36,6 +36,7 @@ function AuthedLayout() {
       currentHref={currentHref}
       currentPath={currentPath}
       isAuthenticated={Boolean(user)}
+      libraryImportEnabled={featureFlags?.libraryImportEnabled}
       publicSignUpEnabled={featureFlags?.publicSignUpEnabled}
       userEmail={user?.email}
     >

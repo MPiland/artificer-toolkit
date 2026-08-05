@@ -2,7 +2,7 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "env": ["PUBLIC_SIGN_UP_ENABLED"],
+      "env": ["LIBRARY_IMPORT_ENABLED", "PUBLIC_SIGN_UP_ENABLED"],
       "passThroughEnv": [
         "DATABASE_CONNECTION_STRING",
         "SENTRY_AUTH_TOKEN",

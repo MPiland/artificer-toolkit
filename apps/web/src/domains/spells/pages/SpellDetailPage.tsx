@@ -15,6 +15,7 @@ import {
   formatReferenceLabel,
   resolveAuthoredDetailState,
   useAuthoredDetailActions,
+  useAuthoredExportAction,
   type AuthoredDetailFact,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
@@ -135,6 +136,13 @@ export function SpellDetailPage({
     draft?.publicId ?? response?.publicId ?? spellId,
     item.label
   )
+  const exportAction = useAuthoredExportAction({
+    canExport: detailState.provenance.kind === 'OWNED' && detailState.permissions.canEdit,
+    id: spellId,
+    label: item.label,
+    subjectKind: 'SPELL',
+    view: detailState.mode === 'draft' ? 'draft' : 'active'
+  })
   const pageActions = compactAuthoredDetailActions([
     detailState.mode === 'draft'
       ? {
@@ -186,6 +194,7 @@ export function SpellDetailPage({
             })
         }
       : null,
+    exportAction,
     { label: 'Create New', tone: 'quiet', onClick: () => navigate({ to: '/spells/new' }) }
   ])
 

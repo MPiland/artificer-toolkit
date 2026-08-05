@@ -11,7 +11,7 @@ const response = {
     {
       id: 'race-1',
       publicId: 'race-1',
-      activeRevisionId: 'race-1-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: 'Elf',
       description: 'A graceful lineage.',
       status: 'ACTIVE',
@@ -25,7 +25,7 @@ const response = {
     {
       id: 'race-2',
       publicId: 'race-2',
-      activeRevisionId: 'race-2-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: 'Wood Elf Draft',
       description: null,
       status: 'DRAFT',
@@ -39,7 +39,7 @@ const response = {
     {
       id: 'race-3',
       publicId: 'race-3',
-      activeRevisionId: 'race-3-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: 'Human',
       description: 'A versatile people.',
       status: 'ACTIVE',

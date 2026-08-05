@@ -48,10 +48,7 @@ export const authoredDraftSummaryDtoSchema = z.object({
   castingTimeUnit: z.string().optional(),
   castingTimeAmount: z.number().int().optional(),
   draftState: authoredDraftStateDtoSchema,
-  revisionId: z.string(),
-  revisionNumber: z.number().int().positive(),
-  activeRevisionId: z.string().nullable(),
-  baseActiveRevisionId: z.string().nullable(),
+  baseActiveUpdatedAt: z.string().nullable(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional()
 })
@@ -91,7 +88,7 @@ const authoredContentListItemBaseDtoSchema = z
   .object({
     id: z.string(),
     publicId: z.string(),
-    activeRevisionId: z.string(),
+    activeUpdatedAt: z.string(),
     label: z.string(),
     status: authoredRecordStatusSchema,
     description: z.string().nullable().optional(),
@@ -158,7 +155,7 @@ const detailReferenceOptionDtoSchema = z.object({
 
 const detailResponseExtrasDtoSchema = <TSchema extends z.ZodTypeAny>(metaSchema: TSchema) =>
   z.object({
-    activeRevisionId: z.string().nullable(),
+    activeUpdatedAt: z.string().nullable(),
     hasDraft: z.boolean(),
     draft: authoredDraftDtoSchema.nullable().optional(),
     meta: metaSchema.optional(),
@@ -172,7 +169,7 @@ type AuthoredDetailResponseDtoSchema<
   z.ZodObject<{
     item: z.ZodNullable<TItemSchema>
     publicId: z.ZodString
-    activeRevisionId: z.ZodNullable<z.ZodString>
+    activeUpdatedAt: z.ZodNullable<z.ZodString>
     hasDraft: z.ZodBoolean
     provenance: typeof authoredContentProvenanceDtoSchema
     permissions: typeof authoredContentPermissionsDtoSchema

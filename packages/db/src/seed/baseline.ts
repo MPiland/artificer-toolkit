@@ -22,14 +22,8 @@ import {
   upsertSystem,
   upsertVehicle
 } from '../domains/index.js'
-import {
-  createAuthoredDefinitionRepository,
-  createAuthoredRouteIdRepository,
-  type AuthoredSubjectKind,
-  type SyncMasterAuthoredDefinitionInput
-} from '../repositories/index.js'
+import { createAuthoredRouteIdRepository } from '../repositories/index.js'
 import type { BaselineContentBundle } from '../source-data/content.js'
-import type { Json } from '../types/index.js'
 import { withTransaction } from '../utils/index.js'
 import type { SeedBaselineContent, SeedContext, SeedResult } from './contracts.js'
 
@@ -98,33 +92,6 @@ function getBaselineSubjectSets(bundle: BaselineContentBundle): BaselineSubjectS
       ids: bundle.subjects.vehicles.map((record) => record.id)
     }
   ]
-}
-
-function getMasterDefinitions(bundle: BaselineContentBundle): SyncMasterAuthoredDefinitionInput[] {
-  const definitions: Array<{
-    subjectKind: AuthoredSubjectKind
-    record: { id: string; label: string; systemId: string }
-  }> = [
-    ...bundle.subjects.backgrounds.map((record) => ({
-      subjectKind: 'BACKGROUND' as const,
-      record
-    })),
-    ...bundle.subjects.classes.map((record) => ({ subjectKind: 'CLASS' as const, record })),
-    ...bundle.subjects.creatures.map((record) => ({ subjectKind: 'CREATURE' as const, record })),
-    ...bundle.subjects.equipment.map((record) => ({ subjectKind: 'EQUIPMENT' as const, record })),
-    ...bundle.subjects.feats.map((record) => ({ subjectKind: 'FEAT' as const, record })),
-    ...bundle.subjects.races.map((record) => ({ subjectKind: 'RACE' as const, record })),
-    ...bundle.subjects.spells.map((record) => ({ subjectKind: 'SPELL' as const, record })),
-    ...bundle.subjects.vehicles.map((record) => ({ subjectKind: 'VEHICLE' as const, record }))
-  ]
-
-  return definitions.map(({ subjectKind, record }) => ({
-    subjectKind,
-    subjectId: record.id,
-    systemId: record.systemId,
-    label: record.label,
-    payload: JSON.parse(JSON.stringify(record)) as Json
-  }))
 }
 
 function getBaselineRouteSubjects(bundle: BaselineContentBundle) {
@@ -229,13 +196,6 @@ async function pruneStaleBaselineSubjects(
     await context.db
       .deleteFrom('authored_route_ids')
       .where('subject_kind', '=', subject.subjectKind)
-      .where('subject_id', 'in', subject.ids)
-      .execute()
-    await context.db
-      .deleteFrom('authored_definitions')
-      .where('system_id', '=', context.systemId)
-      .where('subject_kind', '=', subject.subjectKind)
-      .where('is_master', '=', true)
       .where('subject_id', 'in', subject.ids)
       .execute()
   }
@@ -404,7 +364,6 @@ const seedBaselineContentInTransaction: SeedBaselineContent = async (context, bu
     bundle.subjects.vehicles.map((record) => record.id)
   )
 
-  await createAuthoredDefinitionRepository(context.db).syncMasters(getMasterDefinitions(bundle))
   await seedBaselineSubjectRouteIds(context, getBaselineRouteSubjects(bundle))
 
   const result: SeedResult = {

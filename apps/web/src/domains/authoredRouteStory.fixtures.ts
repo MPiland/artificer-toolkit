@@ -943,7 +943,7 @@ function createResponse<TRecord extends AuthoredRouteStoryRecord>(
 
   return {
     publicId: record.label.toLowerCase().replaceAll(' ', '-'),
-    activeRevisionId: `${record.id}-active-revision`,
+    activeUpdatedAt: '2026-01-01T00:00:00.000Z',
     hasDraft: false,
     item: record,
     provenance: {
@@ -1017,10 +1017,7 @@ function createDraft<TDomain extends AuthoredFormDomain>(
     level,
     magicSchoolId,
     draftState: 'ACTIVE_WITH_DRAFT',
-    revisionId: `${record.id}-draft-revision`,
-    revisionNumber: 2,
-    activeRevisionId: `${record.id}-active-revision`,
-    baseActiveRevisionId: `${record.id}-active-revision`,
+    baseActiveUpdatedAt: '2026-01-01T00:00:00.000Z',
     createdAt: '2026-07-12T12:00:00.000Z',
     updatedAt: '2026-07-13T12:00:00.000Z',
     payload: {

@@ -13,7 +13,7 @@
 
 An application service validates/compiles an authored record, calls a repository/upsert with a `DBLike`, and receives persisted state. Transactional operations reuse an incoming Kysely transaction or open one at the outermost boundary. Aggregate upserts replace owned relation rows; reads hydrate them back into authored-shaped objects.
 
-The eight authored root domains have stable `authored_definitions` identities and immutable full-payload revisions. Normalized domain rows are active query projections. Projection replacement and revision promotion must share one transaction. Nested features, options, grants, and effects are owned by their root and are not independent revision roots.
+The eight authored root domain tables are the canonical active records. `authored_drafts` stores one JSON draft per subject identity: any number of new-item drafts may exist, while an active item may have only one edit draft. Activating a draft replaces the normalized active aggregate in the same transaction and removes the draft. Nested features, options, grants, and effects remain owned by their root and are not independent draft roots. `authored_import_refs` records exact user-scoped external identities for repeat imports without matching by label.
 
 `withUserContext` sets `request.jwt.claim.sub` inside a transaction before RLS-sensitive work. Node-runtime queries use a separate allow-listed query utility rather than accepting arbitrary table/column identifiers.
 

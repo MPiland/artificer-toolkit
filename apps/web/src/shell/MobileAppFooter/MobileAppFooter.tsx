@@ -1,6 +1,7 @@
 import { Menu, UnstyledButton } from '@mantine/core'
 import { Link } from '@tanstack/react-router'
 import clsx from 'clsx'
+import { Fragment } from 'react'
 import { MobileAppFooterIcon } from './MobileAppFooterIcon'
 import type { MobileAppFooterItem, MobileAppFooterProps } from './MobileAppFooter.types'
 import * as styles from './MobileAppFooter.css'
@@ -41,16 +42,18 @@ function MobileFooterItem({ item }: { item: MobileAppFooterItem }) {
       <Menu.Dropdown>
         {item.menuContent ??
           item.menuItems?.map((menuItem) => (
-            <Menu.Item
-              key={menuItem.id}
-              component={Link}
-              to={menuItem.href}
-              aria-current={menuItem.isActive ? 'page' : undefined}
-            >
-              <span className={styles.menuItemText}>
-                <span>{menuItem.label}</span>
-              </span>
-            </Menu.Item>
+            <Fragment key={menuItem.id}>
+              {menuItem.dividerBefore ? <Menu.Divider /> : null}
+              <Menu.Item
+                component={Link}
+                to={menuItem.href}
+                aria-current={menuItem.isActive ? 'page' : undefined}
+              >
+                <span className={styles.menuItemText}>
+                  <span>{menuItem.label}</span>
+                </span>
+              </Menu.Item>
+            </Fragment>
           ))}
       </Menu.Dropdown>
     </Menu>

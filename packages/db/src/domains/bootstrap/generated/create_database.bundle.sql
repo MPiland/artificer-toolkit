@@ -1260,39 +1260,25 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_terrains_system_code
 CREATE INDEX IF NOT EXISTS idx_terrains_system
   ON public.terrains(system_id);
 -- END INCLUDE: src\domains\subjects\tables\systems.sql
--- BEGIN INCLUDE: src\domains\subjects\tables\authored_definitions.sql
+-- BEGIN INCLUDE: src\domains\subjects\tables\authored_content.sql
 /* --------------------------------------------------
- * AUTHORED DEFINITIONS AND REVISIONS
- *
- * Canonical authored-content storage. A subject id is also its stable
- * definition id. Revisions hold complete authored snapshots; normalized
- * domain tables are derived query projections of the active revision.
- * -------------------------------------------------- */
-
-CREATE TABLE IF NOT EXISTS public.authored_definitions (
-  subject_id uuid PRIMARY KEY,
+* AUTHORED DRAFTS AND IMPORT REFERENCES
+*
+* Normalized domain root tables are canonical active content. This table
+* stores the one editable draft allowed for each authored root identity.
+* -------------------------------------------------- */
+CREATE TABLE IF NOT EXISTS public.authored_drafts (
   subject_kind text NOT NULL,
-
-  owner_user_id uuid
-    REFERENCES auth.users(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
-
+  subject_id uuid NOT NULL,
+  user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  system_id uuid NOT NULL REFERENCES public.systems (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
   label text NOT NULL,
-  is_master boolean NOT NULL DEFAULT false,
-  active_revision_id uuid,
-  draft_revision_id uuid,
-  next_revision_number integer NOT NULL DEFAULT 1,
-
+  payload jsonb NOT NULL,
+  base_active_updated_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-
-  CONSTRAINT authored_definitions_kind_chk CHECK (
+  PRIMARY KEY (subject_kind, subject_id),
+  CONSTRAINT authored_drafts_kind_chk CHECK (
     subject_kind IN (
       'BACKGROUND',
       'CLASS',
@@ -1304,179 +1290,213 @@ CREATE TABLE IF NOT EXISTS public.authored_definitions (
       'VEHICLE'
     )
   ),
-  CONSTRAINT authored_definitions_owner_chk CHECK (
-    (is_master AND owner_user_id IS NULL)
-    OR (NOT is_master AND owner_user_id IS NOT NULL)
-  ),
-  CONSTRAINT authored_definitions_revision_number_chk CHECK (next_revision_number > 0),
-  CONSTRAINT authored_definitions_subject_kind_unique UNIQUE (subject_id, subject_kind)
+  CONSTRAINT authored_drafts_label_chk CHECK (length(btrim(label)) > 0),
+  CONSTRAINT authored_drafts_payload_chk CHECK (jsonb_typeof(payload) = 'object')
 );
 
-CREATE TABLE IF NOT EXISTS public.authored_definition_revisions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  definition_id uuid NOT NULL
-    REFERENCES public.authored_definitions(subject_id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
-  revision_number integer NOT NULL,
-  payload jsonb NOT NULL,
-  base_active_revision_id uuid,
-  created_by_user_id uuid
-    REFERENCES auth.users(id)
-    ON DELETE SET NULL
-    DEFERRABLE INITIALLY DEFERRED,
+ALTER TABLE public.authored_drafts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own authored drafts" ON public.authored_drafts FOR
+SELECT
+  TO authenticated USING (
+    user_id = (
+      SELECT
+        auth.uid ()
+    )
+    OR (
+      (
+        SELECT
+          auth.jwt ()
+      )::jsonb -> 'app_metadata' ->> 'admin'
+    ) = 'true'
+  );
+
+CREATE POLICY "Users can insert own authored drafts" ON public.authored_drafts FOR INSERT TO authenticated
+WITH
+  CHECK (
+    user_id = (
+      SELECT
+        auth.uid ()
+    )
+    OR (
+      (
+        SELECT
+          auth.jwt ()
+      )::jsonb -> 'app_metadata' ->> 'admin'
+    ) = 'true'
+  );
+
+CREATE POLICY "Users can update own authored drafts" ON public.authored_drafts
+FOR UPDATE
+  TO authenticated USING (
+    user_id = (
+      SELECT
+        auth.uid ()
+    )
+    OR (
+      (
+        SELECT
+          auth.jwt ()
+      )::jsonb -> 'app_metadata' ->> 'admin'
+    ) = 'true'
+  )
+WITH
+  CHECK (
+    user_id = (
+      SELECT
+        auth.uid ()
+    )
+    OR (
+      (
+        SELECT
+          auth.jwt ()
+      )::jsonb -> 'app_metadata' ->> 'admin'
+    ) = 'true'
+  );
+
+CREATE POLICY "Users can delete own authored drafts" ON public.authored_drafts FOR DELETE TO authenticated USING (
+  user_id = (
+    SELECT
+      auth.uid ()
+  )
+  OR (
+    (
+      SELECT
+        auth.jwt ()
+    )::jsonb -> 'app_metadata' ->> 'admin'
+  ) = 'true'
+);
+
+CREATE INDEX IF NOT EXISTS idx_authored_drafts_user_updated ON public.authored_drafts (user_id, updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_authored_drafts_system ON public.authored_drafts (system_id);
+
+CREATE TABLE IF NOT EXISTS public.authored_import_refs (
+  user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  source text NOT NULL,
+  subject_kind text NOT NULL,
+  external_id text NOT NULL,
+  subject_id uuid NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-
-  CONSTRAINT authored_definition_revisions_number_chk CHECK (revision_number > 0),
-  CONSTRAINT authored_definition_revisions_definition_number_unique UNIQUE (
-    definition_id,
-    revision_number
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, source, subject_kind, external_id),
+  CONSTRAINT authored_import_refs_source_chk CHECK (
+    source IN ('DND_BEYOND', 'FOUNDRY_DND5E', 'ARTIFICER_JSON')
   ),
-  CONSTRAINT authored_definition_revisions_definition_id_unique UNIQUE (
-    definition_id,
-    id
+  CONSTRAINT authored_import_refs_kind_chk CHECK (
+    subject_kind IN (
+      'BACKGROUND',
+      'CHARACTER',
+      'CLASS',
+      'CREATURE',
+      'EQUIPMENT',
+      'FEAT',
+      'RACE',
+      'SPELL',
+      'VEHICLE'
+    )
   ),
-  CONSTRAINT authored_definition_revisions_base_revision_fk FOREIGN KEY (
-    definition_id,
-    base_active_revision_id
-  ) REFERENCES public.authored_definition_revisions(definition_id, id)
-    DEFERRABLE INITIALLY DEFERRED
+  CONSTRAINT authored_import_refs_external_id_chk CHECK (length(btrim(external_id)) > 0)
 );
 
-CREATE TABLE IF NOT EXISTS public.authored_definition_creation_rate_limits (
-  user_id uuid PRIMARY KEY
-    REFERENCES auth.users(id)
-    ON DELETE CASCADE,
+ALTER TABLE public.authored_import_refs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own authored import references" ON public.authored_import_refs FOR
+SELECT
+  TO authenticated USING (
+    user_id = (
+      SELECT
+        auth.uid ()
+    )
+    OR (
+      (
+        SELECT
+          auth.jwt ()
+      )::jsonb -> 'app_metadata' ->> 'admin'
+    ) = 'true'
+  );
+
+CREATE POLICY "Users can insert own authored import references" ON public.authored_import_refs FOR INSERT TO authenticated
+WITH
+  CHECK (
+    user_id = (
+      SELECT
+        auth.uid ()
+    )
+    OR (
+      (
+        SELECT
+          auth.jwt ()
+      )::jsonb -> 'app_metadata' ->> 'admin'
+    ) = 'true'
+  );
+
+CREATE POLICY "Users can update own authored import references" ON public.authored_import_refs
+FOR UPDATE
+  TO authenticated USING (
+    user_id = (
+      SELECT
+        auth.uid ()
+    )
+    OR (
+      (
+        SELECT
+          auth.jwt ()
+      )::jsonb -> 'app_metadata' ->> 'admin'
+    ) = 'true'
+  )
+WITH
+  CHECK (
+    user_id = (
+      SELECT
+        auth.uid ()
+    )
+    OR (
+      (
+        SELECT
+          auth.jwt ()
+      )::jsonb -> 'app_metadata' ->> 'admin'
+    ) = 'true'
+  );
+
+CREATE POLICY "Users can delete own authored import references" ON public.authored_import_refs FOR DELETE TO authenticated USING (
+  user_id = (
+    SELECT
+      auth.uid ()
+  )
+  OR (
+    (
+      SELECT
+        auth.jwt ()
+    )::jsonb -> 'app_metadata' ->> 'admin'
+  ) = 'true'
+);
+
+CREATE INDEX IF NOT EXISTS idx_authored_import_refs_subject ON public.authored_import_refs (user_id, subject_kind, subject_id);
+
+CREATE TABLE IF NOT EXISTS public.authored_creation_rate_limits (
+  user_id uuid PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
   minute_window_start timestamptz NOT NULL,
   minute_count smallint NOT NULL DEFAULT 0,
   hour_window_start timestamptz NOT NULL,
   hour_count smallint NOT NULL DEFAULT 0,
-
-  CONSTRAINT authored_definition_creation_rate_limits_minute_count_chk CHECK (
-    minute_count BETWEEN 0 AND 10
-  ),
-  CONSTRAINT authored_definition_creation_rate_limits_hour_count_chk CHECK (
-    hour_count BETWEEN 0 AND 100
-  )
+  CONSTRAINT authored_creation_rate_limits_minute_count_chk CHECK (minute_count BETWEEN 0 AND 25),
+  CONSTRAINT authored_creation_rate_limits_hour_count_chk CHECK (hour_count BETWEEN 0 AND 100)
 );
 
-ALTER TABLE public.authored_definition_creation_rate_limits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.authored_creation_rate_limits ENABLE ROW LEVEL SECURITY;
 
-REVOKE ALL ON TABLE public.authored_definition_creation_rate_limits
-  FROM anon, authenticated;
+REVOKE ALL ON TABLE public.authored_creation_rate_limits
+FROM
+  anon,
+  authenticated;
 
-ALTER TABLE public.authored_definitions
-  ADD CONSTRAINT authored_definitions_active_revision_fk FOREIGN KEY (
-    subject_id,
-    active_revision_id
-  ) REFERENCES public.authored_definition_revisions(definition_id, id)
-    DEFERRABLE INITIALLY DEFERRED;
-
-ALTER TABLE public.authored_definitions
-  ADD CONSTRAINT authored_definitions_draft_revision_fk FOREIGN KEY (
-    subject_id,
-    draft_revision_id
-  ) REFERENCES public.authored_definition_revisions(definition_id, id)
-    DEFERRABLE INITIALLY DEFERRED;
-
-ALTER TABLE public.authored_definitions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.authored_definition_revisions ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Definitions are readable by owner or public" ON public.authored_definitions;
-CREATE POLICY "Definitions are readable by owner or public"
-  ON public.authored_definitions FOR SELECT TO authenticated
-  USING (
-    is_master
-    OR owner_user_id = (SELECT auth.uid())
-    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
-  );
-
-DROP POLICY IF EXISTS "Users can insert own definitions" ON public.authored_definitions;
-CREATE POLICY "Users can insert own definitions"
-  ON public.authored_definitions FOR INSERT TO authenticated
-  WITH CHECK (
-    (NOT is_master AND owner_user_id = (SELECT auth.uid()))
-    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
-  );
-
-DROP POLICY IF EXISTS "Users can update own definitions" ON public.authored_definitions;
-CREATE POLICY "Users can update own definitions"
-  ON public.authored_definitions FOR UPDATE TO authenticated
-  USING (
-    owner_user_id = (SELECT auth.uid())
-    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
-  )
-  WITH CHECK (
-    owner_user_id = (SELECT auth.uid())
-    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
-  );
-
-DROP POLICY IF EXISTS "Users can delete own definitions" ON public.authored_definitions;
-CREATE POLICY "Users can delete own definitions"
-  ON public.authored_definitions FOR DELETE TO authenticated
-  USING (
-    owner_user_id = (SELECT auth.uid())
-    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
-  );
-
-DROP POLICY IF EXISTS "Definition revisions follow definition visibility" ON public.authored_definition_revisions;
-CREATE POLICY "Definition revisions follow definition visibility"
-  ON public.authored_definition_revisions FOR SELECT TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1
-      FROM public.authored_definitions definition
-      WHERE definition.subject_id = definition_id
-        AND (
-          definition.is_master
-          OR definition.owner_user_id = (SELECT auth.uid())
-          OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
-        )
-    )
-  );
-
-DROP POLICY IF EXISTS "Users can insert revisions for own definitions" ON public.authored_definition_revisions;
-CREATE POLICY "Users can insert revisions for own definitions"
-  ON public.authored_definition_revisions FOR INSERT TO authenticated
-  WITH CHECK (
-    EXISTS (
-      SELECT 1
-      FROM public.authored_definitions definition
-      WHERE definition.subject_id = definition_id
-        AND (
-          definition.owner_user_id = (SELECT auth.uid())
-          OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
-        )
-    )
-  );
-
-DROP POLICY IF EXISTS "Users can delete revisions for own definitions" ON public.authored_definition_revisions;
-CREATE POLICY "Users can delete revisions for own definitions"
-  ON public.authored_definition_revisions FOR DELETE TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1
-      FROM public.authored_definitions definition
-      WHERE definition.subject_id = definition_id
-        AND (
-          definition.owner_user_id = (SELECT auth.uid())
-          OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
-        )
-    )
-  );
-
-CREATE INDEX IF NOT EXISTS idx_authored_definitions_owner
-  ON public.authored_definitions(owner_user_id);
-
-CREATE INDEX IF NOT EXISTS idx_authored_definitions_system
-  ON public.authored_definitions(system_id);
-
-CREATE INDEX IF NOT EXISTS idx_authored_definitions_kind
-  ON public.authored_definitions(subject_kind);
-
-CREATE INDEX IF NOT EXISTS idx_authored_definition_revisions_definition
-  ON public.authored_definition_revisions(definition_id, revision_number DESC);
--- END INCLUDE: src\domains\subjects\tables\authored_definitions.sql
+REVOKE ALL ON TABLE public.authored_drafts,
+public.authored_import_refs
+FROM
+  anon,
+  authenticated;
+-- END INCLUDE: src\domains\subjects\tables\authored_content.sql
 -- BEGIN INCLUDE: src\domains\subjects\tables\character_builder_drafts.sql
 /* --------------------------------------------------------------------------
  * CHARACTER BUILDER DRAFTS
@@ -9701,6 +9721,186 @@ END;$$;
 
 ALTER TABLE IF EXISTS public.character_background_equipment_items ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\subjects\tables\characters.sql
+-- BEGIN INCLUDE: src\domains\subjects\tables\authored_route_ids.sql
+/* --------------------------------------------------
+* AUTHORED ROUTE IDENTITIES
+*
+* Stable, compact public identifiers for active roots and drafts.
+* Subject visibility remains derived from canonical active rows or drafts.
+* -------------------------------------------------- */
+CREATE OR REPLACE FUNCTION public.base36_encode (value bigint) RETURNS text LANGUAGE plpgsql IMMUTABLE STRICT
+SET
+  search_path = pg_catalog,
+  public AS $$
+DECLARE
+  alphabet constant text := '0123456789abcdefghijklmnopqrstuvwxyz';
+  remaining bigint := value;
+  encoded text := '';
+  digit integer;
+BEGIN
+  IF value < 0 THEN
+    RAISE EXCEPTION 'base36_encode only supports non-negative values';
+  END IF;
+
+  IF value = 0 THEN
+    RETURN '0';
+  END IF;
+
+  WHILE remaining > 0 LOOP
+    digit := (remaining % 36)::integer;
+    encoded := substr(alphabet, digit + 1, 1) || encoded;
+    remaining := remaining / 36;
+  END LOOP;
+
+  RETURN encoded;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.srd_authored_route_number (subject_id uuid) RETURNS bigint LANGUAGE plpgsql IMMUTABLE STRICT
+SET
+  search_path = pg_catalog,
+  public AS $$
+DECLARE
+  subject_text text := subject_id::text;
+  domain_hex text;
+  index_hex text;
+  domain_bytes bytea;
+  index_bytes bytea;
+  domain_code bigint;
+  subject_index bigint;
+BEGIN
+  IF subject_text !~ '^00000000-0000-0000-[0-9a-f]{4}-[0-9a-f]{4}00000000$' THEN
+    RETURN NULL;
+  END IF;
+
+  domain_hex := split_part(subject_text, '-', 4);
+  index_hex := left(split_part(subject_text, '-', 5), 4);
+  domain_bytes := decode(domain_hex, 'hex');
+  index_bytes := decode(index_hex, 'hex');
+  domain_code := get_byte(domain_bytes, 0) * 256 + get_byte(domain_bytes, 1);
+  subject_index := get_byte(index_bytes, 0) * 256 + get_byte(index_bytes, 1);
+
+  IF domain_code <= 0 OR subject_index <= 0 THEN
+    RETURN NULL;
+  END IF;
+
+  RETURN domain_code * 100000 + subject_index;
+END;
+$$;
+
+CREATE SEQUENCE IF NOT EXISTS public.authored_route_ids_route_number_seq AS bigint START
+WITH
+  1 INCREMENT BY 1 MINVALUE 1 NO CYCLE;
+
+CREATE TABLE IF NOT EXISTS public.authored_route_ids (
+  subject_kind text NOT NULL,
+  subject_id uuid NOT NULL,
+  route_number bigint NOT NULL DEFAULT nextval(
+    'public.authored_route_ids_route_number_seq'::regclass
+  ),
+  public_id text GENERATED ALWAYS AS (public.base36_encode (route_number)) STORED,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (subject_kind, subject_id),
+  CONSTRAINT authored_route_ids_subject_kind_chk CHECK (
+    subject_kind IN (
+      'BACKGROUND',
+      'CHARACTER',
+      'CLASS',
+      'CREATURE',
+      'EQUIPMENT',
+      'FEAT',
+      'RACE',
+      'SPELL',
+      'VEHICLE'
+    )
+  ),
+  CONSTRAINT authored_route_ids_route_number_chk CHECK (route_number > 0),
+  CONSTRAINT authored_route_ids_public_id_chk CHECK (public_id ~ '^[0-9a-z]+$'),
+  CONSTRAINT authored_route_ids_route_number_unique UNIQUE (route_number),
+  CONSTRAINT authored_route_ids_public_id_unique UNIQUE (public_id),
+  CONSTRAINT authored_route_ids_subject_public_id_unique UNIQUE (subject_kind, public_id)
+);
+
+ALTER SEQUENCE public.authored_route_ids_route_number_seq OWNED BY public.authored_route_ids.route_number;
+
+CREATE INDEX IF NOT EXISTS idx_authored_route_ids_public_id ON public.authored_route_ids (public_id);
+
+CREATE INDEX IF NOT EXISTS idx_authored_route_ids_subject_kind_public_id ON public.authored_route_ids (subject_kind, public_id);
+
+CREATE OR REPLACE FUNCTION public.can_access_authored_route_id (p_subject_kind text, p_subject_id uuid) RETURNS boolean LANGUAGE sql STABLE
+SET
+  search_path = public,
+  pg_catalog AS $$
+  SELECT
+    (SELECT auth.uid()) IS NOT NULL
+    AND (
+      ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+      OR EXISTS (
+        SELECT 1
+        FROM public.authored_drafts draft
+        WHERE draft.subject_kind = p_subject_kind
+          AND draft.subject_id = p_subject_id
+          AND draft.user_id = (SELECT auth.uid())
+      )
+      OR (
+        p_subject_kind = 'CHARACTER'
+        AND (
+          EXISTS (
+            SELECT 1
+            FROM public.characters c
+            WHERE c.id = p_subject_id
+              AND c.user_id = (SELECT auth.uid())
+          )
+          OR EXISTS (
+            SELECT 1
+            FROM public.character_builder_drafts draft
+            WHERE draft.character_id = p_subject_id
+              AND draft.user_id = (SELECT auth.uid())
+          )
+        )
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM (
+          SELECT 'BACKGROUND'::text AS subject_kind, id, user_id, system_id, is_master
+          FROM public.backgrounds WHERE status = 'ACTIVE'
+          UNION ALL
+          SELECT 'CLASS', id, user_id, system_id, is_master
+          FROM public.classes WHERE status = 'ACTIVE'
+          UNION ALL
+          SELECT 'CREATURE', id, user_id, system_id, is_master
+          FROM public.creatures WHERE status = 'ACTIVE'
+          UNION ALL
+          SELECT 'EQUIPMENT', id, user_id, system_id, is_master
+          FROM public.equipment WHERE status = 'ACTIVE'
+          UNION ALL
+          SELECT 'FEAT', id, user_id, system_id, is_master
+          FROM public.feats WHERE status = 'ACTIVE'
+          UNION ALL
+          SELECT 'RACE', id, user_id, system_id, is_master
+          FROM public.races WHERE status = 'ACTIVE'
+          UNION ALL
+          SELECT 'SPELL', id, user_id, system_id, is_master
+          FROM public.spells WHERE status = 'ACTIVE'
+          UNION ALL
+          SELECT 'VEHICLE', id, user_id, system_id, is_master
+          FROM public.vehicles WHERE status = 'ACTIVE'
+        ) root
+        JOIN public.systems s ON s.id = root.system_id
+        WHERE root.subject_kind = p_subject_kind
+          AND root.id = p_subject_id
+          AND (
+            root.is_master = true
+            OR root.user_id = (SELECT auth.uid())
+            OR s.user_id = (SELECT auth.uid())
+          )
+      )
+    );
+$$;
+
+ALTER TABLE public.authored_route_ids ENABLE ROW LEVEL SECURITY;
+-- END INCLUDE: src\domains\subjects\tables\authored_route_ids.sql
 -- BEGIN INCLUDE: src\domains\subjects\tables\user_roll_history.sql
 CREATE TABLE IF NOT EXISTS public.user_roll_history (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -11205,7 +11405,7 @@ BEGIN
     WHERE n.nspname = 'public'
       AND c.relkind = 'r'
       AND c.relrowsecurity = true
-      AND c.relname <> 'authored_definition_creation_rate_limits'
+      AND c.relname <> 'authored_creation_rate_limits'
   LOOP
     EXECUTE format(
       'DROP POLICY IF EXISTS %I ON %I.%I',

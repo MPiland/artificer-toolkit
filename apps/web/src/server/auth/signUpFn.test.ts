@@ -42,7 +42,10 @@ describe('signUpFn', () => {
   }
 
   function configureEnabledSignUp() {
-    mocks.getApplicationFeatureFlags.mockReturnValue({ publicSignUpEnabled: true })
+    mocks.getApplicationFeatureFlags.mockReturnValue({
+      libraryImportEnabled: false,
+      publicSignUpEnabled: true
+    })
     mocks.getBlockedAuthRequest.mockReturnValue(null)
     mocks.getRequestUrl.mockReturnValue(new URL('https://app.example.test/sign-up'))
     mocks.getSupabaseServerClient.mockReturnValue({
@@ -55,7 +58,10 @@ describe('signUpFn', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('rejects public registration before calling Supabase when disabled', async () => {
-    mocks.getApplicationFeatureFlags.mockReturnValue({ publicSignUpEnabled: false })
+    mocks.getApplicationFeatureFlags.mockReturnValue({
+      libraryImportEnabled: false,
+      publicSignUpEnabled: false
+    })
     mocks.getBlockedAuthRequest.mockReturnValue(null)
 
     await expect(signUpFn({ data: input })).resolves.toEqual({

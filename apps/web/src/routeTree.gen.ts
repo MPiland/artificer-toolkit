@@ -41,6 +41,7 @@ import { Route as AuthedSettingsPreferencesRouteImport } from './routes/_authed/
 import { Route as AuthedSettingsAccountRouteImport } from './routes/_authed/settings/account'
 import { Route as AuthedRacesNewRouteImport } from './routes/_authed/races/new'
 import { Route as AuthedRacesRacePublicIdRouteImport } from './routes/_authed/races/$racePublicId'
+import { Route as AuthedLibraryImportRouteImport } from './routes/_authed/library/import'
 import { Route as AuthedFeatsNewRouteImport } from './routes/_authed/feats/new'
 import { Route as AuthedFeatsFeatPublicIdRouteImport } from './routes/_authed/feats/$featPublicId'
 import { Route as AuthedEquipmentNewRouteImport } from './routes/_authed/equipment/new'
@@ -244,6 +245,11 @@ const AuthedRacesNewRoute = AuthedRacesNewRouteImport.update({
 const AuthedRacesRacePublicIdRoute = AuthedRacesRacePublicIdRouteImport.update({
   id: '/races/$racePublicId',
   path: '/races/$racePublicId',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedLibraryImportRoute = AuthedLibraryImportRouteImport.update({
+  id: '/library/import',
+  path: '/library/import',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedFeatsNewRoute = AuthedFeatsNewRouteImport.update({
@@ -521,6 +527,7 @@ export interface FileRoutesByFullPath {
   '/equipment/new': typeof AuthedEquipmentNewRoute
   '/feats/$featPublicId': typeof AuthedFeatsFeatPublicIdRouteWithChildren
   '/feats/new': typeof AuthedFeatsNewRoute
+  '/library/import': typeof AuthedLibraryImportRoute
   '/races/$racePublicId': typeof AuthedRacesRacePublicIdRouteWithChildren
   '/races/new': typeof AuthedRacesNewRoute
   '/settings/account': typeof AuthedSettingsAccountRoute
@@ -595,6 +602,7 @@ export interface FileRoutesByTo {
   '/equipment/new': typeof AuthedEquipmentNewRoute
   '/feats/$featPublicId': typeof AuthedFeatsFeatPublicIdRouteWithChildren
   '/feats/new': typeof AuthedFeatsNewRoute
+  '/library/import': typeof AuthedLibraryImportRoute
   '/races/$racePublicId': typeof AuthedRacesRacePublicIdRouteWithChildren
   '/races/new': typeof AuthedRacesNewRoute
   '/settings/account': typeof AuthedSettingsAccountRoute
@@ -669,6 +677,7 @@ export interface FileRoutesById {
   '/_authed/equipment/new': typeof AuthedEquipmentNewRoute
   '/_authed/feats/$featPublicId': typeof AuthedFeatsFeatPublicIdRouteWithChildren
   '/_authed/feats/new': typeof AuthedFeatsNewRoute
+  '/_authed/library/import': typeof AuthedLibraryImportRoute
   '/_authed/races/$racePublicId': typeof AuthedRacesRacePublicIdRouteWithChildren
   '/_authed/races/new': typeof AuthedRacesNewRoute
   '/_authed/settings/account': typeof AuthedSettingsAccountRoute
@@ -746,6 +755,7 @@ export interface FileRouteTypes {
     | '/equipment/new'
     | '/feats/$featPublicId'
     | '/feats/new'
+    | '/library/import'
     | '/races/$racePublicId'
     | '/races/new'
     | '/settings/account'
@@ -820,6 +830,7 @@ export interface FileRouteTypes {
     | '/equipment/new'
     | '/feats/$featPublicId'
     | '/feats/new'
+    | '/library/import'
     | '/races/$racePublicId'
     | '/races/new'
     | '/settings/account'
@@ -893,6 +904,7 @@ export interface FileRouteTypes {
     | '/_authed/equipment/new'
     | '/_authed/feats/$featPublicId'
     | '/_authed/feats/new'
+    | '/_authed/library/import'
     | '/_authed/races/$racePublicId'
     | '/_authed/races/new'
     | '/_authed/settings/account'
@@ -1183,6 +1195,13 @@ declare module '@tanstack/react-router' {
       path: '/races/$racePublicId'
       fullPath: '/races/$racePublicId'
       preLoaderRoute: typeof AuthedRacesRacePublicIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/library/import': {
+      id: '/_authed/library/import'
+      path: '/library/import'
+      fullPath: '/library/import'
+      preLoaderRoute: typeof AuthedLibraryImportRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/feats/new': {
@@ -1785,6 +1804,7 @@ interface AuthedRouteChildren {
   AuthedEquipmentNewRoute: typeof AuthedEquipmentNewRoute
   AuthedFeatsFeatPublicIdRoute: typeof AuthedFeatsFeatPublicIdRouteWithChildren
   AuthedFeatsNewRoute: typeof AuthedFeatsNewRoute
+  AuthedLibraryImportRoute: typeof AuthedLibraryImportRoute
   AuthedRacesRacePublicIdRoute: typeof AuthedRacesRacePublicIdRouteWithChildren
   AuthedRacesNewRoute: typeof AuthedRacesNewRoute
   AuthedSpellsSpellPublicIdRoute: typeof AuthedSpellsSpellPublicIdRouteWithChildren
@@ -1823,6 +1843,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedEquipmentNewRoute: AuthedEquipmentNewRoute,
   AuthedFeatsFeatPublicIdRoute: AuthedFeatsFeatPublicIdRouteWithChildren,
   AuthedFeatsNewRoute: AuthedFeatsNewRoute,
+  AuthedLibraryImportRoute: AuthedLibraryImportRoute,
   AuthedRacesRacePublicIdRoute: AuthedRacesRacePublicIdRouteWithChildren,
   AuthedRacesNewRoute: AuthedRacesNewRoute,
   AuthedSpellsSpellPublicIdRoute: AuthedSpellsSpellPublicIdRouteWithChildren,
@@ -1887,13 +1908,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

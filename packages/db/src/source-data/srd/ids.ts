@@ -95,7 +95,8 @@ export const FEAT_IDS = {
 export const EQUIPMENT_IDS = [
   ...Array.from({ length: 188 }, (_, index) => subjectId('0060', index + 1)),
   ...Array.from({ length: 111 }, (_, index) => subjectId('0060', index + 192)),
-  ...Array.from({ length: 59 }, (_, index) => subjectId('0060', index + 306))
+  ...Array.from({ length: 59 }, (_, index) => subjectId('0060', index + 306)),
+  ...Array.from({ length: 8 }, (_, index) => subjectId('0060', index + 372))
 ] as const
 
 // ─── Spells (domain 0020) ─────────────────────────────────────────────────────

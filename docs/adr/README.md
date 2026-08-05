@@ -12,18 +12,19 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 
 ## Index
 
-| ADR                                                       | Decision                                                              | Status   |
-| --------------------------------------------------------- | --------------------------------------------------------------------- | -------- |
-| [0001](0001-package-boundaries.md)                        | Package dependency direction and the `apps/apis` product-data seam    | decision |
-| [0002](0002-kysely-writes-authored-hydration.md)          | Kysely-owned application writes and authored-shaped hydration         | decision |
-| [0003](0003-vocabulary-authored-compiled-engine-data.md)  | Separate vocabulary, authored, compiled, persistence, and engine data | decision |
-| [0004](0004-backend-resolved-node-maps.md)                | Authoring Schemas are backend-resolved structure                      | decision |
-| [0005](0005-pure-rules-system-engine.md)                  | Pure, deterministic D&D 5e-family engine with injected rules policy   | decision |
-| [0006](0006-character-builder-sheet-boundary.md)          | Character Builder/Sheet are distinct from Authoring Schema authoring  | decision |
-| [0007](0007-authored-revisions-and-active-projections.md) | Immutable root revisions and normalized active projections            | decision |
-| [0008](0008-ruleset-identity-and-content-binding.md)      | Explicit ruleset identity and content revision binding                | decision |
-| [0009](0009-vtt-encounter-event-boundary.md)              | VTT encounter events remain separate from character Sheet history     | decision |
-| [0010](0010-platform-neutral-design-system.md)            | Portable semantics with platform-owned presentation adapters          | decision |
+| ADR                                                       | Decision                                                              | Status     |
+| --------------------------------------------------------- | --------------------------------------------------------------------- | ---------- |
+| [0001](0001-package-boundaries.md)                        | Package dependency direction and the `apps/apis` product-data seam    | decision   |
+| [0002](0002-kysely-writes-authored-hydration.md)          | Kysely-owned application writes and authored-shaped hydration         | decision   |
+| [0003](0003-vocabulary-authored-compiled-engine-data.md)  | Separate vocabulary, authored, compiled, persistence, and engine data | decision   |
+| [0004](0004-backend-resolved-node-maps.md)                | Authoring Schemas are backend-resolved structure                      | decision   |
+| [0005](0005-pure-rules-system-engine.md)                  | Pure, deterministic D&D 5e-family engine with injected rules policy   | decision   |
+| [0006](0006-character-builder-sheet-boundary.md)          | Character Builder/Sheet are distinct from Authoring Schema authoring  | decision   |
+| [0007](0007-authored-revisions-and-active-projections.md) | Immutable root revisions and normalized active projections            | historical |
+| [0008](0008-ruleset-identity-and-content-binding.md)      | Explicit ruleset identity and active content binding                  | decision   |
+| [0009](0009-vtt-encounter-event-boundary.md)              | VTT encounter events remain separate from character Sheet history     | decision   |
+| [0010](0010-platform-neutral-design-system.md)            | Portable semantics with platform-owned presentation adapters          | decision   |
+| [0011](0011-active-authored-content-and-json-drafts.md)   | Canonical active authored content with JSON drafts                    | decision   |
 
 ## Updating an ADR
 

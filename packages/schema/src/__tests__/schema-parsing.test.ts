@@ -204,10 +204,7 @@ describe('schema package parsing', () => {
       userId: 'user-1',
       status: 'DRAFT',
       draftState: 'DRAFT_ONLY',
-      revisionId: 'revision-1',
-      revisionNumber: 1,
-      activeRevisionId: null,
-      baseActiveRevisionId: null,
+      baseActiveUpdatedAt: null,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z'
     })
@@ -2314,7 +2311,7 @@ describe('schema package parsing', () => {
         {
           id: 'acolyte',
           publicId: 'acolyte',
-          activeRevisionId: 'acolyte-revision-1',
+          activeUpdatedAt: '2026-01-01T00:00:00.000Z',
           label: 'Acolyte',
           description: 'Temple-trained background.',
           status: 'ACTIVE',
@@ -2340,7 +2337,7 @@ describe('schema package parsing', () => {
 
     const spell = spellResponseDtoSchema.parse({
       publicId: 'magic-missile',
-      activeRevisionId: 'magic-missile-revision-1',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       hasDraft: false,
       item: {
         kind: 'SPELL',
@@ -2371,7 +2368,7 @@ describe('schema package parsing', () => {
 
     const draftOnlySpell = spellResponseDtoSchema.parse({
       publicId: 'draft-spell',
-      activeRevisionId: null,
+      activeUpdatedAt: null,
       hasDraft: true,
       item: null,
       draft: {
@@ -2383,10 +2380,7 @@ describe('schema package parsing', () => {
         label: 'Broken Draft Spell',
         status: 'DRAFT',
         draftState: 'DRAFT_ONLY',
-        revisionId: 'revision-1',
-        revisionNumber: 1,
-        activeRevisionId: null,
-        baseActiveRevisionId: null,
+        baseActiveUpdatedAt: null,
         payload: {}
       },
       provenance: {

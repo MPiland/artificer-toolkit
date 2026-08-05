@@ -42,7 +42,7 @@ Every authenticated procedure uses `authenticatedProcedure`, then `withAuthentic
 
 Inputs and outputs come from `packages/schema/src/api/**` and subject/grant contracts. Do not create route-local DTOs when a reusable schema is missing; add it to schema and reuse it.
 
-Authored detail responses may include structured draft validation issues (`code`, `message`, and nested `path`) when a saved JSON draft cannot be parsed. The web may use those paths for repair navigation while preserving the existing invalid-draft discard fallback. These diagnostics describe boundary parsing; they do not replace node-runtime progress or compiler validation.
+Authored detail responses may include structured draft validation issues (`code`, `message`, and nested `path`) when a saved JSON draft cannot be parsed. The web may use those paths for repair navigation while preserving the existing invalid-draft discard fallback. Detail lifecycle metadata uses active and draft timestamps rather than immutable revision IDs. These diagnostics describe boundary parsing; they do not replace node-runtime progress or compiler validation.
 
 Authored `saveDraft`, `activateDraft`, and `activate` input failures also expose those structured issues through the tRPC error shape. The formatter is intentionally restricted to the eight authored-domain mutation paths and known validation error codes; unrelated and internal errors remain opaque. The web retains the issues on `ApiError`, routes each path to the deepest owning authoring target, and clears only issues related to a field the author changes.
 
@@ -54,9 +54,15 @@ The browser may know route names and DTOs, but it must not bypass the router to 
 
 ## Authored-domain orchestration
 
-The eight authored-domain procedures share functions-owned list/detail/draft/activate/duplicate use cases. The tRPC router supplies authentication, schemas, and the domain configuration only. Readable detail uses one access-controlled selected-revision lookup for the requested active or draft view, validates that canonical payload with the domain schema, and resolves only requested display labels within the same API request. Active detail responses expose `hasDraft` without loading the draft payload; the full draft is returned only for an explicit draft view or its invalid-draft recovery response. Nested features, options, grants, and effects are saved through their owning root payload; they do not have competing product endpoints.
+The eight authored-domain procedures share functions-owned list/detail/draft/activate/duplicate use cases. The tRPC router supplies authentication, schemas, and the domain configuration only. Active detail hydrates the canonical domain aggregate; draft detail reads and validates the separate JSON payload. Active detail responses expose `hasDraft` without loading the draft payload; the full draft is returned only for an explicit draft view or its invalid-draft recovery response. Nested features, options, grants, and effects are saved through their owning root payload; they do not have competing product endpoints.
 
-Duplicating authored content is a deep fork of that owned aggregate. The root and every nested entity identity are regenerated, references to identities owned by the copied graph are remapped to the corresponding replacements, and references to external canonical records remain unchanged. A copied draft must therefore have no mutable object or owned UUID identity in common with its source, and later revisions to either aggregate cannot affect the other.
+Duplicating authored content is a deep fork of that owned aggregate. The root and every nested entity identity are regenerated, references to identities owned by the copied graph are remapped to the corresponding replacements, and references to external canonical records remain unchanged. A copied draft must therefore have no mutable object or owned UUID identity in common with its source, and later edits to either aggregate cannot affect the other.
+
+## Import and portable export
+
+Authenticated `/api/imports/preview` and `/api/imports/commit` handlers accept the versioned import contracts from `packages/schema`. They sit outside the 1 MiB tRPC JSON limit because a batch may contain up to 25 MiB of source files, but they retain the same-origin, authentication, size, schema, ownership, and error boundaries. Preview is stateless and performs no writes; commit reparses the original batch and applies only the selected entries plus their explicit collision resolutions transactionally. Deselected entries are reported as skipped.
+
+D&D Beyond inputs are ordinary character-sheet URLs. The server extracts the numeric ID and fetches only the allowlisted public character endpoint without forwarding browser credentials. Foundry and Artificer inputs are JSON text. Portable export is limited to an owned active item or its draft and omits ownership, timestamps, and internal lifecycle metadata.
 
 The client interface is manually created in `apps/web/src/lib/api.ts`, so procedure renames require updating both router and client usage until generated inference replaces that mirror.
 

@@ -90,7 +90,7 @@ export const equipmentListResponseFixture: EquipmentListResponseDto = {
     {
       id: masterEquipmentFixture.id,
       publicId: masterEquipmentFixture.id,
-      activeRevisionId: 'master-equipment-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: masterEquipmentFixture.label,
       description: masterEquipmentFixture.description,
       status: 'ACTIVE',
@@ -111,7 +111,7 @@ export const equipmentListResponseFixture: EquipmentListResponseDto = {
     {
       id: ownedVariantEquipmentFixture.id,
       publicId: ownedVariantEquipmentFixture.id,
-      activeRevisionId: 'owned-variant-equipment-active-revision',
+      activeUpdatedAt: '2026-01-01T00:00:00.000Z',
       label: ownedVariantEquipmentFixture.label,
       description: ownedVariantEquipmentFixture.description,
       status: 'DRAFT',
@@ -136,7 +136,7 @@ export const equipmentListResponseFixture: EquipmentListResponseDto = {
 
 export const ownedEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
   publicId: ownedEquipmentFixture.id,
-  activeRevisionId: 'owned-equipment-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: ownedEquipmentFixture,
   provenance: {
@@ -153,7 +153,7 @@ export const ownedEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = 
 
 export const ownedVariantEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
   publicId: ownedVariantEquipmentFixture.id,
-  activeRevisionId: 'owned-variant-equipment-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: ownedVariantEquipmentFixture,
   provenance: {
@@ -170,7 +170,7 @@ export const ownedVariantEquipmentResponseFixture: NonNullable<EquipmentResponse
 
 export const masterEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {
   publicId: masterEquipmentFixture.id,
-  activeRevisionId: 'master-equipment-active-revision',
+  activeUpdatedAt: '2026-01-01T00:00:00.000Z',
   hasDraft: false,
   item: masterEquipmentFixture,
   provenance: {

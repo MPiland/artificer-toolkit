@@ -38,15 +38,15 @@ System-owned reusable dictionary data—skills, senses, languages, damage types,
 
 The human-authorable contract for content. It uses meaningful domain shapes, keeps parent ownership explicit, and avoids exposing normalized join-table details. Features, grants, effects, outcomes, subjects, and character intent/state are authored objects or authored aggregates.
 
-The revisioned authored roots are Background, Class, Creature, Equipment, Feat, Race, Spell, and Vehicle. Features, feature options, grants, effects, outcomes, details, and other child records are owned parts of those aggregates, not independent revisioned products.
+The active authored roots are Background, Class, Creature, Equipment, Feat, Race, Spell, and Vehicle. Features, feature options, grants, effects, outcomes, details, and other child records are owned parts of those aggregates, not independent products.
 
-### Authored definition and revision
+### Authored draft
 
-An authored definition is the stable identity, ownership, system, and active/draft pointers for one revisioned authored root. An authored revision is an immutable, complete payload for that definition. A draft replaces the definition's prior draft revision; activation promotes that exact revision.
+A complete JSON payload for a new authored root or an edit of an active root. A user may own many new-item drafts, while an active root has at most one edit draft. An edit draft records the active root timestamp on which editing began so activation can reject stale replacements.
 
-### Active projection
+### Active authored aggregate
 
-The normalized subject, feature, grant, effect, and link rows hydrated by repositories. These rows are a query projection of the active authored revision, not an independent source of truth. Projection replacement and revision promotion occur in the same transaction.
+The canonical normalized root, feature, grant, effect, and link rows hydrated by repositories. Activation validates a draft, replaces the aggregate, and removes the draft in one transaction.
 
 ### Compiled object
 
@@ -115,7 +115,7 @@ The engine-facing snapshot assembled from authored character intent/state and co
 
 ### Content reference
 
-A stable authored-definition ID plus a revision-binding policy. Current structural character selections store stable definition IDs and resolve them against `ACTIVE` content. Equipment engine inputs additionally carry an explicit `ContentRef` with system ID and `ACTIVE` binding. Persisted `REVISION` pinning across character selections is target work and requires DTO, persistence, registry-loading, and snapshot changes.
+A stable authored root ID plus a binding policy. Current structural character selections store stable root IDs and resolve them against `ACTIVE` content. Equipment engine inputs additionally carry an explicit `ContentRef` with system ID and `ACTIVE` binding. Historical revision pinning is unsupported because authored revision history is not retained.
 
 ### Character assembly registry
 
@@ -140,7 +140,7 @@ A future VTT-scoped immutable fact about an encounter, actor, action, target, ro
 - `packages/functions` owns use-case orchestration; `packages/db` owns persistence adapters.
 - SQL defines schema/bootstrap; Kysely owns application writes.
 - Repositories expose authored-shaped interfaces and enforce persistence invariants behind their seam.
-- Immutable authored revisions are canonical; normalized domain rows are replaceable active projections.
+- Normalized domain aggregates are canonical active authored content; JSON drafts are replaceable staging records.
 - The eight authored root domains own their nested features, options, grants, effects, and outcomes.
 - Node maps define reusable authored-content structure; character Builder and Sheet remain domain-specific modules.
 - Master/seeded records are locked from direct UI editing but copyable into owned drafts.
