@@ -9,6 +9,7 @@ export const selectionModalContent = style({
       borderRadius: '12px',
       display: 'flex',
       flexDirection: 'column',
+      fontFamily: foundationVars.font.sans,
       height: 'calc(100dvh - 48px)',
       maxHeight: 'calc(100dvh - 48px)',
       maxWidth: '1200px',
@@ -55,8 +56,12 @@ export const selectionModalTitle = style({
   '@layer': {
     [app]: {
       color: foundationVars.color.text.primary,
-      fontSize: '1.5rem',
-      fontWeight: 750
+      fontFamily: foundationVars.font.display,
+      fontSize: foundationVars.typography.heading.fontSize,
+      fontWeight: foundationVars.typography.heading.fontWeight,
+      letterSpacing: foundationVars.typography.heading.letterSpacing,
+      lineHeight: foundationVars.typography.heading.lineHeight,
+      textWrap: 'balance'
     }
   }
 })
@@ -103,6 +108,20 @@ export const selectionModalIntro = style({
   }
 })
 
+export const selectionModalDescription = style({
+  '@layer': {
+    [app]: {
+      fontSize: foundationVars.typography.body.fontSize,
+      fontWeight: foundationVars.typography.body.fontWeight,
+      letterSpacing: '0.005em',
+      lineHeight: '1.55',
+      margin: 0,
+      maxWidth: '65ch',
+      textWrap: 'pretty'
+    }
+  }
+})
+
 export const selectionModalScroller = style({
   '@layer': {
     [app]: {
@@ -134,10 +153,13 @@ export const selectionGroup = style({
 export const selectionGroupTitle = style({
   '@layer': {
     [app]: {
-      color: foundationVars.color.text.primary,
-      fontSize: '1.1rem',
-      fontWeight: 750,
-      margin: 0
+      color: foundationVars.color.text.secondary,
+      fontSize: foundationVars.typography.bodySm.fontSize,
+      fontWeight: foundationVars.fontWeight.bold,
+      letterSpacing: '-0.01em',
+      lineHeight: foundationVars.typography.bodySm.lineHeight,
+      margin: 0,
+      textWrap: 'balance'
     }
   }
 })
@@ -164,14 +186,18 @@ export const selectionCard = style({
       border: `1px solid ${foundationVars.color.border.subtle}`,
       borderRadius: '12px',
       color: foundationVars.color.text.primary,
+      cursor: 'pointer',
       display: 'grid',
-      gap: '12px',
+      gap: '14px',
       padding: '20px',
       textAlign: 'left',
       transition: 'border-color 160ms ease-out, background-color 160ms ease-out',
       selectors: {
-        '&:hover': {
+        '&:not([data-disabled]):hover': {
           borderColor: foundationVars.color.border.strong
+        },
+        '&[data-disabled]': {
+          cursor: 'not-allowed'
         }
       },
       '@media': {
@@ -244,9 +270,11 @@ export const selectionCardTitleText = style({
   '@layer': {
     [app]: {
       color: foundationVars.color.text.primary,
-      fontSize: '1.125rem',
-      fontWeight: 750,
-      lineHeight: 1.25,
+      fontFamily: foundationVars.font.display,
+      fontSize: '1.0625rem',
+      fontWeight: foundationVars.fontWeight.bold,
+      letterSpacing: '-0.01em',
+      lineHeight: 1.3,
       textWrap: 'balance'
     }
   }
@@ -257,7 +285,7 @@ export const selectionCardBody = style({
     [app]: {
       cursor: 'pointer',
       display: 'grid',
-      gap: '12px'
+      gap: '14px'
     }
   }
 })
@@ -280,10 +308,12 @@ export const selectionCardDescription = style({
     [app]: {
       color: foundationVars.color.text.secondary,
       display: 'block',
-      fontSize: '1rem',
+      fontSize: '0.9375rem',
+      fontWeight: foundationVars.fontWeight.regular,
+      letterSpacing: '0.005em',
       lineHeight: 1.55,
       maxHeight: '4.65em',
-      maxWidth: '68ch',
+      maxWidth: '60ch',
       overflow: 'hidden',
       textWrap: 'pretty'
     }
@@ -295,8 +325,8 @@ export const selectionCardDetails = style({
     [app]: {
       display: 'grid',
       borderTop: `1px solid ${foundationVars.color.border.subtle}`,
-      gap: '8px',
-      paddingTop: '12px',
+      gap: '10px',
+      paddingTop: '14px',
       margin: 0
     }
   }
@@ -306,9 +336,10 @@ export const selectionCardPrimaryDetails = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gap: '10px',
+      gap: '16px',
       gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-      margin: 0
+      margin: 0,
+      paddingBlock: '2px'
     }
   }
 })
@@ -316,11 +347,9 @@ export const selectionCardPrimaryDetails = style({
 export const selectionCardPrimaryDetail = style({
   '@layer': {
     [app]: {
-      background: foundationVars.color.surface.subtle,
-      borderRadius: foundationVars.radius.md,
       display: 'grid',
-      gap: '2px',
-      padding: '10px 12px'
+      gap: '4px',
+      minWidth: 0
     }
   }
 })
@@ -329,10 +358,13 @@ export const selectionCardPrimaryValue = style({
   '@layer': {
     [app]: {
       color: foundationVars.color.text.primary,
-      fontSize: '1.125rem',
-      fontWeight: 750,
+      fontSize: foundationVars.typography.body.fontSize,
+      fontVariantNumeric: 'tabular-nums',
+      fontWeight: foundationVars.fontWeight.semibold,
+      letterSpacing: '-0.01em',
       lineHeight: 1.35,
-      margin: 0
+      margin: 0,
+      textWrap: 'balance'
     }
   }
 })
@@ -341,8 +373,9 @@ export const selectionCardDetail = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gap: '4px',
-      gridTemplateColumns: 'minmax(90px, 0.35fr) minmax(0, 1fr)'
+      columnGap: '16px',
+      gridTemplateColumns: 'minmax(88px, 0.3fr) minmax(0, 1fr)',
+      rowGap: '4px'
     }
   }
 })
@@ -350,9 +383,11 @@ export const selectionCardDetail = style({
 export const selectionCardDetailLabel = style({
   '@layer': {
     [app]: {
-      color: foundationVars.color.text.muted,
-      fontSize: '0.75rem',
-      fontWeight: 700
+      color: foundationVars.color.text.secondary,
+      fontSize: foundationVars.typography.label.fontSize,
+      fontWeight: foundationVars.typography.label.fontWeight,
+      letterSpacing: '0.01em',
+      lineHeight: foundationVars.typography.label.lineHeight
     }
   }
 })
@@ -362,8 +397,11 @@ export const selectionCardDetailValue = style({
     [app]: {
       color: foundationVars.color.text.primary,
       fontSize: '0.9375rem',
-      lineHeight: 1.45,
-      margin: 0
+      fontWeight: foundationVars.fontWeight.regular,
+      letterSpacing: '0.005em',
+      lineHeight: 1.5,
+      margin: 0,
+      textWrap: 'pretty'
     }
   }
 })
@@ -400,7 +438,7 @@ globalStyle(`${selectionCardPrimaryDetail}:only-child`, {
   gridColumn: '1 / -1'
 })
 
-globalStyle(`${selectionCardRadio}:focus-visible ~ ${selectionCardHeader}`, {
+globalStyle(`${selectionCard}:has(${selectionCardRadio}:focus-visible)`, {
   outline: `2px solid ${foundationVars.color.input.border.focus}`,
   outlineOffset: '6px'
 })

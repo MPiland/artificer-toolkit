@@ -29,6 +29,9 @@ describe('character play-state persistence schema', () => {
   const creatureOriginMigration = read(
     'supabase/migrations/20260727090000_character_creature_origin_kind.sql'
   )
+  const startingGoldFormulaMigration = read(
+    'supabase/migrations/20260806010000_character_starting_gold_formula.sql'
+  )
 
   it.each([
     ['canonical character tables', characterTables],
@@ -65,6 +68,23 @@ describe('character play-state persistence schema', () => {
     ['generated bootstrap bundle', generatedBundle]
   ])('includes spell state in the %s class-spell identity', (_label, sql) => {
     expect(sql).toContain('PRIMARY KEY (character_id, class_id, spell_id, state)')
+  })
+
+  it.each([
+    ['canonical character tables', characterTables],
+    ['generated bootstrap bundle', generatedBundle]
+  ])('stores the starting-gold dice formula as text in %s', (_label, sql) => {
+    expect(sql).toContain('gold_option text')
+    expect(sql).not.toContain('gold_option uuid')
+  })
+
+  it('migrates the starting-gold dice formula without discarding existing values', () => {
+    expect(startingGoldFormulaMigration).toContain(
+      'DROP CONSTRAINT IF EXISTS character_class_equipment_session_gold_option_fkey'
+    )
+    expect(startingGoldFormulaMigration).toContain(
+      'ALTER COLUMN gold_option TYPE text USING gold_option::text'
+    )
   })
 
   it('upgrades existing class-spell identities without rewriting spell selections', () => {

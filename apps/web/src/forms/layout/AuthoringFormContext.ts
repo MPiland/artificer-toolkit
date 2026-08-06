@@ -26,7 +26,7 @@ import type { AuthoringNavigationNode, AuthoringNavigationTarget } from './autho
 export type AuthoringFormMode = 'create' | 'view' | 'edit'
 
 export type AuthoringFormAction = () => Promise<void> | void
-export type AuthoringFormValuesAction = (values: object) => Promise<void> | void
+export type AuthoringFormValuesAction = (values: object) => Promise<boolean | void> | void
 
 export type AuthoringFormActionHandlers = {
   onActivate?: AuthoringFormAction

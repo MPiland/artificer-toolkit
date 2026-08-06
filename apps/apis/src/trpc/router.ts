@@ -23,6 +23,8 @@ import {
   duplicateAuthoredDomain,
   discardRollForUser,
   executeDiceConfiguration,
+  attachImage,
+  createImageUploadIntent,
   getAuthoredDomain,
   getAuthoredDomainDraft,
   getCharacterBuilderDraftForUser,
@@ -33,6 +35,9 @@ import {
   getRollHistoryForUser,
   listAuthoredDomain,
   listCharactersForUser,
+  finalizeImageUpload,
+  getImage,
+  removeImage,
   executeRollForUser,
   normalizeNodeRuntimeValues,
   previewCharacterRestForUser,
@@ -47,6 +52,16 @@ import {
 } from '@artificer-toolkit/functions'
 import { createSupabaseClient } from '@artificer-toolkit/functions/clients'
 import { authInvitationCompletionInputSchema } from '@artificer-toolkit/schema/api/auth'
+import {
+  attachImageInputSchema,
+  createImageUploadIntentInputSchema,
+  createImageUploadIntentOutputSchema,
+  finalizeImageUploadInputSchema,
+  finalizeImageUploadOutputSchema,
+  imageLookupInputSchema,
+  removeImageInputSchema,
+  signedImageDeliveryDtoSchema
+} from '@artificer-toolkit/schema/api/media'
 import {
   executeDiceConfigurationInputDtoSchema,
   executeRollInputDtoSchema,
@@ -143,9 +158,7 @@ import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits
 import { applicationFeatureFlagsDtoSchema } from '@artificer-toolkit/schema/api/applicationConfig'
 import {
   accountProfileDtoSchema,
-  accountProfileUpdateInputSchema,
-  accountUsernameStatusDtoSchema,
-  accountUsernameStatusInputSchema
+  accountProfileUpdateInputSchema
 } from '@artificer-toolkit/schema/api/account'
 import {
   systemListResponseDtoSchema,
@@ -205,6 +218,12 @@ function nextProcedureCount(path: string): number {
 
 const authenticatedProcedure = t.procedure.use(async ({ ctx, next, path, type }) => {
   requireUserId(ctx)
+  if (ctx.invitationSetupPending) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Complete account setup before using product data.'
+    })
+  }
 
   const startedAt = Date.now()
   const result = await next({ ctx })
@@ -232,8 +251,6 @@ const idInputSchema = z.object({
 const okResponseSchema = z.object({
   ok: z.literal(true)
 })
-
-const invitationUsernameMetadataKey = 'pending_profile_username'
 
 const characterDraftProcedureInputSchema = z.object({
   id: z.string().min(1),
@@ -370,39 +387,11 @@ export const appRouter = createTRPCRouter({
   }),
 
   account: createTRPCRouter({
-    completeInvitation: authenticatedProcedure
+    completeInvitation: t.procedure
       .input(authInvitationCompletionInputSchema)
       .output(okResponseSchema)
       .mutation(async ({ ctx, input }) => {
-        const validation = validateUsername(input.username)
-        if (validation.message) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: USERNAME_NOT_ALLOWED_MESSAGE
-          })
-        }
-
         const userId = requireUserId(ctx)
-        const hasProfile = await withAuthenticatedDb(ctx, async (db, authenticatedUserId) =>
-          Boolean(await createAccountProfileRepository(db).findForUser(authenticatedUserId))
-        )
-        const usernameTaken = await withDb(ctx, (db) =>
-          createAccountProfileRepository(db).isUsernameTaken(validation.username)
-        )
-
-        if (hasProfile) {
-          throw new TRPCError({
-            code: 'CONFLICT',
-            message: 'Registration is already complete.'
-          })
-        }
-        if (usernameTaken) {
-          throw new TRPCError({
-            code: 'CONFLICT',
-            message: 'That username is already taken.'
-          })
-        }
-
         const supabase = createSupabaseClient()
         const { data: authUser, error: authUserError } =
           await supabase.auth.admin.getUserById(userId)
@@ -417,36 +406,17 @@ export const appRouter = createTRPCRouter({
           password: input.password,
           app_metadata: {
             ...authUser.user.app_metadata,
-            [invitationUsernameMetadataKey]: validation.username
+            registration_completed: true
           }
         })
         if (error) {
-          const usernameTakenAfterFailure = await withDb(ctx, (db) =>
-            createAccountProfileRepository(db).isUsernameTaken(validation.username)
-          )
           throw new TRPCError({
-            code: usernameTakenAfterFailure ? 'CONFLICT' : 'BAD_REQUEST',
-            message: usernameTakenAfterFailure ? 'That username is already taken.' : error.message
+            code: 'BAD_REQUEST',
+            message: error.message
           })
         }
 
         return { ok: true as const }
-      }),
-
-    usernameStatus: t.procedure
-      .input(accountUsernameStatusInputSchema)
-      .output(accountUsernameStatusDtoSchema)
-      .query(({ ctx, input }) => {
-        const validation = validateUsername(input.username)
-        if (validation.message) {
-          return { status: 'not_allowed' as const }
-        }
-
-        return withDb(ctx, async (db) => ({
-          status: (await createAccountProfileRepository(db).isUsernameTaken(validation.username))
-            ? ('taken' as const)
-            : ('available' as const)
-        }))
       }),
 
     profile: authenticatedProcedure
@@ -463,8 +433,8 @@ export const appRouter = createTRPCRouter({
       .input(accountProfileUpdateInputSchema)
       .output(accountProfileDtoSchema)
       .mutation(({ ctx, input }) => {
-        const validation = validateUsername(input.username)
-        if (validation.message) {
+        const username = input.username === null ? null : validateUsername(input.username)
+        if (username?.message) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message: USERNAME_NOT_ALLOWED_MESSAGE
@@ -475,11 +445,50 @@ export const appRouter = createTRPCRouter({
           accountProfileDtoSchema.parse(
             await createAccountProfileRepository(db).upsertForUser(userId, {
               ...input,
-              username: validation.username
+              username: username?.username ?? null
             })
           )
         )
       })
+  }),
+
+  media: createTRPCRouter({
+    createImageUpload: authenticatedProcedure
+      .input(createImageUploadIntentInputSchema)
+      .output(createImageUploadIntentOutputSchema)
+      .mutation(({ ctx, input }) => {
+        const userId = requireUserId(ctx)
+        return withDb(ctx, (db) => createImageUploadIntent(db, userId, input))
+      }),
+    finalizeImageUpload: authenticatedProcedure
+      .input(finalizeImageUploadInputSchema)
+      .output(finalizeImageUploadOutputSchema)
+      .mutation(({ ctx, input }) => {
+        const userId = requireUserId(ctx)
+        return withDb(ctx, (db) => finalizeImageUpload(db, userId, input.assetId))
+      }),
+    attachImage: authenticatedProcedure
+      .input(attachImageInputSchema)
+      .output(okResponseSchema)
+      .mutation(async ({ ctx, input }) => {
+        const userId = requireUserId(ctx)
+        await withDb(ctx, (db) => attachImage(db, userId, input))
+        return { ok: true as const }
+      }),
+    removeImage: authenticatedProcedure
+      .input(removeImageInputSchema)
+      .output(okResponseSchema)
+      .mutation(async ({ ctx, input }) => {
+        const userId = requireUserId(ctx)
+        await withDb(ctx, (db) => removeImage(db, userId, input))
+        return { ok: true as const }
+      }),
+    getImage: authenticatedProcedure
+      .input(imageLookupInputSchema)
+      .output(signedImageDeliveryDtoSchema.nullable())
+      .query(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, (db, userId) => getImage(db, userId, input))
+      )
   }),
 
   routeIds: createTRPCRouter({

@@ -53,17 +53,9 @@ export const deleteAccountFn = createServerFn({ method: 'POST' })
       }
     }
 
-    const { error: signOutError } = await sessionClient.auth.signOut({ scope: 'global' })
-    if (signOutError) {
-      return {
-        error: true,
-        message: 'Unable to revoke active sessions. Try again.'
-      }
-    }
-
     const { error: deleteError } = await getSupabaseAdminClient().auth.admin.deleteUser(user.id)
     if (deleteError) {
-      console.error('Account deletion failed after session revocation.', deleteError)
+      console.error('Account deletion failed.', deleteError)
       return {
         error: true,
         message: 'Could not delete your account. Try again.'

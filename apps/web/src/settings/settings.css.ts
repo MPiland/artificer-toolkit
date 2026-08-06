@@ -323,6 +323,20 @@ export const formActions = style({
   }
 })
 
+export const avatarSetting = style({
+  '@layer': {
+    [app]: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: foundationVars.space[4],
+      paddingBlockEnd: foundationVars.space[4],
+      borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`,
+      '@media': { [compact]: { alignItems: 'flex-start', flexDirection: 'column' } }
+    }
+  }
+})
+
 export const settingRow = style({
   '@layer': {
     [app]: {

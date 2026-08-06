@@ -364,7 +364,45 @@ describe('character Builder conditional spell registry loading', () => {
 
   it('hydrates unselected catalog records for chooser comparison metadata', async () => {
     const selectedRace = createRace('human')
-    const unselectedRace = { ...createRace('tiefling'), description: 'Infernal bloodline.' }
+    const unselectedRace = {
+      ...createRace('dragonborn', [
+        {
+          id: 'dragonborn-ability-score-increase',
+          label: 'Ability Score Increase',
+          description: 'Strength increases by 2 and Charisma increases by 1.',
+          availableAtLevel: 1,
+          order: 0,
+          grants: {
+            modifiers: [
+              {
+                id: 'dragonborn-strength-plus-two',
+                grantKind: GRANT_KIND.MODIFIER_GRANT,
+                valueDomainCode: 'ABILITY_SCORE',
+                domain: { ability: 'STRENGTH' },
+                modifierKind: 'BONUS',
+                scope: 'GLOBAL',
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                payload: { valueKind: 'FIXED', amount: 2 },
+                order: 0
+              },
+              {
+                id: 'dragonborn-charisma-plus-one',
+                grantKind: GRANT_KIND.MODIFIER_GRANT,
+                valueDomainCode: 'ABILITY_SCORE',
+                domain: { ability: 'CHARISMA' },
+                modifierKind: 'BONUS',
+                scope: 'GLOBAL',
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                payload: { valueKind: 'FIXED', amount: 1 },
+                order: 1
+              }
+            ]
+          }
+        }
+      ]),
+      label: 'Dragonborn',
+      description: 'Draconic heritage.'
+    }
     const selectedClass = createFighter()
     const unselectedClass = {
       ...createCleric(),
@@ -440,12 +478,31 @@ describe('character Builder conditional spell registry loading', () => {
       'create'
     )
 
+    expect(repositoryCalls.raceFindResolvedAll).toHaveBeenCalledWith({
+      systemId: 'system-1',
+      includeFeatureEffects: false
+    })
+    expect(repositoryCalls.classFindByIds).toHaveBeenCalledWith(
+      [selectedClass.id, unselectedClass.id],
+      {
+        systemId: 'system-1',
+        allowedFeatureIds: new Set(),
+        includeFeatureEffects: false
+      }
+    )
+    expect(repositoryCalls.backgroundFindByIds).toHaveBeenCalledWith(
+      [unselectedBackground.id],
+      { systemId: 'system-1', includeFeatureEffects: false }
+    )
     expect(resolution.registry.races.map((race) => race.id)).toEqual([selectedRace.id])
     expect(resolution.catalog.races.find((race) => race.id === unselectedRace.id)).toMatchObject({
-      description: 'Infernal bloodline.',
+      description: 'Draconic heritage.',
       sizeLabel: 'Medium',
       speedLabels: [],
-      abilityScoreIncreaseDescriptions: []
+      abilityScoreIncreaseFacts: [
+        { label: 'Strength', value: '+2' },
+        { label: 'Charisma', value: '+1' }
+      ]
     })
     expect(
       resolution.catalog.classes.find((record) => record.id === unselectedClass.id)

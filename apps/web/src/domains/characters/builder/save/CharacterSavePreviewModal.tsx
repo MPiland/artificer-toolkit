@@ -1,6 +1,5 @@
 import { Button, Group, List, Modal, Stack, Text } from '@mantine/core'
 import type { CharacterBuilderPreviewPayloadDto } from '@artificer-toolkit/schema/api/characters'
-import * as sharedStyles from '../shared/builderShared.css'
 import * as styles from './characterBuilderSave.css'
 
 export function CharacterSavePreviewModal({
@@ -28,19 +27,14 @@ export function CharacterSavePreviewModal({
       onClose={onClose}
     >
       <Stack gap='md'>
-        <Text>
-          Finalizing writes the normalized character record. The existing active version stays
-          unchanged unless this commit succeeds.
-        </Text>
+        <Text>Finalize this character to make it ready to play. You can edit it again later.</Text>
         {preview?.preview.summaryLines.length ? (
           <List spacing='xs'>
             {preview.preview.summaryLines.map((line) => (
               <List.Item key={line}>{line}</List.Item>
             ))}
           </List>
-        ) : (
-          <Text className={sharedStyles.mutedText}>No destructive changes were predicted.</Text>
-        )}
+        ) : null}
         <Group justify='flex-end'>
           <Button
             className={styles.modalActionButton}

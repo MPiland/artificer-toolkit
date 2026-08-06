@@ -43,6 +43,11 @@ export const queryKeys = {
     history: () => ['rolls', 'history'] as const
   },
 
+  routeIds: {
+    resolve: (subjectKind: string, publicId: string) =>
+      ['route-ids', 'resolve', subjectKind, publicId.toLowerCase()] as const
+  },
+
   content: {
     referenceData: (systemId: string) => ['content', 'reference-data', systemId] as const,
     backgrounds: {

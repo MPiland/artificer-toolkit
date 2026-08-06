@@ -1,4 +1,5 @@
 import type { CharacterSheetPanelDto } from '#app/lib/api'
+import type { MediaImageTarget } from '#app/components/MediaImage'
 
 type AbilityPanel = Extract<CharacterSheetPanelDto, { kind: 'ABILITY' }>
 type SavingThrowPanel = Extract<CharacterSheetPanelDto, { kind: 'SAVING_THROW' }>
@@ -54,5 +55,32 @@ export function getPanelStateLabel(
       return 'Adjusted'
     case 'OVERRIDDEN':
       return 'Overridden'
+  }
+}
+
+export function getCharacterSheetPanelImageTarget(
+  panel: CharacterSheetPanelDto
+): MediaImageTarget | null {
+  const subject = (() => {
+    switch (panel.kind) {
+      case 'SPELL':
+        return { subjectKind: 'SPELL' as const, subjectId: panel.spellId }
+      case 'ITEM':
+        return { subjectKind: 'EQUIPMENT' as const, subjectId: panel.equipmentId }
+      case 'BACKGROUND':
+        return { subjectKind: 'BACKGROUND' as const, subjectId: panel.backgroundId }
+      case 'COMPANION':
+        return { subjectKind: 'CREATURE' as const, subjectId: panel.creatureId }
+      case 'VEHICLE':
+        return { subjectKind: 'VEHICLE' as const, subjectId: panel.vehicleId }
+      default:
+        return null
+    }
+  })()
+
+  if (!subject) return null
+  return {
+    lookup: { type: 'AUTHORED_IMAGE', ...subject, scope: 'ACTIVE' },
+    attach: { type: 'AUTHORED_IMAGE', ...subject }
   }
 }

@@ -8,7 +8,6 @@ import {
   Select,
   Stack,
   Text,
-  Textarea,
   TextInput
 } from '@mantine/core'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
@@ -17,6 +16,7 @@ import { GuidedSimpleEffectComposer } from './GuidedSimpleEffectComposer'
 import { rehydrateGuidedSpell } from './guidedSimpleEffect.rehydrate'
 import type { GuidedEffectIds } from './guidedSimpleEffect.types'
 import * as styles from './guidedAuthoring.css'
+import RichTextEditor from '#ui/primitives/RichTextEditor'
 
 const USAGE_OPTIONS = [
   { value: 'TRAIT', label: 'Passive' },
@@ -130,14 +130,12 @@ export function GuidedFeatureAccordion({
                         updateFeature(feature.id, { label: event.currentTarget.value })
                       }
                     />
-                    <Textarea
-                      label='What does it do?'
-                      description='Keep the player-facing explanation concise.'
-                      minRows={3}
+                    <RichTextEditor
+                      label='Description'
+                      name={`feature-${feature.id}-description`}
+                      placeholder='Describe what this feature does.'
                       value={feature.description}
-                      onChange={(event) =>
-                        updateFeature(feature.id, { description: event.currentTarget.value })
-                      }
+                      onChange={(description) => updateFeature(feature.id, { description })}
                     />
                     <div className={styles.fields}>
                       {showAvailableLevel ? (

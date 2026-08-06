@@ -58,7 +58,9 @@ const EMPTY_STEP_STATUSES = {}
 const EMPTY_STEP_WARNINGS = {}
 const EMPTY_OPERATION_CONFIG: AuthoredFormSession['operations'] = {
   activate: async () => undefined,
-  saveDraft: async () => ({ publicId: '' })
+  saveDraft: async () => {
+    throw new Error('No authored form session is registered.')
+  }
 }
 const EMPTY_DELETE_CONFIG = {
   deleteActive: async () => undefined,
@@ -329,10 +331,9 @@ export function AuthoringFormProvider({
       draftMutation: saveDraftMutation,
       messages: authoredSession.actionFactory.messages,
       notifier: notifications,
-      readOnly: authoredSession.readOnly,
-      router
+      readOnly: authoredSession.readOnly
     })
-  }, [authoredSession, navigateWithoutBlock, router, saveDraftMutation])
+  }, [authoredSession, navigateWithoutBlock, saveDraftMutation])
   const registerDomain = useCallback(
     (registration: AuthoredFormDomain | AuthoringDomainRegistration) => {
       setSession((current) => {
@@ -444,7 +445,7 @@ export function AuthoringFormProvider({
   const saveDraftValues = useCallback(
     async (values: object) => {
       if (!authoredSession || !saveDraftAction) return
-      await saveDraftAction(authoredSession.normalizeForSubmit(values))
+      return saveDraftAction(authoredSession.normalizeForSubmit(values))
     },
     [authoredSession, saveDraftAction]
   )
@@ -779,7 +780,7 @@ export function AuthoringFormProvider({
     visibleSteps
   ])
   const saveDraft = useCallback(() => {
-    void actionsRef.current.onSaveDraft?.()
+    return actionsRef.current.onSaveDraft?.()
   }, [])
   const contextSession = useMemo<AuthoringFormSessionState>(
     () => ({

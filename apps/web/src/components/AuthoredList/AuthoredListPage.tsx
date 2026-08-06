@@ -25,6 +25,7 @@ import ITrash from '#assets/icons/ITrash'
 import { PageHeader } from '#app/shell'
 import { AppSelect } from '#ui/primitives/Select'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
+import { richHtmlToPlainText } from '#ui/primitives/renderSanitizedRichHtml'
 import type {
   AuthoredListAttributeColumn,
   AuthoredListAttributeValue,
@@ -734,6 +735,7 @@ function AuthoredListCard({
     : (item.description ?? 'Summary not set')
   const primaryAttributeInHeader = primaryAttribute?.key === 'level'
   const sourceChipClass = item.sourceKind === 'master' ? styles.masterSourceChip : styles.sourceChip
+  const description = richHtmlToPlainText(item.description ?? '') || 'No description yet.'
   const handleView = () => {
     if (item.permissions.canView) {
       onView?.(item)
@@ -789,7 +791,7 @@ function AuthoredListCard({
         {primaryAttribute && !primaryAttributeInHeader ? (
           <span className={styles.levelBadge}>{primaryLabel}</span>
         ) : null}
-        <span className={styles.cardFeatureText}>{item.description ?? 'No description yet.'}</span>
+        <span className={styles.cardFeatureText}>{description}</span>
       </div>
       <div className={styles.cardFooter} onClick={(event) => event.stopPropagation()}>
         <span className={styles.cardFooterMeta}>

@@ -183,6 +183,15 @@ export function EquipmentDetailPage({
       <AuthoredDetailLayout
         actions={pageActions}
         actionsDisabled={actions.isDetailOperationPending}
+        artworkTarget={{
+          lookup: {
+            type: 'AUTHORED_IMAGE',
+            subjectKind: 'EQUIPMENT',
+            subjectId: equipmentId,
+            scope: detailState.mode === 'draft' ? 'DRAFT' : 'ACTIVE'
+          },
+          attach: { type: 'AUTHORED_IMAGE', subjectKind: 'EQUIPMENT', subjectId: equipmentId }
+        }}
         eyebrow='Equipment'
         facts={getEquipmentFacts(item, references)}
         notice={buildAuthoredDetailNotice({

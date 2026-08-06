@@ -171,6 +171,15 @@ export function RaceDetailPage({
       <AuthoredDetailLayout
         actions={pageActions}
         actionsDisabled={actions.isDetailOperationPending}
+        artworkTarget={{
+          lookup: {
+            type: 'AUTHORED_IMAGE',
+            subjectKind: 'RACE',
+            subjectId: raceId,
+            scope: detailState.mode === 'draft' ? 'DRAFT' : 'ACTIVE'
+          },
+          attach: { type: 'AUTHORED_IMAGE', subjectKind: 'RACE', subjectId: raceId }
+        }}
         eyebrow='Race'
         facts={[]}
         notice={buildAuthoredDetailNotice({

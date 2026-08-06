@@ -220,6 +220,7 @@ describe('CharacterSheetRollPresentation', () => {
     const roll = createRoll('roll-settled')
 
     render(<CharacterSheetRollPresentation onRollRevealed={rollRevealed} roll={roll} />)
+    const canvas = await screen.findByTestId('dice-canvas')
 
     expect(screen.queryByText('Rolled 14')).not.toBeInTheDocument()
     expect(rollRevealed).not.toHaveBeenCalled()
@@ -227,6 +228,7 @@ describe('CharacterSheetRollPresentation', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Finish roll' }))
 
     expect(screen.getByText('Rolled 14')).toBeInTheDocument()
+    expect(canvas).toHaveTextContent('idle')
     expect(rollRevealed).toHaveBeenCalledOnce()
     expect(rollRevealed).toHaveBeenCalledWith(roll.id)
   })

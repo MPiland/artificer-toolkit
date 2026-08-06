@@ -59,32 +59,27 @@ const discardRollForUser = vi.hoisted(() => vi.fn(async () => ({ ok: true as con
 
 const accountProfileRepository = vi.hoisted(() => ({
   findForUser: vi.fn(
-    async (): Promise<{ username: string; name: string | null; bio: string | null } | null> => ({
+    async (): Promise<{ username: string | null; name: string | null; bio: string | null } | null> => ({
       username: 'morgan',
       name: 'Morgan',
       bio: 'Forge keeper.'
     })
   ),
-  isUsernameTaken: vi.fn(async (username: string) => username === 'taken_name'),
   upsertForUser: vi.fn(
     async (
       _userId: string,
-      profile: { username: string; name: string | null; bio: string | null }
+      profile: { username: string | null; name: string | null; bio: string | null }
     ) => profile
   )
 }))
-const getAuthUserById = vi.hoisted(() =>
-  vi.fn(async () => ({
-    data: {
-      user: {
-        app_metadata: { provider: 'email', providers: ['email'] }
-      }
-    },
-    error: null
-  }))
-)
 const updateAuthUserById = vi.hoisted(() =>
   vi.fn(async () => ({ data: { user: {} }, error: null }))
+)
+const getAuthUserById = vi.hoisted(() =>
+  vi.fn(async () => ({
+    data: { user: { app_metadata: { provider: 'email' } } },
+    error: null
+  }))
 )
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => ({
@@ -138,13 +133,22 @@ vi.mock('./dbContext.js', async (importOriginal) => {
 import { appRouter } from './router.js'
 import { handleTrpcFetchRequest } from './handler.js'
 
+const authenticatedContext = {
+  invitationSetupPending: false,
+  userId: 'user-1'
+} satisfies TrpcContext
+const unauthenticatedContext = {
+  invitationSetupPending: false,
+  userId: null
+} satisfies TrpcContext
+
 describe('tRPC router auth', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it('exposes only safe application feature flags without authentication', async () => {
-    const caller = appRouter.createCaller({ userId: null })
+    const caller = appRouter.createCaller(unauthenticatedContext)
 
     await expect(caller.application.featureFlags()).resolves.toEqual({
       libraryImportEnabled: expect.any(Boolean),
@@ -152,28 +156,11 @@ describe('tRPC router auth', () => {
     })
   })
 
-  it('checks username policy and availability without exposing profile data', async () => {
-    const caller = appRouter.createCaller({ userId: null })
-
-    await expect(caller.account.usernameStatus({ username: 'open_name' })).resolves.toEqual({
-      status: 'available'
-    })
-    await expect(caller.account.usernameStatus({ username: 'taken_name' })).resolves.toEqual({
-      status: 'taken'
-    })
-    await expect(caller.account.usernameStatus({ username: 'admin' })).resolves.toEqual({
-      status: 'not_allowed'
-    })
-    expect(accountProfileRepository.isUsernameTaken).toHaveBeenCalledTimes(2)
-  })
-
-  it('completes an invitation through trusted app metadata after enforcing username policy', async () => {
-    const caller = appRouter.createCaller({ userId: 'user-1' })
-    accountProfileRepository.findForUser.mockResolvedValueOnce(null)
+  it('completes an invitation without requiring a username', async () => {
+    const caller = appRouter.createCaller(authenticatedContext)
 
     await expect(
       caller.account.completeInvitation({
-        username: 'Morgan_Emberfall',
         password: 'new-password-123'
       })
     ).resolves.toEqual({ ok: true })
@@ -182,33 +169,30 @@ describe('tRPC router auth', () => {
       password: 'new-password-123',
       app_metadata: {
         provider: 'email',
-        providers: ['email'],
-        pending_profile_username: 'Morgan_Emberfall'
+        registration_completed: true
       }
     })
   })
 
-  it('rejects moderated invitation usernames before updating the auth user', async () => {
-    const caller = appRouter.createCaller({ userId: 'user-1' })
+  it('blocks product APIs until an invited user completes password setup', async () => {
+    const caller = appRouter.createCaller({
+      invitationSetupPending: true,
+      userId: 'user-1'
+    })
 
+    await expect(caller.systems.list()).rejects.toMatchObject({ code: 'FORBIDDEN' })
     await expect(
-      caller.account.completeInvitation({
-        username: 'admin',
-        password: 'new-password-123'
-      })
-    ).rejects.toMatchObject({ code: 'BAD_REQUEST', message: "That username isn't allowed." })
-
-    expect(updateAuthUserById).not.toHaveBeenCalled()
+      caller.account.completeInvitation({ password: 'new-password-123' })
+    ).resolves.toEqual({ ok: true })
   })
 
   it('requires server-side auth context for product data procedures', async () => {
-    const caller = appRouter.createCaller({ userId: null })
+    const caller = appRouter.createCaller(unauthenticatedContext)
 
     await expect(caller.systems.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.account.profile()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(
       caller.account.completeInvitation({
-        username: 'player_one',
         password: 'new-password-123'
       })
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
@@ -249,7 +233,7 @@ describe('tRPC router auth', () => {
   })
 
   it('executes authorized rolls and reads account-wide history', async () => {
-    const caller = appRouter.createCaller({ userId: 'user-1' })
+    const caller = appRouter.createCaller(authenticatedContext)
     const input = {
       characterId: 'character-1',
       expression: '1d20 + 4',
@@ -271,7 +255,7 @@ describe('tRPC router auth', () => {
   })
 
   it('executes standalone dice configurations for authenticated Builder use', async () => {
-    const caller = appRouter.createCaller({ userId: 'user-1' })
+    const caller = appRouter.createCaller(authenticatedContext)
 
     await expect(
       caller.rolls.executeConfiguration({ configuration: '4d6dl1r1' })
@@ -280,7 +264,7 @@ describe('tRPC router auth', () => {
   })
 
   it('reads and updates only the authenticated user profile', async () => {
-    const caller = appRouter.createCaller({ userId: 'user-1' })
+    const caller = appRouter.createCaller(authenticatedContext)
 
     await expect(caller.account.profile()).resolves.toEqual({
       username: 'morgan',
@@ -307,8 +291,26 @@ describe('tRPC router auth', () => {
     })
   })
 
+  it('allows an authenticated user to clear an optional username', async () => {
+    const caller = appRouter.createCaller(authenticatedContext)
+    accountProfileRepository.upsertForUser.mockResolvedValueOnce({
+      username: null,
+      name: 'Morgan',
+      bio: null
+    })
+
+    await expect(
+      caller.account.updateProfile({ username: null, name: 'Morgan', bio: null })
+    ).resolves.toEqual({ username: null, name: 'Morgan', bio: null })
+    expect(accountProfileRepository.upsertForUser).toHaveBeenCalledWith('user-1', {
+      username: null,
+      name: 'Morgan',
+      bio: null
+    })
+  })
+
   it('registers the same authenticated list contract for all authored domains', async () => {
-    const caller = appRouter.createCaller({ userId: 'user-1' })
+    const caller = appRouter.createCaller(authenticatedContext)
     const domains = [
       'backgrounds',
       'classes',
@@ -333,7 +335,7 @@ describe('tRPC router auth', () => {
   })
 
   it('rejects authored mutations over 1 MiB after domain validation', async () => {
-    const caller = appRouter.createCaller({ userId: 'user-1' })
+    const caller = appRouter.createCaller(authenticatedContext)
 
     await expect(
       caller.content.backgrounds.saveDraft({
@@ -370,7 +372,7 @@ describe('tRPC router auth', () => {
         headers: { 'content-type': 'application/json' },
         method: 'POST'
       }),
-      { userId: 'user-1' }
+      authenticatedContext
     )
 
     expect(await response.json()).toEqual([
@@ -395,7 +397,7 @@ describe('tRPC router auth', () => {
         headers: { 'content-type': 'application/json' },
         method: 'POST'
       }),
-      { userId: 'user-1' }
+      authenticatedContext
     )
 
     expect(await response.json()).toEqual([

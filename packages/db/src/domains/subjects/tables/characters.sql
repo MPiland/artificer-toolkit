@@ -1673,7 +1673,7 @@ ALTER TABLE IF EXISTS public.character_abilities_standard_array ENABLE ROW LEVEL
 CREATE TABLE IF NOT EXISTS public.character_class_equipment_session (
   character_id uuid PRIMARY KEY REFERENCES public.characters (id) ON DELETE CASCADE,
   option uuid REFERENCES public.starting_equipment_options (id) ON DELETE SET NULL,
-  gold_option uuid REFERENCES public.starting_equipment_options (id) ON DELETE SET NULL,
+  gold_option text,
   total_gold int,
   applied boolean,
   CONSTRAINT character_class_equipment_session_choice_chk CHECK (

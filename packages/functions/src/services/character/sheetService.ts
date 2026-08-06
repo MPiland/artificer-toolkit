@@ -1785,6 +1785,8 @@ function getResourceSheetConfig(params: {
         params.character.intent.classes.map((entry) => [entry.classId, entry.classLevel])
       ),
       proficiencyBonus: params.proficiencyBonus,
+      sourceClassLevel:
+        'classLevel' in params.resource.source ? params.resource.source.classLevel : undefined,
       totalLevel: params.totalLevel
     }),
     recoveries: [getResourceRecovery(params.resolvedRecovery ?? definition.charges.resetKind)]

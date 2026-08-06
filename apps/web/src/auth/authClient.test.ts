@@ -31,14 +31,12 @@ describe('browserAuthClient password updates', () => {
   it('completes invitations through the authenticated API boundary', async () => {
     await expect(
       browserAuthClient.completeInvitation({
-        username: 'morgan',
         password: 'new-password-123'
       })
     ).resolves.toEqual({ ok: true })
 
     expect(mocks.completeInvitation).toHaveBeenCalledWith({
-      password: 'new-password-123',
-      username: 'morgan'
+      password: 'new-password-123'
     })
     expect(mocks.updateUser).not.toHaveBeenCalled()
   })
@@ -56,17 +54,16 @@ describe('browserAuthClient password updates', () => {
     expect(mocks.updateUser).not.toHaveBeenCalled()
   })
 
-  it('returns server-enforced username policy failures', async () => {
-    mocks.completeInvitation.mockRejectedValue(new Error('That username is already taken.'))
+  it('returns server-enforced invitation completion failures', async () => {
+    mocks.completeInvitation.mockRejectedValue(new Error('Could not complete registration.'))
 
     await expect(
       browserAuthClient.completeInvitation({
-        username: 'taken_name',
         password: 'new-password-123'
       })
     ).resolves.toEqual({
       ok: false,
-      message: 'That username is already taken.'
+      message: 'Could not complete registration.'
     })
     expect(mocks.updateUser).not.toHaveBeenCalled()
   })

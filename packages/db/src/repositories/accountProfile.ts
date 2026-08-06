@@ -1,8 +1,7 @@
-import { sql } from 'kysely'
 import type { DBLike } from '#types'
 
 export interface AccountProfile {
-  username: string
+  username: string | null
   name: string | null
   bio: string | null
 }
@@ -23,16 +22,6 @@ function isUsernameUniqueViolation(error: unknown): boolean {
 
 export function createAccountProfileRepository(db: DBLike) {
   return {
-    async isUsernameTaken(username: string): Promise<boolean> {
-      const profile = await db
-        .selectFrom('profiles')
-        .select('id')
-        .where(sql<string>`lower(username)`, '=', username.toLowerCase())
-        .executeTakeFirst()
-
-      return Boolean(profile)
-    },
-
     async findForUser(userId: string): Promise<AccountProfile | null> {
       const profile = await db
         .selectFrom('profiles')
@@ -41,9 +30,6 @@ export function createAccountProfileRepository(db: DBLike) {
         .executeTakeFirst()
 
       if (!profile) return null
-      if (profile.username === null) {
-        throw new Error(`Profile for user "${userId}" has no username.`)
-      }
 
       return {
         username: profile.username,

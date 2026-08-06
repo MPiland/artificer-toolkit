@@ -3,14 +3,10 @@ import { Anchor, Button, PasswordInput, TextInput } from '@mantine/core'
 import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
-  passwordInputSchema,
-  usernameInputSchema
+  passwordInputSchema
 } from '@artificer-toolkit/schema/api/auth'
-import type { AccountUsernameStatusDto } from '@artificer-toolkit/schema/api/account'
 import IArrowRight from '#assets/icons/IArrowRight'
-import { api } from '#app/lib/api'
 import { browserAuthClient } from '../authClient'
-import { suggestUsername } from '../usernameSuggestion'
 import {
   authButton,
   authFooterRow,
@@ -26,20 +22,11 @@ import {
 import { AuthFormProps } from './authForm.types'
 import { AuthDivider } from './AuthDivider'
 
-const usernameRuleMessage =
-  'Use 3–30 letters, numbers, and single underscores between words. Capitalization is preserved.'
-
 export function SignUpForm({
   authClient = browserAuthClient,
-  getUsernameStatus = (username) => api.account.usernameStatus({ username }),
   onSuccess
-}: AuthFormProps & {
-  getUsernameStatus?: (username: string) => Promise<AccountUsernameStatusDto>
-}) {
+}: AuthFormProps) {
   const [email, setEmail] = useState('')
-  const [username, setUsername] = useState('')
-  const [usernameError, setUsernameError] = useState<string | null>(null)
-  const [isSuggesting, setIsSuggesting] = useState(false)
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
@@ -60,29 +47,11 @@ export function SignUpForm({
 
     setIsSubmitting(true)
     setFeedback(null)
-    setUsernameError(null)
 
     try {
-      const parsedUsername = usernameInputSchema.safeParse(username)
-      if (!parsedUsername.success) {
-        setUsernameError(usernameRuleMessage)
-        return
-      }
-
-      const usernameStatus = await getUsernameStatus(parsedUsername.data)
-      if (usernameStatus.status !== 'available') {
-        setUsernameError(
-          usernameStatus.status === 'taken'
-            ? 'That username is already taken.'
-            : "That username isn't allowed."
-        )
-        return
-      }
-
       const result = await authClient.signUp({
         email,
-        password: parsedPassword.data,
-        username: parsedUsername.data
+        password: parsedPassword.data
       })
 
       if (!result.ok) {
@@ -107,25 +76,6 @@ export function SignUpForm({
     }
   }
 
-  async function handleSuggestUsername() {
-    setIsSuggesting(true)
-    setUsernameError(null)
-
-    try {
-      const suggestion = await suggestUsername(email, getUsernameStatus)
-      if (!suggestion) {
-        setUsernameError('Could not find an available suggestion. Try another username.')
-        return
-      }
-
-      setUsername(suggestion)
-    } catch {
-      setUsernameError('Could not suggest a username right now.')
-    } finally {
-      setIsSuggesting(false)
-    }
-  }
-
   return (
     <form className={authForm} method='post' onSubmit={handleSubmit}>
       <TextInput
@@ -141,28 +91,6 @@ export function SignUpForm({
         onChange={(event) => setEmail(event.currentTarget.value)}
         required
       />
-      <TextInput
-        label='Username'
-        description={usernameRuleMessage}
-        classNames={{
-          input: textInput
-        }}
-        autoComplete='nickname'
-        error={usernameError}
-        maxLength={30}
-        name='username'
-        type='text'
-        placeholder='morgan_emberfall'
-        value={username}
-        onChange={(event) => {
-          setUsername(event.currentTarget.value)
-          setUsernameError(null)
-        }}
-        required
-      />
-      <Button loading={isSuggesting} type='button' variant='subtle' onClick={handleSuggestUsername}>
-        Suggest username
-      </Button>
       <PasswordInput
         label='Password'
         description={`Use ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} characters.`}

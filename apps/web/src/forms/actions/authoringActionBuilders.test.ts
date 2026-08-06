@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import {
   createActivateAction,
   createCancelAction,
@@ -28,6 +29,22 @@ const messages = {
   discardDraftSuccess: 'Stale race draft discarded.',
   saveDraftError: 'Could not save that draft yet.',
   saveDraftSuccess: 'Race draft saved.'
+}
+
+function createDraftResponse(overrides: Partial<AuthoredDraftDto> = {}): AuthoredDraftDto {
+  return {
+    baseActiveUpdatedAt: null,
+    draftState: 'DRAFT_ONLY',
+    label: 'Draft Race',
+    payload: {},
+    publicId: 'draft-race',
+    status: 'DRAFT',
+    subjectId: 'race-1',
+    subjectKind: 'RACE',
+    systemId: 'system-1',
+    userId: 'user-1',
+    ...overrides
+  }
 }
 
 describe('authoring action builders', () => {
@@ -141,10 +158,7 @@ describe('authoring action builders', () => {
     const navigate = createNavigate()
     const notifier = createNotifier()
     const draftMutation = {
-      mutateAsync: vi.fn(async (_payload: SubmitPayload) => ({
-        label: 'Draft Race',
-        publicId: 'draft-race'
-      }))
+      mutateAsync: vi.fn(async (_payload: SubmitPayload) => createDraftResponse())
     }
     const action = createCreateDraftAction({
       buildRouteParams,
@@ -167,7 +181,7 @@ describe('authoring action builders', () => {
     })
   })
 
-  it('invalidates after updating a draft', async () => {
+  it('keeps the current route mounted after updating a draft', async () => {
     const router = createRouter()
     const notifier = createNotifier()
     const draftMutation = {
@@ -176,17 +190,16 @@ describe('authoring action builders', () => {
     const action = createUpdateDraftAction({
       draftMutation,
       messages,
-      notifier,
-      router
+      notifier
     })
 
-    await action({ label: 'Updated Race' })
+    await expect(action({ label: 'Updated Race' })).resolves.toBe(true)
 
     expect(notifier.show).toHaveBeenCalledWith({
       color: 'green',
       message: messages.saveDraftSuccess
     })
-    expect(router.invalidate).toHaveBeenCalled()
+    expect(router.invalidate).not.toHaveBeenCalled()
   })
 
   it('skips draft updates when read only', async () => {
@@ -197,11 +210,10 @@ describe('authoring action builders', () => {
       draftMutation,
       messages,
       notifier: createNotifier(),
-      readOnly: true,
-      router: createRouter()
+      readOnly: true
     })
 
-    await action({ label: 'Read Only Race' })
+    await expect(action({ label: 'Read Only Race' })).resolves.toBe(false)
 
     expect(draftMutation.mutateAsync).not.toHaveBeenCalled()
   })
@@ -210,11 +222,13 @@ describe('authoring action builders', () => {
     const navigate = createNavigate()
     const notifier = createNotifier()
     const duplicateMutation = {
-      mutateAsync: vi.fn(async (_subjectId: string) => ({
-        label: 'Copied Race',
-        publicId: 'copied-race',
-        subjectId: 'copy-1'
-      }))
+      mutateAsync: vi.fn(async (_subjectId: string) =>
+        createDraftResponse({
+          label: 'Copied Race',
+          publicId: 'copied-race',
+          subjectId: 'copy-1'
+        })
+      )
     }
     const action = createCopyAction({
       buildRouteParams,

@@ -180,6 +180,15 @@ export function ClassDetailPage({
       <AuthoredDetailLayout
         actions={pageActions}
         actionsDisabled={actions.isDetailOperationPending}
+        artworkTarget={{
+          lookup: {
+            type: 'AUTHORED_IMAGE',
+            subjectKind: 'CLASS',
+            subjectId: classId,
+            scope: detailState.mode === 'draft' ? 'DRAFT' : 'ACTIVE'
+          },
+          attach: { type: 'AUTHORED_IMAGE', subjectKind: 'CLASS', subjectId: classId }
+        }}
         eyebrow={item.category === 'SUBCLASS' ? 'Subclass' : 'Class'}
         facts={[]}
         notice={buildAuthoredDetailNotice({

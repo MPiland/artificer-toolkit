@@ -32,7 +32,6 @@ export function Header({
       : authoredSession?.provenanceKind === 'OWNED'
         ? 'Homebrew'
         : undefined
-
   return (
     <header className={styles.header}>
       <div className={styles.contextBar}>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button, Text } from '@mantine/core'
 import { withForm } from '#forms/app-form/AppForm'
+import { stripHtml } from '#components/AuthoredDetail/detailFormatters'
 import { renderSanitizedRichHtml } from '#ui/primitives/renderSanitizedRichHtml'
 import { createFallbackCharacterFormValues } from '../../shared/formNormalization'
 import { clearBackgroundDependents } from '../../shared/dependencyClearing'
@@ -104,21 +105,100 @@ export const CharacterBackgroundStep = withForm({
               Suggested Characteristics
             </summary>
             <div className={styles.suggestedCharacteristicsContent}>
-              {backgroundView.detailSections.map((section) => (
-                <section key={section.label} className={styles.suggestedCharacteristicsGroup}>
-                  <Text fw={700}>{section.label}</Text>
-                  {section.details.map((detail) => (
-                    <div key={detail.id} className={styles.suggestedCharacteristic}>
-                      <Text fw={600} size='sm'>
-                        {detail.label}
-                      </Text>
-                      <div className={choiceStyles.grantedFeatureDescription}>
-                        {renderSanitizedRichHtml(detail.description)}
-                      </div>
-                    </div>
-                  ))}
-                </section>
-              ))}
+              <Text size='sm' className={styles.suggestedCharacteristicsIntro}>
+                Select any suggestions you want to use. You can edit the text later in Notes.
+              </Text>
+              {backgroundView.detailSections.map((section) => {
+                const profileField =
+                  section.label === 'Personality Traits'
+                    ? {
+                        name: 'personalityTraits' as const,
+                        value: form.state.values.profile.personalityTraits ?? ''
+                      }
+                    : section.label === 'Ideals'
+                      ? {
+                          name: 'ideals' as const,
+                          value: form.state.values.profile.ideals ?? ''
+                        }
+                      : section.label === 'Bonds'
+                        ? {
+                            name: 'bonds' as const,
+                            value: form.state.values.profile.bonds ?? ''
+                          }
+                        : section.label === 'Flaws'
+                          ? {
+                              name: 'flaws' as const,
+                              value: form.state.values.profile.flaws ?? ''
+                            }
+                          : null
+                const selectedValues = profileField
+                  ? profileField.value
+                      .split('\n')
+                      .map((value) => value.trim())
+                      .filter(Boolean)
+                  : []
+
+                return (
+                  <section key={section.label} className={styles.suggestedCharacteristicsGroup}>
+                    <Text fw={700}>{section.label}</Text>
+                    {section.details.map((detail) => {
+                      const suggestion = stripHtml(detail.description)
+                      const selected = selectedValues.includes(suggestion)
+                      const content = (
+                        <>
+                          <span className={styles.suggestedCharacteristicHeader}>
+                            <span>{detail.label}</span>
+                            {profileField ? (
+                              <span className={styles.suggestedCharacteristicAction}>
+                                {selected ? 'Selected' : 'Use'}
+                              </span>
+                            ) : null}
+                          </span>
+                          <div className={choiceStyles.grantedFeatureDescription}>
+                            {renderSanitizedRichHtml(detail.description)}
+                          </div>
+                        </>
+                      )
+
+                      if (!profileField) {
+                        return (
+                          <div key={detail.id} className={styles.suggestedCharacteristic}>
+                            {content}
+                          </div>
+                        )
+                      }
+
+                      return (
+                        <button
+                          key={detail.id}
+                          type='button'
+                          className={`${styles.suggestedCharacteristic} ${styles.suggestedCharacteristicButton}${selected ? ` ${styles.suggestedCharacteristicSelected}` : ''}`}
+                          aria-label={`${selected ? 'Remove' : 'Use'} ${detail.label}`}
+                          aria-pressed={selected}
+                          disabled={readOnly}
+                          onClick={() => {
+                            const nextValue = selected
+                              ? selectedValues.filter((value) => value !== suggestion).join('\n')
+                              : [...selectedValues, suggestion].join('\n')
+
+                            if (profileField.name === 'personalityTraits') {
+                              form.setFieldValue('profile.personalityTraits', nextValue)
+                            } else if (profileField.name === 'ideals') {
+                              form.setFieldValue('profile.ideals', nextValue)
+                            } else if (profileField.name === 'bonds') {
+                              form.setFieldValue('profile.bonds', nextValue)
+                            } else {
+                              form.setFieldValue('profile.flaws', nextValue)
+                            }
+                          }}
+                        >
+                          {content}
+                        </button>
+                      )
+                    })}
+                  </section>
+                )
+              })}
             </div>
           </details>
         ) : null}

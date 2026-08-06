@@ -7,6 +7,33 @@ import {
 } from './characterSelectionOptions'
 
 describe('character selection options', () => {
+  it('renders race ability increases as direct fact rows', () => {
+    const groups = buildRaceSelectionGroups(
+      [
+        {
+          id: 'race-dragonborn',
+          label: 'Dragonborn',
+          category: 'BASE',
+          selectionMode: 'DIRECT',
+          sizeLabel: 'Medium',
+          speedLabels: ['Walking Speed 30 ft'],
+          abilityScoreIncreaseFacts: [
+            { label: 'Strength', value: '+2' },
+            { label: 'Charisma', value: '+1' }
+          ]
+        }
+      ],
+      []
+    )
+
+    expect(groups[0]?.options[0]?.details).toEqual([
+      { label: 'Size', value: 'Medium', prominence: 'primary' },
+      { label: 'Speed', value: 'Walking Speed 30 ft', prominence: 'primary' },
+      { label: 'Strength', value: '+2' },
+      { label: 'Charisma', value: '+1' }
+    ])
+  })
+
   it('builds sorted background comparison cards from backend references', () => {
     const groups = buildBackgroundSelectionGroups(
       [
@@ -61,7 +88,7 @@ describe('character selection options', () => {
           category: 'BASE',
           selectionMode: 'REQUIRES_SUBRACE',
           speedLabels: [],
-          abilityScoreIncreaseDescriptions: []
+          abilityScoreIncreaseFacts: []
         },
         {
           id: 'race-wood-elf',
@@ -69,7 +96,7 @@ describe('character selection options', () => {
           category: 'SUBRACE',
           parentRaceId: 'race-elf',
           speedLabels: [],
-          abilityScoreIncreaseDescriptions: []
+          abilityScoreIncreaseFacts: []
         },
         {
           id: 'race-high-elf',
@@ -77,7 +104,7 @@ describe('character selection options', () => {
           category: 'SUBRACE',
           parentRaceId: 'race-elf',
           speedLabels: [],
-          abilityScoreIncreaseDescriptions: []
+          abilityScoreIncreaseFacts: []
         }
       ],
       []
@@ -98,7 +125,7 @@ describe('character selection options', () => {
           category: 'BASE',
           selectionMode: 'DIRECT',
           speedLabels: [],
-          abilityScoreIncreaseDescriptions: []
+          abilityScoreIncreaseFacts: []
         },
         {
           id: 'race-variant-human',
@@ -106,7 +133,7 @@ describe('character selection options', () => {
           category: 'SUBRACE',
           parentRaceId: 'race-human',
           speedLabels: [],
-          abilityScoreIncreaseDescriptions: []
+          abilityScoreIncreaseFacts: []
         }
       ],
       []

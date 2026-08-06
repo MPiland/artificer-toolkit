@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 
 const mocks = vi.hoisted(() => ({
+  getImage: vi.fn(),
   profile: vi.fn(),
   updateProfile: vi.fn()
 }))
@@ -20,6 +21,9 @@ vi.mock('#app/lib/api', () => ({
     account: {
       profile: mocks.profile,
       updateProfile: mocks.updateProfile
+    },
+    media: {
+      getImage: mocks.getImage
     }
   }
 }))
@@ -35,6 +39,7 @@ describe('ProfileSettingsPage', () => {
       name: 'Morgan',
       bio: 'Forge keeper.'
     })
+    mocks.getImage.mockResolvedValue(null)
   })
 
   it('saves username, name, and bio atomically', async () => {
@@ -75,5 +80,27 @@ describe('ProfileSettingsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save profile' }))
 
     expect(await screen.findByText('That username is already taken.')).toBeInTheDocument()
+  })
+
+  it('allows the optional username to be cleared', async () => {
+    mocks.updateProfile.mockResolvedValue({
+      username: null,
+      name: 'Morgan',
+      bio: 'Forge keeper.'
+    })
+    renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
+
+    fireEvent.change(await screen.findByRole('textbox', { name: /^username/i }), {
+      target: { value: '  ' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save profile' }))
+
+    await waitFor(() =>
+      expect(mocks.updateProfile).toHaveBeenCalledWith({
+        username: null,
+        name: 'Morgan',
+        bio: 'Forge keeper.'
+      })
+    )
   })
 })

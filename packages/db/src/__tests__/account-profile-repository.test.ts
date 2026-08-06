@@ -17,7 +17,29 @@ function rejectingDb(error: unknown): DBLike {
   } as unknown as DBLike
 }
 
+function profileDb(username: string | null): DBLike {
+  return {
+    selectFrom: () => ({
+      select: () => ({
+        where: () => ({
+          executeTakeFirst: async () => ({ username, full_name: null, bio: null })
+        })
+      })
+    })
+  } as unknown as DBLike
+}
+
 describe('account profile repository', () => {
+  it('returns profiles without requiring a username', async () => {
+    const repository = createAccountProfileRepository(profileDb(null))
+
+    await expect(repository.findForUser('user-1')).resolves.toEqual({
+      username: null,
+      name: null,
+      bio: null
+    })
+  })
+
   it('translates only the profile username constraint race', async () => {
     const repository = createAccountProfileRepository(
       rejectingDb({ code: '23505', constraint: 'profiles_username_key' })

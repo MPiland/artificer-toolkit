@@ -168,6 +168,15 @@ export function FeatDetailPage({
       <AuthoredDetailLayout
         actions={pageActions}
         actionsDisabled={actions.isDetailOperationPending}
+        artworkTarget={{
+          lookup: {
+            type: 'AUTHORED_IMAGE',
+            subjectKind: 'FEAT',
+            subjectId: featId,
+            scope: detailState.mode === 'draft' ? 'DRAFT' : 'ACTIVE'
+          },
+          attach: { type: 'AUTHORED_IMAGE', subjectKind: 'FEAT', subjectId: featId }
+        }}
         eyebrow='Feat'
         facts={[]}
         notice={buildAuthoredDetailNotice({

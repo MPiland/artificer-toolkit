@@ -22,7 +22,7 @@ export interface RaceRepositoryReadOptions extends RepositoryFindAllOptions {
 
 export type RaceRepositoryWithReadOptions = Omit<
   RaceRepository,
-  'findById' | 'findByIds' | 'findResolvedById'
+  'findById' | 'findByIds' | 'findResolvedAll' | 'findResolvedById'
 > & {
   findById(id: string, filter?: RaceRepositoryReadOptions): Promise<RaceAuthored | null>
   findByIds(
@@ -30,6 +30,7 @@ export type RaceRepositoryWithReadOptions = Omit<
     filter?: RaceRepositoryReadOptions
   ): Promise<Map<string, RaceAuthored>>
   findResolvedById(id: string, filter?: RaceRepositoryReadOptions): Promise<ResolvedRace | null>
+  findResolvedAll(filter?: RaceRepositoryReadOptions): Promise<ResolvedRace[]>
 }
 
 const RACE_COLUMNS = [
@@ -456,7 +457,7 @@ export function createRaceRepository(db: DBLike): RaceRepositoryWithReadOptions 
       )
     },
 
-    async findResolvedAll(filter?: RepositoryFindAllOptions) {
+    async findResolvedAll(filter?: RaceRepositoryReadOptions) {
       let query = db.selectFrom('races').select(RACE_COLUMNS).orderBy('label')
 
       if (filter?.systemId) {
@@ -499,7 +500,7 @@ export function createRaceRepository(db: DBLike): RaceRepositoryWithReadOptions 
         )
       }
 
-      const cache = await hydrateRaceRows(db, [...rowsById.values()])
+      const cache = await hydrateRaceRows(db, [...rowsById.values()], filter)
 
       return rows.flatMap((row) => {
         const authored = cache.get(row.id)

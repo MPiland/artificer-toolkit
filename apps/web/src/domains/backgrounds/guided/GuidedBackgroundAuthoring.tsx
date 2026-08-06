@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '@tanstack/react-form'
-import { Alert, NumberInput, Select, Stack, Text, Textarea, TextInput } from '@mantine/core'
+import { Alert, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
@@ -10,6 +10,7 @@ import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { withForm } from '#forms/app-form/AppForm'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
+import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
 import {
@@ -24,6 +25,7 @@ import {
 } from '../backgroundAuthoring.utils'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import * as styles from '#forms/guided/guidedAuthoring.css'
+import RichTextEditor from '#ui/primitives/RichTextEditor'
 
 const STEPS = ['Basics', 'Benefits', 'Starting gear', 'Features', 'Review'] as const
 
@@ -86,30 +88,26 @@ export const GuidedBackgroundAuthoring = withForm({
                 intact while you edit the common description and features.
               </Alert>
             ) : null}
-            <div className={styles.fields}>
-              <div className={styles.full}>
-                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
-                  {(field) => (
-                    <field.TextField
-                      label='Background name'
-                      placeholder='A background your table will remember'
-                      required
-                    />
-                  )}
-                </form.AppField>
-              </div>
-              <div className={styles.full}>
-                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
-                  {(field) => (
-                    <field.TextareaField
-                      label='What should players know?'
-                      description='A short, plain-language description is enough.'
-                      placeholder='Describe the life this background represents.'
-                    />
-                  )}
-                </form.AppField>
-              </div>
+            <div className={styles.identityRow}>
+              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
+                {(field) => (
+                  <field.TextField
+                    label='Background name'
+                    placeholder='A background your table will remember'
+                    required
+                  />
+                )}
+              </form.AppField>
+              <AuthoringArtworkControl />
             </div>
+            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
+              {(field) => (
+                <field.RichTextField
+                  label='Description'
+                  placeholder='Describe the life this background represents.'
+                />
+              )}
+            </form.AppField>
           </Stack>
         ) : null}
 
@@ -178,14 +176,12 @@ function BenefitEditor({
           onChange([{ ...detail, label: event.currentTarget.value }, ...details.slice(1)])
         }
       />
-      <Textarea
+      <RichTextEditor
         label='Benefit description'
+        name={`background-benefit-${detail.id}-description`}
         placeholder='Explain what the character gets.'
-        minRows={4}
         value={detail.description}
-        onChange={(event) =>
-          onChange([{ ...detail, description: event.currentTarget.value }, ...details.slice(1)])
-        }
+        onChange={(description) => onChange([{ ...detail, description }, ...details.slice(1)])}
       />
       {details.length > 1 ? (
         <Alert color='blue'>

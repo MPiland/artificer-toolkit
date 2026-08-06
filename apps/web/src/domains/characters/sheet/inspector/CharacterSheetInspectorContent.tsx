@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+import { MediaImageView } from '#app/components/MediaImage'
 import type { CharacterSheetPanelDto, CharacterSheetPanelTargetDto } from '#app/lib/api'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetExtraPanel } from './CharacterSheetExtraPanel'
@@ -7,6 +9,7 @@ import {
   CharacterSheetSpellPanelContent,
   CharacterSheetSpellsPanelContent
 } from './CharacterSheetSpellPanels'
+import { getCharacterSheetPanelImageTarget } from './inspector.model'
 
 export function CharacterSheetInspectorContent({
   expectedVersion,
@@ -27,10 +30,12 @@ export function CharacterSheetInspectorContent({
   onTargetChange: (target: CharacterSheetPanelTargetDto) => void
   onOpenBuilder: () => void
 }) {
+  let content: ReactNode
+
   switch (panel.kind) {
     case 'COMPANION':
     case 'VEHICLE':
-      return (
+      content = (
         <CharacterSheetExtraPanel
           expectedVersion={expectedVersion}
           equipmentItems={equipmentItems}
@@ -40,8 +45,9 @@ export function CharacterSheetInspectorContent({
           onClose={onClose}
         />
       )
+      break
     case 'SPELL':
-      return (
+      content = (
         <CharacterSheetSpellPanelContent
           expectedVersion={expectedVersion}
           panel={panel}
@@ -49,8 +55,9 @@ export function CharacterSheetInspectorContent({
           submitCommand={submitCommand}
         />
       )
+      break
     case 'SPELLS':
-      return (
+      content = (
         <CharacterSheetSpellsPanelContent
           expectedVersion={expectedVersion}
           panel={panel}
@@ -60,8 +67,9 @@ export function CharacterSheetInspectorContent({
           onOpenBuilder={onOpenBuilder}
         />
       )
+      break
     case 'ITEM':
-      return (
+      content = (
         <CharacterSheetItemPanelContent
           expectedVersion={expectedVersion}
           panel={panel}
@@ -70,6 +78,7 @@ export function CharacterSheetInspectorContent({
           onClose={onClose}
         />
       )
+      break
     case 'ABILITY':
     case 'SAVING_THROW':
     case 'SKILL':
@@ -82,7 +91,7 @@ export function CharacterSheetInspectorContent({
     case 'BACKGROUND':
     case 'RESOURCE':
     case 'EXTRAS':
-      return (
+      content = (
         <CharacterSheetRulesPanel
           expectedVersion={expectedVersion}
           panel={panel}
@@ -91,7 +100,16 @@ export function CharacterSheetInspectorContent({
           onTargetChange={onTargetChange}
         />
       )
+      break
     default:
       return panel satisfies never
   }
+
+  const imageTarget = getCharacterSheetPanelImageTarget(panel)
+  return (
+    <>
+      {imageTarget ? <MediaImageView target={imageTarget} variant='inspector' /> : null}
+      {content}
+    </>
+  )
 }

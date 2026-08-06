@@ -83,7 +83,7 @@ The API handler must distinguish browser-cookie requests from explicit bearer-to
 ## Out of scope
 
 - Campaigns, Realtime, push notifications, SQLite projection caching, offline behavior, native authoring, store submission, payments, and VTT.
-- Creating the media upload, processing, Storage policy, Character portrait, authored artwork, and supporting-file pipeline; that is completed in [Phase 02](02-media-and-file-pipeline.md).
+- Creating the image upload, processing, Storage policy, Character portrait, and authored-artwork pipeline; that is completed in [Phase 02](02-media-and-file-pipeline.md). Campaign supporting-file profiles remain in Phase 05.
 - Native adjustment editing or other full Sheet mutation parity. This phase proves the read-only panel adapter before expanding commands.
 - Migrating every existing web API call into `packages/api-client` in the same branch. Move only the shared seam needed to prove the boundary, then migrate incrementally.
 - Building a general cross-platform component library. Share semantic intent, contracts, and rules—not rendered components.

@@ -3,8 +3,7 @@
  *
  * Defines:
  *   - profiles              (private account profile, mirrors auth.users)
- *   - handle_new_user()     (trigger: create a profile from accepted signup metadata)
- *   - handle_invitation_completion() (trigger: atomically complete an API-approved invitation)
+ *   - handle_new_user()     (trigger: create a profile for every auth user)
  *   - set_admin_claims()    (auth hook: injects auth.users.is_super_admin into JWT)
  *   - apply_direct_ownership_policies()
  *       Policy helper for tables owned directly by a user
@@ -29,7 +28,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     REFERENCES auth.users ON DELETE CASCADE NOT NULL,
 
   updated_at timestamptz,
-  username   text NOT NULL,
+  username   text,
   full_name  text,
   bio        text,
   avatar_url text,
@@ -67,7 +66,7 @@ CREATE POLICY "Users can update own profile."
  * ────────────────────────────────────────────── */
 
 /* ──────────────────────────────────────────────
- * TRIGGERS: create profiles during signup or API-approved invitation completion
+ * TRIGGERS: create profiles for every auth user
  * ────────────────────────────────────────────── */
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -75,23 +74,19 @@ RETURNS trigger
 SET search_path = pg_catalog, public
 LANGUAGE plpgsql SECURITY DEFINER
 AS $$
-DECLARE
-  requested_username text := trim(NEW.raw_user_meta_data ->> 'username');
 BEGIN
-  IF requested_username IS NULL THEN
-    RETURN NEW;
-  END IF;
-
-  INSERT INTO public.profiles (id, username, full_name, avatar_url)
+  INSERT INTO public.profiles (id, full_name, avatar_url)
   VALUES (
     NEW.id,
-    requested_username,
     NEW.raw_user_meta_data ->> 'full_name',
     NEW.raw_user_meta_data ->> 'avatar_url'
-  );
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
 $$;
+
+REVOKE ALL ON FUNCTION public.handle_new_user() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
@@ -100,42 +95,13 @@ AFTER INSERT ON auth.users
 FOR EACH ROW
 EXECUTE PROCEDURE public.handle_new_user();
 
-CREATE OR REPLACE FUNCTION public.handle_invitation_completion()
-RETURNS trigger
-SET search_path = pg_catalog, public
-LANGUAGE plpgsql SECURITY DEFINER
-AS $$
-DECLARE
-  requested_username text := trim(NEW.raw_app_meta_data ->> 'pending_profile_username');
-BEGIN
-  IF requested_username IS NULL THEN
-    RETURN NEW;
-  END IF;
-
-  NEW.raw_app_meta_data := COALESCE(NEW.raw_app_meta_data, '{}'::jsonb)
-    - 'pending_profile_username';
-
-  IF EXISTS (SELECT 1 FROM public.profiles WHERE id = NEW.id) THEN
-    RAISE EXCEPTION 'Registration is already complete.';
-  END IF;
-
-  INSERT INTO public.profiles (id, username, full_name, avatar_url)
-  VALUES (
-    NEW.id,
-    requested_username,
-    NEW.raw_user_meta_data ->> 'full_name',
-    NEW.raw_user_meta_data ->> 'avatar_url'
-  );
-  RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS on_auth_invitation_completed ON auth.users;
-
-CREATE TRIGGER on_auth_invitation_completed
-BEFORE UPDATE OF raw_app_meta_data ON auth.users
-FOR EACH ROW
-EXECUTE PROCEDURE public.handle_invitation_completion();
+INSERT INTO public.profiles (id, full_name, avatar_url)
+SELECT
+  auth_user.id,
+  auth_user.raw_user_meta_data ->> 'full_name',
+  auth_user.raw_user_meta_data ->> 'avatar_url'
+FROM auth.users AS auth_user
+ON CONFLICT (id) DO NOTHING;
 
 
 /* ──────────────────────────────────────────────

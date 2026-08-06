@@ -2,6 +2,7 @@ import { createElement, type ReactNode } from 'react'
 import parse, {
   attributesToProps,
   domToReact,
+  htmlToDOM,
   type DOMNode,
   type Element,
   type HTMLReactParserOptions
@@ -30,6 +31,22 @@ const VOID_TAGS = new Set(['area', 'br', 'col', 'hr', 'img', 'source', 'track', 
 const TABLE_STYLE_TAGS = new Set(['col', 'table', 'td', 'th'])
 const TABLE_STYLE_PROPERTIES = new Set(['min-width', 'width'])
 const TABLE_SIZE_VALUE_PATTERN = /^(?:\d+(?:\.\d+)?(?:ch|em|px|rem|%)|auto)$/i
+const PLAIN_TEXT_SEPARATOR_TAGS = new Set([
+  'blockquote',
+  'br',
+  'div',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'li',
+  'p',
+  'pre',
+  'table',
+  'tr'
+])
 
 function isElementNode(domNode: DOMNode): domNode is Element {
   const candidate = domNode as Partial<Element>
@@ -136,6 +153,28 @@ const options: HTMLReactParserOptions = {
   }
 }
 
+function extractPlainText(domNode: DOMNode): string {
+  if (domNode.nodeType === 3 && 'data' in domNode) {
+    return domNode.data
+  }
+
+  if (!isElementNode(domNode)) {
+    return ''
+  }
+
+  const tagName = domNode.name.toLowerCase()
+  if (BLOCKED_TAGS.has(tagName)) {
+    return ''
+  }
+
+  const text = (domNode.children as DOMNode[]).map(extractPlainText).join('')
+  return PLAIN_TEXT_SEPARATOR_TAGS.has(tagName) ? `${text} ` : text
+}
+
 export function renderSanitizedRichHtml(html: string): ReactNode {
   return parse(html, options) as ReactNode
+}
+
+export function richHtmlToPlainText(html: string): string {
+  return htmlToDOM(html).map(extractPlainText).join(' ').replace(/\s+/g, ' ').trim()
 }

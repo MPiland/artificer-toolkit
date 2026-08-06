@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { handleTrpcFetchRequest } from '@artificer-toolkit/apis/trpc-handler'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { crossSiteRequestResponse, isTrustedSameOriginRequest } from '#app/lib/trpcRequestSecurity'
+import { hasPendingInvitationSetup } from '#app/auth/invitationStatus'
 import {
   appendResponseCookies,
   getRequestCookies,
@@ -61,9 +62,17 @@ export async function handleTrpcRequest(request: Request): Promise<Response> {
   const claims = claimsData?.claims
   const userId = getSubjectClaim(claims)
   const isSuperAdmin = getSuperAdminClaim(claims)
+  let invitationSetupPending = false
+  if (userId) {
+    const { data: userData, error: userError } = await supabase.auth.getUser()
+    invitationSetupPending = Boolean(
+      userError || !userData.user || hasPendingInvitationSetup(userData.user)
+    )
+  }
 
   const response = await handleTrpcFetchRequest(request, {
     databaseConnectionString: getDatabaseConnectionString(),
+    invitationSetupPending,
     isSuperAdmin,
     userId
   })

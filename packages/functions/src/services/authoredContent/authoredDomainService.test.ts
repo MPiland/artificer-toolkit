@@ -32,6 +32,11 @@ const mocks = vi.hoisted(() => ({
     resolveByPublicIdForUser: vi.fn(),
     resolveBySubjectForUser: vi.fn()
   },
+  mediaRepository: {
+    deleteAuthoredSlot: vi.fn(),
+    getAuthoredSlot: vi.fn(),
+    upsertAuthoredSlot: vi.fn()
+  },
   execute: vi.fn(),
   findById: vi.fn()
 }))
@@ -39,6 +44,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@artificer-toolkit/db', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@artificer-toolkit/db')>()),
   createAuthoredContentRepository: () => mocks.contentRepository,
+  createMediaRepository: () => mocks.mediaRepository,
   createAuthoredRouteIdRepository: () => mocks.routeRepository
 }))
 

@@ -194,7 +194,19 @@ export const userIconButton = style({
     [app]: {
       inlineSize: 36,
       blockSize: 36,
+      overflow: 'hidden',
       borderRadius: foundationVars.radius.md
+    }
+  }
+})
+
+export const userAvatarImage = style({
+  '@layer': {
+    [app]: {
+      display: 'block',
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover'
     }
   }
 })

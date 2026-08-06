@@ -341,6 +341,30 @@ describe('AuthoredListPage', () => {
     expect(onCreate).toHaveBeenCalledTimes(1)
   })
 
+  it('renders rich-text descriptions as plain card preview text', () => {
+    renderWithAppProviders(
+      <AuthoredListPage
+        title='Spells'
+        summary='1 spell'
+        createLabel='Create Spell'
+        items={[
+          {
+            ...spellListItems[0],
+            description:
+              '<p>A <strong>shimmering</strong> arrow &amp; sparks.</p><p>Second burst.</p>'
+          }
+        ]}
+        filters={spellListFilters}
+        initialViewMode='cards'
+      />
+    )
+
+    const card = screen.getByLabelText(/view magic missile/i)
+
+    expect(within(card).getByText('A shimmering arrow & sparks. Second burst.')).toBeInTheDocument()
+    expect(card).not.toHaveTextContent('<p>')
+  })
+
   it('renders card view with the same permission-aware actions', () => {
     const onCopy = vi.fn()
     const onDelete = vi.fn()

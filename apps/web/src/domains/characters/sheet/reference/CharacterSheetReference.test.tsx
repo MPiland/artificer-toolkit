@@ -5,6 +5,8 @@ import { CharacterSheetHero } from '../hero/CharacterSheetHero'
 import { createSheet } from '../tests/sheetTestHarness'
 import { CharacterSheetReference } from './CharacterSheetReference'
 
+vi.mock('#app/components/MediaImage', () => ({ MediaImageControl: () => null }))
+
 describe('Character Sheet reference', () => {
   it('keeps descriptive character prose out of the compact play header', () => {
     const sheet = createSheet()

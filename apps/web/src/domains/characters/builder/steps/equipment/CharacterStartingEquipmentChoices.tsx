@@ -1,7 +1,10 @@
-import { useEffect } from 'react'
-import { NumberInput, Stack, Text } from '@mantine/core'
+import { useEffect, useState } from 'react'
+import { Button, NumberInput, Stack, Text } from '@mantine/core'
+import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
+import { useExecuteDiceConfigurationMutation } from '#app/data/rolls'
 import { AppSelect } from '#ui/primitives/Select'
 import type { CharacterStartingEquipmentDecision } from '../../core/characterBuilder.types'
+import { CharacterSheetRollPresentation } from '../../../sheet/dice/CharacterSheetRollPresentation'
 import { createStartingEquipmentDecision } from './startingEquipment'
 import * as sharedStyles from '../../shared/builderShared.css'
 import * as styles from './characterEquipment.css'
@@ -215,28 +218,79 @@ function StartingEquipmentGoldField({
   source: CharacterBuilderStartingEquipmentViewDto['source']
   startingGold: StartingGold
 }) {
+  const executeConfiguration = useExecuteDiceConfigurationMutation()
+  const [presentedRoll, setPresentedRoll] = useState<RollResultDto>()
+  const [rolling, setRolling] = useState(false)
+  const totalGold = decision.gold?.totalGold ?? 0
+  const [goldInput, setGoldInput] = useState<string | number>(totalGold)
+
+  useEffect(() => setGoldInput(totalGold), [totalGold])
+
+  useEffect(() => {
+    if (!presentedRoll || rolling) return
+
+    const dismissRoll = () => setPresentedRoll(undefined)
+    document.addEventListener('click', dismissRoll, { capture: true })
+    return () => document.removeEventListener('click', dismissRoll, { capture: true })
+  }, [presentedRoll, rolling])
+
   return (
     <Stack gap='xs'>
       <Text className={sharedStyles.mutedText} size='sm'>
-        {`Roll ${formatStartingGoldOption(startingGold, currencyOptions)}, then enter the total starting gold.`}
+        {`Roll ${formatStartingGoldOption(startingGold, currencyOptions)}. The total is filled automatically and can be overridden.`}
       </Text>
-      <NumberInput
-        hideControls
-        label='Starting gold total'
-        min={1}
-        required
-        disabled={readOnly}
-        value={decision.gold?.totalGold ?? 0}
-        onChange={(value) => {
-          if (readOnly) return
+      <div className={styles.startingGoldControls}>
+        <Button
+          type='button'
+          loading={rolling}
+          disabled={readOnly}
+          onClick={() => {
+            setPresentedRoll(undefined)
+            setRolling(true)
+            executeConfiguration.reset()
+            void executeConfiguration
+              .mutateAsync({ configuration: startingGold.dieConfig })
+              .then(setPresentedRoll)
+              .catch(() => setRolling(false))
+          }}
+        >
+          Roll {startingGold.dieConfig}
+        </Button>
+        <NumberInput
+          hideControls
+          label='Starting gold total'
+          min={1}
+          required
+          disabled={readOnly || rolling}
+          error={
+            executeConfiguration.error
+              ? 'Unable to roll. Enter a total manually or try again.'
+              : undefined
+          }
+          value={goldInput}
+          onChange={(value) => {
+            if (readOnly || rolling) return
+            setGoldInput(value)
+            if (typeof value !== 'number') return
+            executeConfiguration.reset()
+            onChange(setStartingEquipmentGoldTotal(decision, source, startingGold, value))
+          }}
+        />
+      </div>
+      <CharacterSheetRollPresentation
+        pending={executeConfiguration.isPending}
+        roll={presentedRoll}
+        onRollRevealed={(rollId) => {
+          if (!presentedRoll || presentedRoll.id !== rollId) return
           onChange(
             setStartingEquipmentGoldTotal(
               decision,
               source,
               startingGold,
-              typeof value === 'number' ? value : 0
+              presentedRoll.evidence.total * startingGold.multiplier
             )
           )
+          setRolling(false)
         }}
       />
     </Stack>

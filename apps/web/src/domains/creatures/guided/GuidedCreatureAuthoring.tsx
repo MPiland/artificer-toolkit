@@ -5,6 +5,7 @@ import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { withForm } from '#forms/app-form/AppForm'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
+import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
 import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
 import * as styles from '#forms/guided/guidedAuthoring.css'
@@ -56,12 +57,13 @@ export const GuidedCreatureAuthoring = withForm({
                 structural profile.
               </Alert>
             ) : null}
+            <div className={styles.identityRow}>
+              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
+                {(field) => <field.TextField label='Creature name' required />}
+              </form.AppField>
+              <AuthoringArtworkControl />
+            </div>
             <div className={styles.fields}>
-              <div className={styles.full}>
-                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
-                  {(field) => <field.TextField label='Creature name' required />}
-                </form.AppField>
-              </div>
               <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['category'])}>
                 {(field) => (
                   <field.SelectField
@@ -96,7 +98,7 @@ export const GuidedCreatureAuthoring = withForm({
               </form.AppField>
               <div className={styles.full}>
                 <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
-                  {(field) => <field.TextareaField label='Description' />}
+                  {(field) => <field.RichTextField label='Description' />}
                 </form.AppField>
               </div>
             </div>

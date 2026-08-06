@@ -67,7 +67,8 @@ describe('handleTrpcRequest', () => {
   it('forwards an acceptable streamed body with its request metadata intact', async () => {
     mocks.createServerClient.mockReturnValue({
       auth: {
-        getClaims: vi.fn().mockResolvedValue({ data: { claims: null }, error: null })
+        getClaims: vi.fn().mockResolvedValue({ data: { claims: null }, error: null }),
+        getUser: vi.fn()
       }
     })
 
@@ -106,6 +107,10 @@ describe('handleTrpcRequest', () => {
             }
           },
           error: null
+        }),
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { app_metadata: {}, id: 'admin-user' } },
+          error: null
         })
       }
     })
@@ -120,6 +125,7 @@ describe('handleTrpcRequest', () => {
     expect(mocks.handleTrpcFetchRequest).toHaveBeenCalledWith(
       expect.any(Request),
       expect.objectContaining({
+        invitationSetupPending: false,
         isSuperAdmin: true,
         userId: 'admin-user'
       })
@@ -162,12 +168,47 @@ describe('handleTrpcRequest', () => {
     )
 
     expect(getClaims).toHaveBeenCalledTimes(1)
-    expect(getUser).not.toHaveBeenCalled()
+    expect(getUser).toHaveBeenCalledTimes(1)
     expect(mocks.handleTrpcFetchRequest).toHaveBeenCalledWith(
       expect.any(Request),
       expect.objectContaining({
+        invitationSetupPending: false,
         isSuperAdmin: false,
         userId: 'normal-user'
+      })
+    )
+  })
+
+  it('marks unfinished invite sessions as pending for API authorization', async () => {
+    mocks.createServerClient.mockReturnValue({
+      auth: {
+        getClaims: vi.fn().mockResolvedValue({
+          data: { claims: { app_metadata: {}, sub: 'invited-user' } },
+          error: null
+        }),
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              app_metadata: {},
+              id: 'invited-user',
+              invited_at: '2026-08-05T12:00:00Z'
+            }
+          },
+          error: null
+        })
+      }
+    })
+
+    const { handleTrpcRequest } = await import('./trpc')
+    await handleTrpcRequest(
+      new Request('https://app.test/api/trpc/content.races.list', { method: 'POST' })
+    )
+
+    expect(mocks.handleTrpcFetchRequest).toHaveBeenCalledWith(
+      expect.any(Request),
+      expect.objectContaining({
+        invitationSetupPending: true,
+        userId: 'invited-user'
       })
     )
   })

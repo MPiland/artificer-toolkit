@@ -88,6 +88,40 @@ export const fieldGrid = style({
   }
 })
 
+export const basicsFieldGrid = style([
+  fieldGrid,
+  {
+    '@layer': {
+      [app]: {
+        gridTemplateColumns: 'minmax(0, 1fr) minmax(10rem, 0.65fr) 5rem',
+        alignItems: 'start',
+
+        '@media': {
+          '(max-width: 768px)': {
+            gridTemplateColumns: 'minmax(0, 1fr) 5rem'
+          }
+        }
+      }
+    }
+  }
+])
+
+export const basicsArtwork = style({
+  '@layer': {
+    [app]: {
+      gridColumn: 3,
+      gridRow: 1,
+      justifySelf: 'end',
+
+      '@media': {
+        '(max-width: 768px)': {
+          gridColumn: 2
+        }
+      }
+    }
+  }
+})
+
 export const wideField = style({
   '@layer': {
     [app]: {

@@ -10,11 +10,13 @@ import type {
   AuthoredDetailSectionModel
 } from './AuthoredDetail.types'
 import { renderSanitizedRichHtml } from '#app/ui/primitives/renderSanitizedRichHtml'
+import { MediaImageView, type MediaImageTarget } from '#app/components/MediaImage'
 
 interface AuthoredDetailLayoutProps {
   actions?: AuthoredDetailAction[]
   actionsDisabled?: boolean
   afterFacts?: ReactNode
+  artworkTarget?: MediaImageTarget
   description?: string
   eyebrow?: string
   facts: AuthoredDetailFact[]
@@ -67,6 +69,7 @@ export function AuthoredDetailLayout({
   actions = [],
   actionsDisabled = false,
   afterFacts,
+  artworkTarget,
   description,
   eyebrow,
   facts,
@@ -145,6 +148,7 @@ export function AuthoredDetailLayout({
           <Title className={styles.title}>{title}</Title>
           {description ? <Text className={styles.summary}>{description}</Text> : null}
         </div>
+        {artworkTarget ? <MediaImageView target={artworkTarget} /> : null}
         {facts.length ? <AuthoredDetailFactGrid facts={facts} /> : null}
         {afterFacts ? <div className={styles.afterFacts}>{afterFacts}</div> : null}
       </header>

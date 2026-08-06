@@ -4368,6 +4368,34 @@ describe('character sheet command application', () => {
     ])
   })
 
+  it('uses the current source class level for per-level resource charges', async () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-1', classLevel: 3 }]
+    const resolution = createResolution()
+    const resource = resolution.registry.classes[0]?.resources
+    if (!resource) throw new Error('resource fixture missing')
+    resource.charges = {
+      id: 'charge-1',
+      resetKind: 'LONG_REST',
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'PER_LEVEL',
+      levels: [
+        { id: 'charge-level-1', level: 1, amount: 2 },
+        { id: 'charge-level-3', level: 3, amount: 3 }
+      ]
+    }
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+
+    expect(sheet.resources.items[0]?.max).toBe(3)
+  })
+
   it('uses engine-resolved resource recovery when charge reset modifiers apply', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-1', classLevel: 5 }]

@@ -36,11 +36,9 @@ The application flag is not the security boundary: a client can call the public 
 5. Configure the branded Send Email Hook before inviting external testers. The default Supabase mail service is restricted and is not suitable for alpha delivery; this project deliberately uses the Resend API hook instead of SMTP.
 6. Invite testers from Authentication → Users → Add user → Send invitation. The application does not provide an admin invitation interface.
 
-The invitation callback and `/update-password` remain enabled when public registration is disabled. Invitees choose their required username with their password; the authenticated API validates that username and completes both writes through a one-time service-role-only app-metadata marker consumed by the database trigger. Password recovery uses the same form without the username field. If public registration is reopened later, enable both `PUBLIC_SIGN_UP_ENABLED=true` and the Supabase project signup setting. Do not place a Supabase secret key in web environment variables or client-side code.
+The invitation callback and `/update-password` remain enabled when public registration is disabled. Invitees choose only their password; the auth-user insert has already created their private profile, and username is optional profile data that is not used for sign-in. Password recovery uses the same password form. If public registration is reopened later, enable both `PUBLIC_SIGN_UP_ENABLED=true` and the Supabase project signup setting. Do not place a Supabase secret key in web environment variables or client-side code.
 
-Before applying the required-username settings migration, manually create any missing alpha profile rows and assign every existing auth user a valid unique username. The migration intentionally aborts if that preflight is incomplete. Apply it during a short no-invitation maintenance window, then deploy the matching app before sending another invitation.
-
-Username profanity and reserved-name checks run in the application server. Direct calls to Supabase's public signup endpoint can bypass that heuristic, so public launch must pair it with reporting/moderation or move the policy behind a database-controlled boundary.
+Username profanity and reserved-name checks run when the optional profile value is saved through the application server. Direct profile-table writes can bypass that heuristic, so public launch must pair usernames with reporting/moderation or move the policy behind a database-controlled boundary.
 
 ## Branded authentication email delivery
 

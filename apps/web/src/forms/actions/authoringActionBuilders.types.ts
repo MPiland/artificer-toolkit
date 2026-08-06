@@ -1,3 +1,5 @@
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
+
 export type AuthoringRouteParams = Record<string, string>
 
 export type AuthoringRouteParamBuilder = (
@@ -52,15 +54,9 @@ export type ActivatedAuthoringResponse<
   | null
   | undefined
 
-export type DraftAuthoringResponse = {
-  label?: string | null
-  publicId: string
-  subjectId?: string
-}
+export type DraftAuthoringResponse = AuthoredDraftDto
 
-export type DuplicateAuthoringResponse = DraftAuthoringResponse & {
-  subjectId?: string
-}
+export type DuplicateAuthoringResponse = DraftAuthoringResponse
 
 export type CreateCancelActionArgs = {
   listPath: string
@@ -99,7 +95,6 @@ export type CreateUpdateDraftActionArgs<TSubmit extends object> = {
   messages: Pick<AuthoringActionMessages, 'saveDraftError' | 'saveDraftSuccess'>
   notifier: AuthoringNotifier
   readOnly?: boolean
-  router: AuthoringRouter
 }
 
 export type CreateCopyActionArgs<

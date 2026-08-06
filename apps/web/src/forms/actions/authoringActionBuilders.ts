@@ -71,8 +71,10 @@ export function createCreateDraftAction<
         params: buildRouteParams(draft.publicId, draft.label),
         to: editPath
       })
+      return true
     } catch {
       notifier.show({ color: 'red', message: messages.saveDraftError })
+      return false
     }
   }
 }
@@ -81,18 +83,18 @@ export function createUpdateDraftAction<TSubmit extends object>({
   draftMutation,
   messages,
   notifier,
-  readOnly = false,
-  router
+  readOnly = false
 }: CreateUpdateDraftActionArgs<TSubmit>) {
   return async (payload: TSubmit) => {
-    if (readOnly) return
+    if (readOnly) return false
 
     try {
       await draftMutation.mutateAsync(payload)
       notifier.show({ color: 'green', message: messages.saveDraftSuccess })
-      await router.invalidate()
+      return true
     } catch {
       notifier.show({ color: 'red', message: messages.saveDraftError })
+      return false
     }
   }
 }

@@ -2,6 +2,7 @@ import type { z } from 'zod'
 import type { AuthoredActiveMetadata, AuthoredDraft, DBLike } from '@artificer-toolkit/db'
 import {
   createAuthoredContentRepository,
+  createMediaRepository,
   createAuthoredRouteIdRepository,
   getBackgroundListQuery,
   getClassListQuery,
@@ -350,7 +351,7 @@ export async function saveAuthoredDomainDraft(
 ) {
   return withTransaction(db, async (trx) => {
     await assertWritableAuthoredSubject(trx, config.subjectKind, body.subjectId, userId)
-    return saveAuthoredDraft(
+    const saved = await saveAuthoredDraft(
       trx,
       {
         ...body,
@@ -358,6 +359,13 @@ export async function saveAuthoredDomainDraft(
       },
       userId
     )
+    const media = createMediaRepository(trx)
+    const draftImage = await media.getAuthoredSlot(config.subjectKind, body.subjectId, 'DRAFT')
+    if (!draftImage) {
+      const activeImage = await media.getAuthoredSlot(config.subjectKind, body.subjectId, 'ACTIVE')
+      if (activeImage) await media.upsertAuthoredSlot({ ...activeImage, scope: 'DRAFT' })
+    }
+    return saved
   })
 }
 
@@ -402,6 +410,7 @@ export async function discardAuthoredDomainDraft(
     const hasActive = await activeAuthoredSubjectExists(trx, config.subjectKind, subjectId)
 
     await discardAuthoredDraft(trx, config.subjectKind, subjectId, userId)
+    await createMediaRepository(trx).deleteAuthoredSlot(config.subjectKind, subjectId, 'DRAFT')
 
     if (draft && !hasActive) {
       await createAuthoredRouteIdRepository(trx).delete({
@@ -428,6 +437,7 @@ export async function deleteAuthoredDomainActive(
 
     const draft = await getAuthoredDraft(trx, config.subjectKind, subjectId, userId)
     await deleteActiveAuthoredSubject(trx, config.table, config.subjectKind, subjectId, userId)
+    await createMediaRepository(trx).deleteAuthoredSlot(config.subjectKind, subjectId, 'ACTIVE')
 
     if (!draft) {
       await createAuthoredRouteIdRepository(trx).delete({
@@ -464,6 +474,12 @@ export async function activateAuthoredDomainDraft(
     const result = await config
       .createService(trx)
       .execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+    const media = createMediaRepository(trx)
+    const image = await media.getAuthoredSlot(config.subjectKind, subjectId, 'DRAFT')
+    if (image) {
+      await media.upsertAuthoredSlot({ ...image, scope: 'ACTIVE' })
+      await media.deleteAuthoredSlot(config.subjectKind, subjectId, 'DRAFT')
+    }
     await repository.deleteDraft({
       subjectKind: config.subjectKind,
       subjectId,
@@ -501,6 +517,12 @@ export async function activateAuthoredDomainInput<TInput extends AuthoredContent
     const result = await config
       .createService(trx)
       .execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+    const media = createMediaRepository(trx)
+    const image = await media.getAuthoredSlot(config.subjectKind, normalizedBody.id, 'DRAFT')
+    if (image) {
+      await media.upsertAuthoredSlot({ ...image, scope: 'ACTIVE' })
+      await media.deleteAuthoredSlot(config.subjectKind, normalizedBody.id, 'DRAFT')
+    }
     await repository.deleteDraft({
       subjectKind: config.subjectKind,
       subjectId: normalizedBody.id,

@@ -10,11 +10,13 @@ import {
   useMantineColorScheme
 } from '@mantine/core'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
+import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Fragment, type ReactNode, useMemo, useRef, useState } from 'react'
 import { BookOpen, LogOut, Monitor, Moon, PlusCircle, Search, Settings, Sun } from 'lucide-react'
 import clsx from 'clsx'
 import IUser from '#assets/icons/IUser'
+import { api } from '#app/lib/api'
 import { ShellHeaderSupplementContext, type ShellHeaderSupplement } from './headerSupplement'
 import type { AppShellNavGroup, AppShellNavItem } from './navigation'
 import { isNavItemActive } from './navigation'
@@ -166,6 +168,12 @@ export function PageHeader({ eyebrow, title, description, actions }: PageHeaderP
 }
 
 function UserMenu() {
+  const avatarQuery = useQuery({
+    queryKey: ['media', { type: 'ACCOUNT_AVATAR' }],
+    queryFn: () =>
+      api.media.getImage({ target: { type: 'ACCOUNT_AVATAR' }, variantKind: 'THUMBNAIL' })
+  })
+
   return (
     <Menu position='bottom-end' width={180} withinPortal>
       <Menu.Target>
@@ -174,7 +182,11 @@ function UserMenu() {
           variant='default'
           aria-label='Open account menu'
         >
-          <IUser size={18} aria-hidden='true' />
+          {avatarQuery.data ? (
+            <img alt='' className={styles.userAvatarImage} src={avatarQuery.data.url} />
+          ) : (
+            <IUser size={18} aria-hidden='true' />
+          )}
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown>

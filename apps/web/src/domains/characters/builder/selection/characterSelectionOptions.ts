@@ -178,7 +178,7 @@ function toRaceCard(
   choice: CharacterBuilderChoiceOptionDto | undefined
 ): CharacterSelectionCardOption {
   const speedLabels = race.speedLabels ?? []
-  const abilityScoreIncreaseDescriptions = race.abilityScoreIncreaseDescriptions ?? []
+  const abilityScoreIncreaseFacts = race.abilityScoreIncreaseFacts ?? []
 
   return {
     id: race.id,
@@ -193,14 +193,10 @@ function toRaceCard(
       ...(speedLabels.length > 0
         ? [{ label: 'Speed', value: speedLabels.join(', '), prominence: 'primary' as const }]
         : []),
-      ...(abilityScoreIncreaseDescriptions.length > 0
-        ? [
-            {
-              label: 'Ability scores',
-              value: abilityScoreIncreaseDescriptions.join(' ')
-            }
-          ]
-        : [])
+      ...abilityScoreIncreaseFacts.map((fact) => ({
+        label: fact.label,
+        value: fact.value
+      }))
     ]
   }
 }

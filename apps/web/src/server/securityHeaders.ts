@@ -72,10 +72,18 @@ function getSentryConnectSource() {
 
 function getConnectSrc() {
   return [
-    "connect-src 'self'",
+    "connect-src 'self' blob:",
     ...SUPABASE_CONNECT_SOURCES,
     ...getSentryConnectSource(),
     ...getDevelopmentConnectSources()
+  ].join(' ')
+}
+
+function getImgSrc() {
+  return [
+    "img-src 'self' data: blob:",
+    'https://*.supabase.co',
+    ...getDevelopmentConnectSources().filter((source) => source.startsWith('http'))
   ].join(' ')
 }
 
@@ -86,7 +94,7 @@ function getCsp({ nonce }: SecurityHeaderOptions = {}) {
     "object-src 'none'",
     "frame-ancestors 'none'",
     "form-action 'self'",
-    "img-src 'self' data: blob:",
+    getImgSrc(),
     "font-src 'self' data:",
     getConnectSrc(),
     getScriptSrc(nonce),

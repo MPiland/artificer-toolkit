@@ -19,7 +19,7 @@ type VectorTuple = [number, number, number]
 type RotationTuple = [number, number, number, number]
 type DieAsset = {
   colliderVertices: Float32Array
-  material?: MeshStandardMaterial
+  material: MeshStandardMaterial
   mesh: Mesh
   scale: number
 }
@@ -157,6 +157,14 @@ function PlaybackDie({
   const settledRef = useRef(false)
   const firstFrame = playback.frames[0]
   const initialRotation = useMemo(() => new Quaternion(...firstFrame.rotation), [firstFrame])
+  const material = useMemo(() => {
+    const clonedMaterial = playback.asset.material.clone()
+    clonedMaterial.opacity = playback.die.kept ? 1 : 0.38
+    clonedMaterial.transparent = !playback.die.kept
+    return clonedMaterial
+  }, [playback.asset.material, playback.die.kept])
+
+  useEffect(() => () => material.dispose(), [material])
 
   useFrame(({ clock, invalidate }) => {
     const group = groupRef.current
@@ -181,20 +189,10 @@ function PlaybackDie({
         <mesh
           castShadow
           geometry={playback.asset.mesh.geometry}
+          material={material}
           receiveShadow
           scale={playback.asset.scale}
-        >
-          <meshPhysicalMaterial
-            clearcoat={0.55}
-            clearcoatRoughness={0.18}
-            color={playback.asset.material?.color ?? '#e8edf2'}
-            map={playback.asset.material?.map}
-            metalness={0.42}
-            opacity={playback.die.kept ? 1 : 0.38}
-            roughness={0.26}
-            transparent={!playback.die.kept}
-          />
-        </mesh>
+        />
       </group>
     </group>
   )
@@ -245,13 +243,16 @@ function DiceTable({
         diceTypes.map((die, index) => {
           const mesh = models[index].scene.getObjectByName(`d${die}`)
           if (!(mesh instanceof Mesh)) throw new Error(`The d${die} model is missing its mesh.`)
+          if (!(mesh.material instanceof MeshStandardMaterial)) {
+            throw new Error(`The d${die} model is missing its standard material.`)
+          }
           mesh.geometry.computeBoundingSphere()
           const scale = 1.1 / (mesh.geometry.boundingSphere?.radius || 1)
           return [
             die,
             {
               colliderVertices: getScaledColliderVertices(mesh.geometry.attributes.position, scale),
-              material: mesh.material instanceof MeshStandardMaterial ? mesh.material : undefined,
+              material: mesh.material,
               mesh,
               scale
             }

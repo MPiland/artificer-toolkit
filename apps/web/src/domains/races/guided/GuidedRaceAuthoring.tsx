@@ -9,6 +9,7 @@ import { queryKeys } from '#app/lib/queryKeys'
 import { withForm } from '#forms/app-form/AppForm'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
+import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
 import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
 import * as styles from '#forms/guided/guidedAuthoring.css'
@@ -72,12 +73,13 @@ export const GuidedRaceAuthoring = withForm({
                 Guided. Switch to Advanced to change its structure.
               </Alert>
             ) : null}
+            <div className={styles.identityRow}>
+              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
+                {(field) => <field.TextField label='Race name' required />}
+              </form.AppField>
+              <AuthoringArtworkControl />
+            </div>
             <div className={styles.fields}>
-              <div className={styles.full}>
-                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
-                  {(field) => <field.TextField label='Race name' required />}
-                </form.AppField>
-              </div>
               <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['category'])}>
                 {(field) => (
                   <field.SelectField
@@ -111,8 +113,8 @@ export const GuidedRaceAuthoring = withForm({
               <div className={styles.full}>
                 <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
                   {(field) => (
-                    <field.TextareaField
-                      label='What should players know?'
+                    <field.RichTextField
+                      label='Description'
                       placeholder='Describe this people and what makes them distinctive.'
                     />
                   )}

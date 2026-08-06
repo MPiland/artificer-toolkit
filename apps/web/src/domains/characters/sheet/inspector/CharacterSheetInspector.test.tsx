@@ -23,8 +23,10 @@ import {
   itemPanelFixture,
   savingThrowPanelFixture,
   spellPanelAttackDamageFixture,
-  spellPanelConfiguredCustomizationsFixture
+  spellPanelConfiguredCustomizationsFixture,
+  vehiclePanelFixture
 } from './inspector.fixtures'
+import { getCharacterSheetPanelImageTarget } from './inspector.model'
 
 function panelResponse(panel: unknown) {
   return HttpResponse.json([{ result: { data: panel } }])
@@ -48,6 +50,27 @@ afterAll(() => {
 })
 
 describe('Character Sheet inspector', () => {
+  it('maps authored domain panels to their active artwork', () => {
+    expect(getCharacterSheetPanelImageTarget(spellPanelAttackDamageFixture)?.lookup).toMatchObject({
+      subjectKind: 'SPELL',
+      subjectId: spellPanelAttackDamageFixture.spellId,
+      scope: 'ACTIVE'
+    })
+    expect(getCharacterSheetPanelImageTarget(itemPanelFixture)?.lookup).toMatchObject({
+      subjectKind: 'EQUIPMENT',
+      subjectId: itemPanelFixture.equipmentId
+    })
+    expect(getCharacterSheetPanelImageTarget(companionPanelFixture)?.lookup).toMatchObject({
+      subjectKind: 'CREATURE',
+      subjectId: companionPanelFixture.creatureId
+    })
+    expect(getCharacterSheetPanelImageTarget(vehiclePanelFixture)?.lookup).toMatchObject({
+      subjectKind: 'VEHICLE',
+      subjectId: vehiclePanelFixture.vehicleId
+    })
+    expect(getCharacterSheetPanelImageTarget(abilityPanelFixture)).toBeNull()
+  })
+
   it('renders the aggregate Extras panel through the exhaustive rules-panel adapter', () => {
     const panel = {
       kind: 'EXTRAS',

@@ -11,6 +11,7 @@ import { queryKeys } from '#app/lib/queryKeys'
 import { withForm } from '#forms/app-form/AppForm'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
+import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
 import {
   createGuidedStartingEquipmentItem,
@@ -116,12 +117,13 @@ export const GuidedClassAuthoring = withForm({
                 Advanced to change its structure.
               </Alert>
             ) : null}
+            <div className={styles.identityRow}>
+              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
+                {(field) => <field.TextField label='Class name' required />}
+              </form.AppField>
+              <AuthoringArtworkControl />
+            </div>
             <div className={styles.fields}>
-              <div className={styles.full}>
-                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
-                  {(field) => <field.TextField label='Class name' required />}
-                </form.AppField>
-              </div>
               <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['category'])}>
                 {(field) => (
                   <field.SelectField
@@ -151,7 +153,7 @@ export const GuidedClassAuthoring = withForm({
               ) : null}
               <div className={styles.full}>
                 <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
-                  {(field) => <field.TextareaField label='What should players know?' />}
+                  {(field) => <field.RichTextField label='Description' />}
                 </form.AppField>
               </div>
             </div>

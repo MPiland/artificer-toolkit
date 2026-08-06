@@ -115,6 +115,54 @@ export type Database = {
           }
         ]
       }
+      authored_image_slots: {
+        Row: {
+          alt_text: string | null
+          asset_id: string | null
+          created_at: string
+          is_decorative: boolean
+          scope: string
+          subject_id: string
+          subject_kind: string
+          updated_at: string
+        }
+        Insert: {
+          alt_text?: string | null
+          asset_id?: string | null
+          created_at?: string
+          is_decorative?: boolean
+          scope: string
+          subject_id: string
+          subject_kind: string
+          updated_at?: string
+        }
+        Update: {
+          alt_text?: string | null
+          asset_id?: string | null
+          created_at?: string
+          is_decorative?: boolean
+          scope?: string
+          subject_id?: string
+          subject_kind?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'authored_image_slots_asset_id_fkey'
+            columns: ['asset_id']
+            isOneToOne: false
+            referencedRelation: 'media_assets'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'authored_image_slots_route_fk'
+            columns: ['subject_kind', 'subject_id']
+            isOneToOne: false
+            referencedRelation: 'authored_route_ids'
+            referencedColumns: ['subject_kind', 'subject_id']
+          }
+        ]
+      }
       authored_import_refs: {
         Row: {
           created_at: string
@@ -1391,13 +1439,6 @@ export type Database = {
             columns: ['character_id']
             isOneToOne: true
             referencedRelation: 'characters'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'character_class_equipment_session_gold_option_fkey'
-            columns: ['gold_option']
-            isOneToOne: false
-            referencedRelation: 'starting_equipment_options'
             referencedColumns: ['id']
           },
           {
@@ -3975,6 +4016,7 @@ export type Database = {
           id: string
           inspiration: boolean
           label: string
+          portrait_asset_id: string | null
           status: string
           stream_version: number
           system_id: string
@@ -3987,6 +4029,7 @@ export type Database = {
           id?: string
           inspiration?: boolean
           label: string
+          portrait_asset_id?: string | null
           status?: string
           stream_version?: number
           system_id: string
@@ -3999,6 +4042,7 @@ export type Database = {
           id?: string
           inspiration?: boolean
           label?: string
+          portrait_asset_id?: string | null
           status?: string
           stream_version?: number
           system_id?: string
@@ -4006,6 +4050,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: 'characters_portrait_asset_fk'
+            columns: ['portrait_asset_id']
+            isOneToOne: false
+            referencedRelation: 'media_assets'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'characters_system_id_fkey'
             columns: ['system_id']
@@ -8952,6 +9003,149 @@ export type Database = {
           }
         ]
       }
+      media_assets: {
+        Row: {
+          created_at: string
+          crop_height: number | null
+          crop_width: number | null
+          crop_x: number | null
+          crop_y: number | null
+          declared_bytes: number
+          declared_mime_type: string
+          deleted_at: string | null
+          height: number | null
+          id: string
+          idempotency_key: string
+          original_file_name: string
+          owner_user_id: string
+          processing_started_at: string | null
+          profile: string
+          raw_object_key: string
+          ready_at: string | null
+          rejection_reason: string | null
+          status: string
+          target_key: string
+          unreferenced_at: string | null
+          updated_at: string
+          verified_bytes: number | null
+          verified_mime_type: string | null
+          width: number | null
+        }
+        Insert: {
+          created_at?: string
+          crop_height?: number | null
+          crop_width?: number | null
+          crop_x?: number | null
+          crop_y?: number | null
+          declared_bytes: number
+          declared_mime_type: string
+          deleted_at?: string | null
+          height?: number | null
+          id?: string
+          idempotency_key: string
+          original_file_name: string
+          owner_user_id: string
+          processing_started_at?: string | null
+          profile: string
+          raw_object_key: string
+          ready_at?: string | null
+          rejection_reason?: string | null
+          status?: string
+          target_key: string
+          unreferenced_at?: string | null
+          updated_at?: string
+          verified_bytes?: number | null
+          verified_mime_type?: string | null
+          width?: number | null
+        }
+        Update: {
+          created_at?: string
+          crop_height?: number | null
+          crop_width?: number | null
+          crop_x?: number | null
+          crop_y?: number | null
+          declared_bytes?: number
+          declared_mime_type?: string
+          deleted_at?: string | null
+          height?: number | null
+          id?: string
+          idempotency_key?: string
+          original_file_name?: string
+          owner_user_id?: string
+          processing_started_at?: string | null
+          profile?: string
+          raw_object_key?: string
+          ready_at?: string | null
+          rejection_reason?: string | null
+          status?: string
+          target_key?: string
+          unreferenced_at?: string | null
+          updated_at?: string
+          verified_bytes?: number | null
+          verified_mime_type?: string | null
+          width?: number | null
+        }
+        Relationships: []
+      }
+      media_object_deletions: {
+        Row: {
+          created_at: string
+          object_key: string
+        }
+        Insert: {
+          created_at?: string
+          object_key: string
+        }
+        Update: {
+          created_at?: string
+          object_key?: string
+        }
+        Relationships: []
+      }
+      media_variants: {
+        Row: {
+          asset_id: string
+          byte_size: number
+          created_at: string
+          height: number
+          id: string
+          kind: string
+          mime_type: string
+          object_key: string
+          width: number
+        }
+        Insert: {
+          asset_id: string
+          byte_size: number
+          created_at?: string
+          height: number
+          id?: string
+          kind: string
+          mime_type: string
+          object_key: string
+          width: number
+        }
+        Update: {
+          asset_id?: string
+          byte_size?: number
+          created_at?: string
+          height?: number
+          id?: string
+          kind?: string
+          mime_type?: string
+          object_key?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'media_variants_asset_id_fkey'
+            columns: ['asset_id']
+            isOneToOne: false
+            referencedRelation: 'media_assets'
+            referencedColumns: ['id']
+          }
+        ]
+      }
       modifier_grant_charge_levels: {
         Row: {
           amount: number
@@ -9897,33 +10091,44 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_asset_id: string | null
           avatar_url: string | null
           bio: string | null
           full_name: string | null
           id: string
           updated_at: string | null
-          username: string
+          username: string | null
           website: string | null
         }
         Insert: {
+          avatar_asset_id?: string | null
           avatar_url?: string | null
           bio?: string | null
           full_name?: string | null
           id: string
           updated_at?: string | null
-          username: string
+          username?: string | null
           website?: string | null
         }
         Update: {
+          avatar_asset_id?: string | null
           avatar_url?: string | null
           bio?: string | null
           full_name?: string | null
           id?: string
           updated_at?: string | null
-          username?: string
+          username?: string | null
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'profiles_avatar_asset_fk'
+            columns: ['avatar_asset_id']
+            isOneToOne: false
+            referencedRelation: 'media_assets'
+            referencedColumns: ['id']
+          }
+        ]
       }
       race_ancestries: {
         Row: {

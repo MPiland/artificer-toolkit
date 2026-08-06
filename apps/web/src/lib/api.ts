@@ -100,13 +100,21 @@ import {
 } from '@artificer-toolkit/schema/api/routeIds'
 import {
   accountProfileDtoSchema,
-  accountUsernameStatusDtoSchema,
   type AccountProfileDto,
-  type AccountProfileUpdateInput,
-  type AccountUsernameStatusDto,
-  type AccountUsernameStatusInput
+  type AccountProfileUpdateInput
 } from '@artificer-toolkit/schema/api/account'
 import type { AuthInvitationCompletionInput } from '@artificer-toolkit/schema/api/auth'
+import {
+  createImageUploadIntentOutputSchema,
+  finalizeImageUploadOutputSchema,
+  signedImageDeliveryDtoSchema,
+  type AttachImageInput,
+  type CreateImageUploadIntentInput,
+  type FinalizeImageUploadInput,
+  type ImageLookupInput,
+  type RemoveImageInput,
+  type SignedImageDeliveryDto
+} from '@artificer-toolkit/schema/api/media'
 import {
   systemListResponseDtoSchema,
   systemResponseDtoSchema,
@@ -142,8 +150,6 @@ export type {
   AuthoredSubjectKindDto,
   AccountProfileDto,
   AccountProfileUpdateInput,
-  AccountUsernameStatusDto,
-  AccountUsernameStatusInput,
   BackgroundListItemDto,
   BackgroundListResponseDto,
   BackgroundResponseDto,
@@ -207,7 +213,13 @@ export type {
   VehicleAuthoringInputDto,
   VehicleListItemDto,
   VehicleListResponseDto,
-  VehicleResponseDto
+  VehicleResponseDto,
+  AttachImageInput,
+  CreateImageUploadIntentInput,
+  FinalizeImageUploadInput,
+  ImageLookupInput,
+  RemoveImageInput,
+  SignedImageDeliveryDto
 }
 
 type FetchInput = Parameters<typeof fetch>[0]
@@ -318,7 +330,6 @@ interface TrpcClient {
     completeInvitation: MutationProcedure<AuthInvitationCompletionInput, { ok: true }>
     profile: EmptyQueryProcedure<AccountProfileDto | null>
     updateProfile: MutationProcedure<AccountProfileUpdateInput, AccountProfileDto>
-    usernameStatus: QueryProcedure<AccountUsernameStatusInput, AccountUsernameStatusDto>
   }
   characters: {
     command: MutationProcedure<
@@ -380,6 +391,19 @@ interface TrpcClient {
       VehicleResponseDto,
       VehicleAuthoringInputDto
     >
+  }
+  media: {
+    attachImage: MutationProcedure<AttachImageInput, { ok: true }>
+    createImageUpload: MutationProcedure<
+      CreateImageUploadIntentInput,
+      z.infer<typeof createImageUploadIntentOutputSchema>
+    >
+    finalizeImageUpload: MutationProcedure<
+      FinalizeImageUploadInput,
+      z.infer<typeof finalizeImageUploadOutputSchema>
+    >
+    getImage: QueryProcedure<ImageLookupInput, SignedImageDeliveryDto | null>
+    removeImage: MutationProcedure<RemoveImageInput, { ok: true }>
   }
   nodeRuntime: {
     normalizeValues: MutationProcedure<
@@ -550,10 +574,6 @@ function buildApi(client: TrpcClient) {
       updateProfile: (input: AccountProfileUpdateInput) =>
         request('account.updateProfile', accountProfileDtoSchema, () =>
           client.account.updateProfile.mutate(input)
-        ),
-      usernameStatus: (input: AccountUsernameStatusInput) =>
-        request('account.usernameStatus', accountUsernameStatusDtoSchema, () =>
-          client.account.usernameStatus.query(input)
         )
     },
 
@@ -767,6 +787,27 @@ function buildApi(client: TrpcClient) {
         request('systems.get', systemResponseDtoSchema, () => client.systems.get.query({ id })),
       list: () =>
         request('systems.list', systemListResponseDtoSchema, () => client.systems.list.query())
+    },
+
+    media: {
+      attachImage: (input: AttachImageInput) =>
+        request('media.attachImage', okResponseSchema, () =>
+          client.media.attachImage.mutate(input)
+        ),
+      createImageUpload: (input: CreateImageUploadIntentInput) =>
+        request('media.createImageUpload', createImageUploadIntentOutputSchema, () =>
+          client.media.createImageUpload.mutate(input)
+        ),
+      finalizeImageUpload: (input: FinalizeImageUploadInput) =>
+        request('media.finalizeImageUpload', finalizeImageUploadOutputSchema, () =>
+          client.media.finalizeImageUpload.mutate(input)
+        ),
+      getImage: (input: ImageLookupInput) =>
+        request('media.getImage', signedImageDeliveryDtoSchema.nullable(), () =>
+          client.media.getImage.query(input)
+        ),
+      removeImage: (input: RemoveImageInput) =>
+        request('media.removeImage', okResponseSchema, () => client.media.removeImage.mutate(input))
     },
 
     nodeRuntime: {

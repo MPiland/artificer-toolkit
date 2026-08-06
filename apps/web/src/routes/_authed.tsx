@@ -7,14 +7,13 @@ import {
 } from '@tanstack/react-router'
 import { Shell, platformNavigation } from '#app/shell'
 import { authoringSearchSchema } from '#app/forms/layout/authoringSearch'
-import { getAccountProfileRedirect } from '#app/settings/accountProfileGuard'
+import { hasPendingInvitationSetup } from '#app/auth/invitationStatus'
 
 export const Route = createFileRoute('/_authed')({
   validateSearch: authoringSearchSchema,
-  beforeLoad: async ({ context }) => {
-    const target = await getAccountProfileRedirect(context)
-    if (target === 'sign-in') throw redirect({ to: '/sign-in' })
-    if (target === 'invite') {
+  beforeLoad: ({ context }) => {
+    if (!context.user) throw redirect({ to: '/sign-in' })
+    if (hasPendingInvitationSetup(context.user)) {
       throw redirect({ to: '/update-password', search: { flow: 'invite' } })
     }
   },

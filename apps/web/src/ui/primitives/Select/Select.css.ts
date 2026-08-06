@@ -111,7 +111,7 @@ export const pillsList = style({
   '@layer': {
     [app]: {
       display: 'flex',
-      flexWrap: 'nowrap',
+      flexWrap: 'wrap',
       alignItems: 'center',
       gap: foundationVars.space[1],
       minHeight: '28px',

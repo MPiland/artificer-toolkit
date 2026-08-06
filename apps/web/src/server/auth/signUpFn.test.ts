@@ -37,8 +37,7 @@ import { signUpFn } from './signUpFn'
 describe('signUpFn', () => {
   const input = {
     email: 'player@example.com',
-    password: 'password1234',
-    username: 'Morgan_Emberfall'
+    password: 'password1234'
   }
 
   function configureEnabledSignUp() {
@@ -84,28 +83,8 @@ describe('signUpFn', () => {
       email: input.email,
       password: input.password,
       options: {
-        data: { username: input.username },
         emailRedirectTo: 'https://app.example.test/auth/confirmed'
       }
     })
-  })
-
-  it('rejects a disallowed username before calling Supabase', async () => {
-    configureEnabledSignUp()
-
-    await expect(
-      signUpFn({
-        data: {
-          email: input.email,
-          password: input.password,
-          username: 'admin'
-        }
-      })
-    ).resolves.toEqual({
-      ok: false,
-      message: "That username isn't allowed.",
-      session: null
-    })
-    expect(mocks.signUp).not.toHaveBeenCalled()
   })
 })
