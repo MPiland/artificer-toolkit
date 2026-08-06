@@ -9,14 +9,6 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('#app/lib/api', () => ({
-  ApiError: class ApiError extends Error {
-    constructor(
-      public readonly status: number,
-      message: string
-    ) {
-      super(message)
-    }
-  },
   api: {
     account: {
       profile: mocks.profile,
@@ -28,7 +20,6 @@ vi.mock('#app/lib/api', () => ({
   }
 }))
 
-import { ApiError } from '#app/lib/api'
 import { ProfileSettingsPage } from './ProfileSettingsPage'
 
 describe('ProfileSettingsPage', () => {
@@ -36,26 +27,20 @@ describe('ProfileSettingsPage', () => {
     vi.clearAllMocks()
     mocks.profile.mockResolvedValue({
       username: 'morgan',
-      name: 'Morgan',
       bio: 'Forge keeper.'
     })
     mocks.getImage.mockResolvedValue(null)
   })
 
-  it('saves username, name, and bio atomically', async () => {
+  it('keeps the account username fixed while saving the bio', async () => {
     mocks.updateProfile.mockResolvedValue({
-      username: 'morgan_emberfall',
-      name: 'Morgan Emberfall',
+      username: 'morgan',
       bio: 'Builds worlds.'
     })
     renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
 
-    fireEvent.change(await screen.findByRole('textbox', { name: /^username/i }), {
-      target: { value: 'Morgan_Emberfall' }
-    })
-    fireEvent.change(screen.getByRole('textbox', { name: /^name/i }), {
-      target: { value: 'Morgan Emberfall' }
-    })
+    expect(await screen.findByRole('textbox', { name: /^username/i })).toHaveAttribute('readonly')
+    expect(screen.queryByRole('textbox', { name: /^name/i })).not.toBeInTheDocument()
     fireEvent.change(screen.getByRole('textbox', { name: /^bio/i }), {
       target: { value: 'Builds worlds.' }
     })
@@ -63,44 +48,23 @@ describe('ProfileSettingsPage', () => {
 
     await waitFor(() =>
       expect(mocks.updateProfile).toHaveBeenCalledWith({
-        username: 'Morgan_Emberfall',
-        name: 'Morgan Emberfall',
         bio: 'Builds worlds.'
       })
     )
   })
 
-  it('shows username conflicts on the username field', async () => {
-    mocks.updateProfile.mockRejectedValue(new ApiError(409, 'That username is already taken.'))
+  it('lets a legacy account claim its missing username once', async () => {
+    mocks.profile.mockResolvedValueOnce({ username: null, bio: null })
+    mocks.updateProfile.mockResolvedValueOnce({ username: 'morgan', bio: null })
     renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
 
-    fireEvent.change(await screen.findByRole('textbox', { name: /^username/i }), {
-      target: { value: 'taken_name' }
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Save profile' }))
-
-    expect(await screen.findByText('That username is already taken.')).toBeInTheDocument()
-  })
-
-  it('allows the optional username to be cleared', async () => {
-    mocks.updateProfile.mockResolvedValue({
-      username: null,
-      name: 'Morgan',
-      bio: 'Forge keeper.'
-    })
-    renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
-
-    fireEvent.change(await screen.findByRole('textbox', { name: /^username/i }), {
-      target: { value: '  ' }
-    })
+    const username = await screen.findByRole('textbox', { name: /^username/i })
+    expect(username).not.toHaveAttribute('readonly')
+    fireEvent.change(username, { target: { value: 'morgan' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save profile' }))
 
     await waitFor(() =>
-      expect(mocks.updateProfile).toHaveBeenCalledWith({
-        username: null,
-        name: 'Morgan',
-        bio: 'Forge keeper.'
-      })
+      expect(mocks.updateProfile).toHaveBeenCalledWith({ username: 'morgan', bio: '' })
     )
   })
 })

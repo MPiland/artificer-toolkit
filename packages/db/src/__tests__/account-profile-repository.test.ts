@@ -22,7 +22,7 @@ function profileDb(username: string | null): DBLike {
     selectFrom: () => ({
       select: () => ({
         where: () => ({
-          executeTakeFirst: async () => ({ username, full_name: null, bio: null })
+          executeTakeFirst: async () => ({ username, bio: null })
         })
       })
     })
@@ -35,7 +35,6 @@ describe('account profile repository', () => {
 
     await expect(repository.findForUser('user-1')).resolves.toEqual({
       username: null,
-      name: null,
       bio: null
     })
   })
@@ -48,7 +47,6 @@ describe('account profile repository', () => {
     await expect(
       repository.upsertForUser('user-1', {
         username: 'taken_name',
-        name: null,
         bio: null
       })
     ).rejects.toBeInstanceOf(UsernameConflictError)

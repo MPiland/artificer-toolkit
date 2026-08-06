@@ -250,10 +250,19 @@ RETURNS trigger
 SET search_path = pg_catalog, public
 LANGUAGE plpgsql SECURITY DEFINER
 AS $$
+DECLARE
+  profile_username text := NULLIF(trim(NEW.raw_user_meta_data ->> 'username'), '');
 BEGIN
-  INSERT INTO public.profiles (id, full_name, avatar_url)
+  IF lower(profile_username) IN (
+    'admin', 'moderator', 'support', 'system', 'root', 'artificer', 'artificer_toolkit'
+  ) THEN
+    RAISE EXCEPTION 'Username is reserved.';
+  END IF;
+
+  INSERT INTO public.profiles (id, username, full_name, avatar_url)
   VALUES (
     NEW.id,
+    profile_username,
     NEW.raw_user_meta_data ->> 'full_name',
     NEW.raw_user_meta_data ->> 'avatar_url'
   )
@@ -271,9 +280,10 @@ AFTER INSERT ON auth.users
 FOR EACH ROW
 EXECUTE PROCEDURE public.handle_new_user();
 
-INSERT INTO public.profiles (id, full_name, avatar_url)
+INSERT INTO public.profiles (id, username, full_name, avatar_url)
 SELECT
   auth_user.id,
+  NULLIF(trim(auth_user.raw_user_meta_data ->> 'username'), ''),
   auth_user.raw_user_meta_data ->> 'full_name',
   auth_user.raw_user_meta_data ->> 'avatar_url'
 FROM auth.users AS auth_user

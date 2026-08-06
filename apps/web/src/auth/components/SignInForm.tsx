@@ -27,7 +27,7 @@ export function SignInForm({
   onSuccess,
   publicSignUpEnabled = false
 }: SignInFormProps) {
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
@@ -40,10 +40,11 @@ export function SignInForm({
     setFeedback(null)
 
     try {
-      const result = await authClient.signIn({ email, password })
+      const result = await authClient.signIn({ identifier, password })
 
       if (!result.ok) {
-        const message = result.message ?? 'Check your email and password, then try again.'
+        const message =
+          result.message ?? 'Check your email or username and password, then try again.'
         setFeedback({ tone: 'error', message })
         return
       }
@@ -59,16 +60,16 @@ export function SignInForm({
   return (
     <form className={authForm} method='post' onSubmit={handleSubmit}>
       <TextInput
-        label='Email address'
+        label='Email or username'
         classNames={{
           input: textInput
         }}
         autoComplete='username'
-        name='email'
-        type='email'
-        placeholder='you@example.com'
-        value={email}
-        onChange={(event) => setEmail(event.currentTarget.value)}
+        name='identifier'
+        type='text'
+        placeholder='you@example.com or morgan_emberfall'
+        value={identifier}
+        onChange={(event) => setIdentifier(event.currentTarget.value)}
         required
       />
       <PasswordInput

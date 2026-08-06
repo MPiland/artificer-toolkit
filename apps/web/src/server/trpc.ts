@@ -71,6 +71,7 @@ export async function handleTrpcRequest(request: Request): Promise<Response> {
   }
 
   const response = await handleTrpcFetchRequest(request, {
+    clientIp: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || undefined,
     databaseConnectionString: getDatabaseConnectionString(),
     invitationSetupPending,
     isSuperAdmin,

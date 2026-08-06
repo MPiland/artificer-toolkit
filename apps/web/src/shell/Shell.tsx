@@ -169,7 +169,7 @@ export function PageHeader({ eyebrow, title, description, actions }: PageHeaderP
 
 function UserMenu() {
   const avatarQuery = useQuery({
-    queryKey: ['media', { type: 'ACCOUNT_AVATAR' }],
+    queryKey: ['media', { type: 'ACCOUNT_AVATAR' }, 'THUMBNAIL'],
     queryFn: () =>
       api.media.getImage({ target: { type: 'ACCOUNT_AVATAR' }, variantKind: 'THUMBNAIL' })
   })

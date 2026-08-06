@@ -3,6 +3,7 @@ import { ZodError } from 'zod'
 import { createDb, withUserContext, type DBLike, type KyselyDatabase } from '@artificer-toolkit/db'
 
 export interface TrpcContext {
+  clientIp?: string
   databaseConnectionString?: string
   invitationSetupPending: boolean
   isSuperAdmin?: boolean

@@ -47,14 +47,13 @@ function ProfileForm({
   const queryClient = useQueryClient()
   const [username, setUsername] = useState(initialProfile.username ?? '')
   const [usernameError, setUsernameError] = useState<string | null>(null)
-  const [name, setName] = useState(initialProfile.name ?? '')
   const [bio, setBio] = useState(initialProfile.bio ?? '')
+  const needsUsername = initialProfile.username === null
   const updateProfile = useMutation({
     mutationFn: (input: AccountProfileUpdateInput) => api.account.updateProfile(input),
     onSuccess: (profile) => {
       queryClient.setQueryData(getAccountProfileQuery(userId).queryKey, profile)
       setUsername(profile.username ?? '')
-      setName(profile.name ?? '')
       setBio(profile.bio ?? '')
       setUsernameError(null)
       notifications.show({ color: 'green', message: 'Profile saved.' })
@@ -67,7 +66,6 @@ function ProfileForm({
         setUsernameError(error.message)
         return
       }
-
       notifications.show({
         color: 'red',
         message: 'Could not save your profile. Try again.'
@@ -77,23 +75,21 @@ function ProfileForm({
 
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
-    setUsernameError(null)
+    if (!needsUsername) {
+      updateProfile.mutate({ bio })
+      return
+    }
 
-    const parsedUsername = username.trim() ? usernameInputSchema.safeParse(username) : null
-    if (parsedUsername && !parsedUsername.success) {
+    const parsedUsername = usernameInputSchema.safeParse(username)
+    if (!parsedUsername.success) {
       setUsernameError(
         'Use 3–30 letters, numbers, and single underscores between words. Capitalization is preserved.'
       )
       return
     }
 
-    const normalizedUsername = parsedUsername?.success ? parsedUsername.data : null
-    setUsername(normalizedUsername ?? '')
-    updateProfile.mutate({
-      username: normalizedUsername,
-      name,
-      bio
-    })
+    setUsernameError(null)
+    updateProfile.mutate({ username: parsedUsername.data, bio })
   }
 
   return (
@@ -103,7 +99,7 @@ function ProfileForm({
           Profile
         </h1>
         <p className={styles.pageDescription}>
-          Manage the optional username, name, and short biography shown with your account.
+          Manage the avatar and biography shown with your account.
         </p>
       </header>
       <form className={styles.form} method='post' onSubmit={handleSubmit}>
@@ -121,26 +117,28 @@ function ProfileForm({
           />
         </div>
         <TextInput
-          autoComplete='nickname'
-          description='Optional. Use 3–30 letters, numbers, and single underscores.'
+          autoComplete='username'
+          description={
+            needsUsername
+              ? 'Choose the username you will use for sign-in and account attribution.'
+              : 'Your username is used for sign-in and account attribution.'
+          }
           error={usernameError}
           label='Username'
           maxLength={30}
+          minLength={3}
           name='username'
+          onChange={
+            needsUsername
+              ? (event) => {
+                  setUsername(event.currentTarget.value)
+                  setUsernameError(null)
+                }
+              : undefined
+          }
+          readOnly={!needsUsername}
+          required={needsUsername}
           value={username}
-          onChange={(event) => {
-            setUsername(event.currentTarget.value)
-            setUsernameError(null)
-          }}
-        />
-        <TextInput
-          autoComplete='name'
-          label='Name'
-          description='Optional'
-          maxLength={100}
-          name='name'
-          value={name}
-          onChange={(event) => setName(event.currentTarget.value)}
         />
         <Textarea
           autosize

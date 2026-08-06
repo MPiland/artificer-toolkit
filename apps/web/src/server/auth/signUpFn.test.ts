@@ -37,7 +37,8 @@ import { signUpFn } from './signUpFn'
 describe('signUpFn', () => {
   const input = {
     email: 'player@example.com',
-    password: 'password1234'
+    password: 'password1234',
+    username: 'player_one'
   }
 
   function configureEnabledSignUp() {
@@ -71,7 +72,7 @@ describe('signUpFn', () => {
     expect(mocks.getSupabaseServerClient).not.toHaveBeenCalled()
   })
 
-  it('preserves the existing email/password registration request when enabled', async () => {
+  it('persists the required username with the registration request', async () => {
     configureEnabledSignUp()
     mocks.signUp.mockResolvedValue({
       data: { session: null },
@@ -83,6 +84,9 @@ describe('signUpFn', () => {
       email: input.email,
       password: input.password,
       options: {
+        data: {
+          username: 'player_one'
+        },
         emailRedirectTo: 'https://app.example.test/auth/confirmed'
       }
     })

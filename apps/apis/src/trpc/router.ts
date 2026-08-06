@@ -51,7 +51,11 @@ import {
   type DirectAuthoredDomainConfig
 } from '@artificer-toolkit/functions'
 import { createSupabaseClient } from '@artificer-toolkit/functions/clients'
-import { authInvitationCompletionInputSchema } from '@artificer-toolkit/schema/api/auth'
+import {
+  authInvitationCompletionInputSchema,
+  authSessionCredentialsDtoSchema,
+  authUsernameSignInInputSchema
+} from '@artificer-toolkit/schema/api/auth'
 import {
   attachImageInputSchema,
   createImageUploadIntentInputSchema,
@@ -158,7 +162,9 @@ import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits
 import { applicationFeatureFlagsDtoSchema } from '@artificer-toolkit/schema/api/applicationConfig'
 import {
   accountProfileDtoSchema,
-  accountProfileUpdateInputSchema
+  accountProfileUpdateInputSchema,
+  accountUsernameStatusDtoSchema,
+  accountUsernameStatusInputSchema
 } from '@artificer-toolkit/schema/api/account'
 import {
   systemListResponseDtoSchema,
@@ -387,11 +393,72 @@ export const appRouter = createTRPCRouter({
   }),
 
   account: createTRPCRouter({
+    usernameStatus: t.procedure
+      .input(accountUsernameStatusInputSchema)
+      .output(accountUsernameStatusDtoSchema)
+      .query(({ ctx, input }) => {
+        const validation = validateUsername(input.username)
+        if (validation.message) {
+          return { status: 'not_allowed' as const }
+        }
+
+        return withDb(ctx, async (db) => ({
+          status: (await createAccountProfileRepository(db).isUsernameTaken(validation.username))
+            ? ('taken' as const)
+            : ('available' as const)
+        }))
+      }),
+
+    signInWithUsername: t.procedure
+      .input(authUsernameSignInInputSchema)
+      .output(authSessionCredentialsDtoSchema)
+      .mutation(async ({ ctx, input }) => {
+        const userId = await withDb(ctx, (db) =>
+          createAccountProfileRepository(db).findUserIdByUsername(input.username)
+        )
+        if (!userId) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid username or password.' })
+        }
+
+        const supabase = createSupabaseClient(ctx.clientIp)
+        const { data: authUser, error: authUserError } =
+          await supabase.auth.admin.getUserById(userId)
+        const email = authUser.user?.email
+        if (authUserError || !email) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid username or password.' })
+        }
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password: input.password
+        })
+        if (error?.status === 429) {
+          throw new TRPCError({
+            code: 'TOO_MANY_REQUESTS',
+            message: 'Too many sign-in attempts. Try again shortly.'
+          })
+        }
+        if (error || !data.session) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid username or password.' })
+        }
+
+        return {
+          accessToken: data.session.access_token,
+          refreshToken: data.session.refresh_token
+        }
+      }),
+
     completeInvitation: t.procedure
       .input(authInvitationCompletionInputSchema)
       .output(okResponseSchema)
       .mutation(async ({ ctx, input }) => {
         const userId = requireUserId(ctx)
+        if (!ctx.invitationSetupPending) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Invitation setup is already complete.'
+          })
+        }
         const supabase = createSupabaseClient()
         const { data: authUser, error: authUserError } =
           await supabase.auth.admin.getUserById(userId)
@@ -401,6 +468,24 @@ export const appRouter = createTRPCRouter({
             message: 'Could not complete registration.'
           })
         }
+
+        const username = validateUsername(input.username)
+        if (username.message) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: USERNAME_NOT_ALLOWED_MESSAGE
+          })
+        }
+
+        const existingProfile = await withDb(ctx, (db) =>
+          createAccountProfileRepository(db).findForUser(userId)
+        )
+        await withDb(ctx, (db) =>
+          createAccountProfileRepository(db).upsertForUser(userId, {
+            username: username.username,
+            bio: existingProfile?.bio ?? null
+          })
+        )
 
         const { error } = await supabase.auth.admin.updateUserById(userId, {
           password: input.password,
@@ -432,24 +517,39 @@ export const appRouter = createTRPCRouter({
     updateProfile: authenticatedProcedure
       .input(accountProfileUpdateInputSchema)
       .output(accountProfileDtoSchema)
-      .mutation(({ ctx, input }) => {
-        const username = input.username === null ? null : validateUsername(input.username)
-        if (username?.message) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: USERNAME_NOT_ALLOWED_MESSAGE
-          })
-        }
+      .mutation(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, async (db, userId) => {
+          const repository = createAccountProfileRepository(db)
+          const profile = await repository.findForUser(userId)
+          let username = profile?.username ?? null
 
-        return withAuthenticatedDb(ctx, async (db, userId) =>
-          accountProfileDtoSchema.parse(
-            await createAccountProfileRepository(db).upsertForUser(userId, {
-              ...input,
-              username: username?.username ?? null
+          if (!username) {
+            const validation = validateUsername(input.username ?? '')
+            if (validation.message) {
+              throw new TRPCError({
+                code: 'BAD_REQUEST',
+                message: USERNAME_NOT_ALLOWED_MESSAGE
+              })
+            }
+            username = validation.username
+          } else if (
+            input.username &&
+            input.username.toLowerCase() !== username.toLowerCase()
+          ) {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: 'Username cannot be changed after it is claimed.'
+            })
+          }
+
+          return accountProfileDtoSchema.parse(
+            await repository.upsertForUser(userId, {
+              username,
+              bio: input.bio
             })
           )
-        )
-      })
+        })
+      )
   }),
 
   media: createTRPCRouter({

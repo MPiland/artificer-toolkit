@@ -100,10 +100,18 @@ import {
 } from '@artificer-toolkit/schema/api/routeIds'
 import {
   accountProfileDtoSchema,
+  accountUsernameStatusDtoSchema,
   type AccountProfileDto,
-  type AccountProfileUpdateInput
+  type AccountProfileUpdateInput,
+  type AccountUsernameStatusDto,
+  type AccountUsernameStatusInput
 } from '@artificer-toolkit/schema/api/account'
-import type { AuthInvitationCompletionInput } from '@artificer-toolkit/schema/api/auth'
+import {
+  authSessionCredentialsDtoSchema,
+  type AuthInvitationCompletionInput,
+  type AuthSessionCredentialsDto,
+  type AuthUsernameSignInInput
+} from '@artificer-toolkit/schema/api/auth'
 import {
   createImageUploadIntentOutputSchema,
   finalizeImageUploadOutputSchema,
@@ -150,6 +158,8 @@ export type {
   AuthoredSubjectKindDto,
   AccountProfileDto,
   AccountProfileUpdateInput,
+  AccountUsernameStatusDto,
+  AccountUsernameStatusInput,
   BackgroundListItemDto,
   BackgroundListResponseDto,
   BackgroundResponseDto,
@@ -329,7 +339,9 @@ interface TrpcClient {
   account: {
     completeInvitation: MutationProcedure<AuthInvitationCompletionInput, { ok: true }>
     profile: EmptyQueryProcedure<AccountProfileDto | null>
+    signInWithUsername: MutationProcedure<AuthUsernameSignInInput, AuthSessionCredentialsDto>
     updateProfile: MutationProcedure<AccountProfileUpdateInput, AccountProfileDto>
+    usernameStatus: QueryProcedure<AccountUsernameStatusInput, AccountUsernameStatusDto>
   }
   characters: {
     command: MutationProcedure<
@@ -571,9 +583,17 @@ function buildApi(client: TrpcClient) {
         request('account.profile', accountProfileDtoSchema.nullable(), () =>
           client.account.profile.query()
         ),
+      signInWithUsername: (input: AuthUsernameSignInInput) =>
+        request('account.signInWithUsername', authSessionCredentialsDtoSchema, () =>
+          client.account.signInWithUsername.mutate(input)
+        ),
       updateProfile: (input: AccountProfileUpdateInput) =>
         request('account.updateProfile', accountProfileDtoSchema, () =>
           client.account.updateProfile.mutate(input)
+        ),
+      usernameStatus: (input: AccountUsernameStatusInput) =>
+        request('account.usernameStatus', accountUsernameStatusDtoSchema, () =>
+          client.account.usernameStatus.query(input)
         )
     },
 

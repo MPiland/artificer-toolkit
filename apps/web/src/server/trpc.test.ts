@@ -77,7 +77,8 @@ describe('handleTrpcRequest', () => {
       headers: {
         cookie: 'session=value',
         'content-length': '1',
-        'content-type': 'application/json'
+        'content-type': 'application/json',
+        'x-forwarded-for': '203.0.113.10, 10.0.0.1'
       },
       method: 'POST'
     })
@@ -92,6 +93,10 @@ describe('handleTrpcRequest', () => {
     expect(forwardedRequest.headers.get('cookie')).toBe('session=value')
     expect(forwardedRequest.headers.get('content-length')).toBe('2')
     await expect(forwardedRequest.text()).resolves.toBe('{}')
+    expect(mocks.handleTrpcFetchRequest).toHaveBeenCalledWith(
+      expect.any(Request),
+      expect.objectContaining({ clientIp: '203.0.113.10' })
+    )
   })
 
   it('derives the user and super-admin flag from verified JWT claims', async () => {

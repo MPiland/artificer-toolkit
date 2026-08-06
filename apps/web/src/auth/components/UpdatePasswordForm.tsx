@@ -1,9 +1,10 @@
 import { type MouseEvent, type SubmitEvent, useState } from 'react'
-import { Anchor, Button, PasswordInput } from '@mantine/core'
+import { Anchor, Button, PasswordInput, TextInput } from '@mantine/core'
 import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
-  passwordInputSchema
+  passwordInputSchema,
+  usernameInputSchema
 } from '@artificer-toolkit/schema/api/auth'
 import { browserAuthClient } from '../authClient'
 import {
@@ -28,6 +29,8 @@ export function UpdatePasswordForm({
   onBackToSignIn,
   onSuccess
 }: AuthFormProps & { invitation?: boolean; onBackToSignIn?: () => void | Promise<void> }) {
+  const [username, setUsername] = useState('')
+  const [usernameError, setUsernameError] = useState<string | null>(null)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -56,6 +59,15 @@ export function UpdatePasswordForm({
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     setFeedback(null)
+    setUsernameError(null)
+
+    const parsedUsername = invitation ? usernameInputSchema.safeParse(username) : null
+    if (parsedUsername && !parsedUsername.success) {
+      setUsernameError(
+        'Use 3–30 letters, numbers, and single underscores between words. Capitalization is preserved.'
+      )
+      return
+    }
 
     const parsedPassword = passwordInputSchema.safeParse(password)
     if (!parsedPassword.success) {
@@ -76,13 +88,20 @@ export function UpdatePasswordForm({
 
     try {
       const result =
-        invitation
-          ? await authClient.completeInvitation({ password: parsedPassword.data })
+        invitation && parsedUsername?.success
+          ? await authClient.completeInvitation({
+              password: parsedPassword.data,
+              username: parsedUsername.data
+            })
           : await authClient.updatePassword({ password: parsedPassword.data })
 
       if (!result.ok) {
         const message = result.message ?? 'Could not complete this account update.'
-        setFeedback({ tone: 'error', message })
+        if (invitation && message.toLowerCase().includes('username')) {
+          setUsernameError(message)
+        } else {
+          setFeedback({ tone: 'error', message })
+        }
         return
       }
 
@@ -98,6 +117,24 @@ export function UpdatePasswordForm({
 
   return (
     <form className={authForm} method='post' onSubmit={handleSubmit}>
+      {invitation && (
+        <TextInput
+          label='Username'
+          description='Use 3–30 letters, numbers, and single underscores between words.'
+          classNames={{ input: textInput }}
+          autoComplete='username'
+          error={usernameError}
+          maxLength={30}
+          name='username'
+          placeholder='morgan_emberfall'
+          value={username}
+          onChange={(event) => {
+            setUsername(event.currentTarget.value)
+            setUsernameError(null)
+          }}
+          required
+        />
+      )}
       <PasswordInput
         label='New password'
         description={`Use ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} characters. Avoid a password you use at another table or tool.`}

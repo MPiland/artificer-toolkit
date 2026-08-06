@@ -8,34 +8,51 @@ import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
   authInvitationCompletionInputSchema,
+  authSignInInputSchema,
   authSignUpInputSchema,
   passwordInputSchema
 } from '../api/auth.js'
 
 describe('account contracts', () => {
   it('normalizes blank profile values to null', () => {
-    expect(
-      accountProfileUpdateInputSchema.parse({ username: null, name: '  ', bio: '' })
-    ).toEqual({
-      username: null,
-      name: null,
+    expect(accountProfileUpdateInputSchema.parse({ bio: '' })).toEqual({ bio: null })
+    expect(accountProfileUpdateInputSchema.parse({ username: 'legacy_player', bio: '' })).toEqual({
+      username: 'legacy_player',
       bio: null
     })
-    expect(
-      accountProfileDtoSchema.parse({ username: null, name: null, bio: null })
-    ).toEqual({ username: null, name: null, bio: null })
+    expect(accountProfileDtoSchema.parse({ username: 'player_one', bio: null })).toEqual({
+      username: 'player_one',
+      bio: null
+    })
+    expect(accountProfileDtoSchema.parse({ username: null, bio: null })).toEqual({
+      username: null,
+      bio: null
+    })
   })
 
-  it('does not require usernames for account creation or invitation completion', () => {
+  it('requires usernames for account creation and invitation completion', () => {
     expect(
       authSignUpInputSchema.parse({
         email: 'player@example.com',
-        password: 'password1234'
+        password: 'password1234',
+        username: 'player_one'
       })
-    ).toEqual({ email: 'player@example.com', password: 'password1234' })
+    ).toEqual({ email: 'player@example.com', password: 'password1234', username: 'player_one' })
     expect(
-      authInvitationCompletionInputSchema.parse({ password: 'password1234' })
-    ).toEqual({ password: 'password1234' })
+      authInvitationCompletionInputSchema.parse({
+        password: 'password1234',
+        username: 'player_one'
+      })
+    ).toEqual({ password: 'password1234', username: 'player_one' })
+    expect(
+      authInvitationCompletionInputSchema.safeParse({ password: 'password1234' }).success
+    ).toBe(false)
+  })
+
+  it('accepts either an email or username as a sign-in identifier', () => {
+    expect(
+      authSignInInputSchema.parse({ identifier: '  player_one  ', password: 'password1234' })
+    ).toEqual({ identifier: 'player_one', password: 'password1234' })
   })
 
   it('accepts only passwords between the shared 12 and 128 character bounds', () => {

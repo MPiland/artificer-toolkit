@@ -4,8 +4,10 @@ import { api } from '../lib/api'
 import {
   authInvitationCompletionInputSchema,
   authPasswordUpdateInputSchema,
+  authSignInInputSchema,
   type AuthInvitationCompletionInput,
   type AuthPasswordUpdateInput,
+  type AuthSignInInput,
   type AuthSignUpInput
 } from '@artificer-toolkit/schema/api/auth'
 import type { Session } from '@supabase/supabase-js'
@@ -16,10 +18,7 @@ export interface AuthResult {
   session?: Session | null
 }
 
-export interface SignInInput {
-  email: string
-  password: string
-}
+export type SignInInput = AuthSignInInput
 
 export type SignUpInput = AuthSignUpInput
 
@@ -63,10 +62,40 @@ export const browserAuthClient: AuthClient = {
     }
   },
   async signIn(input) {
-    const { data, error } = await getSupabaseBrowserClient().auth.signInWithPassword(input)
-    return error
-      ? { ok: false, message: error.message }
-      : { ok: true, session: data.session ?? null }
+    const parsed = authSignInInputSchema.safeParse(input)
+    if (!parsed.success) {
+      return { ok: false, message: 'Check your email or username and password, then try again.' }
+    }
+
+    const client = getSupabaseBrowserClient()
+    if (parsed.data.identifier.includes('@')) {
+      const { data, error } = await client.auth.signInWithPassword({
+        email: parsed.data.identifier,
+        password: parsed.data.password
+      })
+      return error
+        ? { ok: false, message: 'Check your email or username and password, then try again.' }
+        : { ok: true, session: data.session ?? null }
+    }
+
+    try {
+      const credentials = await api.account.signInWithUsername({
+        username: parsed.data.identifier,
+        password: parsed.data.password
+      })
+      const { data, error } = await client.auth.setSession({
+        access_token: credentials.accessToken,
+        refresh_token: credentials.refreshToken
+      })
+      return error
+        ? { ok: false, message: 'Check your email or username and password, then try again.' }
+        : { ok: true, session: data.session ?? null }
+    } catch (error) {
+      if (typeof error === 'object' && error !== null && 'status' in error && error.status === 429) {
+        return { ok: false, message: 'Too many sign-in attempts. Try again shortly.' }
+      }
+      return { ok: false, message: 'Check your email or username and password, then try again.' }
+    }
   },
   async signUp(input) {
     return signUpFn({ data: input })

@@ -75,6 +75,61 @@ describe('MediaImage', () => {
     ).toBeInTheDocument()
   })
 
+  it('caches display and thumbnail variants separately for the same target', async () => {
+    mocks.getImage
+      .mockResolvedValueOnce({
+        assetId: 'a2c914ed-8628-4a69-831c-766d7df1ef63',
+        variantKind: 'DISPLAY',
+        url: 'https://example.com/artwork.webp',
+        expiresAt: '2026-08-05T18:00:00.000Z',
+        width: 1200,
+        height: 800,
+        mimeType: 'image/webp',
+        crop: null,
+        altText: 'A wizard tracing a circle of flame.',
+        isDecorative: false
+      })
+      .mockResolvedValueOnce({
+        assetId: 'a2c914ed-8628-4a69-831c-766d7df1ef63',
+        variantKind: 'THUMBNAIL',
+        url: 'https://example.com/thumbnail.webp',
+        expiresAt: '2026-08-05T18:00:00.000Z',
+        width: 320,
+        height: 320,
+        mimeType: 'image/webp',
+        crop: { x: 0.125, y: 0, width: 0.75, height: 1 },
+        altText: null,
+        isDecorative: true
+      })
+
+    const view = renderWithAppProviders(<MediaImageView target={artworkTarget} />)
+    expect(
+      await screen.findByRole('img', { name: 'A wizard tracing a circle of flame.' })
+    ).toHaveAttribute('src', 'https://example.com/artwork.webp')
+
+    view.rerender(
+      <>
+        <MediaImageView target={artworkTarget} />
+        <MediaImageControl
+          label='Add an image'
+          mode='decorative'
+          profile='AUTHORED_IMAGE'
+          target={artworkTarget}
+        />
+      </>
+    )
+
+    const control = await screen.findByRole('button', { name: 'Change image' })
+    expect(control.querySelector('img')).toHaveAttribute(
+      'src',
+      'https://example.com/thumbnail.webp'
+    )
+    expect(mocks.getImage).toHaveBeenCalledWith({
+      target: artworkTarget.lookup,
+      variantKind: 'THUMBNAIL'
+    })
+  })
+
   it('keeps the portrait trigger compact and loads its thumbnail while disabled', async () => {
     mocks.getImage.mockResolvedValue(null)
     renderWithAppProviders(

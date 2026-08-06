@@ -3,9 +3,12 @@ import { Anchor, Button, PasswordInput, TextInput } from '@mantine/core'
 import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
-  passwordInputSchema
+  passwordInputSchema,
+  usernameInputSchema
 } from '@artificer-toolkit/schema/api/auth'
+import type { AccountUsernameStatusDto } from '@artificer-toolkit/schema/api/account'
 import IArrowRight from '#assets/icons/IArrowRight'
+import { api } from '#app/lib/api'
 import { browserAuthClient } from '../authClient'
 import {
   authButton,
@@ -24,9 +27,14 @@ import { AuthDivider } from './AuthDivider'
 
 export function SignUpForm({
   authClient = browserAuthClient,
+  getUsernameStatus = (username) => api.account.usernameStatus({ username }),
   onSuccess
-}: AuthFormProps) {
+}: AuthFormProps & {
+  getUsernameStatus?: (username: string) => Promise<AccountUsernameStatusDto>
+}) {
   const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
+  const [usernameError, setUsernameError] = useState<string | null>(null)
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
@@ -35,6 +43,14 @@ export function SignUpForm({
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
+
+    const parsedUsername = usernameInputSchema.safeParse(username)
+    if (!parsedUsername.success) {
+      setUsernameError(
+        'Use 3–30 letters, numbers, and single underscores between words. Capitalization is preserved.'
+      )
+      return
+    }
 
     const parsedPassword = passwordInputSchema.safeParse(password)
     if (!parsedPassword.success) {
@@ -47,11 +63,23 @@ export function SignUpForm({
 
     setIsSubmitting(true)
     setFeedback(null)
+    setUsernameError(null)
 
     try {
+      const usernameStatus = await getUsernameStatus(parsedUsername.data)
+      if (usernameStatus.status !== 'available') {
+        setUsernameError(
+          usernameStatus.status === 'taken'
+            ? 'That username is already taken.'
+            : "That username isn't allowed."
+        )
+        return
+      }
+
       const result = await authClient.signUp({
         email,
-        password: parsedPassword.data
+        password: parsedPassword.data,
+        username: parsedUsername.data
       })
 
       if (!result.ok) {
@@ -89,6 +117,25 @@ export function SignUpForm({
         placeholder='you@example.com'
         value={email}
         onChange={(event) => setEmail(event.currentTarget.value)}
+        required
+      />
+      <TextInput
+        label='Username'
+        description='Use 3–30 letters, numbers, and single underscores between words.'
+        classNames={{
+          input: textInput
+        }}
+        autoComplete='username'
+        error={usernameError}
+        maxLength={30}
+        name='username'
+        type='text'
+        placeholder='morgan_emberfall'
+        value={username}
+        onChange={(event) => {
+          setUsername(event.currentTarget.value)
+          setUsernameError(null)
+        }}
         required
       />
       <PasswordInput

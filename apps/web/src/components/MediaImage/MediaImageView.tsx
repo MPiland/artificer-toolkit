@@ -11,7 +11,7 @@ export function MediaImageView({
   variant?: 'detail' | 'inspector'
 }) {
   const imageQuery = useQuery({
-    queryKey: ['media', target.lookup],
+    queryKey: ['media', target.lookup, 'DISPLAY'],
     queryFn: () => api.media.getImage({ target: target.lookup, variantKind: 'DISPLAY' })
   })
   const image = imageQuery.data

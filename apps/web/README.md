@@ -23,7 +23,7 @@ For authoring, the flow is route → node-runtime DTO → `AuthoringFormLayout`/
 - Keep detail/read routes separate from `/edit` authoring routes and keep Builder state separate from Sheet play-state commands.
 - Public-registration behavior comes from the server-owned `PUBLIC_SIGN_UP_ENABLED` flag. The root loader exposes only its parsed boolean to routes; the sign-up server function rechecks it before calling Supabase Auth.
 - Library import remains hidden unless the server-owned `LIBRARY_IMPORT_ENABLED` flag is exactly `true`. Disabled direct-route requests return to the authenticated Home surface.
-- `auth/confirmed` verifies Supabase invitation tokens and redirects invitees to password setup. Authenticated invite sessions remain limited to that setup until completion is recorded in auth metadata. Every auth-user insert creates its private profile automatically; username remains optional profile data and is not part of account creation or sign-in. Password reset and ordinary email-confirmation routes remain independent of the public-registration flag.
+- `auth/confirmed` verifies Supabase invitation tokens and redirects invitees to account setup. Authenticated invite sessions remain limited to that setup until a unique username and password are recorded and completion is marked in auth metadata. Public signup also requires a username. Sign-in accepts either the private account email directly or the username through the same-origin API without exposing the associated email; production username sign-in requires Supabase IP Address Forwarding to be enabled. Password reset and ordinary email-confirmation routes remain independent of the public-registration flag.
 
 ## Focused validation
 

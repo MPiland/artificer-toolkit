@@ -58,17 +58,18 @@ const clearRollHistoryForUser = vi.hoisted(() => vi.fn(async () => ({ ok: true a
 const discardRollForUser = vi.hoisted(() => vi.fn(async () => ({ ok: true as const })))
 
 const accountProfileRepository = vi.hoisted(() => ({
+  findUserIdByUsername: vi.fn(async (): Promise<string | null> => 'user-1'),
   findForUser: vi.fn(
-    async (): Promise<{ username: string | null; name: string | null; bio: string | null } | null> => ({
+    async (): Promise<{ username: string | null; bio: string | null } | null> => ({
       username: 'morgan',
-      name: 'Morgan',
       bio: 'Forge keeper.'
     })
   ),
+  isUsernameTaken: vi.fn(async (username: string) => username === 'taken_name'),
   upsertForUser: vi.fn(
     async (
       _userId: string,
-      profile: { username: string | null; name: string | null; bio: string | null }
+      profile: { username: string; bio: string | null }
     ) => profile
   )
 }))
@@ -77,10 +78,22 @@ const updateAuthUserById = vi.hoisted(() =>
 )
 const getAuthUserById = vi.hoisted(() =>
   vi.fn(async () => ({
-    data: { user: { app_metadata: { provider: 'email' } } },
+    data: { user: { app_metadata: { provider: 'email' }, email: 'player@example.com' } },
     error: null
   }))
 )
+const signInWithPassword = vi.hoisted(() =>
+  vi.fn(
+    async (): Promise<{
+      data: { session: { access_token: string; refresh_token: string } | null }
+      error: { status: number } | null
+    }> => ({
+      data: { session: { access_token: 'access-token', refresh_token: 'refresh-token' } },
+      error: null
+    })
+  )
+)
+const createSupabaseClient = vi.hoisted(() => vi.fn())
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@artificer-toolkit/db')>()),
@@ -98,14 +111,7 @@ vi.mock('@artificer-toolkit/functions', async (importOriginal) => ({
 }))
 
 vi.mock('@artificer-toolkit/functions/clients', () => ({
-  createSupabaseClient: () => ({
-    auth: {
-      admin: {
-        getUserById: getAuthUserById,
-        updateUserById: updateAuthUserById
-      }
-    }
-  })
+  createSupabaseClient
 }))
 
 vi.mock('./dbContext.js', async (importOriginal) => {
@@ -137,7 +143,12 @@ const authenticatedContext = {
   invitationSetupPending: false,
   userId: 'user-1'
 } satisfies TrpcContext
+const pendingInvitationContext = {
+  invitationSetupPending: true,
+  userId: 'user-1'
+} satisfies TrpcContext
 const unauthenticatedContext = {
+  clientIp: '203.0.113.10',
   invitationSetupPending: false,
   userId: null
 } satisfies TrpcContext
@@ -145,6 +156,15 @@ const unauthenticatedContext = {
 describe('tRPC router auth', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    createSupabaseClient.mockReturnValue({
+      auth: {
+        admin: {
+          getUserById: getAuthUserById,
+          updateUserById: updateAuthUserById
+        },
+        signInWithPassword
+      }
+    })
   })
 
   it('exposes only safe application feature flags without authentication', async () => {
@@ -156,14 +176,74 @@ describe('tRPC router auth', () => {
     })
   })
 
-  it('completes an invitation without requiring a username', async () => {
-    const caller = appRouter.createCaller(authenticatedContext)
+  it('checks username policy and availability without exposing profile data', async () => {
+    const caller = appRouter.createCaller(unauthenticatedContext)
+
+    await expect(caller.account.usernameStatus({ username: 'open_name' })).resolves.toEqual({
+      status: 'available'
+    })
+    await expect(caller.account.usernameStatus({ username: 'taken_name' })).resolves.toEqual({
+      status: 'taken'
+    })
+    await expect(caller.account.usernameStatus({ username: 'admin' })).resolves.toEqual({
+      status: 'not_allowed'
+    })
+    expect(accountProfileRepository.isUsernameTaken).toHaveBeenCalledTimes(2)
+  })
+
+  it('signs in by username without returning the account email', async () => {
+    const caller = appRouter.createCaller(unauthenticatedContext)
+
+    await expect(
+      caller.account.signInWithUsername({ username: 'morgan', password: 'password1234' })
+    ).resolves.toEqual({ accessToken: 'access-token', refreshToken: 'refresh-token' })
+    expect(accountProfileRepository.findUserIdByUsername).toHaveBeenCalledWith('morgan')
+    expect(signInWithPassword).toHaveBeenCalledWith({
+      email: 'player@example.com',
+      password: 'password1234'
+    })
+    expect(createSupabaseClient).toHaveBeenCalledWith('203.0.113.10')
+  })
+
+  it('preserves Supabase rate-limit responses during username sign-in', async () => {
+    signInWithPassword.mockResolvedValueOnce({
+      data: { session: null },
+      error: { status: 429 }
+    })
+    const caller = appRouter.createCaller(unauthenticatedContext)
+
+    await expect(
+      caller.account.signInWithUsername({ username: 'morgan', password: 'password1234' })
+    ).rejects.toMatchObject({ code: 'TOO_MANY_REQUESTS' })
+  })
+
+  it('does not reveal whether a username exists during sign-in', async () => {
+    accountProfileRepository.findUserIdByUsername.mockResolvedValueOnce(null)
+    const caller = appRouter.createCaller(unauthenticatedContext)
+
+    await expect(
+      caller.account.signInWithUsername({ username: 'unknown_user', password: 'password1234' })
+    ).rejects.toMatchObject({
+      code: 'UNAUTHORIZED',
+      message: 'Invalid username or password.'
+    })
+    expect(getAuthUserById).not.toHaveBeenCalled()
+  })
+
+  it('completes an invitation with a required username', async () => {
+    const caller = appRouter.createCaller(pendingInvitationContext)
 
     await expect(
       caller.account.completeInvitation({
-        password: 'new-password-123'
+        password: 'new-password-123',
+        username: 'player_one'
       })
     ).resolves.toEqual({ ok: true })
+
+    expect(accountProfileRepository.upsertForUser).toHaveBeenCalledWith('user-1', {
+      username: 'player_one',
+      bio: 'Forge keeper.'
+    })
 
     expect(updateAuthUserById).toHaveBeenCalledWith('user-1', {
       password: 'new-password-123',
@@ -174,15 +254,28 @@ describe('tRPC router auth', () => {
     })
   })
 
+  it('rejects invitation completion after account setup is complete', async () => {
+    const caller = appRouter.createCaller(authenticatedContext)
+
+    await expect(
+      caller.account.completeInvitation({
+        password: 'replacement-password-123',
+        username: 'player_one'
+      })
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    expect(getAuthUserById).not.toHaveBeenCalled()
+    expect(updateAuthUserById).not.toHaveBeenCalled()
+  })
+
   it('blocks product APIs until an invited user completes password setup', async () => {
-    const caller = appRouter.createCaller({
-      invitationSetupPending: true,
-      userId: 'user-1'
-    })
+    const caller = appRouter.createCaller(pendingInvitationContext)
 
     await expect(caller.systems.list()).rejects.toMatchObject({ code: 'FORBIDDEN' })
     await expect(
-      caller.account.completeInvitation({ password: 'new-password-123' })
+      caller.account.completeInvitation({
+        password: 'new-password-123',
+        username: 'player_one'
+      })
     ).resolves.toEqual({ ok: true })
   })
 
@@ -193,11 +286,12 @@ describe('tRPC router auth', () => {
     await expect(caller.account.profile()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(
       caller.account.completeInvitation({
-        password: 'new-password-123'
+        password: 'new-password-123',
+        username: 'player_one'
       })
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(
-      caller.account.updateProfile({ username: 'player_one', name: null, bio: null })
+      caller.account.updateProfile({ bio: null })
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.content.spells.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.characters.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
@@ -268,45 +362,39 @@ describe('tRPC router auth', () => {
 
     await expect(caller.account.profile()).resolves.toEqual({
       username: 'morgan',
-      name: 'Morgan',
       bio: 'Forge keeper.'
     })
     await expect(
       caller.account.updateProfile({
-        username: '  MORGAN_EMBERFALL  ',
-        name: '  Morgan Emberfall  ',
         bio: '  Builds worlds.  '
       })
     ).resolves.toEqual({
-      username: 'MORGAN_EMBERFALL',
-      name: 'Morgan Emberfall',
+      username: 'morgan',
       bio: 'Builds worlds.'
     })
 
     expect(accountProfileRepository.findForUser).toHaveBeenCalledWith('user-1')
     expect(accountProfileRepository.upsertForUser).toHaveBeenCalledWith('user-1', {
-      username: 'MORGAN_EMBERFALL',
-      name: 'Morgan Emberfall',
+      username: 'morgan',
       bio: 'Builds worlds.'
     })
   })
 
-  it('allows an authenticated user to clear an optional username', async () => {
+  it('lets a legacy account claim a username but not replace one', async () => {
+    accountProfileRepository.findForUser.mockResolvedValueOnce({ username: null, bio: null })
     const caller = appRouter.createCaller(authenticatedContext)
-    accountProfileRepository.upsertForUser.mockResolvedValueOnce({
-      username: null,
-      name: 'Morgan',
+
+    await expect(
+      caller.account.updateProfile({ username: 'legacy_player', bio: null })
+    ).resolves.toEqual({ username: 'legacy_player', bio: null })
+    expect(accountProfileRepository.upsertForUser).toHaveBeenCalledWith('user-1', {
+      username: 'legacy_player',
       bio: null
     })
 
     await expect(
-      caller.account.updateProfile({ username: null, name: 'Morgan', bio: null })
-    ).resolves.toEqual({ username: null, name: 'Morgan', bio: null })
-    expect(accountProfileRepository.upsertForUser).toHaveBeenCalledWith('user-1', {
-      username: null,
-      name: 'Morgan',
-      bio: null
-    })
+      caller.account.updateProfile({ username: 'replacement_name', bio: null })
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
 
   it('registers the same authenticated list contract for all authored domains', async () => {

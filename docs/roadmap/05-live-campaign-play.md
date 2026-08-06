@@ -43,6 +43,7 @@ Turn Campaign Core into a usable responsive web live-play workspace. Add atomic 
 - Campaign roll history retains the newest 5,000 entries by default without deleting audit data required by another domain.
 - Campaign chat is visible to authorized Campaign members including GMs.
 - Player-only chat is inaccessible to GMs through fetch, subscription, notification, search, analytics, and ordinary administration paths.
+- Every chat message retains its immutable author user ID and may also reference the speaking Character. Account messages show the stable username; Character messages show the Character name with the username as persistent account attribution so changing Characters does not obscure who is speaking.
 - Authorized safety staff may inspect reported content through a separate audited moderation capability.
 
 ### Campaign files and handouts

@@ -18,7 +18,7 @@ export function MediaImageControl({
 }: MediaImageControlProps) {
   const [opened, setOpened] = useState(false)
   const imageQuery = useQuery({
-    queryKey: ['media', target?.lookup],
+    queryKey: ['media', target?.lookup, 'THUMBNAIL'],
     queryFn: async () => {
       if (!target) return null
       return await api.media.getImage({

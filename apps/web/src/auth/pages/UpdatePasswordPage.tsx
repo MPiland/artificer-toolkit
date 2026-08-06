@@ -25,7 +25,7 @@ export function UpdatePasswordPage({ invitation = false }: { invitation?: boolea
       title={invitation ? 'Complete your account' : 'Set a new password'}
       description={
         invitation
-          ? 'Choose a password to enter the Forge.'
+          ? 'Choose your username and password to enter the Forge.'
           : 'Choose a new password, then return to your toolkit.'
       }
     >
