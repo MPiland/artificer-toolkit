@@ -1,8 +1,8 @@
 # Phase 01 — Dice and roll infrastructure
 
-> **Status:** in progress
+> **Status:** complete
 > **Depends on:** [Phase 00](00-character-sheet-play-depth-and-overrides.md)
-> **Consumed by:** [Phase 05](05-live-campaign-play.md) for Campaign visibility and persisted history, and [Phase 06](06-encounters.md) for Encounter-scoped rolls
+> **Consumed by:** [Phase 05](05-live-campaign-play.md) for Campaign visibility and persisted history, [Phase 06](06-encounters.md) for Encounter-scoped rolls, and [Phase 07](07-vtt.md) for web VTT presentation
 > **Primary ADRs:** [0001 package boundaries](../adr/0001-package-boundaries.md), [0005 pure rules-system engine](../adr/0005-pure-rules-system-engine.md), [0006 Builder/Sheet boundary](../adr/0006-character-builder-sheet-boundary.md), [0010 platform-neutral design system](../adr/0010-platform-neutral-design-system.md)
 
 ## Goal
@@ -120,9 +120,9 @@ The character-sheet shell is the table. Perspective tricks must not make the dic
 
 - Lossless pruning reduced the seven current models from roughly 7.2 MB to 5.7 MB without changing geometry or the referenced textures. The models remain high-poly, especially the d20, so measured mobile performance and a visually reviewed lower-poly export remain release gates.
 - Target assistance can look artificial if it starts too early or applies too much torque. The implementation subplan must define measurable energy and timeout thresholds and verify them visually.
-- Exact grammar, per-device animated-dice limits, supported model set, and performance budgets remain decisions for the Phase 01 implementation subplan.
+- Future grammar, model, and presentation changes require measured need and must preserve the delivered authoritative evidence and accessible fallback.
 - Persisted animation seeds or trajectories should be considered only if replay becomes a real product requirement.
 
 ## New-session instruction
 
-Start by verifying the existing dice assets and removed implementation history in the repository. Produce a smaller implementation ledger that separates authoritative service work, static accessibility, asset/orientation validation, and the lazy 3D adapter. Do not restore the old global ownership model.
+Phase 01 is complete. Campaign, Encounter, and VTT work must consume its authoritative semantic evidence rather than create another roller or derive outcomes from presentation physics.

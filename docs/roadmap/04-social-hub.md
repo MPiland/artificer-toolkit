@@ -1,32 +1,32 @@
-# Phase 08 — Free Social Hub
+# Phase 04 — Social Hub and free table formation
 
 > **Status:** planned
-> **Depends on:** [Phase 04](04-campaign-core.md), [Phase 06](06-encounters.md), and account capabilities from [Phase 07](07-entitlements-and-subscriptions.md)
+> **Depends on:** [Phase 03](03-campaign-core.md) and the current authenticated account/profile baseline
 > **Unlocks:** public table discovery and the paid-table extension
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md)
 
 ## Goal
 
-Launch a moderated, adults-only table-finding service for free Campaigns and one-shots. GMs publish structured listings; players search, filter, apply, and receive a decision; accepted applicants can be converted into a Campaign membership or standalone Encounter invitation.
+Launch a moderated, adults-only table-formation service for private and public free Campaigns and one-shots. Hosts may invite directly or publish a structured listing; players search, filter, apply, and receive a decision; accepted applicants become Campaign members. Phase 06 later gives one-shot Campaigns a saved Encounter play surface.
 
 ## Current starting point
 
 - Public profiles contain only basic identity fields and are not yet a complete product contract.
-- Campaign membership and standalone Encounter invitations arrive in earlier phases.
+- Campaign membership and invitations arrive in Phase 03; saved standalone Encounters do not yet exist.
 - No listing, application, seat, schedule, discovery, blocking, reporting, or moderation domain exists.
 - No external search service exists, and beta scale does not require one.
 
 ## Requirements
 
 - Listings include owner/GM, system/ruleset, Campaign or one-shot type, tone, adult age band, timezone, schedule summary, seat capacity/availability, language if approved, free/paid state, and nullable price metadata.
-- Phase 08 permits publishing free listings only. Paid state and price exist only where needed to avoid a destructive Phase 10 migration; paid activation remains server-disabled.
+- Phase 04 permits publishing free listings only. Paid state and price exist only where needed to avoid a destructive Phase 09 migration; paid activation remains server-disabled.
 - Search supports indexed filters and deterministic pagination using PostgreSQL.
 - Applications have explicit lifecycle: submitted, withdrawn, accepted, declined, expired, or blocked.
-- Acceptance consumes capacity safely and creates or prepares the appropriate Campaign membership/invitation or standalone Encounter invitation.
+- Acceptance consumes capacity safely and creates or prepares the appropriate Campaign membership/invitation.
 - Blocking prevents future interaction and discovery according to a documented policy.
 - Reporting supports listing, profile, and application concerns with reason, evidence metadata, status, moderator action, and audit.
 - Social surfaces are 18+ and US-only at launch; do not represent this assumption as age assurance.
-- Web and native support discovery and applications. Listing administration may remain web-first initially.
+- Responsive web supports discovery, applications, invitation links, and listing administration. Native consumes these contracts only after the web viability gate.
 - Notifications reuse the device/push foundation and contain no sensitive application text.
 
 ## Design
@@ -34,12 +34,11 @@ Launch a moderated, adults-only table-finding service for free Campaigns and one
 ```mermaid
 flowchart LR
   GM["GM listing management"] --> Listing["Table listing service"]
-  Player["Web/native search"] --> Search["Indexed Postgres query"]
+  Player["Responsive web search"] --> Search["Indexed Postgres query"]
   Search --> Listing
   Player --> Application["Application lifecycle"]
   Application --> Capacity["Seat-safe acceptance"]
   Capacity --> Campaign["Campaign invitation/membership"]
-  Capacity --> Encounter["Standalone Encounter invitation"]
   Report["Block/report"] --> Moderation["Audited moderation workflow"]
 ```
 
@@ -51,9 +50,9 @@ Social Hub authorizes public discovery separately from private Campaign/Encounte
 2. **Define listing and application contracts.** Include system/ruleset compatibility, schedule/timezone semantics, capacity, lifecycle, stable public IDs, and conversion results.
 3. **Add persistence, indexes, and RLS.** Create listings, schedule data, applications, blocks, reports, moderator actions, and capacity constraints.
 4. **Add discovery and lifecycle orchestration.** Use deterministic indexed Postgres queries; do not add an external search engine for unmeasured scale.
-5. **Integrate acceptance.** Convert to Campaign or standalone Encounter access idempotently and atomically with seat consumption.
+5. **Integrate acceptance.** Convert to Campaign access idempotently and atomically with seat consumption.
 6. **Add moderation and notification paths.** Keep staff access explicit and audited; prevent blocked parties from using notification side channels.
-7. **Build web/native journeys.** Cover search/filter/detail/apply/withdraw/status; add web-first listing and moderation administration.
+7. **Build responsive web journeys.** Cover direct invitations, search/filter/detail/apply/withdraw/status, listing management, and moderation administration.
 8. **Validate privacy, concurrency, and abuse cases.** Test oversubscription, repeated acceptance, removed listings, blocks, reports, private-scope leakage, and pagination stability.
 
 ## Acceptance gates
@@ -65,12 +64,12 @@ Social Hub authorizes public discovery separately from private Campaign/Encounte
 - Repeated acceptance creates one effective membership/invitation.
 - Blocking closes every documented interaction and notification path.
 - Report review and moderator action are audited.
-- Paid listings cannot be published until Phase 10 enables them.
-- Web and native application status agree.
+- Paid listings cannot be published until Phase 09 enables them.
+- Responsive web application and membership status agree.
 
 ## Out of scope
 
-- Payments, paid-seat checkout, reviews, ratings, comments, direct messages, algorithmic recommendation, minors, identity verification, background checks, voice/video, and external search infrastructure.
+- Payments, paid-seat checkout, native clients, reviews, ratings, comments, direct messages, algorithmic recommendation, minors, identity verification, background checks, voice/video, and external search infrastructure.
 
 ## Questions for the phase subplan
 

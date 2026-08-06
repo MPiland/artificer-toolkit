@@ -23,7 +23,7 @@ The product should treat content creation as an authoring workspace, not as a ge
 
 The Character Sheet is the product's primary play surface. It should help a player recognize their current state, choose an action, and resolve it quickly. Immediate play information stays visible and compact; reference prose, provenance, customization, and management remain close at hand through focused inspectors, popovers, or drawers rather than competing with the play surface.
 
-The long-term product is a one-stop TTRPG experience: content creation, free sharing and paid marketplace distribution, a Social Hub for posting, hosting, and finding virtual or local tables, Campaigns, Encounters, subscription tiers, native play, and a VTT should operate as one connected product rather than unrelated utilities.
+The long-term product is a one-stop TTRPG experience: content creation, a Social Hub for posting, hosting, and finding virtual or local tables, Campaigns, Encounters, subscription tiers, native play, a VTT, and eventually creator marketplace distribution should operate as one connected product rather than unrelated utilities. The first viability proof is the complete web loop from creation and table formation through repeat Campaign play; native clients follow demonstrated web viability, and the creator marketplace follows native delivery.
 
 Success means:
 
@@ -40,13 +40,13 @@ Success means:
 
 Artificer Toolkit is the connected workspace and play platform for the full TTRPG lifecycle. Its differentiating mechanism is one structured content and rules foundation that can carry creator work from authoring through distribution, character building, Campaign and Encounter play, social table discovery, and VTT use while giving each client a platform-appropriate interface.
 
-The current alpha proves the first part of that lifecycle through reusable authored content, Character Builder, Character Sheet play surfaces, and reference workflows. Marketplace, Social Hub, Campaign, Encounter, subscription, native, and VTT capabilities are committed roadmap direction and must not be presented as current behavior until their phases ship.
+The current alpha proves the first part of that lifecycle through Guided and Advanced authored-content creation, reusable authored content, Character Builder, authoritative Character Sheet play surfaces, authoritative dice, and reference workflows. Social Hub, Campaign, Encounter, subscription, paid-table, native, VTT, and creator marketplace capabilities are committed roadmap direction and must not be presented as current behavior until their phases ship. Import/export exists behind a disabled feature flag and is not a current public capability.
 
 ## Operating Context
 
 Creators work between sessions on content that may be private, freely shared, or eventually sold. Players use the product before play to find tables and prepare characters, and during play to make quick decisions, resolve actions, inspect rules, manage state, and coordinate with a virtual or local group.
 
-The web application currently owns the complete authoring experience and first play surfaces. Native iOS and Android clients are required first-class product surfaces, initially play-first, and must adapt interaction and composition to their platforms rather than wrap the website. Web, native, backend services, and future VTT rendering share product contracts and authoritative rules without requiring identical presentation.
+The web application currently owns the complete authoring experience and first play surfaces. It will deliver and validate the connected Campaign, Social Hub, Encounter, VTT, entitlement, and paid-table loop before native implementation begins. Native iOS and Android clients remain required first-class product surfaces, initially play-first, and must adapt interaction and composition to their platforms rather than wrap the website. Web, native, backend services, and VTT rendering share product contracts and authoritative rules without requiring identical presentation.
 
 ## Capabilities and Constraints
 
@@ -56,6 +56,8 @@ Core vocabulary:
 
 - **Library**: the signed-in content navigation surface for browsing authored domains and drafts
 - **Create**: the signed-in creation entry point for starting new authored content across domains
+- **Guided Authoring**: the approachable creation path that helps newer creators produce supported content without exposing the complete schema at once
+- **Advanced Authoring**: the full Authoring Workspace for creators who need direct access to every supported field and relationship
 - **Authoring Workspace**: the shell, structure rail, editor canvas, preview/context rail, and action bar used while editing content
 - **Structure Rail**: the step map for the current authored item only, not app-wide navigation
 - **Editor Canvas**: the focused working area for the current step or content module
@@ -71,9 +73,12 @@ Current and committed constraints:
 - Builder owns structural character intent; Sheet owns immediate play state.
 - Backend rules and semantic contracts remain authoritative. Web and native clients own accessible platform presentation and do not reproduce mechanical calculations.
 - D&D 5e 2014 is the first ruleset, but the rules-system seam must support additional systems without accumulating D&D-specific conditionals in shared product infrastructure.
-- Complex authoring and seller administration remain web-first initially. Native is a required first-class play client, not an optional companion or WebView wrapper.
-- Marketplace, Social Hub, Campaigns, Encounters, paid subscriptions, and VTT remain roadmap capabilities until their documented phases ship.
-- Prices, subscription limits, marketplace fees, revenue shares, and exact commercial packaging are unresolved product decisions.
+- Complex authoring and future seller administration remain web-first initially. Native is a required first-class play client after web viability, not an optional companion or WebView wrapper.
+- Social Hub, Campaigns, Encounters, subscriptions, paid tables, VTT, native, and creator marketplace distribution remain roadmap capabilities until their documented phases ship.
+- Initial launch packaging is Free, Player, GM, and Pro GM as recorded in `docs/roadmap/README.md`. Prices and limits may change from evidence before launch, but this packaging is the planning baseline rather than an unresolved phase decision.
+- Every plan may join unlimited Campaigns and use Campaign-scoped content, party inventory, Encounters, and VTT. Plans gate owned capacity, hosted scale, and paid-table commerce rather than core group play.
+- Campaign content access grants read/use access to referenced revisions; it does not transfer ownership, editing, personal export, or marketplace sale rights.
+- Import/export remains disabled until ownership, authorization, malformed/duplicate input, provenance, known-official-content rejection, and policy gates are satisfied. Automated rejection is one compliance control, not a guarantee of legal clearance.
 
 ## Brand Commitments
 
@@ -85,10 +90,10 @@ Play surfaces should feel compact and purposeful. Minimalism means reducing cogn
 
 ## Evidence on Hand
 
-- The repository contains working authored-content, Character Builder, Character Sheet, rules-engine, persistence, API, and reference implementations with focused tests.
+- The repository contains working Guided and Advanced authored-content creation, Character Builder, completed Character Sheet play-depth work, authoritative dice, rules-engine, persistence, API, and reference implementations with focused tests.
 - `docs/mockups` contains approved and locked visual references, including responsive Character Sheet and focused-inspector states.
 - Route-backed Storybook fixtures exercise production Character Sheet components with representative data and responsive states.
-- `docs/roadmap` records the planned path from the current alpha through native clients, Campaigns, Encounters, Social Hub, Marketplace, subscriptions, VTT, and release validation.
+- `docs/roadmap` records the web-first path from the current alpha through Campaigns, Social Hub, Encounters, VTT, subscriptions, paid tables, a viability decision, native clients, and the deferred creator marketplace.
 - No canonical customer testimonials, marketplace performance, pricing validation, conversion benchmarks, or published usage claims are currently recorded. Future product and marketing work must not fabricate them.
 
 ## Product Principles

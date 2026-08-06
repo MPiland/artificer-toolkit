@@ -3,7 +3,7 @@
 > **Status:** complete — Phase 02 image scope delivered; supporting-file profiles remain deferred to their owning phases
 > **Completed:** 2026-08-06
 > **Depends on:** the current authenticated API baseline
-> **Consumed by:** [Phase 03](03-cross-platform-foundation.md) for native upload and display surfaces
+> **Consumed by:** [Phase 03](03-campaign-core.md) for Campaign branding, [Phase 05](05-live-campaign-play.md) for Campaign files, [Phase 07](07-vtt.md) for VTT maps, and [Phase 10](10-cross-platform-foundation.md) for native upload and display surfaces
 > **Unlocks:** Account avatars, Character portraits, authored-content artwork, and a stable asset identity for later Campaign, Marketplace, and VTT profiles
 > **Primary ADRs:** [0001 package boundaries](../adr/0001-package-boundaries.md), [0006 Builder/Sheet boundary](../adr/0006-character-builder-sheet-boundary.md), [0011 active content and JSON drafts](../adr/0011-active-authored-content-and-json-drafts.md), [0012 private media assets](../adr/0012-private-media-assets-and-domain-owned-references.md)
 
@@ -11,7 +11,7 @@
 
 Create one authorized upload, processing, association, delivery, and deletion pipeline for the user-provided images needed now: account avatars, Character portraits, and authored-content artwork. Each image uses one normalized source asset plus user-selected square thumbnail framing; authored artwork keeps its uncropped display variant for detail pages. Marketplace assets, Campaign files, and larger VTT maps reuse the same asset identity through purpose-specific profiles added by their owning phases rather than building separate upload systems.
 
-This phase establishes the pipeline, portable contracts, and first web surfaces. [Phase 03](03-cross-platform-foundation.md) displays the same assets in native and adds native upload controls only for editing experiences included in the mobile release; complex authored-content administration remains web-first.
+This phase establishes the pipeline, portable contracts, and first web surfaces. [Phase 10](10-cross-platform-foundation.md) displays the same assets in native and adds native upload controls only for editing experiences included in the mobile release; complex authored-content administration remains web-first.
 
 ## Assumptions
 
@@ -19,7 +19,7 @@ This phase establishes the pipeline, portable contracts, and first web surfaces.
 - Phase 02 accepts JPEG, PNG, and WebP images up to 6 MiB, 8,192 pixels per dimension, and 25 million decoded pixels. Per-account media usage is limited to 250 MiB.
 - Normalized source, display, and thumbnail variants are WebP. A domain item's main artwork keeps an uncropped display variant, uses user-selected square thumbnail framing, and is decorative by intent. Future mechanical diagrams, maps, and other informative image purposes require a description by profile instead of asking creators to classify the image.
 - Original uploads are private by default. Public visibility is an explicit property of a published resource or listing, not a property inferred from its Storage path.
-- Campaign supporting files are added in [Phase 05](05-live-campaign-play.md) only after that phase selects quarantine, malware scanning, download disposition, quotas, and its file allowlist. VTT maps use a separate larger-file profile added in [Phase 11](11-vtt.md).
+- Campaign supporting files are added in [Phase 05](05-live-campaign-play.md) only after that phase selects quarantine, malware scanning, download disposition, quotas, and its file allowlist. VTT maps use a separate larger-file profile added in [Phase 07](07-vtt.md).
 
 ## Delivered state
 
@@ -53,7 +53,7 @@ Phase 02 enables only the profiles with current product consumers:
 
 ### Upload, processing, and delivery
 
-- Web requests a short-lived upload intent through `apps/apis`; Phase 03 native uses the same contract. Authorization and quota checks run before the API returns an opaque object key and signed upload permission.
+- Web requests a short-lived upload intent through `apps/apis`; Phase 10 native uses the same contract. Authorization and quota checks run before the API returns an opaque object key and signed upload permission.
 - The client transfers bytes directly to a private Supabase Storage bucket, then calls a finalize procedure. Product bytes do not proxy through the tRPC server.
 - The API owns asset metadata and lifecycle. Store stable asset IDs and object keys, never temporary signed URLs, as domain truth.
 - Finalization verifies that the object exists and matches the approved intent before it becomes available.
@@ -133,7 +133,7 @@ The asset record owns storage and processing facts. Each product domain owns the
 - `apps/apis` exposes thin intent, finalize, attach, detach, and signed-delivery procedures.
 - `packages/shared` contains only pure profile-independent value types or image-placement semantics genuinely shared by rules/scene code; it does not own file I/O.
 - `apps/web` owns browser selection, crop/preview, replacement, validation messages, and attachment management. Profile Settings consumes avatars, the Character Sheet header consumes portrait thumbnails, and authoring/detail surfaces consume authored artwork.
-- Phase 03 `apps/mobile` uses native pickers and native progress/error states for the upload surfaces included in its release. Native authored-content administration remains deferred.
+- Phase 10 `apps/mobile` uses native pickers and native progress/error states for the upload surfaces included in its release. Native authored-content administration remains deferred.
 
 The implemented image path uses browser file APIs, Supabase signed uploads, and synchronous Sharp normalization. Later large-file profiles decide whether resumable transfer or asynchronous scanning is necessary from their own limits.
 
@@ -147,7 +147,7 @@ The implemented image path uses browser file APIs, Supabase signed uploads, and 
 6. **Add the first domain references and web surfaces.** Ship account-avatar, Character portrait, and authored-content upload/replacement/removal. Render Character portraits in the Sheet header and authored artwork in the authoring workspace and active detail layout.
 7. **Add supporting files in Phase 05.** Reuse the ready-asset and download flow for Campaign handouts only after malware scanning, quarantine, and safe download behavior are selected.
 8. **Add Marketplace and VTT profiles in their owning phases.** Extend the current identity and signed-delivery model rather than exposing unused profile values now.
-9. **Prepare native consumption.** Keep DTOs and delivery platform-neutral, provide contract fixtures, and leave native rendering and pickers to Phase 03.
+9. **Prepare native consumption.** Keep DTOs and delivery platform-neutral, provide contract fixtures, and leave native rendering and pickers to Phase 10.
 10. **Validate security, integrity, and cost controls.** Test RLS/API matrices, forged targets, oversized and spoofed files, image bombs, metadata removal, scanning failure, stale signed URLs, concurrent replacement, orphan cleanup, quota enforcement, and egress-sensitive delivery.
 
 ## Acceptance gates
@@ -162,28 +162,28 @@ The implemented image path uses browser file APIs, Supabase signed uploads, and 
 - Supporting files are not accepted until their owning phase supplies quarantine, scanning, and safe content-disposition behavior.
 - Replacing an asset uses a new immutable object path; retained domain references continue resolving their existing asset.
 - Abandoned, rejected, detached, and account-deletion assets follow tested retention and cleanup rules without deleting still-referenced bytes.
-- Web parses the asset DTOs and portable contract fixtures prove the same responses are safe for Phase 03 native consumption.
-- Phase 11 can add `VTT_MAP` limits and resumable transfer without replacing the asset identity or signed-delivery model.
+- Web parses the asset DTOs and portable contract fixtures prove the same responses are safe for Phase 10 native consumption.
+- Phase 07 can add `VTT_MAP` limits and resumable transfer without replacing the asset identity or signed-delivery model.
 
 ## Out of scope
 
 - General-purpose cloud drives, arbitrary file types, executable/archive uploads, collaborative document editing, OCR, video/audio hosting, public user galleries, image generation, copyright detection, and a reusable background-job platform.
 - Catalogue/list thumbnails; current authored-image presentation is limited to authoring controls and detail/reference surfaces.
-- Native rendering, pickers, and upload controls; those begin in [Phase 03](03-cross-platform-foundation.md).
-- VTT map calibration, tiling, token placement, fog, scene state, and map-renderer performance; those belong to [Phase 11](11-vtt.md).
-- Marketplace rights, release publication, licenses, and paid delivery; those belong to [Phase 09](09-free-marketplace.md) and [Phase 10](10-paid-marketplace-and-tables.md).
+- Native rendering, pickers, and upload controls; those begin in [Phase 10](10-cross-platform-foundation.md).
+- VTT map calibration, tiling, token placement, fog, scene state, and map-renderer performance; those belong to [Phase 07](07-vtt.md).
+- Marketplace rights, release publication, licenses, and paid delivery; those belong to [Phase 12](12-free-marketplace.md) and [Phase 13](13-paid-marketplace.md).
 
 ## Concerns and expansions
 
 - Phase 05 must select malware scanning and quarantine behavior before enabling supporting files; do not introduce a general queue before that profile requires it.
 - The current image profiles pre-generate only source, display, and thumbnail variants. Revisit transformation and egress strategy only from measured production cost.
 - Public release assets may benefit from a public derivative bucket later, but private-by-default signed delivery is the safer initial model.
-- VTT maps may eventually require pyramids/tiles, regional delivery, or separate storage quotas. Phase 11 owns those additions behind the same asset identity and authorization model.
+- VTT maps may eventually require pyramids/tiles, regional delivery, or separate storage quotas. Phase 07 owns those additions behind the same asset identity and authorization model.
 
 ## Deferred decisions by owning phase
 
-- Phase 04 defines Campaign-logo permissions and adds `CAMPAIGN_LOGO` only with its Campaign reference.
+- Phase 03 defines Campaign-logo permissions and adds `CAMPAIGN_LOGO` only with its Campaign reference.
 - Phase 05 selects supporting-file types, quarantine/scanning, safe download disposition, roles, quotas, and session/note association before adding Campaign attachment profiles.
-- Phase 09 defines public Marketplace derivatives, supplemental-file rights, immutable release references, and takedown behavior.
-- Phase 11 defines `VTT_MAP` limits, resumable transfer, optimization/tiling, and Encounter-scoped delivery.
-- Subscription-specific media quotas are added only when Phase 07 entitlements require tiers beyond the current 250 MiB account limit.
+- Phase 12 defines public Marketplace derivatives, supplemental-file rights, immutable release references, and takedown behavior.
+- Phase 07 defines `VTT_MAP` limits, resumable transfer, optimization/tiling, and Encounter-scoped delivery.
+- Subscription-specific media quotas are added only when Phase 08 entitlements require tiers beyond the current 250 MiB account limit.
