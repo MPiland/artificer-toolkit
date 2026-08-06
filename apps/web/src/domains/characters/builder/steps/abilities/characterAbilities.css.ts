@@ -110,8 +110,9 @@ globalStyle(`${hitpointClassGroup} + ${hitpointClassGroup} tr:first-child th`, {
 })
 
 globalStyle(`${hitpointClassHeader} th`, {
+  background: foundationVars.color.surface.subtle,
   color: foundationVars.color.text.primary,
-  paddingTop: '12px'
+  padding: '10px 14px'
 })
 
 globalStyle(`${hitpointClassHeader} th > span`, { display: 'inline-block' })
@@ -137,13 +138,59 @@ globalStyle(`${hitpointTable} td`, {
   '@media': {
     '(max-width: 900px)': {
       borderTop: 0,
-      display: 'grid',
-      gap: '8px',
-      gridTemplateColumns: 'minmax(120px, 0.45fr) minmax(0, 1fr)',
-      padding: '5px 10px'
+      width: 'auto'
     }
   }
 })
+
+globalStyle(`${hitpointTable} ${hitpointRow}`, {
+  '@media': {
+    '(max-width: 900px)': {
+      borderTop: `1px solid ${foundationVars.color.border.subtle}`,
+      display: 'grid',
+      gap: '12px 16px',
+      gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+      padding: '12px 14px'
+    }
+  }
+})
+
+globalStyle(`${hitpointTable} ${hitpointRow} td`, {
+  '@media': {
+    '(max-width: 900px)': {
+      display: 'grid',
+      gap: '3px',
+      gridTemplateColumns: '1fr',
+      lineHeight: 1.35,
+      padding: 0,
+      width: 'auto'
+    }
+  }
+})
+
+globalStyle(`${hitpointTable} ${hitpointClassHeader} th`, {
+  '@media': {
+    '(max-width: 900px)': {
+      display: 'block',
+      width: '100%'
+    }
+  }
+})
+
+globalStyle(`${hitpointTable} ${hitpointRow} td:nth-child(1)`, {
+  '@media': { '(max-width: 900px)': { gridColumn: 'span 2' } }
+})
+
+globalStyle(`${hitpointTable} ${hitpointRow} td:nth-child(2)`, {
+  '@media': { '(max-width: 900px)': { gridColumn: 'span 4' } }
+})
+
+globalStyle(
+  `${hitpointTable} ${hitpointRow} td:nth-child(3), ${hitpointTable} ${hitpointRow} td:nth-child(4), ${hitpointTable} ${hitpointRow} td:nth-child(5)`,
+  {
+    '@media': { '(max-width: 900px)': { gridColumn: 'span 2' } }
+  }
+)
 
 globalStyle(`${hitpointTable} td::before`, {
   '@media': {

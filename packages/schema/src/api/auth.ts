@@ -15,7 +15,28 @@ export const usernameInputSchema = z
   .max(30)
   .regex(/^[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*$/)
 
-export const authSignUpInputSchema = z.object({
+export const authSignInInputSchema = z.strictObject({
+  identifier: z.string().trim().min(1).max(320),
+  password: z.string().min(1).max(PASSWORD_MAX_LENGTH)
+})
+
+export type AuthSignInInput = z.infer<typeof authSignInInputSchema>
+
+export const authUsernameSignInInputSchema = z.strictObject({
+  username: usernameInputSchema,
+  password: z.string().min(1).max(PASSWORD_MAX_LENGTH)
+})
+
+export type AuthUsernameSignInInput = z.infer<typeof authUsernameSignInInputSchema>
+
+export const authSessionCredentialsDtoSchema = z.strictObject({
+  accessToken: z.string().min(1),
+  refreshToken: z.string().min(1)
+})
+
+export type AuthSessionCredentialsDto = z.infer<typeof authSessionCredentialsDtoSchema>
+
+export const authSignUpInputSchema = z.strictObject({
   email: z.string().email(),
   password: passwordInputSchema,
   username: usernameInputSchema

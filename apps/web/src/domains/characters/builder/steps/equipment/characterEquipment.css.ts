@@ -31,6 +31,23 @@ export const startingEquipmentMode = style({
   }
 })
 
+export const startingGoldControls = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'end',
+      display: 'grid',
+      gap: '10px',
+      gridTemplateColumns: 'auto minmax(180px, 1fr)',
+      maxWidth: '520px',
+      '@media': {
+        '(max-width: 600px)': {
+          gridTemplateColumns: '1fr'
+        }
+      }
+    }
+  }
+})
+
 export const startingEquipmentGroup = style({
   '@layer': {
     [app]: {

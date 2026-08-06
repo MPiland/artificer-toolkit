@@ -25,17 +25,15 @@ function createAuthClient(overrides: Partial<AuthClient> = {}): AuthClient {
   }
 }
 
-const getAvailableUsername = async () => ({ status: 'available' as const })
-
 describe('AuthForms', () => {
   it('marks sign-in credentials for safe browser autofill without GET fallback', () => {
     renderAuthForm(<SignInForm authClient={createAuthClient()} />)
 
-    const emailInput = screen.getByRole('textbox', { name: /email address/i })
+    const identifierInput = screen.getByRole('textbox', { name: /email or username/i })
     const passwordInput = screen.getByLabelText(/password/i, { selector: 'input' })
 
-    expect(emailInput.closest('form')).toHaveAttribute('method', 'post')
-    expect(emailInput).toHaveAttribute('autocomplete', 'username')
+    expect(identifierInput.closest('form')).toHaveAttribute('method', 'post')
+    expect(identifierInput).toHaveAttribute('autocomplete', 'username')
     expect(passwordInput).toHaveAttribute('autocomplete', 'current-password')
   })
 
@@ -57,7 +55,7 @@ describe('AuthForms', () => {
 
     renderAuthForm(<SignInForm authClient={createAuthClient({ signIn })} onSuccess={onSuccess} />)
 
-    fireEvent.change(screen.getByRole('textbox', { name: /email address/i }), {
+    fireEvent.change(screen.getByRole('textbox', { name: /email or username/i }), {
       target: { value: 'player@example.com' }
     })
     fireEvent.change(screen.getByLabelText(/password/i, { selector: 'input' }), {
@@ -67,7 +65,7 @@ describe('AuthForms', () => {
 
     await waitFor(() =>
       expect(signIn).toHaveBeenCalledWith({
-        email: 'player@example.com',
+        identifier: 'player@example.com',
         password: 'password123'
       })
     )
@@ -75,18 +73,18 @@ describe('AuthForms', () => {
   })
 
   it('marks sign-up credentials for account creation autofill', () => {
-    renderAuthForm(
-      <SignUpForm authClient={createAuthClient()} getUsernameStatus={getAvailableUsername} />
-    )
+    renderAuthForm(<SignUpForm authClient={createAuthClient()} />)
 
     const emailInput = screen.getByRole('textbox', { name: /email address/i })
-    const usernameInput = screen.getByRole('textbox', { name: /^username/i })
     const passwordInput = screen.getByLabelText(/password/i, { selector: 'input' })
 
     expect(emailInput.closest('form')).toHaveAttribute('method', 'post')
     expect(screen.queryByRole('textbox', { name: /^name/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /^username/i })).toHaveAttribute(
+      'autocomplete',
+      'username'
+    )
     expect(emailInput).toHaveAttribute('autocomplete', 'email')
-    expect(usernameInput).toHaveAttribute('autocomplete', 'nickname')
     expect(passwordInput).toHaveAttribute('autocomplete', 'new-password')
     expect(passwordInput).toHaveAttribute('minlength', '12')
     expect(passwordInput).toHaveAttribute('maxlength', '128')
@@ -99,7 +97,7 @@ describe('AuthForms', () => {
     renderAuthForm(
       <SignUpForm
         authClient={createAuthClient({ signUp })}
-        getUsernameStatus={getAvailableUsername}
+        getUsernameStatus={async () => ({ status: 'available' })}
       />
     )
 
@@ -107,7 +105,7 @@ describe('AuthForms', () => {
       target: { value: 'morgan@example.com' }
     })
     fireEvent.change(screen.getByRole('textbox', { name: /^username/i }), {
-      target: { value: 'Morgan' }
+      target: { value: 'morgan' }
     })
     fireEvent.change(screen.getByLabelText(/password/i, { selector: 'input' }), {
       target: { value: 'password1234' }
@@ -118,7 +116,7 @@ describe('AuthForms', () => {
       expect(signUp).toHaveBeenCalledWith({
         email: 'morgan@example.com',
         password: 'password1234',
-        username: 'Morgan'
+        username: 'morgan'
       })
     )
     expect(await screen.findByRole('status')).toHaveTextContent(
@@ -146,7 +144,7 @@ describe('AuthForms', () => {
     renderAuthForm(
       <SignUpForm
         authClient={createAuthClient({ signUp })}
-        getUsernameStatus={getAvailableUsername}
+        getUsernameStatus={async () => ({ status: 'available' })}
         onSuccess={onSuccess}
       />
     )
@@ -280,7 +278,7 @@ describe('AuthForms', () => {
     expect(onSuccess).toHaveBeenCalled()
   })
 
-  it('collects a username only when completing an invitation', async () => {
+  it('completes an invitation with a username and new password', async () => {
     const completeInvitation = vi.fn(async () => ({ ok: true }))
     const onSuccess = vi.fn()
 
@@ -293,7 +291,7 @@ describe('AuthForms', () => {
     )
 
     fireEvent.change(screen.getByRole('textbox', { name: /^username/i }), {
-      target: { value: 'Morgan_Emberfall' }
+      target: { value: 'player_one' }
     })
     fireEvent.change(screen.getByLabelText(/new password/i, { selector: 'input' }), {
       target: { value: 'new-password-123' }
@@ -306,39 +304,9 @@ describe('AuthForms', () => {
     await waitFor(() =>
       expect(completeInvitation).toHaveBeenCalledWith({
         password: 'new-password-123',
-        username: 'Morgan_Emberfall'
+        username: 'player_one'
       })
     )
     expect(onSuccess).toHaveBeenCalled()
-  })
-
-  it('keeps invitation fields open when profile creation loses a username race', async () => {
-    const completeInvitation = vi.fn(async () => ({
-      ok: false,
-      message: 'That username is already taken.'
-    }))
-    const onSuccess = vi.fn()
-
-    renderAuthForm(
-      <UpdatePasswordForm
-        authClient={createAuthClient({ completeInvitation })}
-        invitation
-        onSuccess={onSuccess}
-      />
-    )
-
-    const usernameInput = screen.getByRole('textbox', { name: /^username/i })
-    fireEvent.change(usernameInput, { target: { value: 'raced_name' } })
-    fireEvent.change(screen.getByLabelText(/new password/i, { selector: 'input' }), {
-      target: { value: 'new-password-123' }
-    })
-    fireEvent.change(screen.getByLabelText(/confirm password/i, { selector: 'input' }), {
-      target: { value: 'new-password-123' }
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Complete registration' }))
-
-    expect(await screen.findByText('That username is already taken.')).toBeInTheDocument()
-    expect(usernameInput).toHaveValue('raced_name')
-    expect(onSuccess).not.toHaveBeenCalled()
   })
 })

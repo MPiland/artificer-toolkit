@@ -75,7 +75,13 @@ export const titleRow = style({
       flexWrap: 'nowrap',
       alignItems: 'center',
       minInlineSize: 0,
-      gap: foundationVars.space[2]
+      gap: foundationVars.space[2],
+      '@media': {
+        [media.mobile]: {
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) auto auto'
+        }
+      }
     }
   }
 })
@@ -200,7 +206,12 @@ export const viewActions = style({
       alignItems: 'center',
       gap: foundationVars.space[2],
       marginInlineStart: foundationVars.space[2],
-      flexShrink: 0
+      flexShrink: 0,
+      '@media': {
+        [media.mobile]: {
+          marginInlineStart: 0
+        }
+      }
     }
   }
 })
@@ -220,6 +231,14 @@ export const formActions = style({
           flexWrap: 'wrap',
           justifyContent: 'flex-end',
           inlineSize: '100%'
+        },
+        [media.mobile]: {
+          display: 'grid',
+          gridTemplateColumns: 'auto minmax(0, 1fr)',
+          inlineSize: '100%'
+        },
+        'screen and (max-width: 360px)': {
+          gridTemplateColumns: '1fr'
         }
       }
     }
@@ -231,7 +250,12 @@ export const utilityActions = style({
     [app]: {
       display: 'inline-flex',
       alignItems: 'center',
-      gap: foundationVars.space[2]
+      gap: foundationVars.space[2],
+      '@media': {
+        [media.mobile]: {
+          justifySelf: 'start'
+        }
+      }
     }
   }
 })
@@ -241,7 +265,15 @@ export const lifecycleActions = style({
     [app]: {
       display: 'inline-flex',
       alignItems: 'center',
-      gap: foundationVars.space[2]
+      gap: foundationVars.space[2],
+      '@media': {
+        [media.mobile]: {
+          display: 'grid',
+          gridAutoColumns: 'minmax(96px, 1fr)',
+          gridAutoFlow: 'column',
+          inlineSize: '100%'
+        }
+      }
     }
   }
 })

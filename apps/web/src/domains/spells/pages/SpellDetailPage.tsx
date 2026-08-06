@@ -203,6 +203,15 @@ export function SpellDetailPage({
       <AuthoredDetailLayout
         actions={pageActions}
         actionsDisabled={actions.isDetailOperationPending}
+        artworkTarget={{
+          lookup: {
+            type: 'AUTHORED_IMAGE',
+            subjectKind: 'SPELL',
+            subjectId: spellId,
+            scope: detailState.mode === 'draft' ? 'DRAFT' : 'ACTIVE'
+          },
+          attach: { type: 'AUTHORED_IMAGE', subjectKind: 'SPELL', subjectId: spellId }
+        }}
         afterFacts={
           <AuthoredDetailPillList
             label='Available For'

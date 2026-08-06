@@ -8,6 +8,7 @@ import type {
   AccountProfileUpdateInput
 } from '@artificer-toolkit/schema/api/account'
 import { ApiError, api } from '#app/lib/api'
+import { MediaImageControl } from '#app/components/MediaImage'
 import { getAccountProfileQuery } from './accountQueries'
 import * as styles from './settings.css'
 
@@ -44,16 +45,15 @@ function ProfileForm({
   userId: string
 }) {
   const queryClient = useQueryClient()
-  const [username, setUsername] = useState(initialProfile.username)
+  const [username, setUsername] = useState(initialProfile.username ?? '')
   const [usernameError, setUsernameError] = useState<string | null>(null)
-  const [name, setName] = useState(initialProfile.name ?? '')
   const [bio, setBio] = useState(initialProfile.bio ?? '')
+  const needsUsername = initialProfile.username === null
   const updateProfile = useMutation({
     mutationFn: (input: AccountProfileUpdateInput) => api.account.updateProfile(input),
     onSuccess: (profile) => {
       queryClient.setQueryData(getAccountProfileQuery(userId).queryKey, profile)
-      setUsername(profile.username)
-      setName(profile.name ?? '')
+      setUsername(profile.username ?? '')
       setBio(profile.bio ?? '')
       setUsernameError(null)
       notifications.show({ color: 'green', message: 'Profile saved.' })
@@ -66,7 +66,6 @@ function ProfileForm({
         setUsernameError(error.message)
         return
       }
-
       notifications.show({
         color: 'red',
         message: 'Could not save your profile. Try again.'
@@ -76,7 +75,10 @@ function ProfileForm({
 
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
-    setUsernameError(null)
+    if (!needsUsername) {
+      updateProfile.mutate({ bio })
+      return
+    }
 
     const parsedUsername = usernameInputSchema.safeParse(username)
     if (!parsedUsername.success) {
@@ -86,12 +88,8 @@ function ProfileForm({
       return
     }
 
-    setUsername(parsedUsername.data)
-    updateProfile.mutate({
-      username: parsedUsername.data,
-      name,
-      bio
-    })
+    setUsernameError(null)
+    updateProfile.mutate({ username: parsedUsername.data, bio })
   }
 
   return (
@@ -101,32 +99,46 @@ function ProfileForm({
           Profile
         </h1>
         <p className={styles.pageDescription}>
-          Manage the handle, name, and short biography shown with your account.
+          Manage the avatar and biography shown with your account.
         </p>
       </header>
       <form className={styles.form} method='post' onSubmit={handleSubmit}>
+        <div className={styles.avatarSetting}>
+          <div>
+            <h2 className={styles.settingTitle}>Avatar</h2>
+            <p className={styles.settingDescription}>Choose the image shown with your account.</p>
+          </div>
+          <MediaImageControl
+            label='Change avatar'
+            mode='square'
+            profile='ACCOUNT_AVATAR'
+            target={{ lookup: { type: 'ACCOUNT_AVATAR' }, attach: { type: 'ACCOUNT_AVATAR' } }}
+            variant='avatar'
+          />
+        </div>
         <TextInput
-          autoComplete='nickname'
-          description='3–30 letters, numbers, and single underscores. Capitalization is preserved.'
+          autoComplete='username'
+          description={
+            needsUsername
+              ? 'Choose the username you will use for sign-in and account attribution.'
+              : 'Your username is used for sign-in and account attribution.'
+          }
           error={usernameError}
           label='Username'
           maxLength={30}
+          minLength={3}
           name='username'
-          required
+          onChange={
+            needsUsername
+              ? (event) => {
+                  setUsername(event.currentTarget.value)
+                  setUsernameError(null)
+                }
+              : undefined
+          }
+          readOnly={!needsUsername}
+          required={needsUsername}
           value={username}
-          onChange={(event) => {
-            setUsername(event.currentTarget.value)
-            setUsernameError(null)
-          }}
-        />
-        <TextInput
-          autoComplete='name'
-          label='Name'
-          description='Optional'
-          maxLength={100}
-          name='name'
-          value={name}
-          onChange={(event) => setName(event.currentTarget.value)}
         />
         <Textarea
           autosize

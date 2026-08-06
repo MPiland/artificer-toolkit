@@ -176,6 +176,45 @@ describe('non-character authored domain layout coverage', () => {
     expect(screen.getByRole('button', { name: /^activate$/i })).toBeInTheDocument()
   })
 
+  it('shows Guided while the Advanced form model is still resolving', async () => {
+    let releaseModel: () => void = () => undefined
+    const pendingModel = new Promise<void>((resolve) => {
+      releaseModel = resolve
+    })
+
+    server.use(
+      http.post('*/api/trpc/nodeRuntime.resolve*', async ({ request }) => {
+        const inputs = readBatchedInputs<NodeRuntimeResolveRequestDto>(await request.json())
+        await pendingModel
+
+        return trpcBatchJson(
+          inputs.map((input) =>
+            createStaticResolvedFormModel(input.mapId, {
+              ancestors: input.ancestors,
+              parentValues: input.parentValues,
+              system: authoredRouteStorySystem,
+              values: input.values
+            })
+          )
+        )
+      })
+    )
+
+    render(<TestRouterProvider>{renderCreateLayout('spell')}</TestRouterProvider>)
+
+    try {
+      expect(
+        await screen.findByRole(
+          'heading',
+          { name: 'How do you want to begin?' },
+          { timeout: 500 }
+        )
+      ).toBeInTheDocument()
+    } finally {
+      releaseModel()
+    }
+  })
+
   it('preserves a guided spell when switching through Advanced', async () => {
     const user = userEvent.setup()
     mocks.updateAuthUser.mockResolvedValue({ error: null })
@@ -231,8 +270,31 @@ describe('non-character authored domain layout coverage', () => {
     expect(
       await screen.findByDisplayValue(authoredRouteStoryRecords[domain].label)
     ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /(?:add|change)(?: an)? image/i })).toBeInTheDocument()
     expect(screen.getByTestId('authoring-form-canvas')).toBeInTheDocument()
     expect(screen.getByTestId('authoring-action-bar')).toBeInTheDocument()
+  })
+
+  it('marks an unchanged submitted draft as saved without reloading the editor', async () => {
+    const user = userEvent.setup()
+    useStaticNodeRuntimeResolver()
+    server.use(
+      http.post('*/api/trpc/content.spells.saveDraft', () =>
+        trpcJson(authoredRouteStoryDrafts.spell)
+      )
+    )
+
+    render(<TestRouterProvider>{renderEditLayout('spell')}</TestRouterProvider>)
+
+    const name = await screen.findByRole('textbox', { name: /name/i })
+    await user.clear(name)
+    await user.type(name, 'Saved without reload')
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }))
+
+    expect(await screen.findByText('All changes saved')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save Draft' })).toBeDisabled()
   })
 
   it('guards populated Spell material values before deselecting Material', async () => {

@@ -10,16 +10,14 @@ const nullableTrimmedText = (maxLength: number) =>
     .transform((value) => value || null)
 
 export const accountProfileDtoSchema = z.strictObject({
-  username: usernameInputSchema,
-  name: z.string().max(100).nullable(),
+  username: usernameInputSchema.nullable(),
   bio: z.string().max(500).nullable()
 })
 
 export type AccountProfileDto = z.infer<typeof accountProfileDtoSchema>
 
 export const accountProfileUpdateInputSchema = z.strictObject({
-  username: usernameInputSchema,
-  name: nullableTrimmedText(100),
+  username: usernameInputSchema.optional(),
   bio: nullableTrimmedText(500)
 })
 

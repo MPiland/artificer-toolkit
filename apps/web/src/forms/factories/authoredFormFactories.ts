@@ -45,7 +45,7 @@ import {
 } from '@artificer-toolkit/schema/subjects/vehicle'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import { api } from '#app/lib/api'
-import { queryKeys } from '#app/lib/queryKeys'
+import { queryKeys as globalQueryKeys } from '#app/lib/queryKeys'
 import {
   createEmptyBackground,
   normalizeBackgroundForSubmit,
@@ -336,7 +336,7 @@ const backgroundSessionConfig = {
     duplicate: api.content.backgrounds.duplicate,
     saveDraft: api.content.backgrounds.saveDraft
   },
-  queryKeys: queryKeys.content.backgrounds,
+  queryKeys: globalQueryKeys.content.backgrounds,
   resolveCreateSystemId: (systems) => resolveCreateBackgroundSystemId(systems),
   schema: backgroundAuthoringInputDtoSchema,
   subjectKindLabel: 'Background',
@@ -364,7 +364,7 @@ const classSessionConfig = {
     duplicate: api.content.classes.duplicate,
     saveDraft: api.content.classes.saveDraft
   },
-  queryKeys: queryKeys.content.classes,
+  queryKeys: globalQueryKeys.content.classes,
   resolveCreateSystemId: (systems) => resolveCreateClassSystemId(systems),
   schema: classAuthoringInputDtoSchema,
   subjectKindLabel: 'Class',
@@ -392,7 +392,7 @@ const creatureSessionConfig = {
     duplicate: api.content.creatures.duplicate,
     saveDraft: api.content.creatures.saveDraft
   },
-  queryKeys: queryKeys.content.creatures,
+  queryKeys: globalQueryKeys.content.creatures,
   resolveCreateSystemId: (systems) => resolveCreateCreatureSystemId(systems),
   schema: creatureAuthoringInputDtoSchema,
   subjectKindLabel: 'Creature',
@@ -422,7 +422,7 @@ const equipmentSessionConfig = {
     duplicate: api.content.equipment.duplicate,
     saveDraft: api.content.equipment.saveDraft
   },
-  queryKeys: queryKeys.content.equipment,
+  queryKeys: globalQueryKeys.content.equipment,
   resolveCreateSystemId: (systems) => resolveCreateEquipmentSystemId(systems),
   renderPreview: (previewContext, context) => {
     const parentEquipment = context.parentEquipment
@@ -467,7 +467,7 @@ const featSessionConfig = {
     duplicate: api.content.feats.duplicate,
     saveDraft: api.content.feats.saveDraft
   },
-  queryKeys: queryKeys.content.feats,
+  queryKeys: globalQueryKeys.content.feats,
   resolveCreateSystemId: (systems) => resolveCreateFeatSystemId(systems),
   schema: featAuthoringInputDtoSchema,
   subjectKindLabel: 'Feat',
@@ -495,7 +495,7 @@ const raceSessionConfig = {
     duplicate: api.content.races.duplicate,
     saveDraft: api.content.races.saveDraft
   },
-  queryKeys: queryKeys.content.races,
+  queryKeys: globalQueryKeys.content.races,
   resolveCreateSystemId: (systems) => resolveCreateRaceSystemId(systems),
   schema: raceAuthoringInputDtoSchema,
   subjectKindLabel: 'Race',
@@ -526,7 +526,7 @@ const spellSessionConfig = {
     duplicate: api.content.spells.duplicate,
     saveDraft: api.content.spells.saveDraft
   },
-  queryKeys: queryKeys.content.spells,
+  queryKeys: globalQueryKeys.content.spells,
   resolveCreateSystemId: (systems) => systems[0]?.id ?? null,
   schema: spellAuthoringInputDtoSchema,
   subjectKindLabel: 'Spell',
@@ -558,7 +558,7 @@ const vehicleSessionConfig = {
     duplicate: api.content.vehicles.duplicate,
     saveDraft: api.content.vehicles.saveDraft
   },
-  queryKeys: queryKeys.content.vehicles,
+  queryKeys: globalQueryKeys.content.vehicles,
   resolveCreateSystemId: (systems) => resolveCreateVehicleSystemId(systems),
   schema: vehicleAuthoringInputDtoSchema,
   subjectKindLabel: 'Vehicle',
@@ -620,6 +620,7 @@ type AuthoredFormQueryKeys = {
   detail: (id: string) => readonly unknown[]
   detailRoot: (id: string) => readonly unknown[]
   draft: (id: string) => readonly unknown[]
+  list: () => readonly unknown[]
 }
 
 type AuthoredFormOperations<TSubmit extends object> = {
@@ -887,9 +888,15 @@ function createAuthoredSessionBase<
         await queryClient.invalidateQueries({ queryKey: queryKeys.all() })
       },
       onSaveDraftSuccess: async (queryClient, savedDraft) => {
-        if (!savedDraft.subjectId) return
-        await queryClient.invalidateQueries({ queryKey: queryKeys.all() })
-        await queryClient.invalidateQueries({ queryKey: queryKeys.draft(savedDraft.subjectId) })
+        queryClient.setQueryData(queryKeys.draft(savedDraft.subjectId), savedDraft)
+        queryClient.setQueryData(
+          globalQueryKeys.routeIds.resolve(savedDraft.subjectKind, savedDraft.publicId),
+          savedDraft.subjectId
+        )
+        if (savedDraft.draftState === 'DRAFT_ONLY') {
+          queryClient.setQueryData(queryKeys.detail(savedDraft.subjectId), null)
+        }
+        await queryClient.invalidateQueries({ queryKey: queryKeys.list(), refetchType: 'none' })
       },
       saveDraft: (payload) => operations.saveDraft(payload as TSubmit),
       ...(subjectId ? { discardDraft: () => operations.discardDraft(subjectId) } : {})

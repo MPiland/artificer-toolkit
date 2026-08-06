@@ -15,7 +15,7 @@ The delivery order is:
 
 - **Phase 00:** Character Sheet play depth and overrides — complete.
 - **Phase 01:** Dice and roll infrastructure — complete.
-- **Phase 02:** Media and supporting-file pipeline.
+- **Phase 02:** Media and supporting-file pipeline image scope — complete.
 - **Phase 03:** Campaign Core.
 - **Phase 04:** Social Hub and free table formation.
 - **Phase 05:** Live Campaign play.
@@ -43,8 +43,8 @@ No phase should be implemented as one repository-wide branch. Start a new sessio
 - Alpha and early beta may remain free while the web loop is built. Free, Player, GM, and Pro GM pricing, limits, and paid-table platform fees use the launch-planning matrix below; evidence may change them before public launch.
 - Beta sizing targets ordinary tabletop use: approximately 20 connected users and 100 actors in one scope.
 - Roll retention starts at 5,000 Campaign rolls and 2,000 Encounter rolls, then changes only from observed beta usage.
-- Character portraits are distinct from account avatars. Characters and user-authored content use one source image plus normalized user-selected thumbnail crop metadata; initially only the Character Sheet header renders the generated thumbnail.
-- User uploads are private by default. Exact file limits, dimensions, quotas, retention, and supporting-file allowlists remain per-profile product decisions for the media phase.
+- Character portraits are distinct from account avatars. Characters and user-authored content use one source image plus normalized user-selected thumbnail crop metadata; compact controls render the generated thumbnail while detail pages use the display variant.
+- User uploads are private by default. Current image limits, dimensions, quotas, and retention are centrally configured; later supporting-file profiles define their own allowlists and safety limits.
 - Ordinary Campaign supporting files and handout maps are size-limited separately from larger VTT maps.
 - The existing modular monolith remains the deployment model. This roadmap does not introduce microservices, general queues, or speculative infrastructure.
 
@@ -52,6 +52,7 @@ No phase should be implemented as one repository-wide branch. Start a new sessio
 
 - Phase 00 Character Sheet play depth and overrides is complete and final-validated.
 - Phase 01 authoritative dice and web roll presentation is complete.
+- Phase 02 private account avatars, Character portraits, authored artwork, crop-derived variants, and reusable asset identity are complete.
 - Guided Authoring is delivered for newer creators alongside the full Advanced Authoring experience.
 - Character and authored-content import/export is implemented behind a disabled feature flag. It is unavailable to users and is not the next implementation priority.
 - Portability returns during launch hardening only after ownership and authorization checks, malformed and duplicate-file tests, provenance retention, and an approved mechanism for rejecting known official content are complete. Automated rejection is a compliance control, not proof of legal clearance.
@@ -72,7 +73,7 @@ After web viability, native iOS and Android clients become first-class play clie
 
 ### Media and supporting files
 
-One private-by-default asset pipeline serves Character and authored-content source images, crop-derived variants, Campaign logos, size-limited Campaign attachments and handout maps, Marketplace previews/supplements, and larger VTT maps. Character and authored-content thumbnails derive from one source plus normalized crop metadata rather than separate uploads. Each purpose has a centrally configured profile for authorization, verified file types, size/dimension limits, variants, quotas, processing, and delivery. The API approves every object key and domain reference; clients transfer bytes directly to Storage only through short-lived permissions.
+The completed private-by-default asset pipeline serves account avatars, Character portraits, authored-content source images, and crop-derived variants. Campaign logos/files, Marketplace assets, and larger VTT maps add purpose-specific profiles in their owning phases without replacing that asset identity or lifecycle. Character and authored-content thumbnails derive from one source plus normalized crop metadata rather than separate uploads. The API approves every object key and domain reference; clients transfer bytes directly to Storage only through short-lived permissions.
 
 ### Campaigns and live play
 
@@ -116,7 +117,7 @@ This extends the existing dependency direction rather than replacing it. Product
 flowchart TD
   P0["Phase 00 complete<br/>Sheet play depth + overrides"] --> P1["Phase 01 complete<br/>Dice + roll infrastructure"]
   P0 --> P3["Phase 03<br/>Campaign Core"]
-  P2["Phase 02<br/>Media + files"] --> P3
+  P2["Phase 02 complete<br/>Media + files"] --> P3
   P3 --> P4["Phase 04<br/>Social Hub"]
   P1 --> P5["Phase 05<br/>Live Campaign play"]
   P2 --> P5
@@ -183,7 +184,7 @@ The numbered order is the default product sequence. Hard dependencies are shown 
 
 Expo's current guidance supports workspace monorepos, Router-based native navigation, SecureStore, development builds, and EAS profiles. Supabase's React Native guidance requires platform storage and foreground-aware session refresh. Re-check these external contracts when Phase 10 begins because SDK behavior changes: [Expo monorepos](https://docs.expo.dev/guides/monorepos/), [Expo Router](https://docs.expo.dev/router/introduction/), [Supabase React Native Auth](https://supabase.com/docs/guides/auth/quickstarts/react-native).
 
-Supabase currently supports private buckets with RLS or time-limited signed delivery, per-bucket file-size and MIME restrictions, resumable transfers for larger files, and optional image transformations. Re-check limits, pricing, security guidance, and transformation behavior when Phase 02 begins: [Storage access control](https://supabase.com/docs/guides/storage/security/access-control), [bucket fundamentals](https://supabase.com/docs/guides/storage/buckets/fundamentals), [upload limits](https://supabase.com/docs/guides/storage/uploads/file-limits), [standard and resumable upload guidance](https://supabase.com/docs/guides/storage/uploads/standard-uploads), and [image transformations](https://supabase.com/docs/guides/storage/serving/image-transformations).
+Supabase currently supports private buckets with RLS or time-limited signed delivery, per-bucket file-size and MIME restrictions, resumable transfers for larger files, and optional image transformations. Re-check limits, pricing, security guidance, and transformation behavior when a later phase adds larger or public media profiles: [Storage access control](https://supabase.com/docs/guides/storage/security/access-control), [bucket fundamentals](https://supabase.com/docs/guides/storage/buckets/fundamentals), [upload limits](https://supabase.com/docs/guides/storage/uploads/file-limits), [standard and resumable upload guidance](https://supabase.com/docs/guides/storage/uploads/standard-uploads), and [image transformations](https://supabase.com/docs/guides/storage/serving/image-transformations).
 
 ## Payment-channel strategy
 
@@ -225,7 +226,7 @@ Exact numeric thresholds are a pre-launch business decision. The behaviors above
 | ----- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
 | 00    | [Character Sheet play depth and overrides](00-character-sheet-play-depth-and-overrides.md) | **Complete:** authoritative Sheet play, adjustments, explanations, and portable semantic panels                                     |
 | 01    | [Dice and roll infrastructure](01-dice-and-roll-infrastructure.md)                         | **Complete:** authoritative rolls, private history, accessible results, and optional lazy 3D presentation                           |
-| 02    | [Media and supporting-file pipeline](02-media-and-file-pipeline.md)                        | Authorized private assets support portraits, authored imagery, Campaign files, and VTT maps                                         |
+| 02    | [Media and supporting-file pipeline](02-media-and-file-pipeline.md)                        | **Complete:** private avatars, Character portraits, authored artwork, crop-derived variants, and reusable asset identity             |
 | 03    | [Campaign Core](03-campaign-core.md)                                                       | Campaign membership, roles, characters, content access, rules, and audited GM authority work on web                                |
 | 04    | [Social Hub](04-social-hub.md)                                                             | Adults can privately invite or publicly discover, apply to, moderate, and form free tables                                          |
 | 05    | [Live Campaign play](05-live-campaign-play.md)                                             | Party inventory, sessions, notes/files, chat, persisted rolls, and Realtime collaboration work on web                              |
@@ -279,7 +280,7 @@ Use the selected phase document as context, then require the new session to:
 - Marketplace payments combine app-store collection, creator licensing, tax, refunds, fee calculation, and payouts. They are not an ordinary single-merchant checkout.
 - Supporting minors requires a separate age-assurance, guardian, moderation, safety, and retention program.
 - Professional page-layout/book authoring is separate from app-native content packages and supplemental files.
-- Supporting-file uploads require an allowlist, scanning/quarantine, safe download behavior, quotas, retention, takedown, and cost controls; Phase 02 keeps this bounded rather than becoming a general cloud drive.
+- Supporting-file uploads require an allowlist, scanning/quarantine, safe download behavior, quotas, retention, takedown, and cost controls; Phase 05 owns that profile instead of expanding the completed Phase 02 image scope.
 - VTT maps may require resumable transfer, optimization, or tiling beyond ordinary Campaign attachments. Those expansions remain in Phase 07 behind the shared asset identity.
 - Combat automation, voice/video, multi-seller carts, reviews, gifting, organizations, non-US commerce, and additional payment processors remain later expansions.
 
@@ -288,6 +289,6 @@ Use the selected phase document as context, then require the new session to:
 - Which legal entity and commercial model will be merchant of record for subscriptions, creator content, and paid tables?
 - What public production origin and final iOS/Android application identifiers should own universal links and store records?
 - What moderation access, retention, export, deletion, and appeal policy applies to chat, notes, listings, creator releases, and reported content?
-- What per-purpose file limits, storage/egress quotas, allowed Campaign attachment types, and public-asset policy should apply to free and paid tiers?
+- What file limits, storage/egress quotas, allowed types, and public-asset policy should apply to future Campaign, VTT, and Marketplace profiles?
 - What numeric table-formation, repeat-play, conversion, cost, and moderation thresholds constitute a passing web viability decision?
 - What approved policy and detection evidence is sufficient to reject known official content before portability is enabled?

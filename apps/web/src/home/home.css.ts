@@ -2,11 +2,15 @@ import { style } from '@vanilla-extract/css'
 import { foundationVars } from '../css/foundations.css.ts'
 import { app } from '../css/layers.css.ts'
 
+const mobile = 'screen and (max-width: 640px)'
+
 export const homeStack = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gap: foundationVars.space[6]
+      gap: foundationVars.space[6],
+      minInlineSize: 0,
+      maxInlineSize: '100%'
     }
   }
 })
@@ -17,10 +21,17 @@ export const homeGrid = style({
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))',
       gap: '1px',
+      minInlineSize: 0,
+      maxInlineSize: '100%',
       overflow: 'hidden',
       border: `1px solid ${foundationVars.color.border.subtle}`,
       borderRadius: foundationVars.radius.lg,
-      backgroundColor: foundationVars.color.border.subtle
+      backgroundColor: foundationVars.color.border.subtle,
+      '@media': {
+        [mobile]: {
+          gridTemplateColumns: 'minmax(0, 1fr)'
+        }
+      }
     }
   }
 })

@@ -38,7 +38,7 @@ describe('signUpFn', () => {
   const input = {
     email: 'player@example.com',
     password: 'password1234',
-    username: 'Morgan_Emberfall'
+    username: 'player_one'
   }
 
   function configureEnabledSignUp() {
@@ -72,7 +72,7 @@ describe('signUpFn', () => {
     expect(mocks.getSupabaseServerClient).not.toHaveBeenCalled()
   })
 
-  it('preserves the existing email/password registration request when enabled', async () => {
+  it('persists the required username with the registration request', async () => {
     configureEnabledSignUp()
     mocks.signUp.mockResolvedValue({
       data: { session: null },
@@ -84,28 +84,11 @@ describe('signUpFn', () => {
       email: input.email,
       password: input.password,
       options: {
-        data: { username: input.username },
+        data: {
+          username: 'player_one'
+        },
         emailRedirectTo: 'https://app.example.test/auth/confirmed'
       }
     })
-  })
-
-  it('rejects a disallowed username before calling Supabase', async () => {
-    configureEnabledSignUp()
-
-    await expect(
-      signUpFn({
-        data: {
-          email: input.email,
-          password: input.password,
-          username: 'admin'
-        }
-      })
-    ).resolves.toEqual({
-      ok: false,
-      message: "That username isn't allowed.",
-      session: null
-    })
-    expect(mocks.signUp).not.toHaveBeenCalled()
   })
 })

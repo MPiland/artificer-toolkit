@@ -1,3 +1,5 @@
+import { richHtmlToPlainText } from '#ui/primitives/renderSanitizedRichHtml'
+
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export interface ReferenceLabelOption {
@@ -72,11 +74,7 @@ export function formatReferenceLabelList(
 
 export function stripHtml(html: string | null | undefined): string {
   if (!html) return ''
-
-  return html
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return richHtmlToPlainText(html)
 }
 
 export function escapeHtml(value: string): string {

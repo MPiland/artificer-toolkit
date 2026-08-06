@@ -5,6 +5,7 @@ import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { withForm } from '#forms/app-form/AppForm'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
+import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
@@ -73,29 +74,26 @@ export const GuidedVehicleAuthoring = withForm({
                 common fields.
               </Alert>
             ) : null}
-            <div className={styles.fields}>
-              <div className={styles.full}>
-                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
-                  {(field) => (
-                    <field.TextField
-                      label='Vehicle name'
-                      placeholder='A vehicle your table will remember'
-                      required
-                    />
-                  )}
-                </form.AppField>
-              </div>
-              <div className={styles.full}>
-                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
-                  {(field) => (
-                    <field.TextareaField
-                      label='What should players know?'
-                      placeholder='Describe the vehicle in plain language.'
-                    />
-                  )}
-                </form.AppField>
-              </div>
+            <div className={styles.identityRow}>
+              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
+                {(field) => (
+                  <field.TextField
+                    label='Vehicle name'
+                    placeholder='A vehicle your table will remember'
+                    required
+                  />
+                )}
+              </form.AppField>
+              <AuthoringArtworkControl />
             </div>
+            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
+              {(field) => (
+                <field.RichTextField
+                  label='Description'
+                  placeholder='Describe the vehicle in plain language.'
+                />
+              )}
+            </form.AppField>
           </Stack>
         ) : null}
 

@@ -295,7 +295,9 @@ export const characterBuilderRaceReferenceDtoSchema =
     selectionMode: z.enum(['DIRECT', 'REQUIRES_SUBRACE']).optional(),
     sizeLabel: z.string().optional(),
     speedLabels: z.array(z.string()).optional(),
-    abilityScoreIncreaseDescriptions: z.array(z.string()).optional(),
+    abilityScoreIncreaseFacts: z
+      .array(z.object({ label: z.string(), value: z.string() }))
+      .optional(),
     ancestry: z
       .object({
         id: z.string(),

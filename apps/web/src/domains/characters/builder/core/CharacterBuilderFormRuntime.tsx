@@ -142,7 +142,10 @@ export function CharacterBuilderFormRuntime({
         to: '/characters/$characterPublicId/$characterSlug'
       })
     } catch {
-      notifications.show({ color: 'red', message: 'Could not finalize that character yet.' })
+      notifications.show({
+        color: 'red',
+        message: 'Could not finalize the character. Try again, or save the draft and reload.'
+      })
     }
   }, [commitMutation, draftMutation, form, navigate, session.baseActiveUpdatedAt, session.mode])
 

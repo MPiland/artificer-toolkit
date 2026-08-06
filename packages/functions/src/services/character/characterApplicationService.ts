@@ -1167,7 +1167,7 @@ function toCharacterBuilderReferences(
         selectionMode: race.selectionMode,
         sizeLabel: race.sizeLabel,
         speedLabels: race.speedLabels ?? [],
-        abilityScoreIncreaseDescriptions: race.abilityScoreIncreaseDescriptions ?? [],
+        abilityScoreIncreaseFacts: race.abilityScoreIncreaseFacts ?? [],
         ancestry: resolvedRace?.ancestry
           ? {
               id: resolvedRace.ancestry.id,

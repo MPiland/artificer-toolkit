@@ -154,9 +154,14 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
       onActivate: () => form.handleSubmit(),
       onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
       onResetForm: () => form.reset(session?.initialValues ?? EMPTY_FORM_VALUES),
-      onSaveDraft: () => {
+      onSaveDraft: async () => {
         if (!session) return
-        return saveDraftValues(form.state.values)
+        const submittedValues = form.state.values
+        const submittedSnapshot = JSON.stringify(submittedValues)
+        const saved = await saveDraftValues(submittedValues)
+        if (saved && JSON.stringify(form.state.values) === submittedSnapshot) {
+          form.reset(submittedValues)
+        }
       }
     }),
     [form, saveDraftValues, session]

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { useMediaQuery } from '@mantine/hooks'
 import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
@@ -58,7 +58,7 @@ export function CharacterSheetRollPresentation({
   const [canvasMounted, setCanvasMounted] = useState(false)
   const [readyRollId, setReadyRollId] = useState<string>()
   const [webGLAvailable, setWebGLAvailable] = useState<boolean>()
-  const revealedRollId = useRef<string | undefined>(undefined)
+  const [revealedRollId, setRevealedRollId] = useState<string>()
   const rollFitsCanvas = roll ? getVisualDiceCount(roll) <= MAX_3D_DICE : false
   const needsWebGL =
     (Boolean(roll) || pending) &&
@@ -68,15 +68,15 @@ export function CharacterSheetRollPresentation({
     (!roll || rollFitsCanvas)
   const canAnimate =
     preferences.animate3d && !reducedMotion && !rendererFailed && webGLAvailable === true
-  const animatedRoll = canAnimate && rollFitsCanvas ? roll : undefined
+  const animatedRoll = canAnimate && rollFitsCanvas && roll?.id !== revealedRollId ? roll : undefined
   const waitingForWebGL = needsWebGL && webGLAvailable == null
   const revealRoll = useCallback(
     (rollId: string) => {
-      if (revealedRollId.current === rollId) return
-      revealedRollId.current = rollId
+      if (revealedRollId === rollId) return
+      setRevealedRollId(rollId)
       onRollRevealed(rollId)
     },
-    [onRollRevealed]
+    [onRollRevealed, revealedRollId]
   )
 
   useEffect(() => {
@@ -94,10 +94,10 @@ export function CharacterSheetRollPresentation({
   }, [animatedRoll, readyRollId])
 
   useEffect(() => {
-    if (roll && roll.id !== revealedRollId.current && !animatedRoll && !waitingForWebGL) {
+    if (roll && roll.id !== revealedRollId && !animatedRoll && !waitingForWebGL) {
       revealRoll(roll.id)
     }
-  }, [animatedRoll, revealRoll, roll, waitingForWebGL])
+  }, [animatedRoll, revealRoll, revealedRollId, roll, waitingForWebGL])
 
   const fallback = roll ? <StaticDiceResult roll={roll} /> : null
   if (waitingForWebGL) return null

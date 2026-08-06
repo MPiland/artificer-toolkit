@@ -25,6 +25,7 @@ Builder is intentionally distinct from node-map authoring: node maps structure a
 - Builder references carry canonical option labels and numeric metadata for abilities, advancement, ability generation, hit-point methods, Standard Array, and Point Buy. Web and future native clients may add contextual presentation, but must not duplicate those registries or costs.
 - Builder references and step views are presentation projections: background descriptions/details, ancestry feature previews, and feature detail rows are read from authored records without changing character intent. Redundant proficiency and spell choices remain visible with their granting source so the resolver stays authoritative.
 - Starting-equipment choice labels are server-generated from authored selection filters plus canonical equipment category/property metadata. Clients render those labels and candidate records without duplicating equipment vocabulary.
+- Starting-gold intent stores the class dice formula as text alongside the player-entered total; the formula is not an authored equipment-option reference.
 - Selected-class grant summaries are normalized on the server by availability level, authored presentation order, and stable kind/ID. Background references are compact derived projections; clients must not re-sort or persist them.
 - Preview is separate from commit and must surface destructive removals/status downgrades before persistence.
 - Engine input is ephemeral; services assemble it from current persisted state and never persist the snapshot itself.

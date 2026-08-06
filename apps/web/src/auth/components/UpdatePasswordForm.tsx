@@ -120,11 +120,9 @@ export function UpdatePasswordForm({
       {invitation && (
         <TextInput
           label='Username'
-          description='Use 3–30 letters, numbers, and single underscores between words. Capitalization is preserved.'
-          classNames={{
-            input: textInput
-          }}
-          autoComplete='nickname'
+          description='Use 3–30 letters, numbers, and single underscores between words.'
+          classNames={{ input: textInput }}
+          autoComplete='username'
           error={usernameError}
           maxLength={30}
           name='username'

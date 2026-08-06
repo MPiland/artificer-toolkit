@@ -10,6 +10,7 @@ import { queryKeys } from '#app/lib/queryKeys'
 import { withForm } from '#forms/app-form/AppForm'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
+import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
 import { GuidedSimpleEffectComposer } from '#forms/guided/GuidedSimpleEffectComposer'
 import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
@@ -70,23 +71,22 @@ export const GuidedEquipmentAuthoring = withForm({
         title={TITLES[step]}
       >
         {step === 0 ? (
-          <div className={styles.fields}>
-            <div className={styles.full}>
+          <Stack gap='lg'>
+            <div className={styles.identityRow}>
               <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
                 {(field) => <field.TextField label='Item name' required />}
               </form.AppField>
+              <AuthoringArtworkControl />
             </div>
-            <div className={styles.full}>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
-                {(field) => (
-                  <field.TextareaField
-                    label='What should players know?'
-                    placeholder='Describe what the item looks like and why it matters.'
-                  />
-                )}
-              </form.AppField>
-            </div>
-          </div>
+            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
+              {(field) => (
+                <field.RichTextField
+                  label='Description'
+                  placeholder='Describe what the item looks like and why it matters.'
+                />
+              )}
+            </form.AppField>
+          </Stack>
         ) : null}
         {step === 1 ? (
           <Stack gap='lg'>

@@ -16,7 +16,7 @@ Build first-class Expo iOS and Android play clients against the proven web produ
 - `apps/web/src/lib/api.ts` manually mirrors tRPC procedures and parses shared Zod DTOs.
 - `packages/design-system` already owns platform-neutral foundations and semantics; only a web adapter exists.
 - Phase 00 and Phase 01 provide complete portable Sheet and roll contracts.
-- Phases 02–09 are expected to provide proven web contracts for media, Campaigns, Social Hub, live collaboration, Encounters, VTT, entitlements, and paid tables.
+- Phase 02 provides the proven media contract; Phases 03–09 are expected to provide Campaign, Social Hub, live collaboration, Encounter, VTT, entitlement, and paid-table contracts.
 - There is no Expo workspace, native release configuration, native cache, push registration, or mobile test harness.
 
 Verify all of these statements on the phase branch before planning implementation.

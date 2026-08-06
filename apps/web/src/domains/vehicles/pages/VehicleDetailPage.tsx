@@ -185,6 +185,15 @@ export function VehicleDetailPage({
       <AuthoredDetailLayout
         actions={pageActions}
         actionsDisabled={actions.isDetailOperationPending}
+        artworkTarget={{
+          lookup: {
+            type: 'AUTHORED_IMAGE',
+            subjectKind: 'VEHICLE',
+            subjectId: vehicleId,
+            scope: detailState.mode === 'draft' ? 'DRAFT' : 'ACTIVE'
+          },
+          attach: { type: 'AUTHORED_IMAGE', subjectKind: 'VEHICLE', subjectId: vehicleId }
+        }}
         eyebrow='Vehicle'
         facts={getVehicleFacts(item)}
         notice={buildAuthoredDetailNotice({

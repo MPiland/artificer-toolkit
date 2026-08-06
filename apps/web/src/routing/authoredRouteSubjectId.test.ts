@@ -50,6 +50,25 @@ describe('resolveAuthoredRouteSubjectId', () => {
     expect(resolve).not.toHaveBeenCalled()
   })
 
+  it('reuses a cached route identity before calling the route-id API', async () => {
+    const queryClient = createQueryClient()
+    const resolve = vi.fn()
+    const client = { routeIds: { resolve } } as unknown as Api
+
+    queryClient.setQueryData(queryKeys.routeIds.resolve('CLASS', 'yakk'), 'class-druid')
+
+    await expect(
+      resolveAuthoredRouteSubjectId({
+        client,
+        listQueryKey: queryKeys.content.classes.list(),
+        publicId: 'YAKK',
+        queryClient,
+        subjectKind: 'CLASS'
+      })
+    ).resolves.toBe('class-druid')
+    expect(resolve).not.toHaveBeenCalled()
+  })
+
   it('keeps detail query entries separated by view and meta keys', () => {
     expect(queryKeys.content.classes.detail('class-druid')).not.toEqual(
       queryKeys.content.classes.detail('class-druid', { view: 'draft' })

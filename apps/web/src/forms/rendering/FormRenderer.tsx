@@ -50,6 +50,7 @@ import { getResolvedAuthoringScope } from '../authoring-schema/resolvedAuthoring
 import * as styles from './FormRenderer.css'
 import { Button, Group, Modal, Text } from '@mantine/core'
 import { CircleHelp } from 'lucide-react'
+import { AuthoringArtworkControl } from '../AuthoringArtworkControl'
 
 export type FormRendererOptions<TValues extends object> = {
   defaultValues: TValues
@@ -450,8 +451,6 @@ export function FormRenderer<TValues extends object>({
         return () => updateAuthoringFormState({ stagedEditorOpen: false })
       }, [registersStagedEditorState, updateAuthoringFormState])
 
-      if (!resolvedMapId || !activeModel) return null
-
       const structuralChangeConfirmationModal = ownsStructuralChangeGuard ? (
         <Modal
           centered
@@ -488,6 +487,8 @@ export function FormRenderer<TValues extends object>({
           </>
         )
       }
+
+      if (!resolvedMapId || !activeModel) return null
 
       if (delegatesNavigationTarget && activeTarget && activeCanvasMapId) {
         const delegatedModel = getResolvedAuthoringScope(
@@ -595,6 +596,20 @@ export function FormRenderer<TValues extends object>({
                 const stepOwnsSectionLabel =
                   rendersNavigationTarget && isSameAuthoringLabel(section.label, currentStep.label)
                 const showSectionHeader = !stepOwnsSectionLabel
+                const isAdvancedBasics =
+                  resolvedMapId === authoring.mapId &&
+                  resolvedFieldPathPrefix === undefined &&
+                  authoring.authoredSession !== undefined &&
+                  isSameAuthoringLabel(section.label, 'Basics') &&
+                  section === renderedSections[0]
+                const sectionNodes =
+                  isAdvancedBasics && authoring.authoredSession?.domain === 'spell'
+                    ? [...section.nodes].sort(
+                        (left, right) =>
+                          ['label', 'level', 'description'].indexOf(String(left.path[0] ?? '')) -
+                          ['label', 'level', 'description'].indexOf(String(right.path[0] ?? ''))
+                      )
+                    : section.nodes
 
                 return (
                   <section
@@ -614,8 +629,10 @@ export function FormRenderer<TValues extends object>({
                         <CircleHelp size={15} aria-label={`About ${section.label}`} />
                       </div>
                     ) : null}
-                    <div className={styles.fieldGrid}>
-                      {section.nodes.map((node) => {
+                    <div
+                      className={isAdvancedBasics ? styles.basicsFieldGrid : styles.fieldGrid}
+                    >
+                      {sectionNodes.map((node) => {
                         if (!isRenderableNode(node)) return null
                         if (
                           rendersCollectionCanvas &&
@@ -713,6 +730,11 @@ export function FormRenderer<TValues extends object>({
                           />
                         )
                       })}
+                      {isAdvancedBasics ? (
+                        <div className={styles.basicsArtwork}>
+                          <AuthoringArtworkControl />
+                        </div>
+                      ) : null}
                     </div>
                   </section>
                 )

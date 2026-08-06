@@ -53,7 +53,9 @@ export function CharacterSelectionModal({
     >
       <div className={styles.selectionModalLayout}>
         <div className={styles.selectionModalIntro}>
-          <Text className={sharedStyles.mutedText}>{description}</Text>
+          <Text className={`${sharedStyles.mutedText} ${styles.selectionModalDescription}`}>
+            {description}
+          </Text>
           <TextInput
             label='Search'
             leftSection={<IconSearch aria-hidden size={16} />}
@@ -87,6 +89,18 @@ export function CharacterSelectionModal({
                       <div
                         key={option.id}
                         className={`${styles.selectionCard} ${selected ? styles.selectionCardSelected : ''}`}
+                        data-disabled={option.disabled || undefined}
+                        onClick={(event) => {
+                          if (
+                            option.disabled ||
+                            (event.target instanceof Element &&
+                              event.target.closest('button, input, label'))
+                          ) {
+                            return
+                          }
+
+                          onSelectedIdChange(option.id)
+                        }}
                       >
                         <input
                           id={inputId}

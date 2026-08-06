@@ -33,6 +33,7 @@ Keep intent at the interface it explains. Cross-module flows belong in architect
 - [Persistence and Kysely](architecture/persistence.md)
 - [Authoring Schema and runtime](architecture/authoring-schema.md)
 - [Character Builder, Sheet, and engine flow](architecture/character.md)
+- [Media lifecycle and delivery](architecture/media.md)
 - [Engine](architecture/engine.md)
 
 ## Audits

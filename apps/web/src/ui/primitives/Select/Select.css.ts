@@ -54,6 +54,11 @@ export const input = style({
       color: foundationVars.color.text.primary,
       minHeight: '40px',
       transition: `border-color ${foundationVars.motion.fast} ease, box-shadow ${foundationVars.motion.fast} ease, background ${foundationVars.motion.fast} ease`,
+      '@media': {
+        '(max-width: 760px)': {
+          fontSize: '1rem'
+        }
+      },
 
       selectors: {
         '&:hover:not(:disabled)': {
@@ -106,7 +111,7 @@ export const pillsList = style({
   '@layer': {
     [app]: {
       display: 'flex',
-      flexWrap: 'nowrap',
+      flexWrap: 'wrap',
       alignItems: 'center',
       gap: foundationVars.space[1],
       minHeight: '28px',

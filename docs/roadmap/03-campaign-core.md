@@ -33,7 +33,7 @@ Introduce the minimum Campaign aggregate and authorization model: invitations, m
 - GM Sheet changes use existing typed Sheet commands. Structural changes use Builder preview/commit and must surface the proposed diff before persistence.
 - Authorized GMs may inspect effective Character values, adjustment indicators, source notes, and calculation breakdowns from Phase 00 without receiving adjustment-edit commands.
 - Every GM action records actor, authority source, Campaign, character, command or preview/commit identity, timestamp, result, and human-readable summary.
-- A Campaign may reference a logo through a ready asset from Phase 02. Campaign capability controls replacement/removal; member access does not make the private original public.
+- A Campaign may reference a logo by adding a `CAMPAIGN_LOGO` profile and domain reference to the Phase 02 asset lifecycle. Campaign capability controls replacement/removal; member access does not make the private original public.
 
 ## Design
 
@@ -66,7 +66,7 @@ The subplan should define shared DTOs and persistence for these conceptual recor
 - Typed Campaign currency definitions and versioned exchange policy.
 - Per-character milestone approval while retaining experience truth.
 - Campaign authority audit entries correlated to Sheet or Builder operations.
-- Campaign logo asset reference outside `CharacterAuthored`.
+- Campaign logo profile and asset reference outside `CharacterAuthored`.
 
 RLS and service authorization must agree. Direct database access, tRPC procedures, Realtime authorization added later, and administrative tooling must all fail closed for removed members and incompatible roles.
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import {
   authoredRouteStoryEquipmentParentResponse,
   authoredRouteStoryResponses,
@@ -16,6 +17,7 @@ import { ownedBaseRaceFixture } from '../../domains/races/race.fixtures'
 import { spellFixture } from '../../domains/spells/spellAuthoring.fixtures'
 import { ownedVehicleResponseFixture } from '../../domains/vehicles/vehicle.fixtures'
 import { getEquipment } from '#app/data/equipment/queries'
+import { queryKeys } from '#app/lib/queryKeys'
 import { authoredFormFactories } from './authoredFormFactories'
 
 const {
@@ -113,6 +115,36 @@ describe('authoredFormFactories', () => {
     expect(raceFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
     expect(spellFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
     expect(vehicleFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
+  })
+
+  it('caches saved draft JSON for the first navigation to its edit route', async () => {
+    const session = spellFormFactory.createSession?.({
+      data: { systems: [{ id: 'system-1' }] },
+      mode: 'create'
+    })
+    if (!session) throw new Error('Expected a spell create session.')
+
+    const queryClient = new QueryClient()
+    const draft: AuthoredDraftDto = {
+      baseActiveUpdatedAt: null,
+      draftState: 'DRAFT_ONLY',
+      label: 'Cached Spell',
+      payload: { label: 'Cached Spell' },
+      publicId: 'cached-spell',
+      status: 'DRAFT',
+      subjectId: 'spell-1',
+      subjectKind: 'SPELL',
+      systemId: 'system-1',
+      userId: 'user-1'
+    }
+
+    await session.operations.onSaveDraftSuccess?.(queryClient, draft)
+
+    expect(queryClient.getQueryData(queryKeys.content.spells.draft('spell-1'))).toBe(draft)
+    expect(queryClient.getQueryData(queryKeys.routeIds.resolve('SPELL', 'cached-spell'))).toBe(
+      'spell-1'
+    )
+    expect(queryClient.getQueryData(queryKeys.content.spells.detail('spell-1'))).toBeNull()
   })
 
   it('creates authoring sessions for every authored form domain', () => {

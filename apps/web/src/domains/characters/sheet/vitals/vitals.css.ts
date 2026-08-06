@@ -31,6 +31,7 @@ export const restActionButton = style({
       flexShrink: 0,
       minWidth: 0,
       paddingInline: '8px',
+      width: '100%',
       '@media': {
         '(min-width: 761px) and (max-width: 1280px)': {
           paddingInline: '4px'
@@ -247,6 +248,12 @@ export const combatFactButton = style({
         '(max-width: 560px)': {
           textAlign: 'center'
         }
+      },
+      selectors: {
+        '&:hover, &:active': {
+          background: 'transparent',
+          borderColor: foundationVars.color.border.subtle
+        }
       }
     }
   }
@@ -429,18 +436,14 @@ export const hpActionCluster = style({
       alignItems: 'center',
       alignSelf: 'stretch',
       borderBlockStart: `1px solid ${foundationVars.color.border.subtle}`,
-      display: 'flex',
+      display: 'grid',
       gap: '6px',
-      justifyContent: 'space-between',
+      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
       minWidth: 0,
       paddingBlockStart: '8px',
       '@media': {
-        '(max-width: 48rem)': {
-          alignSelf: 'center'
-        },
         '(max-width: 22rem)': {
-          alignItems: 'stretch',
-          flexDirection: 'column'
+          gridTemplateColumns: '1fr'
         }
       }
     }
@@ -452,6 +455,7 @@ export const hpManageButton = style({
     [app]: {
       flexShrink: 0,
       minWidth: 0,
+      width: '100%',
       '@media': {
         '(max-width: 520px)': {
           paddingInline: '6px'

@@ -19,7 +19,7 @@ export const hero = style({
         },
         '(max-width: 760px)': {
           alignItems: 'center',
-          gridTemplateColumns: 'minmax(0, 1fr) auto',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
           gap: '8px',
           padding: '8px 10px'
         }
@@ -38,8 +38,7 @@ export const heroIdentity = style({
       minWidth: 0,
       '@media': {
         '(max-width: 760px)': {
-          gap: '10px',
-          gridTemplateColumns: '44px minmax(0, 1fr)'
+          display: 'contents'
         }
       }
     }
@@ -49,7 +48,13 @@ export const heroIdentity = style({
 export const heroIdentityCopy = style({
   '@layer': {
     [app]: {
-      minWidth: 0
+      minWidth: 0,
+      '@media': {
+        '(max-width: 760px)': {
+          justifySelf: 'center',
+          textAlign: 'center'
+        }
+      }
     }
   }
 })
@@ -64,11 +69,13 @@ export const characterMark = style({
       display: 'grid',
       height: '64px',
       justifyItems: 'center',
+      overflow: 'hidden',
       width: '64px',
       '@media': {
         '(max-width: 760px)': {
           borderRadius: foundationVars.radius.md,
           height: '44px',
+          justifySelf: 'center',
           width: '44px'
         }
       }
@@ -156,7 +163,12 @@ export const heroClassLine = style({
       alignItems: 'center',
       display: 'flex',
       flexWrap: 'wrap',
-      gap: '6px'
+      gap: '6px',
+      '@media': {
+        '(max-width: 760px)': {
+          justifyContent: 'center'
+        }
+      }
     }
   }
 })
@@ -199,7 +211,13 @@ export const heroActions = style({
       alignSelf: 'start',
       display: 'flex',
       flexDirection: 'row',
-      gap: '6px'
+      gap: '6px',
+      '@media': {
+        '(max-width: 760px)': {
+          alignSelf: 'center',
+          justifySelf: 'center'
+        }
+      }
     }
   }
 })

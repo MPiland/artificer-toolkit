@@ -10,7 +10,6 @@ import type { AccountUsernameStatusDto } from '@artificer-toolkit/schema/api/acc
 import IArrowRight from '#assets/icons/IArrowRight'
 import { api } from '#app/lib/api'
 import { browserAuthClient } from '../authClient'
-import { suggestUsername } from '../usernameSuggestion'
 import {
   authButton,
   authFooterRow,
@@ -26,9 +25,6 @@ import {
 import { AuthFormProps } from './authForm.types'
 import { AuthDivider } from './AuthDivider'
 
-const usernameRuleMessage =
-  'Use 3–30 letters, numbers, and single underscores between words. Capitalization is preserved.'
-
 export function SignUpForm({
   authClient = browserAuthClient,
   getUsernameStatus = (username) => api.account.usernameStatus({ username }),
@@ -39,7 +35,6 @@ export function SignUpForm({
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [usernameError, setUsernameError] = useState<string | null>(null)
-  const [isSuggesting, setIsSuggesting] = useState(false)
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
@@ -48,6 +43,14 @@ export function SignUpForm({
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
+
+    const parsedUsername = usernameInputSchema.safeParse(username)
+    if (!parsedUsername.success) {
+      setUsernameError(
+        'Use 3–30 letters, numbers, and single underscores between words. Capitalization is preserved.'
+      )
+      return
+    }
 
     const parsedPassword = passwordInputSchema.safeParse(password)
     if (!parsedPassword.success) {
@@ -63,12 +66,6 @@ export function SignUpForm({
     setUsernameError(null)
 
     try {
-      const parsedUsername = usernameInputSchema.safeParse(username)
-      if (!parsedUsername.success) {
-        setUsernameError(usernameRuleMessage)
-        return
-      }
-
       const usernameStatus = await getUsernameStatus(parsedUsername.data)
       if (usernameStatus.status !== 'available') {
         setUsernameError(
@@ -107,25 +104,6 @@ export function SignUpForm({
     }
   }
 
-  async function handleSuggestUsername() {
-    setIsSuggesting(true)
-    setUsernameError(null)
-
-    try {
-      const suggestion = await suggestUsername(email, getUsernameStatus)
-      if (!suggestion) {
-        setUsernameError('Could not find an available suggestion. Try another username.')
-        return
-      }
-
-      setUsername(suggestion)
-    } catch {
-      setUsernameError('Could not suggest a username right now.')
-    } finally {
-      setIsSuggesting(false)
-    }
-  }
-
   return (
     <form className={authForm} method='post' onSubmit={handleSubmit}>
       <TextInput
@@ -143,11 +121,11 @@ export function SignUpForm({
       />
       <TextInput
         label='Username'
-        description={usernameRuleMessage}
+        description='Use 3–30 letters, numbers, and single underscores between words.'
         classNames={{
           input: textInput
         }}
-        autoComplete='nickname'
+        autoComplete='username'
         error={usernameError}
         maxLength={30}
         name='username'
@@ -160,9 +138,6 @@ export function SignUpForm({
         }}
         required
       />
-      <Button loading={isSuggesting} type='button' variant='subtle' onClick={handleSuggestUsername}>
-        Suggest username
-      </Button>
       <PasswordInput
         label='Password'
         description={`Use ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} characters.`}

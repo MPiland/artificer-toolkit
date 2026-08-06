@@ -20,6 +20,7 @@ export const spellListItems: AuthoredListItem[] = [
     id: 'magic-missile',
     publicId: '1',
     name: 'Magic Missile',
+    description: 'Three glowing darts of magical force strike creatures you can see within range.',
     attributes: {
       level: '1',
       school: 'Evocation',
@@ -39,6 +40,7 @@ export const spellListItems: AuthoredListItem[] = [
     id: 'misty-step',
     publicId: '2',
     name: 'Misty Step',
+    description: 'Teleport up to 30 feet to an unoccupied space you can see.',
     attributes: {
       level: '2',
       school: 'Conjuration',
@@ -58,6 +60,7 @@ export const spellListItems: AuthoredListItem[] = [
     id: 'ember-lace',
     publicId: '3',
     name: 'Ember Lace',
+    description: 'A ribbon of flame follows a creature across the battlefield.',
     attributes: {
       level: '3',
       school: 'Evocation',
@@ -78,6 +81,7 @@ export const spellListItems: AuthoredListItem[] = [
     id: 'warding-rune',
     publicId: '4',
     name: 'Warding Rune',
+    description: 'A protective sigil flares when danger closes in.',
     attributes: {
       level: '2',
       school: 'Abjuration',
@@ -98,6 +102,7 @@ export const spellListItems: AuthoredListItem[] = [
     id: 'healing-word',
     publicId: '5',
     name: 'Healing Word',
+    description: 'A creature you can see within range regains hit points.',
     attributes: {
       level: '1',
       school: 'Evocation',

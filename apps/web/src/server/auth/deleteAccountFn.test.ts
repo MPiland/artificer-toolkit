@@ -7,8 +7,7 @@ const mocks = vi.hoisted(() => ({
   getSupabaseAdminClient: vi.fn(),
   getSupabaseServerClient: vi.fn(),
   getUser: vi.fn(),
-  signInWithPassword: vi.fn(),
-  signOut: vi.fn()
+  signInWithPassword: vi.fn()
 }))
 
 vi.mock('@tanstack/react-start', () => ({
@@ -44,6 +43,7 @@ describe('deleteAccountFn', () => {
   }
 
   beforeEach(() => {
+    vi.clearAllMocks()
     mocks.createClient.mockReturnValue({
       auth: { signInWithPassword: mocks.signInWithPassword }
     })
@@ -52,17 +52,13 @@ describe('deleteAccountFn', () => {
       auth: { admin: { deleteUser: mocks.deleteUser } }
     })
     mocks.getSupabaseServerClient.mockReturnValue({
-      auth: {
-        getUser: mocks.getUser,
-        signOut: mocks.signOut
-      }
+      auth: { getUser: mocks.getUser }
     })
     mocks.getUser.mockResolvedValue({
       data: { user: { id: 'user-1', email: input.email } },
       error: null
     })
     mocks.signInWithPassword.mockResolvedValue({ error: null })
-    mocks.signOut.mockResolvedValue({ error: null })
     mocks.deleteUser.mockResolvedValue({ error: null })
   })
 
@@ -77,18 +73,14 @@ describe('deleteAccountFn', () => {
     expect(mocks.deleteUser).not.toHaveBeenCalled()
   })
 
-  it('revokes sessions before permanently deleting the verified user', async () => {
+  it('permanently deletes the verified user', async () => {
     await expect(deleteAccountFn({ data: input })).resolves.toEqual({ ok: true })
 
     expect(mocks.signInWithPassword).toHaveBeenCalledWith({
       email: input.email,
       password: input.currentPassword
     })
-    expect(mocks.signOut).toHaveBeenCalledWith({ scope: 'global' })
     expect(mocks.deleteUser).toHaveBeenCalledWith('user-1')
-    expect(mocks.signOut.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.deleteUser.mock.invocationCallOrder[0]!
-    )
   })
 
   it('does not expose admin deletion details to the browser', async () => {
@@ -99,11 +91,7 @@ describe('deleteAccountFn', () => {
       error: true,
       message: 'Could not delete your account. Try again.'
     })
-    expect(consoleError).toHaveBeenCalledWith(
-      'Account deletion failed after session revocation.',
-      expect.any(Error)
-    )
-
+    expect(consoleError).toHaveBeenCalledWith('Account deletion failed.', expect.any(Error))
     consoleError.mockRestore()
   })
 })

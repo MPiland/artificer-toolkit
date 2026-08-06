@@ -19,6 +19,7 @@ import { parseStandaloneDiceConfiguration } from '@artificer-toolkit/shared/roll
 import { withForm } from '#forms/app-form/AppForm'
 import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
+import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
 import { createDefaultEffect } from '#app/forms/rendering/authoringNodeDefaults'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
@@ -165,8 +166,8 @@ export const GuidedSpellAuthoring = withForm({
                 switch to Advanced to edit those mechanics.
               </Alert>
             ) : null}
-            <div className={styles.fields}>
-              <div className={styles.full}>
+            <div className={styles.identityRow}>
+              <div className={styles.identityFields}>
                 <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
                   {(field) => (
                     <field.TextField
@@ -176,24 +177,22 @@ export const GuidedSpellAuthoring = withForm({
                     />
                   )}
                 </form.AppField>
-              </div>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['level'])}>
-                {(field) => (
-                  <field.NumberSelectField data={SPELL_LEVEL_OPTIONS} label='Level' required />
-                )}
-              </form.AppField>
-              <div className={styles.full}>
-                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
+                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['level'])}>
                   {(field) => (
-                    <field.TextareaField
-                      label='What should players know?'
-                      description='A short, plain-language description is enough.'
-                      placeholder='Describe the spell in your own words.'
-                    />
+                    <field.NumberSelectField data={SPELL_LEVEL_OPTIONS} label='Level' required />
                   )}
                 </form.AppField>
               </div>
+              <AuthoringArtworkControl />
             </div>
+            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
+              {(field) => (
+                <field.RichTextField
+                  label='Description'
+                  placeholder='Describe the spell in your own words.'
+                />
+              )}
+            </form.AppField>
           </Stack>
         ) : null}
         {screen === 1 ? (

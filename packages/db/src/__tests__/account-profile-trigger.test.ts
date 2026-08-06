@@ -8,14 +8,20 @@ const profileSchema = readFileSync(
 )
 
 describe('account profile trigger', () => {
-  it('accepts invitation usernames only through trusted app metadata', () => {
+  it('persists a claimed username while allowing pending invitations', () => {
+    expect(profileSchema).toContain('username   text,')
+    expect(profileSchema).not.toContain('username   text NOT NULL')
     expect(profileSchema).toContain('AFTER INSERT ON auth.users')
-    expect(profileSchema).toContain('BEFORE UPDATE OF raw_app_meta_data ON auth.users')
     expect(profileSchema).toContain(
-      "requested_username text := trim(NEW.raw_app_meta_data ->> 'pending_profile_username')"
+      'INSERT INTO public.profiles (id, username, full_name, avatar_url)'
     )
-    expect(profileSchema).toContain("NEW.raw_app_meta_data, '{}'::jsonb)")
-    expect(profileSchema).toContain("- 'pending_profile_username'")
-    expect(profileSchema).not.toContain('UPDATE OF raw_user_meta_data ON auth.users')
+    expect(profileSchema).toContain("NULLIF(trim(NEW.raw_user_meta_data ->> 'username'), '')")
+    expect(profileSchema).not.toContain('Username is required for non-invited accounts.')
+    expect(profileSchema).toContain("'admin', 'moderator', 'support', 'system', 'root'")
+    expect(profileSchema).toContain(
+      "NULLIF(trim(auth_user.raw_user_meta_data ->> 'username'), '')"
+    )
+    expect(profileSchema).not.toContain('handle_invitation_completion')
+    expect(profileSchema).not.toContain('pending_profile_username')
   })
 })

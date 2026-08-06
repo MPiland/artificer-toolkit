@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
+import { Shell, platformNavigation } from '#app/shell'
 import { AuthoredListPage } from './AuthoredListPage'
 import { spellListFilters, spellListItems } from './spellList.fixtures'
 
@@ -54,6 +55,87 @@ export const Mobile: Story = {
     initialViewMode: 'cards'
   },
   parameters: {
+    viewport: {
+      defaultViewport: 'mobile1'
+    }
+  }
+}
+
+export const MobileInAppShell: Story = {
+  args: {
+    initialViewMode: 'cards'
+  },
+  decorators: [
+    (Story) => (
+      <Shell
+        navigation={platformNavigation}
+        currentPath='/spells'
+        isAuthenticated
+        userEmail='creator@example.test'
+      >
+        <Story />
+      </Shell>
+    )
+  ],
+  parameters: {
+    layout: 'fullscreen',
+    viewport: {
+      defaultViewport: 'mobile1'
+    }
+  }
+}
+
+export const MobileEmpty: Story = {
+  args: {
+    title: 'Characters',
+    summary: '0 characters / 0 active / 0 drafts',
+    createLabel: 'Create Character',
+    items: [],
+    filters: [
+      {
+        key: 'status',
+        label: 'Status',
+        placeholder: 'Any status',
+        options: [
+          { value: 'active', label: 'Active' },
+          { value: 'inactive', label: 'Inactive' }
+        ]
+      },
+      {
+        key: 'draft',
+        label: 'Draft',
+        placeholder: 'Any draft state',
+        options: [
+          { value: 'draft', label: 'Draft' },
+          { value: 'published', label: 'Published' }
+        ]
+      }
+    ],
+    initialViewMode: 'cards'
+  },
+  parameters: {
+    viewport: {
+      defaultViewport: 'mobile1'
+    }
+  }
+}
+
+export const MobileEmptyInAppShell: Story = {
+  args: MobileEmpty.args,
+  decorators: [
+    (Story) => (
+      <Shell
+        navigation={platformNavigation}
+        currentPath='/characters'
+        isAuthenticated
+        userEmail='creator@example.test'
+      >
+        <Story />
+      </Shell>
+    )
+  ],
+  parameters: {
+    layout: 'fullscreen',
     viewport: {
       defaultViewport: 'mobile1'
     }

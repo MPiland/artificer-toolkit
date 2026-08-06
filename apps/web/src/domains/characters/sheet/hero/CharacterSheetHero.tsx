@@ -1,7 +1,7 @@
 import { ActionIcon, Badge, Text, Title, Tooltip } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import { MessageCircle, Settings } from 'lucide-react'
-import IShield from '#assets/icons/IShield'
+import { MediaImageControl } from '#app/components/MediaImage'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 import type { CharacterSheet } from '../core/CharacterSheet.types'
 import * as heroStyles from './hero.css'
@@ -23,8 +23,17 @@ export function CharacterSheetHero({
   return (
     <header className={heroStyles.hero}>
       <div className={heroStyles.heroIdentity}>
-        <div className={heroStyles.characterMark} aria-hidden='true'>
-          <IShield className={heroStyles.characterMarkIcon} />
+        <div className={heroStyles.characterMark}>
+          <MediaImageControl
+            label='Change portrait'
+            mode='square'
+            profile='CHARACTER_PORTRAIT'
+            target={{
+              lookup: { type: 'CHARACTER_PORTRAIT', characterId: sheet.meta.characterId },
+              attach: { type: 'CHARACTER_PORTRAIT', characterId: sheet.meta.characterId }
+            }}
+            variant='portrait'
+          />
         </div>
         <div className={heroStyles.heroIdentityCopy}>
           <Text className={heroStyles.eyebrow}>Character Sheet</Text>

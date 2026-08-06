@@ -299,6 +299,29 @@ export const fields = style({
   }
 })
 
+export const identityRow = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'end',
+      display: 'grid',
+      gap: foundationVars.space[4],
+      gridTemplateColumns: 'minmax(0, 1fr) auto',
+      '@media': { '(max-width: 760px)': { gridTemplateColumns: '1fr' } }
+    }
+  }
+})
+
+export const identityFields = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: foundationVars.space[4],
+      gridTemplateColumns: 'minmax(0, 2fr) minmax(8rem, 0.75fr)',
+      '@media': { '(max-width: 760px)': { gridTemplateColumns: '1fr' } }
+    }
+  }
+})
+
 export const full = style({ '@layer': { [app]: { gridColumn: '1 / -1' } } })
 
 export const navigation = style({

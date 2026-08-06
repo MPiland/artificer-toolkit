@@ -32,6 +32,7 @@ import type {
   BackgroundAuthored,
   SpellAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
+import type { ModifierGrantAuthored } from '@artificer-toolkit/shared/authored'
 import type { ResolvedRace } from '@artificer-toolkit/shared/subjects/compilers'
 
 export type CharacterBuilderRaceCatalogRecord = {
@@ -43,7 +44,7 @@ export type CharacterBuilderRaceCatalogRecord = {
   selectionMode?: 'DIRECT' | 'REQUIRES_SUBRACE'
   sizeLabel?: string
   speedLabels?: string[]
-  abilityScoreIncreaseDescriptions?: string[]
+  abilityScoreIncreaseFacts?: Array<{ label: string; value: string }>
 }
 
 export type CharacterBuilderClassCatalogRecord = {
@@ -239,14 +240,14 @@ export async function loadCharacterBuilderCatalog(
     ])
 
   const [resolvedRaces, classesById, backgroundsById, system] = await Promise.all([
-    createRaceRepository(db).findResolvedAll({ systemId }),
+    createRaceRepository(db).findResolvedAll({ systemId, includeFeatureEffects: false }),
     createClassRepository(db).findByIds(
       classResult.items.map((record) => record.id),
-      { systemId }
+      { systemId, allowedFeatureIds: new Set(), includeFeatureEffects: false }
     ),
     createBackgroundRepository(db).findByIds(
       backgroundResult.items.map((record) => record.id),
-      { systemId }
+      { systemId, includeFeatureEffects: false }
     ),
     createSystemRepository(db).findById(systemId)
   ])
@@ -297,9 +298,7 @@ export async function loadCharacterBuilderCatalog(
           )?.label
           return `${speedLabel ?? 'Speed'} ${speed.amount} ${MEASUREMENT_UNIT_REGISTRY[speed.unit].short}`
         }),
-        abilityScoreIncreaseDescriptions: (race?.features ?? [])
-          .filter((feature) => feature.label === 'Ability Score Increase')
-          .map((feature) => feature.description)
+        abilityScoreIncreaseFacts: getRaceAbilityScoreIncreaseFacts(race)
       }
     }),
     classes: classResult.items.map((record) => {
@@ -379,6 +378,78 @@ export async function loadCharacterBuilderCatalog(
 type ClassProficiency = NonNullable<
   Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.BASE }>['proficiencies']
 >[number]
+
+function getRaceAbilityScoreIncreaseFacts(
+  race: ResolvedRace | undefined
+): Array<{ label: string; value: string }> {
+  const facts: Array<{ label: string; value: string }> = []
+
+  for (const feature of race?.features ?? []) {
+    if (feature.label !== 'Ability Score Increase') continue
+
+    const fixedFacts = (feature.grants?.modifiers ?? []).flatMap((modifier) => {
+      const fact = getFixedAbilityScoreIncreaseFact(modifier)
+      return fact ? [fact] : []
+    })
+    const uniformValue = fixedFacts[0]?.value
+    const fixedLabels = new Set(fixedFacts.map((fact) => fact.label))
+    if (
+      uniformValue &&
+      fixedFacts.every((fact) => fact.value === uniformValue) &&
+      ABILITY_OPTIONS.every((ability) => fixedLabels.has(ability.label))
+    ) {
+      facts.push({ label: 'All abilities', value: uniformValue })
+    } else {
+      facts.push(...fixedFacts)
+    }
+
+    const optionAmounts = [
+      ...new Set(
+        (feature.options ?? [])
+          .flatMap((option) => option.grants?.modifiers ?? [])
+          .flatMap((modifier) => {
+            const fact = getFixedAbilityScoreIncreaseFact(modifier)
+            return fact ? [fact.value] : []
+          })
+      )
+    ]
+
+    for (const choice of feature.optionChoices ?? []) {
+      if (choice.count < 1) continue
+      facts.push({
+        label: `Choose ${choice.count} ${choice.count === 1 ? 'ability' : 'abilities'}`,
+        value: optionAmounts.length === 1 ? `${optionAmounts[0]} each` : 'See options'
+      })
+    }
+  }
+
+  return facts
+}
+
+function getFixedAbilityScoreIncreaseFact(
+  modifier: ModifierGrantAuthored
+): { label: string; value: string } | null {
+  if (modifier.valueDomainCode !== 'ABILITY_SCORE' || modifier.modifierKind !== 'BONUS') {
+    return null
+  }
+  if (
+    typeof modifier.payload !== 'object' ||
+    modifier.payload === null ||
+    !('valueKind' in modifier.payload) ||
+    modifier.payload.valueKind !== 'FIXED' ||
+    !('amount' in modifier.payload) ||
+    typeof modifier.payload.amount !== 'number'
+  ) {
+    return null
+  }
+
+  return {
+    label:
+      ABILITY_OPTIONS.find((ability) => ability.code === modifier.domain.ability)?.label ??
+      modifier.domain.ability,
+    value: `+${modifier.payload.amount}`
+  }
+}
 
 function getClassProficiencyGroups(
   proficiencies: ClassProficiency[],

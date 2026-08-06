@@ -3,7 +3,9 @@ import { ZodError } from 'zod'
 import { createDb, withUserContext, type DBLike, type KyselyDatabase } from '@artificer-toolkit/db'
 
 export interface TrpcContext {
+  clientIp?: string
   databaseConnectionString?: string
+  invitationSetupPending: boolean
   isSuperAdmin?: boolean
   userId: string | null
 }
@@ -55,6 +57,11 @@ function mapErrorToCode(error: Error): TRPCError['code'] {
   if (error.name === 'ConcurrencyError') return 'CONFLICT'
   if (error.name === 'UsernameConflictError') return 'CONFLICT'
   if (error.name === 'CharacterSheetCommandError') return 'BAD_REQUEST'
+  if (error.name === 'MediaNotFoundError') return 'NOT_FOUND'
+  if (error.name === 'MediaAccessError') return 'FORBIDDEN'
+  if (error.name === 'MediaConflictError') return 'CONFLICT'
+  if (error.name === 'MediaValidationError') return 'UNPROCESSABLE_CONTENT'
+  if (error.name === 'MediaQuotaError') return 'PAYLOAD_TOO_LARGE'
 
   return 'INTERNAL_SERVER_ERROR'
 }

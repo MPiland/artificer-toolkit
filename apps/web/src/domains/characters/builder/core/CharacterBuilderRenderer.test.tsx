@@ -495,6 +495,40 @@ describe('CharacterBuilderRenderer', () => {
     expect(screen.getByText('Personality Trait 1')).toBeInTheDocument()
   })
 
+  it('adds a suggested background characteristic to the editable character profile', async () => {
+    const user = userEvent.setup()
+
+    renderCharacterBuilderHarness({
+      payload: {
+        ...characterBuilderPayloadFixture,
+        character: {
+          ...characterBuilderPayloadFixture.character,
+          profile: {
+            ...characterBuilderPayloadFixture.character.profile,
+            personalityTraits: ''
+          }
+        },
+        resolution: {
+          ...characterBuilderPayloadFixture.resolution,
+          recommendedSectionId: 'BACKGROUND'
+        }
+      }
+    })
+
+    await user.click(screen.getByText('Suggested Characteristics'))
+    await user.click(screen.getByRole('button', { name: 'Use Personality Trait 1' }))
+
+    expect(screen.getByRole('button', { name: 'Remove Personality Trait 1' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+
+    await user.click(screen.getByRole('link', { name: 'Notes' }))
+    expect(screen.getByLabelText('Personality Traits')).toHaveValue(
+      'I use polysyllabic words that convey the impression of great erudition.'
+    )
+  })
+
   it('does not resolve again for prose-only edits', async () => {
     vi.useFakeTimers()
     const resolvedValues: CharacterFormValues[] = []

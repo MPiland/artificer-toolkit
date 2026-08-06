@@ -199,6 +199,15 @@ export function CreatureDetailPage({
       <AuthoredDetailLayout
         actions={pageActions}
         actionsDisabled={actions.isDetailOperationPending}
+        artworkTarget={{
+          lookup: {
+            type: 'AUTHORED_IMAGE',
+            subjectKind: 'CREATURE',
+            subjectId: creatureId,
+            scope: detailState.mode === 'draft' ? 'DRAFT' : 'ACTIVE'
+          },
+          attach: { type: 'AUTHORED_IMAGE', subjectKind: 'CREATURE', subjectId: creatureId }
+        }}
         eyebrow='Creature'
         facts={getCreatureFacts(item, references)}
         notice={buildAuthoredDetailNotice({

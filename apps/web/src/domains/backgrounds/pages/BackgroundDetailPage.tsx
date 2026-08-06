@@ -184,6 +184,15 @@ export function BackgroundDetailPage({
       <AuthoredDetailLayout
         actions={pageActions}
         actionsDisabled={actions.isDetailOperationPending}
+        artworkTarget={{
+          lookup: {
+            type: 'AUTHORED_IMAGE',
+            subjectKind: 'BACKGROUND',
+            subjectId: backgroundId,
+            scope: detailState.mode === 'draft' ? 'DRAFT' : 'ACTIVE'
+          },
+          attach: { type: 'AUTHORED_IMAGE', subjectKind: 'BACKGROUND', subjectId: backgroundId }
+        }}
         eyebrow='Background'
         facts={[]}
         notice={buildAuthoredDetailNotice({

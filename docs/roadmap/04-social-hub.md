@@ -11,7 +11,7 @@ Launch a moderated, adults-only table-formation service for private and public f
 
 ## Current starting point
 
-- Public profiles contain only basic identity fields and are not yet a complete product contract.
+- Accounts already have one required, stable username; email remains private. Public profile visibility beyond that username is not yet a complete product contract.
 - Campaign membership and invitations arrive in Phase 03; saved standalone Encounters do not yet exist.
 - No listing, application, seat, schedule, discovery, blocking, reporting, or moderation domain exists.
 - No external search service exists, and beta scale does not require one.

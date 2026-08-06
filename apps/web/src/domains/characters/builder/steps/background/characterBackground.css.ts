@@ -50,6 +50,16 @@ export const suggestedCharacteristicsContent = style({
   }
 })
 
+export const suggestedCharacteristicsIntro = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.secondary,
+      gridColumn: '1 / -1',
+      margin: 0
+    }
+  }
+})
+
 export const suggestedCharacteristicsGroup = style({
   '@layer': {
     [app]: {
@@ -64,8 +74,70 @@ export const suggestedCharacteristic = style({
     [app]: {
       borderTop: `1px solid ${foundationVars.color.border.subtle}`,
       display: 'grid',
-      gap: '4px',
-      paddingTop: '8px'
+      gap: '6px',
+      padding: '10px 12px',
+      textAlign: 'left',
+      width: '100%'
+    }
+  }
+})
+
+export const suggestedCharacteristicButton = style({
+  '@layer': {
+    [app]: {
+      appearance: 'none',
+      background: 'transparent',
+      borderBottom: 0,
+      borderLeft: 0,
+      borderRight: 0,
+      color: 'inherit',
+      cursor: 'pointer',
+      font: 'inherit',
+      selectors: {
+        '&:hover:not(:disabled)': {
+          background: foundationVars.color.surface.subtle
+        },
+        '&:focus-visible': {
+          outline: `2px solid ${foundationVars.color.input.border.focus}`,
+          outlineOffset: '-2px'
+        },
+        '&:disabled': {
+          cursor: 'default',
+          opacity: 0.68
+        }
+      }
+    }
+  }
+})
+
+export const suggestedCharacteristicSelected = style({
+  '@layer': {
+    [app]: {
+      background: foundationVars.color.accent.soft
+    }
+  }
+})
+
+export const suggestedCharacteristicHeader = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      display: 'flex',
+      fontSize: '0.875rem',
+      fontWeight: foundationVars.fontWeight.semibold,
+      gap: '12px',
+      justifyContent: 'space-between'
+    }
+  }
+})
+
+export const suggestedCharacteristicAction = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.accent,
+      flexShrink: 0,
+      fontSize: '0.75rem',
+      fontWeight: foundationVars.fontWeight.bold
     }
   }
 })

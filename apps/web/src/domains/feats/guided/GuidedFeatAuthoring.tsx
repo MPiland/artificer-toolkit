@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '@tanstack/react-form'
-import { Alert, NumberInput, Select, Stack, Text, Textarea, TextInput } from '@mantine/core'
+import { Alert, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import type { EffectDto } from '@artificer-toolkit/schema/effects'
 import type { ChargeDto, DetailDto } from '@artificer-toolkit/schema/shared'
@@ -8,11 +8,13 @@ import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { withForm } from '#forms/app-form/AppForm'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
+import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
 import { GuidedSimpleEffectComposer } from '#forms/guided/GuidedSimpleEffectComposer'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import * as styles from '#forms/guided/guidedAuthoring.css'
+import RichTextEditor from '#ui/primitives/RichTextEditor'
 
 const STEPS = ['Basics', 'Core outcome', 'Features', 'Review'] as const
 const TITLES = [
@@ -84,29 +86,26 @@ export const GuidedFeatAuthoring = withForm({
                 edit the common fields.
               </Alert>
             ) : null}
-            <div className={styles.fields}>
-              <div className={styles.full}>
-                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
-                  {(field) => (
-                    <field.TextField
-                      label='Feat name'
-                      placeholder='A feat your table will remember'
-                      required
-                    />
-                  )}
-                </form.AppField>
-              </div>
-              <div className={styles.full}>
-                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
-                  {(field) => (
-                    <field.TextareaField
-                      label='What should players know?'
-                      placeholder='Describe the feat in plain language.'
-                    />
-                  )}
-                </form.AppField>
-              </div>
+            <div className={styles.identityRow}>
+              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
+                {(field) => (
+                  <field.TextField
+                    label='Feat name'
+                    placeholder='A feat your table will remember'
+                    required
+                  />
+                )}
+              </form.AppField>
+              <AuthoringArtworkControl />
             </div>
+            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
+              {(field) => (
+                <field.RichTextField
+                  label='Description'
+                  placeholder='Describe the feat in plain language.'
+                />
+              )}
+            </form.AppField>
           </Stack>
         ) : null}
         {screen === 1 ? (
@@ -185,16 +184,13 @@ function FeatOutcomeEditor({
           onDetailsChange([{ ...detail, label: event.currentTarget.value }, ...details.slice(1)])
         }
       />
-      <Textarea
-        label='What does it do?'
-        minRows={4}
+      <RichTextEditor
+        label='Description'
+        name={`feat-outcome-${detail.id}-description`}
         placeholder='Describe the benefit in player-facing language.'
         value={detail.description}
-        onChange={(event) =>
-          onDetailsChange([
-            { ...detail, description: event.currentTarget.value },
-            ...details.slice(1)
-          ])
+        onChange={(description) =>
+          onDetailsChange([{ ...detail, description }, ...details.slice(1)])
         }
       />
       <GuidedSimpleEffectComposer effects={effects} system={system} onChange={onEffectsChange} />
