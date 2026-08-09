@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 export const routeSubjectKindDtoSchema = z.enum([
   'BACKGROUND',
+  'CAMPAIGN',
   'CHARACTER',
   'CLASS',
   'CREATURE',

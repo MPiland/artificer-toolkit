@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { CharacterSheetActions } from '../actions/CharacterSheetActions'
 import { CharacterSheetExtras } from '../extras/CharacterSheetExtras'
 import { CharacterSheetInventory } from '../inventory/CharacterSheetInventory'
@@ -21,6 +22,7 @@ import type {
 } from './CharacterSheet.types'
 
 export function CharacterSheetPanelContent({
+  campaignInventory,
   mobile,
   openPanel,
   pending,
@@ -28,6 +30,7 @@ export function CharacterSheetPanelContent({
   submitCommand,
   tab
 }: {
+  campaignInventory?: ReactNode
   mobile?: boolean
   openPanel?: OpenSheetPanel
   pending: boolean
@@ -81,6 +84,8 @@ export function CharacterSheetPanelContent({
     case 'equipment':
       return (
         <CharacterSheetInventory
+          editable={sheet.meta.capabilities.manageInventory}
+          partyInventory={campaignInventory}
           hideTitle
           openPanel={openPanel}
           pending={pending}
@@ -101,6 +106,8 @@ export function CharacterSheetPanelContent({
     case 'inventory':
       return (
         <CharacterSheetInventory
+          editable={sheet.meta.capabilities.manageInventory}
+          partyInventory={campaignInventory}
           hideTitle
           openPanel={openPanel}
           pending={pending}

@@ -25,6 +25,7 @@ export const dnd5e2014RulesSystem: RulesSystem = {
     version: '2014'
   },
   label: 'D&D 5e 2014 SRD',
+  attunementSlotLimit: 3,
   rest: {
     hitDiceRecoveredAfterLongRest(totalHitDice: number): number {
       if (!Number.isInteger(totalHitDice) || totalHitDice < 0) {

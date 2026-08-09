@@ -10,6 +10,7 @@ import {
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
 import type { ClassEditLoaderData } from '#app/routes/-routeLoaderData'
+import { loadAuthoredRouteSystem } from '#app/routes/-authoredRouteSystem'
 import { AuthoringLayout } from '#forms'
 import {
   createAuthoredFormRouteContext,
@@ -33,6 +34,11 @@ export const Route = createFileRoute('/_authed/classes/$classPublicId/$classSlug
       context.queryClient.ensureQueryData(getClassDraft(classId, client))
     ])
     const routeSubject = getAuthoredRouteSubject(classId, response, draft)
+    const system = await loadAuthoredRouteSystem(
+      context.queryClient,
+      client,
+      response?.item?.systemId ?? draft?.systemId
+    )
     if (
       routeSubject &&
       !isCanonicalAuthoredRouteHandle(params.classPublicId, params.classSlug, routeSubject)
@@ -48,7 +54,8 @@ export const Route = createFileRoute('/_authed/classes/$classPublicId/$classSlug
       breadcrumbLabel: routeSubject?.label,
       draft,
       response,
-      subjectId: classId
+      subjectId: classId,
+      system
     })
   },
   component: AuthoringLayout

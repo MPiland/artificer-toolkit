@@ -11,6 +11,7 @@ import type {
   AuthoredDraftSaveRequestDto,
   AuthoredDraftSummaryDto
 } from '@artificer-toolkit/schema/api/content'
+import { withLockedEntitlementLimits } from '../account/entitlementService.js'
 
 type AuthoredContentTable =
   | 'backgrounds'
@@ -484,28 +485,31 @@ export async function saveAuthoredDraft(
   body: AuthoredDraftSaveRequestDto,
   userId: string
 ) {
-  const draft = await createAuthoredContentRepository(db).saveDraft({
-    subjectKind: body.subjectKind,
-    subjectId: body.subjectId,
-    userId,
-    systemId: body.systemId,
-    label: body.label,
-    payload: normalizeAuthoredDraftPayload(body.payload, {
+  return withLockedEntitlementLimits(db, userId, async (trx, limits) => {
+    const draft = await createAuthoredContentRepository(trx).saveDraft({
+      subjectKind: body.subjectKind,
       subjectId: body.subjectId,
-      label: body.label,
+      userId,
       systemId: body.systemId,
-      userId
+      label: body.label,
+      rootLimit: limits.homebrewRoots,
+      payload: normalizeAuthoredDraftPayload(body.payload, {
+        subjectId: body.subjectId,
+        label: body.label,
+        systemId: body.systemId,
+        userId
+      })
     })
-  })
-  const routeIdentity = await createAuthoredRouteIdRepository(db).ensure({
-    subjectKind: draft.subjectKind,
-    subjectId: draft.subjectId
-  })
+    const routeIdentity = await createAuthoredRouteIdRepository(trx).ensure({
+      subjectKind: draft.subjectKind,
+      subjectId: draft.subjectId
+    })
 
-  return {
-    ...draft,
-    publicId: routeIdentity.publicId
-  }
+    return {
+      ...draft,
+      publicId: routeIdentity.publicId
+    }
+  })
 }
 
 export function normalizeAuthoredDraftPayload(

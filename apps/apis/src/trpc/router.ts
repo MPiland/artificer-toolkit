@@ -50,6 +50,87 @@ import {
   type AuthoredContentInput,
   type DirectAuthoredDomainConfig
 } from '@artificer-toolkit/functions'
+import {
+  acceptCampaignInvite,
+  acceptCampaignOwnershipTransfer,
+  advanceCampaignClock,
+  archiveCampaign,
+  assignCampaignCharacter,
+  createCampaign,
+  createCampaignInvite,
+  createCampaignNotebookSection,
+  createCampaignSession,
+  createCampaignSessionNoteSection,
+  finishCampaignSession,
+  getCampaignSession,
+  listCampaignSessionAttendance,
+  listCampaignSessionReferencePins,
+  listCampaignSessionRsvps,
+  createEncounter,
+  createEncounterTemplate,
+  listCampaignAdjustments,
+  listCampaignConditions,
+  deleteCampaign,
+  deleteCampaignCondition,
+  deleteCampaignCurrencySystem,
+  deleteCampaignNotebookSection,
+  deleteCampaignSession,
+  deleteCampaignSessionNoteSection,
+  deleteCampaignAdjustment,
+  editCampaignChatEntry,
+  executeCampaignRoll,
+  executeCampaignPrivateRoll,
+  executeEncounterCommand,
+  getCampaign,
+  getCampaignInventory,
+  getCampaignClock,
+  getEncounterProjection,
+  getEncounterTimeline,
+  getActiveEncounterProjection,
+  listCampaignEncounterProjections,
+  listEncounterTemplates,
+  getEntitlementProjection,
+  listCampaignContentVersions,
+  listCampaignEvents,
+  listCampaignInventoryAudit,
+  leaveCampaign,
+  listCampaignChatEntries,
+  listCampaignConversations,
+  markCampaignConversationRead,
+  mutateCampaignPartyInventory,
+  listCampaignCurrencySystems,
+  listCampaignNotebookSections,
+  listCampaignSessionNoteSections,
+  listCampaignSessions,
+  listCampaigns,
+  removeCampaignMember,
+  requestCampaignOwnershipTransfer,
+  revokeCampaignInvite,
+  saveCampaignCurrencySystem,
+  saveCampaignAdjustment,
+  saveCampaignCondition,
+  sendCampaignChatEntry,
+  transferCampaignInventory,
+  submitCampaignContentVersion,
+  unassignCampaignCharacter,
+  unsendCampaignChatEntry,
+  reviewCampaignContentVersion,
+  updateCampaign,
+  updateCampaignNotebookSection,
+  updateCampaignSession,
+  reopenCampaignSession,
+  createCampaignSessionReferencePin,
+  deleteCampaignSessionReferencePin,
+  setCampaignSessionRsvp,
+  setCampaignSessionAttendance,
+  updateCampaignSessionNoteSection,
+  configureCampaignClock,
+  initializeCampaignClock,
+  pauseCampaignClock,
+  reconcileCampaignClock,
+  rewindCampaignClock,
+  startCampaignClock
+} from '@artificer-toolkit/functions'
 import { createSupabaseClient } from '@artificer-toolkit/functions/clients'
 import {
   authInvitationCompletionInputSchema,
@@ -170,7 +251,15 @@ import {
   systemListResponseDtoSchema,
   systemResponseDtoSchema
 } from '@artificer-toolkit/schema/api/systems'
-import { requireUserId, withAuthenticatedDb, withDb, type TrpcContext } from './dbContext.js'
+import * as campaignContracts from '@artificer-toolkit/schema/api/campaigns'
+import * as encounterContracts from '@artificer-toolkit/schema/api/encounters'
+import {
+  requireUserId,
+  withAuthenticatedDb,
+  withDb,
+  withExplicitAuthorityDb,
+  type TrpcContext
+} from './dbContext.js'
 import { getApplicationFeatureFlags } from '../applicationConfig.js'
 
 interface AuthoredDomainConfig<TInput extends AuthoredContentInput> {
@@ -258,6 +347,13 @@ const okResponseSchema = z.object({
   ok: z.literal(true)
 })
 
+async function parseCampaignOutput<TResult>(
+  schema: z.ZodType<TResult>,
+  work: Promise<unknown>
+): Promise<TResult> {
+  return schema.parse(await work)
+}
+
 const characterDraftProcedureInputSchema = z.object({
   id: z.string().min(1),
   input: characterBuilderDraftSaveRequestDtoSchema
@@ -305,7 +401,6 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(
           config.responseSchema.parse(await getAuthoredDomain(db, config.runtime, input, userId))
         )
       ),
-
     getDraft: authenticatedProcedure
       .input(idInputSchema)
       .output(authoredDraftDtoSchema.nullable())
@@ -523,8 +618,8 @@ export const appRouter = createTRPCRouter({
           const profile = await repository.findForUser(userId)
           let username = profile?.username ?? null
 
-          if (!username) {
-            const validation = validateUsername(input.username ?? '')
+          if (input.username) {
+            const validation = validateUsername(input.username)
             if (validation.message) {
               throw new TRPCError({
                 code: 'BAD_REQUEST',
@@ -532,13 +627,10 @@ export const appRouter = createTRPCRouter({
               })
             }
             username = validation.username
-          } else if (
-            input.username &&
-            input.username.toLowerCase() !== username.toLowerCase()
-          ) {
+          } else if (!username) {
             throw new TRPCError({
-              code: 'FORBIDDEN',
-              message: 'Username cannot be changed after it is claimed.'
+              code: 'BAD_REQUEST',
+              message: USERNAME_NOT_ALLOWED_MESSAGE
             })
           }
 
@@ -549,6 +641,768 @@ export const appRouter = createTRPCRouter({
             })
           )
         })
+      ),
+
+    entitlements: authenticatedProcedure
+      .output(campaignContracts.entitlementProjectionDtoSchema)
+      .query(({ ctx }) =>
+        withExplicitAuthorityDb(ctx, async (db, userId) =>
+          parseCampaignOutput(
+            campaignContracts.entitlementProjectionDtoSchema,
+            getEntitlementProjection(db, userId)
+          )
+        )
+      )
+  }),
+
+  campaigns: createTRPCRouter({
+    list: authenticatedProcedure
+      .output(campaignContracts.campaignSummariesDtoSchema)
+      .query(({ ctx }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) =>
+          parseCampaignOutput(
+            campaignContracts.campaignSummariesDtoSchema,
+            listCampaigns(db, userId)
+          )
+        )
+      ),
+    get: authenticatedProcedure
+      .input(campaignContracts.campaignIdInputSchema)
+      .output(campaignContracts.campaignDetailDtoSchema)
+      .query(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) =>
+          parseCampaignOutput(
+            campaignContracts.campaignDetailDtoSchema,
+            getCampaign(db, userId, input.campaignId)
+          )
+        )
+      ),
+    create: authenticatedProcedure
+      .input(campaignContracts.createCampaignInputSchema)
+      .output(campaignContracts.campaignDetailDtoSchema)
+      .mutation(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) =>
+          parseCampaignOutput(
+            campaignContracts.campaignDetailDtoSchema,
+            createCampaign(db, userId, input)
+          )
+        )
+      ),
+    update: authenticatedProcedure
+      .input(campaignContracts.updateCampaignInputSchema)
+      .output(campaignContracts.campaignDetailDtoSchema)
+      .mutation(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) =>
+          parseCampaignOutput(
+            campaignContracts.campaignDetailDtoSchema,
+            updateCampaign(db, userId, input)
+          )
+        )
+      ),
+    archive: authenticatedProcedure
+      .input(campaignContracts.archiveCampaignInputSchema)
+      .output(campaignContracts.campaignDetailDtoSchema)
+      .mutation(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) =>
+          parseCampaignOutput(
+            campaignContracts.campaignDetailDtoSchema,
+            archiveCampaign(db, userId, input.campaignId, input.expectedVersion)
+          )
+        )
+      ),
+    delete: authenticatedProcedure
+      .input(campaignContracts.deleteCampaignInputSchema)
+      .output(okResponseSchema)
+      .mutation(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, async (db, userId) => {
+          await deleteCampaign(db, userId, input.campaignId, input.expectedVersion)
+          return okResponseSchema.parse({ ok: true })
+        })
+      ),
+    invites: createTRPCRouter({
+      create: authenticatedProcedure
+        .input(campaignContracts.createCampaignInviteInputSchema)
+        .output(campaignContracts.campaignInviteDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignInviteDtoSchema,
+              createCampaignInvite(db, userId, input)
+            )
+          )
+        ),
+      revoke: authenticatedProcedure
+        .input(campaignContracts.revokeCampaignInviteInputSchema)
+        .output(okResponseSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, async (db, userId) => {
+            await revokeCampaignInvite(db, userId, input.campaignId, input.inviteId)
+            return { ok: true as const }
+          })
+        ),
+      accept: authenticatedProcedure
+        .input(campaignContracts.acceptCampaignInviteInputSchema)
+        .output(campaignContracts.campaignDetailDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignDetailDtoSchema,
+              acceptCampaignInvite(db, userId, input.token)
+            )
+          )
+        )
+    }),
+    leave: authenticatedProcedure
+      .input(campaignContracts.leaveCampaignInputSchema)
+      .output(okResponseSchema)
+      .mutation(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, async (db, userId) => {
+          await leaveCampaign(db, userId, input.campaignId)
+          return { ok: true as const }
+        })
+      ),
+    removeMember: authenticatedProcedure
+      .input(campaignContracts.removeCampaignMemberInputSchema)
+      .output(okResponseSchema)
+      .mutation(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, async (db, userId) => {
+          await removeCampaignMember(db, userId, input.campaignId, input.userId)
+          return { ok: true as const }
+        })
+      ),
+    assignCharacter: authenticatedProcedure
+      .input(campaignContracts.assignCampaignCharacterInputSchema)
+      .output(okResponseSchema)
+      .mutation(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, async (db, userId) => {
+          await assignCampaignCharacter(db, userId, input.campaignId, input.characterId)
+          return { ok: true as const }
+        })
+      ),
+    unassignCharacter: authenticatedProcedure
+      .input(campaignContracts.unassignCampaignCharacterInputSchema)
+      .output(okResponseSchema)
+      .mutation(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, async (db, userId) => {
+          await unassignCampaignCharacter(db, userId, input.campaignId, input.characterId)
+          return { ok: true as const }
+        })
+      ),
+    ownership: createTRPCRouter({
+      request: authenticatedProcedure
+        .input(campaignContracts.requestCampaignOwnershipTransferInputSchema)
+        .output(okResponseSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, async (db, userId) => {
+            await requestCampaignOwnershipTransfer(
+              db,
+              userId,
+              input.campaignId,
+              input.recipientUserId
+            )
+            return { ok: true as const }
+          })
+        ),
+      accept: authenticatedProcedure
+        .input(campaignContracts.acceptCampaignOwnershipTransferInputSchema)
+        .output(campaignContracts.campaignDetailDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignDetailDtoSchema,
+              acceptCampaignOwnershipTransfer(db, userId, input.campaignId)
+            )
+          )
+        )
+    }),
+    conversations: createTRPCRouter({
+      list: authenticatedProcedure
+        .input(campaignContracts.listCampaignConversationsInputSchema)
+        .output(campaignContracts.campaignConversationsDtoSchema)
+        .query(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignConversationsDtoSchema,
+              listCampaignConversations(db, input.campaignId, userId)
+            )
+          )
+        ),
+      markRead: authenticatedProcedure
+        .input(campaignContracts.markCampaignConversationReadInputSchema)
+        .output(okResponseSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(okResponseSchema, markCampaignConversationRead(db, input, userId))
+          )
+        )
+    }),
+    chat: createTRPCRouter({
+      list: authenticatedProcedure
+        .input(campaignContracts.listCampaignChatEntriesInputSchema)
+        .output(campaignContracts.campaignChatPageDtoSchema)
+        .query(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignChatPageDtoSchema,
+              listCampaignChatEntries(db, input, userId)
+            )
+          )
+        ),
+      send: authenticatedProcedure
+        .input(campaignContracts.sendCampaignChatEntryInputSchema)
+        .output(campaignContracts.campaignChatEntryDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignChatEntryDtoSchema,
+              sendCampaignChatEntry(db, input, userId)
+            )
+          )
+        ),
+      roll: authenticatedProcedure
+        .input(campaignContracts.executeCampaignRollInputSchema)
+        .output(campaignContracts.campaignChatEntryDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignChatEntryDtoSchema,
+              executeCampaignRoll(db, input, userId)
+            )
+          )
+        ),
+      privateRoll: authenticatedProcedure
+        .input(campaignContracts.executeCampaignPrivateRollInputSchema)
+        .output(rollRecordDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            executeCampaignPrivateRoll(db, input, userId)
+          )
+        ),
+      edit: authenticatedProcedure
+        .input(campaignContracts.editCampaignChatEntryInputSchema)
+        .output(campaignContracts.campaignChatEntryDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignChatEntryDtoSchema,
+              editCampaignChatEntry(db, input, userId)
+            )
+          )
+        ),
+      unsend: authenticatedProcedure
+        .input(campaignContracts.unsendCampaignChatEntryInputSchema)
+        .output(campaignContracts.campaignChatEntryDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignChatEntryDtoSchema,
+              unsendCampaignChatEntry(db, input, userId)
+            )
+          )
+        )
+    }),
+    notebook: createTRPCRouter({
+      list: authenticatedProcedure
+        .input(campaignContracts.listCampaignNotebookSectionsInputSchema)
+        .output(campaignContracts.campaignNotebookSectionsDtoSchema)
+        .query(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignNotebookSectionsDtoSchema,
+              listCampaignNotebookSections(db, input, userId)
+            )
+          )
+        ),
+      create: authenticatedProcedure
+        .input(campaignContracts.createCampaignNotebookSectionInputSchema)
+        .output(campaignContracts.campaignNotebookSectionDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignNotebookSectionDtoSchema,
+              createCampaignNotebookSection(db, input, userId)
+            )
+          )
+        ),
+      update: authenticatedProcedure
+        .input(campaignContracts.updateCampaignNotebookSectionInputSchema)
+        .output(campaignContracts.campaignNotebookSectionDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignNotebookSectionDtoSchema,
+              updateCampaignNotebookSection(db, input, userId)
+            )
+          )
+        ),
+      delete: authenticatedProcedure
+        .input(campaignContracts.deleteCampaignNotebookSectionInputSchema)
+        .output(okResponseSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            deleteCampaignNotebookSection(db, input, userId)
+          )
+        )
+    }),
+    sessions: createTRPCRouter({
+      list: authenticatedProcedure
+        .input(campaignContracts.listCampaignSessionsInputSchema)
+        .output(campaignContracts.campaignSessionsDtoSchema)
+        .query(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignSessionsDtoSchema,
+              listCampaignSessions(db, input, userId)
+            )
+          )
+        ),
+      create: authenticatedProcedure
+        .input(campaignContracts.createCampaignSessionInputSchema)
+        .output(campaignContracts.campaignSessionDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignSessionDtoSchema,
+              createCampaignSession(db, input, userId)
+            )
+          )
+        ),
+      update: authenticatedProcedure
+        .input(campaignContracts.updateCampaignSessionInputSchema)
+        .output(campaignContracts.campaignSessionDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignSessionDtoSchema,
+              updateCampaignSession(db, input, userId)
+            )
+          )
+        ),
+      delete: authenticatedProcedure
+        .input(campaignContracts.deleteCampaignSessionInputSchema)
+        .output(okResponseSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) => deleteCampaignSession(db, input, userId))
+        ),
+      finish: authenticatedProcedure
+        .input(campaignContracts.finishCampaignSessionInputSchema)
+        .output(campaignContracts.campaignSessionDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) => finishCampaignSession(db, input, userId))
+        ),
+      reopen: authenticatedProcedure
+        .input(campaignContracts.reopenCampaignSessionInputSchema)
+        .output(campaignContracts.campaignSessionDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) => reopenCampaignSession(db, input, userId))
+        ),
+      get: authenticatedProcedure
+        .input(campaignContracts.getCampaignSessionInputSchema)
+        .output(campaignContracts.campaignSessionDtoSchema)
+        .query(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) => getCampaignSession(db, input, userId))
+        ),
+      attendance: createTRPCRouter({
+        list: authenticatedProcedure
+          .input(campaignContracts.listCampaignSessionAttendanceInputSchema)
+          .output(campaignContracts.campaignSessionAttendanceDtoListSchema)
+          .query(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) =>
+              listCampaignSessionAttendance(db, input, userId)
+            )
+          ),
+        set: authenticatedProcedure
+          .input(campaignContracts.setCampaignSessionAttendanceInputSchema)
+          .output(campaignContracts.campaignSessionAttendanceDtoSchema)
+          .mutation(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) =>
+              setCampaignSessionAttendance(db, input, userId)
+            )
+          )
+      }),
+      rsvps: createTRPCRouter({
+        list: authenticatedProcedure
+          .input(campaignContracts.listCampaignSessionRsvpsInputSchema)
+          .output(campaignContracts.campaignSessionRsvpDtoListSchema)
+          .query(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) =>
+              listCampaignSessionRsvps(db, input, userId)
+            )
+          ),
+        set: authenticatedProcedure
+          .input(campaignContracts.setCampaignSessionRsvpInputSchema)
+          .output(campaignContracts.campaignSessionRsvpDtoSchema)
+          .mutation(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) => setCampaignSessionRsvp(db, input, userId))
+          )
+      }),
+      references: createTRPCRouter({
+        list: authenticatedProcedure
+          .input(campaignContracts.listCampaignSessionReferencePinsInputSchema)
+          .output(campaignContracts.campaignSessionReferencePinsDtoSchema)
+          .query(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) =>
+              listCampaignSessionReferencePins(db, input, userId)
+            )
+          ),
+        create: authenticatedProcedure
+          .input(campaignContracts.createCampaignSessionReferencePinInputSchema)
+          .output(campaignContracts.campaignSessionReferencePinDtoSchema)
+          .mutation(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) =>
+              createCampaignSessionReferencePin(db, input, userId)
+            )
+          ),
+        delete: authenticatedProcedure
+          .input(campaignContracts.deleteCampaignSessionReferencePinInputSchema)
+          .output(okResponseSchema)
+          .mutation(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) =>
+              deleteCampaignSessionReferencePin(db, input, userId)
+            )
+          )
+      }),
+      notes: createTRPCRouter({
+        list: authenticatedProcedure
+          .input(campaignContracts.listCampaignSessionNoteSectionsInputSchema)
+          .output(campaignContracts.campaignSessionNoteSectionsDtoSchema)
+          .query(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) =>
+              parseCampaignOutput(
+                campaignContracts.campaignSessionNoteSectionsDtoSchema,
+                listCampaignSessionNoteSections(db, input, userId)
+              )
+            )
+          ),
+        create: authenticatedProcedure
+          .input(campaignContracts.createCampaignSessionNoteSectionInputSchema)
+          .output(campaignContracts.campaignSessionNoteSectionDtoSchema)
+          .mutation(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) =>
+              parseCampaignOutput(
+                campaignContracts.campaignSessionNoteSectionDtoSchema,
+                createCampaignSessionNoteSection(db, input, userId)
+              )
+            )
+          ),
+        update: authenticatedProcedure
+          .input(campaignContracts.updateCampaignSessionNoteSectionInputSchema)
+          .output(campaignContracts.campaignSessionNoteSectionDtoSchema)
+          .mutation(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) =>
+              parseCampaignOutput(
+                campaignContracts.campaignSessionNoteSectionDtoSchema,
+                updateCampaignSessionNoteSection(db, input, userId)
+              )
+            )
+          ),
+        delete: authenticatedProcedure
+          .input(campaignContracts.deleteCampaignSessionNoteSectionInputSchema)
+          .output(okResponseSchema)
+          .mutation(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) =>
+              deleteCampaignSessionNoteSection(db, input, userId)
+            )
+          )
+      })
+    }),
+    clock: createTRPCRouter({
+      get: authenticatedProcedure
+        .input(campaignContracts.campaignIdInputSchema)
+        .output(campaignContracts.campaignClockDtoSchema.nullable())
+        .query(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            getCampaignClock(db, userId, input.campaignId)
+          )
+        ),
+      initialize: authenticatedProcedure
+        .input(campaignContracts.initializeCampaignClockInputSchema)
+        .output(campaignContracts.campaignClockDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) => initializeCampaignClock(db, userId, input))
+        ),
+      configure: authenticatedProcedure
+        .input(campaignContracts.configureCampaignClockInputSchema)
+        .output(campaignContracts.campaignClockDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) => configureCampaignClock(db, userId, input))
+        ),
+      start: authenticatedProcedure
+        .input(campaignContracts.startCampaignClockInputSchema)
+        .output(campaignContracts.campaignClockDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) => startCampaignClock(db, userId, input))
+        ),
+      pause: authenticatedProcedure
+        .input(campaignContracts.pauseCampaignClockInputSchema)
+        .output(campaignContracts.campaignClockDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) => pauseCampaignClock(db, userId, input))
+        ),
+      advance: authenticatedProcedure
+        .input(campaignContracts.advanceCampaignClockInputSchema)
+        .output(campaignContracts.campaignClockDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) => advanceCampaignClock(db, userId, input))
+        ),
+      rewind: authenticatedProcedure
+        .input(campaignContracts.rewindCampaignClockInputSchema)
+        .output(campaignContracts.campaignClockDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) => rewindCampaignClock(db, userId, input))
+        ),
+      reconcile: authenticatedProcedure
+        .input(campaignContracts.reconcileCampaignClockInputSchema)
+        .output(campaignContracts.campaignClockDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) => reconcileCampaignClock(db, userId, input))
+        )
+    }),
+    inventory: createTRPCRouter({
+      currencySystems: authenticatedProcedure
+        .input(campaignContracts.campaignIdInputSchema)
+        .output(z.array(campaignContracts.currencySystemDtoSchema))
+        .query(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              z.array(campaignContracts.currencySystemDtoSchema),
+              listCampaignCurrencySystems(db, userId, input.campaignId)
+            )
+          )
+        ),
+      get: authenticatedProcedure
+        .input(campaignContracts.getCampaignInventoryInputSchema)
+        .output(campaignContracts.inventoryDtoSchema)
+        .query(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.inventoryDtoSchema,
+              getCampaignInventory(db, userId, input.campaignId, input.owner)
+            )
+          )
+        ),
+      transfer: authenticatedProcedure
+        .input(campaignContracts.transferCampaignInventoryInputSchema)
+        .output(campaignContracts.campaignInventoryTransferResultDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignInventoryTransferResultDtoSchema,
+              transferCampaignInventory(db, userId, input)
+            )
+          )
+        ),
+      mutateParty: authenticatedProcedure
+        .input(campaignContracts.campaignPartyInventoryMutationInputSchema)
+        .output(campaignContracts.campaignPartyInventoryMutationResultDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            mutateCampaignPartyInventory(db, userId, input)
+          )
+        ),
+      audit: authenticatedProcedure
+        .input(campaignContracts.listCampaignInventoryAuditInputSchema)
+        .output(campaignContracts.campaignInventoryAuditPageDtoSchema)
+        .query(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            listCampaignInventoryAudit(db, userId, input)
+          )
+        ),
+      saveCurrencySystem: authenticatedProcedure
+        .input(campaignContracts.saveCampaignCurrencySystemInputSchema)
+        .output(campaignContracts.currencySystemDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.currencySystemDtoSchema,
+              saveCampaignCurrencySystem(db, userId, input)
+            )
+          )
+        ),
+      deleteCurrencySystem: authenticatedProcedure
+        .input(campaignContracts.deleteCampaignCurrencySystemInputSchema)
+        .output(okResponseSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, async (db, userId) => {
+            await deleteCampaignCurrencySystem(db, userId, input)
+            return { ok: true as const }
+          })
+        )
+    }),
+    content: createTRPCRouter({
+      list: authenticatedProcedure
+        .input(campaignContracts.campaignIdInputSchema)
+        .output(campaignContracts.campaignContentBindingsDtoSchema)
+        .query(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignContentBindingsDtoSchema,
+              listCampaignContentVersions(db, userId, input.campaignId)
+            )
+          )
+        ),
+      submit: authenticatedProcedure
+        .input(campaignContracts.submitCampaignContentVersionInputSchema)
+        .output(campaignContracts.campaignContentBindingDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignContentBindingDtoSchema,
+              submitCampaignContentVersion(db, userId, input)
+            )
+          )
+        ),
+      review: authenticatedProcedure
+        .input(campaignContracts.reviewCampaignContentVersionInputSchema)
+        .output(campaignContracts.campaignContentBindingDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignContentBindingDtoSchema,
+              reviewCampaignContentVersion(db, userId, input)
+            )
+          )
+        )
+    }),
+    gm: createTRPCRouter({
+      adjustments: createTRPCRouter({
+        list: authenticatedProcedure
+          .input(campaignContracts.listCampaignAdjustmentsInputSchema)
+          .output(campaignContracts.campaignAdjustmentsDtoSchema)
+          .query(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) =>
+              parseCampaignOutput(
+                campaignContracts.campaignAdjustmentsDtoSchema,
+                listCampaignAdjustments(db, userId, input)
+              )
+            )
+          ),
+        save: authenticatedProcedure
+          .input(campaignContracts.campaignAdjustmentInputSchema)
+          .output(campaignContracts.campaignAdjustmentDtoSchema)
+          .mutation(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) =>
+              parseCampaignOutput(
+                campaignContracts.campaignAdjustmentDtoSchema,
+                saveCampaignAdjustment(db, userId, input)
+              )
+            )
+          ),
+        delete: authenticatedProcedure
+          .input(campaignContracts.deleteCampaignAdjustmentInputSchema)
+          .output(okResponseSchema)
+          .mutation(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, async (db, userId) => {
+              await deleteCampaignAdjustment(db, userId, input)
+              return okResponseSchema.parse({ ok: true })
+            })
+          )
+      }),
+      conditions: createTRPCRouter({
+        list: authenticatedProcedure
+          .input(campaignContracts.listCampaignAdjustmentsInputSchema)
+          .output(campaignContracts.campaignConditionsDtoSchema)
+          .query(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) =>
+              parseCampaignOutput(
+                campaignContracts.campaignConditionsDtoSchema,
+                listCampaignConditions(db, userId, input)
+              )
+            )
+          ),
+        save: authenticatedProcedure
+          .input(campaignContracts.saveCampaignConditionInputSchema)
+          .output(campaignContracts.campaignConditionDtoSchema)
+          .mutation(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, (db, userId) =>
+              parseCampaignOutput(
+                campaignContracts.campaignConditionDtoSchema,
+                saveCampaignCondition(db, userId, input)
+              )
+            )
+          ),
+        delete: authenticatedProcedure
+          .input(campaignContracts.deleteCampaignConditionInputSchema)
+          .output(okResponseSchema)
+          .mutation(({ ctx, input }) =>
+            withExplicitAuthorityDb(ctx, async (db, userId) => {
+              await deleteCampaignCondition(db, userId, input)
+              return okResponseSchema.parse({ ok: true })
+            })
+          )
+      }),
+      events: authenticatedProcedure
+        .input(campaignContracts.listCampaignEventsInputSchema)
+        .output(campaignContracts.campaignEventPageDtoSchema)
+        .query(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            parseCampaignOutput(
+              campaignContracts.campaignEventPageDtoSchema,
+              listCampaignEvents(db, userId, input)
+            )
+          )
+        )
+    })
+  }),
+
+  encounters: createTRPCRouter({
+    templates: createTRPCRouter({
+      list: authenticatedProcedure
+        .input(encounterContracts.getCampaignEncounterTemplatesInputDtoSchema)
+        .output(encounterContracts.encounterTemplateListDtoSchema)
+        .query(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) =>
+            listEncounterTemplates(db, userId, input.campaignId)
+          )
+        ),
+      create: authenticatedProcedure
+        .input(encounterContracts.createEncounterTemplateInputDtoSchema)
+        .output(encounterContracts.encounterTemplateDtoSchema)
+        .mutation(({ ctx, input }) =>
+          withExplicitAuthorityDb(ctx, (db, userId) => createEncounterTemplate(db, userId, input))
+        )
+    }),
+    create: authenticatedProcedure
+      .input(encounterContracts.createEncounterInputDtoSchema)
+      .output(encounterContracts.encounterGmProjectionDtoSchema)
+      .mutation(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) => createEncounter(db, userId, input))
+      ),
+    get: authenticatedProcedure
+      .input(encounterContracts.getEncounterInputDtoSchema)
+      .output(encounterContracts.encounterProjectionDtoSchema)
+      .query(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) =>
+          getEncounterProjection(db, userId, input.encounterId)
+        )
+      ),
+    active: authenticatedProcedure
+      .input(encounterContracts.getCampaignEncounterInputDtoSchema)
+      .output(encounterContracts.encounterProjectionDtoSchema.nullable())
+      .query(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) =>
+          getActiveEncounterProjection(db, userId, input.campaignId)
+        )
+      ),
+    list: authenticatedProcedure
+      .input(encounterContracts.getCampaignEncounterInputDtoSchema)
+      .output(encounterContracts.encounterProjectionListDtoSchema)
+      .query(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) =>
+          listCampaignEncounterProjections(db, userId, input.campaignId)
+        )
+      ),
+    command: authenticatedProcedure
+      .input(encounterContracts.encounterCommandInputDtoSchema)
+      .output(encounterContracts.encounterCommandResultDtoSchema)
+      .mutation(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) => executeEncounterCommand(db, userId, input))
+      ),
+    timeline: authenticatedProcedure
+      .input(encounterContracts.getEncounterTimelineInputDtoSchema)
+      .output(encounterContracts.encounterTimelineDtoSchema)
+      .query(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) => getEncounterTimeline(db, userId, input))
       )
   }),
 
@@ -732,8 +1586,10 @@ export const appRouter = createTRPCRouter({
       .input(idInputSchema)
       .output(characterBuilderPayloadDtoSchema.nullable())
       .query(({ ctx, input }) =>
-        withAuthenticatedDb(ctx, async (db) =>
-          characterBuilderPayloadDtoSchema.nullable().parse(await getCharacterForUser(db, input.id))
+        withAuthenticatedDb(ctx, async (db, userId) =>
+          characterBuilderPayloadDtoSchema
+            .nullable()
+            .parse(await getCharacterForUser(db, input.id, userId))
         )
       ),
 
@@ -772,10 +1628,10 @@ export const appRouter = createTRPCRouter({
       .input(idInputSchema)
       .output(characterSheetResponseDtoSchema.nullable())
       .query(({ ctx, input }) =>
-        withAuthenticatedDb(ctx, async (db) =>
+        withAuthenticatedDb(ctx, async (db, userId) =>
           characterSheetResponseDtoSchema
             .nullable()
-            .parse(await getCharacterSheetForUser(db, input.id))
+            .parse(await getCharacterSheetForUser(db, input.id, userId))
         )
       ),
 

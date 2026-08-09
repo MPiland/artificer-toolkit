@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
 import {
-  dnd5e2014RulesSystem,
   dnd5e2014ProficiencyBonus,
   runEngine,
   resolveModifiers,
@@ -9,6 +8,7 @@ import {
   type CharacterAssemblyRegistry,
   type EngineAccumulatedState
 } from '@artificer-toolkit/shared'
+import { dnd5e2014RulesSystem } from '../domains/engine/dnd5e2014/index.js'
 
 /* ──────────────────────────────────────────────
  * Test fixtures
@@ -56,6 +56,10 @@ describe('dnd5e2014RulesSystem identity', () => {
       code: 'dnd5e',
       version: '2014'
     })
+  })
+
+  it('defaults to three attunement slots', () => {
+    expect(dnd5e2014RulesSystem.attunementSlotLimit).toBe(3)
   })
 })
 

@@ -53,7 +53,8 @@ describe('equipment authoring helpers', () => {
     const normalized = normalizeEquipmentForSubmit({
       ...equipment,
       label: '  ',
-      description: ''
+      description: '',
+      requiresAttunement: true
     })
 
     expect(normalized).toMatchObject({
@@ -63,7 +64,8 @@ describe('equipment authoring helpers', () => {
       weight: {
         amount: 0,
         unit: 'POUNDS'
-      }
+      },
+      requiresAttunement: true
     })
     expect(normalized).not.toHaveProperty('userId')
   })

@@ -2,8 +2,10 @@ import { describe, expect, it, vi } from 'vitest'
 import type { CharacterAuthored } from '@artificer-toolkit/shared'
 import { CharacterStartingEquipmentSource } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
+import { replaceCharacterInventoryItems } from '../domains/subjects/upserts/character.helpers.js'
 import { upsertCharacter } from '../domains/subjects/upserts/character.js'
 import { createCharacterRepository } from '../repositories/index.js'
+import { createInventoryRepository } from '../repositories/inventory.js'
 import { InMemoryDb } from './helpers/in-memory-db.js'
 
 vi.mock('kysely', () => ({
@@ -20,6 +22,19 @@ vi.mock('kysely', () => ({
           : lowered.includes('character_exhaustion')
             ? 'character_exhaustion'
             : null
+
+      if (lowered.includes('from inventory_items')) {
+        const ownerId = values[0]
+        const rows = await db
+          .selectFrom('inventory_items')
+          .selectAll()
+          .where('owner_id', '=', ownerId)
+          .execute()
+        return { rows }
+      }
+      if (lowered.includes('from inventory_currency_balances')) {
+        return { rows: [] }
+      }
 
       if (!queryTable) {
         throw new Error(`Unhandled SQL in test mock: ${statement}`)
@@ -452,18 +467,32 @@ describe('upsertCharacter', () => {
         is_active: null
       }
     ])
-    expect(db.snapshot('character_creature_equipment')).toEqual([
+    expect(db.snapshot('inventory_items')).toEqual([
       {
-        character_id: 'character-1',
-        character_creature_id: 'character-creature-1',
-        equipment_id: 'inventory-1'
-      }
-    ])
-    expect(db.snapshot('character_vehicle_equipment')).toEqual([
+        id: 'inventory-1',
+        owner_id: 'character-1',
+        equipment_id: 'equipment-a',
+        quantity: 1,
+        container_id: null,
+        custom_name: null,
+        notes: null,
+        equipped: true,
+        attuned: false,
+        placement_kind: 'CREATURE',
+        placement_id: 'character-creature-1'
+      },
       {
-        character_id: 'character-1',
-        character_vehicle_id: 'character-vehicle-1',
-        equipment_id: 'inventory-2'
+        id: 'inventory-2',
+        owner_id: 'character-1',
+        equipment_id: 'equipment-b',
+        quantity: 1,
+        container_id: 'inventory-1',
+        custom_name: null,
+        notes: null,
+        equipped: false,
+        attuned: true,
+        placement_kind: 'VEHICLE',
+        placement_id: 'character-vehicle-1'
       }
     ])
     expect(db.snapshot('character_hitpoint_state')).toEqual([
@@ -523,21 +552,29 @@ describe('upsertCharacter', () => {
         updated_at: '2026-07-02T15:30:00.000Z'
       }
     ])
-    expect(db.snapshot('character_currency_groups')).toEqual([
+    expect(db.snapshot('inventory_currency_groups')).toEqual([
       {
         id: 'currency-group-1',
-        character_id: 'character-1',
-        container_id: 'inventory-1'
+        owner_id: 'character-1',
+        container_item_id: 'inventory-1'
       }
     ])
-    expect(db.snapshot('character_currencies')).toEqual([
+    expect(db.snapshot('inventory_currency_balances')).toEqual([
       {
-        character_id: 'character-1',
+        owner_id: 'character-1',
         group_id: 'currency-group-1',
-        currency_id: 'currency-1',
+        ruleset_currency_id: 'currency-1',
+        campaign_denomination_id: null,
         amount: 50
       }
     ])
+    expect(db.snapshot('character_equipment')).toEqual([])
+    expect(db.snapshot('character_equipped')).toEqual([])
+    expect(db.snapshot('character_attuned')).toEqual([])
+    expect(db.snapshot('character_creature_equipment')).toEqual([])
+    expect(db.snapshot('character_vehicle_equipment')).toEqual([])
+    expect(db.snapshot('character_currency_groups')).toEqual([])
+    expect(db.snapshot('character_currencies')).toEqual([])
 
     const repository = createCharacterRepository(db as unknown as DBLike)
     const hydrated = await repository.findAuthoredById(initial.id)
@@ -545,6 +582,67 @@ describe('upsertCharacter', () => {
     expect(hydrated?.state.noteGroups).toEqual(initial.state.noteGroups)
     expect(hydrated?.state.notes).toEqual(initial.state.notes)
     expect(hydrated?.state.currency).toEqual(initial.state.currency)
+
+    const inventoryRepository = createInventoryRepository(db as unknown as DBLike)
+    await expect(
+      inventoryRepository.getInventory({ kind: 'CHARACTER', characterId: initial.id })
+    ).resolves.toMatchObject({
+      items: [
+        expect.objectContaining({ id: 'inventory-1', ownerId: 'character-1', quantity: 1 }),
+        expect.objectContaining({ id: 'inventory-2', ownerId: 'character-1', quantity: 1 })
+      ]
+    })
+
+    await db
+      .insertInto('inventory_owners')
+      .values({ id: 'campaign-owner', kind: 'CAMPAIGN', campaign_id: 'campaign-1' })
+      .execute()
+    await db
+      .insertInto('inventory_items')
+      .values({
+        id: 'inventory-transferred',
+        owner_id: 'campaign-owner',
+        equipment_id: 'equipment-c',
+        quantity: 2,
+        container_id: null,
+        custom_name: null,
+        notes: null,
+        equipped: false,
+        attuned: false,
+        placement_kind: null,
+        placement_id: null
+      })
+      .execute()
+    await db
+      .deleteFrom('inventory_items')
+      .where('owner_id', '=', 'campaign-owner')
+      .where('id', '=', 'inventory-transferred')
+      .execute()
+    await db
+      .insertInto('inventory_items')
+      .values({
+        id: 'inventory-transferred',
+        owner_id: 'character-1',
+        equipment_id: 'equipment-c',
+        quantity: 2,
+        container_id: null,
+        custom_name: null,
+        notes: null,
+        equipped: false,
+        attuned: false,
+        placement_kind: null,
+        placement_id: null
+      })
+      .execute()
+    await expect(repository.findAuthoredById(initial.id)).resolves.toMatchObject({
+      state: expect.objectContaining({
+        equipment: expect.objectContaining({
+          inventory: expect.arrayContaining([
+            expect.objectContaining({ id: 'inventory-transferred', quantity: 2 })
+          ])
+        })
+      })
+    })
 
     await upsertCharacter(db as never, {
       ...initial,
@@ -692,6 +790,7 @@ describe('upsertCharacter', () => {
     expect(db.snapshot('character_note_groups')).toEqual([])
     expect(db.snapshot('character_notes')).toEqual([])
     expect(db.snapshot('character_equipment')).toEqual([])
+    expect(db.snapshot('inventory_items')).toEqual([])
     expect(db.snapshot('character_creatures')).toEqual([])
     expect(db.snapshot('character_vehicles')).toEqual([])
     expect(db.snapshot('character_creature_equipment')).toEqual([])
@@ -700,6 +799,8 @@ describe('upsertCharacter', () => {
     expect(db.snapshot('character_attuned')).toEqual([])
     expect(db.snapshot('character_currency_groups')).toEqual([])
     expect(db.snapshot('character_currencies')).toEqual([])
+    expect(db.snapshot('inventory_currency_groups')).toEqual([])
+    expect(db.snapshot('inventory_currency_balances')).toEqual([])
     expect(db.snapshot('character_class_equipment_session')).toEqual([])
     expect(db.snapshot('character_class_equipment_groups')).toEqual([])
     expect(db.snapshot('character_class_equipment_items')).toEqual([])
@@ -937,6 +1038,34 @@ describe('upsertCharacter', () => {
       [
         { kind: 'INSPIRATION', value: false },
         {
+          kind: 'EQUIPMENT',
+          value: {
+            inventory: [
+              { id: 'inventory-1', equipmentId: 'equipment-a', quantity: 4 },
+              {
+                id: 'inventory-2',
+                equipmentId: 'equipment-b',
+                quantity: 1,
+                containerId: 'inventory-1'
+              }
+            ],
+            equipped: ['inventory-2'],
+            attuned: []
+          },
+          creatureEquipment: {},
+          vehicleEquipment: {}
+        },
+        {
+          kind: 'CURRENCY',
+          value: [
+            {
+              id: 'currency-group-1',
+              containerId: 'inventory-1',
+              currencies: [{ currencyId: 'currency-1', amount: 75 }]
+            }
+          ]
+        },
+        {
           kind: 'HITPOINTS',
           value: {
             current: 4,
@@ -975,10 +1104,101 @@ describe('upsertCharacter', () => {
             temp: 2,
             hitDice: [{ die: 8, total: 2, used: 1 }]
           },
-          conditions: [{ conditionTypeId: 'condition-2', notes: 'From a Sheet command' }]
+          conditions: [{ conditionTypeId: 'condition-2', notes: 'From a Sheet command' }],
+          equipment: {
+            inventory: [
+              { id: 'inventory-1', equipmentId: 'equipment-a', quantity: 4 },
+              {
+                id: 'inventory-2',
+                equipmentId: 'equipment-b',
+                quantity: 1,
+                containerId: 'inventory-1'
+              }
+            ],
+            equipped: ['inventory-2'],
+            attuned: []
+          },
+          currency: [
+            {
+              id: 'currency-group-1',
+              containerId: 'inventory-1',
+              currencies: [{ currencyId: 'currency-1', amount: 75 }]
+            }
+          ]
         })
       })
     )
+    await expect(
+      createInventoryRepository(db as unknown as DBLike).getInventory({
+        kind: 'CHARACTER',
+        characterId: character.id
+      })
+    ).resolves.toMatchObject({
+      items: expect.arrayContaining([expect.objectContaining({ id: 'inventory-1', quantity: 4 })])
+    })
+  })
+
+  it('rejects inventory item ids owned by another aggregate', async () => {
+    const db = new InMemoryDb()
+    const character = buildCharacter()
+    await upsertCharacter(db as never, character)
+    await db
+      .insertInto('inventory_owners')
+      .values({ id: 'party-owner', kind: 'CAMPAIGN', campaign_id: 'campaign-1' })
+      .execute()
+    await db
+      .insertInto('inventory_items')
+      .values({
+        id: 'party-item',
+        owner_id: 'party-owner',
+        equipment_id: 'equipment-party',
+        quantity: 2
+      })
+      .execute()
+
+    await expect(
+      replaceCharacterInventoryItems(
+        db as unknown as DBLike,
+        character.id,
+        [{ id: 'party-item', equipmentId: 'equipment-party', quantity: 1 }],
+        [],
+        []
+      )
+    ).rejects.toThrow('owned by another inventory aggregate')
+
+    expect(db.snapshot('inventory_items')).toContainEqual(
+      expect.objectContaining({ id: 'party-item', owner_id: 'party-owner', quantity: 2 })
+    )
+  })
+
+  it('preserves explicit empty known-spell overrides and clears only the override marker', async () => {
+    const db = new InMemoryDb()
+    const character = buildCharacter()
+    character.state.classes = [
+      { classId: 'class-1', spells: { learned: [], prepared: ['spell-11'] } }
+    ]
+    await upsertCharacter(db as never, character)
+    const repository = createCharacterRepository(db as unknown as DBLike)
+
+    expect(db.snapshot('character_classes')).toEqual([
+      expect.objectContaining({ class_id: 'class-1', known_spells_overridden: true })
+    ])
+    await expect(repository.findAuthoredById(character.id)).resolves.toMatchObject({
+      state: { classes: [{ classId: 'class-1', spells: { learned: [], prepared: ['spell-11'] } }] }
+    })
+
+    await repository.patchSheetState(
+      character.id,
+      [{ kind: 'CLASS_SPELLS', value: [{ classId: 'class-1', spells: { prepared: ['spell-11'] } }] }],
+      { expectedStreamVersion: 0 }
+    )
+
+    expect(db.snapshot('character_classes')).toEqual([
+      expect.objectContaining({ class_id: 'class-1', known_spells_overridden: false })
+    ])
+    await expect(repository.findAuthoredById(character.id)).resolves.toMatchObject({
+      state: { classes: [{ classId: 'class-1', spells: { prepared: ['spell-11'] } }] }
+    })
   })
 
   it('rejects stale Sheet state patches before mutating state or appending history', async () => {

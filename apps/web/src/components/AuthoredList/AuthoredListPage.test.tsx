@@ -540,4 +540,21 @@ describe('AuthoredListPage', () => {
     )
     expect(screen.getByRole('row', { name: /magic missile/i })).toBeInTheDocument()
   })
+
+  it('keeps a card-only catalogue in cards without a layout toggle', () => {
+    renderWithAppProviders(
+      <AuthoredListPage
+        title='Characters'
+        summary='2 characters'
+        createLabel='Create Character'
+        items={spellListItems}
+        filters={spellListFilters}
+        cardOnly
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: /table view/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /card view/i })).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/view magic missile/i)).toBeInTheDocument()
+  })
 })

@@ -17,9 +17,11 @@ import {
   formatEnumLabel,
   formatNumber,
   formatReferenceLabel,
+  formatReferenceLabelList,
   formatReferenceList,
   hasDetailText,
   resolveAuthoredDetailState,
+  stripHtml,
   toDetailItems,
   useAuthoredDetailActions,
   useAuthoredExportAction,
@@ -40,7 +42,10 @@ export function EquipmentDetailPage({
 }: {
   draft: AuthoredDraftDto | null
   equipmentId: string
-  references: Pick<AuthoredContentReferenceData, 'equipment' | 'rarities'>
+  references: Pick<
+    AuthoredContentReferenceData,
+    'classes' | 'currencies' | 'equipment' | 'heritages' | 'rarities'
+  >
   response: EquipmentResponseDto
   view: 'active' | 'draft'
 }) {
@@ -192,6 +197,7 @@ export function EquipmentDetailPage({
           },
           attach: { type: 'AUTHORED_IMAGE', subjectKind: 'EQUIPMENT', subjectId: equipmentId }
         }}
+        description={stripHtml(item.quote) || undefined}
         eyebrow='Equipment'
         facts={getEquipmentFacts(item, references)}
         notice={buildAuthoredDetailNotice({
@@ -231,7 +237,10 @@ export function EquipmentDetailPage({
 
 function getEquipmentFacts(
   equipment: EquipmentAuthoringInputDto,
-  references: Pick<AuthoredContentReferenceData, 'equipment' | 'rarities'>
+  references: Pick<
+    AuthoredContentReferenceData,
+    'classes' | 'currencies' | 'equipment' | 'heritages' | 'rarities'
+  >
 ): AuthoredDetailFact[] {
   const baseFacts: AuthoredDetailFact[] = [
     { label: 'Category', value: formatEnumLabel(equipment.category) },
@@ -239,7 +248,8 @@ function getEquipmentFacts(
       label: 'Rarity',
       value: formatReferenceLabel(equipment.rarityId, 'Rarity selected', references.rarities)
     },
-    { label: 'Properties', value: formatReferenceList(equipment.properties, 'property') }
+    { label: 'Properties', value: formatReferenceList(equipment.properties, 'property') },
+    ...(equipment.requiresAttunement ? [{ label: 'Attunement', value: 'Required' }] : [])
   ]
 
   if (equipment.category === 'VARIANT') {
@@ -258,7 +268,16 @@ function getEquipmentFacts(
 
   return [
     ...baseFacts,
-    { label: 'Cost', value: equipment.cost ? `${equipment.cost.amount} currency` : 'Not set' },
+    {
+      label: 'Cost',
+      value: equipment.cost
+        ? `${formatNumber(equipment.cost.amount)} ${formatReferenceLabel(
+            equipment.cost.currencyId,
+            'Currency',
+            references.currencies
+          )}`
+        : 'Not set'
+    },
     {
       label: 'Weight',
       value: equipment.weight
@@ -270,7 +289,10 @@ function getEquipmentFacts(
 
 function getEquipmentSections(
   equipment: EquipmentAuthoringInputDto,
-  references: Pick<AuthoredContentReferenceData, 'equipment' | 'rarities'>
+  references: Pick<
+    AuthoredContentReferenceData,
+    'classes' | 'currencies' | 'equipment' | 'heritages' | 'rarities'
+  >
 ): AuthoredDetailSectionModel[] {
   const containedItems =
     equipment.category !== 'VARIANT'
@@ -296,6 +318,23 @@ function getEquipmentSections(
     title: item.title,
     description: item.description
   }))
+  const restrictionItems = (equipment.restrictions?.groups ?? [])
+    .map((group, index) => {
+      const requirements = group.contexts
+        .flatMap((context) => context.conditions ?? [])
+        .map((condition) => formatEquipmentRestrictionCondition(condition, references))
+        .filter((requirement): requirement is string => Boolean(requirement))
+
+      return requirements.length
+        ? {
+            id: group.id,
+            title:
+              equipment.restrictions!.groups.length === 1 ? 'Requirements' : `Option ${index + 1}`,
+            description: requirements.join(' and ')
+          }
+        : null
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
 
   return compactAuthoredDetailSections([
     hasDetailText(equipment.description)
@@ -326,6 +365,18 @@ function getEquipmentSections(
           )
         }
       : null,
+    restrictionItems.length
+      ? {
+          id: 'eligibility',
+          title: 'Eligibility',
+          content: (
+            <AuthoredDetailItemList
+              empty='No eligibility requirements have been added.'
+              items={restrictionItems}
+            />
+          )
+        }
+      : null,
     featureItems.length
       ? {
           id: 'features',
@@ -339,4 +390,33 @@ function getEquipmentSections(
         }
       : null
   ])
+}
+
+function formatEquipmentRestrictionCondition(
+  condition: NonNullable<
+    NonNullable<
+      EquipmentAuthoringInputDto['restrictions']
+    >['groups'][number]['contexts'][number]['conditions']
+  >[number],
+  references: Pick<AuthoredContentReferenceData, 'classes' | 'heritages'>
+): string | null {
+  if (condition.kind !== 'PREDICATE') return null
+
+  let requirement: string | null = null
+  if (condition.predicateCode === 'CLASS_LEVEL') {
+    const classes = formatReferenceLabelList(condition.classIds, 'class', references.classes)
+    const level = condition.max
+      ? `levels ${condition.min}-${condition.max}`
+      : `level ${condition.min}+`
+    requirement = `${classes} ${level}`
+  } else if (condition.predicateCode === 'HERITAGE' && condition.authoringModeKind === 'SELECTED') {
+    const heritageIds =
+      'heritageIds' in condition && Array.isArray(condition.heritageIds)
+        ? condition.heritageIds.filter((id): id is string => typeof id === 'string')
+        : []
+    requirement = formatReferenceLabelList(heritageIds, 'heritage', references.heritages)
+  }
+
+  if (!requirement) return null
+  return condition.constraint === 'EXCLUDE' ? `Not ${requirement}` : requirement
 }

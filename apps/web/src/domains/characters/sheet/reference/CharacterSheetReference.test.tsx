@@ -13,7 +13,7 @@ describe('Character Sheet reference', () => {
     sheet.identity.description = '<p>A careful explorer with a dangerous curiosity.</p>'
 
     renderWithAppProviders(
-      <CharacterSheetHero characterPublicId='character-1' hasDraft={false} sheet={sheet} />
+      <CharacterSheetHero characterPublicId='character-1' editable hasDraft={false} sheet={sheet} />
     )
 
     expect(screen.queryByText(/careful explorer/i)).not.toBeInTheDocument()

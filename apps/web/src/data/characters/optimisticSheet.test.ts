@@ -71,6 +71,43 @@ describe('optimistic Character Sheet projections', () => {
     ).toBe(true)
   })
 
+  it('projects known spell changes across Sheet and manage panels', () => {
+    const command = {
+      ...commandBase,
+      type: 'SET_KNOWN_SPELLS' as const,
+      classId: 'class-wizard',
+      spellIds: []
+    }
+    const panel = {
+      ...spellsPanelFixture,
+      groups: [
+        {
+          ...spellsPanelFixture.groups[0]!,
+          sources: [
+            {
+              ...spellsPanelFixture.groups[0]!.sources[0]!,
+              known: true,
+              canPrepare: false,
+              canManageKnown: true,
+              knownClassId: command.classId,
+              preparationClassId: undefined
+            }
+          ]
+        }
+      ]
+    }
+
+    const sheet = projectOptimisticCharacterSheet(characterSheetFixture, command)
+    const projectedPanel = projectOptimisticCharacterSheetPanel(panel, command)
+    const spell = sheet.spells.spells[0]!
+
+    expect(spell.known).toBe(false)
+    expect(spell.sources?.[0]?.acquisition).toBeUndefined()
+    expect(
+      projectedPanel.kind === 'SPELLS' ? projectedPanel.groups[0]?.sources[0]?.known : undefined
+    ).toBe(false)
+  })
+
   it('updates direct resource usage without changing its calculated maximum', () => {
     const command = {
       ...commandBase,

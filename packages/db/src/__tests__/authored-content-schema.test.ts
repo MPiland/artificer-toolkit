@@ -13,6 +13,7 @@ const classSchema = read('packages/db/src/domains/subjects/tables/classes.sql')
 const equipmentSchema = read('packages/db/src/domains/subjects/tables/equipment.sql')
 const spellSchema = read('packages/db/src/domains/subjects/tables/spells.sql')
 const routeSchema = read('packages/db/src/domains/subjects/tables/authored_route_ids.sql')
+const campaignSchema = read('packages/db/src/domains/campaigns/tables/campaigns.sql')
 
 describe('authored draft and import persistence', () => {
   const canonical = read('packages/db/src/domains/subjects/tables/authored_content.sql')
@@ -71,6 +72,34 @@ describe('authored draft and import persistence', () => {
       /REVOKE\s+EXECUTE ON FUNCTION public\.can_access_authored_route_id\s*\(text, uuid\)/
     )
     expect(migration).toContain('greatest(coalesce(max_route_number, 1), sequence_last_value)')
+  })
+
+  it('defines Campaign route access only after campaign memberships exist', () => {
+    expect(routeSchema).not.toContain('FROM public.campaign_memberships')
+
+    const membershipTableMarker = campaignSchema.indexOf(
+      'CREATE TABLE IF NOT EXISTS public.campaign_memberships'
+    )
+    const campaignRouteAccessMarker = campaignSchema.indexOf(
+      'CREATE OR REPLACE FUNCTION public.can_access_authored_route_id'
+    )
+
+    expect(membershipTableMarker).toBeGreaterThanOrEqual(0)
+    expect(campaignRouteAccessMarker).toBeGreaterThan(membershipTableMarker)
+
+    const generatedMembershipTableMarker = generatedBundle.indexOf(
+      'CREATE TABLE IF NOT EXISTS public.campaign_memberships'
+    )
+    const generatedCampaignRouteAccessMarker = generatedBundle.indexOf(
+      'CREATE OR REPLACE FUNCTION public.can_access_authored_route_id',
+      generatedMembershipTableMarker
+    )
+
+    expect(generatedMembershipTableMarker).toBeGreaterThanOrEqual(0)
+    expect(generatedBundle.slice(0, generatedMembershipTableMarker)).not.toContain(
+      'FROM public.campaign_memberships'
+    )
+    expect(generatedCampaignRouteAccessMarker).toBeGreaterThan(generatedMembershipTableMarker)
   })
 })
 

@@ -11,6 +11,7 @@ import {
 } from './authoredContentService.js'
 
 const contentRepositoryMock = vi.hoisted(() => ({
+  forDb: vi.fn(),
   findActiveBySubject: vi.fn(),
   findActiveBySubjects: vi.fn(),
   findDraftBySubject: vi.fn(),
@@ -19,13 +20,29 @@ const contentRepositoryMock = vi.hoisted(() => ({
 }))
 
 const routeIdRepositoryMock = vi.hoisted(() => ({
+  forDb: vi.fn(),
   ensure: vi.fn(),
   ensureMany: vi.fn()
 }))
 
+const entitlementMocks = vi.hoisted(() => ({
+  withLockedLimits: vi.fn(),
+  transaction: { isTransaction: true } as DBLike
+}))
+
 vi.mock('@artificer-toolkit/db', () => ({
-  createAuthoredContentRepository: () => contentRepositoryMock,
-  createAuthoredRouteIdRepository: () => routeIdRepositoryMock
+  createAuthoredContentRepository: (database: DBLike) => {
+    contentRepositoryMock.forDb(database)
+    return contentRepositoryMock
+  },
+  createAuthoredRouteIdRepository: (database: DBLike) => {
+    routeIdRepositoryMock.forDb(database)
+    return routeIdRepositoryMock
+  }
+}))
+
+vi.mock('../account/entitlementService.js', () => ({
+  withLockedEntitlementLimits: entitlementMocks.withLockedLimits
 }))
 
 const db = {} as DBLike
@@ -65,6 +82,13 @@ function createActive(overrides: Partial<AuthoredActiveMetadata> = {}): Authored
 describe('authored content draft helpers', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    entitlementMocks.withLockedLimits.mockImplementation(
+      async (
+        _db: DBLike,
+        _userId: string,
+        callback: (trx: DBLike, limits: { homebrewRoots: number | null }) => Promise<unknown>
+      ) => callback(entitlementMocks.transaction, { homebrewRoots: 20 })
+    )
     contentRepositoryMock.findActiveBySubjects.mockImplementation(
       async ({ subjectIds }: { subjectIds: string[] }) =>
         subjectIds.map((subjectId) => createActive({ subjectId, label: subjectId }))
@@ -158,7 +182,7 @@ describe('authored content draft helpers', () => {
     })
   })
 
-  it('saves server-owned draft identity and timestamps are repository-owned', async () => {
+  it('saves a new root with locked entitlement limits in the draft transaction', async () => {
     const draft = createDraft({ userId: 'server-user' })
     contentRepositoryMock.saveDraft.mockResolvedValue(draft)
 
@@ -188,6 +212,7 @@ describe('authored content draft helpers', () => {
       userId: 'server-user',
       systemId: 'system-1',
       label: 'Client Draft',
+      rootLimit: 20,
       payload: {
         id: 'spell-1',
         label: 'Client Draft',
@@ -196,6 +221,41 @@ describe('authored content draft helpers', () => {
         systemId: 'system-1'
       }
     })
+    expect(entitlementMocks.withLockedLimits).toHaveBeenCalledWith(
+      db,
+      'server-user',
+      expect.any(Function)
+    )
+    expect(contentRepositoryMock.saveDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ rootLimit: 20 })
+    )
+    expect(contentRepositoryMock.forDb).toHaveBeenCalledWith(entitlementMocks.transaction)
+    expect(routeIdRepositoryMock.ensure).toHaveBeenCalledWith({
+      subjectKind: 'SPELL',
+      subjectId: 'spell-1'
+    })
+    expect(routeIdRepositoryMock.forDb).toHaveBeenCalledWith(entitlementMocks.transaction)
+  })
+
+  it('does not create a route when the locked homebrew-root limit rejects a new draft', async () => {
+    contentRepositoryMock.saveDraft.mockRejectedValue(new Error('homebrew-root limit reached'))
+
+    await expect(
+      saveAuthoredDraft(
+        db,
+        {
+          subjectKind: 'SPELL',
+          subjectId: 'spell-over-limit',
+          systemId: 'system-1',
+          label: 'Over Limit Spell',
+          payload: {}
+        },
+        'user-1'
+      )
+    ).rejects.toThrow('homebrew-root limit reached')
+
+    expect(contentRepositoryMock.saveDraft).toHaveBeenCalledTimes(1)
+    expect(routeIdRepositoryMock.ensure).not.toHaveBeenCalled()
   })
 
   it('normalizes identities before activation and rejects missing drafts', async () => {

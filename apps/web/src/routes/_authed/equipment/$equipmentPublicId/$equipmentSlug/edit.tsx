@@ -10,6 +10,7 @@ import {
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildEquipmentRouteParams } from '#app/routing/authoredRouteParams'
 import type { EquipmentEditLoaderData } from '#app/routes/-routeLoaderData'
+import { loadAuthoredRouteSystem } from '#app/routes/-authoredRouteSystem'
 import { AuthoringLayout } from '#forms'
 import { equipmentAuthoringInputDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import {
@@ -47,6 +48,11 @@ export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equ
 
     const parsedDraft = equipmentAuthoringInputDtoSchema.safeParse(draft?.payload)
     const currentEquipment = parsedDraft.success ? parsedDraft.data : response?.item
+    const system = await loadAuthoredRouteSystem(
+      context.queryClient,
+      client,
+      currentEquipment?.systemId
+    )
     const parentResponse =
       currentEquipment?.category === 'VARIANT'
         ? await ensureOptionalActiveContent(
@@ -60,7 +66,8 @@ export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equ
       draft,
       parentResponse,
       response,
-      subjectId: equipmentId
+      subjectId: equipmentId,
+      system
     })
   },
   component: AuthoringLayout

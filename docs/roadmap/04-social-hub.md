@@ -1,7 +1,7 @@
 # Phase 04 — Social Hub and free table formation
 
 > **Status:** planned
-> **Depends on:** [Phase 03](03-campaign-core.md) and the current authenticated account/profile baseline
+> **Depends on:** [Phase 03](03-campaign-core.md) and the current authenticated account/profile baseline; notification integration follows [Phase 05](05-live-campaign-play.md)
 > **Unlocks:** public table discovery and the paid-table extension
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md)
 
@@ -11,23 +11,24 @@ Launch a moderated, adults-only table-formation service for private and public f
 
 ## Current starting point
 
-- Accounts already have one required, stable username; email remains private. Public profile visibility beyond that username is not yet a complete product contract.
+- Accounts have a changeable, database-canonical username; email remains private. Public profile visibility beyond that username is not yet a complete product contract.
 - Campaign membership and invitations arrive in Phase 03; saved standalone Encounters do not yet exist.
 - No listing, application, seat, schedule, discovery, blocking, reporting, or moderation domain exists.
 - No external search service exists, and beta scale does not require one.
 
 ## Requirements
 
-- Listings include owner/GM, system/ruleset, Campaign or one-shot type, tone, adult age band, timezone, schedule summary, seat capacity/availability, language if approved, free/paid state, and nullable price metadata.
+- Listings include owner/GM, system/ruleset, Campaign or one-shot type, tone, adult age band, timezone, schedule summary, seat capacity/availability, language if approved, content guidance, selected table-safety practices, free/paid state, and nullable price metadata.
 - Phase 04 permits publishing free listings only. Paid state and price exist only where needed to avoid a destructive Phase 09 migration; paid activation remains server-disabled.
 - Search supports indexed filters and deterministic pagination using PostgreSQL.
 - Applications have explicit lifecycle: submitted, withdrawn, accepted, declined, expired, or blocked.
 - Acceptance consumes capacity safely and creates or prepares the appropriate Campaign membership/invitation.
 - Blocking prevents future interaction and discovery according to a documented policy.
 - Reporting supports listing, profile, and application concerns with reason, evidence metadata, status, moderator action, and audit.
+- Before acceptance, applicants can review the Campaign's player-facing expectations: attendance policy, allowed content/rules, tone, table conduct, content boundaries, and how the selected safety practice works. Do not collect private explanations for a boundary in a public listing.
 - Social surfaces are 18+ and US-only at launch; do not represent this assumption as age assurance.
 - Responsive web supports discovery, applications, invitation links, and listing administration. Native consumes these contracts only after the web viability gate.
-- Notifications reuse the device/push foundation and contain no sensitive application text.
+- When Phase 05 lands, application and membership events create its durable web inbox notifications. Records contain no sensitive copied application text and blocked parties cannot use them as a side channel.
 
 ## Design
 
@@ -47,11 +48,11 @@ Social Hub authorizes public discovery separately from private Campaign/Encounte
 ## Ordered workstreams
 
 1. **Define safety and visibility policy.** Decide public profile fields, anonymous versus authenticated browsing, block semantics, report categories, moderation roles, retention, appeals, and 18+ presentation.
-2. **Define listing and application contracts.** Include system/ruleset compatibility, schedule/timezone semantics, capacity, lifecycle, stable public IDs, and conversion results.
+2. **Define listing and application contracts.** Include system/ruleset compatibility, schedule/timezone semantics, capacity, content guidance, selected safety practices, lifecycle, stable public IDs, and conversion results.
 3. **Add persistence, indexes, and RLS.** Create listings, schedule data, applications, blocks, reports, moderator actions, and capacity constraints.
 4. **Add discovery and lifecycle orchestration.** Use deterministic indexed Postgres queries; do not add an external search engine for unmeasured scale.
 5. **Integrate acceptance.** Convert to Campaign access idempotently and atomically with seat consumption.
-6. **Add moderation and notification paths.** Keep staff access explicit and audited; prevent blocked parties from using notification side channels.
+6. **Integrate Phase 05 notifications when available.** Keep staff access explicit and audited; prevent blocked parties from using notification side channels.
 7. **Build responsive web journeys.** Cover direct invitations, search/filter/detail/apply/withdraw/status, listing management, and moderation administration.
 8. **Validate privacy, concurrency, and abuse cases.** Test oversubscription, repeated acceptance, removed listings, blocks, reports, private-scope leakage, and pagination stability.
 
@@ -65,6 +66,7 @@ Social Hub authorizes public discovery separately from private Campaign/Encounte
 - Blocking closes every documented interaction and notification path.
 - Report review and moderator action are audited.
 - Paid listings cannot be published until Phase 09 enables them.
+- A listing cannot be published without player-facing expectations and at least one selected safety practice; those disclosures remain available after acceptance.
 - Responsive web application and membership status agree.
 
 ## Out of scope

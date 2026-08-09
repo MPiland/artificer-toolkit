@@ -1,7 +1,7 @@
 import { Button, Loader, TextInput, Textarea } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type SubmitEvent, useState } from 'react'
+import { type SubmitEvent, useEffect, useState } from 'react'
 import { usernameInputSchema } from '@artificer-toolkit/schema/api/auth'
 import type {
   AccountProfileDto,
@@ -47,8 +47,56 @@ function ProfileForm({
   const queryClient = useQueryClient()
   const [username, setUsername] = useState(initialProfile.username ?? '')
   const [usernameError, setUsernameError] = useState<string | null>(null)
+  const [usernameAvailability, setUsernameAvailability] = useState<
+    'available' | 'checking' | 'taken' | 'not_allowed' | 'unavailable'
+  >('available')
   const [bio, setBio] = useState(initialProfile.bio ?? '')
-  const needsUsername = initialProfile.username === null
+  const usernameChanged = initialProfile.username !== username.trim()
+  const usernameNeedsAvailabilityCheck =
+    initialProfile.username?.toLowerCase() !== username.trim().toLowerCase()
+
+  useEffect(() => {
+    if (!usernameNeedsAvailabilityCheck) {
+      setUsernameAvailability('available')
+      setUsernameError(null)
+      return
+    }
+
+    const parsedUsername = usernameInputSchema.safeParse(username)
+    if (!parsedUsername.success) {
+      setUsernameAvailability('not_allowed')
+      return
+    }
+
+    setUsernameAvailability('checking')
+    let active = true
+    const timeout = window.setTimeout(() => {
+      void api.account
+        .usernameStatus({ username: parsedUsername.data })
+        .then(({ status }) => {
+          if (!active) return
+          setUsernameAvailability(status)
+          setUsernameError(
+            status === 'taken'
+              ? 'That username is already taken.'
+              : status === 'not_allowed'
+                ? "That username isn't allowed."
+                : null
+          )
+        })
+        .catch(() => {
+          if (!active) return
+          setUsernameAvailability('unavailable')
+          setUsernameError('Could not check that username. Try again.')
+        })
+    }, 300)
+
+    return () => {
+      active = false
+      window.clearTimeout(timeout)
+    }
+  }, [username, usernameNeedsAvailabilityCheck])
+
   const updateProfile = useMutation({
     mutationFn: (input: AccountProfileUpdateInput) => api.account.updateProfile(input),
     onSuccess: (profile) => {
@@ -63,6 +111,7 @@ function ProfileForm({
         error instanceof ApiError &&
         (error.status === 409 || error.message.toLowerCase().includes('username'))
       ) {
+        setUsernameAvailability('taken')
         setUsernameError(error.message)
         return
       }
@@ -75,10 +124,6 @@ function ProfileForm({
 
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
-    if (!needsUsername) {
-      updateProfile.mutate({ bio })
-      return
-    }
 
     const parsedUsername = usernameInputSchema.safeParse(username)
     if (!parsedUsername.success) {
@@ -88,8 +133,21 @@ function ProfileForm({
       return
     }
 
+    if (usernameNeedsAvailabilityCheck && usernameAvailability !== 'available') {
+      setUsernameError(
+        usernameAvailability === 'checking'
+          ? 'Checking username availability.'
+          : usernameAvailability === 'unavailable'
+            ? 'Could not check that username. Try again.'
+            : usernameAvailability === 'taken'
+              ? 'That username is already taken.'
+              : "That username isn't allowed."
+      )
+      return
+    }
+
     setUsernameError(null)
-    updateProfile.mutate({ username: parsedUsername.data, bio })
+    updateProfile.mutate({ ...(usernameChanged ? { username: parsedUsername.data } : {}), bio })
   }
 
   return (
@@ -119,8 +177,8 @@ function ProfileForm({
         <TextInput
           autoComplete='username'
           description={
-            needsUsername
-              ? 'Choose the username you will use for sign-in and account attribution.'
+            usernameAvailability === 'checking'
+              ? 'Checking availability…'
               : 'Your username is used for sign-in and account attribution.'
           }
           error={usernameError}
@@ -128,16 +186,11 @@ function ProfileForm({
           maxLength={30}
           minLength={3}
           name='username'
-          onChange={
-            needsUsername
-              ? (event) => {
-                  setUsername(event.currentTarget.value)
-                  setUsernameError(null)
-                }
-              : undefined
-          }
-          readOnly={!needsUsername}
-          required={needsUsername}
+          onChange={(event) => {
+            setUsername(event.currentTarget.value)
+            setUsernameError(null)
+          }}
+          required
           value={username}
         />
         <Textarea
@@ -151,7 +204,11 @@ function ProfileForm({
           onChange={(event) => setBio(event.currentTarget.value)}
         />
         <div className={styles.formActions}>
-          <Button loading={updateProfile.isPending} type='submit'>
+          <Button
+            disabled={usernameNeedsAvailabilityCheck && usernameAvailability !== 'available'}
+            loading={updateProfile.isPending}
+            type='submit'
+          >
             Save profile
           </Button>
         </div>

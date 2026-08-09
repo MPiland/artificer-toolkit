@@ -7,13 +7,17 @@ export type CharacterSheetRollTarget = CharacterSheetRollRequest & {
 }
 
 export type CharacterSheetRollController = {
+  canPublishToTable: boolean
   clearManualRoll: () => void
+  destination: 'PRIVATE' | 'TABLE'
   dismissRoll: (discard?: boolean) => void
   executeRoll: (request: CharacterSheetRollRequest) => Promise<RollRecordDto | undefined>
   hasManualRoll: boolean
   pending: boolean
   pendingRequest?: CharacterSheetRollRequest
   presentedRoll?: RollRecordDto
+  presentedRollPrivate: boolean
+  setDestination: (destination: 'PRIVATE' | 'TABLE') => void
 }
 
 export type ManualDieRow = {

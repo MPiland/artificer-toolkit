@@ -61,6 +61,16 @@ CREATE POLICY "Users can update own profile."
   USING ((SELECT auth.uid()) = id)
   WITH CHECK ((SELECT auth.uid()) = id);
 
+CREATE TABLE IF NOT EXISTS public.account_entitlements (
+  user_id uuid PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
+  tier text NOT NULL DEFAULT 'FREE'
+    CHECK (tier IN ('FREE', 'PLAYER', 'GM', 'PRO_GM')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.account_entitlements ENABLE ROW LEVEL SECURITY;
+
 
 /* ──────────────────────────────────────────────
  * ────────────────────────────────────────────── */
@@ -91,6 +101,10 @@ BEGIN
     NEW.raw_user_meta_data ->> 'avatar_url'
   )
   ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.account_entitlements (user_id)
+  VALUES (NEW.id)
+  ON CONFLICT (user_id) DO NOTHING;
   RETURN NEW;
 END;
 $$;
@@ -112,6 +126,10 @@ SELECT
   auth_user.raw_user_meta_data ->> 'avatar_url'
 FROM auth.users AS auth_user
 ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.account_entitlements (user_id)
+SELECT id FROM auth.users
+ON CONFLICT (user_id) DO NOTHING;
 
 
 /* ──────────────────────────────────────────────

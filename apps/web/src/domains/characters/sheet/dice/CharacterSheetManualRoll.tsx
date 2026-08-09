@@ -46,7 +46,15 @@ export function CharacterSheetManualRoll({ className }: { className?: string }) 
   }
 
   if (!controller) return null
-  const { clearManualRoll, executeRoll, hasManualRoll, pending } = controller
+  const {
+    canPublishToTable,
+    clearManualRoll,
+    destination,
+    executeRoll,
+    hasManualRoll,
+    pending,
+    setDestination
+  } = controller
 
   return (
     <Popover
@@ -95,6 +103,24 @@ export function CharacterSheetManualRoll({ className }: { className?: string }) 
             <DiceSettingsControls compact value={preferences} onChange={setPreferences} />
           </div>
         </Collapse>
+
+        {canPublishToTable ? (
+          <div className={diceStyles.manualDestination}>
+            <Text fw={600} size='sm'>
+              Roll to
+            </Text>
+            <SegmentedControl
+              aria-label='Roll destination'
+              data={[
+                { label: 'Private', value: 'PRIVATE' },
+                { label: 'Table', value: 'TABLE' }
+              ]}
+              size='xs'
+              value={destination}
+              onChange={(value) => setDestination(value as 'PRIVATE' | 'TABLE')}
+            />
+          </div>
+        ) : null}
 
         <div className={diceStyles.manualRows}>
           {rows.map((row, index) => (

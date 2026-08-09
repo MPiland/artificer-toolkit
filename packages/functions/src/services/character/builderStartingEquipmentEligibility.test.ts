@@ -15,6 +15,7 @@ const repositoryState = vi.hoisted(() => ({
 }))
 
 vi.mock('@artificer-toolkit/db', () => ({
+  createCampaignContentRepository: () => ({ findAssignedCampaign: async () => null }),
   createSystemRepository: () => ({ findById: async () => createSystem() }),
   createRaceRepository: () => ({
     findResolvedAll: async () => repositoryState.races,

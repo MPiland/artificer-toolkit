@@ -23,7 +23,7 @@ Add one Encounter-backed responsive web virtual tabletop. The first slice suppor
 - Keep selection, hover, open panels, camera position, drag interpolation, measurement preview, and similar transient UI state local or ephemeral.
 - Use PixiJS as the first responsive web renderer. Keep navigation, chat, initiative, actor panels, menus, controls, and accessibility in ordinary web UI outside the canvas.
 - Persist final token positions before announcing them as committed. Throttle ephemeral remote movement separately.
-- Maps and token assets reuse Phase 02 ready-asset identity, authorized Supabase Storage paths, and API-owned metadata.
+- Maps and token assets reuse Phase 02 ready-asset identity, opaque object keys, authorized Supabase Storage paths, and API-owned metadata. A Cloudflare R2/provider move is deferred until VTT storage needs justify it; stable asset IDs keep Campaign and scene references portable.
 - `VTT_MAP` has separate byte, dimension, pixel-count, quota, transfer, and processing rules from ordinary Campaign attachments and handout maps.
 - Large map transfers use the resumable path selected by Phase 02. Phase 07 may add renderer-oriented optimization or tiling without creating a second upload authorization model.
 - Manual fog is explicit Encounter/scene state with GM-only mutation in v1.
@@ -84,7 +84,7 @@ If the gate fails, retain the scene model and command contracts and simplify or 
 
 ## Out of scope
 
-- Automated attacks, saves, damage, conditions, reactions, authored-effect execution, dynamic lighting, 3D, physics, voice/video, AI, marketplace asset sales, offline play, and arbitrary scripting.
+- Automated attacks, saves, damage, conditions, reactions, authored-effect execution, dynamic lighting, 3D, physics, voice/video, AI, marketplace asset sales, offline play, arbitrary scripting, and premature storage-provider abstraction. Revisit R2 only when VTT map volume or egress evidence requires it.
 
 ## Questions for the phase subplan
 

@@ -1,6 +1,7 @@
 import { FEATURE_ATTRIBUTE_OPTIONS, FEATURE_SECTION_OPTIONS } from '#core'
 import { AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
-import type { FeatureAuthored, FeatureOptionChoice } from '#authored'
+import type { FeatureAuthored, FeatureOptionChoice, FeatureRollDefinitionAuthored } from '#authored'
+import type { DiceExpression } from '#core'
 import {
   EFFECT_NODE_MAP,
   CHARGE_NODE_MAP,
@@ -11,6 +12,29 @@ import {
 import { OPTION_NODE_MAP } from './option.js'
 
 const optionChoice = buildNodeMap<FeatureOptionChoice>()
+const rollDefinition = buildNodeMap<FeatureRollDefinitionAuthored>()
+const diceExpression = buildNodeMap<DiceExpression>()
+
+const DICE_EXPRESSION_NODE_MAP = diceExpression.define('featureRollExpression', ({ map, nodes }) => {
+  const { number } = nodes
+  map.set('count', number(['count'], 'Dice')).set('die', number(['die'], 'Die')).set('modifier', number(['modifier'], 'Modifier'))
+})
+
+const FEATURE_ROLL_DEFINITION_NODE_MAP = rollDefinition.define('featureRollDefinition', ({ map, nodes }) => {
+  const { text, number, selectSingle, groupObject } = nodes
+  map
+    .set('label', text(['label'], 'Label'))
+    .set('kind', selectSingle(['kind'], 'Kind', { kind: 'INLINE_OPTIONS', options: [
+      { code: 'ATTACK', label: 'Attack' }, { code: 'DAMAGE', label: 'Damage' }, { code: 'HEALING', label: 'Healing' },
+      { code: 'ABILITY_CHECK', label: 'Ability Check' }, { code: 'SAVING_THROW', label: 'Saving Throw' }
+    ] }))
+    .set('expression', groupObject(['expression'], 'Dice', () => DICE_EXPRESSION_NODE_MAP, { presentation: 'inline' }))
+    .set('rollMode', selectSingle(['rollMode'], 'Roll Mode', { kind: 'INLINE_OPTIONS', options: [
+      { code: 'NORMAL', label: 'Normal' }, { code: 'ADVANTAGE', label: 'Advantage' }, { code: 'DISADVANTAGE', label: 'Disadvantage' }
+    ] }))
+    .set('chargeCost', number(['chargeCost'], 'Charge Cost'))
+    .set('order', number(['order'], 'Order'))
+})
 
 const FEATURE_OPTION_CHOICE_NODE_MAP = optionChoice.define(
   'featureOptionChoice',
@@ -146,6 +170,12 @@ export const FEATURE_NODE_MAP = feature.define('feature', ({ map, nodes, cond })
         presentation: 'branch',
         section: FEATURE_SECTIONS.effects,
         order: 10
+      })
+    )
+    .set(
+      'rollDefinitions',
+      groupArray(['rollDefinitions'], 'Rolls', () => FEATURE_ROLL_DEFINITION_NODE_MAP, {
+        presentation: 'inline', section: FEATURE_SECTIONS.usage, order: 10
       })
     )
     .set(

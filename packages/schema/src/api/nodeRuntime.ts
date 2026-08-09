@@ -224,6 +224,7 @@ const selectInputSchemas = (['SELECT_SINGLE', 'SELECT_NUMBER', 'SELECT_MULTI'] a
       kind: z.literal('INPUT'),
       type: z.literal(type),
       options: z.array(nodeRuntimeOptionDtoSchema),
+      preserveUnknownOptions: z.boolean().optional(),
       constraints: nodeRuntimeInputConstraintsDtoSchema.optional(),
       authoring: nodeRuntimeInputAuthoringDtoSchema
     })

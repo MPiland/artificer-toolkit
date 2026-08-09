@@ -1723,6 +1723,7 @@ describe('schema package parsing', () => {
         }
       ],
       spellcasting: {
+        availableSpellIds: ['spell-fire-bolt', 'spell-magic-missile'],
         spellLimits: [
           {
             classLevel: 1,
@@ -1784,13 +1785,17 @@ describe('schema package parsing', () => {
       category?: string
       subclassSelectionLevel?: number
       features?: Array<{ id?: string }>
-      spellcasting?: { details?: Array<{ label?: string }> }
+      spellcasting?: { availableSpellIds?: string[]; details?: Array<{ label?: string }> }
     }
 
     expect(parsed.category).toBe('BASE')
     expect(parsed.subclassSelectionLevel).toBe(2)
     expect(parsed.features?.[0]?.id).toBe('arcane-recovery')
     expect(parsed.spellcasting?.details?.[0]?.label).toBe('Spellbook')
+    expect(parsed.spellcasting?.availableSpellIds).toEqual([
+      'spell-fire-bolt',
+      'spell-magic-missile'
+    ])
   })
 
   it('keeps class authoring attributes category-correct', () => {

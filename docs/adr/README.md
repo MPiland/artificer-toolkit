@@ -26,6 +26,7 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0010](0010-platform-neutral-design-system.md)                   | Portable semantics with platform-owned presentation adapters          | decision   |
 | [0011](0011-active-authored-content-and-json-drafts.md)          | Canonical active authored content with JSON drafts                    | decision   |
 | [0012](0012-private-media-assets-and-domain-owned-references.md) | Private media assets with domain-owned references                     | decision   |
+| [0013](0013-campaign-authority-and-collaboration.md)             | Campaign authority, custody, durable history, and private Realtime    | decision   |
 
 ## Updating an ADR
 

@@ -17,6 +17,8 @@ import {
   mapFeatureSource,
   mapResourceGrantSource,
   mapSpellSelectionSource,
+  replaceCharacterCurrency,
+  replaceCharacterInventoryItems,
   mapTiming,
   serializeSelectionValue,
   sortByDependency
@@ -175,7 +177,10 @@ export async function upsertCharacter(
         class_id: characterClass.classId,
         subclass_id: characterClass.subclassId ?? null,
         specialization_id: characterClass.specializationId ?? null,
-        class_level: characterClass.classLevel
+        class_level: characterClass.classLevel,
+        known_spells_overridden:
+          json_data.state.classes?.find((classState) => classState.classId === characterClass.classId)
+            ?.spells?.learned !== undefined
       }))
     )
 
@@ -342,21 +347,6 @@ export async function upsertCharacter(
     )
     const inventoryIds = new Set(orderedInventory.map((item) => item.id))
 
-    await insertRows(
-      trx,
-      'character_equipment',
-      orderedInventory.map((item) => ({
-        id: item.id,
-        character_id: json_data.id,
-        equipment_id: item.equipmentId,
-        quantity: item.quantity,
-        container_id: item.containerId ?? null,
-        container_path: null,
-        custom_name: item.customName ?? null,
-        notes: item.notes ?? null
-      }))
-    )
-
     for (const equipmentId of json_data.state.equipment.equipped) {
       if (!inventoryIds.has(equipmentId)) {
         throw new Error(`Character ${json_data.id} equips missing inventory item ${equipmentId}.`)
@@ -368,24 +358,6 @@ export async function upsertCharacter(
         throw new Error(`Character ${json_data.id} attunes missing inventory item ${equipmentId}.`)
       }
     }
-
-    await insertRows(
-      trx,
-      'character_equipped',
-      json_data.state.equipment.equipped.map((equipmentId) => ({
-        character_id: json_data.id,
-        equipment_id: equipmentId
-      }))
-    )
-
-    await insertRows(
-      trx,
-      'character_attuned',
-      json_data.state.equipment.attuned.map((equipmentId) => ({
-        character_id: json_data.id,
-        equipment_id: equipmentId
-      }))
-    )
 
     const creatureRows = (json_data.state.creatures ?? []).map(
       (creature: NonNullable<typeof json_data.state.creatures>[number]) => ({
@@ -427,103 +399,36 @@ export async function upsertCharacter(
       }))
     )
 
-    const creatureEquipmentRows = Object.entries(json_data.state.creatureEquipment ?? {}).flatMap(
-      ([creatureInstanceId, assignments]) => {
-        if (!creatureIds.has(creatureInstanceId)) {
-          throw new Error(
-            `Character ${json_data.id} creature equipment references missing creature instance ${creatureInstanceId}.`
-          )
-        }
-
-        return (assignments as NonNullable<typeof json_data.state.creatureEquipment>[string]).map(
-          (assignment) => {
-            if (!inventoryIds.has(assignment.equipmentItemId)) {
-              throw new Error(
-                `Character ${json_data.id} creature equipment references missing inventory item ${assignment.equipmentItemId}.`
-              )
-            }
-
-            return {
-              character_id: json_data.id,
-              character_creature_id: creatureInstanceId,
-              equipment_id: assignment.equipmentItemId
-            }
-          }
-        )
-      }
-    )
-
-    const vehicleEquipmentRows = Object.entries(json_data.state.vehicleEquipment ?? {}).flatMap(
-      ([vehicleInstanceId, assignments]) => {
-        if (!vehicleIds.has(vehicleInstanceId)) {
-          throw new Error(
-            `Character ${json_data.id} vehicle equipment references missing vehicle instance ${vehicleInstanceId}.`
-          )
-        }
-
-        return (assignments as NonNullable<typeof json_data.state.vehicleEquipment>[string]).map(
-          (assignment) => {
-            if (!inventoryIds.has(assignment.equipmentItemId)) {
-              throw new Error(
-                `Character ${json_data.id} vehicle equipment references missing inventory item ${assignment.equipmentItemId}.`
-              )
-            }
-
-            return {
-              character_id: json_data.id,
-              character_vehicle_id: vehicleInstanceId,
-              equipment_id: assignment.equipmentItemId
-            }
-          }
-        )
-      }
-    )
-
-    await insertRows(trx, 'character_creatures', creatureRows)
-    await insertRows(trx, 'character_vehicles', vehicleRows)
-    await insertRows(trx, 'character_creature_hit_dice_state', creatureHitDiceRows)
-    await insertRows(trx, 'character_creature_equipment', creatureEquipmentRows)
-    await insertRows(trx, 'character_vehicle_equipment', vehicleEquipmentRows)
-
-    const currencyGroupIds = new Set<string>()
-    const currencyGroupRows = json_data.state.currency.map((group) => {
-      if (!group.id) {
-        throw new Error(`Character ${json_data.id} has a currency group without an id.`)
-      }
-      if (currencyGroupIds.has(group.id)) {
-        throw new Error(`Character ${json_data.id} has duplicate currency group ${group.id}.`)
-      }
-      currencyGroupIds.add(group.id)
-
-      return {
-        id: group.id,
-        character_id: json_data.id,
-        container_id: group.containerId ?? null
-      }
-    })
-
-    for (const group of json_data.state.currency) {
-      if (group.containerId && !inventoryIds.has(group.containerId)) {
+    for (const creatureInstanceId of Object.keys(json_data.state.creatureEquipment ?? {})) {
+      if (!creatureIds.has(creatureInstanceId)) {
         throw new Error(
-          `Character ${json_data.id} currency group references missing container ${group.containerId}.`
+          `Character ${json_data.id} creature equipment references missing creature instance ${creatureInstanceId}.`
+        )
+      }
+    }
+    for (const vehicleInstanceId of Object.keys(json_data.state.vehicleEquipment ?? {})) {
+      if (!vehicleIds.has(vehicleInstanceId)) {
+        throw new Error(
+          `Character ${json_data.id} vehicle equipment references missing vehicle instance ${vehicleInstanceId}.`
         )
       }
     }
 
-    await insertRows(trx, 'character_currency_groups', currencyGroupRows)
-
-    await insertRows(
+    await insertRows(trx, 'character_creatures', creatureRows)
+    await insertRows(trx, 'character_vehicles', vehicleRows)
+    await insertRows(trx, 'character_creature_hit_dice_state', creatureHitDiceRows)
+    await replaceCharacterInventoryItems(
       trx,
-      'character_currencies',
-      json_data.state.currency.flatMap((group) =>
-        group.currencies.map((currency) => ({
-          character_id: json_data.id,
-          group_id: group.id,
-          currency_id: currency.currencyId,
-          amount: currency.amount
-        }))
-      )
+      json_data.id,
+      orderedInventory,
+      json_data.state.equipment.equipped,
+      json_data.state.equipment.attuned,
+      json_data.state.creatureEquipment,
+      json_data.state.vehicleEquipment,
+      { resetMissingCurrencyContainers: true }
     )
+
+    await replaceCharacterCurrency(trx, json_data.id, json_data.state.currency)
 
     const orderedFeatureAcquisitions = sortByDependency(
       json_data.intent.featureAcquisitions,

@@ -13,7 +13,8 @@ import type {
   SpellGrantAuthored
 } from '@artificer-toolkit/shared'
 import { FEATURE_ATTRIBUTE, FEATURE_SECTION } from '@artificer-toolkit/shared'
-import type { DBLike } from '#types'
+import { featureRollDefinitionDtoSchema } from '@artificer-toolkit/schema/features/base'
+import type { DBLike, Json } from '#types'
 import { upsertFeature } from '../upserts/feature.js'
 import { hydrateFacetById } from '../../shared/facets.js'
 import { hydrateChargesByIds } from '../../grants/repositories/helpers.js'
@@ -55,6 +56,21 @@ type FeatureRow = {
   restriction_id: string | null
   sort_order: number
   available_at_level: number | null
+  roll_definitions: Json | undefined
+}
+
+function hydrateRollDefinitions(
+  featureId: string,
+  value: Json | undefined
+): FeatureAuthored['rollDefinitions'] {
+  if (value == null) return undefined
+
+  const parsed = featureRollDefinitionDtoSchema.array().safeParse(value)
+  if (!parsed.success) {
+    throw new Error(`Feature "${featureId}" has invalid roll definitions. ${parsed.error.message}`)
+  }
+
+  return parsed.data.length > 0 ? parsed.data : undefined
 }
 
 function requireFeatureSection(
@@ -189,7 +205,8 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
       'charge_id',
       'restriction_id',
       'sort_order',
-      'available_at_level'
+      'available_at_level',
+      'roll_definitions'
     ])
     .where('id', 'in', distinctIds)
     .execute()) as FeatureRow[]
@@ -411,6 +428,7 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
           : undefined,
       details: authoredDetails.length > 0 ? authoredDetails : undefined,
       effects: authoredEffects.length > 0 ? authoredEffects : undefined,
+      rollDefinitions: hydrateRollDefinitions(id, row.roll_definitions),
       charges: row.charge_id
         ? requireLinkedRecord(
             charge as ChargeAuthored | null,

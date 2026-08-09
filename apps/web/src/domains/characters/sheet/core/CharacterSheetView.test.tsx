@@ -255,6 +255,27 @@ describe('Character Sheet shell', () => {
     expect(screen.getByRole('heading', { name: /^inventory$/i })).toBeInTheDocument()
   })
 
+  it('hides player-private and Builder controls from a Campaign GM viewer', async () => {
+    const user = userEvent.setup()
+    const sheet = createSheet()
+    sheet.meta.viewer = 'CAMPAIGN_OWNER'
+    sheet.meta.capabilities = {
+      managePlayState: true,
+      managePrivateNotes: false,
+      manageInventory: false,
+      openBuilder: false
+    }
+
+    renderWithAppProviders(
+      <CharacterSheetView characterPublicId='character-1' hasDraft={false} sheet={sheet} />
+    )
+
+    expect(screen.queryByRole('tab', { name: /^notes$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /edit character/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: /^inventory$/i }))
+    expect(screen.queryByRole('button', { name: /manage equipment/i })).not.toBeInTheDocument()
+  })
+
   it('keeps skills and proficiencies in the tablet overview instead of duplicating tabs', () => {
     renderWithAppProviders(
       <CharacterSheetView characterPublicId='character-1' hasDraft={false} sheet={createSheet()} />

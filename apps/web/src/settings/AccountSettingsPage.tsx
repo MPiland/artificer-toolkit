@@ -3,17 +3,21 @@ import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { type SubmitEvent, useState } from 'react'
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@artificer-toolkit/schema/api/auth'
+import type { EntitlementProjectionDto } from '#app/lib/api'
 import { browserAuthClient } from '#app/auth/authClient'
 import { accountClient } from './accountClient'
 import { DeleteAccountModal } from './DeleteAccountModal'
+import { EntitlementSummary } from './EntitlementSummary'
 import * as styles from './settings.css'
 
 export function AccountSettingsPage({
   email,
-  emailChanged = false
+  emailChanged = false,
+  entitlements
 }: {
   email: string
   emailChanged?: boolean
+  entitlements?: EntitlementProjectionDto
 }) {
   const [deleteOpened, { close: closeDelete, open: openDelete }] = useDisclosure(false)
   const [activeEditor, setActiveEditor] = useState<'email' | 'password' | null>(null)
@@ -116,6 +120,8 @@ export function AccountSettingsPage({
           Your email change may still be waiting for confirmation from the other address.
         </Alert>
       )}
+
+      {entitlements ? <EntitlementSummary entitlements={entitlements} /> : null}
 
       <section className={styles.accountSection} aria-labelledby='email-settings-title'>
         <div className={styles.accountSectionSummary}>

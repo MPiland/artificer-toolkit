@@ -11,7 +11,8 @@ const repositoryState = vi.hoisted(() => ({
 }))
 
 vi.mock('@artificer-toolkit/db', () => ({
-  createSystemRepository: () => ({ findById: async () => null }),
+  createCampaignContentRepository: () => ({ findAssignedCampaign: async () => null }),
+  createSystemRepository: () => ({ findById: async () => createSystem() }),
   createRaceRepository: () => ({
     findResolvedAll: async () => repositoryState.races,
     findResolvedById: async (id: string) =>
@@ -67,9 +68,40 @@ vi.mock('@artificer-toolkit/db', () => ({
   })
 }))
 
-import { createEmptyCharacterAuthored, resolveCharacterBuilder } from './builderService.js'
+import {
+  createEmptyCharacterAuthored,
+  reconcileCharacterBuilderCharacter,
+  resolveCharacterBuilder
+} from './builderService.js'
+import { buildCharacterBuilderView } from './characterApplicationService.js'
 
 const FEATURE_ID = 'half-elf-ability-score-increase'
+
+function createSystem(): NonNullable<CharacterBuilderRegistry['system']> {
+  return {
+    id: 'system-1',
+    label: 'D&D 5e 2014',
+    rulesetCode: 'dnd5e',
+    rulesetVersion: '2014',
+    alignments: [],
+    challengeRatings: [],
+    conditionTypes: [],
+    creatureTypes: [],
+    currencies: [],
+    damageTypes: [],
+    heritages: [],
+    languages: [],
+    lifestyles: [],
+    magicSchools: [],
+    passives: [],
+    rarities: [],
+    senses: [],
+    skills: [],
+    speeds: [],
+    terrains: [],
+    userId: 'user-1'
+  }
+}
 
 function createFighter(): Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.BASE }> {
   return {
@@ -102,11 +134,49 @@ function createHalfElf(): CharacterBuilderRegistry['races'][number] {
         description: 'Choose two different ability scores.',
         availableAtLevel: 1,
         order: 0,
-        optionChoices: [{ level: 1, count: 2 }],
+        optionChoices: [
+          { level: 1, count: 2 },
+          { level: 3, count: 1, replaceCount: 1 }
+        ],
         options: [
           { id: 'strength', label: 'Strength', description: '', order: 0 },
           { id: 'dexterity', label: 'Dexterity', description: '', order: 1 },
-          { id: 'constitution', label: 'Constitution', description: '', order: 2 }
+          { id: 'constitution', label: 'Constitution', description: '', order: 2 },
+          { id: 'intelligence', label: 'Intelligence', description: '', order: 3 },
+          { id: 'wisdom', label: 'Wisdom', description: '', order: 4 },
+          {
+            id: 'veteran',
+            label: 'Veteran',
+            description: '',
+            order: 5,
+            restrictions: {
+              id: 'veteran-restrictions',
+              groups: [
+                {
+                  id: 'veteran-group',
+                  order: 0,
+                  contexts: [
+                    {
+                      id: 'veteran-context',
+                      order: 0,
+                      subject: 'CHARACTER',
+                      conditions: [
+                        {
+                          id: 'fighter-level-two',
+                          order: 0,
+                          kind: 'PREDICATE',
+                          constraint: 'INCLUDE',
+                          predicateCode: 'CLASS_LEVEL',
+                          classIds: ['fighter'],
+                          min: 2
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
         ]
       }
     ]
@@ -137,6 +207,16 @@ function createCharacter(selectedOptionIds: string[]) {
     }
   ]
   return character
+}
+
+function setCharacterLevel(character: ReturnType<typeof createCharacter>, level: number) {
+  character.intent.classes = [{ classId: 'fighter', classLevel: level }]
+  character.intent.hitpoints.levels = Array.from({ length: level }, (_, index) => ({
+    level: index + 1,
+    classId: 'fighter',
+    classLevel: index + 1,
+    value: 10
+  }))
 }
 
 describe('character Builder feature option selection', () => {
@@ -189,6 +269,65 @@ describe('character Builder feature option selection', () => {
     )
     expect(resolution.outstandingChoices.map((issue) => issue.code)).not.toContain(
       'FEATURE_SELECTION_INCOMPLETE'
+    )
+  })
+
+  it('uses the engine facet evaluator for the view, validation, and reconciliation', async () => {
+    const character = createCharacter(['strength', 'veteran'])
+    const resolution = await resolveCharacterBuilder({} as never, character, 'create')
+    const view = buildCharacterBuilderView(character, resolution)
+
+    expect(view.race.featureChoices[0]?.options.map((option) => option.id)).not.toContain('veteran')
+    expect(resolution.validations).toContainEqual(
+      expect.objectContaining({ code: 'FEATURE_SELECTION_INVALID', severity: 'blocking' })
+    )
+
+    const reconciled = await reconcileCharacterBuilderCharacter({} as never, character)
+    expect(
+      reconciled.intent.featureAcquisitions[0]?.selections?.[0]?.values[0]
+    ).toEqual({ kind: 'IDS', ids: ['strength'] })
+  })
+
+  it('adds new selections without counting replaceCount toward the owned total', async () => {
+    const previous = createCharacter(['strength', 'dexterity'])
+    setCharacterLevel(previous, 2)
+    const current = createCharacter(['strength', 'constitution', 'wisdom'])
+    setCharacterLevel(current, 3)
+
+    const resolution = await resolveCharacterBuilder(
+      {} as never,
+      current,
+      'edit',
+      undefined,
+      previous
+    )
+    const view = buildCharacterBuilderView(current, resolution)
+
+    expect(view.race.featureChoices[0]?.requiredCount).toBe(3)
+    expect(resolution.validations.map((issue) => issue.code)).not.toContain(
+      'FEATURE_SELECTION_REPLACEMENT_OVER_LIMIT'
+    )
+  })
+
+  it('blocks replacing more prior options than the newly unlocked choice permits', async () => {
+    const previous = createCharacter(['strength', 'dexterity'])
+    setCharacterLevel(previous, 2)
+    const current = createCharacter(['constitution', 'intelligence', 'wisdom'])
+    setCharacterLevel(current, 3)
+
+    const resolution = await resolveCharacterBuilder(
+      {} as never,
+      current,
+      'edit',
+      undefined,
+      previous
+    )
+
+    expect(resolution.validations).toContainEqual(
+      expect.objectContaining({
+        code: 'FEATURE_SELECTION_REPLACEMENT_OVER_LIMIT',
+        severity: 'blocking'
+      })
     )
   })
 })

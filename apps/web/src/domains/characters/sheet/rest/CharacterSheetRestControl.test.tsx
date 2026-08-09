@@ -74,11 +74,15 @@ describe('Character Sheet rests', () => {
     renderWithAppProviders(
       <CharacterSheetRollContext.Provider
         value={{
+          canPublishToTable: false,
           clearManualRoll: vi.fn(),
+          destination: 'PRIVATE',
           dismissRoll: vi.fn(),
           executeRoll,
           hasManualRoll: false,
-          pending: false
+          pending: false,
+          presentedRollPrivate: true,
+          setDestination: vi.fn()
         }}
       >
         <CharacterSheetOverviewVitals

@@ -82,8 +82,7 @@ import type {
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type {
   CharacterCompletedRestResultDto,
-  CharacterSheetCoreAdjustmentCommandDto,
-  CharacterSheetItemAdjustmentCommandDto
+  CharacterSheetAdjustmentCommandDto
 } from '@artificer-toolkit/schema/api/characterSheet'
 import { resolveCharacterBuilder, type CharacterBuilderResolution } from './builderService.js'
 import {
@@ -99,6 +98,16 @@ import {
   getCharacterSheetPanelAdjustmentIds
 } from './sheetPanelTarget.js'
 import { getProficiencyTargetKind } from './sheetProficiency.js'
+import {
+  getVisibleCampaignConditions,
+  mergeCampaignSheetAdjustments,
+  projectCharacterRestForViewer,
+  projectCharacterSheetForViewer,
+  resolveCharacterSheetCampaignContext,
+  sameCharacterSheetAdjustmentSlot as sameAdjustmentSlot
+} from './campaignCharacterSheet.js'
+
+export { sameCharacterSheetAdjustmentSlot as sameAdjustmentSlot } from './campaignCharacterSheet.js'
 
 type CharacterSheetStateCommand = CharacterSheetCommandInputDto extends infer Command
   ? Command extends CharacterSheetCommandInputDto
@@ -744,40 +753,69 @@ function getPreparedAndKnownSpellIds(character: CharacterAuthored): {
   const prepared = new Set<string>()
 
   for (const classState of character.state.classes ?? []) {
-    for (const spellId of classState.spells?.learned ?? []) learned.add(spellId)
+    const classIntent = character.intent.classes.find((row) => row.classId === classState.classId)
+    const knownSpellIds = classIntent
+      ? getKnownSpellIdsForClassIntent(character, classIntent.classId)
+      : new Set(classState.spells?.learned ?? [])
+    for (const spellId of knownSpellIds) learned.add(spellId)
     for (const spellId of classState.spells?.prepared ?? []) prepared.add(spellId)
   }
 
   for (const selection of character.intent.spellSelections ?? []) {
+    const source = selection.source
+    if (source.kind === 'CLASS' || source.kind === 'SUBCLASS') {
+      const classId =
+        source.kind === 'CLASS'
+          ? source.classId
+          : character.intent.classes.find(
+              (classIntent) => classIntent.subclassId === source.subclassId
+            )?.classId
+      if (
+        classId &&
+        character.state.classes?.some(
+          (classState) => classState.classId === classId && classState.spells?.learned !== undefined
+        )
+      ) {
+        continue
+      }
+    }
     for (const spellId of selection.spells) learned.add(spellId)
   }
 
   return { learned, prepared }
 }
 
+function getClassSpellSelectionIdsForClass(
+  character: CharacterAuthored,
+  classId: string
+): Set<string> {
+  const classIntent = character.intent.classes.find((entry) => entry.classId === classId)
+  if (!classIntent) return new Set<string>()
+
+  const spellIds = new Set<string>()
+  for (const selection of character.intent.spellSelections ?? []) {
+    if (selection.source.kind === 'CLASS' && selection.source.classId === classId) {
+      for (const spellId of selection.spells) spellIds.add(spellId)
+    }
+    if (
+      selection.source.kind === 'SUBCLASS' &&
+      selection.source.subclassId === classIntent.subclassId
+    ) {
+      for (const spellId of selection.spells) spellIds.add(spellId)
+    }
+  }
+  return spellIds
+}
+
 function getKnownSpellIdsForClassIntent(
   character: CharacterAuthored,
   classId: string
 ): Set<string> {
-  const known = new Set<string>()
-  const classIntent = character.intent.classes.find((row) => row.classId === classId)
   const classState = character.state.classes?.find((row) => row.classId === classId)
-  for (const spellId of classState?.spells?.learned ?? []) known.add(spellId)
-
-  for (const selection of character.intent.spellSelections ?? []) {
-    if (selection.source.kind === 'CLASS' && selection.source.classId === classId) {
-      for (const spellId of selection.spells) known.add(spellId)
-    }
-
-    if (
-      selection.source.kind === 'SUBCLASS' &&
-      classIntent?.subclassId === selection.source.subclassId
-    ) {
-      for (const spellId of selection.spells) known.add(spellId)
-    }
+  if (classState?.spells?.learned !== undefined) {
+    return new Set(classState.spells.learned)
   }
-
-  return known
+  return getClassSpellSelectionIdsForClass(character, classId)
 }
 
 type CharacterSheetSpellSource = {
@@ -809,7 +847,7 @@ type CharacterSheetSpellSource = {
     | 'OPTION'
     | 'EQUIPMENT'
   acquisition?: 'KNOWN' | 'PREPARED' | 'ALWAYS_PREPARED' | 'GRANTED'
-  castMode?: 'SPELL_SLOT' | 'AT_WILL' | 'FIXED_LEVEL' | 'LIMITED_USE'
+  castMode?: 'SPELL_SLOT' | 'AT_WILL' | 'RITUAL' | 'FIXED_LEVEL' | 'LIMITED_USE'
   fixedLevel?: number
   resourceGrantId?: string
   resourceOwner?: CharacterResourceOwnerRef
@@ -1090,7 +1128,10 @@ function getSheetSpellIdsByClass(
   }
 
   for (const classIntent of character.intent.classes) {
-    const classSpellIds = getKnownSpellIdsForClassIntent(character, classIntent.classId)
+    const classSpellIds = new Set([
+      ...getKnownSpellIdsForClassIntent(character, classIntent.classId),
+      ...getClassSpellSelectionIdsForClass(character, classIntent.classId)
+    ])
     for (const spellId of classSpellIds) addSpell(classIntent.classId, spellId)
     const classState = character.state.classes?.find((row) => row.classId === classIntent.classId)
     for (const spellId of classState?.spells?.prepared ?? []) {
@@ -1278,8 +1319,10 @@ function getSpellSourcesBySpellId(
         ? 'LIMITED_USE'
         : attributes.has('CAST_AT_WILL')
           ? 'AT_WILL'
-          : attributes.has('CAST_AT_LEVEL')
+        : attributes.has('CAST_AT_LEVEL')
             ? 'FIXED_LEVEL'
+            : attributes.has('RITUAL')
+              ? 'RITUAL'
             : 'SPELL_SLOT',
       ...(attributes.has('CAST_AT_LEVEL') && access.castAtLevel !== undefined
         ? { fixedLevel: access.castAtLevel }
@@ -1443,7 +1486,8 @@ function getSpellCastAvailability(params: {
   slotKey?: string
 } {
   const castMode = params.source.castMode ?? 'SPELL_SLOT'
-  if (params.spell.level === 0 || castMode === 'AT_WILL') return { available: true }
+  if (params.spell.level === 0 || castMode === 'AT_WILL' || castMode === 'RITUAL')
+    return { available: true }
 
   if (castMode === 'LIMITED_USE' || castMode === 'FIXED_LEVEL') {
     if (!params.source.resourceOwner) {
@@ -1812,6 +1856,20 @@ async function getConditionOptions(
   }))
 }
 
+export async function validateCharacterConditionType(
+  db: DBLike,
+  systemId: string,
+  conditionTypeId: string
+): Promise<void> {
+  if (
+    !(await getConditionOptions(db, systemId)).some((condition) => condition.id === conditionTypeId)
+  ) {
+    throw new CharacterSheetCommandError(
+      `Condition "${conditionTypeId}" is not available in this rules system.`
+    )
+  }
+}
+
 function formatExtraMeasurement(amount: number, unit: MeasurementUnitCode): string {
   return `${amount} ${MEASUREMENT_UNIT_REGISTRY[unit].label.toLowerCase()}`
 }
@@ -1931,6 +1989,7 @@ export async function buildCharacterSheetResponse(params: {
   movementDisplayPreference?: CharacterMovementDisplayPreference
   resourceUsage?: readonly CharacterResourceUsage[]
   spellCustomizations?: readonly CharacterSpellCustomization[]
+  additionalConditions?: ReadonlyArray<{ conditionTypeId: string; notes?: string }>
 }): Promise<CharacterSheetResponseDto> {
   const { character, resolution } = params
   const adjustments = params.adjustments ?? []
@@ -1989,7 +2048,7 @@ export async function buildCharacterSheetResponse(params: {
     resolution.registry.equipment.map((equipment) => [equipment.id, equipment])
   )
   const equipmentLabels = new Map(
-    resolution.registry.equipment.map((equipment) => [equipment.id, equipment.label])
+    resolution.catalog.equipment.map((equipment) => [equipment.id, equipment.label])
   )
   const skillLabels = createVocabularyLabelMap(resolution.registry.system?.skills)
   const languageLabels = createVocabularyLabelMap(resolution.registry.system?.languages)
@@ -2724,6 +2783,13 @@ export async function buildCharacterSheetResponse(params: {
   return {
     meta: {
       characterId: character.id,
+      viewer: 'CHARACTER_OWNER',
+      capabilities: {
+        managePlayState: true,
+        managePrivateNotes: true,
+        manageInventory: true,
+        openBuilder: true
+      },
       systemId: character.systemId,
       status: character.status ?? AUTHORED_RECORD_STATUS.ACTIVE,
       streamVersion: params.streamVersion,
@@ -2802,7 +2868,10 @@ export async function buildCharacterSheetResponse(params: {
         maximumLevel: rulesSystem.exhaustion.maximumLevel,
         ...(character.state.exhaustion?.notes ? { notes: character.state.exhaustion.notes } : {})
       },
-      conditions: (character.state.conditions ?? []).map((condition) => ({
+      conditions: [
+        ...(character.state.conditions ?? []),
+        ...(params.additionalConditions ?? [])
+      ].map((condition) => ({
         conditionTypeId: condition.conditionTypeId,
         label: conditionsById.get(condition.conditionTypeId)?.label ?? 'Unknown condition',
         description: conditionsById.get(condition.conditionTypeId)?.description,
@@ -3642,6 +3711,7 @@ export function applyCharacterSheetCommand(
   sheet: CharacterSheetResponseDto,
   context: {
     adjustments?: readonly CharacterSheetAdjustment[]
+    attunementSlotLimit?: number
     createId?: () => string
     now?: () => string
     extraDefaults?: {
@@ -4105,7 +4175,8 @@ export function applyCharacterSheetCommand(
         )
       }
       const castMode = source?.castMode ?? 'SPELL_SLOT'
-      if (castMode === 'AT_WILL' || spell.level === 0) return clearEmptyStateArrays(next)
+      if (castMode === 'AT_WILL' || castMode === 'RITUAL' || spell.level === 0)
+        return clearEmptyStateArrays(next)
       if (castMode === 'LIMITED_USE') {
         if (!source?.resourceOwner)
           throw new CharacterSheetCommandError('This limited-use spell has no linked resource.')
@@ -4169,10 +4240,10 @@ export function applyCharacterSheetCommand(
       const currentClassState = existing.find(
         (classState) => classState.classId === command.classId
       )
-      const learned = [...new Set(currentClassState?.spells?.learned ?? [])]
+      const learned = currentClassState?.spells?.learned
       const spells = {
-        learned: learned.length ? learned : undefined,
-        prepared: preparedSpellIds.length ? preparedSpellIds : undefined
+        ...(learned !== undefined ? { learned: [...new Set(learned)] } : {}),
+        ...(preparedSpellIds.length ? { prepared: preparedSpellIds } : {})
       }
       const nextClassState =
         spells.learned || spells.prepared
@@ -4191,6 +4262,47 @@ export function applyCharacterSheetCommand(
         : nextClassState
           ? [...existing, nextClassState]
           : existing
+      return clearEmptyStateArrays(next)
+    }
+
+    case 'SET_KNOWN_SPELLS': {
+      if (!next.intent.classes.some((classIntent) => classIntent.classId === command.classId)) {
+        throw new CharacterSheetCommandError(`Class "${command.classId}" is not on this character.`)
+      }
+      const knownSpellIds = [...new Set(command.spellIds)]
+      const availableSpellIds = new Set(
+        sheet.spells.spells
+          .filter((spell) =>
+            spell.sources?.some(
+              (source) =>
+                source.classId === command.classId &&
+                (source.source.sourceKind === 'CLASS' || source.source.sourceKind === 'SUBCLASS')
+            )
+          )
+          .map((spell) => spell.id)
+      )
+      const unavailableSpell = knownSpellIds.find((spellId) => !availableSpellIds.has(spellId))
+      if (unavailableSpell) {
+        throw new CharacterSheetCommandError(
+          `Spell "${unavailableSpell}" is not available for class "${command.classId}".`
+        )
+      }
+      const existing = next.state.classes ?? []
+      const currentClassState = existing.find(
+        (classState) => classState.classId === command.classId
+      )
+      const spells = {
+        learned: knownSpellIds,
+        ...(currentClassState?.spells?.prepared?.length
+          ? { prepared: currentClassState.spells.prepared }
+          : {})
+      }
+      const nextClassState = { classId: command.classId, spells }
+      next.state.classes = currentClassState
+        ? existing.map((classState) =>
+            classState.classId === command.classId ? nextClassState : classState
+          )
+        : [...existing, nextClassState]
       return clearEmptyStateArrays(next)
     }
 
@@ -4333,9 +4445,11 @@ export function applyCharacterSheetCommand(
       }
       if (
         !next.state.equipment.attuned.includes(command.itemId) &&
-        next.state.equipment.attuned.length >= 3
+        next.state.equipment.attuned.length >= (context.attunementSlotLimit ?? 3)
       ) {
-        throw new CharacterSheetCommandError('A character cannot attune to more than three items.')
+        throw new CharacterSheetCommandError(
+          `A character cannot attune to more than ${context.attunementSlotLimit ?? 3} items.`
+        )
       }
       next.state.equipment.attuned = [...new Set([...next.state.equipment.attuned, command.itemId])]
       return clearEmptyStateArrays(next)
@@ -4643,6 +4757,8 @@ export function summarizeCharacterSheetCommand(
       return `${sheet?.spells.spells.find((spell) => spell.id === command.spellId)?.label ?? 'Spell'} cast`
     case 'SET_PREPARED_SPELLS':
       return 'Prepared spells updated'
+    case 'SET_KNOWN_SPELLS':
+      return 'Known spells updated'
     case 'ADD_INVENTORY_ITEM':
       return `${findEquipmentOptionLabel(sheet, command.equipmentId) ?? 'Inventory item'} added`
     case 'REMOVE_INVENTORY_ITEM': {
@@ -4754,80 +4870,7 @@ function createCharacterSheetStatePatches(
   return patches
 }
 
-type SheetAdjustmentCommandValue<T> = T extends unknown
-  ? Omit<
-      T,
-      'id' | 'characterId' | 'actorId' | 'createdBy' | 'updatedBy' | 'createdAt' | 'updatedAt'
-    >
-  : never
-
-type CharacterSheetAdjustmentCommand =
-  | CharacterSheetCoreAdjustmentCommandDto
-  | CharacterSheetItemAdjustmentCommandDto
-  | (SheetAdjustmentCommandValue<Extract<CharacterSheetAdjustment, { family: 'COMPANION' }>> & {
-      id?: string
-      sourceNote?: string
-    })
-
-function sameAdjustmentSlot(
-  adjustment: CharacterSheetAdjustment,
-  input: CharacterSheetAdjustmentCommand
-): boolean {
-  if (adjustment.family !== input.family) return false
-  switch (input.family) {
-    case 'ABILITY':
-      return (
-        adjustment.family === 'ABILITY' &&
-        adjustment.ability === input.ability &&
-        adjustment.field === input.field
-      )
-    case 'SAVING_THROW':
-      return (
-        adjustment.family === 'SAVING_THROW' &&
-        adjustment.ability === input.ability &&
-        adjustment.field === input.field
-      )
-    case 'SKILL':
-      return (
-        adjustment.family === 'SKILL' &&
-        adjustment.skillId === input.skillId &&
-        adjustment.field === input.field
-      )
-    case 'PASSIVE':
-      return adjustment.family === 'PASSIVE' && adjustment.skillId === input.skillId
-    case 'SENSE':
-      return adjustment.family === 'SENSE' && adjustment.senseId === input.senseId
-    case 'MOVEMENT':
-      return adjustment.family === 'MOVEMENT' && adjustment.speedId === input.speedId
-    case 'HIT_POINTS':
-      return adjustment.family === 'HIT_POINTS' && adjustment.field === input.field
-    case 'DEFENSE':
-      return (
-        adjustment.family === 'DEFENSE' &&
-        adjustment.defenseKind === input.defenseKind &&
-        adjustment.damageTypeId === input.damageTypeId
-      )
-    case 'PROFICIENCY':
-      return (
-        adjustment.family === 'PROFICIENCY' &&
-        adjustment.proficiencyKind === input.proficiencyKind &&
-        adjustment.targetId === input.targetId
-      )
-    case 'ITEM':
-      return (
-        adjustment.family === 'ITEM' &&
-        adjustment.itemInstanceId === input.itemInstanceId &&
-        adjustment.field === input.field
-      )
-    case 'COMPANION':
-      return (
-        adjustment.family === 'COMPANION' &&
-        adjustment.companionInstanceId === input.companionInstanceId &&
-        adjustment.field === input.field
-      )
-  }
-  throw new CharacterSheetCommandError('Unsupported sheet adjustment.')
-}
+export type CharacterSheetAdjustmentCommand = CharacterSheetAdjustmentCommandDto
 
 function toProspectiveSheetAdjustment(
   write: CharacterSheetAdjustmentWrite,
@@ -4907,7 +4950,7 @@ function getProspectiveSheetAdjustments(params: {
   return adjustments
 }
 
-function validateSheetAdjustmentTarget(
+export function validateSheetAdjustmentTarget(
   input: CharacterSheetAdjustmentCommand,
   resolution: CharacterBuilderResolution,
   character: CharacterAuthored
@@ -5113,6 +5156,52 @@ function validateSpellSource(
   }
 }
 
+export function assertCampaignGmSheetCommandAllowed(command: CharacterSheetCommandInputDto): void {
+  switch (command.type) {
+    case 'SET_INSPIRATION':
+    case 'ADJUST_HIT_POINTS':
+    case 'USE_HIT_DIE':
+    case 'APPLY_REST':
+    case 'COMPLETE_REST':
+    case 'SET_EXHAUSTION':
+    case 'ADD_CONDITION':
+    case 'REMOVE_CONDITION':
+    case 'USE_RESOURCE':
+    case 'RESTORE_RESOURCE':
+    case 'USE_SHEET_RESOURCE':
+    case 'RECOVER_SHEET_RESOURCE':
+    case 'USE_SPELL_SLOT':
+    case 'RESTORE_SPELL_SLOT':
+    case 'CAST_SPELL':
+    case 'SET_PREPARED_SPELLS':
+    case 'SET_KNOWN_SPELLS':
+    case 'ADD_INVENTORY_ITEM':
+    case 'REMOVE_INVENTORY_ITEM':
+    case 'UPDATE_INVENTORY_ITEM':
+    case 'ADJUST_CURRENCY':
+    case 'MOVE_CURRENCY':
+    case 'EQUIP_ITEM':
+    case 'UNEQUIP_ITEM':
+    case 'ATTUNE_ITEM':
+    case 'UNATTUNE_ITEM':
+    case 'ADD_SHEET_EXTRA':
+    case 'REMOVE_SHEET_EXTRA':
+      return
+    case 'SET_HIT_POINTS':
+      if (command.maxOverride === undefined) return
+      break
+    case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
+      if (command.customName === undefined && command.notes === undefined) return
+      break
+    case 'UPDATE_SHEET_EXTRA':
+      if (command.extra.customName === undefined && command.extra.notes === undefined) return
+      break
+  }
+  throw new CharacterSheetCommandError(
+    `Campaign owners cannot apply ${command.type} to a player's Character.`
+  )
+}
+
 export async function previewCharacterRest(params: {
   db: DBLike
   characterId: string
@@ -5127,12 +5216,11 @@ export async function previewCharacterRest(params: {
   if (!character || !row) {
     throw createNamedError('NotFoundError', `Character "${params.characterId}" was not found.`)
   }
-  if (character.userId !== params.userId) {
-    throw createNamedError(
-      'AuthoredContentOwnershipError',
-      `Character "${params.characterId}" cannot be read by the current user.`
-    )
-  }
+  const campaignContext = await resolveCharacterSheetCampaignContext(
+    params.db,
+    character,
+    params.userId
+  )
   if ((character.status ?? AUTHORED_RECORD_STATUS.ACTIVE) !== AUTHORED_RECORD_STATUS.ACTIVE) {
     throw new CharacterSheetCommandError(`Character "${params.characterId}" is not finalized yet.`)
   }
@@ -5149,14 +5237,23 @@ export async function previewCharacterRest(params: {
 
   const adjustmentRepository = createCharacterSheetAdjustmentRepository(params.db)
   const playStateRepository = createCharacterSheetPlayStateRepository(params.db)
-  const [resolution, adjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
-    await Promise.all([
-      resolveCharacterBuilder(params.db, character, 'edit'),
-      adjustmentRepository.listByCharacter(params.characterId),
-      adjustmentRepository.getMovementPreference(params.characterId),
-      playStateRepository.listResourceUsage(params.characterId),
-      playStateRepository.listSpellCustomizations(params.characterId)
-    ])
+  const [
+    resolution,
+    characterAdjustments,
+    movementDisplayPreference,
+    resourceUsage,
+    spellCustomizations
+  ] = await Promise.all([
+    resolveCharacterBuilder(params.db, character, 'edit'),
+    adjustmentRepository.listByCharacter(params.characterId),
+    adjustmentRepository.getMovementPreference(params.characterId),
+    playStateRepository.listResourceUsage(params.characterId),
+    playStateRepository.listSpellCustomizations(params.characterId)
+  ])
+  const adjustments = mergeCampaignSheetAdjustments(
+    characterAdjustments,
+    campaignContext.adjustments
+  )
   const sheet = await buildCharacterSheetResponse({
     db: params.db,
     character,
@@ -5165,16 +5262,20 @@ export async function previewCharacterRest(params: {
     adjustments,
     movementDisplayPreference,
     resourceUsage,
-    spellCustomizations
+    spellCustomizations,
+    additionalConditions: getVisibleCampaignConditions(campaignContext)
   })
 
-  return buildCharacterRestPreview({
-    character,
-    resolution,
-    adjustments,
-    sheet,
-    input: params.input
-  })
+  return projectCharacterRestForViewer(
+    buildCharacterRestPreview({
+      character,
+      resolution,
+      adjustments,
+      sheet,
+      input: params.input
+    }),
+    campaignContext
+  )
 }
 
 export async function executeCharacterSheetCommand(params: {
@@ -5193,11 +5294,16 @@ export async function executeCharacterSheetCommand(params: {
     throw createNamedError('NotFoundError', `Character "${params.characterId}" was not found.`)
   }
 
-  if (character.userId !== params.userId) {
-    throw createNamedError(
-      'AuthoredContentOwnershipError',
-      `Character "${params.characterId}" cannot be updated by the current user.`
-    )
+  const campaignContext = await resolveCharacterSheetCampaignContext(
+    params.db,
+    character,
+    params.userId
+  )
+  if (campaignContext.viewer === 'CAMPAIGN_OWNER') {
+    if (campaignContext.campaignStatus !== 'ACTIVE') {
+      throw new CharacterSheetCommandError('Archived Campaigns are read-only.')
+    }
+    assertCampaignGmSheetCommandAllowed(command)
   }
 
   if ((character.status ?? AUTHORED_RECORD_STATUS.ACTIVE) !== AUTHORED_RECORD_STATUS.ACTIVE) {
@@ -5206,13 +5312,17 @@ export async function executeCharacterSheetCommand(params: {
 
   const adjustmentRepository = createCharacterSheetAdjustmentRepository(params.db)
   const playStateRepository = createCharacterSheetPlayStateRepository(params.db)
-  const [adjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
+  const [characterAdjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
     await Promise.all([
       adjustmentRepository.listByCharacter(params.characterId),
       adjustmentRepository.getMovementPreference(params.characterId),
       playStateRepository.listResourceUsage(params.characterId),
       playStateRepository.listSpellCustomizations(params.characterId)
     ])
+  const adjustments = mergeCampaignSheetAdjustments(
+    characterAdjustments,
+    campaignContext.adjustments
+  )
   const eventRepository = createCharacterEventRepository(params.db)
   const commandFingerprint = fingerprintCharacterSheetCommand(params.command)
   const priorEvent = await eventRepository.findByCommandId(
@@ -5239,16 +5349,20 @@ export async function executeCharacterSheetCommand(params: {
     return {
       characterId: params.characterId,
       streamVersion: row.stream_version,
-      sheet: await buildCharacterSheetResponse({
-        db: params.db,
-        character,
-        resolution,
-        streamVersion: row.stream_version,
-        adjustments,
-        movementDisplayPreference,
-        resourceUsage,
-        spellCustomizations
-      }),
+      sheet: projectCharacterSheetForViewer(
+        await buildCharacterSheetResponse({
+          db: params.db,
+          character,
+          resolution,
+          streamVersion: row.stream_version,
+          adjustments,
+          movementDisplayPreference,
+          resourceUsage,
+          spellCustomizations,
+          additionalConditions: getVisibleCampaignConditions(campaignContext)
+        }),
+        campaignContext
+      ),
       historyEntry: {
         eventId: priorEvent.eventId,
         occurredAt: priorEvent.occurredAt,
@@ -5266,12 +5380,18 @@ export async function executeCharacterSheetCommand(params: {
   }
 
   const resolution = await resolveCharacterBuilder(params.db, character, 'edit')
+  const rulesSystem = resolveRulesSystem({
+    code: resolution.registry.system?.rulesetCode ?? '',
+    version: resolution.registry.system?.rulesetVersion ?? ''
+  })
+  const attunementSlotLimit =
+    campaignContext.attunementSlotOverride ?? rulesSystem.attunementSlotLimit
   if (command.type === 'UPSERT_SHEET_ADJUSTMENT') {
     validateSheetAdjustmentTarget(command.adjustment, resolution, character)
   }
   if (command.type === 'REMOVE_SHEET_ADJUSTMENT') {
     validatePanelTarget(command.target, resolution, character)
-    const existing = adjustments.find(
+    const existing = characterAdjustments.find(
       (adjustment) => adjustment.id === command.adjustmentId && adjustment.family === command.family
     )
     if (!existing || !characterSheetAdjustmentMatchesPanelTarget(existing, command.target)) {
@@ -5337,12 +5457,15 @@ export async function executeCharacterSheetCommand(params: {
       )
     }
   }
-  const prospectiveAdjustments = getProspectiveSheetAdjustments({
-    adjustments,
-    characterId: params.characterId,
-    command,
-    userId: params.userId
-  })
+  const prospectiveAdjustments = mergeCampaignSheetAdjustments(
+    getProspectiveSheetAdjustments({
+      adjustments: characterAdjustments,
+      characterId: params.characterId,
+      command,
+      userId: params.userId
+    }),
+    campaignContext.adjustments
+  )
   const shouldPersistHitPointClamp =
     (command.type === 'UPSERT_SHEET_ADJUSTMENT' && command.adjustment.family === 'HIT_POINTS') ||
     (command.type === 'REMOVE_SHEET_ADJUSTMENT' && command.family === 'HIT_POINTS') ||
@@ -5455,6 +5578,7 @@ export async function executeCharacterSheetCommand(params: {
     completedRest?.character ??
     applyCharacterSheetCommand(character, params.command, currentSheet, {
       adjustments,
+      attunementSlotLimit,
       extraDefaults
     })
   if (shouldPersistHitPointClamp) {
@@ -5554,7 +5678,7 @@ export async function executeCharacterSheetCommand(params: {
         const typedAdjustmentRepository = createCharacterSheetAdjustmentRepository(trx)
         const typedPlayStateRepository = createCharacterSheetPlayStateRepository(trx)
         if (command.type === 'UPSERT_SHEET_ADJUSTMENT') {
-          const existing = adjustments.find((adjustment) =>
+          const existing = characterAdjustments.find((adjustment) =>
             sameAdjustmentSlot(adjustment, command.adjustment)
           )
           await typedAdjustmentRepository.upsert({
@@ -5573,7 +5697,7 @@ export async function executeCharacterSheetCommand(params: {
         }
         if (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS') {
           for (const adjustment of getCharacterSheetPanelAdjustmentIds(
-            adjustments,
+            characterAdjustments,
             command.target
           )) {
             await typedAdjustmentRepository.remove({
@@ -5588,7 +5712,7 @@ export async function executeCharacterSheetCommand(params: {
             kind: 'COMPANION' as const,
             companionInstanceId: command.extra.extraId
           }
-          for (const adjustment of adjustments) {
+          for (const adjustment of characterAdjustments) {
             if (!characterSheetAdjustmentMatchesPanelTarget(adjustment, target)) continue
             await typedAdjustmentRepository.remove({
               characterId: params.characterId,
@@ -5621,7 +5745,7 @@ export async function executeCharacterSheetCommand(params: {
         }
         if (command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION') {
           const fields = getSpellCustomizationFields(command.category)
-          for (const adjustment of adjustments) {
+          for (const adjustment of characterAdjustments) {
             if (
               adjustment.family === 'SPELL' &&
               sameSpellSource(adjustment.source, command.source) &&
@@ -5647,7 +5771,7 @@ export async function executeCharacterSheetCommand(params: {
         }
         if (command.type === 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION') {
           const fields = getSpellCustomizationFields(command.category)
-          for (const adjustment of adjustments) {
+          for (const adjustment of characterAdjustments) {
             if (
               adjustment.family === 'SPELL' &&
               sameSpellSource(adjustment.source, command.source) &&
@@ -5695,7 +5819,7 @@ export async function executeCharacterSheetCommand(params: {
           })
         }
         if (params.command.type === 'SET_HIT_POINTS' && params.command.maxOverride !== undefined) {
-          const existing = adjustments.find(
+          const existing = characterAdjustments.find(
             (adjustment) =>
               adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_OVERRIDE'
           )
@@ -5732,7 +5856,7 @@ export async function executeCharacterSheetCommand(params: {
             command.resetMaximumHitPointModifier &&
             restPreview?.hitPoints.canResetMaximumHitPointModifier
           ) {
-            const modifier = adjustments.find(
+            const modifier = characterAdjustments.find(
               (adjustment) =>
                 adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_MODIFIER'
             )
@@ -5788,16 +5912,20 @@ export async function executeCharacterSheetCommand(params: {
     playStateRepository.listResourceUsage(params.characterId),
     playStateRepository.listSpellCustomizations(params.characterId)
   ])
-  const sheet = await buildCharacterSheetResponse({
-    db: params.db,
-    character: nextCharacter,
-    resolution,
-    streamVersion: nextStreamVersion,
-    adjustments: persistedAdjustments,
-    movementDisplayPreference: persistedMovementDisplayPreference,
-    resourceUsage: persistedResourceUsage,
-    spellCustomizations: persistedSpellCustomizations
-  })
+  const sheet = projectCharacterSheetForViewer(
+    await buildCharacterSheetResponse({
+      db: params.db,
+      character: nextCharacter,
+      resolution,
+      streamVersion: nextStreamVersion,
+      adjustments: mergeCampaignSheetAdjustments(persistedAdjustments, campaignContext.adjustments),
+      movementDisplayPreference: persistedMovementDisplayPreference,
+      resourceUsage: persistedResourceUsage,
+      spellCustomizations: persistedSpellCustomizations,
+      additionalConditions: getVisibleCampaignConditions(campaignContext)
+    }),
+    campaignContext
+  )
   const historyEntry: CharacterHistoryEntryDto = {
     eventId: event.eventId,
     occurredAt: event.occurredAt,

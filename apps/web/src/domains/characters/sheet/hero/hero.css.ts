@@ -19,7 +19,7 @@ export const hero = style({
         },
         '(max-width: 760px)': {
           alignItems: 'center',
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gridTemplateColumns: '44px minmax(0, 1fr)',
           gap: '8px',
           padding: '8px 10px'
         }
@@ -51,8 +51,8 @@ export const heroIdentityCopy = style({
       minWidth: 0,
       '@media': {
         '(max-width: 760px)': {
-          justifySelf: 'center',
-          textAlign: 'center'
+          justifySelf: 'start',
+          textAlign: 'left'
         }
       }
     }
@@ -166,7 +166,7 @@ export const heroClassLine = style({
       gap: '6px',
       '@media': {
         '(max-width: 760px)': {
-          justifyContent: 'center'
+          justifyContent: 'flex-start'
         }
       }
     }
@@ -215,7 +215,9 @@ export const heroActions = style({
       '@media': {
         '(max-width: 760px)': {
           alignSelf: 'center',
-          justifySelf: 'center'
+          gridColumn: '1 / -1',
+          justifyContent: 'center',
+          justifySelf: 'stretch'
         }
       }
     }

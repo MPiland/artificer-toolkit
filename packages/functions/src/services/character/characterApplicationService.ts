@@ -52,7 +52,8 @@ import {
   isSameCharacterProvenanceIdentity,
   type BackgroundAuthored,
   type CharacterAuthored,
-  type ClassAuthored
+  type ClassAuthored,
+  type ParentClassAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { FeatureAuthored, StartingEquipmentAuthored } from '@artificer-toolkit/shared/authored'
 import { startingEquipmentDtoSchema } from '@artificer-toolkit/schema/shared/startingEquipment'
@@ -94,6 +95,20 @@ import type {
 } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { assertCharacterBuilderDraftRevisionFresh } from './characterBuilderDraftConflict.js'
 import type { CharacterBuilderClassCatalogRecord } from './builderCatalog.js'
+import { withPersonalCharacterLimit } from '../account/entitlementService.js'
+import {
+  lockCampaignCharacterContentForSave,
+  replaceCampaignCharacterContentBindings
+} from './campaignCharacterContent.js'
+import {
+  filterCharacterHistoryForViewer,
+  getCharacterSheetDisplayAdjustments,
+  getVisibleCampaignConditions,
+  mergeCampaignSheetAdjustments,
+  projectCharacterSheetForViewer,
+  resolveCharacterSheetCampaignContext
+} from './campaignCharacterSheet.js'
+import { materializeCharacterStartingEquipment } from './characterStartingEquipmentState.js'
 
 type CharacterBuilderMode = 'create' | 'edit'
 
@@ -797,7 +812,8 @@ function getSpellChoiceViews(params: {
   const classSpellOptions = params.resolution.catalog.spells.filter(
     (spell) =>
       spell.classIds.includes(params.classId) ||
-      spell.classIds.includes(params.classRecord?.id ?? '')
+      spell.classIds.includes(params.classRecord?.id ?? '') ||
+      spellcasting.availableSpellIds?.includes(spell.id)
   )
   const toSpellOption = (
     spell: (typeof classSpellOptions)[number]
@@ -1345,25 +1361,50 @@ async function buildCharacterBuilderSavePayload(params: {
     params.existing,
     context
   )
-  const draftResolution = await resolveCharacterBuilder(
+  let draftResolution = await resolveCharacterBuilder(
     params.db,
     {
       ...reconciled,
       status: AUTHORED_RECORD_STATUS.DRAFT
     },
     params.mode,
-    context
+    context,
+    params.existing
   )
   const persistedStatus = resolvePersistedCharacterStatus({
     existingStatus: params.existing?.status,
     targetStatus: params.targetStatus,
     ready: draftResolution.readiness.ready
   })
-  let character = {
+  let character: CharacterAuthored = {
     ...reconciled,
     status: persistedStatus
   }
   if (persistedStatus === AUTHORED_RECORD_STATUS.ACTIVE) {
+    const primaryClassId = character.intent.classes[0]?.classId
+    const primaryClass = draftResolution.registry.classes.find(
+      (record): record is ParentClassAuthored =>
+        record.id === primaryClassId && record.category === CLASS_CATEGORY.BASE
+    )
+    const selectedBackground = draftResolution.registry.backgrounds.find(
+      (record) => record.id === character.intent.background.backgroundId
+    )
+    const materialized = materializeCharacterStartingEquipment(character, {
+      classStartingEquipment: primaryClass?.startingEquipment,
+      classStartingGold: primaryClass?.startingGold,
+      backgroundStartingEquipment: selectedBackground?.startingEquipment
+    })
+    character = materialized.character
+    if (materialized.changed) {
+      const materializedContext = await loadCharacterBuilderContext(params.db, character)
+      draftResolution = await resolveCharacterBuilder(
+        params.db,
+        { ...character, status: AUTHORED_RECORD_STATUS.DRAFT },
+        params.mode,
+        materializedContext,
+        params.existing
+      )
+    }
     const adjustments = await createCharacterSheetAdjustmentRepository(params.db).listByCharacter(
       character.id
     )
@@ -1458,15 +1499,17 @@ async function saveCharacterBuilderDraftRecord(params: {
     builderIntent: params.builderIntent
   })
 
-  return createCharacterBuilderDraftRepository(params.db).save({
-    characterId: params.characterId,
-    userId: params.userId,
-    systemId: character.systemId,
-    label: character.label || 'Untitled Character',
-    mode: params.mode,
-    payload: payload as unknown as Json,
-    baseActiveUpdatedAt: params.baseActiveUpdatedAt ?? null
-  })
+  return withPersonalCharacterLimit(params.db, params.userId, params.characterId, (trx) =>
+    createCharacterBuilderDraftRepository(trx).save({
+      characterId: params.characterId,
+      userId: params.userId,
+      systemId: character.systemId,
+      label: character.label || 'Untitled Character',
+      mode: params.mode,
+      payload: payload as unknown as Json,
+      baseActiveUpdatedAt: params.baseActiveUpdatedAt ?? null
+    })
+  )
 }
 
 export async function listCharactersForUser(
@@ -1676,14 +1719,15 @@ export async function createCharacterForUser(
     userId
   }
 
-  const repository = createCharacterRepository(db)
-  await repository.upsertAuthored(authored)
-  const routeIdentity = await createAuthoredRouteIdRepository(db).ensure({
-    subjectKind: 'CHARACTER',
-    subjectId: authored.id
+  const routeIdentity = await withPersonalCharacterLimit(db, userId, authored.id, async (trx) => {
+    await createCharacterRepository(trx).upsertAuthored(authored)
+    return createAuthoredRouteIdRepository(trx).ensure({
+      subjectKind: 'CHARACTER',
+      subjectId: authored.id
+    })
   })
 
-  const persisted = await repository.findAuthoredById(authored.id)
+  const persisted = await createCharacterRepository(db).findAuthoredById(authored.id)
   const nextCharacter = persisted ?? authored
   return toCharacterBuilderPayload(
     nextCharacter,
@@ -1696,7 +1740,8 @@ export async function createCharacterForUser(
 
 export async function getCharacterForUser(
   db: Parameters<typeof createCharacterRepository>[0],
-  characterId: string
+  characterId: string,
+  userId: string
 ): Promise<CharacterBuilderPayloadDto | null> {
   const resolvedCharacterId = await resolveCharacterRouteSubjectId(db, characterId)
   if (!resolvedCharacterId) return null
@@ -1706,7 +1751,7 @@ export async function getCharacterForUser(
     repository.findAuthoredById(resolvedCharacterId),
     repository.findUpdatedAtById(resolvedCharacterId)
   ])
-  if (!character) {
+  if (!character || character.userId !== userId) {
     return null
   }
   const routeIdentity = await createAuthoredRouteIdRepository(db).ensure({
@@ -1725,7 +1770,8 @@ export async function getCharacterForUser(
 
 export async function getCharacterSheetForUser(
   db: Parameters<typeof createCharacterRepository>[0],
-  characterId: string
+  characterId: string,
+  userId: string
 ): Promise<CharacterSheetResponseDto | null> {
   const resolvedCharacterId = await resolveCharacterRouteSubjectId(db, characterId)
   if (!resolvedCharacterId) return null
@@ -1741,6 +1787,7 @@ export async function getCharacterSheetForUser(
   ) {
     return null
   }
+  const campaignContext = await resolveCharacterSheetCampaignContext(db, character, userId)
 
   const draft = await createCharacterBuilderDraftRepository(db).findByCharacter({
     characterId: resolvedCharacterId,
@@ -1761,20 +1808,27 @@ export async function getCharacterSheetForUser(
       playStateRepository.listSpellCustomizations(character.id)
     ])
 
-  return {
-    ...(await buildCharacterSheetResponse({
-      db,
-      character,
-      resolution: await resolveCharacterBuilder(db, character, 'edit'),
-      streamVersion: row?.stream_version ?? 0,
-      hasBuilderDraft: Boolean(draft),
-      adjustments,
-      movementDisplayPreference,
-      resourceUsage,
-      spellCustomizations
-    })),
-    publicId: routeIdentity.publicId
-  }
+  const sheet = await buildCharacterSheetResponse({
+    db,
+    character,
+    resolution: await resolveCharacterBuilder(db, character, 'edit'),
+    streamVersion: row?.stream_version ?? 0,
+    hasBuilderDraft: Boolean(draft),
+    adjustments: mergeCampaignSheetAdjustments(adjustments, campaignContext.adjustments),
+    movementDisplayPreference,
+    resourceUsage,
+    spellCustomizations,
+    additionalConditions: getVisibleCampaignConditions(campaignContext)
+  })
+
+  return projectCharacterSheetForViewer(
+    {
+      ...sheet,
+      publicId: routeIdentity.publicId,
+      meta: { ...sheet.meta, campaignId: campaignContext.campaignId }
+    },
+    campaignContext
+  )
 }
 
 export async function previewCharacterRestForUser(
@@ -1818,12 +1872,7 @@ export async function getCharacterSheetPanelForUser(
   ) {
     throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
   }
-  if (character.userId !== userId) {
-    throw createNamedError(
-      'AuthoredContentOwnershipError',
-      `Character "${resolvedCharacterId}" cannot be viewed by the current user.`
-    )
-  }
+  const campaignContext = await resolveCharacterSheetCampaignContext(db, character, userId)
 
   const adjustmentRepository = createCharacterSheetAdjustmentRepository(db)
   const playStateRepository = createCharacterSheetPlayStateRepository(db)
@@ -1840,19 +1889,25 @@ export async function getCharacterSheetPanelForUser(
     character,
     resolution,
     streamVersion: row.stream_version,
-    adjustments,
+    adjustments: mergeCampaignSheetAdjustments(adjustments, campaignContext.adjustments),
     movementDisplayPreference,
     resourceUsage,
-    spellCustomizations
+    spellCustomizations,
+    additionalConditions: getVisibleCampaignConditions(campaignContext)
   })
   return buildCharacterSheetPanel({
     character,
     resolution,
-    sheet,
-    adjustments,
+    sheet: projectCharacterSheetForViewer(sheet, campaignContext),
+    adjustments: getCharacterSheetDisplayAdjustments(adjustments, campaignContext),
+    engineAdjustments: mergeCampaignSheetAdjustments(adjustments, campaignContext.adjustments),
     movementDisplayPreference,
     target,
-    editable: true
+    editable:
+      campaignContext.viewer === 'CHARACTER_OWNER' ||
+      (campaignContext.viewer === 'CAMPAIGN_OWNER' &&
+        campaignContext.campaignStatus === 'ACTIVE' &&
+        target.kind === 'SPELLS')
   })
 }
 
@@ -1865,8 +1920,21 @@ export async function resolveCharacterForUser(
     ...body.character,
     userId
   }
+  const existing =
+    body.mode === 'edit'
+      ? await createCharacterRepository(db).findAuthoredById(authored.id)
+      : null
 
-  return toCharacterBuilderPayload(authored, await resolveCharacterBuilder(db, authored, body.mode))
+  return toCharacterBuilderPayload(
+    authored,
+    await resolveCharacterBuilder(
+      db,
+      authored,
+      body.mode,
+      undefined,
+      existing?.userId === userId ? existing : null
+    )
+  )
 }
 
 export async function previewCharacterSaveForUser(
@@ -1876,6 +1944,12 @@ export async function previewCharacterSaveForUser(
 ): Promise<CharacterBuilderPreviewPayloadDto> {
   const repository = createCharacterRepository(db)
   const existing = await repository.findAuthoredById(body.character.id)
+  if (existing && existing.userId !== userId) {
+    throw createNamedError(
+      'AuthoredContentOwnershipError',
+      `Character "${body.character.id}" cannot be edited by the current user.`
+    )
+  }
   const payload = await buildCharacterBuilderSavePayload({
     db,
     character: body.character,
@@ -1894,8 +1968,13 @@ export async function upsertCharacterBuilderForUser(
   userId: string
 ): Promise<CharacterBuilderPayloadDto> {
   const repository = createCharacterRepository(db)
-  const draftRepository = createCharacterBuilderDraftRepository(db)
   const existing = await repository.findAuthoredById(body.character.id)
+  if (existing && existing.userId !== userId) {
+    throw createNamedError(
+      'AuthoredContentOwnershipError',
+      `Character "${body.character.id}" cannot be edited by the current user.`
+    )
+  }
   const payload = await buildCharacterBuilderSavePayload({
     db,
     character: body.character,
@@ -1912,31 +1991,45 @@ export async function upsertCharacterBuilderForUser(
     )
   }
 
-  // Hold the active row lock through upsertAuthored so the revision check and write are atomic.
-  const activeUpdatedAt = await repository.findUpdatedAtByIdForUpdate(payload.character.id)
-  const draft = await draftRepository.findByCharacter({
-    characterId: payload.character.id,
-    userId
-  })
-  const baseActiveUpdatedAt = draft?.baseActiveUpdatedAt ?? body.baseActiveUpdatedAt ?? null
-  assertCharacterBuilderDraftRevisionFresh({
-    activeUpdatedAt,
-    baseActiveUpdatedAt,
-    characterId: payload.character.id,
-    shouldCheckRevision: draft != null || body.baseActiveUpdatedAt != null
-  })
+  const routeIdentity = await withPersonalCharacterLimit(
+    db,
+    userId,
+    payload.character.id,
+    async (trx) => {
+      const lockedRepository = createCharacterRepository(trx)
+      const lockedDraftRepository = createCharacterBuilderDraftRepository(trx)
+      // Entitlements are locked before this Character row lock by withPersonalCharacterLimit.
+      await lockCampaignCharacterContentForSave(trx, payload.character.id)
+      const activeUpdatedAt = await lockedRepository.findUpdatedAtByIdForUpdate(
+        payload.character.id
+      )
+      const draft = await lockedDraftRepository.findByCharacter({
+        characterId: payload.character.id,
+        userId
+      })
+      const baseActiveUpdatedAt = draft?.baseActiveUpdatedAt ?? body.baseActiveUpdatedAt ?? null
+      assertCharacterBuilderDraftRevisionFresh({
+        activeUpdatedAt,
+        baseActiveUpdatedAt,
+        characterId: payload.character.id,
+        shouldCheckRevision: draft != null || body.baseActiveUpdatedAt != null
+      })
 
-  await repository.upsertAuthored(payload.character, {
-    incrementStreamVersion: true
-  })
-  const routeIdentity = await createAuthoredRouteIdRepository(db).ensure({
-    subjectKind: 'CHARACTER',
-    subjectId: payload.character.id
-  })
-  await draftRepository.delete({
-    characterId: payload.character.id,
-    userId
-  })
+      await lockedRepository.upsertAuthored(payload.character, {
+        incrementStreamVersion: true
+      })
+      await replaceCampaignCharacterContentBindings(trx, payload.character)
+      const identity = await createAuthoredRouteIdRepository(trx).ensure({
+        subjectKind: 'CHARACTER',
+        subjectId: payload.character.id
+      })
+      await lockedDraftRepository.delete({
+        characterId: payload.character.id,
+        userId
+      })
+      return identity
+    }
+  )
 
   const persisted = await repository.findAuthoredById(payload.character.id)
   const nextCharacter = persisted ?? payload.character
@@ -2039,7 +2132,7 @@ export async function dispatchCommandForUser(
       ...result.sheet,
       meta: {
         ...result.sheet.meta,
-        hasBuilderDraft: Boolean(draft)
+        hasBuilderDraft: result.sheet.meta.viewer === 'CHARACTER_OWNER' && Boolean(draft)
       },
       publicId: routeIdentity.publicId
     }
@@ -2060,12 +2153,10 @@ export async function getCharacterHistoryForUser(
   if (!character) {
     throw createNamedError('NotFoundError', `Character "${resolvedCharacterId}" was not found.`)
   }
-  if (character.userId !== userId) {
-    throw createNamedError(
-      'AuthoredContentOwnershipError',
-      `Character "${resolvedCharacterId}" cannot be viewed by the current user.`
-    )
-  }
+  const campaignContext = await resolveCharacterSheetCampaignContext(db, character, userId)
   const events = await createCharacterEventRepository(db).listByCharacter(resolvedCharacterId)
-  return buildCharacterHistoryView(events, resolvedCharacterId)
+  return buildCharacterHistoryView(
+    filterCharacterHistoryForViewer(events, character.userId, campaignContext.viewer),
+    resolvedCharacterId
+  )
 }

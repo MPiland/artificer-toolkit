@@ -9,6 +9,13 @@ export const characterSheetFixture = {
   publicId: 'character-owned',
   meta: {
     characterId: characterFixture.id,
+    viewer: 'CHARACTER_OWNER',
+    capabilities: {
+      managePlayState: true,
+      managePrivateNotes: true,
+      manageInventory: true,
+      openBuilder: true
+    },
     systemId: characterFixture.systemId,
     status: AUTHORED_RECORD_STATUS.ACTIVE,
     streamVersion: 8

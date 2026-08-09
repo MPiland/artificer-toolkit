@@ -19,13 +19,21 @@ import type {
   SignedImageDeliveryDto
 } from '@artificer-toolkit/schema/api/media'
 import { createSupabaseClient } from '../../clients/supabaseClient.js'
+import { withLockedEntitlementLimits } from '../account/entitlementService.js'
 
 const bucket = 'media' as const
-const quotaBytes = 250 * 1024 * 1024
 const maxBytes = 6 * 1024 * 1024
 const maxDimension = 8192
 const maxPixels = 25_000_000
 const supportedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
+async function getStorageQuotaBytes(db: DBLike, userId: string): Promise<number> {
+  return withLockedEntitlementLimits(
+    db,
+    userId,
+    async (_trx, limits) => limits.storageBytes ?? Number.MAX_SAFE_INTEGER
+  )
+}
 
 export class MediaNotFoundError extends Error {
   constructor() {
@@ -202,6 +210,7 @@ export async function createImageUploadIntent(
   const asset = await withTransaction(db, async (trx) => {
     const media = createMediaRepository(trx)
     if (!(await media.lockOwner(userId))) throw new MediaAccessError()
+    const quotaBytes = await getStorageQuotaBytes(trx, userId)
     const existing = await media.findByOwnerAndKey(userId, input.idempotencyKey)
     if (existing) {
       if (
@@ -345,16 +354,20 @@ export async function finalizeImageUpload(
         ...size
       })
     }
-    const ready = await media.replaceReady({
-      assetId,
-      ownerUserId: userId,
-      quotaBytes,
-      reservationBytes: maxBytes,
-      verifiedMimeType: mime,
-      verifiedBytes: source.byteLength,
-      width,
-      height,
-      variants
+    const ready = await withTransaction(db, async (trx) => {
+      const repository = createMediaRepository(trx)
+      if (!(await repository.lockOwner(userId))) throw new MediaAccessError()
+      return repository.replaceReady({
+        assetId,
+        ownerUserId: userId,
+        quotaBytes: await getStorageQuotaBytes(trx, userId),
+        reservationBytes: maxBytes,
+        verifiedMimeType: mime,
+        verifiedBytes: source.byteLength,
+        width,
+        height,
+        variants
+      })
     })
     if (!ready) throw new MediaQuotaError()
     isReady = true
@@ -472,6 +485,8 @@ export async function attachImage(
       if (target.type === 'AUTHORED_IMAGE') {
         await lockAuthoredDraft(trx, userId, target.subjectKind, target.subjectId)
       }
+      if (!(await repository.lockOwner(userId))) throw new MediaAccessError()
+      const quotaBytes = await getStorageQuotaBytes(trx, userId)
       assertReadyOwnedAsset(
         await repository.findByIdForUpdate(input.assetId),
         userId,

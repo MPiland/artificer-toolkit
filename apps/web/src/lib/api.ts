@@ -141,6 +141,8 @@ import {
   type RollRecordDto,
   type RollResultDto
 } from '@artificer-toolkit/schema/api/rolls'
+import * as campaignContracts from '@artificer-toolkit/schema/api/campaigns'
+import * as encounterContracts from '@artificer-toolkit/schema/api/encounters'
 import { applySameOriginRequestHeader } from './trpcRequestSecurity'
 import type { BackgroundAuthoringInputDto } from '@artificer-toolkit/schema/subjects/background'
 import type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
@@ -232,6 +234,36 @@ export type {
   SignedImageDeliveryDto
 }
 
+export type {
+  CampaignChatEntryDto,
+  CampaignChatPageDto,
+  CampaignAdjustmentDto,
+  CampaignConditionDto,
+  CampaignContentBindingDto,
+  CampaignDetailDto,
+  CampaignEventPageDto,
+  CampaignInviteDto,
+  CampaignNotebookSectionDto,
+  CampaignSessionDto,
+  CampaignSessionNoteSectionDto,
+  CampaignSessionReferencePinDto,
+  CampaignSummaryDto,
+  CurrencySystemDto,
+  EntitlementProjectionDto,
+  ExecuteCampaignRollInput,
+  InventoryDto,
+  InventoryOwnerRefDto,
+  SaveCampaignCurrencySystemInput,
+  SendCampaignChatEntryInput,
+  TransferCampaignInventoryInput
+} from '@artificer-toolkit/schema/api/campaigns'
+
+export type {
+  EncounterCommandInputDto,
+  EncounterGmProjectionDto,
+  EncounterPlayerProjectionDto
+} from '@artificer-toolkit/schema/api/encounters'
+
 type FetchInput = Parameters<typeof fetch>[0]
 type FetchInit = Parameters<typeof fetch>[1]
 
@@ -258,6 +290,8 @@ interface ProcedureRequestOptions {
 interface MutationProcedure<TInput, TOutput> {
   mutate: (input: TInput, options?: ProcedureRequestOptions) => Promise<TOutput>
 }
+
+type SchemaInput<TSchema extends z.ZodTypeAny> = z.input<TSchema>
 
 const okResponseSchema = z.object({
   ok: z.literal(true)
@@ -338,10 +372,346 @@ interface AuthoredDomainProcedures<TList, TResponse, TInput extends AuthoredCont
 interface TrpcClient {
   account: {
     completeInvitation: MutationProcedure<AuthInvitationCompletionInput, { ok: true }>
+    entitlements: EmptyQueryProcedure<campaignContracts.EntitlementProjectionDto>
     profile: EmptyQueryProcedure<AccountProfileDto | null>
     signInWithUsername: MutationProcedure<AuthUsernameSignInInput, AuthSessionCredentialsDto>
     updateProfile: MutationProcedure<AccountProfileUpdateInput, AccountProfileDto>
     usernameStatus: QueryProcedure<AccountUsernameStatusInput, AccountUsernameStatusDto>
+  }
+  campaigns: {
+    list: EmptyQueryProcedure<campaignContracts.CampaignSummaryDto[]>
+    get: QueryProcedure<
+      SchemaInput<typeof campaignContracts.campaignIdInputSchema>,
+      campaignContracts.CampaignDetailDto
+    >
+    create: MutationProcedure<
+      campaignContracts.CreateCampaignInput,
+      campaignContracts.CampaignDetailDto
+    >
+    update: MutationProcedure<
+      campaignContracts.UpdateCampaignInput,
+      campaignContracts.CampaignDetailDto
+    >
+    archive: MutationProcedure<
+      SchemaInput<typeof campaignContracts.archiveCampaignInputSchema>,
+      campaignContracts.CampaignDetailDto
+    >
+    delete: MutationProcedure<
+      SchemaInput<typeof campaignContracts.deleteCampaignInputSchema>,
+      { ok: true }
+    >
+    invites: {
+      create: MutationProcedure<
+        campaignContracts.CreateCampaignInviteInput,
+        campaignContracts.CampaignInviteDto
+      >
+      revoke: MutationProcedure<
+        SchemaInput<typeof campaignContracts.revokeCampaignInviteInputSchema>,
+        { ok: true }
+      >
+      accept: MutationProcedure<
+        SchemaInput<typeof campaignContracts.acceptCampaignInviteInputSchema>,
+        campaignContracts.CampaignDetailDto
+      >
+    }
+    leave: MutationProcedure<
+      SchemaInput<typeof campaignContracts.leaveCampaignInputSchema>,
+      { ok: true }
+    >
+    removeMember: MutationProcedure<
+      SchemaInput<typeof campaignContracts.removeCampaignMemberInputSchema>,
+      { ok: true }
+    >
+    assignCharacter: MutationProcedure<
+      SchemaInput<typeof campaignContracts.assignCampaignCharacterInputSchema>,
+      { ok: true }
+    >
+    unassignCharacter: MutationProcedure<
+      SchemaInput<typeof campaignContracts.unassignCampaignCharacterInputSchema>,
+      { ok: true }
+    >
+    conversations: {
+      list: QueryProcedure<
+        SchemaInput<typeof campaignContracts.listCampaignConversationsInputSchema>,
+        campaignContracts.CampaignConversationDto[]
+      >
+      markRead: MutationProcedure<
+        SchemaInput<typeof campaignContracts.markCampaignConversationReadInputSchema>,
+        { ok: true }
+      >
+    }
+    chat: {
+      list: QueryProcedure<
+        SchemaInput<typeof campaignContracts.listCampaignChatEntriesInputSchema>,
+        campaignContracts.CampaignChatPageDto
+      >
+      send: MutationProcedure<
+        campaignContracts.SendCampaignChatEntryInput,
+        campaignContracts.CampaignChatEntryDto
+      >
+      roll: MutationProcedure<
+        campaignContracts.ExecuteCampaignRollInput,
+        campaignContracts.CampaignChatEntryDto
+      >
+      privateRoll: MutationProcedure<
+        campaignContracts.ExecuteCampaignPrivateRollInput,
+        RollRecordDto
+      >
+      edit: MutationProcedure<
+        SchemaInput<typeof campaignContracts.editCampaignChatEntryInputSchema>,
+        campaignContracts.CampaignChatEntryDto
+      >
+      unsend: MutationProcedure<
+        SchemaInput<typeof campaignContracts.unsendCampaignChatEntryInputSchema>,
+        campaignContracts.CampaignChatEntryDto
+      >
+    }
+    notebook: {
+      list: QueryProcedure<
+        SchemaInput<typeof campaignContracts.listCampaignNotebookSectionsInputSchema>,
+        campaignContracts.CampaignNotebookSectionDto[]
+      >
+      create: MutationProcedure<
+        SchemaInput<typeof campaignContracts.createCampaignNotebookSectionInputSchema>,
+        campaignContracts.CampaignNotebookSectionDto
+      >
+      update: MutationProcedure<
+        SchemaInput<typeof campaignContracts.updateCampaignNotebookSectionInputSchema>,
+        campaignContracts.CampaignNotebookSectionDto
+      >
+      delete: MutationProcedure<
+        SchemaInput<typeof campaignContracts.deleteCampaignNotebookSectionInputSchema>,
+        { ok: true }
+      >
+    }
+    sessions: {
+      list: QueryProcedure<
+        SchemaInput<typeof campaignContracts.listCampaignSessionsInputSchema>,
+        campaignContracts.CampaignSessionDto[]
+      >
+      create: MutationProcedure<
+        SchemaInput<typeof campaignContracts.createCampaignSessionInputSchema>,
+        campaignContracts.CampaignSessionDto
+      >
+      update: MutationProcedure<
+        SchemaInput<typeof campaignContracts.updateCampaignSessionInputSchema>,
+        campaignContracts.CampaignSessionDto
+      >
+      delete: MutationProcedure<
+        SchemaInput<typeof campaignContracts.deleteCampaignSessionInputSchema>,
+        { ok: true }
+      >
+      finish: MutationProcedure<
+        SchemaInput<typeof campaignContracts.finishCampaignSessionInputSchema>,
+        campaignContracts.CampaignSessionDto
+      >
+      reopen: MutationProcedure<
+        SchemaInput<typeof campaignContracts.reopenCampaignSessionInputSchema>,
+        campaignContracts.CampaignSessionDto
+      >
+      get: QueryProcedure<
+        SchemaInput<typeof campaignContracts.getCampaignSessionInputSchema>,
+        campaignContracts.CampaignSessionDto
+      >
+      attendance: {
+        list: QueryProcedure<
+          SchemaInput<typeof campaignContracts.listCampaignSessionAttendanceInputSchema>,
+          campaignContracts.CampaignSessionAttendanceDto[]
+        >
+        set: MutationProcedure<
+          SchemaInput<typeof campaignContracts.setCampaignSessionAttendanceInputSchema>,
+          campaignContracts.CampaignSessionAttendanceDto
+        >
+      }
+      rsvps: {
+        list: QueryProcedure<
+          SchemaInput<typeof campaignContracts.listCampaignSessionRsvpsInputSchema>,
+          campaignContracts.CampaignSessionRsvpDto[]
+        >
+        set: MutationProcedure<
+          SchemaInput<typeof campaignContracts.setCampaignSessionRsvpInputSchema>,
+          campaignContracts.CampaignSessionRsvpDto
+        >
+      }
+      references: {
+        list: QueryProcedure<
+          SchemaInput<typeof campaignContracts.listCampaignSessionReferencePinsInputSchema>,
+          campaignContracts.CampaignSessionReferencePinDto[]
+        >
+        create: MutationProcedure<
+          SchemaInput<typeof campaignContracts.createCampaignSessionReferencePinInputSchema>,
+          campaignContracts.CampaignSessionReferencePinDto
+        >
+        delete: MutationProcedure<
+          SchemaInput<typeof campaignContracts.deleteCampaignSessionReferencePinInputSchema>,
+          { ok: true }
+        >
+      }
+      notes: {
+        list: QueryProcedure<
+          SchemaInput<typeof campaignContracts.listCampaignSessionNoteSectionsInputSchema>,
+          campaignContracts.CampaignSessionNoteSectionDto[]
+        >
+        create: MutationProcedure<
+          SchemaInput<typeof campaignContracts.createCampaignSessionNoteSectionInputSchema>,
+          campaignContracts.CampaignSessionNoteSectionDto
+        >
+        update: MutationProcedure<
+          SchemaInput<typeof campaignContracts.updateCampaignSessionNoteSectionInputSchema>,
+          campaignContracts.CampaignSessionNoteSectionDto
+        >
+        delete: MutationProcedure<
+          SchemaInput<typeof campaignContracts.deleteCampaignSessionNoteSectionInputSchema>,
+          { ok: true }
+        >
+      }
+    }
+    clock: {
+      get: QueryProcedure<
+        SchemaInput<typeof campaignContracts.campaignIdInputSchema>,
+        campaignContracts.CampaignClockDto | null
+      >
+      initialize: MutationProcedure<
+        campaignContracts.InitializeCampaignClockInput,
+        campaignContracts.CampaignClockDto
+      >
+      configure: MutationProcedure<
+        campaignContracts.ConfigureCampaignClockInput,
+        campaignContracts.CampaignClockDto
+      >
+      start: MutationProcedure<
+        campaignContracts.StartCampaignClockInput,
+        campaignContracts.CampaignClockDto
+      >
+      pause: MutationProcedure<
+        campaignContracts.PauseCampaignClockInput,
+        campaignContracts.CampaignClockDto
+      >
+      advance: MutationProcedure<
+        campaignContracts.AdvanceCampaignClockInput,
+        campaignContracts.CampaignClockDto
+      >
+      rewind: MutationProcedure<
+        campaignContracts.RewindCampaignClockInput,
+        campaignContracts.CampaignClockDto
+      >
+      reconcile: MutationProcedure<
+        campaignContracts.ReconcileCampaignClockInput,
+        campaignContracts.CampaignClockDto
+      >
+    }
+    inventory: {
+      currencySystems: QueryProcedure<
+        SchemaInput<typeof campaignContracts.campaignIdInputSchema>,
+        campaignContracts.CurrencySystemDto[]
+      >
+      get: QueryProcedure<
+        SchemaInput<typeof campaignContracts.getCampaignInventoryInputSchema>,
+        campaignContracts.InventoryDto
+      >
+      transfer: MutationProcedure<
+        campaignContracts.TransferCampaignInventoryInput,
+        campaignContracts.CampaignInventoryTransferResultDto
+      >
+      mutateParty: MutationProcedure<
+        campaignContracts.CampaignPartyInventoryMutationInput,
+        { eventId: string }
+      >
+      audit: QueryProcedure<
+        campaignContracts.ListCampaignInventoryAuditInput,
+        campaignContracts.CampaignInventoryAuditPageDto
+      >
+      saveCurrencySystem: MutationProcedure<
+        campaignContracts.SaveCampaignCurrencySystemInput,
+        campaignContracts.CurrencySystemDto
+      >
+      deleteCurrencySystem: MutationProcedure<
+        SchemaInput<typeof campaignContracts.deleteCampaignCurrencySystemInputSchema>,
+        { ok: true }
+      >
+    }
+    content: {
+      list: QueryProcedure<
+        SchemaInput<typeof campaignContracts.campaignIdInputSchema>,
+        campaignContracts.CampaignContentBindingDto[]
+      >
+      submit: MutationProcedure<
+        campaignContracts.SubmitCampaignContentVersionInput,
+        campaignContracts.CampaignContentBindingDto
+      >
+      review: MutationProcedure<
+        campaignContracts.ReviewCampaignContentVersionInput,
+        campaignContracts.CampaignContentBindingDto
+      >
+    }
+    gm: {
+      adjustments: {
+        list: QueryProcedure<
+          SchemaInput<typeof campaignContracts.listCampaignAdjustmentsInputSchema>,
+          campaignContracts.CampaignAdjustmentDto[]
+        >
+        delete: MutationProcedure<
+          SchemaInput<typeof campaignContracts.deleteCampaignAdjustmentInputSchema>,
+          { ok: true }
+        >
+      }
+      conditions: {
+        list: QueryProcedure<
+          SchemaInput<typeof campaignContracts.listCampaignAdjustmentsInputSchema>,
+          campaignContracts.CampaignConditionDto[]
+        >
+        save: MutationProcedure<
+          campaignContracts.SaveCampaignConditionInput,
+          campaignContracts.CampaignConditionDto
+        >
+        delete: MutationProcedure<campaignContracts.DeleteCampaignConditionInput, { ok: true }>
+      }
+      events: QueryProcedure<
+        SchemaInput<typeof campaignContracts.listCampaignEventsInputSchema>,
+        campaignContracts.CampaignEventPageDto
+      >
+    }
+  }
+  encounters: {
+    templates: {
+      list: QueryProcedure<
+        SchemaInput<typeof encounterContracts.getCampaignEncounterTemplatesInputDtoSchema>,
+        encounterContracts.EncounterTemplateDto[]
+      >
+      create: MutationProcedure<
+        encounterContracts.CreateEncounterTemplateInputDto,
+        encounterContracts.EncounterTemplateDto
+      >
+    }
+    create: MutationProcedure<
+      encounterContracts.CreateEncounterInputDto,
+      encounterContracts.EncounterGmProjectionDto
+    >
+    get: QueryProcedure<
+      SchemaInput<typeof encounterContracts.getEncounterInputDtoSchema>,
+      encounterContracts.EncounterGmProjectionDto | encounterContracts.EncounterPlayerProjectionDto
+    >
+    active: QueryProcedure<
+      SchemaInput<typeof encounterContracts.getCampaignEncounterInputDtoSchema>,
+      | encounterContracts.EncounterGmProjectionDto
+      | encounterContracts.EncounterPlayerProjectionDto
+      | null
+    >
+    list: QueryProcedure<
+      SchemaInput<typeof encounterContracts.getCampaignEncounterInputDtoSchema>,
+      Array<
+        | encounterContracts.EncounterGmProjectionDto
+        | encounterContracts.EncounterPlayerProjectionDto
+      >
+    >
+    command: MutationProcedure<
+      encounterContracts.EncounterCommandInputDto,
+      encounterContracts.EncounterCommandResultDto
+    >
+    timeline: QueryProcedure<
+      SchemaInput<typeof encounterContracts.getEncounterTimelineInputDtoSchema>,
+      encounterContracts.EncounterTimelineDto
+    >
   }
   characters: {
     command: MutationProcedure<
@@ -579,6 +949,10 @@ function buildApi(client: TrpcClient) {
         request('account.completeInvitation', okResponseSchema, () =>
           client.account.completeInvitation.mutate(input)
         ),
+      entitlements: () =>
+        request('account.entitlements', campaignContracts.entitlementProjectionDtoSchema, () =>
+          client.account.entitlements.query()
+        ),
       profile: () =>
         request('account.profile', accountProfileDtoSchema.nullable(), () =>
           client.account.profile.query()
@@ -595,6 +969,420 @@ function buildApi(client: TrpcClient) {
         request('account.usernameStatus', accountUsernameStatusDtoSchema, () =>
           client.account.usernameStatus.query(input)
         )
+    },
+
+    campaigns: {
+      list: () =>
+        request('campaigns.list', campaignContracts.campaignSummariesDtoSchema, () =>
+          client.campaigns.list.query()
+        ),
+      get: (campaignId: string) =>
+        request('campaigns.get', campaignContracts.campaignDetailDtoSchema, () =>
+          client.campaigns.get.query({ campaignId })
+        ),
+      create: (input: campaignContracts.CreateCampaignInput) =>
+        request('campaigns.create', campaignContracts.campaignDetailDtoSchema, () =>
+          client.campaigns.create.mutate(input)
+        ),
+      update: (input: campaignContracts.UpdateCampaignInput) =>
+        request('campaigns.update', campaignContracts.campaignDetailDtoSchema, () =>
+          client.campaigns.update.mutate(input)
+        ),
+      archive: (campaignId: string, expectedVersion: number) =>
+        request('campaigns.archive', campaignContracts.campaignDetailDtoSchema, () =>
+          client.campaigns.archive.mutate({ campaignId, expectedVersion })
+        ),
+      delete: async (campaignId: string, expectedVersion: number) => {
+        await request('campaigns.delete', okResponseSchema, () =>
+          client.campaigns.delete.mutate({ campaignId, expectedVersion, confirmation: 'DELETE' })
+        )
+      },
+      invites: {
+        create: (input: campaignContracts.CreateCampaignInviteInput) =>
+          request('campaigns.invites.create', campaignContracts.campaignInviteDtoSchema, () =>
+            client.campaigns.invites.create.mutate(input)
+          ),
+        revoke: async (campaignId: string, inviteId: string) => {
+          await request('campaigns.invites.revoke', okResponseSchema, () =>
+            client.campaigns.invites.revoke.mutate({ campaignId, inviteId })
+          )
+        },
+        accept: (token: string) =>
+          request('campaigns.invites.accept', campaignContracts.campaignDetailDtoSchema, () =>
+            client.campaigns.invites.accept.mutate({ token })
+          )
+      },
+      leave: async (campaignId: string) => {
+        await request('campaigns.leave', okResponseSchema, () =>
+          client.campaigns.leave.mutate({ campaignId })
+        )
+      },
+      removeMember: async (campaignId: string, userId: string) => {
+        await request('campaigns.removeMember', okResponseSchema, () =>
+          client.campaigns.removeMember.mutate({ campaignId, userId })
+        )
+      },
+      assignCharacter: async (campaignId: string, characterId: string) => {
+        await request('campaigns.assignCharacter', okResponseSchema, () =>
+          client.campaigns.assignCharacter.mutate({ campaignId, characterId })
+        )
+      },
+      unassignCharacter: async (campaignId: string, characterId?: string) => {
+        await request('campaigns.unassignCharacter', okResponseSchema, () =>
+          client.campaigns.unassignCharacter.mutate({ campaignId, characterId })
+        )
+      },
+      conversations: {
+        list: (campaignId: string) =>
+          request(
+            'campaigns.conversations.list',
+            campaignContracts.campaignConversationsDtoSchema,
+            () => client.campaigns.conversations.list.query({ campaignId })
+          ),
+        markRead: (
+          input: SchemaInput<typeof campaignContracts.markCampaignConversationReadInputSchema>
+        ) =>
+          request('campaigns.conversations.markRead', okResponseSchema, () =>
+            client.campaigns.conversations.markRead.mutate(input)
+          )
+      },
+      chat: {
+        list: (
+          campaignId: string,
+          room: 'TABLE' | 'PARTY' | 'DIRECT',
+          cursor?: string,
+          limit = 50,
+          directUserId?: string
+        ) =>
+          request('campaigns.chat.list', campaignContracts.campaignChatPageDtoSchema, () =>
+            client.campaigns.chat.list.query({ campaignId, room, cursor, limit, directUserId })
+          ),
+        send: (input: campaignContracts.SendCampaignChatEntryInput) =>
+          request('campaigns.chat.send', campaignContracts.campaignChatEntryDtoSchema, () =>
+            client.campaigns.chat.send.mutate(input)
+          ),
+        roll: (input: campaignContracts.ExecuteCampaignRollInput) =>
+          request('campaigns.chat.roll', campaignContracts.campaignChatEntryDtoSchema, () =>
+            client.campaigns.chat.roll.mutate(input)
+          ),
+        privateRoll: (input: campaignContracts.ExecuteCampaignPrivateRollInput) =>
+          request('campaigns.chat.privateRoll', rollRecordDtoSchema, () =>
+            client.campaigns.chat.privateRoll.mutate(input)
+          ),
+        edit: (campaignId: string, entryId: string, body: string) =>
+          request('campaigns.chat.edit', campaignContracts.campaignChatEntryDtoSchema, () =>
+            client.campaigns.chat.edit.mutate({ campaignId, entryId, body })
+          ),
+        unsend: (campaignId: string, entryId: string) =>
+          request('campaigns.chat.unsend', campaignContracts.campaignChatEntryDtoSchema, () =>
+            client.campaigns.chat.unsend.mutate({ campaignId, entryId })
+          )
+      },
+      notebook: {
+        list: (campaignId: string) =>
+          request(
+            'campaigns.notebook.list',
+            campaignContracts.campaignNotebookSectionsDtoSchema,
+            () => client.campaigns.notebook.list.query({ campaignId })
+          ),
+        create: (
+          input: SchemaInput<typeof campaignContracts.createCampaignNotebookSectionInputSchema>
+        ) =>
+          request(
+            'campaigns.notebook.create',
+            campaignContracts.campaignNotebookSectionDtoSchema,
+            () => client.campaigns.notebook.create.mutate(input)
+          ),
+        update: (
+          input: SchemaInput<typeof campaignContracts.updateCampaignNotebookSectionInputSchema>
+        ) =>
+          request(
+            'campaigns.notebook.update',
+            campaignContracts.campaignNotebookSectionDtoSchema,
+            () => client.campaigns.notebook.update.mutate(input)
+          ),
+        delete: async (campaignId: string, sectionId: string) => {
+          await request('campaigns.notebook.delete', okResponseSchema, () =>
+            client.campaigns.notebook.delete.mutate({ campaignId, sectionId })
+          )
+        }
+      },
+      sessions: {
+        list: (campaignId: string) =>
+          request('campaigns.sessions.list', campaignContracts.campaignSessionsDtoSchema, () =>
+            client.campaigns.sessions.list.query({ campaignId })
+          ),
+        create: (input: SchemaInput<typeof campaignContracts.createCampaignSessionInputSchema>) =>
+          request('campaigns.sessions.create', campaignContracts.campaignSessionDtoSchema, () =>
+            client.campaigns.sessions.create.mutate(input)
+          ),
+        update: (input: SchemaInput<typeof campaignContracts.updateCampaignSessionInputSchema>) =>
+          request('campaigns.sessions.update', campaignContracts.campaignSessionDtoSchema, () =>
+            client.campaigns.sessions.update.mutate(input)
+          ),
+        delete: async (campaignId: string, sessionId: string) => {
+          await request('campaigns.sessions.delete', okResponseSchema, () =>
+            client.campaigns.sessions.delete.mutate({ campaignId, sessionId })
+          )
+        },
+        finish: (
+          input: SchemaInput<typeof campaignContracts.finishCampaignSessionInputSchema>
+        ) =>
+          request('campaigns.sessions.finish', campaignContracts.campaignSessionDtoSchema, () =>
+            client.campaigns.sessions.finish.mutate(input)
+          ),
+        reopen: (
+          input: SchemaInput<typeof campaignContracts.reopenCampaignSessionInputSchema>
+        ) =>
+          request('campaigns.sessions.reopen', campaignContracts.campaignSessionDtoSchema, () =>
+            client.campaigns.sessions.reopen.mutate(input)
+          ),
+        get: (input: SchemaInput<typeof campaignContracts.getCampaignSessionInputSchema>) =>
+          request('campaigns.sessions.get', campaignContracts.campaignSessionDtoSchema, () =>
+            client.campaigns.sessions.get.query(input)
+          ),
+        attendance: {
+          list: (
+            input: SchemaInput<typeof campaignContracts.listCampaignSessionAttendanceInputSchema>
+          ) =>
+            request(
+              'campaigns.sessions.attendance.list',
+              campaignContracts.campaignSessionAttendanceDtoListSchema,
+              () => client.campaigns.sessions.attendance.list.query(input)
+            ),
+          set: (
+            input: SchemaInput<typeof campaignContracts.setCampaignSessionAttendanceInputSchema>
+          ) =>
+            request(
+              'campaigns.sessions.attendance.set',
+              campaignContracts.campaignSessionAttendanceDtoSchema,
+              () => client.campaigns.sessions.attendance.set.mutate(input)
+            )
+        },
+        rsvps: {
+          list: (campaignId: string, sessionId: string) =>
+            request(
+              'campaigns.sessions.rsvps.list',
+              campaignContracts.campaignSessionRsvpDtoListSchema,
+              () => client.campaigns.sessions.rsvps.list.query({ campaignId, sessionId })
+            ),
+          set: (
+            input: SchemaInput<typeof campaignContracts.setCampaignSessionRsvpInputSchema>
+          ) =>
+            request(
+              'campaigns.sessions.rsvps.set',
+              campaignContracts.campaignSessionRsvpDtoSchema,
+              () => client.campaigns.sessions.rsvps.set.mutate(input)
+            )
+        },
+        references: {
+          list: (campaignId: string, sessionId: string) =>
+            request(
+              'campaigns.sessions.references.list',
+              campaignContracts.campaignSessionReferencePinsDtoSchema,
+              () => client.campaigns.sessions.references.list.query({ campaignId, sessionId })
+            ),
+          create: (
+            input: SchemaInput<
+              typeof campaignContracts.createCampaignSessionReferencePinInputSchema
+            >
+          ) =>
+            request(
+              'campaigns.sessions.references.create',
+              campaignContracts.campaignSessionReferencePinDtoSchema,
+              () => client.campaigns.sessions.references.create.mutate(input)
+            ),
+          delete: async (campaignId: string, sessionId: string, pinId: string) => {
+            await request('campaigns.sessions.references.delete', okResponseSchema, () =>
+              client.campaigns.sessions.references.delete.mutate({
+                campaignId,
+                sessionId,
+                pinId
+              })
+            )
+          }
+        },
+        notes: {
+          list: (campaignId: string, sessionId: string) =>
+            request(
+              'campaigns.sessions.notes.list',
+              campaignContracts.campaignSessionNoteSectionsDtoSchema,
+              () => client.campaigns.sessions.notes.list.query({ campaignId, sessionId })
+            ),
+          create: (
+            input: SchemaInput<typeof campaignContracts.createCampaignSessionNoteSectionInputSchema>
+          ) =>
+            request(
+              'campaigns.sessions.notes.create',
+              campaignContracts.campaignSessionNoteSectionDtoSchema,
+              () => client.campaigns.sessions.notes.create.mutate(input)
+            ),
+          update: (
+            input: SchemaInput<typeof campaignContracts.updateCampaignSessionNoteSectionInputSchema>
+          ) =>
+            request(
+              'campaigns.sessions.notes.update',
+              campaignContracts.campaignSessionNoteSectionDtoSchema,
+              () => client.campaigns.sessions.notes.update.mutate(input)
+            ),
+          delete: async (campaignId: string, sessionId: string, sectionId: string) => {
+            await request('campaigns.sessions.notes.delete', okResponseSchema, () =>
+              client.campaigns.sessions.notes.delete.mutate({ campaignId, sessionId, sectionId })
+            )
+          }
+        }
+      },
+      clock: {
+        get: (campaignId: string) =>
+          request('campaigns.clock.get', campaignContracts.campaignClockDtoSchema.nullable(), () =>
+            client.campaigns.clock.get.query({ campaignId })
+          ),
+        initialize: (input: campaignContracts.InitializeCampaignClockInput) =>
+          request('campaigns.clock.initialize', campaignContracts.campaignClockDtoSchema, () =>
+            client.campaigns.clock.initialize.mutate(input)
+          ),
+        configure: (input: campaignContracts.ConfigureCampaignClockInput) =>
+          request('campaigns.clock.configure', campaignContracts.campaignClockDtoSchema, () =>
+            client.campaigns.clock.configure.mutate(input)
+          ),
+        start: (input: campaignContracts.StartCampaignClockInput) =>
+          request('campaigns.clock.start', campaignContracts.campaignClockDtoSchema, () =>
+            client.campaigns.clock.start.mutate(input)
+          ),
+        pause: (input: campaignContracts.PauseCampaignClockInput) =>
+          request('campaigns.clock.pause', campaignContracts.campaignClockDtoSchema, () =>
+            client.campaigns.clock.pause.mutate(input)
+          ),
+        advance: (input: campaignContracts.AdvanceCampaignClockInput) =>
+          request('campaigns.clock.advance', campaignContracts.campaignClockDtoSchema, () =>
+            client.campaigns.clock.advance.mutate(input)
+          ),
+        rewind: (input: campaignContracts.RewindCampaignClockInput) =>
+          request('campaigns.clock.rewind', campaignContracts.campaignClockDtoSchema, () =>
+            client.campaigns.clock.rewind.mutate(input)
+          ),
+        reconcile: (input: campaignContracts.ReconcileCampaignClockInput) =>
+          request('campaigns.clock.reconcile', campaignContracts.campaignClockDtoSchema, () =>
+            client.campaigns.clock.reconcile.mutate(input)
+          )
+      },
+      inventory: {
+        currencySystems: (campaignId: string) =>
+          request(
+            'campaigns.inventory.currencySystems',
+            campaignContracts.currencySystemDtoSchema.array(),
+            () => client.campaigns.inventory.currencySystems.query({ campaignId })
+          ),
+        get: (campaignId: string, owner: campaignContracts.InventoryOwnerRefDto) =>
+          request('campaigns.inventory.get', campaignContracts.inventoryDtoSchema, () =>
+            client.campaigns.inventory.get.query({ campaignId, owner })
+          ),
+        transfer: (input: campaignContracts.TransferCampaignInventoryInput) =>
+          request(
+            'campaigns.inventory.transfer',
+            campaignContracts.campaignInventoryTransferResultDtoSchema,
+            () => client.campaigns.inventory.transfer.mutate(input)
+          ),
+        mutateParty: (input: campaignContracts.CampaignPartyInventoryMutationInput) =>
+          request(
+            'campaigns.inventory.mutateParty',
+            campaignContracts.campaignPartyInventoryMutationResultDtoSchema,
+            () => client.campaigns.inventory.mutateParty.mutate(input)
+          ),
+        audit: (input: campaignContracts.ListCampaignInventoryAuditInput) =>
+          request(
+            'campaigns.inventory.audit',
+            campaignContracts.campaignInventoryAuditPageDtoSchema,
+            () => client.campaigns.inventory.audit.query(input)
+          ),
+        saveCurrencySystem: (input: campaignContracts.SaveCampaignCurrencySystemInput) =>
+          request(
+            'campaigns.inventory.saveCurrencySystem',
+            campaignContracts.currencySystemDtoSchema,
+            () => client.campaigns.inventory.saveCurrencySystem.mutate(input)
+          ),
+        deleteCurrencySystem: async (
+          campaignId: string,
+          systemId: string,
+          expectedVersion: number
+        ) => {
+          await request('campaigns.inventory.deleteCurrencySystem', okResponseSchema, () =>
+            client.campaigns.inventory.deleteCurrencySystem.mutate({
+              campaignId,
+              systemId,
+              expectedVersion
+            })
+          )
+        }
+      },
+      content: {
+        list: (campaignId: string) =>
+          request(
+            'campaigns.content.list',
+            campaignContracts.campaignContentBindingDtoSchema.array(),
+            () => client.campaigns.content.list.query({ campaignId })
+          ),
+        submit: (input: campaignContracts.SubmitCampaignContentVersionInput) =>
+          request(
+            'campaigns.content.submit',
+            campaignContracts.campaignContentBindingDtoSchema,
+            () => client.campaigns.content.submit.mutate(input)
+          ),
+        review: (input: campaignContracts.ReviewCampaignContentVersionInput) =>
+          request(
+            'campaigns.content.review',
+            campaignContracts.campaignContentBindingDtoSchema,
+            () => client.campaigns.content.review.mutate(input)
+          )
+      },
+      gm: {
+        adjustments: {
+          list: (campaignId: string, characterId: string) =>
+            request(
+              'campaigns.gm.adjustments.list',
+              campaignContracts.campaignAdjustmentsDtoSchema,
+              () => client.campaigns.gm.adjustments.list.query({ campaignId, characterId })
+            ),
+          delete: async (
+            campaignId: string,
+            characterId: string,
+            adjustmentId: string,
+            expectedVersion: number
+          ) => {
+            await request('campaigns.gm.adjustments.delete', okResponseSchema, () =>
+              client.campaigns.gm.adjustments.delete.mutate({
+                campaignId,
+                characterId,
+                adjustmentId,
+                expectedVersion
+              })
+            )
+          }
+        },
+        conditions: {
+          list: (campaignId: string, characterId: string) =>
+            request(
+              'campaigns.gm.conditions.list',
+              campaignContracts.campaignConditionsDtoSchema,
+              () => client.campaigns.gm.conditions.list.query({ campaignId, characterId })
+            ),
+          save: (input: campaignContracts.SaveCampaignConditionInput) =>
+            request(
+              'campaigns.gm.conditions.save',
+              campaignContracts.campaignConditionDtoSchema,
+              () => client.campaigns.gm.conditions.save.mutate(input)
+            ),
+          delete: async (input: campaignContracts.DeleteCampaignConditionInput) => {
+            await request('campaigns.gm.conditions.delete', okResponseSchema, () =>
+              client.campaigns.gm.conditions.delete.mutate(input)
+            )
+          }
+        },
+        events: (campaignId: string, characterId: string, cursor?: string, limit = 50) =>
+          request('campaigns.gm.events', campaignContracts.campaignEventPageDtoSchema, () =>
+            client.campaigns.gm.events.query({ campaignId, characterId, cursor, limit })
+          )
+      }
     },
 
     characters: {
@@ -800,6 +1588,47 @@ function buildApi(client: TrpcClient) {
           saveDraft: (input) => client.content.vehicles.saveDraft.mutate(input)
         }
       )
+    },
+
+    encounters: {
+      templates: {
+        list: (campaignId: string) =>
+          request('encounters.templates.list', encounterContracts.encounterTemplateListDtoSchema, () =>
+            client.encounters.templates.list.query({ campaignId })
+          ),
+        create: (input: encounterContracts.CreateEncounterTemplateInputDto) =>
+          request('encounters.templates.create', encounterContracts.encounterTemplateDtoSchema, () =>
+            client.encounters.templates.create.mutate(input)
+          )
+      },
+      create: (input: encounterContracts.CreateEncounterInputDto) =>
+        request('encounters.create', encounterContracts.encounterGmProjectionDtoSchema, () =>
+          client.encounters.create.mutate(input)
+        ),
+      get: (encounterId: string) =>
+        request('encounters.get', encounterContracts.encounterProjectionDtoSchema, () =>
+          client.encounters.get.query({ encounterId })
+        ),
+      active: (campaignId: string) =>
+        request(
+          'encounters.active',
+          encounterContracts.encounterProjectionDtoSchema.nullable(),
+          () => client.encounters.active.query({ campaignId })
+        ),
+      list: (campaignId: string) =>
+        request('encounters.list', encounterContracts.encounterProjectionListDtoSchema, () =>
+          client.encounters.list.query({ campaignId })
+        ),
+      command: (input: encounterContracts.EncounterCommandInputDto) =>
+        request('encounters.command', encounterContracts.encounterCommandResultDtoSchema, () =>
+          client.encounters.command.mutate(input)
+        ),
+      timeline: (
+        input: SchemaInput<typeof encounterContracts.getEncounterTimelineInputDtoSchema>
+      ) =>
+        request('encounters.timeline', encounterContracts.encounterTimelineDtoSchema, () =>
+          client.encounters.timeline.query(input)
+        )
     },
 
     systems: {

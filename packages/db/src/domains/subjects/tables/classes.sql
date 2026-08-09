@@ -405,6 +405,7 @@ CREATE TABLE IF NOT EXISTS public.class_spellcasting (
   magic_name text,
   ability_code text,         -- AbilityCode
   max_spell_level integer NOT NULL,
+  available_spell_ids uuid[] NOT NULL DEFAULT '{}'::uuid[],
   available_at_level integer,
   sort_order integer,
 

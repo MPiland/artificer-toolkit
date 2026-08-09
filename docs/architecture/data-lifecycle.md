@@ -50,6 +50,8 @@ flowchart LR
 
 ## Character content binding
 
-Current structural character selections store stable authored root IDs and resolve them against `ACTIVE` content. Equipment engine inputs additionally use `ContentRef` to carry the root ID, system ID, and explicit `ACTIVE` binding alongside the compiled item used by that run. Other compiled records are supplied through the assembly registry.
+Structural character selections keep stable authored root IDs. Outside a Campaign, roots resolve against the canonical `ACTIVE` aggregate. An assigned Character may instead have an explicit binding from that selected root identity to an immutable approved Campaign content version.
 
-Persisted historical `REVISION` binding is unsupported. Adding it would require an explicit history store plus revision-aware character DTOs, persistence, registry loading, and snapshot assembly.
+Campaign versions persist a schema-validated hydrated/resolved root snapshot rather than duplicating normalized authored tables. Builder registry loading merges approved Campaign snapshots with ordinary active content, while assembly derives the same root-feature and ancestry structure expected by `planCharacterAssembly`. Persisted Character intent and the pure engine remain unchanged.
+
+Removing an assignment deletes Campaign bindings before resolution. Reconciliation removes invalid dependent selections, preserves stale structural IDs as repair context, and persists the active Character plus owner-scoped Builder draft as `DRAFT` when a granted structural root is no longer available.

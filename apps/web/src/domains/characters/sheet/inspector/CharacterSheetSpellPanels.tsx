@@ -279,15 +279,14 @@ export function CharacterSheetSpellsPanelContent({
   panel,
   pending,
   submitCommand,
-  onTargetChange,
-  onOpenBuilder
+  onTargetChange
 }: {
   expectedVersion: number
   panel: SpellsPanel
   pending: boolean
   submitCommand: SubmitSheetCommand
   onTargetChange: (target: CharacterSheetPanelTargetDto) => void
-  onOpenBuilder: () => void
+  onOpenBuilder?: () => void
 }) {
   const canUseSlot = panel.editable && panel.allowedCommands.includes('USE_SPELL_SLOT')
   const canRestoreSlot = panel.editable && panel.allowedCommands.includes('RESTORE_SPELL_SLOT')
@@ -311,6 +310,35 @@ export function CharacterSheetSpellsPanelContent({
       expectedVersion,
       classId: source.preparationClassId,
       spellIds
+    })
+  }
+
+  async function setKnown(
+    source: SpellsPanel['groups'][number]['sources'][number],
+    known: boolean
+  ) {
+    if (!source.knownClassId) return false
+    const knownSpellIds = [
+      ...new Set(
+        sources
+          .filter((candidate) => candidate.knownClassId === source.knownClassId)
+          .filter((candidate) => {
+            const sameSource =
+              candidate.spellId === source.spellId &&
+              candidate.source.sourceKind === source.source.sourceKind &&
+              candidate.source.sourceInstanceId === source.source.sourceInstanceId
+            return sameSource ? known : candidate.known
+          })
+          .map((candidate) => candidate.spellId)
+          .concat(known ? [source.spellId] : [])
+      )
+    ]
+
+    return await submitCommand({
+      type: 'SET_KNOWN_SPELLS',
+      expectedVersion,
+      classId: source.knownClassId,
+      spellIds: knownSpellIds
     })
   }
 
@@ -433,6 +461,20 @@ export function CharacterSheetSpellsPanelContent({
                             {source.prepared ? 'Unprepare' : 'Prepare'}
                           </Button>
                         ) : null}
+                        {source.canManageKnown && source.knownClassId ? (
+                          <Button
+                            disabled={
+                              pending ||
+                              !panel.editable ||
+                              !panel.allowedCommands.includes('SET_KNOWN_SPELLS')
+                            }
+                            size='xs'
+                            variant={source.known ? 'default' : 'filled'}
+                            onClick={() => void setKnown(source, !source.known)}
+                          >
+                            {source.known ? 'Forget' : 'Learn'}
+                          </Button>
+                        ) : null}
                       </div>
                     </div>
                   ))}
@@ -453,27 +495,6 @@ export function CharacterSheetSpellsPanelContent({
             </Accordion.Item>
           ) : null}
 
-          <Accordion.Item className={inspectorShellStyles.disclosureItem} value='add-spells'>
-            <Accordion.Control>
-              <div>
-                <Text fw={700}>Add known spells</Text>
-                <Text className={inspectorShellStyles.muted}>
-                  Change spell acquisition in the Builder
-                </Text>
-              </div>
-            </Accordion.Control>
-            <Accordion.Panel>
-              <div className={inspectorEditorStyles.builderHandoff}>
-                <Text>
-                  Open the Character Builder to add or remove known spells. Prepared spells remain
-                  immediately manageable here on the Sheet.
-                </Text>
-                <Button disabled={pending} size='xs' onClick={onOpenBuilder}>
-                  Open Builder
-                </Button>
-              </div>
-            </Accordion.Panel>
-          </Accordion.Item>
         </Accordion>
       </section>
     </div>

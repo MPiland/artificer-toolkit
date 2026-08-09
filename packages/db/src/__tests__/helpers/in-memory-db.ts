@@ -155,6 +155,30 @@ class DeleteBuilder {
   }
 }
 
+class UpdateBuilder {
+  private readonly filters: Filter[] = []
+  private valuesToSet: Row = {}
+
+  constructor(
+    private readonly db: InMemoryDb,
+    private readonly table: string
+  ) {}
+
+  set(values: Row) {
+    this.valuesToSet = values
+    return this
+  }
+
+  where(column: string, _op: string, value: unknown) {
+    this.filters.push({ column, op: _op, value })
+    return this
+  }
+
+  async execute() {
+    this.db.updateWhere(this.table, this.filters, this.valuesToSet)
+  }
+}
+
 class InsertBuilder {
   private rows: Row[] = []
   private conflictColumns = ['id']
@@ -253,6 +277,10 @@ class InMemoryTransaction {
     return new DeleteBuilder(this.db, table)
   }
 
+  updateTable(table: string) {
+    return new UpdateBuilder(this.db, table)
+  }
+
   commit() {
     return {
       execute: async () => undefined
@@ -293,6 +321,10 @@ export class InMemoryDb {
 
   deleteFrom(table: string) {
     return new DeleteBuilder(this, table)
+  }
+
+  updateTable(table: string) {
+    return new UpdateBuilder(this, table)
   }
 
   readTable(table: string): Row[] {
@@ -349,6 +381,16 @@ export class InMemoryDb {
     for (const row of removed) {
       this.onRowDeleted(table, row)
     }
+  }
+
+  updateWhere(table: string, filters: Filter[], values: Row) {
+    const rows = this.readTable(table)
+    this.tables.set(
+      table,
+      rows.map((row) =>
+        filters.every((filter) => matchesFilter(row, filter)) ? { ...row, ...values } : row
+      )
+    )
   }
 
   private onRowUpdated(table: string, previous: Row, next: Row) {

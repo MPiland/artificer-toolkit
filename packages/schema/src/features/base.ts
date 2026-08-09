@@ -12,6 +12,7 @@ import { detailDtoSchema } from '../shared/detail.js'
 import { facetDtoSchema } from '../shared/facet.js'
 import { featureAttributeSchema } from '../shared/enums.js'
 import { effectDtoSchema } from '../effects/effect.js'
+import { diceExpressionDtoSchema } from '../shared/dice.js'
 import {
   featGrantDtoSchema,
   modifierGrantDtoSchema,
@@ -28,6 +29,17 @@ const featureGrantsDtoSchemaBase = z.object({
   spells: authoredNestedCollectionSchema(spellGrantDtoSchema).optional()
 })
 
+export const featureRollDefinitionDtoSchema = z.strictObject({
+  id: authoredIdentifierSchema,
+  label: authoredShortTextSchema,
+  kind: z.enum(['ATTACK', 'DAMAGE', 'HEALING', 'ABILITY_CHECK', 'SAVING_THROW']),
+  expression: diceExpressionDtoSchema,
+  rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']).default('NORMAL'),
+  chargeCost: z.number().int().positive().nullable().default(null),
+  order: z.number().int().nonnegative()
+})
+export type FeatureRollDefinitionDto = z.infer<typeof featureRollDefinitionDtoSchema>
+
 export type FeatureGrantsDto = z.infer<typeof featureGrantsDtoSchemaBase>
 export const featureGrantsDtoSchema: z.ZodType<FeatureGrantsDto> = featureGrantsDtoSchemaBase
 
@@ -39,6 +51,7 @@ const featureBaseDtoSchemaBase = z.object({
   detail: z.never().optional(),
   details: authoredNestedCollectionSchema(detailDtoSchema).optional(),
   effects: authoredNestedCollectionSchema(effectDtoSchema).optional(),
+  rollDefinitions: authoredNestedCollectionSchema(featureRollDefinitionDtoSchema).optional(),
   charges: chargeUseDtoSchema.optional(),
   grants: featureGrantsDtoSchema.optional(),
   restrictions: facetDtoSchema.optional(),

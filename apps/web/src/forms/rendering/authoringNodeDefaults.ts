@@ -198,6 +198,12 @@ export function createDefaultAuthoringNodeValue(
       }
     case 'durationValue':
       return { amount: 1 }
+    case 'diceExpression':
+      return {
+        count: 1,
+        die: 6,
+        modifier: 0
+      }
     case 'facet':
       return {
         id: crypto.randomUUID(),
@@ -252,6 +258,20 @@ export function createDefaultAuthoringNodeValue(
       }
     case 'feature':
       return createFeatureLike(order)
+    case 'featureRollDefinition':
+      return {
+        id: crypto.randomUUID(),
+        label: '',
+        kind: 'DAMAGE',
+        expression: {
+          count: 1,
+          die: 6,
+          modifier: 0
+        },
+        rollMode: 'NORMAL',
+        chargeCost: null,
+        order
+      }
     case 'option':
       return createOption(order)
     case 'featureGrants':

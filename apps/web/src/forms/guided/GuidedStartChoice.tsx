@@ -21,12 +21,24 @@ type GuidedStartChoiceProps = {
   onFresh: () => void
 }
 
+const DOMAIN_NOUNS: Record<AuthoredFormDomain, { singular: string; plural: string }> = {
+  background: { singular: 'background', plural: 'backgrounds' },
+  class: { singular: 'class', plural: 'classes' },
+  creature: { singular: 'creature', plural: 'creatures' },
+  equipment: { singular: 'item', plural: 'items' },
+  feat: { singular: 'feat', plural: 'feats' },
+  race: { singular: 'race', plural: 'races' },
+  spell: { singular: 'spell', plural: 'spells' },
+  vehicle: { singular: 'vehicle', plural: 'vehicles' }
+}
+
 export function GuidedStartChoice({
   domain,
   domainLabel,
   onAdvanced,
   onFresh
 }: GuidedStartChoiceProps) {
+  const nouns = DOMAIN_NOUNS[domain]
   const [existingMode, setExistingMode] = useState(false)
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
   const [copying, setCopying] = useState(false)
@@ -68,7 +80,7 @@ export function GuidedStartChoice({
 
   return (
     <GuidedAuthoringFrame
-      description={`Create a new ${domainLabel.toLowerCase()}, or use something proven as your starting point.`}
+      description={`Create a new ${nouns.singular}, or use something proven as your starting point.`}
       domainLabel={domainLabel}
       onAdvanced={onAdvanced}
       title='How do you want to begin?'
@@ -101,7 +113,7 @@ export function GuidedStartChoice({
           <span className={styles.choiceCopy}>
             <Group gap='xs' wrap='wrap'>
               <span className={styles.choiceTitle}>
-                Use an existing {domainLabel.toLowerCase()}
+                Use an existing {nouns.singular}
               </span>
               {domain === 'class' ? <Badge size='xs'>Recommended</Badge> : null}
             </Group>
@@ -113,7 +125,7 @@ export function GuidedStartChoice({
       </div>
 
       {existingMode ? (
-        <section className={styles.copyPanel} aria-label={`Use an existing ${domainLabel.toLowerCase()}`}>
+        <section className={styles.copyPanel} aria-label={`Use an existing ${nouns.singular}`}>
           <Stack gap='md'>
             <Text size='sm' c='dimmed'>
               Choose a source first. Nothing is copied until you confirm with Create copy.
@@ -121,7 +133,7 @@ export function GuidedStartChoice({
             <AppSelect
               autoFocus
               disabled={sources.isLoading || sources.isError}
-              label={`Search ${domainLabel.toLowerCase()}s`}
+              label={`Search ${nouns.plural}`}
               placeholder='Search by name'
               data={sourceOptions}
               value={selectedSourceId}
@@ -140,7 +152,7 @@ export function GuidedStartChoice({
             ) : null}
             {!sources.isLoading && !sources.isError && sourceOptions.length === 0 ? (
               <Text c='dimmed' size='sm'>
-                No copyable {domainLabel.toLowerCase()}s are available.
+                No copyable {nouns.plural} are available.
               </Text>
             ) : null}
             {selectedSource ? <CopySourceSummary domain={domain} source={selectedSource} /> : null}

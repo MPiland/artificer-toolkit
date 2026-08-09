@@ -551,6 +551,8 @@ export const spellPanelFixture = {
   references: [{ label: 'Source', value: 'Core Rules, p. 257' }],
   prepared: true,
   canPrepare: true,
+  known: false,
+  canManageKnown: false,
   preparationClassId: wizardClassId,
   displayAsAttack: false,
   legalCastModes: [
@@ -706,7 +708,13 @@ export const spellsPanelFixture = {
   title: 'Manage Spells',
   state: 'DEFAULT',
   editable: true,
-  allowedCommands: ['SET_PREPARED_SPELLS', 'USE_SPELL_SLOT', 'RESTORE_SPELL_SLOT', 'CAST_SPELL'],
+  allowedCommands: [
+    'SET_PREPARED_SPELLS',
+    'SET_KNOWN_SPELLS',
+    'USE_SPELL_SLOT',
+    'RESTORE_SPELL_SLOT',
+    'CAST_SPELL'
+  ],
   slots: [
     { slotKey: 'STANDARD:1', label: 'Level 1', used: 1, maximum: 4, remaining: 3 },
     { slotKey: 'STANDARD:2', label: 'Level 2', used: 1, maximum: 2, remaining: 1 }
@@ -727,6 +735,8 @@ export const spellsPanelFixture = {
           sourceLabel: 'Wizard',
           prepared: true,
           canPrepare: true,
+          known: false,
+          canManageKnown: false,
           preparationClassId: wizardClassId,
           state: 'DEFAULT'
         },
@@ -741,6 +751,8 @@ export const spellsPanelFixture = {
           sourceLabel: 'Wizard',
           prepared: true,
           canPrepare: true,
+          known: false,
+          canManageKnown: false,
           preparationClassId: wizardClassId,
           state: 'DEFAULT'
         },
@@ -755,6 +767,8 @@ export const spellsPanelFixture = {
           sourceLabel: 'Wizard',
           prepared: true,
           canPrepare: true,
+          known: false,
+          canManageKnown: false,
           preparationClassId: wizardClassId,
           state: 'DEFAULT'
         }

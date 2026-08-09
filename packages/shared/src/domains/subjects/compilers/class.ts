@@ -72,6 +72,7 @@ export interface CompiledSpellLimits {
 
 export interface CompiledSpellcasting {
   spellLimits: CompiledSpellLimits[]
+  availableSpellIds?: string[]
   ability?: AbilityCode
   maxSpellLevel: number // int
   attributes?: SpellcastingAttribute[]
@@ -168,6 +169,7 @@ export function compileSpellcasting(authored: ClassSpellcastingAuthored): Compil
 
   return {
     spellLimits: authored.spellLimits.map((spellLimit) => compileSpellLimits(spellLimit)),
+    availableSpellIds: authored.availableSpellIds,
     ability: authored.ability,
     maxSpellLevel: authored.maxSpellLevel,
     attributes: authored.attributes,

@@ -82,12 +82,13 @@ export const createCharacter = handleAuthoringRequest(
 
 export const getCharacter = handleRequest(
   getCharacterForUser,
-  (request: Request) => [extractId(request)] as [string]
+  (request: Request, userId: string) => [extractId(request), userId] as [string, string]
 )
 
 export const getCharacterSheet = handleRequest(
   getCharacterSheetForUser,
-  (request: Request) => [extractCharacterIdBeforeSegment(request, 'sheet')] as [string]
+  (request: Request, userId: string) =>
+    [extractCharacterIdBeforeSegment(request, 'sheet'), userId] as [string, string]
 )
 
 export const previewCharacterRest = handleAuthoringRequest(

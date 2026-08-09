@@ -1,7 +1,7 @@
 # Phase 09 — Paid tables and Pro GM economics
 
 > **Status:** planned; commercial/legal decisions required before implementation
-> **Depends on:** [Phase 03](03-campaign-core.md), [Phase 04](04-social-hub.md), and [Phase 08](08-entitlements-and-subscriptions.md)
+> **Depends on:** [Phase 03](03-campaign-core.md), [Phase 04](04-social-hub.md), [Phase 05](05-live-campaign-play.md), and [Phase 08](08-entitlements-and-subscriptions.md)
 > **Unlocks:** professional-GM monetization and the public web viability gate
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0002](../adr/0002-kysely-writes-authored-hydration.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md)
 
@@ -31,6 +31,11 @@ Do not write payment code until the business owner and qualified legal/tax advis
 - Grant paid Campaign access only after the approved payment state is reached. A checkout redirect grants nothing.
 - Model cancellations, refunds, disputes, chargebacks, rescheduling, and access removal without deleting financial or moderation history.
 - Keep paid-table orders, seats, and payouts separate from future creator release licenses and Marketplace orders.
+- Create notification events for paid-game application, acceptance, booking, payment, cancellation, rescheduling, refund, dispute, payout, and scheduled-session reminders. Reuse Phase 05 durable records; external delivery has idempotent attempts and retry state.
+- Paid offerings publish the Campaign's table expectations, content guidance, attendance/cancellation policy, and selected safety practices. At least one approved safety practice is required before publication.
+- A paid session correlates Phase 05's scheduled time, RSVP, and actual attendance with its immutable booking economics. The GM confirms whether the session ran before payout eligibility; correction and dispute paths retain the original record and actor audit.
+- Minimum-player rules, cancellation windows, no-shows, late joins, partial attendance, GM cancellation, and technical-failure handling are explicit stored policy inputs, not ad hoc support notes.
+- A GM operations view summarizes upcoming sessions, seats and RSVPs, attendance awaiting confirmation, cancellations/refunds/disputes requiring action, and gross/platform-fee/processing/net payout facts. It is a projection of booking truth, not a separate editable ledger or speculative performance-scoring system.
 
 ## Design
 
@@ -49,6 +54,7 @@ sequenceDiagram
   Billing->>Billing: Dedupe and resolve provider facts
   Billing->>Table: Fulfill capacity-safe booking
   Table-->>Billing: Booking and Campaign access identity
+  Table->>Billing: Paid-game notification event
   Billing-->>Player: Booking projection through API
 ```
 
@@ -62,8 +68,9 @@ Payment receipt handling and table fulfillment coordinate through explicit ident
 4. **Add server-owned checkout and webhook convergence.** Store provider identities and idempotency; never fulfill from client navigation.
 5. **Coordinate capacity and access.** Make reservation, payment, seat consumption, and Campaign membership converge without overselling or orphaning access.
 6. **Apply plan-based fees.** Snapshot the GM 10% or Pro GM 0% Artificer platform fee while keeping processing charges and taxes explicit.
-7. **Build responsive web flows.** Cover onboarding, offering management, application/booking status, checkout, receipts, cancellation, refund, and operator diagnostics.
-8. **Validate policy and failure behavior.** Test signatures, retries, reordering, stale prices, capacity races, plan changes, refund/dispute cases, GM isolation, and reconciliation.
+7. **Add paid-game notifications.** Reuse Phase 05 inbox records; add RSVP and scheduled reminders plus external delivery attempts without sensitive payloads.
+8. **Build responsive web flows.** Cover onboarding, offering management, the GM operations view, table expectations/safety practices, application/booking/attendance status, checkout, receipts, cancellation, refund, notification state, and operator diagnostics.
+9. **Validate policy and failure behavior.** Test signatures, retries, reordering, stale prices, capacity races, plan changes, refund/dispute cases, GM isolation, notification delivery, and reconciliation.
 
 ## Acceptance gates
 
@@ -74,7 +81,10 @@ Payment receipt handling and table fulfillment coordinate through explicit ident
 - A GM booking snapshots a 10% Artificer platform fee; a Pro GM booking snapshots 0%; processing charges and taxes remain separate.
 - Changing or ending a subscription does not rewrite historical booking economics.
 - Cancellation, rescheduling, refund, dispute, no-show, and Campaign-removal behavior matches the approved written policy.
+- A payout-eligible session has one scheduled record, attendance confirmation, and auditable GM correction path; retries cannot charge or pay twice.
+- The GM operations view reconciles to stored bookings, refunds, disputes, and payouts and does not invent a second balance or attendance state.
 - GM A cannot inspect GM B's applicants, customers, bookings, balances, or payout state.
+- Paid-game notification attempts are idempotent, retryable, and contain no protected payload without an authorized follow-up read.
 - Creator content licenses, releases, and Marketplace orders are absent from this phase.
 
 ## Out of scope

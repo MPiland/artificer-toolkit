@@ -241,6 +241,52 @@ describe('authoring group row labels', () => {
     const node = createArrayNode('feature', 'Features')
 
     expect(getCollectionRowLabel(node, { label: 'Breath Weapon' }, 0)).toBe('Breath Weapon')
+    expect(
+      getCollectionRowLabel(node, { label: 'Extra Attack', availableAtLevel: 5 }, 0)
+    ).toBe('Level 5 · Extra Attack')
     expect(getCollectionRowLabel(node, {}, 1)).toBe('Feature 2')
+  })
+
+  it('summarizes proficiency rows instead of numbering them', () => {
+    const node = createArrayNode('proficiencyGrant', 'Proficiencies')
+
+    expect(
+      getCollectionRowLabel(
+        node,
+        {
+          proficiencyKind: 'EQUIPMENT_PROPERTY',
+          category: 'ARMOR',
+          properties: ['LIGHT', 'MEDIUM'],
+          selectionKind: 'GRANTED'
+        },
+        0
+      )
+    ).toBe('Light / Medium armor proficiency')
+    expect(
+      getCollectionRowLabel(
+        node,
+        { proficiencyKind: 'SKILL', selectionKind: 'CHOSEN', count: 3 },
+        1
+      )
+    ).toBe('Choose 3 skills')
+  })
+
+  it('summarizes a class spell progression row', () => {
+    const node = createArrayNode('classSpellLimits', 'Spell Limits')
+
+    expect(
+      getCollectionRowLabel(
+        node,
+        {
+          classLevel: 5,
+          learnedSpellsLimit: 5,
+          slots: [
+            { spellLevel: 1, slotCount: 4 },
+            { spellLevel: 2, slotCount: 2 }
+          ]
+        },
+        0
+      )
+    ).toBe('Level 5 · 4/2 slots · 5 known')
   })
 })

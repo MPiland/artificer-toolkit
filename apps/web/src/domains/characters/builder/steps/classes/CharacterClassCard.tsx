@@ -27,6 +27,7 @@ export function CharacterClassCard({
       <div className={styles.classHeader}>
         <div className={styles.classIdentity}>
           <h3 className={styles.classTitle}>{label}</h3>
+          <span className={styles.classLevelLabel}>Level</span>
           <NumberInput
             allowDecimal={false}
             className={styles.classLevelField}

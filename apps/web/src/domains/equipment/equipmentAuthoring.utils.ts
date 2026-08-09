@@ -63,6 +63,7 @@ export type EquipmentFormValues = {
   modifiers?: ModifierGrantDto[]
   features?: FeatureDto[]
   restrictions?: EquipmentAuthoredDto['restrictions']
+  requiresAttunement?: EquipmentAuthoredDto['requiresAttunement']
 }
 
 export interface CreateEmptyEquipmentInput {
@@ -88,7 +89,8 @@ export function createEmptyBaseEquipment({
     effects: [],
     modifiers: [],
     features: [],
-    contains: []
+    contains: [],
+    requiresAttunement: false
   }
 }
 
@@ -109,7 +111,8 @@ export function createEmptyVariantEquipment({
     properties: [],
     effects: [],
     modifiers: [],
-    features: []
+    features: [],
+    requiresAttunement: false
   }
 }
 
@@ -234,7 +237,8 @@ export function normalizeEquipmentForSubmit(
     modifiers: equipment.modifiers ?? [],
     maxBonus: equipment.maxBonus,
     features: equipment.features ?? [],
-    restrictions: equipment.restrictions
+    restrictions: equipment.restrictions,
+    requiresAttunement: equipment.requiresAttunement
   }
 
   if (equipment.category === EQUIPMENT_CATEGORY_CODE.VARIANT) {

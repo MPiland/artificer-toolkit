@@ -1,4 +1,4 @@
-import type { DBLike } from '#types'
+import type { DBLike, Json } from '#types'
 import { withTransaction } from '../../../utils/index.js'
 import {
   FEATURE_ATTRIBUTE,
@@ -27,6 +27,7 @@ type FeatureRow = {
   restriction_id: string | null
   sort_order: number
   available_at_level: number | null
+  roll_definitions: Json
 }
 
 function requireFeatureSection(
@@ -116,7 +117,8 @@ function mapFeatureRow<N extends NodeSubjectCode>(json_data: FeatureAuthored<N>)
     charge_id: json_data.charges?.id ?? null,
     restriction_id: json_data.restrictions?.id ?? null,
     sort_order: json_data.order,
-    available_at_level: json_data.availableAtLevel ?? null
+    available_at_level: json_data.availableAtLevel ?? null,
+    roll_definitions: JSON.parse(JSON.stringify(json_data.rollDefinitions ?? [])) as Json
   }
 }
 
@@ -139,7 +141,8 @@ async function upsertFeatureRow(db: DBLike, row: FeatureRow) {
         charge_id: eb.ref('excluded.charge_id'),
         restriction_id: eb.ref('excluded.restriction_id'),
         sort_order: eb.ref('excluded.sort_order'),
-        available_at_level: eb.ref('excluded.available_at_level')
+        available_at_level: eb.ref('excluded.available_at_level'),
+        roll_definitions: eb.ref('excluded.roll_definitions')
       }))
     )
     .execute()

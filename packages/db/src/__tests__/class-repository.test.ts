@@ -71,6 +71,7 @@ describe('createClassRepository', () => {
             description: 'Recover some power.',
             charge_id: null,
             restriction_id: null,
+            roll_definitions: [],
             sort_order: 1,
             available_at_level: 1
           }
@@ -101,6 +102,7 @@ describe('createClassRepository', () => {
             magic_name: 'Arcana',
             ability_code: 'INTELLIGENCE',
             max_spell_level: 9,
+            available_spell_ids: ['spell-magic-missile', 'spell-shield'],
             charge_id: 'charge-sc-1'
           }
         ],
@@ -321,6 +323,7 @@ describe('createClassRepository', () => {
         ],
         ability: 'INTELLIGENCE',
         maxSpellLevel: 9,
+        availableSpellIds: ['spell-magic-missile', 'spell-shield'],
         attributes: ['PREPARES_SPELLS', 'RITUAL_CASTER'],
         charges: {
           id: 'charge-sc-1',

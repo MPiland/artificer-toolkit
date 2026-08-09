@@ -16,7 +16,10 @@ const mocks = vi.hoisted(() => ({
   reconcileCharacter: vi.fn(),
   resolveBuilder: vi.fn(),
   resolveEngine: vi.fn(),
-  upsertCharacter: vi.fn()
+  lockCampaignContent: vi.fn(),
+  replaceCampaignBindings: vi.fn(),
+  upsertCharacter: vi.fn(),
+  withCharacterLimit: vi.fn()
 }))
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => {
@@ -69,6 +72,14 @@ vi.mock('./sheetService.js', async (importOriginal) => {
     resolveCharacterSheetEngine: mocks.resolveEngine
   }
 })
+
+vi.mock('../account/entitlementService.js', () => ({
+  withPersonalCharacterLimit: mocks.withCharacterLimit
+}))
+vi.mock('./campaignCharacterContent.js', () => ({
+  lockCampaignCharacterContentForSave: mocks.lockCampaignContent,
+  replaceCampaignCharacterContentBindings: mocks.replaceCampaignBindings
+}))
 
 const { createEmptyCharacterAuthored } = await import('./builderService.js')
 const { upsertCharacterBuilderForUser } = await import('./characterApplicationService.js')
@@ -169,11 +180,27 @@ describe('Builder hit point reconciliation', () => {
       structuredClone(character)
     )
     mocks.resolveBuilder.mockResolvedValue(resolution)
+    mocks.lockCampaignContent.mockResolvedValue(undefined)
+    mocks.replaceCampaignBindings.mockResolvedValue(undefined)
+    mocks.withCharacterLimit.mockImplementation(
+      async (
+        _db: DBLike,
+        _userId: string,
+        _characterId: string,
+        callback: (db: DBLike) => unknown
+      ) => callback({} as DBLike)
+    )
   })
 
   it('clamps live current hit points when a Builder change lowers the effective maximum', async () => {
     const persisted = await finalizeWithMaximum(9, 5)
 
+    expect(mocks.withCharacterLimit).toHaveBeenCalledWith(
+      expect.anything(),
+      'user-1',
+      'character-1',
+      expect.any(Function)
+    )
     expect(persisted.state.hitpoints.current).toBe(5)
     expect(persisted.state.hitpoints.temp).toBe(3)
   })
@@ -191,5 +218,24 @@ describe('Builder hit point reconciliation', () => {
     const persisted = await finalizeWithMaximum(9, -4)
 
     expect(persisted.state.hitpoints.current).toBe(0)
+  })
+
+  it('rejects a Builder commit before resolving when the Character belongs to another user', async () => {
+    mocks.findCharacter.mockResolvedValue(createActiveCharacter(9))
+
+    await expect(
+      upsertCharacterBuilderForUser(
+        {} as DBLike,
+        {
+          character: createActiveCharacter(9),
+          mode: 'edit',
+          targetStatus: 'ACTIVE'
+        },
+        'user-2'
+      )
+    ).rejects.toMatchObject({ name: 'AuthoredContentOwnershipError' })
+
+    expect(mocks.resolveBuilder).not.toHaveBeenCalled()
+    expect(mocks.upsertCharacter).not.toHaveBeenCalled()
   })
 })

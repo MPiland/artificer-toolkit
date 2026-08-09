@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.characters (
   status text NOT NULL DEFAULT 'DRAFT',
   inspiration boolean NOT NULL DEFAULT false,
   CONSTRAINT chk_characters_status CHECK (status IN ('DRAFT', 'ACTIVE')),
+  CONSTRAINT characters_id_user_id_key UNIQUE (id, user_id),
   -- Optimistic concurrency guard — incremented on every command write
   stream_version integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT NOW(),
@@ -279,6 +280,7 @@ CREATE TABLE IF NOT EXISTS public.character_classes (
   subclass_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
   specialization_id uuid REFERENCES public.class_specializations (id) ON DELETE SET NULL DEFERRABLE,
   class_level integer NOT NULL,
+  known_spells_overridden boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT NOW(),
   updated_at timestamptz NOT NULL DEFAULT NOW(),
   CONSTRAINT character_classes_class_level_chk CHECK (

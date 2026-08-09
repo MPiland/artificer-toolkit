@@ -1,0 +1,305 @@
+import {
+  Alert,
+  Badge,
+  Button,
+  Group,
+  SegmentedControl,
+  Select,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+  UnstyledButton
+} from '@mantine/core'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
+import { IconChevronRight } from '@tabler/icons-react'
+import { type SubmitEvent, useState } from 'react'
+import type { CampaignDetailDto, CampaignSessionDto } from '#app/lib/api'
+import { api } from '#app/lib/api'
+import { getCampaignSessionRsvps, getCampaignSessions } from '#app/data/campaigns/queries'
+import { queryKeys } from '#app/lib/queryKeys'
+import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
+import {
+  browserTimeZone,
+  fromSessionLocalDateTime,
+  supportedSessionTimeZones
+} from '../campaignSessionSchedule'
+import * as styles from '../campaigns.css'
+
+export function CampaignSessions({
+  campaign,
+  currentUserId
+}: {
+  campaign: CampaignDetailDto
+  currentUserId: string
+}) {
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const sessions = useQuery(getCampaignSessions(campaign.id))
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [title, setTitle] = useState('')
+  const [scheduledStartAt, setScheduledStartAt] = useState('')
+  const [scheduledEndAt, setScheduledEndAt] = useState('')
+  const [timeZone, setTimeZone] = useState(browserTimeZone)
+
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.sessions(campaign.id) })
+  const create = useMutation({
+    mutationFn: () =>
+      api.campaigns.sessions.create({
+        campaignId: campaign.id,
+        title: title.trim() || null,
+        scheduledStartAt:
+          scheduledStartAt && scheduledEndAt
+            ? fromSessionLocalDateTime(scheduledStartAt, timeZone)
+            : null,
+        scheduledEndAt:
+          scheduledStartAt && scheduledEndAt
+            ? fromSessionLocalDateTime(scheduledEndAt, timeZone)
+            : null,
+        timeZone: scheduledStartAt && scheduledEndAt ? timeZone : null
+      }),
+    onSuccess: async () => {
+      setEditorOpen(false)
+      setTitle('')
+      setScheduledStartAt('')
+      setScheduledEndAt('')
+      await refresh()
+    }
+  })
+  const editable = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
+  const scheduleIncomplete = Boolean(scheduledStartAt) !== Boolean(scheduledEndAt)
+
+  return (
+    <section className={styles.sessionsPanel} aria-labelledby='campaign-sessions-title'>
+      <Group align='flex-start' justify='space-between' wrap='wrap'>
+        <div>
+          <Title order={2} id='campaign-sessions-title'>
+            Sessions
+          </Title>
+          <Text c='dimmed' size='sm'>
+            {campaign.role === 'OWNER'
+              ? 'Plan upcoming Sessions and revisit the table’s history.'
+              : 'Review upcoming Sessions, RSVP, and revisit the table’s history.'}
+          </Text>
+        </div>
+        {editable && !editorOpen ? (
+          <Button onClick={() => setEditorOpen(true)}>Add session</Button>
+        ) : null}
+      </Group>
+
+      {sessions.error ? (
+        <Alert color='red'>Sessions couldn’t be loaded. Refresh the page to try again.</Alert>
+      ) : null}
+
+      {editorOpen ? (
+        <form
+          className={styles.sessionEditor}
+          onSubmit={(event: SubmitEvent) => {
+            event.preventDefault()
+            create.mutate()
+          }}
+        >
+          <Title order={3}>New session</Title>
+          <TextInput
+            classNames={{ input: styles.input }}
+            label='Name (optional)'
+            value={title}
+            onChange={(event) => setTitle(event.currentTarget.value)}
+          />
+          <TextInput
+            classNames={{ input: styles.input }}
+            label='Starts (optional)'
+            type='datetime-local'
+            value={scheduledStartAt}
+            onChange={(event) => setScheduledStartAt(event.currentTarget.value)}
+          />
+          <TextInput
+            classNames={{ input: styles.input }}
+            label='Ends'
+            min={scheduledStartAt || undefined}
+            type='datetime-local'
+            value={scheduledEndAt}
+            onChange={(event) => setScheduledEndAt(event.currentTarget.value)}
+          />
+          <Select
+            classNames={{ input: styles.input }}
+            data={supportedSessionTimeZones()}
+            disabled={!scheduledStartAt && !scheduledEndAt}
+            label='Time zone'
+            searchable
+            value={timeZone}
+            onChange={(value) => value && setTimeZone(value)}
+          />
+          {create.error ? (
+            <Alert color='red'>The Session couldn’t be created. Your entries are still here.</Alert>
+          ) : null}
+          {scheduleIncomplete ? (
+            <Alert color='orange'>Add both a start and end, or leave both blank.</Alert>
+          ) : null}
+          <Group>
+            <Button disabled={scheduleIncomplete} loading={create.isPending} type='submit'>
+              Save session
+            </Button>
+            <Button variant='subtle' onClick={() => setEditorOpen(false)}>
+              Cancel
+            </Button>
+          </Group>
+        </form>
+      ) : null}
+
+      {sessions.isPending ? <Text c='dimmed'>Loading sessions…</Text> : null}
+      {sessions.data?.length === 0 ? (
+        <div className={styles.emptyState}>
+          <Text fw={600}>No sessions yet.</Text>
+          <Text c='dimmed' size='sm'>
+            {campaign.role === 'OWNER'
+              ? 'Add the first session when you are ready to plan the table.'
+              : 'The GM has not added a Session yet.'}
+          </Text>
+        </div>
+      ) : null}
+      <Stack className={styles.sessionList} gap={0}>
+        {sessions.data?.map((session) => (
+          <SessionRow
+            canEdit={editable}
+            campaign={campaign}
+            currentUserId={currentUserId}
+            key={session.id}
+            session={session}
+            onOpen={() =>
+              navigate({
+                to: '/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber',
+                params: {
+                  ...buildCampaignRouteParams(campaign.publicId, campaign.name),
+                  sessionNumber: String(session.sessionNumber)
+                }
+              })
+            }
+          />
+        ))}
+      </Stack>
+    </section>
+  )
+}
+
+function SessionRow({
+  canEdit,
+  campaign,
+  currentUserId,
+  session,
+  onOpen
+}: {
+  canEdit: boolean
+  campaign: CampaignDetailDto
+  currentUserId: string
+  session: CampaignSessionDto
+  onOpen: () => void
+}) {
+  const queryClient = useQueryClient()
+  const rsvps = useQuery({
+    ...getCampaignSessionRsvps(campaign.id, session.id),
+    enabled: session.status === 'OPEN'
+  })
+  const setRsvp = useMutation({
+    mutationFn: (response: 'YES' | 'NO' | 'MAYBE') =>
+      api.campaigns.sessions.rsvps.set({
+        campaignId: campaign.id,
+        sessionId: session.id,
+        response
+      }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.campaigns.sessionRsvps(campaign.id, session.id)
+      })
+  })
+  const currentRsvp = rsvps.data?.find((entry) => entry.userId === currentUserId)?.response ?? null
+  const identity = (
+    <div>
+      <Group gap='xs'>
+        <Text fw={700}>{sessionLabel(session)}</Text>
+        <SessionStatus status={session.status} />
+      </Group>
+      <Text c='dimmed' size='sm'>
+        {formatSessionSchedule(session)}
+      </Text>
+    </div>
+  )
+  return (
+    <div className={styles.sessionRow}>
+      {canEdit ? (
+        <UnstyledButton
+          aria-label={`Open ${sessionLabel(session)}`}
+          className={styles.sessionRowMain}
+          onClick={onOpen}
+        >
+          {identity}
+          <IconChevronRight aria-hidden className={styles.sessionOpenCue} size={18} />
+        </UnstyledButton>
+      ) : (
+        <div className={styles.sessionRowMain}>{identity}</div>
+      )}
+      {session.status === 'OPEN' && campaign.role === 'PLAYER' ? (
+        <SegmentedControl
+          aria-label={`RSVP for ${sessionLabel(session)}`}
+          data={[
+            { label: 'Yes', value: 'YES' },
+            { label: 'Maybe', value: 'MAYBE' },
+            { label: 'No', value: 'NO' }
+          ]}
+          disabled={setRsvp.isPending}
+          size='xs'
+          value={currentRsvp ?? ''}
+          onChange={(value) => {
+            if (value === 'YES' || value === 'NO' || value === 'MAYBE') setRsvp.mutate(value)
+          }}
+        />
+      ) : null}
+      {setRsvp.error ? (
+        <Text c='red' size='xs'>
+          RSVP couldn’t be updated. Try again.
+        </Text>
+      ) : null}
+    </div>
+  )
+}
+
+function SessionStatus({ status }: { status: CampaignSessionDto['status'] }) {
+  return <Badge variant='light'>{status === 'OPEN' ? 'Open' : 'Finished'}</Badge>
+}
+
+function sessionLabel(session: CampaignSessionDto) {
+  if (session.title) return session.title
+  if (session.scheduledStartAt)
+    return `Session ${formatDate(session.scheduledStartAt, session.timeZone)}`
+  return `Session ${session.sessionNumber}`
+}
+
+function formatSessionSchedule(session: CampaignSessionDto) {
+  if (!session.scheduledStartAt || !session.scheduledEndAt || !session.timeZone) {
+    return 'Not scheduled'
+  }
+  const day = formatDate(session.scheduledStartAt, session.timeZone)
+  const start = formatTime(session.scheduledStartAt, session.timeZone)
+  const end = formatTime(session.scheduledEndAt, session.timeZone)
+  return `${day} · ${start}–${end} · ${session.timeZone}`
+}
+
+function formatDate(value: string, timeZone: string | null) {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    ...(timeZone ? { timeZone } : {})
+  }).format(new Date(value))
+}
+
+function formatTime(value: string, timeZone: string) {
+  return new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone
+  }).format(new Date(value))
+}

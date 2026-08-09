@@ -10,6 +10,7 @@ import {
 import { buildCreatureRouteParams } from '#app/routing/authoredRouteParams'
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import type { CreatureEditLoaderData } from '#app/routes/-routeLoaderData'
+import { loadAuthoredRouteSystem } from '#app/routes/-authoredRouteSystem'
 import { AuthoringLayout } from '#forms'
 import {
   createAuthoredFormRouteContext,
@@ -32,6 +33,11 @@ export const Route = createFileRoute('/_authed/creatures/$creaturePublicId/$crea
       context.queryClient.ensureQueryData(getCreatureDraft(creatureId, client))
     ])
     const routeSubject = getAuthoredRouteSubject(creatureId, response, draft)
+    const system = await loadAuthoredRouteSystem(
+      context.queryClient,
+      client,
+      response?.item?.systemId ?? draft?.systemId
+    )
 
     if (
       routeSubject &&
@@ -48,7 +54,8 @@ export const Route = createFileRoute('/_authed/creatures/$creaturePublicId/$crea
       breadcrumbLabel: routeSubject?.label,
       draft,
       response,
-      subjectId: creatureId
+      subjectId: creatureId,
+      system
     })
   },
   component: AuthoringLayout

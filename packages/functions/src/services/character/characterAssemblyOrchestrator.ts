@@ -21,6 +21,11 @@ import type { ResolvedEquipment, ResolvedRace } from '@artificer-toolkit/shared/
 import type { CharacterBuilderCatalog } from './builderCatalog.js'
 import type { CharacterBuilderRegistry } from './builderService.js'
 import { planCharacterAssembly, type CharacterAssemblyPlan } from './characterAssemblyPlanner.js'
+import {
+  buildCampaignAssemblyStructure,
+  hydrateCampaignSelectedContent,
+  type CampaignCharacterContentOverlay
+} from './campaignCharacterContent.js'
 
 export interface CharacterAssemblyLoadResult {
   registry: CharacterBuilderRegistry
@@ -31,8 +36,9 @@ export async function loadCharacterAssemblyRegistry(params: {
   db: DBLike
   character: CharacterAuthored
   catalog: CharacterBuilderCatalog
+  campaignContent?: CampaignCharacterContentOverlay | null
 }): Promise<CharacterAssemblyLoadResult> {
-  const { db, character, catalog } = params
+  const { db, character, catalog, campaignContent } = params
   const selectedRaceIds = [
     ...new Set(
       [character.intent.race.raceId, character.intent.race.subraceId].filter((id): id is string =>
@@ -65,7 +71,7 @@ export async function loadCharacterAssemblyRegistry(params: {
   const directlyAcquiredFeatureIds = [
     ...new Set(character.intent.featureAcquisitions.map((acquisition) => acquisition.featureId))
   ]
-  const structure = await getCharacterAssemblyStructureQuery(db, {
+  const canonicalStructure = await getCharacterAssemblyStructureQuery(db, {
     raceIds: selectedRaceIds,
     classIds: selectedClassIds,
     backgroundIds: selectedBackgroundIds,
@@ -73,6 +79,56 @@ export async function loadCharacterAssemblyRegistry(params: {
     equipmentIds: ownedEquipmentIds,
     featureIds: directlyAcquiredFeatureIds
   })
+  const campaignRegistry = campaignContent
+    ? await hydrateCampaignSelectedContent(db, campaignContent, {
+        raceIds: selectedRaceIds,
+        classIds: selectedClassIds,
+        backgroundIds: selectedBackgroundIds,
+        featIds: [...selectedFeatIds],
+        equipmentIds: ownedEquipmentIds
+      })
+    : null
+  const campaignStructure = campaignRegistry
+    ? buildCampaignAssemblyStructure(campaignRegistry)
+    : null
+  const campaignRootKeys = new Set(
+    campaignStructure?.rootFeatureLinks.map((link) => `${link.ownerKind}:${link.ownerId}`) ?? []
+  )
+  const campaignRaceIds = new Set(campaignRegistry?.races.map((record) => record.id) ?? [])
+  const campaignFeatureIds = new Set(
+    campaignStructure?.rootFeatureLinks.map((link) => link.featureId) ?? []
+  )
+  for (const option of campaignStructure?.ancestryOptions ?? []) {
+    for (const link of option.featureLinks) campaignFeatureIds.add(link.featureId)
+  }
+  const structure = campaignStructure
+    ? {
+        rootFeatureLinks: [
+          ...canonicalStructure.rootFeatureLinks.filter(
+            (link) => !campaignRootKeys.has(`${link.ownerKind}:${link.ownerId}`)
+          ),
+          ...campaignStructure.rootFeatureLinks
+        ],
+        ancestryOptions: [
+          ...canonicalStructure.ancestryOptions.filter(
+            (option) => !campaignRaceIds.has(option.raceId)
+          ),
+          ...campaignStructure.ancestryOptions
+        ],
+        featureOptions: [
+          ...canonicalStructure.featureOptions.filter(
+            (option) => !campaignFeatureIds.has(option.featureId)
+          ),
+          ...campaignStructure.featureOptions
+        ],
+        featureOptionChoices: [
+          ...canonicalStructure.featureOptionChoices.filter(
+            (choice) => !campaignFeatureIds.has(choice.featureId)
+          ),
+          ...campaignStructure.featureOptionChoices
+        ]
+      }
+    : canonicalStructure
   const plan = planCharacterAssembly({ character, structure, selectedFeatIds })
   const structurallyOwnedFeatureIds = new Set([
     ...structure.rootFeatureLinks.map((link) => link.featureId),
@@ -148,24 +204,41 @@ export async function loadCharacterAssemblyRegistry(params: {
     plan,
     registry: {
       system,
-      races,
-      classes: selectedClassIds.flatMap((classId) => {
-        const record = classesById.get(classId)
-        return record ? [record] : []
-      }),
-      backgrounds: selectedBackgroundIds.flatMap((backgroundId) => {
-        const record = backgroundsById.get(backgroundId)
-        return record ? [record] : []
-      }),
-      equipment,
-      feats: [...selectedFeatIds].flatMap((featId) => {
-        const record = featsById.get(featId)
-        return record ? [record] : []
-      }),
+      races: replaceRecords(races, campaignRegistry?.races ?? []),
+      classes: replaceRecords(
+        selectedClassIds.flatMap((classId) => {
+          const record = classesById.get(classId)
+          return record ? [record] : []
+        }),
+        campaignRegistry?.classes ?? []
+      ),
+      backgrounds: replaceRecords(
+        selectedBackgroundIds.flatMap((backgroundId) => {
+          const record = backgroundsById.get(backgroundId)
+          return record ? [record] : []
+        }),
+        campaignRegistry?.backgrounds ?? []
+      ),
+      equipment: replaceRecords(equipment, campaignRegistry?.equipment ?? []),
+      feats: replaceRecords(
+        [...selectedFeatIds].flatMap((featId) => {
+          const record = featsById.get(featId)
+          return record ? [record] : []
+        }),
+        campaignRegistry?.feats ?? []
+      ),
       features: activeAcquiredFeatureIds.flatMap((featureId) => {
         const feature = featuresById.get(featureId)
         return feature ? [feature] : []
       })
     }
   }
+}
+
+function replaceRecords<T extends { id: string }>(
+  current: readonly T[],
+  campaign: readonly T[]
+): T[] {
+  const campaignIds = new Set(campaign.map((record) => record.id))
+  return [...current.filter((record) => !campaignIds.has(record.id)), ...campaign]
 }

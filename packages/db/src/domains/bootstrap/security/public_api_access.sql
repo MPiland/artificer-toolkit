@@ -20,6 +20,7 @@ REVOKE EXECUTE
 
 GRANT USAGE ON SCHEMA public TO supabase_auth_admin;
 GRANT EXECUTE ON FUNCTION public.set_admin_claims(jsonb) TO supabase_auth_admin;
+GRANT EXECUTE ON FUNCTION private.can_subscribe_campaign_realtime_topic(text) TO authenticated;
 
 DO $$
 DECLARE

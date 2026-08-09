@@ -1,7 +1,7 @@
 # Future platform roadmap
 
 > **Status:** transitional plan
-> **Scope:** completed Sheet and dice foundations, media/files, Campaigns, Social Hub, live play, Encounters, web VTT, launch plans, paid tables, web viability, native clients, deferred creator Marketplace, and release operations
+> **Scope:** completed Sheet and dice foundations, media/files, Campaigns and collaboration, Social Hub, live play, Encounters, web VTT, subscriptions, paid tables, web viability, native clients, deferred creator Marketplace, and release operations
 > **Update when:** priorities, product assumptions, client boundaries, payment strategy, or a phase exit gate changes
 > **Verification:** current workspace manifests, canonical architecture guides, ADRs 0001 and 0005–0011, and the phase documents linked below
 
@@ -18,7 +18,7 @@ The delivery order is:
 - **Phase 02:** Media and supporting-file pipeline image scope — complete.
 - **Phase 03:** Campaign Core.
 - **Phase 04:** Social Hub and free table formation.
-- **Phase 05:** Live Campaign play.
+- **Phase 05:** Live Campaign play, announcements, and web notifications.
 - **Phase 06:** Campaign and standalone Encounters.
 - **Phase 07:** Web VTT.
 - **Phase 08:** Plans, entitlements, and subscriptions.
@@ -35,14 +35,14 @@ No phase should be implemented as one repository-wide branch. Start a new sessio
 
 - Initial commerce and social availability is US-only and 18+.
 - D&D 5e 2014 is the first playable ruleset. Every Campaign, Encounter, roll, and replayable event records explicit system and ruleset identity.
-- Character Sheet adjustments are per-character, mechanically authoritative, and owner-editable. Future authorized GMs may inspect adjustment provenance without receiving edit authority.
+- Character Sheet adjustments are per-character, mechanically authoritative, and owner-editable. Campaign owners may command assigned Sheet mechanics through the Phase 03 authority rules; hidden Campaign sources never leak into player projections.
 - One character may have one active Campaign initially. Standalone Encounters remain allowed.
 - Native work begins only after the connected web product passes the viability gate. Native v1 is play-first; complex authoring, seller administration, and professional layout tools remain web-first.
 - Native clients may read a visibly stale cached Sheet or Campaign projection during temporary connectivity loss. Offline writes, chat, dice, and VTT are not supported initially.
-- Player-only chat excludes Campaign GMs but is not end-to-end encrypted. Access by authorized staff occurs only through an audited safety or report workflow.
+- Player-only chat excludes Campaign GMs at fetch, subscription, counts, notification, and ordinary analytics boundaries; it is not end-to-end encrypted. Access by authorized staff occurs only through an audited safety or report workflow.
 - Alpha and early beta may remain free while the web loop is built. Free, Player, GM, and Pro GM pricing, limits, and paid-table platform fees use the launch-planning matrix below; evidence may change them before public launch.
 - Beta sizing targets ordinary tabletop use: approximately 20 connected users and 100 actors in one scope.
-- Roll retention starts at 5,000 Campaign rolls and 2,000 Encounter rolls, then changes only from observed beta usage.
+- Each Phase 03 Campaign chat room retains its newest 500 timeline entries, including Campaign rolls. Encounter retention starts at 2,000 rolls and changes only from observed beta usage.
 - Character portraits are distinct from account avatars. Characters and user-authored content use one source image plus normalized user-selected thumbnail crop metadata; compact controls render the generated thumbnail while detail pages use the display variant.
 - User uploads are private by default. Current image limits, dimensions, quotas, and retention are centrally configured; later supporting-file profiles define their own allowlists and safety limits.
 - Ordinary Campaign supporting files and handout maps are size-limited separately from larger VTT maps.
@@ -77,7 +77,18 @@ The completed private-by-default asset pipeline serves account avatars, Characte
 
 ### Campaigns and live play
 
-Campaigns own invitations, membership, roles, character assignment, content access, typed rules, shared inventories, vehicles, sessions, notes, clocks, chat, rolls, and audited GM authority. Campaign rules modify engine assembly without rewriting character-authored intent. Campaign content references grant members read/use access to immutable Campaign content versions while relevant to the Campaign; they do not grant ownership, editing, personal export, or marketplace sale rights.
+Phase 03 Campaigns own username/entitlement enforcement, invitations, membership, owner transfer, Character assignment, immutable content access, typed rules, party inventory/currency, GM Sheet authority, notes, durable Campaign conversations/rolls, and private Realtime hints. The Campaign management page is the GM workspace and launch point for live session controls; players use Sheet-side drawers for quick Notes/Chat/Party Inventory access while running. Phase 05 adds vehicles, files/handouts, session clock controls, announcements, and the web inbox. Campaign rules modify engine assembly without rewriting character-authored intent. Campaign content references grant members read/use access to immutable Campaign content versions while relevant to the Campaign; they do not grant ownership, editing, personal export, or marketplace sale rights.
+
+The GM workflow is split by the moment of use instead of accumulated on one screen:
+
+| GM job | Owning phase |
+| --- | --- |
+| Form the table, establish expectations, manage membership/content/Characters, communicate, and share custody | Phase 03 Campaign Core plus Phase 04 Social Hub safety/discovery |
+| Schedule, prepare, run, capture, and close out a session; access pinned references, handouts, clock, announcements, and attendance | Phase 05 Live Campaign play |
+| Build reusable enemy templates and run authoritative combat with actionable enemy stat blocks, rolls, resources, turn order, and history | Phase 06 Encounters |
+| Add maps, scenes, tokens, fog, and measurement without creating another combat model | Phase 07 Web VTT |
+| Operate public paid tables, attendance-linked bookings, cancellations, refunds, disputes, and payouts | Phase 09 Paid tables |
+| Add deeper world knowledge, relationships, travel, ambience, co-GM roles, and optional automation only after the core loop is proven | [Future enhancements](future-enhancements.md) |
 
 ### Encounters and VTT
 
@@ -119,9 +130,8 @@ flowchart TD
   P0 --> P3["Phase 03<br/>Campaign Core"]
   P2["Phase 02 complete<br/>Media + files"] --> P3
   P3 --> P4["Phase 04<br/>Social Hub"]
-  P1 --> P5["Phase 05<br/>Live Campaign play"]
+  P3 --> P5["Phase 05<br/>Live play + notifications"]
   P2 --> P5
-  P3 --> P5
   P1 --> P6["Phase 06<br/>Encounters"]
   P3 --> P6
   P5 --> P6
@@ -129,10 +139,12 @@ flowchart TD
   P2 --> P7
   P5 --> P7
   P6 --> P7
-  P4 --> P8["Phase 08<br/>Plans + entitlements"]
+  P3 --> P8["Phase 08<br/>Billing + subscriptions"]
+  P4 --> P8
   P6 --> P8
   P8 --> P9["Phase 09<br/>Paid tables"]
   P4 --> P9
+  P5 --> P9
   P9 --> Launch["Launch hardening<br/>+ web viability gate"]
   P7 --> Launch
   Launch -->|viable| P10["Phase 10<br/>Native parity"]
@@ -141,7 +153,7 @@ flowchart TD
   P12 --> P13["Phase 13<br/>Paid creator Marketplace"]
 ```
 
-The numbered order is the default product sequence. Hard dependencies are shown above. Phase 01 provides authoritative roll evidence; Phase 05 and Phase 06 add owning Campaign and Encounter persistence. Phase 07 delivers the required web VTT without waiting for native or Marketplace work. Phase 10 begins only after the public web loop demonstrates viability.
+The numbered order is the default product sequence. Hard dependencies are shown above. Phase 01 provides authoritative roll evidence; Phase 03 adds Campaign persistence and collaboration, and Phase 06 adds Encounter persistence. Phase 07 delivers the required web VTT without waiting for native or Marketplace work. Phase 10 begins only after the public web loop demonstrates viability.
 
 ## Architecture guardrails
 
@@ -155,10 +167,10 @@ The numbered order is the default product sequence. Hard dependencies are shown 
 - Model authorization as centralized capabilities derived from an explicit authority context. Do not scatter `role === 'GM'` checks through routes and components.
 - Persist commands before broadcasting them. Realtime is delivery and invalidation infrastructure, not the source of truth.
 - Use idempotency keys, expected versions, row locks, and one Postgres transaction for multi-aggregate operations that must succeed or fail together.
-- Keep player-only chat cryptographically and operationally separate from GM-visible channels at authorization, RLS, fetch, subscription, notification, and moderation boundaries.
+- Keep player-only chat operationally separate from GM-visible channels at authorization, RLS, fetch, subscription, notification, and ordinary analytics boundaries. It is not end-to-end encrypted.
 - Record exact inputs and results required for replay. Never re-run an old Encounter event against newly active content.
-- Keep entitlements provider-neutral. Stripe, App Store, Play Store, beta, and administrator grants project into one internal authorization model.
-- Keep originals private and asset references stable. Store asset IDs/object keys as truth, never signed URLs; domain records own visibility and references.
+- Keep entitlements provider-neutral. Phase 03's manual tier projection, then Stripe, App Store, Play Store, beta, and administrator grants project into one internal authorization model.
+- Keep originals private and asset references stable. Store asset IDs/object keys as truth, never signed URLs; domain records own visibility and references. Revisit a Cloudflare R2/provider move only when Phase 07 VTT storage evidence requires it.
 - Use purpose-specific upload profiles. Clients cannot select arbitrary buckets/paths, and ordinary attachments cannot inherit the larger limits intended for VTT maps.
 - Bind authored artwork to its owned root or draft and Marketplace artwork to exact immutable releases. Builder replacement writes cannot delete Character portraits or Campaign-owned assets.
 
@@ -174,7 +186,7 @@ The numbered order is the default product sequence. Hard dependencies are shown 
 | Identity             | One Supabase user identity across web, iOS, and Android                                                                                                            |
 | Native secrets/cache | `expo-secure-store` for session secrets; `expo-sqlite` for non-authoritative read-only projections                                                                 |
 | Realtime             | Private Supabase Broadcast; Presence only for slow-changing connection state                                                                                       |
-| Notifications        | `expo-notifications` and Expo Push Service, with API-authorized deep links                                                                                         |
+| Notifications        | Phase 05 provider-neutral web inbox and announcements; Phase 09 external delivery; Expo notifications/Push in Phase 10, all with API-authorized deep links       |
 | Media and files      | Private Supabase Storage, API-issued upload intents, signed/authenticated delivery, verified profile limits, image normalization, and quarantined supporting files |
 | Dice                 | Restricted server-authoritative evaluation with injected cryptographic randomness and exact per-die evidence; lazy Three/Fiber/Rapier presentation on web          |
 | VTT                  | Platform-neutral scene model; PixiJS on web and initially in an Expo DOM host; React Native Skia only if the benchmark gate fails                                  |
@@ -227,12 +239,12 @@ Exact numeric thresholds are a pre-launch business decision. The behaviors above
 | 00    | [Character Sheet play depth and overrides](00-character-sheet-play-depth-and-overrides.md) | **Complete:** authoritative Sheet play, adjustments, explanations, and portable semantic panels                                     |
 | 01    | [Dice and roll infrastructure](01-dice-and-roll-infrastructure.md)                         | **Complete:** authoritative rolls, private history, accessible results, and optional lazy 3D presentation                           |
 | 02    | [Media and supporting-file pipeline](02-media-and-file-pipeline.md)                        | **Complete:** private avatars, Character portraits, authored artwork, crop-derived variants, and reusable asset identity             |
-| 03    | [Campaign Core](03-campaign-core.md)                                                       | Campaign membership, roles, characters, content access, rules, and audited GM authority work on web                                |
+| 03    | [Campaign Core](03-campaign-core.md)                                                       | Entitlements, Campaign lifecycle/content/custody, GM authority, two-room chat/rolls, notes, and private Realtime work on web      |
 | 04    | [Social Hub](04-social-hub.md)                                                             | Adults can privately invite or publicly discover, apply to, moderate, and form free tables                                          |
-| 05    | [Live Campaign play](05-live-campaign-play.md)                                             | Party inventory, sessions, notes/files, chat, persisted rolls, and Realtime collaboration work on web                              |
-| 06    | [Encounters](06-encounters.md)                                                             | Campaign and standalone Encounters provide authoritative manual play on web                                                         |
+| 05    | [Live Campaign play](05-live-campaign-play.md)                                             | Session scheduling/prep/closeout, quick references, vehicles, Campaign files/clock, announcements, and the web inbox work on web     |
+| 06    | [Encounters](06-encounters.md)                                                             | Campaign and standalone Encounters provide authoritative GM-run combat and enemy action rolls on web                                |
 | 07    | [Web VTT](07-vtt.md)                                                                        | One Encounter-backed VTT provides maps, tokens, fog, measurement, initiative, and accessible controls on web                       |
-| 08    | [Plans and entitlements](08-entitlements-and-subscriptions.md)                             | Free, Player, GM, and Pro GM limits and Stripe web subscriptions are enforced server-side                                           |
+| 08    | [Plans and entitlements](08-entitlements-and-subscriptions.md)                             | Phase 03 limits gain Stripe web subscriptions and remaining capability enforcement                                                  |
 | 09    | [Paid tables](09-paid-tables.md)                                                           | Approved paid-table checkout, capacity, payouts, refunds, and plan-based fees work on web                                           |
 | 10    | [Native foundation and parity](10-cross-platform-foundation.md)                            | After web viability, iOS and Android provide first-class play journeys against the proven contracts                                |
 | 11    | [Store release and continuous validation](11-store-release-and-continuous-validation.md)   | Store-ready binaries and repeatable cross-platform release gates exist                                                              |
@@ -245,11 +257,11 @@ Exact numeric thresholds are a pre-launch business decision. The behaviors above
 - Character adjustments change the same authoritative engine results used by display, rolls, passive checks, HP/rest, spell mechanics, and command validation; clearing an adjustment restores current authored behavior.
 - Roll consumers use the Phase 01 authoritative semantic evidence; browser physics never selects or alters a result, and static fallback remains fully usable.
 - Effective Character values expose source and adjustment breakdowns to the owner and to future authorized GM readers without granting GM adjustment-edit actions.
-- OWNER, GM, PLAYER, removed member, standalone invitee, and non-member matrices pass at API and RLS boundaries.
+- OWNER, PLAYER, removed member, standalone invitee, and non-member matrices pass at API and RLS boundaries.
 - Campaign content references grant immutable-version read/use access without transferring ownership, editing, personal export, or Marketplace sale rights.
-- Player-only chat tests prove a GM cannot subscribe, fetch, receive notifications for, or infer message content.
+- Player-only chat tests prove an owner/GM cannot subscribe, fetch, count, receive notifications for, or infer message content.
 - Switching progression mode retains experience and does not rewrite character intent.
-- Inventory transfers and correlated Encounter/Sheet changes remain atomic under conflicts and retries.
+- Inventory transfers, currency conversions, and correlated Encounter/Sheet changes remain atomic under conflicts and retries.
 - Realtime reconnect resumes from an authoritative cursor without duplicate application.
 - Native cached data is visibly stale and cannot accept offline mutation.
 - Deep links open the correct authorized destination after a cold start and fail closed when access is absent.
@@ -257,7 +269,7 @@ Exact numeric thresholds are a pre-launch business decision. The behaviors above
 - Spoofed, oversized, unsafe, or disallowed uploads never become ready; image delivery strips private metadata; removed members cannot download private Campaign assets.
 - Immutable Campaign content versions, Marketplace releases, and Encounter/VTT history retain exact asset references, while VTT map limits remain independent from ordinary Campaign files.
 - Duplicate, delayed, and out-of-order provider webhooks converge on the same entitlement state.
-- Free, Player, GM, and Pro GM creation, storage, hosted-Campaign, seat, listing, Encounter, and paid-table capabilities are enforced by owning server operations.
+- Free, Player, GM, and Pro GM creation, storage, hosted-Campaign, seat, listing, Encounter, and paid-table capabilities are enforced by owning server operations; Phase 03 enforces its available limits before billing ships.
 - GM and Pro GM paid-table orders snapshot the applicable 10% or 0% Artificer platform fee; processing charges and taxes remain separately represented.
 - Web and later native VTT clients reconstruct the same scene from the same Encounter projection.
 - Mobile validation covers one current and one oldest-supported physical iOS and Android device.

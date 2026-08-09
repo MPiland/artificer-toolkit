@@ -10,6 +10,7 @@ import {
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
 import type { VehicleEditLoaderData } from '#app/routes/-routeLoaderData'
+import { loadAuthoredRouteSystem } from '#app/routes/-authoredRouteSystem'
 import { AuthoringLayout } from '#forms'
 import {
   createAuthoredFormRouteContext,
@@ -33,6 +34,11 @@ export const Route = createFileRoute('/_authed/vehicles/$vehiclePublicId/$vehicl
       context.queryClient.ensureQueryData(getVehicleDraft(vehicleId, client))
     ])
     const routeSubject = getAuthoredRouteSubject(vehicleId, response, draft)
+    const system = await loadAuthoredRouteSystem(
+      context.queryClient,
+      client,
+      response?.item?.systemId ?? draft?.systemId
+    )
     if (
       routeSubject &&
       !isCanonicalAuthoredRouteHandle(params.vehiclePublicId, params.vehicleSlug, routeSubject)
@@ -48,7 +54,8 @@ export const Route = createFileRoute('/_authed/vehicles/$vehiclePublicId/$vehicl
       breadcrumbLabel: routeSubject?.label,
       draft,
       response,
-      subjectId: vehicleId
+      subjectId: vehicleId,
+      system
     })
   },
   component: AuthoringLayout

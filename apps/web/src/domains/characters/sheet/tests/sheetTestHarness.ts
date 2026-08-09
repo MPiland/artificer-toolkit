@@ -13,6 +13,13 @@ export function createSheet(): CharacterSheetResponseDto {
     publicId: 'character-1',
     meta: {
       characterId: 'character-1',
+      viewer: 'CHARACTER_OWNER',
+      capabilities: {
+        managePlayState: true,
+        managePrivateNotes: true,
+        manageInventory: true,
+        openBuilder: true
+      },
       systemId: 'system-1',
       status: 'ACTIVE',
       streamVersion: 4
@@ -334,7 +341,10 @@ export async function openEquipmentManager(user: ReturnType<typeof userEvent.set
 }
 
 export async function showCarriedEquipment(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('tab', { name: /^carried$/i }))
+  const carried = screen.getByRole('button', { name: /^carried$/i })
+  if (carried.getAttribute('aria-expanded') !== 'true') {
+    await user.click(carried)
+  }
 }
 
 export function mockMobileSheetViewport() {

@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import IBook from '#assets/icons/IBook'
 import ICategory from '#assets/icons/ICategory'
 import IChar from '#assets/icons/IChar'
+import ICampaign from '#assets/icons/ICampaign'
 import IClass from '#assets/icons/IClass'
 import ICreature from '#assets/icons/ICreature'
 import IFeat from '#assets/icons/IFeat'
@@ -34,6 +35,11 @@ export const platformNavigation: AppShellNavGroup[] = [
         label: 'Characters',
         href: '/characters',
         icon: IChar
+      },
+      {
+        label: 'Campaigns',
+        href: '/campaigns',
+        icon: ICampaign
       }
     ]
   },

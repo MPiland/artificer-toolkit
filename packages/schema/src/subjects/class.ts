@@ -41,6 +41,7 @@ const classBaseDtoSchema = z.object({
       order: z.number().int().optional(),
       details: authoredNestedCollectionSchema(detailDtoSchema).optional(),
       magicName: authoredShortTextSchema.optional(),
+      availableSpellIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).optional(),
       ability: abilityCodeSchema.optional(),
       maxSpellLevel: z.number().int(),
       attributes: authoredReferenceCollectionSchema(spellcastingAttributeSchema).optional(),

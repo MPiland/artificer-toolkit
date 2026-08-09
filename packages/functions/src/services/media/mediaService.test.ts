@@ -51,6 +51,8 @@ describe('media service safety contracts', () => {
   })
 
   it('enforces account quota when replacing a crop thumbnail', () => {
+    expect(source).not.toContain('const quotaBytes = 250 * 1024 * 1024')
+    expect(source).toContain('const quotaBytes = await getStorageQuotaBytes(trx, userId)')
     expect(source).toContain('repository.replaceThumbnail(asset.id, userId, quotaBytes, {')
     expect(source).toContain('if (!replacement) throw new MediaQuotaError()')
   })

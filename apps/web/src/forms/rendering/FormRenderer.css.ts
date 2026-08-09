@@ -18,6 +18,16 @@ export const sectionStack = style({
   }
 })
 
+export const loadingState = style({
+  '@layer': {
+    [app]: {
+      minBlockSize: '16rem',
+      inlineSize: '100%',
+      color: foundationVars.color.text.muted
+    }
+  }
+})
+
 export const canvasSectionStack = style([
   sectionStack,
   {
@@ -147,6 +157,11 @@ export const canvasStepHeader = style({
       backgroundColor: foundationVars.color.authoring.active,
       color: foundationVars.color.text.secondary,
       '@media': {
+        'screen and (max-width: 760px)': {
+          alignItems: 'flex-start',
+          flexDirection: 'column',
+          gap: foundationVars.space[1]
+        },
         [AUTHORING_WIDE_DESKTOP_QUERY]: {
           inlineSize: `calc(100% + ${foundationVars.space[4]} + ${foundationVars.space[4]})`,
           marginBlockStart: `calc(0px - ${foundationVars.space[4]})`,
@@ -177,7 +192,12 @@ export const canvasStepDivider = style({
       inlineSize: 1,
       blockSize: 20,
       flexShrink: 0,
-      backgroundColor: foundationVars.color.authoring.border
+      backgroundColor: foundationVars.color.authoring.border,
+      '@media': {
+        'screen and (max-width: 760px)': {
+          display: 'none'
+        }
+      }
     }
   }
 })
@@ -191,7 +211,17 @@ export const canvasStepDescription = style({
       fontSize: '12px',
       lineHeight: '18px',
       textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
+      whiteSpace: 'nowrap',
+      '@media': {
+        'screen and (max-width: 760px)': {
+          display: '-webkit-box',
+          overflow: 'hidden',
+          textOverflow: 'clip',
+          whiteSpace: 'normal',
+          WebkitBoxOrient: 'vertical',
+          WebkitLineClamp: 2
+        }
+      }
     }
   }
 })

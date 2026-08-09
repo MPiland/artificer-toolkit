@@ -18,6 +18,7 @@ import type { CharacterBuilderResolution } from './builderService.js'
 import {
   CharacterSheetCommandError,
   applyCharacterSheetCommand,
+  assertCampaignGmSheetCommandAllowed,
   buildCharacterSheetResponse,
   summarizeCharacterSheetCommand
 } from './sheetService.js'
@@ -144,6 +145,13 @@ function createSheet(
   return {
     meta: {
       characterId: 'character-1',
+      viewer: 'CHARACTER_OWNER',
+      capabilities: {
+        managePlayState: true,
+        managePrivateNotes: true,
+        manageInventory: true,
+        openBuilder: true
+      },
       systemId: 'system-1',
       status: 'ACTIVE',
       streamVersion: 1
@@ -733,6 +741,28 @@ describe('character sheet command application', () => {
         category: 'TOOL',
         properties: ['MUSICAL_INSTRUMENT'],
         level: 'FULL'
+      },
+      {
+        id: 'prof-explicit-tool-1',
+        order: 6,
+        grantKind: 'PROFICIENCY_GRANT',
+        proficiencyKind: 'EQUIPMENT',
+        selectionKind: 'GRANTED',
+        scalingKind: 'NONE',
+        authoringModeKind: 'SELECTED',
+        category: 'TOOL',
+        equipmentIds: ['smiths-tools'],
+        level: 'FULL'
+      }
+    ]
+    resolution.catalog.equipment = [
+      {
+        id: 'smiths-tools',
+        label: "Smith's Tools",
+        category: 'TOOL',
+        isContainer: false,
+        properties: [],
+        requiresAttunement: false
       }
     ]
     resolution.registry.classes = [fighter]
@@ -768,7 +798,8 @@ describe('character sheet command application', () => {
     expect(sheet.reference.proficiencies).toEqual([
       expect.objectContaining({ kind: 'ARMOR', label: 'Light Armor' }),
       expect.objectContaining({ kind: 'WEAPON', label: 'Martial Weapons' }),
-      expect.objectContaining({ kind: 'TOOL', label: 'Musical Instrument' })
+      expect.objectContaining({ kind: 'TOOL', label: 'Musical Instrument' }),
+      expect.objectContaining({ kind: 'TOOL', label: "Smith's Tools" })
     ])
   })
 
@@ -2053,6 +2084,40 @@ describe('character sheet command application', () => {
     ).toThrow('does not require attunement')
   })
 
+  it('uses the default attunement limit unless the Campaign overrides it', () => {
+    const character = createCharacter()
+    character.state.equipment.inventory.push({
+      id: 'item-4',
+      equipmentId: 'equipment-1',
+      quantity: 1
+    })
+    const sheet = createSheet({
+      inventory: {
+        items: [
+          {
+            id: 'item-4',
+            equipmentId: 'equipment-1',
+            label: 'Ring',
+            quantity: 1,
+            equipped: false,
+            attuned: false,
+            requiresAttunement: true
+          }
+        ],
+        currencies: []
+      }
+    })
+    const command = { type: 'ATTUNE_ITEM' as const, itemId: 'item-4', expectedVersion: 1 }
+
+    expect(() => applyCharacterSheetCommand(character, command, sheet)).toThrow(
+      'more than 3 items'
+    )
+    expect(
+      applyCharacterSheetCommand(character, command, sheet, { attunementSlotLimit: 4 }).state.equipment
+        .attuned
+    ).toContain('item-4')
+  })
+
   it('rejects adding or moving a container into another container', () => {
     const character = createCharacter()
     character.state.equipment.inventory = [
@@ -2514,6 +2579,142 @@ describe('character sheet command application', () => {
     ).toThrow(CharacterSheetCommandError)
   })
 
+  it('changes only the active known list and keeps an explicit empty override', () => {
+    const character = createCharacter()
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'SET_KNOWN_SPELLS',
+        classId: 'class-1',
+        spellIds: [],
+        expectedVersion: 1
+      },
+      createSheet()
+    )
+
+    expect(next.intent.spellSelections?.[0]?.spells).toEqual(['spell-1'])
+    expect(next.state.classes).toEqual([
+      {
+        classId: 'class-1',
+        spells: { learned: [] }
+      }
+    ])
+
+    const readded = applyCharacterSheetCommand(
+      next,
+      {
+        type: 'SET_KNOWN_SPELLS',
+        classId: 'class-1',
+        spellIds: ['spell-1'],
+        expectedVersion: 2
+      },
+      createSheet()
+    )
+    expect(readded.state.classes?.[0]?.spells?.learned).toEqual(['spell-1'])
+  })
+
+  it('keeps a removed known spell available for re-adding', async () => {
+    const character = createCharacter()
+    character.state.classes = [{ classId: 'class-1', spells: { learned: [] } }]
+    const resolution = createResolution()
+    resolution.registry.classes = [
+      createSpellcastingClass({
+        id: 'class-1',
+        label: 'Sorcerer',
+        attributes: [],
+        resetKind: 'LONG_REST',
+        spellLimits: createFullCasterSpellLimits()
+      })
+    ]
+    resolution.catalog.spells = [
+      createSpell({ classIds: ['class-1'], id: 'spell-1', label: 'Shield', level: 1 })
+    ]
+
+    const sheet = await buildCharacterSheetResponse({
+      character,
+      db: createConditionDb(),
+      hasBuilderDraft: false,
+      resolution,
+      streamVersion: 1
+    })
+    expect(sheet.spells.spells).toEqual([
+      expect.objectContaining({
+        id: 'spell-1',
+        known: false,
+        sources: expect.arrayContaining([expect.objectContaining({ classId: 'class-1' })])
+      })
+    ])
+  })
+
+  it('rejects known spells outside existing class or subclass selections', () => {
+    expect(() =>
+      applyCharacterSheetCommand(
+        createCharacter(),
+        {
+          type: 'SET_KNOWN_SPELLS',
+          classId: 'class-1',
+          spellIds: ['unavailable-spell'],
+          expectedVersion: 1
+        },
+        createSheet()
+      )
+    ).toThrow(/is not available for class/)
+  })
+
+  it('keeps inherent grants outside the active known-list command', () => {
+    const sheet = createSheet()
+    sheet.spells.spells[0]!.sources = [
+      createSheetSpellSource('spell-1', {
+        classId: undefined,
+        source: {
+          spellId: 'spell-1',
+          sourceKind: 'FEATURE',
+          sourceInstanceId: 'feature:spell-1'
+        },
+        acquisition: 'GRANTED',
+        prepared: true,
+        canPrepare: false
+      })
+    ]
+
+    expect(() =>
+      applyCharacterSheetCommand(
+        createCharacter(),
+        {
+          type: 'SET_KNOWN_SPELLS',
+          classId: 'class-1',
+          spellIds: ['spell-1'],
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toThrow(/is not available for class/)
+    expect(() =>
+      applyCharacterSheetCommand(
+        createCharacter(),
+        {
+          type: 'CAST_SPELL',
+          spellId: 'spell-1',
+          slotKey: 'STANDARD:1',
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).not.toThrow()
+  })
+
+  it('allows campaign owners to issue known-spell commands', () => {
+    expect(() =>
+      assertCampaignGmSheetCommandAllowed({
+        type: 'SET_KNOWN_SPELLS',
+        classId: 'class-1',
+        spellIds: [],
+        commandId: '00000000-0000-4000-8000-000000000001',
+        expectedVersion: 1
+      })
+    ).not.toThrow()
+  })
+
   it('rejects prepared spell commands over the class preparation limit', () => {
     const sheet = createSheet()
     sheet.spells.spells = [
@@ -2593,6 +2794,30 @@ describe('character sheet command application', () => {
   })
 
   it('allows fixed-level grants without resources and rejects exhausted cast resources', () => {
+    const ritualCharacter = createCharacter()
+    const ritualSheet = createSheet()
+    ritualSheet.spells.spells[0]!.sources = [
+      createSheetSpellSource('spell-1', {
+        id: 'feature:ritual-spell-1',
+        label: 'Magic Item Analysis',
+        canPrepare: false,
+        prepared: false,
+        acquisition: 'KNOWN',
+        castMode: 'RITUAL'
+      })
+    ]
+    const ritualNext = applyCharacterSheetCommand(
+      ritualCharacter,
+      {
+        type: 'CAST_SPELL',
+        spellId: 'spell-1',
+        sourceId: 'feature:ritual-spell-1',
+        expectedVersion: 1
+      },
+      ritualSheet
+    )
+    expect(ritualNext.state).toEqual(ritualCharacter.state)
+
     const fixedCharacter = createCharacter()
     const fixedSheet = createSheet()
     fixedSheet.spells.spells[0]!.sources = [

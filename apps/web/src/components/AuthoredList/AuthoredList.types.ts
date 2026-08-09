@@ -70,6 +70,7 @@ export interface AuthoredListPageProps {
   error?: string
   loading?: boolean
   initialViewMode?: AuthoredListViewMode
+  cardOnly?: boolean
   onCreate?: () => void
   onView?: (item: AuthoredListItem) => void
   onViewIntent?: (item: AuthoredListItem) => void

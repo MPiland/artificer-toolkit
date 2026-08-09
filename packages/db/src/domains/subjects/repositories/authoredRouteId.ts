@@ -2,7 +2,7 @@ import { sql } from 'kysely'
 import type { DBLike } from '#types'
 import type { AuthoredSubjectKind } from './authoredContent.js'
 
-export type AuthoredRouteSubjectKind = AuthoredSubjectKind | 'CHARACTER'
+export type AuthoredRouteSubjectKind = AuthoredSubjectKind | 'CAMPAIGN' | 'CHARACTER'
 
 export interface AuthoredRouteIdentity {
   subjectKind: AuthoredRouteSubjectKind

@@ -255,7 +255,7 @@ describe('node runtime service', () => {
     })
   })
 
-  it('separates feature mechanics into effects, usage, and restrictions sections', async () => {
+  it('places feature effects separately from basic usage and restrictions', async () => {
     const result = await resolveNodeRuntime(unusedDb, {
       mapId: 'feature',
       systemId: 'system-1',
@@ -264,22 +264,24 @@ describe('node runtime service', () => {
       }
     })
 
-    const mechanics = result.steps.find((step) => step.id === 'mechanics')
-    expect(mechanics?.sections.map((section) => section.label)).toEqual([
-      'Effects',
+    const basics = result.steps.find((step) => step.id === 'basics')
+    const effects = result.steps.find((step) => step.id === 'effects')
+    expect(basics?.sections.map((section) => section.label)).toEqual([
+      'Feature Basics',
       'Usage',
       'Restrictions'
     ])
+    expect(effects?.sections.map((section) => section.label)).toEqual(['Effects'])
     expect(
-      mechanics?.sections
+      effects?.sections
         .find((section) => section.label === 'Effects')
         ?.nodes.map((node) => node.id)
     ).toContain('effects')
     expect(
-      mechanics?.sections.find((section) => section.label === 'Usage')?.nodes.map((node) => node.id)
+      basics?.sections.find((section) => section.label === 'Usage')?.nodes.map((node) => node.id)
     ).toContain('charges')
     expect(
-      mechanics?.sections
+      basics?.sections
         .find((section) => section.label === 'Restrictions')
         ?.nodes.map((node) => node.id)
     ).toContain('restrictions')
@@ -756,6 +758,25 @@ describe('node runtime service', () => {
         ['authoringModeKind']
       ])
     )
+  })
+
+  it('preserves same-draft option prerequisites that are not active yet', async () => {
+    nodeRuntimeQueryMock.selectNodeRuntimeRows.mockResolvedValue([])
+
+    const normalized = await normalizeNodeRuntimeValues(unusedDb, {
+      mapId: 'facetCondition',
+      systemId: 'system-1',
+      values: {
+        kind: 'PREDICATE',
+        constraint: 'INCLUDE',
+        predicateCode: 'OPTION_OBTAINED',
+        optionIds: ['draft-option-1']
+      },
+      parentValues: { subject: 'CHARACTER' }
+    })
+
+    expect(normalized.values).toMatchObject({ optionIds: ['draft-option-1'] })
+    expect(normalized.clearedPaths).not.toContainEqual(['optionIds'])
   })
 
   it('resolves nested facet conditions against the related subject and where selection', async () => {

@@ -1,0 +1,54 @@
+# Campaign feature and extension backlog
+
+> **Status:** proposed enhancements
+> **Scope:** product ideas that are explicitly out of phase and can be deferred until after Phase 06 live loops are in place
+
+## Campaign Features (GM-directed)
+
+Campaigns will support a campaign-level **Feature** concept that applies temporary grants to participating characters. This is intentionally separate from encounters, inventory, or core entitlement behavior.
+
+### Why this fits later
+
+- It should stay out of the core phase scope so Campaign and Encounter can ship with deterministic, small contracts.
+- It creates a clean seam for future GM creativity without rewiring sheet/engine structure.
+
+### Intended behavior
+
+- A Feature is owned by a Campaign.
+- A Feature can be declared as:
+  - Campaign-wide (applies to all eligible participants), or
+  - Character-scoped (applies to selected character(s)).
+- A Feature can expose one or more grant packages. Grants can include:
+  - feature-like permissions,
+  - behavior flags,
+  - mechanical modifiers,
+  - or other explicit, versioned campaign mechanics.
+- A Feature can define prerequisites (class, race, level, or other stable predicates).
+- The feature evaluator applies grants when prerequisites are met.
+- Granted visibility and effect are explicit and auditable.
+- Granting or ungranting does not rewrite core character structure.
+
+### Open questions
+
+- Are grants only mechanical, only informational, or both?
+- Should characters see grant sources in their sheet projection?
+- Do we need grant expiration / session-bound grant windows in phase 1?
+
+## Other future enhancements (parked)
+
+- Rich chat extensions: typing indicators, reactions, threads, and attachments.
+- Semantic note links/hover tooltips (campaign places, people, and lore references).
+- Multi-calendar support and reversible GM clock editing.
+- Native push delivery and external notification transports.
+- Structured Campaign knowledge beyond notes: NPCs/people, places/settlements, factions, quests/conflicts, relationships, timelines, and player-knowledge versus GM-secret projections.
+- Session-prep templates that a GM can customize or duplicate after the flexible Phase 05 prep blocks prove useful; no single prescribed prep method.
+- Scheduling polls, recurring-session generation, external calendar subscriptions, and delegated scheduling roles after the Phase 05 schedule and RSVP model is proven.
+- Privacy-aware post-session feedback such as stars/wishes or anonymous safety check-ins after the table-safety policy and moderation boundaries are defined.
+- Professional-GM retention, onboarding, schedule-health, and table-performance analytics after paid-table operations produce enough data to define honest metrics without ranking GMs prematurely.
+- Travel planning, weather, encounter/name/treasure tables, and other system-aware GM quick generators.
+- Campaign-wide search and backlinks across notes, sessions, Characters, authored content, handouts, and future world entities.
+- “View as player” and deliberate co-GM/assistant-GM roles with a separate permission model rather than treating every helper as the owner.
+- Ambience libraries, playlists, scene audio, and player presentation controls after the VTT/media usage model is known.
+- Optional session recording, transcription, recap drafting, and continuity extraction only after consent, privacy, retention, and cost policy are approved.
+- Deeper combat assistance such as recharge automation, concentration/effect duration rules, lair or environmental turn markers, group initiative, and automatic proposed outcomes. These must build on Phase 06 events rather than bypass them.
+- Home-base, settlement, bastion, faction-reputation, and downtime trackers after Campaign and Vehicle ownership seams are stable.

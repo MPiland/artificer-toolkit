@@ -56,6 +56,116 @@ const executeDiceConfiguration = vi.hoisted(() =>
 const getRollHistoryForUser = vi.hoisted(() => vi.fn(async () => []))
 const clearRollHistoryForUser = vi.hoisted(() => vi.fn(async () => ({ ok: true as const })))
 const discardRollForUser = vi.hoisted(() => vi.fn(async () => ({ ok: true as const })))
+const campaignMocks = vi.hoisted(() => {
+  class CampaignAccessError extends Error {
+    name = 'CampaignAccessError'
+  }
+  class CampaignNotFoundError extends Error {
+    name = 'CampaignNotFoundError'
+  }
+  class CampaignConflictError extends Error {
+    name = 'CampaignConflictError'
+  }
+  class CampaignValidationError extends Error {
+    name = 'CampaignValidationError'
+  }
+  class EntitlementLimitError extends Error {
+    name = 'EntitlementLimitError'
+  }
+
+  return {
+    CampaignAccessError,
+    CampaignNotFoundError,
+    CampaignConflictError,
+    CampaignValidationError,
+    EntitlementLimitError,
+    getEntitlementProjection: vi.fn(async () => ({
+      tier: 'FREE',
+      limits: {
+        storageBytes: 262144000,
+        personalCharacters: 6,
+        homebrewRoots: 20,
+        activeHostedCampaigns: 1,
+        playerSeatsPerCampaign: 5,
+        publicListings: 1,
+        savedEncounters: 3,
+        paidTablesEnabled: false,
+        platformFeeBasisPoints: 0
+      },
+      usage: {
+        storageBytes: 0,
+        personalCharacters: 0,
+        homebrewRoots: 0,
+        activeHostedCampaigns: 0,
+        publicListings: 0,
+        savedEncounters: 0
+      },
+      pricing: { currency: 'USD', monthlyPriceCents: 0, annualPriceCents: 0 }
+    })),
+    listCampaigns: vi.fn(async () => []),
+    listCampaignChatEntries: vi.fn(),
+    getCampaign: vi.fn(),
+    createCampaign: vi.fn(),
+    sendCampaignChatEntry: vi.fn(),
+    getCampaignInventory: vi.fn(),
+    transferCampaignInventory: vi.fn(async () => ({
+      eventId: '00000000-0000-4000-8000-000000000010'
+    })),
+    listCampaignContentVersions: vi.fn(async () => []),
+    submitCampaignContentVersion: vi.fn(async () => ({
+      id: '00000000-0000-4000-8000-000000000020',
+      subjectKind: 'SPELL',
+      subjectId: '00000000-0000-4000-8000-000000000021',
+      version: 0,
+      snapshot: { id: 'snapshot-spell', kind: 'SPELL', revision: 1 },
+      status: 'PENDING',
+      createdAt: '2026-08-01T12:00:00.000Z',
+      reviewedAt: null
+    })),
+    reviewCampaignContentVersion: vi.fn(async () => ({
+      id: '00000000-0000-4000-8000-000000000020',
+      subjectKind: 'SPELL',
+      subjectId: '00000000-0000-4000-8000-000000000021',
+      version: 0,
+      snapshot: { id: 'snapshot-spell', kind: 'SPELL', revision: 1 },
+      status: 'APPROVED',
+      createdAt: '2026-08-01T12:00:00.000Z',
+      reviewedAt: '2026-08-01T12:01:00.000Z'
+    })),
+    listCampaignAdjustments: vi.fn(async () => [] as unknown[]),
+    saveCampaignAdjustment: vi.fn(async () => ({
+      id: '00000000-0000-4000-8000-000000000030',
+      campaignId: '00000000-0000-4000-8000-000000000001',
+      characterId: '00000000-0000-4000-8000-000000000022',
+      adjustment: {
+        family: 'HIT_POINTS',
+        field: 'MAXIMUM_OVERRIDE',
+        value: 20
+      },
+      visibility: 'VISIBLE',
+      version: 0,
+      createdAt: '2026-08-01T12:00:00.000Z',
+      updatedAt: '2026-08-01T12:00:00.000Z'
+    })),
+    deleteCampaignAdjustment: vi.fn(async () => {}),
+    listCampaignConditions: vi.fn(async () => []),
+    saveCampaignCondition: vi.fn(async () => ({
+      id: '00000000-0000-4000-8000-000000000040',
+      campaignId: '00000000-0000-4000-8000-000000000001',
+      characterId: '00000000-0000-4000-8000-000000000022',
+      conditionTypeId: '00000000-0000-4000-8000-000000000041',
+      visibility: 'SECRET',
+      version: 0,
+      createdAt: '2026-08-01T12:00:00.000Z',
+      updatedAt: '2026-08-01T12:00:00.000Z'
+    })),
+    deleteCampaignCondition: vi.fn(async () => {}),
+    listCampaignEvents: vi.fn(async () => ({
+      events: [],
+      nextCursor: null
+    }))
+  }
+})
 
 const accountProfileRepository = vi.hoisted(() => ({
   findUserIdByUsername: vi.fn(async (): Promise<string | null> => 'user-1'),
@@ -67,10 +177,7 @@ const accountProfileRepository = vi.hoisted(() => ({
   ),
   isUsernameTaken: vi.fn(async (username: string) => username === 'taken_name'),
   upsertForUser: vi.fn(
-    async (
-      _userId: string,
-      profile: { username: string; bio: string | null }
-    ) => profile
+    async (_userId: string, profile: { username: string; bio: string | null }) => profile
   )
 }))
 const updateAuthUserById = vi.hoisted(() =>
@@ -94,6 +201,7 @@ const signInWithPassword = vi.hoisted(() =>
   )
 )
 const createSupabaseClient = vi.hoisted(() => vi.fn())
+const withExplicitAuthorityDb = vi.hoisted(() => vi.fn())
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@artificer-toolkit/db')>()),
@@ -107,7 +215,8 @@ vi.mock('@artificer-toolkit/functions', async (importOriginal) => ({
   executeDiceConfiguration,
   executeRollForUser,
   getRollHistoryForUser,
-  listAuthoredDomain
+  listAuthoredDomain,
+  ...campaignMocks
 }))
 
 vi.mock('@artificer-toolkit/functions/clients', () => ({
@@ -116,6 +225,19 @@ vi.mock('@artificer-toolkit/functions/clients', () => ({
 
 vi.mock('./dbContext.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./dbContext.js')>()
+
+  withExplicitAuthorityDb.mockImplementation(
+    async <TResult>(
+      context: TrpcContext,
+      callback: (db: DBLike, userId: string) => Promise<TResult>
+    ): Promise<TResult> => {
+      try {
+        return await callback({} as DBLike, actual.requireUserId(context))
+      } catch (error) {
+        throw actual.toTrpcError(error)
+      }
+    }
+  )
 
   return {
     ...actual,
@@ -128,11 +250,16 @@ vi.mock('./dbContext.js', async (importOriginal) => {
       callback: (db: DBLike, userId: string, auth: AuthenticatedTrpcContext) => Promise<TResult>
     ): Promise<TResult> => {
       const userId = actual.requireUserId(context)
-      return callback({} as DBLike, userId, {
-        isSuperAdmin: context.isSuperAdmin === true,
-        userId
-      })
-    }
+      try {
+        return await callback({} as DBLike, userId, {
+          isSuperAdmin: context.isSuperAdmin === true,
+          userId
+        })
+      } catch (error) {
+        throw actual.toTrpcError(error)
+      }
+    },
+    withExplicitAuthorityDb
   }
 })
 
@@ -290,9 +417,9 @@ describe('tRPC router auth', () => {
         username: 'player_one'
       })
     ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
-    await expect(
-      caller.account.updateProfile({ bio: null })
-    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    await expect(caller.account.updateProfile({ bio: null })).rejects.toMatchObject({
+      code: 'UNAUTHORIZED'
+    })
     await expect(caller.content.spells.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.characters.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.rolls.clearHistory()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
@@ -380,7 +507,7 @@ describe('tRPC router auth', () => {
     })
   })
 
-  it('lets a legacy account claim a username but not replace one', async () => {
+  it('lets an account claim or replace its username', async () => {
     accountProfileRepository.findForUser.mockResolvedValueOnce({ username: null, bio: null })
     const caller = appRouter.createCaller(authenticatedContext)
 
@@ -394,7 +521,22 @@ describe('tRPC router auth', () => {
 
     await expect(
       caller.account.updateProfile({ username: 'replacement_name', bio: null })
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    ).resolves.toEqual({ username: 'replacement_name', bio: null })
+    expect(accountProfileRepository.upsertForUser).toHaveBeenLastCalledWith('user-1', {
+      username: 'replacement_name',
+      bio: null
+    })
+  })
+
+  it('reports a rename race as a conflict', async () => {
+    const { UsernameConflictError } =
+      await vi.importActual<typeof import('@artificer-toolkit/db')>('@artificer-toolkit/db')
+    accountProfileRepository.upsertForUser.mockRejectedValueOnce(new UsernameConflictError())
+    const caller = appRouter.createCaller(authenticatedContext)
+
+    await expect(
+      caller.account.updateProfile({ username: 'raced_name', bio: 'Forge keeper.' })
+    ).rejects.toMatchObject({ code: 'CONFLICT' })
   })
 
   it('registers the same authenticated list contract for all authored domains', async () => {
@@ -497,5 +639,152 @@ describe('tRPC router auth', () => {
         })
       })
     ])
+  })
+
+  it('forwards authenticated identity to Campaign lifecycle services', async () => {
+    const caller = appRouter.createCaller(authenticatedContext)
+
+    await expect(caller.campaigns.list()).resolves.toEqual([])
+    expect(campaignMocks.listCampaigns).toHaveBeenCalledWith({}, 'user-1')
+    expect(withExplicitAuthorityDb).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    [new campaignMocks.CampaignAccessError(), 'FORBIDDEN'],
+    [new campaignMocks.EntitlementLimitError('activeHostedCampaigns'), 'FORBIDDEN'],
+    [new campaignMocks.CampaignNotFoundError(), 'NOT_FOUND'],
+    [new campaignMocks.CampaignConflictError(), 'CONFLICT'],
+    [new campaignMocks.CampaignValidationError(), 'BAD_REQUEST'],
+    [new RangeError('Invalid campaign range.'), 'BAD_REQUEST'],
+    [
+      Object.assign(new Error('Insufficient currency.'), {
+        name: 'InsufficientInventoryCurrencyError'
+      }),
+      'BAD_REQUEST'
+    ],
+    [
+      Object.assign(new Error('Invalid currency amount.'), {
+        name: 'InventoryCurrencyAmountRangeError'
+      }),
+      'BAD_REQUEST'
+    ]
+  ] as const)('maps Campaign domain errors to %s', async (error, code) => {
+    campaignMocks.listCampaigns.mockRejectedValueOnce(error)
+    const caller = appRouter.createCaller(authenticatedContext)
+
+    await expect(caller.campaigns.list()).rejects.toMatchObject({ code })
+  })
+
+  it('returns the shared inventory transfer result', async () => {
+    const caller = appRouter.createCaller(authenticatedContext)
+
+    await expect(
+      caller.campaigns.inventory.transfer({
+        kind: 'CURRENCY',
+        campaignId: '00000000-0000-4000-8000-000000000001',
+        source: { kind: 'CAMPAIGN', campaignId: '00000000-0000-4000-8000-000000000001' },
+        destination: { kind: 'CHARACTER', characterId: '00000000-0000-4000-8000-000000000002' },
+        denominationId: '00000000-0000-4000-8000-000000000003',
+        amount: 1,
+        expectedSourceVersion: 0,
+        expectedDestinationVersion: 0,
+        idempotencyKey: '00000000-0000-4000-8000-000000000004'
+      })
+    ).resolves.toEqual({ eventId: '00000000-0000-4000-8000-000000000010' })
+  })
+
+  it('forwards Campaign content service arguments and parses content payloads', async () => {
+    const caller = appRouter.createCaller(authenticatedContext)
+    const listInput = { campaignId: '00000000-0000-4000-8000-000000000001' }
+
+    await expect(caller.campaigns.content.list(listInput)).resolves.toEqual([])
+    expect(campaignMocks.listCampaignContentVersions).toHaveBeenCalledWith(
+      {},
+      'user-1',
+      listInput.campaignId
+    )
+
+    const submitInput = {
+      campaignId: listInput.campaignId,
+      subjectKind: 'SPELL' as const,
+      subjectId: '00000000-0000-4000-8000-000000000021',
+      version: 0,
+      snapshot: { id: 'snapshot-spell', kind: 'SPELL', revision: 1 }
+    }
+    await expect(caller.campaigns.content.submit(submitInput)).resolves.toMatchObject({
+      status: 'PENDING'
+    })
+    expect(campaignMocks.submitCampaignContentVersion).toHaveBeenCalledWith(
+      {},
+      'user-1',
+      submitInput
+    )
+  })
+
+  it('forwards GM adjustment arguments and validates GM event input', async () => {
+    const caller = appRouter.createCaller(authenticatedContext)
+
+    const adjustments = [
+      {
+        id: '00000000-0000-4000-8000-000000000031',
+        campaignId: '00000000-0000-4000-8000-000000000001',
+        characterId: '00000000-0000-4000-8000-000000000022',
+        adjustment: {
+          family: 'HIT_POINTS',
+          field: 'MAXIMUM_OVERRIDE',
+          value: 25
+        },
+        visibility: 'VISIBLE' as const,
+        version: 0,
+        createdAt: '2026-08-01T12:00:00.000Z',
+        updatedAt: '2026-08-01T12:00:00.000Z'
+      }
+    ]
+    campaignMocks.listCampaignAdjustments.mockResolvedValueOnce(adjustments)
+    await expect(
+      caller.campaigns.gm.adjustments.list({
+        campaignId: '00000000-0000-4000-8000-000000000001',
+        characterId: '00000000-0000-4000-8000-000000000022'
+      })
+    ).resolves.toEqual(adjustments)
+    expect(campaignMocks.listCampaignAdjustments).toHaveBeenCalledWith({}, 'user-1', {
+      campaignId: '00000000-0000-4000-8000-000000000001',
+      characterId: '00000000-0000-4000-8000-000000000022'
+    })
+
+    await expect(
+      caller.campaigns.gm.events({
+        campaignId: '00000000-0000-4000-8000-000000000001',
+        characterId: '00000000-0000-4000-8000-000000000022'
+      })
+    ).resolves.toEqual({ events: [], nextCursor: null })
+    expect(campaignMocks.listCampaignEvents).toHaveBeenCalledWith({}, 'user-1', {
+      campaignId: '00000000-0000-4000-8000-000000000001',
+      characterId: '00000000-0000-4000-8000-000000000022',
+      limit: 50
+    })
+  })
+
+  it('forwards GM condition and spell-selection operations', async () => {
+    const caller = appRouter.createCaller(authenticatedContext)
+    const target = {
+      campaignId: '00000000-0000-4000-8000-000000000001',
+      characterId: '00000000-0000-4000-8000-000000000022'
+    }
+
+    await expect(caller.campaigns.gm.conditions.list(target)).resolves.toEqual([])
+    expect(campaignMocks.listCampaignConditions).toHaveBeenCalledWith({}, 'user-1', target)
+
+    const condition = {
+      ...target,
+      conditionTypeId: '00000000-0000-4000-8000-000000000041',
+      visibility: 'SECRET' as const,
+      expectedVersion: 0
+    }
+    await expect(caller.campaigns.gm.conditions.save(condition)).resolves.toMatchObject({
+      conditionTypeId: condition.conditionTypeId,
+      visibility: 'SECRET'
+    })
+    expect(campaignMocks.saveCampaignCondition).toHaveBeenCalledWith({}, 'user-1', condition)
   })
 })

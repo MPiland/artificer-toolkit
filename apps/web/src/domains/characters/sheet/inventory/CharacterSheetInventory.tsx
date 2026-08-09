@@ -1,13 +1,13 @@
-import { Badge, Button, Drawer, NumberInput, Select, Tabs, Text } from '@mantine/core'
+import { Accordion, Badge, Button, Drawer, Group, NumberInput, Select, Text } from '@mantine/core'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { IconSettings } from '@tabler/icons-react'
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import {
   CharacterSheetCompactActions,
   CharacterSheetDetailPanel,
   CharacterSheetDetailRow
 } from '../shared/CharacterSheetDetailPanel'
-import * as coreStyles from '../core/sheetShell.css'
 import { CharacterSheetInventoryList } from './CharacterSheetInventoryList'
 import * as inventoryStyles from './inventory.css'
 import * as detailStyles from '../shared/detail.css'
@@ -22,14 +22,18 @@ import { getInventoryCurrencyTotals } from './characterSheetInventory.utils'
 import { toNumber } from '../core/characterSheet.utils'
 
 export function CharacterSheetInventory({
+  editable = true,
   hideTitle,
   openPanel,
+  partyInventory,
   pending,
   sheet,
   submitCommand
 }: {
+  editable?: boolean
   hideTitle?: boolean
   openPanel?: OpenSheetPanel
+  partyInventory?: ReactNode
   pending: boolean
   sheet: CharacterSheet
   submitCommand: SubmitSheetCommand
@@ -60,96 +64,119 @@ export function CharacterSheetInventory({
     <CharacterSheetDetailPanel
       ariaId='character-sheet-inventory'
       hideTitle={hideTitle}
-      title='Equipment'
+      title='Inventory'
       headerActions={
-        <Button
-          leftSection={<IconSettings size={16} />}
-          size='xs'
-          variant='default'
-          onClick={manage.open}
-        >
-          Manage Equipment
-        </Button>
+        editable ? (
+          <Button
+            leftSection={<IconSettings size={16} />}
+            size='xs'
+            variant='default'
+            onClick={manage.open}
+          >
+            Manage Equipment
+          </Button>
+        ) : undefined
       }
     >
-      <div aria-label='Currency' className={inventoryStyles.inventorySummary}>
-        {currencyTotals.map((currency) => (
-          <span key={currency.id}>
-            <strong>{currency.amount}</strong>
-            <small>{currency.label}</small>
-          </span>
-        ))}
-      </div>
+      <Accordion multiple defaultValue={['my-inventory']}>
+        <Accordion.Item value='my-inventory'>
+          <Accordion.Control>My Inventory</Accordion.Control>
+          <Accordion.Panel>
+            <div aria-label='Currency totals' className={inventoryStyles.inventorySummary}>
+              {currencyTotals.map((currency) => (
+                <span key={currency.id}>
+                  <strong>{currency.amount}</strong>
+                  <small>{currency.label}</small>
+                </span>
+              ))}
+            </div>
 
-      <Tabs defaultValue='carried'>
-        <Tabs.List className={inventoryStyles.subsectionTabs}>
-          <Tabs.Tab className={coreStyles.tab} value='carried'>
-            Carried
-          </Tabs.Tab>
-          <Tabs.Tab className={coreStyles.tab} value='containers'>
-            Containers
-          </Tabs.Tab>
-          <Tabs.Tab className={coreStyles.tab} value='consumables'>
-            Consumables
-          </Tabs.Tab>
-        </Tabs.List>
-        <Tabs.Panel value='carried' pt='md'>
-          <CharacterSheetInventoryList
-            emptyLabel='No gear is being carried.'
-            items={sheet.inventory.items.filter((item) => !item.containerId)}
-            openPanel={openPanel}
-            resources={sheet.resources.items}
-          />
-        </Tabs.Panel>
-        <Tabs.Panel value='containers' pt='md'>
-          <div className={inventoryStyles.containerList}>
-            {containers.map((container) => (
-              <section className={inventoryStyles.containerSection} key={container.id}>
-                <div className={inventoryStyles.containerHeading}>
-                  <div>
-                    <Text fw={700}>{container.label}</Text>
-                    <Text className={panelStyles.muted} size='sm'>
-                      {container.capacity
-                        ? `${container.capacity.amount} ${container.capacity.unit.toLocaleLowerCase()} capacity`
-                        : 'Container'}
-                    </Text>
-                  </div>
-                  <Badge variant='default'>{container.itemIds.length} items</Badge>
-                </div>
-                <CharacterSheetInventoryList
-                  emptyLabel='This container is empty.'
-                  items={sheet.inventory.items.filter((item) => item.containerId === container.id)}
-                  openPanel={openPanel}
-                  resources={sheet.resources.items}
-                />
-                {container.currencies.length ? (
-                  <div
-                    aria-label={`${container.label} currency`}
-                    className={inventoryStyles.inventorySummary}
-                  >
-                    {container.currencies.map((currency) => (
-                      <span key={currency.currencyId}>
-                        <strong>{currency.amount}</strong>
-                        <small>{currency.label}</small>
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </section>
-            ))}
-          </div>
-        </Tabs.Panel>
-        <Tabs.Panel value='consumables' pt='md'>
-          <CharacterSheetInventoryList
-            emptyLabel='No consumables are being carried.'
-            items={sheet.inventory.items.filter((item) =>
-              item.category?.toLocaleLowerCase().includes('consumable')
-            )}
-            openPanel={openPanel}
-            resources={sheet.resources.items}
-          />
-        </Tabs.Panel>
-      </Tabs>
+            <Accordion multiple defaultValue={['carried']}>
+              <Accordion.Item value='carried'>
+                <Accordion.Control>Carried</Accordion.Control>
+                <Accordion.Panel>
+                  <CharacterSheetInventoryList
+                    emptyLabel='No gear is being carried.'
+                    items={sheet.inventory.items.filter(
+                      (item) =>
+                        !item.containerId &&
+                        !item.category?.toLocaleLowerCase().includes('consumable')
+                    )}
+                    openPanel={openPanel}
+                    resources={sheet.resources.items}
+                  />
+                </Accordion.Panel>
+              </Accordion.Item>
+
+              <Accordion.Item value='consumables'>
+                <Accordion.Control>Consumables</Accordion.Control>
+                <Accordion.Panel>
+                  <CharacterSheetInventoryList
+                    emptyLabel='No consumables are being carried.'
+                    items={sheet.inventory.items.filter(
+                      (item) =>
+                        !item.containerId &&
+                        item.category?.toLocaleLowerCase().includes('consumable')
+                    )}
+                    openPanel={openPanel}
+                    resources={sheet.resources.items}
+                  />
+                </Accordion.Panel>
+              </Accordion.Item>
+
+              {containers.map((container) => (
+                <Accordion.Item key={container.id} value={`container:${container.id}`}>
+                  <Accordion.Control>
+                    <Group justify='space-between' wrap='nowrap'>
+                      <div>
+                        <Text fw={700}>{container.label}</Text>
+                        <Text className={panelStyles.muted} size='sm'>
+                          {container.capacity
+                            ? `${container.capacity.amount} ${container.capacity.unit.toLocaleLowerCase()} capacity`
+                            : 'Container'}
+                        </Text>
+                      </div>
+                      <Badge variant='default'>{container.itemIds.length} items</Badge>
+                    </Group>
+                  </Accordion.Control>
+                  <Accordion.Panel>
+                    <section className={inventoryStyles.containerSection}>
+                      <CharacterSheetInventoryList
+                        emptyLabel='This container is empty.'
+                        items={sheet.inventory.items.filter(
+                          (item) => item.containerId === container.id
+                        )}
+                        openPanel={openPanel}
+                        resources={sheet.resources.items}
+                      />
+                      {container.currencies.length ? (
+                        <div
+                          aria-label={`${container.label} currency`}
+                          className={inventoryStyles.inventorySummary}
+                        >
+                          {container.currencies.map((currency) => (
+                            <span key={currency.currencyId}>
+                              <strong>{currency.amount}</strong>
+                              <small>{currency.label}</small>
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </section>
+                  </Accordion.Panel>
+                </Accordion.Item>
+              ))}
+            </Accordion>
+          </Accordion.Panel>
+        </Accordion.Item>
+
+        {partyInventory ? (
+          <Accordion.Item value='party-inventory'>
+            <Accordion.Control>Party Inventory</Accordion.Control>
+            <Accordion.Panel>{partyInventory}</Accordion.Panel>
+          </Accordion.Item>
+        ) : null}
+      </Accordion>
 
       <Drawer
         opened={manageOpened}
