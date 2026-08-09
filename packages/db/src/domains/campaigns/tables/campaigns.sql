@@ -670,6 +670,50 @@ CREATE TABLE IF NOT EXISTS public.campaign_clock_recoveries (
 ALTER TABLE public.campaign_clock_recoveries ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.campaign_clock_recoveries FROM anon, authenticated;
 
+DO $$
+DECLARE
+  conflicting_character_id uuid;
+  conflicting_equipment_id uuid;
+  conflicting_placement_count bigint;
+BEGIN
+  SELECT
+    placement.character_id,
+    placement.equipment_id,
+    count(*)
+  INTO
+    conflicting_character_id,
+    conflicting_equipment_id,
+    conflicting_placement_count
+  FROM (
+    SELECT
+      creature_equipment.character_id,
+      creature_equipment.equipment_id
+    FROM public.character_creature_equipment AS creature_equipment
+    UNION ALL
+    SELECT
+      vehicle_equipment.character_id,
+      vehicle_equipment.equipment_id
+    FROM public.character_vehicle_equipment AS vehicle_equipment
+  ) AS placement
+  GROUP BY placement.character_id, placement.equipment_id
+  HAVING count(*) > 1
+  ORDER BY placement.character_id, placement.equipment_id
+  LIMIT 1;
+
+  IF conflicting_equipment_id IS NOT NULL THEN
+    RAISE EXCEPTION USING
+      ERRCODE = '23514',
+      MESSAGE = format(
+        'Legacy inventory item %s for Character %s has %s creature or vehicle placements.',
+        conflicting_equipment_id,
+        conflicting_character_id,
+        conflicting_placement_count
+      ),
+      HINT = 'Reconcile the legacy assignments so each inventory item is assigned to at most one creature or vehicle, then rerun the migration.';
+  END IF;
+END;
+$$;
+
 INSERT INTO public.inventory_owners (kind, character_id)
 SELECT 'CHARACTER', id FROM public.characters
 ON CONFLICT (character_id) WHERE character_id IS NOT NULL DO NOTHING;

@@ -174,6 +174,50 @@ CREATE TABLE public.campaign_session_note_sections (
 );
 CREATE INDEX campaign_session_note_sections_session_sort_idx ON public.campaign_session_note_sections(session_id,sort_order); CREATE INDEX campaign_session_note_sections_updated_by_idx ON public.campaign_session_note_sections(updated_by); ALTER TABLE public.campaign_session_note_sections ENABLE ROW LEVEL SECURITY;
 
+DO $$
+DECLARE
+  conflicting_character_id uuid;
+  conflicting_equipment_id uuid;
+  conflicting_placement_count bigint;
+BEGIN
+  SELECT
+    placement.character_id,
+    placement.equipment_id,
+    count(*)
+  INTO
+    conflicting_character_id,
+    conflicting_equipment_id,
+    conflicting_placement_count
+  FROM (
+    SELECT
+      creature_equipment.character_id,
+      creature_equipment.equipment_id
+    FROM public.character_creature_equipment AS creature_equipment
+    UNION ALL
+    SELECT
+      vehicle_equipment.character_id,
+      vehicle_equipment.equipment_id
+    FROM public.character_vehicle_equipment AS vehicle_equipment
+  ) AS placement
+  GROUP BY placement.character_id, placement.equipment_id
+  HAVING count(*) > 1
+  ORDER BY placement.character_id, placement.equipment_id
+  LIMIT 1;
+
+  IF conflicting_equipment_id IS NOT NULL THEN
+    RAISE EXCEPTION USING
+      ERRCODE = '23514',
+      MESSAGE = format(
+        'Legacy inventory item %s for Character %s has %s creature or vehicle placements.',
+        conflicting_equipment_id,
+        conflicting_character_id,
+        conflicting_placement_count
+      ),
+      HINT = 'Reconcile the legacy assignments so each inventory item is assigned to at most one creature or vehicle, then rerun the migration.';
+  END IF;
+END;
+$$;
+
 INSERT INTO public.inventory_owners(kind,character_id) SELECT 'CHARACTER',id FROM public.characters ON CONFLICT(character_id) WHERE character_id IS NOT NULL DO NOTHING;
 INSERT INTO public.inventory_items(id,owner_id,equipment_id,quantity,container_id,custom_name,notes,equipped,attuned,placement_kind,placement_id,created_at,updated_at)
 SELECT equipment.id,owner.id,equipment.equipment_id,equipment.quantity,equipment.container_id,equipment.custom_name,equipment.notes,EXISTS(SELECT 1 FROM public.character_equipped equipped WHERE equipped.character_id=equipment.character_id AND equipped.equipment_id=equipment.id),EXISTS(SELECT 1 FROM public.character_attuned attuned WHERE attuned.character_id=equipment.character_id AND attuned.equipment_id=equipment.id),CASE WHEN creature_equipment.character_creature_id IS NOT NULL THEN 'CREATURE' WHEN vehicle_equipment.character_vehicle_id IS NOT NULL THEN 'VEHICLE' END,COALESCE(creature_equipment.character_creature_id,vehicle_equipment.character_vehicle_id),equipment.created_at,equipment.updated_at FROM public.character_equipment equipment JOIN public.inventory_owners owner ON owner.character_id=equipment.character_id LEFT JOIN public.character_creature_equipment creature_equipment ON creature_equipment.character_id=equipment.character_id AND creature_equipment.equipment_id=equipment.id LEFT JOIN public.character_vehicle_equipment vehicle_equipment ON vehicle_equipment.character_id=equipment.character_id AND vehicle_equipment.equipment_id=equipment.id ON CONFLICT(id) DO NOTHING;
