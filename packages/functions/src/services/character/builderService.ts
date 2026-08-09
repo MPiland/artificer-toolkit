@@ -60,10 +60,16 @@ import {
 import {
   loadCharacterBuilderCatalog,
   loadCharacterBuilderSpellCatalog,
+  mergeCampaignContentIntoCharacterBuilderCatalog,
   type CharacterBuilderCatalog,
   type CharacterBuilderClassCatalogRecord
 } from './builderCatalog.js'
 import { loadCharacterAssemblyRegistry } from './characterAssemblyOrchestrator.js'
+import {
+  hydrateCampaignCatalogContent,
+  loadCampaignCharacterContentOverlay,
+  type CampaignAuthoredSnapshot
+} from './campaignCharacterContent.js'
 
 type BuilderMode = 'create' | 'edit'
 
@@ -238,6 +244,7 @@ export interface CharacterSpellChoiceRequirement {
   learnedSpellLimit: number
   maxSpellLevel: number
   allowedClassIds: string[]
+  allowedSpellIds?: string[]
 }
 
 type ResolvedClassSelection = {
@@ -288,9 +295,9 @@ function isSpellAllowedForClassRequirement(
   spell: CharacterBuilderCatalog['spells'][number],
   requirement: CharacterSpellChoiceRequirement
 ): boolean {
-  const matchesClass = spell.classIds.some((classId) =>
-    requirement.allowedClassIds.includes(classId)
-  )
+  const matchesClass =
+    spell.classIds.some((classId) => requirement.allowedClassIds.includes(classId)) ||
+    requirement.allowedSpellIds?.includes(spell.id)
   if (!matchesClass) return false
   if (spell.level === 0) return true
 
@@ -340,7 +347,8 @@ function getClassSpellChoiceRequirements(
           learnedSpellLimit: activeLimit.learnedSpellsLimit ?? 0,
           maxSpellLevel:
             Math.max(...spellSlotLevels, 0) || selection.baseClass.spellcasting.maxSpellLevel,
-          allowedClassIds: [selection.baseClass.id]
+          allowedClassIds: [selection.baseClass.id],
+          allowedSpellIds: selection.baseClass.spellcasting.availableSpellIds
         })
       }
     }
@@ -368,7 +376,8 @@ function getClassSpellChoiceRequirements(
           learnedSpellLimit: activeLimit.learnedSpellsLimit ?? 0,
           maxSpellLevel:
             Math.max(...spellSlotLevels, 0) || selection.subclass.spellcasting.maxSpellLevel,
-          allowedClassIds: [...new Set([selection.row.classId, selection.subclass.id])]
+          allowedClassIds: [...new Set([selection.row.classId, selection.subclass.id])],
+          allowedSpellIds: selection.subclass.spellcasting.availableSpellIds
         })
       }
     }
@@ -1503,15 +1512,24 @@ function featureContributesSpellGrant(
 
 export async function loadCharacterBuilderContext(
   db: DBLike,
-  character: CharacterAuthored
+  character: CharacterAuthored,
+  campaignContentOverrides: readonly CampaignAuthoredSnapshot[] = []
 ): Promise<CharacterBuilderContext> {
-  const catalog = await loadCharacterBuilderCatalog(db, character.systemId, {
-    includeSpells: false
-  })
+  const [baseCatalog, campaignContent] = await Promise.all([
+    loadCharacterBuilderCatalog(db, character.systemId, { includeSpells: false }),
+    loadCampaignCharacterContentOverlay(db, character, campaignContentOverrides)
+  ])
+  const campaignCatalogContent = campaignContent
+    ? await hydrateCampaignCatalogContent(db, campaignContent)
+    : null
+  const catalog = campaignCatalogContent
+    ? mergeCampaignContentIntoCharacterBuilderCatalog(baseCatalog, campaignCatalogContent)
+    : baseCatalog
   const { registry: lightRegistry } = await loadCharacterAssemblyRegistry({
     db,
     character,
-    catalog
+    catalog,
+    campaignContent
   })
   const feats = lightRegistry.feats ?? []
   const equipment = lightRegistry.equipment
@@ -1547,7 +1565,14 @@ export async function loadCharacterBuilderContext(
       record.features?.some((feature) => featureContributesSpellGrant(feature, character))
     )
   )
-  const spells = needsSpells ? await loadCharacterBuilderSpellCatalog(db, character.systemId) : []
+  const spells = needsSpells
+    ? campaignCatalogContent
+      ? mergeCampaignContentIntoCharacterBuilderCatalog(
+          { ...catalog, spells: await loadCharacterBuilderSpellCatalog(db, character.systemId) },
+          campaignCatalogContent
+        ).spells
+      : await loadCharacterBuilderSpellCatalog(db, character.systemId)
+    : []
 
   return {
     catalog: {
@@ -1963,7 +1988,7 @@ function resolveCharacterBuilderEffectiveAbilityScores(
   return effectiveAbilityScores
 }
 
-function createStartingEquipmentEligibilityContext(params: {
+function createCharacterBuilderEligibilityContext(params: {
   character: CharacterAuthored
   registry: CharacterBuilderRegistry
   grantedFeatures: readonly GrantedFeatureRecord[]
@@ -1988,6 +2013,173 @@ function createStartingEquipmentEligibilityContext(params: {
   return {
     context: createCharacterEligibilityContext(snapshot, spellAccess, accumulatedState),
     registry
+  }
+}
+
+type FeatureOptionEligibility = {
+  character: CharacterAuthored
+  optionsByFeatureId: ReadonlyMap<string, NonNullable<FeatureAuthored['options']>>
+}
+
+function getFeatureOptionsById(
+  grantedFeatures: readonly GrantedFeatureRecord[],
+  context?: CharacterEligibilityContext,
+  registry?: ReturnType<typeof createCharacterAssemblyRegistry>
+): Map<string, NonNullable<FeatureAuthored['options']>> {
+  return new Map(
+    grantedFeatures.map(({ feature }) => [
+      feature.id,
+      (feature.options ?? []).filter(
+        (option) =>
+          !context ||
+          !registry ||
+          evaluateCharacterFacet(option.restrictions, context, registry).passed
+      )
+    ])
+  )
+}
+
+function filterFeatureOptionSelections(
+  character: CharacterAuthored,
+  grantedFeatures: readonly GrantedFeatureRecord[],
+  optionsByFeatureId: ReadonlyMap<string, NonNullable<FeatureAuthored['options']>>
+): { character: CharacterAuthored; changed: boolean } {
+  let changed = false
+  const featureAcquisitions = character.intent.featureAcquisitions.map((acquisition) => {
+    let acquisitionChanged = false
+    const granted = grantedFeatures.find(
+      (candidate) =>
+        candidate.feature.id === acquisition.featureId &&
+        isSameCharacterProvenanceIdentity(candidate.source, acquisition.source)
+    )
+    if (!granted || !acquisition.selections?.length) return acquisition
+
+    const eligibleOptionIds = new Set(
+      (optionsByFeatureId.get(granted.feature.id) ?? []).map((option) => option.id)
+    )
+    const selections: NonNullable<typeof acquisition.selections> = []
+    for (const selection of acquisition.selections) {
+      if (selection.selectionKey !== 'options') {
+        selections.push(selection)
+        continue
+      }
+
+      const values: typeof selection.values = []
+      for (const value of selection.values) {
+        if (value.kind === 'ID') {
+          if (eligibleOptionIds.has(value.id)) values.push(value)
+          else acquisitionChanged = true
+          continue
+        }
+        if (value.kind === 'IDS') {
+          const ids = value.ids.filter((id) => eligibleOptionIds.has(id))
+          if (ids.length === value.ids.length) values.push(value)
+          else {
+            acquisitionChanged = true
+            if (ids.length > 0) values.push({ ...value, ids })
+          }
+          continue
+        }
+
+        values.push(value)
+      }
+
+      if (values.length > 0) selections.push({ ...selection, values })
+    }
+    if (!acquisitionChanged) return acquisition
+
+    changed = true
+    const nextAcquisition = { ...acquisition }
+    if (selections.length > 0) nextAcquisition.selections = selections
+    else delete nextAcquisition.selections
+    return nextAcquisition
+  })
+
+  if (!changed) return { character, changed: false }
+  return {
+    character: {
+      ...character,
+      intent: {
+        ...character.intent,
+        featureAcquisitions
+      }
+    },
+    changed: true
+  }
+}
+
+function resolveFeatureOptionEligibility(params: {
+  character: CharacterAuthored
+  registry: CharacterBuilderRegistry
+  grantedFeatures: readonly GrantedFeatureRecord[]
+  abilityScores: Partial<Record<AbilityCode, number>>
+}): FeatureOptionEligibility {
+  const hasRestrictions = params.grantedFeatures.some((granted) =>
+    granted.feature.options?.some((option) => Boolean(option.restrictions))
+  )
+  if (!hasRestrictions) {
+    return {
+      character: params.character,
+      optionsByFeatureId: getFeatureOptionsById(params.grantedFeatures)
+    }
+  }
+
+  let candidate = params.character
+  while (true) {
+    const { context, registry } = createCharacterBuilderEligibilityContext({
+      ...params,
+      character: candidate
+    })
+    const optionsByFeatureId = getFeatureOptionsById(params.grantedFeatures, context, registry)
+    const filtered = filterFeatureOptionSelections(
+      candidate,
+      params.grantedFeatures,
+      optionsByFeatureId
+    )
+    if (!filtered.changed) return { character: candidate, optionsByFeatureId }
+    candidate = filtered.character
+  }
+}
+
+function filterFeatureOptions(
+  feature: FeatureAuthored,
+  optionsByFeatureId: ReadonlyMap<string, NonNullable<FeatureAuthored['options']>>
+): FeatureAuthored {
+  const options = optionsByFeatureId.get(feature.id)
+  return options ? { ...feature, options: [...options] } : feature
+}
+
+function filterRegistryFeatureOptions(
+  registry: CharacterBuilderRegistry,
+  optionsByFeatureId: ReadonlyMap<string, NonNullable<FeatureAuthored['options']>>
+): CharacterBuilderRegistry {
+  const mapFeatures = (features: FeatureAuthored[] | undefined) =>
+    features?.map((feature) => filterFeatureOptions(feature, optionsByFeatureId))
+
+  return {
+    ...registry,
+    features: mapFeatures(registry.features) ?? [],
+    races: registry.races.map((race) => ({
+      ...race,
+      features: mapFeatures(race.features),
+      ancestry: race.ancestry
+        ? {
+            ...race.ancestry,
+            options: race.ancestry.options.map((option) => ({
+              ...option,
+              features: mapFeatures(option.features)
+            }))
+          }
+        : undefined
+    })),
+    classes: registry.classes.map((record) => ({
+      ...record,
+      features: mapFeatures(record.features)
+    })),
+    backgrounds: registry.backgrounds.map((background) => ({
+      ...background,
+      features: mapFeatures(background.features)
+    }))
   }
 }
 
@@ -2039,7 +2231,7 @@ function resolveEligibleStartingEquipment(params: {
     }
   }
 
-  const { context, registry } = createStartingEquipmentEligibilityContext(params)
+  const { context, registry } = createCharacterBuilderEligibilityContext(params)
 
   return {
     classStartingEquipment: classStartingEquipment
@@ -2306,6 +2498,15 @@ export async function reconcileCharacterBuilderCharacter(
 
   nextCharacter.intent.featureAcquisitions = featureAcquisitions
 
+  const featureOptionEligibility = resolveFeatureOptionEligibility({
+    character: nextCharacter,
+    registry,
+    grantedFeatures,
+    abilityScores: deriveAbilityScores(nextCharacter.intent.abilities)
+  })
+  nextCharacter.intent.featureAcquisitions =
+    featureOptionEligibility.character.intent.featureAcquisitions
+
   const filteredCharacter = {
     ...nextCharacter,
     intent: {
@@ -2422,11 +2623,89 @@ function isClassResourceGrantSource(source: CharacterProvenance): boolean {
   return source.kind === 'CLASS' || source.kind === 'SUBCLASS'
 }
 
+function getFeatureChoiceLevelForCharacter(
+  character: CharacterAuthored,
+  source: CharacterProvenance
+): number {
+  if (source.kind === 'CLASS') {
+    return (
+      character.intent.classes.find((record) => record.classId === source.classId)?.classLevel ?? 0
+    )
+  }
+  if (source.kind === 'SUBCLASS') {
+    return (
+      character.intent.classes.find((record) => record.subclassId === source.subclassId)
+        ?.classLevel ?? 0
+    )
+  }
+
+  return character.intent.classes.reduce((sum, record) => sum + record.classLevel, 0)
+}
+
+function getRequiredFeatureOptionCount(feature: FeatureAuthored, level: number): number {
+  return (feature.optionChoices ?? [])
+    .filter((choice) => choice.level <= level)
+    .reduce((sum, choice) => sum + choice.count, 0)
+}
+
+function getFeatureOptionReplacementCount(params: {
+  feature: FeatureAuthored
+  source: CharacterProvenance
+  currentCharacter: CharacterAuthored
+  previousCharacter: CharacterAuthored | null
+  currentOptionIds: readonly string[]
+  eligibleOptionIds: ReadonlySet<string>
+}): number {
+  if (!params.previousCharacter) return 0
+  const previousAcquisition = params.previousCharacter.intent.featureAcquisitions.find(
+    (record) =>
+      record.featureId === params.feature.id &&
+      isSameCharacterProvenanceIdentity(record.source, params.source)
+  )
+  if (!previousAcquisition) return 0
+
+  const previousLevel = getFeatureChoiceLevelForCharacter(params.previousCharacter, params.source)
+  const currentLevel = getFeatureChoiceLevelForCharacter(params.currentCharacter, params.source)
+  const replacementAllowance = (params.feature.optionChoices ?? [])
+    .filter((choice) => choice.level > previousLevel && choice.level <= currentLevel)
+    .reduce((sum, choice) => sum + (choice.replaceCount ?? 0), 0)
+
+  const previousOptionIds = getSelectedFeatureOptionIds(
+    params.feature,
+    params.previousCharacter,
+    params.source
+  )
+  const previousOptionIdSet = new Set(previousOptionIds)
+  const currentOptionIdSet = new Set(params.currentOptionIds)
+  const removedEligibleCount = previousOptionIds.filter(
+    (optionId) =>
+      params.eligibleOptionIds.has(optionId) && !currentOptionIdSet.has(optionId)
+  ).length
+  const forcedReplacementCount = previousOptionIds.filter(
+    (optionId) => !params.eligibleOptionIds.has(optionId)
+  ).length
+  const addedOptionCount = params.currentOptionIds.filter(
+    (optionId) => !previousOptionIdSet.has(optionId)
+  ).length
+  const addedRequiredCount = Math.max(
+    0,
+    getRequiredFeatureOptionCount(params.feature, currentLevel) -
+      getRequiredFeatureOptionCount(params.feature, previousLevel)
+  )
+  const voluntaryReplacementCount = Math.min(
+    removedEligibleCount,
+    Math.max(0, addedOptionCount - addedRequiredCount - forcedReplacementCount)
+  )
+
+  return Math.max(0, voluntaryReplacementCount - replacementAllowance)
+}
+
 export async function resolveCharacterBuilder(
   db: DBLike,
   character: CharacterAuthored,
   mode: BuilderMode,
-  providedContext?: CharacterBuilderContext
+  providedContext?: CharacterBuilderContext,
+  previousCharacter: CharacterAuthored | null = null
 ): Promise<CharacterBuilderResolution> {
   const context = providedContext ?? (await loadCharacterBuilderContext(db, character))
   const { catalog, registry } = context
@@ -2441,6 +2720,12 @@ export async function resolveCharacterBuilder(
     selectedAncestryOption,
     grantedFeatures
   } = collectGrantedFeaturesForCharacter(character, registry)
+  const featureOptionEligibility = resolveFeatureOptionEligibility({
+    character,
+    registry,
+    grantedFeatures,
+    abilityScores
+  })
   const chosenGrantChoices = resolveCharacterChosenGrantChoices(
     character,
     getCharacterChosenGrantChoiceRegistry(context),
@@ -2457,25 +2742,28 @@ export async function resolveCharacterBuilder(
   })
   const classStartingEquipment = eligibleStartingEquipment.classStartingEquipment
   const backgroundStartingEquipment = eligibleStartingEquipment.backgroundStartingEquipment
-  const resolvedRegistry: CharacterBuilderRegistry = {
-    ...registry,
-    classes:
-      primaryClass && classStartingEquipment
-        ? registry.classes.map((record) =>
-            record.id === primaryClass.id && record.category === CLASS_CATEGORY.BASE
-              ? { ...record, startingEquipment: classStartingEquipment }
-              : record
-          )
-        : registry.classes,
-    backgrounds:
-      selectedBackground && backgroundStartingEquipment
-        ? registry.backgrounds.map((record) =>
-            record.id === selectedBackground.id
-              ? { ...record, startingEquipment: backgroundStartingEquipment }
-              : record
-          )
-        : registry.backgrounds
-  }
+  const resolvedRegistry = filterRegistryFeatureOptions(
+    {
+      ...registry,
+      classes:
+        primaryClass && classStartingEquipment
+          ? registry.classes.map((record) =>
+              record.id === primaryClass.id && record.category === CLASS_CATEGORY.BASE
+                ? { ...record, startingEquipment: classStartingEquipment }
+                : record
+            )
+          : registry.classes,
+      backgrounds:
+        selectedBackground && backgroundStartingEquipment
+          ? registry.backgrounds.map((record) =>
+              record.id === selectedBackground.id
+                ? { ...record, startingEquipment: backgroundStartingEquipment }
+                : record
+            )
+          : registry.backgrounds
+    },
+    featureOptionEligibility.optionsByFeatureId
+  )
 
   const grants: CharacterBuilderGrantedContent = {
     features: grantedFeatures.map((record) => ({
@@ -2844,9 +3132,7 @@ export async function resolveCharacterBuilder(
   }
 
   for (const granted of grantedFeatures) {
-    const requiredOptionCount = (granted.feature.optionChoices ?? [])
-      .filter((choice) => choice.level <= granted.level)
-      .reduce((sum, choice) => sum + choice.count, 0)
+    const requiredOptionCount = getRequiredFeatureOptionCount(granted.feature, granted.level)
 
     if (requiredOptionCount <= 0) continue
 
@@ -2872,23 +3158,44 @@ export async function resolveCharacterBuilder(
       character,
       granted.source
     )
-    const allowedOptionIds = new Set((granted.feature.options ?? []).map((option) => option.id))
+    const allowedOptionIds = new Set(
+      (featureOptionEligibility.optionsByFeatureId.get(granted.feature.id) ?? []).map(
+        (option) => option.id
+      )
+    )
     const hasInvalidOption = selectedOptionIds.some((optionId) => !allowedOptionIds.has(optionId))
     const hasDuplicateOption = new Set(selectedOptionIds).size !== selectedOptionIds.length
+    const replacementOverage = getFeatureOptionReplacementCount({
+      feature: granted.feature,
+      source: granted.source,
+      currentCharacter: character,
+      previousCharacter,
+      currentOptionIds: selectedOptionIds,
+      eligibleOptionIds: allowedOptionIds
+    })
 
-    if (hasInvalidOption || hasDuplicateOption || selectedOptionIds.length > requiredOptionCount) {
+    if (
+      hasInvalidOption ||
+      hasDuplicateOption ||
+      selectedOptionIds.length > requiredOptionCount ||
+      replacementOverage > 0
+    ) {
       validations.push({
         code: hasInvalidOption
           ? 'FEATURE_SELECTION_INVALID'
           : hasDuplicateOption
             ? 'FEATURE_SELECTION_DUPLICATE'
-            : 'FEATURE_SELECTION_OVER_LIMIT',
+            : selectedOptionIds.length > requiredOptionCount
+              ? 'FEATURE_SELECTION_OVER_LIMIT'
+              : 'FEATURE_SELECTION_REPLACEMENT_OVER_LIMIT',
         severity: 'blocking',
         message: hasInvalidOption
           ? `${granted.feature.label} includes a selection that is no longer available.`
           : hasDuplicateOption
             ? `${granted.feature.label} requires different selections in each slot.`
-            : `${granted.feature.label} has too many selections.`
+            : selectedOptionIds.length > requiredOptionCount
+              ? `${granted.feature.label} has too many selections.`
+              : `${granted.feature.label} replaces more previously selected options than this level permits.`
       })
       continue
     }

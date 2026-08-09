@@ -35,6 +35,7 @@ export interface RulesSystem {
     version: string
   }
   label: string
+  attunementSlotLimit: number
   rest: RestRulesPolicy
   exhaustion: ExhaustionRulesPolicy
 

@@ -61,6 +61,7 @@ export const characterSheetPanelAllowedCommandDtoSchema = z.enum([
   'RESET_ADJUSTMENTS',
   'SET_MOVEMENT_DISPLAY_PREFERENCE',
   'SET_PREPARED_SPELLS',
+  'SET_KNOWN_SPELLS',
   'USE_SPELL_SLOT',
   'RESTORE_SPELL_SLOT',
   'CAST_SPELL',
@@ -350,10 +351,13 @@ const spellPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
   prepared: z.boolean(),
   canPrepare: z.boolean(),
   preparationClassId: uuidSchema.optional(),
+  known: z.boolean(),
+  canManageKnown: z.boolean(),
+  knownClassId: identifierSchema.optional(),
   displayAsAttack: z.boolean(),
   legalCastModes: z.array(
     z.object({
-      kind: z.enum(['AT_WILL', 'SPELL_SLOT', 'FIXED_LEVEL', 'LIMITED_USE']),
+      kind: z.enum(['AT_WILL', 'SPELL_SLOT', 'RITUAL', 'FIXED_LEVEL', 'LIMITED_USE']),
       label: z.string().min(1),
       slotKey: identifierSchema.optional(),
       castLevel: z.number().int().nonnegative().optional(),
@@ -410,6 +414,9 @@ const spellsPanelDtoSchema = characterSheetPanelCommonDtoSchema.extend({
           prepared: z.boolean(),
           canPrepare: z.boolean(),
           preparationClassId: uuidSchema.optional(),
+          known: z.boolean(),
+          canManageKnown: z.boolean(),
+          knownClassId: identifierSchema.optional(),
           state: characterSheetAdjustmentStateDtoSchema
         })
       )

@@ -8,12 +8,16 @@ const rollRepository = vi.hoisted(() => ({
   listForUser: vi.fn(async () => [])
 }))
 const characterSheetService = vi.hoisted(() => ({ getCharacterSheetForUser: vi.fn() }))
+const characterRepository = vi.hoisted(() => ({ findAuthoredById: vi.fn() }))
+const campaignSheetService = vi.hoisted(() => ({ resolveCharacterSheetCampaignContext: vi.fn() }))
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@artificer-toolkit/db')>()),
-  createRollHistoryRepository: () => rollRepository
+  createRollHistoryRepository: () => rollRepository,
+  createCharacterRepository: () => characterRepository
 }))
 vi.mock('../character/characterApplicationService.js', () => characterSheetService)
+vi.mock('../character/campaignCharacterSheet.js', () => campaignSheetService)
 
 import type { DBLike } from '@artificer-toolkit/db'
 import {
@@ -21,6 +25,7 @@ import {
   discardRollForUser,
   executeDiceConfiguration,
   executeRollForUser,
+  evaluateRollForUser,
   getRollHistoryForUser,
   RollCharacterAccessError
 } from './rollService.js'
@@ -28,6 +33,13 @@ import {
 describe('roll service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    characterRepository.findAuthoredById.mockResolvedValue({
+      id: 'character-1',
+      userId: 'user-1'
+    })
+    campaignSheetService.resolveCharacterSheetCampaignContext.mockResolvedValue({
+      viewer: 'CHARACTER_OWNER'
+    })
     rollRepository.findCharacterContext.mockResolvedValue({
       characterId: 'character-1',
       characterLabel: 'Morgan',
@@ -131,6 +143,22 @@ describe('roll service', () => {
     })
     expect(rollRepository.findCharacterContext).toHaveBeenCalledWith('character-1', 'user-1')
     expect(rollRepository.insertAndTrim).toHaveBeenCalledWith('user-1', result)
+  })
+
+  it('evaluates a public roll without writing private history', async () => {
+    const result = await evaluateRollForUser(
+      {} as DBLike,
+      {
+        characterId: 'character-1',
+        expression: '1d20',
+        source: { kind: 'MANUAL', label: 'Manual roll' }
+      },
+      'user-1',
+      { random: { nextInt: () => 9 } }
+    )
+
+    expect(result.evidence.total).toBe(10)
+    expect(rollRepository.insertAndTrim).not.toHaveBeenCalled()
   })
 
   it('does not roll or persist an unauthorized character', async () => {

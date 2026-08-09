@@ -62,7 +62,7 @@ const authoredListRoutes = [
   },
   {
     name: 'race',
-    sourcePath: 'src/routes/_authed/races/index.tsx',
+    sourcePath: 'src/domains/races/pages/RaceCataloguePage.tsx',
     expectedViewTarget: "to: '/races/$racePublicId/$raceSlug'"
   },
   {

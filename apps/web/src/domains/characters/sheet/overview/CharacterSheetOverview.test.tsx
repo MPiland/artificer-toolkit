@@ -287,7 +287,8 @@ describe('Character Sheet overview', () => {
       expect(
         await screen.findByRole('heading', { name: /^inventory$/i, level: 2 })
       ).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: /containers/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /my inventory/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^carried$/i })).toBeInTheDocument()
     } finally {
       restoreViewport()
     }

@@ -19,7 +19,10 @@ function read(relativePath: string): string {
 }
 
 function route(domain: string, detail = false): string {
-  if (!detail) return `src/routes/_authed/${domain}/index.tsx`
+  if (!detail)
+    return domain === 'races'
+      ? 'src/domains/races/pages/RaceCataloguePage.tsx'
+      : `src/routes/_authed/${domain}/index.tsx`
   const singular =
     domain === 'classes' ? 'class' : domain === 'equipment' ? 'equipment' : domain.slice(0, -1)
   return `src/routes/_authed/${domain}/$${singular}PublicId/$${singular}Slug/index.tsx`

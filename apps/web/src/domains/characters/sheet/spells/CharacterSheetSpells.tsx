@@ -196,14 +196,14 @@ export function CharacterSheetSpells({
               </div>
               <div className={spellListStyles.spellList}>
                 {group.entries.map((entry) => {
+                  const spellSource = sheet.spells.spells
+                    .find((spell) => spell.id === entry.spellId)
+                    ?.sources?.find(
+                      (source) => (source.id ?? source.source.sourceInstanceId) === entry.sourceId
+                    )
                   const sourceLabel =
-                    entry.sourceLabel ??
-                    sheet.spells.spells
-                      .find((spell) => spell.id === entry.spellId)
-                      ?.sources?.find(
-                        (source) => (source.id ?? source.source.sourceInstanceId) === entry.sourceId
-                      )?.label ??
-                    entry.sourceQualifier
+                    entry.sourceLabel ?? spellSource?.label ?? entry.sourceQualifier
+                  const castLabel = spellSource?.castMode === 'RITUAL' ? 'Cast ritual' : 'Cast'
                   const sourceContext = sourceLabel ? ` from ${sourceLabel}` : ''
                   const castLevelContext =
                     entry.castLevel === 0 ? ' as a cantrip' : ` at level ${entry.castLevel}`
@@ -297,7 +297,7 @@ export function CharacterSheetSpells({
                             ? `spell-unavailable-${entry.rowId}`
                             : undefined
                         }
-                        aria-label={`Cast ${accessibleSpellName}`}
+                        aria-label={`${castLabel} ${accessibleSpellName}`}
                         className={spellListStyles.spellCastButton}
                         disabled={pending || !entry.available}
                         size='compact-xs'
@@ -311,7 +311,7 @@ export function CharacterSheetSpells({
                           if (!succeeded) setFailedSpellRowId(entry.rowId)
                         }}
                       >
-                        Cast
+                        {castLabel}
                       </Button>
                       {failedSpellRowId === entry.rowId ? (
                         <Text className={spellListStyles.spellCommandError} role='alert'>

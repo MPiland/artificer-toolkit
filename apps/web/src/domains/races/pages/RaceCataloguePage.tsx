@@ -18,6 +18,8 @@ import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildRaceRouteParams } from '#app/routing/authoredRouteParams'
 
+const raceDetailMeta = ['heritages', 'races', 'speeds']
+
 export function RaceCataloguePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -79,7 +81,7 @@ export function RaceCataloguePage() {
           void queryClient.prefetchQuery(
             getRace({
               id: item.id,
-              meta: ['heritages', 'races', 'speeds'],
+              meta: raceDetailMeta,
               view: item.contentState === 'draft' ? 'draft' : 'active'
             })
           )

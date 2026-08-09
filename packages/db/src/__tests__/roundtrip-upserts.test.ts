@@ -2573,7 +2573,8 @@ describe('round-trip upsert correctness', () => {
         restriction_id: null,
         section_code: null,
         sort_order: 1,
-        available_at_level: null
+        available_at_level: null,
+        roll_definitions: []
       }
     ])
     expect(db.snapshot('feature_attributes')).toEqual([

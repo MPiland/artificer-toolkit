@@ -47,6 +47,7 @@ const repositoryCalls = vi.hoisted(() => ({
 }))
 
 vi.mock('@artificer-toolkit/db', () => ({
+  createCampaignContentRepository: () => ({ findAssignedCampaign: async () => null }),
   createSystemRepository: () => ({
     findById: async () => ({
       id: 'system-1',
@@ -490,10 +491,10 @@ describe('character Builder conditional spell registry loading', () => {
         includeFeatureEffects: false
       }
     )
-    expect(repositoryCalls.backgroundFindByIds).toHaveBeenCalledWith(
-      [unselectedBackground.id],
-      { systemId: 'system-1', includeFeatureEffects: false }
-    )
+    expect(repositoryCalls.backgroundFindByIds).toHaveBeenCalledWith([unselectedBackground.id], {
+      systemId: 'system-1',
+      includeFeatureEffects: false
+    })
     expect(resolution.registry.races.map((race) => race.id)).toEqual([selectedRace.id])
     expect(resolution.catalog.races.find((race) => race.id === unselectedRace.id)).toMatchObject({
       description: 'Draconic heritage.',

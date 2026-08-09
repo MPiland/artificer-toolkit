@@ -77,7 +77,17 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
   const { activateValues, clearValidationIssues, saveDraftValues, updateAuthoringFormActions } =
     authoring
   useAuthoringSaveShortcut()
-  const defaultValues = useMemo(() => session?.initialValues ?? EMPTY_FORM_VALUES, [session])
+  const defaultValuesRef = useRef<{ key?: string; values: object }>({
+    key: undefined,
+    values: EMPTY_FORM_VALUES
+  })
+  if (defaultValuesRef.current.key !== session?.key) {
+    defaultValuesRef.current = {
+      key: session?.key,
+      values: session?.initialValues ?? EMPTY_FORM_VALUES
+    }
+  }
+  const defaultValues = defaultValuesRef.current.values
   const form = useAppForm({
     defaultValues,
     listeners: {
@@ -91,6 +101,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
   const canonicalLabel = useStore(form.store, (state) =>
     readPreviewLabel(state.values, session?.fallbackLabel ?? 'Untitled Item')
   )
+  const editorTitle = characterSession ? authoring.subjectLabel : canonicalLabel
   const guidedAvailable = Boolean(session && isGuidedSessionEligible(session))
   const isGuided =
     experience === 'guided' &&
@@ -99,6 +110,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
     session?.system !== null &&
     session?.system !== undefined
   const guidedModeButtonRef = useRef<HTMLButtonElement>(null)
+  const resetSessionKeyRef = useRef<string | undefined>(undefined)
   const previousGuidedRef = useRef(isGuided)
   const guidedModeFocusPendingRef = useRef(false)
   useEffect(() => {
@@ -116,7 +128,8 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
     }
   }, [guidedAvailable, isExperienceUpdating, isGuided])
   useEffect(() => {
-    if (!session) return
+    if (!session || resetSessionKeyRef.current === session.key) return
+    resetSessionKeyRef.current = session.key
     form.reset(session.initialValues)
   }, [form, session])
   useEffect(() => {
@@ -160,6 +173,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
         const submittedSnapshot = JSON.stringify(submittedValues)
         const saved = await saveDraftValues(submittedValues)
         if (saved && JSON.stringify(form.state.values) === submittedSnapshot) {
+          defaultValuesRef.current = { key: session.key, values: submittedValues }
           form.reset(submittedValues)
         }
       }
@@ -289,7 +303,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
           <Editor
             showActivate={!isGuided || guidedState.isReview}
             showStepNavigation={!isGuided}
-            title={isGuided ? canonicalLabel : undefined}
+            title={editorTitle}
           >
             {editorContent}
           </Editor>

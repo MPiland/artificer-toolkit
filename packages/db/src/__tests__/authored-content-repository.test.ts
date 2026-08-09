@@ -173,6 +173,33 @@ describe('authored content repository', () => {
     expect(sqlState.statements[3]).toContain('where authored_drafts.user_id = excluded.user_id')
   })
 
+  it('checks the owned root limit after locking the existing creation counter', async () => {
+    sqlState.rows.push(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { minute_count: 0, hour_count: 0 },
+      { count: 20 }
+    )
+
+    await expect(
+      createAuthoredContentRepository({ isTransaction: true } as DBLike).saveDraft({
+        subjectKind: 'SPELL',
+        subjectId: '00000000-0000-0000-0000-000000000001',
+        userId: 'user-1',
+        systemId: 'system-1',
+        label: 'New Spell',
+        payload: { label: 'New Spell' },
+        rootLimit: 20
+      })
+    ).rejects.toMatchObject({ name: 'EntitlementLimitError', resource: 'homebrewRoots' })
+
+    expect(sqlState.statements[4]).toContain('from authored_creation_rate_limits')
+    expect(sqlState.statements[4]).toContain('for update')
+    expect(sqlState.statements[5]).toContain('owned_roots')
+  })
+
   it('checks draft freshness with exact PostgreSQL timestamp equality', async () => {
     sqlState.rows.push(
       {

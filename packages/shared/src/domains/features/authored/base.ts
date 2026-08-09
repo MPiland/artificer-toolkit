@@ -9,7 +9,17 @@ import type {
   DetailAuthored,
   FacetAuthored
 } from '#authored'
-import type { FeatureAttribute, NodeSubjectCode } from '#core'
+import type { DiceExpression, FeatureAttribute, NodeSubjectCode } from '#core'
+
+export interface FeatureRollDefinitionAuthored {
+  id: string
+  label: string
+  kind: 'ATTACK' | 'DAMAGE' | 'HEALING' | 'ABILITY_CHECK' | 'SAVING_THROW'
+  expression: DiceExpression
+  rollMode?: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+  chargeCost?: number | null
+  order: number
+}
 
 export interface FeatureBaseAuthored<N extends NodeSubjectCode = NodeSubjectCode> {
   id: string
@@ -18,6 +28,7 @@ export interface FeatureBaseAuthored<N extends NodeSubjectCode = NodeSubjectCode
   attributes?: FeatureAttribute[]
   details?: DetailAuthored[]
   effects?: EffectAuthored[]
+  rollDefinitions?: FeatureRollDefinitionAuthored[]
   charges?: ChargeAuthored<true>
   grants?: {
     feats?: FeatGrantAuthored<N>[]

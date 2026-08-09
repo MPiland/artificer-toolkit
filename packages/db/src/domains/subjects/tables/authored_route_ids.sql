@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS public.authored_route_ids (
   CONSTRAINT authored_route_ids_subject_kind_chk CHECK (
     subject_kind IN (
       'BACKGROUND',
+      'CAMPAIGN',
       'CHARACTER',
       'CLASS',
       'CREATURE',

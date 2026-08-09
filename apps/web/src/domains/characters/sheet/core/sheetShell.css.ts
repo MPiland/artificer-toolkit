@@ -311,6 +311,10 @@ export const tab = style({
       flex: '0 0 auto',
       whiteSpace: 'nowrap',
       '@media': {
+        '(min-width: 761px) and (max-width: 1199px)': {
+          fontSize: '0.8125rem',
+          paddingInline: '0.5rem'
+        },
         '(max-width: 760px), (pointer: coarse)': {
           minHeight: '44px'
         }

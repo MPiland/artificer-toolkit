@@ -31,7 +31,7 @@ export function CharacterSheetInspector({
   submitCommand: SubmitSheetCommand
   onClose: () => void
   onTargetChange: (target: CharacterSheetPanelTargetDto) => void
-  onOpenBuilder: () => void
+  onOpenBuilder?: () => void
 }) {
   const isMobile = useMediaQuery('(max-width: 760px)', false)
   const panelQuery = useQuery(getCharacterSheetPanel(characterId, target))

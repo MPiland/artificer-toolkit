@@ -28,7 +28,7 @@ export function CharacterSheetInspectorContent({
   submitCommand: SubmitSheetCommand
   onClose: () => void
   onTargetChange: (target: CharacterSheetPanelTargetDto) => void
-  onOpenBuilder: () => void
+  onOpenBuilder?: () => void
 }) {
   let content: ReactNode
 

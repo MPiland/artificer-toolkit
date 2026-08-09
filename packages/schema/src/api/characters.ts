@@ -609,6 +609,14 @@ export const characterSheetOptionDtoSchema = z.object({
 
 export const characterSheetMetaDtoSchema = z.object({
   characterId: z.string(),
+  campaignId: z.string().uuid().nullable().optional(),
+  viewer: z.enum(['CHARACTER_OWNER', 'CAMPAIGN_OWNER']),
+  capabilities: z.object({
+    managePlayState: z.boolean(),
+    managePrivateNotes: z.boolean(),
+    manageInventory: z.boolean(),
+    openBuilder: z.boolean()
+  }),
   systemId: z.string(),
   status: authoredRecordStatusSchema,
   streamVersion: z.number().int(),
@@ -965,7 +973,9 @@ export const characterSheetSpellSourceDtoSchema = z.object({
     .enum(['CLASS', 'SUBCLASS', 'RACE', 'BACKGROUND', 'FEAT', 'FEATURE', 'OPTION', 'EQUIPMENT'])
     .optional(),
   acquisition: z.enum(['KNOWN', 'PREPARED', 'ALWAYS_PREPARED', 'GRANTED']).optional(),
-  castMode: z.enum(['SPELL_SLOT', 'AT_WILL', 'FIXED_LEVEL', 'LIMITED_USE']).optional(),
+  castMode: z
+    .enum(['SPELL_SLOT', 'AT_WILL', 'RITUAL', 'FIXED_LEVEL', 'LIMITED_USE'])
+    .optional(),
   fixedLevel: z.number().int().positive().optional(),
   resourceGrantId: z.string().optional(),
   resourceOwner: characterResourceOwnerRefDtoSchema.optional(),
@@ -1466,6 +1476,11 @@ export const characterSheetCommandInputDtoSchema = z
     }),
     characterSheetCommandBaseDtoSchema.extend({
       type: z.literal('SET_PREPARED_SPELLS'),
+      classId: z.string(),
+      spellIds: z.array(z.string())
+    }),
+    characterSheetCommandBaseDtoSchema.extend({
+      type: z.literal('SET_KNOWN_SPELLS'),
       classId: z.string(),
       spellIds: z.array(z.string())
     }),

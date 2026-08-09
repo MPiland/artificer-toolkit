@@ -1,6 +1,10 @@
 import { sql } from 'kysely'
 import type { DBLike, Json } from '#types'
 import { withTransaction } from '../../../utils/index.js'
+import {
+  createAccountEntitlementsRepository,
+  EntitlementLimitError
+} from '../../../repositories/accountEntitlements.js'
 
 export type AuthoredSubjectKind =
   | 'BACKGROUND'
@@ -47,6 +51,7 @@ export interface SaveAuthoredDraftInput {
   systemId: string
   label: string
   payload: Json
+  rootLimit?: number | null
 }
 
 interface AuthoredActiveRow {
@@ -208,7 +213,11 @@ function activeRowForUpdate(db: DBLike, subjectKind: AuthoredSubjectKind, subjec
   `.execute(db)
 }
 
-async function consumeCreationAllowance(db: DBLike, userId: string): Promise<void> {
+async function consumeCreationAllowance(
+  db: DBLike,
+  userId: string,
+  rootLimit: number | null
+): Promise<void> {
   const currentMinute = sql`date_trunc('minute', now() at time zone 'UTC') at time zone 'UTC'`
   const currentHour = sql`date_trunc('hour', now() at time zone 'UTC') at time zone 'UTC'`
 
@@ -243,6 +252,12 @@ async function consumeCreationAllowance(db: DBLike, userId: string): Promise<voi
   }
   if (counter.minute_count >= 25) throw new AuthoredContentCreationRateLimitError('minute')
   if (counter.hour_count >= 100) throw new AuthoredContentCreationRateLimitError('hour')
+  if (
+    rootLimit !== null &&
+    (await createAccountEntitlementsRepository(db).countHomebrewRoots(userId)) >= rootLimit
+  ) {
+    throw new EntitlementLimitError('homebrewRoots')
+  }
 
   await sql`
     update authored_creation_rate_limits
@@ -328,7 +343,9 @@ async function saveDraft(db: DBLike, input: SaveAuthoredDraftInput): Promise<Aut
       throw new Error(`Active authored content "${input.subjectId}" cannot change rules system.`)
     }
 
-    if (!existingDraft && !active) await consumeCreationAllowance(trx, input.userId)
+    if (!existingDraft && !active) {
+      await consumeCreationAllowance(trx, input.userId, input.rootLimit ?? null)
+    }
 
     const baseActiveUpdatedAt = active
       ? sql`(

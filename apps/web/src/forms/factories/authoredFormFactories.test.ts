@@ -6,7 +6,8 @@ import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import {
   authoredRouteStoryEquipmentParentResponse,
   authoredRouteStoryResponses,
-  authoredRouteStorySystem
+  authoredRouteStorySystem,
+  createEditLoaderData
 } from '#domains/authoredRouteStory.fixtures'
 import { ownedBackgroundFixture } from '../../domains/backgrounds/background.fixtures'
 import { ownedClassResponseFixture } from '../../domains/classes/class.fixtures'
@@ -176,6 +177,20 @@ describe('authoredFormFactories', () => {
         })
       )
     }
+  })
+
+  it('keeps an edit session identity stable when only the saved draft timestamp changes', () => {
+    const firstData = createEditLoaderData('equipment', 'ownedDraft').authoringData
+    if (!firstData.draft) throw new Error('Expected an equipment draft fixture.')
+    const secondData = {
+      ...firstData,
+      draft: { ...firstData.draft, updatedAt: '2026-02-02T00:00:00.000Z' }
+    }
+
+    const firstSession = equipmentFormFactory.createSession?.({ data: firstData, mode: 'edit' })
+    const secondSession = equipmentFormFactory.createSession?.({ data: secondData, mode: 'edit' })
+
+    expect(secondSession?.key).toBe(firstSession?.key)
   })
 
   it('inherits weight and value from the selected equipment parent in the live preview', () => {

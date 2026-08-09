@@ -763,9 +763,7 @@ function createAuthoredEditSession<
     initialValues,
     invalidDraftOnly,
     isDraft: Boolean(parsedDraft.draft),
-    key: `${subjectKindLabel.toLowerCase()}:edit:${editData.subjectId}:${editData.draft?.updatedAt ?? editData.subjectId}:${
-      draftItem ? 'draft' : 'active'
-    }`,
+    key: `${subjectKindLabel.toLowerCase()}:edit:${editData.subjectId}:${draftItem ? 'draft' : 'active'}`,
     mode: readOnly ? 'view' : 'edit',
     notFound: !editData.response && !draftItem && !invalidDraftOnly,
     provenanceKind: editData.response?.provenance?.kind ?? (editData.draft ? 'OWNED' : null),

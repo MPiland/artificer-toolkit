@@ -44,6 +44,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@artificer-toolkit/db', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@artificer-toolkit/db')>()),
   createAuthoredContentRepository: () => mocks.contentRepository,
+  createAccountEntitlementsRepository: () => ({ lockTier: async () => 'FREE' as const }),
   createMediaRepository: () => mocks.mediaRepository,
   createAuthoredRouteIdRepository: () => mocks.routeRepository
 }))

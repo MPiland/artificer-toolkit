@@ -7,6 +7,9 @@ import { useCharacterSheetCommandMutation } from '#app/data/characters/mutations
 import type { CharacterSheetPanelTargetDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
+import { CampaignChatDrawer } from '#domains/campaigns/components/CampaignChatDrawer'
+import { CampaignNotesDrawer } from '#domains/campaigns/components/CampaignNotesDrawer'
+import { CharacterSheetPartyInventory } from '#domains/campaigns/components/CampaignInventory'
 import { CharacterSheetHero } from '../hero/CharacterSheetHero'
 import { CharacterSheetInspector } from '../inspector/CharacterSheetInspector'
 import { CharacterSheetManualRoll } from '../dice/CharacterSheetManualRoll'
@@ -39,12 +42,14 @@ import type {
 
 export function CharacterSheetView({
   characterPublicId,
+  currentUserId,
   hasDraft,
   initialTab = 'overview',
   rollerName = 'You',
   sheet
 }: {
   characterPublicId: string
+  currentUserId?: string
   hasDraft: boolean
   initialTab?: CharacterSheetTabId
   rollerName?: string
@@ -64,8 +69,18 @@ export function CharacterSheetView({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const commandMutation = useCharacterSheetCommandMutation(sheet.meta.characterId)
-  const rollController = useCharacterSheetRollController(sheet.meta.characterId)
+  const rollController = useCharacterSheetRollController(
+    sheet.meta.characterId,
+    sheet.meta.campaignId ?? undefined
+  )
   const pending = commandMutation.isPending
+  const campaignInventory =
+    sheet.meta.campaignId && currentUserId ? (
+      <CharacterSheetPartyInventory
+        campaignId={sheet.meta.campaignId}
+        currentUserId={currentUserId}
+      />
+    ) : undefined
 
   const revealRoll = useCallback(
     (roll: RollRecordDto) => {
@@ -84,10 +99,14 @@ export function CharacterSheetView({
     sheet.spells.spells.length > 0 ||
     Boolean(sheet.spells.preparationSources?.length)
   const visibleTabs = CHARACTER_SHEET_DESKTOP_TABS.filter(
-    (tab) => hasSpellcasting || tab.id !== 'spells'
+    (tab) =>
+      (hasSpellcasting || tab.id !== 'spells') &&
+      (sheet.meta.capabilities.managePrivateNotes || tab.id !== 'notes')
   )
   const visibleMobilePages = CHARACTER_SHEET_MOBILE_PAGES.filter(
-    (page) => hasSpellcasting || page.id !== 'spells'
+    (page) =>
+      (hasSpellcasting || page.id !== 'spells') &&
+      (sheet.meta.capabilities.managePrivateNotes || page.id !== 'notes')
   )
   const visibleActiveTab = !hasSpellcasting && activeTab === 'spells' ? 'actions' : activeTab
   const visibleActiveMobilePage =
@@ -146,7 +165,7 @@ export function CharacterSheetView({
       <div className={coreStyles.shell} onClickCapture={dismissPresentedRoll}>
         <CharacterSheetRollPresentation
           onRollRevealed={(rollId) => {
-            if (rollController.presentedRoll?.id === rollId)
+            if (rollController.presentedRoll?.id === rollId && rollController.presentedRollPrivate)
               revealRoll(rollController.presentedRoll)
           }}
           pending={rollController.pending}
@@ -154,7 +173,23 @@ export function CharacterSheetView({
         />
         <div className={coreStyles.sheetTopGrid}>
           <CharacterSheetHero
+            campaignActions={
+              sheet.meta.campaignId && currentUserId ? (
+                <>
+                  <CampaignChatDrawer
+                    campaignId={sheet.meta.campaignId}
+                    currentUserId={currentUserId}
+                    trigger='icon'
+                  />
+                  <CampaignNotesDrawer
+                    campaignId={sheet.meta.campaignId}
+                    currentUserId={currentUserId}
+                  />
+                </>
+              ) : null
+            }
             characterPublicId={characterPublicId}
+            editable={sheet.meta.capabilities.openBuilder}
             hasDraft={hasDraft}
             sheet={sheet}
             onOpenRollHistory={() => setRollHistoryOpened(true)}
@@ -267,6 +302,7 @@ export function CharacterSheetView({
                       value={tab.id}
                     >
                       <CharacterSheetPanelContent
+                        campaignInventory={campaignInventory}
                         openPanel={openInspector}
                         pending={pending}
                         sheet={sheet}
@@ -281,6 +317,7 @@ export function CharacterSheetView({
               {isMobileAuxiliaryPage ? (
                 <div className={coreStyles.mobileAuxiliaryPanel} data-mobile-visible='true'>
                   <CharacterSheetPanelContent
+                    campaignInventory={campaignInventory}
                     mobile
                     openPanel={openInspector}
                     pending={pending}
@@ -297,6 +334,7 @@ export function CharacterSheetView({
       <CharacterSheetRollHistory
         opened={rollHistoryOpened}
         pendingRollId={
+          !rollController.presentedRollPrivate ||
           rollController.presentedRoll?.id === revealedRollId
             ? undefined
             : rollController.presentedRoll?.id
@@ -314,11 +352,14 @@ export function CharacterSheetView({
           target={inspectorTarget}
           equipmentItems={sheet.inventory.items}
           onClose={closeInspector}
-          onOpenBuilder={() =>
-            navigate({
-              to: '/characters/$characterPublicId/$characterSlug/edit',
-              params: buildCharacterRouteParams(characterPublicId, sheet.identity.label)
-            })
+          onOpenBuilder={
+            sheet.meta.capabilities.openBuilder
+              ? () =>
+                  navigate({
+                    to: '/characters/$characterPublicId/$characterSlug/edit',
+                    params: buildCharacterRouteParams(characterPublicId, sheet.identity.label)
+                  })
+              : undefined
           }
           onTargetChange={setInspectorTarget}
         />

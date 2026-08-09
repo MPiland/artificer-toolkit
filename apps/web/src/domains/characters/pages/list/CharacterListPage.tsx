@@ -31,6 +31,7 @@ export function CharacterListPage() {
       filters={buildCharacterListFilters(data)}
       attributeColumns={characterListAttributeColumns}
       sortOptions={characterListSortOptions}
+      cardOnly
       onCreate={() => navigate({ to: '/characters/new' })}
       onView={(item) =>
         navigate({

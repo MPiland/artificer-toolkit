@@ -1,5 +1,5 @@
 import { ActionIcon, Button, Drawer, Text } from '@mantine/core'
-import { useRef, useState, type ReactNode, type TouchEvent } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type TouchEvent } from 'react'
 import {
   BookOpen,
   BadgeCheck,
@@ -44,12 +44,17 @@ export function CharacterSheetMobilePager({
   onPageChange: (page: CharacterSheetMobilePageId) => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const viewportRef = useRef<HTMLDivElement>(null)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const pageIndex = pages.findIndex((page) => page.id === activePage)
   const activeIndex = pageIndex >= 0 ? pageIndex : 0
   const activePageLabel = pages[activeIndex]?.label ?? 'Overview'
   const previousPage = activeIndex > 0 ? pages[activeIndex - 1]?.id : undefined
   const nextPage = activeIndex < pages.length - 1 ? pages[activeIndex + 1]?.id : undefined
+
+  useEffect(() => {
+    if (viewportRef.current) viewportRef.current.scrollTop = 0
+  }, [activePage])
 
   function goToPage(page: CharacterSheetMobilePageId) {
     setMenuOpen(false)
@@ -83,6 +88,7 @@ export function CharacterSheetMobilePager({
       </Text>
       <div
         className={mobileStyles.mobilePageViewport}
+        ref={viewportRef}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >

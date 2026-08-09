@@ -34,6 +34,7 @@ import type {
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { ModifierGrantAuthored } from '@artificer-toolkit/shared/authored'
 import type { ResolvedRace } from '@artificer-toolkit/shared/subjects/compilers'
+import type { HydratedCampaignBuilderContent } from './campaignCharacterContent.js'
 
 export type CharacterBuilderRaceCatalogRecord = {
   id: string
@@ -110,6 +111,95 @@ export interface CharacterBuilderCatalog {
   equipment: CharacterBuilderEquipmentCatalogRecord[]
   feats: CharacterBuilderFeatCatalogRecord[]
   spells: CharacterBuilderSpellCatalogRecord[]
+}
+
+function replaceCatalogRecords<T extends { id: string }>(
+  current: readonly T[],
+  campaign: readonly T[]
+): T[] {
+  const campaignIds = new Set(campaign.map((record) => record.id))
+  return [...current.filter((record) => !campaignIds.has(record.id)), ...campaign]
+}
+
+export function mergeCampaignContentIntoCharacterBuilderCatalog(
+  catalog: CharacterBuilderCatalog,
+  content: HydratedCampaignBuilderContent
+): CharacterBuilderCatalog {
+  return {
+    races: replaceCatalogRecords(
+      catalog.races,
+      content.races.map((race) => ({
+        id: race.id,
+        label: race.label,
+        category: race.category,
+        parentRaceId: race.category === RACE_CATEGORY_CODE.SUBRACE ? race.parentRaceId : undefined,
+        description: race.description,
+        selectionMode: race.category === RACE_CATEGORY_CODE.BASE ? race.selectionMode : undefined,
+        sizeLabel: SIZE_OPTIONS.find((size) => size.code === race.size)?.label,
+        abilityScoreIncreaseFacts: getRaceAbilityScoreIncreaseFacts(race)
+      }))
+    ),
+    classes: replaceCatalogRecords(
+      catalog.classes,
+      content.classes.map((record) => ({
+        id: record.id,
+        label: record.label,
+        category: record.category,
+        parentClassId:
+          record.category === CLASS_CATEGORY.SUBCLASS ? record.parentClassId : undefined,
+        subclassSelectionLevel:
+          record.category === CLASS_CATEGORY.BASE ? record.subclassSelectionLevel : undefined,
+        description: record.description,
+        hitpoint: record.category === CLASS_CATEGORY.BASE ? record.hitpoint : undefined,
+        requirementGroups:
+          record.category === CLASS_CATEGORY.BASE ? record.multiclass.requirementGroups : undefined
+      }))
+    ),
+    backgrounds: replaceCatalogRecords(
+      catalog.backgrounds,
+      content.backgrounds.map((record) => ({
+        id: record.id,
+        label: record.label,
+        description: record.description,
+        summary: toPlainText(record.description ?? ''),
+        grantFacts: [],
+        featureLabels: (record.features ?? []).slice(0, 2).map((feature) => feature.label),
+        hiddenGrantFactCount: 0,
+        hiddenFeatureCount: Math.max(0, (record.features?.length ?? 0) - 2)
+      }))
+    ),
+    equipment: replaceCatalogRecords(
+      catalog.equipment,
+      content.equipment.map((record) => ({
+        id: record.id,
+        label: record.label,
+        category: record.category,
+        isContainer: Boolean(record.capacity),
+        maxStack: record.maxStack,
+        properties: [...record.properties],
+        requiresAttunement: record.requiresAttunement ?? false
+      }))
+    ),
+    feats: replaceCatalogRecords(
+      catalog.feats,
+      content.feats.map((record) => ({ id: record.id, label: record.label }))
+    ),
+    spells: replaceCatalogRecords(
+      catalog.spells,
+      content.spells.map((record) => ({
+        id: record.id,
+        label: record.label,
+        attributes: record.attributes,
+        castingTime: record.castingTime,
+        classIds: record.classIds,
+        components: record.components,
+        description: record.description,
+        level: record.level,
+        magicSchoolId: record.magicSchoolId,
+        materialDescription: record.materialDescription
+      }))
+    )
+  }
 }
 
 type CharacterBuilderCatalogLoadOptions = {

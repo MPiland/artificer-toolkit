@@ -61,6 +61,17 @@ export const classLevelField = style({
   }
 })
 
+export const classLevelLabel = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.muted,
+      fontSize: foundationVars.typography.bodySm.fontSize,
+      fontWeight: foundationVars.fontWeight.semibold,
+      marginInlineEnd: '-6px'
+    }
+  }
+})
+
 export const classProficiencyCard = style({
   '@layer': {
     [app]: {

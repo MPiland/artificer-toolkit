@@ -66,6 +66,7 @@ export interface ClassSpellcastingAuthored {
   order?: number
   details?: DetailAuthored[]
   magicName?: string
+  availableSpellIds?: string[]
   ability?: AbilityCode
   maxSpellLevel: number // int
   attributes?: SpellcastingAttribute[]

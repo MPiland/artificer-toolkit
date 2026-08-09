@@ -10,6 +10,7 @@ import {
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import { buildRaceRouteParams } from '#app/routing/authoredRouteParams'
 import type { RaceEditLoaderData } from '#app/routes/-routeLoaderData'
+import { loadAuthoredRouteSystem } from '#app/routes/-authoredRouteSystem'
 import { AuthoringLayout } from '#forms'
 import {
   createAuthoredFormRouteContext,
@@ -32,6 +33,11 @@ export const Route = createFileRoute('/_authed/races/$racePublicId/$raceSlug/edi
       context.queryClient.ensureQueryData(getRaceDraft(raceId, client))
     ])
     const routeSubject = getAuthoredRouteSubject(raceId, response, draft)
+    const system = await loadAuthoredRouteSystem(
+      context.queryClient,
+      client,
+      response?.item?.systemId ?? draft?.systemId
+    )
 
     if (
       routeSubject &&
@@ -48,7 +54,8 @@ export const Route = createFileRoute('/_authed/races/$racePublicId/$raceSlug/edi
       breadcrumbLabel: routeSubject?.label,
       draft,
       response,
-      subjectId: raceId
+      subjectId: raceId,
+      system
     })
   },
   component: AuthoringLayout

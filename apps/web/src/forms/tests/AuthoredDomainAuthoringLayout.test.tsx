@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { NodeRuntimeResolveRequestDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import type { User } from '@supabase/supabase-js'
 import {
   authoredCreateRouteLoaderData,
   authoredEditRouteLoaderData,
@@ -67,6 +68,7 @@ describe('non-character authored domain layout coverage', () => {
     await user.click(screen.getByRole('button', { name: /^next$/i }))
 
     expect(screen.getByRole('button', { name: /^back$/i })).toBeEnabled()
+    expect(screen.getByRole('heading', { level: 1, name: 'Test Race' })).toBeInTheDocument()
   })
 
   it('keeps starting-point UI state clean until an inline copy is confirmed', async () => {
@@ -123,6 +125,30 @@ describe('non-character authored domain layout coverage', () => {
     expect(
       within(preview).getByText('Add a description to preview its reader copy.')
     ).toBeInTheDocument()
+  })
+
+  it('updates the Advanced workspace title from the current form name', async () => {
+    useStaticNodeRuntimeResolver()
+
+    render(
+      <TestRouterProvider user={createAdvancedAuthoringUser()}>
+        {renderCreateLayout('equipment')}
+      </TestRouterProvider>
+    )
+
+    await userEvent.setup().type(await screen.findByRole('textbox', { name: 'Name' }), 'Moon Blade')
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Moon Blade' })).toBeInTheDocument()
+  })
+
+  it('uses natural equipment language in the guided start choice', async () => {
+    useStaticNodeRuntimeResolver()
+
+    render(<TestRouterProvider>{renderCreateLayout('equipment')}</TestRouterProvider>)
+
+    expect(await screen.findByText(/Create a new item,/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Use an existing item/i })).toBeInTheDocument()
+    expect(screen.queryByText(/new equipment/i)).not.toBeInTheDocument()
   })
 
   it('guides a new spell through grouped questions on the canonical form', async () => {
@@ -215,6 +241,45 @@ describe('non-character authored domain layout coverage', () => {
     }
   })
 
+  it('shows progress while an Advanced form model is still resolving', async () => {
+    let releaseModel: () => void = () => undefined
+    const pendingModel = new Promise<void>((resolve) => {
+      releaseModel = resolve
+    })
+
+    server.use(
+      http.post('*/api/trpc/nodeRuntime.resolve*', async ({ request }) => {
+        const inputs = readBatchedInputs<NodeRuntimeResolveRequestDto>(await request.json())
+        await pendingModel
+
+        return trpcBatchJson(
+          inputs.map((input) =>
+            createStaticResolvedFormModel(input.mapId, {
+              ancestors: input.ancestors,
+              parentValues: input.parentValues,
+              system: authoredRouteStorySystem,
+              values: input.values
+            })
+          )
+        )
+      })
+    )
+
+    render(
+      <TestRouterProvider user={createAdvancedAuthoringUser()}>
+        {renderCreateLayout('equipment')}
+      </TestRouterProvider>
+    )
+
+    try {
+      expect(await screen.findByRole('status')).toHaveTextContent('Loading authoring tools…')
+    } finally {
+      releaseModel()
+    }
+
+    expect(await screen.findByRole('heading', { name: 'Basics' })).toBeInTheDocument()
+  })
+
   it('preserves a guided spell when switching through Advanced', async () => {
     const user = userEvent.setup()
     mocks.updateAuthUser.mockResolvedValue({ error: null })
@@ -295,6 +360,7 @@ describe('non-character authored domain layout coverage', () => {
 
     expect(await screen.findByText('All changes saved')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save Draft' })).toBeDisabled()
+    expect(name).toHaveValue('Saved without reload')
   })
 
   it('guards populated Spell material values before deselecting Material', async () => {
@@ -475,6 +541,16 @@ function renderCreateLayout(domain: AuthoredFormDomain) {
           mode='create'
         />
       )
+  }
+}
+
+function createAdvancedAuthoringUser(): User {
+  return {
+    id: 'advanced-author',
+    app_metadata: {},
+    aud: 'authenticated',
+    created_at: '2026-01-01T00:00:00.000Z',
+    user_metadata: { authoring_experience: 'advanced' }
   }
 }
 

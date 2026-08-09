@@ -29,6 +29,47 @@ function authoredDetailKey(domain: string, id: string, options: AuthoredDetailQu
 }
 
 export const queryKeys = {
+  account: {
+    entitlements: () => ['account', 'entitlements'] as const
+  },
+
+  campaigns: {
+    all: () => ['campaigns'] as const,
+    list: () => ['campaigns', 'list'] as const,
+    detail: (campaignId: string) => ['campaigns', 'detail', campaignId] as const,
+    conversations: (campaignId: string) => ['campaigns', campaignId, 'conversations'] as const,
+    chat: (campaignId: string, room: 'TABLE' | 'PARTY' | 'DIRECT', directUserId?: string) =>
+      ['campaigns', campaignId, 'chat', room, directUserId ?? null] as const,
+    notebook: (campaignId: string) => ['campaigns', campaignId, 'notebook'] as const,
+    sessions: (campaignId: string) => ['campaigns', campaignId, 'sessions'] as const,
+    session: (campaignId: string, sessionNumber: number) =>
+      ['campaigns', campaignId, 'sessions', sessionNumber] as const,
+    sessionAttendance: (campaignId: string, sessionId: string) =>
+      ['campaigns', campaignId, 'sessions', sessionId, 'attendance'] as const,
+    sessionRsvps: (campaignId: string, sessionId: string) =>
+      ['campaigns', campaignId, 'sessions', sessionId, 'rsvps'] as const,
+    sessionReferences: (campaignId: string, sessionId: string) =>
+      ['campaigns', campaignId, 'sessions', sessionId, 'references'] as const,
+    clock: (campaignId: string) => ['campaigns', campaignId, 'clock'] as const,
+    sessionNotes: (campaignId: string, sessionId: string) =>
+      ['campaigns', campaignId, 'sessions', sessionId, 'notes'] as const,
+    currencySystems: (campaignId: string) =>
+      ['campaigns', campaignId, 'inventory', 'currency-systems'] as const,
+    inventory: (campaignId: string, ownerKey: string) =>
+      ['campaigns', campaignId, 'inventory', ownerKey] as const,
+    inventoryAudit: (campaignId: string) =>
+      ['campaigns', campaignId, 'inventory', 'audit'] as const,
+    content: (campaignId: string) => ['campaigns', campaignId, 'content'] as const
+  },
+
+  encounters: {
+    detail: (encounterId: string) => ['encounters', encounterId] as const,
+    timeline: (encounterId: string) => ['encounters', encounterId, 'timeline'] as const,
+    active: (campaignId: string) => ['encounters', 'campaign', campaignId, 'active'] as const,
+    list: (campaignId: string) => ['encounters', 'campaign', campaignId, 'list'] as const,
+    templates: (campaignId: string) => ['encounters', 'campaign', campaignId, 'templates'] as const
+  },
+
   characters: {
     all: () => ['characters'] as const,
     list: () => ['characters', 'list'] as const,

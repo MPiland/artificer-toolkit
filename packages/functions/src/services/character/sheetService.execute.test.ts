@@ -60,6 +60,9 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       findAuthoredById: mocks.findAuthoredById,
       patchSheetState: mocks.patchSheetState
     }),
+    createCampaignContentRepository: () => ({
+      findAssignedCampaign: async () => null
+    }),
     createRollHistoryRepository: () => ({
       consumeForUser: mocks.consumeRollForUser,
       findAvailableByIdForUser: mocks.findRollByIdForUser

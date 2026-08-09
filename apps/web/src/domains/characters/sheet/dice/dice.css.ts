@@ -73,12 +73,14 @@ export const manualRollButton = style({
 export const manualPopover = style({
   '@layer': {
     [app]: {
+      boxSizing: 'border-box',
       boxShadow: foundationVars.shadow.floatingControl,
       display: 'grid',
       gap: '12px',
       maxHeight: 'min(680px, calc(100dvh - 96px))',
+      maxInlineSize: 'calc(100vw - 16px)',
       overflowY: 'auto',
-      width: 'min(360px, calc(100vw - 24px))'
+      width: 'min(360px, calc(100vw - 16px))'
     }
   }
 })
@@ -103,6 +105,23 @@ export const manualSettings = style({
   }
 })
 
+export const manualDestination = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      display: 'flex',
+      gap: '8px',
+      justifyContent: 'space-between',
+      '@media': {
+        '(max-width: 420px)': {
+          alignItems: 'stretch',
+          flexDirection: 'column'
+        }
+      }
+    }
+  }
+})
+
 export const manualRows = style({
   '@layer': {
     [app]: {
@@ -122,7 +141,7 @@ export const manualRow = style({
       '@media': {
         '(max-width: 420px)': {
           gap: '6px',
-          gridTemplateColumns: 'minmax(70px, 1fr) 60px 68px 28px 28px'
+          gridTemplateColumns: 'minmax(0, 1fr) 68px 72px 32px 32px'
         }
       }
     }
@@ -136,7 +155,14 @@ export const manualActions = style({
       display: 'flex',
       flexWrap: 'wrap',
       gap: '6px',
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
+      '@media': {
+        '(max-width: 420px)': {
+          alignItems: 'stretch',
+          display: 'grid',
+          inlineSize: '100%'
+        }
+      }
     }
   }
 })
@@ -144,7 +170,12 @@ export const manualActions = style({
 export const manualMode = style({
   '@layer': {
     [app]: {
-      flex: '0 0 auto'
+      flex: '0 0 auto',
+      '@media': {
+        '(max-width: 420px)': {
+          inlineSize: '100%'
+        }
+      }
     }
   }
 })
@@ -155,7 +186,35 @@ export const manualActionButtons = style({
       alignItems: 'center',
       display: 'flex',
       gap: '6px',
-      marginInlineStart: 'auto'
+      marginInlineStart: 'auto',
+      '@media': {
+        '(max-width: 420px)': {
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          inlineSize: '100%',
+          marginInlineStart: 0
+        }
+      }
+    }
+  }
+})
+
+globalStyle(`${manualRow} > *`, {
+  '@layer': {
+    [app]: {
+      minInlineSize: 0
+    }
+  }
+})
+
+globalStyle(`${manualActionButtons} > *`, {
+  '@layer': {
+    [app]: {
+      '@media': {
+        '(max-width: 420px)': {
+          inlineSize: '100%'
+        }
+      }
     }
   }
 })

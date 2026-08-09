@@ -1215,6 +1215,7 @@ export type NodeInlineSource =
 export type NodeDataSource = {
   kind: 'DATA'
   relationship: RelationshipPlan
+  preserveUnknownOptions?: boolean
 }
 
 export type NodeSelectSource = NodeInlineSource | NodeDataSource

@@ -69,6 +69,13 @@ describe('character sheet command contracts', () => {
       characterSheetResponseDtoSchema.safeParse({
         meta: {
           characterId: 'character-1',
+          viewer: 'CHARACTER_OWNER',
+          capabilities: {
+            managePlayState: true,
+            managePrivateNotes: true,
+            manageInventory: true,
+            openBuilder: true
+          },
           systemId: 'system-1',
           status: 'ACTIVE',
           streamVersion: 1
@@ -230,6 +237,13 @@ describe('character sheet command contracts', () => {
       characterSheetResponseDtoSchema.safeParse({
         meta: {
           characterId: 'character-1',
+          viewer: 'CHARACTER_OWNER',
+          capabilities: {
+            managePlayState: true,
+            managePrivateNotes: true,
+            manageInventory: true,
+            openBuilder: true
+          },
           systemId: 'system-1',
           status: 'ACTIVE',
           streamVersion: 1
@@ -449,6 +463,18 @@ describe('character sheet command contracts', () => {
         commandId: '00000000-0000-4000-8000-000000000001',
         expectedVersion: 3,
         inspired: true
+      }).success
+    ).toBe(true)
+  })
+
+  it('accepts an explicit known-spell list, including an empty override', () => {
+    expect(
+      characterSheetCommandInputDtoSchema.safeParse({
+        type: 'SET_KNOWN_SPELLS',
+        commandId: '00000000-0000-4000-8000-000000000001',
+        expectedVersion: 3,
+        classId: 'class-1',
+        spellIds: []
       }).success
     ).toBe(true)
   })

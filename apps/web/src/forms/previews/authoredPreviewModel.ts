@@ -1,4 +1,5 @@
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
+import { stripHtml } from '#components/AuthoredDetail/detailFormatters'
 import type { AuthoredFormPreviewContext } from '../factories/authoredFormFactories.types'
 import type {
   AuthoredPreviewModel,
@@ -118,7 +119,10 @@ function createDomainSections(
                 'item'
               )
             ],
-            ['Proficiencies', formatCount(readRecords(values.proficiencies).length, 'proficiency')]
+            [
+              'Proficiencies',
+              formatCount(readRecords(values.proficiencies).length, 'proficiency', 'proficiencies')
+            ]
           ])
         ]),
         createListSection(
@@ -134,7 +138,10 @@ function createDomainSections(
           ['Type', formatEnumLabel(readString(values.category))],
           ['Hit Die', readRecord(values.hitpoint)?.dieConfig],
           ['Starting Gold', formatCost(readRecord(values.startingGold), system)],
-          ['Proficiencies', formatCount(readRecords(values.proficiencies).length, 'proficiency')],
+          [
+            'Proficiencies',
+            formatCount(readRecords(values.proficiencies).length, 'proficiency', 'proficiencies')
+          ],
           [
             'Spellcasting',
             readRecord(values.spellcasting)
@@ -365,7 +372,7 @@ function createProseSection(
     fallback,
     html: readString(values.description),
     id,
-    quote: readString(values.quote),
+    quote: stripHtml(readString(values.quote)),
     title,
     type: 'prose'
   }
@@ -610,8 +617,10 @@ function formatMeasurement(record: RuntimeRecord | undefined): string | undefine
 
 function formatTimedUnit(record: RuntimeRecord | undefined): string | undefined {
   const amount = readNumber(record?.amount)
-  const unit = formatEnumLabel(readString(record?.unit))?.toLowerCase()
+  const unitCode = readString(record?.unit)
+  const unit = formatEnumLabel(unitCode)?.toLowerCase()
   if (amount === undefined || !unit) return undefined
+  if (amount === 1 && unitCode === 'ROUND') return '1 action'
   return `${formatNumber(amount)} ${amount === 1 && unit.endsWith('s') ? unit.slice(0, -1) : unit}`
 }
 
@@ -678,9 +687,9 @@ function getOrdinalSuffix(value: number): string {
   }
 }
 
-function formatCount(count: number, label: string): string | undefined {
+function formatCount(count: number, label: string, plural = `${label}s`): string | undefined {
   if (count <= 0) return undefined
-  return `${count} ${count === 1 ? label : `${label}s`}`
+  return `${count} ${count === 1 ? label : plural}`
 }
 
 function formatFactValue(value: unknown): string | undefined {

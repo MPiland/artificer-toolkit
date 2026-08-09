@@ -62,6 +62,23 @@ function mapErrorToCode(error: Error): TRPCError['code'] {
   if (error.name === 'MediaConflictError') return 'CONFLICT'
   if (error.name === 'MediaValidationError') return 'UNPROCESSABLE_CONTENT'
   if (error.name === 'MediaQuotaError') return 'PAYLOAD_TOO_LARGE'
+  if (error.name === 'CampaignAccessError' || error.name === 'EntitlementLimitError') {
+    return 'FORBIDDEN'
+  }
+  if (error.name === 'CampaignNotFoundError') return 'NOT_FOUND'
+  if (error.name === 'CampaignConflictError') return 'CONFLICT'
+  if (error.name === 'CampaignValidationError' || error.name === 'RangeError') {
+    return 'BAD_REQUEST'
+  }
+  if (error.name === 'EncounterNotFoundError') return 'NOT_FOUND'
+  if (error.name === 'EncounterConflictError') return 'CONFLICT'
+  if (error.name === 'EncounterValidationError') return 'BAD_REQUEST'
+  if (
+    error.name === 'InsufficientInventoryCurrencyError' ||
+    error.name === 'InventoryCurrencyAmountRangeError'
+  ) {
+    return 'BAD_REQUEST'
+  }
 
   return 'INTERNAL_SERVER_ERROR'
 }
@@ -106,6 +123,19 @@ export async function withAuthenticatedDb<TResult>(
 
   try {
     return await withUserContext(db, userId, (scopedDb) => callback(scopedDb, userId, auth))
+  } catch (error) {
+    throw toTrpcError(error)
+  }
+}
+
+export async function withExplicitAuthorityDb<TResult>(
+  ctx: TrpcContext,
+  callback: (db: DBLike, userId: string) => Promise<TResult>
+): Promise<TResult> {
+  const userId = requireUserId(ctx)
+
+  try {
+    return await callback(getSharedDb(ctx.databaseConnectionString), userId)
   } catch (error) {
     throw toTrpcError(error)
   }

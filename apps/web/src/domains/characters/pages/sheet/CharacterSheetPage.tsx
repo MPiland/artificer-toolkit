@@ -8,6 +8,7 @@ import { CharacterSheetView } from '../../sheet/core/CharacterSheetView'
 export function CharacterSheetPage() {
   const route = getRouteApi('/_authed/characters/$characterPublicId/$characterSlug/')
   const { characterId, characterPublicId, draft, fallbackCharacter } = route.useLoaderData()
+  const { user } = route.useRouteContext()
   const navigate = useNavigate()
   const { data: sheet } = useSuspenseQuery(getCharacterSheet(characterId))
 
@@ -32,6 +33,7 @@ export function CharacterSheetPage() {
   return (
     <CharacterSheetView
       characterPublicId={sheet.publicId ?? characterPublicId}
+      currentUserId={user?.id}
       hasDraft={Boolean(draft ?? sheet.meta.hasBuilderDraft)}
       rollerName={sheet.identity.label}
       sheet={sheet}

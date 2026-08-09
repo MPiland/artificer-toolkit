@@ -1,116 +1,126 @@
 # Phase 03 — Campaign Core
 
-> **Status:** planned
+> **Status:** implemented baseline; approved Campaign-management extension planned
 > **Depends on:** [Phase 00](00-character-sheet-play-depth-and-overrides.md), [Phase 01](01-dice-and-roll-infrastructure.md), and [Phase 02](02-media-and-file-pipeline.md)
-> **Unlocks:** live Campaign play, Campaign Encounters, Social Hub conversion, and Campaign-scoped content
-> **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0006](../adr/0006-character-builder-sheet-boundary.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md), [0011](../adr/0011-active-authored-content-and-json-drafts.md)
+> **Unlocks:** [Phase 04 Social Hub](04-social-hub.md), [Phase 05 live play](05-live-campaign-play.md), Campaign Encounters, and Campaign-scoped content
+> **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0006](../adr/0006-character-builder-sheet-boundary.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md), [0011](../adr/0011-active-authored-content-and-json-drafts.md), and [0013](../adr/0013-campaign-authority-and-collaboration.md)
 
 ## Goal
 
-Introduce the minimum Campaign aggregate and authorization model: invitations, membership, OWNER/GM/PLAYER roles, character assignment, version-bound content access, typed Campaign rules, GM Sheet access, and audited GM commands. Ship the responsive web Campaign overview, member, content, and Sheet-access journeys without adding live-play collaboration yet.
+Deliver the usable Campaign web core and its approved management extension: account entitlements, role-aware Campaign management, party custody, GM-authorized Sheet state, durable conversations and Campaign rolls, collaborative sessions, and private Realtime reconciliation. Campaign management is the GM workspace and entry point for live session workflows.
 
-## Current starting point
+## Assumptions
 
-- Characters and authored definitions are directly user-owned, and authorization is largely owner-or-super-admin.
-- No Campaign, membership, invitation, delegated actor control, or GM capability model exists.
-- Character Builder structural writes and Sheet play-state commands are already separate seams.
-- Current structural selections resolve stable authored root IDs against canonical active content. General authored revision history is intentionally not retained, so Campaign-stable content requires a new explicit immutable snapshot/version contract.
-- Character and authored-data RLS policies assume direct ownership and will not become Campaign-aware by adding one membership table alone.
+- Campaign roles are `OWNER | PLAYER`; the sole owner is displayed as the GM. Accepted players consume seats; the owner does not.
+- Accounts start Free. Tier changes are manually assigned until Phase 08 billing. Existing over-limit records remain usable; limits block new creation or activation.
+- A Character has at most one active Campaign assignment. Archived Campaigns are read-only; permanent deletion runs the defined reconciliation.
+- Campaign routes use a public base-36 identifier plus slug: ``/campaigns/<public-id>/<slug>``. Session routes stay nested and do not expose UUIDs.
+- Conversation retention is the newest 500 entries per `TABLE`, `PARTY`, or `DIRECT` conversation. Structured conversations and notes do not consume media storage.
+- Campaign notes include GM-private and GM-shared sections; sessions remain collaborative with version-conflict reporting, not CRDT merging.
+- Supabase Storage remains the object store. A provider abstraction or R2 migration is deferred to [Phase 07](07-vtt.md).
 
 ## Requirements
 
-- Campaigns record explicit system and ruleset identity, status, owner, and stable public identity.
-- Membership uses `OWNER | GM | PLAYER`; the owner is a member and ownership transfer is deferred unless explicitly added to the subplan.
-- Invitations have explicit lifecycle, expiry, intended role, inviter, recipient/token identity, acceptance, revocation, and audit data.
-- A character may have one active Campaign. Assignment requires character-owner consent and compatible system/ruleset identity.
-- Contributing content creates or reuses an immutable Campaign content snapshot/version for selection and play without copying the root into a player's Library or restoring general authored revision history.
-- Authorized members may contribute owned homebrew to the Campaign. Personal creation limits remain attached to the contributing account.
-- Campaign access grants read/use permission while the revision remains relevant to the Campaign; it does not transfer ownership, editing, personal export, or Marketplace sale rights.
-- Removing a grant prevents future selection but does not invalidate already pinned character content.
-- Typed Campaign rules initially support attunement-slot limit and `EXPERIENCE | MILESTONE` progression, with a GM-approved milestone level per character.
-- Campaign currency policy may define a closed set of denominations, a base denomination, exact exchange ratios, and rounding behavior. Policy revisions are versioned so existing balances remain explainable and are never silently rewritten.
-- Switching to milestone never deletes stored experience; switching back restores experience-based behavior from retained data.
-- GM Sheet changes use existing typed Sheet commands. Structural changes use Builder preview/commit and must surface the proposed diff before persistence.
-- Authorized GMs may inspect effective Character values, adjustment indicators, source notes, and calculation breakdowns from Phase 00 without receiving adjustment-edit commands.
-- Every GM action records actor, authority source, Campaign, character, command or preview/commit identity, timestamp, result, and human-readable summary.
-- A Campaign may reference a logo by adding a `CAMPAIGN_LOGO` profile and domain reference to the Phase 02 asset lifecycle. Campaign capability controls replacement/removal; member access does not make the private original public.
+The implemented baseline remains the current behavior. Bullets explicitly marked **Target extension** describe the approved follow-on work and are not implementation claims.
+
+### Account and entitlement enforcement
+
+- Allow immediate username changes after debounced availability validation; preserve display casing, enforce case-insensitive uniqueness in the database, and make old names reusable immediately.
+- Keep `profiles` canonical for usernames. User metadata is never used for username resolution or authorization.
+- Add a protected entitlement projection with explicit finite or `UNLIMITED` limits for characters, owned homebrew, media storage, active hosted Campaigns, and accepted seats. Expose later listing, Encounter, and paid-table capabilities without implementing those domains.
+- Enforce each limit transactionally in its owning service. Account settings expose plan and usage read-only.
+
+### Campaign lifecycle, content, and reconciliation
+
+- Implement Campaign creation, update, archive, permanent deletion, safe member projections, reusable expiring share links, email/username invitations, acceptance, Character assignment, and owner-transfer acceptance.
+- Transfer removes the new owner's player-only access immediately. The former owner may see player-only messages only after transfer. Leave, removal, and rejoin establish fresh history cutoffs.
+- Active members may submit owned homebrew. The owner approves immutable versions usable by active members without ownership transfer. Owner finalization or approval atomically propagates valid bindings; an invalid affected Character, item, or spell blocks the whole update.
+- Departure or unassignment stops Campaign effects/grants, removes non-owned Campaign references, records reconciliation history, and moves a Character losing a granted race/class/subclass to Builder Draft with repair conflicts. Creators always retain their roots.
+- **Target extension:** Campaign management is the GM workspace and is the authoritative point for session setup, roster actions, and encounter attachment; player-only surfaces stay accessible through Sheet quick drawers for Notes/Chat/Party Inventory and non-GM flows.
+
+### Party inventory, currency, and GM Sheet authority
+
+- Cut over to canonical `inventory_*` custody tables with `InventoryOwnerRef = CHARACTER | CAMPAIGN`, backfill Character inventories, and support full/partial stack and currency transfers with expected versions, deterministic locks, idempotency, and correlated custody audit records.
+- Clear equipped, attuned, and container-placement state on custody change; reject non-empty container transfers.
+- Start with immutable ruleset currencies. Campaigns may add systems of at most five denominations, with a reference system and exact integer base-unit ratios. Publish changes only when every affected balance converts exactly; never round or create fractions.
+- Campaign Settings may override the ruleset's attunement-slot limit for assigned Characters. The nullable Campaign value falls back to the active ruleset default and is enforced by the authoritative Sheet command rather than accepted from clients.
+- The owner may manage party and assigned-Character inventory. Players may manage transfers to/from their assigned Character. Unassignment/departure moves Campaign-only currency to party inventory with visible owner audit.
+- Owners may command assigned Sheet mechanics—HP, resources, rests, conditions, equipment, currency, extras, adjustments, defenses, and statistics—and validated spell-list changes to active caster lists (prepared/known/selected); structural race/class/subclass features remain player-owned.
+- GM adjustments/conditions may be hidden: player DTOs retain true totals and concrete current state but omit hidden sources, indicators, conditions, and revealing breakdowns. Campaign GM adjustments override the same player slot and removal restores the player value. GM Character history is hidden by default; Campaign-wide inventory, currency, and rules history remains visible.
+- **Target extension:** GM-only inventory auditing retains the latest 180 days of party `inventory_*` custody history. It is an audit projection, not a replacement for current custody truth or Character Sheet history.
+
+### Conversations, rolls, notes, and Realtime
+
+- **Target extension:** persist `TABLE` conversations for GM and active players, `PARTY` conversations for active players only, and `DIRECT` conversations only for their two active participants, with unread state. The GM cannot fetch, subscribe to, count, receive notifications for, or infer party traffic unless they are a direct participant. Members see only messages after their relevant acceptance/player-eligibility cutoff.
+- **Target extension:** persist public Campaign rolls in the `TABLE` timeline. Reuse Phase 01 validation/evidence. Sheet-private rolls remain private, and party/direct conversations do not become roll destinations.
+- Chat supports 2,000-character plain text, 30 sends per user per Campaign per minute, idempotency, edit for 15 minutes, and unsend for five minutes with a retained tombstone. Rolls/system entries are immutable.
+- `OOC` messages display `@username`; `ROLEPLAY` messages display the assigned Character with account attribution. Remember the last composer mode per member and retain immutable author/Character IDs plus message-time display snapshots
+- **Target extension:** Campaign notebooks contain owner-authored titled rich-text sections, `GM_PRIVATE` by default and explicitly publishable as `SHARED`. The GM creates sessions; active members may create/edit collaborative rich-text session sections, and an author or GM may delete one.
+- Reuse TipTap and its existing 20,000 visible/100,000 serialized character limits. Autosave changed sections after roughly one second with expected versions. Broadcast committed invalidations only; clean clients refetch and dirty clients retain their draft with a conflict state.
+- Durable writes commit in Postgres before private Supabase Broadcast hints containing only scope, entity ID, event ID, and cursor. Reconnect uses cursor recovery and deduplication; Broadcast is never history.
 
 ## Design
 
 ```mermaid
-flowchart TD
-  Request["Campaign request"] --> Membership["Resolve membership + status"]
-  Membership --> Capability["Derive Campaign capabilities"]
-  Capability -->|Sheet play state| Sheet["Existing Sheet command orchestration"]
-  Capability -->|Structural change| Builder["Builder preview then commit"]
-  Capability -->|Campaign data| Campaign["Campaign aggregate service"]
-  Sheet --> Audit["Campaign authority audit"]
-  Builder --> Audit
-  Campaign --> Audit
+flowchart LR
+  Web["TanStack web"] --> API["apps/apis tRPC"]
+  API --> Campaign["Campaign and entitlement services"]
+  Campaign --> DB[("Postgres projections and history")]
+  Campaign --> Storage["Private Supabase Storage"]
+  DB --> Broadcast["Private Supabase Broadcast hints"]
+  Broadcast --> Web
 ```
 
-Define an `AuthorityContext` consumed by Campaign, Builder, and Sheet orchestration. Capabilities—not UI role labels—decide whether an actor may view a Sheet, assign a character, grant content, change rules, issue a Sheet command, or preview/commit a structural edit.
+```mermaid
+flowchart TD
+  Campaign --> Members["OWNER and PLAYER members"]
+  Campaign --> Table["TABLE: owner + active players"]
+  Campaign --> Party["PARTY: active players only"]
+  Campaign --> Notes["GM-private/shared Campaign sections"]
+  Campaign --> Sessions["GM-created collaborative session sections"]
+  Campaign --> Custody["Party inventory and currency"]
+  Campaign --> Grants["Immutable approved content grants"]
+```
 
-Keep Campaign data outside `CharacterAuthored`. Builder replacement writes must never delete Campaign membership, grants, audit records, or later shared play data.
+All durable writes cross the API boundary and commit before a private Broadcast hint. RLS, services, reads, subscriptions, counts, and future notification sources must share the same role and history-cutoff rules.
 
-## Data and contract seams
+### Conversation and roll privacy matrix
 
-The subplan should define shared DTOs and persistence for these conceptual records without assuming these exact table names:
+| Scope         | Read / unread / subscription                         | Send                        | Public roll destination                 |
+| ------------- | ---------------------------------------------------- | --------------------------- | --------------------------------------- |
+| `TABLE`       | GM and active players                                | GM and active players       | GM and active players                   |
+| `PARTY`       | Active players only                                  | Active players only         | Not a roll destination                  |
+| `DIRECT`      | Its two active participants                          | Its two active participants | Not a roll destination                  |
+| Sheet private | Character owner and authorized Sheet projection only | n/a                         | Never routed to a Campaign conversation |
 
-- Campaign and stable public route identity.
-- Campaign membership and role/status history.
-- Invitation and acceptance/revocation lifecycle.
-- Character assignment and active-Campaign constraint.
-- Immutable Campaign content snapshot/version, access reference, and revocation.
-- Ruleset-discriminated Campaign rule overrides.
-- Typed Campaign currency definitions and versioned exchange policy.
-- Per-character milestone approval while retaining experience truth.
-- Campaign authority audit entries correlated to Sheet or Builder operations.
-- Campaign logo profile and asset reference outside `CharacterAuthored`.
-
-RLS and service authorization must agree. Direct database access, tRPC procedures, Realtime authorization added later, and administrative tooling must all fail closed for removed members and incompatible roles.
+Unread state follows the same predicate as reads and subscriptions. Counts, delivery hints, and list ordering must not reveal inaccessible conversation activity.
 
 ## Ordered workstreams
 
-1. **Specify the authorization matrix.** Define OWNER, GM, PLAYER, removed member, invitee, character owner, and non-member capabilities for every Phase 03 action, including read-only inspection of Phase 00 adjustments and breakdowns.
-2. **Add the minimum Campaign content version contract.** Snapshot contributed active content behind an immutable Campaign version identity, preserve it through character selection, hydration, engine assembly, and history, and record the decision in an ADR. Do not reintroduce general authored revision history.
-3. **Add Campaign persistence and RLS.** Create migrations and Kysely repositories for Campaigns, members, invitations, assignments, grants, rules, and audit records.
-4. **Add application orchestration.** Implement lifecycle and capability resolution in `packages/functions`; keep `apps/apis` thin and schema-parsed.
-5. **Extend Builder and Sheet authority.** Add `AuthorityContext`, reuse Sheet commands, add GM Builder preview/commit, and correlate every delegated operation with an audit entry.
-6. **Apply Campaign rules during engine assembly.** Do not rewrite Builder intent or erase experience. Return enough source information for web and future native clients to explain effective values.
-7. **Build responsive web Campaign Core surfaces.** Cover Campaign list/create/invite/member/character assignment/content/rules, Sheet access, and logo management.
-8. **Validate lifecycle, authorization, and concurrency.** Test RLS and API matrices, invite races, assignment conflicts, reference removal, progression switching, delegated commands, and responsive web projections.
+1. **Document the boundary.** Update the relevant authorization/content and Builder/Sheet guidance; define entitlement, lifecycle, room, note, and Realtime matrices.
+2. **Enable usernames and entitlements.** Add protected projections, Free defaults/manual tier assignment, account DTOs, usage, and transactional limit checks.
+3. **Add lifecycle and immutable grants.** Implement Campaigns, invitations, owner transfer, assignments, archive/delete cleanup, approvals, propagation, and Draft reconciliation.
+4. **Extract party custody.** Backfill inventories; implement transfers, audit, exact currency systems/conversions, and departure cleanup.
+5. **Extend owner Sheet authority.** Add Campaign-aware command authorization, hidden projection, precedence, spell exception, and history visibility.
+6. **Extend role-aware management and custody.** Implement card-only catalogues, Campaign-page and Sheet quick-drawer controls, direct party edits, the canonical `inventory_*` cutover, and the GM-only 180-day inventory audit.
+7. **Add conversations and Campaign rolls.** Implement `TABLE`/`PARTY`/`DIRECT` scopes, unread state, history cutoffs, timeline retention, identity modes, edit/unsend, rate limit, and privacy-safe public-roll routing.
+8. **Add notes and Realtime.** Implement collaborative session sections, versioned autosave/conflicts, sanitized rendering, private topics, and cache reconciliation.
+9. **Ship and validate responsive web.** Cover Campaign overview, membership, grants, custody, conversations, unread state, notes, authority controls, usage, and reconciliation prompts.
 
 ## Acceptance gates
 
-- Every role and lifecycle state passes explicit API and RLS authorization tables.
-- Removed members immediately lose Campaign, content-grant, and delegated Sheet access.
-- A character cannot be actively assigned to two Campaigns under concurrent requests.
-- Campaign system/ruleset incompatibility fails before assignment or grant use.
-- Access removal blocks new selection while characters and party items already bound to an immutable Campaign content version remain explainable and valid under the approved retention policy.
-- Experience survives any number of milestone/experience switches.
-- A GM structural change cannot bypass Builder preview/commit.
-- A GM with Sheet-view capability can inspect Phase 00 adjustment provenance and effective-value breakdowns but receives no adjustment-edit action.
-- Duplicate or retried GM commands remain idempotent and create one effective audit trail.
-- Campaign overview, member, content, and Sheet projections remain consistent across responsive web surfaces.
-- Campaign logo replacement uses ready assets, preserves private-original access rules, and cannot be performed by an unauthorized member.
+- Username races, entitlement limits, seat consumption, one active Character assignment, transfer, archive/delete, and content propagation are transactionally correct.
+- GMs cannot read, subscribe to, count, receive notifications for, or infer inaccessible party or direct traffic.
+- Conversation retention, unread isolation, edit/unsend timing, roll evidence/routing, identity snapshots, and reconnect deduplication hold under concurrency.
+- Currency conversion rejects every non-exact update; transfers never duplicate, lose, or partially move custody.
+- Player projections reveal neither secret GM causes nor hidden conditions while retaining correct final values and concrete state.
+- Private-note publish/unpublish, collaborative-session permissions, version conflicts, direct party edits, 180-day GM audit access, and archive read-only behavior are enforced through API and RLS.
 
 ## Out of scope
 
-- Chat, notes, sessions, Campaign supporting files/handouts, Campaign clock, shared inventory, item transfer, vehicles, dice, roll history, Realtime, push, Encounters, and VTT.
-- Native Campaign surfaces; Phase 10 consumes the proven web contracts after the viability gate.
-- GM creation, editing, or removal of character-owner adjustments.
-- Automated progression, encounter combat automation, ownership transfer, multiple active Campaigns per character, and arbitrary custom rule scripting.
-
-## Questions for the phase subplan
-
-- Can a Campaign have multiple GMs with identical capabilities, or are some owner-only actions required?
-- Does a player assign a character during invitation acceptance, or may assignment happen later?
-- What happens to assignment and delegated access when a member leaves or is removed mid-session?
-- Which structural Builder fields may a GM change in alpha, and does every change require contemporaneous player approval or only audit visibility?
-- Are Campaign content grants Campaign-wide, role-scoped, or individually assigned in the first release?
-- May a Campaign define currency denominations and exchange rates, or only select from its system vocabulary? The subplan must settle the base denomination, ratio and rounding model, policy versioning, and existing-balance behavior.
+- Vehicles, Campaign files/handouts, Campaign clock, VTT, chat attachments/reactions/threads/search/typing, CRDTs/cursors/revision history, semantic note links/hover cards, payment, and a notification domain.
+- Phase 05 adds Campaign announcements and a web inbox; Phase 09 adds paid-event delivery; Phase 10 later adds native push.
 
 ## New-session instruction
 
-Begin with the authorization matrix and the minimal Campaign content-version design. The subplan must name every affected owner-only RLS policy and service check, reconcile the design with ADR 0011, and add an ADR for the new snapshot contract; “add membership” is not a sufficient authorization design.
+Begin with the authorization and entitlement matrices, then implement one independently reviewable slice at a time. Do not build notification, storage-provider, CRDT, or semantic-link scaffolding in this phase.

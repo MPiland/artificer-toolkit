@@ -32,6 +32,10 @@ export function buildVehicleRouteParams(publicId: string, label: string | null |
   return buildDomainRouteParams(publicId, label, 'vehiclePublicId', 'vehicleSlug')
 }
 
+export function buildCampaignRouteParams(publicId: string, name: string | null | undefined) {
+  return buildDomainRouteParams(publicId, name, 'campaignPublicId', 'campaignSlug')
+}
+
 export function buildCharacterRouteParams(publicId: string, label: string | null | undefined) {
   return buildDomainRouteParams(publicId, label, 'characterPublicId', 'characterSlug')
 }

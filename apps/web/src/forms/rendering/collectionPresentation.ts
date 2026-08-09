@@ -90,14 +90,79 @@ export function getCollectionRowLabel(
   row: unknown,
   index: number
 ) {
-  if (isRecord(row) && typeof row.label === 'string' && row.label.trim()) return row.label
+  if (isRecord(row) && typeof row.label === 'string' && row.label.trim()) {
+    const availableAtLevel = readNumber(row.availableAtLevel)
+    return availableAtLevel === undefined
+      ? row.label
+      : `Level ${availableAtLevel} · ${row.label}`
+  }
 
   const summary = node.authoring?.collection?.rowSummary
   const label = summary ? getRowSummaryLabel(summary, row) : undefined
   if (label) return label
 
+  const proficiencyLabel = getProficiencyRowLabel(row)
+  if (proficiencyLabel) return proficiencyLabel
+
+  const spellLimitLabel = getClassSpellLimitRowLabel(row)
+  if (spellLimitLabel) return spellLimitLabel
+
   const itemLabel = getCollectionPresentation(node).itemLabel
   return `${toTitleCase(itemLabel)} ${index + 1}`
+}
+
+function getClassSpellLimitRowLabel(row: unknown): string | undefined {
+  if (!isRecord(row) || !Array.isArray(row.slots)) return undefined
+  const classLevel = readNumber(row.classLevel)
+  if (classLevel === undefined) return undefined
+
+  const slots = row.slots
+    .map((slot) => (isRecord(slot) ? readNumber(slot.slotCount) : undefined))
+    .filter((count): count is number => count !== undefined)
+  const known = readNumber(row.learnedSpellsLimit)
+  const slotLabel = slots.length > 0 ? `${slots.join('/')} slots` : 'No slots'
+  return `Level ${classLevel} · ${slotLabel}${known === undefined ? '' : ` · ${known} known`}`
+}
+
+function getProficiencyRowLabel(row: unknown): string | undefined {
+  if (!isRecord(row)) return undefined
+
+  const kind = readString(row.proficiencyKind)
+  if (!kind) return undefined
+
+  const count = readNumber(row.count) ?? 1
+  const isChosen = row.selectionKind === 'CHOSEN'
+  if (isChosen) {
+    const target =
+      kind === 'SKILL'
+        ? 'skill'
+        : kind === 'LANGUAGE'
+          ? 'language'
+          : readString(row.category) === 'TOOL'
+            ? 'tool proficiency'
+            : 'proficiency'
+    return `Choose ${count} ${target}${count === 1 ? '' : 's'}`
+  }
+
+  if (kind === 'SAVE_ABILITY' && Array.isArray(row.abilities)) {
+    const abilities = row.abilities
+      .map((ability) => formatEnumLabel(readString(ability)))
+      .filter((ability): ability is string => Boolean(ability))
+    if (abilities.length > 0) return `${abilities.join(' & ')} saves`
+  }
+
+  if (kind === 'EQUIPMENT_PROPERTY' && Array.isArray(row.properties)) {
+    const properties = row.properties
+      .map((property) => formatEnumLabel(readString(property)))
+      .filter((property): property is string => Boolean(property))
+    const category = formatEnumLabel(readString(row.category))?.toLowerCase()
+    if (properties.length > 0) {
+      return `${properties.join(' / ')}${category ? ` ${category}` : ''} proficiency`
+    }
+  }
+
+  const category = formatEnumLabel(readString(row.category))
+  return category ? `${category} proficiency` : `${formatEnumLabel(kind)} proficiency`
 }
 
 export function getCollectionRowDescription(

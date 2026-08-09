@@ -19,6 +19,9 @@ export const theme = createTheme({
   components: {
     Button: Button.extend({
       vars: (mantineTheme, props) => {
+        const standardHeight = {
+          '--button-height': props.size == null || props.size === 'sm' ? '40px' : undefined
+        }
         const variant = props.variant ?? 'filled'
         const usesPrimaryColor = props.color == null || props.color === mantineTheme.primaryColor
         const button =
@@ -28,10 +31,11 @@ export const theme = createTheme({
               ? foundationVars.color.button.secondary
               : undefined
 
-        if (!button) return { root: {} }
+        if (!button) return { root: standardHeight }
 
         return {
           root: {
+            ...standardHeight,
             '--button-bg': button.background,
             '--button-hover': button.hover,
             '--button-hover-color': button.text,

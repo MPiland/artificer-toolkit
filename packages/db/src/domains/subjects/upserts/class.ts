@@ -110,6 +110,7 @@ type ClassSpellcastingRow = {
   magic_name: string | null
   ability_code: string | null
   max_spell_level: number
+  available_spell_ids: string[]
   available_at_level: number | null
   sort_order: number | null
   charge_id: string
@@ -342,6 +343,7 @@ export async function upsertClass(db: DBLike, json_data: ClassAuthored, _systemI
           ? requireAbilityCode(json_data.id, json_data.spellcasting.ability, 'Class spellcasting')
           : null,
         max_spell_level: json_data.spellcasting.maxSpellLevel,
+        available_spell_ids: json_data.spellcasting.availableSpellIds ?? [],
         available_at_level: json_data.spellcasting.availableAtLevel ?? null,
         sort_order: json_data.spellcasting.order ?? null,
         charge_id: json_data.spellcasting.charges.id

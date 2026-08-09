@@ -10,7 +10,11 @@ import {
   type CharacterProfileAuthored
 } from '@artificer-toolkit/shared'
 import { upsertCharacter } from '../upserts/character.js'
-import { insertRows, sortByDependency } from '../upserts/character.helpers.js'
+import {
+  insertRows,
+  replaceCharacterCurrency,
+  replaceCharacterInventoryItems
+} from '../upserts/character.helpers.js'
 import { hydrateSubjectStatus } from '../status.js'
 import { withTransaction } from '../../../utils/index.js'
 
@@ -370,6 +374,17 @@ async function hydrateCharacterAuthoredById(
     throw new Error(`Character "${id}" is missing user_id and cannot be hydrated.`)
   }
 
+  const inventoryOwner = await db
+    .selectFrom('inventory_owners')
+    .select(['id'])
+    .where('kind', '=', 'CHARACTER')
+    .where('character_id', '=', id)
+    .executeTakeFirst()
+  if (!inventoryOwner) {
+    throw new Error(`Character "${id}" is missing its inventory owner.`)
+  }
+  const inventoryOwnerId = inventoryOwner.id
+
   const [
     profileRow,
     advancementRow,
@@ -400,16 +415,12 @@ async function hydrateCharacterAuthoredById(
     resourceGrantRows,
     resourceUsageRows,
     classSpellRows,
-    equipmentRows,
-    equippedRows,
-    attunedRows,
-    currencyGroupRows,
-    currencyRows,
+    inventoryRows,
+    inventoryGroupRows,
+    inventoryBalanceRows,
     creatureRows,
     vehicleRows,
     creatureHitDiceRows,
-    creatureEquipmentRows,
-    vehicleEquipmentRows,
     classEquipmentSessionRow,
     classEquipmentGroupRows,
     classEquipmentItemRows,
@@ -536,30 +547,26 @@ async function hydrateCharacterAuthoredById(
     db.selectFrom('character_resources').selectAll().where('character_id', '=', id).execute(),
     db.selectFrom('character_class_spells').selectAll().where('character_id', '=', id).execute(),
     db
-      .selectFrom('character_equipment')
+      .selectFrom('inventory_items')
       .selectAll()
-      .where('character_id', '=', id)
+      .where('owner_id', '=', inventoryOwnerId)
       .orderBy('created_at')
       .orderBy('id')
       .execute(),
-    db.selectFrom('character_equipped').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_attuned').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_currency_groups').selectAll().where('character_id', '=', id).execute(),
-    db.selectFrom('character_currencies').selectAll().where('character_id', '=', id).execute(),
+    db
+      .selectFrom('inventory_currency_groups')
+      .selectAll()
+      .where('owner_id', '=', inventoryOwnerId)
+      .execute(),
+    db
+      .selectFrom('inventory_currency_balances')
+      .selectAll()
+      .where('owner_id', '=', inventoryOwnerId)
+      .execute(),
     db.selectFrom('character_creatures').selectAll().where('character_id', '=', id).execute(),
     db.selectFrom('character_vehicles').selectAll().where('character_id', '=', id).execute(),
     db
       .selectFrom('character_creature_hit_dice_state')
-      .selectAll()
-      .where('character_id', '=', id)
-      .execute(),
-    db
-      .selectFrom('character_creature_equipment')
-      .selectAll()
-      .where('character_id', '=', id)
-      .execute(),
-    db
-      .selectFrom('character_vehicle_equipment')
       .selectAll()
       .where('character_id', '=', id)
       .execute(),
@@ -875,6 +882,11 @@ async function hydrateCharacterAuthoredById(
     : undefined
 
   const classStateMap = new Map<string, { learned?: string[]; prepared?: string[] }>()
+  for (const classRow of classRows) {
+    if (classRow.known_spells_overridden) {
+      classStateMap.set(String(classRow.class_id), { learned: [] })
+    }
+  }
   for (const spellRow of classSpellRows) {
     const classId = String(spellRow.class_id)
     const existing = classStateMap.get(classId) ?? {}
@@ -892,16 +904,17 @@ async function hydrateCharacterAuthoredById(
       ? [...classStateMap.entries()].map(([classId, spells]) => ({ classId, spells }))
       : undefined
 
-  const creatureEquipment = creatureEquipmentRows.reduce<
-    Record<string, { equipmentItemId: string }[]>
-  >((acc, assignmentRow) => {
-    const creatureId = String(assignmentRow.character_creature_id)
-    acc[creatureId] = [
-      ...(acc[creatureId] ?? []),
-      { equipmentItemId: String(assignmentRow.equipment_id) }
-    ]
-    return acc
-  }, {})
+  const creatureEquipment = inventoryRows.reduce<Record<string, { equipmentItemId: string }[]>>(
+    (acc, item) => {
+      if (item.placement_kind !== 'CREATURE' || !item.placement_id) return acc
+      acc[item.placement_id] = [
+        ...(acc[item.placement_id] ?? []),
+        { equipmentItemId: String(item.id) }
+      ]
+      return acc
+    },
+    {}
+  )
 
   const creatureHitDice = creatureHitDiceRows.reduce<
     Record<string, { die: number; total: number; used: number }[]>
@@ -918,16 +931,45 @@ async function hydrateCharacterAuthoredById(
     return acc
   }, {})
 
-  const vehicleEquipment = vehicleEquipmentRows.reduce<
-    Record<string, { equipmentItemId: string }[]>
-  >((acc, assignmentRow) => {
-    const vehicleId = String(assignmentRow.character_vehicle_id)
-    acc[vehicleId] = [
-      ...(acc[vehicleId] ?? []),
-      { equipmentItemId: String(assignmentRow.equipment_id) }
-    ]
-    return acc
-  }, {})
+  const vehicleEquipment = inventoryRows.reduce<Record<string, { equipmentItemId: string }[]>>(
+    (acc, item) => {
+      if (item.placement_kind !== 'VEHICLE' || !item.placement_id) return acc
+      acc[item.placement_id] = [
+        ...(acc[item.placement_id] ?? []),
+        { equipmentItemId: String(item.id) }
+      ]
+      return acc
+    },
+    {}
+  )
+
+  const currencyRowsByGroup = new Map<
+    string,
+    { currencyId: string; amount: number }[]
+  >()
+  for (const balance of inventoryBalanceRows) {
+    const currencyId = balance.ruleset_currency_id ?? balance.campaign_denomination_id
+    if (!currencyId) continue
+    const groupId = balance.group_id ?? inventoryOwnerId
+    const entries = currencyRowsByGroup.get(groupId) ?? []
+    entries.push({ currencyId, amount: Number(balance.amount) })
+    currencyRowsByGroup.set(groupId, entries)
+  }
+  const currencyGroups = inventoryGroupRows.map((groupRow) => ({
+    id: String(groupRow.id),
+    containerId: groupRow.container_item_id ?? undefined,
+    currencies: currencyRowsByGroup.get(String(groupRow.id)) ?? []
+  }))
+  if (
+    currencyRowsByGroup.has(inventoryOwnerId) &&
+    !inventoryGroupRows.some((groupRow) => String(groupRow.id) === inventoryOwnerId)
+  ) {
+    currencyGroups.push({
+      id: inventoryOwnerId,
+      containerId: undefined,
+      currencies: currencyRowsByGroup.get(inventoryOwnerId) ?? []
+    })
+  }
 
   return {
     id: row.id,
@@ -988,27 +1030,18 @@ async function hydrateCharacterAuthoredById(
     },
     state: {
       equipment: {
-        inventory: equipmentRows.map((equipmentRow) => ({
-          id: String(equipmentRow.id),
-          equipmentId: String(equipmentRow.equipment_id),
-          quantity: Number(equipmentRow.quantity),
-          containerId: optionalText(equipmentRow.container_id),
-          customName: optionalText(equipmentRow.custom_name),
-          notes: optionalText(equipmentRow.notes)
+        inventory: inventoryRows.map((item) => ({
+          id: String(item.id),
+          equipmentId: String(item.equipment_id),
+          quantity: Number(item.quantity),
+          containerId: optionalText(item.container_id),
+          customName: optionalText(item.custom_name),
+          notes: optionalText(item.notes)
         })),
-        equipped: equippedRows.map((equippedRow) => String(equippedRow.equipment_id)),
-        attuned: attunedRows.map((attunedRow) => String(attunedRow.equipment_id))
+        equipped: inventoryRows.filter((item) => item.equipped).map((item) => String(item.id)),
+        attuned: inventoryRows.filter((item) => item.attuned).map((item) => String(item.id))
       },
-      currency: currencyGroupRows.map((groupRow) => ({
-        id: String(groupRow.id),
-        containerId: optionalText(groupRow.container_id),
-        currencies: currencyRows
-          .filter((currencyRow) => currencyRow.group_id === groupRow.id)
-          .map((currencyRow) => ({
-            currencyId: String(currencyRow.currency_id),
-            amount: Number(currencyRow.amount)
-          }))
-      })),
+      currency: currencyGroups,
       hitpoints: {
         current: Number(hitpointStateData.current),
         temp: hitpointStateData.temp == null ? undefined : Number(hitpointStateData.temp),
@@ -1185,6 +1218,20 @@ async function applyCharacterSheetStatePatch(
 
     case 'CLASS_SPELLS':
       await deleteCharacterRows(db, 'character_class_spells', characterId)
+      await db
+        .updateTable('character_classes')
+        .set({ known_spells_overridden: false })
+        .where('character_id', '=', characterId)
+        .execute()
+      for (const classState of patch.value ?? []) {
+        if (classState.spells?.learned === undefined) continue
+        await db
+          .updateTable('character_classes')
+          .set({ known_spells_overridden: true })
+          .where('character_id', '=', characterId)
+          .where('class_id', '=', classState.classId)
+          .execute()
+      }
       await insertRows(
         db,
         'character_class_spells',
@@ -1231,114 +1278,17 @@ async function applyCharacterSheetStatePatch(
       }
       return
 
-    case 'EQUIPMENT': {
-      const orderedInventory = sortByDependency(
+    case 'EQUIPMENT':
+      await replaceCharacterInventoryItems(
+        db,
+        characterId,
         patch.value.inventory,
-        (item) => item.id,
-        (item) => item.containerId,
-        `Character equipment for ${characterId}`
+        patch.value.equipped,
+        patch.value.attuned,
+        patch.creatureEquipment,
+        patch.vehicleEquipment
       )
-      const inventoryIds = new Set(orderedInventory.map((item) => item.id))
-
-      for (const itemId of [...patch.value.equipped, ...patch.value.attuned]) {
-        if (!inventoryIds.has(itemId)) {
-          throw new Error(`Character ${characterId} references missing inventory item ${itemId}.`)
-        }
-      }
-
-      await deleteCharacterRows(db, 'character_creature_equipment', characterId)
-      await deleteCharacterRows(db, 'character_vehicle_equipment', characterId)
-      await deleteCharacterRows(db, 'character_attuned', characterId)
-      await deleteCharacterRows(db, 'character_equipped', characterId)
-
-      for (const item of orderedInventory) {
-        await db
-          .insertInto('character_equipment')
-          .values({
-            id: item.id,
-            character_id: characterId,
-            equipment_id: item.equipmentId,
-            quantity: item.quantity,
-            container_id: item.containerId ?? null,
-            container_path: null,
-            custom_name: item.customName ?? null,
-            notes: item.notes ?? null
-          })
-          .onConflict((oc) =>
-            oc.column('id').doUpdateSet((eb) => ({
-              equipment_id: eb.ref('excluded.equipment_id'),
-              quantity: eb.ref('excluded.quantity'),
-              container_id: eb.ref('excluded.container_id'),
-              container_path: eb.ref('excluded.container_path'),
-              custom_name: eb.ref('excluded.custom_name'),
-              notes: eb.ref('excluded.notes')
-            }))
-          )
-          .execute()
-      }
-
-      const existingItems = await db
-        .selectFrom('character_equipment')
-        .select('id')
-        .where('character_id', '=', characterId)
-        .execute()
-      for (const existingItem of existingItems) {
-        if (!inventoryIds.has(existingItem.id)) {
-          await db.deleteFrom('character_equipment').where('id', '=', existingItem.id).execute()
-        }
-      }
-
-      await insertRows(
-        db,
-        'character_equipped',
-        patch.value.equipped.map((equipmentId) => ({
-          character_id: characterId,
-          equipment_id: equipmentId
-        }))
-      )
-      await insertRows(
-        db,
-        'character_attuned',
-        patch.value.attuned.map((equipmentId) => ({
-          character_id: characterId,
-          equipment_id: equipmentId
-        }))
-      )
-
-      const creatureAssignments = Object.entries(patch.creatureEquipment ?? {}).flatMap(
-        ([creatureId, assignments]) =>
-          assignments.map((assignment) => {
-            if (!inventoryIds.has(assignment.equipmentItemId)) {
-              throw new Error(
-                `Character ${characterId} creature equipment references missing inventory item ${assignment.equipmentItemId}.`
-              )
-            }
-            return {
-              character_id: characterId,
-              character_creature_id: creatureId,
-              equipment_id: assignment.equipmentItemId
-            }
-          })
-      )
-      const vehicleAssignments = Object.entries(patch.vehicleEquipment ?? {}).flatMap(
-        ([vehicleId, assignments]) =>
-          assignments.map((assignment) => {
-            if (!inventoryIds.has(assignment.equipmentItemId)) {
-              throw new Error(
-                `Character ${characterId} vehicle equipment references missing inventory item ${assignment.equipmentItemId}.`
-              )
-            }
-            return {
-              character_id: characterId,
-              character_vehicle_id: vehicleId,
-              equipment_id: assignment.equipmentItemId
-            }
-          })
-      )
-      await insertRows(db, 'character_creature_equipment', creatureAssignments)
-      await insertRows(db, 'character_vehicle_equipment', vehicleAssignments)
       return
-    }
 
     case 'EXTRAS': {
       const creatureIds = new Set<string>()
@@ -1359,55 +1309,48 @@ async function applyCharacterSheetStatePatch(
         vehicleIds.add(vehicle.id)
       }
 
-      const inventoryRows = await db
-        .selectFrom('character_equipment')
+      const inventoryOwner = await db
+        .selectFrom('inventory_owners')
         .select('id')
+        .where('kind', '=', 'CHARACTER')
         .where('character_id', '=', characterId)
+        .executeTakeFirst()
+      if (!inventoryOwner) throw new Error(`Character "${characterId}" is missing its inventory owner.`)
+      const inventoryRows = await db
+        .selectFrom('inventory_items')
+        .selectAll()
+        .where('owner_id', '=', inventoryOwner.id)
         .execute()
       const inventoryIds = new Set(inventoryRows.map((row) => row.id))
 
-      const creatureAssignments = Object.entries(patch.creatureEquipment).flatMap(
-        ([creatureId, assignments]) => {
+      for (const [creatureId, assignments] of Object.entries(patch.creatureEquipment)) {
           if (!creatureIds.has(creatureId)) {
             throw new Error(
               `Character ${characterId} creature equipment references missing creature instance ${creatureId}.`
             )
           }
-          return assignments.map((assignment) => {
+          for (const assignment of assignments) {
             if (!inventoryIds.has(assignment.equipmentItemId)) {
               throw new Error(
                 `Character ${characterId} creature equipment references missing inventory item ${assignment.equipmentItemId}.`
               )
             }
-            return {
-              character_id: characterId,
-              character_creature_id: creatureId,
-              equipment_id: assignment.equipmentItemId
-            }
-          })
-        }
-      )
-      const vehicleAssignments = Object.entries(patch.vehicleEquipment).flatMap(
-        ([vehicleId, assignments]) => {
+          }
+      }
+      for (const [vehicleId, assignments] of Object.entries(patch.vehicleEquipment)) {
           if (!vehicleIds.has(vehicleId)) {
             throw new Error(
               `Character ${characterId} vehicle equipment references missing vehicle instance ${vehicleId}.`
             )
           }
-          return assignments.map((assignment) => {
+          for (const assignment of assignments) {
             if (!inventoryIds.has(assignment.equipmentItemId)) {
               throw new Error(
                 `Character ${characterId} vehicle equipment references missing inventory item ${assignment.equipmentItemId}.`
               )
             }
-            return {
-              character_id: characterId,
-              character_vehicle_id: vehicleId,
-              equipment_id: assignment.equipmentItemId
-            }
-          })
-        }
-      )
+          }
+      }
 
       const existingCreatureRows = await db
         .selectFrom('character_creatures')
@@ -1422,8 +1365,6 @@ async function applyCharacterSheetStatePatch(
         .execute()
       const existingVehicleIds = new Set(existingVehicleRows.map((row) => row.id))
 
-      await deleteCharacterRows(db, 'character_creature_equipment', characterId)
-      await deleteCharacterRows(db, 'character_vehicle_equipment', characterId)
       await deleteCharacterRows(db, 'character_creature_hit_dice_state', characterId)
 
       for (const creatureId of existingCreatureIds) {
@@ -1493,8 +1434,22 @@ async function applyCharacterSheetStatePatch(
         }
       }
 
-      await insertRows(db, 'character_creature_equipment', creatureAssignments)
-      await insertRows(db, 'character_vehicle_equipment', vehicleAssignments)
+      await replaceCharacterInventoryItems(
+        db,
+        characterId,
+        inventoryRows.map((item) => ({
+            id: item.id,
+            equipmentId: item.equipment_id,
+            quantity: item.quantity,
+            containerId: item.container_id ?? undefined,
+            customName: item.custom_name ?? undefined,
+            notes: item.notes ?? undefined
+          })),
+        inventoryRows.filter((item) => item.equipped).map((item) => item.id),
+        inventoryRows.filter((item) => item.attuned).map((item) => item.id),
+        patch.creatureEquipment,
+        patch.vehicleEquipment
+      )
       await insertRows(
         db,
         'character_creature_hit_dice_state',
@@ -1511,41 +1466,9 @@ async function applyCharacterSheetStatePatch(
       return
     }
 
-    case 'CURRENCY': {
-      await deleteCharacterRows(db, 'character_currencies', characterId)
-      await deleteCharacterRows(db, 'character_currency_groups', characterId)
-      const groupIds = new Set<string>()
-      for (const group of patch.value) {
-        if (!group.id || groupIds.has(group.id)) {
-          throw new Error(
-            `Character ${characterId} has an invalid or duplicate currency group ${group.id ?? ''}.`
-          )
-        }
-        groupIds.add(group.id)
-      }
-      await insertRows(
-        db,
-        'character_currency_groups',
-        patch.value.map((group) => ({
-          id: group.id,
-          character_id: characterId,
-          container_id: group.containerId ?? null
-        }))
-      )
-      await insertRows(
-        db,
-        'character_currencies',
-        patch.value.flatMap((group) =>
-          group.currencies.map((currency) => ({
-            character_id: characterId,
-            group_id: group.id,
-            currency_id: currency.currencyId,
-            amount: currency.amount
-          }))
-        )
-      )
+    case 'CURRENCY':
+      await replaceCharacterCurrency(db, characterId, patch.value)
       return
-    }
 
     case 'NOTES': {
       const groups = patch.groups ?? []

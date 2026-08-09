@@ -218,6 +218,36 @@ function projectSpellSources(
     }
   }
 
+  if (command.type === 'SET_KNOWN_SPELLS') {
+    const knownSpellIds = new Set(command.spellIds)
+    return {
+      ...sheet,
+      spells: {
+        ...sheet.spells,
+        spells: sheet.spells.spells.map((spell) => {
+          const managedSource = (source: NonNullable<typeof spell.sources>[number]) =>
+            source.classId === command.classId &&
+            (source.source.sourceKind === 'CLASS' || source.source.sourceKind === 'SUBCLASS')
+          const sources = spell.sources?.map((source) => {
+            if (!managedSource(source) || source.prepared) return source
+            return {
+              ...source,
+              acquisition: knownSpellIds.has(spell.id) ? ('KNOWN' as const) : undefined
+            }
+          })
+          const hasManagedSource = spell.sources?.some(managedSource) ?? false
+          const hasOtherKnownSource =
+            spell.sources?.some(
+              (source) => !managedSource(source) && source.acquisition === 'KNOWN'
+            ) ?? false
+          const known =
+            hasOtherKnownSource || (hasManagedSource ? knownSpellIds.has(spell.id) : spell.known)
+          return { ...spell, known, sources }
+        })
+      }
+    }
+  }
+
   if (command.type !== 'SET_PREPARED_SPELLS') return sheet
 
   const preparedSpellIds = new Set(command.spellIds)
@@ -489,6 +519,7 @@ export function projectOptimisticCharacterSheet(
       return projectSpellSlots(projectResources(sheet, command), command)
     case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
     case 'SET_PREPARED_SPELLS':
+    case 'SET_KNOWN_SPELLS':
       return projectSpellSources(sheet, command)
     case 'REMOVE_INVENTORY_ITEM':
     case 'UPDATE_INVENTORY_ITEM':
@@ -629,6 +660,26 @@ export function projectOptimisticCharacterSheetPanel(
     }
   }
 
+  if (command.type === 'SET_KNOWN_SPELLS') {
+    const knownSpellIds = new Set(command.spellIds)
+    if (panel.kind === 'SPELLS') {
+      return {
+        ...panel,
+        groups: panel.groups.map((group) => ({
+          ...group,
+          sources: group.sources.map((source) =>
+            source.knownClassId === command.classId
+              ? { ...source, known: knownSpellIds.has(source.spellId) }
+              : source
+          )
+        }))
+      }
+    }
+    if (panel.kind === 'SPELL' && panel.knownClassId === command.classId) {
+      return { ...panel, known: knownSpellIds.has(panel.spellId) }
+    }
+  }
+
   if (command.type === 'USE_SHEET_RESOURCE' || command.type === 'RECOVER_SHEET_RESOURCE') {
     const amount = command.type === 'USE_SHEET_RESOURCE' ? (command.amount ?? 1) : 0
     if (panel.kind === 'RESOURCE' && sameResourceOwner(panel.owner, command.owner)) {
@@ -758,6 +809,7 @@ export function projectOptimisticCharacterSheetPanel(
     case 'RESTORE_SPELL_SLOT':
     case 'CAST_SPELL':
     case 'SET_PREPARED_SPELLS':
+    case 'SET_KNOWN_SPELLS':
     case 'ADD_INVENTORY_ITEM':
     case 'REMOVE_INVENTORY_ITEM':
     case 'UPDATE_INVENTORY_ITEM':

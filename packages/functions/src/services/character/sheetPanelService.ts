@@ -95,6 +95,16 @@ function adjustmentEditorMetadata(adjustment: CharacterSheetAdjustment | undefin
   }
 }
 
+function getDisplayAdjustmentId(
+  source: CharacterMechanicSourceRef | undefined,
+  adjustments: readonly CharacterSheetAdjustment[]
+): string | undefined {
+  if (source?.kind !== 'MANUAL_ADJUSTMENT') return undefined
+  return adjustments.some((adjustment) => adjustment.id === source.adjustmentId)
+    ? source.adjustmentId
+    : undefined
+}
+
 function findCompanionAdjustment(
   params: BuildCharacterSheetPanelParams,
   companionInstanceId: string,
@@ -122,7 +132,7 @@ function findSourceLabel(params: {
         (candidate) => candidate.id === source.adjustmentId
       )
       return {
-        label: 'Manual adjustment',
+        label: adjustment ? 'Manual adjustment' : 'Character effect',
         ...(adjustment?.sourceNote ? { note: adjustment.sourceNote } : {})
       }
     }
@@ -171,18 +181,24 @@ function toPanelCalculation(
 
   return {
     base: resolved.base,
-    contributions: resolved.contributions.map((contribution) => {
-      const source = findSourceLabel({ ...context, source: contribution.source })
-      return {
-        id: contribution.id,
-        source: contribution.source,
-        sourceLabel: source.label,
-        ...(source.note ? { sourceNote: source.note } : {}),
-        value: contribution.value,
-        state: contribution.state
-      }
-    }),
-    ...(resolved.override
+    contributions: resolved.contributions
+      .filter(
+        (contribution) =>
+          contribution.source.kind !== 'MANUAL_ADJUSTMENT' ||
+          getDisplayAdjustmentId(contribution.source, context.adjustments) !== undefined
+      )
+      .map((contribution) => {
+        const source = findSourceLabel({ ...context, source: contribution.source })
+        return {
+          id: contribution.id,
+          source: contribution.source,
+          sourceLabel: source.label,
+          ...(source.note ? { sourceNote: source.note } : {}),
+          value: contribution.value,
+          state: contribution.state
+        }
+      }),
+    ...(resolved.override && overrideAdjustment
       ? {
           override: {
             adjustmentId: resolved.override.adjustmentId,
@@ -637,6 +653,7 @@ function buildDefensePanel(
 ): CharacterSheetPanelDto {
   const damageTypes = params.resolution.registry.system?.damageTypes ?? []
   const defenses = engine.defenses.map((defense) => {
+    const adjustmentId = getDisplayAdjustmentId(defense.source, params.adjustments)
     const source = defense.source
       ? findSourceLabel({ ...params, source: defense.source })
       : { label: 'Character build' }
@@ -647,9 +664,7 @@ function buildDefensePanel(
         damageTypes.find((damageType) => damageType.id === defense.damageTypeId)?.label ??
         formatCode(defense.damageTypeId),
       sourceLabel: source.label,
-      ...(defense.source?.kind === 'MANUAL_ADJUSTMENT'
-        ? { adjustmentId: defense.source.adjustmentId }
-        : {})
+      ...(adjustmentId ? { adjustmentId } : {})
     }
   })
   const existing = new Set(defenses.map((defense) => `${defense.kind}:${defense.damageTypeId}`))
@@ -690,15 +705,14 @@ function buildProficiencyPanel(
     const source = proficiency.source
       ? findSourceLabel({ ...params, source: proficiency.source })
       : { label: 'Character build' }
+    const adjustmentId = getDisplayAdjustmentId(proficiency.source, params.adjustments)
     return [
       {
         kind,
         targetId: proficiency.subjectId,
         label: getProficiencyLabel(proficiency, kind, params.resolution),
         sourceLabel: source.label,
-        ...(proficiency.source?.kind === 'MANUAL_ADJUSTMENT'
-          ? { adjustmentId: proficiency.source.adjustmentId }
-          : {})
+        ...(adjustmentId ? { adjustmentId } : {})
       }
     ]
   })
@@ -1069,6 +1083,24 @@ function buildSpellCustomizationOptions(
   ]
 }
 
+type CharacterSheetSpellSource = NonNullable<
+  CharacterSheetResponseDto['spells']['spells'][number]['sources']
+>[number]
+
+function getKnownSpellPanelFields(source: CharacterSheetSpellSource) {
+  const canManageKnown =
+    Boolean(source.classId) &&
+    !source.canPrepare &&
+    source.acquisition !== 'ALWAYS_PREPARED' &&
+    source.acquisition !== 'GRANTED' &&
+    (source.source.sourceKind === 'CLASS' || source.source.sourceKind === 'SUBCLASS')
+  return {
+    known: source.acquisition === 'KNOWN',
+    canManageKnown,
+    ...(canManageKnown && source.classId ? { knownClassId: source.classId } : {})
+  }
+}
+
 function buildSpellPanel(
   params: BuildCharacterSheetPanelParams,
   engine: EngineCharacterOutput,
@@ -1089,6 +1121,7 @@ function buildSpellPanel(
     (candidate) => createCharacterSpellSourceKey(candidate.source) === sourceKey
   )
   const castLevel = target.castLevel ?? source.fixedLevel ?? spell.level
+  const knownSource = getKnownSpellPanelFields(source)
   const effects = (spell.mechanics ?? []).flatMap((mechanic) =>
     mechanic.outcomes.map((outcome) => ({
       label: formatCode(outcome.kind),
@@ -1151,6 +1184,7 @@ function buildSpellPanel(
     editable: params.editable,
     allowedCommands: [
       'CAST_SPELL',
+      ...(knownSource.canManageKnown ? (['SET_KNOWN_SPELLS'] as const) : []),
       'SET_SPELL_MECHANIC_CUSTOMIZATION',
       'REMOVE_SPELL_MECHANIC_CUSTOMIZATION',
       'UPDATE_SPELL_SOURCE_CUSTOMIZATION',
@@ -1168,6 +1202,7 @@ function buildSpellPanel(
     prepared: Boolean(source.prepared),
     canPrepare: source.canPrepare,
     ...(source.classId ? { preparationClassId: source.classId } : {}),
+    ...knownSource,
     displayAsAttack: Boolean(source.displayAsAttack),
     legalCastModes: activeEntries.map((entry) => ({
       kind: source.castMode ?? (spell.level === 0 ? 'AT_WILL' : 'SPELL_SLOT'),
@@ -1226,6 +1261,7 @@ function buildSpellsPanel(
 ): CharacterSheetPanelDto {
   const sources = params.sheet.spells.spells.flatMap((spell) =>
     (spell.sources ?? []).map((source) => ({
+      ...getKnownSpellPanelFields(source),
       target: { kind: 'SPELL' as const, source: source.source },
       source: source.source,
       spellId: spell.id,
@@ -1250,7 +1286,12 @@ function buildSpellsPanel(
     title: 'Manage Spells',
     state: resolvePanelState(params.adjustments, target),
     editable: params.editable,
-    allowedCommands: ['SET_PREPARED_SPELLS', 'USE_SPELL_SLOT', 'RESTORE_SPELL_SLOT'],
+    allowedCommands: [
+      'SET_PREPARED_SPELLS',
+      'SET_KNOWN_SPELLS',
+      'USE_SPELL_SLOT',
+      'RESTORE_SPELL_SLOT'
+    ],
     slots: params.sheet.spells.slots.map((slot) => ({
       slotKey: slot.slotKey,
       label: slot.label,
@@ -1530,6 +1571,7 @@ export interface BuildCharacterSheetPanelParams {
   resolution: CharacterBuilderResolution
   sheet: CharacterSheetResponseDto
   adjustments: readonly CharacterSheetAdjustment[]
+  engineAdjustments?: readonly CharacterSheetAdjustment[]
   movementDisplayPreference: CharacterMovementDisplayPreference
   target: CharacterSheetPanelTargetDto
   editable: boolean
@@ -1541,7 +1583,7 @@ export function buildCharacterSheetPanel(
   const engine = resolveCharacterSheetEngine({
     character: params.character,
     resolution: params.resolution,
-    adjustments: params.adjustments,
+    adjustments: params.engineAdjustments ?? params.adjustments,
     movementDisplayPreference: params.movementDisplayPreference
   })
   let panel: CharacterSheetPanelDto
@@ -1610,6 +1652,7 @@ export function getAffectedCharacterSheetPanelTargets(
         | 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION'
         | 'UPDATE_SPELL_SOURCE_CUSTOMIZATION'
         | 'SET_PREPARED_SPELLS'
+        | 'SET_KNOWN_SPELLS'
         | 'ADD_SHEET_EXTRA'
         | 'UPDATE_SHEET_EXTRA'
         | 'REMOVE_SHEET_EXTRA'
@@ -1648,6 +1691,7 @@ export function getAffectedCharacterSheetPanelTargets(
   }
   if (
     command.type === 'SET_PREPARED_SPELLS' ||
+    command.type === 'SET_KNOWN_SPELLS' ||
     command.type === 'USE_SPELL_SLOT' ||
     command.type === 'RESTORE_SPELL_SLOT'
   ) {

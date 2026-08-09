@@ -1002,7 +1002,8 @@ describe('character builder source-local choice validation', () => {
       cantripLimit: 0,
       learnedSpellLimit: 1,
       maxSpellLevel: 1,
-      allowedClassIds: ['wizard']
+      allowedClassIds: ['wizard'],
+      allowedSpellIds: ['cure-wounds']
     }
 
     expect(
@@ -1016,7 +1017,7 @@ describe('character builder source-local choice validation', () => {
         requirement,
         catalog
       )
-    ).toEqual(['cure-wounds', 'fireball'])
+    ).toEqual(['fireball'])
   })
 
   it('rejects starting equipment selections outside the chosen item allow-list', () => {

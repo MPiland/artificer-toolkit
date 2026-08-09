@@ -68,6 +68,7 @@ export function AuthoredListPage({
   error,
   loading = false,
   initialViewMode,
+  cardOnly = false,
   onCreate,
   onView,
   onViewIntent,
@@ -84,6 +85,10 @@ export function AuthoredListPage({
   const [sort, setSort] = useState(defaultSort)
   const [contentPanel, setContentPanel] = useState<'active' | 'draft'>('active')
   const [viewMode, setViewMode] = useState<AuthoredListViewMode>(() => {
+    if (cardOnly) {
+      return 'cards'
+    }
+
     if (initialViewMode) {
       return initialViewMode
     }
@@ -161,10 +166,10 @@ export function AuthoredListPage({
   }, [cardColumnCount, contentPanel, filterValues, query, rowVirtualizer, sort, viewMode])
 
   useEffect(() => {
-    if (isMobile && viewMode !== 'cards') {
+    if ((cardOnly || isMobile) && viewMode !== 'cards') {
       setViewMode('cards')
     }
-  }, [isMobile, viewMode])
+  }, [cardOnly, isMobile, viewMode])
 
   const actionHandlers = {
     onEdit,
@@ -250,41 +255,43 @@ export function AuthoredListPage({
               onChange={(value) => setSort(value ?? defaultSort)}
             />
           </div>
-          <Group
-            className={styles.viewToggleGroup}
-            gap={4}
-            role='group'
-            aria-label='Choose list layout'
-          >
-            <Tooltip label='Table view' withArrow>
-              <ActionIcon
-                aria-label='Table view'
-                aria-pressed={viewMode === 'table'}
-                className={clsx(
-                  styles.viewToggleButton,
-                  viewMode === 'table' && styles.viewToggleButtonActive
-                )}
-                variant='subtle'
-                onClick={() => setViewMode('table')}
-              >
-                <IList size={18} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label='Card view' withArrow>
-              <ActionIcon
-                aria-label='Card view'
-                aria-pressed={viewMode === 'cards'}
-                className={clsx(
-                  styles.viewToggleButton,
-                  viewMode === 'cards' && styles.viewToggleButtonActive
-                )}
-                variant='subtle'
-                onClick={() => setViewMode('cards')}
-              >
-                <IGrid size={18} />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
+          {!cardOnly ? (
+            <Group
+              className={styles.viewToggleGroup}
+              gap={4}
+              role='group'
+              aria-label='Choose list layout'
+            >
+              <Tooltip label='Table view' withArrow>
+                <ActionIcon
+                  aria-label='Table view'
+                  aria-pressed={viewMode === 'table'}
+                  className={clsx(
+                    styles.viewToggleButton,
+                    viewMode === 'table' && styles.viewToggleButtonActive
+                  )}
+                  variant='subtle'
+                  onClick={() => setViewMode('table')}
+                >
+                  <IList size={18} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label='Card view' withArrow>
+                <ActionIcon
+                  aria-label='Card view'
+                  aria-pressed={viewMode === 'cards'}
+                  className={clsx(
+                    styles.viewToggleButton,
+                    viewMode === 'cards' && styles.viewToggleButtonActive
+                  )}
+                  variant='subtle'
+                  onClick={() => setViewMode('cards')}
+                >
+                  <IGrid size={18} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
+          ) : null}
         </div>
       )}
 

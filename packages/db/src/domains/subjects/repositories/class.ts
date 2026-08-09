@@ -268,6 +268,7 @@ async function hydrateClassRows(
         'magic_name',
         'ability_code',
         'max_spell_level',
+        'available_spell_ids',
         'available_at_level',
         'sort_order',
         'charge_id'
@@ -523,6 +524,10 @@ async function hydrateClassRows(
                 ) as NonNullable<ClassAuthored['spellcasting']>['ability'])
               : undefined,
             maxSpellLevel: spellcastingRow.max_spell_level,
+            availableSpellIds:
+              spellcastingRow.available_spell_ids.length > 0
+                ? spellcastingRow.available_spell_ids
+                : undefined,
             availableAtLevel: spellcastingRow.available_at_level ?? undefined,
             order: spellcastingRow.sort_order ?? undefined,
             attributes:

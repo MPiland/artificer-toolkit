@@ -1,18 +1,18 @@
 # Phase 08 — Plans, entitlements, and subscriptions
 
 > **Status:** planned
-> **Depends on:** [Phase 03](03-campaign-core.md), [Phase 04](04-social-hub.md), [Phase 06](06-encounters.md), and [Phase 07](07-vtt.md)
+> **Depends on:** the [Phase 03](03-campaign-core.md) entitlement projection and manual-tier baseline; [Phase 04](04-social-hub.md), [Phase 06](06-encounters.md), and [Phase 07](07-vtt.md) provide remaining enforced capabilities
 > **Unlocks:** the public web plan model, [Phase 09 paid tables](09-paid-tables.md), and the web viability gate
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0002](../adr/0002-kysely-writes-authored-hydration.md)
 
 ## Goal
 
-Create one provider-neutral entitlement model and use it to enforce Free, Player, GM, and Pro GM capabilities and limits. Launch web subscriptions through Stripe Billing. Keep the resulting contracts portable for Phase 10 native consumption, but do not add native billing in this phase.
+Complete the provider-neutral entitlement model established in Phase 03 and launch Stripe Billing for web subscriptions. Keep the resulting contracts portable for Phase 10 native consumption, but do not add native billing in this phase.
 
 ## Current starting point
 
-- Marketing pricing is disabled display content; no limit is enforced by the backend.
-- There are no plan, capability, entitlement, billing-customer, subscription, webhook, grace-period, or account-management domains.
+- Phase 03 already projects Free, Player, GM, and Pro GM limits and enforces character, owned-homebrew, storage, hosted-Campaign, and accepted-seat limits server-side using manual tier assignment.
+- Billing-customer, subscription, webhook, grace-period, provider-event receipt, and customer-management domains do not yet exist.
 - Supabase user identity is the current account key.
 - Native clients and store billing do not exist and are not prerequisites for the web launch model.
 
@@ -59,10 +59,10 @@ Capabilities should answer product questions such as “may create another chara
 
 ## Ordered workstreams
 
-1. **Complete commercial policy details.** Use the locked launch plan matrix and define trials, grace, cancellation, beta treatment, fair-use enforcement, and pre-launch price-change handling.
+1. **Complete commercial policy details.** Preserve the Phase 03 entitlement projection and define trials, grace, cancellation, beta treatment, fair-use enforcement, and pre-launch price-change handling.
 2. **Define entitlement contracts.** Model capability keys, numeric limits, grant source, scope, effective interval, priority/combination rules, and an explainable resolved entitlement view.
 3. **Add persistence and authorization.** Create provider-neutral grant/projection records, provider-customer mappings, event receipts, and minimal operator audit access.
-4. **Enforce capabilities server-side.** Add checks at the owning application service for character/homebrew/Campaign creation and future fee capabilities; avoid one global subscription middleware.
+4. **Extend server-side enforcement.** Preserve Phase 03 checks and add owning-service checks for listings, Encounters, and paid-table capabilities; avoid one global subscription middleware.
 5. **Integrate Stripe Billing on web.** Create server-owned Checkout/Portal sessions and signed webhook handling; never accept client-authored price or subscription state.
 6. **Implement convergence and grace.** Recompute effective access from stored provider facts and grants so reordered events converge.
 7. **Expose portable account state on web.** Return current capabilities, limits, consumption, grace/cancellation explanation, and refresh timing through contracts Phase 10 can later consume.

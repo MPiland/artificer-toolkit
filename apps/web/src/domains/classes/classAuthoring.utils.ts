@@ -210,6 +210,7 @@ export function createEmptyResource(): ClassResourceDto {
 export function createEmptySpellcasting(): ClassSpellcastingDto {
   return {
     spellLimits: [],
+    availableSpellIds: [],
     maxSpellLevel: 9,
     attributes: [],
     charges: createEmptyCharge()

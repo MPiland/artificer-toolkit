@@ -35,6 +35,22 @@ function toRollRecord(row: RollHistoryRow): RollRecordDto {
 
 export function createRollHistoryRepository(db: DBLike) {
   return {
+    async findRuleset(systemId: string): Promise<RollRecordDto['ruleset'] | null> {
+      const row = await db
+        .selectFrom('systems')
+        .select(['id', 'ruleset_code', 'ruleset_version'])
+        .where('id', '=', systemId)
+        .executeTakeFirst()
+
+      return row
+        ? {
+            systemId: row.id,
+            code: row.ruleset_code,
+            version: row.ruleset_version
+          }
+        : null
+    },
+
     async findCharacterContext(characterId: string, userId: string) {
       return (
         (await db

@@ -695,7 +695,7 @@ async function dispatchAndReloadSheetCommand(
     `${fixture.label} ${payload.type} did not advance the stream exactly once.`
   )
 
-  const reloaded = await getCharacterSheetForUser(db, fixture.characterId)
+  const reloaded = await getCharacterSheetForUser(db, fixture.characterId, fixture.userId)
   assert.ok(reloaded, `${fixture.label} could not be reloaded after ${payload.type}.`)
   assert.deepEqual(
     canonicalize(reloaded),
@@ -986,12 +986,12 @@ async function proveFixtureLifecycle(
     `${fixture.label} finalization did not remove the Builder draft.`
   )
 
-  const sheet = await getCharacterSheetForUser(db, fixture.characterId)
+  const sheet = await getCharacterSheetForUser(db, fixture.characterId, fixture.userId)
   assert.ok(sheet, `${fixture.label} could not be loaded through the Sheet service.`)
   assert.equal(sheet.meta.streamVersion, 1)
   assertSheetMatchesFixture(sheet, fixture, 'Sheet load')
 
-  const reloadedSheet = await getCharacterSheetForUser(db, fixture.characterId)
+  const reloadedSheet = await getCharacterSheetForUser(db, fixture.characterId, fixture.userId)
   assert.ok(reloadedSheet, `${fixture.label} could not be reloaded through the Sheet service.`)
   assert.equal(reloadedSheet.meta.streamVersion, 1)
   assertSheetMatchesFixture(reloadedSheet, fixture, 'Sheet reload')
@@ -1015,7 +1015,7 @@ async function proveRetryAndConcurrencyCommands(
   assert.equal(applied.streamVersion, sheet.meta.streamVersion + 1)
   assert.equal(applied.sheet.overview.inspiration, true)
 
-  const persisted = await getCharacterSheetForUser(db, fixture.characterId)
+  const persisted = await getCharacterSheetForUser(db, fixture.characterId, fixture.userId)
   assert.ok(persisted, `${fixture.label} could not be reloaded after SET_INSPIRATION.`)
   assert.deepEqual(canonicalize(persisted), canonicalize(applied.sheet))
   const historyAfterApply = await getCharacterHistoryForUser(
@@ -1045,7 +1045,7 @@ async function proveRetryAndConcurrencyCommands(
     /already used with different input/u
   )
   assert.deepEqual(
-    canonicalize(await getCharacterSheetForUser(db, fixture.characterId)),
+    canonicalize(await getCharacterSheetForUser(db, fixture.characterId, fixture.userId)),
     canonicalize(persisted),
     'Reusing a command id with different input mutated Sheet state.'
   )
@@ -1069,7 +1069,11 @@ async function proveRetryAndConcurrencyCommands(
     ),
     /stream_version conflict/u
   )
-  const afterStaleRejection = await getCharacterSheetForUser(db, fixture.characterId)
+  const afterStaleRejection = await getCharacterSheetForUser(
+    db,
+    fixture.characterId,
+    fixture.userId
+  )
   assert.ok(afterStaleRejection, `${fixture.label} disappeared after the stale command rejection.`)
   assert.deepEqual(
     canonicalize(afterStaleRejection),
@@ -1352,7 +1356,7 @@ async function proveHitPointRestAndResourceCommands(
     /stream_version conflict/u
   )
   assert.deepEqual(
-    canonicalize(await getCharacterSheetForUser(db, fixture.characterId)),
+    canonicalize(await getCharacterSheetForUser(db, fixture.characterId, fixture.userId)),
     beforeStaleRest
   )
   assert.deepEqual(
@@ -1770,6 +1774,14 @@ async function main(): Promise<void> {
   const rollback = new Error('ROLLBACK_CHARACTER_LIFECYCLE_INTEGRATION_PROOF')
   const resolutionOnly = process.env.CHARACTER_LIFECYCLE_RESOLUTION_ONLY === '1'
   const requestedFixture = process.env.CHARACTER_LIFECYCLE_FIXTURE
+  const persistLocalFixtures = process.env.CHARACTER_LIFECYCLE_PERSIST_LOCAL === '1'
+  const targetUserId = process.env.CHARACTER_LIFECYCLE_USER_ID
+  const fixtureLabel = process.env.CHARACTER_LIFECYCLE_LABEL?.trim()
+  if (persistLocalFixtures && !targetUserId) {
+    throw new Error(
+      'CHARACTER_LIFECYCLE_USER_ID is required when persisting local Character fixtures.'
+    )
+  }
   let completed = false
   let executedFixtureLabels: string[] = []
   const startedAt = Date.now()
@@ -1780,9 +1792,10 @@ async function main(): Promise<void> {
       await db.transaction().execute(async (trx) => {
         const catalog = await findFixtureCatalog(trx)
         await createAttunementEquipmentFixture(trx, catalog, attunementEquipmentId)
+        const fixtureCatalog = targetUserId ? { ...catalog, userId: targetUserId } : catalog
         const fixtures: CharacterLifecycleFixture[] = [
           {
-            ...catalog,
+            ...fixtureCatalog,
             characterId: characterIds[0] as string,
             classes: [{ classId: catalog.fighterId, classLabel: 'Fighter', classLevel: 1 }],
             expectedMaxHitPoints: 12,
@@ -1792,7 +1805,7 @@ async function main(): Promise<void> {
             raceLabel: 'Human'
           },
           {
-            ...catalog,
+            ...fixtureCatalog,
             characterId: characterIds[1] as string,
             classes: [
               {
@@ -1811,7 +1824,7 @@ async function main(): Promise<void> {
             raceLabel: 'Human'
           },
           {
-            ...catalog,
+            ...fixtureCatalog,
             characterId: characterIds[2] as string,
             classes: [
               {
@@ -1833,7 +1846,7 @@ async function main(): Promise<void> {
             raceLabel: 'Dragonborn'
           },
           {
-            ...catalog,
+            ...fixtureCatalog,
             characterId: characterIds[3] as string,
             classes: [
               { classId: catalog.fighterId, classLabel: 'Fighter', classLevel: 2 },
@@ -1854,13 +1867,17 @@ async function main(): Promise<void> {
             raceLabel: 'Human'
           }
         ]
-        const selectedFixtures = requestedFixture
+        const selectedFixtures = (requestedFixture
           ? fixtures.filter(({ label }) => label.includes(requestedFixture))
           : fixtures
+        ).map((fixture) => (fixtureLabel ? { ...fixture, label: fixtureLabel } : fixture))
         assert.ok(
           selectedFixtures.length > 0,
           `No Character lifecycle fixture matched "${requestedFixture ?? ''}".`
         )
+        if (fixtureLabel && selectedFixtures.length !== 1) {
+          throw new Error('CHARACTER_LIFECYCLE_LABEL requires exactly one selected fixture.')
+        }
         executedFixtureLabels = selectedFixtures.map(({ label }) => label)
 
         for (const fixture of selectedFixtures) {
@@ -1893,17 +1910,19 @@ async function main(): Promise<void> {
         }
 
         completed = true
-        throw rollback
+        if (!persistLocalFixtures) throw rollback
       })
     } catch (error) {
       if (error !== rollback) throw error
     }
 
     assert.equal(completed, true, 'The Character lifecycle proof did not reach its assertions.')
-    for (const characterId of characterIds) {
-      await assertFixtureWasRolledBack(db, characterId)
+    if (!persistLocalFixtures) {
+      for (const characterId of characterIds) {
+        await assertFixtureWasRolledBack(db, characterId)
+      }
+      await assertCommandEquipmentWasRolledBack(db, attunementEquipmentId)
     }
-    await assertCommandEquipmentWasRolledBack(db, attunementEquipmentId)
     console.info(
       JSON.stringify({
         draftPersistence: 'verified',
@@ -1921,7 +1940,8 @@ async function main(): Promise<void> {
         preparedSpellPersistence: 'verified',
         preview: 'verified',
         resolution: 'verified',
-        rollback: 'verified',
+        rollback: persistLocalFixtures ? 'skipped for local fixture persistence' : 'verified',
+        persistedLocalFixtures: persistLocalFixtures,
         sheet: 'verified',
         sheetCommandPersistence: {
           conditions: ['SET_EXHAUSTION', 'ADD_CONDITION', 'REMOVE_CONDITION'],

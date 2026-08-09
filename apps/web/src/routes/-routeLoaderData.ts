@@ -72,7 +72,10 @@ export interface EquipmentDetailLoaderData {
   breadcrumbLabel: string | undefined
   draft: AuthoredDraftDto | null
   equipmentId: string
-  references: Pick<AuthoredContentReferenceData, 'equipment' | 'rarities'>
+  references: Pick<
+    AuthoredContentReferenceData,
+    'classes' | 'currencies' | 'equipment' | 'heritages' | 'rarities'
+  >
   response: EquipmentResponseDto | null
   view: AuthoredRouteView
 }

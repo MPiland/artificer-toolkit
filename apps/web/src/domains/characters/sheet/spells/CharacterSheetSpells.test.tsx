@@ -115,6 +115,112 @@ describe('Character Sheet spells', () => {
     expect(screen.queryByRole('button', { name: /^unprepare$/i })).not.toBeInTheDocument()
   })
 
+  it('forgets a known spell while preserving the other known spells for its class', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+    const first = spellsPanelFixture.groups[0]!.sources[0]!
+    const second = {
+      ...first,
+      spellId: '33333333-3333-3333-3333-333333333333',
+      label: 'Shield',
+      known: true,
+      canPrepare: false,
+      canManageKnown: true,
+      knownClassId: '00000000-0000-4000-8000-000000000113',
+      prepared: false,
+      preparationClassId: undefined
+    }
+    const panel = {
+      ...spellsPanelFixture,
+      groups: [
+        {
+          ...spellsPanelFixture.groups[0]!,
+          sources: [
+            {
+              ...first,
+              spellId: '22222222-2222-2222-2222-222222222222',
+              label: 'Magic Missile',
+              known: true,
+              canPrepare: false,
+              canManageKnown: true,
+              knownClassId: '00000000-0000-4000-8000-000000000113',
+              prepared: false,
+              preparationClassId: undefined
+            },
+            second
+          ]
+        }
+      ]
+    }
+
+    renderWithAppProviders(
+      <CharacterSheetSpellsPanelContent
+        expectedVersion={4}
+        panel={panel}
+        pending={false}
+        submitCommand={submitCommand}
+        onTargetChange={vi.fn()}
+      />
+    )
+
+    await user.click(screen.getAllByRole('button', { name: /^forget$/i })[0]!)
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'SET_KNOWN_SPELLS',
+      classId: '00000000-0000-4000-8000-000000000113',
+      spellIds: ['33333333-3333-3333-3333-333333333333'],
+      expectedVersion: 4
+    })
+  })
+
+  it('does not render known-spell controls for inherent spell sources', () => {
+    const source = spellsPanelFixture.groups[0]!.sources[0]!
+    const panel = {
+      ...spellsPanelFixture,
+      groups: [
+        {
+          ...spellsPanelFixture.groups[0]!,
+          sources: [
+            {
+              ...source,
+              source: {
+                ...source.source,
+                sourceKind: 'FEATURE' as const,
+                sourceInstanceId: 'feature:innate-spell'
+              },
+              target: {
+                kind: 'SPELL' as const,
+                source: {
+                  ...source.source,
+                  sourceKind: 'FEATURE' as const,
+                  sourceInstanceId: 'feature:innate-spell'
+                }
+              },
+              canPrepare: false,
+              known: true,
+              canManageKnown: false,
+              preparationClassId: undefined,
+              knownClassId: undefined
+            }
+          ]
+        }
+      ]
+    }
+
+    renderWithAppProviders(
+      <CharacterSheetSpellsPanelContent
+        expectedVersion={4}
+        panel={panel}
+        pending={false}
+        submitCommand={vi.fn()}
+        onTargetChange={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: /^learn$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^forget$/i })).not.toBeInTheDocument()
+  })
+
   it('restores a single spell slot without clearing the full slot pool', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
@@ -236,6 +342,73 @@ describe('Character Sheet spells', () => {
       type: 'CAST_SPELL',
       spellId: '44444444-4444-4444-4444-444444444444',
       sourceId: 'wizard-source',
+      expectedVersion: 4
+    })
+  })
+
+  it('labels ritual-only spell actions without requiring a spell slot', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+    const sheet = createSheet()
+    const spellId = '77777777-7777-7777-7777-777777777777'
+    const source = {
+      spellId,
+      sourceKind: 'FEATURE' as const,
+      sourceInstanceId: 'feature:magic-item-analysis'
+    }
+    sheet.spells.spells = [
+      {
+        id: spellId,
+        label: 'Detect Magic',
+        level: 1,
+        sources: [
+          {
+            id: 'ritual-source',
+            source,
+            label: 'Magic Item Analysis',
+            provenance: 'FEATURE',
+            acquisition: 'KNOWN',
+            castMode: 'RITUAL',
+            canPrepare: false,
+            prepared: false
+          }
+        ]
+      }
+    ]
+    sheet.spells.activeGroups = [
+      {
+        level: 1,
+        label: 'Level 1',
+        entries: [
+          {
+            rowId: 'row-detect-magic',
+            target: { kind: 'SPELL', source, castLevel: 1 },
+            spellId,
+            source,
+            sourceId: 'ritual-source',
+            sourceLabel: 'Magic Item Analysis',
+            castLevel: 1,
+            displayName: 'Detect Magic',
+            available: true,
+            cast: { spellId, sourceId: 'ritual-source' }
+          }
+        ]
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetSpells pending={false} sheet={sheet} submitCommand={submitCommand} />
+    )
+
+    await user.click(
+      screen.getByRole('button', {
+        name: /cast ritual detect magic from magic item analysis at level 1/i
+      })
+    )
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'CAST_SPELL',
+      spellId,
+      sourceId: 'ritual-source',
       expectedVersion: 4
     })
   })

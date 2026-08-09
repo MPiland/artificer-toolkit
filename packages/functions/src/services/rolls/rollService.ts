@@ -1,5 +1,9 @@
 import { randomInt, randomUUID } from 'node:crypto'
-import { createRollHistoryRepository, type DBLike } from '@artificer-toolkit/db'
+import {
+  createCharacterRepository,
+  createRollHistoryRepository,
+  type DBLike
+} from '@artificer-toolkit/db'
 import {
   rollHistoryResponseDtoSchema,
   rollRecordDtoSchema,
@@ -19,6 +23,7 @@ import {
 } from '@artificer-toolkit/shared/rolls'
 import type { CharacterDiceRandomSource } from '@artificer-toolkit/shared/character'
 import { getCharacterSheetForUser } from '../character/characterApplicationService.js'
+import { resolveCharacterSheetCampaignContext } from '../character/campaignCharacterSheet.js'
 
 export class RollCharacterAccessError extends Error {
   constructor() {
@@ -209,8 +214,21 @@ export async function executeRollForUser(
   userId: string,
   dependencies: ExecuteRollDependencies = {}
 ): Promise<RollRecordDto> {
+  const record = await evaluateRollForUser(db, input, userId, dependencies)
+  return createRollHistoryRepository(db).insertAndTrim(userId, record)
+}
+
+export async function evaluateRollForUser(
+  db: DBLike,
+  input: ExecuteRollInputDto,
+  userId: string,
+  dependencies: ExecuteRollDependencies = {}
+): Promise<RollRecordDto> {
   const repository = createRollHistoryRepository(db)
-  const character = await repository.findCharacterContext(input.characterId, userId)
+  const authored = await createCharacterRepository(db).findAuthoredById(input.characterId)
+  if (!authored) throw new RollCharacterAccessError()
+  await resolveCharacterSheetCampaignContext(db, authored, userId)
+  const character = await repository.findCharacterContext(input.characterId, authored.userId)
   if (!character) throw new RollCharacterAccessError()
 
   let resolved: ResolvedRoll
@@ -221,7 +239,7 @@ export async function executeRollForUser(
       source: { kind: 'MANUAL', label: 'Manual roll' }
     }
   } else {
-    const sheet = await getCharacterSheetForUser(db, character.characterId)
+    const sheet = await getCharacterSheetForUser(db, character.characterId, userId)
     if (!sheet) throw new RollCharacterAccessError()
     resolved = resolveRoll(input, sheet)
   }
@@ -245,7 +263,7 @@ export async function executeRollForUser(
     createdAt: (dependencies.now ?? (() => new Date().toISOString()))()
   })
 
-  return repository.insertAndTrim(userId, record)
+  return record
 }
 
 export async function getRollHistoryForUser(

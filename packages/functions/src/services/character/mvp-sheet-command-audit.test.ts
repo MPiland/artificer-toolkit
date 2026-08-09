@@ -39,6 +39,9 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       findAuthoredById: mocks.findAuthoredById,
       patchSheetState: mocks.patchSheetState
     }),
+    createCampaignContentRepository: () => ({
+      findAssignedCampaign: async () => null
+    }),
     createCharacterSheetAdjustmentRepository: () => ({
       getMovementPreference: mocks.getMovementPreference,
       listByCharacter: mocks.listAdjustments
@@ -57,6 +60,9 @@ vi.mock('./builderService.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./builderService.js')>()
   return { ...actual, resolveCharacterBuilder: mocks.resolveCharacterBuilder }
 })
+
+const { applyCharacterSheetCommand, executeCharacterSheetCommand } =
+  await import('./sheetService.js')
 
 const db = {
   selectFrom: () => {
@@ -190,7 +196,6 @@ describe('MVP character Sheet command audit', () => {
       return streamVersion
     })
 
-    const { executeCharacterSheetCommand } = await import('./sheetService.js')
     const command = {
       type: 'ADJUST_HIT_POINTS' as const,
       mode: 'DAMAGE' as const,
@@ -249,7 +254,6 @@ describe('MVP character Sheet command audit', () => {
     })
     mocks.findByCommandId.mockImplementation(async () => appliedEvent)
 
-    const { executeCharacterSheetCommand } = await import('./sheetService.js')
     const first = {
       type: 'ADJUST_HIT_POINTS' as const,
       mode: 'DAMAGE' as const,
@@ -275,7 +279,6 @@ describe('MVP character Sheet command audit', () => {
   })
 
   it('keeps Builder-owned profile notes out of Sheet play-state commands', async () => {
-    const { applyCharacterSheetCommand } = await import('./sheetService.js')
     const character = createCharacter({
       description: 'Builder description',
       profile: { backstory: 'Builder backstory', notes: 'Builder notes' }
@@ -283,6 +286,13 @@ describe('MVP character Sheet command audit', () => {
     const sheet = {
       meta: {
         characterId: character.id,
+        viewer: 'CHARACTER_OWNER' as const,
+        capabilities: {
+          managePlayState: true,
+          managePrivateNotes: true,
+          manageInventory: true,
+          openBuilder: true
+        },
         systemId: character.systemId,
         status: 'ACTIVE' as const,
         streamVersion: 1

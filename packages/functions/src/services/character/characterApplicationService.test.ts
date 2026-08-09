@@ -614,6 +614,24 @@ describe('buildCharacterBuilderView', () => {
     ).toEqual(['magic-missile', 'shield'])
   })
 
+  it('includes spells explicitly owned by a class spell list alongside legacy spell class links', () => {
+    const character = createCharacter()
+    character.intent.classes = [{ classId: 'class-wizard', classLevel: 1 }]
+    const resolution = createSpellFilteringResolution()
+    const wizard = resolution.registry.classes[0]
+    if (!wizard?.spellcasting) throw new Error('Expected Wizard spellcasting fixture.')
+    wizard.spellcasting.availableSpellIds = ['shield']
+    const shield = resolution.catalog.spells.find((spell) => spell.id === 'shield')
+    if (!shield) throw new Error('Expected Shield spell fixture.')
+    shield.classIds = []
+
+    const view = buildCharacterBuilderView(character, resolution)
+
+    expect(
+      view.classes.selectedClasses[0]?.spellChoices[0]?.spellOptions.map((option) => option.id)
+    ).toEqual(['magic-missile', 'shield'])
+  })
+
   it('preserves disabled proficiency options supplied by the Builder resolver', () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'class-wizard', classLevel: 1 }]

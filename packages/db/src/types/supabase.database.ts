@@ -1,8 +1,35 @@
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
   public: {
     Tables: {
+      account_entitlements: {
+        Row: {
+          created_at: string
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       alignments: {
         Row: {
           code: string
@@ -39,12 +66,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'alignments_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "alignments_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       authored_creation_rate_limits: {
@@ -107,12 +134,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'authored_drafts_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "authored_drafts_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       authored_image_slots: {
@@ -148,19 +175,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'authored_image_slots_asset_id_fkey'
-            columns: ['asset_id']
+            foreignKeyName: "authored_image_slots_asset_id_fkey"
+            columns: ["asset_id"]
             isOneToOne: false
-            referencedRelation: 'media_assets'
-            referencedColumns: ['id']
+            referencedRelation: "media_assets"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'authored_image_slots_route_fk'
-            columns: ['subject_kind', 'subject_id']
+            foreignKeyName: "authored_image_slots_route_fk"
+            columns: ["subject_kind", "subject_id"]
             isOneToOne: false
-            referencedRelation: 'authored_route_ids'
-            referencedColumns: ['subject_kind', 'subject_id']
-          }
+            referencedRelation: "authored_route_ids"
+            referencedColumns: ["subject_kind", "subject_id"]
+          },
         ]
       }
       authored_import_refs: {
@@ -238,19 +265,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'background_details_background_id_fkey'
-            columns: ['background_id']
+            foreignKeyName: "background_details_background_id_fkey"
+            columns: ["background_id"]
             isOneToOne: false
-            referencedRelation: 'backgrounds'
-            referencedColumns: ['id']
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'background_details_detail_id_fkey'
-            columns: ['detail_id']
+            foreignKeyName: "background_details_detail_id_fkey"
+            columns: ["detail_id"]
             isOneToOne: false
-            referencedRelation: 'details'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "details"
+            referencedColumns: ["id"]
+          },
         ]
       }
       background_features: {
@@ -271,19 +298,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'background_features_background_id_fkey'
-            columns: ['background_id']
+            foreignKeyName: "background_features_background_id_fkey"
+            columns: ["background_id"]
             isOneToOne: false
-            referencedRelation: 'backgrounds'
-            referencedColumns: ['id']
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'background_features_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "background_features_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
         ]
       }
       background_proficiency_grants: {
@@ -304,19 +331,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'background_proficiency_grants_background_id_fkey'
-            columns: ['background_id']
+            foreignKeyName: "background_proficiency_grants_background_id_fkey"
+            columns: ["background_id"]
             isOneToOne: false
-            referencedRelation: 'backgrounds'
-            referencedColumns: ['id']
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'background_proficiency_grants_proficiency_grant_id_fkey'
-            columns: ['proficiency_grant_id']
+            foreignKeyName: "background_proficiency_grants_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
             isOneToOne: false
-            referencedRelation: 'proficiency_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       backgrounds: {
@@ -358,20 +385,1128 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'backgrounds_starting_equipment_id_fkey'
-            columns: ['starting_equipment_id']
+            foreignKeyName: "backgrounds_starting_equipment_id_fkey"
+            columns: ["starting_equipment_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment'
-            referencedColumns: ['id']
+            referencedRelation: "starting_equipment"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'backgrounds_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "backgrounds_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      campaign_adjustments: {
+        Row: {
+          campaign_id: string
+          character_id: string
+          created_at: string
+          created_by: string
+          family: string
+          id: string
+          payload: Json
+          slot_key: string
+          updated_at: string
+          version: number
+          visibility: string
+        }
+        Insert: {
+          campaign_id: string
+          character_id: string
+          created_at?: string
+          created_by: string
+          family: string
+          id?: string
+          payload: Json
+          slot_key: string
+          updated_at?: string
+          version?: number
+          visibility?: string
+        }
+        Update: {
+          campaign_id?: string
+          character_id?: string
+          created_at?: string
+          created_by?: string
+          family?: string
+          id?: string
+          payload?: Json
+          slot_key?: string
+          updated_at?: string
+          version?: number
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_adjustments_campaign_id_character_id_fkey"
+            columns: ["campaign_id", "character_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_character_assignments"
+            referencedColumns: ["campaign_id", "character_id"]
+          },
+        ]
+      }
+      campaign_character_assignments: {
+        Row: {
+          assigned_at: string
+          campaign_id: string
+          character_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          campaign_id: string
+          character_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          campaign_id?: string
+          character_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_character_assignments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_character_assignments_campaign_id_user_id_fkey"
+            columns: ["campaign_id", "user_id"]
+            isOneToOne: true
+            referencedRelation: "campaign_memberships"
+            referencedColumns: ["campaign_id", "user_id"]
+          },
+          {
+            foreignKeyName: "campaign_character_assignments_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_character_assignments_character_id_user_id_fkey"
+            columns: ["character_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      campaign_character_content_bindings: {
+        Row: {
+          campaign_id: string
+          character_id: string
+          content_version_id: string
+          created_at: string
+          subject_id: string
+          subject_kind: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          character_id: string
+          content_version_id: string
+          created_at?: string
+          subject_id: string
+          subject_kind: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          character_id?: string
+          content_version_id?: string
+          created_at?: string
+          subject_id?: string
+          subject_kind?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_character_content_bi_content_version_id_campaign__fkey"
+            columns: [
+              "content_version_id",
+              "campaign_id",
+              "subject_kind",
+              "subject_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "campaign_content_versions"
+            referencedColumns: [
+              "id",
+              "campaign_id",
+              "subject_kind",
+              "subject_id",
+            ]
+          },
+          {
+            foreignKeyName: "campaign_character_content_bindin_campaign_id_character_id_fkey"
+            columns: ["campaign_id", "character_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_character_assignments"
+            referencedColumns: ["campaign_id", "character_id"]
+          },
+        ]
+      }
+      campaign_clock_recoveries: {
+        Row: {
+          boundary_absolute_minute: number
+          boundary_kind: string
+          campaign_id: string
+          character_id: string
+          created_at: string
+          event_id: string
+          id: string
+          resource_key: string
+        }
+        Insert: {
+          boundary_absolute_minute: number
+          boundary_kind: string
+          campaign_id: string
+          character_id: string
+          created_at?: string
+          event_id: string
+          id?: string
+          resource_key: string
+        }
+        Update: {
+          boundary_absolute_minute?: number
+          boundary_kind?: string
+          campaign_id?: string
+          character_id?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          resource_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_clock_recoveries_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_clock_recoveries_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_clock_recoveries_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_clocks: {
+        Row: {
+          campaign_id: string
+          dawn_minute: number
+          day: number
+          dusk_minute: number
+          minute_of_day: number
+          processed_boundary_absolute_minute: number
+          running: boolean
+          running_since: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          campaign_id: string
+          dawn_minute?: number
+          day: number
+          dusk_minute?: number
+          minute_of_day: number
+          processed_boundary_absolute_minute?: number
+          running?: boolean
+          running_since?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          campaign_id?: string
+          dawn_minute?: number
+          day?: number
+          dusk_minute?: number
+          minute_of_day?: number
+          processed_boundary_absolute_minute?: number
+          running?: boolean
+          running_since?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_clocks_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: true
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_content_versions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          authored_by: string
+          campaign_id: string
+          created_at: string
+          id: string
+          rejected_at: string | null
+          revision: number
+          snapshot: Json
+          state: string
+          subject_id: string
+          subject_kind: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          authored_by: string
+          campaign_id: string
+          created_at?: string
+          id?: string
+          rejected_at?: string | null
+          revision: number
+          snapshot: Json
+          state?: string
+          subject_id: string
+          subject_kind: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          authored_by?: string
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          rejected_at?: string | null
+          revision?: number
+          snapshot?: Json
+          state?: string
+          subject_id?: string
+          subject_kind?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_content_versions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_conversation_entries: {
+        Row: {
+          author_character_id: string | null
+          author_user_id: string
+          body: string | null
+          campaign_id: string
+          character_name_snapshot: string | null
+          client_nonce: string
+          conversation_id: string
+          created_at: string
+          edited_at: string | null
+          id: string
+          kind: string
+          mode: string | null
+          roll_payload: Json | null
+          unsent_at: string | null
+          username_snapshot: string
+        }
+        Insert: {
+          author_character_id?: string | null
+          author_user_id: string
+          body?: string | null
+          campaign_id: string
+          character_name_snapshot?: string | null
+          client_nonce: string
+          conversation_id: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          kind: string
+          mode?: string | null
+          roll_payload?: Json | null
+          unsent_at?: string | null
+          username_snapshot: string
+        }
+        Update: {
+          author_character_id?: string | null
+          author_user_id?: string
+          body?: string | null
+          campaign_id?: string
+          character_name_snapshot?: string | null
+          client_nonce?: string
+          conversation_id?: string
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          kind?: string
+          mode?: string | null
+          roll_payload?: Json | null
+          unsent_at?: string | null
+          username_snapshot?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_conversation_entries_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_conversation_entries_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_conversation_members: {
+        Row: {
+          access_started_at: string
+          campaign_id: string
+          conversation_id: string
+          last_read_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_started_at?: string
+          campaign_id: string
+          conversation_id: string
+          last_read_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_started_at?: string
+          campaign_id?: string
+          conversation_id?: string
+          last_read_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_conversation_members_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_conversation_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_conversations: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          direct_user_a: string | null
+          direct_user_b: string | null
+          id: string
+          kind: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          direct_user_a?: string | null
+          direct_user_b?: string | null
+          id?: string
+          kind: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          direct_user_a?: string | null
+          direct_user_b?: string | null
+          id?: string
+          kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_conversations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_currency_denominations: {
+        Row: {
+          abbreviation: string
+          created_at: string
+          id: string
+          name: string
+          scale_in_reference: number
+          sort_order: number
+          system_id: string
+          updated_at: string
+        }
+        Insert: {
+          abbreviation: string
+          created_at?: string
+          id?: string
+          name: string
+          scale_in_reference: number
+          sort_order?: number
+          system_id: string
+          updated_at?: string
+        }
+        Update: {
+          abbreviation?: string
+          created_at?: string
+          id?: string
+          name?: string
+          scale_in_reference?: number
+          sort_order?: number
+          system_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_currency_denominations_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_currency_systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_currency_systems: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          is_reference: boolean
+          name: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          is_reference?: boolean
+          name: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          is_reference?: boolean
+          name?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_currency_systems_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_events: {
+        Row: {
+          actor_user_id: string | null
+          campaign_id: string
+          created_at: string
+          id: string
+          idempotency_key: string | null
+          kind: string
+          payload: Json
+          subject_character_id: string | null
+          subject_user_id: string | null
+          visibility: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          campaign_id: string
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          kind: string
+          payload?: Json
+          subject_character_id?: string | null
+          subject_user_id?: string | null
+          visibility: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          idempotency_key?: string | null
+          kind?: string
+          payload?: Json
+          subject_character_id?: string | null
+          subject_user_id?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_events_subject_character_id_fkey"
+            columns: ["subject_character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_invites: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          kind: string
+          revoked_at: string | null
+          target_email: string | null
+          target_user_id: string | null
+          token_digest: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id?: string
+          kind: string
+          revoked_at?: string | null
+          target_email?: string | null
+          target_user_id?: string | null
+          token_digest: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          kind?: string
+          revoked_at?: string | null
+          target_email?: string | null
+          target_user_id?: string | null
+          token_digest?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_invites_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_live_play_commands: {
+        Row: {
+          campaign_id: string
+          command_id: string
+          command_type: string
+          created_at: string
+          input_fingerprint: string
+          result_payload: Json
+        }
+        Insert: {
+          campaign_id: string
+          command_id: string
+          command_type: string
+          created_at?: string
+          input_fingerprint: string
+          result_payload: Json
+        }
+        Update: {
+          campaign_id?: string
+          command_id?: string
+          command_type?: string
+          created_at?: string
+          input_fingerprint?: string
+          result_payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_live_play_commands_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_memberships: {
+        Row: {
+          access_started_at: string
+          campaign_id: string
+          created_at: string
+          joined_at: string
+          left_at: string | null
+          role: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_started_at?: string
+          campaign_id: string
+          created_at?: string
+          joined_at?: string
+          left_at?: string | null
+          role: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_started_at?: string
+          campaign_id?: string
+          created_at?: string
+          joined_at?: string
+          left_at?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_memberships_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_note_sections: {
+        Row: {
+          campaign_id: string
+          category: string
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          sort_order: number
+          title: string
+          updated_at: string
+          updated_by: string
+          version: number
+          visibility: string
+        }
+        Insert: {
+          campaign_id: string
+          category?: string
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+          updated_by: string
+          version?: number
+          visibility?: string
+        }
+        Update: {
+          campaign_id?: string
+          category?: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          updated_by?: string
+          version?: number
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_note_sections_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_ownership_transfers: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          expires_at: string
+          from_user_id: string
+          to_user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          expires_at: string
+          from_user_id: string
+          to_user_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          expires_at?: string
+          from_user_id?: string
+          to_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_ownership_transfers_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: true
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_session_attendance: {
+        Row: {
+          campaign_id: string
+          character_id: string
+          present: boolean
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          character_id: string
+          present?: boolean
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          character_id?: string
+          present?: boolean
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_session_attendance_campaign_id_character_id_fkey"
+            columns: ["campaign_id", "character_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_character_assignments"
+            referencedColumns: ["campaign_id", "character_id"]
+          },
+          {
+            foreignKeyName: "campaign_session_attendance_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_session_attendance_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_session_attendance_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_session_note_sections: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          kind: string
+          session_id: string
+          sort_order: number
+          title: string
+          updated_at: string
+          updated_by: string
+          version: number
+          visibility: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          kind?: string
+          session_id: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+          updated_by: string
+          version?: number
+          visibility?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          kind?: string
+          session_id?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          updated_by?: string
+          version?: number
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_session_note_sections_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_session_reference_pins: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          note_section_id: string | null
+          route_public_id: string | null
+          route_subject_kind: string | null
+          session_id: string
+          target_kind: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          note_section_id?: string | null
+          route_public_id?: string | null
+          route_subject_kind?: string | null
+          session_id: string
+          target_kind: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          note_section_id?: string | null
+          route_public_id?: string | null
+          route_subject_kind?: string | null
+          session_id?: string
+          target_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_session_reference_pins_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_session_reference_pins_note_section_id_fkey"
+            columns: ["note_section_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_note_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_session_reference_pins_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_session_rsvps: {
+        Row: {
+          campaign_id: string
+          response: string
+          session_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          response: string
+          session_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          campaign_id?: string
+          response?: string
+          session_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_session_rsvps_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_session_rsvps_campaign_id_user_id_fkey"
+            columns: ["campaign_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_memberships"
+            referencedColumns: ["campaign_id", "user_id"]
+          },
+          {
+            foreignKeyName: "campaign_session_rsvps_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_sessions: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          finished_at: string | null
+          id: string
+          scheduled_end_at: string | null
+          scheduled_start_at: string | null
+          session_date: string | null
+          session_number: number
+          status: string
+          time_zone: string | null
+          title: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          scheduled_end_at?: string | null
+          scheduled_start_at?: string | null
+          session_date?: string | null
+          session_number: number
+          status?: string
+          time_zone?: string | null
+          title?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          scheduled_end_at?: string | null
+          scheduled_start_at?: string | null
+          session_date?: string | null
+          session_number?: number
+          status?: string
+          time_zone?: string | null
+          title?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_sessions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          attunement_slot_override: number | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          owner_user_id: string
+          status: string
+          updated_at: string
+          version: number
+          visibility: string
+        }
+        Insert: {
+          attunement_slot_override?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          owner_user_id: string
+          status?: string
+          updated_at?: string
+          version?: number
+          visibility?: string
+        }
+        Update: {
+          attunement_slot_override?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owner_user_id?: string
+          status?: string
+          updated_at?: string
+          version?: number
+          visibility?: string
+        }
+        Relationships: []
       }
       challenge_ratings: {
         Row: {
@@ -409,12 +1544,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'challenge_ratings_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "challenge_ratings_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_abilities: {
@@ -438,12 +1573,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_abilities_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_abilities_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: true
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_abilities_manual_assignments: {
@@ -470,12 +1605,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_abilities_manual_assignments_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_abilities_manual_assignments_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_abilities_manual_rolled: {
@@ -499,12 +1634,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_abilities_manual_rolled_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_abilities_manual_rolled_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: true
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_abilities_manual_rolled_groups: {
@@ -543,12 +1678,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_abilities_manual_rolled_groups_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_abilities_manual_rolled_groups_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_abilities_manual_rolled_rolls: {
@@ -584,12 +1719,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_abilities_manual_rolled_rolls_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_abilities_manual_rolled_rolls_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_abilities_point_buy: {
@@ -610,12 +1745,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_abilities_point_buy_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_abilities_point_buy_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: true
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_abilities_point_buy_distributed: {
@@ -642,12 +1777,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_abilities_point_buy_distributed_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_abilities_point_buy_distributed_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_abilities_standard_array: {
@@ -674,12 +1809,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_abilities_standard_array_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_abilities_standard_array_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_ability_adjustments: {
@@ -721,12 +1856,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_ability_adjustments_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_ability_adjustments_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_advancement: {
@@ -753,12 +1888,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_advancement_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_advancement_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: true
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_ancestry_acquisitions: {
@@ -806,47 +1941,47 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_ancestry_acquisitions_ancestry_id_fkey'
-            columns: ['ancestry_id']
+            foreignKeyName: "character_ancestry_acquisitions_ancestry_id_fkey"
+            columns: ["ancestry_id"]
             isOneToOne: false
-            referencedRelation: 'race_ancestries'
-            referencedColumns: ['id']
+            referencedRelation: "race_ancestries"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_ancestry_acquisitions_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_ancestry_acquisitions_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_ancestry_acquisitions_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "character_ancestry_acquisitions_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_ancestry_acquisitions_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "character_ancestry_acquisitions_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'race_ancestry_options'
-            referencedColumns: ['id']
+            referencedRelation: "race_ancestry_options"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_ancestry_acquisitions_race_id_fkey'
-            columns: ['race_id']
+            foreignKeyName: "character_ancestry_acquisitions_race_id_fkey"
+            columns: ["race_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
+            referencedRelation: "races"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_ancestry_acquisitions_subrace_id_fkey'
-            columns: ['subrace_id']
+            foreignKeyName: "character_ancestry_acquisitions_subrace_id_fkey"
+            columns: ["subrace_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_attuned: {
@@ -870,19 +2005,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_attuned_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_attuned_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_attuned_equipment_owner_fkey'
-            columns: ['character_id', 'equipment_id']
+            foreignKeyName: "character_attuned_equipment_owner_fkey"
+            columns: ["character_id", "equipment_id"]
             isOneToOne: true
-            referencedRelation: 'character_equipment'
-            referencedColumns: ['character_id', 'id']
-          }
+            referencedRelation: "character_equipment"
+            referencedColumns: ["character_id", "id"]
+          },
         ]
       }
       character_background: {
@@ -906,19 +2041,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_background_background_id_fkey'
-            columns: ['background_id']
+            foreignKeyName: "character_background_background_id_fkey"
+            columns: ["background_id"]
             isOneToOne: false
-            referencedRelation: 'backgrounds'
-            referencedColumns: ['id']
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_background_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_background_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: true
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_background_equipment_groups: {
@@ -945,26 +2080,26 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_background_equipment_groups_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_background_equipment_groups_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_background_equipment_groups_group_id_fkey'
-            columns: ['group_id']
+            foreignKeyName: "character_background_equipment_groups_group_id_fkey"
+            columns: ["group_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_groups'
-            referencedColumns: ['id']
+            referencedRelation: "starting_equipment_groups"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_background_equipment_groups_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "character_background_equipment_groups_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_options'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "starting_equipment_options"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_background_equipment_items: {
@@ -997,33 +2132,33 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_background_equipment_items_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_background_equipment_items_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_background_equipment_items_equipment_id_fkey'
-            columns: ['equipment_id']
+            foreignKeyName: "character_background_equipment_items_equipment_id_fkey"
+            columns: ["equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_background_equipment_items_group_id_fkey'
-            columns: ['group_id']
+            foreignKeyName: "character_background_equipment_items_group_id_fkey"
+            columns: ["group_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_groups'
-            referencedColumns: ['id']
+            referencedRelation: "starting_equipment_groups"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_background_equipment_items_selection_item_id_fkey'
-            columns: ['selection_item_id']
+            foreignKeyName: "character_background_equipment_items_selection_item_id_fkey"
+            columns: ["selection_item_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_option_items'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "starting_equipment_option_items"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_background_equipment_session: {
@@ -1047,12 +2182,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_background_equipment_session_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_background_equipment_session_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: true
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_builder_drafts: {
@@ -1097,12 +2232,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_builder_drafts_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "character_builder_drafts_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_chosen_grant_selection_targets: {
@@ -1129,12 +2264,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_chosen_grant_selection_targets_selection_id_fkey'
-            columns: ['selection_id']
+            foreignKeyName: "character_chosen_grant_selection_targets_selection_id_fkey"
+            columns: ["selection_id"]
             isOneToOne: false
-            referencedRelation: 'character_chosen_grant_selections'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "character_chosen_grant_selections"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_chosen_grant_selections: {
@@ -1215,89 +2350,89 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_chosen_grant_selections_acquired_parent_id_fkey'
-            columns: ['acquired_parent_id']
+            foreignKeyName: "character_chosen_grant_selections_acquired_parent_id_fkey"
+            columns: ["acquired_parent_id"]
             isOneToOne: false
-            referencedRelation: 'character_feature_acquisitions'
-            referencedColumns: ['id']
+            referencedRelation: "character_feature_acquisitions"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_chosen_grant_selections_ancestry_id_fkey'
-            columns: ['ancestry_id']
+            foreignKeyName: "character_chosen_grant_selections_ancestry_id_fkey"
+            columns: ["ancestry_id"]
             isOneToOne: false
-            referencedRelation: 'race_ancestries'
-            referencedColumns: ['id']
+            referencedRelation: "race_ancestries"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_chosen_grant_selections_background_id_fkey'
-            columns: ['background_id']
+            foreignKeyName: "character_chosen_grant_selections_background_id_fkey"
+            columns: ["background_id"]
             isOneToOne: false
-            referencedRelation: 'backgrounds'
-            referencedColumns: ['id']
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_chosen_grant_selections_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_chosen_grant_selections_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_chosen_grant_selections_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "character_chosen_grant_selections_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_chosen_grant_selections_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "character_chosen_grant_selections_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_chosen_grant_selections_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "character_chosen_grant_selections_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
+            referencedRelation: "features"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_chosen_grant_selections_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "character_chosen_grant_selections_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
+            referencedRelation: "options"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_chosen_grant_selections_race_id_fkey'
-            columns: ['race_id']
+            foreignKeyName: "character_chosen_grant_selections_race_id_fkey"
+            columns: ["race_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
+            referencedRelation: "races"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_chosen_grant_selections_subclass_id_fkey'
-            columns: ['subclass_id']
+            foreignKeyName: "character_chosen_grant_selections_subclass_id_fkey"
+            columns: ["subclass_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_chosen_grant_selections_subrace_id_fkey'
-            columns: ['subrace_id']
+            foreignKeyName: "character_chosen_grant_selections_subrace_id_fkey"
+            columns: ["subrace_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
+            referencedRelation: "races"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_chosen_grant_selections_timing_class_id_fkey'
-            columns: ['timing_class_id']
+            foreignKeyName: "character_chosen_grant_selections_timing_class_id_fkey"
+            columns: ["timing_class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_class_equipment_groups: {
@@ -1324,26 +2459,26 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_class_equipment_groups_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_class_equipment_groups_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_class_equipment_groups_group_id_fkey'
-            columns: ['group_id']
+            foreignKeyName: "character_class_equipment_groups_group_id_fkey"
+            columns: ["group_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_groups'
-            referencedColumns: ['id']
+            referencedRelation: "starting_equipment_groups"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_class_equipment_groups_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "character_class_equipment_groups_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_options'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "starting_equipment_options"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_class_equipment_items: {
@@ -1376,33 +2511,33 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_class_equipment_items_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_class_equipment_items_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_class_equipment_items_equipment_id_fkey'
-            columns: ['equipment_id']
+            foreignKeyName: "character_class_equipment_items_equipment_id_fkey"
+            columns: ["equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_class_equipment_items_group_id_fkey'
-            columns: ['group_id']
+            foreignKeyName: "character_class_equipment_items_group_id_fkey"
+            columns: ["group_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_groups'
-            referencedColumns: ['id']
+            referencedRelation: "starting_equipment_groups"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_class_equipment_items_selection_item_id_fkey'
-            columns: ['selection_item_id']
+            foreignKeyName: "character_class_equipment_items_selection_item_id_fkey"
+            columns: ["selection_item_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_option_items'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "starting_equipment_option_items"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_class_equipment_session: {
@@ -1435,19 +2570,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_class_equipment_session_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_class_equipment_session_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: true
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_class_equipment_session_option_fkey'
-            columns: ['option']
+            foreignKeyName: "character_class_equipment_session_option_fkey"
+            columns: ["option"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_options'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "starting_equipment_options"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_class_spells: {
@@ -1456,7 +2591,7 @@ export type Database = {
           class_id: string
           created_at: string
           spell_id: string
-          state: Database['public']['Enums']['spell_state']
+          state: Database["public"]["Enums"]["spell_state"]
           updated_at: string
         }
         Insert: {
@@ -1464,7 +2599,7 @@ export type Database = {
           class_id: string
           created_at?: string
           spell_id: string
-          state: Database['public']['Enums']['spell_state']
+          state: Database["public"]["Enums"]["spell_state"]
           updated_at?: string
         }
         Update: {
@@ -1472,31 +2607,31 @@ export type Database = {
           class_id?: string
           created_at?: string
           spell_id?: string
-          state?: Database['public']['Enums']['spell_state']
+          state?: Database["public"]["Enums"]["spell_state"]
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: 'character_class_spells_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_class_spells_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_class_spells_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "character_class_spells_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_class_spells_spell_id_fkey'
-            columns: ['spell_id']
+            foreignKeyName: "character_class_spells_spell_id_fkey"
+            columns: ["spell_id"]
             isOneToOne: false
-            referencedRelation: 'spells'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_classes: {
@@ -1505,6 +2640,7 @@ export type Database = {
           class_id: string
           class_level: number
           created_at: string
+          known_spells_overridden: boolean
           specialization_id: string | null
           subclass_id: string | null
           updated_at: string
@@ -1514,6 +2650,7 @@ export type Database = {
           class_id: string
           class_level: number
           created_at?: string
+          known_spells_overridden?: boolean
           specialization_id?: string | null
           subclass_id?: string | null
           updated_at?: string
@@ -1523,39 +2660,40 @@ export type Database = {
           class_id?: string
           class_level?: number
           created_at?: string
+          known_spells_overridden?: boolean
           specialization_id?: string | null
           subclass_id?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: 'character_classes_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_classes_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_classes_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "character_classes_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_classes_specialization_id_fkey'
-            columns: ['specialization_id']
+            foreignKeyName: "character_classes_specialization_id_fkey"
+            columns: ["specialization_id"]
             isOneToOne: false
-            referencedRelation: 'class_specializations'
-            referencedColumns: ['id']
+            referencedRelation: "class_specializations"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_classes_subclass_id_fkey'
-            columns: ['subclass_id']
+            foreignKeyName: "character_classes_subclass_id_fkey"
+            columns: ["subclass_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_companion_adjustments: {
@@ -1603,19 +2741,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_companion_adjustments_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_companion_adjustments_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_companion_adjustments_companion_fkey'
-            columns: ['character_id', 'companion_instance_id']
+            foreignKeyName: "character_companion_adjustments_companion_fkey"
+            columns: ["character_id", "companion_instance_id"]
             isOneToOne: false
-            referencedRelation: 'character_creatures'
-            referencedColumns: ['character_id', 'id']
-          }
+            referencedRelation: "character_creatures"
+            referencedColumns: ["character_id", "id"]
+          },
         ]
       }
       character_conditions: {
@@ -1642,19 +2780,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_conditions_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_conditions_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_conditions_condition_type_id_fkey'
-            columns: ['condition_type_id']
+            foreignKeyName: "character_conditions_condition_type_id_fkey"
+            columns: ["condition_type_id"]
             isOneToOne: false
-            referencedRelation: 'condition_types'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "condition_types"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_creature_equipment: {
@@ -1681,26 +2819,26 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_creature_equipment_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_creature_equipment_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_creature_equipment_creature_owner_fkey'
-            columns: ['character_id', 'character_creature_id']
+            foreignKeyName: "character_creature_equipment_creature_owner_fkey"
+            columns: ["character_id", "character_creature_id"]
             isOneToOne: false
-            referencedRelation: 'character_creatures'
-            referencedColumns: ['character_id', 'id']
+            referencedRelation: "character_creatures"
+            referencedColumns: ["character_id", "id"]
           },
           {
-            foreignKeyName: 'character_creature_equipment_item_owner_fkey'
-            columns: ['character_id', 'equipment_id']
+            foreignKeyName: "character_creature_equipment_item_owner_fkey"
+            columns: ["character_id", "equipment_id"]
             isOneToOne: false
-            referencedRelation: 'character_equipment'
-            referencedColumns: ['character_id', 'id']
-          }
+            referencedRelation: "character_equipment"
+            referencedColumns: ["character_id", "id"]
+          },
         ]
       }
       character_creature_hit_dice_state: {
@@ -1733,19 +2871,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_creature_hit_dice_state_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_creature_hit_dice_state_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_creature_hit_dice_state_creature_owner_fkey'
-            columns: ['character_id', 'character_creature_id']
+            foreignKeyName: "character_creature_hit_dice_state_creature_owner_fkey"
+            columns: ["character_id", "character_creature_id"]
             isOneToOne: false
-            referencedRelation: 'character_creatures'
-            referencedColumns: ['character_id', 'id']
-          }
+            referencedRelation: "character_creatures"
+            referencedColumns: ["character_id", "id"]
+          },
         ]
       }
       character_creatures: {
@@ -1793,19 +2931,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_creatures_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_creatures_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_creatures_creature_id_fkey'
-            columns: ['creature_id']
+            foreignKeyName: "character_creatures_creature_id_fkey"
+            columns: ["creature_id"]
             isOneToOne: false
-            referencedRelation: 'creatures'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_currencies: {
@@ -1835,26 +2973,26 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_currencies_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_currencies_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_currencies_currency_id_fkey'
-            columns: ['currency_id']
+            foreignKeyName: "character_currencies_currency_id_fkey"
+            columns: ["currency_id"]
             isOneToOne: false
-            referencedRelation: 'currencies'
-            referencedColumns: ['id']
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_currencies_group_owner_fkey'
-            columns: ['character_id', 'group_id']
+            foreignKeyName: "character_currencies_group_owner_fkey"
+            columns: ["character_id", "group_id"]
             isOneToOne: false
-            referencedRelation: 'character_currency_groups'
-            referencedColumns: ['character_id', 'id']
-          }
+            referencedRelation: "character_currency_groups"
+            referencedColumns: ["character_id", "id"]
+          },
         ]
       }
       character_currency_groups: {
@@ -1881,19 +3019,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_currency_groups_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_currency_groups_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_currency_groups_container_owner_fkey'
-            columns: ['character_id', 'container_id']
+            foreignKeyName: "character_currency_groups_container_owner_fkey"
+            columns: ["character_id", "container_id"]
             isOneToOne: false
-            referencedRelation: 'character_equipment'
-            referencedColumns: ['character_id', 'id']
-          }
+            referencedRelation: "character_equipment"
+            referencedColumns: ["character_id", "id"]
+          },
         ]
       }
       character_defense_additions: {
@@ -1932,19 +3070,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_defense_additions_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_defense_additions_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_defense_additions_damage_type_id_fkey'
-            columns: ['damage_type_id']
+            foreignKeyName: "character_defense_additions_damage_type_id_fkey"
+            columns: ["damage_type_id"]
             isOneToOne: false
-            referencedRelation: 'damage_types'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_equipment: {
@@ -1986,26 +3124,26 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_equipment_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_equipment_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_equipment_container_owner_fkey'
-            columns: ['character_id', 'container_id']
+            foreignKeyName: "character_equipment_container_owner_fkey"
+            columns: ["character_id", "container_id"]
             isOneToOne: false
-            referencedRelation: 'character_equipment'
-            referencedColumns: ['character_id', 'id']
+            referencedRelation: "character_equipment"
+            referencedColumns: ["character_id", "id"]
           },
           {
-            foreignKeyName: 'character_equipment_equipment_id_fkey'
-            columns: ['equipment_id']
+            foreignKeyName: "character_equipment_equipment_id_fkey"
+            columns: ["equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_equipped: {
@@ -2029,19 +3167,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_equipped_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_equipped_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_equipped_equipment_owner_fkey'
-            columns: ['character_id', 'equipment_id']
+            foreignKeyName: "character_equipped_equipment_owner_fkey"
+            columns: ["character_id", "equipment_id"]
             isOneToOne: true
-            referencedRelation: 'character_equipment'
-            referencedColumns: ['character_id', 'id']
-          }
+            referencedRelation: "character_equipment"
+            referencedColumns: ["character_id", "id"]
+          },
         ]
       }
       character_events: {
@@ -2077,12 +3215,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_events_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_events_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_exhaustion: {
@@ -2109,12 +3247,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_exhaustion_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_exhaustion_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: true
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_feature_acquisitions: {
@@ -2186,89 +3324,89 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_feature_acquisitions_acquired_parent_id_fkey'
-            columns: ['acquired_parent_id']
+            foreignKeyName: "character_feature_acquisitions_acquired_parent_id_fkey"
+            columns: ["acquired_parent_id"]
             isOneToOne: false
-            referencedRelation: 'character_feature_acquisitions'
-            referencedColumns: ['id']
+            referencedRelation: "character_feature_acquisitions"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_feature_acquisitions_ancestry_id_fkey'
-            columns: ['ancestry_id']
+            foreignKeyName: "character_feature_acquisitions_ancestry_id_fkey"
+            columns: ["ancestry_id"]
             isOneToOne: false
-            referencedRelation: 'race_ancestries'
-            referencedColumns: ['id']
+            referencedRelation: "race_ancestries"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_feature_acquisitions_background_id_fkey'
-            columns: ['background_id']
+            foreignKeyName: "character_feature_acquisitions_background_id_fkey"
+            columns: ["background_id"]
             isOneToOne: false
-            referencedRelation: 'backgrounds'
-            referencedColumns: ['id']
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_feature_acquisitions_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_feature_acquisitions_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_feature_acquisitions_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "character_feature_acquisitions_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_feature_acquisitions_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "character_feature_acquisitions_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_feature_acquisitions_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "character_feature_acquisitions_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
+            referencedRelation: "features"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_feature_acquisitions_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "character_feature_acquisitions_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
+            referencedRelation: "options"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_feature_acquisitions_race_id_fkey'
-            columns: ['race_id']
+            foreignKeyName: "character_feature_acquisitions_race_id_fkey"
+            columns: ["race_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
+            referencedRelation: "races"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_feature_acquisitions_subclass_id_fkey'
-            columns: ['subclass_id']
+            foreignKeyName: "character_feature_acquisitions_subclass_id_fkey"
+            columns: ["subclass_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_feature_acquisitions_subrace_id_fkey'
-            columns: ['subrace_id']
+            foreignKeyName: "character_feature_acquisitions_subrace_id_fkey"
+            columns: ["subrace_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
+            referencedRelation: "races"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_feature_acquisitions_timing_class_id_fkey'
-            columns: ['timing_class_id']
+            foreignKeyName: "character_feature_acquisitions_timing_class_id_fkey"
+            columns: ["timing_class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_feature_selection_records: {
@@ -2292,12 +3430,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_feature_selection_records_feature_acquisition_id_fkey'
-            columns: ['feature_acquisition_id']
+            foreignKeyName: "character_feature_selection_records_feature_acquisition_id_fkey"
+            columns: ["feature_acquisition_id"]
             isOneToOne: false
-            referencedRelation: 'character_feature_acquisitions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "character_feature_acquisitions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_feature_selection_values: {
@@ -2336,12 +3474,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_feature_selection_v_feature_acquisition_id_selec_fkey'
-            columns: ['feature_acquisition_id', 'selection_key']
+            foreignKeyName: "character_feature_selection_v_feature_acquisition_id_selec_fkey"
+            columns: ["feature_acquisition_id", "selection_key"]
             isOneToOne: false
-            referencedRelation: 'character_feature_selection_records'
-            referencedColumns: ['feature_acquisition_id', 'selection_key']
-          }
+            referencedRelation: "character_feature_selection_records"
+            referencedColumns: ["feature_acquisition_id", "selection_key"]
+          },
         ]
       }
       character_hit_dice_state: {
@@ -2371,12 +3509,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_hit_dice_state_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_hit_dice_state_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_hitpoint_adjustments: {
@@ -2415,12 +3553,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_hitpoint_adjustments_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_hitpoint_adjustments_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_hitpoint_intent: {
@@ -2444,12 +3582,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_hitpoint_intent_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_hitpoint_intent_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: true
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_hitpoint_level_rolls: {
@@ -2482,12 +3620,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_hitpoint_level_rolls_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_hitpoint_level_rolls_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_hitpoint_levels: {
@@ -2523,19 +3661,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_hitpoint_levels_character_class_fkey'
-            columns: ['character_id', 'class_id']
+            foreignKeyName: "character_hitpoint_levels_character_class_fkey"
+            columns: ["character_id", "class_id"]
             isOneToOne: false
-            referencedRelation: 'character_classes'
-            referencedColumns: ['character_id', 'class_id']
+            referencedRelation: "character_classes"
+            referencedColumns: ["character_id", "class_id"]
           },
           {
-            foreignKeyName: 'character_hitpoint_levels_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_hitpoint_levels_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_hitpoint_state: {
@@ -2565,12 +3703,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_hitpoint_state_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_hitpoint_state_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: true
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_item_adjustments: {
@@ -2615,19 +3753,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_item_adjustments_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_item_adjustments_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_item_adjustments_item_fkey'
-            columns: ['character_id', 'item_instance_id']
+            foreignKeyName: "character_item_adjustments_item_fkey"
+            columns: ["item_instance_id"]
             isOneToOne: false
-            referencedRelation: 'character_equipment'
-            referencedColumns: ['character_id', 'id']
-          }
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_movement_adjustments: {
@@ -2669,19 +3807,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_movement_adjustments_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_movement_adjustments_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_movement_adjustments_speed_id_fkey'
-            columns: ['speed_id']
+            foreignKeyName: "character_movement_adjustments_speed_id_fkey"
+            columns: ["speed_id"]
             isOneToOne: false
-            referencedRelation: 'speeds'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "speeds"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_note_groups: {
@@ -2714,12 +3852,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_note_groups_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_note_groups_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_notes: {
@@ -2755,19 +3893,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_notes_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_notes_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_notes_group_owner_fkey'
-            columns: ['character_id', 'group_id']
+            foreignKeyName: "character_notes_group_owner_fkey"
+            columns: ["character_id", "group_id"]
             isOneToOne: false
-            referencedRelation: 'character_note_groups'
-            referencedColumns: ['character_id', 'id']
-          }
+            referencedRelation: "character_note_groups"
+            referencedColumns: ["character_id", "id"]
+          },
         ]
       }
       character_passive_adjustments: {
@@ -2809,19 +3947,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_passive_adjustments_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_passive_adjustments_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_passive_adjustments_skill_id_fkey'
-            columns: ['skill_id']
+            foreignKeyName: "character_passive_adjustments_skill_id_fkey"
+            columns: ["skill_id"]
             isOneToOne: false
-            referencedRelation: 'skills'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_proficiency_additions: {
@@ -2860,12 +3998,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_proficiency_additions_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_proficiency_additions_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_profile: {
@@ -2946,26 +4084,26 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_profile_alignment_id_fkey'
-            columns: ['alignment_id']
+            foreignKeyName: "character_profile_alignment_id_fkey"
+            columns: ["alignment_id"]
             isOneToOne: false
-            referencedRelation: 'alignments'
-            referencedColumns: ['id']
+            referencedRelation: "alignments"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_profile_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_profile_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: true
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_profile_lifestyle_id_fkey'
-            columns: ['lifestyle_id']
+            foreignKeyName: "character_profile_lifestyle_id_fkey"
+            columns: ["lifestyle_id"]
             isOneToOne: false
-            referencedRelation: 'lifestyles'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "lifestyles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_race: {
@@ -2992,26 +4130,26 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_race_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_race_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: true
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_race_race_id_fkey'
-            columns: ['race_id']
+            foreignKeyName: "character_race_race_id_fkey"
+            columns: ["race_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
+            referencedRelation: "races"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_race_subrace_id_fkey'
-            columns: ['subrace_id']
+            foreignKeyName: "character_race_subrace_id_fkey"
+            columns: ["subrace_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_resource_grants: {
@@ -3068,61 +4206,61 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_resource_grants_acquired_parent_id_fkey'
-            columns: ['acquired_parent_id']
+            foreignKeyName: "character_resource_grants_acquired_parent_id_fkey"
+            columns: ["acquired_parent_id"]
             isOneToOne: false
-            referencedRelation: 'character_feature_acquisitions'
-            referencedColumns: ['id']
+            referencedRelation: "character_feature_acquisitions"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_resource_grants_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_resource_grants_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_resource_grants_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "character_resource_grants_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_resource_grants_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "character_resource_grants_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
+            referencedRelation: "features"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_resource_grants_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "character_resource_grants_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
+            referencedRelation: "options"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_resource_grants_resource_id_fkey'
-            columns: ['resource_id']
+            foreignKeyName: "character_resource_grants_resource_id_fkey"
+            columns: ["resource_id"]
             isOneToOne: false
-            referencedRelation: 'class_resources'
-            referencedColumns: ['id']
+            referencedRelation: "class_resources"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_resource_grants_subclass_id_fkey'
-            columns: ['subclass_id']
+            foreignKeyName: "character_resource_grants_subclass_id_fkey"
+            columns: ["subclass_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_resource_grants_timing_class_id_fkey'
-            columns: ['timing_class_id']
+            foreignKeyName: "character_resource_grants_timing_class_id_fkey"
+            columns: ["timing_class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_resources: {
@@ -3149,19 +4287,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_resources_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_resources_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_resources_resource_grant_id_fkey'
-            columns: ['character_id', 'resource_grant_id']
+            foreignKeyName: "character_resources_resource_grant_id_fkey"
+            columns: ["character_id", "resource_grant_id"]
             isOneToOne: true
-            referencedRelation: 'character_resource_grants'
-            referencedColumns: ['character_id', 'id']
-          }
+            referencedRelation: "character_resource_grants"
+            referencedColumns: ["character_id", "id"]
+          },
         ]
       }
       character_saving_throw_adjustments: {
@@ -3206,12 +4344,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_saving_throw_adjustments_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_saving_throw_adjustments_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_sense_adjustments: {
@@ -3253,19 +4391,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_sense_adjustments_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_sense_adjustments_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_sense_adjustments_sense_id_fkey'
-            columns: ['sense_id']
+            foreignKeyName: "character_sense_adjustments_sense_id_fkey"
+            columns: ["sense_id"]
             isOneToOne: false
-            referencedRelation: 'senses'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "senses"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_sheet_preferences: {
@@ -3295,19 +4433,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_sheet_preferences_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_sheet_preferences_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: true
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_sheet_preferences_movement_speed_id_fkey'
-            columns: ['movement_speed_id']
+            foreignKeyName: "character_sheet_preferences_movement_speed_id_fkey"
+            columns: ["movement_speed_id"]
             isOneToOne: false
-            referencedRelation: 'speeds'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "speeds"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_sheet_resource_usage: {
@@ -3370,47 +4508,47 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_sheet_resource_usage_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_sheet_resource_usage_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_sheet_resource_usage_charge_id_fkey'
-            columns: ['charge_id']
+            foreignKeyName: "character_sheet_resource_usage_charge_id_fkey"
+            columns: ["charge_id"]
             isOneToOne: false
-            referencedRelation: 'charges'
-            referencedColumns: ['id']
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_sheet_resource_usage_companion_fkey'
-            columns: ['character_id', 'companion_instance_id']
+            foreignKeyName: "character_sheet_resource_usage_companion_fkey"
+            columns: ["character_id", "companion_instance_id"]
             isOneToOne: false
-            referencedRelation: 'character_creatures'
-            referencedColumns: ['character_id', 'id']
+            referencedRelation: "character_creatures"
+            referencedColumns: ["character_id", "id"]
           },
           {
-            foreignKeyName: 'character_sheet_resource_usage_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "character_sheet_resource_usage_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
+            referencedRelation: "features"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_sheet_resource_usage_item_fkey'
-            columns: ['character_id', 'item_instance_id']
+            foreignKeyName: "character_sheet_resource_usage_item_fkey"
+            columns: ["item_instance_id"]
             isOneToOne: false
-            referencedRelation: 'character_equipment'
-            referencedColumns: ['character_id', 'id']
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_sheet_resource_usage_spell_id_fkey'
-            columns: ['spell_id']
+            foreignKeyName: "character_sheet_resource_usage_spell_id_fkey"
+            columns: ["spell_id"]
             isOneToOne: false
-            referencedRelation: 'spells'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_skill_adjustments: {
@@ -3458,19 +4596,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_skill_adjustments_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_skill_adjustments_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_skill_adjustments_skill_id_fkey'
-            columns: ['skill_id']
+            foreignKeyName: "character_skill_adjustments_skill_id_fkey"
+            columns: ["skill_id"]
             isOneToOne: false
-            referencedRelation: 'skills'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_spell_adjustments: {
@@ -3518,19 +4656,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_spell_adjustments_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_spell_adjustments_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_spell_adjustments_spell_id_fkey'
-            columns: ['spell_id']
+            foreignKeyName: "character_spell_adjustments_spell_id_fkey"
+            columns: ["spell_id"]
             isOneToOne: false
-            referencedRelation: 'spells'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_spell_customizations: {
@@ -3578,19 +4716,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_spell_customizations_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_spell_customizations_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_spell_customizations_spell_id_fkey'
-            columns: ['spell_id']
+            foreignKeyName: "character_spell_customizations_spell_id_fkey"
+            columns: ["spell_id"]
             isOneToOne: false
-            referencedRelation: 'spells'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_spell_selection_spells: {
@@ -3614,19 +4752,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_spell_selection_spells_selection_id_fkey'
-            columns: ['selection_id']
+            foreignKeyName: "character_spell_selection_spells_selection_id_fkey"
+            columns: ["selection_id"]
             isOneToOne: false
-            referencedRelation: 'character_spell_selections'
-            referencedColumns: ['id']
+            referencedRelation: "character_spell_selections"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_spell_selection_spells_spell_id_fkey'
-            columns: ['spell_id']
+            foreignKeyName: "character_spell_selection_spells_spell_id_fkey"
+            columns: ["spell_id"]
             isOneToOne: false
-            referencedRelation: 'spells'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_spell_selections: {
@@ -3683,61 +4821,61 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_spell_selections_acquired_parent_id_fkey'
-            columns: ['acquired_parent_id']
+            foreignKeyName: "character_spell_selections_acquired_parent_id_fkey"
+            columns: ["acquired_parent_id"]
             isOneToOne: false
-            referencedRelation: 'character_feature_acquisitions'
-            referencedColumns: ['id']
+            referencedRelation: "character_feature_acquisitions"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_spell_selections_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_spell_selections_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_spell_selections_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "character_spell_selections_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_spell_selections_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "character_spell_selections_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
+            referencedRelation: "features"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_spell_selections_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "character_spell_selections_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
+            referencedRelation: "options"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_spell_selections_replaced_selection_id_fkey'
-            columns: ['replaced_selection_id']
+            foreignKeyName: "character_spell_selections_replaced_selection_id_fkey"
+            columns: ["replaced_selection_id"]
             isOneToOne: false
-            referencedRelation: 'character_spell_selections'
-            referencedColumns: ['id']
+            referencedRelation: "character_spell_selections"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_spell_selections_subclass_id_fkey'
-            columns: ['subclass_id']
+            foreignKeyName: "character_spell_selections_subclass_id_fkey"
+            columns: ["subclass_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_spell_selections_timing_class_id_fkey'
-            columns: ['timing_class_id']
+            foreignKeyName: "character_spell_selections_timing_class_id_fkey"
+            columns: ["timing_class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_spell_slot_state: {
@@ -3764,12 +4902,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_spell_slot_state_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_spell_slot_state_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_vehicle_equipment: {
@@ -3796,26 +4934,26 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_vehicle_equipment_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_vehicle_equipment_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_vehicle_equipment_item_owner_fkey'
-            columns: ['character_id', 'equipment_id']
+            foreignKeyName: "character_vehicle_equipment_item_owner_fkey"
+            columns: ["character_id", "equipment_id"]
             isOneToOne: false
-            referencedRelation: 'character_equipment'
-            referencedColumns: ['character_id', 'id']
+            referencedRelation: "character_equipment"
+            referencedColumns: ["character_id", "id"]
           },
           {
-            foreignKeyName: 'character_vehicle_equipment_vehicle_owner_fkey'
-            columns: ['character_id', 'character_vehicle_id']
+            foreignKeyName: "character_vehicle_equipment_vehicle_owner_fkey"
+            columns: ["character_id", "character_vehicle_id"]
             isOneToOne: false
-            referencedRelation: 'character_vehicles'
-            referencedColumns: ['character_id', 'id']
-          }
+            referencedRelation: "character_vehicles"
+            referencedColumns: ["character_id", "id"]
+          },
         ]
       }
       character_vehicles: {
@@ -3854,19 +4992,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'character_vehicles_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "character_vehicles_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'character_vehicles_vehicle_id_fkey'
-            columns: ['vehicle_id']
+            foreignKeyName: "character_vehicles_vehicle_id_fkey"
+            columns: ["vehicle_id"]
             isOneToOne: false
-            referencedRelation: 'vehicles'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       characteristic_durations: {
@@ -3890,12 +5028,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'characteristic_durations_characteristic_id_fkey'
-            columns: ['characteristic_id']
+            foreignKeyName: "characteristic_durations_characteristic_id_fkey"
+            columns: ["characteristic_id"]
             isOneToOne: true
-            referencedRelation: 'characteristics'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characteristics"
+            referencedColumns: ["id"]
+          },
         ]
       }
       characteristic_ranges: {
@@ -3925,12 +5063,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'characteristic_ranges_characteristic_id_fkey'
-            columns: ['characteristic_id']
+            foreignKeyName: "characteristic_ranges_characteristic_id_fkey"
+            columns: ["characteristic_id"]
             isOneToOne: true
-            referencedRelation: 'characteristics'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characteristics"
+            referencedColumns: ["id"]
+          },
         ]
       }
       characteristic_shape_dimensions: {
@@ -3957,12 +5095,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'characteristic_shape_dimensions_characteristic_id_fkey'
-            columns: ['characteristic_id']
+            foreignKeyName: "characteristic_shape_dimensions_characteristic_id_fkey"
+            columns: ["characteristic_id"]
             isOneToOne: false
-            referencedRelation: 'characteristic_shapes'
-            referencedColumns: ['characteristic_id']
-          }
+            referencedRelation: "characteristic_shapes"
+            referencedColumns: ["characteristic_id"]
+          },
         ]
       }
       characteristic_shapes: {
@@ -3980,12 +5118,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'characteristic_shapes_characteristic_id_fkey'
-            columns: ['characteristic_id']
+            foreignKeyName: "characteristic_shapes_characteristic_id_fkey"
+            columns: ["characteristic_id"]
             isOneToOne: true
-            referencedRelation: 'characteristics'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characteristics"
+            referencedColumns: ["id"]
+          },
         ]
       }
       characteristics: {
@@ -4051,19 +5189,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'characters_portrait_asset_fk'
-            columns: ['portrait_asset_id']
+            foreignKeyName: "characters_portrait_asset_fk"
+            columns: ["portrait_asset_id"]
             isOneToOne: false
-            referencedRelation: 'media_assets'
-            referencedColumns: ['id']
+            referencedRelation: "media_assets"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'characters_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "characters_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       charge_bonuses: {
@@ -4108,19 +5246,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'charge_bonuses_charge_id_fkey'
-            columns: ['charge_id']
+            foreignKeyName: "charge_bonuses_charge_id_fkey"
+            columns: ["charge_id"]
             isOneToOne: false
-            referencedRelation: 'charges'
-            referencedColumns: ['id']
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'charge_bonuses_skill_id_fkey'
-            columns: ['skill_id']
+            foreignKeyName: "charge_bonuses_skill_id_fkey"
+            columns: ["skill_id"]
             isOneToOne: false
-            referencedRelation: 'skills'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
         ]
       }
       charge_limits: {
@@ -4159,12 +5297,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'charge_limits_charge_id_fkey'
-            columns: ['charge_id']
+            foreignKeyName: "charge_limits_charge_id_fkey"
+            columns: ["charge_id"]
             isOneToOne: true
-            referencedRelation: 'charges'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
         ]
       }
       charge_scaling_levels: {
@@ -4197,12 +5335,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'charge_scaling_levels_charge_id_fkey'
-            columns: ['charge_id']
+            foreignKeyName: "charge_scaling_levels_charge_id_fkey"
+            columns: ["charge_id"]
             isOneToOne: false
-            referencedRelation: 'charges'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
         ]
       }
       charges: {
@@ -4247,12 +5385,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_attributes_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "class_attributes_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_details: {
@@ -4273,19 +5411,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_details_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "class_details_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'class_details_detail_id_fkey'
-            columns: ['detail_id']
+            foreignKeyName: "class_details_detail_id_fkey"
+            columns: ["detail_id"]
             isOneToOne: false
-            referencedRelation: 'details'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "details"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_features: {
@@ -4306,19 +5444,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_features_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "class_features_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'class_features_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "class_features_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_hitpoints: {
@@ -4339,12 +5477,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_hitpoints_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "class_hitpoints_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: true
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_multiclass: {
@@ -4362,12 +5500,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_multiclass_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "class_multiclass_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_multiclass_proficiency_grants: {
@@ -4388,19 +5526,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_multiclass_proficiency_grants_multiclass_id_fkey'
-            columns: ['multiclass_id']
+            foreignKeyName: "class_multiclass_proficiency_grants_multiclass_id_fkey"
+            columns: ["multiclass_id"]
             isOneToOne: false
-            referencedRelation: 'class_multiclass'
-            referencedColumns: ['id']
+            referencedRelation: "class_multiclass"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'class_multiclass_proficiency_grants_proficiency_grant_id_fkey'
-            columns: ['proficiency_grant_id']
+            foreignKeyName: "class_multiclass_proficiency_grants_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
             isOneToOne: false
-            referencedRelation: 'proficiency_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_multiclass_requirement_groups: {
@@ -4421,12 +5559,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_multiclass_requirement_groups_multiclass_id_fkey'
-            columns: ['multiclass_id']
+            foreignKeyName: "class_multiclass_requirement_groups_multiclass_id_fkey"
+            columns: ["multiclass_id"]
             isOneToOne: false
-            referencedRelation: 'class_multiclass'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "class_multiclass"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_multiclass_requirements: {
@@ -4453,12 +5591,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_multiclass_requirements_requirement_group_id_fkey'
-            columns: ['requirement_group_id']
+            foreignKeyName: "class_multiclass_requirements_requirement_group_id_fkey"
+            columns: ["requirement_group_id"]
             isOneToOne: false
-            referencedRelation: 'class_multiclass_requirement_groups'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "class_multiclass_requirement_groups"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_proficiency_grants: {
@@ -4479,19 +5617,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_proficiency_grants_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "class_proficiency_grants_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'class_proficiency_grants_proficiency_grant_id_fkey'
-            columns: ['proficiency_grant_id']
+            foreignKeyName: "class_proficiency_grants_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
             isOneToOne: false
-            referencedRelation: 'proficiency_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_resources: {
@@ -4524,19 +5662,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_resources_charge_id_fkey'
-            columns: ['charge_id']
+            foreignKeyName: "class_resources_charge_id_fkey"
+            columns: ["charge_id"]
             isOneToOne: false
-            referencedRelation: 'charges'
-            referencedColumns: ['id']
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'class_resources_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "class_resources_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_specializations: {
@@ -4560,12 +5698,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_specializations_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "class_specializations_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_spell_limits: {
@@ -4595,12 +5733,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_spell_limits_spellcasting_id_fkey'
-            columns: ['spellcasting_id']
+            foreignKeyName: "class_spell_limits_spellcasting_id_fkey"
+            columns: ["spellcasting_id"]
             isOneToOne: false
-            referencedRelation: 'class_spellcasting'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "class_spellcasting"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_spell_slots: {
@@ -4621,18 +5759,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_spell_slots_spell_limit_id_fkey'
-            columns: ['spell_limit_id']
+            foreignKeyName: "class_spell_slots_spell_limit_id_fkey"
+            columns: ["spell_limit_id"]
             isOneToOne: false
-            referencedRelation: 'class_spell_limits'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "class_spell_limits"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_spellcasting: {
         Row: {
           ability_code: string | null
           available_at_level: number | null
+          available_spell_ids: string[]
           charge_id: string
           class_id: string
           id: string
@@ -4643,6 +5782,7 @@ export type Database = {
         Insert: {
           ability_code?: string | null
           available_at_level?: number | null
+          available_spell_ids?: string[]
           charge_id: string
           class_id: string
           id?: string
@@ -4653,6 +5793,7 @@ export type Database = {
         Update: {
           ability_code?: string | null
           available_at_level?: number | null
+          available_spell_ids?: string[]
           charge_id?: string
           class_id?: string
           id?: string
@@ -4662,19 +5803,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_spellcasting_charge_id_fkey'
-            columns: ['charge_id']
+            foreignKeyName: "class_spellcasting_charge_id_fkey"
+            columns: ["charge_id"]
             isOneToOne: false
-            referencedRelation: 'charges'
-            referencedColumns: ['id']
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'class_spellcasting_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "class_spellcasting_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_spellcasting_attributes: {
@@ -4695,12 +5836,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_spellcasting_attributes_spellcasting_id_fkey'
-            columns: ['spellcasting_id']
+            foreignKeyName: "class_spellcasting_attributes_spellcasting_id_fkey"
+            columns: ["spellcasting_id"]
             isOneToOne: false
-            referencedRelation: 'class_spellcasting'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "class_spellcasting"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_spellcasting_details: {
@@ -4721,19 +5862,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_spellcasting_details_detail_id_fkey'
-            columns: ['detail_id']
+            foreignKeyName: "class_spellcasting_details_detail_id_fkey"
+            columns: ["detail_id"]
             isOneToOne: false
-            referencedRelation: 'details'
-            referencedColumns: ['id']
+            referencedRelation: "details"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'class_spellcasting_details_spellcasting_id_fkey'
-            columns: ['spellcasting_id']
+            foreignKeyName: "class_spellcasting_details_spellcasting_id_fkey"
+            columns: ["spellcasting_id"]
             isOneToOne: false
-            referencedRelation: 'class_spellcasting'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "class_spellcasting"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_spellcasting_prepare_limit: {
@@ -4754,12 +5895,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_spellcasting_prepare_limit_spellcasting_id_fkey'
-            columns: ['spellcasting_id']
+            foreignKeyName: "class_spellcasting_prepare_limit_spellcasting_id_fkey"
+            columns: ["spellcasting_id"]
             isOneToOne: true
-            referencedRelation: 'class_spellcasting'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "class_spellcasting"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_spellcasting_prepare_limit_levels: {
@@ -4780,12 +5921,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_spellcasting_prepare_limit_levels_spellcasting_id_fkey'
-            columns: ['spellcasting_id']
+            foreignKeyName: "class_spellcasting_prepare_limit_levels_spellcasting_id_fkey"
+            columns: ["spellcasting_id"]
             isOneToOne: false
-            referencedRelation: 'class_spellcasting'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "class_spellcasting"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_spellcasting_prepare_limit_methods: {
@@ -4806,12 +5947,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_spellcasting_prepare_limit_methods_spellcasting_id_fkey'
-            columns: ['spellcasting_id']
+            foreignKeyName: "class_spellcasting_prepare_limit_methods_spellcasting_id_fkey"
+            columns: ["spellcasting_id"]
             isOneToOne: false
-            referencedRelation: 'class_spellcasting'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "class_spellcasting"
+            referencedColumns: ["id"]
+          },
         ]
       }
       class_starting_gold: {
@@ -4835,19 +5976,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'class_starting_gold_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "class_starting_gold_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: true
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'class_starting_gold_currency_id_fkey'
-            columns: ['currency_id']
+            foreignKeyName: "class_starting_gold_currency_id_fkey"
+            columns: ["currency_id"]
             isOneToOne: false
-            referencedRelation: 'currencies'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       classes: {
@@ -4898,26 +6039,26 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'classes_parent_system_fk'
-            columns: ['parent_class_id', 'system_id']
+            foreignKeyName: "classes_parent_system_fk"
+            columns: ["parent_class_id", "system_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id', 'system_id']
+            referencedRelation: "classes"
+            referencedColumns: ["id", "system_id"]
           },
           {
-            foreignKeyName: 'classes_starting_equipment_id_fkey'
-            columns: ['starting_equipment_id']
+            foreignKeyName: "classes_starting_equipment_id_fkey"
+            columns: ["starting_equipment_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment'
-            referencedColumns: ['id']
+            referencedRelation: "starting_equipment"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'classes_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "classes_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       condition_types: {
@@ -4956,12 +6097,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'condition_types_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "condition_types_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       conditions: {
@@ -4985,12 +6126,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'conditions_condition_type_id_fkey'
-            columns: ['condition_type_id']
+            foreignKeyName: "conditions_condition_type_id_fkey"
+            columns: ["condition_type_id"]
             isOneToOne: false
-            referencedRelation: 'condition_types'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "condition_types"
+            referencedColumns: ["id"]
+          },
         ]
       }
       creature_condition_immunities: {
@@ -5008,19 +6149,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'creature_condition_immunities_condition_type_id_fkey'
-            columns: ['condition_type_id']
+            foreignKeyName: "creature_condition_immunities_condition_type_id_fkey"
+            columns: ["condition_type_id"]
             isOneToOne: false
-            referencedRelation: 'condition_types'
-            referencedColumns: ['id']
+            referencedRelation: "condition_types"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'creature_condition_immunities_creature_id_fkey'
-            columns: ['creature_id']
+            foreignKeyName: "creature_condition_immunities_creature_id_fkey"
+            columns: ["creature_id"]
             isOneToOne: false
-            referencedRelation: 'creatures'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
         ]
       }
       creature_damage_immunities: {
@@ -5041,19 +6182,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'creature_damage_immunities_creature_id_fkey'
-            columns: ['creature_id']
+            foreignKeyName: "creature_damage_immunities_creature_id_fkey"
+            columns: ["creature_id"]
             isOneToOne: false
-            referencedRelation: 'creatures'
-            referencedColumns: ['id']
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'creature_damage_immunities_damage_type_id_fkey'
-            columns: ['damage_type_id']
+            foreignKeyName: "creature_damage_immunities_damage_type_id_fkey"
+            columns: ["damage_type_id"]
             isOneToOne: false
-            referencedRelation: 'damage_types'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
+          },
         ]
       }
       creature_damage_resistances: {
@@ -5074,19 +6215,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'creature_damage_resistances_creature_id_fkey'
-            columns: ['creature_id']
+            foreignKeyName: "creature_damage_resistances_creature_id_fkey"
+            columns: ["creature_id"]
             isOneToOne: false
-            referencedRelation: 'creatures'
-            referencedColumns: ['id']
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'creature_damage_resistances_damage_type_id_fkey'
-            columns: ['damage_type_id']
+            foreignKeyName: "creature_damage_resistances_damage_type_id_fkey"
+            columns: ["damage_type_id"]
             isOneToOne: false
-            referencedRelation: 'damage_types'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
+          },
         ]
       }
       creature_damage_vulnerabilities: {
@@ -5107,19 +6248,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'creature_damage_vulnerabilities_creature_id_fkey'
-            columns: ['creature_id']
+            foreignKeyName: "creature_damage_vulnerabilities_creature_id_fkey"
+            columns: ["creature_id"]
             isOneToOne: false
-            referencedRelation: 'creatures'
-            referencedColumns: ['id']
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'creature_damage_vulnerabilities_damage_type_id_fkey'
-            columns: ['damage_type_id']
+            foreignKeyName: "creature_damage_vulnerabilities_damage_type_id_fkey"
+            columns: ["damage_type_id"]
             isOneToOne: false
-            referencedRelation: 'damage_types'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
+          },
         ]
       }
       creature_details: {
@@ -5140,19 +6281,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'creature_details_creature_id_fkey'
-            columns: ['creature_id']
+            foreignKeyName: "creature_details_creature_id_fkey"
+            columns: ["creature_id"]
             isOneToOne: false
-            referencedRelation: 'creatures'
-            referencedColumns: ['id']
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'creature_details_detail_id_fkey'
-            columns: ['detail_id']
+            foreignKeyName: "creature_details_detail_id_fkey"
+            columns: ["detail_id"]
             isOneToOne: false
-            referencedRelation: 'details'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "details"
+            referencedColumns: ["id"]
+          },
         ]
       }
       creature_features: {
@@ -5173,19 +6314,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'creature_features_creature_id_fkey'
-            columns: ['creature_id']
+            foreignKeyName: "creature_features_creature_id_fkey"
+            columns: ["creature_id"]
             isOneToOne: false
-            referencedRelation: 'creatures'
-            referencedColumns: ['id']
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'creature_features_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "creature_features_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
         ]
       }
       creature_proficiency_grants: {
@@ -5206,12 +6347,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'creature_proficiency_grants_creature_id_fkey'
-            columns: ['creature_id']
+            foreignKeyName: "creature_proficiency_grants_creature_id_fkey"
+            columns: ["creature_id"]
             isOneToOne: false
-            referencedRelation: 'creatures'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
         ]
       }
       creature_speeds: {
@@ -5238,19 +6379,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'creature_speeds_creature_id_fkey'
-            columns: ['creature_id']
+            foreignKeyName: "creature_speeds_creature_id_fkey"
+            columns: ["creature_id"]
             isOneToOne: false
-            referencedRelation: 'creatures'
-            referencedColumns: ['id']
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'creature_speeds_speed_id_fkey'
-            columns: ['speed_id']
+            foreignKeyName: "creature_speeds_speed_id_fkey"
+            columns: ["speed_id"]
             isOneToOne: false
-            referencedRelation: 'speeds'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "speeds"
+            referencedColumns: ["id"]
+          },
         ]
       }
       creature_types: {
@@ -5289,12 +6430,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'creature_types_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "creature_types_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       creatures: {
@@ -5408,33 +6549,33 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'creatures_alignment_id_fkey'
-            columns: ['alignment_id']
+            foreignKeyName: "creatures_alignment_id_fkey"
+            columns: ["alignment_id"]
             isOneToOne: false
-            referencedRelation: 'alignments'
-            referencedColumns: ['id']
+            referencedRelation: "alignments"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'creatures_challenge_rating_id_fkey'
-            columns: ['challenge_rating_id']
+            foreignKeyName: "creatures_challenge_rating_id_fkey"
+            columns: ["challenge_rating_id"]
             isOneToOne: false
-            referencedRelation: 'challenge_ratings'
-            referencedColumns: ['id']
+            referencedRelation: "challenge_ratings"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'creatures_creature_type_id_fkey'
-            columns: ['creature_type_id']
+            foreignKeyName: "creatures_creature_type_id_fkey"
+            columns: ["creature_type_id"]
             isOneToOne: false
-            referencedRelation: 'creature_types'
-            referencedColumns: ['id']
+            referencedRelation: "creature_types"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'creatures_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "creatures_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       currencies: {
@@ -5473,12 +6614,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'currencies_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "currencies_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       damage_bonus_kinds: {
@@ -5499,12 +6640,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'damage_bonus_kinds_damage_id_fkey'
-            columns: ['damage_id']
+            foreignKeyName: "damage_bonus_kinds_damage_id_fkey"
+            columns: ["damage_id"]
             isOneToOne: false
-            referencedRelation: 'damages'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "damages"
+            referencedColumns: ["id"]
+          },
         ]
       }
       damage_bonuses: {
@@ -5549,19 +6690,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'damage_bonuses_damage_id_fkey'
-            columns: ['damage_id']
+            foreignKeyName: "damage_bonuses_damage_id_fkey"
+            columns: ["damage_id"]
             isOneToOne: false
-            referencedRelation: 'damages'
-            referencedColumns: ['id']
+            referencedRelation: "damages"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'damage_bonuses_skill_id_fkey'
-            columns: ['skill_id']
+            foreignKeyName: "damage_bonuses_skill_id_fkey"
+            columns: ["skill_id"]
             isOneToOne: false
-            referencedRelation: 'skills'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
         ]
       }
       damage_scaling_levels: {
@@ -5597,12 +6738,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'damage_scaling_levels_damage_id_fkey'
-            columns: ['damage_id']
+            foreignKeyName: "damage_scaling_levels_damage_id_fkey"
+            columns: ["damage_id"]
             isOneToOne: false
-            referencedRelation: 'damages'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "damages"
+            referencedColumns: ["id"]
+          },
         ]
       }
       damage_types: {
@@ -5641,12 +6782,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'damage_types_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "damage_types_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       damage_values: {
@@ -5685,12 +6826,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'damage_values_damage_id_fkey'
-            columns: ['damage_id']
+            foreignKeyName: "damage_values_damage_id_fkey"
+            columns: ["damage_id"]
             isOneToOne: false
-            referencedRelation: 'damages'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "damages"
+            referencedColumns: ["id"]
+          },
         ]
       }
       damages: {
@@ -5735,19 +6876,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'damages_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "damages_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'damages_damage_type_id_fkey'
-            columns: ['damage_type_id']
+            foreignKeyName: "damages_damage_type_id_fkey"
+            columns: ["damage_type_id"]
             isOneToOne: false
-            referencedRelation: 'damage_types'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
+          },
         ]
       }
       details: {
@@ -5855,33 +6996,33 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'effect_invocations_effect_id_fkey'
-            columns: ['effect_id']
+            foreignKeyName: "effect_invocations_effect_id_fkey"
+            columns: ["effect_id"]
             isOneToOne: true
-            referencedRelation: 'effects'
-            referencedColumns: ['id']
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'effect_invocations_range_characteristic_id_fkey'
-            columns: ['range_characteristic_id']
+            foreignKeyName: "effect_invocations_range_characteristic_id_fkey"
+            columns: ["range_characteristic_id"]
             isOneToOne: false
-            referencedRelation: 'characteristics'
-            referencedColumns: ['id']
+            referencedRelation: "characteristics"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'effect_invocations_saving_throw_id_fkey'
-            columns: ['saving_throw_id']
+            foreignKeyName: "effect_invocations_saving_throw_id_fkey"
+            columns: ["saving_throw_id"]
             isOneToOne: false
-            referencedRelation: 'saving_throws'
-            referencedColumns: ['id']
+            referencedRelation: "saving_throws"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'effect_invocations_shape_characteristic_id_fkey'
-            columns: ['shape_characteristic_id']
+            foreignKeyName: "effect_invocations_shape_characteristic_id_fkey"
+            columns: ["shape_characteristic_id"]
             isOneToOne: false
-            referencedRelation: 'characteristics'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characteristics"
+            referencedColumns: ["id"]
+          },
         ]
       }
       effect_path_choice_options: {
@@ -5911,19 +7052,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'effect_path_choice_options_path_id_fkey'
-            columns: ['path_id']
+            foreignKeyName: "effect_path_choice_options_path_id_fkey"
+            columns: ["path_id"]
             isOneToOne: false
-            referencedRelation: 'effect_paths'
-            referencedColumns: ['id']
+            referencedRelation: "effect_paths"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'effect_path_choice_options_result_block_id_fkey'
-            columns: ['result_block_id']
+            foreignKeyName: "effect_path_choice_options_result_block_id_fkey"
+            columns: ["result_block_id"]
             isOneToOne: false
-            referencedRelation: 'effect_result_blocks'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "effect_result_blocks"
+            referencedColumns: ["id"]
+          },
         ]
       }
       effect_path_roll_table_rows: {
@@ -5968,19 +7109,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'effect_path_roll_table_rows_path_id_fkey'
-            columns: ['path_id']
+            foreignKeyName: "effect_path_roll_table_rows_path_id_fkey"
+            columns: ["path_id"]
             isOneToOne: false
-            referencedRelation: 'effect_paths'
-            referencedColumns: ['id']
+            referencedRelation: "effect_paths"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'effect_path_roll_table_rows_result_block_id_fkey'
-            columns: ['result_block_id']
+            foreignKeyName: "effect_path_roll_table_rows_result_block_id_fkey"
+            columns: ["result_block_id"]
             isOneToOne: false
-            referencedRelation: 'effect_result_blocks'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "effect_result_blocks"
+            referencedColumns: ["id"]
+          },
         ]
       }
       effect_paths: {
@@ -6055,26 +7196,26 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'effect_paths_effect_id_fkey'
-            columns: ['effect_id']
+            foreignKeyName: "effect_paths_effect_id_fkey"
+            columns: ["effect_id"]
             isOneToOne: false
-            referencedRelation: 'effects'
-            referencedColumns: ['id']
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'effect_paths_range_override_characteristic_id_fkey'
-            columns: ['range_override_characteristic_id']
+            foreignKeyName: "effect_paths_range_override_characteristic_id_fkey"
+            columns: ["range_override_characteristic_id"]
             isOneToOne: false
-            referencedRelation: 'characteristics'
-            referencedColumns: ['id']
+            referencedRelation: "characteristics"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'effect_paths_result_block_id_fkey'
-            columns: ['result_block_id']
+            foreignKeyName: "effect_paths_result_block_id_fkey"
+            columns: ["result_block_id"]
             isOneToOne: false
-            referencedRelation: 'effect_result_blocks'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "effect_result_blocks"
+            referencedColumns: ["id"]
+          },
         ]
       }
       effect_result_block_outcomes: {
@@ -6098,12 +7239,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'effect_result_block_outcomes_result_block_id_fkey'
-            columns: ['result_block_id']
+            foreignKeyName: "effect_result_block_outcomes_result_block_id_fkey"
+            columns: ["result_block_id"]
             isOneToOne: false
-            referencedRelation: 'effect_result_blocks'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "effect_result_blocks"
+            referencedColumns: ["id"]
+          },
         ]
       }
       effect_result_blocks: {
@@ -6139,12 +7280,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'effect_result_blocks_duration_id_fkey'
-            columns: ['duration_id']
+            foreignKeyName: "effect_result_blocks_duration_id_fkey"
+            columns: ["duration_id"]
             isOneToOne: false
-            referencedRelation: 'characteristics'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "characteristics"
+            referencedColumns: ["id"]
+          },
         ]
       }
       effects: {
@@ -6167,6 +7308,306 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      encounter_actors: {
+        Row: {
+          conditions: Json
+          created_at: string
+          current_hit_points: number
+          encounter_id: string
+          gm_notes: string | null
+          id: string
+          initiative: number | null
+          kind: string
+          label: string
+          manual_order: number | null
+          max_hit_points: number
+          public: boolean
+          resources: Json
+          snapshot: Json
+          source_id: string | null
+          source_revision: number | null
+          stable_tie_key: string
+          system_id: string | null
+          temp_hit_points: number
+          updated_at: string
+        }
+        Insert: {
+          conditions?: Json
+          created_at?: string
+          current_hit_points?: number
+          encounter_id: string
+          gm_notes?: string | null
+          id?: string
+          initiative?: number | null
+          kind: string
+          label: string
+          manual_order?: number | null
+          max_hit_points?: number
+          public?: boolean
+          resources?: Json
+          snapshot: Json
+          source_id?: string | null
+          source_revision?: number | null
+          stable_tie_key: string
+          system_id?: string | null
+          temp_hit_points?: number
+          updated_at?: string
+        }
+        Update: {
+          conditions?: Json
+          created_at?: string
+          current_hit_points?: number
+          encounter_id?: string
+          gm_notes?: string | null
+          id?: string
+          initiative?: number | null
+          kind?: string
+          label?: string
+          manual_order?: number | null
+          max_hit_points?: number
+          public?: boolean
+          resources?: Json
+          snapshot?: Json
+          source_id?: string | null
+          source_revision?: number | null
+          stable_tie_key?: string
+          system_id?: string | null
+          temp_hit_points?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_actors_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      encounter_events: {
+        Row: {
+          actor_user_id: string
+          campaign_id: string
+          command_fingerprint: string
+          command_id: string
+          command_payload: Json
+          command_type: string
+          correlation_id: string | null
+          created_at: string
+          encounter_id: string
+          id: string
+          result_payload: Json
+          version: number
+        }
+        Insert: {
+          actor_user_id: string
+          campaign_id: string
+          command_fingerprint: string
+          command_id: string
+          command_payload: Json
+          command_type: string
+          correlation_id?: string | null
+          created_at?: string
+          encounter_id: string
+          id?: string
+          result_payload: Json
+          version: number
+        }
+        Update: {
+          actor_user_id?: string
+          campaign_id?: string
+          command_fingerprint?: string
+          command_id?: string
+          command_payload?: Json
+          command_type?: string
+          correlation_id?: string | null
+          created_at?: string
+          encounter_id?: string
+          id?: string
+          result_payload?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encounter_events_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      encounter_reminders: {
+        Row: {
+          actor_id: string | null
+          encounter_id: string
+          id: string
+          label: string
+          notes: string | null
+          public: boolean
+          round: number | null
+          sort_order: number
+          timing: string
+        }
+        Insert: {
+          actor_id?: string | null
+          encounter_id: string
+          id?: string
+          label: string
+          notes?: string | null
+          public?: boolean
+          round?: number | null
+          sort_order?: number
+          timing: string
+        }
+        Update: {
+          actor_id?: string | null
+          encounter_id?: string
+          id?: string
+          label?: string
+          notes?: string | null
+          public?: boolean
+          round?: number | null
+          sort_order?: number
+          timing?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_reminders_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_actors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encounter_reminders_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      encounter_templates: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          enemies: Json
+          id: string
+          name: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          enemies: Json
+          id?: string
+          name: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          enemies?: Json
+          id?: string
+          name?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_templates_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      encounters: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          current_actor_id: string | null
+          id: string
+          name: string
+          round: number
+          session_id: string
+          status: string
+          template_id: string
+          template_version: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          current_actor_id?: string | null
+          id?: string
+          name: string
+          round?: number
+          session_id: string
+          status?: string
+          template_id: string
+          template_version: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          current_actor_id?: string | null
+          id?: string
+          name?: string
+          round?: number
+          session_id?: string
+          status?: string
+          template_id?: string
+          template_version?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounters_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encounters_current_actor_fk"
+            columns: ["current_actor_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_actors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encounters_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encounters_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       equipment: {
         Row: {
@@ -6252,47 +7693,47 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'equipment_charge_id_fkey'
-            columns: ['charge_id']
+            foreignKeyName: "equipment_charge_id_fkey"
+            columns: ["charge_id"]
             isOneToOne: false
-            referencedRelation: 'charges'
-            referencedColumns: ['id']
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'equipment_cost_currency_id_fkey'
-            columns: ['cost_currency_id']
+            foreignKeyName: "equipment_cost_currency_id_fkey"
+            columns: ["cost_currency_id"]
             isOneToOne: false
-            referencedRelation: 'currencies'
-            referencedColumns: ['id']
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'equipment_parent_system_fk'
-            columns: ['parent_equipment_id', 'system_id']
+            foreignKeyName: "equipment_parent_system_fk"
+            columns: ["parent_equipment_id", "system_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id', 'system_id']
+            referencedRelation: "equipment"
+            referencedColumns: ["id", "system_id"]
           },
           {
-            foreignKeyName: 'equipment_rarity_id_fkey'
-            columns: ['rarity_id']
+            foreignKeyName: "equipment_rarity_id_fkey"
+            columns: ["rarity_id"]
             isOneToOne: false
-            referencedRelation: 'rarities'
-            referencedColumns: ['id']
+            referencedRelation: "rarities"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'equipment_restriction_id_fkey'
-            columns: ['restriction_id']
+            foreignKeyName: "equipment_restriction_id_fkey"
+            columns: ["restriction_id"]
             isOneToOne: false
-            referencedRelation: 'facets'
-            referencedColumns: ['id']
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'equipment_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "equipment_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       equipment_attributes: {
@@ -6313,12 +7754,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'equipment_attributes_equipment_id_fkey'
-            columns: ['equipment_id']
+            foreignKeyName: "equipment_attributes_equipment_id_fkey"
+            columns: ["equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
         ]
       }
       equipment_contains: {
@@ -6342,19 +7783,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'equipment_contains_contained_equipment_id_fkey'
-            columns: ['contained_equipment_id']
+            foreignKeyName: "equipment_contains_contained_equipment_id_fkey"
+            columns: ["contained_equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'equipment_contains_equipment_id_fkey'
-            columns: ['equipment_id']
+            foreignKeyName: "equipment_contains_equipment_id_fkey"
+            columns: ["equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
         ]
       }
       equipment_effects: {
@@ -6375,19 +7816,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'equipment_effects_effect_id_fkey'
-            columns: ['effect_id']
+            foreignKeyName: "equipment_effects_effect_id_fkey"
+            columns: ["effect_id"]
             isOneToOne: false
-            referencedRelation: 'effects'
-            referencedColumns: ['id']
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'equipment_effects_equipment_id_fkey'
-            columns: ['equipment_id']
+            foreignKeyName: "equipment_effects_equipment_id_fkey"
+            columns: ["equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
         ]
       }
       equipment_features: {
@@ -6408,19 +7849,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'equipment_features_equipment_id_fkey'
-            columns: ['equipment_id']
+            foreignKeyName: "equipment_features_equipment_id_fkey"
+            columns: ["equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'equipment_features_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "equipment_features_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
         ]
       }
       equipment_modifier_grants: {
@@ -6441,19 +7882,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'equipment_modifier_grants_equipment_id_fkey'
-            columns: ['equipment_id']
+            foreignKeyName: "equipment_modifier_grants_equipment_id_fkey"
+            columns: ["equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'equipment_modifier_grants_modifier_grant_id_fkey'
-            columns: ['modifier_grant_id']
+            foreignKeyName: "equipment_modifier_grants_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
             isOneToOne: false
-            referencedRelation: 'modifier_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       equipment_properties: {
@@ -6474,12 +7915,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'equipment_properties_equipment_id_fkey'
-            columns: ['equipment_id']
+            foreignKeyName: "equipment_properties_equipment_id_fkey"
+            columns: ["equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_bodies: {
@@ -6527,12 +7968,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_body_groups_facet_body_id_fkey'
-            columns: ['facet_body_id']
+            foreignKeyName: "facet_body_groups_facet_body_id_fkey"
+            columns: ["facet_body_id"]
             isOneToOne: false
-            referencedRelation: 'facet_bodies'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_bodies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_body_selection_items: {
@@ -6598,96 +8039,96 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_body_selection_items_ancestry_option_id_fkey'
-            columns: ['ancestry_option_id']
+            foreignKeyName: "facet_body_selection_items_ancestry_option_id_fkey"
+            columns: ["ancestry_option_id"]
             isOneToOne: false
-            referencedRelation: 'race_ancestry_options'
-            referencedColumns: ['id']
+            referencedRelation: "race_ancestry_options"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_body_selection_items_background_id_fkey'
-            columns: ['background_id']
+            foreignKeyName: "facet_body_selection_items_background_id_fkey"
+            columns: ["background_id"]
             isOneToOne: false
-            referencedRelation: 'backgrounds'
-            referencedColumns: ['id']
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_body_selection_items_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "facet_body_selection_items_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_body_selection_items_equipment_id_fkey'
-            columns: ['equipment_id']
+            foreignKeyName: "facet_body_selection_items_equipment_id_fkey"
+            columns: ["equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_body_selection_items_facet_body_id_fkey'
-            columns: ['facet_body_id']
+            foreignKeyName: "facet_body_selection_items_facet_body_id_fkey"
+            columns: ["facet_body_id"]
             isOneToOne: false
-            referencedRelation: 'facet_bodies'
-            referencedColumns: ['id']
+            referencedRelation: "facet_bodies"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_body_selection_items_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "facet_body_selection_items_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_body_selection_items_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "facet_body_selection_items_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
+            referencedRelation: "features"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_body_selection_items_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "facet_body_selection_items_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
+            referencedRelation: "options"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_body_selection_items_race_id_fkey'
-            columns: ['race_id']
+            foreignKeyName: "facet_body_selection_items_race_id_fkey"
+            columns: ["race_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
+            referencedRelation: "races"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_body_selection_items_resource_id_fkey'
-            columns: ['resource_id']
+            foreignKeyName: "facet_body_selection_items_resource_id_fkey"
+            columns: ["resource_id"]
             isOneToOne: false
-            referencedRelation: 'class_resources'
-            referencedColumns: ['id']
+            referencedRelation: "class_resources"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_body_selection_items_spell_id_fkey'
-            columns: ['spell_id']
+            foreignKeyName: "facet_body_selection_items_spell_id_fkey"
+            columns: ["spell_id"]
             isOneToOne: false
-            referencedRelation: 'spells'
-            referencedColumns: ['id']
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_body_selection_items_subclass_id_fkey'
-            columns: ['subclass_id']
+            foreignKeyName: "facet_body_selection_items_subclass_id_fkey"
+            columns: ["subclass_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_body_selection_items_subrace_id_fkey'
-            columns: ['subrace_id']
+            foreignKeyName: "facet_body_selection_items_subrace_id_fkey"
+            columns: ["subrace_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_body_selections: {
@@ -6711,12 +8152,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_body_selections_facet_body_id_fkey'
-            columns: ['facet_body_id']
+            foreignKeyName: "facet_body_selections_facet_body_id_fkey"
+            columns: ["facet_body_id"]
             isOneToOne: true
-            referencedRelation: 'facet_bodies'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_bodies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_conditions: {
@@ -6758,19 +8199,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_conditions_facet_body_group_id_fkey'
-            columns: ['facet_body_group_id']
+            foreignKeyName: "facet_conditions_facet_body_group_id_fkey"
+            columns: ["facet_body_group_id"]
             isOneToOne: false
-            referencedRelation: 'facet_body_groups'
-            referencedColumns: ['id']
+            referencedRelation: "facet_body_groups"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_conditions_where_facet_body_id_fkey'
-            columns: ['where_facet_body_id']
+            foreignKeyName: "facet_conditions_where_facet_body_id_fkey"
+            columns: ["where_facet_body_id"]
             isOneToOne: false
-            referencedRelation: 'facet_bodies'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_bodies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_context_bodies: {
@@ -6788,19 +8229,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_context_bodies_facet_body_id_fkey'
-            columns: ['facet_body_id']
+            foreignKeyName: "facet_context_bodies_facet_body_id_fkey"
+            columns: ["facet_body_id"]
             isOneToOne: false
-            referencedRelation: 'facet_bodies'
-            referencedColumns: ['id']
+            referencedRelation: "facet_bodies"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_context_bodies_facet_context_id_fkey'
-            columns: ['facet_context_id']
+            foreignKeyName: "facet_context_bodies_facet_context_id_fkey"
+            columns: ["facet_context_id"]
             isOneToOne: true
-            referencedRelation: 'facet_contexts'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_contexts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_contexts: {
@@ -6830,12 +8271,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_contexts_facet_group_id_fkey'
-            columns: ['facet_group_id']
+            foreignKeyName: "facet_contexts_facet_group_id_fkey"
+            columns: ["facet_group_id"]
             isOneToOne: false
-            referencedRelation: 'facet_groups'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_groups"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_exists_selection_items: {
@@ -6901,96 +8342,96 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_exists_selection_items_ancestry_option_id_fkey'
-            columns: ['ancestry_option_id']
+            foreignKeyName: "facet_exists_selection_items_ancestry_option_id_fkey"
+            columns: ["ancestry_option_id"]
             isOneToOne: false
-            referencedRelation: 'race_ancestry_options'
-            referencedColumns: ['id']
+            referencedRelation: "race_ancestry_options"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_exists_selection_items_background_id_fkey'
-            columns: ['background_id']
+            foreignKeyName: "facet_exists_selection_items_background_id_fkey"
+            columns: ["background_id"]
             isOneToOne: false
-            referencedRelation: 'backgrounds'
-            referencedColumns: ['id']
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_exists_selection_items_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "facet_exists_selection_items_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_exists_selection_items_equipment_id_fkey'
-            columns: ['equipment_id']
+            foreignKeyName: "facet_exists_selection_items_equipment_id_fkey"
+            columns: ["equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_exists_selection_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_exists_selection_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_exists_selection_items_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "facet_exists_selection_items_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_exists_selection_items_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "facet_exists_selection_items_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
+            referencedRelation: "features"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_exists_selection_items_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "facet_exists_selection_items_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
+            referencedRelation: "options"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_exists_selection_items_race_id_fkey'
-            columns: ['race_id']
+            foreignKeyName: "facet_exists_selection_items_race_id_fkey"
+            columns: ["race_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
+            referencedRelation: "races"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_exists_selection_items_resource_id_fkey'
-            columns: ['resource_id']
+            foreignKeyName: "facet_exists_selection_items_resource_id_fkey"
+            columns: ["resource_id"]
             isOneToOne: false
-            referencedRelation: 'class_resources'
-            referencedColumns: ['id']
+            referencedRelation: "class_resources"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_exists_selection_items_spell_id_fkey'
-            columns: ['spell_id']
+            foreignKeyName: "facet_exists_selection_items_spell_id_fkey"
+            columns: ["spell_id"]
             isOneToOne: false
-            referencedRelation: 'spells'
-            referencedColumns: ['id']
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_exists_selection_items_subclass_id_fkey'
-            columns: ['subclass_id']
+            foreignKeyName: "facet_exists_selection_items_subclass_id_fkey"
+            columns: ["subclass_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_exists_selection_items_subrace_id_fkey'
-            columns: ['subrace_id']
+            foreignKeyName: "facet_exists_selection_items_subrace_id_fkey"
+            columns: ["subrace_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_exists_selections: {
@@ -7014,12 +8455,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_exists_selections_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_exists_selections_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: true
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_groups: {
@@ -7046,12 +8487,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_groups_facet_id_fkey'
-            columns: ['facet_id']
+            foreignKeyName: "facet_groups_facet_id_fkey"
+            columns: ["facet_id"]
             isOneToOne: false
-            referencedRelation: 'facets'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_ability_items: {
@@ -7072,12 +8513,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_ability_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_ability_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_charge_limit_kind_items: {
@@ -7098,12 +8539,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_charge_limit_kind_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_charge_limit_kind_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_charge_reset_kind_items: {
@@ -7124,12 +8565,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_charge_reset_kind_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_charge_reset_kind_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_class_items: {
@@ -7150,19 +8591,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_class_items_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "facet_predicate_class_items_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_predicate_class_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_class_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_condition_type_items: {
@@ -7183,19 +8624,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_condition_type_items_condition_type_id_fkey'
-            columns: ['condition_type_id']
+            foreignKeyName: "facet_predicate_condition_type_items_condition_type_id_fkey"
+            columns: ["condition_type_id"]
             isOneToOne: false
-            referencedRelation: 'condition_types'
-            referencedColumns: ['id']
+            referencedRelation: "condition_types"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_predicate_condition_type_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_condition_type_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_creature_category_items: {
@@ -7216,12 +8657,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_creature_category_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_creature_category_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_creature_type_items: {
@@ -7242,19 +8683,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_creature_type_items_creature_type_id_fkey'
-            columns: ['creature_type_id']
+            foreignKeyName: "facet_predicate_creature_type_items_creature_type_id_fkey"
+            columns: ["creature_type_id"]
             isOneToOne: false
-            referencedRelation: 'creature_types'
-            referencedColumns: ['id']
+            referencedRelation: "creature_types"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_predicate_creature_type_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_creature_type_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_damage_type_items: {
@@ -7275,19 +8716,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_damage_type_items_damage_type_id_fkey'
-            columns: ['damage_type_id']
+            foreignKeyName: "facet_predicate_damage_type_items_damage_type_id_fkey"
+            columns: ["damage_type_id"]
             isOneToOne: false
-            referencedRelation: 'damage_types'
-            referencedColumns: ['id']
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_predicate_damage_type_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_damage_type_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_duration_kind_items: {
@@ -7308,12 +8749,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_duration_kind_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_duration_kind_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_durations: {
@@ -7343,12 +8784,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_durations_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_durations_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: true
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_equipment_categories: {
@@ -7372,12 +8813,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_equipment_categories_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_equipment_categories_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: true
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_equipment_items: {
@@ -7398,19 +8839,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_equipment_items_equipment_id_fkey'
-            columns: ['equipment_id']
+            foreignKeyName: "facet_predicate_equipment_items_equipment_id_fkey"
+            columns: ["equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_predicate_equipment_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_equipment_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_equipment_property_items: {
@@ -7431,12 +8872,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_equipment_property_item_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_equipment_property_item_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_feat_items: {
@@ -7457,19 +8898,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_feat_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_feat_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_predicate_feat_items_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "facet_predicate_feat_items_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_feature_items: {
@@ -7490,19 +8931,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_feature_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_feature_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_predicate_feature_items_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "facet_predicate_feature_items_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_heritage_items: {
@@ -7523,19 +8964,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_heritage_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_heritage_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_predicate_heritage_items_heritage_id_fkey'
-            columns: ['heritage_id']
+            foreignKeyName: "facet_predicate_heritage_items_heritage_id_fkey"
+            columns: ["heritage_id"]
             isOneToOne: false
-            referencedRelation: 'heritages'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "heritages"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_language_items: {
@@ -7556,19 +8997,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_language_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_language_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_predicate_language_items_language_id_fkey'
-            columns: ['language_id']
+            foreignKeyName: "facet_predicate_language_items_language_id_fkey"
+            columns: ["language_id"]
             isOneToOne: false
-            referencedRelation: 'languages'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_magic_school_items: {
@@ -7589,19 +9030,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_magic_school_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_magic_school_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_predicate_magic_school_items_magic_school_id_fkey'
-            columns: ['magic_school_id']
+            foreignKeyName: "facet_predicate_magic_school_items_magic_school_id_fkey"
+            columns: ["magic_school_id"]
             isOneToOne: false
-            referencedRelation: 'magic_schools'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "magic_schools"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_numeric_ranges: {
@@ -7628,12 +9069,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_numeric_ranges_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_numeric_ranges_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: true
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_option_items: {
@@ -7654,19 +9095,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_option_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_option_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_predicate_option_items_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "facet_predicate_option_items_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_proficiency_levels: {
@@ -7690,12 +9131,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_proficiency_levels_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_proficiency_levels_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: true
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_range_kind_items: {
@@ -7716,12 +9157,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_range_kind_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_range_kind_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_ranges: {
@@ -7754,12 +9195,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_ranges_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_ranges_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: true
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_selectables: {
@@ -7783,12 +9224,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_selectables_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_selectables_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: true
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_size_items: {
@@ -7809,12 +9250,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_size_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_size_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_skill_items: {
@@ -7835,19 +9276,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_skill_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_skill_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_predicate_skill_items_skill_id_fkey'
-            columns: ['skill_id']
+            foreignKeyName: "facet_predicate_skill_items_skill_id_fkey"
+            columns: ["skill_id"]
             isOneToOne: false
-            referencedRelation: 'skills'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_spell_items: {
@@ -7868,19 +9309,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_spell_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_spell_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'facet_predicate_spell_items_spell_id_fkey'
-            columns: ['spell_id']
+            foreignKeyName: "facet_predicate_spell_items_spell_id_fkey"
+            columns: ["spell_id"]
             isOneToOne: false
-            referencedRelation: 'spells'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_subclass_specialization_items: {
@@ -7901,12 +9342,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_subclass_specialization_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_subclass_specialization_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facet_predicate_vehicle_category_items: {
@@ -7927,12 +9368,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'facet_predicate_vehicle_category_items_facet_condition_id_fkey'
-            columns: ['facet_condition_id']
+            foreignKeyName: "facet_predicate_vehicle_category_items_facet_condition_id_fkey"
+            columns: ["facet_condition_id"]
             isOneToOne: false
-            referencedRelation: 'facet_conditions'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facet_conditions"
+            referencedColumns: ["id"]
+          },
         ]
       }
       facets: {
@@ -7971,19 +9412,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feat_details_detail_id_fkey'
-            columns: ['detail_id']
+            foreignKeyName: "feat_details_detail_id_fkey"
+            columns: ["detail_id"]
             isOneToOne: false
-            referencedRelation: 'details'
-            referencedColumns: ['id']
+            referencedRelation: "details"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feat_details_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "feat_details_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feat_effects: {
@@ -8004,19 +9445,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feat_effects_effect_id_fkey'
-            columns: ['effect_id']
+            foreignKeyName: "feat_effects_effect_id_fkey"
+            columns: ["effect_id"]
             isOneToOne: false
-            referencedRelation: 'effects'
-            referencedColumns: ['id']
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feat_effects_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "feat_effects_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feat_feat_grants: {
@@ -8037,19 +9478,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feat_feat_grants_feat_grant_id_fkey'
-            columns: ['feat_grant_id']
+            foreignKeyName: "feat_feat_grants_feat_grant_id_fkey"
+            columns: ["feat_grant_id"]
             isOneToOne: false
-            referencedRelation: 'feat_grants'
-            referencedColumns: ['id']
+            referencedRelation: "feat_grants"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feat_feat_grants_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "feat_feat_grants_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feat_features: {
@@ -8070,19 +9511,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feat_features_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "feat_features_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feat_features_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "feat_features_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feat_grant_feats: {
@@ -8100,19 +9541,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feat_grant_feats_feat_grant_id_fkey'
-            columns: ['feat_grant_id']
+            foreignKeyName: "feat_grant_feats_feat_grant_id_fkey"
+            columns: ["feat_grant_id"]
             isOneToOne: false
-            referencedRelation: 'feat_grants'
-            referencedColumns: ['id']
+            referencedRelation: "feat_grants"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feat_grant_feats_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "feat_grant_feats_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feat_grant_scaling_level_feats: {
@@ -8130,19 +9571,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feat_grant_scaling_level_feats_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "feat_grant_scaling_level_feats_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feat_grant_scaling_level_feats_scaling_level_id_fkey'
-            columns: ['scaling_level_id']
+            foreignKeyName: "feat_grant_scaling_level_feats_scaling_level_id_fkey"
+            columns: ["scaling_level_id"]
             isOneToOne: false
-            referencedRelation: 'feat_grant_scaling_levels'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "feat_grant_scaling_levels"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feat_grant_scaling_levels: {
@@ -8181,12 +9622,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feat_grant_scaling_levels_feat_grant_id_fkey'
-            columns: ['feat_grant_id']
+            foreignKeyName: "feat_grant_scaling_levels_feat_grant_id_fkey"
+            columns: ["feat_grant_id"]
             isOneToOne: false
-            referencedRelation: 'feat_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "feat_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feat_grants: {
@@ -8237,19 +9678,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feat_grants_charge_id_fkey'
-            columns: ['charge_id']
+            foreignKeyName: "feat_grants_charge_id_fkey"
+            columns: ["charge_id"]
             isOneToOne: false
-            referencedRelation: 'charges'
-            referencedColumns: ['id']
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feat_grants_restriction_id_fkey'
-            columns: ['restriction_id']
+            foreignKeyName: "feat_grants_restriction_id_fkey"
+            columns: ["restriction_id"]
             isOneToOne: false
-            referencedRelation: 'facets'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feat_modifier_grants: {
@@ -8270,19 +9711,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feat_modifier_grants_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "feat_modifier_grants_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feat_modifier_grants_modifier_grant_id_fkey'
-            columns: ['modifier_grant_id']
+            foreignKeyName: "feat_modifier_grants_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
             isOneToOne: false
-            referencedRelation: 'modifier_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feat_proficiency_grants: {
@@ -8303,19 +9744,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feat_proficiency_grants_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "feat_proficiency_grants_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feat_proficiency_grants_proficiency_grant_id_fkey'
-            columns: ['proficiency_grant_id']
+            foreignKeyName: "feat_proficiency_grants_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
             isOneToOne: false
-            referencedRelation: 'proficiency_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feat_sense_grants: {
@@ -8336,19 +9777,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feat_sense_grants_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "feat_sense_grants_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feat_sense_grants_sense_grant_id_fkey'
-            columns: ['sense_grant_id']
+            foreignKeyName: "feat_sense_grants_sense_grant_id_fkey"
+            columns: ["sense_grant_id"]
             isOneToOne: false
-            referencedRelation: 'sense_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "sense_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feat_spell_grants: {
@@ -8369,19 +9810,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feat_spell_grants_feat_id_fkey'
-            columns: ['feat_id']
+            foreignKeyName: "feat_spell_grants_feat_id_fkey"
+            columns: ["feat_id"]
             isOneToOne: false
-            referencedRelation: 'feats'
-            referencedColumns: ['id']
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feat_spell_grants_spell_grant_id_fkey'
-            columns: ['spell_grant_id']
+            foreignKeyName: "feat_spell_grants_spell_grant_id_fkey"
+            columns: ["spell_grant_id"]
             isOneToOne: false
-            referencedRelation: 'spell_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spell_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feats: {
@@ -8426,26 +9867,26 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feats_charge_id_fkey'
-            columns: ['charge_id']
+            foreignKeyName: "feats_charge_id_fkey"
+            columns: ["charge_id"]
             isOneToOne: false
-            referencedRelation: 'charges'
-            referencedColumns: ['id']
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feats_prerequisite_id_fkey'
-            columns: ['prerequisite_id']
+            foreignKeyName: "feats_prerequisite_id_fkey"
+            columns: ["prerequisite_id"]
             isOneToOne: false
-            referencedRelation: 'facets'
-            referencedColumns: ['id']
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feats_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "feats_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feature_attributes: {
@@ -8466,12 +9907,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feature_attributes_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "feature_attributes_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feature_details: {
@@ -8492,19 +9933,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feature_details_detail_id_fkey'
-            columns: ['detail_id']
+            foreignKeyName: "feature_details_detail_id_fkey"
+            columns: ["detail_id"]
             isOneToOne: false
-            referencedRelation: 'details'
-            referencedColumns: ['id']
+            referencedRelation: "details"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feature_details_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "feature_details_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feature_effects: {
@@ -8525,19 +9966,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feature_effects_effect_id_fkey'
-            columns: ['effect_id']
+            foreignKeyName: "feature_effects_effect_id_fkey"
+            columns: ["effect_id"]
             isOneToOne: false
-            referencedRelation: 'effects'
-            referencedColumns: ['id']
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feature_effects_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "feature_effects_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feature_feat_grants: {
@@ -8558,19 +9999,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feature_feat_grants_feat_grant_id_fkey'
-            columns: ['feat_grant_id']
+            foreignKeyName: "feature_feat_grants_feat_grant_id_fkey"
+            columns: ["feat_grant_id"]
             isOneToOne: false
-            referencedRelation: 'feat_grants'
-            referencedColumns: ['id']
+            referencedRelation: "feat_grants"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feature_feat_grants_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "feature_feat_grants_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feature_modifier_grants: {
@@ -8591,19 +10032,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feature_modifier_grants_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "feature_modifier_grants_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
+            referencedRelation: "features"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feature_modifier_grants_modifier_grant_id_fkey'
-            columns: ['modifier_grant_id']
+            foreignKeyName: "feature_modifier_grants_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
             isOneToOne: false
-            referencedRelation: 'modifier_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feature_option_levels: {
@@ -8633,12 +10074,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feature_option_levels_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "feature_option_levels_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feature_options: {
@@ -8659,19 +10100,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feature_options_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "feature_options_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
+            referencedRelation: "features"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feature_options_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "feature_options_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feature_proficiency_grants: {
@@ -8692,19 +10133,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feature_proficiency_grants_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "feature_proficiency_grants_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
+            referencedRelation: "features"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feature_proficiency_grants_proficiency_grant_id_fkey'
-            columns: ['proficiency_grant_id']
+            foreignKeyName: "feature_proficiency_grants_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
             isOneToOne: false
-            referencedRelation: 'proficiency_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feature_sense_grants: {
@@ -8725,19 +10166,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feature_sense_grants_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "feature_sense_grants_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
+            referencedRelation: "features"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feature_sense_grants_sense_grant_id_fkey'
-            columns: ['sense_grant_id']
+            foreignKeyName: "feature_sense_grants_sense_grant_id_fkey"
+            columns: ["sense_grant_id"]
             isOneToOne: false
-            referencedRelation: 'sense_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "sense_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       feature_spell_grants: {
@@ -8758,19 +10199,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'feature_spell_grants_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "feature_spell_grants_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
+            referencedRelation: "features"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'feature_spell_grants_spell_grant_id_fkey'
-            columns: ['spell_grant_id']
+            foreignKeyName: "feature_spell_grants_spell_grant_id_fkey"
+            columns: ["spell_grant_id"]
             isOneToOne: false
-            referencedRelation: 'spell_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spell_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       features: {
@@ -8782,6 +10223,7 @@ export type Database = {
           id: string
           label: string
           restriction_id: string | null
+          roll_definitions: Json
           section_code: string | null
           sort_order: number
           updated_at: string
@@ -8794,6 +10236,7 @@ export type Database = {
           id?: string
           label: string
           restriction_id?: string | null
+          roll_definitions?: Json
           section_code?: string | null
           sort_order: number
           updated_at?: string
@@ -8806,25 +10249,26 @@ export type Database = {
           id?: string
           label?: string
           restriction_id?: string | null
+          roll_definitions?: Json
           section_code?: string | null
           sort_order?: number
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: 'features_charge_id_fkey'
-            columns: ['charge_id']
+            foreignKeyName: "features_charge_id_fkey"
+            columns: ["charge_id"]
             isOneToOne: false
-            referencedRelation: 'charges'
-            referencedColumns: ['id']
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'features_restriction_id_fkey'
-            columns: ['restriction_id']
+            foreignKeyName: "features_restriction_id_fkey"
+            columns: ["restriction_id"]
             isOneToOne: false
-            referencedRelation: 'facets'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
         ]
       }
       heritages: {
@@ -8863,12 +10307,228 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'heritages_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "heritages_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_currency_balances: {
+        Row: {
+          amount: number
+          campaign_denomination_id: string | null
+          created_at: string
+          group_id: string | null
+          id: string
+          owner_id: string
+          ruleset_currency_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          campaign_denomination_id?: string | null
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          owner_id: string
+          ruleset_currency_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          campaign_denomination_id?: string | null
+          created_at?: string
+          group_id?: string | null
+          id?: string
+          owner_id?: string
+          ruleset_currency_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_currency_balances_campaign_denomination_id_fkey"
+            columns: ["campaign_denomination_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_currency_denominations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_currency_balances_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_owners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_currency_balances_owner_id_group_id_fkey"
+            columns: ["owner_id", "group_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_currency_groups"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
+            foreignKeyName: "inventory_currency_balances_ruleset_currency_id_fkey"
+            columns: ["ruleset_currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_currency_groups: {
+        Row: {
+          container_item_id: string | null
+          created_at: string
+          id: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          container_item_id?: string | null
+          created_at?: string
+          id?: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          container_item_id?: string | null
+          created_at?: string
+          id?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_currency_groups_owner_id_container_item_id_fkey"
+            columns: ["owner_id", "container_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
+            foreignKeyName: "inventory_currency_groups_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_owners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_items: {
+        Row: {
+          attuned: boolean
+          container_id: string | null
+          created_at: string
+          custom_name: string | null
+          equipment_id: string
+          equipped: boolean
+          id: string
+          notes: string | null
+          owner_id: string
+          placement_id: string | null
+          placement_kind: string | null
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          attuned?: boolean
+          container_id?: string | null
+          created_at?: string
+          custom_name?: string | null
+          equipment_id: string
+          equipped?: boolean
+          id?: string
+          notes?: string | null
+          owner_id: string
+          placement_id?: string | null
+          placement_kind?: string | null
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          attuned?: boolean
+          container_id?: string | null
+          created_at?: string
+          custom_name?: string | null
+          equipment_id?: string
+          equipped?: boolean
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          placement_id?: string | null
+          placement_kind?: string | null
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_owner_id_container_id_fkey"
+            columns: ["owner_id", "container_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["owner_id", "id"]
+          },
+          {
+            foreignKeyName: "inventory_items_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_owners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_owners: {
+        Row: {
+          campaign_id: string | null
+          character_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          campaign_id?: string | null
+          character_id?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          campaign_id?: string | null
+          character_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_owners_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_owners_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       languages: {
@@ -8907,12 +10567,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'languages_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "languages_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       lifestyles: {
@@ -8951,12 +10611,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'lifestyles_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "lifestyles_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       magic_schools: {
@@ -8995,12 +10655,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'magic_schools_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "magic_schools_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       media_assets: {
@@ -9138,12 +10798,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'media_variants_asset_id_fkey'
-            columns: ['asset_id']
+            foreignKeyName: "media_variants_asset_id_fkey"
+            columns: ["asset_id"]
             isOneToOne: false
-            referencedRelation: 'media_assets'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "media_assets"
+            referencedColumns: ["id"]
+          },
         ]
       }
       modifier_grant_charge_levels: {
@@ -9176,12 +10836,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'modifier_grant_charge_levels_modifier_grant_id_fkey'
-            columns: ['modifier_grant_id']
+            foreignKeyName: "modifier_grant_charge_levels_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
             isOneToOne: false
-            referencedRelation: 'modifier_grant_payloads'
-            referencedColumns: ['modifier_grant_id']
-          }
+            referencedRelation: "modifier_grant_payloads"
+            referencedColumns: ["modifier_grant_id"]
+          },
         ]
       }
       modifier_grant_domain_params: {
@@ -9226,33 +10886,33 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'modifier_grant_domain_params_condition_type_id_fkey'
-            columns: ['condition_type_id']
+            foreignKeyName: "modifier_grant_domain_params_condition_type_id_fkey"
+            columns: ["condition_type_id"]
             isOneToOne: false
-            referencedRelation: 'condition_types'
-            referencedColumns: ['id']
+            referencedRelation: "condition_types"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'modifier_grant_domain_params_modifier_grant_id_fkey'
-            columns: ['modifier_grant_id']
+            foreignKeyName: "modifier_grant_domain_params_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
             isOneToOne: true
-            referencedRelation: 'modifier_grants'
-            referencedColumns: ['id']
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'modifier_grant_domain_params_skill_id_fkey'
-            columns: ['skill_id']
+            foreignKeyName: "modifier_grant_domain_params_skill_id_fkey"
+            columns: ["skill_id"]
             isOneToOne: false
-            referencedRelation: 'skills'
-            referencedColumns: ['id']
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'modifier_grant_domain_params_speed_id_fkey'
-            columns: ['speed_id']
+            foreignKeyName: "modifier_grant_domain_params_speed_id_fkey"
+            columns: ["speed_id"]
             isOneToOne: false
-            referencedRelation: 'speeds'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "speeds"
+            referencedColumns: ["id"]
+          },
         ]
       }
       modifier_grant_optional_abilities: {
@@ -9273,12 +10933,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'modifier_grant_optional_abilities_modifier_grant_id_fkey'
-            columns: ['modifier_grant_id']
+            foreignKeyName: "modifier_grant_optional_abilities_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
             isOneToOne: false
-            referencedRelation: 'modifier_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       modifier_grant_payloads: {
@@ -9377,40 +11037,40 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'modifier_grant_payloads_condition_type_id_fkey'
-            columns: ['condition_type_id']
+            foreignKeyName: "modifier_grant_payloads_condition_type_id_fkey"
+            columns: ["condition_type_id"]
             isOneToOne: false
-            referencedRelation: 'condition_types'
-            referencedColumns: ['id']
+            referencedRelation: "condition_types"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'modifier_grant_payloads_damage_type_id_fkey'
-            columns: ['damage_type_id']
+            foreignKeyName: "modifier_grant_payloads_damage_type_id_fkey"
+            columns: ["damage_type_id"]
             isOneToOne: false
-            referencedRelation: 'damage_types'
-            referencedColumns: ['id']
+            referencedRelation: "damage_types"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'modifier_grant_payloads_modifier_grant_id_fkey'
-            columns: ['modifier_grant_id']
+            foreignKeyName: "modifier_grant_payloads_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
             isOneToOne: true
-            referencedRelation: 'modifier_grants'
-            referencedColumns: ['id']
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'modifier_grant_payloads_numeric_class_id_fkey'
-            columns: ['numeric_class_id']
+            foreignKeyName: "modifier_grant_payloads_numeric_class_id_fkey"
+            columns: ["numeric_class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'modifier_grant_payloads_numeric_skill_id_fkey'
-            columns: ['numeric_skill_id']
+            foreignKeyName: "modifier_grant_payloads_numeric_skill_id_fkey"
+            columns: ["numeric_skill_id"]
             isOneToOne: false
-            referencedRelation: 'skills'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
         ]
       }
       modifier_grants: {
@@ -9461,19 +11121,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'modifier_grants_restriction_id_fkey'
-            columns: ['restriction_id']
+            foreignKeyName: "modifier_grants_restriction_id_fkey"
+            columns: ["restriction_id"]
             isOneToOne: false
-            referencedRelation: 'facets'
-            referencedColumns: ['id']
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'modifier_grants_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "modifier_grants_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       option_attributes: {
@@ -9494,12 +11154,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'option_attributes_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "option_attributes_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
         ]
       }
       option_details: {
@@ -9520,19 +11180,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'option_details_detail_id_fkey'
-            columns: ['detail_id']
+            foreignKeyName: "option_details_detail_id_fkey"
+            columns: ["detail_id"]
             isOneToOne: false
-            referencedRelation: 'details'
-            referencedColumns: ['id']
+            referencedRelation: "details"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'option_details_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "option_details_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
         ]
       }
       option_effects: {
@@ -9553,19 +11213,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'option_effects_effect_id_fkey'
-            columns: ['effect_id']
+            foreignKeyName: "option_effects_effect_id_fkey"
+            columns: ["effect_id"]
             isOneToOne: false
-            referencedRelation: 'effects'
-            referencedColumns: ['id']
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'option_effects_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "option_effects_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
         ]
       }
       option_feat_grants: {
@@ -9586,19 +11246,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'option_feat_grants_feat_grant_id_fkey'
-            columns: ['feat_grant_id']
+            foreignKeyName: "option_feat_grants_feat_grant_id_fkey"
+            columns: ["feat_grant_id"]
             isOneToOne: false
-            referencedRelation: 'feat_grants'
-            referencedColumns: ['id']
+            referencedRelation: "feat_grants"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'option_feat_grants_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "option_feat_grants_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
         ]
       }
       option_modifier_grants: {
@@ -9619,19 +11279,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'option_modifier_grants_modifier_grant_id_fkey'
-            columns: ['modifier_grant_id']
+            foreignKeyName: "option_modifier_grants_modifier_grant_id_fkey"
+            columns: ["modifier_grant_id"]
             isOneToOne: false
-            referencedRelation: 'modifier_grants'
-            referencedColumns: ['id']
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'option_modifier_grants_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "option_modifier_grants_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
         ]
       }
       option_proficiency_grants: {
@@ -9652,19 +11312,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'option_proficiency_grants_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "option_proficiency_grants_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
+            referencedRelation: "options"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'option_proficiency_grants_proficiency_grant_id_fkey'
-            columns: ['proficiency_grant_id']
+            foreignKeyName: "option_proficiency_grants_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
             isOneToOne: false
-            referencedRelation: 'proficiency_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       option_sense_grants: {
@@ -9685,19 +11345,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'option_sense_grants_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "option_sense_grants_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
+            referencedRelation: "options"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'option_sense_grants_sense_grant_id_fkey'
-            columns: ['sense_grant_id']
+            foreignKeyName: "option_sense_grants_sense_grant_id_fkey"
+            columns: ["sense_grant_id"]
             isOneToOne: false
-            referencedRelation: 'sense_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "sense_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       option_spell_grants: {
@@ -9718,19 +11378,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'option_spell_grants_option_id_fkey'
-            columns: ['option_id']
+            foreignKeyName: "option_spell_grants_option_id_fkey"
+            columns: ["option_id"]
             isOneToOne: false
-            referencedRelation: 'options'
-            referencedColumns: ['id']
+            referencedRelation: "options"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'option_spell_grants_spell_grant_id_fkey'
-            columns: ['spell_grant_id']
+            foreignKeyName: "option_spell_grants_spell_grant_id_fkey"
+            columns: ["spell_grant_id"]
             isOneToOne: false
-            referencedRelation: 'spell_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spell_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       options: {
@@ -9766,19 +11426,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'options_charge_id_fkey'
-            columns: ['charge_id']
+            foreignKeyName: "options_charge_id_fkey"
+            columns: ["charge_id"]
             isOneToOne: false
-            referencedRelation: 'charges'
-            referencedColumns: ['id']
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'options_restriction_id_fkey'
-            columns: ['restriction_id']
+            foreignKeyName: "options_restriction_id_fkey"
+            columns: ["restriction_id"]
             isOneToOne: false
-            referencedRelation: 'facets'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
         ]
       }
       passives: {
@@ -9817,12 +11477,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'passives_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "passives_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       proficiency_grant_equipment: {
@@ -9840,19 +11500,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'proficiency_grant_equipment_equipment_id_fkey'
-            columns: ['equipment_id']
+            foreignKeyName: "proficiency_grant_equipment_equipment_id_fkey"
+            columns: ["equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'proficiency_grant_equipment_proficiency_grant_id_fkey'
-            columns: ['proficiency_grant_id']
+            foreignKeyName: "proficiency_grant_equipment_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
             isOneToOne: false
-            referencedRelation: 'proficiency_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       proficiency_grant_equipment_filter_properties: {
@@ -9870,12 +11530,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'proficiency_grant_equipment_filter_pr_proficiency_grant_id_fkey'
-            columns: ['proficiency_grant_id']
+            foreignKeyName: "proficiency_grant_equipment_filter_pr_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
             isOneToOne: false
-            referencedRelation: 'proficiency_grant_equipment_filters'
-            referencedColumns: ['proficiency_grant_id']
-          }
+            referencedRelation: "proficiency_grant_equipment_filters"
+            referencedColumns: ["proficiency_grant_id"]
+          },
         ]
       }
       proficiency_grant_equipment_filters: {
@@ -9893,12 +11553,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'proficiency_grant_equipment_filters_proficiency_grant_id_fkey'
-            columns: ['proficiency_grant_id']
+            foreignKeyName: "proficiency_grant_equipment_filters_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
             isOneToOne: true
-            referencedRelation: 'proficiency_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       proficiency_grant_equipment_properties: {
@@ -9916,12 +11576,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'proficiency_grant_equipment_propertie_proficiency_grant_id_fkey'
-            columns: ['proficiency_grant_id']
+            foreignKeyName: "proficiency_grant_equipment_propertie_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
             isOneToOne: false
-            referencedRelation: 'proficiency_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       proficiency_grant_equipment_property_filters: {
@@ -9939,12 +11599,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'proficiency_grant_equipment_property__proficiency_grant_id_fkey'
-            columns: ['proficiency_grant_id']
+            foreignKeyName: "proficiency_grant_equipment_property__proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
             isOneToOne: true
-            referencedRelation: 'proficiency_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       proficiency_grant_languages: {
@@ -9962,19 +11622,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'proficiency_grant_languages_language_id_fkey'
-            columns: ['language_id']
+            foreignKeyName: "proficiency_grant_languages_language_id_fkey"
+            columns: ["language_id"]
             isOneToOne: false
-            referencedRelation: 'languages'
-            referencedColumns: ['id']
+            referencedRelation: "languages"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'proficiency_grant_languages_proficiency_grant_id_fkey'
-            columns: ['proficiency_grant_id']
+            foreignKeyName: "proficiency_grant_languages_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
             isOneToOne: false
-            referencedRelation: 'proficiency_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       proficiency_grant_save_abilities: {
@@ -9995,12 +11655,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'proficiency_grant_save_abilities_proficiency_grant_id_fkey'
-            columns: ['proficiency_grant_id']
+            foreignKeyName: "proficiency_grant_save_abilities_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
             isOneToOne: false
-            referencedRelation: 'proficiency_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       proficiency_grant_skills: {
@@ -10018,19 +11678,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'proficiency_grant_skills_proficiency_grant_id_fkey'
-            columns: ['proficiency_grant_id']
+            foreignKeyName: "proficiency_grant_skills_proficiency_grant_id_fkey"
+            columns: ["proficiency_grant_id"]
             isOneToOne: false
-            referencedRelation: 'proficiency_grants'
-            referencedColumns: ['id']
+            referencedRelation: "proficiency_grants"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'proficiency_grant_skills_skill_id_fkey'
-            columns: ['skill_id']
+            foreignKeyName: "proficiency_grant_skills_skill_id_fkey"
+            columns: ["skill_id"]
             isOneToOne: false
-            referencedRelation: 'skills'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
         ]
       }
       proficiency_grants: {
@@ -10081,12 +11741,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'proficiency_grants_restriction_id_fkey'
-            columns: ['restriction_id']
+            foreignKeyName: "proficiency_grants_restriction_id_fkey"
+            columns: ["restriction_id"]
             isOneToOne: false
-            referencedRelation: 'facets'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -10122,12 +11782,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'profiles_avatar_asset_fk'
-            columns: ['avatar_asset_id']
+            foreignKeyName: "profiles_avatar_asset_fk"
+            columns: ["avatar_asset_id"]
             isOneToOne: false
-            referencedRelation: 'media_assets'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "media_assets"
+            referencedColumns: ["id"]
+          },
         ]
       }
       race_ancestries: {
@@ -10151,12 +11811,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'race_ancestries_race_id_fkey'
-            columns: ['race_id']
+            foreignKeyName: "race_ancestries_race_id_fkey"
+            columns: ["race_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
         ]
       }
       race_ancestry_option_features: {
@@ -10177,19 +11837,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'race_ancestry_option_features_ancestry_option_id_fkey'
-            columns: ['ancestry_option_id']
+            foreignKeyName: "race_ancestry_option_features_ancestry_option_id_fkey"
+            columns: ["ancestry_option_id"]
             isOneToOne: false
-            referencedRelation: 'race_ancestry_options'
-            referencedColumns: ['id']
+            referencedRelation: "race_ancestry_options"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'race_ancestry_option_features_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "race_ancestry_option_features_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
         ]
       }
       race_ancestry_options: {
@@ -10216,12 +11876,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'race_ancestry_options_ancestry_id_fkey'
-            columns: ['ancestry_id']
+            foreignKeyName: "race_ancestry_options_ancestry_id_fkey"
+            columns: ["ancestry_id"]
             isOneToOne: false
-            referencedRelation: 'race_ancestries'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "race_ancestries"
+            referencedColumns: ["id"]
+          },
         ]
       }
       race_details: {
@@ -10242,19 +11902,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'race_details_detail_id_fkey'
-            columns: ['detail_id']
+            foreignKeyName: "race_details_detail_id_fkey"
+            columns: ["detail_id"]
             isOneToOne: false
-            referencedRelation: 'details'
-            referencedColumns: ['id']
+            referencedRelation: "details"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'race_details_race_id_fkey'
-            columns: ['race_id']
+            foreignKeyName: "race_details_race_id_fkey"
+            columns: ["race_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
         ]
       }
       race_features: {
@@ -10275,19 +11935,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'race_features_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "race_features_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
+            referencedRelation: "features"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'race_features_race_id_fkey'
-            columns: ['race_id']
+            foreignKeyName: "race_features_race_id_fkey"
+            columns: ["race_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
         ]
       }
       race_heritages: {
@@ -10308,19 +11968,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'race_heritages_heritage_id_fkey'
-            columns: ['heritage_id']
+            foreignKeyName: "race_heritages_heritage_id_fkey"
+            columns: ["heritage_id"]
             isOneToOne: false
-            referencedRelation: 'heritages'
-            referencedColumns: ['id']
+            referencedRelation: "heritages"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'race_heritages_race_id_fkey'
-            columns: ['race_id']
+            foreignKeyName: "race_heritages_race_id_fkey"
+            columns: ["race_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
         ]
       }
       race_speeds: {
@@ -10344,19 +12004,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'race_speeds_race_id_fkey'
-            columns: ['race_id']
+            foreignKeyName: "race_speeds_race_id_fkey"
+            columns: ["race_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id']
+            referencedRelation: "races"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'race_speeds_speed_id_fkey'
-            columns: ['speed_id']
+            foreignKeyName: "race_speeds_speed_id_fkey"
+            columns: ["speed_id"]
             isOneToOne: false
-            referencedRelation: 'speeds'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "speeds"
+            referencedColumns: ["id"]
+          },
         ]
       }
       races: {
@@ -10410,19 +12070,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'races_parent_system_fk'
-            columns: ['parent_race_id', 'system_id']
+            foreignKeyName: "races_parent_system_fk"
+            columns: ["parent_race_id", "system_id"]
             isOneToOne: false
-            referencedRelation: 'races'
-            referencedColumns: ['id', 'system_id']
+            referencedRelation: "races"
+            referencedColumns: ["id", "system_id"]
           },
           {
-            foreignKeyName: 'races_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "races_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       rarities: {
@@ -10461,12 +12121,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'rarities_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "rarities_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       saving_throw_dc_bonuses: {
@@ -10502,12 +12162,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'saving_throw_dc_bonuses_saving_throw_id_fkey'
-            columns: ['saving_throw_id']
+            foreignKeyName: "saving_throw_dc_bonuses_saving_throw_id_fkey"
+            columns: ["saving_throw_id"]
             isOneToOne: false
-            referencedRelation: 'saving_throws'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "saving_throws"
+            referencedColumns: ["id"]
+          },
         ]
       }
       saving_throws: {
@@ -10552,19 +12212,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'sense_grant_scaling_level_senses_scaling_level_id_fkey'
-            columns: ['scaling_level_id']
+            foreignKeyName: "sense_grant_scaling_level_senses_scaling_level_id_fkey"
+            columns: ["scaling_level_id"]
             isOneToOne: false
-            referencedRelation: 'sense_grant_scaling_levels'
-            referencedColumns: ['id']
+            referencedRelation: "sense_grant_scaling_levels"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'sense_grant_scaling_level_senses_sense_id_fkey'
-            columns: ['sense_id']
+            foreignKeyName: "sense_grant_scaling_level_senses_sense_id_fkey"
+            columns: ["sense_id"]
             isOneToOne: false
-            referencedRelation: 'senses'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "senses"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sense_grant_scaling_levels: {
@@ -10603,12 +12263,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'sense_grant_scaling_levels_sense_grant_id_fkey'
-            columns: ['sense_grant_id']
+            foreignKeyName: "sense_grant_scaling_levels_sense_grant_id_fkey"
+            columns: ["sense_grant_id"]
             isOneToOne: false
-            referencedRelation: 'sense_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "sense_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sense_grant_senses: {
@@ -10626,19 +12286,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'sense_grant_senses_sense_grant_id_fkey'
-            columns: ['sense_grant_id']
+            foreignKeyName: "sense_grant_senses_sense_grant_id_fkey"
+            columns: ["sense_grant_id"]
             isOneToOne: false
-            referencedRelation: 'sense_grants'
-            referencedColumns: ['id']
+            referencedRelation: "sense_grants"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'sense_grant_senses_sense_id_fkey'
-            columns: ['sense_id']
+            foreignKeyName: "sense_grant_senses_sense_id_fkey"
+            columns: ["sense_id"]
             isOneToOne: false
-            referencedRelation: 'senses'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "senses"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sense_grants: {
@@ -10704,26 +12364,26 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'sense_grants_charge_id_fkey'
-            columns: ['charge_id']
+            foreignKeyName: "sense_grants_charge_id_fkey"
+            columns: ["charge_id"]
             isOneToOne: false
-            referencedRelation: 'charges'
-            referencedColumns: ['id']
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'sense_grants_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "sense_grants_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'sense_grants_restriction_id_fkey'
-            columns: ['restriction_id']
+            foreignKeyName: "sense_grants_restriction_id_fkey"
+            columns: ["restriction_id"]
             isOneToOne: false
-            referencedRelation: 'facets'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
         ]
       }
       senses: {
@@ -10762,12 +12422,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'senses_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "senses_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       skills: {
@@ -10806,12 +12466,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'skills_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "skills_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       speeds: {
@@ -10850,12 +12510,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'speeds_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "speeds_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       spell_attributes: {
@@ -10876,12 +12536,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'spell_attributes_spell_id_fkey'
-            columns: ['spell_id']
+            foreignKeyName: "spell_attributes_spell_id_fkey"
+            columns: ["spell_id"]
             isOneToOne: false
-            referencedRelation: 'spells'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
         ]
       }
       spell_classes: {
@@ -10899,19 +12559,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'spell_classes_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "spell_classes_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'spell_classes_spell_id_fkey'
-            columns: ['spell_id']
+            foreignKeyName: "spell_classes_spell_id_fkey"
+            columns: ["spell_id"]
             isOneToOne: false
-            referencedRelation: 'spells'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
         ]
       }
       spell_effects: {
@@ -10932,19 +12592,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'spell_effects_effect_id_fkey'
-            columns: ['effect_id']
+            foreignKeyName: "spell_effects_effect_id_fkey"
+            columns: ["effect_id"]
             isOneToOne: false
-            referencedRelation: 'effects'
-            referencedColumns: ['id']
+            referencedRelation: "effects"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'spell_effects_spell_id_fkey'
-            columns: ['spell_id']
+            foreignKeyName: "spell_effects_spell_id_fkey"
+            columns: ["spell_id"]
             isOneToOne: false
-            referencedRelation: 'spells'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
         ]
       }
       spell_grant_attributes: {
@@ -10965,12 +12625,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'spell_grant_attributes_spell_grant_id_fkey'
-            columns: ['spell_grant_id']
+            foreignKeyName: "spell_grant_attributes_spell_grant_id_fkey"
+            columns: ["spell_grant_id"]
             isOneToOne: false
-            referencedRelation: 'spell_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spell_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       spell_grant_scaling_level_spells: {
@@ -10991,19 +12651,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'spell_grant_scaling_level_spells_scaling_level_id_fkey'
-            columns: ['scaling_level_id']
+            foreignKeyName: "spell_grant_scaling_level_spells_scaling_level_id_fkey"
+            columns: ["scaling_level_id"]
             isOneToOne: false
-            referencedRelation: 'spell_grant_scaling_levels'
-            referencedColumns: ['id']
+            referencedRelation: "spell_grant_scaling_levels"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'spell_grant_scaling_level_spells_spell_id_fkey'
-            columns: ['spell_id']
+            foreignKeyName: "spell_grant_scaling_level_spells_spell_id_fkey"
+            columns: ["spell_id"]
             isOneToOne: false
-            referencedRelation: 'spells'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
         ]
       }
       spell_grant_scaling_levels: {
@@ -11042,12 +12702,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'spell_grant_scaling_levels_spell_grant_id_fkey'
-            columns: ['spell_grant_id']
+            foreignKeyName: "spell_grant_scaling_levels_spell_grant_id_fkey"
+            columns: ["spell_grant_id"]
             isOneToOne: false
-            referencedRelation: 'spell_grants'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spell_grants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       spell_grant_spells: {
@@ -11068,19 +12728,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'spell_grant_spells_spell_grant_id_fkey'
-            columns: ['spell_grant_id']
+            foreignKeyName: "spell_grant_spells_spell_grant_id_fkey"
+            columns: ["spell_grant_id"]
             isOneToOne: false
-            referencedRelation: 'spell_grants'
-            referencedColumns: ['id']
+            referencedRelation: "spell_grants"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'spell_grant_spells_spell_id_fkey'
-            columns: ['spell_id']
+            foreignKeyName: "spell_grant_spells_spell_id_fkey"
+            columns: ["spell_id"]
             isOneToOne: false
-            referencedRelation: 'spells'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
         ]
       }
       spell_grants: {
@@ -11140,33 +12800,33 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'spell_grants_charge_id_fkey'
-            columns: ['charge_id']
+            foreignKeyName: "spell_grants_charge_id_fkey"
+            columns: ["charge_id"]
             isOneToOne: false
-            referencedRelation: 'charges'
-            referencedColumns: ['id']
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'spell_grants_class_id_fkey'
-            columns: ['class_id']
+            foreignKeyName: "spell_grants_class_id_fkey"
+            columns: ["class_id"]
             isOneToOne: false
-            referencedRelation: 'classes'
-            referencedColumns: ['id']
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'spell_grants_filter_id_fkey'
-            columns: ['filter_id']
+            foreignKeyName: "spell_grants_filter_id_fkey"
+            columns: ["filter_id"]
             isOneToOne: false
-            referencedRelation: 'facets'
-            referencedColumns: ['id']
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'spell_grants_restriction_id_fkey'
-            columns: ['restriction_id']
+            foreignKeyName: "spell_grants_restriction_id_fkey"
+            columns: ["restriction_id"]
             isOneToOne: false
-            referencedRelation: 'facets'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
+          },
         ]
       }
       spells: {
@@ -11220,19 +12880,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'spells_magic_school_id_fkey'
-            columns: ['magic_school_id']
+            foreignKeyName: "spells_magic_school_id_fkey"
+            columns: ["magic_school_id"]
             isOneToOne: false
-            referencedRelation: 'magic_schools'
-            referencedColumns: ['id']
+            referencedRelation: "magic_schools"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'spells_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "spells_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       starting_equipment: {
@@ -11271,19 +12931,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'starting_equipment_currencies_currency_id_fkey'
-            columns: ['currency_id']
+            foreignKeyName: "starting_equipment_currencies_currency_id_fkey"
+            columns: ["currency_id"]
             isOneToOne: false
-            referencedRelation: 'currencies'
-            referencedColumns: ['id']
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'starting_equipment_currencies_option_item_id_fkey'
-            columns: ['option_item_id']
+            foreignKeyName: "starting_equipment_currencies_option_item_id_fkey"
+            columns: ["option_item_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_option_items'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "starting_equipment_option_items"
+            referencedColumns: ["id"]
+          },
         ]
       }
       starting_equipment_groups: {
@@ -11310,12 +12970,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'starting_equipment_groups_equipment_set_id_fkey'
-            columns: ['equipment_set_id']
+            foreignKeyName: "starting_equipment_groups_equipment_set_id_fkey"
+            columns: ["equipment_set_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_sets'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "starting_equipment_sets"
+            referencedColumns: ["id"]
+          },
         ]
       }
       starting_equipment_option_item_equipment: {
@@ -11333,19 +12993,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'starting_equipment_option_item_equipment_equipment_id_fkey'
-            columns: ['equipment_id']
+            foreignKeyName: "starting_equipment_option_item_equipment_equipment_id_fkey"
+            columns: ["equipment_id"]
             isOneToOne: false
-            referencedRelation: 'equipment'
-            referencedColumns: ['id']
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'starting_equipment_option_item_equipment_option_item_id_fkey'
-            columns: ['option_item_id']
+            foreignKeyName: "starting_equipment_option_item_equipment_option_item_id_fkey"
+            columns: ["option_item_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_option_items'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "starting_equipment_option_items"
+            referencedColumns: ["id"]
+          },
         ]
       }
       starting_equipment_option_item_properties: {
@@ -11363,12 +13023,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'starting_equipment_option_item_properties_option_item_id_fkey'
-            columns: ['option_item_id']
+            foreignKeyName: "starting_equipment_option_item_properties_option_item_id_fkey"
+            columns: ["option_item_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_option_items'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "starting_equipment_option_items"
+            referencedColumns: ["id"]
+          },
         ]
       }
       starting_equipment_option_items: {
@@ -11413,12 +13073,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'starting_equipment_option_items_equipment_option_id_fkey'
-            columns: ['equipment_option_id']
+            foreignKeyName: "starting_equipment_option_items_equipment_option_id_fkey"
+            columns: ["equipment_option_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_options'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "starting_equipment_options"
+            referencedColumns: ["id"]
+          },
         ]
       }
       starting_equipment_options: {
@@ -11448,19 +13108,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'starting_equipment_options_eligibility_facet_id_fkey'
-            columns: ['eligibility_facet_id']
+            foreignKeyName: "starting_equipment_options_eligibility_facet_id_fkey"
+            columns: ["eligibility_facet_id"]
             isOneToOne: false
-            referencedRelation: 'facets'
-            referencedColumns: ['id']
+            referencedRelation: "facets"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'starting_equipment_options_equipment_group_id_fkey'
-            columns: ['equipment_group_id']
+            foreignKeyName: "starting_equipment_options_equipment_group_id_fkey"
+            columns: ["equipment_group_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment_groups'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "starting_equipment_groups"
+            referencedColumns: ["id"]
+          },
         ]
       }
       starting_equipment_sets: {
@@ -11487,12 +13147,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'starting_equipment_sets_starting_equipment_id_fkey'
-            columns: ['starting_equipment_id']
+            foreignKeyName: "starting_equipment_sets_starting_equipment_id_fkey"
+            columns: ["starting_equipment_id"]
             isOneToOne: false
-            referencedRelation: 'starting_equipment'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "starting_equipment"
+            referencedColumns: ["id"]
+          },
         ]
       }
       systems: {
@@ -11564,12 +13224,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'terrains_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "terrains_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roll_history: {
@@ -11617,19 +13277,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'user_roll_history_character_id_fkey'
-            columns: ['character_id']
+            foreignKeyName: "user_roll_history_character_id_fkey"
+            columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: 'characters'
-            referencedColumns: ['id']
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'user_roll_history_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "user_roll_history_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vehicle_details: {
@@ -11650,19 +13310,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'vehicle_details_detail_id_fkey'
-            columns: ['detail_id']
+            foreignKeyName: "vehicle_details_detail_id_fkey"
+            columns: ["detail_id"]
             isOneToOne: false
-            referencedRelation: 'details'
-            referencedColumns: ['id']
+            referencedRelation: "details"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'vehicle_details_vehicle_id_fkey'
-            columns: ['vehicle_id']
+            foreignKeyName: "vehicle_details_vehicle_id_fkey"
+            columns: ["vehicle_id"]
             isOneToOne: false
-            referencedRelation: 'vehicles'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vehicle_features: {
@@ -11683,19 +13343,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'vehicle_features_feature_id_fkey'
-            columns: ['feature_id']
+            foreignKeyName: "vehicle_features_feature_id_fkey"
+            columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: 'features'
-            referencedColumns: ['id']
+            referencedRelation: "features"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'vehicle_features_vehicle_id_fkey'
-            columns: ['vehicle_id']
+            foreignKeyName: "vehicle_features_vehicle_id_fkey"
+            columns: ["vehicle_id"]
             isOneToOne: false
-            referencedRelation: 'vehicles'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vehicles: {
@@ -11776,12 +13436,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'vehicles_system_id_fkey'
-            columns: ['system_id']
+            foreignKeyName: "vehicles_system_id_fkey"
+            columns: ["system_id"]
             isOneToOne: false
-            referencedRelation: 'systems'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -11818,7 +13478,7 @@ export type Database = {
       }
     }
     Enums: {
-      spell_state: 'PREPARED' | 'KNOWN'
+      spell_state: "PREPARED" | "KNOWN"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -11837,7 +13497,7 @@ export type Database = {
           owner: string | null
           owner_id: string | null
           public: boolean | null
-          type: Database['storage']['Enums']['buckettype']
+          type: Database["storage"]["Enums"]["buckettype"]
           updated_at: string | null
         }
         Insert: {
@@ -11850,7 +13510,7 @@ export type Database = {
           owner?: string | null
           owner_id?: string | null
           public?: boolean | null
-          type?: Database['storage']['Enums']['buckettype']
+          type?: Database["storage"]["Enums"]["buckettype"]
           updated_at?: string | null
         }
         Update: {
@@ -11863,7 +13523,7 @@ export type Database = {
           owner?: string | null
           owner_id?: string | null
           public?: boolean | null
-          type?: Database['storage']['Enums']['buckettype']
+          type?: Database["storage"]["Enums"]["buckettype"]
           updated_at?: string | null
         }
         Relationships: []
@@ -11875,7 +13535,7 @@ export type Database = {
           format: string
           id: string
           name: string
-          type: Database['storage']['Enums']['buckettype']
+          type: Database["storage"]["Enums"]["buckettype"]
           updated_at: string
         }
         Insert: {
@@ -11884,7 +13544,7 @@ export type Database = {
           format?: string
           id?: string
           name: string
-          type?: Database['storage']['Enums']['buckettype']
+          type?: Database["storage"]["Enums"]["buckettype"]
           updated_at?: string
         }
         Update: {
@@ -11893,7 +13553,7 @@ export type Database = {
           format?: string
           id?: string
           name?: string
-          type?: Database['storage']['Enums']['buckettype']
+          type?: Database["storage"]["Enums"]["buckettype"]
           updated_at?: string
         }
         Relationships: []
@@ -11902,19 +13562,19 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          type: Database['storage']['Enums']['buckettype']
+          type: Database["storage"]["Enums"]["buckettype"]
           updated_at: string
         }
         Insert: {
           created_at?: string
           id: string
-          type?: Database['storage']['Enums']['buckettype']
+          type?: Database["storage"]["Enums"]["buckettype"]
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
-          type?: Database['storage']['Enums']['buckettype']
+          type?: Database["storage"]["Enums"]["buckettype"]
           updated_at?: string
         }
         Relationships: []
@@ -11949,12 +13609,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'iceberg_namespaces_catalog_id_fkey'
-            columns: ['catalog_id']
+            foreignKeyName: "iceberg_namespaces_catalog_id_fkey"
+            columns: ["catalog_id"]
             isOneToOne: false
-            referencedRelation: 'buckets_analytics'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "buckets_analytics"
+            referencedColumns: ["id"]
+          },
         ]
       }
       iceberg_tables: {
@@ -11999,19 +13659,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'iceberg_tables_catalog_id_fkey'
-            columns: ['catalog_id']
+            foreignKeyName: "iceberg_tables_catalog_id_fkey"
+            columns: ["catalog_id"]
             isOneToOne: false
-            referencedRelation: 'buckets_analytics'
-            referencedColumns: ['id']
+            referencedRelation: "buckets_analytics"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'iceberg_tables_namespace_id_fkey'
-            columns: ['namespace_id']
+            foreignKeyName: "iceberg_tables_namespace_id_fkey"
+            columns: ["namespace_id"]
             isOneToOne: false
-            referencedRelation: 'iceberg_namespaces'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "iceberg_namespaces"
+            referencedColumns: ["id"]
+          },
         ]
       }
       migrations: {
@@ -12080,12 +13740,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'objects_bucketId_fkey'
-            columns: ['bucket_id']
+            foreignKeyName: "objects_bucketId_fkey"
+            columns: ["bucket_id"]
             isOneToOne: false
-            referencedRelation: 'buckets'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
         ]
       }
       s3_multipart_uploads: {
@@ -12127,12 +13787,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 's3_multipart_uploads_bucket_id_fkey'
-            columns: ['bucket_id']
+            foreignKeyName: "s3_multipart_uploads_bucket_id_fkey"
+            columns: ["bucket_id"]
             isOneToOne: false
-            referencedRelation: 'buckets'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
+          },
         ]
       }
       s3_multipart_uploads_parts: {
@@ -12174,19 +13834,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 's3_multipart_uploads_parts_bucket_id_fkey'
-            columns: ['bucket_id']
+            foreignKeyName: "s3_multipart_uploads_parts_bucket_id_fkey"
+            columns: ["bucket_id"]
             isOneToOne: false
-            referencedRelation: 'buckets'
-            referencedColumns: ['id']
+            referencedRelation: "buckets"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 's3_multipart_uploads_parts_upload_id_fkey'
-            columns: ['upload_id']
+            foreignKeyName: "s3_multipart_uploads_parts_upload_id_fkey"
+            columns: ["upload_id"]
             isOneToOne: false
-            referencedRelation: 's3_multipart_uploads'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "s3_multipart_uploads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vector_indexes: {
@@ -12225,12 +13885,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'vector_indexes_bucket_id_fkey'
-            columns: ['bucket_id']
+            foreignKeyName: "vector_indexes_bucket_id_fkey"
+            columns: ["bucket_id"]
             isOneToOne: false
-            referencedRelation: 'buckets_vectors'
-            referencedColumns: ['id']
-          }
+            referencedRelation: "buckets_vectors"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -12363,7 +14023,7 @@ export type Database = {
       }
     }
     Enums: {
-      buckettype: 'STANDARD' | 'ANALYTICS' | 'VECTOR'
+      buckettype: "STANDARD" | "ANALYTICS" | "VECTOR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -12371,31 +14031,33 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
-    : never = never
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
-    ? (DefaultSchema['Tables'] & DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -12404,23 +14066,23 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
-    : never = never
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -12429,23 +14091,23 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
-    : never = never
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -12454,19 +14116,19 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema['Enums']
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
-    : never = never
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
-    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
@@ -12474,25 +14136,25 @@ export type CompositeTypes<
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
-    : never = never
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
-    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
   public: {
     Enums: {
-      spell_state: ['PREPARED', 'KNOWN']
-    }
+      spell_state: ["PREPARED", "KNOWN"],
+    },
   },
   storage: {
     Enums: {
-      buckettype: ['STANDARD', 'ANALYTICS', 'VECTOR']
-    }
-  }
+      buckettype: ["STANDARD", "ANALYTICS", "VECTOR"],
+    },
+  },
 } as const

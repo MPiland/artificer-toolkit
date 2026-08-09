@@ -1537,6 +1537,7 @@ function createFacetPredicateNodeMap(
           'Options',
           {
             kind: 'DATA',
+            preserveUnknownOptions: true,
             relationship: condition((c) =>
               c
                 .if(local.scope(['featureIds']).allOrMissing)

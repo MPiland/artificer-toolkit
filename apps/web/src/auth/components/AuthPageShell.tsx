@@ -26,8 +26,8 @@ export function AuthPageShell({ title, description, children }: AuthPageShellPro
         <div className={styles.authHeroCopy}>
           <h1 className={styles.authHeroTitle}>Make something worth playing.</h1>
           <p className={styles.authHeroSubtitle}>
-            Sign in to keep your homebrew, characters, and table tools close without turning
-            creativity into paperwork.
+            Keep your homebrew, characters, and table tools close without turning creativity into
+            paperwork.
           </p>
         </div>
       </section>

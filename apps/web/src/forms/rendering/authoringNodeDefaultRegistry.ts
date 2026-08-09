@@ -32,6 +32,7 @@ export type AuthoringDefaultKind =
   | 'duration'
   | 'durationScalingBreakpoint'
   | 'durationValue'
+  | 'diceExpression'
   | 'effect'
   | 'effectPath'
   | 'facet'
@@ -42,6 +43,7 @@ export type AuthoringDefaultKind =
   | 'facetExists'
   | 'facetGroup'
   | 'feature'
+  | 'featureRollDefinition'
   | 'option'
   | 'featureGrants'
   | 'featureOptionChoice'
@@ -142,6 +144,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   duration: ['duration'],
   durationScalingBreakpoint: ['durationScalingBreakpoint', 'targetCountScalingBreakpoint'],
   durationValue: ['durationValue'],
+  diceExpression: ['featureRollExpression'],
   effect: ['effect'],
   effectPath: ['effectPath', 'manifestBehaviorPath'],
   facet: ['facet', 'characterFacet'],
@@ -152,6 +155,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   facetExists: ['facetExists'],
   facetGroup: ['facetGroup', 'characterFacetGroup'],
   feature: ['feature', 'featureBasics'],
+  featureRollDefinition: ['featureRollDefinition'],
   option: ['option'],
   featureGrants: ['featureGrants'],
   featureOptionChoice: ['featureOptionChoice'],

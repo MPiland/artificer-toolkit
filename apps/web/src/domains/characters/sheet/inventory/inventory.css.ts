@@ -32,7 +32,7 @@ export const inventoryDataHeader = style({
       fontWeight: 700,
       gap: '10px',
       gridTemplateColumns:
-        'minmax(160px, 1.2fr) 44px 80px minmax(92px, 0.55fr) minmax(78px, 0.42fr)',
+        'minmax(145px, 1.1fr) 40px 72px minmax(118px, 0.65fr) minmax(68px, 0.4fr)',
       letterSpacing: '0.035em',
       padding: '7px 8px 5px',
       textTransform: 'uppercase',
@@ -59,7 +59,7 @@ export const inventoryDataRow = style({
       font: 'inherit',
       gap: '10px',
       gridTemplateColumns:
-        'minmax(160px, 1.2fr) 44px 80px minmax(92px, 0.55fr) minmax(78px, 0.42fr)',
+        'minmax(145px, 1.1fr) 40px 72px minmax(118px, 0.65fr) minmax(68px, 0.4fr)',
       minHeight: '42px',
       minWidth: 0,
       padding: '6px 8px',
@@ -114,7 +114,14 @@ globalStyle(`${inventoryItemIdentity} > strong`, {
     [app]: {
       overflow: 'hidden',
       textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
+      whiteSpace: 'nowrap',
+      '@media': {
+        '(max-width: 620px)': {
+          overflow: 'visible',
+          textOverflow: 'clip',
+          whiteSpace: 'normal'
+        }
+      }
     }
   }
 })
@@ -178,14 +185,6 @@ globalStyle(`${inventoryDataCell} > strong`, {
   }
 })
 
-export const subsectionTabs = style({
-  '@layer': { [app]: { flexWrap: 'nowrap', overflowX: 'auto' } }
-})
-
-export const containerList = style({
-  '@layer': { [app]: { display: 'grid', gap: '12px' } }
-})
-
 export const containerSection = style({
   '@layer': {
     [app]: {
@@ -194,12 +193,6 @@ export const containerSection = style({
       gap: '8px',
       paddingTop: '10px'
     }
-  }
-})
-
-export const containerHeading = style({
-  '@layer': {
-    [app]: { alignItems: 'center', display: 'flex', gap: '12px', justifyContent: 'space-between' }
   }
 })
 

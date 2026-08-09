@@ -10,6 +10,7 @@ import {
 import { buildBackgroundRouteParams } from '#app/routing/authoredRouteParams'
 import { resolveAuthoredRouteSubjectId } from '#app/routing/authoredRouteSubjectId'
 import type { BackgroundEditLoaderData } from '#app/routes/-routeLoaderData'
+import { loadAuthoredRouteSystem } from '#app/routes/-authoredRouteSystem'
 import { AuthoringLayout } from '#forms'
 import {
   createAuthoredFormRouteContext,
@@ -34,6 +35,11 @@ export const Route = createFileRoute(
       context.queryClient.ensureQueryData(getBackgroundDraft(backgroundId, client))
     ])
     const routeSubject = getAuthoredRouteSubject(backgroundId, response, draft)
+    const system = await loadAuthoredRouteSystem(
+      context.queryClient,
+      client,
+      response?.item?.systemId ?? draft?.systemId
+    )
 
     if (
       routeSubject &&
@@ -54,7 +60,8 @@ export const Route = createFileRoute(
       breadcrumbLabel: routeSubject?.label,
       draft,
       response,
-      subjectId: backgroundId
+      subjectId: backgroundId,
+      system
     })
   },
   component: AuthoringLayout

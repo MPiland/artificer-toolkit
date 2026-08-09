@@ -55,6 +55,9 @@ describe('authored preview factories', () => {
       'Description',
       'Materials'
     ])
+    expect(model.sections.find((section) => section.id === 'spell-facts')).toMatchObject({
+      facts: expect.arrayContaining([{ label: 'Casting', value: '1 action' }])
+    })
   })
 
   it('summarizes non-damage spell outcomes in one facts section', () => {
@@ -97,7 +100,10 @@ describe('authored preview factories', () => {
       label: 'Shortsword +1',
       statusLabel: 'Draft',
       system: authoredRouteStorySystem,
-      values: seedShortswordPlusOneEquipment
+      values: {
+        ...seedShortswordPlusOneEquipment,
+        quote: '<p>A clean edge, <em>humming</em> faintly.</p>'
+      }
     })
 
     expect(model.sections.map((section) => section.title)).toEqual([
@@ -113,6 +119,7 @@ describe('authored preview factories', () => {
     })
     expect(model.sections.find((section) => section.id === 'equipment-prose')).toMatchObject({
       html: seedShortswordPlusOneEquipment.description,
+      quote: 'A clean edge, humming faintly.',
       title: 'Description',
       type: 'prose'
     })
@@ -132,6 +139,23 @@ describe('authored preview factories', () => {
         { label: 'Weight', value: '2 lb.' },
         { label: 'Value', value: '10 gp' }
       ])
+    })
+  })
+
+  it('uses the correct plural for proficiencies', () => {
+    const model = createAuthoredPreviewModel({
+      domain: 'class',
+      label: 'Inventor',
+      statusLabel: 'Draft',
+      system: authoredRouteStorySystem,
+      values: {
+        category: 'BASE',
+        proficiencies: [{ id: 'one' }, { id: 'two' }]
+      }
+    })
+
+    expect(model.sections.find((section) => section.id === 'class-facts')).toMatchObject({
+      facts: expect.arrayContaining([{ label: 'Proficiencies', value: '2 proficiencies' }])
     })
   })
 

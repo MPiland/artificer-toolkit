@@ -19,7 +19,7 @@ export const mobilePager = style({
       display: 'grid',
       flex: '1 1 0',
       gap: '12px',
-      gridTemplateRows: 'auto minmax(0, 1fr)',
+      gridTemplateRows: 'auto minmax(0, 1fr) auto',
       minHeight: 0,
       minWidth: 0,
       overflow: 'hidden',
@@ -58,7 +58,6 @@ export const mobilePageViewport = style({
       minHeight: 0,
       minWidth: 0,
       overflowY: 'auto',
-      paddingBlockEnd: '72px',
       scrollbarWidth: 'none',
       touchAction: 'pan-y',
       '@media': {
@@ -117,22 +116,22 @@ export const mobileFloatingDock = style({
   '@layer': {
     [app]: {
       alignItems: 'center',
-      bottom: 'calc(8px + env(safe-area-inset-bottom, 0px))',
       boxSizing: 'border-box',
       display: 'flex',
-      insetInline: 0,
       justifyContent: 'space-between',
-      paddingInline: '18px',
+      padding: '0 18px calc(8px + env(safe-area-inset-bottom, 0px))',
       pointerEvents: 'none',
-      position: 'absolute',
+      position: 'static',
+      width: '100%',
       zIndex: 2,
       '@media': {
         '(min-width: 761px)': {
           bottom: '20px',
           insetInline: 'auto',
           left: '20px',
-          paddingInline: 0,
+          padding: 0,
           position: 'fixed',
+          width: 'auto',
           zIndex: 120
         },
         '(min-width: 761px) and (max-width: 959px) and (orientation: portrait)': {

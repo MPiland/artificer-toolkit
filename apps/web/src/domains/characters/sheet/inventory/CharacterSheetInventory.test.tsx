@@ -6,6 +6,32 @@ import { createSheet, openEquipmentManager, showCarriedEquipment } from '../test
 import { CharacterSheetInventory } from './CharacterSheetInventory'
 
 describe('Character Sheet inventory', () => {
+  it('groups personal and party inventory into collapsible sections', async () => {
+    const user = userEvent.setup()
+
+    renderWithAppProviders(
+      <CharacterSheetInventory
+        partyInventory={<div>Shared supplies</div>}
+        pending={false}
+        sheet={createSheet()}
+        submitCommand={vi.fn()}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: /^my inventory$/i })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    )
+    expect(screen.getByRole('button', { name: /^party inventory$/i })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    )
+    expect(screen.queryByRole('tab', { name: /^party$/i })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /^party inventory$/i }))
+    expect(screen.getByText('Shared supplies')).toBeInTheDocument()
+  })
+
   it('allows currency updates even when the character has no current currency rows', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()

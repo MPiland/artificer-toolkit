@@ -4,6 +4,8 @@ import { getAuthoringDefaultKind, hasAuthoringDefaultKind } from './authoringNod
 describe('getAuthoringDefaultKind', () => {
   it.each([
     ['featureBasics', 'feature'],
+    ['featureRollDefinition', 'featureRollDefinition'],
+    ['featureRollExpression', 'diceExpression'],
     ['characterFacetContext', 'facetContext'],
     ['nonManifestResultBlock', 'resultBlock'],
     ['shapeMeasurement', 'measurement'],

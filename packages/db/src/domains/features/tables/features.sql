@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.features (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   label text NOT NULL,
   description text NOT NULL,
+  roll_definitions jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(roll_definitions) = 'array'),
   section_code text,
   charge_id uuid REFERENCES public.charges (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   restriction_id uuid REFERENCES public.facets (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
@@ -338,4 +339,3 @@ CREATE TABLE IF NOT EXISTS public.feature_option_levels (
 );
 
 ALTER TABLE public.feature_option_levels ENABLE ROW LEVEL SECURITY;
-

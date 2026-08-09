@@ -1,3 +1,5 @@
+BEGIN;
+
 LOCK TABLE public.authored_definitions,
 public.authored_definition_revisions,
 public.authored_route_ids,
@@ -690,3 +692,5 @@ DROP CONSTRAINT authored_definitions_draft_revision_fk;
 DROP TABLE public.authored_definition_revisions;
 
 DROP TABLE public.authored_definitions;
+
+COMMIT;

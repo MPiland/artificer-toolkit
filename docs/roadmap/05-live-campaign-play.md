@@ -1,121 +1,95 @@
 # Phase 05 — Live Campaign play
 
 > **Status:** planned
-> **Depends on:** [Phase 01](01-dice-and-roll-infrastructure.md), [Phase 02](02-media-and-file-pipeline.md), and [Phase 03](03-campaign-core.md)
-> **Unlocks:** full web Campaign beta, richer Encounters, and the web VTT
-> **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0006](../adr/0006-character-builder-sheet-boundary.md), [0009](../adr/0009-vtt-encounter-event-boundary.md)
+> **Depends on:** [Phase 02](02-media-and-file-pipeline.md), [Phase 03](03-campaign-core.md), and [Phase 04](04-social-hub.md) where Social Hub events are integrated
+> **Unlocks:** richer Campaign play, [Phase 07 VTT](07-vtt.md), and [Phase 09 paid-table notifications](09-paid-tables.md)
+> **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0006](../adr/0006-character-builder-sheet-boundary.md), and [0009](../adr/0009-vtt-encounter-event-boundary.md)
 
 ## Goal
 
-Turn Campaign Core into a usable responsive web live-play workspace. Add atomic item transfer, group and vehicle inventories, sessions, collaborative notes and supporting files, a manual Campaign clock, persisted Campaign visibility and history for Phase 01 authoritative rolls, separate Campaign/player-only chat, and Realtime reconciliation.
+Extend Campaign Core with a lightweight prepare/run/closeout loop for sessions, vehicles, supporting files and handouts, a manual authoritative Campaign clock, richer live-play workflows, and the provider-neutral web notification inbox and GM Campaign announcements.
 
 ## Current starting point
 
-- Character inventory, currency, notes, and Sheet commands are character-owned.
-- Builder aggregate replacement can delete and reinsert character-owned children; shared Campaign state cannot live inside `CharacterAuthored`.
-- Equipment definitions are revisioned content, while character inventory rows are runtime instances.
-- Character events provide a useful idempotent command/event pattern but are not a universal event store.
-- Phase 01 is expected to provide the restricted authoritative roller and exact semantic evidence. No Campaign-scoped roll visibility, persistence, retention, or history exists.
-- No application chat, Realtime channel model, shared notes, or Campaign clock exists.
-- Phase 02 is expected to provide ready-asset identity, upload safety, and authorized delivery; this phase owns how Campaign collaboration references and presents those assets.
+- Phase 03 already owns party inventory/currency, durable Campaign rolls/chat, Campaign and session notes, and private Broadcast reconciliation.
+- Phase 02 provides ready asset identity and private transfer/delivery. This phase owns Campaign file/handout references, not another asset lifecycle.
+- No durable product notification, Campaign-announcement, live-session, or Campaign-clock domain exists. Push and paid-game delivery remain later work.
 
 ## Requirements
 
-### Inventory and vehicles
+### Vehicles, files, sessions, and clock
 
-- Introduce a first-class inventory aggregate with `InventoryOwnerRef = CHARACTER | CAMPAIGN | VEHICLE`.
-- Backfill one inventory for each character while retaining existing Sheet DTO compatibility.
-- Transfer full items or partial stacks in one transaction after authorization and expected-version checks.
-- Keep denomination-specific balances per inventory owner and optional container. Owner-wide totals aggregate each balance exactly once, while container breakdowns preserve custody without double counting.
-- Apply Campaign exchange policy only through explicit, versioned conversion commands. Display, transfer, and container-placement changes never normalize currency implicitly.
-- Clear equipped, attuned, and container-placement state when custody changes.
-- Reject non-empty container transfers initially.
-- Append correlated custody/audit records and commit both sides or neither.
-- Depositing a homebrew-backed item gives authorized Campaign members the exact-revision read/use access required to understand and use that item. It does not copy the definition into their Libraries or grant ownership, editing, personal export, or Marketplace sale rights.
-- Campaign vehicle instances pin an authored Vehicle revision and own an inventory. Automated vehicle combat is deferred.
+- Extend inventory ownership to `VEHICLE`; a vehicle pins an authored Vehicle revision and has its own inventory. Automated vehicle combat remains deferred.
+- Authorized members upload/download size-limited Campaign files through the Phase 02 pipeline. Attachments record uploader, asset, Campaign, display metadata, and optional session/note association; removed members lose future API and Storage access.
+- `CAMPAIGN_HANDOUT_MAP` is an ordinary ready Campaign asset and cannot gain VTT behavior or bypass the separate `VTT_MAP` profile.
+- Campaign live-session records are `OPEN` or `FINISHED`. A Campaign may keep multiple sessions `OPEN` while the GM prepares them; opening a session is navigation, not a singleton live-state transition. A Campaign clock is independent from session state and persists across sessions unless the GM explicitly resets it.
+- A session has an immutable Campaign-scoped number, optional title, optional scheduled start/end with an explicit timezone, RSVP state, actual attendance, and versioned GM commands. Campaign Settings may provide a normal cadence, expected duration, quorum, and absent-character policy without forcing every group through a scheduling poll. Free games may omit a schedule; a paid session must later provide one before Phase 09 can book or charge it.
+- Session preparation stays flexible and GM-private. The GM can keep a short opening/agenda, possible scenes or beats, secrets/clues, rewards, and a scratchpad; attach Encounter templates and handouts; and pin existing Campaign notes or authored rules, Creatures, Items, and Spells for one-click reference. These are optional blocks, not a mandatory adventure-authoring workflow.
+- During play, the Session workspace keeps the current plan, pinned references, party summaries, chat/dice, handouts, Encounter runs, and quick-capture notes reachable without presenting them as one long form. The GM can add an improvised note or reference without leaving the Session.
+- Finishing records actual attendance and supports a short recap, the party's ending location/state, improvised people or facts that became canon, unresolved threads or rulings, rewards/milestone decisions, and follow-up tasks. Existing collaborative Session notes remain editable after finish; finishing does not freeze the historical record.
+- Campaign Settings keep player-facing table expectations, allowed content/rules, attendance policy, content boundaries, and selected safety practices available to every active member. Live play exposes the chosen pause/change/skip method without persisting sensitive boundary details in chat or analytics.
+- The manual Campaign clock stores start/stop segments and derives authoritative in-game time as `Day N` plus time of day without a background timer service. A Campaign configures dawn and dusk; custom calendars are out of scope.
+- GM start, pause, and advance commands move the clock forward. Rewind is a correction-only GM command with an explicit correction reason. Reset-boundary processing is monotonic: a processed boundary is never replayed by a rewind.
+- Campaign management is the GM workspace and launch point for live session controls. It composes existing Campaign controls and live-state projections; it is not a second Campaign aggregate.
 
-### Sessions, notes, clock, rolls, and chat
+### Notifications and Campaign announcements
 
-- Sessions act as Campaign folders with contributed notes, authorship, timestamps, edit history or explicit last-writer policy, and role-aware visibility.
-- The manual Campaign clock records start/stop segments and derives elapsed in-game time without requiring a background timer service.
-- Campaign roll commands call the Phase 01 service and persist its normalized expression, ordered faces, modifiers, subtotals, and total with Campaign-owned actor, visibility, scope, ruleset, and timestamp metadata.
-- This phase must not create another expression parser, evaluator, randomness source, or client-side roll path.
-- Campaign roll history retains the newest 5,000 entries by default without deleting audit data required by another domain.
-- Campaign chat is visible to authorized Campaign members including GMs.
-- Player-only chat is inaccessible to GMs through fetch, subscription, notification, search, analytics, and ordinary administration paths.
-- Every chat message retains its immutable author user ID and may also reference the speaking Character. Account messages show the stable username; Character messages show the Character name with the username as persistent account attribution so changing Characters does not obscure who is speaking.
-- Authorized safety staff may inspect reported content through a separate audited moderation capability.
-
-### Campaign files and handouts
-
-- Authorized Campaign members may upload and download size-limited supporting files through the Phase 02 asset pipeline.
-- Campaign attachments inherit Campaign access and use explicit upload/delete capabilities. Removing a member revokes future API and Storage access.
-- A Campaign attachment records uploader, asset, Campaign, display filename, description, timestamps, and optional session/note association selected by the phase subplan.
-- `CAMPAIGN_HANDOUT_MAP` is a normal viewable/downloadable Campaign asset. It does not gain VTT grid, fog, token, scene, or large-map behavior.
-- Executables, archives, scripts, and unsupported active content remain disallowed. Files are not listed or downloadable until required validation/scanning reaches `READY`.
-- Campaign attachment limits and quotas are independent from the larger `VTT_MAP` profile.
-
-### Realtime and responsive web
-
-- Persisted writes continue through tRPC. Broadcast only after the authoritative commit.
-- Clients reconnect from a projection/event cursor and deduplicate messages.
-- Presence communicates slow-changing connection state only; typing and other transient signals use Broadcast.
-- Responsive web surfaces reconcile from the same authoritative cursor after navigation, sleep, reconnect, or missed Broadcast delivery.
+- Add durable, per-recipient, provider-neutral notifications with source references, unread/read state, authorized deep links, and user preferences for optional events.
+- Add a web in-app inbox. Notification payloads contain no sensitive copied content; authorized API reads resolve the destination.
+- Owners may publish Campaign announcements stored independently from Phase 03's 500-entry chat cap and delivered to current Campaign members.
+- Integrate Social Hub application and membership events when Phase 04 is present. Party-only sources must preserve Phase 03 room isolation across records, counts, reads, and delivery.
+- Define required versus optional notification policy. Keep announcement and notification creation idempotent and auditable.
 
 ## Design
 
 ```mermaid
 flowchart LR
-  Command["Typed API command"] --> Tx["Postgres transaction"]
-  Tx --> Projection["Authoritative projection + cursor"]
-  Tx --> Audit["Custody/chat/roll/clock record"]
-  Projection --> Broadcast["Private Realtime Broadcast"]
-  Broadcast --> Web["Web reconcile by cursor"]
+  Announcement["GM Campaign announcement"] --> Notifications["Durable notification records"]
+  Social["Social Hub event"] --> Notifications
+  Notifications --> Inbox["Web in-app inbox"]
+  NotificationRead["Authorized API destination read"] --> Campaign["Campaign projection"]
 ```
 
-Realtime messages are hints containing scope, event identity, and cursor. Clients recover from loss by fetching the authoritative projection or missing range; they do not treat Broadcast delivery as durable persistence.
+The notification record is the product truth. Delivery adapters added later consume it; they never become an authorization bypass or copy private content into an external payload.
+
+```mermaid
+stateDiagram-v2
+  [*] --> OPEN
+  OPEN --> FINISHED: GM ends
+```
+
+Clock start, pause, advance, and correction commands persist before any derived live-state projection is published. The system does not run a timer or schedule work in the background.
 
 ## Ordered workstreams
 
-1. **Define shared live-play authorization.** Extend Campaign capabilities for inventories, transfers, vehicle custody, sessions, notes/files, clock, roll visibility, channel subscription, and moderation.
-2. **Extract the inventory aggregate.** Design migration/backfill, compatibility projection, versioning, repository locks, and transfer command/event contracts.
-3. **Add vehicles, sessions, notes/files, and clock.** Keep each Campaign-owned, attach only ready Phase 02 assets, and model clock segments instead of a continuously running server process.
-4. **Add Campaign roll visibility and history.** Reuse Phase 01 validation and exact roll evidence; add Campaign authorization, actor/scope metadata, visibility, retention, persistence, and history queries.
-5. **Add chat and safety boundaries.** Define channel kinds, membership snapshots, message lifecycle, reporting, blocking interaction, retention, RLS, and private notification rules.
-6. **Add Realtime reconciliation.** Authorize private channels, emit after commit, track cursors, and handle reconnect, duplicate, delayed, and out-of-order delivery.
-7. **Ship responsive web live-play surfaces.** Cover group and vehicle inventory, sessions, notes/files, clock, roll history, Campaign chat, player-only chat, reconnect, and error states.
-8. **Validate collaboration and recovery.** Exercise authorization, concurrency, cursor recovery, duplicate/out-of-order delivery, responsive layouts, and private-channel isolation.
+1. **Extend live-play capability rules.** Cover vehicles, file references, session lifecycle, GM controls, clock, announcements, inbox reads, preferences, and source visibility.
+2. **Add vehicles and Campaign file references.** Reuse Phase 02 profiles, access, ready-state checks, and asset IDs.
+3. **Add sessions and clock.** Persist `OPEN`/`FINISHED` sessions, scheduling/RSVP/attendance, optional prep blocks and reference pins, quick capture and closeout, Campaign workspace controls, clock segments and configurable dawn/dusk, and correction-only rewind plus monotonic reset boundaries.
+4. **Add notifications and announcements.** Create source references, recipient projections, inbox/read commands, preferences, and owner announcement publishing.
+5. **Integrate Social Hub events.** Only after Phase 04 semantics exist; retain blocked-party and private-scope protections.
+6. **Ship responsive web.** Cover the Session list, optional preparation, in-play reference workspace, closeout, attendance, vehicle custody, files, clock, announcement composition/history, inbox, preference states, and authorized deep links.
+7. **Validate authorization and recovery.** Test recipient isolation, idempotency, removal, deep-link failure, file access revocation, and clock concurrency.
 
 ## Acceptance gates
 
-- Conflicting or retried transfers never duplicate, lose, or partially move an item or currency amount.
-- Container transfer and explicit conversion preserve exact denomination totals atomically; owner totals never double-count a container balance.
-- Non-empty container transfer is rejected without changing either inventory.
-- Builder save cannot delete or replace Campaign, vehicle, or shared inventory data.
-- Clock totals remain correct across repeated start/stop, reconnect, and concurrent GM commands.
-- Phase 01 limits reject abusive expressions; stored semantic evidence reproduces the displayed Campaign result without re-evaluation.
-- GMs cannot fetch, subscribe to, receive notification content from, or infer player-only chat.
-- Reconnect from a cursor produces no duplicate messages, rolls, transfers, or clock segments.
-- Unsupported, unsafe, oversized, or over-quota Campaign files never become downloadable; upload/finalize retries do not duplicate attachments.
-- A removed member cannot list, download, or refresh access to private Campaign attachments, including through a previously opened client route.
-- Ordinary Campaign handout maps remain subject to Campaign attachment limits and cannot bypass the separate VTT map profile.
+- Campaign announcements survive independently of chat retention and reach only current authorized members.
+- A player-only source cannot create a GM-visible notification, count, or delivery attempt.
+- Inbox records and links reveal no protected content without a fresh authorized API read.
+- Removed members cannot list, download, or refresh private Campaign files through prior routes.
+- Multiple Campaign sessions may remain `OPEN`; clock controls and announcements remain available from Campaign management regardless of which session the GM is viewing.
+- A GM can move from session list to preparation, live reference, and closeout without duplicating a Session or losing notes; finished sessions retain editable collaborative notes and immutable attendance history.
+- Session reference pins resolve through existing authorized content rather than copying mutable rules text, and removed members cannot use a prior pin to bypass access. The GM can keep the small working set visible without opening a pile of overlapping sheets or notes.
+- Player-facing expectations and the selected live safety method remain accessible without exposing private safety responses or boundary details.
+- Clock segments, Day N projection, dawn/dusk configuration, correction-only rewind, and monotonic reset boundaries remain correct across retries, reconnects, and concurrent GM commands.
+- Vehicle custody remains isolated from Builder aggregate replacement.
 
 ## Out of scope
 
-- The underlying roll grammar, evaluator, randomness source, Sheet animation, Encounters, initiative, creature state, VTT, voice/video, end-to-end encryption, offline mutation queues, automated vehicle combat, non-empty container transfer, and unlimited history.
-- General background-job infrastructure. Retention and notification work should use the smallest provider/database mechanisms justified by measured needs.
-- Native cache, push, deep links, and mobile distribution; Phase 10 adds those against the proven live-play contracts.
-
-## Questions for the phase subplan
-
-- May players create and edit session folders, or only contribute notes inside GM-created sessions?
-- Are contributed notes jointly editable, author-editable, or append-only in beta?
-- Can players withdraw from group inventory directly, or does that require GM approval?
-- Is the Campaign clock one canonical elapsed timeline or a ledger with named in-game intervals and manual correction?
-- What retention, edit/delete window, report workflow, and staff-access audit policy applies to chat?
-- May supporting files attach only to the Campaign, or also to individual sessions and contributed notes in beta?
-- Which roles may upload/delete files, what initial file allowlist and per-Campaign quota apply, and may players contribute handouts without GM approval?
+- Party inventory/currency, conversations/rolls, base notes/collaborative session sections, and Broadcast reconciliation: [Phase 03](03-campaign-core.md).
+- Email/external notification delivery, paid-game events/reminders, retries, and delivery state: [Phase 09](09-paid-tables.md).
+- Native push, device registration, native deep links, co-GMs, custom calendars, and automatic clock-driven jobs: Phase 10 or a later approved phase.
+- VTT maps/scenes/tokens, voice/video, automated recaps or session transcription, end-to-end encryption, unlimited history, and general background-job infrastructure.
 
 ## New-session instruction
 
-Split this phase into at least inventory, collaboration/Realtime, and responsive web subplans. Do not let those branches concurrently edit the same Campaign capability or projection contracts without an integration order.
+Keep notifications durable and provider-neutral. Do not add email, push, a queue, or delivery-provider abstraction until the owning later phase requires it.

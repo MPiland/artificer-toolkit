@@ -48,7 +48,7 @@ import { captureGroupEditorSnapshot } from './groupEditorTransaction'
 import { AuthoringValidationAlert } from './AuthoringValidationAlert'
 import { getResolvedAuthoringScope } from '../authoring-schema/resolvedAuthoringScope'
 import * as styles from './FormRenderer.css'
-import { Button, Group, Modal, Text } from '@mantine/core'
+import { Button, Group, Loader, Modal, Stack, Text } from '@mantine/core'
 import { CircleHelp } from 'lucide-react'
 import { AuthoringArtworkControl } from '../AuthoringArtworkControl'
 
@@ -488,7 +488,26 @@ export function FormRenderer<TValues extends object>({
         )
       }
 
-      if (!resolvedMapId || !activeModel) return null
+      if (!resolvedMapId) return null
+
+      if (!activeModel && resolvedResolveModel) {
+        return (
+          <Stack
+            align='center'
+            className={styles.loadingState}
+            gap='xs'
+            justify='center'
+            role='status'
+          >
+            <Loader size='sm' />
+            <Text c='dimmed' size='sm'>
+              Loading authoring tools…
+            </Text>
+          </Stack>
+        )
+      }
+
+      if (!activeModel) return null
 
       if (delegatesNavigationTarget && activeTarget && activeCanvasMapId) {
         const delegatedModel = getResolvedAuthoringScope(

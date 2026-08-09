@@ -16,7 +16,10 @@ import {
 } from '#domains/classes/class.fixtures'
 import { ClassDetailPage } from '#domains/classes/pages/ClassDetailPage'
 import { CreatureDetailPage } from '#domains/creatures/pages/CreatureDetailPage'
-import { masterEquipmentResponseFixture } from '#domains/equipment/equipment.fixtures'
+import {
+  masterEquipmentResponseFixture,
+  ownedEquipmentResponseFixture
+} from '#domains/equipment/equipment.fixtures'
 import { EquipmentDetailPage } from '#domains/equipment/pages/EquipmentDetailPage'
 import { FeatDetailPage } from '#domains/feats/pages/FeatDetailPage'
 import { RaceDetailPage } from '#domains/races/pages/RaceDetailPage'
@@ -143,9 +146,9 @@ const detailReferences = {
   challengeRatings: [],
   conditionTypes: [],
   creatureTypes: [],
-  currencies: [],
+  currencies: [{ value: 'gp', label: 'Gold Piece' }],
   damageTypes: [],
-  heritages: [],
+  heritages: [{ value: 'dwarven', label: 'Dwarven Heritage' }],
   languages: [],
   magicSchools: spellReferences.magicSchools,
   rarities: [{ value: 'common', label: 'Common' }],
@@ -491,6 +494,70 @@ describe('authored domain detail pages', () => {
     expect(screen.queryByRole('button', { name: /^edit$/i })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /duplicate/i })).toBeInTheDocument()
     expect(screen.queryByRole('navigation', { name: /detail sections/i })).not.toBeInTheDocument()
+  })
+
+  it('renders equipment economy, attunement, quote, and eligibility as player-facing details', () => {
+    const ownedEquipment = ownedEquipmentResponseFixture.item
+    if (!ownedEquipment) throw new Error('Expected owned equipment fixture.')
+
+    renderWithAppProviders(
+      <EquipmentDetailPage
+        draft={null}
+        equipmentId={ownedEquipment.id}
+        references={detailReferences}
+        response={{
+          ...ownedEquipmentResponseFixture,
+          item: {
+            ...ownedEquipment,
+            requiresAttunement: true,
+            restrictions: {
+              id: 'equipment-restrictions',
+              groups: [
+                {
+                  id: 'equipment-restriction-group',
+                  order: 1,
+                  contexts: [
+                    {
+                      id: 'equipment-restriction-context',
+                      order: 1,
+                      subject: 'CHARACTER',
+                      conditions: [
+                        {
+                          id: 'equipment-class-level',
+                          order: 1,
+                          kind: 'PREDICATE',
+                          constraint: 'INCLUDE',
+                          predicateCode: 'CLASS_LEVEL',
+                          classIds: [ownedClassResponseFixture.item.id],
+                          min: 1
+                        },
+                        {
+                          id: 'equipment-heritage',
+                          order: 2,
+                          kind: 'PREDICATE',
+                          constraint: 'INCLUDE',
+                          predicateCode: 'HERITAGE',
+                          authoringModeKind: 'SELECTED',
+                          heritageIds: ['dwarven']
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }}
+        view='active'
+      />
+    )
+
+    expect(screen.getByText('Everything you need when the road gets muddy.')).toBeInTheDocument()
+    expect(screen.getByText('10 Gold Piece')).toBeInTheDocument()
+    expect(screen.getByText('Required')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Eligibility' })).toBeInTheDocument()
+    expect(screen.getByText('Fighter level 1+ and Dwarven Heritage')).toBeInTheDocument()
+    expect(screen.queryByText(/currency/i)).not.toBeInTheDocument()
   })
 
   it('renders vehicle capacity and economy with resolved currency labels', () => {

@@ -171,15 +171,16 @@ const classSpellcastingNode = buildNodeMap<ClassSpellcastingAuthored>()
 
 export const CLASS_SPELLCASTING_NODE_MAP = classSpellcastingNode.define(
   'classSpellcasting',
-  ({ map, nodes, cond }) => {
+  ({ map, nodes, cond, data }) => {
     const { selectSingle, selectMulti, number, text, groupArray, groupObject } = nodes
+    const { table } = data
     const local = cond.local()
 
     map
       .set(
         'spellLimits',
         groupArray(['spellLimits'], 'Spell Limits', () => CLASS_SPELL_LIMITS_NODE_MAP, {
-          presentation: 'table'
+          presentation: 'summary'
         })
       )
       .set('availableAtLevel', number(['availableAtLevel'], 'Available At Level'))
@@ -189,6 +190,15 @@ export const CLASS_SPELLCASTING_NODE_MAP = classSpellcastingNode.define(
         groupArray(['details'], 'Details', () => DETAIL_NODE_MAP, { presentation: 'inline' })
       )
       .set('magicName', text(['magicName'], 'Magic Name'))
+      .set(
+        'availableSpellIds',
+        selectMulti(['availableSpellIds'], 'Spell List', {
+          kind: 'DATA',
+          relationship: table('spells', {
+            selectColumns: ['id', 'label']
+          })
+        })
+      )
       .set(
         'ability',
         selectSingle(['ability'], 'Spellcasting Ability', {

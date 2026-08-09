@@ -12,10 +12,10 @@ Character Sheet commands record mutations to one character's play state. A virtu
 
 ## Decision
 
-Future VTT work will use a separate encounter aggregate and append-only encounter event model. Encounter orchestration may load actor snapshots and call pure rules/effect functions, but the character engine remains deterministic and persistence-free. Character Sheet events continue to represent character-owned state changes only.
+Future VTT work will use a separate Encounter aggregate and append-only Encounter event model. Encounter orchestration may load Character, Creature, and Encounter-local custom actor snapshots and call pure rules/effect functions, but the character engine remains deterministic and persistence-free. Character Sheet events continue to represent Character-owned state changes only. The Encounter projection owns prepared/active/completed state, manual or rolled initiative, deterministic ties, manual reorder, and manual current turn/round state; these are not Sheet history.
 
 Authored effects and outcomes describe mechanics; they are not persisted encounter events. An eventual effect executor must produce explicit proposed outcomes that encounter orchestration validates and records.
 
 ## Consequences
 
-Character play remains usable without a VTT, encounter replay can be authoritative for the table, and rules logic can be shared without sharing persistence ownership. No encounter tables or speculative universal event abstraction are added during MVP character/content work.
+Character play remains usable without a VTT, Encounter replay can be authoritative for the table, and rules logic can be shared without sharing persistence ownership. Correlated Character mutations lock both aggregates and commit the Encounter event plus Character command in one transaction, or neither. No speculative universal event abstraction is added during MVP character/content work.

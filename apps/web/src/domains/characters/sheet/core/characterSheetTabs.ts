@@ -8,7 +8,7 @@ export const CHARACTER_SHEET_DESKTOP_TABS: ReadonlyArray<{
   { id: 'actions', label: 'Actions' },
   { id: 'spells', label: 'Spells' },
   { id: 'inventory', label: 'Inventory' },
-  { id: 'reference', label: 'Features & Traits' },
+  { id: 'reference', label: 'Features' },
   { id: 'extras', label: 'Extras' },
   { id: 'notes', label: 'Notes' }
 ]

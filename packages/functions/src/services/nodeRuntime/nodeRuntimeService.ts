@@ -249,6 +249,7 @@ function normalizeVisibleSelectOptions(
         ) {
           continue
         }
+        if (node.preserveUnknownOptions) continue
 
         const allowedValues = new Set((node.options ?? []).map((option) => option.value))
         const currentValue = getValueAtPath(nextValues, node.path)
@@ -449,6 +450,8 @@ async function resolveNode(
       kind: 'INPUT',
       type: node.type,
       options: visible ? await resolveOptions(db, node.source, scope) : [],
+      preserveUnknownOptions:
+        node.source.kind === 'DATA' ? node.source.preserveUnknownOptions : undefined,
       constraints: node.constraints,
       authoring: resolveInputAuthoringMeta(node.authoring)
     }
