@@ -635,6 +635,10 @@ interface TrpcClient {
         SchemaInput<typeof campaignContracts.campaignIdInputSchema>,
         campaignContracts.CampaignContentBindingDto[]
       >
+      submit: MutationProcedure<
+        campaignContracts.SubmitCampaignContentVersionInput,
+        campaignContracts.CampaignContentBindingDto
+      >
       review: MutationProcedure<
         campaignContracts.ReviewCampaignContentVersionInput,
         campaignContracts.CampaignContentBindingDto
@@ -1317,6 +1321,12 @@ function buildApi(client: TrpcClient) {
             'campaigns.content.list',
             campaignContracts.campaignContentBindingDtoSchema.array(),
             () => client.campaigns.content.list.query({ campaignId })
+          ),
+        submit: (input: campaignContracts.SubmitCampaignContentVersionInput) =>
+          request(
+            'campaigns.content.submit',
+            campaignContracts.campaignContentBindingDtoSchema,
+            () => client.campaigns.content.submit.mutate(input)
           ),
         review: (input: campaignContracts.ReviewCampaignContentVersionInput) =>
           request(

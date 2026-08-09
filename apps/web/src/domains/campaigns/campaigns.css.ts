@@ -343,6 +343,14 @@ export const input = style({
   }
 })
 
+export const inputRowButton = style({
+  '@layer': {
+    [app]: {
+      minBlockSize: '40px'
+    }
+  }
+})
+
 export const detailWorkspace = style({
   '@layer': {
     [app]: {

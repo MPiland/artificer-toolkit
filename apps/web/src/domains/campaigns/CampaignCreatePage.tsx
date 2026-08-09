@@ -50,7 +50,7 @@ export function CampaignCreatePage() {
         <TextInput
           classNames={{ input: styles.input }}
           label='Campaign name'
-          maxLength={120}
+          maxLength={100}
           onChange={(event) => setName(event.currentTarget.value)}
           required
           value={name}

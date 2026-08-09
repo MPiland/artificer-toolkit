@@ -123,6 +123,24 @@ export async function replaceCharacterInventoryItems(
     `Character equipment for ${characterId}`
   )
   const inventoryIds = new Set(orderedInventory.map((item) => item.id))
+  if (orderedInventory.length > 0) {
+    const conflictingItems = await db
+      .selectFrom('inventory_items')
+      .select(['id', 'owner_id'])
+      .where(
+        'id',
+        'in',
+        orderedInventory.map((item) => item.id)
+      )
+      .forUpdate()
+      .execute()
+    const foreignItem = conflictingItems.find((item) => item.owner_id !== owner.id)
+    if (foreignItem) {
+      throw new Error(
+        `Character ${characterId} cannot claim inventory item ${foreignItem.id} owned by another inventory aggregate.`
+      )
+    }
+  }
   for (const itemId of [...equipped, ...attuned]) {
     if (!inventoryIds.has(itemId)) {
       throw new Error(`Character ${characterId} references missing inventory item ${itemId}.`)
@@ -192,8 +210,7 @@ export async function replaceCharacterInventoryItems(
         placement_id: placement?.id ?? null
       })
       .onConflict((oc) =>
-        oc.column('id').doUpdateSet((eb) => ({
-          owner_id: eb.ref('excluded.owner_id'),
+        oc.columns(['owner_id', 'id']).doUpdateSet((eb) => ({
           equipment_id: eb.ref('excluded.equipment_id'),
           quantity: eb.ref('excluded.quantity'),
           container_id: eb.ref('excluded.container_id'),

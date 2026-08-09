@@ -72,7 +72,7 @@ export function CampaignSettings({ campaign }: { campaign: CampaignDetailDto }) 
             classNames={{ input: styles.input }}
             disabled={!editable}
             label='Name'
-            maxLength={120}
+            maxLength={100}
             value={name}
             onChange={(event) => setName(event.currentTarget.value)}
           />

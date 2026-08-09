@@ -31,6 +31,15 @@ export function CampaignInviteButton({ campaign }: { campaign: CampaignDetailDto
     close()
   }
 
+  function copyInviteLink(token: string) {
+    const inviteUrl = new URL(
+      `/campaigns/invite/${encodeURIComponent(token)}`,
+      window.location.origin
+    ).toString()
+    void navigator.clipboard.writeText(inviteUrl)
+    notifications.show({ message: 'Invite link copied.' })
+  }
+
   return (
     <>
       <Button onClick={open}>Invite player</Button>
@@ -73,19 +82,14 @@ export function CampaignInviteButton({ campaign }: { campaign: CampaignDetailDto
           </form>
           {createdInvite ? (
             <Alert title='Invite created'>
-              <Text ff='monospace' size='sm' style={{ overflowWrap: 'anywhere' }}>
-                {createdInvite.token}
-              </Text>
+              <Text size='sm'>Share this link with the player you want to invite.</Text>
               <Button
                 mt='xs'
                 size='xs'
                 variant='default'
-                onClick={() => {
-                  void navigator.clipboard.writeText(createdInvite.token)
-                  notifications.show({ message: 'Invite token copied.' })
-                }}
+                onClick={() => copyInviteLink(createdInvite.token)}
               >
-                Copy token
+                Copy invite link
               </Button>
             </Alert>
           ) : null}

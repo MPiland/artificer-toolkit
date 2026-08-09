@@ -11,8 +11,13 @@ import { hasPendingInvitationSetup } from '#app/auth/invitationStatus'
 
 export const Route = createFileRoute('/_authed')({
   validateSearch: authoringSearchSchema,
-  beforeLoad: ({ context }) => {
-    if (!context.user) throw redirect({ to: '/sign-in' })
+  beforeLoad: ({ context, location }) => {
+    if (!context.user) {
+      throw redirect({
+        to: '/sign-in',
+        search: { redirect: location.href }
+      })
+    }
     if (hasPendingInvitationSetup(context.user)) {
       throw redirect({ to: '/update-password', search: { flow: 'invite' } })
     }

@@ -82,7 +82,19 @@ export function useCampaignRealtime(campaign: CampaignDetailDto, currentUserId: 
             void queryClient.invalidateQueries({
               queryKey: queryKeys.campaigns.content(campaign.id)
             })
-          } else if (entity === 'CAMPAIGN' || entity === 'MEMBERSHIP' || entity === 'CHARACTER') {
+          } else if (entity === 'CLOCK') {
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.campaigns.clock(campaign.id)
+            })
+          } else if (entity === 'CHARACTER') {
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.characters.sheet(parsed.data.entityId)
+            })
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.campaigns.detail(campaign.id)
+            })
+            void queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.list() })
+          } else if (entity === 'CAMPAIGN' || entity === 'MEMBERSHIP') {
             void queryClient.invalidateQueries({
               queryKey: queryKeys.campaigns.detail(campaign.id)
             })

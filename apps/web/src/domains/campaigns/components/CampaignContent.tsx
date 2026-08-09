@@ -1,14 +1,55 @@
-import { Alert, Badge, Button, Group, Stack, Text, Title } from '@mantine/core'
+import { Alert, Badge, Button, Group, Select, Stack, Text, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { AuthoredSubjectKindDto } from '@artificer-toolkit/schema/api/content'
+import { useState } from 'react'
 import type { CampaignDetailDto } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { getCampaignContent } from '#app/data/campaigns/queries'
 import { queryKeys } from '#app/lib/queryKeys'
+import {
+  campaignContentTypeOptions,
+  listOwnedCampaignContent,
+  loadCampaignContentSnapshot
+} from '../campaignContentSubmission'
 import * as styles from '../campaigns.css'
 
 export function CampaignContent({ campaign }: { campaign: CampaignDetailDto }) {
   const queryClient = useQueryClient()
+  const [subjectKind, setSubjectKind] = useState<AuthoredSubjectKindDto | null>(null)
+  const [subjectId, setSubjectId] = useState<string | null>(null)
   const content = useQuery(getCampaignContent(campaign.id))
+  const candidates = useQuery({
+    queryKey: ['campaigns', campaign.id, 'content-candidates', subjectKind],
+    queryFn: () => (subjectKind ? listOwnedCampaignContent(subjectKind) : Promise.resolve([])),
+    enabled: subjectKind !== null && campaign.capabilities.submitContent
+  })
+  const submit = useMutation({
+    mutationFn: async () => {
+      if (!subjectKind || !subjectId) throw new Error('Choose owned homebrew to submit.')
+      const candidate = candidates.data?.find((item) => item.subjectId === subjectId)
+      if (!candidate) throw new Error('That owned homebrew record is no longer available.')
+      const latestVersion = Math.max(
+        0,
+        ...(content.data ?? [])
+          .filter(
+            (version) =>
+              version.subjectKind === subjectKind && version.subjectId === candidate.subjectId
+          )
+          .map((version) => version.version)
+      )
+      return api.campaigns.content.submit({
+        campaignId: campaign.id,
+        subjectKind,
+        subjectId: candidate.subjectId,
+        version: latestVersion + 1,
+        snapshot: await loadCampaignContentSnapshot(subjectKind, candidate.publicId)
+      })
+    },
+    onSuccess: async () => {
+      setSubjectId(null)
+      await queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.content(campaign.id) })
+    }
+  })
   const review = useMutation({
     mutationFn: ({
       contentVersionId,
@@ -39,6 +80,51 @@ export function CampaignContent({ campaign }: { campaign: CampaignDetailDto }) {
         </Text>
       </div>
       {content.error ? <Alert color='red'>{content.error.message}</Alert> : null}
+      {campaign.capabilities.submitContent ? (
+        <Stack gap='sm'>
+          <div>
+            <Text fw={600}>Submit owned homebrew</Text>
+            <Text c='dimmed' size='sm'>
+              Send an active homebrew record to the GM for this Campaign.
+            </Text>
+          </div>
+          {candidates.error || submit.error ? (
+            <Alert color='red'>{(candidates.error ?? submit.error)?.message}</Alert>
+          ) : null}
+          <Group align='end' wrap='wrap'>
+            <Select
+              classNames={{ input: styles.input }}
+              data={campaignContentTypeOptions}
+              label='Content type'
+              value={subjectKind}
+              onChange={(value) => {
+                setSubjectKind(value as AuthoredSubjectKindDto | null)
+                setSubjectId(null)
+              }}
+            />
+            <Select
+              classNames={{ input: styles.input }}
+              data={(candidates.data ?? []).map((candidate) => ({
+                value: candidate.subjectId,
+                label: candidate.label
+              }))}
+              disabled={!subjectKind || candidates.isPending}
+              label='Owned homebrew'
+              searchable
+              value={subjectId}
+              onChange={setSubjectId}
+            />
+            <Button
+              className={styles.inputRowButton}
+              disabled={!subjectId || content.isPending}
+              loading={submit.isPending}
+              onClick={() => submit.mutate()}
+            >
+              Submit
+            </Button>
+          </Group>
+        </Stack>
+      ) : null}
       {(content.data ?? []).length === 0 ? (
         <Text c='dimmed'>No Campaign content versions.</Text>
       ) : null}

@@ -275,6 +275,8 @@ describe('campaign contracts', () => {
   })
 
   it('rejects unrecognized input fields and requires optimistic versions', () => {
+    expect(createCampaignInputSchema.safeParse({ name: 'x'.repeat(100) }).success).toBe(true)
+    expect(createCampaignInputSchema.safeParse({ name: 'x'.repeat(101) }).success).toBe(false)
     expect(
       createCampaignInputSchema.safeParse({ name: 'Game', description: 'x'.repeat(20_001) }).success
     ).toBe(false)
@@ -292,6 +294,13 @@ describe('campaign contracts', () => {
       updateCampaignInputSchema.safeParse({ campaignId: id, name: 'New name', expectedVersion: 1 })
         .success
     ).toBe(true)
+    expect(
+      updateCampaignInputSchema.safeParse({
+        campaignId: id,
+        name: 'x'.repeat(101),
+        expectedVersion: 1
+      }).success
+    ).toBe(false)
     for (const attunementSlotOverride of [null, 0, 4]) {
       expect(
         updateCampaignInputSchema.safeParse({ campaignId: id, attunementSlotOverride, expectedVersion: 1 })

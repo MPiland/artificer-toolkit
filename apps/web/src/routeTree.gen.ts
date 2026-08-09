@@ -69,6 +69,7 @@ import { Route as AuthedEquipmentEquipmentPublicIdEditRouteImport } from './rout
 import { Route as AuthedCreaturesCreaturePublicIdEditRouteImport } from './routes/_authed/creatures/$creaturePublicId/edit'
 import { Route as AuthedCreaturesCreaturePublicIdCreatureSlugRouteImport } from './routes/_authed/creatures/$creaturePublicId/$creatureSlug'
 import { Route as AuthedClassesClassPublicIdEditRouteImport } from './routes/_authed/classes/$classPublicId/edit'
+import { Route as AuthedCampaignsInviteTokenRouteImport } from './routes/_authed/campaigns/invite/$token'
 import { Route as AuthedCampaignsCampaignPublicIdCampaignSlugRouteImport } from './routes/_authed/campaigns/$campaignPublicId/$campaignSlug'
 import { Route as AuthedBackgroundsBackgroundPublicIdEditRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/edit'
 import { Route as AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/$backgroundSlug'
@@ -411,6 +412,12 @@ const AuthedClassesClassPublicIdEditRoute =
     path: '/edit',
     getParentRoute: () => AuthedClassesClassPublicIdRoute,
   } as any)
+const AuthedCampaignsInviteTokenRoute =
+  AuthedCampaignsInviteTokenRouteImport.update({
+    id: '/campaigns/invite/$token',
+    path: '/campaigns/invite/$token',
+    getParentRoute: () => AuthedRoute,
+  } as any)
 const AuthedCampaignsCampaignPublicIdCampaignSlugRoute =
   AuthedCampaignsCampaignPublicIdCampaignSlugRouteImport.update({
     id: '/$campaignSlug',
@@ -609,6 +616,7 @@ export interface FileRoutesByFullPath {
   '/backgrounds/$backgroundPublicId/$backgroundSlug': typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteWithChildren
   '/backgrounds/$backgroundPublicId/edit': typeof AuthedBackgroundsBackgroundPublicIdEditRoute
   '/campaigns/$campaignPublicId/$campaignSlug': typeof AuthedCampaignsCampaignPublicIdCampaignSlugRouteWithChildren
+  '/campaigns/invite/$token': typeof AuthedCampaignsInviteTokenRoute
   '/classes/$classPublicId/edit': typeof AuthedClassesClassPublicIdEditRoute
   '/creatures/$creaturePublicId/$creatureSlug': typeof AuthedCreaturesCreaturePublicIdCreatureSlugRouteWithChildren
   '/creatures/$creaturePublicId/edit': typeof AuthedCreaturesCreaturePublicIdEditRoute
@@ -689,6 +697,7 @@ export interface FileRoutesByTo {
   '/systems': typeof AuthedSystemsIndexRoute
   '/vehicles': typeof AuthedVehiclesIndexRoute
   '/backgrounds/$backgroundPublicId/edit': typeof AuthedBackgroundsBackgroundPublicIdEditRoute
+  '/campaigns/invite/$token': typeof AuthedCampaignsInviteTokenRoute
   '/classes/$classPublicId/edit': typeof AuthedClassesClassPublicIdEditRoute
   '/creatures/$creaturePublicId/edit': typeof AuthedCreaturesCreaturePublicIdEditRoute
   '/equipment/$equipmentPublicId/edit': typeof AuthedEquipmentEquipmentPublicIdEditRoute
@@ -772,6 +781,7 @@ export interface FileRoutesById {
   '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug': typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteWithChildren
   '/_authed/backgrounds/$backgroundPublicId/edit': typeof AuthedBackgroundsBackgroundPublicIdEditRoute
   '/_authed/campaigns/$campaignPublicId/$campaignSlug': typeof AuthedCampaignsCampaignPublicIdCampaignSlugRouteWithChildren
+  '/_authed/campaigns/invite/$token': typeof AuthedCampaignsInviteTokenRoute
   '/_authed/classes/$classPublicId/edit': typeof AuthedClassesClassPublicIdEditRoute
   '/_authed/creatures/$creaturePublicId/$creatureSlug': typeof AuthedCreaturesCreaturePublicIdCreatureSlugRouteWithChildren
   '/_authed/creatures/$creaturePublicId/edit': typeof AuthedCreaturesCreaturePublicIdEditRoute
@@ -857,6 +867,7 @@ export interface FileRouteTypes {
     | '/backgrounds/$backgroundPublicId/$backgroundSlug'
     | '/backgrounds/$backgroundPublicId/edit'
     | '/campaigns/$campaignPublicId/$campaignSlug'
+    | '/campaigns/invite/$token'
     | '/classes/$classPublicId/edit'
     | '/creatures/$creaturePublicId/$creatureSlug'
     | '/creatures/$creaturePublicId/edit'
@@ -937,6 +948,7 @@ export interface FileRouteTypes {
     | '/systems'
     | '/vehicles'
     | '/backgrounds/$backgroundPublicId/edit'
+    | '/campaigns/invite/$token'
     | '/classes/$classPublicId/edit'
     | '/creatures/$creaturePublicId/edit'
     | '/equipment/$equipmentPublicId/edit'
@@ -1019,6 +1031,7 @@ export interface FileRouteTypes {
     | '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug'
     | '/_authed/backgrounds/$backgroundPublicId/edit'
     | '/_authed/campaigns/$campaignPublicId/$campaignSlug'
+    | '/_authed/campaigns/invite/$token'
     | '/_authed/classes/$classPublicId/edit'
     | '/_authed/creatures/$creaturePublicId/$creatureSlug'
     | '/_authed/creatures/$creaturePublicId/edit'
@@ -1481,6 +1494,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/classes/$classPublicId/edit'
       preLoaderRoute: typeof AuthedClassesClassPublicIdEditRouteImport
       parentRoute: typeof AuthedClassesClassPublicIdRoute
+    }
+    '/_authed/campaigns/invite/$token': {
+      id: '/_authed/campaigns/invite/$token'
+      path: '/campaigns/invite/$token'
+      fullPath: '/campaigns/invite/$token'
+      preLoaderRoute: typeof AuthedCampaignsInviteTokenRouteImport
+      parentRoute: typeof AuthedRoute
     }
     '/_authed/campaigns/$campaignPublicId/$campaignSlug': {
       id: '/_authed/campaigns/$campaignPublicId/$campaignSlug'
@@ -2000,6 +2020,7 @@ interface AuthedRouteChildren {
   AuthedSpellsIndexRoute: typeof AuthedSpellsIndexRoute
   AuthedSystemsIndexRoute: typeof AuthedSystemsIndexRoute
   AuthedVehiclesIndexRoute: typeof AuthedVehiclesIndexRoute
+  AuthedCampaignsInviteTokenRoute: typeof AuthedCampaignsInviteTokenRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
@@ -2044,6 +2065,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedSpellsIndexRoute: AuthedSpellsIndexRoute,
   AuthedSystemsIndexRoute: AuthedSystemsIndexRoute,
   AuthedVehiclesIndexRoute: AuthedVehiclesIndexRoute,
+  AuthedCampaignsInviteTokenRoute: AuthedCampaignsInviteTokenRoute,
 }
 
 const AuthedRouteWithChildren =

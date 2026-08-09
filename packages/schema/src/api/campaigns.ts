@@ -11,6 +11,7 @@ const uuidSchema = z.string().uuid()
 const versionSchema = z.number().int().nonnegative()
 const timestampSchema = z.string().datetime()
 const shortTextSchema = z.string().trim().min(1).max(120)
+const campaignNameSchema = z.string().trim().min(1).max(100)
 const timeZoneSchema = z
   .string()
   .trim()
@@ -104,7 +105,7 @@ export const campaignMembershipDtoSchema = z.strictObject({
 const campaignBaseDtoSchema = z.strictObject({
   id: uuidSchema,
   publicId: z.string().trim().min(1),
-  name: shortTextSchema,
+  name: campaignNameSchema,
   description: campaignDescriptionSchema.nullable(),
   status: campaignStatusDtoSchema,
   visibility: campaignVisibilityDtoSchema,
@@ -126,7 +127,7 @@ export const campaignDetailDtoSchema = campaignBaseDtoSchema.extend({
 })
 
 export const createCampaignInputSchema = z.strictObject({
-  name: shortTextSchema,
+  name: campaignNameSchema,
   description: campaignDescriptionSchema.nullable().optional(),
   visibility: campaignVisibilityDtoSchema.default('PRIVATE')
 })
@@ -137,7 +138,7 @@ export const campaignPublicIdInputSchema = z.strictObject({
 
 export const updateCampaignInputSchema = z.strictObject({
   campaignId: uuidSchema,
-  name: shortTextSchema.optional(),
+  name: campaignNameSchema.optional(),
   description: campaignDescriptionSchema.nullable().optional(),
   attunementSlotOverride: z.number().int().nonnegative().nullable().optional(),
   visibility: campaignVisibilityDtoSchema.optional(),

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { CharacterAuthored } from '@artificer-toolkit/shared'
 import { CharacterStartingEquipmentSource } from '@artificer-toolkit/shared'
 import type { DBLike } from '#types'
+import { replaceCharacterInventoryItems } from '../domains/subjects/upserts/character.helpers.js'
 import { upsertCharacter } from '../domains/subjects/upserts/character.js'
 import { createCharacterRepository } from '../repositories/index.js'
 import { createInventoryRepository } from '../repositories/inventory.js'
@@ -1135,6 +1136,39 @@ describe('upsertCharacter', () => {
     ).resolves.toMatchObject({
       items: expect.arrayContaining([expect.objectContaining({ id: 'inventory-1', quantity: 4 })])
     })
+  })
+
+  it('rejects inventory item ids owned by another aggregate', async () => {
+    const db = new InMemoryDb()
+    const character = buildCharacter()
+    await upsertCharacter(db as never, character)
+    await db
+      .insertInto('inventory_owners')
+      .values({ id: 'party-owner', kind: 'CAMPAIGN', campaign_id: 'campaign-1' })
+      .execute()
+    await db
+      .insertInto('inventory_items')
+      .values({
+        id: 'party-item',
+        owner_id: 'party-owner',
+        equipment_id: 'equipment-party',
+        quantity: 2
+      })
+      .execute()
+
+    await expect(
+      replaceCharacterInventoryItems(
+        db as unknown as DBLike,
+        character.id,
+        [{ id: 'party-item', equipmentId: 'equipment-party', quantity: 1 }],
+        [],
+        []
+      )
+    ).rejects.toThrow('owned by another inventory aggregate')
+
+    expect(db.snapshot('inventory_items')).toContainEqual(
+      expect.objectContaining({ id: 'party-item', owner_id: 'party-owner', quantity: 2 })
+    )
   })
 
   it('preserves explicit empty known-spell overrides and clears only the override marker', async () => {

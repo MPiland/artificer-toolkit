@@ -150,6 +150,7 @@ AS $$
       AND (
         requested_topic = 'campaign:' || membership.campaign_id || ':table:' || membership.user_id || ':' || ((extract(epoch FROM date_trunc('milliseconds', membership.access_started_at)) * 1000)::bigint)::text
         OR (requested_topic = 'campaign:' || membership.campaign_id || ':party:' || membership.user_id || ':' || ((extract(epoch FROM date_trunc('milliseconds', membership.access_started_at)) * 1000)::bigint)::text AND membership.role = 'PLAYER')
+        OR (requested_topic = 'campaign:' || membership.campaign_id || ':owner:' || membership.user_id || ':' || ((extract(epoch FROM date_trunc('milliseconds', membership.access_started_at)) * 1000)::bigint)::text AND membership.role = 'OWNER')
         OR EXISTS (
           SELECT 1
           FROM public.campaign_conversation_members conversation_member
