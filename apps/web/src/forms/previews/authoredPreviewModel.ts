@@ -467,7 +467,7 @@ function createSpellOutcomeSection(
 function createSpellOutcomeFact(
   record: RuntimeRecord,
   system?: SystemResponseDto | null
-): PreviewFact | undefined {
+): (PreviewFact & { value: string }) | undefined {
   switch (record.effectKind) {
     case 'CONDITION': {
       const condition =

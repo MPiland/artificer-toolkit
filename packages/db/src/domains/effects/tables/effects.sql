@@ -1,7 +1,7 @@
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/*
  * EFFECTS
  * Root authored effect container
- * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+ */
 
 CREATE TABLE IF NOT EXISTS public.effects (
   id uuid PRIMARY KEY,
@@ -17,4 +17,3 @@ CREATE TABLE IF NOT EXISTS public.effects (
 );
 
 ALTER TABLE public.effects ENABLE ROW LEVEL SECURITY;
-

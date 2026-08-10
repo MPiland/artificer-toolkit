@@ -69,9 +69,10 @@ export const message: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.MESSAGE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Compose the Message",
+                label: 'Compose the Message',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "You point your finger toward a creature within range and whisper a message."
+                instructions:
+                  'You point your finger toward a creature within range and whisper a message.'
               }
             ]
           }

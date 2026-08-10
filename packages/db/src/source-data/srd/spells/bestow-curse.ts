@@ -86,9 +86,10 @@ export const bestowCurse: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.BESTOW_CURSE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Choose an Alternative Curse",
+                label: 'Choose an Alternative Curse',
                 reasonCode: 'GM_CHOICE' as const,
-                instructions: "At the GM\u0027s option, you may choose an alternative curse effect, but it should be no more powerful than those described above. The GM has final say on such a curse\u0027s effect."
+                instructions:
+                  'At the GM\u0027s option, you may choose an alternative curse effect, but it should be no more powerful than those described above. The GM has final say on such a curse\u0027s effect.'
               }
             ]
           }

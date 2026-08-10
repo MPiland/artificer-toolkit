@@ -73,9 +73,10 @@ export const locateObject: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.LOCATE_OBJECT, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Reveal the Object\u0027s Direction",
+                label: 'Reveal the Object\u0027s Direction',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "The spell can locate a specific object known to you, as long as you have seen it up close-within 30 feet-at least once."
+                instructions:
+                  'The spell can locate a specific object known to you, as long as you have seen it up close-within 30 feet-at least once.'
               }
             ]
           }

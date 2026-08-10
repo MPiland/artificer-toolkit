@@ -1,14 +1,9 @@
 import { Text } from '@mantine/core'
 import type { CharacterSheet, OpenSheetPanel } from '../core/CharacterSheet.types'
 import * as extrasStyles from './extras.css'
+import { getExtraTarget } from './CharacterSheetExtraList.model'
 
 type Extra = CharacterSheet['extras']['items'][number]
-
-export function getExtraTarget(extra: Extra) {
-  return extra.kind === 'VEHICLE'
-    ? { kind: 'VEHICLE' as const, vehicleInstanceId: extra.id }
-    : { kind: 'COMPANION' as const, companionInstanceId: extra.id }
-}
 
 function ExtraMetric({
   hideOnMobile,

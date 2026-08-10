@@ -18,9 +18,7 @@ describe('account profile trigger', () => {
     expect(profileSchema).toContain("NULLIF(trim(NEW.raw_user_meta_data ->> 'username'), '')")
     expect(profileSchema).not.toContain('Username is required for non-invited accounts.')
     expect(profileSchema).toContain("'admin', 'moderator', 'support', 'system', 'root'")
-    expect(profileSchema).toContain(
-      "NULLIF(trim(auth_user.raw_user_meta_data ->> 'username'), '')"
-    )
+    expect(profileSchema).toContain("NULLIF(trim(auth_user.raw_user_meta_data ->> 'username'), '')")
     expect(profileSchema).not.toContain('handle_invitation_completion')
     expect(profileSchema).not.toContain('pending_profile_username')
   })

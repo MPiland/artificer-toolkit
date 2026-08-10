@@ -81,6 +81,8 @@ export interface RulesSystem {
   /**
    * Order in which feature sources are processed.
    * Lower index = processed first. Values are CharacterProvenance `kind` strings.
+   * CLASS and SUBCLASS must be adjacent because each selected subclass is paired
+   * with its owning class progression.
    */
   featureSourceOrder: readonly string[]
 }

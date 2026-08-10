@@ -68,12 +68,9 @@ vi.mock('@artificer-toolkit/db', () => ({
   })
 }))
 
-import {
-  createEmptyCharacterAuthored,
-  reconcileCharacterBuilderCharacter,
-  resolveCharacterBuilder
-} from './builderService.js'
-import { buildCharacterBuilderView } from './characterApplicationService.js'
+import { createEmptyCharacterAuthored, resolveCharacterBuilder } from './builderService.js'
+import { reconcileCharacterBuilderCharacter } from './builderReconciliation.js'
+import { buildCharacterBuilderView } from './characterBuilderView.js'
 
 const FEATURE_ID = 'half-elf-ability-score-increase'
 
@@ -283,9 +280,10 @@ describe('character Builder feature option selection', () => {
     )
 
     const reconciled = await reconcileCharacterBuilderCharacter({} as never, character)
-    expect(
-      reconciled.intent.featureAcquisitions[0]?.selections?.[0]?.values[0]
-    ).toEqual({ kind: 'IDS', ids: ['strength'] })
+    expect(reconciled.intent.featureAcquisitions[0]?.selections?.[0]?.values[0]).toEqual({
+      kind: 'IDS',
+      ids: ['strength']
+    })
   })
 
   it('adds new selections without counting replaceCount toward the owned total', async () => {

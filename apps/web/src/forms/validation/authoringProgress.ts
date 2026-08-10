@@ -7,6 +7,7 @@ import type {
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { getAuthoringFieldValue, toAuthoringFieldName } from '../utils/pathUtils'
 import { getResolvedAuthoringScope } from '../authoring-schema/resolvedAuthoringScope'
+import { isRecord } from '../utils/valueGuards'
 
 export type AuthoringStepProgressStatus = 'complete' | 'incomplete' | 'warning' | 'error'
 export type AuthoringStepDirtyMap = Partial<Record<string, boolean>>
@@ -223,10 +224,6 @@ function hasMissingRequiredGroupFields(
     const childSections = childModel.steps.flatMap((step) => step.sections)
     return hasMissingRequiredFields(childSections, values, rowFieldName, childModel)
   })
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function readNodeValue(

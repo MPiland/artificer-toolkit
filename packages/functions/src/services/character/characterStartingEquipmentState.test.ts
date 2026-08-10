@@ -91,7 +91,9 @@ describe('Character starting equipment state', () => {
         expect.objectContaining({ equipmentId: 'holy-symbol', quantity: 1 })
       ])
     )
-    expect(first.character.state.currency[0]?.currencies).toEqual([{ currencyId: 'gp', amount: 115 }])
+    expect(first.character.state.currency[0]?.currencies).toEqual([
+      { currencyId: 'gp', amount: 115 }
+    ])
     expect(first.character.intent.startingEquipment?.class?.applied).toBe(true)
     expect(first.character.intent.startingEquipment?.background?.applied).toBe(true)
 

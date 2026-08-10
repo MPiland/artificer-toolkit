@@ -13,18 +13,13 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import {
-  creatureTypeId,
-  schoolId,
-  spellChildId,
-  SRD_SYSTEM_ID,
-  SRD_USER_ID
-} from './shared.js'
+import { creatureTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const spareTheDying: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.SPARE_THE_DYING,
   label: 'Spare the Dying',
-  description: "<p>You touch a living creature that has 0 hit points. The creature becomes stable. This spell has no effect on undead or constructs.</p>",
+  description:
+    '<p>You touch a living creature that has 0 hit points. The creature becomes stable. This spell has no effect on undead or constructs.</p>',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 0,
   classIds: [CLASS_IDS.CLERIC],

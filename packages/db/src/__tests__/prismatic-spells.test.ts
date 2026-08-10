@@ -11,9 +11,7 @@ describe('Prismatic spell mechanics', () => {
     expect(group?.invocation.triggerCode).toBe('SAVING_THROW')
     expect(group?.entries).toHaveLength(16)
 
-    const repeats = group?.entries.filter(
-      (entry) => entry.resolutionKind === 'ROLL_TABLE_REPEAT'
-    )
+    const repeats = group?.entries.filter((entry) => entry.resolutionKind === 'ROLL_TABLE_REPEAT')
     expect(repeats).toHaveLength(2)
     expect(repeats).toEqual(
       expect.arrayContaining([
@@ -40,11 +38,11 @@ describe('Prismatic spell mechanics', () => {
       damageEntries
         ?.filter((entry) => entry.pathCode === 'ON_SAVE_SUCCESS')
         .every(
-        (entry) =>
-          entry.resolutionKind === 'ROLL_TABLE' &&
-          entry.outcome.effectKind === 'DAMAGE' &&
-          entry.outcome.amountKind === 'HALF'
-      )
+          (entry) =>
+            entry.resolutionKind === 'ROLL_TABLE' &&
+            entry.outcome.effectKind === 'DAMAGE' &&
+            entry.outcome.amountKind === 'HALF'
+        )
     ).toBe(true)
     expect(
       group?.entries.some(
@@ -163,18 +161,14 @@ describe('Prismatic spell mechanics', () => {
         manifest.components
           ?.slice(0, 5)
           .every((component) =>
-            component.behaviors?.[0]?.entries.some(
-              (entry) => entry.pathCode === 'ON_SAVE_SUCCESS'
-            )
+            component.behaviors?.[0]?.entries.some((entry) => entry.pathCode === 'ON_SAVE_SUCCESS')
           )
       ).toBe(true)
       expect(
         manifest.components
           ?.slice(5)
           .every((component) =>
-            component.behaviors?.[0]?.entries.every(
-              (entry) => entry.pathCode !== 'ON_SAVE_SUCCESS'
-            )
+            component.behaviors?.[0]?.entries.every((entry) => entry.pathCode !== 'ON_SAVE_SUCCESS')
           )
       ).toBe(true)
 

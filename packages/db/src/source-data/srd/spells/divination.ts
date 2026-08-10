@@ -59,9 +59,10 @@ export const divination: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.DIVINATION, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Provide the Reply",
+                label: 'Provide the Reply',
                 reasonCode: 'NARRATIVE_JUDGMENT' as const,
-                instructions: "The GM offers a truthful reply. The reply might be a short phrase, a cryptic rhyme, or an omen."
+                instructions:
+                  'The GM offers a truthful reply. The reply might be a short phrase, a cryptic rhyme, or an omen.'
               }
             ]
           }

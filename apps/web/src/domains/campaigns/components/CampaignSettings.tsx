@@ -16,7 +16,8 @@ import type { CampaignDetailDto } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
+import * as settingsStyles from './campaignSettings.css'
 
 export function CampaignSettings({ campaign }: { campaign: CampaignDetailDto }) {
   const navigate = useNavigate()
@@ -62,14 +63,14 @@ export function CampaignSettings({ campaign }: { campaign: CampaignDetailDto }) 
   const error = update.error ?? lifecycle.error
 
   return (
-    <div className={styles.overviewStack}>
-      <section className={styles.panel} aria-labelledby='campaign-details-title'>
+    <div className={settingsStyles.overviewStack}>
+      <section className={sharedStyles.panel} aria-labelledby='campaign-details-title'>
         <div>
           <Title order={2} id='campaign-details-title'>
             Campaign details
           </Title>
           <TextInput
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             disabled={!editable}
             label='Name'
             maxLength={100}
@@ -87,7 +88,7 @@ export function CampaignSettings({ campaign }: { campaign: CampaignDetailDto }) 
           value={description}
         />
       </section>
-      <section className={styles.panel} aria-labelledby='campaign-access-title'>
+      <section className={sharedStyles.panel} aria-labelledby='campaign-access-title'>
         <Title order={2} id='campaign-access-title'>
           Campaign access
         </Title>
@@ -105,13 +106,13 @@ export function CampaignSettings({ campaign }: { campaign: CampaignDetailDto }) 
           {visibility === 'PUBLIC' ? 'Public listing' : 'Private Campaign'}
         </Text>
       </section>
-      <section className={styles.panel} aria-labelledby='campaign-rules-title'>
+      <section className={sharedStyles.panel} aria-labelledby='campaign-rules-title'>
         <Title order={2} id='campaign-rules-title'>
           Campaign rules
         </Title>
         <NumberInput
           allowDecimal={false}
-          classNames={{ input: styles.input }}
+          classNames={{ input: sharedStyles.input }}
           disabled={!editable}
           label='Attunement slot limit'
           min={0}
@@ -128,11 +129,11 @@ export function CampaignSettings({ campaign }: { campaign: CampaignDetailDto }) 
         </Group>
       ) : null}
       {error ? <Alert color='red'>{error.message}</Alert> : null}
-      <section className={styles.panel} aria-labelledby='campaign-lifecycle-title'>
+      <section className={sharedStyles.panel} aria-labelledby='campaign-lifecycle-title'>
         <Title order={2} id='campaign-lifecycle-title'>
           Campaign lifecycle
         </Title>
-        <Stack className={styles.compactActions} gap='xs'>
+        <Stack className={settingsStyles.compactActions} gap='xs'>
           {campaign.capabilities.archive && campaign.status === 'ACTIVE' ? (
             <Button
               color='orange'

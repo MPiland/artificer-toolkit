@@ -4,19 +4,9 @@ import type {
   AuthoredListFilter,
   AuthoredListItem
 } from '#components/AuthoredList'
+import { summarizeAuthoredDescription } from '../authoredListMapper'
 
 const UNCATEGORIZED_CLASS_CATEGORY = 'UNCATEGORIZED'
-
-function mapPermissions(
-  item: ClassListResponseDto['items'][number]
-): AuthoredListItem['permissions'] {
-  return {
-    canView: item.permissions.canView,
-    canEdit: item.permissions.canEdit,
-    canCopy: item.permissions.canCopy,
-    canDelete: item.permissions.canDelete
-  }
-}
 
 export function formatClassCategory(category: string | undefined): string {
   if (!category || category === UNCATEGORIZED_CLASS_CATEGORY) return 'Uncategorized'
@@ -26,11 +16,6 @@ export function formatClassCategory(category: string | undefined): string {
     .toLowerCase()
     .replaceAll('_', ' ')
     .replace(/^\w/, (letter) => letter.toUpperCase())
-}
-
-function summarizeDescription(description: string | null | undefined): string {
-  if (!description) return 'No description yet.'
-  return description.replace(/<[^>]*>/g, '').trim() || 'No description yet.'
 }
 
 export function mapClassListToAuthoredItems(response: ClassListResponseDto): AuthoredListItem[] {
@@ -46,7 +31,7 @@ export function mapClassListToAuthoredItems(response: ClassListResponseDto): Aut
       id: item.id,
       publicId: item.publicId,
       name: item.label,
-      description: summarizeDescription(item.description),
+      description: summarizeAuthoredDescription(item.description),
       attributes: {
         Category: categoryLabel
       },
@@ -65,10 +50,10 @@ export function mapClassListToAuthoredItems(response: ClassListResponseDto): Aut
         category: categoryLabel,
         name: item.label
       },
-      searchText: `${summarizeDescription(item.description)} ${categoryLabel}`,
+      searchText: `${summarizeAuthoredDescription(item.description)} ${categoryLabel}`,
       sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
       sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
-      permissions: mapPermissions(item)
+      permissions: item.permissions
     }
   })
 }

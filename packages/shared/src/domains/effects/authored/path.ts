@@ -46,8 +46,7 @@ export type PathRollTableRowAuthored<TOutcome extends OutcomeAuthored = OutcomeA
   PathEntryBase & {
     rollRange?: [number, number]
     rollValue?: number
-  } &
-    (
+  } & (
       | {
           resolutionKind: 'RESULT'
           resultBlock: ResultBlockAuthored<TOutcome>

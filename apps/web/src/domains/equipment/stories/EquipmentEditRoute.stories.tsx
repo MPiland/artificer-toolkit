@@ -203,7 +203,9 @@ export const AstralTearAwakenedStructure: Story = {
     await expect(
       await story.findByRole('heading', { level: 3, name: 'Warping Strike' })
     ).toBeInTheDocument()
-    await expect(await story.findByRole('heading', { level: 3, name: 'Spells' })).toBeInTheDocument()
+    await expect(
+      await story.findByRole('heading', { level: 3, name: 'Spells' })
+    ).toBeInTheDocument()
   }
 }
 

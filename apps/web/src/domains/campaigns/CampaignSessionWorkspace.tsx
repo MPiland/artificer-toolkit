@@ -33,7 +33,8 @@ import {
   prepareSessionSectionKinds,
   runSessionSectionKinds
 } from './components/campaignSessionSections.model'
-import * as styles from './campaigns.css'
+import * as sharedStyles from './campaigns.css'
+import * as sessionsStyles from './campaignSessions.css'
 
 type SessionWorkspaceView = 'PREPARE' | 'RUN' | 'CLOSEOUT'
 
@@ -117,11 +118,11 @@ export function CampaignSessionWorkspace({
   }
 
   return (
-    <main className={styles.page}>
-      <header className={styles.sessionHeader}>
-        <div className={styles.sessionHeaderIdentity}>
+    <main className={sharedStyles.page}>
+      <header className={sessionsStyles.sessionHeader}>
+        <div className={sessionsStyles.sessionHeaderIdentity}>
           <Button
-            className={styles.sessionBack}
+            className={sessionsStyles.sessionBack}
             leftSection={<IconChevronLeft aria-hidden size={15} />}
             size='compact-sm'
             variant='subtle'
@@ -136,8 +137,8 @@ export function CampaignSessionWorkspace({
           </Button>
           <TextInput
             aria-label='Session name'
-            className={styles.sessionTitleField}
-            classNames={{ input: styles.sessionTitleInput }}
+            className={sessionsStyles.sessionTitleField}
+            classNames={{ input: sessionsStyles.sessionTitleInput }}
             disabled={!canManage || updateSession.isPending}
             placeholder={sessionLabel(session)}
             value={sessionTitle}
@@ -156,7 +157,7 @@ export function CampaignSessionWorkspace({
             </Text>
           </Group>
         </div>
-        <div className={styles.sessionHeaderUtilities}>
+        <div className={sessionsStyles.sessionHeaderUtilities}>
           <CampaignLiveControls campaign={campaign} />
           {campaign.capabilities.readTableChat ? (
             <CampaignChatDrawer
@@ -171,8 +172,8 @@ export function CampaignSessionWorkspace({
         <Alert color='red'>Session name couldn’t be saved. Your edit is still here.</Alert>
       ) : null}
       <Select
-        className={styles.campaignSectionSelect}
-        classNames={{ input: styles.input }}
+        className={sharedStyles.campaignSectionSelect}
+        classNames={{ input: sharedStyles.input }}
         data={(Object.keys(sessionViewLabels) as SessionWorkspaceView[]).map((value) => ({
           label: sessionViewLabels[value],
           value
@@ -184,23 +185,23 @@ export function CampaignSessionWorkspace({
         }}
       />
       <Tabs
-        className={styles.detailWorkspace}
+        className={sharedStyles.detailWorkspace}
         keepMounted={false}
         value={activeView}
         onChange={(value) => {
           if (value === 'PREPARE' || value === 'RUN' || value === 'CLOSEOUT') setActiveView(value)
         }}
       >
-        <Tabs.List className={styles.detailTabs} aria-label='Session workspace'>
+        <Tabs.List className={sharedStyles.detailTabs} aria-label='Session workspace'>
           {(Object.keys(sessionViewLabels) as SessionWorkspaceView[]).map((value) => (
-            <Tabs.Tab className={styles.detailTab} key={value} value={value}>
+            <Tabs.Tab className={sharedStyles.detailTab} key={value} value={value}>
               {sessionViewLabels[value]}
             </Tabs.Tab>
           ))}
         </Tabs.List>
         <Tabs.Panel value='PREPARE' pt='md'>
           <Stack gap='lg'>
-            <section className={styles.sessionUtilityPanel} aria-label='Schedule and RSVP'>
+            <section className={sessionsStyles.sessionUtilityPanel} aria-label='Schedule and RSVP'>
               <CampaignSessionSchedulePanel
                 campaign={campaign}
                 currentUserId={currentUserId}
@@ -208,7 +209,10 @@ export function CampaignSessionWorkspace({
                 onUpdated={updateSessionCache}
               />
             </section>
-            <section className={styles.sessionUtilityPanel} aria-labelledby='session-plan-title'>
+            <section
+              className={sessionsStyles.sessionUtilityPanel}
+              aria-labelledby='session-plan-title'
+            >
               <div>
                 <Title id='session-plan-title' order={2}>
                   Session plan
@@ -223,7 +227,7 @@ export function CampaignSessionWorkspace({
                 sessionId={session.id}
               />
             </section>
-            <section className={styles.sessionUtilityPanel} aria-label='Pinned references'>
+            <section className={sessionsStyles.sessionUtilityPanel} aria-label='Pinned references'>
               <CampaignSessionReferences campaign={campaign} sessionId={session.id} />
             </section>
             <CampaignSessionEncounters
@@ -242,10 +246,10 @@ export function CampaignSessionWorkspace({
               mode='RUN'
               session={session}
             />
-            <section className={styles.sessionUtilityPanel} aria-label='Session attendance'>
+            <section className={sessionsStyles.sessionUtilityPanel} aria-label='Session attendance'>
               <CampaignSessionAttendance campaign={campaign} session={session} />
             </section>
-            <section className={styles.sessionUtilityPanel} aria-label='Party at a glance'>
+            <section className={sessionsStyles.sessionUtilityPanel} aria-label='Party at a glance'>
               <CampaignSessionPartySummary
                 campaign={campaign}
                 currentUserId={currentUserId}
@@ -253,7 +257,7 @@ export function CampaignSessionWorkspace({
               />
             </section>
             <section
-              className={styles.sessionUtilityPanel}
+              className={sessionsStyles.sessionUtilityPanel}
               aria-labelledby='session-current-plan-title'
             >
               <div>
@@ -270,7 +274,7 @@ export function CampaignSessionWorkspace({
                 sessionId={session.id}
               />
             </section>
-            <section className={styles.sessionUtilityPanel} aria-label='Pinned references'>
+            <section className={sessionsStyles.sessionUtilityPanel} aria-label='Pinned references'>
               <CampaignSessionReferences campaign={campaign} sessionId={session.id} />
             </section>
           </Stack>
@@ -278,7 +282,7 @@ export function CampaignSessionWorkspace({
         <Tabs.Panel value='CLOSEOUT' pt='md'>
           <Stack gap='lg'>
             <section
-              className={styles.sessionUtilityPanel}
+              className={sessionsStyles.sessionUtilityPanel}
               aria-labelledby='session-closeout-title'
             >
               <div>
@@ -295,7 +299,7 @@ export function CampaignSessionWorkspace({
                 sessionId={session.id}
               />
             </section>
-            <section className={styles.sessionCompletion} aria-label='Session status'>
+            <section className={sessionsStyles.sessionCompletion} aria-label='Session status'>
               <Group align='center' justify='space-between' wrap='wrap'>
                 <div>
                   <Text fw={700}>

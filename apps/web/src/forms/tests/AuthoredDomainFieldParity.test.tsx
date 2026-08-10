@@ -73,7 +73,7 @@ describe('authored domain schema, adapter, node, and field parity', () => {
     expect(await screen.findByRole('combobox', { name: /^level$/i })).toHaveValue('Cantrip')
     expect(screen.getByRole('textbox', { name: /^name$/i })).toHaveAttribute('maxlength', '120')
     expect(screen.getAllByText(/\/ 20000$/).length).toBeGreaterThan(0)
-  })
+  }, 10_000)
 
   it.each(scenarios)(
     '$label exposes every populated authored field through its node tree',

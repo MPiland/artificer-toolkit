@@ -77,9 +77,9 @@ export const seeming: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.SEEMING, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Choose Appearances",
+                label: 'Choose Appearances',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "You give each target you choose a new, illusory appearance."
+                instructions: 'You give each target you choose a new, illusory appearance.'
               }
             ]
           }

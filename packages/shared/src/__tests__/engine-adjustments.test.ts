@@ -4,6 +4,7 @@ import {
   dnd5e2014RulesSystem,
   rollCharacterDice,
   runEngine,
+  SenseCode,
   toCharacterMechanicalAdjustment,
   type CharacterAssemblyRegistry,
   type CharacterBuildSnapshot,
@@ -734,6 +735,105 @@ describe('movement, dice, and engine input boundaries', () => {
         dnd5e2014RulesSystem
       ).derivedStats.primaryMovementSpeedId
     ).toBe('speed-fly')
+  })
+
+  it('applies a speed override with provenance and falls back to the available primary speed', () => {
+    const output = runEngine(
+      createSnapshot({
+        movementDisplayPreference: { mode: 'EXPLICIT', speedId: 'missing-speed' },
+        adjustments: [
+          {
+            id: 'walk-speed-override',
+            family: 'MOVEMENT',
+            speedId: 'speed-walk',
+            field: 'SPEED_OVERRIDE',
+            value: 45
+          }
+        ]
+      }),
+      registry,
+      dnd5e2014RulesSystem
+    )
+
+    expect(output.derivedStats.movementSpeeds).toContainEqual({
+      speedId: 'speed-walk',
+      amount: 45,
+      unit: 'FEET'
+    })
+    expect(output.derivedStats.primaryMovementSpeedId).toBe('speed-walk')
+    expect(output.calculations.movementSpeeds['speed-walk']).toMatchObject({
+      effective: 45,
+      override: { adjustmentId: 'walk-speed-override', value: 45 }
+    })
+  })
+
+  it('applies a sense range override and suppresses the prior modifier contribution', () => {
+    const output = runEngine(
+      createSnapshot({
+        features: [
+          {
+            acquisitionId: 'acquisition-darkvision',
+            featureId: 'darkvision',
+            source: { kind: 'CLASS', classId: 'fighter' },
+            timing: { kind: 'CLASS_LEVEL', classId: 'fighter', classLevel: 1 }
+          }
+        ],
+        adjustments: [
+          {
+            id: 'darkvision-range-override',
+            family: 'SENSE',
+            senseId: SenseCode.DARKVISION,
+            field: 'RANGE_OVERRIDE',
+            value: 120
+          }
+        ]
+      }),
+      createRegistry({
+        features: {
+          darkvision: {
+            senses: [
+              {
+                id: 'darkvision-sense',
+                grantKind: 'SENSE_GRANT',
+                selectionKind: 'GRANTED',
+                authoringModeKind: 'SELECTED',
+                senseIds: [SenseCode.DARKVISION],
+                scalingKind: 'NONE',
+                range: { id: 'darkvision-range', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' },
+                order: 0
+              }
+            ],
+            modifiers: [
+              {
+                id: 'darkvision-range-bonus',
+                grantKind: 'MODIFIER_GRANT',
+                valueDomainCode: 'SENSE_RANGE',
+                modifierKind: 'BONUS',
+                domain: { senseCode: SenseCode.DARKVISION },
+                scope: 'GLOBAL',
+                payload: { amount: 30 },
+                selectionKind: 'GRANTED',
+                order: 1
+              }
+            ]
+          }
+        }
+      }),
+      dnd5e2014RulesSystem
+    )
+    const calculation = output.calculations.senseRanges.DARKVISION
+
+    expect(output.senses).toContainEqual({
+      senseCode: 'DARKVISION',
+      range: { id: 'darkvision-range', rangeKind: 'DISTANCE', amount: 120, unit: 'FEET' }
+    })
+    expect(calculation).toMatchObject({
+      effective: 120,
+      override: { adjustmentId: 'darkvision-range-override', value: 120 }
+    })
+    expect(calculation?.contributions).toEqual([
+      expect.objectContaining({ value: 30, state: 'SUPPRESSED' })
+    ])
   })
 
   it('uses an injected deterministic random source for canonical dice evidence', () => {

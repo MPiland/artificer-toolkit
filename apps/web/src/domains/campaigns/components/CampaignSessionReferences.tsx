@@ -22,7 +22,8 @@ import {
   authoredReferenceSubjectOptions,
   type AuthoredReferenceTarget
 } from './campaignSessionReferences.model'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
+import * as sessionsStyles from '../campaignSessions.css'
 
 export function CampaignSessionReferences({
   campaign,
@@ -95,7 +96,7 @@ export function CampaignSessionReferences({
         <Stack gap='xs'>
           {references.data.map((reference) => (
             <Group
-              className={styles.sessionReferenceRow}
+              className={sessionsStyles.sessionReferenceRow}
               key={reference.id}
               justify='space-between'
             >
@@ -129,7 +130,7 @@ export function CampaignSessionReferences({
         </Text>
       ) : null}
       {adding ? (
-        <Stack className={styles.sessionReferenceEditor} gap='sm'>
+        <Stack className={sessionsStyles.sessionReferenceEditor} gap='sm'>
           <SegmentedControl
             data={[
               { label: 'Campaign note', value: 'CAMPAIGN_NOTE' },
@@ -140,7 +141,7 @@ export function CampaignSessionReferences({
           />
           {targetKind === 'CAMPAIGN_NOTE' ? (
             <Select
-              classNames={{ input: styles.input }}
+              classNames={{ input: sharedStyles.input }}
               data={(notebook.data ?? []).map((section) => ({
                 label: section.title,
                 value: section.id
@@ -154,7 +155,7 @@ export function CampaignSessionReferences({
           ) : (
             <Group align='end' grow wrap='wrap'>
               <Select
-                classNames={{ input: styles.input }}
+                classNames={{ input: sharedStyles.input }}
                 data={authoredReferenceSubjectOptions}
                 label='Record type'
                 value={routeSubjectKind}
@@ -165,7 +166,7 @@ export function CampaignSessionReferences({
                 }
               />
               <TextInput
-                classNames={{ input: styles.input }}
+                classNames={{ input: sharedStyles.input }}
                 label='Public ID'
                 placeholder='Random route ID'
                 value={publicId}

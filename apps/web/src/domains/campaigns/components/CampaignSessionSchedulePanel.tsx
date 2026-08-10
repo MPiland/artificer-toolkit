@@ -21,7 +21,8 @@ import {
   supportedSessionTimeZones,
   toSessionLocalDateTime
 } from '../campaignSessionSchedule'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
+import * as sessionsStyles from '../campaignSessions.css'
 
 export function CampaignSessionSchedulePanel({
   campaign,
@@ -124,9 +125,9 @@ export function CampaignSessionSchedulePanel({
           </Badge>
         </Group>
       </Group>
-      <SimpleGrid className={styles.sessionScheduleGrid} cols={{ base: 1, sm: 3 }}>
+      <SimpleGrid className={sessionsStyles.sessionScheduleGrid} cols={{ base: 1, sm: 3 }}>
         <TextInput
-          classNames={{ input: styles.input }}
+          classNames={{ input: sharedStyles.input }}
           disabled={session.status === 'FINISHED' || updateSchedule.isPending}
           label='Starts'
           type='datetime-local'
@@ -135,7 +136,7 @@ export function CampaignSessionSchedulePanel({
           onChange={(event) => setScheduledStartAt(event.currentTarget.value)}
         />
         <TextInput
-          classNames={{ input: styles.input }}
+          classNames={{ input: sharedStyles.input }}
           disabled={session.status === 'FINISHED' || updateSchedule.isPending}
           label='Ends'
           min={scheduledStartAt || undefined}
@@ -145,7 +146,7 @@ export function CampaignSessionSchedulePanel({
           onChange={(event) => setScheduledEndAt(event.currentTarget.value)}
         />
         <Select
-          classNames={{ input: styles.input }}
+          classNames={{ input: sharedStyles.input }}
           data={supportedSessionTimeZones()}
           disabled={
             session.status === 'FINISHED' ||

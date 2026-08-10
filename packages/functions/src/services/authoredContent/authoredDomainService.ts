@@ -28,6 +28,7 @@ import { normalizeNodeRuntimeValues } from '../nodeRuntime/index.js'
 import {
   toAuthoredValidationIssues,
   type AuthoredDetailRequestDto,
+  type AuthoredDraftDto,
   type AuthoredDraftSaveRequestDto,
   type AuthoredSubjectKindDto
 } from '@artificer-toolkit/schema/api/content'
@@ -215,7 +216,9 @@ export async function getAuthoredDomainDraft(
   userId: string
 ) {
   const subjectId = await resolveAuthoredRouteSubjectId(db, config.subjectKind, id)
-  return subjectId ? getAuthoredDraft(db, config.subjectKind, subjectId, userId) : null
+  if (!subjectId) return null
+  const draft = await getAuthoredDraft(db, config.subjectKind, subjectId, userId)
+  return draft ? toAuthoredDraftDto(draft) : null
 }
 
 async function buildDraftDetail(
@@ -365,7 +368,7 @@ export async function saveAuthoredDomainDraft(
       const activeImage = await media.getAuthoredSlot(config.subjectKind, body.subjectId, 'ACTIVE')
       if (activeImage) await media.upsertAuthoredSlot({ ...activeImage, scope: 'DRAFT' })
     }
-    return saved
+    return toAuthoredDraftDto(saved)
   })
 }
 
@@ -538,6 +541,17 @@ function hasMetaKey(keys: Set<string>, key: string) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function toAuthoredDraftDto(draft: AuthoredDraft & { publicId: string }): AuthoredDraftDto {
+  if (!isRecord(draft.payload)) {
+    throw new TypeError('Authored draft payload must be an object.')
+  }
+
+  return {
+    ...draft,
+    payload: draft.payload
+  }
 }
 
 function readString(value: unknown): string | undefined {

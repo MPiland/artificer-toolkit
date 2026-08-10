@@ -4,10 +4,16 @@ import { describe, expect, it } from 'vitest'
 
 describe('Campaign repository', () => {
   it('keeps locking explicit and stores invite digests instead of raw tokens', () => {
-    const source = readFileSync(
-      join(process.cwd(), 'packages/db/src/repositories/campaign.ts'),
-      'utf8'
-    )
+    const source = [
+      'campaignLifecycle.ts',
+      'campaignMembership.ts',
+      'campaignInvites.ts',
+      'campaignOwnershipTransfers.ts'
+    ]
+      .map((file) =>
+        readFileSync(join(process.cwd(), 'packages/db/src/repositories', file), 'utf8')
+      )
+      .join('\n')
 
     expect(source).toContain('.forUpdate()')
     expect(source).toContain('where token_digest = ${tokenDigest}')

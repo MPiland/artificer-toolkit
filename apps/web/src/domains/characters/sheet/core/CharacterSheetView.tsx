@@ -1,15 +1,13 @@
 import { Alert, Tabs } from '@mantine/core'
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from '@tanstack/react-router'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { useCharacterSheetCommandMutation } from '#app/data/characters/mutations'
 import type { CharacterSheetPanelTargetDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
-import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 import { CampaignChatDrawer } from '#domains/campaigns/components/CampaignChatDrawer'
 import { CampaignNotesDrawer } from '#domains/campaigns/components/CampaignNotesDrawer'
-import { CharacterSheetPartyInventory } from '#domains/campaigns/components/CampaignInventory'
+import { CharacterSheetPartyInventory } from '#domains/campaigns/components/CharacterSheetPartyInventory'
 import { CharacterSheetHero } from '../hero/CharacterSheetHero'
 import { CharacterSheetInspector } from '../inspector/CharacterSheetInspector'
 import { CharacterSheetManualRoll } from '../dice/CharacterSheetManualRoll'
@@ -66,7 +64,6 @@ export function CharacterSheetView({
   const [revealedRollId, setRevealedRollId] = useState<string>()
   const [overlayEpoch, setOverlayEpoch] = useState(0)
   const inspectorTriggerRef = useRef<HTMLElement | null>(null)
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const commandMutation = useCharacterSheetCommandMutation(sheet.meta.characterId)
   const rollController = useCharacterSheetRollController(
@@ -352,15 +349,6 @@ export function CharacterSheetView({
           target={inspectorTarget}
           equipmentItems={sheet.inventory.items}
           onClose={closeInspector}
-          onOpenBuilder={
-            sheet.meta.capabilities.openBuilder
-              ? () =>
-                  navigate({
-                    to: '/characters/$characterPublicId/$characterSlug/edit',
-                    params: buildCharacterRouteParams(characterPublicId, sheet.identity.label)
-                  })
-              : undefined
-          }
           onTargetChange={setInspectorTarget}
         />
       ) : null}

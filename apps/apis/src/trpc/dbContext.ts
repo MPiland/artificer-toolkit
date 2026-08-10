@@ -83,7 +83,11 @@ function mapErrorToCode(error: Error): TRPCError['code'] {
   return 'INTERNAL_SERVER_ERROR'
 }
 
-function getErrorMessage(error: Error): string {
+function getErrorMessage(error: Error, code: TRPCError['code']): string {
+  if (code === 'INTERNAL_SERVER_ERROR') {
+    return 'Internal Server Error'
+  }
+
   if (error instanceof ZodError) {
     return 'Validation failed'
   }
@@ -97,10 +101,11 @@ export function toTrpcError(error: unknown): TRPCError {
   }
 
   if (error instanceof Error) {
+    const code = mapErrorToCode(error)
     return new TRPCError({
       cause: error,
-      code: mapErrorToCode(error),
-      message: getErrorMessage(error)
+      code,
+      message: getErrorMessage(error, code)
     })
   }
 

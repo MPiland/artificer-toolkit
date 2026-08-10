@@ -113,9 +113,7 @@ describe('static security posture', () => {
     const offenders = webFiles
       .filter((filePath) => read(filePath).includes('html-react-parser'))
       .map(toPortablePath)
-      .filter(
-        (filePath) => !filePath.endsWith('/apps/web/src/ui/primitives/renderSanitizedRichHtml.tsx')
-      )
+      .filter((filePath) => !filePath.endsWith('/apps/web/src/lib/richText.tsx'))
 
     expect(offenders).toEqual([])
   })

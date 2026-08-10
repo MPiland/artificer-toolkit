@@ -73,7 +73,7 @@ export const shapechange: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.SHAPECHANGE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Determine Equipment Practicality",
+                label: 'Determine Equipment Practicality',
                 reasonCode: 'NARRATIVE_JUDGMENT' as const,
                 instructions:
                   "The GM determines whether it is practical for the new form to wear a piece of equipment, based on the creature's shape and size."

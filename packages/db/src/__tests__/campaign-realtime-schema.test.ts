@@ -10,15 +10,20 @@ function read(relativePath: string): string {
 
 describe('Campaign Realtime authorization schema', () => {
   const canonical = read('packages/db/src/domains/campaigns/tables/campaigns.sql')
-  const conversationsMigration = read(
-    'supabase/migrations/20260807161701_campaign_conversations.sql'
+  const userTopicsMigration = read(
+    'supabase/migrations/20260809020000_campaign_user_realtime_topics.sql'
   )
+  const bundle = read('packages/db/src/domains/bootstrap/generated/create_database.bundle.sql')
 
-  it('authorizes exact owner topics only for active Campaign owners', () => {
+  it('authorizes exact user topics for every active Campaign member while owner topics remain owner-only', () => {
     const ownerPredicate =
       "':owner:' || membership.user_id || ':' || ((extract(epoch FROM date_trunc('milliseconds', membership.access_started_at)) * 1000)::bigint)::text AND membership.role = 'OWNER'"
+    const userPredicate =
+      "requested_topic = 'campaign:' || membership.campaign_id || ':user:' || membership.user_id || ':' || ((extract(epoch FROM date_trunc('milliseconds', membership.access_started_at)) * 1000)::bigint)::text"
 
-    expect(canonical).toContain(ownerPredicate)
-    expect(conversationsMigration).toContain(ownerPredicate)
+    for (const schema of [canonical, userTopicsMigration, bundle]) {
+      expect(schema).toContain(ownerPredicate)
+      expect(schema).toContain(userPredicate)
+    }
   })
 })

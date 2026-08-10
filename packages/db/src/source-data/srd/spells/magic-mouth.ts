@@ -74,9 +74,10 @@ export const magicMouth: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.MAGIC_MOUTH, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Define the Message and Trigger",
+                label: 'Define the Message and Trigger',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "You implant a message within an object in range, a message that is uttered when a trigger condition is met."
+                instructions:
+                  'You implant a message within an object in range, a message that is uttered when a trigger condition is met.'
               }
             ]
           }

@@ -25,7 +25,10 @@ import type {
   ImportResultReportDto,
   ImportSourceDto
 } from '@artificer-toolkit/schema/api/imports'
-import { IMPORT_MAX_BATCH_BYTES } from '@artificer-toolkit/schema/api/imports'
+import {
+  IMPORT_MAX_BATCH_BYTES,
+  IMPORT_MAX_BATCH_RELATIONSHIPS
+} from '@artificer-toolkit/schema/api/imports'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { CHARACTER_ABILITY_GENERATION_METHOD } from '@artificer-toolkit/shared/core'
 
@@ -46,10 +49,15 @@ import {
   parseDndBeyondCharacterPayload,
   parseDndBeyondCharacterUrl,
   parseFoundryActorPayload,
+  type ExternalCustomContent,
   type ExternalContentReference,
   type ParsedExternalCharacter
 } from './importParsers.js'
-import { fetchDndBeyondCharacter, findDnd5e2014SystemId } from './dndBeyondClient.js'
+import {
+  DndBeyondImportError,
+  fetchDndBeyondCharacter,
+  findDnd5e2014SystemId
+} from './dndBeyondClient.js'
 import {
   collectPortableReferences,
   isCompleteExternalCustomContent,
@@ -58,6 +66,13 @@ import {
 } from './portableContent.js'
 
 type CharacterSource = Extract<ImportSourceDto, 'DND_BEYOND' | 'FOUNDRY_DND5E'>
+type FoundryEntry = Extract<ImportBatchInputDto, { source: 'FOUNDRY_DND5E' }>['entries'][number]
+type FoundryParsedEntry =
+  | { entry: FoundryEntry; parsed: ParsedExternalCharacter }
+  | { entry: FoundryEntry; failure: PreparedUnableItem }
+
+const IMPORT_BATCH_TOO_COMPLEX_MESSAGE =
+  'The import batch contains too many relationships to prepare safely.'
 
 interface ImportServiceDependencies {
   createId?: () => string
@@ -121,6 +136,15 @@ interface PreparedCustomContent {
   activationEligible: boolean
   issues: ImportIssueDto[]
 }
+
+type CustomContentResult =
+  | {
+      kind: 'EXISTING'
+      existingId: string
+      existingLabel: string
+      custom: ExternalCustomContent
+    }
+  | { kind: 'NEW'; prepared: PreparedCustomContent }
 
 type PreparedItem = PreparedCharacterItem | PreparedAuthoredItem | PreparedUnableItem
 
@@ -352,65 +376,70 @@ async function prepareImportBatch(
         continue
       }
 
+      let payload: unknown
       try {
-        const payload = await fetchDndBeyondCharacter(
+        payload = await fetchDndBeyondCharacter(
           characterId,
           dependencies.fetch ?? globalThis.fetch,
           responseBudget
         )
-        const parsed = parseDndBeyondCharacterPayload(payload, characterId)
-        if (!parsed) {
-          items.push(
-            unable(
-              entry.entryId,
-              entry.url,
-              'UNRECOGNIZED_DND_BEYOND_CHARACTER',
-              'D&D Beyond returned a character shape this importer does not recognize.',
-              []
-            )
-          )
-          continue
-        }
-        items.push(
-          await prepareExternalCharacter(
-            db,
-            entry.entryId,
-            entry.url,
-            'DND_BEYOND',
-            parsed,
-            userId,
-            defaultSystemId,
-            resolutionByEntryId.get(entry.entryId)?.choice ?? 'COPY',
-            customContentChoiceByKey,
-            createId
-          )
-        )
       } catch (error) {
+        if (!(error instanceof DndBeyondImportError)) throw error
+        items.push(unable(entry.entryId, entry.url, 'DND_BEYOND_UNAVAILABLE', error.message, []))
+        continue
+      }
+
+      const parsed = parseDndBeyondCharacterPayload(payload, characterId)
+      if (!parsed) {
         items.push(
           unable(
             entry.entryId,
             entry.url,
-            'DND_BEYOND_UNAVAILABLE',
-            error instanceof Error
-              ? error.message
-              : 'The D&D Beyond character could not be loaded.',
+            'UNRECOGNIZED_DND_BEYOND_CHARACTER',
+            'D&D Beyond returned a character shape this importer does not recognize.',
             []
           )
         )
+        continue
       }
+      items.push(
+        await prepareExternalCharacter(
+          db,
+          entry.entryId,
+          entry.url,
+          'DND_BEYOND',
+          parsed,
+          userId,
+          defaultSystemId,
+          resolutionByEntryId.get(entry.entryId)?.choice ?? 'COPY',
+          customContentChoiceByKey,
+          createId
+        )
+      )
     }
     return { source: input.source, items, defaultSystemId }
   }
 
   if (input.source === 'FOUNDRY_DND5E') {
-    const defaultSystemId = await findDnd5e2014SystemId(db)
-    const items = await Promise.all(
-      input.entries.map(async (entry): Promise<PreparedItem> => {
-        let json: unknown
-        try {
-          json = JSON.parse(entry.text)
-        } catch {
-          return unable(
+    const parsedEntries: FoundryParsedEntry[] = input.entries.map((entry) => {
+      try {
+        const parsed = parseFoundryActorPayload(JSON.parse(entry.text))
+        return parsed
+          ? { entry, parsed }
+          : {
+              entry,
+              failure: unable(
+                entry.entryId,
+                entry.name,
+                'UNSUPPORTED_FOUNDRY_ACTOR',
+                'Only Foundry dnd5e character Actor exports are supported.',
+                []
+              )
+            }
+      } catch {
+        return {
+          entry,
+          failure: unable(
             entry.entryId,
             entry.name,
             'MALFORMED_JSON',
@@ -418,25 +447,46 @@ async function prepareImportBatch(
             []
           )
         }
-        const parsed = parseFoundryActorPayload(json)
-        if (!parsed) {
-          return unable(
-            entry.entryId,
-            entry.name,
-            'UNSUPPORTED_FOUNDRY_ACTOR',
-            'Only Foundry dnd5e character Actor exports are supported.',
-            []
-          )
-        }
+      }
+    })
+    const relationshipCount = parsedEntries.reduce(
+      (total, entry) =>
+        total +
+        ('parsed' in entry
+          ? entry.parsed.references.length + entry.parsed.customContent.length
+          : 0),
+      0
+    )
+    if (relationshipCount > IMPORT_MAX_BATCH_RELATIONSHIPS) {
+      return {
+        source: input.source,
+        items: parsedEntries.map((parsedEntry) =>
+          'parsed' in parsedEntry
+            ? unable(
+                parsedEntry.entry.entryId,
+                parsedEntry.entry.name,
+                'IMPORT_BATCH_TOO_COMPLEX',
+                IMPORT_BATCH_TOO_COMPLEX_MESSAGE,
+                []
+              )
+            : parsedEntry.failure
+        )
+      }
+    }
+
+    const defaultSystemId = await findDnd5e2014SystemId(db)
+    const items = await Promise.all(
+      parsedEntries.map(async (parsedEntry): Promise<PreparedItem> => {
+        if (!('parsed' in parsedEntry)) return parsedEntry.failure
         return prepareExternalCharacter(
           db,
-          entry.entryId,
-          entry.name,
+          parsedEntry.entry.entryId,
+          parsedEntry.entry.name,
           'FOUNDRY_DND5E',
-          parsed,
+          parsedEntry.parsed,
           userId,
           defaultSystemId,
-          resolutionByEntryId.get(entry.entryId)?.choice ?? 'COPY',
+          resolutionByEntryId.get(parsedEntry.entry.entryId)?.choice ?? 'COPY',
           customContentChoiceByKey,
           createId
         )
@@ -449,6 +499,32 @@ async function prepareImportBatch(
     entry,
     parsed: parseArtificerPortableEntry(entry)
   }))
+  const relationshipCount = parsedEntries.reduce(
+    (total, { parsed }) => total + (parsed?.envelope.references.length ?? 0),
+    0
+  )
+  if (relationshipCount > IMPORT_MAX_BATCH_RELATIONSHIPS) {
+    return {
+      source: input.source,
+      items: parsedEntries.map(({ entry, parsed }) =>
+        parsed
+          ? unable(
+              entry.entryId,
+              entry.name,
+              'IMPORT_BATCH_TOO_COMPLEX',
+              IMPORT_BATCH_TOO_COMPLEX_MESSAGE,
+              []
+            )
+          : unable(
+              entry.entryId,
+              entry.name,
+              'INVALID_ARTIFICER_CONTENT',
+              'The file is not a supported Artificer content export.',
+              []
+            )
+      )
+    }
+  }
   const duplicateRootIds = findDuplicatePortableRootIds(parsedEntries)
   const items = await Promise.all(
     parsedEntries.map(async ({ entry, parsed }): Promise<PreparedItem> => {
@@ -511,68 +587,67 @@ async function prepareExternalCharacter(
     : undefined
   const targetId = collision && choice === 'UPDATE_DRAFT' ? collision.subjectId : createId()
 
-  const customContentResults = await Promise.all(
-    parsed.customContent.map(async (custom) => {
-      const existingRef = await importRefRepository.findByExternalId({
-        userId,
-        source,
-        subjectKind: custom.subjectKind,
-        externalId: custom.externalId
-      })
-      if (existingRef) {
-        const [active, draft] = await Promise.all([
-          contentRepository.findActiveBySubject({
-            subjectKind: custom.subjectKind,
-            subjectId: existingRef.subjectId
-          }),
-          contentRepository.findDraftBySubject({
-            subjectKind: custom.subjectKind,
-            subjectId: existingRef.subjectId,
-            userId
-          })
-        ])
-        if (active?.ownerUserId === userId || draft) {
-          return {
-            kind: 'EXISTING' as const,
-            existingId: existingRef.subjectId,
-            existingLabel: active?.label ?? draft?.label ?? custom.label,
-            custom
-          }
-        }
+  const customContentResults: CustomContentResult[] = []
+  for (const custom of parsed.customContent) {
+    const existingRef = await importRefRepository.findByExternalId({
+      userId,
+      source,
+      subjectKind: custom.subjectKind,
+      externalId: custom.externalId
+    })
+    if (existingRef) {
+      const [active, draft] = await Promise.all([
+        contentRepository.findActiveBySubject({
+          subjectKind: custom.subjectKind,
+          subjectId: existingRef.subjectId
+        }),
+        contentRepository.findDraftBySubject({
+          subjectKind: custom.subjectKind,
+          subjectId: existingRef.subjectId,
+          userId
+        })
+      ])
+      if (active?.ownerUserId === userId || draft) {
+        customContentResults.push({
+          kind: 'EXISTING',
+          existingId: existingRef.subjectId,
+          existingLabel: active?.label ?? draft?.label ?? custom.label,
+          custom
+        })
+        continue
       }
+    }
 
-      const targetId = createId()
-      const normalized = normalizeImportedAuthoredPayload(
-        custom.payload,
-        custom.subjectKind,
+    const targetId = createId()
+    const normalized = normalizeImportedAuthoredPayload(
+      custom.payload,
+      custom.subjectKind,
+      targetId,
+      custom.label,
+      defaultSystemId,
+      userId,
+      createId,
+      false,
+      new Map()
+    )
+    const activationEligible = isCompleteExternalCustomContent(
+      getAuthoredConfig(custom.subjectKind),
+      normalized
+    )
+    customContentResults.push({
+      kind: 'NEW',
+      prepared: {
+        ...custom,
         targetId,
-        custom.label,
-        defaultSystemId,
-        userId,
-        createId,
-        false,
-        new Map()
-      )
-      const activationEligible = isCompleteExternalCustomContent(
-        getAuthoredConfig(custom.subjectKind),
-        normalized
-      )
-      return {
-        kind: 'NEW' as const,
-        prepared: {
-          ...custom,
-          targetId,
-          activationEligible,
-          activate:
-            activationEligible &&
-            customContentChoiceByKey.get(
-              `${entryId}:${custom.subjectKind}:${custom.externalId}`
-            ) !== 'DRAFT',
-          issues: []
-        } satisfies PreparedCustomContent
+        activationEligible,
+        activate:
+          activationEligible &&
+          customContentChoiceByKey.get(`${entryId}:${custom.subjectKind}:${custom.externalId}`) !==
+            'DRAFT',
+        issues: []
       }
     })
-  )
+  }
   const customContent = customContentResults.flatMap((result) =>
     result.kind === 'NEW' ? [result.prepared] : []
   )
@@ -609,23 +684,22 @@ async function prepareExternalCharacter(
       )
     )
   )
-  const references = await Promise.all(
-    parsed.references.map(async (reference): Promise<ResolvedReference> => {
-      const sameEntryKey = reference.externalId
-        ? (`${reference.subjectKind}:${reference.externalId}` as const)
-        : undefined
-      const existingCustom = sameEntryKey
-        ? sameEntryExistingCustomMatches.get(sameEntryKey)
-        : undefined
-      const sameEntrySubjectId = sameEntryKey ? sameEntryCustomIds.get(sameEntryKey) : undefined
-      const existingMatch = sameEntrySubjectId
-        ? existingCustom
-          ? { subjectId: existingCustom.existingId, matchedLabel: existingCustom.existingLabel }
-          : { subjectId: sameEntrySubjectId }
-        : await resolveExternalReference(db, userId, source, reference, masterContentByKind)
-      return { ...reference, ...existingMatch }
-    })
-  )
+  const references: ResolvedReference[] = []
+  for (const reference of parsed.references) {
+    const sameEntryKey = reference.externalId
+      ? (`${reference.subjectKind}:${reference.externalId}` as const)
+      : undefined
+    const existingCustom = sameEntryKey
+      ? sameEntryExistingCustomMatches.get(sameEntryKey)
+      : undefined
+    const sameEntrySubjectId = sameEntryKey ? sameEntryCustomIds.get(sameEntryKey) : undefined
+    const existingMatch = sameEntrySubjectId
+      ? existingCustom
+        ? { subjectId: existingCustom.existingId, matchedLabel: existingCustom.existingLabel }
+        : { subjectId: sameEntrySubjectId }
+      : await resolveExternalReference(db, userId, source, reference, masterContentByKind)
+    references.push({ ...reference, ...existingMatch })
+  }
   const existingMatches = summarizeExistingMatches(references)
   const notImported = summarizeNotImported(references)
   const unsupportedSelectionCount = references.filter(
@@ -864,12 +938,27 @@ async function commitArtificerImport(
     isCopy && item.collision !== undefined,
     new Map([...rootIdMap, ...item.referenceIdMap])
   )
-  const saved = await saveAuthoredDomainInputDraft(
-    db,
-    getAuthoredConfig(item.envelope.item.kind),
-    payload as unknown as AuthoredContentInput,
-    userId
-  )
+  const config = getAuthoredConfig(item.envelope.item.kind)
+  const parsed = config.schema.safeParse(payload)
+  if (!parsed.success) {
+    return {
+      entryId: item.entryId,
+      name: item.name,
+      label: item.label,
+      outcome: 'FAILED',
+      issues: [
+        ...item.issues,
+        issue(
+          'ERROR',
+          'INVALID_AUTHORED_CONTENT',
+          'The imported content needs correction before it can be saved.',
+          ['item', 'data'],
+          true
+        )
+      ]
+    }
+  }
+  const saved = await saveAuthoredDomainInputDraft(db, config, parsed.data, userId)
   if (item.externalId) {
     await createAuthoredImportRefRepository(db).upsert({
       userId,

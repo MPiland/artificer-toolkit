@@ -1175,4 +1175,64 @@ describe('facet-backed owners round-trip', () => {
       ]
     })
   })
+
+  it('rolls back a failing direct facet upsert and preserves the previous graph', async () => {
+    const db = new InMemoryDb()
+    const original = {
+      id: 'atomic-facet-1',
+      groups: [
+        {
+          id: 'atomic-group-1',
+          order: 1,
+          contexts: [
+            {
+              id: 'atomic-context-1',
+              order: 1,
+              subject: 'FEATURE',
+              authoringModeKind: 'ALL',
+              conditions: [
+                {
+                  id: 'atomic-condition-1',
+                  order: 1,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  predicateCode: 'FEATURE_OBTAINED',
+                  featureIds: ['feature-1']
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+
+    await upsertFacet(db as never, original as never)
+
+    await expect(
+      upsertFacet(
+        db as never,
+        {
+          ...original,
+          groups: [
+            {
+              ...original.groups[0]!,
+              contexts: [
+                {
+                  ...original.groups[0]!.contexts[0]!,
+                  conditions: [
+                    {
+                      ...original.groups[0]!.contexts[0]!.conditions[0]!,
+                      predicateCode: 'INVALID_PREDICATE'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        } as never
+      )
+    ).rejects.toThrow('unsupported predicate')
+
+    await expect(hydrateFacetById(db as never, original.id)).resolves.toEqual(original)
+  })
 })

@@ -537,4 +537,96 @@ describe('spell grant resolver', () => {
       })
     ])
   })
+
+  it('resolves only the chosen spell from an unscaled class grant', () => {
+    const chosenClassGrant = compileSpellGrant({
+      grantKind: GRANT_KIND.SPELL_GRANT,
+      id: 'druid-chosen-cantrip',
+      order: 1,
+      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+      selectionDuplicatePolicy: 'UNIQUE',
+      count: 1,
+      scalingKind: SCALING.NONE,
+      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+      spellIds: ['guidance', 'produce-flame']
+    })
+    const registry = makeRegistry()
+    const druid = registry.classes.druid
+    if (!druid) throw new Error('Expected druid class registry entry')
+    druid.features = [{ id: 'chosen-cantrip', order: 1, spells: [chosenClassGrant] }]
+
+    const spellAccess = resolveSpellGrantState(
+      makeSnapshot({
+        classes: [{ classId: 'druid', level: 5 }],
+        chosenGrantSelections: [
+          {
+            id: 'druid-chosen-cantrip-selection',
+            grantId: 'druid-chosen-cantrip',
+            source: { kind: 'CLASS', classId: 'druid' },
+            timing: { kind: 'CLASS_LEVEL', classId: 'druid', classLevel: 1 },
+            targetIds: ['guidance']
+          }
+        ]
+      }),
+      registry
+    ).spellAccess
+
+    expect(spellAccess.map((access) => access.spellId)).toEqual(['guidance'])
+  })
+
+  it('resolves only the level-specific chosen spell from a per-level subclass grant', () => {
+    const chosenSubclassGrant = compileSpellGrant({
+      grantKind: GRANT_KIND.SPELL_GRANT,
+      id: 'circle-chosen-spells',
+      order: 1,
+      selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+      scalingKind: SCALING.PER_LEVEL,
+      progression: {
+        scalingSource: SCALING_SOURCE.CLASS_LEVEL,
+        classId: 'druid',
+        levels: [
+          {
+            id: 'circle-chosen-spells-3',
+            level: 3,
+            order: 1,
+            count: 1,
+            selectionDuplicatePolicy: 'UNIQUE',
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            spellIds: ['call-lightning', 'daylight']
+          },
+          {
+            id: 'circle-chosen-spells-5',
+            level: 5,
+            order: 2,
+            count: 1,
+            selectionDuplicatePolicy: 'UNIQUE',
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            spellIds: ['plant-growth', 'wind-wall']
+          }
+        ]
+      }
+    })
+    const registry = makeRegistry()
+    const subclass = registry.classes['circle-of-the-land']
+    if (!subclass) throw new Error('Expected circle of the land subclass registry entry')
+    subclass.features = [{ id: 'chosen-circle-spells', order: 1, spells: [chosenSubclassGrant] }]
+
+    const spellAccess = resolveSpellGrantState(
+      makeSnapshot({
+        chosenGrantSelections: [
+          {
+            id: 'circle-chosen-spells-level-5',
+            grantId: 'circle-chosen-spells',
+            source: { kind: 'SUBCLASS', subclassId: 'circle-of-the-land' },
+            timing: { kind: 'CLASS_LEVEL', classId: 'druid', classLevel: 5 },
+            progressionLevel: 5,
+            targetIds: ['wind-wall']
+          }
+        ]
+      }),
+      registry
+    ).spellAccess
+
+    expect(spellAccess.map((access) => access.spellId)).toEqual(['wind-wall'])
+  })
 })

@@ -15,8 +15,7 @@ export const controlDensity = ['compact', 'comfortable'] as const
 export type ControlDensity = (typeof controlDensity)[number]
 
 /** Platform-neutral responsive contexts selected by each platform adapter. */
-export const presentationContexts = ['compact', 'regular', 'wide'] as const
-export type PresentationContext = (typeof presentationContexts)[number]
+export type PresentationContext = 'compact' | 'regular' | 'wide'
 
 /** A complete default recipe with optional complete compact and wide overrides. */
 export type ResponsivePresentation<TAppearance> = {
@@ -125,21 +124,3 @@ export type SemanticSurfaceAppearance = {
 }
 
 export type SemanticSurfacePresentation = ResponsivePresentation<SemanticSurfaceAppearance>
-
-/**
- * Closed visual roles consumed by platform adapters.
- */
-export const semanticVisualRoles = [
-  'canvas',
-  'surface',
-  'text',
-  'border',
-  'focus',
-  'destructive',
-  'accent'
-] as const
-
-/**
- * Union of semantic roles available for adapter mapping.
- */
-export type SemanticVisualRole = (typeof semanticVisualRoles)[number]

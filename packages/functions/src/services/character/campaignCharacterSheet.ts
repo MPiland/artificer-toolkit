@@ -319,8 +319,101 @@ export function projectCharacterSheetForViewer(
     }
   }
   if (context.viewer === 'CAMPAIGN_OWNER') {
+    const inventoryItems = projected.inventory.items.map((item) => {
+      const sanitized = {
+        ...item,
+        label: item.equipmentLabel ?? item.label
+      }
+      delete sanitized.customName
+      delete sanitized.notes
+      return sanitized
+    })
+    const extras = projected.extras.items.map((extra) => {
+      const sanitized = {
+        ...extra,
+        displayName: extra.authoredName
+      }
+      delete sanitized.customName
+      delete sanitized.notes
+      return sanitized
+    })
+    const spells = projected.spells.spells.map((spell) => ({
+      ...spell,
+      sources: spell.sources?.map((source) => {
+        const sanitized = { ...source }
+        delete sanitized.customName
+        delete sanitized.notes
+        return sanitized
+      })
+    }))
+    const activeGroups = projected.spells.activeGroups.map((group) => ({
+      ...group,
+      entries: group.entries.map((entry) => ({
+        ...entry,
+        displayName: spells.find((spell) => spell.id === entry.spellId)?.label ?? entry.displayName
+      }))
+    }))
+    const resources = projected.resources.items.map((resource) => {
+      if (!('itemInstanceId' in resource.owner)) return resource
+      const itemInstanceId = resource.owner.itemInstanceId
+      const item = inventoryItems.find((candidate) => candidate.id === itemInstanceId)
+      if (!item) return resource
+      return {
+        ...resource,
+        label: `${item.label} charges`,
+        sourceLabel: item.label
+      }
+    })
+    const actions = projected.actions.items.map((action) => {
+      const item = projected.inventory.items.find(
+        (candidate) =>
+          candidate.customName !== undefined &&
+          (candidate.customName === action.sourceLabel ||
+            action.sourceLabel?.startsWith(`${candidate.customName} #`))
+      )
+      if (!item?.equipmentLabel || !item.customName || !action.sourceLabel) return action
+      return {
+        ...action,
+        sourceLabel: `${item.equipmentLabel}${action.sourceLabel.slice(item.customName.length)}`
+      }
+    })
+    const referenceFeatures = projected.reference.features.map((feature) => {
+      if (feature.source.kind !== 'EQUIPMENT_INSTANCE') return feature
+      const itemInstanceId = feature.source.itemInstanceId
+      const item = inventoryItems.find((candidate) => candidate.id === itemInstanceId)
+      return item ? { ...feature, sourceLabel: item.label } : feature
+    })
     return {
       ...projected,
+      inventory: {
+        ...projected.inventory,
+        items: inventoryItems,
+        containers: projected.inventory.containers?.map((container) => ({
+          ...container,
+          label: inventoryItems.find((item) => item.id === container.id)?.label ?? container.label
+        }))
+      },
+      extras: {
+        ...projected.extras,
+        items: extras
+      },
+      actions: {
+        ...projected.actions,
+        items: actions
+      },
+      reference: {
+        ...projected.reference,
+        features: referenceFeatures
+      },
+      resources: {
+        ...projected.resources,
+        items: resources
+      },
+      spells: {
+        ...projected.spells,
+        activeGroups,
+        spells
+      },
       notes: {
         ...projected.notes,
         notes: undefined,
@@ -362,17 +455,25 @@ export function projectCharacterRestForViewer(
   preview: CharacterRestPreviewResponseDto,
   context: CharacterSheetCampaignContext
 ): CharacterRestPreviewResponseDto {
+  if (context.viewer === 'CAMPAIGN_OWNER') {
+    return {
+      ...preview,
+      hitPoints: {
+        ...preview.hitPoints,
+        maximumHitPointModifier: 0,
+        canResetMaximumHitPointModifier: false
+      }
+    }
+  }
   if (
-    context.viewer === 'CAMPAIGN_OWNER' ||
     !context.adjustments.some(
       (adjustment) =>
         adjustment.family === 'HIT_POINTS' &&
         adjustment.field === 'MAXIMUM_MODIFIER' &&
         context.secretAdjustmentIds.has(adjustment.id)
     )
-  ) {
+  )
     return preview
-  }
   return {
     ...preview,
     hitPoints: {

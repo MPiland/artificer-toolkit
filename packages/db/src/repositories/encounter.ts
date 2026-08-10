@@ -254,20 +254,43 @@ export function createEncounterRepository(db: DBLike) {
       return result.rows[0] ? templateFromRow(result.rows[0]) : null
     },
 
+    async findTemplateByCampaignCommand(
+      campaignId: string,
+      commandId: string
+    ): Promise<{ template: EncounterTemplateRecord; commandFingerprint: string } | null> {
+      const result = await sql<Record<string, unknown>>`
+        SELECT * FROM public.encounter_templates
+        WHERE campaign_id = ${campaignId} AND command_id = ${commandId}
+      `.execute(db)
+      const row = result.rows[0]
+      return row
+        ? {
+            template: templateFromRow(row),
+            commandFingerprint: String(row.command_fingerprint)
+          }
+        : null
+    },
+
     async createTemplate(input: {
       id: string
       campaignId: string
+      commandId: string
+      commandFingerprint: string
       name: string
       enemies: EncounterTemplateEnemy[]
-    }): Promise<EncounterTemplateRecord> {
+    }): Promise<EncounterTemplateRecord | null> {
       const result = await sql<Record<string, unknown>>`
-        INSERT INTO public.encounter_templates (id, campaign_id, name, enemies)
-        VALUES (${input.id}, ${input.campaignId}, ${input.name}, ${json(input.enemies as unknown as Json)}::jsonb)
+        INSERT INTO public.encounter_templates (
+          id, campaign_id, command_id, command_fingerprint, name, enemies
+        ) VALUES (
+          ${input.id}, ${input.campaignId}, ${input.commandId}, ${input.commandFingerprint},
+          ${input.name}, ${json(input.enemies as unknown as Json)}::jsonb
+        )
+        ON CONFLICT (campaign_id, command_id) DO NOTHING
         RETURNING *
       `.execute(db)
       const row = result.rows[0]
-      if (!row) throw new Error('Encounter template was not created.')
-      return templateFromRow(row)
+      return row ? templateFromRow(row) : null
     },
 
     async find(encounterId: string): Promise<EncounterRecord | null> {
@@ -531,10 +554,22 @@ export function createEncounterRepository(db: DBLike) {
     async listEventsPage(
       encounterId: string,
       cursor: string | undefined,
-      limit: number
+      limit: number,
+      visibility: 'ALL' | 'TABLE' = 'ALL'
     ): Promise<EncounterEventRecord[]> {
       const result = cursor
-        ? await sql<Record<string, unknown>>`
+        ? visibility === 'TABLE'
+          ? await sql<Record<string, unknown>>`
+              SELECT event.* FROM public.encounter_events event
+              CROSS JOIN public.encounter_events cursor_event
+              WHERE event.encounter_id = ${encounterId} AND cursor_event.id = ${cursor}
+                AND event.command_type = 'ROLL_ENEMY_ACTION'
+                AND event.command_payload->>'visibility' = 'TABLE'
+                AND (event.version, event.created_at, event.id) < (cursor_event.version, cursor_event.created_at, cursor_event.id)
+              ORDER BY event.version DESC, event.created_at DESC, event.id DESC
+              LIMIT ${limit}
+            `.execute(db)
+          : await sql<Record<string, unknown>>`
             SELECT event.* FROM public.encounter_events event
             CROSS JOIN public.encounter_events cursor_event
             WHERE event.encounter_id = ${encounterId} AND cursor_event.id = ${cursor}
@@ -542,7 +577,16 @@ export function createEncounterRepository(db: DBLike) {
             ORDER BY event.version DESC, event.created_at DESC, event.id DESC
             LIMIT ${limit}
           `.execute(db)
-        : await sql<Record<string, unknown>>`
+        : visibility === 'TABLE'
+          ? await sql<Record<string, unknown>>`
+              SELECT * FROM public.encounter_events event
+              WHERE event.encounter_id = ${encounterId}
+                AND event.command_type = 'ROLL_ENEMY_ACTION'
+                AND event.command_payload->>'visibility' = 'TABLE'
+              ORDER BY event.version DESC, event.created_at DESC, event.id DESC
+              LIMIT ${limit}
+            `.execute(db)
+          : await sql<Record<string, unknown>>`
             SELECT * FROM public.encounter_events WHERE encounter_id = ${encounterId}
             ORDER BY version DESC, created_at DESC, id DESC LIMIT ${limit}
           `.execute(db)

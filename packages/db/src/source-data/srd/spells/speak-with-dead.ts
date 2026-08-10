@@ -73,9 +73,10 @@ export const speakWithDead: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.SPEAK_WITH_DEAD, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Answer as the Corpse",
+                label: 'Answer as the Corpse',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "Answers are usually brief, cryptic, or repetitive, and the corpse is under no compulsion to offer a truthful answer if you are hostile to it or it recognizes you as an enemy."
+                instructions:
+                  'Answers are usually brief, cryptic, or repetitive, and the corpse is under no compulsion to offer a truthful answer if you are hostile to it or it recognizes you as an enemy.'
               }
             ]
           }

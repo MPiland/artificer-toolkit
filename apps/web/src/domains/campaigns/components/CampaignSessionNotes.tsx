@@ -6,7 +6,8 @@ import { api } from '#app/lib/api'
 import { getCampaignSessionNotes, getCampaignSessions } from '#app/data/campaigns/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
+import * as notesStyles from './notes.css'
 
 export function CampaignSessionNotes({
   campaign,
@@ -17,14 +18,13 @@ export function CampaignSessionNotes({
   currentUserId: string
   embedded?: boolean
 }) {
-  const queryClient = useQueryClient()
   const sessions = useQuery(getCampaignSessions(campaign.id))
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const sessionId = selectedSessionId ?? sessions.data?.[0]?.id ?? null
 
   return (
     <section
-      className={embedded ? styles.notesSection : styles.panel}
+      className={embedded ? notesStyles.notesSection : sharedStyles.panel}
       aria-labelledby='campaign-session-notes-title'
     >
       <div>
@@ -46,7 +46,7 @@ export function CampaignSessionNotes({
               ? `Session ${formatSessionDate(session.scheduledStartAt, session.timeZone)}`
               : `Session ${session.sessionNumber}`
         }))}
-        classNames={{ input: styles.input }}
+        classNames={{ input: sharedStyles.input }}
         label='Session'
         placeholder='No sessions yet'
         value={sessionId}
@@ -113,7 +113,7 @@ function SessionSections({
       ))}
       {campaign.status === 'ACTIVE' ? (
         <form
-          className={styles.form}
+          className={sharedStyles.form}
           onSubmit={(event: SubmitEvent) => {
             event.preventDefault()
             create.mutate()
@@ -122,7 +122,7 @@ function SessionSections({
           <Title order={3}>Add your section</Title>
           <TextInput
             label='Section title'
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             required
             value={title}
             onChange={(event) => setTitle(event.currentTarget.value)}
@@ -210,7 +210,7 @@ export function SessionSectionEditor({
         </Alert>
       ) : null}
       <TextInput
-        classNames={{ input: styles.input }}
+        classNames={{ input: sharedStyles.input }}
         disabled={!editable}
         label='Section title'
         value={title}

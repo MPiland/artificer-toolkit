@@ -2,29 +2,30 @@
 target: Campaign and connected play surfaces
 total_score: 29
 max_score: 40
-na_heuristics: 
+na_heuristics:
 p0_count: 0
 p1_count: 5
 timestamp: 2026-08-08T17-34-53Z
 slug: apps-web-src-domains-campaigns
 ---
+
 Method: dual-agent (A: campaign_web_now · B: encounter_gap_now)
 
 ## Design Health Score
 
-| # | Heuristic | Score | Key issue |
-|---|---|---:|---|
-| 1 | Visibility of system status | 3 | Session, turn, unread, save, and lifecycle state are visible; a few nested overlays obscure where focus will return. |
-| 2 | Match between system and real world | 2 | Raw serialized movement data and actionable attacks labelled as traits break the GM mental model. |
-| 3 | User control and freedom | 3 | Most overlays and destructive actions have exits, but mobile dice cannot reach Roll and stacked notes can close the underlying Sheet. |
-| 4 | Consistency and standards | 3 | Campaign notes are editable on the Campaign page but read-only in the Sheet drawer, despite one agreed permission model. |
-| 5 | Error prevention | 3 | Destructive Session and Encounter paths are guarded; Campaign-note authority remains too permissive. |
-| 6 | Recognition rather than recall | 3 | Prepare, Run, Closeout, conversations, and roster states are discoverable; unassigned members disappear from the GM roster. |
-| 7 | Flexibility and efficiency | 3 | GM and player paths are direct on desktop, but mobile dice and chat actions are obstructed. |
-| 8 | Aesthetic and minimalist design | 3 | The live workflow is coherent; mobile catalogue spacing and overlay composition still feel mechanically collapsed. |
-| 9 | Error recovery | 3 | Autosave conflicts preserve drafts and removal confirms; nested overlay escape behavior can discard the inspector context. |
-| 10 | Help and documentation | 3 | Domain copy is generally clear, but the Campaign-notes collaborative label promises the wrong behavior. |
-| **Total** | | **29/40** | **Good foundation; bounded P1 correction required before visual sign-off.** |
+| #         | Heuristic                           |     Score | Key issue                                                                                                                             |
+| --------- | ----------------------------------- | --------: | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 1         | Visibility of system status         |         3 | Session, turn, unread, save, and lifecycle state are visible; a few nested overlays obscure where focus will return.                  |
+| 2         | Match between system and real world |         2 | Raw serialized movement data and actionable attacks labelled as traits break the GM mental model.                                     |
+| 3         | User control and freedom            |         3 | Most overlays and destructive actions have exits, but mobile dice cannot reach Roll and stacked notes can close the underlying Sheet. |
+| 4         | Consistency and standards           |         3 | Campaign notes are editable on the Campaign page but read-only in the Sheet drawer, despite one agreed permission model.              |
+| 5         | Error prevention                    |         3 | Destructive Session and Encounter paths are guarded; Campaign-note authority remains too permissive.                                  |
+| 6         | Recognition rather than recall      |         3 | Prepare, Run, Closeout, conversations, and roster states are discoverable; unassigned members disappear from the GM roster.           |
+| 7         | Flexibility and efficiency          |         3 | GM and player paths are direct on desktop, but mobile dice and chat actions are obstructed.                                           |
+| 8         | Aesthetic and minimalist design     |         3 | The live workflow is coherent; mobile catalogue spacing and overlay composition still feel mechanically collapsed.                    |
+| 9         | Error recovery                      |         3 | Autosave conflicts preserve drafts and removal confirms; nested overlay escape behavior can discard the inspector context.            |
+| 10        | Help and documentation              |         3 | Domain copy is generally clear, but the Campaign-notes collaborative label promises the wrong behavior.                               |
+| **Total** |                                     | **29/40** | **Good foundation; bounded P1 correction required before visual sign-off.**                                                           |
 
 ## Design Specificity Verdict
 

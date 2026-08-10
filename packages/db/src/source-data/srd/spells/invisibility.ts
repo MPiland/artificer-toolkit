@@ -15,13 +15,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import {
-  conditionTypeId,
-  schoolId,
-  spellChildId,
-  SRD_SYSTEM_ID,
-  SRD_USER_ID
-} from './shared.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const invisibility: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.INVISIBILITY,

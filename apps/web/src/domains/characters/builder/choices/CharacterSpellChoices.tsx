@@ -165,7 +165,7 @@ function SpellChoiceList({
                   </Text>
                   {metadata || option.disabledReason ? (
                     <Text size='xs' className={sharedStyles.mutedText}>
-                      {[metadata, option.disabledReason].filter(Boolean).join(' Â· ')}
+                      {[metadata, option.disabledReason].filter(Boolean).join(' · ')}
                     </Text>
                   ) : null}
                 </div>
@@ -208,7 +208,7 @@ function formatSpellMetadata(
     option.concentration ? 'Concentration' : undefined
   ]
     .filter(Boolean)
-    .join(' Â· ')
+    .join(' · ')
 }
 
 function formatSpellSourceHeading(choice: CharacterBuilderSpellChoiceViewDto): string {

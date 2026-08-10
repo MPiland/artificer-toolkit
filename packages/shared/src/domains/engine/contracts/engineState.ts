@@ -66,13 +66,13 @@ export interface EngineMovementSpeed {
 
 export interface EngineDerivedStats {
   proficiencyBonus: number
-  /** Ability code â†’ final score (after modifiers applied) */
+  /** Ability code -> final score (after modifiers applied) */
   abilityScores: Record<string, number>
-  /** Ability code â†’ modifier value, e.g. STR 16 â†’ 3 */
+  /** Ability code -> modifier value, e.g. STR 16 -> 3 */
   abilityModifiers: Record<string, number>
-  /** Ability code â†’ total saving throw bonus */
+  /** Ability code -> total saving throw bonus */
   savingThrows: Record<string, number>
-  /** Skill id â†’ total skill check bonus */
+  /** Skill id -> total skill check bonus */
   skillBonuses: Record<string, number>
   skillGoverningAbilities: Record<string, string>
   passiveChecks: Record<string, number>
@@ -198,9 +198,9 @@ export interface EngineCompanionStats {
  * Pact magic (Warlock): separate slot pool tracked in `pactMagic`.
  */
 export interface EngineSpellSlots {
-  /** Slot level (1â€“9) â†’ maximum slots */
+  /** Slot level (1-9) -> maximum slots */
   maxByLevel: Record<number, number>
-  /** Pact magic tracked separately â€” not fused with standard slots */
+  /** Pact magic is tracked separately from standard slots. */
   pactMagic?: {
     slots: number
     level: number
@@ -259,7 +259,7 @@ export interface EngineCharacterOutput {
   spellState?: CompiledCharacterClassState[]
   /** Resolved spell-grant access paths derived during the same engine run. */
   spellAccess: EngineSpellAccess[]
-  /** Spell slot maximums â€” empty maxByLevel when character has no spellcasting */
+  /** Spell slot maximums; maxByLevel is empty when the character has no spellcasting. */
   spellSlots: EngineSpellSlots
   /** Class resources with resolved maximums */
   resources: EngineResource[]

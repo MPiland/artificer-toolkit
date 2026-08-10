@@ -47,7 +47,6 @@ properties, component-library props, breakpoint numbers, or token paths.
 - `ResponsivePresentation<TAppearance>`
 - `SemanticTextPresentation`, `SemanticTextStyle`, `SemanticTextTone`
 - `SemanticSurfacePresentation`, `SemanticSurfaceRole`
-- `SemanticVisualRole = "canvas" | "surface" | "text" | "border" | "focus" | "destructive" | "accent"`
 - `spacingScale`, `radiusScale`, `typographyScale`, `motionScale`, `breakpoints`
 - `fontWeightScale`, `lightColorTokens`, `darkColorTokens`, `brandColorScale`
 

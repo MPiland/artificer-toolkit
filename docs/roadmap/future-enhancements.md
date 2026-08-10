@@ -1,7 +1,31 @@
-# Campaign feature and extension backlog
+# Campaign and interactive-play extension backlog
 
 > **Status:** proposed enhancements
-> **Scope:** product ideas that are explicitly out of phase and can be deferred until after Phase 06 live loops are in place
+> **Scope:** product ideas and interactive effect behavior that are explicitly out of phase and can be deferred until after Phase 06 live loops are in place
+
+## Interactive `APPLY_GRANT` lifecycle
+
+This was previously labeled in source as a "Phase 8+ interactive runtime" follow-up. The current
+roadmap's Phase 08 is billing and subscriptions, so this backlog is the canonical replacement for
+that older phase note.
+
+`ApplyGrantAuthored` currently represents permanent grants only. When the Encounter and character event pipelines support interactive effect consumption and expiry, add lifecycle metadata local to `APPLY_GRANT` rather than overloading the existing authored `Duration.durationKind` contract.
+
+The deferred authored shape is:
+
+```ts
+lifetime?: {
+  mode: 'PERMANENT' | 'TEMPORARY'
+  lastsUntil?:
+    | 'NEXT_ATTACK'
+    | 'END_OF_ROUND'
+    | 'START_OF_NEXT_TURN'
+    | 'END_OF_NEXT_TURN'
+    | 'NEXT_SAVE'
+}
+```
+
+Permanent remains the default. Temporary consumption and expiry must be explicit, replayable Encounter or Character events; they must not be client-only timers or inferred from mutable current state.
 
 ## Campaign Features (GM-directed)
 

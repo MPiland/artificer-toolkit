@@ -26,10 +26,7 @@ export const antitoxinVial: EquipmentAuthored = {
         targeting: {
           selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
           dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
-          excludedCreatureTypeIds: [
-            S.creatureTypeId('UNDEAD'),
-            S.creatureTypeId('CONSTRUCT')
-          ]
+          excludedCreatureTypeIds: [S.creatureTypeId('UNDEAD'), S.creatureTypeId('CONSTRUCT')]
         }
       },
       paths: [

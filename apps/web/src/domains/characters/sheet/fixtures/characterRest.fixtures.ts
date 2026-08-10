@@ -24,12 +24,12 @@ export const characterSheetMulticlassFixture = {
   overview: {
     ...characterSheetFixture.overview,
     abilities: [
-      { ability: 'STRENGTH', score: 10, modifier: 0 },
-      { ability: 'DEXTERITY', score: 16, modifier: 3 },
-      { ability: 'CONSTITUTION', score: 14, modifier: 2 },
-      { ability: 'INTELLIGENCE', score: 10, modifier: 0 },
-      { ability: 'WISDOM', score: 13, modifier: 1 },
-      { ability: 'CHARISMA', score: 12, modifier: 1 }
+      { ability: 'STRENGTH', score: 10, modifier: 0, rollMode: 'NORMAL' },
+      { ability: 'DEXTERITY', score: 16, modifier: 3, rollMode: 'NORMAL' },
+      { ability: 'CONSTITUTION', score: 14, modifier: 2, rollMode: 'NORMAL' },
+      { ability: 'INTELLIGENCE', score: 10, modifier: 0, rollMode: 'NORMAL' },
+      { ability: 'WISDOM', score: 13, modifier: 1, rollMode: 'NORMAL' },
+      { ability: 'CHARISMA', score: 12, modifier: 1, rollMode: 'NORMAL' }
     ],
     facts: [
       { label: 'Speed', value: '30 feet' },
@@ -57,12 +57,48 @@ export const characterSheetMulticlassFixture = {
       { die: 8, total: 1, used: 0, remaining: 1 }
     ],
     savingThrows: [
-      { ability: 'STRENGTH', label: 'Strength', total: 2, proficiency: 'FULL' },
-      { ability: 'DEXTERITY', label: 'Dexterity', total: 3, proficiency: 'NONE' },
-      { ability: 'CONSTITUTION', label: 'Constitution', total: 4, proficiency: 'FULL' },
-      { ability: 'INTELLIGENCE', label: 'Intelligence', total: 0, proficiency: 'NONE' },
-      { ability: 'WISDOM', label: 'Wisdom', total: 1, proficiency: 'NONE' },
-      { ability: 'CHARISMA', label: 'Charisma', total: 1, proficiency: 'NONE' }
+      {
+        ability: 'STRENGTH',
+        label: 'Strength',
+        total: 2,
+        proficiency: 'FULL',
+        rollMode: 'NORMAL'
+      },
+      {
+        ability: 'DEXTERITY',
+        label: 'Dexterity',
+        total: 3,
+        proficiency: 'NONE',
+        rollMode: 'NORMAL'
+      },
+      {
+        ability: 'CONSTITUTION',
+        label: 'Constitution',
+        total: 4,
+        proficiency: 'FULL',
+        rollMode: 'NORMAL'
+      },
+      {
+        ability: 'INTELLIGENCE',
+        label: 'Intelligence',
+        total: 0,
+        proficiency: 'NONE',
+        rollMode: 'NORMAL'
+      },
+      {
+        ability: 'WISDOM',
+        label: 'Wisdom',
+        total: 1,
+        proficiency: 'NONE',
+        rollMode: 'NORMAL'
+      },
+      {
+        ability: 'CHARISMA',
+        label: 'Charisma',
+        total: 1,
+        proficiency: 'NONE',
+        rollMode: 'NORMAL'
+      }
     ],
     skills: characterSheetFixture.overview.skills.map((skill) => {
       const resolved = {

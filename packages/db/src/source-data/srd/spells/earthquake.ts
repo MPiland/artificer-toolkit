@@ -93,9 +93,9 @@ export const earthquake: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.EARTHQUAKE, 0x213, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Place Fissures",
+                label: 'Place Fissures',
                 reasonCode: 'GM_CHOICE' as const,
-                instructions: "A total of 1d6 such fissures open in locations chosen by the GM."
+                instructions: 'A total of 1d6 such fissures open in locations chosen by the GM.'
               }
             ]
           }

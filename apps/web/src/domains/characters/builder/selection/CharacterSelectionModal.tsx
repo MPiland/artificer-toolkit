@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Modal, Text, TextInput } from '@mantine/core'
 import { IconCheck, IconSearch } from '@tabler/icons-react'
-import { renderSanitizedRichHtml } from '#ui/primitives/renderSanitizedRichHtml'
+import { renderSanitizedRichHtml } from '#lib/richText'
 import { compareCharacterBuilderLabels } from './optionProjection'
 import * as sharedStyles from '../shared/builderShared.css'
 import * as styles from './characterSelection.css'

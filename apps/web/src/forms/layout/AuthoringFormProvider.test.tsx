@@ -485,7 +485,11 @@ function DomainDataRegistrationProbe() {
   const authoring = useAuthoringForm()
   const { registerDomain } = authoring
   const initialValues = authoring.authoredSession?.initialValues
-  const sessionId = initialValues && 'id' in initialValues ? initialValues.id : undefined
+  const initialSessionId = initialValues && 'id' in initialValues ? initialValues.id : undefined
+  const sessionId =
+    typeof initialSessionId === 'string' || typeof initialSessionId === 'number'
+      ? String(initialSessionId)
+      : ''
 
   useEffect(() => {
     registerDomain(RACE_CREATE_REGISTRATION)
@@ -494,7 +498,7 @@ function DomainDataRegistrationProbe() {
   return (
     <>
       <div data-testid='session-key'>{authoring.authoredSession?.key}</div>
-      <div data-testid='session-id'>{String(sessionId ?? '')}</div>
+      <div data-testid='session-id'>{sessionId}</div>
       <div data-testid='system-id'>{authoring.authoredSession?.systemId}</div>
       <button type='button' onClick={() => registerDomain(RACE_CREATE_REGISTRATION)}>
         Register again

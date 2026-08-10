@@ -1,9 +1,12 @@
 import type { ValueDomainCode } from '../../core/valueDomain.js'
 import type { CharacterBuildSnapshot } from '../snapshot.js'
 import type { RulesSystem } from '../contracts/rulesSystem.js'
-import type { EngineAccumulatedState } from './grantApplicator.js'
+import type { EngineAccumulatedState } from './grantApplication.js'
 import type { EngineProficiency } from '../contracts/engineState.js'
-import type { CharacterCalculation } from '../../character/sheetCalculation.js'
+import type {
+  CharacterCalculation,
+  CharacterCalculationContribution
+} from '../../character/sheetCalculation.js'
 import {
   CHARACTER_CALCULATION_CONTRIBUTION_STATE,
   createCharacterMechanicSourceKey
@@ -34,6 +37,25 @@ export function resolveModifiers(
 export interface ResolvedModifierState {
   values: Record<string, number>
   calculations: Record<string, CharacterCalculation<number>>
+}
+
+export function modifierContributions(
+  state: ResolvedModifierState,
+  predicate: (parsed: ReturnType<typeof parseModifierDomainKey>) => boolean
+): CharacterCalculationContribution<number>[] {
+  return Object.entries(state.calculations).flatMap(([domainKey, calculation]) => {
+    const parsed = parseModifierDomainKey(domainKey)
+    return predicate(parsed) &&
+      [
+        'BONUS',
+        'PENALTY',
+        'SET_VALUE',
+        'ABILITY_MODIFIER_BONUS',
+        'OPTIONAL_ABILITY_MODIFIER_BONUS'
+      ].includes(parsed.modifierKind)
+      ? calculation.contributions.map((contribution) => ({ ...contribution }))
+      : []
+  })
 }
 
 export function resolveModifierState(

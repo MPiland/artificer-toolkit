@@ -2,29 +2,30 @@
 target: Campaign and Session pages
 total_score: 20
 max_score: 40
-na_heuristics: 
+na_heuristics:
 p0_count: 0
 p1_count: 3
 timestamp: 2026-08-08T01-32-35Z
 slug: apps-web-src-domains-campaigns
 ---
+
 Method: dual-agent (A: impeccable_campaign_assessment_a_retry · B: impeccable_campaign_assessment_b)
 
 ## Design Health Score
 
-| # | Heuristic | Score | Key issue |
-|---|---|---:|---|
-| 1 | Visibility of system status | 2 | Session and Encounter states are visible, but the live turn did not dominate the workspace. |
-| 2 | Match between system and real world | 2 | Strong tabletop language was undermined by template, run, actor, and CRUD terminology. |
-| 3 | User control and freedom | 2 | Exit and lifecycle actions existed, but Open and Edit split one conceptual destination. |
-| 4 | Consistency and standards | 2 | Rows, cards, and actions used multiple competing interaction patterns. |
-| 5 | Error prevention | 2 | Disabled states helped, but Encounter prerequisites and attendance remained visually secondary. |
-| 6 | Recognition rather than recall | 2 | Destinations were visible on desktop, while mobile tabs clipped important sections. |
-| 7 | Flexibility and efficiency | 2 | Common actions were available, but repeated panels and duplicate row actions slowed scanning. |
-| 8 | Aesthetic and minimalist design | 2 | Repeated borders, helper copy, and the trailing Session divider weakened the hierarchy. |
-| 9 | Error recovery | 2 | Existing recovery paths were serviceable but still relied on generic messages. |
-| 10 | Help and documentation | 2 | Helper copy existed, but some of it described implementation instead of the next GM action. |
-| **Total** | | **20/40** | **Usable foundation; hierarchy and interaction semantics needed a focused polish pass.** |
+| #         | Heuristic                           |     Score | Key issue                                                                                       |
+| --------- | ----------------------------------- | --------: | ----------------------------------------------------------------------------------------------- |
+| 1         | Visibility of system status         |         2 | Session and Encounter states are visible, but the live turn did not dominate the workspace.     |
+| 2         | Match between system and real world |         2 | Strong tabletop language was undermined by template, run, actor, and CRUD terminology.          |
+| 3         | User control and freedom            |         2 | Exit and lifecycle actions existed, but Open and Edit split one conceptual destination.         |
+| 4         | Consistency and standards           |         2 | Rows, cards, and actions used multiple competing interaction patterns.                          |
+| 5         | Error prevention                    |         2 | Disabled states helped, but Encounter prerequisites and attendance remained visually secondary. |
+| 6         | Recognition rather than recall      |         2 | Destinations were visible on desktop, while mobile tabs clipped important sections.             |
+| 7         | Flexibility and efficiency          |         2 | Common actions were available, but repeated panels and duplicate row actions slowed scanning.   |
+| 8         | Aesthetic and minimalist design     |         2 | Repeated borders, helper copy, and the trailing Session divider weakened the hierarchy.         |
+| 9         | Error recovery                      |         2 | Existing recovery paths were serviceable but still relied on generic messages.                  |
+| 10        | Help and documentation              |         2 | Helper copy existed, but some of it described implementation instead of the next GM action.     |
+| **Total** |                                     | **20/40** | **Usable foundation; hierarchy and interaction semantics needed a focused polish pass.**        |
 
 ## Design Specificity Verdict
 

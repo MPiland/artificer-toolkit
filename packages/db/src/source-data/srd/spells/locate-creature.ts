@@ -73,9 +73,10 @@ export const locateCreature: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.LOCATE_CREATURE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Reveal the Creature\u0027s Direction",
+                label: 'Reveal the Creature\u0027s Direction',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "The spell can locate a specific creature known to you, or the nearest creature of a specific kind (such as a human or a unicorn), so long as you have seen such a creature up close-within 30 feet-at least once."
+                instructions:
+                  'The spell can locate a specific creature known to you, or the nearest creature of a specific kind (such as a human or a unicorn), so long as you have seen such a creature up close-within 30 feet-at least once.'
               }
             ]
           }

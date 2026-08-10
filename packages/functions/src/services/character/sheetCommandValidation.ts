@@ -1,0 +1,313 @@
+import { SIZE_OPTIONS } from '@artificer-toolkit/shared/core'
+import {
+  createCharacterSpellSourceKey,
+  type CharacterSheetAdjustment
+} from '@artificer-toolkit/shared/character'
+
+import type {
+  CharacterSheetCommandInputDto,
+  CharacterSheetResponseDto
+} from '@artificer-toolkit/schema/api/characters'
+import type { CharacterSheetAdjustmentCommandDto } from '@artificer-toolkit/schema/api/characterSheet'
+import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
+import type { DBLike } from '@artificer-toolkit/db'
+import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CharacterBuilderResolution } from './builderService.js'
+
+import { CharacterSheetCommandError, formatCodeLabel } from './sheetCommandReducer.js'
+
+export async function getConditionOptions(
+  db: DBLike,
+  systemId: string
+): Promise<Array<{ id: string; code: string; label: string; description?: string }>> {
+  const rows = await db
+    .selectFrom('condition_types')
+    .select(['id', 'code', 'label', 'description'])
+    .where('system_id', '=', systemId)
+    .orderBy('label', 'asc')
+    .execute()
+
+  return rows.map((row) => ({
+    id: String(row.id),
+    code: String(row.code),
+    label: String(row.label),
+    description: row.description ? String(row.description) : undefined
+  }))
+}
+
+export async function validateCharacterConditionType(
+  db: DBLike,
+  systemId: string,
+  conditionTypeId: string
+): Promise<void> {
+  if (
+    !(await getConditionOptions(db, systemId)).some((condition) => condition.id === conditionTypeId)
+  ) {
+    throw new CharacterSheetCommandError(
+      `Condition "${conditionTypeId}" is not available in this rules system.`
+    )
+  }
+}
+
+export type CharacterSheetAdjustmentCommand = CharacterSheetAdjustmentCommandDto
+
+export function validateSheetAdjustmentTarget(
+  input: CharacterSheetAdjustmentCommand,
+  resolution: CharacterBuilderResolution,
+  character: CharacterAuthored
+): void {
+  const system = resolution.registry.system
+  const ensureVocabularyTarget = (
+    records: ReadonlyArray<{ id: string }> | undefined,
+    targetId: string,
+    label: string
+  ) => {
+    if (!records?.some((record) => record.id === targetId)) {
+      throw new CharacterSheetCommandError(
+        `${label} "${targetId}" is not available in this rules system.`
+      )
+    }
+  }
+
+  switch (input.family) {
+    case 'ABILITY':
+    case 'SAVING_THROW':
+    case 'HIT_POINTS':
+      return
+    case 'SKILL':
+    case 'PASSIVE':
+      ensureVocabularyTarget(system?.skills, input.skillId, 'Skill')
+      return
+    case 'SENSE':
+      ensureVocabularyTarget(system?.senses, input.senseId, 'Sense')
+      return
+    case 'MOVEMENT':
+      ensureVocabularyTarget(system?.speeds, input.speedId, 'Movement type')
+      return
+    case 'DEFENSE':
+      ensureVocabularyTarget(system?.damageTypes, input.damageTypeId, 'Damage type')
+      return
+    case 'PROFICIENCY':
+      if (input.proficiencyKind === 'LANGUAGE') {
+        ensureVocabularyTarget(system?.languages, input.targetId, 'Language')
+        return
+      }
+      const equipment = resolution.catalog.equipment.find(
+        (candidate) => candidate.id === input.targetId
+      )
+      const validCategory =
+        input.proficiencyKind === 'ARMOR'
+          ? equipment?.category === 'ARMOR' || equipment?.category === 'SHIELD'
+          : equipment?.category === input.proficiencyKind
+      if (!equipment || !validCategory) {
+        throw new CharacterSheetCommandError(
+          `${formatCodeLabel(input.proficiencyKind)} proficiency target "${input.targetId}" is not available.`
+        )
+      }
+      return
+    case 'ITEM':
+      if (!character.state.equipment.inventory.some((item) => item.id === input.itemInstanceId)) {
+        throw new CharacterSheetCommandError(
+          `Owned item "${input.itemInstanceId}" is not available on this character.`
+        )
+      }
+      return
+    case 'COMPANION':
+      if (
+        !character.state.creatures?.some((creature) => creature.id === input.companionInstanceId)
+      ) {
+        throw new CharacterSheetCommandError(
+          `Companion "${input.companionInstanceId}" is not available on this character.`
+        )
+      }
+      if (input.field === 'ALIGNMENT_OVERRIDE') {
+        ensureVocabularyTarget(system?.alignments, input.value, 'Alignment')
+      }
+      if (input.field === 'CREATURE_TYPE_OVERRIDE') {
+        ensureVocabularyTarget(system?.creatureTypes, input.value, 'Creature type')
+      }
+      if (
+        input.field === 'SIZE_OVERRIDE' &&
+        !SIZE_OPTIONS.some((size) => size.code === input.value)
+      ) {
+        throw new CharacterSheetCommandError(`Size "${input.value}" is not available.`)
+      }
+      return
+  }
+}
+
+export function validatePanelTarget(
+  target: CharacterSheetPanelTargetDto,
+  resolution: CharacterBuilderResolution,
+  character: CharacterAuthored
+): void {
+  if (
+    target.kind === 'SKILL' &&
+    !resolution.registry.system?.skills.some((skill) => skill.id === target.skillId)
+  ) {
+    throw new CharacterSheetCommandError(
+      `Skill "${target.skillId}" is not available in this rules system.`
+    )
+  }
+  if (
+    target.kind === 'COMPANION' &&
+    !character.state.creatures?.some((creature) => creature.id === target.companionInstanceId)
+  ) {
+    throw new CharacterSheetCommandError(
+      `Companion "${target.companionInstanceId}" is not available on this character.`
+    )
+  }
+}
+
+type SpellMechanicCustomizationCommand = Extract<
+  CharacterSheetCommandInputDto,
+  {
+    type: 'SET_SPELL_MECHANIC_CUSTOMIZATION' | 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION'
+  }
+>
+
+export function getSpellCustomizationFields(
+  category: SpellMechanicCustomizationCommand['category']
+): readonly Extract<CharacterSheetAdjustment, { family: 'SPELL' }>['field'][] {
+  switch (category) {
+    case 'TO_HIT':
+      return ['ATTACK_BONUS', 'ATTACK_OVERRIDE']
+    case 'SAVE_DC':
+      return ['DC_BONUS', 'DC_OVERRIDE']
+    case 'DAMAGE':
+      return ['DAMAGE_BONUS']
+  }
+}
+
+export function getSpellCustomizationField(
+  command: Extract<SpellMechanicCustomizationCommand, { type: 'SET_SPELL_MECHANIC_CUSTOMIZATION' }>
+): Extract<CharacterSheetAdjustment, { family: 'SPELL' }>['field'] {
+  switch (command.category) {
+    case 'TO_HIT':
+      return command.mode === 'OVERRIDE' ? 'ATTACK_OVERRIDE' : 'ATTACK_BONUS'
+    case 'SAVE_DC':
+      return command.mode === 'OVERRIDE' ? 'DC_OVERRIDE' : 'DC_BONUS'
+    case 'DAMAGE':
+      if (command.mode !== 'BONUS') {
+        throw new CharacterSheetCommandError('Damage customization supports a bonus only.')
+      }
+      return 'DAMAGE_BONUS'
+  }
+}
+
+export function sameSpellSource(
+  left: Extract<CharacterSheetAdjustment, { family: 'SPELL' }>['source'],
+  right: Extract<CharacterSheetAdjustment, { family: 'SPELL' }>['source']
+): boolean {
+  return createCharacterSpellSourceKey(left) === createCharacterSpellSourceKey(right)
+}
+
+export function validateSpellMechanicCustomization(
+  command: SpellMechanicCustomizationCommand,
+  sheet: CharacterSheetResponseDto
+): void {
+  const sourceKey = createCharacterSpellSourceKey(command.source)
+  const spell = sheet.spells.spells.find((candidate) => candidate.id === command.source.spellId)
+  const source = spell?.sources?.find(
+    (candidate) => createCharacterSpellSourceKey(candidate.source) === sourceKey
+  )
+  if (!spell || !source) {
+    throw new CharacterSheetCommandError(
+      `Spell source "${sourceKey}" is not available on this character.`
+    )
+  }
+
+  const mechanics = spell.mechanics ?? []
+  const valid =
+    command.category === 'TO_HIT'
+      ? mechanics.some((mechanic) => mechanic.attackBonus !== undefined)
+      : command.category === 'SAVE_DC'
+        ? mechanics.some((mechanic) => mechanic.save !== undefined)
+        : mechanics.some((mechanic) =>
+            mechanic.outcomes.some((outcome) => outcome.kind === 'DAMAGE')
+          )
+  if (!valid) {
+    throw new CharacterSheetCommandError(
+      `${formatCodeLabel(command.category)} customization is not available for this spell.`
+    )
+  }
+
+  if (command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION') {
+    getSpellCustomizationField(command)
+  }
+}
+
+export function validateSpellSource(
+  source: Extract<
+    CharacterSheetCommandInputDto,
+    { type: 'UPDATE_SPELL_SOURCE_CUSTOMIZATION' }
+  >['source'],
+  sheet: CharacterSheetResponseDto
+): void {
+  const sourceKey = createCharacterSpellSourceKey(source)
+  const available = sheet.spells.spells.some((spell) =>
+    spell.sources?.some(
+      (candidate) => createCharacterSpellSourceKey(candidate.source) === sourceKey
+    )
+  )
+  if (!available) {
+    throw new CharacterSheetCommandError(
+      `Spell source "${sourceKey}" is not available on this character.`
+    )
+  }
+}
+
+export function assertCampaignGmSheetCommandAllowed(command: CharacterSheetCommandInputDto): void {
+  switch (command.type) {
+    case 'SET_INSPIRATION':
+    case 'ADJUST_HIT_POINTS':
+    case 'USE_HIT_DIE':
+    case 'APPLY_REST':
+      return
+    case 'COMPLETE_REST':
+      if (command.resetMaximumHitPointModifier) break
+      return
+    case 'SET_EXHAUSTION':
+    case 'ADD_CONDITION':
+    case 'REMOVE_CONDITION':
+    case 'USE_RESOURCE':
+    case 'RESTORE_RESOURCE':
+    case 'USE_SHEET_RESOURCE':
+    case 'RECOVER_SHEET_RESOURCE':
+    case 'USE_SPELL_SLOT':
+    case 'RESTORE_SPELL_SLOT':
+    case 'CAST_SPELL':
+    case 'SET_PREPARED_SPELLS':
+    case 'SET_KNOWN_SPELLS':
+      return
+    case 'ADD_INVENTORY_ITEM':
+      if (command.customName === undefined && command.notes === undefined) return
+      break
+    case 'REMOVE_INVENTORY_ITEM':
+      return
+    case 'UPDATE_INVENTORY_ITEM':
+      if (command.customName === undefined && command.notes === undefined) return
+      break
+    case 'ADJUST_CURRENCY':
+    case 'MOVE_CURRENCY':
+    case 'EQUIP_ITEM':
+    case 'UNEQUIP_ITEM':
+    case 'ATTUNE_ITEM':
+    case 'UNATTUNE_ITEM':
+    case 'ADD_SHEET_EXTRA':
+    case 'REMOVE_SHEET_EXTRA':
+      return
+    case 'SET_HIT_POINTS':
+      if (command.maxOverride === undefined) return
+      break
+    case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
+      if (command.customName === undefined && command.notes === undefined) return
+      break
+    case 'UPDATE_SHEET_EXTRA':
+      if (command.extra.customName === undefined && command.extra.notes === undefined) return
+      break
+  }
+  throw new CharacterSheetCommandError(
+    `Campaign owners cannot apply ${command.type} to a player's Character.`
+  )
+}

@@ -82,11 +82,8 @@ vi.mock('@artificer-toolkit/db', () => ({
   })
 }))
 
-import {
-  createEmptyCharacterAuthored,
-  reconcileCharacterBuilderCharacter,
-  resolveCharacterBuilder
-} from './builderService.js'
+import { createEmptyCharacterAuthored, resolveCharacterBuilder } from './builderService.js'
+import { reconcileCharacterBuilderCharacter } from './builderReconciliation.js'
 
 function createSystem(): NonNullable<CharacterBuilderRegistry['system']> {
   return {

@@ -72,9 +72,10 @@ export const majorImage: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.MAJOR_IMAGE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Define the Phenomenon",
+                label: 'Define the Phenomenon',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "You create the image of an object, a creature, or some other visible phenomenon that is no larger than a 20-foot cube."
+                instructions:
+                  'You create the image of an object, a creature, or some other visible phenomenon that is no larger than a 20-foot cube.'
               }
             ]
           }

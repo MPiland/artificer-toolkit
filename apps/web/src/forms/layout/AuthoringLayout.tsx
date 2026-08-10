@@ -32,6 +32,7 @@ import { useAuthoringSaveShortcut } from './useAuthoringSaveShortcut'
 import { useAuthoringExperience } from './useAuthoringExperience'
 import { GuidedAuthoring } from '../guided/GuidedAuthoring'
 import type { GuidedAuthoringState } from '../guided/guidedAuthoring.types'
+import { isObjectValue } from '../utils/valueGuards'
 
 type EmptyAuthoringLayoutProps = {
   children?: ReactNode
@@ -413,10 +414,10 @@ function readAuthoringRouteContext(
   | { domain: AuthoredFormDomain; kind: 'authored-form'; mode: AuthoredFormRouteMode }
   | { kind: 'character-builder'; mode: CharacterBuilderRouteMode }
   | undefined {
-  if (!isRecord(value)) return undefined
+  if (!isObjectValue(value)) return undefined
   const authoring = value.authoring
 
-  if (!isRecord(authoring)) return undefined
+  if (!isObjectValue(authoring)) return undefined
 
   if (authoring.kind === 'character-builder' && isAuthoredFormRouteMode(authoring.mode)) {
     return {
@@ -435,7 +436,7 @@ function readAuthoringRouteContext(
 }
 
 function readAuthoringRouteData(value: unknown): unknown {
-  if (!isRecord(value) || !('authoringData' in value)) return undefined
+  if (!isObjectValue(value) || !('authoringData' in value)) return undefined
 
   return value.authoringData
 }
@@ -446,10 +447,6 @@ function isAuthoredFormDomain(value: unknown): value is AuthoredFormDomain {
 
 function isAuthoredFormRouteMode(value: unknown): value is AuthoredFormRouteMode {
   return value === 'create' || value === 'edit'
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
 }
 
 function readPreviewLabel(values: object, fallbackLabel: string): string {

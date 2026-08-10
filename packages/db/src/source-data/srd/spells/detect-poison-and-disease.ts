@@ -19,7 +19,7 @@ export const detectPoisonAndDisease: SpellAuthored = {
   id: SPELL_IDS.DETECT_POISON_AND_DISEASE,
   label: 'Detect Poison and Disease',
   description:
-    "<p>For the duration, you can sense the presence and location of poisons, poisonous creatures, and diseases within 30 feet of you. You also identify the kind of poison, poisonous creature, or disease in each case. The spell can penetrate most barriers, but it is blocked by 1 foot of stone, 1 inch of common metal, a thin sheet of lead, or 3 feet of wood or dirt.</p>",
+    '<p>For the duration, you can sense the presence and location of poisons, poisonous creatures, and diseases within 30 feet of you. You also identify the kind of poison, poisonous creature, or disease in each case. The spell can penetrate most barriers, but it is blocked by 1 foot of stone, 1 inch of common metal, a thin sheet of lead, or 3 feet of wood or dirt.</p>',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.DRUID, CLASS_IDS.PALADIN, CLASS_IDS.RANGER],
@@ -67,9 +67,10 @@ export const detectPoisonAndDisease: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.DETECT_POISON_AND_DISEASE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Reveal Poisons and Diseases",
+                label: 'Reveal Poisons and Diseases',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "For the duration, you can sense the presence and location of poisons, poisonous creatures, and diseases within 30 feet of you."
+                instructions:
+                  'For the duration, you can sense the presence and location of poisons, poisonous creatures, and diseases within 30 feet of you.'
               }
             ]
           }

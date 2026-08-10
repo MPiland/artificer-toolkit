@@ -69,9 +69,9 @@ export const disguiseSelf: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.DISGUISE_SELF, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Choose Appearance",
+                label: 'Choose Appearance',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "Otherwise, the extent of the illusion is up to you."
+                instructions: 'Otherwise, the extent of the illusion is up to you.'
               }
             ]
           }

@@ -8,7 +8,8 @@ import type {
   SubmitSheetCommand
 } from '../core/CharacterSheet.types'
 import { CharacterSheetDetailPanel } from '../shared/CharacterSheetDetailPanel'
-import { CharacterSheetExtraList, getExtraTarget } from './CharacterSheetExtraList'
+import { CharacterSheetExtraList } from './CharacterSheetExtraList'
+import { getExtraTarget } from './CharacterSheetExtraList.model'
 import * as extrasStyles from './extras.css'
 import * as panelStyles from '../shared/panel.css'
 

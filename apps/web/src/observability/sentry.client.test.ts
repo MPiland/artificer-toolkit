@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { captureClientException, initializeClientSentry } from './sentry.client'
+import { redactSentryEvent } from './sentryPrivacy'
 
 const sentryMocks = vi.hoisted(() => ({
   captureException: vi.fn(),
@@ -39,6 +40,8 @@ describe('client Sentry configuration', () => {
       successMessageText: 'Thanks - your feedback was sent.'
     })
     expect(sentryMocks.init).toHaveBeenCalledWith({
+      beforeSend: redactSentryEvent,
+      beforeSendTransaction: redactSentryEvent,
       dataCollection: {
         httpBodies: [],
         userInfo: false

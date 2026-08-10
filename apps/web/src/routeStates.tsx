@@ -6,14 +6,13 @@ import { useEffect, useState } from 'react'
 import IAlertCircle from '#assets/icons/IAlertCircle'
 import IArrowLeft from '#assets/icons/IArrowLeft'
 import IMapOff from '#assets/icons/IMapOff'
+import { captureClientException } from '#app/observability/sentry.client'
 import { routeLoadingMessages } from './routeLoadingMessages'
 import { loadingCopy, loadingOverlay, loadingPanel, loadingSpinner } from './routeStates.css'
 
 const routeLoadingIntervalMs = 1800
 const captureRouteError = createClientOnlyFn((error: unknown) => {
-  void import('#app/observability/sentry.client').then(({ captureClientException }) => {
-    captureClientException(error)
-  })
+  captureClientException(error)
 })
 
 export function RouteNotFound() {

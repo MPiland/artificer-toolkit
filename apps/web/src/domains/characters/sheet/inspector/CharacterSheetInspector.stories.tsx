@@ -189,7 +189,6 @@ export const SpellInspector: Story = {
         submitCommand={async () => false}
         target={spellPanelFixture.target}
         onClose={() => undefined}
-        onOpenBuilder={() => undefined}
         onTargetChange={() => undefined}
       />
     </>
@@ -222,7 +221,6 @@ export const ItemInspector: Story = {
         submitCommand={async () => false}
         target={itemPanelFixture.target}
         onClose={() => undefined}
-        onOpenBuilder={() => undefined}
         onTargetChange={() => undefined}
       />
     </>
@@ -316,7 +314,6 @@ export const SpellInspectorAttackDamage: Story = {
         submitCommand={async () => false}
         target={spellPanelAttackDamageFixture.target}
         onClose={() => undefined}
-        onOpenBuilder={() => undefined}
         onTargetChange={() => undefined}
       />
     </>
@@ -338,7 +335,6 @@ export const SpellInspectorSaveDamage: Story = {
         submitCommand={async () => false}
         target={spellPanelSaveDamageFixture.target}
         onClose={() => undefined}
-        onOpenBuilder={() => undefined}
         onTargetChange={() => undefined}
       />
     </>
@@ -360,7 +356,6 @@ export const SpellInspectorEmptyCustomizations: Story = {
         submitCommand={async () => false}
         target={spellPanelEmptyCustomizationsFixture.target}
         onClose={() => undefined}
-        onOpenBuilder={() => undefined}
         onTargetChange={() => undefined}
       />
     </>
@@ -383,7 +378,6 @@ export const SpellInspectorConfiguredCustomizations: Story = {
         submitCommand={async () => false}
         target={spellPanelConfiguredCustomizationsFixture.target}
         onClose={() => undefined}
-        onOpenBuilder={() => undefined}
         onTargetChange={() => undefined}
       />
     </>
@@ -408,7 +402,6 @@ export const SpellsInspector: Story = {
         submitCommand={async () => false}
         target={spellsPanelFixture.target}
         onClose={() => undefined}
-        onOpenBuilder={() => undefined}
         onTargetChange={() => undefined}
       />
     </>

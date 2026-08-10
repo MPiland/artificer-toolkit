@@ -1,4 +1,5 @@
 import type { NodeRuntimeCollectionOrderingDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import { isRecord } from '../utils/valueGuards'
 
 export function getCollectionItemIdentity(
   value: unknown,
@@ -53,8 +54,4 @@ function readIdentity(value: unknown, key: string): string | undefined {
   if (!isRecord(value)) return undefined
   const identity = value[key]
   return typeof identity === 'string' || typeof identity === 'number' ? String(identity) : undefined
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

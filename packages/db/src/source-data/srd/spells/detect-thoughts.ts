@@ -70,9 +70,10 @@ export const detectThoughts: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.DETECT_THOUGHTS, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Reveal Thoughts",
+                label: 'Reveal Thoughts',
                 reasonCode: 'NARRATIVE_JUDGMENT' as const,
-                instructions: "You initially learn the surface thoughts of the creature-what is most on its mind in that moment."
+                instructions:
+                  'You initially learn the surface thoughts of the creature-what is most on its mind in that moment.'
               }
             ]
           }

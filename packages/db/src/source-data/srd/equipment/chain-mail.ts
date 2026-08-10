@@ -5,7 +5,8 @@ export const chainMail: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(47),
   label: 'Chain Mail',
-  description: "Made of interlocking metal rings, chain mail includes a layer of quilted fabric worn underneath the mail to prevent chafing and to cushion the impact of blows. The suit includes gauntlets.",
+  description:
+    'Made of interlocking metal rings, chain mail includes a layer of quilted fabric worn underneath the mail to prevent chafing and to cushion the impact of blows. The suit includes gauntlets.',
   category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.HEAVY],
   armorClass: 16,

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { AUTHORED_LIMITS } from '../shared/authoredLimits.js'
 import { unknownObjectSchema } from '../shared/facet.js'
 import { authoredSubjectKindDtoSchema } from './content.js'
 
@@ -7,6 +8,11 @@ export const IMPORT_MAX_ENTRIES = 25
 export const IMPORT_MAX_CUSTOM_CONTENT_CHOICES = 1000
 export const IMPORT_MAX_ENTRY_BYTES = 10 * 1024 * 1024
 export const IMPORT_MAX_BATCH_BYTES = 25 * 1024 * 1024
+export const IMPORT_MAX_FOUNDRY_ITEMS = AUTHORED_LIMITS.nestedCollectionItems
+export const IMPORT_MAX_PORTABLE_REFERENCES = AUTHORED_LIMITS.referenceCollectionItems
+export const IMPORT_MAX_PORTABLE_DEPTH = AUTHORED_LIMITS.facetNestingDepth
+export const IMPORT_MAX_PORTABLE_NODES = 10_000
+export const IMPORT_MAX_BATCH_RELATIONSHIPS = IMPORT_MAX_CUSTOM_CONTENT_CHOICES
 
 export const importSourceDtoSchema = z.enum(['DND_BEYOND', 'FOUNDRY_DND5E', 'ARTIFICER_JSON'])
 
@@ -303,14 +309,72 @@ export const artificerPortableReferenceDtoSchema = z.strictObject({
   importId: z.string().min(1).nullable().optional()
 })
 
+function validatePortableDataLimits(value: unknown, context: z.RefinementCtx): void {
+  const pending: Array<{ value: unknown; depth: number; path: Array<string | number> }> = [
+    { value, depth: 0, path: [] }
+  ]
+  const seen = new Set<object>()
+  let nodeCount = 0
+
+  while (pending.length > 0) {
+    const current = pending.pop()
+    if (!current) continue
+    if (current.depth > IMPORT_MAX_PORTABLE_DEPTH) {
+      context.addIssue({
+        code: 'custom',
+        message: `Portable content data may be nested at most ${IMPORT_MAX_PORTABLE_DEPTH} levels.`,
+        path: current.path
+      })
+      return
+    }
+
+    nodeCount += 1
+    if (nodeCount > IMPORT_MAX_PORTABLE_NODES) {
+      context.addIssue({
+        code: 'custom',
+        message: `Portable content data may contain at most ${IMPORT_MAX_PORTABLE_NODES} nodes.`,
+        path: current.path
+      })
+      return
+    }
+
+    if (typeof current.value !== 'object' || current.value === null) continue
+    if (seen.has(current.value)) continue
+    seen.add(current.value)
+
+    if (Array.isArray(current.value)) {
+      if (current.value.length > IMPORT_MAX_PORTABLE_REFERENCES) {
+        context.addIssue({
+          code: 'custom',
+          message: `Portable content arrays may contain at most ${IMPORT_MAX_PORTABLE_REFERENCES} items.`,
+          path: current.path
+        })
+        return
+      }
+      for (let index = current.value.length - 1; index >= 0; index -= 1) {
+        pending.push({
+          value: current.value[index],
+          depth: current.depth + 1,
+          path: [...current.path, index]
+        })
+      }
+      continue
+    }
+
+    for (const [key, child] of Object.entries(current.value)) {
+      pending.push({ value: child, depth: current.depth + 1, path: [...current.path, key] })
+    }
+  }
+}
+
 export const artificerPortableContentDtoSchema = z.strictObject({
   format: z.literal('artificer-content'),
   version: z.literal(1),
   item: z.strictObject({
     kind: authoredSubjectKindDtoSchema,
-    data: unknownObjectSchema
+    data: unknownObjectSchema.superRefine(validatePortableDataLimits)
   }),
-  references: z.array(artificerPortableReferenceDtoSchema)
+  references: z.array(artificerPortableReferenceDtoSchema).max(IMPORT_MAX_PORTABLE_REFERENCES)
 })
 
 export const authoredContentExportRequestDtoSchema = z.strictObject({

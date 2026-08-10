@@ -15,29 +15,44 @@ describe('source charge persistence', () => {
     const db = createDb()
     const chargeId = 'warping-strike-charge-use'
 
-    db.insertRow('charges', {
-      id: chargeId,
-      scaling_kind: 'PER_LEVEL',
-      reset_kind: 'DAILY'
-    }, ['id'], 'none')
-    db.insertRow('charge_scaling_levels', {
-      id: 'stale-scaling-level',
-      charge_id: chargeId,
-      level: 5,
-      amount: 2,
-      sort_order: 5
-    }, ['id'], 'none')
-    db.insertRow('charge_bonuses', {
-      id: 'stale-charge-bonus',
-      charge_id: chargeId,
-      bonus_kind: 'PROFICIENCY_BONUS',
-      ability_code: null,
-      skill_id: null,
-      multiplier: null,
-      min: null,
-      max: null,
-      sort_order: 1
-    }, ['id'], 'none')
+    db.insertRow(
+      'charges',
+      {
+        id: chargeId,
+        scaling_kind: 'PER_LEVEL',
+        reset_kind: 'DAILY'
+      },
+      ['id'],
+      'none'
+    )
+    db.insertRow(
+      'charge_scaling_levels',
+      {
+        id: 'stale-scaling-level',
+        charge_id: chargeId,
+        level: 5,
+        amount: 2,
+        sort_order: 5
+      },
+      ['id'],
+      'none'
+    )
+    db.insertRow(
+      'charge_bonuses',
+      {
+        id: 'stale-charge-bonus',
+        charge_id: chargeId,
+        bonus_kind: 'PROFICIENCY_BONUS',
+        ability_code: null,
+        skill_id: null,
+        multiplier: null,
+        min: null,
+        max: null,
+        sort_order: 1
+      },
+      ['id'],
+      'none'
+    )
 
     await upsertCharge(db, {
       id: chargeId,

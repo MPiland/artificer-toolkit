@@ -360,13 +360,7 @@ export async function hydrateChargeById<AllowSourceCharges extends boolean = fal
       .execute() as Promise<ChargeBonusRow[]>
   ])
 
-  const hydrated = hydrateChargeFromRows(
-    id,
-    charge,
-    limit,
-    scalingLevels,
-    bonuses
-  )
+  const hydrated = hydrateChargeFromRows(id, charge, limit, scalingLevels, bonuses)
 
   if (hydrated.limitKind === 'SOURCE_CHARGES' && allowSourceCharges !== true) {
     throw new Error(`Charge "${id}" cannot use SOURCE_CHARGES in this authored position.`)

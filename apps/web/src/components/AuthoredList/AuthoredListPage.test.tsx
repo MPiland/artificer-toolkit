@@ -6,15 +6,15 @@ import { AuthoredListPage } from './AuthoredListPage'
 import type { AuthoredListItem } from './AuthoredList.types'
 import { spellListFilters, spellListItems } from './spellList.fixtures'
 
-const originalScrollIntoView = Element.prototype.scrollIntoView
+const originalScrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
+  Element.prototype,
+  'scrollIntoView'
+)
 
 afterEach(() => {
   vi.unstubAllGlobals()
-  if (originalScrollIntoView) {
-    Object.defineProperty(Element.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: originalScrollIntoView
-    })
+  if (originalScrollIntoViewDescriptor) {
+    Object.defineProperty(Element.prototype, 'scrollIntoView', originalScrollIntoViewDescriptor)
   } else {
     Reflect.deleteProperty(Element.prototype, 'scrollIntoView')
   }

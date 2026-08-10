@@ -27,6 +27,7 @@ import {
   isResolvedGroupNode,
   isResolvedObjectGroupNode
 } from '../node-map/resolvedNodeUtils'
+import { isRecord } from '../utils/valueGuards'
 
 export type AuthoringNavigationTargetKind = 'drawer-item' | 'overview' | 'step'
 
@@ -796,10 +797,6 @@ function getRecordObjectValue(value: unknown): Record<string, unknown> | undefin
 
 function isNode(value: AuthoringNavigationNode | undefined): value is AuthoringNavigationNode {
   return value !== undefined
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function normalizeLabel(value: string) {

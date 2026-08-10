@@ -25,6 +25,8 @@ import {
   ManualCollectionOrderingProvider,
   ManualCollectionOrderingRow
 } from './ManualCollectionOrdering'
+import { isRecord } from '../utils/valueGuards'
+import { toCollectionDomId } from './collectionPresentation'
 
 type ResolvedArrayGroupProps = {
   hideHeading?: boolean
@@ -198,7 +200,7 @@ export function createResolvedArrayGroup<TValues extends object>(defaultValues: 
                           expandedInlineRowIds.has(rowId) ||
                           (renderAllSteps && rows.length === 1 && !usesCompactTable)
                         const rowLabel = getCollectionRowLabel(node, row, index)
-                        const rowBodyId = `authoring-group-row-${toDomId(rowId)}`
+                        const rowBodyId = `authoring-group-row-${toCollectionDomId(rowId)}`
                         const usesFlatRow = usesFlatRows || usesCompactRows
                         const canRemoveRow = !nodeReadOnly && collection.removeAction !== undefined
 
@@ -400,12 +402,4 @@ export function createResolvedArrayGroup<TValues extends object>(defaultValues: 
 
 function getGroupRowKey(row: unknown, index: number) {
   return isRecord(row) && typeof row.id === 'string' ? row.id : String(index)
-}
-
-function toDomId(value: string) {
-  return value.replace(/[^a-zA-Z0-9_-]/g, '-')
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

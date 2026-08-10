@@ -13,7 +13,8 @@ import { useState } from 'react'
 import type { CurrencySystemDto, SaveCampaignCurrencySystemInput } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
+import * as settingsStyles from './campaignSettings.css'
 
 type DenominationDraft = SaveCampaignCurrencySystemInput['denominations'][number]
 
@@ -107,7 +108,7 @@ export function CurrencySystemEditor({
     <Stack gap='sm'>
       <Select
         clearable
-        classNames={{ input: styles.input }}
+        classNames={{ input: sharedStyles.input }}
         data={systems.map((system) => ({
           value: system.id,
           label: system.label
@@ -120,7 +121,7 @@ export function CurrencySystemEditor({
       {validationError ? <Alert color='red'>{validationError}</Alert> : null}
       <TextInput
         label='System name'
-        classNames={{ input: styles.input }}
+        classNames={{ input: sharedStyles.input }}
         required
         value={label}
         onChange={(event) => setLabel(event.currentTarget.value)}
@@ -131,16 +132,16 @@ export function CurrencySystemEditor({
         onChange={(event) => setIsReference(event.currentTarget.checked)}
       />
       {denominations.map((denomination, index) => (
-        <div className={styles.denominationGrid} key={denomination.id ?? index}>
+        <div className={settingsStyles.denominationGrid} key={denomination.id ?? index}>
           <TextInput
             label='Denomination'
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             value={denomination.label}
             onChange={(event) => updateDenomination(index, { label: event.currentTarget.value })}
           />
           <TextInput
             label='Abbreviation'
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             value={denomination.abbreviation}
             onChange={(event) =>
               updateDenomination(index, {
@@ -150,7 +151,7 @@ export function CurrencySystemEditor({
           />
           <NumberInput
             label='Scale'
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             min={1}
             step={1}
             value={denomination.scaleInReference}

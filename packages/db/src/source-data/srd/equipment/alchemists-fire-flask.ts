@@ -123,7 +123,7 @@ export const alchemistsFireFlask: EquipmentAuthored = {
               }
             ]
           }
-        },
+        }
       ]
     }
   ],

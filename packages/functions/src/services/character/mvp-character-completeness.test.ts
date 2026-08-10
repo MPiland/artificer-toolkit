@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderResolution } from './builderService.js'
-import { buildCharacterSheetResponse } from './sheetService.js'
+import { buildCharacterSheetResponse } from './sheetProjection.js'
 
 const mocks = vi.hoisted(() => ({
   runEngine: vi.fn()

@@ -8,7 +8,3 @@ export interface AppRouterContext {
   queryClient: QueryClient
   user: User | null
 }
-
-export function createAppRouterContext(context: AppRouterContext): AppRouterContext {
-  return context
-}

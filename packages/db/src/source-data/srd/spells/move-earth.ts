@@ -75,9 +75,10 @@ export const moveEarth: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.MOVE_EARTH, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Choose the Terrain Changes",
+                label: 'Choose the Terrain Changes',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "Choose an area of terrain no larger than 40 feet on a side within range."
+                instructions:
+                  'Choose an area of terrain no larger than 40 feet on a side within range.'
               }
             ]
           }

@@ -2,7 +2,7 @@ import { Button, Group, Stack, Text, Title } from '@mantine/core'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import type { CampaignDetailDto } from '#app/lib/api'
 import { getCampaignInventory, getCampaignInventoryAudit } from '#app/data/campaigns/queries'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
 
 const inventoryEventLabels: Record<string, string> = {
   CUSTODY_TRANSFER: 'Inventory transferred',
@@ -21,7 +21,7 @@ export function CampaignInventoryAudit({ campaign }: { campaign: CampaignDetailD
   const events = audit.data?.pages.flatMap((page) => page.events) ?? []
 
   return (
-    <section className={styles.panel} aria-labelledby='inventory-audit-title'>
+    <section className={sharedStyles.panel} aria-labelledby='inventory-audit-title'>
       <div>
         <Title order={2} id='inventory-audit-title'>
           Inventory activity
@@ -47,9 +47,7 @@ export function CampaignInventoryAudit({ campaign }: { campaign: CampaignDetailD
             payload.afterAmount ??
             payload.afterSourceQuantity ??
             payload.afterSourceAmount
-          const currentItem = partyInventory.data?.items.find(
-            (item) => item.id === payload.itemId
-          )
+          const currentItem = partyInventory.data?.items.find((item) => item.id === payload.itemId)
           const currentCurrency = partyInventory.data?.currencies.find(
             (currency) => currency.denominationId === payload.denominationId
           )
@@ -61,13 +59,13 @@ export function CampaignInventoryAudit({ campaign }: { campaign: CampaignDetailD
           const eventLabel =
             inventoryEventLabels[event.kind] ?? event.kind.replaceAll('_', ' ').toLowerCase()
           return (
-            <Group className={styles.memberRow} key={event.id} justify='space-between'>
+            <Group className={sharedStyles.memberRow} key={event.id} justify='space-between'>
               <div>
                 <Text fw={600}>{assetLabel ? `${eventLabel}: ${assetLabel}` : eventLabel}</Text>
                 <Text c='dimmed' size='sm'>
                   {actor ? `@${actor.username}` : 'System'}
                   {before !== undefined || after !== undefined
-                    ? ` · ${String(before ?? '—')} → ${String(after ?? '—')}`
+                    ? ` · ${formatAuditValue(before)} → ${formatAuditValue(after)}`
                     : ''}
                 </Text>
               </div>
@@ -89,4 +87,10 @@ export function CampaignInventoryAudit({ campaign }: { campaign: CampaignDetailD
       ) : null}
     </section>
   )
+}
+
+function formatAuditValue(value: unknown): string {
+  return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+    ? String(value)
+    : '—'
 }

@@ -5,7 +5,7 @@ export const paddedArmor: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(38),
   label: 'Padded Armor',
-  description: "Padded armor consists of quilted layers of cloth and batting.",
+  description: 'Padded armor consists of quilted layers of cloth and batting.',
   category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.LIGHT],
   armorClass: 11,

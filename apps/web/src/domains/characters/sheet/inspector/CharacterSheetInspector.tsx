@@ -19,8 +19,7 @@ export function CharacterSheetInspector({
   target,
   submitCommand,
   onClose,
-  onTargetChange,
-  onOpenBuilder
+  onTargetChange
 }: {
   characterId: string
   equipmentItems?: CharacterSheet['inventory']['items']
@@ -31,7 +30,6 @@ export function CharacterSheetInspector({
   submitCommand: SubmitSheetCommand
   onClose: () => void
   onTargetChange: (target: CharacterSheetPanelTargetDto) => void
-  onOpenBuilder?: () => void
 }) {
   const isMobile = useMediaQuery('(max-width: 760px)', false)
   const panelQuery = useQuery(getCharacterSheetPanel(characterId, target))
@@ -86,7 +84,6 @@ export function CharacterSheetInspector({
           submitCommand={submitCommand}
           onClose={onClose}
           onTargetChange={onTargetChange}
-          onOpenBuilder={onOpenBuilder}
         />
       ) : null}
     </Drawer>

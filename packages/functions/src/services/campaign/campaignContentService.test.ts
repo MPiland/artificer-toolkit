@@ -4,6 +4,7 @@ import type { DBLike } from '@artificer-toolkit/db'
 const campaignId = '00000000-0000-4000-8000-000000000001'
 const ownerId = '00000000-0000-4000-8000-000000000002'
 const playerId = '00000000-0000-4000-8000-000000000003'
+const otherPlayerId = '00000000-0000-4000-8000-000000000007'
 const subjectId = '00000000-0000-4000-8000-000000000004'
 const systemId = '00000000-0000-4000-8000-000000000005'
 
@@ -61,8 +62,10 @@ vi.mock('./campaignService.js', () => ({
 
 vi.mock('../character/builderService.js', () => ({
   loadCharacterBuilderContext: mocks.loadContext,
-  reconcileCharacterBuilderCharacter: mocks.reconcile,
   resolveCharacterBuilder: mocks.resolveBuilder
+}))
+vi.mock('../character/builderReconciliation.js', () => ({
+  reconcileCharacterBuilderCharacter: mocks.reconcile
 }))
 vi.mock('./realtimeService.js', () => ({
   broadcastCampaignInvalidation: async (...args: unknown[]) => {
@@ -71,7 +74,7 @@ vi.mock('./realtimeService.js', () => ({
   }
 }))
 
-const { reviewCampaignContentVersion, submitCampaignContentVersion } =
+const { listCampaignContentVersions, reviewCampaignContentVersion, submitCampaignContentVersion } =
   await import('./campaignContentService.js')
 
 function snapshot(userId: string) {
@@ -146,6 +149,71 @@ describe('Campaign content service', () => {
       expect.objectContaining({ state: 'PENDING', authoredBy: playerId })
     )
     expect(mocks.steps).toEqual(['commit', 'broadcast'])
+    expect(mocks.broadcast).toHaveBeenCalledWith(
+      expect.anything(),
+      campaignId,
+      expect.objectContaining({ scope: 'OWNER' })
+    )
+  })
+
+  it('broadcasts an owner auto-approved submission to the table', async () => {
+    mocks.authority.mockResolvedValue(authority(ownerId, 'OWNER'))
+    mocks.content.findActiveRootOwner.mockResolvedValue({
+      subjectId,
+      subjectKind: 'BACKGROUND',
+      ownerUserId: ownerId,
+      systemId,
+      isMaster: false
+    })
+
+    await submitCampaignContentVersion({} as DBLike, ownerId, {
+      campaignId,
+      subjectKind: 'BACKGROUND',
+      subjectId,
+      version: 1,
+      snapshot: snapshot(ownerId)
+    })
+
+    expect(mocks.broadcast).toHaveBeenCalledWith(
+      expect.anything(),
+      campaignId,
+      expect.objectContaining({ scope: 'TABLE' })
+    )
+  })
+
+  it('shows players approved content and their own pending or rejected submissions only', async () => {
+    mocks.authority.mockResolvedValue(authority(otherPlayerId, 'PLAYER'))
+    mocks.content.listContentVersions.mockResolvedValue([
+      version('APPROVED', playerId),
+      version('PENDING', playerId),
+      version('REJECTED', playerId),
+      version('PENDING', otherPlayerId)
+    ])
+
+    await expect(
+      listCampaignContentVersions({} as DBLike, otherPlayerId, campaignId)
+    ).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: 'APPROVED' }),
+        expect.objectContaining({ status: 'PENDING' })
+      ])
+    )
+    await expect(
+      listCampaignContentVersions({} as DBLike, otherPlayerId, campaignId)
+    ).resolves.toHaveLength(2)
+  })
+
+  it('shows owners every content version', async () => {
+    mocks.authority.mockResolvedValue(authority(ownerId, 'OWNER'))
+    mocks.content.listContentVersions.mockResolvedValue([
+      version('APPROVED', playerId),
+      version('PENDING', playerId),
+      version('REJECTED', playerId)
+    ])
+
+    await expect(
+      listCampaignContentVersions({} as DBLike, ownerId, campaignId)
+    ).resolves.toHaveLength(3)
   })
 
   it('rejects snapshot metadata that does not match the owned root', async () => {
@@ -216,5 +284,40 @@ describe('Campaign content service', () => {
     expect(mocks.characterLock).toHaveBeenCalledTimes(2)
     expect(mocks.content.replaceLockedRootBindings).not.toHaveBeenCalled()
     expect(mocks.broadcast).not.toHaveBeenCalled()
+  })
+
+  it('broadcasts approved reviews to the table and rejected reviews to owners and the author', async () => {
+    const pending = version('PENDING')
+    mocks.authority.mockResolvedValue(authority(ownerId, 'OWNER'))
+    mocks.content.findContentVersion.mockResolvedValue(pending)
+    mocks.content.approvePendingContentVersion.mockResolvedValue(version('APPROVED'))
+
+    await reviewCampaignContentVersion({} as DBLike, ownerId, {
+      campaignId,
+      contentVersionId: pending.id,
+      decision: 'APPROVE'
+    })
+
+    expect(mocks.broadcast).toHaveBeenLastCalledWith(
+      expect.anything(),
+      campaignId,
+      expect.objectContaining({ scope: 'TABLE' })
+    )
+
+    mocks.content.rejectPendingContentVersion.mockResolvedValue(version('REJECTED'))
+    await reviewCampaignContentVersion({} as DBLike, ownerId, {
+      campaignId,
+      contentVersionId: pending.id,
+      decision: 'REJECT'
+    })
+
+    expect(mocks.broadcast.mock.calls.slice(-2)).toEqual([
+      [expect.anything(), campaignId, expect.objectContaining({ scope: 'OWNER' })],
+      [
+        expect.anything(),
+        campaignId,
+        expect.objectContaining({ scope: 'USER', recipientUserId: playerId })
+      ]
+    ])
   })
 })

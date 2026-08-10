@@ -1,14 +1,16 @@
 import type { DBLike } from '@artificer-toolkit/db'
-import type {
-  NodeRuntimeNormalizeValuesRequestDto,
-  NodeRuntimeNormalizeValuesResponseDto,
-  NodeRuntimeNodeDto,
-  NodeRuntimeOptionDto,
-  NodeRuntimeResolvedScopeDto,
-  NodeRuntimeResolveRequestDto,
-  NodeRuntimeResolveResponseDto,
-  NodeRuntimeSectionDto,
-  NodeRuntimeStepDto
+import {
+  nodeRuntimeNormalizeValuesRequestDtoSchema,
+  nodeRuntimeResolveRequestDtoSchema,
+  type NodeRuntimeNormalizeValuesRequestDto,
+  type NodeRuntimeNormalizeValuesResponseDto,
+  type NodeRuntimeNodeDto,
+  type NodeRuntimeOptionDto,
+  type NodeRuntimeResolvedScopeDto,
+  type NodeRuntimeResolveRequestDto,
+  type NodeRuntimeResolveResponseDto,
+  type NodeRuntimeSectionDto,
+  type NodeRuntimeStepDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
 import type {
   ArrayGroupPresentation,
@@ -38,8 +40,9 @@ export async function resolveNodeRuntime(
   db: DBLike,
   request: NodeRuntimeResolveRequestDto
 ): Promise<NodeRuntimeResolveResponseDto> {
-  const resolved = await resolveNodeRuntimeScope(db, request)
-  const scopes = await resolveNestedRuntimeScopes(db, request, resolved.steps)
+  const parsedRequest = nodeRuntimeResolveRequestDtoSchema.parse(request)
+  const resolved = await resolveNodeRuntimeScope(db, parsedRequest)
+  const scopes = await resolveNestedRuntimeScopes(db, parsedRequest, resolved.steps)
 
   return {
     ...resolved,
@@ -210,15 +213,16 @@ export async function normalizeNodeRuntimeValues(
   db: DBLike,
   request: NodeRuntimeNormalizeValuesRequestDto
 ): Promise<NodeRuntimeNormalizeValuesResponseDto> {
-  const resolved = await resolveNodeRuntimeScope(db, request)
-  const values = isRuntimeRecord(request.values) ? request.values : {}
+  const parsedRequest = nodeRuntimeNormalizeValuesRequestDtoSchema.parse(request)
+  const resolved = await resolveNodeRuntimeScope(db, parsedRequest)
+  const values = isRuntimeRecord(parsedRequest.values) ? parsedRequest.values : {}
   const optionNormalized = normalizeVisibleSelectOptions(values, resolved.steps)
   const hiddenNormalized = clearValuesAtPaths(optionNormalized.values, resolved.clearPaths)
   const nestedNormalized = await normalizeVisibleGroups(
     db,
     hiddenNormalized.values,
     resolved.steps,
-    request
+    parsedRequest
   )
 
   return {

@@ -48,6 +48,7 @@ import {
   type SectionedNodeGroup,
   type SteppedNodeGroup
 } from '@artificer-toolkit/shared/utils'
+import { isRecord } from '../utils/valueGuards'
 
 type StaticNodeMap = NodeMap<Record<string, unknown>>
 type StaticResolvedFormModelOptions = {
@@ -278,10 +279,6 @@ function prefixResolvedScopes(
 
 function isPopulatedRecord(value: unknown): value is Record<string, unknown> {
   return isRecord(value) && Object.keys(value).length > 0
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function resolveStaticNodeMapSteps<TValues extends object>(

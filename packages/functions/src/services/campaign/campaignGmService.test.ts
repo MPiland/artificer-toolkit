@@ -51,7 +51,7 @@ vi.mock('./campaignService.js', () => ({
   resolveCampaignAuthority: mocks.authority
 }))
 vi.mock('../character/builderService.js', () => ({ resolveCharacterBuilder: mocks.resolveBuilder }))
-vi.mock('../character/sheetService.js', () => ({
+vi.mock('../character/sheetCommandValidation.js', () => ({
   validateSheetAdjustmentTarget: mocks.validateTarget,
   validateCharacterConditionType: mocks.validateCondition
 }))

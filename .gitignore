@@ -27,6 +27,9 @@ playwright-report/
 .pnpm-store/
 output/playwright/
 tmp/
+.tmp/
+.impeccable/live/app-root.json
+apps/*/.impeccable/live/*.json
 apps/web/.tanstack/tmp/
 supabase/.temp/
 

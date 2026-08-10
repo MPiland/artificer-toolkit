@@ -88,7 +88,7 @@ export function buildBackgroundSelectionGroups(
             background.hiddenFeatureCount > 0 ? `${background.hiddenFeatureCount} more` : ''
           ]
             .filter(Boolean)
-            .join(' Â· ')
+            .join(' · ')
 
           return {
             id: background.id,

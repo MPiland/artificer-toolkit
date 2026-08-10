@@ -14,7 +14,7 @@ import { CampaignParty } from './components/CampaignParty'
 import { CampaignLiveControls } from './components/CampaignLiveControls'
 import { CampaignSessions } from './components/CampaignSessions'
 import { CampaignGmRoller } from './components/CampaignGmRoller'
-import * as styles from './campaigns.css'
+import * as sharedStyles from './campaigns.css'
 
 const tabLabels: Record<CampaignTab, string> = {
   sessions: 'Sessions',
@@ -49,11 +49,11 @@ export function CampaignDetailPage({
   }, [tabs])
 
   return (
-    <main className={styles.page}>
-      <header className={styles.pageHeader}>
+    <main className={sharedStyles.page}>
+      <header className={sharedStyles.pageHeader}>
         <div>
           <Group gap='xs'>
-            <Title className={styles.campaignTitle} order={1}>
+            <Title className={sharedStyles.campaignTitle} order={1}>
               {campaign.name}
             </Title>
             <Badge variant='light'>{campaign.role === 'OWNER' ? 'GM' : 'Player'}</Badge>
@@ -62,13 +62,14 @@ export function CampaignDetailPage({
             </Badge>
           </Group>
         </div>
-        <div className={styles.headerActions}>
+        <div className={sharedStyles.headerActions}>
           <Group gap='xs'>
             <CampaignLiveControls campaign={campaign} />
             {campaign.capabilities.readTableChat ? (
               <CampaignChatDrawer
                 campaignId={campaign.id}
                 currentUserId={currentUserId}
+                realtime={false}
                 trigger='icon'
               />
             ) : null}
@@ -84,8 +85,8 @@ export function CampaignDetailPage({
         </Alert>
       ) : null}
       <Select
-        className={styles.campaignSectionSelect}
-        classNames={{ input: styles.input }}
+        className={sharedStyles.campaignSectionSelect}
+        classNames={{ input: sharedStyles.input }}
         data={tabs.map((tab) => ({ label: tabLabels[tab], value: tab }))}
         label='Campaign section'
         value={activeTab}
@@ -95,7 +96,7 @@ export function CampaignDetailPage({
         }}
       />
       <Tabs
-        className={styles.detailWorkspace}
+        className={sharedStyles.detailWorkspace}
         keepMounted={false}
         value={activeTab}
         onChange={(value) => {
@@ -103,9 +104,9 @@ export function CampaignDetailPage({
           if (tab) setActiveTab(tab)
         }}
       >
-        <Tabs.List className={styles.detailTabs} aria-label='Campaign workspace'>
+        <Tabs.List className={sharedStyles.detailTabs} aria-label='Campaign workspace'>
           {tabs.map((tab) => (
-            <Tabs.Tab className={styles.detailTab} key={tab} value={tab}>
+            <Tabs.Tab className={sharedStyles.detailTab} key={tab} value={tab}>
               {tabLabels[tab]}
             </Tabs.Tab>
           ))}

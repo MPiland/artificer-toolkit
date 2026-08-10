@@ -6,7 +6,7 @@ import type {
   FacetContextAuthored,
   PredicateConditionAuthored
 } from '../shared/authored/facet.js'
-import type { NodeSubjectCode } from '../shared/core/facet.js'
+import type { NodeSubjectCode } from '../shared/core/facetSubject.js'
 
 export interface PrerequisiteFailure {
   description: string

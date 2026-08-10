@@ -3,7 +3,10 @@ import type {
   ImportIssueDto,
   JsonImportEntryDto
 } from '@artificer-toolkit/schema/api/imports'
-import { artificerPortableContentDtoSchema } from '@artificer-toolkit/schema/api/imports'
+import {
+  artificerPortableContentDtoSchema,
+  IMPORT_MAX_FOUNDRY_ITEMS
+} from '@artificer-toolkit/schema/api/imports'
 import type { AuthoredSubjectKindDto } from '@artificer-toolkit/schema/api/content'
 
 export type ImportReferenceRole =
@@ -336,6 +339,7 @@ export function parseFoundryActorPayload(payload: unknown): ParsedExternalCharac
   if (source.type !== 'character' || !asRecord(source.system) || !Array.isArray(source.items)) {
     return null
   }
+  if (source.items.length > IMPORT_MAX_FOUNDRY_ITEMS) return null
 
   const label = readString(source.name)
   if (!label) return null

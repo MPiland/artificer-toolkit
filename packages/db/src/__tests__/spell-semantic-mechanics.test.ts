@@ -67,9 +67,7 @@ describe('SRD spell semantic mechanics', () => {
     expect(missDamage?.outcome).toMatchObject({ dice: '4d4', amountKind: 'HALF' })
 
     const lingeringAcid = entries.find(
-      (entry) =>
-        entry.pathCode === 'ON_HIT' &&
-        entry.outcome.effectKind === 'MANIFEST'
+      (entry) => entry.pathCode === 'ON_HIT' && entry.outcome.effectKind === 'MANIFEST'
     )
     expect(lingeringAcid?.outcome).toMatchObject({ attachmentKind: 'PRIMARY_TARGET' })
     if (
@@ -84,26 +82,25 @@ describe('SRD spell semantic mechanics', () => {
       'END_OF_ATTACHED_TARGET_NEXT_TURN'
     )
     expect(
-      delayedEntries.filter(isResolvedEntry).some(
-        (entry) =>
-          entry.outcome.effectKind === 'DAMAGE' &&
-          'level' in entry.outcome &&
-          'dice' in entry.outcome &&
-          entry.outcome.level === 2 &&
-          entry.outcome.dice === '2d4'
-      )
+      delayedEntries
+        .filter(isResolvedEntry)
+        .some(
+          (entry) =>
+            entry.outcome.effectKind === 'DAMAGE' &&
+            'level' in entry.outcome &&
+            'dice' in entry.outcome &&
+            entry.outcome.level === 2 &&
+            entry.outcome.dice === '2d4'
+        )
     ).toBe(true)
   })
 
   it('compiles Flesh to Stone thresholds, petrification, and duration completion', () => {
     expect(spellAuthoredDtoSchema.safeParse(fleshToStone).success).toBe(true)
 
-    const followUp = compileSpell(fleshToStone).effects?.[0]?.entries
-      .filter(isResolvedEntry)
-      .find(
-      (entry) =>
-        entry.outcome.effectKind === 'FOLLOW_UP_SAVE'
-      )
+    const followUp = compileSpell(fleshToStone)
+      .effects?.[0]?.entries.filter(isResolvedEntry)
+      .find((entry) => entry.outcome.effectKind === 'FOLLOW_UP_SAVE')
     expect(followUp?.outcome).toMatchObject({
       timing: 'TARGET_TURN_END',
       attempts: {
@@ -145,9 +142,7 @@ describe('SRD spell semantic mechanics', () => {
     const cloneHit = clone.effects?.[0]?.paths
       .filter(isFixedPath)
       .find((path) => path.pathCode === 'ON_HIT')
-    expect(cloneHit?.resultBlock.outcomes[1]?.id).not.toBe(
-      sourceHit?.resultBlock.outcomes[1]?.id
-    )
+    expect(cloneHit?.resultBlock.outcomes[1]?.id).not.toBe(sourceHit?.resultBlock.outcomes[1]?.id)
   })
 
   it('compiles Spare the Dying as stabilization with its SRD exclusions', () => {
@@ -168,8 +163,8 @@ describe('SRD spell semantic mechanics', () => {
     const effect = phantasmalKiller.effects?.[0]
     if (!effect) throw new Error('Phantasmal Killer is missing its audited effect.')
 
-    const followUp = compileSpell(phantasmalKiller).effects?.[0]?.entries
-      .filter(isResolvedEntry)
+    const followUp = compileSpell(phantasmalKiller)
+      .effects?.[0]?.entries.filter(isResolvedEntry)
       .find((entry) => entry.outcome.effectKind === 'FOLLOW_UP_SAVE')?.outcome
     expect(followUp).toMatchObject({
       effectKind: 'FOLLOW_UP_SAVE',
@@ -309,8 +304,8 @@ describe('SRD spell semantic mechanics', () => {
       })
     }
 
-    const cloud = compileSpell(stinkingCloud).effects?.[0]?.entries.filter(isResolvedEntry)[0]
-      ?.outcome
+    const cloud =
+      compileSpell(stinkingCloud).effects?.[0]?.entries.filter(isResolvedEntry)[0]?.outcome
     expect(cloud).toMatchObject({
       effectKind: 'MANIFEST',
       spreadsAroundCorners: true,
@@ -417,14 +412,16 @@ describe('SRD spell semantic mechanics', () => {
       }
     })
 
-    const weapon = compileSpell(spiritualWeapon).effects?.[0]?.entries
-      .filter(isResolvedEntry)
+    const weapon = compileSpell(spiritualWeapon)
+      .effects?.[0]?.entries.filter(isResolvedEntry)
       .find((entry) => entry.outcome.effectKind === 'MANIFEST')?.outcome
     expect(weapon).toMatchObject({
       effectKind: 'MANIFEST',
       manifestKind: 'WEAPON',
       behaviors: [
-        expect.objectContaining({ invocation: expect.objectContaining({ activation: { code: 'FREE' } }) }),
+        expect.objectContaining({
+          invocation: expect.objectContaining({ activation: { code: 'FREE' } })
+        }),
         expect.objectContaining({
           invocation: expect.objectContaining({ activation: { code: 'BONUS_ACTION', amount: 1 } })
         })
@@ -444,8 +441,8 @@ describe('SRD spell semantic mechanics', () => {
     for (const [spell, ruleKind] of spells) {
       expect(spellAuthoredDtoSchema.safeParse(spell).success).toBe(true)
       expect(
-        compileSpell(spell).effects?.[0]?.entries
-          .filter(isResolvedEntry)
+        compileSpell(spell)
+          .effects?.[0]?.entries.filter(isResolvedEntry)
           .find((entry) => entry.outcome.effectKind === 'CLOSED_RULE')?.outcome
       ).toMatchObject({ effectKind: 'CLOSED_RULE', ruleKind })
 

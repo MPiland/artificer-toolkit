@@ -60,9 +60,9 @@ export const augury: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.AUGURY, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Choose an Omen",
+                label: 'Choose an Omen',
                 reasonCode: 'GM_CHOICE' as const,
-                instructions: "The GM chooses from the following possible omens:"
+                instructions: 'The GM chooses from the following possible omens:'
               }
             ]
           }

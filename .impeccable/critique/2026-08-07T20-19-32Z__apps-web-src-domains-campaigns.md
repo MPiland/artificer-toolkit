@@ -2,29 +2,30 @@
 target: Campaign management and GM play surfaces
 total_score: 18
 max_score: 40
-na_heuristics: 
+na_heuristics:
 p0_count: 0
 p1_count: 4
 timestamp: 2026-08-07T20-19-32Z
 slug: apps-web-src-domains-campaigns
 ---
+
 Method: dual-agent (A: impeccable_critique_a · B: impeccable_critique_b)
 
 ## Design Health Score
 
-| # | Heuristic | Score | Key issue |
-|---|---|---:|---|
-| 1 | Visibility of system status | 2 | Session, clock, Encounter, and party state are fragmented across equal-weight panels. |
-| 2 | Match between system and real world | 2 | TTRPG language is strong, but administration forms dominate live-table actions. |
-| 3 | User control and freedom | 2 | Exit paths exist, but session and Encounter completion lack reassuring recovery or closure. |
-| 4 | Consistency and standards | 2 | Run Campaign conflicts with GM Screen, and dice uses multiple unrelated interaction patterns. |
-| 5 | Error prevention | 2 | Disabled states help, but assignment eligibility and Encounter prerequisites are exposed late. |
-| 6 | Recognition rather than recall | 2 | Major tools are visible, but mobile overflow and secondary controls obscure destinations. |
-| 7 | Flexibility and efficiency | 1 | Experienced GMs must scroll and operate one actor or panel at a time. |
-| 8 | Aesthetic and minimalist design | 2 | Repeated bordered panels, helper copy, and duplicate tools weaken the hierarchy. |
-| 9 | Error recovery | 1 | Generic alerts and implementation-shaped errors do not provide a clear recovery path. |
-| 10 | Help and documentation | 2 | Help copy exists, but it explains implementation more often than the user's next action. |
-| **Total** | | **18/40** | **Poor: the live-play surface needs structural polish before release.** |
+| #         | Heuristic                           |     Score | Key issue                                                                                      |
+| --------- | ----------------------------------- | --------: | ---------------------------------------------------------------------------------------------- |
+| 1         | Visibility of system status         |         2 | Session, clock, Encounter, and party state are fragmented across equal-weight panels.          |
+| 2         | Match between system and real world |         2 | TTRPG language is strong, but administration forms dominate live-table actions.                |
+| 3         | User control and freedom            |         2 | Exit paths exist, but session and Encounter completion lack reassuring recovery or closure.    |
+| 4         | Consistency and standards           |         2 | Run Campaign conflicts with GM Screen, and dice uses multiple unrelated interaction patterns.  |
+| 5         | Error prevention                    |         2 | Disabled states help, but assignment eligibility and Encounter prerequisites are exposed late. |
+| 6         | Recognition rather than recall      |         2 | Major tools are visible, but mobile overflow and secondary controls obscure destinations.      |
+| 7         | Flexibility and efficiency          |         1 | Experienced GMs must scroll and operate one actor or panel at a time.                          |
+| 8         | Aesthetic and minimalist design     |         2 | Repeated bordered panels, helper copy, and duplicate tools weaken the hierarchy.               |
+| 9         | Error recovery                      |         1 | Generic alerts and implementation-shaped errors do not provide a clear recovery path.          |
+| 10        | Help and documentation              |         2 | Help copy exists, but it explains implementation more often than the user's next action.       |
+| **Total** |                                     | **18/40** | **Poor: the live-play surface needs structural polish before release.**                        |
 
 ## Design Specificity Verdict
 

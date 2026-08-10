@@ -6,42 +6,31 @@ import {
   actionEmphasis,
   actionPresentationPresets,
   actionWidth,
-  blackForgeSurfaceScale,
   breakpoints,
-  breakpointsKeys,
+  controlDensity,
   darkColorTokens,
   fontWeightScale,
   radiusScale,
-  radiusScaleKeys,
   lightColorTokens,
-  presentationContexts,
   semanticSurfaceRoles,
   semanticTextStyles,
   semanticTextTones,
-  semanticVisualRoles,
   spacingScale,
-  spacingScaleKeys,
   motionScale,
-  typographyScale,
-  typographyScaleKeys
+  typographyScale
 } from '../index.js'
 
-describe('design-system primitive tuples', () => {
-  it('keeps primitive key lists and primitive role tuples unique', () => {
+describe('design-system semantic tuples', () => {
+  it('keeps runtime semantic values unique', () => {
     const unique = <T>(items: readonly T[]): boolean => new Set(items).size === items.length
 
-    expect(unique(spacingScaleKeys)).toBe(true)
-    expect(unique(radiusScaleKeys)).toBe(true)
-    expect(unique(typographyScaleKeys)).toBe(true)
-    expect(unique(breakpointsKeys)).toBe(true)
     expect(unique(actionDisplay)).toBe(true)
     expect(unique(actionEmphasis)).toBe(true)
     expect(unique(actionWidth)).toBe(true)
-    expect(unique(presentationContexts)).toBe(true)
+    expect(unique(controlDensity)).toBe(true)
     expect(unique(semanticTextStyles)).toBe(true)
     expect(unique(semanticTextTones)).toBe(true)
     expect(unique(semanticSurfaceRoles)).toBe(true)
-    expect(unique(semanticVisualRoles)).toBe(true)
   })
 
   it('provides complete portable appearances for every common action preset', () => {
@@ -62,9 +51,11 @@ describe('portable primitive values', () => {
   })
 
   it('keeps portable primitive keys aligned to web foundation contracts', () => {
-    expect(spacingScaleKeys).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14])
-    expect(radiusScaleKeys).toEqual(['sm', 'md', 'lg', 'xl', 'xxl', 'pill'])
-    expect(typographyScaleKeys).toEqual([
+    expect(Object.keys(spacingScale).map(Number)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14
+    ])
+    expect(Object.keys(radiusScale)).toEqual(['sm', 'md', 'lg', 'xl', 'xxl', 'pill'])
+    expect(Object.keys(typographyScale)).toEqual([
       'display',
       'title',
       'heading',
@@ -94,28 +85,28 @@ describe('semantic color tokens', () => {
       background: 'transparent',
       border: '#ec8c06',
       hover: 'rgba(236, 106, 6, 0.18)',
-      active: blackForgeSurfaceScale.raised,
+      active: '#262a2f',
       text: '#ffb690'
     })
-    expect(darkColorTokens.color.button.secondary.background).toBe(blackForgeSurfaceScale.rail)
+    expect(darkColorTokens.color.button.secondary.background).toBe('#121517')
     expect(darkColorTokens.color.status.danger).toBe('#e8795f')
   })
 
   it('builds global dark surfaces from the same Black Forge scale as authoring', () => {
     expect(darkColorTokens.color.surface).toMatchObject({
-      canvas: blackForgeSurfaceScale.canvas,
-      panel: blackForgeSurfaceScale.panel,
-      sidebar: blackForgeSurfaceScale.rail,
-      header: blackForgeSurfaceScale.header
+      canvas: '#101315',
+      panel: '#171a1d',
+      sidebar: '#121517',
+      header: '#07090b'
     })
     expect(darkColorTokens.color.authoring).toMatchObject({
-      canvas: blackForgeSurfaceScale.canvas,
-      panel: blackForgeSurfaceScale.panel,
-      rail: blackForgeSurfaceScale.rail
+      canvas: '#101315',
+      panel: '#171a1d',
+      rail: '#121517'
     })
     expect(darkColorTokens.color.border).toEqual({
-      subtle: blackForgeSurfaceScale.structuralBorder,
-      strong: blackForgeSurfaceScale.fieldBorder
+      subtle: 'rgba(255, 255, 255, 0.07)',
+      strong: '#343a40'
     })
   })
 

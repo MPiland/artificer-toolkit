@@ -15,9 +15,9 @@ import type {
 } from '@artificer-toolkit/schema/api/campaigns'
 import {
   loadCharacterBuilderContext,
-  reconcileCharacterBuilderCharacter,
   resolveCharacterBuilder
 } from '../character/builderService.js'
+import { reconcileCharacterBuilderCharacter } from '../character/builderReconciliation.js'
 import { parseCampaignAuthoredSnapshot } from '../character/campaignCharacterContent.js'
 import {
   CampaignConflictError,
@@ -127,10 +127,11 @@ async function broadcastContent(
   campaignId: string,
   versionId: string,
   event: 'CREATED' | 'UPDATED',
-  cursor: string
+  cursor: string,
+  routing: { scope: 'OWNER' | 'TABLE' } | { scope: 'USER'; recipientUserId: string }
 ): Promise<void> {
   await broadcastCampaignInvalidation(db, campaignId, {
-    scope: 'TABLE',
+    ...routing,
     entity: 'CONTENT',
     entityId: versionId,
     event,
@@ -146,7 +147,15 @@ export async function listCampaignContentVersions(
 ): Promise<CampaignContentBindingDto[]> {
   const authority = await resolveCampaignAuthority(db, campaignId, userId)
   assertActiveCampaignMember(authority)
-  return (await createCampaignContentRepository(db).listContentVersions(campaignId)).map(toDto)
+  const versions = await createCampaignContentRepository(db).listContentVersions(campaignId)
+  return versions
+    .filter(
+      (version) =>
+        authority.membership.role === 'OWNER' ||
+        version.state === 'APPROVED' ||
+        version.authoredBy === userId
+    )
+    .map(toDto)
 }
 
 export async function submitCampaignContentVersion(
@@ -186,7 +195,9 @@ export async function submitCampaignContentVersion(
     return inserted
   })
 
-  await broadcastContent(db, input.campaignId, version.id, 'CREATED', version.updatedAt)
+  await broadcastContent(db, input.campaignId, version.id, 'CREATED', version.updatedAt, {
+    scope: version.state === 'APPROVED' ? 'TABLE' : 'OWNER'
+  })
   return toDto(version)
 }
 
@@ -228,6 +239,20 @@ export async function reviewCampaignContentVersion(
     return reviewed
   })
 
-  await broadcastContent(db, input.campaignId, version.id, 'UPDATED', version.updatedAt)
+  if (version.state === 'APPROVED') {
+    await broadcastContent(db, input.campaignId, version.id, 'UPDATED', version.updatedAt, {
+      scope: 'TABLE'
+    })
+  } else {
+    await Promise.all([
+      broadcastContent(db, input.campaignId, version.id, 'UPDATED', version.updatedAt, {
+        scope: 'OWNER'
+      }),
+      broadcastContent(db, input.campaignId, version.id, 'UPDATED', version.updatedAt, {
+        scope: 'USER',
+        recipientUserId: version.authoredBy
+      })
+    ])
+  }
   return toDto(version)
 }

@@ -4,17 +4,7 @@ import type {
   AuthoredListFilter,
   AuthoredListItem
 } from '#components/AuthoredList'
-
-function mapPermissions(
-  item: EquipmentListResponseDto['items'][number]
-): AuthoredListItem['permissions'] {
-  return {
-    canView: item.permissions.canView,
-    canEdit: item.permissions.canEdit,
-    canCopy: item.permissions.canCopy,
-    canDelete: item.permissions.canDelete
-  }
-}
+import { summarizeAuthoredDescription } from '../authoredListMapper'
 
 export function formatEquipmentCategory(category: string | undefined): string {
   if (!category) return 'Equipment'
@@ -22,11 +12,6 @@ export function formatEquipmentCategory(category: string | undefined): string {
     .toLowerCase()
     .replaceAll('_', ' ')
     .replace(/^\w/, (letter) => letter.toUpperCase())
-}
-
-function summarizeDescription(description: string | null | undefined): string {
-  if (!description) return 'No description yet.'
-  return description.replace(/<[^>]*>/g, '').trim() || 'No description yet.'
 }
 
 export function mapEquipmentListToAuthoredItems(
@@ -39,7 +24,7 @@ export function mapEquipmentListToAuthoredItems(
       id: item.id,
       publicId: item.publicId,
       name: item.label,
-      description: summarizeDescription(item.description),
+      description: summarizeAuthoredDescription(item.description),
       attributes: {
         Category: formatEquipmentCategory(category)
       },
@@ -51,10 +36,10 @@ export function mapEquipmentListToAuthoredItems(
         category: formatEquipmentCategory(category),
         name: item.label
       },
-      searchText: `${summarizeDescription(item.description)} ${formatEquipmentCategory(category)}`,
+      searchText: `${summarizeAuthoredDescription(item.description)} ${formatEquipmentCategory(category)}`,
       sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
       sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
-      permissions: mapPermissions(item)
+      permissions: item.permissions
     }
   })
 }

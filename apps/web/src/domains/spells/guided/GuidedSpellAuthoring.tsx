@@ -1,20 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '@tanstack/react-form'
-import {
-  Alert,
-  Button,
-  Group,
-  NumberInput,
-  Select,
-  Stack,
-  Switch,
-  Text,
-  TextInput
-} from '@mantine/core'
-import { Flame, HeartPulse, MoveRight, ShieldAlert } from 'lucide-react'
+import { Alert, Button, Group, Stack, Text } from '@mantine/core'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
-import type { AbilityCode } from '@artificer-toolkit/shared/core'
 import { parseStandaloneDiceConfiguration } from '@artificer-toolkit/shared/rolls'
 import { withForm } from '#forms/app-form/AppForm'
 import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
@@ -27,13 +15,14 @@ import { mapGuidedSpellEffect } from '#forms/guided/guidedSimpleEffect.mapping'
 import {
   createGuidedEffectIds,
   createGuidedSpellDraft,
-  GUIDED_ABILITY_OPTIONS,
-  GUIDED_DURATION_OPTIONS,
   type GuidedSpellDraft,
   type GuidedSpellIntent
 } from '#forms/guided/guidedSimpleEffect.types'
 import { rehydrateGuidedSpell } from '#forms/guided/guidedSimpleEffect.rehydrate'
 import * as styles from '#forms/guided/guidedAuthoring.css'
+import { GuidedSpellIntentScreen } from './GuidedSpellIntentScreen'
+import { GuidedSpellMechanicsScreen } from './GuidedSpellMechanicsScreen'
+import { GuidedSpellReviewScreen } from './GuidedSpellReviewScreen'
 
 type GuidedSpellAuthoringProps = {
   isExistingDraft?: boolean
@@ -197,7 +186,7 @@ export const GuidedSpellAuthoring = withForm({
         ) : null}
         {screen === 1 ? (
           <Stack gap='lg'>
-            <IntentScreen selectedIntent={draft?.intent} onSelect={chooseIntent} />
+            <GuidedSpellIntentScreen selectedIntent={draft?.intent} onSelect={chooseIntent} />
             {pendingIntent ? (
               <Alert color='red' title='Replace the existing effects?'>
                 <Stack gap='sm'>
@@ -219,10 +208,15 @@ export const GuidedSpellAuthoring = withForm({
           </Stack>
         ) : null}
         {screen === 2 && draft ? (
-          <MechanicsScreen draft={draft} system={system} updateDraft={updateDraft} />
+          <GuidedSpellMechanicsScreen
+            draft={draft}
+            system={system}
+            updateDraft={updateDraft}
+            isValidDiceConfiguration={isValidDiceConfiguration}
+          />
         ) : null}
         {screen === 3 && draft ? (
-          <ReviewScreen
+          <GuidedSpellReviewScreen
             canFinalize={canFinalize}
             description={basics.description}
             draft={draft}
@@ -235,317 +229,6 @@ export const GuidedSpellAuthoring = withForm({
     )
   }
 })
-
-function IntentScreen({
-  selectedIntent,
-  onSelect
-}: {
-  selectedIntent?: GuidedSpellIntent
-  onSelect: (intent: GuidedSpellIntent) => void
-}) {
-  return (
-    <div className={styles.choiceGrid} role='group' aria-label='Spell outcome'>
-      <Button
-        aria-pressed={selectedIntent === 'DAMAGE'}
-        className={styles.choiceButton}
-        data-selected={selectedIntent === 'DAMAGE' ? 'true' : undefined}
-        justify='flex-start'
-        leftSection={<Flame className={styles.choiceIcon} size={24} aria-hidden />}
-        variant='default'
-        onClick={() => onSelect('DAMAGE')}
-      >
-        <span className={styles.choiceCopy}>
-          <span className={styles.choiceTitle}>Damage</span>
-          <span className={styles.choiceDescription}>
-            Deal damage, like a bolt of fire or burst of cold.
-          </span>
-        </span>
-      </Button>
-      <Button
-        aria-pressed={selectedIntent === 'CONDITION'}
-        className={styles.choiceButton}
-        data-selected={selectedIntent === 'CONDITION' ? 'true' : undefined}
-        justify='flex-start'
-        leftSection={<ShieldAlert className={styles.choiceIcon} size={24} aria-hidden />}
-        variant='default'
-        onClick={() => onSelect('CONDITION')}
-      >
-        <span className={styles.choiceCopy}>
-          <span className={styles.choiceTitle}>Condition</span>
-          <span className={styles.choiceDescription}>
-            Apply a state, like blinded, charmed, or restrained.
-          </span>
-        </span>
-      </Button>
-      <Button
-        aria-pressed={selectedIntent === 'HEALING'}
-        className={styles.choiceButton}
-        data-selected={selectedIntent === 'HEALING' ? 'true' : undefined}
-        justify='flex-start'
-        leftSection={<HeartPulse className={styles.choiceIcon} size={24} aria-hidden />}
-        variant='default'
-        onClick={() => onSelect('HEALING')}
-      >
-        <span className={styles.choiceCopy}>
-          <span className={styles.choiceTitle}>Healing</span>
-          <span className={styles.choiceDescription}>
-            Restore hit points or grant temporary hit points.
-          </span>
-        </span>
-      </Button>
-      <Button
-        aria-pressed={selectedIntent === 'MOVEMENT'}
-        className={styles.choiceButton}
-        data-selected={selectedIntent === 'MOVEMENT' ? 'true' : undefined}
-        justify='flex-start'
-        leftSection={<MoveRight className={styles.choiceIcon} size={24} aria-hidden />}
-        variant='default'
-        onClick={() => onSelect('MOVEMENT')}
-      >
-        <span className={styles.choiceCopy}>
-          <span className={styles.choiceTitle}>Movement</span>
-          <span className={styles.choiceDescription}>
-            Push or pull a creature across the battlefield.
-          </span>
-        </span>
-      </Button>
-    </div>
-  )
-}
-
-function MechanicsScreen({
-  draft,
-  system,
-  updateDraft
-}: {
-  draft: GuidedSpellDraft
-  system: NonNullable<SystemResponseDto>
-  updateDraft: <TKey extends keyof GuidedSpellDraft>(
-    key: TKey,
-    value: GuidedSpellDraft[TKey]
-  ) => void
-}) {
-  const damageTypeOptions = system.damageTypes.map((item) => ({
-    value: item.id,
-    label: item.label
-  }))
-  const conditionTypeOptions = system.conditionTypes.map((item) => ({
-    value: item.id,
-    label: item.label
-  }))
-
-  return (
-    <Stack gap='lg'>
-      <div className={styles.fields}>
-        <Select
-          label='Who is affected?'
-          data={[
-            { value: 'SELF', label: 'Self' },
-            { value: 'CREATURE', label: 'One creature' }
-          ]}
-          value={draft.target}
-          onChange={(value) => updateDraft('target', value === 'SELF' ? 'SELF' : 'CREATURE')}
-        />
-        {draft.intent !== 'HEALING' ? (
-          <Select
-            label='Saving throw'
-            data={[
-              { value: '', label: 'No save' },
-              ...GUIDED_ABILITY_OPTIONS.map((item) => ({ value: item.value, label: item.label }))
-            ]}
-            value={draft.saveAbility}
-            onChange={(value) => updateDraft('saveAbility', (value ?? '') as AbilityCode | '')}
-          />
-        ) : null}
-        {draft.target === 'CREATURE' ? (
-          <NumberInput
-            label='Range (feet)'
-            min={1}
-            value={draft.targetDistance}
-            onChange={(value) => {
-              const distance = typeof value === 'number' && Number.isFinite(value) ? value : 60
-              updateDraft('targetDistance', distance)
-            }}
-          />
-        ) : null}
-      </div>
-
-      {draft.intent === 'DAMAGE' ? (
-        <div className={styles.fields}>
-          <TextInput
-            description='Choose a starting dice expression, then adjust it for your spell.'
-            error={
-              isValidDiceConfiguration(draft.damageDice) ? undefined : 'Enter dice such as 1d6.'
-            }
-            label='Damage dice'
-            value={draft.damageDice}
-            onChange={(event) => updateDraft('damageDice', event.currentTarget.value)}
-            placeholder='1d6'
-          />
-          <Select
-            description='This starting type can be changed.'
-            label='Damage type'
-            data={damageTypeOptions}
-            value={draft.damageTypeId || null}
-            onChange={(value) => updateDraft('damageTypeId', value ?? '')}
-            placeholder='Choose a type'
-            disabled={!damageTypeOptions.length}
-          />
-        </div>
-      ) : null}
-
-      {draft.intent === 'CONDITION' ? (
-        <div className={styles.fields}>
-          <Select
-            description='This starting condition can be changed.'
-            label='Condition'
-            data={conditionTypeOptions}
-            value={draft.conditionTypeId || null}
-            onChange={(value) => updateDraft('conditionTypeId', value ?? '')}
-            placeholder='Choose a condition'
-            disabled={!conditionTypeOptions.length}
-          />
-          <Select
-            label='Duration'
-            data={GUIDED_DURATION_OPTIONS.map((item) => ({ value: item.value, label: item.label }))}
-            value={draft.conditionDuration}
-            onChange={(value) => {
-              const option = GUIDED_DURATION_OPTIONS.find((item) => item.value === value)
-              if (option) updateDraft('conditionDuration', option.value)
-            }}
-          />
-        </div>
-      ) : null}
-
-      {draft.intent === 'HEALING' ? (
-        <Stack gap='md'>
-          <TextInput
-            description='Choose a starting dice expression, then adjust it for your spell.'
-            error={
-              isValidDiceConfiguration(draft.healingDice) ? undefined : 'Enter dice such as 1d6.'
-            }
-            label='Healing dice'
-            value={draft.healingDice}
-            onChange={(event) => updateDraft('healingDice', event.currentTarget.value)}
-            placeholder='1d6'
-          />
-          <Switch
-            label='Give temporary hit points instead'
-            checked={draft.temporaryHealing}
-            onChange={(event) => updateDraft('temporaryHealing', event.currentTarget.checked)}
-          />
-        </Stack>
-      ) : null}
-
-      {draft.intent === 'MOVEMENT' ? (
-        <div className={styles.fields}>
-          <Select
-            label='Move the creature'
-            data={[
-              { value: 'AWAY_FROM_SOURCE', label: 'Away from you' },
-              { value: 'TOWARD_SOURCE', label: 'Toward you' }
-            ]}
-            value={draft.movementDirection}
-            onChange={(value) =>
-              updateDraft(
-                'movementDirection',
-                value === 'TOWARD_SOURCE' ? 'TOWARD_SOURCE' : 'AWAY_FROM_SOURCE'
-              )
-            }
-          />
-          <NumberInput
-            label='Distance (feet)'
-            min={1}
-            value={draft.movementAmount}
-            onChange={(value) => {
-              const amount = typeof value === 'number' && Number.isFinite(value) ? value : 5
-              updateDraft('movementAmount', amount)
-            }}
-          />
-        </div>
-      ) : null}
-    </Stack>
-  )
-}
-
-function ReviewScreen({
-  canFinalize,
-  description,
-  draft,
-  label,
-  level,
-  system
-}: {
-  canFinalize: boolean
-  description?: string
-  draft: GuidedSpellDraft
-  label: string
-  level?: number
-  system: NonNullable<SystemResponseDto>
-}) {
-  const typeLabel = system.damageTypes.find((item) => item.id === draft.damageTypeId)?.label
-  const conditionLabel = system.conditionTypes.find(
-    (item) => item.id === draft.conditionTypeId
-  )?.label
-  const targetLabel =
-    draft.target === 'SELF' ? 'Self' : `One creature within ${draft.targetDistance} feet`
-  const saveLabel = draft.saveAbility
-    ? (GUIDED_ABILITY_OPTIONS.find((item) => item.value === draft.saveAbility)?.label ??
-      draft.saveAbility)
-    : 'No saving throw'
-
-  const outcome =
-    draft.intent === 'DAMAGE'
-      ? `${draft.damageDice} ${typeLabel ?? 'damage'}`
-      : draft.intent === 'CONDITION'
-        ? `${conditionLabel ?? 'Condition'} for ${
-            GUIDED_DURATION_OPTIONS.find((item) => item.value === draft.conditionDuration)?.label
-          }`
-        : draft.intent === 'HEALING'
-          ? `${draft.healingDice} ${draft.temporaryHealing ? 'temporary hit points' : 'hit points'}`
-          : `${draft.movementDirection === 'TOWARD_SOURCE' ? 'Pull' : 'Push'} ${draft.movementAmount} feet`
-
-  return (
-    <Stack gap='lg'>
-      {!canFinalize ? (
-        <Alert color='yellow'>
-          Activation is not ready yet. Go Back to fix details or switch to advanced authoring.
-        </Alert>
-      ) : null}
-      <dl className={styles.summary}>
-        <div className={styles.summaryRow}>
-          <dt className={styles.summaryLabel}>Name</dt>
-          <dd className={styles.summaryValue}>{label || 'Untitled Spell'}</dd>
-        </div>
-        <div className={styles.summaryRow}>
-          <dt className={styles.summaryLabel}>Level</dt>
-          <dd className={styles.summaryValue}>{formatSpellLevel(level)}</dd>
-        </div>
-        {description ? (
-          <div className={styles.summaryRow}>
-            <dt className={styles.summaryLabel}>Description</dt>
-            <dd className={styles.summaryValue}>{description}</dd>
-          </div>
-        ) : null}
-        <div className={styles.summaryRow}>
-          <dt className={styles.summaryLabel}>Outcome</dt>
-          <dd className={styles.summaryValue}>{outcome}</dd>
-        </div>
-        <div className={styles.summaryRow}>
-          <dt className={styles.summaryLabel}>Target</dt>
-          <dd className={styles.summaryValue}>{targetLabel}</dd>
-        </div>
-        <div className={styles.summaryRow}>
-          <dt className={styles.summaryLabel}>Save</dt>
-          <dd className={styles.summaryValue}>{saveLabel}</dd>
-        </div>
-      </dl>
-      <Text c='dimmed'>
-        Save Draft keeps your work in progress. Review the details before activating it for play.
-      </Text>
-    </Stack>
-  )
-}
 
 const SCREEN_TITLES = [
   'Start with the basics',
@@ -609,10 +292,6 @@ function isValidDiceConfiguration(value: string): boolean {
   } catch {
     return false
   }
-}
-
-function formatSpellLevel(level: number | undefined): string {
-  return level === 0 ? 'Cantrip' : `Level ${level ?? 0}`
 }
 
 function readSpellEffects(values: object): readonly unknown[] | undefined {

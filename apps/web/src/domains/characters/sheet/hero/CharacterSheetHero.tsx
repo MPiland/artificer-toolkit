@@ -26,7 +26,7 @@ export function CharacterSheetHero({
   const characterParams = buildCharacterRouteParams(characterPublicId, sheet.identity.label)
 
   return (
-    <header className={heroStyles.hero}>
+    <section aria-label='Character identity' className={heroStyles.hero}>
       <div className={heroStyles.heroIdentity}>
         <div className={heroStyles.characterMark}>
           <MediaImageControl
@@ -90,6 +90,6 @@ export function CharacterSheetHero({
           </Tooltip>
         ) : null}
       </div>
-    </header>
+    </section>
   )
 }

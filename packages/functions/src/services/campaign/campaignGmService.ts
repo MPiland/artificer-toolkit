@@ -32,7 +32,7 @@ import { resolveCharacterBuilder } from '../character/builderService.js'
 import {
   validateCharacterConditionType,
   validateSheetAdjustmentTarget
-} from '../character/sheetService.js'
+} from '../character/sheetCommandValidation.js'
 import { getCharacterSheetAdjustmentSlotKey } from '../character/campaignCharacterSheet.js'
 import {
   CampaignAccessError,

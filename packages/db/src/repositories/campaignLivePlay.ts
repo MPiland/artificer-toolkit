@@ -66,7 +66,6 @@ function commandFromRow(row: Record<string, unknown>): LivePlayCommand {
 
 export function createCampaignLivePlayRepository(db: DBLike) {
   return {
-
     async findClock(campaignId: string): Promise<CampaignClock | null> {
       const result = await sql<Record<string, unknown>>`
         SELECT * FROM public.campaign_clocks WHERE campaign_id = ${campaignId}::uuid

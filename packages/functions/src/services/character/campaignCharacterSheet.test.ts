@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DBLike } from '@artificer-toolkit/db'
-import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
+import type {
+  CharacterRestPreviewResponseDto,
+  CharacterSheetResponseDto
+} from '@artificer-toolkit/schema/api/characters'
 import type { CharacterSheetAdjustment } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
@@ -45,10 +48,11 @@ const {
   getVisibleCampaignConditions,
   filterCharacterHistoryForViewer,
   mergeCampaignSheetAdjustments,
+  projectCharacterRestForViewer,
   projectCharacterSheetForViewer,
   resolveCharacterSheetCampaignContext
 } = await import('./campaignCharacterSheet.js')
-const { assertCampaignGmSheetCommandAllowed } = await import('./sheetService.js')
+const { assertCampaignGmSheetCommandAllowed } = await import('./sheetCommandValidation.js')
 
 const metadata = {
   characterId: ids.character,
@@ -155,7 +159,7 @@ describe('Campaign Character Sheet authority and projection', () => {
           maxHitPointsModifier: 0,
           maxHitPointsModifierAdjustmentId: null
         }
-      } as CharacterSheetResponseDto,
+      } as unknown as CharacterSheetResponseDto,
       context
     )
 
@@ -177,6 +181,12 @@ describe('Campaign Character Sheet authority and projection', () => {
     const gmProjection = projectCharacterSheetForViewer(
       {
         meta: { characterId: ids.character, hasBuilderDraft: true },
+        actions: { items: [] },
+        inventory: { items: [], currencies: [], containers: [] },
+        extras: { items: [] },
+        resources: { items: [] },
+        spells: { spells: [], activeGroups: [] },
+        reference: { features: [] },
         notes: {
           alignment: 'lawful-good',
           notes: 'Private character notes',
@@ -193,7 +203,7 @@ describe('Campaign Character Sheet authority and projection', () => {
             }
           ]
         }
-      } as CharacterSheetResponseDto,
+      } as unknown as CharacterSheetResponseDto,
       { ...context, viewer: 'CAMPAIGN_OWNER' }
     )
     expect(gmProjection.meta).toMatchObject({
@@ -229,6 +239,140 @@ describe('Campaign Character Sheet authority and projection', () => {
         'CAMPAIGN_OWNER'
       )
     ).toHaveLength(2)
+  })
+
+  it('redacts Campaign-owner private customization from sheets and derived panel inputs', () => {
+    const sentinel = 'PRIVATE-SENTINEL'
+    const projected = projectCharacterSheetForViewer(
+      {
+        meta: { characterId: ids.character, hasBuilderDraft: true },
+        actions: { items: [{ sourceLabel: sentinel }] },
+        inventory: {
+          items: [
+            {
+              id: 'item-1',
+              equipmentId: 'equipment-1',
+              label: sentinel,
+              equipmentLabel: 'Longsword',
+              customName: sentinel,
+              notes: sentinel
+            }
+          ],
+          currencies: [],
+          containers: [{ id: 'item-1', label: sentinel, itemIds: [], currencies: [] }]
+        },
+        resources: {
+          items: [
+            {
+              id: 'item-resource',
+              owner: { kind: 'ITEM_INSTANCE', itemInstanceId: 'item-1', chargeId: 'charge-1' },
+              label: `${sentinel} charges`,
+              sourceLabel: sentinel
+            }
+          ]
+        },
+        extras: {
+          items: [
+            {
+              id: 'companion-1',
+              kind: 'COMPANION',
+              authoredName: 'Wolf',
+              displayName: sentinel,
+              customName: sentinel,
+              notes: sentinel
+            },
+            {
+              id: 'vehicle-1',
+              kind: 'VEHICLE',
+              authoredName: 'Wagon',
+              displayName: sentinel,
+              customName: sentinel,
+              notes: sentinel
+            }
+          ]
+        },
+        spells: {
+          spells: [
+            {
+              id: 'spell-1',
+              label: 'Magic Missile',
+              sources: [
+                {
+                  source: {
+                    spellId: 'spell-1',
+                    sourceKind: 'FEATURE',
+                    sourceInstanceId: 'feature-1'
+                  },
+                  label: 'Feature',
+                  customName: sentinel,
+                  notes: sentinel
+                }
+              ]
+            }
+          ],
+          activeGroups: [
+            {
+              level: 1,
+              label: 'Level 1',
+              entries: [{ spellId: 'spell-1', displayName: sentinel }]
+            }
+          ]
+        },
+        reference: {
+          features: [
+            {
+              id: 'feature-1',
+              label: 'Charge',
+              sourceLabel: sentinel,
+              source: {
+                kind: 'EQUIPMENT_INSTANCE',
+                equipmentId: 'equipment-1',
+                itemInstanceId: 'item-1'
+              }
+            }
+          ]
+        },
+        notes: { notes: sentinel }
+      } as unknown as CharacterSheetResponseDto,
+      {
+        viewer: 'CAMPAIGN_OWNER',
+        campaignId: ids.campaign,
+        campaignStatus: 'ACTIVE',
+        attunementSlotOverride: null,
+        adjustments: [],
+        secretAdjustmentIds: new Set(),
+        conditions: []
+      }
+    )
+
+    expect(projected.inventory.items[0]).toMatchObject({ label: 'Longsword' })
+    expect(projected.extras.items.map((item) => item.displayName)).toEqual(['Wolf', 'Wagon'])
+    expect(projected.spells.spells[0]?.sources?.[0]).toMatchObject({ label: 'Feature' })
+    expect(projected.spells.activeGroups[0]?.entries[0]?.displayName).toBe('Magic Missile')
+    expect(JSON.stringify(projected)).not.toContain(sentinel)
+  })
+
+  it('redacts Campaign-owner rest reset metadata', () => {
+    const preview = {
+      hitPoints: {
+        maximumHitPointModifier: 3,
+        canResetMaximumHitPointModifier: true
+      }
+    } as CharacterRestPreviewResponseDto
+    const projected = projectCharacterRestForViewer(preview, {
+      viewer: 'CAMPAIGN_OWNER',
+      campaignId: ids.campaign,
+      campaignStatus: 'ACTIVE',
+      attunementSlotOverride: null,
+      adjustments: [],
+      secretAdjustmentIds: new Set(),
+      conditions: []
+    })
+
+    expect(projected.hitPoints).toMatchObject({
+      maximumHitPointModifier: 0,
+      canResetMaximumHitPointModifier: false
+    })
   })
 })
 
@@ -282,5 +426,51 @@ describe('Campaign GM Sheet command allowlist', () => {
         }
       })
     ).toThrow(/Campaign owners cannot apply UPSERT_SHEET_ADJUSTMENT/)
+    expect(() =>
+      assertCampaignGmSheetCommandAllowed({
+        type: 'COMPLETE_REST',
+        commandId: ids.campaign,
+        expectedVersion: 0,
+        restKind: 'LONG',
+        previewFingerprint: 'fingerprint',
+        selectedHitDice: [],
+        resetMaximumHitPointModifier: false,
+        healingMode: 'AUTOMATIC',
+        manualHealingAccepted: false,
+        selectedCompanionInstanceIds: []
+      })
+    ).not.toThrow()
+    expect(() =>
+      assertCampaignGmSheetCommandAllowed({
+        type: 'COMPLETE_REST',
+        commandId: ids.campaign,
+        expectedVersion: 0,
+        restKind: 'LONG',
+        previewFingerprint: 'fingerprint',
+        selectedHitDice: [],
+        resetMaximumHitPointModifier: true,
+        healingMode: 'AUTOMATIC',
+        manualHealingAccepted: false,
+        selectedCompanionInstanceIds: []
+      })
+    ).toThrow(/Campaign owners cannot apply COMPLETE_REST/)
+    expect(() =>
+      assertCampaignGmSheetCommandAllowed({
+        type: 'UPDATE_INVENTORY_ITEM',
+        commandId: ids.campaign,
+        expectedVersion: 0,
+        itemId: ids.character,
+        quantity: 2
+      })
+    ).not.toThrow()
+    expect(() =>
+      assertCampaignGmSheetCommandAllowed({
+        type: 'UPDATE_INVENTORY_ITEM',
+        commandId: ids.campaign,
+        expectedVersion: 0,
+        itemId: ids.character,
+        customName: null
+      })
+    ).toThrow(/Campaign owners cannot apply UPDATE_INVENTORY_ITEM/)
   })
 })

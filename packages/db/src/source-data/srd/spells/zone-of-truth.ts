@@ -83,7 +83,7 @@ export const zoneOfTruth: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.ZONE_OF_TRUTH, 0x213, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Judge Truthfulness",
+                label: 'Judge Truthfulness',
                 reasonCode: 'NARRATIVE_JUDGMENT' as const,
                 instructions:
                   'Such a creature can be evasive in its answers as long as it remains within the boundaries of the truth.'

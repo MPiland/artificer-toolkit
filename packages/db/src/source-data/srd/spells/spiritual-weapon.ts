@@ -21,13 +21,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import {
-  damageTypeId,
-  schoolId,
-  spellChildId,
-  SRD_SYSTEM_ID,
-  SRD_USER_ID
-} from './shared.js'
+import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 
 const manifestId = spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x214, 1)
 const initialAttackBehaviorId = spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x220, 1)

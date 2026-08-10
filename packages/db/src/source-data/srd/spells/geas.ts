@@ -82,9 +82,10 @@ export const geas: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.GEAS, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Judge Instruction Violations",
+                label: 'Judge Instruction Violations',
                 reasonCode: 'NARRATIVE_JUDGMENT' as const,
-                instructions: "While the creature is charmed by you, it takes 5d10 psychic damage each time it acts in a manner directly counter to your instructions, but no more than once each day."
+                instructions:
+                  'While the creature is charmed by you, it takes 5d10 psychic damage each time it acts in a manner directly counter to your instructions, but no more than once each day.'
               }
             ]
           }

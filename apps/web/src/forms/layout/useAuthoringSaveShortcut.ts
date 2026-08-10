@@ -2,14 +2,8 @@ import { useEffect } from 'react'
 import { useAuthoringForm } from './AuthoringFormContext'
 
 export function useAuthoringSaveShortcut() {
-  const {
-    canSaveDraft,
-    hasChanges,
-    isSubmitting,
-    readOnly,
-    saveDraft,
-    stagedEditorOpen
-  } = useAuthoringForm()
+  const { canSaveDraft, hasChanges, isSubmitting, readOnly, saveDraft, stagedEditorOpen } =
+    useAuthoringForm()
 
   useEffect(() => {
     if (readOnly || !canSaveDraft) return
@@ -32,12 +26,5 @@ export function useAuthoringSaveShortcut() {
 
     window.addEventListener('keydown', handleSaveShortcut)
     return () => window.removeEventListener('keydown', handleSaveShortcut)
-  }, [
-    canSaveDraft,
-    hasChanges,
-    isSubmitting,
-    readOnly,
-    saveDraft,
-    stagedEditorOpen
-  ])
+  }, [canSaveDraft, hasChanges, isSubmitting, readOnly, saveDraft, stagedEditorOpen])
 }

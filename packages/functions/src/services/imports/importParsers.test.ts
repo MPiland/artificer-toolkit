@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { IMPORT_MAX_FOUNDRY_ITEMS } from '@artificer-toolkit/schema/api/imports'
 
 import {
   parseDndBeyondCharacterPayload,
@@ -191,6 +192,22 @@ describe('import parsers', () => {
         type: 'character',
         system: {},
         items: []
+      })
+    ).toBeNull()
+  })
+
+  it('rejects Foundry actors with too many items before iterating them', () => {
+    expect(
+      parseFoundryActorPayload({
+        _id: 'actor-too-large',
+        name: 'Aria',
+        type: 'character',
+        _stats: { systemId: 'dnd5e' },
+        system: {},
+        items: Array.from({ length: IMPORT_MAX_FOUNDRY_ITEMS + 1 }, () => ({
+          type: 'weapon',
+          name: 'Overflow'
+        }))
       })
     ).toBeNull()
   })

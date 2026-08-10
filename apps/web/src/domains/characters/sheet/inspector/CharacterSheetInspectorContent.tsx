@@ -5,10 +5,8 @@ import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.
 import { CharacterSheetExtraPanel } from './CharacterSheetExtraPanel'
 import { CharacterSheetItemPanelContent } from './CharacterSheetItemPanel'
 import { CharacterSheetRulesPanel } from './CharacterSheetRulesPanel'
-import {
-  CharacterSheetSpellPanelContent,
-  CharacterSheetSpellsPanelContent
-} from './CharacterSheetSpellPanels'
+import { CharacterSheetSpellPanelContent } from './CharacterSheetSpellPanelContent'
+import { CharacterSheetSpellsPanelContent } from './CharacterSheetSpellsPanelContent'
 import { getCharacterSheetPanelImageTarget } from './inspector.model'
 
 export function CharacterSheetInspectorContent({
@@ -18,8 +16,7 @@ export function CharacterSheetInspectorContent({
   pending,
   submitCommand,
   onClose,
-  onTargetChange,
-  onOpenBuilder
+  onTargetChange
 }: {
   expectedVersion: number
   equipmentItems: CharacterSheet['inventory']['items']
@@ -28,7 +25,6 @@ export function CharacterSheetInspectorContent({
   submitCommand: SubmitSheetCommand
   onClose: () => void
   onTargetChange: (target: CharacterSheetPanelTargetDto) => void
-  onOpenBuilder?: () => void
 }) {
   let content: ReactNode
 
@@ -64,7 +60,6 @@ export function CharacterSheetInspectorContent({
           pending={pending}
           submitCommand={submitCommand}
           onTargetChange={onTargetChange}
-          onOpenBuilder={onOpenBuilder}
         />
       )
       break

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Group, Mesh, MeshStandardMaterial, Quaternion } from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
-import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import type { DicePresentationPreferences } from '#app/settings/dicePreferences'
 import {
   getScaledColliderVertices,
@@ -29,14 +28,6 @@ type DiePlayback = {
   correction: Quaternion
   die: VisualDie
   frames: DieFrame[]
-}
-
-export function preloadDiceModels(expression: string) {
-  const diceTypes = [...new Set(parseRollExpression(expression).terms.map((term) => term.die))]
-  useLoader.preload(
-    GLTFLoader,
-    diceTypes.map((die) => `/models/d${die}.glb`)
-  )
 }
 
 function getLaunch(dieId: string, index: number, width: number, height: number) {

@@ -71,9 +71,10 @@ export const creation: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.CREATION, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Choose the Created Object",
+                label: 'Choose the Created Object',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "You pull wisps of shadow material from the Shadowfell to create a nonliving object of vegetable matter within range: soft goods, rope, wood, or something similar."
+                instructions:
+                  'You pull wisps of shadow material from the Shadowfell to create a nonliving object of vegetable matter within range: soft goods, rope, wood, or something similar.'
               }
             ]
           }

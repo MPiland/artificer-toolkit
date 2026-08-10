@@ -18,13 +18,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import {
-  damageTypeId,
-  schoolId,
-  spellChildId,
-  SRD_SYSTEM_ID,
-  SRD_USER_ID
-} from './shared.js'
+import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 
 const energyTypes = [
   { code: 'ACID', label: 'Acid' },
@@ -38,7 +32,7 @@ export const protectionFromEnergy: SpellAuthored = {
   id: SPELL_IDS.PROTECTION_FROM_ENERGY,
   label: 'Protection from Energy',
   description:
-    "<p>For the duration, the willing creature you touch has resistance to one damage type of your choice: acid, cold, fire, lightning, or thunder.</p>",
+    '<p>For the duration, the willing creature you touch has resistance to one damage type of your choice: acid, cold, fire, lightning, or thunder.</p>',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 3,
   classIds: [

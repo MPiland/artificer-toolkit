@@ -151,7 +151,8 @@ function readDamageOutcome(resultBlock: unknown) {
   }
 
   return {
-    damageTypeId: typeof maybeOutcome.damageTypeId === 'string' ? maybeOutcome.damageTypeId : undefined,
+    damageTypeId:
+      typeof maybeOutcome.damageTypeId === 'string' ? maybeOutcome.damageTypeId : undefined,
     diceConfig: typeof maybeOutcome.diceConfig === 'string' ? maybeOutcome.diceConfig : undefined
   }
 }

@@ -67,9 +67,10 @@ export const clone: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.CLONE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Resolve Soul Transfer",
+                label: 'Resolve Soul Transfer',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "At any time after the clone matures, if the original creature dies, its soul transfers to the clone, provided that the soul is free and willing to return."
+                instructions:
+                  'At any time after the clone matures, if the original creature dies, its soul transfers to the clone, provided that the soul is free and willing to return.'
               }
             ]
           }

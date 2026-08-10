@@ -25,7 +25,8 @@ import {
   fromSessionLocalDateTime,
   supportedSessionTimeZones
 } from '../campaignSessionSchedule'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
+import * as sessionsStyles from '../campaignSessions.css'
 
 export function CampaignSessions({
   campaign,
@@ -72,7 +73,7 @@ export function CampaignSessions({
   const scheduleIncomplete = Boolean(scheduledStartAt) !== Boolean(scheduledEndAt)
 
   return (
-    <section className={styles.sessionsPanel} aria-labelledby='campaign-sessions-title'>
+    <section className={sessionsStyles.sessionsPanel} aria-labelledby='campaign-sessions-title'>
       <Group align='flex-start' justify='space-between' wrap='wrap'>
         <div>
           <Title order={2} id='campaign-sessions-title'>
@@ -95,7 +96,7 @@ export function CampaignSessions({
 
       {editorOpen ? (
         <form
-          className={styles.sessionEditor}
+          className={sessionsStyles.sessionEditor}
           onSubmit={(event: SubmitEvent) => {
             event.preventDefault()
             create.mutate()
@@ -103,20 +104,20 @@ export function CampaignSessions({
         >
           <Title order={3}>New session</Title>
           <TextInput
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             label='Name (optional)'
             value={title}
             onChange={(event) => setTitle(event.currentTarget.value)}
           />
           <TextInput
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             label='Starts (optional)'
             type='datetime-local'
             value={scheduledStartAt}
             onChange={(event) => setScheduledStartAt(event.currentTarget.value)}
           />
           <TextInput
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             label='Ends'
             min={scheduledStartAt || undefined}
             type='datetime-local'
@@ -124,7 +125,7 @@ export function CampaignSessions({
             onChange={(event) => setScheduledEndAt(event.currentTarget.value)}
           />
           <Select
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             data={supportedSessionTimeZones()}
             disabled={!scheduledStartAt && !scheduledEndAt}
             label='Time zone'
@@ -151,7 +152,7 @@ export function CampaignSessions({
 
       {sessions.isPending ? <Text c='dimmed'>Loading sessions…</Text> : null}
       {sessions.data?.length === 0 ? (
-        <div className={styles.emptyState}>
+        <div className={sharedStyles.emptyState}>
           <Text fw={600}>No sessions yet.</Text>
           <Text c='dimmed' size='sm'>
             {campaign.role === 'OWNER'
@@ -160,7 +161,7 @@ export function CampaignSessions({
           </Text>
         </div>
       ) : null}
-      <Stack className={styles.sessionList} gap={0}>
+      <Stack className={sessionsStyles.sessionList} gap={0}>
         {sessions.data?.map((session) => (
           <SessionRow
             canEdit={editable}
@@ -227,18 +228,18 @@ function SessionRow({
     </div>
   )
   return (
-    <div className={styles.sessionRow}>
+    <div className={sessionsStyles.sessionRow}>
       {canEdit ? (
         <UnstyledButton
           aria-label={`Open ${sessionLabel(session)}`}
-          className={styles.sessionRowMain}
+          className={sessionsStyles.sessionRowMain}
           onClick={onOpen}
         >
           {identity}
-          <IconChevronRight aria-hidden className={styles.sessionOpenCue} size={18} />
+          <IconChevronRight aria-hidden className={sessionsStyles.sessionOpenCue} size={18} />
         </UnstyledButton>
       ) : (
-        <div className={styles.sessionRowMain}>{identity}</div>
+        <div className={sessionsStyles.sessionRowMain}>{identity}</div>
       )}
       {session.status === 'OPEN' && campaign.role === 'PLAYER' ? (
         <SegmentedControl

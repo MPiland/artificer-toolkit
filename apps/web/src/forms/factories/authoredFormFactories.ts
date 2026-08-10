@@ -1,5 +1,4 @@
-import { createElement, type ReactNode } from 'react'
-import type { z } from 'zod'
+import { createElement } from 'react'
 import type { AuthoredDraftDto, EquipmentResponseDto } from '@artificer-toolkit/schema/api/content'
 import type { AuthoredContentProvenanceDto } from '@artificer-toolkit/schema/api/common'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
@@ -43,7 +42,6 @@ import {
   VehicleAuthoringInputDto,
   VehicleAuthoredDto
 } from '@artificer-toolkit/schema/subjects/vehicle'
-import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import { api } from '#app/lib/api'
 import { queryKeys as globalQueryKeys } from '#app/lib/queryKeys'
 import {
@@ -96,17 +94,15 @@ import {
   type VehicleFormValues
 } from '../../domains/vehicles/vehicleAuthoring.utils'
 import type {
-  AuthoredFormPreviewContext,
   AuthoredFormDomain,
   AuthoredFormFactory,
-  AuthoredFormFactoryBase,
-  AuthoredFormSession,
-  AuthoredFormSessionInput
+  AuthoredFormFactoryBase
 } from './authoredFormFactories.types'
+import { createAuthoredSession, type AuthoredSessionConfig } from './authoredFormSessionFactory'
 import { authoredFormActionFactories } from '../actions/authoredFormActionFactories'
-import { authoredPreviewFactories } from '../previews/authoredPreviewFactories'
 import { EquipmentParentPreview } from '../previews/EquipmentParentPreview'
 import { renderEquipmentPreview } from '../previews/equipmentParentPreview.utils'
+import { isObjectValue } from '../utils/valueGuards'
 
 export type AuthoredFormSystemCreateData = {
   system?: SystemResponseDto | null
@@ -195,7 +191,7 @@ const backgroundFormFactory = {
     subjectKindLabel: 'Background'
   }),
   createEmptyValues: createEmptyBackground,
-  createSession: createBackgroundSession,
+  createSession: (input) => createAuthoredSession(input, backgroundSessionConfig),
   normalizeForSubmit: normalizeBackgroundForSubmit,
   resolveCreateSystemId: resolveCreateBackgroundSystemId,
   toFormValues: normalizeBackgroundForSubmit
@@ -211,7 +207,7 @@ const classFormFactory = {
     subjectKindLabel: 'Class'
   }),
   createEmptyValues: createEmptyClass,
-  createSession: createClassSession,
+  createSession: (input) => createAuthoredSession(input, classSessionConfig),
   normalizeForSubmit: normalizeClassForSubmit,
   resolveCreateSystemId: resolveCreateClassSystemId,
   toFormValues: toClassFormValues
@@ -223,7 +219,7 @@ const creatureFormFactory = {
     subjectKindLabel: 'Creature'
   }),
   createEmptyValues: createEmptyCreature,
-  createSession: createCreatureSession,
+  createSession: (input) => createAuthoredSession(input, creatureSessionConfig),
   normalizeForSubmit: normalizeCreatureForSubmit,
   resolveCreateSystemId: resolveCreateCreatureSystemId,
   toFormValues: toCreatureFormValues
@@ -235,7 +231,7 @@ const equipmentFormFactory = {
     subjectKindLabel: 'Equipment'
   }),
   createEmptyValues: createEmptyEquipment,
-  createSession: createEquipmentSession,
+  createSession: (input) => createAuthoredSession(input, equipmentSessionConfig),
   normalizeForSubmit: normalizeEquipmentForSubmit,
   resolveCreateSystemId: resolveCreateEquipmentSystemId,
   toFormValues: toEquipmentFormValues
@@ -251,7 +247,7 @@ const featFormFactory = {
     subjectKindLabel: 'Feat'
   }),
   createEmptyValues: createEmptyFeat,
-  createSession: createFeatSession,
+  createSession: (input) => createAuthoredSession(input, featSessionConfig),
   normalizeForSubmit: normalizeFeatForSubmit,
   resolveCreateSystemId: resolveCreateFeatSystemId,
   toFormValues: normalizeFeatForSubmit
@@ -263,7 +259,7 @@ const raceFormFactory = {
     subjectKindLabel: 'Race'
   }),
   createEmptyValues: createEmptyRace,
-  createSession: createRaceSession,
+  createSession: (input) => createAuthoredSession(input, raceSessionConfig),
   normalizeForSubmit: normalizeRaceForSubmit,
   resolveCreateSystemId: resolveCreateRaceSystemId,
   toFormValues: toRaceFormValues
@@ -275,7 +271,7 @@ const spellFormFactory = {
     subjectKindLabel: 'Spell'
   }),
   createEmptyValues: createEmptySpell,
-  createSession: createSpellSession,
+  createSession: (input) => createAuthoredSession(input, spellSessionConfig),
   normalizeForSubmit: normalizeSpellForSubmit,
   resolveCreateSystemId: (systems) => systems[0]?.id ?? null,
   toFormValues: (spell: SpellAuthoringInputDto | SpellAuthoredDto) => spell
@@ -291,7 +287,7 @@ const vehicleFormFactory = {
     subjectKindLabel: 'Vehicle'
   }),
   createEmptyValues: createEmptyVehicle,
-  createSession: createVehicleSession,
+  createSession: (input) => createAuthoredSession(input, vehicleSessionConfig),
   normalizeForSubmit: normalizeVehicleForSubmit,
   resolveCreateSystemId: resolveCreateVehicleSystemId,
   toFormValues: toVehicleFormValues
@@ -573,385 +569,8 @@ const vehicleSessionConfig = {
   AuthoredFormEditData<VehicleAuthoredDto>
 >
 
-function createBackgroundSession(input: AuthoredFormSessionInput): AuthoredFormSession {
-  return createAuthoredSession(input, backgroundSessionConfig)
-}
-
-function createClassSession(input: AuthoredFormSessionInput): AuthoredFormSession {
-  return createAuthoredSession(input, classSessionConfig)
-}
-
-function createCreatureSession(input: AuthoredFormSessionInput): AuthoredFormSession {
-  return createAuthoredSession(input, creatureSessionConfig)
-}
-
-function createEquipmentSession(input: AuthoredFormSessionInput): AuthoredFormSession {
-  return createAuthoredSession(input, equipmentSessionConfig)
-}
-
-function createFeatSession(input: AuthoredFormSessionInput): AuthoredFormSession {
-  return createAuthoredSession(input, featSessionConfig)
-}
-
-function createRaceSession(input: AuthoredFormSessionInput): AuthoredFormSession {
-  return createAuthoredSession(input, raceSessionConfig)
-}
-
-function createSpellSession(input: AuthoredFormSessionInput): AuthoredFormSession {
-  return createAuthoredSession(input, spellSessionConfig)
-}
-
-function createVehicleSession(input: AuthoredFormSessionInput): AuthoredFormSession {
-  return createAuthoredSession(input, vehicleSessionConfig)
-}
-
-type AuthoredFormValuesBase = {
-  label?: string | null
-  systemId: string
-}
-
-type AuthoredFormSubmitBase = AuthoredFormValuesBase & {
-  id: string
-  label: string
-}
-
-type AuthoredFormQueryKeys = {
-  all: () => readonly unknown[]
-  detail: (id: string) => readonly unknown[]
-  detailRoot: (id: string) => readonly unknown[]
-  draft: (id: string) => readonly unknown[]
-  list: () => readonly unknown[]
-}
-
-type AuthoredFormOperations<TSubmit extends object> = {
-  activate: (payload: TSubmit) => ReturnType<AuthoredFormSession['operations']['activate']>
-  deleteActive: (id: string) => Promise<unknown>
-  discardDraft: (id: string) => Promise<unknown>
-  duplicate: NonNullable<AuthoredFormSession['operations']['duplicate']>
-  saveDraft: (payload: TSubmit) => ReturnType<AuthoredFormSession['operations']['saveDraft']>
-}
-
-type AuthoredSessionConfig<
-  TValues extends AuthoredFormValuesBase,
-  TSubmit extends AuthoredFormSubmitBase,
-  TAuthored extends AuthoredFormValuesBase,
-  TCreateData,
-  TEditData extends AuthoredFormEditData<TAuthored>,
-  TContext = undefined
-> = {
-  actionFactory: (typeof authoredFormActionFactories)[AuthoredFormDomain]
-  createEmptyValues: (input: { systemId: string }, context: TContext) => TValues
-  domain: AuthoredFormDomain
-  getCreateContext?: (data: TCreateData) => TContext
-  getCreateSystems: (data: TCreateData) => readonly { id: string }[]
-  getEditContext?: (data: TEditData) => TContext
-  normalizeForSubmit: (values: TValues, context: TContext) => TSubmit
-  operations: AuthoredFormOperations<TSubmit>
-  queryKeys: AuthoredFormQueryKeys
-  renderPreview?: (
-    context: AuthoredFormPreviewContext<TValues>,
-    sessionContext: TContext
-  ) => ReactNode
-  resolveCreateSystemId: (systems: readonly { id: string }[], context: TContext) => string | null
-  schema: z.ZodType<TSubmit>
-  subjectKindLabel: string
-  toCreateData: (data: unknown) => TCreateData
-  toEditData: (data: unknown) => TEditData
-  toFormValues: (record: TValues | TSubmit | TAuthored, context: TContext) => TValues
-}
-
-function createAuthoredSession<
-  TValues extends AuthoredFormValuesBase,
-  TSubmit extends AuthoredFormSubmitBase,
-  TAuthored extends AuthoredFormValuesBase,
-  TCreateData extends { system?: SystemResponseDto | null },
-  TEditData extends AuthoredFormEditData<TAuthored>,
-  TContext
->(
-  { data, mode }: AuthoredFormSessionInput,
-  config: AuthoredSessionConfig<TValues, TSubmit, TAuthored, TCreateData, TEditData, TContext>
-): AuthoredFormSession {
-  if (mode === 'create') {
-    return createAuthoredCreateSession(data, config)
-  }
-
-  return createAuthoredEditSession(data, mode, config)
-}
-
-function createAuthoredCreateSession<
-  TValues extends AuthoredFormValuesBase,
-  TSubmit extends AuthoredFormSubmitBase,
-  TAuthored extends AuthoredFormValuesBase,
-  TCreateData extends { system?: SystemResponseDto | null },
-  TEditData extends AuthoredFormEditData<TAuthored>,
-  TContext
->(
-  data: unknown,
-  config: AuthoredSessionConfig<TValues, TSubmit, TAuthored, TCreateData, TEditData, TContext>
-): AuthoredFormSession {
-  const createData = config.toCreateData(data)
-  const context = getCreateContext(config, createData)
-  const systemId = config.resolveCreateSystemId(config.getCreateSystems(createData), context) ?? ''
-  const initialValues = config.createEmptyValues({ systemId }, context)
-
-  return createAuthoredSessionBase({
-    config,
-    context,
-    canCopy: false,
-    canDelete: false,
-    canSaveDraft: Boolean(systemId),
-    hasActiveDraft: false,
-    hasInvalidDraft: false,
-    initialValues,
-    invalidDraftOnly: false,
-    isDraft: false,
-    key: `${config.actionFactory.subjectKindLabel.toLowerCase()}:create:${systemId || 'missing-system'}`,
-    mode: 'create',
-    notFound: false,
-    provenanceKind: 'OWNED',
-    readOnly: false,
-    subjectLabel: initialValues.label || `Untitled ${config.actionFactory.subjectKindLabel}`,
-    system: createData.system ?? null,
-    systemId,
-    systemRequired: !systemId
-  })
-}
-
-function createAuthoredEditSession<
-  TValues extends AuthoredFormValuesBase,
-  TSubmit extends AuthoredFormSubmitBase,
-  TAuthored extends AuthoredFormValuesBase,
-  TCreateData extends { system?: SystemResponseDto | null },
-  TEditData extends AuthoredFormEditData<TAuthored>,
-  TContext
->(
-  data: unknown,
-  requestedMode: AuthoredFormSession['mode'],
-  config: AuthoredSessionConfig<TValues, TSubmit, TAuthored, TCreateData, TEditData, TContext>
-): AuthoredFormSession {
-  const editData = config.toEditData(data)
-  const context = getEditContext(config, editData)
-  const parsedDraft = parseAuthoredDraftPayload(editData.draft ?? null, config.schema)
-  const draftItem = parsedDraft.item
-  const activeRecord = editData.response?.item ?? undefined
-  const record = draftItem ?? activeRecord ?? null
-  const initialValues = record
-    ? config.toFormValues(record, context)
-    : config.createEmptyValues(
-        { systemId: activeRecord?.systemId ?? draftItem?.systemId ?? '' },
-        context
-      )
-  const readOnly =
-    requestedMode === 'view' ||
-    Boolean(activeRecord && editData.response?.permissions?.canEdit === false)
-  const canCopy = Boolean(editData.response?.permissions?.canCopy && editData.subjectId)
-  const canDelete =
-    !readOnly && Boolean(parsedDraft.draft || editData.response?.permissions?.canDelete)
-  const invalidDraftOnly = !editData.response && parsedDraft.isInvalid
-  const subjectKindLabel = config.actionFactory.subjectKindLabel
-
-  return createAuthoredSessionBase({
-    config,
-    context,
-    activeRecord,
-    canCopy,
-    canDelete,
-    canSaveDraft: !readOnly,
-    draft: parsedDraft.draft,
-    hasActiveDraft: Boolean(parsedDraft.draft && activeRecord),
-    hasInvalidDraft: Boolean(editData.draft && parsedDraft.isInvalid),
-    initialValues,
-    invalidDraftOnly,
-    isDraft: Boolean(parsedDraft.draft),
-    key: `${subjectKindLabel.toLowerCase()}:edit:${editData.subjectId}:${draftItem ? 'draft' : 'active'}`,
-    mode: readOnly ? 'view' : 'edit',
-    notFound: !editData.response && !draftItem && !invalidDraftOnly,
-    provenanceKind: editData.response?.provenance?.kind ?? (editData.draft ? 'OWNED' : null),
-    readOnly,
-    subjectId: editData.subjectId,
-    subjectLabel: initialValues.label || `Untitled ${subjectKindLabel}`,
-    system: editData.system ?? null,
-    systemId: initialValues.systemId,
-    systemRequired: false
-  })
-}
-
-function createAuthoredSessionBase<
-  TValues extends AuthoredFormValuesBase,
-  TSubmit extends AuthoredFormSubmitBase,
-  TAuthored extends AuthoredFormValuesBase,
-  TCreateData,
-  TEditData extends AuthoredFormEditData<TAuthored>,
-  TContext
->({
-  activeRecord,
-  canCopy,
-  canDelete,
-  canSaveDraft,
-  config,
-  context,
-  draft = null,
-  hasActiveDraft,
-  hasInvalidDraft,
-  initialValues,
-  invalidDraftOnly,
-  isDraft,
-  key,
-  mode,
-  notFound,
-  provenanceKind,
-  readOnly,
-  subjectId,
-  subjectLabel,
-  system,
-  systemId,
-  systemRequired
-}: {
-  activeRecord?: TAuthored | null
-  canCopy: boolean
-  canDelete: boolean
-  canSaveDraft: boolean
-  config: AuthoredSessionConfig<TValues, TSubmit, TAuthored, TCreateData, TEditData, TContext>
-  context: TContext
-  draft?: AuthoredDraftDto | null
-  hasActiveDraft: boolean
-  hasInvalidDraft: boolean
-  initialValues: TValues
-  invalidDraftOnly: boolean
-  isDraft: boolean
-  key: string
-  mode: AuthoredFormSession['mode']
-  notFound: boolean
-  provenanceKind: AuthoredFormSession['provenanceKind']
-  readOnly: boolean
-  subjectId?: string
-  subjectLabel: ReactNode
-  system?: SystemResponseDto | null
-  systemId?: string
-  systemRequired: boolean
-}): AuthoredFormSession {
-  const { actionFactory, domain, operations, queryKeys, subjectKindLabel } = config
-  const renderPreview:
-    | ((previewContext: AuthoredFormPreviewContext<TValues>, sessionContext: TContext) => ReactNode)
-    | undefined = config.renderPreview ?? authoredPreviewFactories[domain]
-  const sessionContext = context
-
-  return {
-    actionFactory,
-    activeRecord,
-    canCopy,
-    canDelete,
-    canSaveDraft,
-    deleteConfig: {
-      deleteActive: async (id) => {
-        await operations.deleteActive(id)
-      },
-      deleteDraft: async (id) => {
-        await operations.discardDraft(id)
-      },
-      detailSubjectQueryKey: queryKeys.detailRoot,
-      domainQueryKey: queryKeys.all(),
-      draftQueryKey: queryKeys.draft
-    },
-    domain,
-    draft,
-    fallbackLabel: `Untitled ${subjectKindLabel}`,
-    hasActiveDraft,
-    hasInvalidDraft,
-    initialValues,
-    invalidDraftOnly,
-    isDraft,
-    key,
-    mapId: domain,
-    mode,
-    normalizeForSubmit: (values) => config.normalizeForSubmit(values as TValues, sessionContext),
-    notFound,
-    operations: {
-      activate: (payload) => operations.activate(payload as TSubmit),
-      duplicate: operations.duplicate,
-      onActivateSuccess: async (queryClient, response) => {
-        await queryClient.invalidateQueries({ queryKey: queryKeys.all() })
-
-        if (response?.item?.id) {
-          queryClient.setQueryData(queryKeys.detail(response.item.id), response)
-          await queryClient.invalidateQueries({ queryKey: queryKeys.draft(response.item.id) })
-        }
-      },
-      onDiscardDraftSuccess: async (queryClient) => {
-        if (!subjectId) return
-        await queryClient.invalidateQueries({ queryKey: queryKeys.all() })
-        await queryClient.invalidateQueries({ queryKey: queryKeys.draft(subjectId) })
-      },
-      onDuplicateSuccess: async (queryClient) => {
-        await queryClient.invalidateQueries({ queryKey: queryKeys.all() })
-      },
-      onSaveDraftSuccess: async (queryClient, savedDraft) => {
-        queryClient.setQueryData(queryKeys.draft(savedDraft.subjectId), savedDraft)
-        queryClient.setQueryData(
-          globalQueryKeys.routeIds.resolve(savedDraft.subjectKind, savedDraft.publicId),
-          savedDraft.subjectId
-        )
-        if (savedDraft.draftState === 'DRAFT_ONLY') {
-          queryClient.setQueryData(queryKeys.detail(savedDraft.subjectId), null)
-        }
-        await queryClient.invalidateQueries({ queryKey: queryKeys.list(), refetchType: 'none' })
-      },
-      saveDraft: (payload) => operations.saveDraft(payload as TSubmit),
-      ...(subjectId ? { discardDraft: () => operations.discardDraft(subjectId) } : {})
-    },
-    provenanceKind,
-    readOnly,
-    renderPreview: renderPreview
-      ? (previewContext) =>
-          renderPreview(
-            {
-              ...previewContext,
-              domain,
-              system,
-              values: previewContext.values as TValues
-            },
-            sessionContext
-          )
-      : undefined,
-    subjectId,
-    subjectKindLabel,
-    subjectLabel,
-    system,
-    systemId,
-    systemRequired
-  }
-}
-
-function getCreateContext<
-  TValues extends AuthoredFormValuesBase,
-  TSubmit extends AuthoredFormSubmitBase,
-  TAuthored extends AuthoredFormValuesBase,
-  TCreateData,
-  TEditData extends AuthoredFormEditData<TAuthored>,
-  TContext
->(
-  config: AuthoredSessionConfig<TValues, TSubmit, TAuthored, TCreateData, TEditData, TContext>,
-  data: TCreateData
-): TContext {
-  return config.getCreateContext ? config.getCreateContext(data) : (undefined as TContext)
-}
-
-function getEditContext<
-  TValues extends AuthoredFormValuesBase,
-  TSubmit extends AuthoredFormSubmitBase,
-  TAuthored extends AuthoredFormValuesBase,
-  TCreateData,
-  TEditData extends AuthoredFormEditData<TAuthored>,
-  TContext
->(
-  config: AuthoredSessionConfig<TValues, TSubmit, TAuthored, TCreateData, TEditData, TContext>,
-  data: TEditData
-): TContext {
-  return config.getEditContext ? config.getEditContext(data) : (undefined as TContext)
-}
-
 function toSystemCreateData(data: unknown): AuthoredFormSystemCreateData {
-  if (isRecord(data) && Array.isArray(data.systems)) {
+  if (isObjectValue(data) && Array.isArray(data.systems)) {
     return {
       system: isSystemResponse(data.system) ? data.system : null,
       systems: data.systems as readonly { id: string }[]
@@ -962,7 +581,7 @@ function toSystemCreateData(data: unknown): AuthoredFormSystemCreateData {
 }
 
 function toEditData<TAuthored extends object>(data: unknown): AuthoredFormEditData<TAuthored> {
-  if (isRecord(data) && typeof data.subjectId === 'string') {
+  if (isObjectValue(data) && typeof data.subjectId === 'string') {
     return data as AuthoredFormEditData<TAuthored>
   }
 
@@ -971,10 +590,6 @@ function toEditData<TAuthored extends object>(data: unknown): AuthoredFormEditDa
     response: null,
     subjectId: ''
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
 }
 
 type SpellFormContext = {
@@ -988,5 +603,5 @@ function getSpellFormContext(data: { system?: SystemResponseDto | null }): Spell
 }
 
 function isSystemResponse(value: unknown): value is SystemResponseDto {
-  return value === null || isRecord(value)
+  return value === null || isObjectValue(value)
 }

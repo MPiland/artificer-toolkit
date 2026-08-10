@@ -5,7 +5,7 @@ import { useMutation } from '@tanstack/react-query'
 import { type SubmitEvent, useState } from 'react'
 import type { CampaignDetailDto, CampaignInviteDto } from '#app/lib/api'
 import { api } from '#app/lib/api'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
 
 export function CampaignInviteButton({ campaign }: { campaign: CampaignDetailDto }) {
   const [opened, { close, open }] = useDisclosure(false)
@@ -49,14 +49,14 @@ export function CampaignInviteButton({ campaign }: { campaign: CampaignDetailDto
             Create a link or send an invite to a specific player.
           </Text>
           <form
-            className={styles.form}
+            className={sharedStyles.form}
             onSubmit={(event: SubmitEvent) => {
               event.preventDefault()
               invite.mutate()
             }}
           >
             <Select
-              classNames={{ input: styles.input }}
+              classNames={{ input: sharedStyles.input }}
               data={[
                 { value: 'LINK', label: 'Invite link' },
                 { value: 'USERNAME', label: '@username' },
@@ -68,7 +68,7 @@ export function CampaignInviteButton({ campaign }: { campaign: CampaignDetailDto
             />
             {inviteKind !== 'LINK' ? (
               <TextInput
-                classNames={{ input: styles.input }}
+                classNames={{ input: sharedStyles.input }}
                 label={inviteKind === 'USERNAME' ? 'Username' : 'Email'}
                 required
                 value={inviteTarget}

@@ -1,6 +1,7 @@
 import type { ModifierGrantAuthored } from '#authored'
 import {
   ABILITY_OPTIONS,
+  ATTACK_DOMAIN_OPTIONS,
   AUTHORING_SELECTION_REGISTRY,
   CHARGE_LIMIT_OPTIONS,
   CHARGE_RESET_OPTIONS,
@@ -98,12 +99,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           'Attack Domain',
           {
             kind: 'INLINE_OPTIONS',
-            options: [
-              { code: 'MELEE', label: 'Melee' },
-              { code: 'RANGED', label: 'Ranged' },
-              { code: 'SPELL', label: 'Spell' },
-              { code: 'UNARMED', label: 'Unarmed' }
-            ]
+            options: ATTACK_DOMAIN_OPTIONS
           },
           {
             showIf: or([

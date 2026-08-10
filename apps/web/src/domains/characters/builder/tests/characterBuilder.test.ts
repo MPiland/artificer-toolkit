@@ -104,7 +104,6 @@ describe('character builder utilities', () => {
   })
 
   it('applies authoritative ability roll evidence to one draft slot', () => {
-    const values = createFallbackCharacterFormValues()
     const abilities: ReturnType<typeof createFallbackCharacterFormValues>['intent']['abilities'] = {
       method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
       state: { assignments: [], rollGroups: [] }

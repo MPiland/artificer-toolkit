@@ -4,6 +4,13 @@ import { createSystemRepository } from '@artificer-toolkit/db'
 const RESPONSE_MAX_BYTES = 10 * 1024 * 1024
 const TIMEOUT_MS = 15_000
 
+export class DndBeyondImportError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'DndBeyondImportError'
+  }
+}
+
 export interface DndBeyondResponseBudget {
   remainingBytes: number
 }
@@ -21,7 +28,7 @@ export async function fetchDndBeyondCharacter(
     signal: AbortSignal.timeout(TIMEOUT_MS)
   })
   if (!response.ok) {
-    throw new Error(
+    throw new DndBeyondImportError(
       response.status === 401 || response.status === 403 || response.status === 404
         ? 'The D&D Beyond character is private or unavailable.'
         : `D&D Beyond returned ${response.status}.`
@@ -29,16 +36,16 @@ export async function fetchDndBeyondCharacter(
   }
   const contentLength = Number(response.headers.get('content-length'))
   if (Number.isFinite(contentLength) && contentLength > RESPONSE_MAX_BYTES) {
-    throw new Error('The D&D Beyond character response is too large.')
+    throw new DndBeyondImportError('The D&D Beyond character response is too large.')
   }
   if (Number.isFinite(contentLength) && contentLength > budget.remainingBytes) {
-    throw new Error('The D&D Beyond import batch exceeds 25 MiB.')
+    throw new DndBeyondImportError('The D&D Beyond import batch exceeds 25 MiB.')
   }
   const text = await readCappedResponseText(response, RESPONSE_MAX_BYTES, budget)
   try {
     return JSON.parse(text) as unknown
   } catch {
-    throw new Error('D&D Beyond returned malformed character data.')
+    throw new DndBeyondImportError('D&D Beyond returned malformed character data.')
   }
 }
 
@@ -77,10 +84,10 @@ async function readCappedResponseText(
     if (bytes > maximumBytes || result.value.byteLength > budget.remainingBytes) {
       await reader.cancel()
       if (bytes > maximumBytes) {
-        throw new Error('The D&D Beyond character response is too large.')
+        throw new DndBeyondImportError('The D&D Beyond character response is too large.')
       }
       budget.remainingBytes = 0
-      throw new Error('The D&D Beyond import batch exceeds 25 MiB.')
+      throw new DndBeyondImportError('The D&D Beyond import batch exceeds 25 MiB.')
     }
     budget.remainingBytes -= result.value.byteLength
     chunks.push(result.value)
@@ -100,11 +107,11 @@ function consumeResponseBytes(
   budget: DndBeyondResponseBudget
 ): void {
   if (bytes > maximumBytes) {
-    throw new Error('The D&D Beyond character response is too large.')
+    throw new DndBeyondImportError('The D&D Beyond character response is too large.')
   }
   if (bytes > budget.remainingBytes) {
     budget.remainingBytes = 0
-    throw new Error('The D&D Beyond import batch exceeds 25 MiB.')
+    throw new DndBeyondImportError('The D&D Beyond import batch exceeds 25 MiB.')
   }
   budget.remainingBytes -= bytes
 }

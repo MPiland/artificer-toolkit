@@ -3,7 +3,8 @@ import { useState } from 'react'
 import type { CampaignDetailDto } from '#app/lib/api'
 import { CampaignNotebook } from './CampaignNotebook'
 import { CampaignSessionNotes } from './CampaignSessionNotes'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
+import * as notesStyles from './notes.css'
 
 type NotesSection = 'GENERAL' | 'PEOPLE' | 'PLACES' | 'SESSIONS' | 'GM_PRIVATE'
 
@@ -18,8 +19,8 @@ export function CampaignNotes({
   const canSeePrivate = campaign.role === 'OWNER'
 
   return (
-    <div className={styles.notesWorkspace}>
-      <nav className={styles.notesRail} aria-label='Campaign notes sections'>
+    <div className={notesStyles.notesWorkspace}>
+      <nav className={notesStyles.notesRail} aria-label='Campaign notes sections'>
         <Text c='dimmed' fw={700} size='xs' tt='uppercase'>
           Notes
         </Text>
@@ -33,7 +34,7 @@ export function CampaignNotes({
           ] as NotesSection[]
         ).map((value) => (
           <button
-            className={styles.notesRailItem}
+            className={notesStyles.notesRailItem}
             data-active={section === value || undefined}
             key={value}
             type='button'
@@ -43,11 +44,11 @@ export function CampaignNotes({
           </button>
         ))}
       </nav>
-      <div className={styles.notesContent}>
-        <div className={styles.notesMobileSelect}>
+      <div className={notesStyles.notesContent}>
+        <div className={notesStyles.notesMobileSelect}>
           <Select
             aria-label='Notes section'
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             data={[
               { value: 'GENERAL', label: 'General' },
               { value: 'PEOPLE', label: 'People' },

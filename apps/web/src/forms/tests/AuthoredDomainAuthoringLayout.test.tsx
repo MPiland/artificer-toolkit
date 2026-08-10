@@ -230,11 +230,7 @@ describe('non-character authored domain layout coverage', () => {
 
     try {
       expect(
-        await screen.findByRole(
-          'heading',
-          { name: 'How do you want to begin?' },
-          { timeout: 500 }
-        )
+        await screen.findByRole('heading', { name: 'How do you want to begin?' }, { timeout: 500 })
       ).toBeInTheDocument()
     } finally {
       releaseModel()
@@ -335,7 +331,9 @@ describe('non-character authored domain layout coverage', () => {
     expect(
       await screen.findByDisplayValue(authoredRouteStoryRecords[domain].label)
     ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /(?:add|change)(?: an)? image/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /(?:add|change)(?: an)? image/i })
+    ).toBeInTheDocument()
     expect(screen.getByTestId('authoring-form-canvas')).toBeInTheDocument()
     expect(screen.getByTestId('authoring-action-bar')).toBeInTheDocument()
   })

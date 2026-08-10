@@ -66,9 +66,10 @@ export const findThePath: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.FIND_THE_PATH, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Reveal the Route",
+                label: 'Reveal the Route',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "For the duration, as long as you are on the same plane of existence as the destination, you know how far it is and in what direction it lies."
+                instructions:
+                  'For the duration, as long as you are on the same plane of existence as the destination, you know how far it is and in what direction it lies.'
               }
             ]
           }

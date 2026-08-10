@@ -6,6 +6,10 @@ import type {
   RepositoryFindAllOptions
 } from '../../../repositories/contracts.js'
 import { orderedHydratedRecords, uniqueIds } from '../../../repositories/batch.js'
+import { createFeatureRepository } from '../../features/repositories/feature.js'
+import { createProficiencyGrantRepository } from '../../grants/repositories/proficiency.js'
+import { createDetailRepository } from '../../shared/repositories/detail.js'
+import { createStartingEquipmentRepository } from '../../shared/repositories/starting_equipment.js'
 import { hydrateSubjectStatus } from '../status.js'
 
 export interface BackgroundRepositoryReadOptions extends RepositoryFindAllOptions {
@@ -88,19 +92,7 @@ async function hydrateBackgroundRows(
     return new Map()
   }
 
-  const [
-    detailRepositoryModule,
-    featureRepositoryModule,
-    proficiencyRepositoryModule,
-    startingEquipmentRepositoryModule,
-    detailLinks,
-    featureLinks,
-    proficiencyLinks
-  ] = await Promise.all([
-    import('../../shared/repositories/detail.js'),
-    import('../../features/repositories/feature.js'),
-    import('../../grants/repositories/proficiency.js'),
-    import('../../shared/repositories/starting_equipment.js'),
+  const [detailLinks, featureLinks, proficiencyLinks] = await Promise.all([
     db
       .selectFrom('background_details')
       .select(['background_id', 'detail_id', 'sort_order'])
@@ -120,10 +112,9 @@ async function hydrateBackgroundRows(
       .orderBy('sort_order')
       .execute()
   ])
-  const detailRepository = detailRepositoryModule.createDetailRepository(db)
-  const proficiencyRepository = proficiencyRepositoryModule.createProficiencyGrantRepository(db)
-  const startingEquipmentRepository =
-    startingEquipmentRepositoryModule.createStartingEquipmentRepository(db)
+  const detailRepository = createDetailRepository(db)
+  const proficiencyRepository = createProficiencyGrantRepository(db)
+  const startingEquipmentRepository = createStartingEquipmentRepository(db)
   const startingEquipmentIds = rows.flatMap((row) =>
     row.starting_equipment_id ? [row.starting_equipment_id] : []
   )
@@ -133,7 +124,7 @@ async function hydrateBackgroundRows(
   const featureLinksByBackground = groupBackgroundRows(selectedFeatureLinks)
   const [detailsById, featuresById, proficienciesById, startingEquipmentById] = await Promise.all([
     detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
-    featureRepositoryModule.createFeatureRepository(db).findByIds(
+    createFeatureRepository(db).findByIds(
       selectedFeatureLinks.map((link) => link.feature_id),
       { includeEffects: options.includeFeatureEffects }
     ),

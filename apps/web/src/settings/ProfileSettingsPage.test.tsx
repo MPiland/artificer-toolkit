@@ -42,7 +42,9 @@ describe('ProfileSettingsPage', () => {
     })
     renderWithAppProviders(<ProfileSettingsPage userId='user-1' />)
 
-    expect(await screen.findByRole('textbox', { name: /^username/i })).not.toHaveAttribute('readonly')
+    expect(await screen.findByRole('textbox', { name: /^username/i })).not.toHaveAttribute(
+      'readonly'
+    )
     expect(screen.queryByRole('textbox', { name: /^name/i })).not.toBeInTheDocument()
     fireEvent.change(screen.getByRole('textbox', { name: /^bio/i }), {
       target: { value: 'Builds worlds.' }

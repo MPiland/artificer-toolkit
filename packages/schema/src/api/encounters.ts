@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { characterSheetCommandInputDtoSchema } from './characters.js'
 import { featureDtoSchema } from '../features/feature.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { AUTHORED_LIMITS } from '../shared/authoredLimits.js'
 import { rollRecordDtoSchema } from './rolls.js'
 
 const uuidSchema = z.string().uuid()
@@ -185,7 +186,10 @@ export const encounterTemplateListDtoSchema = z.array(encounterTemplateDtoSchema
 export const createEncounterTemplateInputDtoSchema = z.strictObject({
   campaignId: uuidSchema,
   name: z.string().trim().min(1).max(160),
-  enemies: z.array(encounterTemplateEnemyInputDtoSchema).min(1),
+  enemies: z
+    .array(encounterTemplateEnemyInputDtoSchema)
+    .min(1)
+    .max(AUTHORED_LIMITS.nestedCollectionItems),
   commandId: uuidSchema
 })
 export const addEncounterTemplateInputDtoSchema = z.strictObject({

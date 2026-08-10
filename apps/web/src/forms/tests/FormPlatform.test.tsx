@@ -872,7 +872,7 @@ describe('authoring form platform', () => {
     expect(screen.getByText('Notes').closest(`.${wideField}`)).not.toBeNull()
   })
 
-  it('shows the form title and save status in the compact header', () => {
+  it('shows the canonical fallback title and save status in the compact header', () => {
     const { rerender } = render(
       <TestRouterProvider>
         <TestForm />
@@ -880,7 +880,7 @@ describe('authoring form platform', () => {
     )
 
     expect(screen.queryByLabelText(/current status:/i)).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 1, name: 'Test Form' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Untitled Item' })).toBeInTheDocument()
     expect(screen.getAllByText('Saved').length).toBeGreaterThan(0)
 
     rerender(

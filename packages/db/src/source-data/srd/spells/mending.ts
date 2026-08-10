@@ -67,9 +67,10 @@ export const mending: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.MENDING, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Resolve the Break or Tear",
+                label: 'Resolve the Break or Tear',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "This spell repairs a single break or tear in an object you touch, such as a broken chain link, two halves of a broken key, a torn cloak, or a leaking wineskin."
+                instructions:
+                  'This spell repairs a single break or tear in an object you touch, such as a broken chain link, two halves of a broken key, a torn cloak, or a leaking wineskin.'
               }
             ]
           }

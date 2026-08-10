@@ -8,19 +8,64 @@ import {
   semanticTextTones
 } from '@artificer-toolkit/design-system'
 import { z } from 'zod'
+import { AUTHORED_LIMITS } from '../shared/authoredLimits.js'
 
 export const nodeRuntimePathSegmentDtoSchema = z.union([z.string(), z.number().int().nonnegative()])
 export const nodeRuntimePathDtoSchema = z.array(nodeRuntimePathSegmentDtoSchema).readonly()
 
 export const nodeRuntimeValuesDtoSchema = z.record(z.string(), z.unknown())
 
-export const nodeRuntimeContextDtoSchema = z.strictObject({
-  mapId: z.string().min(1),
-  values: nodeRuntimeValuesDtoSchema.default({}),
-  parentValues: nodeRuntimeValuesDtoSchema.optional(),
-  ancestors: z.array(nodeRuntimeValuesDtoSchema).optional(),
-  systemId: z.string().min(1)
-})
+export const nodeRuntimeContextDtoSchema = z
+  .strictObject({
+    mapId: z.string().min(1),
+    values: nodeRuntimeValuesDtoSchema.default({}),
+    parentValues: nodeRuntimeValuesDtoSchema.optional(),
+    ancestors: z
+      .array(nodeRuntimeValuesDtoSchema)
+      .max(AUTHORED_LIMITS.facetNestingDepth)
+      .optional(),
+    systemId: z.string().min(1)
+  })
+  .superRefine((request, context) => {
+    const roots = [request.values, request.parentValues, ...(request.ancestors ?? [])]
+    for (const root of roots) {
+      if (root && exceedsNodeRuntimeStructureLimits(root)) {
+        context.addIssue({
+          code: 'custom',
+          message: `Node runtime values may nest at most ${AUTHORED_LIMITS.facetNestingDepth} levels and arrays may contain at most ${AUTHORED_LIMITS.referenceCollectionItems} items.`
+        })
+        return
+      }
+    }
+
+    if (
+      new TextEncoder().encode(JSON.stringify(request)).byteLength >
+      AUTHORED_LIMITS.mutationPayloadBytes
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: `Node runtime requests must be at most ${AUTHORED_LIMITS.mutationPayloadBytes} bytes.`
+      })
+    }
+  })
+
+function exceedsNodeRuntimeStructureLimits(value: unknown): boolean {
+  const pending: Array<{ depth: number; value: unknown }> = [{ depth: 0, value }]
+  while (pending.length > 0) {
+    const current = pending.pop()!
+    if (current.depth > AUTHORED_LIMITS.facetNestingDepth) return true
+    if (Array.isArray(current.value)) {
+      if (current.value.length > AUTHORED_LIMITS.referenceCollectionItems) return true
+      for (const child of current.value) pending.push({ depth: current.depth + 1, value: child })
+      continue
+    }
+    if (typeof current.value !== 'object' || current.value === null) continue
+    for (const child of Object.values(current.value)) {
+      pending.push({ depth: current.depth + 1, value: child })
+    }
+  }
+  return false
+}
 
 export const nodeRuntimeResolveRequestDtoSchema = nodeRuntimeContextDtoSchema
 export const nodeRuntimeNormalizeValuesRequestDtoSchema = nodeRuntimeContextDtoSchema

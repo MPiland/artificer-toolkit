@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  IMPORT_MAX_PORTABLE_DEPTH,
+  IMPORT_MAX_PORTABLE_NODES,
+  IMPORT_MAX_PORTABLE_REFERENCES,
   IMPORT_MAX_ENTRY_BYTES,
   IMPORT_MAX_CUSTOM_CONTENT_CHOICES,
   artificerPortableContentDtoSchema,
@@ -149,5 +152,81 @@ describe('import contracts', () => {
         ]
       })
     ).toMatchObject({ format: 'artificer-content', version: 1 })
+  })
+
+  it('caps portable references and nested array fanout', () => {
+    const reference = { kind: 'CLASS' as const, label: 'Wizard' }
+    expect(
+      artificerPortableContentDtoSchema.safeParse({
+        format: 'artificer-content',
+        version: 1,
+        item: { kind: 'SPELL', data: {} },
+        references: Array.from({ length: IMPORT_MAX_PORTABLE_REFERENCES }, () => reference)
+      }).success
+    ).toBe(true)
+    expect(
+      artificerPortableContentDtoSchema.safeParse({
+        format: 'artificer-content',
+        version: 1,
+        item: { kind: 'SPELL', data: { values: Array(IMPORT_MAX_PORTABLE_REFERENCES + 1) } },
+        references: []
+      }).success
+    ).toBe(false)
+    expect(
+      artificerPortableContentDtoSchema.safeParse({
+        format: 'artificer-content',
+        version: 1,
+        item: { kind: 'SPELL', data: {} },
+        references: Array.from({ length: IMPORT_MAX_PORTABLE_REFERENCES + 1 }, () => reference)
+      }).success
+    ).toBe(false)
+  })
+
+  it('caps portable data depth without recursive validation', () => {
+    const nested = (depth: number): Record<string, unknown> => {
+      let value: unknown = 'leaf'
+      for (let index = 0; index < depth; index += 1) value = { child: value }
+      return value as Record<string, unknown>
+    }
+    const base = (data: Record<string, unknown>) => ({
+      format: 'artificer-content' as const,
+      version: 1 as const,
+      item: { kind: 'SPELL' as const, data },
+      references: []
+    })
+
+    expect(
+      artificerPortableContentDtoSchema.safeParse(base(nested(IMPORT_MAX_PORTABLE_DEPTH))).success
+    ).toBe(true)
+    expect(
+      artificerPortableContentDtoSchema.safeParse(base(nested(IMPORT_MAX_PORTABLE_DEPTH + 1)))
+        .success
+    ).toBe(false)
+  })
+
+  it('caps total portable data nodes', () => {
+    const data = Object.fromEntries(
+      Array.from({ length: IMPORT_MAX_PORTABLE_NODES - 1 }, (_, index) => [`key-${index}`, index])
+    )
+    const overLimit = Object.fromEntries(
+      Array.from({ length: IMPORT_MAX_PORTABLE_NODES }, (_, index) => [`key-${index}`, index])
+    )
+
+    expect(
+      artificerPortableContentDtoSchema.safeParse({
+        format: 'artificer-content',
+        version: 1,
+        item: { kind: 'SPELL', data },
+        references: []
+      }).success
+    ).toBe(true)
+    expect(
+      artificerPortableContentDtoSchema.safeParse({
+        format: 'artificer-content',
+        version: 1,
+        item: { kind: 'SPELL', data: overLimit },
+        references: []
+      }).success
+    ).toBe(false)
   })
 })

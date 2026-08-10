@@ -66,9 +66,10 @@ export const awaken: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.AWAKEN, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Determine Post-Charm Attitude",
+                label: 'Determine Post-Charm Attitude',
                 reasonCode: 'NARRATIVE_JUDGMENT' as const,
-                instructions: "When the charmed condition ends, the awakened creature chooses whether to remain friendly to you, based on how you treated it while it was charmed."
+                instructions:
+                  'When the charmed condition ends, the awakened creature chooses whether to remain friendly to you, based on how you treated it while it was charmed.'
               }
             ]
           }

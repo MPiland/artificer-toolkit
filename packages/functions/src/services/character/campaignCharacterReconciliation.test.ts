@@ -31,10 +31,12 @@ vi.mock('./builderService.js', async (importOriginal) => {
   return {
     ...actual,
     loadCharacterBuilderContext: mocks.loadContext,
-    reconcileCharacterBuilderCharacter: mocks.reconcile,
     resolveCharacterBuilder: mocks.resolve
   }
 })
+vi.mock('./builderReconciliation.js', () => ({
+  reconcileCharacterBuilderCharacter: mocks.reconcile
+}))
 
 const { createEmptyCharacterAuthored } = await import('./builderService.js')
 const { reconcileCharacterAfterCampaignContentRemoval } =

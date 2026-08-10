@@ -5,7 +5,8 @@ export const studdedLeatherArmor: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(40),
   label: 'Studded Leather Armor',
-  description: "Made from tough but flexible leather, studded leather is reinforced with close-set rivets or spikes.",
+  description:
+    'Made from tough but flexible leather, studded leather is reinforced with close-set rivets or spikes.',
   category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.LIGHT],
   armorClass: 12,
