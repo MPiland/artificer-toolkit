@@ -95,7 +95,7 @@ export const ballBearingsBagOf1000: EquipmentAuthored = {
                                 }
                               ]
                             }
-                          },
+                          }
                         ]
                       }
                     ]

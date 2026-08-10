@@ -157,7 +157,6 @@ describe('Character Sheet inspector', () => {
         submitCommand={vi.fn().mockResolvedValue(false)}
         target={{ kind: 'ABILITY', ability: 'STRENGTH' }}
         onClose={vi.fn()}
-        onOpenBuilder={vi.fn()}
         onTargetChange={vi.fn()}
       />
     )

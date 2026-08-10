@@ -77,9 +77,10 @@ export const minorIllusion: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.MINOR_ILLUSION, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Define the Sound or Image",
+                label: 'Define the Sound or Image',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "You create a sound or an image of an object within range that lasts for the duration."
+                instructions:
+                  'You create a sound or an image of an object within range that lasts for the duration.'
               }
             ]
           }

@@ -12,7 +12,8 @@ import { getCampaignEncounters, getEncounterTemplates } from '#app/data/encounte
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import { CampaignEncounterWorkspace } from './CampaignEncounterWorkspace'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
+import * as sessionsStyles from '../campaignSessions.css'
 
 export function CampaignSessionEncounters({
   campaign,
@@ -69,7 +70,7 @@ export function CampaignSessionEncounters({
 
   return (
     <section
-      className={styles.sessionEncounterPanel}
+      className={sessionsStyles.sessionEncounterPanel}
       aria-labelledby={`session-${mode.toLowerCase()}-encounters`}
     >
       <div>
@@ -89,8 +90,8 @@ export function CampaignSessionEncounters({
           <Group align='end' justify='space-between' wrap='wrap'>
             {ordered.length > 1 ? (
               <Select
-                className={styles.sessionEncounterSelect}
-                classNames={{ input: styles.input }}
+                className={sessionsStyles.sessionEncounterSelect}
+                classNames={{ input: sharedStyles.input }}
                 data={ordered.map((encounter) => ({ label: encounter.name, value: encounter.id }))}
                 label='Encounter'
                 value={selected.id}
@@ -116,7 +117,7 @@ export function CampaignSessionEncounters({
       ) : null}
       {campaign.status === 'ACTIVE' ? (
         <div
-          className={styles.sessionEncounterAdder}
+          className={sessionsStyles.sessionEncounterAdder}
           data-open={encounterAdderOpen || undefined}
           id={`session-${mode.toLowerCase()}-encounter-adder`}
         >
@@ -124,8 +125,8 @@ export function CampaignSessionEncounters({
             <>
               <Group align='end' wrap='wrap'>
                 <Select
-                  className={styles.sessionEncounterSelect}
-                  classNames={{ input: styles.input }}
+                  className={sessionsStyles.sessionEncounterSelect}
+                  classNames={{ input: sharedStyles.input }}
                   data={(templates.data ?? []).map((template) => ({
                     label: `${template.name} · ${template.enemies.length} ${template.enemies.length === 1 ? 'enemy' : 'enemies'}`,
                     value: template.id
@@ -155,10 +156,7 @@ export function CampaignSessionEncounters({
                 >
                   Build new
                 </Button>
-                <Button
-                  variant='subtle'
-                  onClick={() => setEncounterAdderOpen(false)}
-                >
+                <Button variant='subtle' onClick={() => setEncounterAdderOpen(false)}>
                   Cancel
                 </Button>
               </Group>

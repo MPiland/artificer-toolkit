@@ -204,7 +204,7 @@ async function hydrateSenseGrantById(db: DBLike, id: string): Promise<SenseGrant
       .where('sense_grant_id', '=', id)
       .orderBy('sort_order')
       .execute(),
-      root.charge_id ? hydrateChargeById(db, root.charge_id, true) : Promise.resolve(null),
+    root.charge_id ? hydrateChargeById(db, root.charge_id, true) : Promise.resolve(null),
     root.restriction_id ? hydrateFacetById(db, root.restriction_id) : Promise.resolve(null)
   ])
   const scalingLevelIds = scalingLevels.map((level) => level.id)

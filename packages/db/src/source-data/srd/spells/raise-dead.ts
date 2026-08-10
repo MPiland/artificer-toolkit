@@ -73,9 +73,10 @@ export const raiseDead: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Resolve the Soul",
+                label: 'Resolve the Soul',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "If the creature\u0027s soul is both willing and at liberty to rejoin the body, the creature returns to life with 1 hit point."
+                instructions:
+                  'If the creature\u0027s soul is both willing and at liberty to rejoin the body, the creature returns to life with 1 hit point.'
               }
             ]
           }

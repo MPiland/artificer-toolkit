@@ -19,8 +19,11 @@ vi.mock('../dice/dice.utils', async (importOriginal) => ({
   supportsWebGL: () => true
 }))
 
+vi.mock('../dice/diceModelPreload', () => ({
+  preloadDiceModels: diceCanvasMocks.preloadDiceModels
+}))
+
 vi.mock('../dice/DiceCanvas', () => ({
-  preloadDiceModels: diceCanvasMocks.preloadDiceModels,
   default: ({ roll }: { roll?: { id: string } }) => (
     <div data-testid='dice-canvas'>{roll?.id ?? 'idle'}</div>
   )

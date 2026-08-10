@@ -22,7 +22,7 @@ import {
   createEmptyStartingEquipment,
   getStartingEquipmentItems,
   upsertStartingEquipmentItem
-} from '#forms/rendering/authoringNodeDefaults'
+} from '#forms/rendering/startingEquipmentDefaults'
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import { createEmptySpellcasting } from '../classAuthoring.utils'

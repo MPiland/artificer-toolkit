@@ -112,9 +112,7 @@ export function GuidedStartChoice({
         >
           <span className={styles.choiceCopy}>
             <Group gap='xs' wrap='wrap'>
-              <span className={styles.choiceTitle}>
-                Use an existing {nouns.singular}
-              </span>
+              <span className={styles.choiceTitle}>Use an existing {nouns.singular}</span>
               {domain === 'class' ? <Badge size='xs'>Recommended</Badge> : null}
             </Group>
             <span className={styles.choiceDescription}>
@@ -203,15 +201,19 @@ function CopySourceSummary({
   )
 }
 
-function formatMetadata(
-  domain: AuthoredFormDomain,
-  source: GuidedCopySource
-): string[] {
+function formatMetadata(domain: AuthoredFormDomain, source: GuidedCopySource): string[] {
   if (domain === 'spell') {
-    const level = source.level === 0 ? 'Cantrip' : source.level ? `Level ${source.level}` : undefined
+    const level =
+      source.level === 0 ? 'Cantrip' : source.level ? `Level ${source.level}` : undefined
     return [level, source.castingTime].filter((value): value is string => Boolean(value))
   }
-  if (domain === 'class' || domain === 'race' || domain === 'equipment' || domain === 'creature' || domain === 'vehicle') {
+  if (
+    domain === 'class' ||
+    domain === 'race' ||
+    domain === 'equipment' ||
+    domain === 'creature' ||
+    domain === 'vehicle'
+  ) {
     return source.category ? [humanizeCode(source.category)] : []
   }
   return []

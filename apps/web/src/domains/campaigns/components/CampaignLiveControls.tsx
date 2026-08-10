@@ -17,7 +17,8 @@ import { IconClockCog, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-rea
 import { getCampaignClock } from '#app/data/campaigns/queries'
 import { api, type CampaignDetailDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
+import * as liveStyles from './campaignLive.css'
 
 export function CampaignLiveControls({ campaign }: { campaign: CampaignDetailDto }) {
   const queryClient = useQueryClient()
@@ -104,8 +105,8 @@ export function CampaignLiveControls({ campaign }: { campaign: CampaignDetailDto
 
   const error = sync.error ?? command.error
   return (
-    <div className={styles.clockControl} aria-label='World time'>
-      <div className={styles.clockSummary}>
+    <div className={liveStyles.clockControl} aria-label='World time'>
+      <div className={liveStyles.clockSummary}>
         <Text c='dimmed' fw={700} size='xs'>
           World time
         </Text>
@@ -128,7 +129,7 @@ export function CampaignLiveControls({ campaign }: { campaign: CampaignDetailDto
         ) : null}
       </div>
       {editable ? (
-        <Group className={styles.clockActions} gap={4} wrap='nowrap'>
+        <Group className={liveStyles.clockActions} gap={4} wrap='nowrap'>
           {clock.data ? (
             <Tooltip label={clock.data.running ? 'Pause world time' : 'Start world time'}>
               <ActionIcon
@@ -170,32 +171,32 @@ export function CampaignLiveControls({ campaign }: { campaign: CampaignDetailDto
               )}
             </Popover.Target>
             <Popover.Dropdown>
-              <Stack className={styles.clockSetupPopover} gap='sm'>
+              <Stack className={liveStyles.clockSetupPopover} gap='sm'>
                 <Text fw={700}>World time</Text>
-                <div className={styles.clockSetupGrid}>
+                <div className={liveStyles.clockSetupGrid}>
                   <NumberInput
-                    classNames={{ input: styles.input }}
+                    classNames={{ input: sharedStyles.input }}
                     label='Day'
                     min={1}
                     value={day}
                     onChange={(value) => setDay(Number(value) || 1)}
                   />
                   <TextInput
-                    classNames={{ input: styles.input }}
+                    classNames={{ input: sharedStyles.input }}
                     label='Time'
                     type='time'
                     value={time}
                     onChange={(event) => setTime(event.currentTarget.value)}
                   />
                   <TextInput
-                    classNames={{ input: styles.input }}
+                    classNames={{ input: sharedStyles.input }}
                     label='Dawn'
                     type='time'
                     value={dawn}
                     onChange={(event) => setDawn(event.currentTarget.value)}
                   />
                   <TextInput
-                    classNames={{ input: styles.input }}
+                    classNames={{ input: sharedStyles.input }}
                     label='Dusk'
                     type='time'
                     value={dusk}
@@ -211,14 +212,14 @@ export function CampaignLiveControls({ campaign }: { campaign: CampaignDetailDto
                       Correct the clock
                     </Text>
                     <NumberInput
-                      classNames={{ input: styles.input }}
+                      classNames={{ input: sharedStyles.input }}
                       label='Rewind minutes'
                       min={1}
                       value={rewindMinutes}
                       onChange={(value) => setRewindMinutes(Number(value) || 1)}
                     />
                     <TextInput
-                      classNames={{ input: styles.input }}
+                      classNames={{ input: sharedStyles.input }}
                       label='Correction reason'
                       value={rewindReason}
                       onChange={(event) => setRewindReason(event.currentTarget.value)}
@@ -244,7 +245,7 @@ export function CampaignLiveControls({ campaign }: { campaign: CampaignDetailDto
         </Group>
       ) : null}
       {error ? (
-        <Alert className={styles.clockError} color='red'>
+        <Alert className={liveStyles.clockError} color='red'>
           {error.message}
         </Alert>
       ) : null}

@@ -63,9 +63,10 @@ export const command: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.COMMAND, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Resolve Another Command",
+                label: 'Resolve Another Command',
                 reasonCode: 'NARRATIVE_JUDGMENT' as const,
-                instructions: "You might issue a command other than one described here. If you do so, the GM determines how the target behaves."
+                instructions:
+                  'You might issue a command other than one described here. If you do so, the GM determines how the target behaves.'
               }
             ]
           }

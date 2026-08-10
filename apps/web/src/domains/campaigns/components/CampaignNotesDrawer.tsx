@@ -29,9 +29,9 @@ import {
 import { useCampaignRealtime } from '#app/data/campaigns/useCampaignRealtime'
 import { queryKeys } from '#app/lib/queryKeys'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
-import { renderSanitizedRichHtml } from '#app/ui/primitives/renderSanitizedRichHtml'
+import { renderSanitizedRichHtml } from '#app/lib/richText'
 import { SessionSectionEditor } from './CampaignSessionNotes'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
 
 export function CampaignNotesDrawer({
   campaignId,
@@ -61,22 +61,11 @@ export function CampaignNotesDrawer({
         {campaign.isPending ? <Loader size='sm' /> : null}
         {campaign.isError ? <Alert color='red'>Campaign notes could not be loaded.</Alert> : null}
         {campaign.data ? (
-          <LiveCampaignNotes campaign={campaign.data} currentUserId={currentUserId} />
+          <CampaignNotesContent campaign={campaign.data} currentUserId={currentUserId} />
         ) : null}
       </Drawer>
     </>
   )
-}
-
-function LiveCampaignNotes({
-  campaign,
-  currentUserId
-}: {
-  campaign: CampaignDetailDto
-  currentUserId: string
-}) {
-  useCampaignRealtime(campaign, currentUserId)
-  return <CampaignNotesContent campaign={campaign} currentUserId={currentUserId} />
 }
 
 function CampaignNotesContent({
@@ -86,6 +75,7 @@ function CampaignNotesContent({
   campaign: CampaignDetailDto
   currentUserId: string
 }) {
+  useCampaignRealtime(campaign, currentUserId)
   const notebook = useQuery(getCampaignNotebook(campaign.id))
   const sessions = useQuery(getCampaignSessions(campaign.id))
   const [view, setView] = useState<'campaign' | 'sessions'>('campaign')
@@ -154,7 +144,7 @@ function CampaignNotesContent({
             <Badge variant='light'>Collaborative</Badge>
           </Group>
           <Select
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             data={(sessions.data ?? []).map((session) => ({
               value: session.id,
               label: session.title
@@ -247,7 +237,7 @@ function SessionSectionCreator({
 
   return (
     <form
-      className={styles.form}
+      className={sharedStyles.form}
       onSubmit={(event: SubmitEvent) => {
         event.preventDefault()
         create.mutate()
@@ -255,7 +245,7 @@ function SessionSectionCreator({
     >
       <Text fw={700}>Add a session section</Text>
       <TextInput
-        classNames={{ input: styles.input }}
+        classNames={{ input: sharedStyles.input }}
         label='Section title'
         required
         value={title}

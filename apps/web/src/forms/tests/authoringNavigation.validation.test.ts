@@ -241,9 +241,9 @@ describe('authoring group row labels', () => {
     const node = createArrayNode('feature', 'Features')
 
     expect(getCollectionRowLabel(node, { label: 'Breath Weapon' }, 0)).toBe('Breath Weapon')
-    expect(
-      getCollectionRowLabel(node, { label: 'Extra Attack', availableAtLevel: 5 }, 0)
-    ).toBe('Level 5 · Extra Attack')
+    expect(getCollectionRowLabel(node, { label: 'Extra Attack', availableAtLevel: 5 }, 0)).toBe(
+      'Level 5 · Extra Attack'
+    )
     expect(getCollectionRowLabel(node, {}, 1)).toBe('Feature 2')
   })
 

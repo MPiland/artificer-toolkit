@@ -68,7 +68,8 @@ export function CharacterSheetRollPresentation({
     (!roll || rollFitsCanvas)
   const canAnimate =
     preferences.animate3d && !reducedMotion && !rendererFailed && webGLAvailable === true
-  const animatedRoll = canAnimate && rollFitsCanvas && roll?.id !== revealedRollId ? roll : undefined
+  const animatedRoll =
+    canAnimate && rollFitsCanvas && roll?.id !== revealedRollId ? roll : undefined
   const waitingForWebGL = needsWebGL && webGLAvailable == null
   const revealRoll = useCallback(
     (rollId: string) => {

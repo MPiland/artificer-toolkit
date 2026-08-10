@@ -96,6 +96,54 @@ describe('campaign collaboration repository', () => {
     )
   })
 
+  it('uses the room selected by entry lookups without querying the conversation again', async () => {
+    let selectCount = 0
+    const entry = {
+      id: 'entry-1',
+      campaign_id: 'campaign-1',
+      conversation_id: 'conversation-1',
+      kind: 'CHAT',
+      author_user_id: 'user-1',
+      author_character_id: null,
+      mode: 'OOC',
+      body: 'Hello',
+      roll_payload: null,
+      username_snapshot: 'User',
+      character_name_snapshot: null,
+      client_nonce: 'nonce-1',
+      edited_at: null,
+      unsent_at: null,
+      created_at: '2026-08-06T12:00:00.000Z',
+      room: 'PARTY'
+    }
+    const builder = {
+      innerJoin: () => builder,
+      selectAll: () => builder,
+      select: () => builder,
+      where: () => builder,
+      executeTakeFirst: async () => entry
+    }
+    const db = {
+      selectFrom: () => {
+        selectCount += 1
+        return builder
+      }
+    } as unknown as DBLike
+    const repository = createCampaignCollaborationRepository(db)
+
+    await expect(
+      repository.findIdempotentRoomEntry({
+        campaignId: 'campaign-1',
+        authorUserId: 'user-1',
+        clientNonce: 'nonce-1'
+      })
+    ).resolves.toMatchObject({ room: 'PARTY' })
+    await expect(repository.findRoomEntry('campaign-1', 'entry-1')).resolves.toMatchObject({
+      room: 'PARTY'
+    })
+    expect(selectCount).toBe(2)
+  })
+
   it('returns null when an expected-version update loses the race', async () => {
     const whereCalls: unknown[][] = []
     let updatedValues: unknown

@@ -66,9 +66,10 @@ export const flamingSphere: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.FLAMING_SPHERE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Resolve Environmental Ignition",
+                label: 'Resolve Environmental Ignition',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "The sphere ignites flammable objects not being worn or carried, and it sheds bright light in a 20-foot radius and dim light for an additional 20 feet."
+                instructions:
+                  'The sphere ignites flammable objects not being worn or carried, and it sheds bright light in a 20-foot radius and dim light for an additional 20 feet.'
               }
             ]
           }

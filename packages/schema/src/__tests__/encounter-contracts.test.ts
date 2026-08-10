@@ -7,6 +7,7 @@ import {
   encounterProjectionListDtoSchema,
   encounterPlayerProjectionDtoSchema
 } from '../api/encounters.js'
+import { AUTHORED_LIMITS } from '../shared/authoredLimits.js'
 
 const encounterId = '00000000-0000-4000-8000-000000000001'
 const commandId = '00000000-0000-4000-8000-000000000002'
@@ -26,6 +27,20 @@ describe('encounter contracts', () => {
         campaignId: encounterId,
         commandId,
         sessionId: encounterId
+      })
+    ).toThrow()
+  })
+
+  it('caps the number of enemies in a saved template', () => {
+    expect(() =>
+      createEncounterTemplateInputDtoSchema.parse({
+        campaignId: encounterId,
+        commandId,
+        name: 'Unbounded horde',
+        enemies: Array.from({ length: AUTHORED_LIMITS.nestedCollectionItems + 1 }, () => ({
+          kind: 'CREATURE',
+          sourceId: encounterId
+        }))
       })
     ).toThrow()
   })

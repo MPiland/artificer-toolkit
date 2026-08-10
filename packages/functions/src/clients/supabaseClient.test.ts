@@ -20,10 +20,8 @@ describe('createSupabaseClient', () => {
   it('forwards the request IP for Supabase Auth rate limiting', () => {
     createSupabaseClient('203.0.113.10')
 
-    expect(createClient).toHaveBeenCalledWith(
-      'https://project.supabase.co',
-      'sb_secret_test',
-      { global: { headers: { 'sb-forwarded-for': '203.0.113.10' } } }
-    )
+    expect(createClient).toHaveBeenCalledWith('https://project.supabase.co', 'sb_secret_test', {
+      global: { headers: { 'sb-forwarded-for': '203.0.113.10' } }
+    })
   })
 })

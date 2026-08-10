@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/tanstackstart-react'
 import { isSentryConfigured } from './sentry.config'
+import { redactSentryEvent } from './sentryPrivacy'
 
 interface SentryEnvironment {
   dsn?: string
@@ -21,6 +22,8 @@ export function initializeClientSentry(environment = getSentryEnvironment()): vo
   }
 
   Sentry.init({
+    beforeSend: redactSentryEvent,
+    beforeSendTransaction: redactSentryEvent,
     dataCollection: {
       httpBodies: [],
       userInfo: false

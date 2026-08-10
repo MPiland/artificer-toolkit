@@ -1,7 +1,10 @@
 import { z } from 'zod'
 
 import { measurementUnitCodeSchema } from '../shared/enums.js'
-import { authoredIdentifierSchema, authoredNonnegativeNumberSchema } from '../shared/authoredLimits.js'
+import {
+  authoredIdentifierSchema,
+  authoredNonnegativeNumberSchema
+} from '../shared/authoredLimits.js'
 
 const distanceDtoSchema = z.object({
   amount: authoredNonnegativeNumberSchema,

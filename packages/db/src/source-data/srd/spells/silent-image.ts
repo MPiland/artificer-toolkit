@@ -77,9 +77,10 @@ export const silentImage: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.SILENT_IMAGE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Define the Image",
+                label: 'Define the Image',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "You create the image of an object, a creature, or some other visible phenomenon that is no larger than a 15-foot cube."
+                instructions:
+                  'You create the image of an object, a creature, or some other visible phenomenon that is no larger than a 15-foot cube.'
               }
             ]
           }

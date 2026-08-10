@@ -27,7 +27,7 @@ export const shieldOfFaith: SpellAuthored = {
   id: SPELL_IDS.SHIELD_OF_FAITH,
   label: 'Shield of Faith',
   description:
-    "<p>A shimmering field appears and surrounds a creature of your choice within range, granting it a +2 bonus to AC for the duration.</p>",
+    '<p>A shimmering field appears and surrounds a creature of your choice within range, granting it a +2 bonus to AC for the duration.</p>',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 1,
   classIds: [CLASS_IDS.CLERIC, CLASS_IDS.PALADIN],

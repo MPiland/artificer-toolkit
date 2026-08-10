@@ -62,9 +62,10 @@ export const findTraps: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.FIND_TRAPS, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Reveal Nearby Traps",
+                label: 'Reveal Nearby Traps',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "You sense the presence of any trap within range that is within line of sight."
+                instructions:
+                  'You sense the presence of any trap within range that is within line of sight.'
               }
             ]
           }

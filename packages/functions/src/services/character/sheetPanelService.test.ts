@@ -4,11 +4,18 @@ import type { CharacterSheetAdjustment } from '@artificer-toolkit/shared/charact
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import type { CharacterBuilderResolution } from './builderService.js'
-import { buildCharacterSheetPanel, getAffectedCharacterSheetPanelTargets } from './sheetPanelService.js'
+import {
+  buildCharacterSheetPanel,
+  getAffectedCharacterSheetPanelTargets
+} from './sheetPanelService.js'
 import { characterSheetAdjustmentMatchesPanelTarget } from './sheetPanelTarget.js'
 
-vi.mock('./sheetService.js', () => ({
-  resolveCharacterSheetEngine: () => ({ spellMechanics: [] }),
+vi.mock('./characterEngine.js', () => ({
+  resolveCharacterSheetEngine: () => ({
+    spellMechanics: [],
+    itemMechanics: [],
+    equipmentFeatureChargeUses: []
+  }),
   resolveCharacterSheetSkillKey: () => undefined
 }))
 
@@ -110,6 +117,41 @@ describe('known spell panel projection', () => {
         })
       ])
     )
+  })
+})
+
+describe('campaign projection panel redaction', () => {
+  it('does not expose private item customization through an item panel', () => {
+    const panel = buildCharacterSheetPanel({
+      character: { id: '00000000-0000-4000-8000-000000000101' } as CharacterAuthored,
+      resolution: { registry: { equipment: [] } } as unknown as CharacterBuilderResolution,
+      sheet: {
+        inventory: {
+          items: [
+            {
+              id: '00000000-0000-4000-8000-000000000102',
+              equipmentId: '00000000-0000-4000-8000-000000000103',
+              label: 'Longsword',
+              equipmentLabel: 'Longsword',
+              quantity: 1,
+              equipped: false,
+              attuned: false,
+              requiresAttunement: false
+            }
+          ],
+          currencies: [],
+          containers: []
+        },
+        resources: { items: [] }
+      } as unknown as CharacterSheetResponseDto,
+      adjustments: [],
+      movementDisplayPreference: { mode: 'AUTO' },
+      target: { kind: 'ITEM', itemInstanceId: '00000000-0000-4000-8000-000000000102' },
+      editable: true
+    })
+
+    expect(panel).toMatchObject({ kind: 'ITEM', title: 'Longsword', displayName: 'Longsword' })
+    expect(JSON.stringify(panel)).not.toContain('PRIVATE-SENTINEL')
   })
 })
 

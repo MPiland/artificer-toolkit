@@ -5,7 +5,7 @@ import type {
   CharacterBuilderFeatureChoiceViewDto,
   CharacterBuilderGrantSummaryItemDto
 } from '@artificer-toolkit/schema/api/characters'
-import { renderSanitizedRichHtml } from '#ui/primitives/renderSanitizedRichHtml'
+import { renderSanitizedRichHtml } from '#lib/richText'
 import { AppMultiSelect, AppSelect } from '#ui/primitives/Select'
 import type { CharacterFormValues } from '../core/characterBuilder.types'
 import { choiceOptions } from './choiceOptions'

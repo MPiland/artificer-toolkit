@@ -91,7 +91,12 @@ export const browserAuthClient: AuthClient = {
         ? { ok: false, message: 'Check your email or username and password, then try again.' }
         : { ok: true, session: data.session ?? null }
     } catch (error) {
-      if (typeof error === 'object' && error !== null && 'status' in error && error.status === 429) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'status' in error &&
+        error.status === 429
+      ) {
         return { ok: false, message: 'Too many sign-in attempts. Try again shortly.' }
       }
       return { ok: false, message: 'Check your email or username and password, then try again.' }

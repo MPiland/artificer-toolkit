@@ -67,9 +67,9 @@ export const sequester: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.SEQUESTER, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Define the Ending Condition",
+                label: 'Define the Ending Condition',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "You can set a condition for the spell to end early."
+                instructions: 'You can set a condition for the spell to end early.'
               }
             ]
           }

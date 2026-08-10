@@ -4,6 +4,12 @@ import {
   type CharacterCalculationContribution
 } from '../../character/sheetCalculation.js'
 
+export function toCalculationOverride<T extends string | number>(
+  adjustment: { id: string; value: T } | undefined
+): CharacterCalculation<T>['override'] | undefined {
+  return adjustment ? { adjustmentId: adjustment.id, value: adjustment.value } : undefined
+}
+
 export function resolveNumericCalculation(
   base: number,
   contributions: readonly CharacterCalculationContribution<number>[] = [],

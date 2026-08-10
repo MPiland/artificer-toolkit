@@ -14,7 +14,7 @@ import type {
   CharacterSheetRollRequest
 } from '#domains/characters/sheet/dice/dice.types'
 import { CharacterSheetRollContext } from '#domains/characters/sheet/dice/rollContext'
-import * as styles from '../campaigns.css'
+import * as liveStyles from './campaignLive.css'
 
 export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
   const queryClient = useQueryClient()
@@ -71,7 +71,7 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
       executeRoll: async (request) => {
         try {
           if (preferences.animate3d && !reducedMotion) {
-            void import('#domains/characters/sheet/dice/DiceCanvas')
+            void import('#domains/characters/sheet/dice/diceModelPreload')
               .then(({ preloadDiceModels }) => preloadDiceModels(request.expression))
               .catch(() => undefined)
           }
@@ -101,7 +101,7 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
         roll={controller.presentedRoll}
         onRollRevealed={() => undefined}
       />
-      <CharacterSheetManualRoll className={styles.gmDiceButton} />
+      <CharacterSheetManualRoll className={liveStyles.gmDiceButton} />
     </CharacterSheetRollContext.Provider>
   )
 }

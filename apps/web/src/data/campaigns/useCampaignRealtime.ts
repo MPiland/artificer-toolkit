@@ -18,6 +18,7 @@ export function useCampaignRealtime(campaign: CampaignDetailDto, currentUserId: 
     if (!membership) return
     const client = getSupabaseBrowserClient()
     const scopes = [
+      { scope: 'USER' as const, conversationId: undefined, directUserId: undefined },
       ...(campaign.capabilities.readTableChat
         ? [{ scope: 'TABLE' as const, conversationId: undefined, directUserId: undefined }]
         : []),
@@ -53,7 +54,7 @@ export function useCampaignRealtime(campaign: CampaignDetailDto, currentUserId: 
 
           const { entity } = parsed.data
           if (entity === 'CHAT') {
-            if (scope !== 'OWNER') {
+            if (scope === 'TABLE' || scope === 'PARTY' || scope === 'DIRECT') {
               void queryClient.invalidateQueries({
                 queryKey: queryKeys.campaigns.chat(campaign.id, scope, directUserId)
               })

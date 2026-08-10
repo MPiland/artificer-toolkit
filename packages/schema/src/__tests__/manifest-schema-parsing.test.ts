@@ -1,0 +1,437 @@
+import { describe, expect, it } from 'vitest'
+
+import { effectDtoSchema } from '../effects/effect.js'
+import { spellAuthoredDtoSchema } from '../subjects/spell.js'
+
+type ParsedEffectForAssertions = {
+  invocation: {
+    kind?: string
+    triggerCode?: string
+    savingThrow?: unknown
+  }
+  paths: Array<{
+    pathCode?: string
+    options?: Array<Record<string, unknown>>
+    rows?: Array<Record<string, unknown>>
+    resultBlock?: {
+      outcomes?: Array<
+        Record<string, unknown> & {
+          bonuses?: Array<Record<string, unknown>>
+        }
+      >
+      lifecycle?: Record<string, unknown>
+    }
+  }>
+}
+
+function singleResultBlock(
+  id: string,
+  outcome: Record<string, unknown>,
+  extra: Record<string, unknown> = {}
+) {
+  return {
+    id,
+    resultKind: 'SINGLE',
+    outcomes: [outcome],
+    ...extra
+  }
+}
+
+function fixedPath(
+  id: string,
+  order: number,
+  pathCode: string,
+  resultBlock: Record<string, unknown>,
+  extra: Record<string, unknown> = {}
+) {
+  return {
+    id,
+    order,
+    pathCode,
+    groupType: 'SINGLE',
+    selectionKind: 'FIXED',
+    resultBlock,
+    ...extra
+  }
+}
+
+function exactRollTablePath(
+  id: string,
+  order: number,
+  pathCode: string,
+  rows: Record<string, unknown>[],
+  extra: Record<string, unknown> = {}
+) {
+  return {
+    id,
+    order,
+    pathCode,
+    groupType: 'SINGLE',
+    selectionKind: 'ROLL_TABLE',
+    rollTableKind: 'EXACT',
+    dieConfig: '1d4',
+    rows,
+    ...extra
+  }
+}
+
+describe('manifest schema parsing', () => {
+  it('parses manifest-owned nested behaviors when they use non-manifest outcomes', () => {
+    const parsed = spellAuthoredDtoSchema.parse({
+      kind: 'SPELL',
+      id: 'arcane-sword',
+      label: 'Arcane Sword',
+      description: 'You create a sword-shaped plane of force.',
+      castingTime: {
+        unit: 'ROUND',
+        amount: 1
+      },
+      level: 7,
+      classIds: ['wizard'],
+      magicSchoolId: 'evocation',
+      effects: [
+        {
+          id: 'arcane-sword-effect',
+          order: 1,
+          invocation: {
+            triggerCode: 'ACTIVATED',
+            activation: {
+              code: 'ACTION',
+              amount: 1
+            },
+            range: {
+              id: 'arcane-sword-range',
+              rangeKind: 'DISTANCE',
+              amount: 60,
+              unit: 'FEET'
+            }
+          },
+          paths: [
+            fixedPath(
+              'arcane-sword-path',
+              1,
+              'ON_USE',
+              singleResultBlock('arcane-sword-result', {
+                id: 'arcane-sword-manifest',
+                effectKind: 'MANIFEST',
+                manifestKind: 'WEAPON',
+                behaviors: [
+                  {
+                    id: 'arcane-sword-attack',
+                    order: 1,
+                    invocation: {
+                      triggerCode: 'SPELL_ATTACK',
+                      activation: {
+                        code: 'BONUS_ACTION',
+                        amount: 1
+                      },
+                      range: {
+                        id: 'arcane-sword-attack-range',
+                        rangeKind: 'DISTANCE',
+                        amount: 5,
+                        unit: 'FEET'
+                      }
+                    },
+                    paths: [
+                      fixedPath(
+                        'arcane-sword-hit',
+                        1,
+                        'ON_HIT',
+                        singleResultBlock('arcane-sword-hit-result', {
+                          id: 'arcane-sword-damage',
+                          effectKind: 'DAMAGE',
+                          damageTypeId: 'force',
+                          valueKind: 'DICE',
+                          scalingKind: 'NONE',
+                          diceConfig: '3d10'
+                        })
+                      )
+                    ]
+                  }
+                ]
+              })
+            )
+          ]
+        }
+      ],
+      userId: 'user-1',
+      systemId: 'system-1'
+    }) as {
+      effects?: Array<{
+        paths?: Array<{
+          resultBlock?: {
+            outcomes?: Array<{
+              behaviors?: Array<{
+                paths?: Array<{
+                  resultBlock?: { outcomes?: Array<{ effectKind?: string }> }
+                }>
+              }>
+            }>
+          }
+        }>
+      }>
+    }
+
+    expect(
+      parsed.effects?.[0]?.paths?.[0]?.resultBlock?.outcomes?.[0]?.behaviors?.[0]?.paths?.[0]
+        ?.resultBlock?.outcomes?.[0]
+    ).toMatchObject({
+      effectKind: 'DAMAGE'
+    })
+  })
+
+  it('rejects manifest-owned nested behaviors that try to manifest again', () => {
+    expect(() =>
+      spellAuthoredDtoSchema.parse({
+        kind: 'SPELL',
+        id: 'bad-nested-manifest',
+        label: 'Bad Nested Manifest',
+        description: 'A recursive manifest payload.',
+        castingTime: {
+          unit: 'ROUND',
+          amount: 1
+        },
+        level: 4,
+        classIds: ['wizard'],
+        magicSchoolId: 'conjuration',
+        effects: [
+          {
+            id: 'outer-effect',
+            order: 1,
+            invocation: {
+              triggerCode: 'ACTIVATED',
+              activation: {
+                code: 'ACTION',
+                amount: 1
+              },
+              range: {
+                id: 'outer-range',
+                rangeKind: 'DISTANCE',
+                amount: 30,
+                unit: 'FEET'
+              }
+            },
+            paths: [
+              fixedPath(
+                'outer-path',
+                1,
+                'ON_USE',
+                singleResultBlock('outer-result', {
+                  id: 'outer-manifest',
+                  effectKind: 'MANIFEST',
+                  manifestKind: 'SUMMON',
+                  behaviors: [
+                    {
+                      id: 'nested-effect',
+                      order: 1,
+                      invocation: {
+                        triggerCode: 'ACTIVATED',
+                        activation: {
+                          code: 'ACTION',
+                          amount: 1
+                        },
+                        range: {
+                          id: 'nested-range',
+                          rangeKind: 'SELF'
+                        }
+                      },
+                      paths: [
+                        fixedPath(
+                          'nested-path',
+                          1,
+                          'ON_USE',
+                          singleResultBlock('nested-result', {
+                            id: 'recursive-manifest',
+                            effectKind: 'MANIFEST',
+                            manifestKind: 'OBJECT'
+                          })
+                        )
+                      ]
+                    }
+                  ]
+                })
+              )
+            ]
+          }
+        ],
+        userId: 'user-1',
+        systemId: 'system-1'
+      })
+    ).toThrow()
+  })
+
+  it('strips roll-table row labels and descriptions', () => {
+    const parsed = effectDtoSchema.parse({
+      id: 'bad-roll-table-metadata',
+      order: 1,
+      invocation: {
+        triggerCode: 'ACTIVATED',
+        activation: {
+          code: 'ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'bad-roll-range',
+          rangeKind: 'DISTANCE',
+          amount: 30,
+          unit: 'FEET'
+        }
+      },
+      paths: [
+        exactRollTablePath('bad-roll-path', 1, 'ON_USE', [
+          {
+            id: 'bad-roll-entry',
+            order: 1,
+            label: 'Should fail',
+            description: 'Roll tables should not use entry metadata.',
+            rollValue: 1,
+            resolutionKind: 'RESULT',
+            resultBlock: singleResultBlock('bad-roll-result', {
+              id: 'bad-roll-outcome',
+              effectKind: 'MANUAL_ADJUDICATION',
+              label: 'Rolled result',
+              instructions: 'Resolve the rolled result.',
+              reasonCode: 'NARRATIVE_JUDGMENT'
+            })
+          }
+        ])
+      ]
+    })
+
+    const row = (parsed as unknown as ParsedEffectForAssertions).paths[0].rows?.[0]
+
+    expect(row).not.toHaveProperty('label')
+    expect(row).not.toHaveProperty('description')
+  })
+
+  it('strips creature manifest inline behaviors', () => {
+    const parsed = effectDtoSchema.parse({
+      id: 'bad-creature-manifest',
+      order: 1,
+      invocation: {
+        triggerCode: 'ACTIVATED',
+        activation: {
+          code: 'ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'bad-creature-range',
+          rangeKind: 'DISTANCE',
+          amount: 10,
+          unit: 'FEET'
+        }
+      },
+      paths: [
+        fixedPath(
+          'bad-creature-path',
+          1,
+          'ON_USE',
+          singleResultBlock('bad-creature-result', {
+            id: 'bad-creature-entry',
+            effectKind: 'MANIFEST',
+            manifestKind: 'CREATURE',
+            creatureId: 'owl',
+            behaviors: []
+          })
+        )
+      ]
+    })
+
+    const outcome = (parsed as unknown as ParsedEffectForAssertions).paths[0].resultBlock
+      ?.outcomes?.[0]
+
+    expect(outcome).toMatchObject({
+      manifestKind: 'CREATURE',
+      creatureId: 'owl'
+    })
+    expect(outcome).not.toHaveProperty('behaviors')
+  })
+
+  it('parses summon manifests with authored stat block data', () => {
+    const parsed = effectDtoSchema.parse({
+      id: 'summon-manifest',
+      order: 1,
+      invocation: {
+        triggerCode: 'ACTIVATED',
+        activation: {
+          code: 'ACTION',
+          amount: 1
+        },
+        range: {
+          id: 'summon-range',
+          rangeKind: 'DISTANCE',
+          amount: 120,
+          unit: 'FEET'
+        }
+      },
+      paths: [
+        fixedPath(
+          'summon-path',
+          1,
+          'ON_USE',
+          singleResultBlock('summon-result', {
+            id: 'summon-entry',
+            effectKind: 'MANIFEST',
+            manifestKind: 'SUMMON',
+            statBlock: {
+              size: 'LARGE',
+              armorClass: {
+                kind: 'FIXED',
+                value: 20
+              },
+              hitPoints: {
+                kind: 'HIT_POINT_MAXIMUM'
+              },
+              speeds: [
+                {
+                  speedId: 'arcane-hand-speed',
+                  amount: 60,
+                  unit: 'FEET'
+                }
+              ],
+              abilityScores: {
+                STRENGTH: {
+                  kind: 'FIXED',
+                  value: 26
+                }
+              },
+              damageabilityKind: 'INVULNERABLE',
+              occupiesSpace: true
+            }
+          })
+        )
+      ]
+    })
+
+    expect(
+      (parsed as unknown as ParsedEffectForAssertions).paths[0].resultBlock?.outcomes?.[0]
+    ).toMatchObject({
+      manifestKind: 'SUMMON',
+      statBlock: {
+        size: 'LARGE',
+        armorClass: {
+          kind: 'FIXED',
+          value: 20
+        },
+        hitPoints: {
+          kind: 'HIT_POINT_MAXIMUM'
+        },
+        speeds: [
+          {
+            speedId: 'arcane-hand-speed',
+            amount: 60,
+            unit: 'FEET'
+          }
+        ],
+        abilityScores: {
+          STRENGTH: {
+            kind: 'FIXED',
+            value: 26
+          }
+        },
+        damageabilityKind: 'INVULNERABLE',
+        occupiesSpace: true
+      }
+    })
+  })
+})

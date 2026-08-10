@@ -68,7 +68,7 @@ describe('Character Sheet overview', () => {
     expect(screen.queryByRole('heading', { name: /equipment summary/i })).not.toBeInTheDocument()
 
     expect(screen.getByRole('region', { name: /^actions$/i })).toBeInTheDocument()
-    await user.click(screen.getByRole('tab', { name: /features & traits/i }))
+    await user.click(screen.getByRole('tab', { name: /^features$/i }))
     expect(screen.getByText(/action surge/i)).toBeInTheDocument()
     expect(screen.getByText(/take one additional action/i)).toBeInTheDocument()
 

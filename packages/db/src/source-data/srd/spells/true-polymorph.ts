@@ -77,7 +77,7 @@ export const truePolymorph: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.TRUE_POLYMORPH, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Control the New Creature",
+                label: 'Control the New Creature',
                 reasonCode: 'GM_CHOICE' as const,
                 instructions:
                   "The GM has the creature's statistics and resolves all of its actions and movement."

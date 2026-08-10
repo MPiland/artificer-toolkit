@@ -7,8 +7,8 @@ import {
   buildCampaignRouteParams,
   buildCharacterRouteParams
 } from '#app/routing/authoredRouteParams'
-import { richHtmlToPlainText } from '#app/ui/primitives/renderSanitizedRichHtml'
-import * as styles from './campaigns.css'
+import { richHtmlToPlainText } from '#app/lib/richText'
+import * as sharedStyles from './campaigns.css'
 
 export function CampaignListPage() {
   const navigate = useNavigate()
@@ -19,8 +19,8 @@ export function CampaignListPage() {
   })
 
   return (
-    <main className={styles.page}>
-      <header className={styles.pageHeader}>
+    <main className={sharedStyles.page}>
+      <header className={sharedStyles.pageHeader}>
         <div>
           <Title order={1}>Campaigns</Title>
           <Text c='dimmed'>Your active tables and archived Campaign history.</Text>
@@ -31,15 +31,18 @@ export function CampaignListPage() {
       </header>
 
       {campaigns.length === 0 ? (
-        <section className={styles.panel} aria-label='No Campaigns'>
+        <section className={sharedStyles.panel} aria-label='No Campaigns'>
           <Title order={2}>Start your first table</Title>
           <Text c='dimmed'>Create a Campaign, then invite your players.</Text>
         </section>
       ) : (
-        <section className={styles.cards} aria-label='Campaign list'>
+        <section className={sharedStyles.cards} aria-label='Campaign list'>
           {campaigns.map((campaign) => (
             <article
-              className={clsx(styles.card, campaign.status === 'ARCHIVED' && styles.archivedCard)}
+              className={clsx(
+                sharedStyles.card,
+                campaign.status === 'ARCHIVED' && sharedStyles.archivedCard
+              )}
               key={campaign.id}
             >
               <Group justify='space-between' align='flex-start'>

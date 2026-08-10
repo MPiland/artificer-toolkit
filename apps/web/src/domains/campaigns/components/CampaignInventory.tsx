@@ -1,6 +1,6 @@
 import {
-  Alert,
   Accordion,
+  Alert,
   Button,
   Group,
   Loader,
@@ -15,15 +15,12 @@ import { useState } from 'react'
 import type { InventoryDto } from '@artificer-toolkit/schema/api/campaigns'
 import type { CampaignDetailDto, InventoryOwnerRefDto } from '#app/lib/api'
 import { api } from '#app/lib/api'
-import {
-  getCampaignCurrencySystems,
-  getCampaignDetail,
-  getCampaignInventory
-} from '#app/data/campaigns/queries'
+import { getCampaignCurrencySystems, getCampaignInventory } from '#app/data/campaigns/queries'
 import { CurrencySystemEditor } from './CurrencySystemEditor'
 import { CampaignInventoryAudit } from './CampaignInventoryAudit'
 import { CampaignPartyInventoryActions } from './CampaignPartyInventoryActions'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
+import * as inventoryStyles from './inventory.css'
 
 export function CampaignInventory({
   campaign,
@@ -56,8 +53,8 @@ export function CampaignInventory({
   )
   const containers = (inventory.data?.items ?? []).filter((item) => item.isContainer)
   const transferableCurrencies = Array.from(
-    (inventory.data?.currencies ?? []).reduce(
-      (byDenomination, currency) => {
+    (inventory.data?.currencies ?? [])
+      .reduce((byDenomination, currency) => {
         const current = byDenomination.get(currency.denominationId)
         byDenomination.set(currency.denominationId, {
           ...currency,
@@ -65,9 +62,8 @@ export function CampaignInventory({
           containerId: null
         })
         return byDenomination
-      },
-      new Map<string, InventoryDto['currencies'][number]>()
-    ).values()
+      }, new Map<string, InventoryDto['currencies'][number]>())
+      .values()
   )
   const assetOptions = [
     ...(inventory.data?.items ?? []).map((item) => ({
@@ -83,10 +79,7 @@ export function CampaignInventory({
     mutationFn: async () => {
       if (!inventory.data || !destinationOwner)
         throw new Error('Choose a different destination inventory.')
-      const destinationInventory = await api.campaigns.inventory.get(
-        campaign.id,
-        destinationOwner
-      )
+      const destinationInventory = await api.campaigns.inventory.get(campaign.id, destinationOwner)
       const [kind, assetId] = assetValue.split(':') as ['ITEM' | 'CURRENCY', string]
       const common = {
         campaignId: campaign.id,
@@ -112,8 +105,11 @@ export function CampaignInventory({
   })
 
   return (
-    <div className={partyOnly ? undefined : styles.inventoryWorkspace}>
-      <section className={`${styles.panel} ${styles.inventoryPanel}`} aria-labelledby='inventory-title'>
+    <div className={partyOnly ? undefined : inventoryStyles.inventoryWorkspace}>
+      <section
+        className={`${sharedStyles.panel} ${inventoryStyles.inventoryPanel}`}
+        aria-labelledby='inventory-title'
+      >
         {!partyOnly ? (
           <>
             <div>
@@ -126,7 +122,7 @@ export function CampaignInventory({
             </div>
             <Select
               data={ownerOptions}
-              classNames={{ input: styles.input }}
+              classNames={{ input: sharedStyles.input }}
               label='Inventory owner'
               value={ownerValue}
               onChange={(value) => {
@@ -138,7 +134,9 @@ export function CampaignInventory({
           </>
         ) : null}
         {inventory.error ? <Alert color='red'>{inventory.error.message}</Alert> : null}
-        {inventory.isPending ? <Loader size='sm' /> : partyOnly ? (
+        {inventory.isPending ? (
+          <Loader size='sm' />
+        ) : partyOnly ? (
           <Accordion multiple defaultValue={['carried']}>
             <Accordion.Item value='carried'>
               <Accordion.Control>Carried</Accordion.Control>
@@ -175,10 +173,10 @@ export function CampaignInventory({
           <Stack gap='sm'>
             <Title order={3}>Transfer</Title>
             {transfer.error ? <Alert color='red'>{transfer.error.message}</Alert> : null}
-            <div className={styles.inventoryTransferGrid}>
+            <div className={inventoryStyles.inventoryTransferGrid}>
               <Select
                 data={assetOptions}
-                classNames={{ input: styles.input }}
+                classNames={{ input: sharedStyles.input }}
                 label='Item or currency'
                 value={assetValue}
                 onChange={(value) => {
@@ -188,7 +186,7 @@ export function CampaignInventory({
               />
               <Select
                 data={destinationOptions.filter((option) => option.value !== ownerValue)}
-                classNames={{ input: styles.input }}
+                classNames={{ input: sharedStyles.input }}
                 label='Destination'
                 value={destinationValue === ownerValue ? null : destinationValue}
                 onChange={(value) => {
@@ -198,18 +196,14 @@ export function CampaignInventory({
               />
               <NumberInput
                 label='Amount'
-                classNames={{ input: styles.input }}
+                classNames={{ input: sharedStyles.input }}
                 min={1}
                 step={1}
                 value={amount}
                 onChange={(value) => setAmount(Number(value) || 1)}
               />
               <Button
-                disabled={
-                  !assetValue ||
-                  !destinationValue ||
-                  destinationValue === ownerValue
-                }
+                disabled={!assetValue || !destinationValue || destinationValue === ownerValue}
                 loading={transfer.isPending}
                 onClick={() => transfer.mutate()}
               >
@@ -221,7 +215,7 @@ export function CampaignInventory({
       </section>
 
       {!partyOnly && campaign.role === 'OWNER' ? (
-        <section className={styles.panel} aria-labelledby='currency-systems-title'>
+        <section className={sharedStyles.panel} aria-labelledby='currency-systems-title'>
           <div>
             <Title order={2} id='currency-systems-title'>
               Currency systems
@@ -288,26 +282,11 @@ function InventoryEntries({
   )
 }
 
-export function CharacterSheetPartyInventory({
-  campaignId,
-  currentUserId
-}: {
-  campaignId: string
-  currentUserId: string
-}) {
-  const campaign = useQuery(getCampaignDetail(campaignId))
-
-  if (campaign.isPending) return <Loader size='sm' />
-  if (campaign.error) return <Alert color='red'>{campaign.error.message}</Alert>
-  return campaign.data ? (
-    <CampaignInventory campaign={campaign.data} currentUserId={currentUserId} partyOnly />
-  ) : null
-}
-
 function getAuthorizedSourceOwners(campaign: CampaignDetailDto, currentUserId: string) {
-  const memberships = campaign.role === 'OWNER'
-    ? campaign.memberships
-    : campaign.memberships.filter((member) => member.userId === currentUserId)
+  const memberships =
+    campaign.role === 'OWNER'
+      ? campaign.memberships
+      : campaign.memberships.filter((member) => member.userId === currentUserId)
   return [
     { value: 'PARTY', label: 'Party inventory' },
     ...memberships.flatMap((member) =>

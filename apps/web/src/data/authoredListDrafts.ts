@@ -1,15 +1,11 @@
 import type { AuthoredDraftSummaryDto } from '@artificer-toolkit/schema/api/content'
 import type { AuthoredListItem } from '#components/AuthoredList'
+import { summarizeAuthoredDescription } from './authoredListMapper'
 
 interface DraftSummaryListOptions {
   categoryAttributeKey?: string
   formatCategory?: (category: string | undefined) => string
   formatSchool?: (schoolId: string | undefined) => string | undefined
-}
-
-function summarizeDescription(description: string | null | undefined): string {
-  if (!description) return 'No description yet.'
-  return description.replace(/<[^>]*>/g, '').trim() || 'No description yet.'
 }
 
 export function mapDraftSummariesToAuthoredItems(
@@ -25,7 +21,7 @@ export function mapDraftSummariesToAuthoredItems(
       id: draft.subjectId,
       publicId: draft.publicId,
       name: draft.label,
-      description: summarizeDescription(draft.description),
+      description: summarizeAuthoredDescription(draft.description),
       contentState: 'draft',
       attributes: {
         ...(options.categoryAttributeKey && categoryLabel
@@ -48,7 +44,7 @@ export function mapDraftSummariesToAuthoredItems(
         name: draft.label,
         school: schoolLabel
       },
-      searchText: summarizeDescription(draft.description),
+      searchText: summarizeAuthoredDescription(draft.description),
       sourceLabel: 'Homebrew',
       sourceKind: 'owned',
       permissions: {

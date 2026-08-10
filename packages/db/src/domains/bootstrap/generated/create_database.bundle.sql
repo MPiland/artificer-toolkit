@@ -3090,10 +3090,10 @@ CREATE TABLE IF NOT EXISTS public.starting_equipment_currencies (
 ALTER TABLE public.starting_equipment_currencies ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\shared\tables\starting_equipment.sql
 -- BEGIN INCLUDE: src\domains\effects\tables\effects.sql
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/*
  * EFFECTS
  * Root authored effect container
- * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+ */
 
 CREATE TABLE IF NOT EXISTS public.effects (
   id uuid PRIMARY KEY,
@@ -10714,7 +10714,8 @@ CREATE TABLE IF NOT EXISTS public.campaign_conversations (
   direct_user_b uuid REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT now(),
   CHECK ((kind IN ('TABLE', 'PARTY') AND direct_user_a IS NULL AND direct_user_b IS NULL) OR (kind = 'DIRECT' AND direct_user_a IS NOT NULL AND direct_user_b IS NOT NULL AND direct_user_a < direct_user_b)),
-  CHECK (direct_user_a IS NULL OR direct_user_a <> direct_user_b)
+  CHECK (direct_user_a IS NULL OR direct_user_a <> direct_user_b),
+  UNIQUE (id, campaign_id)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS campaign_conversations_campaign_kind_idx ON public.campaign_conversations (campaign_id, kind) WHERE kind IN ('TABLE', 'PARTY');
 CREATE UNIQUE INDEX IF NOT EXISTS campaign_conversations_direct_pair_idx ON public.campaign_conversations (campaign_id, direct_user_a, direct_user_b) WHERE kind = 'DIRECT';
@@ -10722,14 +10723,17 @@ CREATE INDEX IF NOT EXISTS campaign_conversations_campaign_idx ON public.campaig
 ALTER TABLE public.campaign_conversations ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.campaign_conversation_members (
-  conversation_id uuid NOT NULL REFERENCES public.campaign_conversations (id) ON DELETE CASCADE,
+  conversation_id uuid NOT NULL,
   campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   access_started_at timestamptz NOT NULL DEFAULT now(),
   last_read_at timestamptz,
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (conversation_id, user_id),
-  UNIQUE (conversation_id, campaign_id, user_id)
+  UNIQUE (conversation_id, campaign_id, user_id),
+  FOREIGN KEY (conversation_id, campaign_id)
+    REFERENCES public.campaign_conversations (id, campaign_id)
+    ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS campaign_conversation_members_user_idx ON public.campaign_conversation_members (campaign_id, user_id, access_started_at);
 ALTER TABLE public.campaign_conversation_members ENABLE ROW LEVEL SECURITY;
@@ -10753,7 +10757,7 @@ CREATE TRIGGER campaign_conversation_members_validate BEFORE INSERT OR UPDATE ON
 CREATE TABLE IF NOT EXISTS public.campaign_conversation_entries (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
-  conversation_id uuid NOT NULL REFERENCES public.campaign_conversations (id) ON DELETE CASCADE,
+  conversation_id uuid NOT NULL,
   kind text NOT NULL CHECK (kind IN ('CHAT', 'ROLL')),
   author_user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   author_character_id uuid,
@@ -10767,7 +10771,10 @@ CREATE TABLE IF NOT EXISTS public.campaign_conversation_entries (
   unsent_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (campaign_id, author_user_id, client_nonce),
-  CHECK ((kind = 'CHAT' AND roll_payload IS NULL AND mode IS NOT NULL AND ((unsent_at IS NULL AND body IS NOT NULL) OR (unsent_at IS NOT NULL AND body IS NULL))) OR (kind = 'ROLL' AND roll_payload IS NOT NULL AND body IS NULL AND mode IS NULL AND unsent_at IS NULL AND edited_at IS NULL))
+  CHECK ((kind = 'CHAT' AND roll_payload IS NULL AND mode IS NOT NULL AND ((unsent_at IS NULL AND body IS NOT NULL) OR (unsent_at IS NOT NULL AND body IS NULL))) OR (kind = 'ROLL' AND roll_payload IS NOT NULL AND body IS NULL AND mode IS NULL AND unsent_at IS NULL AND edited_at IS NULL)),
+  FOREIGN KEY (conversation_id, campaign_id)
+    REFERENCES public.campaign_conversations (id, campaign_id)
+    ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS campaign_conversation_entries_cursor_idx ON public.campaign_conversation_entries (conversation_id, created_at DESC, id DESC);
 CREATE OR REPLACE FUNCTION public.lock_campaign_conversation_entry()
@@ -10825,7 +10832,8 @@ CREATE TABLE IF NOT EXISTS public.campaign_sessions (
   CHECK (
     (scheduled_start_at IS NULL AND scheduled_end_at IS NULL AND time_zone IS NULL)
     OR (scheduled_start_at IS NOT NULL AND scheduled_end_at IS NOT NULL AND time_zone IS NOT NULL AND scheduled_end_at > scheduled_start_at)
-  )
+  ),
+  UNIQUE (id, campaign_id)
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS campaign_sessions_campaign_number_idx ON public.campaign_sessions (campaign_id, session_number);
@@ -10833,7 +10841,7 @@ CREATE INDEX IF NOT EXISTS campaign_sessions_campaign_idx ON public.campaign_ses
 ALTER TABLE public.campaign_sessions ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.campaign_session_attendance (
-  session_id uuid NOT NULL REFERENCES public.campaign_sessions (id) ON DELETE CASCADE,
+  session_id uuid NOT NULL,
   campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE,
   present boolean NOT NULL DEFAULT true,
@@ -10841,13 +10849,16 @@ CREATE TABLE IF NOT EXISTS public.campaign_session_attendance (
   PRIMARY KEY (session_id, character_id),
   FOREIGN KEY (campaign_id, character_id)
     REFERENCES public.campaign_character_assignments (campaign_id, character_id)
+    ON DELETE CASCADE,
+  FOREIGN KEY (session_id, campaign_id)
+    REFERENCES public.campaign_sessions (id, campaign_id)
     ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS campaign_session_attendance_campaign_idx ON public.campaign_session_attendance (campaign_id, session_id);
 ALTER TABLE public.campaign_session_attendance ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.campaign_session_rsvps (
-  session_id uuid NOT NULL REFERENCES public.campaign_sessions (id) ON DELETE CASCADE,
+  session_id uuid NOT NULL,
   campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   response text NOT NULL CHECK (response IN ('YES', 'NO', 'MAYBE')),
@@ -10855,6 +10866,9 @@ CREATE TABLE IF NOT EXISTS public.campaign_session_rsvps (
   PRIMARY KEY (session_id, user_id),
   FOREIGN KEY (campaign_id, user_id)
     REFERENCES public.campaign_memberships (campaign_id, user_id)
+    ON DELETE CASCADE,
+  FOREIGN KEY (session_id, campaign_id)
+    REFERENCES public.campaign_sessions (id, campaign_id)
     ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS campaign_session_rsvps_campaign_session_idx ON public.campaign_session_rsvps (campaign_id, session_id);
@@ -10883,7 +10897,7 @@ ALTER TABLE public.campaign_session_note_sections ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS public.campaign_session_reference_pins (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
-  session_id uuid NOT NULL REFERENCES public.campaign_sessions (id) ON DELETE CASCADE,
+  session_id uuid NOT NULL,
   target_kind text NOT NULL CHECK (target_kind IN ('CAMPAIGN_NOTE', 'AUTHORED_ROUTE')),
   note_section_id uuid REFERENCES public.campaign_note_sections (id) ON DELETE CASCADE,
   route_subject_kind text,
@@ -10892,7 +10906,10 @@ CREATE TABLE IF NOT EXISTS public.campaign_session_reference_pins (
   CHECK (
     (target_kind = 'CAMPAIGN_NOTE' AND note_section_id IS NOT NULL AND route_subject_kind IS NULL AND route_public_id IS NULL)
     OR (target_kind = 'AUTHORED_ROUTE' AND note_section_id IS NULL AND route_subject_kind IS NOT NULL AND route_public_id IS NOT NULL)
-  )
+  ),
+  FOREIGN KEY (session_id, campaign_id)
+    REFERENCES public.campaign_sessions (id, campaign_id)
+    ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS campaign_session_reference_pins_session_idx ON public.campaign_session_reference_pins (session_id, created_at);
 ALTER TABLE public.campaign_session_reference_pins ENABLE ROW LEVEL SECURITY;
@@ -11035,6 +11052,7 @@ AS $$
         requested_topic = 'campaign:' || membership.campaign_id || ':table:' || membership.user_id || ':' || ((extract(epoch FROM date_trunc('milliseconds', membership.access_started_at)) * 1000)::bigint)::text
         OR (requested_topic = 'campaign:' || membership.campaign_id || ':party:' || membership.user_id || ':' || ((extract(epoch FROM date_trunc('milliseconds', membership.access_started_at)) * 1000)::bigint)::text AND membership.role = 'PLAYER')
         OR (requested_topic = 'campaign:' || membership.campaign_id || ':owner:' || membership.user_id || ':' || ((extract(epoch FROM date_trunc('milliseconds', membership.access_started_at)) * 1000)::bigint)::text AND membership.role = 'OWNER')
+        OR requested_topic = 'campaign:' || membership.campaign_id || ':user:' || membership.user_id || ':' || ((extract(epoch FROM date_trunc('milliseconds', membership.access_started_at)) * 1000)::bigint)::text
         OR EXISTS (
           SELECT 1
           FROM public.campaign_conversation_members conversation_member
@@ -11729,11 +11747,14 @@ $$;
 CREATE TABLE IF NOT EXISTS public.encounter_templates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
+  command_id uuid NOT NULL,
+  command_fingerprint text NOT NULL,
   name text NOT NULL CHECK (char_length(btrim(name)) BETWEEN 1 AND 160),
   version integer NOT NULL DEFAULT 1 CHECK (version > 0),
   enemies jsonb NOT NULL CHECK (jsonb_typeof(enemies) = 'array' AND jsonb_array_length(enemies) > 0),
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (campaign_id, command_id)
 );
 CREATE INDEX IF NOT EXISTS encounter_templates_campaign_idx ON public.encounter_templates (campaign_id, updated_at DESC);
 ALTER TABLE public.encounter_templates ENABLE ROW LEVEL SECURITY;

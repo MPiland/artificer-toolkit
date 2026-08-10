@@ -66,9 +66,10 @@ export const reincarnate: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.REINCARNATE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Choose the New Form",
+                label: 'Choose the New Form',
                 reasonCode: 'GM_CHOICE' as const,
-                instructions: "The GM rolls a d100 and consults the following table to determine what form the creature takes when restored to life, or the GM chooses a form."
+                instructions:
+                  'The GM rolls a d100 and consults the following table to determine what form the creature takes when restored to life, or the GM chooses a form.'
               }
             ]
           }

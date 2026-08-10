@@ -62,9 +62,9 @@ export const fabricate: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.FABRICATE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Choose the Fabricated Product",
+                label: 'Choose the Fabricated Product',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "You convert raw materials into products of the same material."
+                instructions: 'You convert raw materials into products of the same material.'
               }
             ]
           }

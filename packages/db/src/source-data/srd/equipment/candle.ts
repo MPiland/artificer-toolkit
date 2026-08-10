@@ -5,7 +5,8 @@ export const candle: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(129),
   label: 'Candle',
-  description: "For 1 hour, a candle sheds bright light in a 5-foot radius and dim light for an additional 5 feet.",
+  description:
+    'For 1 hour, a candle sheds bright light in a 5-foot radius and dim light for an additional 5 feet.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   attributes: [S.EQUIPMENT_ATTRIBUTE.STACKABLE],

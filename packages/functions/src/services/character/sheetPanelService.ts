@@ -27,7 +27,7 @@ import {
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import type { CharacterBuilderResolution } from './builderService.js'
-import { resolveCharacterSheetEngine, resolveCharacterSheetSkillKey } from './sheetService.js'
+import { resolveCharacterSheetEngine, resolveCharacterSheetSkillKey } from './characterEngine.js'
 import { characterSheetAdjustmentMatchesPanelTarget } from './sheetPanelTarget.js'
 import { getProficiencyTargetKind, type CharacterSheetProficiencyKind } from './sheetProficiency.js'
 
@@ -1640,102 +1640,71 @@ export function buildCharacterSheetPanel(
 }
 
 export function getAffectedCharacterSheetPanelTargets(
-  command: Extract<
-    CharacterSheetCommandInputDto,
-    {
-      type:
-        | 'UPSERT_SHEET_ADJUSTMENT'
-        | 'REMOVE_SHEET_ADJUSTMENT'
-        | 'RESET_SHEET_PANEL_ADJUSTMENTS'
-        | 'SET_MOVEMENT_DISPLAY_PREFERENCE'
-        | 'SET_SPELL_MECHANIC_CUSTOMIZATION'
-        | 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION'
-        | 'UPDATE_SPELL_SOURCE_CUSTOMIZATION'
-        | 'SET_PREPARED_SPELLS'
-        | 'SET_KNOWN_SPELLS'
-        | 'ADD_SHEET_EXTRA'
-        | 'UPDATE_SHEET_EXTRA'
-        | 'REMOVE_SHEET_EXTRA'
-        | 'USE_SPELL_SLOT'
-        | 'RESTORE_SPELL_SLOT'
-        | 'UPDATE_INVENTORY_ITEM'
-        | 'EQUIP_ITEM'
-        | 'UNEQUIP_ITEM'
-        | 'ATTUNE_ITEM'
-        | 'UNATTUNE_ITEM'
-        | 'USE_SHEET_RESOURCE'
-        | 'RECOVER_SHEET_RESOURCE'
-    }
-  >
+  command: CharacterSheetCommandInputDto
 ): CharacterSheetPanelTargetDto[] {
-  if (command.type === 'RESET_SHEET_PANEL_ADJUSTMENTS') {
-    return command.target.kind === 'HIT_POINTS' ? [] : [command.target]
-  }
-  if (command.type === 'ADD_SHEET_EXTRA') return [{ kind: 'EXTRAS' }]
-  if (command.type === 'UPDATE_SHEET_EXTRA') {
-    return command.extra.kind === 'VEHICLE'
-      ? [{ kind: 'VEHICLE', vehicleInstanceId: command.extra.extraId }]
-      : [{ kind: 'COMPANION', companionInstanceId: command.extra.extraId }]
-  }
-  if (command.type === 'REMOVE_SHEET_EXTRA') return [{ kind: 'EXTRAS' }]
-  if (command.type === 'SET_MOVEMENT_DISPLAY_PREFERENCE') return [{ kind: 'MOVEMENT' }]
-  if (command.type === 'REMOVE_SHEET_ADJUSTMENT') {
-    return command.target.kind === 'HIT_POINTS' ? [] : [command.target]
-  }
-  if (
-    command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION' ||
-    command.type === 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION' ||
-    command.type === 'UPDATE_SPELL_SOURCE_CUSTOMIZATION'
-  ) {
-    return [{ kind: 'SPELL', source: command.source }]
-  }
-  if (
-    command.type === 'SET_PREPARED_SPELLS' ||
-    command.type === 'SET_KNOWN_SPELLS' ||
-    command.type === 'USE_SPELL_SLOT' ||
-    command.type === 'RESTORE_SPELL_SLOT'
-  ) {
-    return [{ kind: 'SPELLS' }]
-  }
-  if (
-    command.type === 'UPDATE_INVENTORY_ITEM' ||
-    command.type === 'EQUIP_ITEM' ||
-    command.type === 'UNEQUIP_ITEM' ||
-    command.type === 'ATTUNE_ITEM' ||
-    command.type === 'UNATTUNE_ITEM'
-  ) {
-    return [{ kind: 'ITEM', itemInstanceId: command.itemId }]
-  }
-  if (command.type === 'USE_SHEET_RESOURCE' || command.type === 'RECOVER_SHEET_RESOURCE') {
-    if (command.owner.kind === 'COMPANION_FEATURE') {
-      return [{ kind: 'COMPANION', companionInstanceId: command.owner.companionInstanceId }]
-    }
-    return command.owner.kind === 'ITEM_INSTANCE'
-      ? [{ kind: 'ITEM', itemInstanceId: command.owner.itemInstanceId }]
-      : [{ kind: 'RESOURCE', owner: command.owner }]
-  }
-
-  switch (command.adjustment.family) {
-    case 'ABILITY':
-      return [{ kind: 'ABILITY', ability: command.adjustment.ability! }]
-    case 'SAVING_THROW':
-      return [{ kind: 'SAVING_THROW', ability: command.adjustment.ability! }]
-    case 'SKILL':
-      return [{ kind: 'SKILL', skillId: command.adjustment.skillId! }]
-    case 'PASSIVE':
-    case 'SENSE':
-      return [{ kind: 'SENSES' }]
-    case 'MOVEMENT':
+  switch (command.type) {
+    case 'RESET_SHEET_PANEL_ADJUSTMENTS':
+      return command.target.kind === 'HIT_POINTS' ? [] : [command.target]
+    case 'ADD_SHEET_EXTRA':
+    case 'REMOVE_SHEET_EXTRA':
+      return [{ kind: 'EXTRAS' }]
+    case 'UPDATE_SHEET_EXTRA':
+      return command.extra.kind === 'VEHICLE'
+        ? [{ kind: 'VEHICLE', vehicleInstanceId: command.extra.extraId }]
+        : [{ kind: 'COMPANION', companionInstanceId: command.extra.extraId }]
+    case 'SET_MOVEMENT_DISPLAY_PREFERENCE':
       return [{ kind: 'MOVEMENT' }]
-    case 'HIT_POINTS':
-      return []
-    case 'DEFENSE':
-      return [{ kind: 'DEFENSES' }]
-    case 'PROFICIENCY':
-      return [{ kind: 'PROFICIENCIES' }]
-    case 'ITEM':
-      return [{ kind: 'ITEM', itemInstanceId: command.adjustment.itemInstanceId }]
-    case 'COMPANION':
-      return [{ kind: 'COMPANION', companionInstanceId: command.adjustment.companionInstanceId }]
+    case 'REMOVE_SHEET_ADJUSTMENT':
+      return command.target.kind === 'HIT_POINTS' ? [] : [command.target]
+    case 'SET_SPELL_MECHANIC_CUSTOMIZATION':
+    case 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION':
+    case 'UPDATE_SPELL_SOURCE_CUSTOMIZATION':
+      return [{ kind: 'SPELL', source: command.source }]
+    case 'SET_PREPARED_SPELLS':
+    case 'SET_KNOWN_SPELLS':
+    case 'USE_SPELL_SLOT':
+    case 'RESTORE_SPELL_SLOT':
+      return [{ kind: 'SPELLS' }]
+    case 'UPDATE_INVENTORY_ITEM':
+    case 'EQUIP_ITEM':
+    case 'UNEQUIP_ITEM':
+    case 'ATTUNE_ITEM':
+    case 'UNATTUNE_ITEM':
+      return [{ kind: 'ITEM', itemInstanceId: command.itemId }]
+    case 'USE_SHEET_RESOURCE':
+    case 'RECOVER_SHEET_RESOURCE':
+      if (command.owner.kind === 'COMPANION_FEATURE') {
+        return [{ kind: 'COMPANION', companionInstanceId: command.owner.companionInstanceId }]
+      }
+      return command.owner.kind === 'ITEM_INSTANCE'
+        ? [{ kind: 'ITEM', itemInstanceId: command.owner.itemInstanceId }]
+        : [{ kind: 'RESOURCE', owner: command.owner }]
+    case 'UPSERT_SHEET_ADJUSTMENT':
+      switch (command.adjustment.family) {
+        case 'ABILITY':
+          return [{ kind: 'ABILITY', ability: command.adjustment.ability! }]
+        case 'SAVING_THROW':
+          return [{ kind: 'SAVING_THROW', ability: command.adjustment.ability! }]
+        case 'SKILL':
+          return [{ kind: 'SKILL', skillId: command.adjustment.skillId! }]
+        case 'PASSIVE':
+        case 'SENSE':
+          return [{ kind: 'SENSES' }]
+        case 'MOVEMENT':
+          return [{ kind: 'MOVEMENT' }]
+        case 'HIT_POINTS':
+          return []
+        case 'DEFENSE':
+          return [{ kind: 'DEFENSES' }]
+        case 'PROFICIENCY':
+          return [{ kind: 'PROFICIENCIES' }]
+        case 'ITEM':
+          return [{ kind: 'ITEM', itemInstanceId: command.adjustment.itemInstanceId }]
+        case 'COMPANION':
+          return [
+            { kind: 'COMPANION', companionInstanceId: command.adjustment.companionInstanceId }
+          ]
+      }
   }
+  return []
 }

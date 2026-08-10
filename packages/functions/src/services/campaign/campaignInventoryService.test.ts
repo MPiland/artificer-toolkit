@@ -16,6 +16,7 @@ const ids = {
 
 const mocks = vi.hoisted(() => ({
   authority: vi.fn(),
+  assertCampaignOwner: vi.fn(),
   inventory: {
     findCampaignEventByIdempotency: vi.fn(),
     getInventoryByOwnerId: vi.fn(),
@@ -72,7 +73,7 @@ vi.mock('./campaignService.js', () => {
     CampaignNotFoundError,
     CampaignValidationError,
     assertActiveCampaignMember: vi.fn(),
-    assertCampaignOwner: vi.fn(),
+    assertCampaignOwner: mocks.assertCampaignOwner,
     assertCampaignWritable: vi.fn(),
     resolveCampaignAuthority: mocks.authority
   }
@@ -276,6 +277,30 @@ describe('Campaign inventory service', () => {
     })
   })
 
+  it('prevents players from reading another assigned Character inventory', async () => {
+    await expect(
+      getCampaignInventory({} as DBLike, ids.user, ids.campaign, {
+        kind: 'CHARACTER',
+        characterId: ids.otherCharacter
+      })
+    ).rejects.toThrow()
+    expect(mocks.inventory.getInventoryByOwnerId).not.toHaveBeenCalled()
+  })
+
+  it('allows owners to read any assigned Character inventory', async () => {
+    mocks.authority.mockResolvedValue({
+      ...playerAuthority(),
+      membership: { role: 'OWNER', status: 'ACTIVE' }
+    })
+
+    await expect(
+      getCampaignInventory({} as DBLike, ids.user, ids.campaign, {
+        kind: 'CHARACTER',
+        characterId: ids.otherCharacter
+      })
+    ).resolves.toBeDefined()
+  })
+
   it('allows players to give their inventory directly to another assigned Character', async () => {
     await expect(
       transferCampaignInventory({} as DBLike, ids.user, {
@@ -314,7 +339,11 @@ describe('Campaign inventory service', () => {
     expect(mocks.inventory.lockOwners).not.toHaveBeenCalled()
   })
 
-  it('allows any active member to add a party item with an owner-version check and audit event', async () => {
+  it('prevents players from mutating party inventory', async () => {
+    mocks.assertCampaignOwner.mockImplementationOnce(() => {
+      throw new Error()
+    })
+
     await expect(
       mutateCampaignPartyInventory({} as DBLike, ids.user, {
         kind: 'ITEM_ADD',
@@ -324,23 +353,15 @@ describe('Campaign inventory service', () => {
         expectedOwnerVersion: 2,
         idempotencyKey: ids.nonce
       })
-    ).resolves.toEqual({ eventId: ids.event })
-    expect(mocks.inventory.insertPartyItem).toHaveBeenCalledWith({
-      ownerId: ids.campaignOwner,
-      equipmentId: ids.character,
-      quantity: 2
-    })
-    expect(mocks.inventory.insertInventoryEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        kind: 'PARTY_ITEM_ADD',
-        actorUserId: ids.user,
-        idempotencyKey: ids.nonce,
-        payload: expect.objectContaining({ beforeQuantity: 0, afterQuantity: 2 })
-      })
-    )
+    ).rejects.toThrow()
+    expect(mocks.inventory.findCampaignEventByIdempotency).not.toHaveBeenCalled()
   })
 
-  it('adjusts party currency and records before/after amounts', async () => {
+  it('allows owners to adjust party currency and records before/after amounts', async () => {
+    mocks.authority.mockResolvedValue({
+      ...playerAuthority(),
+      membership: { role: 'OWNER', status: 'ACTIVE' }
+    })
     mocks.inventory.lockCurrencyBalances.mockResolvedValue([{ amount: 5n }])
 
     await expect(

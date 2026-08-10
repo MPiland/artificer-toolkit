@@ -1,5 +1,6 @@
 import type { NodeRuntimePathDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import type { DeepKeys, DeepKeysOfType } from '@tanstack/form-core'
+import { isObjectValue, isRecord } from './valueGuards'
 
 export function toAuthoringFieldName(
   prefix: string | undefined,
@@ -124,7 +125,7 @@ function setAuthoringValueAtPath(
     return next
   }
 
-  const next = isRecord(current) ? { ...current } : {}
+  const next = isObjectValue(current) ? { ...current } : {}
   next[segment] = setAuthoringValueAtPath(next[segment], remainingPath, value)
   return next
 }
@@ -135,8 +136,4 @@ function hasMeaningfulAuthoringValue(value: unknown): boolean {
   if (Array.isArray(value)) return value.some(hasMeaningfulAuthoringValue)
   if (isRecord(value)) return Object.values(value).some(hasMeaningfulAuthoringValue)
   return true
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
 }

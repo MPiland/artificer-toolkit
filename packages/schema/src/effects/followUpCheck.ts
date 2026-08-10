@@ -29,9 +29,7 @@ export function createFollowUpCheckDtoSchema(outcomeDtoSchema: z.ZodTypeAny) {
     fixedDc: z.number().int().positive(),
     skillId: authoredIdentifierSchema.optional(),
     toolEquipmentId: authoredIdentifierSchema.optional(),
-    actorKinds: authoredNestedCollectionSchema(
-      z.enum(['TARGET', 'CREATURE_WITHIN_REACH'])
-    ).min(1),
+    actorKinds: authoredNestedCollectionSchema(z.enum(['TARGET', 'CREATURE_WITHIN_REACH'])).min(1),
     repeatable: z.boolean(),
     onSuccess: branchDtoSchema,
     onFailure: branchDtoSchema

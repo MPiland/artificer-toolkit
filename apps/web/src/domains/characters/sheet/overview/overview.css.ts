@@ -1,4 +1,4 @@
-import { globalStyle, style } from '@vanilla-extract/css'
+import { style } from '@vanilla-extract/css'
 import { foundationVars } from '#css/foundations.css'
 import { app } from '#css/layers.css'
 
@@ -31,30 +31,6 @@ export const tabletOverviewGrid = style({
       overflowY: 'auto',
       paddingInlineEnd: '4px',
       scrollbarGutter: 'stable'
-    }
-  }
-})
-
-export const overviewHeader = style({
-  '@layer': {
-    [app]: {
-      alignItems: 'end',
-      display: 'flex',
-      gap: '12px',
-      justifyContent: 'space-between',
-      minWidth: 0
-    }
-  }
-})
-
-export const overviewTitle = style({
-  '@layer': {
-    [app]: {
-      color: foundationVars.color.text.primary,
-      fontSize: '1.35rem',
-      fontWeight: 850,
-      lineHeight: 1.2,
-      margin: 0
     }
   }
 })
@@ -268,22 +244,6 @@ export const abilityScore = style({
   }
 })
 
-export const overviewCoreGrid = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: '16px',
-      gridTemplateColumns: 'minmax(0, 1fr) minmax(320px, 0.42fr)',
-      minWidth: 0,
-      '@media': {
-        '(max-width: 1080px)': {
-          gridTemplateColumns: '1fr'
-        }
-      }
-    }
-  }
-})
-
 export const playSheetGrid = style({
   '@layer': {
     [app]: {
@@ -403,20 +363,6 @@ export const metricGrid = style({
       gap: '8px',
       gridTemplateColumns: 'repeat(auto-fit, minmax(132px, 1fr))',
       minWidth: 0
-    }
-  }
-})
-
-export const metricTile = style({
-  '@layer': {
-    [app]: {
-      background: foundationVars.color.surface.subtle,
-      border: `1px solid ${foundationVars.color.border.subtle}`,
-      borderRadius: foundationVars.radius.md,
-      display: 'grid',
-      gap: '4px',
-      minHeight: '74px',
-      padding: '12px'
     }
   }
 })

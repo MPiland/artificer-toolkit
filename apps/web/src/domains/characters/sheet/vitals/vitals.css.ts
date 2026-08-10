@@ -79,16 +79,6 @@ export const combatSummaryCard = style({
   }
 })
 
-export const combatPanelHeader = style({
-  '@layer': {
-    [app]: {
-      alignItems: 'start',
-      display: 'flex',
-      justifyContent: 'space-between'
-    }
-  }
-})
-
 export const combatFactGrid = style({
   '@layer': {
     [app]: {
@@ -155,7 +145,7 @@ export const desktopDefenseGrid = style({
   }
 })
 
-export const desktopDefenseGroup = style({
+const desktopDefenseGroup = style({
   '@layer': {
     [app]: {
       display: 'grid',

@@ -68,9 +68,10 @@ export const teleport: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.TELEPORT, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Resolve the Destination",
+                label: 'Resolve the Destination',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "Your familiarity with the destination determines whether you arrive there successfully."
+                instructions:
+                  'Your familiarity with the destination determines whether you arrive there successfully.'
               }
             ]
           }

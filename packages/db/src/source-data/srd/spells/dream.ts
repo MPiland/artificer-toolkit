@@ -67,9 +67,10 @@ export const dream: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.DREAM, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Shape the Dream",
+                label: 'Shape the Dream',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "The messenger can also shape the environment of the dream, creating landscapes, objects, and other images."
+                instructions:
+                  'The messenger can also shape the environment of the dream, creating landscapes, objects, and other images.'
               }
             ]
           }

@@ -4,17 +4,7 @@ import type {
   AuthoredListFilter,
   AuthoredListItem
 } from '#components/AuthoredList'
-
-function mapPermissions(
-  item: CreatureListResponseDto['items'][number]
-): AuthoredListItem['permissions'] {
-  return {
-    canView: item.permissions.canView,
-    canEdit: item.permissions.canEdit,
-    canCopy: item.permissions.canCopy,
-    canDelete: item.permissions.canDelete
-  }
-}
+import { summarizeAuthoredDescription } from '../authoredListMapper'
 
 export function formatCreatureCategory(category: string | undefined): string {
   if (!category) return 'Creature'
@@ -23,11 +13,6 @@ export function formatCreatureCategory(category: string | undefined): string {
     .toLowerCase()
     .replaceAll('_', ' ')
     .replace(/^\w/, (letter) => letter.toUpperCase())
-}
-
-function summarizeDescription(description: string | null | undefined): string {
-  if (!description) return 'No description yet.'
-  return description.replace(/<[^>]*>/g, '').trim() || 'No description yet.'
 }
 
 export function mapCreatureListToAuthoredItems(
@@ -41,7 +26,7 @@ export function mapCreatureListToAuthoredItems(
       id: item.id,
       publicId: item.publicId,
       name: item.label,
-      description: summarizeDescription(item.description),
+      description: summarizeAuthoredDescription(item.description),
       attributes: {
         Category: categoryLabel
       },
@@ -53,10 +38,10 @@ export function mapCreatureListToAuthoredItems(
         category: categoryLabel,
         name: item.label
       },
-      searchText: `${summarizeDescription(item.description)} ${categoryLabel}`,
+      searchText: `${summarizeAuthoredDescription(item.description)} ${categoryLabel}`,
       sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
       sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
-      permissions: mapPermissions(item)
+      permissions: item.permissions
     }
   })
 }

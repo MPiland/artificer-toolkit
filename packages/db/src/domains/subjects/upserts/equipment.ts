@@ -119,9 +119,10 @@ function requireProperty(
 
 function mapEquipmentRow(json_data: EquipmentAuthored): EquipmentRow {
   const weightAmount = isBaseEquipment(json_data) ? (json_data.weight?.amount ?? null) : null
-  const weightUnit = isBaseEquipment(json_data) && json_data.weight
-    ? requireMeasurementUnit(json_data.id, json_data.weight.unit)
-    : null
+  const weightUnit =
+    isBaseEquipment(json_data) && json_data.weight
+      ? requireMeasurementUnit(json_data.id, json_data.weight.unit)
+      : null
   const costAmount = isBaseEquipment(json_data) ? (json_data.cost?.amount ?? null) : null
   const costCurrencyId = isBaseEquipment(json_data) ? (json_data.cost?.currencyId ?? null) : null
   const capacityAmount = isBaseEquipment(json_data) ? (json_data.capacity?.amount ?? null) : null

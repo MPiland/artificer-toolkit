@@ -72,9 +72,9 @@ export const glyphOfWarding: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.GLYPH_OF_WARDING, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Define the Trigger",
+                label: 'Define the Trigger',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "You decide what triggers the glyph when you cast the spell."
+                instructions: 'You decide what triggers the glyph when you cast the spell.'
               }
             ]
           }

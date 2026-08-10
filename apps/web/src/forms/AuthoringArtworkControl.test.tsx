@@ -1,7 +1,11 @@
 import { render } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ mediaControl: vi.fn(), saveDraft: vi.fn(), useAuthoringForm: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  mediaControl: vi.fn(),
+  saveDraft: vi.fn(),
+  useAuthoringForm: vi.fn()
+}))
 
 vi.mock('#app/components/MediaImage', () => ({
   MediaImageControl: (props: unknown) => {

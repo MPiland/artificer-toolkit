@@ -65,9 +65,10 @@ export const sending: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.SENDING, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Compose the Message",
+                label: 'Compose the Message',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "You send a short message of twenty-five words or less to a creature with which you are familiar."
+                instructions:
+                  'You send a short message of twenty-five words or less to a creature with which you are familiar.'
               }
             ]
           }

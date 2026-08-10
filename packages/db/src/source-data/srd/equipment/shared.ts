@@ -139,20 +139,20 @@ export function damageTypeId(code: string): string {
 export function creatureTypeId(code: string): string {
   const entry = SRD_CREATURE_TYPES.find((creatureType) => creatureType.code === code)
   if (!entry) {
-    throw new Error(`SRD creature type vocabulary entry for ${code} required for equipment source data.`)
+    throw new Error(
+      `SRD creature type vocabulary entry for ${code} required for equipment source data.`
+    )
   }
   return entry.id
 }
 export function skillId(code: string): string {
   const entry = SRD_SKILLS.find((skill) => skill.code === code)
-  if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required for equipment source data.`)
+  if (!entry)
+    throw new Error(`SRD skill vocabulary entry for ${code} required for equipment source data.`)
   return entry.id
 }
 
-export function stealthDisadvantageModifier(
-  equipmentId: string,
-  order = 1
-): ModifierGrantAuthored {
+export function stealthDisadvantageModifier(equipmentId: string, order = 1): ModifierGrantAuthored {
   return {
     id: equipmentChildId(equipmentId, 0x350, 1),
     grantKind: GRANT_KIND.MODIFIER_GRANT,
@@ -333,7 +333,8 @@ export function fixedMeleeWeaponEffect(
 }
 export function speedId(code: string): string {
   const entry = SRD_SPEEDS.find((speed) => speed.code === code)
-  if (!entry) throw new Error(`SRD speed vocabulary entry for ${code} required for equipment source data.`)
+  if (!entry)
+    throw new Error(`SRD speed vocabulary entry for ${code} required for equipment source data.`)
   return entry.id
 }
 export function equipmentChildId(equipmentId: string, bucket: number, index: number): string {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { actionPresentationPresets } from '@artificer-toolkit/design-system'
-import { nodeRuntimeNodeDtoSchema } from '../api/nodeRuntime.js'
+import { AUTHORED_LIMITS } from '../shared/authoredLimits.js'
+import { nodeRuntimeContextDtoSchema, nodeRuntimeNodeDtoSchema } from '../api/nodeRuntime.js'
 
 const baseNode = {
   id: 'base',
@@ -31,6 +32,33 @@ describe('node runtime schema strictness', () => {
       kind: 'INPUT',
       type: 'TEXT'
     })
+  })
+
+  it('bounds request size, nesting, and collection fan-out', () => {
+    const request = { mapId: 'race', systemId: 'dnd5e2014' }
+    expect(
+      nodeRuntimeContextDtoSchema.safeParse({
+        ...request,
+        values: { text: 'x'.repeat(AUTHORED_LIMITS.mutationPayloadBytes) }
+      }).success
+    ).toBe(false)
+
+    let nested: unknown = 'leaf'
+    for (let depth = 0; depth <= AUTHORED_LIMITS.facetNestingDepth; depth += 1) {
+      nested = { child: nested }
+    }
+    expect(nodeRuntimeContextDtoSchema.safeParse({ ...request, values: { nested } }).success).toBe(
+      false
+    )
+
+    expect(
+      nodeRuntimeContextDtoSchema.safeParse({
+        ...request,
+        values: {
+          rows: Array.from({ length: AUTHORED_LIMITS.referenceCollectionItems + 1 }, () => ({}))
+        }
+      }).success
+    ).toBe(false)
   })
 
   it('accepts a valid select input', () => {

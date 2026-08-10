@@ -26,10 +26,7 @@ export function Editor({
         data-step-navigation={showStepNavigation ? 'true' : 'false'}
         data-testid='authoring-form-content'
       >
-        <div
-          className={styles.stage}
-          data-fill-stage={showStepNavigation ? undefined : 'true'}
-        >
+        <div className={styles.stage} data-fill-stage={showStepNavigation ? undefined : 'true'}>
           {readOnly ? (
             <Alert className={styles.alertSlot} color='orange'>
               {`This ${subjectKindLabel.toLowerCase()} is locked for direct editing. Duplicate it to make your own draft.`}

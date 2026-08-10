@@ -300,8 +300,21 @@ export class InMemoryDb {
 
   transaction() {
     return {
-      execute: async <T>(fn: (trx: InMemoryTransaction) => Promise<T>) =>
-        fn(new InMemoryTransaction(this))
+      execute: async <T>(fn: (trx: InMemoryTransaction) => Promise<T>) => {
+        const tablesSnapshot = new Map(
+          [...this.tables].map(([table, rows]) => [table, cloneRows(rows)])
+        )
+
+        try {
+          return await fn(new InMemoryTransaction(this))
+        } catch (error) {
+          this.tables.clear()
+          for (const [table, rows] of tablesSnapshot) {
+            this.tables.set(table, rows)
+          }
+          throw error
+        }
+      }
     }
   }
 

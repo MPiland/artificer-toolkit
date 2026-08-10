@@ -5,7 +5,8 @@ export const hoodedLantern: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(150),
   label: 'Hooded Lantern',
-  description: "A hooded lantern casts bright light in a 30-foot radius and dim light for an additional 30 feet. Once lit, it burns for 6 hours on a flask (1 pint) of oil. As an action, you can lower the hood, reducing the light to dim light in a 5-foot radius.",
+  description:
+    'A hooded lantern casts bright light in a 30-foot radius and dim light for an additional 30 feet. Once lit, it burns for 6 hours on a flask (1 pint) of oil. As an action, you can lower the hood, reducing the light to dim light in a 5-foot radius.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(5),

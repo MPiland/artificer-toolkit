@@ -61,8 +61,8 @@ vi.mock('./builderService.js', async (importOriginal) => {
   return { ...actual, resolveCharacterBuilder: mocks.resolveCharacterBuilder }
 })
 
-const { applyCharacterSheetCommand, executeCharacterSheetCommand } =
-  await import('./sheetService.js')
+const { applyCharacterSheetCommand } = await import('./sheetCommandReducer.js')
+const { executeCharacterSheetCommand } = await import('./sheetService.js')
 
 const db = {
   selectFrom: () => {

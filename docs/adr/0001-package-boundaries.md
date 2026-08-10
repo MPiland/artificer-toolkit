@@ -4,7 +4,7 @@
 - **Date:** 2026-07-10
 - **Scope:** monorepo package ownership and web-to-backend data access
 - **Update when:** a package gains a new dependency direction, a product-data route bypasses `apps/apis`, or orchestration ownership moves
-- **Verification:** workspace manifests; `apps/apis/src/trpc/router.ts`; `apps/apis/src/trpc/dbContext.ts`
+- **Verification:** workspace manifests; `apps/apis/src/trpc/router.ts`; `apps/apis/src/trpc/procedures.ts`; the owning `apps/apis/src/trpc/*Router.ts`; `apps/apis/src/trpc/dbContext.ts`
 
 ## Context
 

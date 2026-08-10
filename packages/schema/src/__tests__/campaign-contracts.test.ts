@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 
 import {
   acceptCampaignOwnershipTransferInputSchema,
+  advanceCampaignClockInputSchema,
   campaignContentBindingsDtoSchema,
   campaignCharacterSummaryDtoSchema,
   campaignConversationDtoSchema,
+  campaignRealtimeEnvelopeDtoSchema,
   saveCampaignConditionInputSchema,
   createCampaignInputSchema,
   currencySystemDtoSchema,
@@ -19,6 +21,7 @@ import {
   sendCampaignChatEntryInputSchema,
   transferCampaignInventoryInputSchema,
   createCampaignNotebookSectionInputSchema,
+  configureCampaignClockInputSchema,
   updateCampaignNotebookSectionInputSchema,
   updateCampaignInputSchema
 } from '../api/campaigns.js'
@@ -27,6 +30,27 @@ const id = 'f3e3a390-5b22-4a1f-8a0b-bf7f184bd7c9'
 
 describe('campaign contracts', () => {
   const seededId = '00000000-0000-0000-0080-000100000000'
+
+  it('rejects clock values that cannot be represented safely', () => {
+    const command = {
+      campaignId: id,
+      commandId: id,
+      expectedVersion: 1
+    }
+
+    expect(
+      advanceCampaignClockInputSchema.safeParse({
+        ...command,
+        minutes: Number.MAX_SAFE_INTEGER + 1
+      }).success
+    ).toBe(false)
+    expect(
+      configureCampaignClockInputSchema.safeParse({
+        ...command,
+        day: Number.MAX_SAFE_INTEGER + 1
+      }).success
+    ).toBe(false)
+  })
 
   it('accepts deterministic Postgres UUIDs for seeded Character systems', () => {
     expect(
@@ -155,9 +179,7 @@ describe('campaign contracts', () => {
     expect(executeCampaignRollInputSchema.safeParse({ ...roll, rollEvidence: {} }).success).toBe(
       false
     )
-    expect(
-      executeCampaignRollInputSchema.safeParse({ ...roll, room: 'PARTY' }).success
-    ).toBe(false)
+    expect(executeCampaignRollInputSchema.safeParse({ ...roll, room: 'PARTY' }).success).toBe(false)
     expect(
       executeCampaignRollInputSchema.safeParse({
         ...roll,
@@ -171,9 +193,9 @@ describe('campaign contracts', () => {
         directUserId: id
       }).success
     ).toBe(true)
-    expect(
-      sendCampaignChatEntryInputSchema.safeParse({ ...input, room: 'DIRECT' }).success
-    ).toBe(false)
+    expect(sendCampaignChatEntryInputSchema.safeParse({ ...input, room: 'DIRECT' }).success).toBe(
+      false
+    )
   })
 
   it('requires positive safe-integer inventory transfers', () => {
@@ -222,8 +244,7 @@ describe('campaign contracts', () => {
         quantity: 0,
         containerId: null,
         isContainer: false
-      })
-        .success
+      }).success
     ).toBe(false)
     expect(
       getCampaignInventoryInputSchema.safeParse({
@@ -303,14 +324,20 @@ describe('campaign contracts', () => {
     ).toBe(false)
     for (const attunementSlotOverride of [null, 0, 4]) {
       expect(
-        updateCampaignInputSchema.safeParse({ campaignId: id, attunementSlotOverride, expectedVersion: 1 })
-          .success
+        updateCampaignInputSchema.safeParse({
+          campaignId: id,
+          attunementSlotOverride,
+          expectedVersion: 1
+        }).success
       ).toBe(true)
     }
     for (const attunementSlotOverride of [-1, 1.5]) {
       expect(
-        updateCampaignInputSchema.safeParse({ campaignId: id, attunementSlotOverride, expectedVersion: 1 })
-          .success
+        updateCampaignInputSchema.safeParse({
+          campaignId: id,
+          attunementSlotOverride,
+          expectedVersion: 1
+        }).success
       ).toBe(false)
     }
     expect(updateCampaignInputSchema.safeParse({ campaignId: id, name: 'New name' }).success).toBe(
@@ -338,7 +365,8 @@ describe('campaign contracts', () => {
     }
     expect(createCampaignNotebookSectionInputSchema.parse(section).category).toBe('GENERAL')
     expect(
-      createCampaignNotebookSectionInputSchema.safeParse({ ...section, category: 'SESSIONS' }).success
+      createCampaignNotebookSectionInputSchema.safeParse({ ...section, category: 'SESSIONS' })
+        .success
     ).toBe(false)
   })
 
@@ -358,6 +386,29 @@ describe('campaign contracts', () => {
       campaignConversationDtoSchema.safeParse({ ...base, kind: 'TABLE', participantUserIds: [] })
         .success
     ).toBe(true)
+  })
+
+  it('requires a recipient only for user-scoped Realtime invalidations', () => {
+    const envelope = {
+      scope: 'USER' as const,
+      entity: 'CONTENT' as const,
+      entityId: id,
+      event: 'UPDATED' as const,
+      eventId: id,
+      cursor: '1'
+    }
+
+    expect(campaignRealtimeEnvelopeDtoSchema.safeParse(envelope).success).toBe(false)
+    expect(
+      campaignRealtimeEnvelopeDtoSchema.safeParse({ ...envelope, recipientUserId: id }).success
+    ).toBe(true)
+    expect(
+      campaignRealtimeEnvelopeDtoSchema.safeParse({
+        ...envelope,
+        scope: 'OWNER',
+        recipientUserId: id
+      }).success
+    ).toBe(false)
   })
 
   it('validates Campaign Character conditions and binding arrays', () => {

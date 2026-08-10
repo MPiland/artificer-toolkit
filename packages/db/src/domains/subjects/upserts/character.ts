@@ -9,20 +9,17 @@ import {
 } from '@artificer-toolkit/shared/subjects/authored'
 import { assertNever, withTransaction } from '../../../utils/index.js'
 import { normalizeSubjectStatus } from '../status.js'
+import { replaceCharacterCurrency, replaceCharacterInventoryItems } from './characterInventory.js'
 import {
-  countRolls,
-  deleteExistingCharacterChildren,
-  insertRows,
   mapChosenGrantSelectionSource,
   mapFeatureSource,
   mapResourceGrantSource,
   mapSpellSelectionSource,
-  replaceCharacterCurrency,
-  replaceCharacterInventoryItems,
   mapTiming,
-  serializeSelectionValue,
-  sortByDependency
-} from './character.helpers.js'
+  serializeSelectionValue
+} from './characterGrants.js'
+import { countRolls, sortByDependency } from './characterSorting.js'
+import { deleteExistingCharacterChildren, insertRows } from './characterRows.js'
 
 export async function upsertCharacter(
   db: DBLike,
@@ -179,8 +176,9 @@ export async function upsertCharacter(
         specialization_id: characterClass.specializationId ?? null,
         class_level: characterClass.classLevel,
         known_spells_overridden:
-          json_data.state.classes?.find((classState) => classState.classId === characterClass.classId)
-            ?.spells?.learned !== undefined
+          json_data.state.classes?.find(
+            (classState) => classState.classId === characterClass.classId
+          )?.spells?.learned !== undefined
       }))
     )
 

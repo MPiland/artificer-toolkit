@@ -48,28 +48,7 @@ export const VALUE_DOMAIN_CODE = {
 
 export type ValueDomainCode = keyof typeof VALUE_DOMAIN_CODE
 
-export const PARAMETERIZED_VALUE_DOMAINS = {
-  ATTACK_ROLL: true,
-  ABILITY_CHECK: true,
-  SAVING_THROW_MODIFIER: true,
-  SKILL_MODIFIER: true,
-  ABILITY_SCORE: true,
-  SPEED: true,
-  SENSE_RANGE: true,
-  DAMAGE: true,
-  SPELL_SLOT_COUNT: true
-} as const
-
-export type ParameterizedValueDomainCode = keyof typeof PARAMETERIZED_VALUE_DOMAINS
-
-// Helper: attach isParameterized based on membership in PARAMETERIZED_VALUE_DOMAINS
-type WithParameterizedFlag<V extends ValueDomainCode> = V extends ParameterizedValueDomainCode
-  ? { isParameterized: true }
-  : { isParameterized?: never }
-
-// Update your option type so the flag is *correct by construction*
-export type ValueDomainOption<V extends ValueDomainCode = ValueDomainCode> = CoreMeta<V> &
-  WithParameterizedFlag<V>
+export type ValueDomainOption<V extends ValueDomainCode = ValueDomainCode> = CoreMeta<V>
 
 export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> = {
   [VALUE_DOMAIN_CODE.HIT_POINTS_MAX]: {
@@ -347,20 +326,24 @@ export const ATTACK_DOMAIN_REGISTRY: Record<AttackDomainCode, AttackDomainOption
     description: 'Represents a ranged attack using a weapon such as a bow or crossbow.'
   },
 
-  [ATTACK_DOMAIN_CODE.UNARMED]: {
-    code: ATTACK_DOMAIN_CODE.UNARMED,
-    label: 'Unarmed',
-    tooltip: 'An unarmed attack.',
-    description: 'Represents an unarmed attack using fists with or without gloves or claws.'
-  },
-
   [ATTACK_DOMAIN_CODE.SPELL]: {
     code: ATTACK_DOMAIN_CODE.SPELL,
     label: 'Spell',
     tooltip: 'A spell attack.',
     description: 'Represents a spell attack using a spell such as a fireball or lightning bolt.'
+  },
+
+  [ATTACK_DOMAIN_CODE.UNARMED]: {
+    code: ATTACK_DOMAIN_CODE.UNARMED,
+    label: 'Unarmed',
+    tooltip: 'An unarmed attack.',
+    description: 'Represents an unarmed attack using fists with or without gloves or claws.'
   }
 }
+
+export const ATTACK_DOMAIN_OPTIONS = valuesOf(
+  ATTACK_DOMAIN_REGISTRY
+) as readonly AttackDomainOption[]
 
 export type ValueDomainParamByCode = {
   /* ──────────────────────────────────────────────

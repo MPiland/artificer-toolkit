@@ -69,7 +69,7 @@ export const speakWithPlants: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.SPEAK_WITH_PLANTS, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Resolve a Favor",
+                label: 'Resolve a Favor',
                 reasonCode: 'GM_CHOICE' as const,
                 instructions:
                   "Plants might be able to perform other tasks on your behalf, at the GM's discretion."

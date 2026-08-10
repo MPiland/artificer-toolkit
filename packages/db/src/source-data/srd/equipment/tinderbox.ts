@@ -5,7 +5,8 @@ export const tinderbox: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(178),
   label: 'Tinderbox',
-  description: "This small container holds flint, fire steel, and tinder (usually dry cloth soaked in light oil) used to kindle a fire. Using it to light a torch-or anything else with abundant, exposed fuel-takes an action. Lighting any other fire takes 1 minute.",
+  description:
+    'This small container holds flint, fire steel, and tinder (usually dry cloth soaked in light oil) used to kindle a fire. Using it to light a torch-or anything else with abundant, exposed fuel-takes an action. Lighting any other fire takes 1 minute.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.sp(5),

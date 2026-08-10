@@ -7,6 +7,7 @@
     ".agents/**",
     ".claude/**",
     ".cursor/**",
+    ".tmp/**",
     "dist/**",
     "dist-ssr/**",
     "storybook-static/**",
@@ -15,7 +16,8 @@
     "test-results/**",
     "playwright-report/**",
     "**/*.d.ts",
-    "**/routeTree.gen.ts"
+    "**/routeTree.gen.ts",
+    "packages/db/src/types/supabase.database.ts"
   ],
   "printWidth": 100,
   "semi": false,

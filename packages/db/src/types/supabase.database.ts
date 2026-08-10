@@ -7500,6 +7500,8 @@ export type Database = {
       encounter_templates: {
         Row: {
           campaign_id: string
+          command_fingerprint: string
+          command_id: string
           created_at: string
           enemies: Json
           id: string
@@ -7509,6 +7511,8 @@ export type Database = {
         }
         Insert: {
           campaign_id: string
+          command_fingerprint: string
+          command_id: string
           created_at?: string
           enemies: Json
           id?: string
@@ -7518,6 +7522,8 @@ export type Database = {
         }
         Update: {
           campaign_id?: string
+          command_fingerprint?: string
+          command_id?: string
           created_at?: string
           enemies?: Json
           id?: string

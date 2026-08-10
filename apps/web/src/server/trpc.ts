@@ -60,14 +60,18 @@ export async function handleTrpcRequest(request: Request): Promise<Response> {
 
   const { data: claimsData } = await supabase.auth.getClaims()
   const claims = claimsData?.claims
-  const userId = getSubjectClaim(claims)
-  const isSuperAdmin = getSuperAdminClaim(claims)
+  const subjectClaim = getSubjectClaim(claims)
+  let userId: string | null = null
+  let isSuperAdmin = false
   let invitationSetupPending = false
-  if (userId) {
+  if (subjectClaim) {
     const { data: userData, error: userError } = await supabase.auth.getUser()
-    invitationSetupPending = Boolean(
-      userError || !userData.user || hasPendingInvitationSetup(userData.user)
-    )
+    const user = userData.user
+    if (!userError && user && user.id === subjectClaim) {
+      userId = user.id
+      isSuperAdmin = getSuperAdminClaim(claims)
+      invitationSetupPending = hasPendingInvitationSetup(user)
+    }
   }
 
   const response = await handleTrpcFetchRequest(request, {

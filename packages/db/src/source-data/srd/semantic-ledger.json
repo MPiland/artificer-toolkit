@@ -1,9 +1,6 @@
 {
   "version": 1,
-  "sourceFiles": [
-    "SRD_CC_v5.1.txt",
-    "SRD_CC_v5.1.pdf"
-  ],
+  "sourceFiles": ["SRD_CC_v5.1.txt", "SRD_CC_v5.1.pdf"],
   "sourceSha256": {
     "SRD_CC_v5.1.txt": "a62a67ec97c0fdf71d13323fcd108e3a4be5b70091a2e389cb9badc950c98c1d",
     "SRD_CC_v5.1.pdf": "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0"
@@ -29,9 +26,7 @@
       "authoredSha256": "199929eb5516a5cfbbc1d669b49cbe538e33bd3ea8ab2b3aecb6ef51d2d92709",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000000-0000-0000-8040-010206000000"
-      ]
+      "manualExceptionIds": ["00000000-0000-0000-8040-010206000000"]
     },
     {
       "domain": "classes",
@@ -87,9 +82,7 @@
       "authoredSha256": "1144efbeed71b05538ef58b13f5a9686e55d3eba9cb845ed08b86bedcf867c68",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000000-0000-0000-c003-6c0b00000000"
-      ]
+      "manualExceptionIds": ["00000000-0000-0000-c003-6c0b00000000"]
     },
     {
       "domain": "classes",
@@ -472,9 +465,7 @@
       "authoredSha256": "932791139eec9b2d73b104a2d1258eeaaf1d5c4983a436dc4195d2e96026a5d7",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000000-0000-0000-c00a-180400000000"
-      ]
+      "manualExceptionIds": ["00000000-0000-0000-c00a-180400000000"]
     },
     {
       "domain": "classes",
@@ -525,9 +516,7 @@
       "authoredSha256": "0b66a053d94ea1ac60d4d2de0bfc39f970161ae6dede35ebf3e191b62fcf1ecd",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000000-0002-006d-0070-000100000000"
-      ]
+      "manualExceptionIds": ["00000000-0002-006d-0070-000100000000"]
     },
     {
       "domain": "creatures",
@@ -4897,9 +4886,7 @@
       "authoredSha256": "82c94591fed5775c2580a49238ae83aea268137bcc543a07408e7d905b124aa5",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000000-0002-00ce-0070-010000000000"
-      ]
+      "manualExceptionIds": ["00000000-0002-00ce-0070-010000000000"]
     },
     {
       "domain": "creatures",
@@ -13653,9 +13640,7 @@
       "authoredSha256": "f50d8a18b9b45cb7f7f6527e58627902ba621d633770d1a0162f03d6203deef8",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0005-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0005-000000000001"]
     },
     {
       "domain": "spells",
@@ -13689,9 +13674,7 @@
       "authoredSha256": "21cabf7baaa2dabb4238dc6b69d4a1cc456a5e66939c5ac393e185d3e0ec417e",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0007-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0007-000000000001"]
     },
     {
       "domain": "spells",
@@ -13912,9 +13895,7 @@
       "authoredSha256": "d1ac8ab983dbfa4fc17b28644ddcf33946075d37201788a75a48bd3f50c3d9fc",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0014-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0014-000000000001"]
     },
     {
       "domain": "spells",
@@ -13931,9 +13912,7 @@
       "authoredSha256": "172b571726aaed8fb540c31d329e73912a2591524762a34b8a5782e373341667",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0015-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0015-000000000001"]
     },
     {
       "domain": "spells",
@@ -14018,9 +13997,7 @@
       "authoredSha256": "02b524657f744d742cbd1856fc9d7d0b5f5570880e558fa63c4c0a2566006467",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0019-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0019-000000000001"]
     },
     {
       "domain": "spells",
@@ -14190,9 +14167,7 @@
       "authoredSha256": "c2b8ee821ac76f69c296b5311a028cf032aa747fa1415f2d1ad02d7f0768ae46",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0213-0022-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0213-0022-000000000001"]
     },
     {
       "domain": "spells",
@@ -14294,9 +14269,7 @@
       "authoredSha256": "d9c4f2621f753e6fd532123dbf054db52abbc9fb71d75f67a12bf5353f42499f",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0029-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0029-000000000001"]
     },
     {
       "domain": "spells",
@@ -14347,9 +14320,7 @@
       "authoredSha256": "32192ab90020065bb15048470e0388ecdca9886f80d3f7f9513c74ef7a2066ec",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-002c-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-002c-000000000001"]
     },
     {
       "domain": "spells",
@@ -14366,9 +14337,7 @@
       "authoredSha256": "db094fee3338b943e302b01685b9122a877fb3891776d6c2a798b601a4776380",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-002d-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-002d-000000000001"]
     },
     {
       "domain": "spells",
@@ -14385,9 +14354,7 @@
       "authoredSha256": "9a7ec3bba9411c033d22ce87d4349a580cf949c7a423d088f2568c3d4c159435",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-002e-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-002e-000000000001"]
     },
     {
       "domain": "spells",
@@ -14574,9 +14541,7 @@
       "authoredSha256": "eaf3f1855fd82fe7476aeef8090eff2019d85796fa6bc50ef0cadc8fc12c5e58",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-003c-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-003c-000000000001"]
     },
     {
       "domain": "spells",
@@ -14661,9 +14626,7 @@
       "authoredSha256": "e2d24177b0447ff6778316ee001f12cc66509460dfccc094c02ab8be62a36220",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0041-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0041-000000000001"]
     },
     {
       "domain": "spells",
@@ -14714,9 +14677,7 @@
       "authoredSha256": "ffbbda5313c4eb92b7cf06ff7005a9bc2b639537505f630d089a60b1811a71e8",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0044-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0044-000000000001"]
     },
     {
       "domain": "spells",
@@ -14750,9 +14711,7 @@
       "authoredSha256": "04af63a9966fa11606001186044267bb61c41e1e960faae0e2ccebe07df6901d",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0046-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0046-000000000001"]
     },
     {
       "domain": "spells",
@@ -14905,9 +14864,7 @@
       "authoredSha256": "ec3d59b7c4541fe512731f9a5d380652d57ec3df9891e58be8a8197b10d1d52c",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0051-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0051-000000000001"]
     },
     {
       "domain": "spells",
@@ -14924,9 +14881,7 @@
       "authoredSha256": "9f3eb02388800b1f417282d8aea36b4689c14e91fd95b5d9acf80bdbd4c4d855",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0052-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0052-000000000001"]
     },
     {
       "domain": "spells",
@@ -14943,9 +14898,7 @@
       "authoredSha256": "c727699d668ce471a8afa8643f194b7c562d7c805637383290e89c01db1055e6",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0053-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0053-000000000001"]
     },
     {
       "domain": "spells",
@@ -14962,9 +14915,7 @@
       "authoredSha256": "e833544d15ede82d333f00cd9b327e538345290d49ad49882bb8e8bbff30ab76",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0054-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0054-000000000001"]
     },
     {
       "domain": "spells",
@@ -15049,9 +15000,7 @@
       "authoredSha256": "fd30d13ca7cc2a6f7974e1e161e7b02e131548bf4cd515cd3e108b7ec51a422a",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0056-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0056-000000000001"]
     },
     {
       "domain": "spells",
@@ -15068,9 +15017,7 @@
       "authoredSha256": "7521a05b2fdf39809cf831b6b515e4a280fe71b8192445e287b154dccc66ef6d",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-005b-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-005b-000000000001"]
     },
     {
       "domain": "spells",
@@ -15172,9 +15119,7 @@
       "authoredSha256": "3a9840397a9ba04a74ac66e2132c44a9862844bd94c8f784cf6ca6176e164842",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0061-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0061-000000000001"]
     },
     {
       "domain": "spells",
@@ -15191,9 +15136,7 @@
       "authoredSha256": "6f878faed10b0767302168a6ca4cd47c30b2aac927047d6b844c56cf3af2df7c",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0062-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0062-000000000001"]
     },
     {
       "domain": "spells",
@@ -15210,9 +15153,7 @@
       "authoredSha256": "01360f9e8c9fb47851c0b4c25e6b3d85954def717a15e49b60a76e954da5bee6",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0213-0063-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0213-0063-000000000001"]
     },
     {
       "domain": "spells",
@@ -15365,9 +15306,7 @@
       "authoredSha256": "7c4beec9f0a7bdf8e53af47248b9d2d6f0c38c5e1485117b1ac2f86e5238d62a",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-006c-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-006c-000000000001"]
     },
     {
       "domain": "spells",
@@ -15537,9 +15476,7 @@
       "authoredSha256": "fd9050f976eddfa3229487ea42c79161e4947412046aa6b03ad9a0f158e49f31",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0076-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0076-000000000001"]
     },
     {
       "domain": "spells",
@@ -15556,9 +15493,7 @@
       "authoredSha256": "f7f198933b19b82759792e92e72276b9df425a52d5c7a7a1cd4368e5255f0e9f",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0077-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0077-000000000001"]
     },
     {
       "domain": "spells",
@@ -15694,9 +15629,7 @@
       "authoredSha256": "40b885883ec749be2261cf6d2f87901189298519d68e25bbbb0cb124b6ac0627",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-007f-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-007f-000000000001"]
     },
     {
       "domain": "spells",
@@ -15781,9 +15714,7 @@
       "authoredSha256": "52fa63e383638a2503a7fa78f66db54971a7ea6e39c36fad2f7a457c89069e22",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-021a-0080-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-021a-0080-000000000001"]
     },
     {
       "domain": "spells",
@@ -15834,9 +15765,7 @@
       "authoredSha256": "1430c639c0b262cd0dde42b0b02070683670ac09fb7e84fdfaecd00b819af1d8",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-008b-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-008b-000000000001"]
     },
     {
       "domain": "spells",
@@ -15921,9 +15850,7 @@
       "authoredSha256": "4dcaf710c3efde984a24514afb76d6edcfe15a18ac94b8928d41402034fd435e",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0090-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0090-000000000001"]
     },
     {
       "domain": "spells",
@@ -16025,9 +15952,7 @@
       "authoredSha256": "f275d7ce3c0ff53ee87a294ced1c77f6e88c490181af366d405269b17d519d2d",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0098-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0098-000000000001"]
     },
     {
       "domain": "spells",
@@ -16078,9 +16003,7 @@
       "authoredSha256": "76e3fc432214a461e783f6cf30eaa307c210822f77e61d6cf5ef33380263659b",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0213-009b-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0213-009b-000000000001"]
     },
     {
       "domain": "spells",
@@ -16386,9 +16309,7 @@
       "authoredSha256": "e930eb98b5fc0fd6b51b65efe4df239888686a99d2e458b8e249d036cc5dd4ac",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00ae-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00ae-000000000001"]
     },
     {
       "domain": "spells",
@@ -16405,9 +16326,7 @@
       "authoredSha256": "11c842b7ad48f937f46b68df9209fa5419fb95924663805093501c39148153e3",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00af-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00af-000000000001"]
     },
     {
       "domain": "spells",
@@ -16424,9 +16343,7 @@
       "authoredSha256": "845b16f353af63d8d2383266d5f6229fbd2db1e378a1170ffff4e2f7d21cfbee",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0213-00b0-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0213-00b0-000000000001"]
     },
     {
       "domain": "spells",
@@ -16511,9 +16428,7 @@
       "authoredSha256": "1d3ad221e52d095a2d20e0e673e37d653d93c5fba546a4a83cfaf408de2bdf2f",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00b4-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00b4-000000000001"]
     },
     {
       "domain": "spells",
@@ -16530,9 +16445,7 @@
       "authoredSha256": "74e5b3755842e95d45474ad425ae15fd4ac78cab1601cb0dcc9339e2c865e736",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00b8-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00b8-000000000001"]
     },
     {
       "domain": "spells",
@@ -16634,9 +16547,7 @@
       "authoredSha256": "414520493873d17971277155413e014077537425ebad986e6f92b052d80f871d",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00be-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00be-000000000001"]
     },
     {
       "domain": "spells",
@@ -16653,9 +16564,7 @@
       "authoredSha256": "a5dcfea04a00327cabdcca85013ee6b4cccbc1d927ab0c74f491966e6886f20d",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00bf-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00bf-000000000001"]
     },
     {
       "domain": "spells",
@@ -16672,9 +16581,7 @@
       "authoredSha256": "69fdcc3b6d1f77a5b38e5449033dc8a83b85bc71b50029b088c1f282c4ff75d5",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00c0-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00c0-000000000001"]
     },
     {
       "domain": "spells",
@@ -16708,9 +16615,7 @@
       "authoredSha256": "f68c42dfdd532b2144bafd3595d163a1f7bd7378fff800131fa46da0b0a0dff2",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00ca-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00ca-000000000001"]
     },
     {
       "domain": "spells",
@@ -16812,9 +16717,7 @@
       "authoredSha256": "f916100e678363833764910f05663b61271e9d2812c13f1ac4cedbd5a031b117",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00c7-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00c7-000000000001"]
     },
     {
       "domain": "spells",
@@ -16916,9 +16819,7 @@
       "authoredSha256": "33c672a91f39f05c71e3c63e535e0473966688e9cdae4f065a8ba41ffc02cca7",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00d1-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00d1-000000000001"]
     },
     {
       "domain": "spells",
@@ -16935,9 +16836,7 @@
       "authoredSha256": "434ed42846154a415801e5d3a0259920d3f19044baa30f0a31517854006daddd",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00d2-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00d2-000000000001"]
     },
     {
       "domain": "spells",
@@ -16971,9 +16870,7 @@
       "authoredSha256": "5ba26bad3a951257c5fdc1ac676418b6f132671a5efcb98f338f1f5fbaf68713",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00d5-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00d5-000000000001"]
     },
     {
       "domain": "spells",
@@ -17024,9 +16921,7 @@
       "authoredSha256": "dd24d272197e691ded31c2abd4e984acc90a2e15e1d9148ddf7620bef859f86a",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0213-00da-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0213-00da-000000000001"]
     },
     {
       "domain": "spells",
@@ -17111,9 +17006,7 @@
       "authoredSha256": "a1e8b2d2faf20c91827193bf972cd62a60b3fcdbaeb9e4911bcd75b711d976e7",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00ed-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00ed-000000000001"]
     },
     {
       "domain": "spells",
@@ -17249,9 +17142,7 @@
       "authoredSha256": "de4939cf486307b1256ee462baa7141de10c51a7f44b5b32c6a5e99217dbde63",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00e5-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00e5-000000000001"]
     },
     {
       "domain": "spells",
@@ -17285,9 +17176,7 @@
       "authoredSha256": "b0ede77454095ae41a1094281a3eb0cb8150fdb98c3e50e620ee0068c1a153e4",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00f8-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00f8-000000000001"]
     },
     {
       "domain": "spells",
@@ -17389,9 +17278,7 @@
       "authoredSha256": "342c9f1d7d032c7ae0a20f1e724781b98b416e3031f8acca7be06d79207885d1",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0101-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0101-000000000001"]
     },
     {
       "domain": "spells",
@@ -17425,9 +17312,7 @@
       "authoredSha256": "05f2ec55450b7df26af34318ec463bd4c53ecf1e76936e3260c214a6ef1e64d4",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0103-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0103-000000000001"]
     },
     {
       "domain": "spells",
@@ -17529,9 +17414,7 @@
       "authoredSha256": "7d4927d8cb4ed45470591c9717b088de6e7ab93c682f98539498d6db25091912",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-010b-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-010b-000000000001"]
     },
     {
       "domain": "spells",
@@ -17548,9 +17431,7 @@
       "authoredSha256": "d5a66d0d5828de3c2355f60498b30ec7dfe83300d0802e2aab98359405392889",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-010c-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-010c-000000000001"]
     },
     {
       "domain": "spells",
@@ -17686,9 +17567,7 @@
       "authoredSha256": "328e4a7453e9e24d94db77937d27f40cf8e58ad0edf7d78c3975e188f29bb6a2",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0115-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0115-000000000001"]
     },
     {
       "domain": "spells",
@@ -17756,9 +17635,7 @@
       "authoredSha256": "42f5885d3d19cd8447108aa7227ed810d163fef1c780e96b5507964c56685396",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-011b-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-011b-000000000001"]
     },
     {
       "domain": "spells",
@@ -17775,9 +17652,7 @@
       "authoredSha256": "ef74dca241a236a705e72354cefaa4a7a833920166d6bc526d615e4f4296642b",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-011c-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-011c-000000000001"]
     },
     {
       "domain": "spells",
@@ -17794,9 +17669,7 @@
       "authoredSha256": "21bbcc85e39a8602f34b1e460d48764953c4582e748f5ff11500163f45a7b218",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-011d-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-011d-000000000001"]
     },
     {
       "domain": "spells",
@@ -17830,9 +17703,7 @@
       "authoredSha256": "0d1f02d7834465ecd954ab9f538ea34dc59448e5575ccaf2399d9eeff2f922c7",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0213-0126-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0213-0126-000000000001"]
     },
     {
       "domain": "spells",
@@ -17849,9 +17720,7 @@
       "authoredSha256": "2935759109e6918ac304b789127b213783c930cb0c7bc560912466074c330db5",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0123-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0123-000000000001"]
     },
     {
       "domain": "spells",
@@ -17885,9 +17754,7 @@
       "authoredSha256": "66046ade94d77ade39724dc5aa0b78a92346627042689ff6d9d9c00023574957",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-014f-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-014f-000000000001"]
     },
     {
       "domain": "spells",
@@ -18142,9 +18009,7 @@
       "authoredSha256": "237bb76210e3479a8b2c7ec13444b6aa1861143ce21bd8992d0cad421455788e",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00b9-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00b9-000000000001"]
     },
     {
       "domain": "spells",
@@ -18331,9 +18196,7 @@
       "authoredSha256": "3261d3280aeddab94da5bb09c2a3dc6a0656f9c6e1db6398a5b9822d4ccea7df",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0213-014d-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0213-014d-000000000001"]
     },
     {
       "domain": "spells",
@@ -18401,9 +18264,7 @@
       "authoredSha256": "55a623fbdd7dc1a7ce0fa0c2435b11dd03240b21a2bb04b67b71fe730d2a0d34",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00ce-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00ce-000000000001"]
     },
     {
       "domain": "spells",
@@ -18420,9 +18281,7 @@
       "authoredSha256": "456bed8eaf9f38de2d5f2d19beab8abce70a7271da586aac202f5f15cb43b12f",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00f2-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00f2-000000000001"]
     },
     {
       "domain": "spells",
@@ -18439,9 +18298,7 @@
       "authoredSha256": "1ed852521040cce08f66dffda3ff042963ca218705e7f2520b8a121c33049b8d",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-010d-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-010d-000000000001"]
     },
     {
       "domain": "spells",
@@ -18475,9 +18332,7 @@
       "authoredSha256": "d96ae77e00e8b7fd853ddad587d3d52262f772992ee3e116be9b1e86d9ca861b",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0149-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0149-000000000001"]
     },
     {
       "domain": "spells",
@@ -18511,9 +18366,7 @@
       "authoredSha256": "0972d72e126f5cd5f4c04f97539d60c7993f03bc27ff1f21d59766987ae5532b",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00dc-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00dc-000000000001"]
     },
     {
       "domain": "spells",
@@ -18737,9 +18590,7 @@
       "authoredSha256": "5a8e4de557ebf6027e74a6491608cd8caf01a56dcac6632c4123cc20da593089",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0234-00ee-000000000007"
-      ]
+      "manualExceptionIds": ["00000020-0000-0234-00ee-000000000007"]
     },
     {
       "domain": "spells",
@@ -18773,9 +18624,7 @@
       "authoredSha256": "1264b33cc85454e9d6f5818f88658775430700fbc97b905fbcd80928ec11f477",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-00fd-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-00fd-000000000001"]
     },
     {
       "domain": "spells",
@@ -18792,9 +18641,7 @@
       "authoredSha256": "db1ea2de5b8b427859baf9317b96251f622f064d38de071de1e7dc87f61fc1b6",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-010e-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-010e-000000000001"]
     },
     {
       "domain": "spells",
@@ -18964,9 +18811,7 @@
       "authoredSha256": "37d55eb4a47610dc3c1a31277752af34af490bdc130cc37e017240ed0e78d134",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-012a-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-012a-000000000001"]
     },
     {
       "domain": "spells",
@@ -19017,9 +18862,7 @@
       "authoredSha256": "ab2f500daff9a7b00b7f8c126fa42488294f9973b0a3d91fff25c97b66483ac4",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-012d-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-012d-000000000001"]
     },
     {
       "domain": "spells",
@@ -19070,9 +18913,7 @@
       "authoredSha256": "f8e01ebbccb2d55820ff5e57c4cef0489c0d2926466537cab6c86b2a26db3b41",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0135-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0135-000000000001"]
     },
     {
       "domain": "spells",
@@ -19089,9 +18930,7 @@
       "authoredSha256": "e097e449b0e5d9833ee981eaa146377c2e047cc7044cbfe0f4fa11f5781dfa88",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
-      "manualExceptionIds": [
-        "00000020-0000-0212-0136-000000000001"
-      ]
+      "manualExceptionIds": ["00000020-0000-0212-0136-000000000001"]
     },
     {
       "domain": "spells",

@@ -14,7 +14,8 @@ export function getCampaignRouteIdentity(publicId: string, client: Api = api) {
   const normalizedPublicId = publicId.toLowerCase()
   return queryOptions({
     queryKey: queryKeys.routeIds.resolve('CAMPAIGN', normalizedPublicId),
-    queryFn: () => client.routeIds.resolve({ subjectKind: 'CAMPAIGN', publicId: normalizedPublicId })
+    queryFn: () =>
+      client.routeIds.resolve({ subjectKind: 'CAMPAIGN', publicId: normalizedPublicId })
   })
 }
 
@@ -42,7 +43,8 @@ export function getCampaignChat(
 ) {
   return infiniteQueryOptions({
     queryKey: queryKeys.campaigns.chat(campaignId, room, directUserId),
-    queryFn: ({ pageParam }) => client.campaigns.chat.list(campaignId, room, pageParam, 50, directUserId),
+    queryFn: ({ pageParam }) =>
+      client.campaigns.chat.list(campaignId, room, pageParam, 50, directUserId),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     refetchInterval: 15_000
@@ -65,11 +67,7 @@ export function getCampaignSessions(campaignId: string, client: Api = api) {
   })
 }
 
-export function getCampaignSession(
-  campaignId: string,
-  sessionNumber: number,
-  client: Api = api
-) {
+export function getCampaignSession(campaignId: string, sessionNumber: number, client: Api = api) {
   return queryOptions({
     queryKey: queryKeys.campaigns.session(campaignId, sessionNumber),
     queryFn: () => client.campaigns.sessions.get({ campaignId, sessionNumber }),
@@ -89,11 +87,7 @@ export function getCampaignSessionAttendance(
   })
 }
 
-export function getCampaignSessionRsvps(
-  campaignId: string,
-  sessionId: string,
-  client: Api = api
-) {
+export function getCampaignSessionRsvps(campaignId: string, sessionId: string, client: Api = api) {
   return queryOptions({
     queryKey: queryKeys.campaigns.sessionRsvps(campaignId, sessionId),
     queryFn: () => client.campaigns.sessions.rsvps.list(campaignId, sessionId),

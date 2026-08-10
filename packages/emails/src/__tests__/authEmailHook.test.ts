@@ -12,16 +12,26 @@ const basePayload = {
   user: { email: 'new-user@example.com' }
 }
 
-function createRequest() {
+function createRequest(body = '{}', headers: Record<string, string> = {}) {
   return new Request('https://artificer-toolkit.test/.netlify/functions/send-auth-email', {
-    body: '{}',
+    body,
+    headers: {
+      'webhook-id': 'auth-email-request-1',
+      ...headers
+    },
     method: 'POST'
   })
 }
 
 describe('send auth email hook', () => {
   it('sends the selected template through the provider with a verification link', async () => {
-    const sent: Array<{ html: string; subject: string; text: string; to: string }> = []
+    const sent: Array<{
+      html: string
+      idempotencyKey: string
+      subject: string
+      text: string
+      to: string
+    }> = []
     const handler = createSendAuthEmailHandler({
       render: async (input) => ({ html: JSON.stringify(input), text: '' }),
       send: async (message) => {
@@ -38,6 +48,7 @@ describe('send auth email hook', () => {
     expect(sent).toHaveLength(1)
     expect(sent[0]?.to).toBe('new-user@example.com')
     expect(sent[0]?.subject).toBe('Confirm your Artificer Toolkit email')
+    expect(sent[0]?.idempotencyKey).toBe('auth-email-request-1:0')
     expect(sent[0]?.html).toContain('signup-token-hash')
     expect(sent[0]?.html).toContain(
       'redirect_to=https%3A%2F%2Fapp.artificer-toolkit.test%2Fauth%2Fconfirmed'
@@ -61,6 +72,26 @@ describe('send auth email hook', () => {
     const response = await handler(createRequest())
 
     expect(response.status).toBe(401)
+  })
+
+  it.each([
+    ['declared', { 'content-length': String(64 * 1024 + 1) }],
+    ['missing', {}],
+    ['understated', { 'content-length': '1' }]
+  ])('rejects a %s oversized request before signature verification', async (_name, headers) => {
+    const verifyWebhook = vi.fn(() => basePayload)
+    const handler = createSendAuthEmailHandler({
+      render: async () => ({ html: '', text: '' }),
+      send: async () => undefined,
+      siteUrl: 'https://app.artificer-toolkit.test',
+      supabaseUrl: 'https://project.supabase.co',
+      verifyWebhook
+    })
+
+    const response = await handler(createRequest('x'.repeat(64 * 1024 + 1), headers))
+
+    expect(response.status).toBe(413)
+    expect(verifyWebhook).not.toHaveBeenCalled()
   })
 
   it('sends invitations through the app callback that continues to password setup', async () => {
@@ -99,7 +130,7 @@ describe('send auth email hook', () => {
   })
 
   it("uses Supabase's reversed token-hash mapping for double-confirm email changes", async () => {
-    const sent: Array<{ html: string; to: string }> = []
+    const sent: Array<{ html: string; idempotencyKey: string; to: string }> = []
     const handler = createSendAuthEmailHandler({
       render: async (input) => ({ html: JSON.stringify(input), text: 'email change' }),
       send: async (message) => {
@@ -129,8 +160,28 @@ describe('send auth email hook', () => {
     expect(sent).toHaveLength(2)
     expect(sent[0]?.to).toBe('old@example.com')
     expect(sent[0]?.html).toContain('old-address-hash')
+    expect(sent[0]?.idempotencyKey).toBe('auth-email-request-1:0')
     expect(sent[1]?.to).toBe('new@example.com')
     expect(sent[1]?.html).toContain('new-address-hash')
+    expect(sent[1]?.idempotencyKey).toBe('auth-email-request-1:1')
+  })
+
+  it('reuses the same provider idempotency keys when a signed request is retried', async () => {
+    const idempotencyKeys: string[] = []
+    const handler = createSendAuthEmailHandler({
+      render: async () => ({ html: 'signup', text: 'signup' }),
+      send: async (message) => {
+        idempotencyKeys.push(message.idempotencyKey)
+      },
+      siteUrl: 'https://app.artificer-toolkit.test',
+      supabaseUrl: 'https://project.supabase.co',
+      verifyWebhook: () => basePayload
+    })
+
+    await handler(createRequest())
+    await handler(createRequest())
+
+    expect(idempotencyKeys).toEqual(['auth-email-request-1:0', 'auth-email-request-1:0'])
   })
 
   it('sends one email-change message when double confirmation is not enabled', async () => {

@@ -250,9 +250,7 @@ function compileFollowUpSave(outcome: FollowUpSaveAuthored): CompiledFollowUpSav
     ...base,
     onSuccess: compileFollowUpBranch(onSuccess),
     onFailure: compileFollowUpBranch(onFailure),
-    ...(onDurationComplete
-      ? { onDurationComplete: compileFollowUpBranch(onDurationComplete) }
-      : {})
+    ...(onDurationComplete ? { onDurationComplete: compileFollowUpBranch(onDurationComplete) } : {})
   }
 }
 

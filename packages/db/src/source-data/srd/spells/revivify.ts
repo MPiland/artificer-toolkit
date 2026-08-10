@@ -71,9 +71,10 @@ export const revivify: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.REVIVIFY, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Check Revival Eligibility",
+                label: 'Check Revival Eligibility',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "This spell can\u0027t return to life a creature that has died of old age, nor can it restore any missing body parts."
+                instructions:
+                  'This spell can\u0027t return to life a creature that has died of old age, nor can it restore any missing body parts.'
               }
             ]
           }

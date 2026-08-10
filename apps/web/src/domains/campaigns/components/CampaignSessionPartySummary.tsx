@@ -5,7 +5,7 @@ import type { CampaignDetailDto } from '#app/lib/api'
 import { getCharacterSheet } from '#app/data/characters/queries'
 import { getCampaignSessionAttendance } from '#app/data/campaigns/queries'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
-import * as styles from '../campaigns.css'
+import * as sessionsStyles from '../campaignSessions.css'
 
 export function CampaignSessionPartySummary({
   campaign,
@@ -41,7 +41,11 @@ export function CampaignSessionPartySummary({
           {sheets.some((sheet) => sheet.isPending) ? <Loader size='xs' /> : null}
         </Group>
         {assigned.length ? (
-          <SimpleGrid className={styles.sessionPartyGrid} cols={{ base: 1, sm: 2, lg: 3 }} mt='md'>
+          <SimpleGrid
+            className={sessionsStyles.sessionPartyGrid}
+            cols={{ base: 1, sm: 2, lg: 3 }}
+            mt='md'
+          >
             {assigned.map(({ membership, character }, index) => {
               const sheet = sheets[index]?.data
               const present =
@@ -49,7 +53,7 @@ export function CampaignSessionPartySummary({
                 true
               return (
                 <article
-                  className={styles.sessionPartyCard}
+                  className={sessionsStyles.sessionPartyCard}
                   data-absent={!present || undefined}
                   key={character.id}
                 >

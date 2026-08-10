@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/tanstackstart-react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { initializeServerSentry } from './sentry.server'
+import { redactSentryEvent } from './sentryPrivacy'
 
 vi.mock('@sentry/tanstackstart-react', () => ({
   init: vi.fn(),
@@ -17,6 +18,8 @@ describe('initializeServerSentry', () => {
     initializeServerSentry({ dsn: 'https://public@example.ingest.sentry.io/1', isProduction: true })
 
     expect(Sentry.init).toHaveBeenCalledWith({
+      beforeSend: redactSentryEvent,
+      beforeSendTransaction: redactSentryEvent,
       dataCollection: {
         httpBodies: [],
         userInfo: false

@@ -1,11 +1,14 @@
 CREATE TABLE IF NOT EXISTS public.encounter_templates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
+  command_id uuid NOT NULL,
+  command_fingerprint text NOT NULL,
   name text NOT NULL CHECK (char_length(btrim(name)) BETWEEN 1 AND 160),
   version integer NOT NULL DEFAULT 1 CHECK (version > 0),
   enemies jsonb NOT NULL CHECK (jsonb_typeof(enemies) = 'array' AND jsonb_array_length(enemies) > 0),
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (campaign_id, command_id)
 );
 CREATE INDEX IF NOT EXISTS encounter_templates_campaign_idx ON public.encounter_templates (campaign_id, updated_at DESC);
 ALTER TABLE public.encounter_templates ENABLE ROW LEVEL SECURITY;

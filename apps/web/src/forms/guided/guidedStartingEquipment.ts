@@ -1,4 +1,4 @@
-import type { StartingEquipmentItemDto } from '../rendering/authoringNodeDefaults'
+import type { StartingEquipmentItemDto } from '../rendering/startingEquipmentDefaults'
 
 export type GuidedStartingEquipmentItem = StartingEquipmentItemDto & {
   authoringModeKind: 'SELECTED'

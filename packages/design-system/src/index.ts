@@ -5,11 +5,9 @@ export {
   actionPresentationPresets,
   actionWidth,
   controlDensity,
-  presentationContexts,
   semanticSurfaceRoles,
   semanticTextStyles,
-  semanticTextTones,
-  semanticVisualRoles
+  semanticTextTones
 } from './semantics.js'
 export type {
   ActionAppearance,
@@ -28,9 +26,9 @@ export type {
   SemanticTextAppearance,
   SemanticTextPresentation,
   SemanticTextStyle,
-  SemanticTextTone,
-  SemanticVisualRole
+  SemanticTextTone
 } from './semantics.js'
+export { brandColorScale, darkColorTokens, lightColorTokens } from './colors.js'
 export {
   spacingScale,
   radiusScale,
@@ -38,17 +36,9 @@ export {
   fontWeightScale,
   breakpoints,
   motionScale,
-  blackForgeSurfaceScale,
-  lightColorTokens,
-  darkColorTokens,
-  brandColorScale,
-  spacingScaleKeys,
-  typographyScaleKeys,
-  radiusScaleKeys,
-  breakpointsKeys,
   type SpacingKeys,
   type RadiusKeys,
   type BreakpointKeys,
   type MotionKeys,
   type FontWeightKeys
-} from './primitives.js'
+} from './scales.js'

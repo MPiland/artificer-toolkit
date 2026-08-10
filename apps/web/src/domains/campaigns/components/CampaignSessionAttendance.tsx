@@ -4,7 +4,7 @@ import type { CampaignDetailDto, CampaignSessionDto } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { getCampaignSessionAttendance } from '#app/data/campaigns/queries'
 import { queryKeys } from '#app/lib/queryKeys'
-import * as styles from '../campaigns.css'
+import * as sessionsStyles from '../campaignSessions.css'
 
 export function CampaignSessionAttendance({
   campaign,
@@ -56,13 +56,16 @@ export function CampaignSessionAttendance({
       {attendance.error ? <Alert color='red'>Attendance couldn’t be loaded.</Alert> : null}
       {setAttendance.error ? <Alert color='red'>Attendance couldn’t be updated.</Alert> : null}
       {!attendance.isPending && !attendance.error && assignedCharacters.length ? (
-        <SimpleGrid className={styles.sessionAttendanceGrid} cols={{ base: 1, sm: 2, md: 4 }}>
+        <SimpleGrid
+          className={sessionsStyles.sessionAttendanceGrid}
+          cols={{ base: 1, sm: 2, md: 4 }}
+        >
           {assignedCharacters.map((character) => {
             const present = isPresent(attendance.data, character.id)
             return (
               <Button
                 aria-pressed={present}
-                className={styles.sessionAttendanceCard}
+                className={sessionsStyles.sessionAttendanceCard}
                 data-selected={present || undefined}
                 disabled={!canEdit || setAttendance.isPending}
                 key={character.id}

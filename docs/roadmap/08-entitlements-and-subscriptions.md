@@ -18,12 +18,12 @@ Complete the provider-neutral entitlement model established in Phase 03 and laun
 
 ## Launch plan matrix
 
-| Plan | Price | Characters | Owned homebrew roots | Storage | Hosted Campaigns | Seats per Campaign | Public listings | Saved Encounters | Paid tables |
-| ---- | ----- | ---------- | -------------------- | ------- | ---------------- | ------------------ | --------------- | ---------------- | ----------- |
-| Free | $0 | 6 | 20 | 250 MB | 1 active | 5 | 1 free | 3 | No |
-| Player | $4.99/month or $49.99/year | Unlimited | Unlimited | 1 GB | 1 active | 5 | 1 free | 3 | No |
-| GM | $9.99/month or $99.99/year | Unlimited | Unlimited | 5 GB | 5 active | 12 | 5 | Unlimited | Yes, 10% Artificer platform fee |
-| Pro GM | $49.99/month or $499.99/year | Unlimited | Unlimited | 25 GB | Unlimited under fair use | 12 | Unlimited under fair use | Unlimited | Yes, 0% Artificer platform fee |
+| Plan   | Price                        | Characters | Owned homebrew roots | Storage | Hosted Campaigns         | Seats per Campaign | Public listings          | Saved Encounters | Paid tables                     |
+| ------ | ---------------------------- | ---------- | -------------------- | ------- | ------------------------ | ------------------ | ------------------------ | ---------------- | ------------------------------- |
+| Free   | $0                           | 6          | 20                   | 250 MB  | 1 active                 | 5                  | 1 free                   | 3                | No                              |
+| Player | $4.99/month or $49.99/year   | Unlimited  | Unlimited            | 1 GB    | 1 active                 | 5                  | 1 free                   | 3                | No                              |
+| GM     | $9.99/month or $99.99/year   | Unlimited  | Unlimited            | 5 GB    | 5 active                 | 12                 | 5                        | Unlimited        | Yes, 10% Artificer platform fee |
+| Pro GM | $49.99/month or $499.99/year | Unlimited  | Unlimited            | 25 GB   | Unlimited under fair use | 12                 | Unlimited under fair use | Unlimited        | Yes, 0% Artificer platform fee  |
 
 Every plan may join unlimited Campaigns, use Campaign-scoped content, contribute owned content when permitted, participate in party inventory, and use Encounters and VTT. Processing charges and applicable taxes are separate from the Artificer platform fee. Prices and limits are the launch-planning baseline and may be revised from evidence before public release.
 

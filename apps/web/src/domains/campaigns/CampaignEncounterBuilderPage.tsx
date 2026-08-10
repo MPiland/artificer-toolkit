@@ -18,7 +18,8 @@ import { getCreatureList } from '#app/data/creatures/queries'
 import { getEncounterTemplates } from '#app/data/encounters/queries'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
-import * as styles from './campaigns.css'
+import * as sharedStyles from './campaigns.css'
+import * as encounterStyles from './components/encounter.css'
 
 type TemplateEnemy =
   | { kind: 'CREATURE'; sourceId: string; label: string }
@@ -62,8 +63,8 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
   }
 
   return (
-    <main className={styles.page}>
-      <header className={styles.pageHeader}>
+    <main className={sharedStyles.page}>
+      <header className={sharedStyles.pageHeader}>
         <div>
           <Title order={1}>Build an encounter</Title>
           <Text c='dimmed'>Create a reusable enemy roster, then add it to a Session.</Text>
@@ -83,8 +84,8 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
       ) : create.error ? (
         <Alert color='red'>The Encounter couldn’t be saved. Your roster is still here.</Alert>
       ) : null}
-      <div className={styles.encounterBuilderGrid}>
-        <section className={styles.panel} aria-labelledby='encounter-template-builder-title'>
+      <div className={encounterStyles.encounterBuilderGrid}>
+        <section className={sharedStyles.panel} aria-labelledby='encounter-template-builder-title'>
           <Title id='encounter-template-builder-title' order={2}>
             Encounter roster
           </Title>
@@ -92,14 +93,14 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
             Name the encounter and add the enemies the party will face.
           </Text>
           <TextInput
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             label='Encounter name'
             value={name}
             onChange={(event) => setName(event.currentTarget.value)}
           />
-          <Group className={styles.encounterBuilderSourceRow} align='end' wrap='wrap'>
+          <Group className={encounterStyles.encounterBuilderSourceRow} align='end' wrap='wrap'>
             <Select
-              classNames={{ input: styles.input }}
+              classNames={{ input: sharedStyles.input }}
               data={(creatures.data?.items ?? []).map((creature) => ({
                 value: creature.id,
                 label: creature.label
@@ -127,15 +128,15 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
               Add creature
             </Button>
           </Group>
-          <Group className={styles.encounterBuilderCustomRow} align='end' wrap='wrap'>
+          <Group className={encounterStyles.encounterBuilderCustomRow} align='end' wrap='wrap'>
             <TextInput
-              classNames={{ input: styles.input }}
+              classNames={{ input: sharedStyles.input }}
               label='Custom enemy name'
               value={customName}
               onChange={(event) => setCustomName(event.currentTarget.value)}
             />
             <NumberInput
-              classNames={{ input: styles.input }}
+              classNames={{ input: sharedStyles.input }}
               label='Max HP'
               min={0}
               value={customHitPoints}
@@ -160,7 +161,7 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
             <Stack gap='xs'>
               {enemies.map((enemy, index) => (
                 <Group
-                  className={styles.encounterActorSummary}
+                  className={encounterStyles.encounterActorSummary}
                   justify='space-between'
                   key={`${enemy.kind}-${index}`}
                 >
@@ -200,7 +201,7 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
             </Button>
           </Group>
         </section>
-        <section className={styles.panel} aria-labelledby='encounter-template-history-title'>
+        <section className={sharedStyles.panel} aria-labelledby='encounter-template-history-title'>
           <Group justify='space-between'>
             <Title id='encounter-template-history-title' order={2}>
               Saved encounters
@@ -211,7 +212,7 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
           {templates.data?.length ? (
             <Stack gap='xs'>
               {templates.data.map((template) => (
-                <div className={styles.encounterActorSummary} key={template.id}>
+                <div className={encounterStyles.encounterActorSummary} key={template.id}>
                   <Text fw={600}>{template.name}</Text>
                   <Text c='dimmed' size='sm'>
                     {template.enemies

@@ -126,7 +126,7 @@ export function createSecurityHeaders(options: SecurityHeaderOptions = {}) {
   return {
     'Content-Security-Policy': getCsp(options),
     'Permissions-Policy': PERMISSIONS_POLICY,
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Referrer-Policy': 'strict-origin',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY'
   } as const

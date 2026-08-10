@@ -65,9 +65,10 @@ export const wish: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.WISH, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Resolve an Unlisted Wish",
+                label: 'Resolve an Unlisted Wish',
                 reasonCode: 'GM_CHOICE' as const,
-                instructions: "The GM has great latitude in ruling what occurs in such an instance; the greater the wish, the greater the likelihood that something goes wrong."
+                instructions:
+                  'The GM has great latitude in ruling what occurs in such an instance; the greater the wish, the greater the likelihood that something goes wrong.'
               }
             ]
           }

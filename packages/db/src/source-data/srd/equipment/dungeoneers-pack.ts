@@ -5,7 +5,8 @@ export const dungeoneersPack: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(184),
   label: "Dungeoneer's Pack",
-  description: "Includes a backpack, a crowbar, a hammer, 10 pitons, 10 torches, a tinderbox, 10 days of rations, and a waterskin. The pack also has 50 feet of hempen rope strapped to the side of it.",
+  description:
+    'Includes a backpack, a crowbar, a hammer, 10 pitons, 10 torches, a tinderbox, 10 days of rations, and a waterskin. The pack also has 50 feet of hempen rope strapped to the side of it.',
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(12),

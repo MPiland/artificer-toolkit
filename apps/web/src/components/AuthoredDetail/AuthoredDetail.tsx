@@ -9,7 +9,7 @@ import type {
   AuthoredDetailPendingOperation,
   AuthoredDetailSectionModel
 } from './AuthoredDetail.types'
-import { renderSanitizedRichHtml } from '#app/ui/primitives/renderSanitizedRichHtml'
+import { renderSanitizedRichHtml } from '#app/lib/richText'
 import { MediaImageView, type MediaImageTarget } from '#app/components/MediaImage'
 
 interface AuthoredDetailLayoutProps {

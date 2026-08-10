@@ -77,10 +77,10 @@ export const modifyMemory: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.MODIFY_MEMORY, 0x213, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Define the Memory",
+                label: 'Define the Memory',
                 reasonCode: 'PLAYER_DECLARATION' as const,
                 instructions:
-                  "You can permanently eliminate all memory of the event, allow the target to recall the event with perfect clarity and exacting detail, change its memory of the details of the event, or create a memory of some other event."
+                  'You can permanently eliminate all memory of the event, allow the target to recall the event with perfect clarity and exacting detail, change its memory of the details of the event, or create a memory of some other event.'
               }
             ]
           }

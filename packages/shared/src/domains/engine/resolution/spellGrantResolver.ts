@@ -237,14 +237,17 @@ function resolveSpellGrant(
     return
   }
 
-  const spellIds = resolveGrantSpellIds(grant, classEntry, snapshot)
+  const source: Extract<CharacterProvenance, { kind: 'CLASS' | 'SUBCLASS' }> =
+    sourceKind === 'SUBCLASS'
+      ? { kind: 'SUBCLASS', subclassId: classEntry.subclassId ?? classEntry.classId }
+      : { kind: 'CLASS', classId: classEntry.classId }
+  const spellIds = resolveGrantSpellIds(grant, classEntry, snapshot, source)
   if (!spellIds.length) return
 
   const grantAttributes = grant.attributes ?? []
   const isPrepared = grantAttributes.includes('PREPARED')
   const isKnown = grantAttributes.includes('KNOWN')
-  const sourceId =
-    sourceKind === 'SUBCLASS' ? (classEntry.subclassId ?? classEntry.classId) : classEntry.classId
+  const sourceId = source.kind === 'SUBCLASS' ? source.subclassId : source.classId
   const sourceInstanceId = `${sourceKind}:${sourceId}:${classEntry.classId}:${sourceFeatureId}:${grant.id}`
 
   for (const spellId of spellIds) {
@@ -258,10 +261,7 @@ function resolveSpellGrant(
     spellAccess.push({
       id: `${sourceInstanceId}:${spellId}`,
       spellId,
-      source:
-        sourceKind === 'SUBCLASS'
-          ? { kind: 'SUBCLASS', subclassId: classEntry.subclassId ?? classEntry.classId }
-          : { kind: 'CLASS', classId: classEntry.classId },
+      source,
       timing: {
         kind: 'CLASS_LEVEL',
         classId: classEntry.classId,
@@ -281,9 +281,14 @@ function resolveSpellGrant(
 function resolveGrantSpellIds(
   grant: CompiledSpellGrant,
   classEntry: SnapshotClassEntry,
-  snapshot: CharacterBuildSnapshot
+  snapshot: CharacterBuildSnapshot,
+  source: Extract<CharacterProvenance, { kind: 'CLASS' | 'SUBCLASS' }>
 ): string[] {
   if (grant.scalingKind === 'NONE') {
+    if (grant.selectionKind === 'CHOSEN') {
+      return getChosenGrantTargetIds(snapshot, grant.id, source)
+    }
+
     return grant.authoringModeKind === 'SELECTED' ? [...(grant.spellIds ?? [])] : []
   }
 
@@ -297,6 +302,10 @@ function resolveGrantSpellIds(
   const spellIds: string[] = []
   for (const levelEntry of grant.levels) {
     if (levelEntry.level > effectiveLevel) continue
+    if (grant.selectionKind === 'CHOSEN') {
+      spellIds.push(...getChosenGrantTargetIds(snapshot, grant.id, source, levelEntry.level))
+      continue
+    }
     if (levelEntry.authoringModeKind !== 'SELECTED') continue
     spellIds.push(...(levelEntry.spellIds ?? []))
   }

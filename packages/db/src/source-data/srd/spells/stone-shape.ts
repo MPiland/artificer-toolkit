@@ -67,7 +67,7 @@ export const stoneShape: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.STONE_SHAPE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Choose the Shape",
+                label: 'Choose the Shape',
                 reasonCode: 'PLAYER_DECLARATION' as const,
                 instructions:
                   'You touch a stone object of Medium size or smaller or a section of stone no more than 5 feet in any dimension and form it into any shape that suits your purpose.'

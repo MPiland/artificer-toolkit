@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isRecord } from '../utils/valueGuards'
 
 declare module '@tanstack/history' {
   interface HistoryState {
@@ -91,8 +92,4 @@ function areSearchValuesEqual(left: unknown, right: unknown): boolean {
       (key, index) => key === rightKeys[index] && areSearchValuesEqual(left[key], right[key])
     )
   )
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

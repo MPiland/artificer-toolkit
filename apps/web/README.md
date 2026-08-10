@@ -4,14 +4,14 @@
 
 ## Owns and does not own
 
-- Owns `src/routes`, route loaders, query/mutation adapters in `src/data`, the typed transport adapter in `src/lib/api.ts`, and shared UI/forms composition.
+- Owns `src/routes`, route loaders, query/mutation adapters in `src/data`, the typed transport composition seam in `src/lib/api.ts` with domain owners in `src/lib/api/`, and shared UI/forms composition.
 - `src/server/trpc.ts` is the frontend/server adapter: it checks same-origin requests, reads Supabase claims, and forwards an authenticated context to `apps/apis`.
 - Does not own product-data rules, persistence, node-map resolution, or engine calculations. Those remain behind the [`apps/apis` seam](../apis/README.md) and the shared packages.
 - Character Builder is intentionally a domain workflow distinct from node-map-driven content authoring; it may reuse form primitives without becoming another node-map.
 
 ## Key flow
 
-Routes call a `src/data` query or mutation adapter. The adapter uses `src/lib/api.ts`, which sends tRPC requests and parses responses with shared Zod DTOs. TanStack Query owns cache and invalidation; route components render the resulting DTOs through domain presenters and form/layout components.
+Routes call a `src/data` query or mutation adapter. The adapter uses the `src/lib/api.ts` composition seam; `src/lib/api/transport.ts` sends tRPC requests and domain API modules parse responses with shared Zod DTOs. TanStack Query owns cache and invalidation; route components render the resulting DTOs through domain presenters and form/layout components.
 
 For authoring, the flow is route → node-runtime DTO → `AuthoringFormLayout`/`FormRenderer` → TanStack Form state. Group presentation is supplied explicitly by the resolved node map: simple content stays inline, deep branches use the structure rail, and staged leaf collections use the shared overlay drawer. For characters, Builder draft/resolve/preview/commit and Sheet commands stay in character-specific adapters and routes.
 
@@ -40,7 +40,7 @@ The committed edge function limits `/api/trpc/*` to 60 requests per 60 seconds p
 Set these values in the Netlify UI rather than in `netlify.toml`:
 
 - `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` for the browser and SSR Supabase client. They are publishable values, not secrets.
-- `VITE_SENTRY_DSN` for production browser and server error reporting plus the opt-in feedback form. The DSN is a public client identifier, not a secret. Both runtimes use the same Sentry project because they ship as one TanStack Start deployment.
+- `VITE_SENTRY_DSN` for production browser and server error reporting plus the opt-in feedback form. The DSN is a public client identifier, not a secret. Both runtimes use the same Sentry project because they ship as one TanStack Start deployment. Sentry callbacks remove URL queries, fragments, referrers, and Campaign invitation tokens before transmission; the app also sends only the request origin in browser referrers.
 - `SENTRY_ORG=artificer-toolkit-rc` and `SENTRY_PROJECT=javascript-tanstackstart-react` for production source-map uploads during the build.
 - `SENTRY_AUTH_TOKEN` for production source-map uploads. Keep it secret and available only to the build environment.
 - `SUPABASE_URL` and `SUPABASE_SECRET_KEY` for server-only request authentication. They are required by the current server functions; make them available to Functions at runtime only.

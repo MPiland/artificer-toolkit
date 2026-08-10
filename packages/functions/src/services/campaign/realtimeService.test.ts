@@ -45,6 +45,47 @@ describe('broadcastCampaignInvalidation', () => {
     ])
   })
 
+  it('broadcasts a user invalidation only to the named active membership', async () => {
+    const recipientUserId = '64a53af5-1eb3-4768-945a-bc9874b7a397'
+    mocks.listActiveMemberships.mockResolvedValue([
+      {
+        userId: '64a53af5-1eb3-4768-945a-bc9874b7a396',
+        role: 'OWNER',
+        accessStartedAt: '2026-08-07T11:00:00.000Z',
+        acceptedAt: '2026-08-06T11:00:00.000Z'
+      },
+      {
+        userId: recipientUserId,
+        role: 'PLAYER',
+        accessStartedAt: '2026-08-07T12:00:00.000Z',
+        acceptedAt: '2026-08-06T12:00:00.000Z'
+      },
+      {
+        userId: '64a53af5-1eb3-4768-945a-bc9874b7a398',
+        role: 'PLAYER',
+        accessStartedAt: '2026-08-07T13:00:00.000Z',
+        acceptedAt: '2026-08-06T13:00:00.000Z'
+      }
+    ])
+
+    await expect(
+      broadcastCampaignInvalidation({} as DBLike, '64a53af5-1eb3-4768-945a-bc9874b7a395', {
+        scope: 'USER',
+        recipientUserId,
+        entity: 'CONTENT',
+        entityId: 'b43dcfd6-9560-4e6d-90af-dfa3f12ab8f0',
+        event: 'UPDATED',
+        eventId: 'ac7e816a-f237-4266-a18c-50f8524d4013',
+        cursor: 'ac7e816a-f237-4266-a18c-50f8524d4013'
+      })
+    ).resolves.toBe(true)
+    expect(mocks.channel).toHaveBeenCalledWith(
+      `campaign:64a53af5-1eb3-4768-945a-bc9874b7a395:user:${recipientUserId}:1786104000000`,
+      { config: { private: true } }
+    )
+    expect(mocks.channel).toHaveBeenCalledTimes(1)
+  })
+
   it('broadcasts only the validated invalidation envelope to the private room topic', async () => {
     const envelope = {
       scope: 'PARTY' as const,

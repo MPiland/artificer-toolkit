@@ -6,8 +6,9 @@ import { api } from '#app/lib/api'
 import { getCampaignNotebook } from '#app/data/campaigns/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
-import { renderSanitizedRichHtml } from '#app/ui/primitives/renderSanitizedRichHtml'
-import * as styles from '../campaigns.css'
+import { renderSanitizedRichHtml } from '#app/lib/richText'
+import * as sharedStyles from '../campaigns.css'
+import * as notesStyles from './notes.css'
 
 export function CampaignNotebook({
   campaign,
@@ -56,7 +57,7 @@ export function CampaignNotebook({
 
   return (
     <section
-      className={embedded ? styles.notesSection : styles.panel}
+      className={embedded ? notesStyles.notesSection : sharedStyles.panel}
       aria-labelledby='campaign-notebook-title'
     >
       <div>
@@ -82,7 +83,7 @@ export function CampaignNotebook({
       ))}
       {canCreate ? (
         <form
-          className={styles.form}
+          className={sharedStyles.form}
           onSubmit={(event: SubmitEvent) => {
             event.preventDefault()
             create.mutate()
@@ -91,7 +92,7 @@ export function CampaignNotebook({
           <Title order={3}>New section</Title>
           <TextInput
             label='Section title'
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             required
             value={newTitle}
             onChange={(event) => setNewTitle(event.currentTarget.value)}
@@ -102,7 +103,7 @@ export function CampaignNotebook({
                 { label: 'GM private', value: 'GM_PRIVATE' },
                 { label: 'Shared with party', value: 'SHARED' }
               ]}
-              classNames={{ input: styles.input }}
+              classNames={{ input: sharedStyles.input }}
               label='Visibility'
               value={visibility}
               onChange={(value) => setVisibility((value as typeof visibility) ?? 'GM_PRIVATE')}
@@ -209,7 +210,7 @@ function NotebookEditor({
       ) : null}
       <TextInput
         disabled={!editable}
-        classNames={{ input: styles.input }}
+        classNames={{ input: sharedStyles.input }}
         label='Section title'
         value={title}
         onChange={(event) => setTitle(event.currentTarget.value)}
@@ -220,7 +221,7 @@ function NotebookEditor({
             { label: 'GM private', value: 'GM_PRIVATE' },
             { label: 'Shared with party', value: 'SHARED' }
           ]}
-          classNames={{ input: styles.input }}
+          classNames={{ input: sharedStyles.input }}
           label='Visibility'
           value={visibility}
           onChange={(value) => setVisibility((value as typeof visibility) ?? visibility)}

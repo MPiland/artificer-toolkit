@@ -9,7 +9,8 @@ import type {
 import { getEquipmentList } from '#app/data/equipment/queries'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
+import * as inventoryStyles from './inventory.css'
 
 export function CampaignPartyInventoryActions({
   campaignId,
@@ -43,7 +44,7 @@ export function CampaignPartyInventoryActions({
   return (
     <Stack gap='sm'>
       {mutation.error ? <Alert color='red'>{mutation.error.message}</Alert> : null}
-      <div className={styles.partyInventoryActionList}>
+      <div className={inventoryStyles.partyInventoryActionList}>
         {inventory.items.length === 0 && inventory.currencies.length === 0 ? (
           <Text c='dimmed'>The party inventory is empty.</Text>
         ) : null}
@@ -74,21 +75,21 @@ export function CampaignPartyInventoryActions({
           ))}
       </div>
 
-      <div className={styles.partyInventoryAddSection}>
+      <div className={inventoryStyles.partyInventoryAddSection}>
         <Text fw={700}>Add equipment</Text>
-        <div className={styles.partyInventoryActionGrid}>
+        <div className={inventoryStyles.partyInventoryActionGrid}>
           <Select
             data={(equipment.data?.items ?? [])
               .filter((item) => item.status === 'ACTIVE')
               .map((item) => ({ label: item.label, value: item.id }))}
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             label='Equipment'
             searchable
             value={equipmentId}
             onChange={(value) => setEquipmentId(value ?? '')}
           />
           <NumberInput
-            classNames={{ input: styles.input }}
+            classNames={{ input: sharedStyles.input }}
             label='Quantity'
             min={1}
             step={1}
@@ -141,11 +142,11 @@ function PartyItemActions({
 
   return (
     <>
-      <div className={styles.partyInventoryActionRow}>
+      <div className={inventoryStyles.partyInventoryActionRow}>
         <Text fw={600}>{item.label}</Text>
         <NumberInput
           aria-label={`${item.label} quantity`}
-          classNames={{ input: styles.input }}
+          classNames={{ input: sharedStyles.input }}
           label='Quantity'
           min={1}
           step={1}
@@ -156,7 +157,7 @@ function PartyItemActions({
             if (event.key === 'Enter') event.currentTarget.blur()
           }}
         />
-        <div className={styles.partyInventoryActionButtons}>
+        <div className={inventoryStyles.partyInventoryActionButtons}>
           <Button
             disabled={disabled}
             variant='default'
@@ -166,7 +167,7 @@ function PartyItemActions({
           </Button>
           <ActionIcon
             aria-label={`Remove all ${item.label}`}
-            className={styles.inlineFieldIconAction}
+            className={inventoryStyles.inlineFieldIconAction}
             color='red'
             disabled={disabled}
             size='lg'
@@ -185,7 +186,7 @@ function PartyItemActions({
       >
         <Stack gap='md'>
           <Text>This removes the entire stack from party inventory.</Text>
-          <div className={styles.confirmActions}>
+          <div className={inventoryStyles.confirmActions}>
             <Button variant='default' onClick={() => setConfirmRemoval(false)}>
               Keep item
             </Button>
@@ -216,7 +217,7 @@ function PartyCurrencyActions({
 }) {
   const [amount, setAmount] = useState(0)
   return (
-    <div className={styles.partyInventoryActionRow}>
+    <div className={inventoryStyles.partyInventoryActionRow}>
       <div>
         <Text fw={600}>{currency.label}</Text>
         <Text c='dimmed' size='sm'>
@@ -225,13 +226,13 @@ function PartyCurrencyActions({
       </div>
       <NumberInput
         aria-label={`${currency.label} adjustment`}
-        classNames={{ input: styles.input }}
+        classNames={{ input: sharedStyles.input }}
         label='Change by (+/−)'
         step={1}
         value={amount}
         onChange={(value) => setAmount(Number(value) || 0)}
       />
-      <div className={styles.partyInventoryActionButtons}>
+      <div className={inventoryStyles.partyInventoryActionButtons}>
         <Button
           disabled={disabled || amount === 0}
           variant='default'

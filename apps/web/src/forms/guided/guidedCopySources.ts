@@ -68,7 +68,9 @@ export function getGuidedCopySourceQueryKey(domain: AuthoredFormDomain) {
   }
 }
 
-export async function getGuidedCopySources(domain: AuthoredFormDomain): Promise<GuidedCopySourceList> {
+export async function getGuidedCopySources(
+  domain: AuthoredFormDomain
+): Promise<GuidedCopySourceList> {
   switch (domain) {
     case 'background':
       return api.content.backgrounds.list()

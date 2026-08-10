@@ -6,7 +6,7 @@ import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
-import * as styles from './campaigns.css'
+import * as sharedStyles from './campaigns.css'
 
 export function CampaignCreatePage() {
   const navigate = useNavigate()
@@ -36,19 +36,19 @@ export function CampaignCreatePage() {
   }
 
   return (
-    <main className={`${styles.page} ${styles.createPage}`}>
-      <header className={styles.createHeader}>
+    <main className={`${sharedStyles.page} ${sharedStyles.createPage}`}>
+      <header className={sharedStyles.createHeader}>
         <Title order={1}>Create a Campaign</Title>
         <Text c='dimmed'>Open a table and invite players when you are ready.</Text>
       </header>
-      <form className={styles.createForm} onSubmit={handleSubmit}>
+      <form className={sharedStyles.createForm} onSubmit={handleSubmit}>
         {createCampaign.error ? (
           <Alert color='red' title='Campaign not created'>
             {createCampaign.error.message}
           </Alert>
         ) : null}
         <TextInput
-          classNames={{ input: styles.input }}
+          classNames={{ input: sharedStyles.input }}
           label='Campaign name'
           maxLength={100}
           onChange={(event) => setName(event.currentTarget.value)}
@@ -73,7 +73,7 @@ export function CampaignCreatePage() {
             <Radio value='PUBLIC' label='Public listing' />
           </Group>
         </Radio.Group>
-        <Group className={styles.createActions}>
+        <Group className={sharedStyles.createActions}>
           <Button loading={createCampaign.isPending} type='submit'>
             Create Campaign
           </Button>

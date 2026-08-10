@@ -18,7 +18,8 @@ import { getCharacterList, getCharacterSheet } from '#app/data/characters/querie
 import { getCampaignList } from '#app/data/campaigns/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
+import * as partyStyles from './party.css'
 
 export function CampaignParty({
   campaign,
@@ -103,7 +104,7 @@ export function CampaignParty({
 
   return (
     <>
-      <section className={styles.panel} aria-labelledby='campaign-members-title'>
+      <section className={sharedStyles.panel} aria-labelledby='campaign-members-title'>
         <Group align='flex-start' justify='space-between' wrap='wrap'>
           <div>
             <Title order={2} id='campaign-members-title'>
@@ -125,7 +126,7 @@ export function CampaignParty({
         </Group>
 
         {rosterMembers.length ? (
-          <SimpleGrid className={styles.partyGrid} cols={{ base: 1, sm: 2, lg: 3 }}>
+          <SimpleGrid className={partyStyles.partyGrid} cols={{ base: 1, sm: 2, lg: 3 }}>
             {rosterMembers.map((member) => {
               const character = member.assignedCharacter
               const assignedIndex = character
@@ -133,7 +134,7 @@ export function CampaignParty({
                 : -1
               const sheet = assignedIndex >= 0 ? sheets[assignedIndex]?.data : undefined
               return (
-                <article className={styles.partyCard} key={member.userId}>
+                <article className={partyStyles.partyCard} key={member.userId}>
                   <Group align='flex-start' justify='space-between' wrap='nowrap'>
                     <div>
                       <Text fw={700}>{character?.label ?? `@${member.username}`}</Text>
@@ -156,7 +157,7 @@ export function CampaignParty({
                           .filter(Boolean)
                           .join(' · ')}
                       </Text>
-                      <Group className={styles.partySummary} gap='xs'>
+                      <Group className={partyStyles.partySummary} gap='xs'>
                         <Text size='sm'>
                           HP {sheet.overview.currentHitPoints}/{sheet.overview.maxHitPoints}
                         </Text>
@@ -232,7 +233,7 @@ export function CampaignParty({
             })}
           </SimpleGrid>
         ) : (
-          <div className={styles.emptyState}>
+          <div className={sharedStyles.emptyState}>
             <Text fw={600}>No Characters assigned yet.</Text>
             <Text c='dimmed' size='sm'>
               Players can add an eligible Character when they are ready.
@@ -315,12 +316,12 @@ export function CampaignParty({
       >
         {assign.error ? <Alert color='red'>{assign.error.message}</Alert> : null}
         {eligibleCharacters.length ? (
-          <SimpleGrid className={styles.characterPickerGrid} cols={{ base: 1, sm: 2 }}>
+          <SimpleGrid className={partyStyles.characterPickerGrid} cols={{ base: 1, sm: 2 }}>
             {eligibleCharacters.map((character) => {
               const selectedCharacter = currentMembership?.assignedCharacter?.id === character.id
               return (
                 <UnstyledButton
-                  className={styles.characterPickerCard}
+                  className={partyStyles.characterPickerCard}
                   data-selected={selectedCharacter || undefined}
                   disabled={selectedCharacter || assign.isPending}
                   key={character.id}

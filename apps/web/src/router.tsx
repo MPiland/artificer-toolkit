@@ -5,7 +5,7 @@ import { getGlobalStartContext } from '@tanstack/react-start'
 import type { User } from '@supabase/supabase-js'
 import { createAppQueryClient } from '#app/query/createAppQueryClient'
 import { RouteErrorState, RouteLoadingState, RouteNotFound } from '#app/routeStates'
-import { createAppRouterContext } from './routerContext'
+import type { AppRouterContext } from './routerContext'
 
 function getCspNonce() {
   if (typeof document !== 'undefined') {
@@ -26,7 +26,7 @@ export function getRouter(user: User | null) {
 
   const router = createRouter({
     routeTree,
-    context: createAppRouterContext({ nonce, queryClient, user }),
+    context: { nonce, queryClient, user } satisfies AppRouterContext,
     defaultPreload: 'intent',
     defaultErrorComponent: RouteErrorState,
     defaultNotFoundComponent: RouteNotFound,

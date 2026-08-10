@@ -28,7 +28,8 @@ export async function broadcastCampaignInvalidation(
             (membership) =>
               payload.scope === 'TABLE' ||
               (payload.scope === 'PARTY' && membership.role === 'PLAYER') ||
-              (payload.scope === 'OWNER' && membership.role === 'OWNER')
+              (payload.scope === 'OWNER' && membership.role === 'OWNER') ||
+              (payload.scope === 'USER' && membership.userId === payload.recipientUserId)
           )
     const client = createSupabaseClient()
     const results = await Promise.all(

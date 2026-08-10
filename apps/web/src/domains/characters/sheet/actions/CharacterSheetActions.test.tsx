@@ -283,9 +283,7 @@ describe('Character Sheet actions', () => {
       <CharacterSheetActions pending={false} sheet={sheet} submitCommand={submitCommand} />
     )
 
-    await user.click(
-      screen.getByRole('button', { name: /use 2 warping strike charges/i })
-    )
+    await user.click(screen.getByRole('button', { name: /use 2 warping strike charges/i }))
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'USE_RESOURCE',

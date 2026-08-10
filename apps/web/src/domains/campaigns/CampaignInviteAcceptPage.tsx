@@ -4,7 +4,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
-import * as styles from './campaigns.css'
+import * as sharedStyles from './campaigns.css'
 
 export function CampaignInviteAcceptPage({ token }: { token: string }) {
   const navigate = useNavigate()
@@ -21,12 +21,12 @@ export function CampaignInviteAcceptPage({ token }: { token: string }) {
   })
 
   return (
-    <main className={`${styles.page} ${styles.createPage}`}>
-      <header className={styles.createHeader}>
+    <main className={`${sharedStyles.page} ${sharedStyles.createPage}`}>
+      <header className={sharedStyles.createHeader}>
         <Title order={1}>Join Campaign</Title>
         <Text c='dimmed'>Accept this invitation to join the table.</Text>
       </header>
-      <section className={styles.createForm} aria-label='Campaign invitation'>
+      <section className={sharedStyles.createForm} aria-label='Campaign invitation'>
         {acceptInvite.error ? (
           <Alert color='red' title='Invitation not accepted'>
             {acceptInvite.error.message}

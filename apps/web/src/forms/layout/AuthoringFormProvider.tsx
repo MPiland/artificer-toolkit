@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Button, Group, Modal, Stack, Text } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useBlocker, useNavigate, useRouter, useRouterState } from '@tanstack/react-router'
@@ -28,7 +27,6 @@ import type {
   DraftAuthoringResponse,
   DuplicateAuthoringResponse
 } from '../actions'
-import { authoredFormFactories } from '../factories/authoredFormFactories'
 import type {
   AuthoredFormDomain,
   AuthoredFormSession
@@ -36,13 +34,10 @@ import type {
 import { getVisibleAuthoringSteps } from '../hooks/useAuthoringResolvedModel'
 import { areAuthoringFieldPathsRelated, toAuthoringFieldName } from '../utils/pathUtils'
 import { findAuthoringValidationTarget } from './authoringNavigation'
-import { createCharacterBuilderAuthoringSession } from '#domains/characters/builder/state/characterBuilderAuthoringSession'
-import type { CharacterBuilderAuthoringSession } from '#domains/characters/builder/state/characterBuilderAuthoringSession'
 import {
   CHARACTER_BUILDER_TIMING_MARK,
   startCharacterBuilderTiming
 } from '#domains/characters/builder/core/characterBuilder.performance'
-import type { CharacterBuilderRouteMode } from './authoredFormRouteContext'
 import {
   areAuthoringStepIdsEqual,
   isAuthoringStepNavigationState,
@@ -52,10 +47,18 @@ import {
   toAuthoringStepSearchValue
 } from './authoringSearch'
 import { useShellReturnHref } from '#app/shell/returnLocation'
+import { AuthoringLeaveConfirmation } from './AuthoringLeaveConfirmation'
+import {
+  addVisitedStep,
+  applyCharacterBuilderRegistration,
+  applyDomainRegistration,
+  createCharacterBuilderRegistration,
+  createInitialSession,
+  getCharacterBuilderSessionSignature,
+  isSameSession,
+  resolveRequestedNavigation
+} from './authoringSessionState'
 
-const EMPTY_STEP_DIRTY = {}
-const EMPTY_STEP_STATUSES = {}
-const EMPTY_STEP_WARNINGS = {}
 const EMPTY_OPERATION_CONFIG: AuthoredFormSession['operations'] = {
   activate: async () => undefined,
   saveDraft: async () => {
@@ -351,10 +354,8 @@ export function AuthoringFormProvider({
   useEffect(() => {
     if (kind === 'character-builder') {
       const nextMode: AuthoringFormStatePatch['mode'] = mode === 'edit' ? 'edit' : 'create'
-      const nextCharacterSession = createCharacterBuilderAuthoringSession({
-        data,
-        mode: nextMode
-      })
+      const nextCharacterRegistration = createCharacterBuilderRegistration(nextMode, data)
+      const nextCharacterSession = nextCharacterRegistration.characterSession
 
       setSession((current) => {
         if (
@@ -887,434 +888,20 @@ export function AuthoringFormProvider({
     <AuthoringFormContext value={value}>
       {children}
       {deleteConfirmation}
-      <Modal
-        centered
-        closeOnClickOutside={false}
-        onClose={() => {
+      <AuthoringLeaveConfirmation
+        opened={cancelConfirmationOpened || navigationBlocker.status === 'blocked'}
+        onStay={() => {
           setCancelConfirmationOpened(false)
           if (navigationBlocker.status === 'blocked') navigationBlocker.reset()
         }}
-        opened={cancelConfirmationOpened || navigationBlocker.status === 'blocked'}
-        title='Leave without saving?'
-      >
-        <Stack gap='md'>
-          <Text size='sm'>
-            Your unsaved changes will be discarded if you leave this authoring workspace.
-          </Text>
-          <Group justify='flex-end'>
-            <Button
-              type='button'
-              variant='default'
-              onClick={() => {
-                setCancelConfirmationOpened(false)
-                if (navigationBlocker.status === 'blocked') navigationBlocker.reset()
-              }}
-            >
-              Stay
-            </Button>
-            <Button
-              color='red'
-              type='button'
-              onClick={() => {
-                if (cancelConfirmationOpened) {
-                  void performCancel()
-                  return
-                }
-                if (navigationBlocker.status === 'blocked') navigationBlocker.proceed()
-              }}
-            >
-              Leave without saving
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+        onLeave={() => {
+          if (cancelConfirmationOpened) {
+            void performCancel()
+            return
+          }
+          if (navigationBlocker.status === 'blocked') navigationBlocker.proceed()
+        }}
+      />
     </AuthoringFormContext>
-  )
-}
-
-function isSameSession(left: AuthoringFormSessionState, right: AuthoringFormSessionState) {
-  return (
-    left.activeNavigationTargetId === right.activeNavigationTargetId &&
-    left.activeSectionId === right.activeSectionId &&
-    left.activeStepId === right.activeStepId &&
-    left.activeStepLabel === right.activeStepLabel &&
-    left.authoredSession === right.authoredSession &&
-    left.authoringKind === right.authoringKind &&
-    left.activateLabel === right.activateLabel &&
-    left.canCopy === right.canCopy &&
-    left.canDelete === right.canDelete &&
-    left.canFinalize === right.canFinalize &&
-    left.canResetStep === right.canResetStep &&
-    left.canResetForm === right.canResetForm &&
-    left.canSaveDraft === right.canSaveDraft &&
-    left.canSubmit === right.canSubmit &&
-    left.copyLabel === right.copyLabel &&
-    left.cancelLabel === right.cancelLabel &&
-    left.characterData === right.characterData &&
-    left.characterSession === right.characterSession &&
-    left.deleteLabel === right.deleteLabel &&
-    left.domain === right.domain &&
-    left.domainData === right.domainData &&
-    left.fallbackLabel === right.fallbackLabel &&
-    left.fieldPathPrefix === right.fieldPathPrefix &&
-    left.hasChanges === right.hasChanges &&
-    left.hasStepChanges === right.hasStepChanges &&
-    left.hasActiveDraft === right.hasActiveDraft &&
-    left.firstBlockingStepId === right.firstBlockingStepId &&
-    left.firstBlockingStatus === right.firstBlockingStatus &&
-    left.isDraft === right.isDraft &&
-    left.isFirstStep === right.isFirstStep &&
-    left.isLastStep === right.isLastStep &&
-    left.isDeleting === right.isDeleting &&
-    left.isSubmitting === right.isSubmitting &&
-    left.mapId === right.mapId &&
-    left.mode === right.mode &&
-    left.navigationTargets === right.navigationTargets &&
-    left.navigationTree === right.navigationTree &&
-    left.providedModel === right.providedModel &&
-    left.readOnly === right.readOnly &&
-    left.resolveModel === right.resolveModel &&
-    left.resolvedModel === right.resolvedModel &&
-    left.resetFormLabel === right.resetFormLabel &&
-    left.resetStepLabel === right.resetStepLabel &&
-    left.saveDraftLabel === right.saveDraftLabel &&
-    left.stagedEditorOpen === right.stagedEditorOpen &&
-    isSameRecord(left.stepDirty, right.stepDirty) &&
-    isSameRecord(left.stepStatuses, right.stepStatuses) &&
-    isSameRecord(left.stepWarnings, right.stepWarnings) &&
-    isSameProgressSummary(left.progressSummary, right.progressSummary) &&
-    left.subjectKindLabel === right.subjectKindLabel &&
-    left.subjectLabel === right.subjectLabel &&
-    left.systemId === right.systemId &&
-    left.validationIssues === right.validationIssues &&
-    left.visibleSteps === right.visibleSteps &&
-    isSameSet(left.visitedStepIds, right.visitedStepIds)
-  )
-}
-
-function getDomainRegistration(
-  domain: AuthoredFormDomain,
-  mode: AuthoringFormSessionState['mode'],
-  data: unknown
-): AuthoringFormStatePatch {
-  const factory = authoredFormFactories[domain]
-  const authoredSession = data === undefined ? undefined : factory.createSession?.({ data, mode })
-
-  return {
-    activeSectionId: undefined,
-    activeNavigationTargetId: undefined,
-    activeStepId: undefined,
-    activeStepLabel: undefined,
-    authoredSession,
-    authoringKind: 'authored-form',
-    characterData: undefined,
-    characterSession: undefined,
-    domain,
-    fallbackLabel: factory.fallbackLabel,
-    mapId: factory.mapId,
-    navigationTargets: undefined,
-    navigationTree: undefined,
-    providedModel: undefined,
-    resolvedModel: undefined,
-    subjectKindLabel: factory.subjectKindLabel,
-    validationIssues: [],
-    ...(authoredSession
-      ? {
-          canCopy: authoredSession.canCopy,
-          canDelete: authoredSession.canDelete,
-          canSaveDraft: authoredSession.canSaveDraft,
-          fallbackLabel: authoredSession.fallbackLabel,
-          hasActiveDraft: authoredSession.hasActiveDraft,
-          isDraft: authoredSession.isDraft,
-          mapId: authoredSession.mapId,
-          mode: authoredSession.mode,
-          readOnly: authoredSession.readOnly,
-          resolveModel:
-            !authoredSession.systemRequired &&
-            !authoredSession.notFound &&
-            !authoredSession.invalidDraftOnly,
-          subjectKindLabel: authoredSession.subjectKindLabel,
-          subjectLabel: authoredSession.subjectLabel,
-          systemId: authoredSession.systemId
-        }
-      : {})
-  }
-}
-
-function applyDomainRegistration(
-  current: AuthoringFormSessionState,
-  registration: AuthoringDomainRegistration
-): AuthoringFormSessionState {
-  const nextMode = registration.mode ?? current.mode
-  const domainRegistration = getDomainRegistration(registration.domain, nextMode, registration.data)
-  const subjectChanged =
-    current.authoredSession?.key !== domainRegistration.authoredSession?.key ||
-    current.domain !== registration.domain
-  const authoredSession = subjectChanged
-    ? domainRegistration.authoredSession
-    : (current.authoredSession ?? domainRegistration.authoredSession)
-
-  return {
-    ...current,
-    domain: registration.domain,
-    domainData: registration.data,
-    mode: nextMode,
-    ...domainRegistration,
-    authoredSession,
-    visitedStepIds: subjectChanged ? new Set() : current.visitedStepIds
-  }
-}
-
-function getCharacterBuilderRegistration(
-  mode: CharacterBuilderRouteMode,
-  data: unknown,
-  characterSession?: CharacterBuilderAuthoringSession
-): AuthoringFormStatePatch {
-  const nextCharacterSession =
-    characterSession ??
-    (data === undefined
-      ? undefined
-      : createCharacterBuilderAuthoringSession({
-          data,
-          mode
-        }))
-  const initialAuthoringState = nextCharacterSession?.initialAuthoringState
-  const initialStepId = initialAuthoringState?.activeStepId
-
-  return {
-    activeSectionId: undefined,
-    activeNavigationTargetId: undefined,
-    activeStepId: initialAuthoringState?.activeStepId,
-    activeStepLabel: initialAuthoringState?.activeStepLabel,
-    activateLabel: 'Finalize Character',
-    authoredSession: undefined,
-    authoringKind: 'character-builder',
-    canCopy: false,
-    canDelete: false,
-    canFinalize: false,
-    canResetForm: false,
-    canResetStep: false,
-    canSaveDraft: Boolean(
-      nextCharacterSession && !nextCharacterSession.systemRequired && !nextCharacterSession.notFound
-    ),
-    canSubmit: false,
-    characterData: data,
-    characterSession: nextCharacterSession,
-    domain: undefined,
-    domainData: undefined,
-    fallbackLabel: 'Untitled Character',
-    fieldPathPrefix: undefined,
-    firstBlockingStatus: initialAuthoringState?.firstBlockingStatus,
-    firstBlockingStepId: initialAuthoringState?.firstBlockingStepId,
-    hasChanges: false,
-    hasActiveDraft: nextCharacterSession?.hasActiveDraft ?? false,
-    hasStepChanges: false,
-    isDraft: nextCharacterSession?.isDraft ?? false,
-    isFirstStep: initialAuthoringState?.isFirstStep ?? true,
-    isLastStep: initialAuthoringState?.isLastStep ?? true,
-    mapId: undefined,
-    mode,
-    navigationTargets: undefined,
-    navigationTree: undefined,
-    progressSummary: initialAuthoringState?.progressSummary,
-    providedModel: undefined,
-    readOnly: nextCharacterSession?.readOnly ?? false,
-    resolveModel: false,
-    resolvedModel: undefined,
-    saveDraftLabel: 'Save Draft',
-    stepDirty: EMPTY_STEP_DIRTY,
-    stepStatuses: initialAuthoringState?.stepStatuses ?? EMPTY_STEP_STATUSES,
-    stepWarnings: EMPTY_STEP_WARNINGS,
-    subjectKindLabel: 'Character',
-    subjectLabel: nextCharacterSession?.subjectLabel,
-    systemId: nextCharacterSession?.systemId,
-    validationIssues: [],
-    visibleSteps: initialAuthoringState?.visibleSteps,
-    visitedStepIds: initialStepId ? new Set([initialStepId]) : new Set()
-  }
-}
-
-function applyCharacterBuilderRegistration(
-  current: AuthoringFormSessionState,
-  registration: {
-    data?: unknown
-    mode: CharacterBuilderRouteMode
-    characterSession?: CharacterBuilderAuthoringSession
-  }
-): AuthoringFormSessionState {
-  return {
-    ...current,
-    ...getCharacterBuilderRegistration(
-      registration.mode,
-      registration.data,
-      registration.characterSession
-    )
-  }
-}
-
-function getCharacterBuilderSessionSignature(session?: CharacterBuilderAuthoringSession): string {
-  if (!session) return ''
-
-  return [
-    session.mode,
-    session.characterId ?? '',
-    session.payload?.character.id ?? '',
-    session.payload?.character.label ?? '',
-    session.systemId ?? '',
-    session.formKey ?? '',
-    session.baseActiveUpdatedAt ?? '',
-    String(session.hasActiveDraft),
-    String(session.hasInvalidDraft),
-    String(session.isDraft),
-    String(session.systemRequired),
-    String(session.notFound),
-    String(session.invalidDraftOnly),
-    String(session.readOnly)
-  ].join('|')
-}
-
-function createInitialSession(registration: {
-  data?: unknown
-  domain?: AuthoredFormDomain
-  kind?: 'authored-form' | 'character-builder'
-  mode?: AuthoringFormSessionState['mode']
-  requestedStepId?: string
-}): AuthoringFormSessionState {
-  const session = createDefaultSession()
-  if (registration.kind === 'character-builder') {
-    return resolveRequestedNavigation(
-      applyCharacterBuilderRegistration(session, {
-        data: registration.data,
-        mode: registration.mode === 'edit' ? 'edit' : 'create'
-      }),
-      registration.requestedStepId
-    )
-  }
-  if (!registration.domain) return session
-
-  return resolveRequestedNavigation(
-    applyDomainRegistration(session, {
-      data: registration.data,
-      domain: registration.domain,
-      mode: registration.mode
-    }),
-    registration.requestedStepId
-  )
-}
-
-function createDefaultSession(): AuthoringFormSessionState {
-  return {
-    activateLabel: 'Activate',
-    canCopy: false,
-    canDelete: false,
-    canFinalize: false,
-    canResetForm: false,
-    canResetStep: false,
-    canSaveDraft: false,
-    canSubmit: false,
-    copyLabel: 'Duplicate to edit',
-    cancelLabel: 'Cancel',
-    deleteLabel: 'Delete',
-    fallbackLabel: 'Untitled Item',
-    hasChanges: false,
-    hasStepChanges: false,
-    hasActiveDraft: false,
-    isDraft: false,
-    isFirstStep: true,
-    isLastStep: true,
-    isDeleting: false,
-    isSubmitting: false,
-    stagedEditorOpen: false,
-    mode: 'create',
-    readOnly: false,
-    resolveModel: true,
-    resetFormLabel: 'Reset Form',
-    resetStepLabel: 'Reset Step',
-    saveDraftLabel: 'Save Draft',
-    stepDirty: EMPTY_STEP_DIRTY,
-    stepStatuses: EMPTY_STEP_STATUSES,
-    stepWarnings: EMPTY_STEP_WARNINGS,
-    subjectKindLabel: 'Item',
-    validationIssues: [],
-    visitedStepIds: new Set()
-  }
-}
-
-function resolveRequestedNavigation(
-  session: AuthoringFormSessionState,
-  requestedStepId: string | undefined
-): AuthoringFormSessionState {
-  if (session.authoringKind === 'character-builder') {
-    const fallbackStepId =
-      session.activeStepId ?? session.characterSession?.initialAuthoringState?.activeStepId
-    const activeStep =
-      session.visibleSteps?.find((step) => areAuthoringStepIdsEqual(step.id, requestedStepId)) ??
-      session.visibleSteps?.find((step) => step.id === fallbackStepId) ??
-      session.visibleSteps?.[0]
-    if (!activeStep) return session
-
-    return {
-      ...session,
-      activeStepId: activeStep.id,
-      activeStepLabel: activeStep.label,
-      visitedStepIds: addVisitedStep(session.visitedStepIds, activeStep.id)
-    }
-  }
-
-  const targets = session.navigationTargets ?? []
-  if (targets.length === 0) {
-    return requestedStepId ? { ...session, activeNavigationTargetId: requestedStepId } : session
-  }
-
-  const target =
-    targets.find((entry) => areAuthoringStepIdsEqual(entry.id, requestedStepId)) ?? targets[0]
-  if (!target) return session
-
-  return {
-    ...session,
-    activeNavigationTargetId: target.id,
-    activeStepId: target.stepId ?? target.canvasStepId,
-    activeStepLabel: target.canvasLabel ?? target.label,
-    fieldPathPrefix: target.fieldPathPrefix,
-    visitedStepIds: addVisitedStep(session.visitedStepIds, target.id)
-  }
-}
-
-function addVisitedStep(current: ReadonlySet<string>, stepId: string): ReadonlySet<string> {
-  if (current.has(stepId)) return current
-  const next = new Set(current)
-  next.add(stepId)
-  return next
-}
-
-function isSameSet(left: ReadonlySet<string>, right: ReadonlySet<string>) {
-  if (left === right) return true
-  return left.size === right.size && [...left].every((value) => right.has(value))
-}
-
-function isSameRecord<TValue>(
-  left: Partial<Record<string, TValue>>,
-  right: Partial<Record<string, TValue>>
-) {
-  const leftKeys = Object.keys(left)
-  const rightKeys = Object.keys(right)
-  if (leftKeys.length !== rightKeys.length) return false
-
-  return leftKeys.every((key) => left[key] === right[key])
-}
-
-function isSameProgressSummary(
-  left: AuthoringFormSessionState['progressSummary'],
-  right: AuthoringFormSessionState['progressSummary']
-) {
-  if (left === right) return true
-  if (!left || !right) return false
-
-  return (
-    left.completeCount === right.completeCount &&
-    left.errorCount === right.errorCount &&
-    left.incompleteCount === right.incompleteCount &&
-    left.stepCount === right.stepCount &&
-    left.warningCount === right.warningCount
   )
 }

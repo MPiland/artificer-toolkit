@@ -64,9 +64,10 @@ export const contactOtherPlane: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.CONTACT_OTHER_PLANE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Answer the Questions",
+                label: 'Answer the Questions',
                 reasonCode: 'GM_CHOICE' as const,
-                instructions: "The GM answers each question with one word, such as \"yes,\" \"no,\" \"maybe,\" \"never,\" \"irrelevant,\" or \"unclear\" (if the entity doesn\u0027t know the answer to the question). If a one-word answer would be misleading, the GM might instead offer a short phrase as an answer."
+                instructions:
+                  'The GM answers each question with one word, such as "yes," "no," "maybe," "never," "irrelevant," or "unclear" (if the entity doesn\u0027t know the answer to the question). If a one-word answer would be misleading, the GM might instead offer a short phrase as an answer.'
               }
             ]
           }

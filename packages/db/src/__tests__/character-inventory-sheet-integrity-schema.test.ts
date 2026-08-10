@@ -51,8 +51,6 @@ describe('Character Sheet inventory item integrity', () => {
     expect(migration).toContain(
       'DELETE FROM public.character_sheet_resource_usage\n    WHERE character_id = source_character_id\n      AND item_instance_id = OLD.id'
     )
-    expect(migration).toContain(
-      'AFTER UPDATE OF owner_id ON public.inventory_items'
-    )
+    expect(migration).toContain('AFTER UPDATE OF owner_id ON public.inventory_items')
   })
 })

@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DBLike } from '@artificer-toolkit/db'
+import {
+  IMPORT_MAX_FOUNDRY_ITEMS,
+  IMPORT_MAX_PORTABLE_REFERENCES
+} from '@artificer-toolkit/schema/api/imports'
 
 const mocks = vi.hoisted(() => ({
   findActiveBySubject: vi.fn(),
@@ -82,7 +86,7 @@ describe('import service', () => {
       .mockImplementation(
         async (_db: DBLike, _config: unknown, payload: Record<string, unknown>) => ({
           subjectId: payload.id,
-          publicId: `public-${payload.id}`
+          publicId: `public-${String(payload.id)}`
         })
       )
   })
@@ -154,6 +158,123 @@ describe('import service', () => {
       'https://character-service.dndbeyond.com/character/v5/character/74476867?includeCustomItems=true',
       expect.objectContaining({ credentials: 'omit', redirect: 'error' })
     )
+  })
+
+  it('keeps expected D&D Beyond upstream failures as import issues', async () => {
+    mocks.findSystemAll.mockResolvedValue([
+      { id: 'system-1', rulesetCode: 'dnd5e', rulesetVersion: '2014' }
+    ])
+    const response = await previewImports(
+      {} as DBLike,
+      {
+        source: 'DND_BEYOND',
+        entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/74476867' }]
+      },
+      'user-1',
+      {
+        fetch: vi.fn(async () => new Response('unavailable', { status: 503 })) as typeof fetch
+      }
+    )
+
+    expect(response.items[0]).toMatchObject({
+      status: 'UNABLE',
+      issues: [
+        expect.objectContaining({
+          code: 'DND_BEYOND_UNAVAILABLE',
+          message: 'D&D Beyond returned 503.'
+        })
+      ]
+    })
+  })
+
+  it('does not serialize unexpected preparation failures as import issues', async () => {
+    mocks.findSystemAll.mockResolvedValue([
+      { id: 'system-1', rulesetCode: 'dnd5e', rulesetVersion: '2014' }
+    ])
+    mocks.findImportRef.mockRejectedValue(new Error('database unavailable'))
+
+    await expect(
+      previewImports(
+        {} as DBLike,
+        {
+          source: 'DND_BEYOND',
+          entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/74476867' }]
+        },
+        'user-1',
+        {
+          fetch: vi.fn(async () =>
+            Response.json({ data: { id: 74476867, name: 'Aria', classes: [], inventory: [] } })
+          ) as typeof fetch
+        }
+      )
+    ).rejects.toThrow('database unavailable')
+  })
+
+  it('rejects an over-complex Foundry batch before repository preparation', async () => {
+    const batchEntries = Array.from({ length: 11 }, (_, entryIndex) => ({
+      entryId: `entry-${entryIndex}`,
+      name: `actor-${entryIndex}.json`,
+      text: JSON.stringify({
+        _id: `actor-${entryIndex}`,
+        name: `Actor ${entryIndex}`,
+        type: 'character',
+        _stats: { systemId: 'dnd5e' },
+        system: {},
+        items: Array.from({ length: IMPORT_MAX_FOUNDRY_ITEMS }, (_, itemIndex) => ({
+          _id: `item-${entryIndex}-${itemIndex}`,
+          name: 'Imported weapon',
+          type: 'weapon',
+          system: {}
+        }))
+      })
+    }))
+
+    const response = await previewImports(
+      {} as DBLike,
+      { source: 'FOUNDRY_DND5E', entries: batchEntries },
+      'user-1'
+    )
+
+    expect(response.items).toHaveLength(11)
+    expect(
+      response.items.every((item) => item.issues[0]?.code === 'IMPORT_BATCH_TOO_COMPLEX')
+    ).toBe(true)
+    expect(mocks.findSystemAll).not.toHaveBeenCalled()
+    expect(mocks.findImportRef).not.toHaveBeenCalled()
+  })
+
+  it('rejects an over-complex portable batch before repository preparation', async () => {
+    const referencesPerEntry = IMPORT_MAX_PORTABLE_REFERENCES
+    const entries = Array.from({ length: 3 }, (_, entryIndex) => ({
+      entryId: `entry-${entryIndex}`,
+      name: `spell-${entryIndex}.json`,
+      text: JSON.stringify({
+        format: 'artificer-content',
+        version: 1,
+        item: {
+          kind: 'SPELL',
+          data: { id: `spell-${entryIndex}`, label: `Spell ${entryIndex}` }
+        },
+        references: Array.from({ length: referencesPerEntry }, (_, referenceIndex) => ({
+          kind: 'CLASS',
+          id: `class-${entryIndex}-${referenceIndex}`,
+          label: 'Wizard'
+        }))
+      })
+    }))
+
+    const response = await previewImports(
+      {} as DBLike,
+      { source: 'ARTIFICER_JSON', entries },
+      'user-1'
+    )
+
+    expect(response.items).toHaveLength(3)
+    expect(
+      response.items.every((item) => item.issues[0]?.code === 'IMPORT_BATCH_TOO_COMPLEX')
+    ).toBe(true)
+    expect(mocks.findImportRef).not.toHaveBeenCalled()
+    expect(mocks.findSystemAll).not.toHaveBeenCalled()
   })
 
   it('matches unique master labels without reporting a successful-match warning', async () => {
@@ -587,6 +708,61 @@ describe('import service', () => {
     expect(response.summary.unable).toBe(0)
   })
 
+  it('rejects schema-invalid portable authored content without persisting it', async () => {
+    const response = await commitImports(
+      {} as DBLike,
+      {
+        batch: {
+          source: 'ARTIFICER_JSON',
+          entries: [
+            {
+              entryId: 'one',
+              name: 'invalid-equipment.json',
+              text: JSON.stringify({
+                format: 'artificer-content',
+                version: 1,
+                item: {
+                  kind: 'EQUIPMENT',
+                  data: {
+                    id: 'equipment-1',
+                    label: 'Broken keepsake',
+                    systemId: 'system-1',
+                    category: 'ADVENTURING_GEAR',
+                    rarityId: 'common',
+                    properties: []
+                  }
+                },
+                references: []
+              })
+            }
+          ]
+        },
+        selectedEntryIds: ['one'],
+        resolutions: [],
+        customContentChoices: []
+      },
+      'user-1',
+      { createId: () => 'target-1' }
+    )
+
+    expect(response.items[0]).toMatchObject({
+      entryId: 'one',
+      name: 'invalid-equipment.json',
+      label: 'Broken keepsake',
+      outcome: 'FAILED',
+      issues: [
+        expect.objectContaining({
+          severity: 'ERROR',
+          code: 'INVALID_AUTHORED_CONTENT',
+          path: ['item', 'data'],
+          correctionRequired: true
+        })
+      ]
+    })
+    expect(mocks.saveAuthoredInputDraft).not.toHaveBeenCalled()
+    expect(mocks.upsertImportRef).not.toHaveBeenCalled()
+  })
+
   it('remaps only selected and committable same-batch portable references', async () => {
     const batch = {
       source: 'ARTIFICER_JSON' as const,
@@ -600,10 +776,15 @@ describe('import service', () => {
             item: {
               kind: 'SPELL',
               data: {
+                kind: 'SPELL',
                 id: 'spell-old',
                 label: 'Spark',
                 systemId: 'system-1',
-                classId: 'class-old'
+                description: '',
+                castingTime: { unit: 'ROUND', amount: 1 },
+                level: 0,
+                classIds: ['class-old'],
+                magicSchoolId: 'school-1'
               }
             },
             references: [{ kind: 'CLASS', id: 'class-old', label: 'Wizard' }]
@@ -617,7 +798,14 @@ describe('import service', () => {
             version: 1,
             item: {
               kind: 'CLASS',
-              data: { id: 'class-old', label: 'Wizard', systemId: 'system-1' }
+              data: {
+                kind: 'CLASS',
+                id: 'class-old',
+                label: 'Wizard',
+                systemId: 'system-1',
+                category: 'SUBCLASS',
+                parentClassId: 'parent-class-1'
+              }
             },
             references: []
           })
@@ -637,7 +825,7 @@ describe('import service', () => {
       expect.objectContaining({ code: 'BATCH_REFERENCE_NOT_SELECTED' })
     )
     expect(mocks.saveAuthoredInputDraft.mock.calls[0]?.[2]).toMatchObject({
-      classId: 'class-old'
+      classIds: ['class-old']
     })
 
     mocks.saveAuthoredInputDraft.mockClear()
@@ -654,7 +842,7 @@ describe('import service', () => {
       { createId: () => `selected-${++nextId}` }
     )
     expect(mocks.saveAuthoredInputDraft.mock.calls[0]?.[2]).toMatchObject({
-      classId: 'selected-2'
+      classIds: ['selected-2']
     })
   })
 

@@ -2,7 +2,7 @@ import type { EngineResource } from '../contracts/engineState.js'
 import type { RulesSystem } from '../contracts/rulesSystem.js'
 import type { CharacterAssemblyRegistry } from '../registry.js'
 import type { CharacterBuildSnapshot } from '../snapshot.js'
-import type { EngineAccumulatedState } from './grantApplicator.js'
+import type { EngineAccumulatedState } from './grantApplication.js'
 import { resolveCompiledChargeMaximum } from '../../shared/compilers/charge.js'
 import { resolveNumericCalculation } from './calculationResolver.js'
 

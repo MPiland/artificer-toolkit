@@ -67,7 +67,7 @@ export const controlWeather: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.CONTROL_WEATHER, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Determine Current Weather",
+                label: 'Determine Current Weather',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
                 instructions:
                   'When you cast the spell, you change the current weather conditions, which are determined by the GM based on the climate and season.'

@@ -61,7 +61,7 @@ export const instantSummons: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.INSTANT_SUMMONS, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Resolve the Marked Object",
+                label: 'Resolve the Marked Object',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
                 instructions:
                   "If another creature is holding or carrying the item, crushing the sapphire doesn't transport the item to you, but instead you learn who the creature possessing the object is and roughly where that creature is located at that moment."

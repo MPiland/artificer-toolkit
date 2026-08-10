@@ -126,4 +126,19 @@ describe('authored closed-vocabulary contracts', () => {
       }).success
     ).toBe(false)
   })
+
+  it('rejects non-measurement speed units', () => {
+    expect(
+      raceAuthoredDtoSchema.safeParse({
+        id: 'race-1',
+        label: 'Race',
+        userId: 'user-1',
+        systemId: 'system-1',
+        category: 'BASE',
+        selectionMode: 'DIRECT',
+        size: 'MEDIUM',
+        speeds: [{ speedId: 'walking', amount: 30, unit: 'BANANAS' }]
+      }).success
+    ).toBe(false)
+  })
 })

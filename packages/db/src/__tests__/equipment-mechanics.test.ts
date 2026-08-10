@@ -40,7 +40,9 @@ describe('SRD equipment mechanics', () => {
 
   it('preserves the high-risk interaction descriptors', () => {
     const netLimit = compileEquipment(net).effects?.[1]?.entries[0]
-    expect(netLimit?.resolutionKind === 'ROLL_TABLE_REPEAT' ? undefined : netLimit?.outcome).toMatchObject({
+    expect(
+      netLimit?.resolutionKind === 'ROLL_TABLE_REPEAT' ? undefined : netLimit?.outcome
+    ).toMatchObject({
       effectKind: 'ACTION_ECONOMY_RULE',
       ruleKind: 'MAX_ATTACKS_PER_ACTIVATION',
       maximum: 1

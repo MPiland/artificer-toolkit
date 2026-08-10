@@ -36,10 +36,8 @@ import {
   type CharacterResourceOwnerRef
 } from '@artificer-toolkit/shared/character'
 import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characters'
-import {
-  buildCharacterSheetResponse,
-  executeCharacterSheetCommand
-} from '../character/sheetService.js'
+import { executeCharacterSheetCommand } from '../character/sheetService.js'
+import { buildCharacterSheetResponse } from '../character/sheetProjection.js'
 import { resolveCharacterBuilder } from '../character/builderService.js'
 import {
   assertActiveCampaignMember,
@@ -164,17 +162,35 @@ async function storeResult(
   })
 }
 
-function boundaryKinds(
-  absolute: number,
+// Clock commands are atomic, so no resource use can occur between repeated boundaries of the
+// same kind. Processing only the latest occurrence preserves final state and bounds recovery work.
+function latestBoundaryOccurrences(
+  fromAbsolute: number,
+  targetAbsolute: number,
   dawnMinute: number,
   duskMinute: number
-): Array<'DAWN' | 'DUSK' | 'DAILY'> {
-  const minute = absolute % 1440
-  const kinds: Array<'DAWN' | 'DUSK' | 'DAILY'> = []
-  if (minute === 0) kinds.push('DAILY')
-  if (minute === dawnMinute) kinds.push('DAWN')
-  if (minute === duskMinute) kinds.push('DUSK')
-  return kinds
+): Array<{ absolute: number; kind: 'DAILY' | 'DAWN' | 'DUSK'; order: number }> {
+  if (targetAbsolute < fromAbsolute) return []
+
+  const targetDayStart = targetAbsolute - (targetAbsolute % 1440)
+  return [
+    { kind: 'DAILY' as const, minute: 0, order: 0 },
+    { kind: 'DAWN' as const, minute: dawnMinute, order: 1 },
+    { kind: 'DUSK' as const, minute: duskMinute, order: 2 }
+  ]
+    .map(({ kind, minute, order }) => {
+      const currentDayOccurrence = targetDayStart + minute
+      return {
+        absolute:
+          currentDayOccurrence <= targetAbsolute
+            ? currentDayOccurrence
+            : currentDayOccurrence - 1440,
+        kind,
+        order
+      }
+    })
+    .filter(({ absolute }) => absolute >= fromAbsolute)
+    .sort((left, right) => left.absolute - right.absolute || left.order - right.order)
 }
 
 async function lockAssignedCharacters(
@@ -317,19 +333,18 @@ async function advanceDerivedClock(
   actorUserId: string
 ): Promise<{ clock: CampaignClock; characterInvalidations: CharacterInvalidation[] }> {
   const from = clock.processedBoundaryAbsoluteMinute + 1
-  const assigned = targetAbsolute >= from ? await lockAssignedCharacters(db, clock.campaignId) : []
+  const boundaries = latestBoundaryOccurrences(
+    from,
+    targetAbsolute,
+    clock.dawnMinute,
+    clock.duskMinute
+  )
+  const assigned = boundaries.length > 0 ? await lockAssignedCharacters(db, clock.campaignId) : []
   const characterInvalidations: CharacterInvalidation[] = []
-  let processed = clock.processedBoundaryAbsoluteMinute
-  for (let absolute = from; absolute <= targetAbsolute; absolute += 1) {
-    for (const kind of boundaryKinds(absolute, clock.dawnMinute, clock.duskMinute)) {
-      characterInvalidations.push(
-        ...(await recoverBoundary(db, clock.campaignId, actorUserId, absolute, kind, assigned))
-      )
-    }
-    processed = absolute
-  }
-  if (targetAbsolute > processed && targetAbsolute > clock.processedBoundaryAbsoluteMinute) {
-    processed = targetAbsolute
+  for (const { absolute, kind } of boundaries) {
+    characterInvalidations.push(
+      ...(await recoverBoundary(db, clock.campaignId, actorUserId, absolute, kind, assigned))
+    )
   }
   const next = splitAbsoluteMinute(targetAbsolute)
   return {
@@ -337,7 +352,10 @@ async function advanceDerivedClock(
       ...clock,
       day: next.day,
       minuteOfDay: next.minuteOfDay,
-      processedBoundaryAbsoluteMinute: Math.max(clock.processedBoundaryAbsoluteMinute, processed)
+      processedBoundaryAbsoluteMinute: Math.max(
+        clock.processedBoundaryAbsoluteMinute,
+        targetAbsolute
+      )
     },
     characterInvalidations
   }

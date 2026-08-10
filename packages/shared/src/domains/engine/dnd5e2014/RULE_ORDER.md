@@ -8,19 +8,21 @@ It also serves as the template for future system implementations.
 
 ## 1. Feature Acquisition Order
 
-Features are processed in the following source order. Within a source, features are
-processed in ascending level order (level 1 first), then by their authored `order` field.
+Acquired feature records are processed in the following source order. Within a source,
+features are processed in ascending level order (level 1 first), then by their authored
+`order` field.
 
 1. `RACE` — racial traits (e.g. Darkvision, Dwarven Resilience)
 2. `SUBRACE` — subrace traits (e.g. High Elf Cantrip, Hill Dwarf HP bonus)
-3. `BACKGROUND` — background feature (e.g. Sage: Researcher)
-4. `CLASS` — class features by class level ascending (e.g. Fighting Style at L1, Extra Attack at L5)
-5. `SUBCLASS` — subclass features by class level ascending (e.g. Evocation Savant at L2)
-6. `FEAT` — feat features in selection order (e.g. Alert, Lucky)
-7. `EQUIPMENT` — features granted by equipped items (e.g. magic item attunement features)
-
-Sources `ANCESTRY`, `FEATURE`, `OPTION`, and `MANUAL` are treated as `RACE` order for
-acquisition purposes — they originate from racial or manual decisions.
+3. `ANCESTRY` — selected ancestry-option features
+4. `BACKGROUND` — background feature (e.g. Sage: Researcher)
+5. `CLASS` — class features by class level ascending (e.g. Fighting Style at L1, Extra Attack at L5)
+6. `SUBCLASS` — subclass features by class level ascending (e.g. Evocation Savant at L2)
+7. `FEAT` — feat features in selection order (e.g. Alert, Lucky)
+8. `FEATURE` — independently acquired feature records
+9. `OPTION` — independently acquired feature-option records
+10. `EQUIPMENT` — features granted by equipped items (e.g. magic item attunement features)
+11. `MANUAL` — explicit manual grants
 
 **Why this order matters:** Class grants (e.g. proficiencies) must not overwrite racial grants of
 the same kind when stacking; processing order determines first-write semantics for exclusive modifiers.
@@ -29,7 +31,10 @@ Each snapshot class row represents one base-class progression and may name its s
 The primary class applies its normal proficiency grants. Later base classes apply only their authored
 multiclass proficiencies, while their level-appropriate class and subclass features still apply normally.
 The selected subclass is processed immediately after its owning base class and is never added as a
-second pseudo-class level row.
+second pseudo-class level row. For multiclass characters, root progression order is therefore base class,
+owning subclass, next base class, owning subclass. `CLASS` and `SUBCLASS` must remain adjacent in the
+configured source list. The `SUBCLASS` rank still governs acquired feature records whose provenance is
+`SUBCLASS`.
 
 ---
 

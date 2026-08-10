@@ -32,17 +32,6 @@ function formatCastingTime(amount?: number, unit?: string) {
   return `${amount} ${normalizedUnit}`
 }
 
-function mapPermissions(
-  item: SpellListResponseDto['items'][number]
-): AuthoredListItem['permissions'] {
-  return {
-    canView: item.permissions.canView,
-    canEdit: item.permissions.canEdit,
-    canCopy: item.permissions.canCopy,
-    canDelete: item.permissions.canDelete
-  }
-}
-
 export function mapSpellListToAuthoredItems(response: SpellListResponseDto): AuthoredListItem[] {
   const spellMeta = response.meta as {
     classes?: SpellMetaGroup[]
@@ -88,7 +77,7 @@ export function mapSpellListToAuthoredItems(response: SpellListResponseDto): Aut
       accentLabel: schoolAccent?.label,
       sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
       sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
-      permissions: mapPermissions(item)
+      permissions: item.permissions
     }
   })
 }

@@ -5,7 +5,8 @@ export const crowbar: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(136),
   label: 'Crowbar',
-  description: "Using a crowbar grants advantage to Strength checks where the crowbar's leverage can be applied.",
+  description:
+    "Using a crowbar grants advantage to Strength checks where the crowbar's leverage can be applied.",
   category: S.EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
   properties: [],
   cost: S.gp(2),

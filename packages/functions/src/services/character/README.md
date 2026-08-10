@@ -4,15 +4,16 @@ This module orchestrates the character Builder and Sheet workflows. It is the ap
 
 ## Owns and does not own
 
-- `builderService.ts` loads a `CharacterBuilderRegistry`, resolves intent into summaries/grants/choices, validates readiness, and supports draft/preview/commit decisions.
-- `characterApplicationService.ts` owns the authenticated Builder/Sheet use cases and maps resolved domain state into API DTOs; transport adapters only parse requests and bind user-scoped database context.
+- `builderService.ts` loads a `CharacterBuilderRegistry` and orchestrates resolution. Eligibility, hit points, spell selection, starting equipment, reconciliation, presentation, and DTO view construction belong to their named sibling modules.
+- `characterApplicationService.ts` owns authenticated Builder/Sheet use cases; `characterBuilderView.ts` maps resolved Builder state into API DTOs. Transport adapters only parse requests and bind user-scoped database context.
 - `chosenGrantChoiceResolver.ts` derives required chosen-grant options and reconciles persisted selections with provenance and timing.
-- `sheetService.ts` loads the character, compiles the required records, builds a `CharacterBuildSnapshot`/registry, runs the engine, formats Sheet DTOs, and dispatches play-state commands/events.
+- `characterEngine.ts` adapts resolved Character state into a `CharacterBuildSnapshot`/registry and runs the pure engine.
+- `sheetProjection.ts`, `sheetRestService.ts`, `sheetCommandReducer.ts`, and `sheetCommandValidation.ts` own Sheet reads, completed-rest policy, pure state transitions, and command policy respectively. `sheetService.ts` owns prospective persistence state plus transaction/idempotency orchestration.
 - Does not own tRPC procedure definitions, database row layouts, node-map definitions, or the pure engine algorithm.
 
 ## Key flow
 
-Builder request → load authored/compiled registry → resolve provenance, grants, choices, and validation → save draft or preview destructive changes → commit through repositories. Sheet read/command → load current character/events → assemble snapshot and registry → `runEngine` with the active rules system → format overview/resources/provenance and persist command state when needed.
+Builder request → load authored/compiled registry → resolve provenance, grants, choices, and validation → save draft or preview destructive changes → commit through repositories. Sheet read → project current character/typed state through the engine. Sheet command → validate and reduce pure state → persist typed changes and event atomically → return the authoritative projection.
 
 Builder is intentionally distinct from node-map authoring: node maps structure authored content forms; Builder resolves a character's intent and progression.
 
@@ -30,10 +31,12 @@ Builder is intentionally distinct from node-map authoring: node maps structure a
 - Preview is separate from commit and must surface destructive removals/status downgrades before persistence.
 - Engine input is ephemeral; services assemble it from current persisted state and never persist the snapshot itself.
 - Sheet commands mutate play-state through the event/repository path and return a refreshed, engine-derived Sheet.
+- Typed resource usage is persisted through its typed repository path; the pure command reducer validates resource operations without copying usage into `CharacterAuthored.state.resources`.
+- Campaign-owner projection preserves authoritative mechanics while removing Character-owner-private custom names, notes, spell customizations, and labels derived from them. The GM command allowlist cannot mutate those fields or reset the private Character maximum-hit-point adjustment during rest.
 
 ## Focused validation
 
-Run `builderService.test.ts`, `characterApplicationService.test.ts`, `sheetService.test.ts`, `sheetService.execute.test.ts`, and the related API character contract/route tests. Use shared engine tests when changing snapshot assembly or engine resolution.
+Run the focused owner tests: `builderEligibility.test.ts`, `builderHitPoints.test.ts`, `builderSpellSelection.test.ts`, `builderStartingEquipment.test.ts`, `builderPresentation.test.ts`, `characterBuilderView.test.ts`, the `sheet*.test.ts` files, and the related API character contract/route tests. Use shared engine tests when changing snapshot assembly or engine resolution.
 
 ## Canonical references
 

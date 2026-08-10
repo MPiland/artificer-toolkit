@@ -16,10 +16,9 @@ import type {
   EngineSpellMechanics
 } from '../contracts/engineState.js'
 import type { CharacterBuildSnapshot } from '../snapshot.js'
-import { modifierContributions } from './adjustedDerivedStatCalculator.js'
+import { modifierContributions, type ResolvedModifierState } from './modifierResolver.js'
 import { resolveAbilityRecordKey } from './abilityKey.js'
 import { resolveNumericCalculation, resolveSelectionCalculation } from './calculationResolver.js'
-import type { ResolvedModifierState } from './modifierResolver.js'
 
 type NumericMechanicalAdjustment = Extract<CharacterMechanicalAdjustment, { value: number }>
 

@@ -54,10 +54,7 @@ export const steamMephit: CreatureAuthored = {
             scalingKind: S.SCALING.NONE,
             authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
             spellIds: [S.SPELL_IDS.BLUR],
-            attributes: [
-              S.SPELL_GRANT_ATTRIBUTE.KNOWN,
-              S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE
-            ],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
             charges: {
               id: S.actionId(262, 1302),

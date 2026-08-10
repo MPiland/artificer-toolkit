@@ -140,9 +140,7 @@ describe('CharacterSheetRollPresentation', () => {
     testState.suspendCanvas = true
     const roll = createRoll('roll-loading')
 
-    render(
-      <CharacterSheetRollPresentation onRollRevealed={rollRevealed} roll={roll} />
-    )
+    render(<CharacterSheetRollPresentation onRollRevealed={rollRevealed} roll={roll} />)
 
     await vi.waitFor(() => expect(suspendedCanvasRenders).toBeGreaterThan(0))
     expect(screen.queryByText('Rolled 14')).not.toBeInTheDocument()

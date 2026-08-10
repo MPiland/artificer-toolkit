@@ -65,10 +65,7 @@ export const iceMephit: CreatureAuthored = {
             scalingKind: S.SCALING.NONE,
             authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
             spellIds: [S.SPELL_IDS.FOG_CLOUD],
-            attributes: [
-              S.SPELL_GRANT_ATTRIBUTE.KNOWN,
-              S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE
-            ],
+            attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
             charges: {
               id: S.actionId(172, 1302),

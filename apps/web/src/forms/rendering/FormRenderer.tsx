@@ -648,9 +648,7 @@ export function FormRenderer<TValues extends object>({
                         <CircleHelp size={15} aria-label={`About ${section.label}`} />
                       </div>
                     ) : null}
-                    <div
-                      className={isAdvancedBasics ? styles.basicsFieldGrid : styles.fieldGrid}
-                    >
+                    <div className={isAdvancedBasics ? styles.basicsFieldGrid : styles.fieldGrid}>
                       {sectionNodes.map((node) => {
                         if (!isRenderableNode(node)) return null
                         if (

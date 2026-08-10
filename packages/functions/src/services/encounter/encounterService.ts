@@ -1,4 +1,4 @@
-import { createHash, randomInt, randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { sql } from 'kysely'
 
 import {
@@ -17,31 +17,20 @@ import {
   type Json
 } from '@artificer-toolkit/db'
 import {
-  encounterFeatureReferenceDtoSchema,
   encounterCommandResultDtoSchema,
-  encounterGmProjectionDtoSchema,
-  encounterTimelineDtoSchema,
+  createEncounterTemplateInputDtoSchema,
   encounterTemplateDtoSchema,
   encounterTemplateListDtoSchema,
-  encounterPlayerProjectionDtoSchema,
-  type AddEncounterTemplateInputDto,
   type CreateEncounterTemplateInputDto,
   type CreateEncounterInputDto,
   type EncounterCommandInputDto,
   type EncounterCommandResultDto,
   type EncounterGmProjectionDto,
   type EncounterPlayerProjectionDto,
-  type EncounterTimelineDto,
   type UpdateEncounterActorInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import { rollResultDtoSchema } from '@artificer-toolkit/schema/api/rolls'
+import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
-import { featureDtoSchema, type FeatureDto } from '@artificer-toolkit/schema/features/feature'
-import { compileCharge, resolveCompiledChargeMaximum } from '@artificer-toolkit/shared/compilers'
-import {
-  evaluateRollExpression,
-  parseRollExpression
-} from '@artificer-toolkit/shared/rolls'
 import { executeDiceConfiguration } from '../rolls/rollService.js'
 import { ENTITLEMENT_LIMITS, assertEntitlementLimit } from '../account/entitlementService.js'
 import { executeCharacterSheetCommand } from '../character/sheetService.js'
@@ -53,29 +42,22 @@ import {
   resolveCampaignAuthority,
   CampaignConflictError
 } from '../campaign/campaignService.js'
-import { insertPreEvaluatedCampaignTableRoll } from '../campaign/campaignCollaborationService.js'
+import { insertPreEvaluatedCampaignTableRoll } from '../campaign/campaignChatService.js'
 import { broadcastCampaignInvalidation } from '../campaign/realtimeService.js'
-
-export class EncounterNotFoundError extends Error {
-  constructor() {
-    super('Encounter not found.')
-    this.name = 'EncounterNotFoundError'
-  }
-}
-
-export class EncounterConflictError extends Error {
-  constructor(message = 'Encounter changed before this action completed.') {
-    super(message)
-    this.name = 'EncounterConflictError'
-  }
-}
-
-export class EncounterValidationError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'EncounterValidationError'
-  }
-}
+import {
+  executeEnemyRoll,
+  featureChargeMaximum,
+  featureChargeUsed,
+  snapshotFeatureDefinitions,
+  stableActors,
+  withFeatureChargeUsed
+} from './encounterActorState.js'
+import {
+  EncounterConflictError,
+  EncounterNotFoundError,
+  EncounterValidationError
+} from './encounterErrors.js'
+import { projectGm, projectPlayer } from './encounterProjection.js'
 
 function fingerprint(input: unknown): string {
   return createHash('sha256').update(JSON.stringify(input)).digest('hex')
@@ -85,298 +67,6 @@ function isUniqueViolation(error: unknown): boolean {
   return (
     typeof error === 'object' && error !== null && (error as { code?: unknown }).code === '23505'
   )
-}
-
-function healthBand(current: number, maximum: number) {
-  if (current <= 0) return 'DEFEATED' as const
-  if (maximum <= 0 || current >= maximum * 0.75) return 'HEALTHY' as const
-  if (current >= maximum * 0.5) return 'WOUNDED' as const
-  if (current >= maximum * 0.25) return 'BLOODIED' as const
-  return 'CRITICAL' as const
-}
-
-function snapshotFeatureDefinitions(actor: EncounterActorRecord): FeatureDto[] {
-  if (
-    actor.kind !== 'CREATURE' ||
-    typeof actor.snapshot !== 'object' ||
-    actor.snapshot === null ||
-    Array.isArray(actor.snapshot)
-  ) {
-    return []
-  }
-  const payload = actor.snapshot.payload
-  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) return []
-  const features = payload.features
-  if (!Array.isArray(features)) return []
-
-  return features.flatMap((feature) => {
-    const parsed = featureDtoSchema.safeParse(feature)
-    return parsed.success ? [parsed.data] : []
-  })
-}
-
-function featureChargeMaximum(actor: EncounterActorRecord, feature: FeatureDto): number | null {
-  const charge = feature.charges
-  if (
-    !charge ||
-    charge.limitKind === 'SOURCE_CHARGES' ||
-    charge.scalingKind !== 'NONE' ||
-    (charge.limitKind !== 'FIXED_AMOUNT' && charge.limitKind !== 'ABILITY_MODIFIER') ||
-    charge.bonuses?.some((bonus) => bonus.bonusKind !== 'ABILITY_MODIFIER')
-  ) {
-    return null
-  }
-  let abilities: Record<string, number> = {}
-  if (charge.limitKind === 'ABILITY_MODIFIER' || charge.bonuses?.length) {
-    if (
-      typeof actor.snapshot !== 'object' ||
-      actor.snapshot === null ||
-      Array.isArray(actor.snapshot)
-    ) {
-      return null
-    }
-    const payload = actor.snapshot.payload
-    const abilityScores =
-      typeof payload === 'object' && payload !== null && !Array.isArray(payload)
-        ? payload.abilityScores
-        : null
-    if (
-      typeof abilityScores !== 'object' ||
-      abilityScores === null ||
-      Array.isArray(abilityScores)
-    ) {
-      return null
-    }
-    abilities = Object.fromEntries(
-      Object.entries(abilityScores).filter(
-        (entry): entry is [string, number] =>
-          typeof entry[1] === 'number' && Number.isFinite(entry[1])
-      )
-    )
-  }
-
-  try {
-    const maximum = resolveCompiledChargeMaximum(compileCharge(charge), {
-      abilities,
-      proficiencyBonus: 0,
-      totalLevel: 0
-    })
-    return maximum > 0 ? maximum : null
-  } catch {
-    return null
-  }
-}
-
-function featureChargeUsed(actor: EncounterActorRecord, featureId: string): number {
-  if (
-    typeof actor.resources !== 'object' ||
-    actor.resources === null ||
-    Array.isArray(actor.resources)
-  ) {
-    return 0
-  }
-  const charges = actor.resources.featureCharges
-  if (typeof charges !== 'object' || charges === null || Array.isArray(charges)) return 0
-  const used = charges[featureId]
-  return typeof used === 'number' && Number.isInteger(used) && used >= 0 ? used : 0
-}
-
-function withFeatureChargeUsed(actor: EncounterActorRecord, featureId: string, used: number): Json {
-  const resources =
-    typeof actor.resources === 'object' &&
-    actor.resources !== null &&
-    !Array.isArray(actor.resources)
-      ? actor.resources
-      : {}
-  const existing = resources.featureCharges
-  const featureCharges =
-    typeof existing === 'object' && existing !== null && !Array.isArray(existing) ? existing : {}
-  return { ...resources, featureCharges: { ...featureCharges, [featureId]: used } }
-}
-
-function snapshotFeatures(actor: EncounterActorRecord) {
-  return snapshotFeatureDefinitions(actor).map((feature) => {
-    const maximum = featureChargeMaximum(actor, feature)
-    const used = maximum === null ? 0 : Math.min(featureChargeUsed(actor, feature.id), maximum)
-    return encounterFeatureReferenceDtoSchema.parse({
-      ...feature,
-      resource:
-        maximum === null
-          ? null
-          : {
-              used,
-              maximum,
-              remaining: maximum - used,
-              resetKind:
-                feature.charges && feature.charges.limitKind !== 'SOURCE_CHARGES'
-                  ? feature.charges.resetKind
-                  : 'MANUAL'
-            }
-    })
-  })
-}
-
-function stringValues(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === 'string')
-    : []
-}
-
-function snapshotStatBlock(actor: EncounterActorRecord) {
-  if (
-    actor.kind !== 'CREATURE' ||
-    typeof actor.snapshot !== 'object' ||
-    actor.snapshot === null ||
-    Array.isArray(actor.snapshot)
-  )
-    return null
-  const payload = actor.snapshot.payload
-  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) return null
-  const abilityScores = payload.abilityScores
-  const abilities =
-    typeof abilityScores === 'object' && abilityScores !== null && !Array.isArray(abilityScores)
-      ? Object.fromEntries(
-          Object.entries(abilityScores).filter(
-            (entry): entry is [string, number] =>
-              typeof entry[1] === 'number' && Number.isFinite(entry[1])
-          )
-        )
-      : null
-  return {
-    armorClass:
-      typeof payload.armorClass === 'number' &&
-      Number.isInteger(payload.armorClass) &&
-      payload.armorClass >= 0
-        ? payload.armorClass
-        : null,
-    abilityScores: abilities,
-    speeds: Array.isArray(payload.speeds) ? payload.speeds : [],
-    senses: stringValues(payload.senses),
-    damageVulnerabilities: stringValues(payload.damageVulnerabilities),
-    damageResistances: stringValues(payload.damageResistances),
-    damageImmunities: stringValues(payload.damageImmunities),
-    conditionImmunities: stringValues(payload.conditionImmunities)
-  }
-}
-
-function diceConfiguration(expression: { count: number; die: number; modifier: number }): string {
-  const dice = `${expression.count}d${expression.die}`
-  return expression.modifier === 0
-    ? dice
-    : `${dice} ${expression.modifier > 0 ? '+' : '-'} ${Math.abs(expression.modifier)}`
-}
-
-function executeEnemyRoll(
-  expression: { count: number; die: number; modifier: number },
-  rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-) {
-  return rollResultDtoSchema.parse({
-    id: randomUUID(),
-    ...evaluateRollExpression(
-      parseRollExpression(diceConfiguration(expression)),
-      {
-        nextInt: (maxExclusive) => randomInt(maxExclusive)
-      },
-      rollMode
-    )
-  })
-}
-
-function stableActors(encounter: EncounterRecord): EncounterActorRecord[] {
-  return [...encounter.actors].sort((left, right) => {
-    const manualLeft = left.manualOrder ?? Number.MAX_SAFE_INTEGER
-    const manualRight = right.manualOrder ?? Number.MAX_SAFE_INTEGER
-    if (manualLeft !== manualRight) return manualLeft - manualRight
-    const initiativeLeft = left.initiative ?? Number.MIN_SAFE_INTEGER
-    const initiativeRight = right.initiative ?? Number.MIN_SAFE_INTEGER
-    if (initiativeLeft !== initiativeRight) return initiativeRight - initiativeLeft
-    return left.stableTieKey.localeCompare(right.stableTieKey)
-  })
-}
-
-function projectGm(encounter: EncounterRecord): EncounterGmProjectionDto {
-  return encounterGmProjectionDtoSchema.parse({
-    id: encounter.id,
-    campaignId: encounter.campaignId,
-    sessionId: encounter.sessionId,
-    templateId: encounter.templateId,
-    templateVersion: encounter.templateVersion,
-    name: encounter.name,
-    status: encounter.status,
-    version: encounter.version,
-    round: encounter.round,
-    currentActorId: encounter.currentActorId,
-    actors: stableActors(encounter).map((actor) => ({
-      id: actor.id,
-      encounterId: actor.encounterId,
-      kind: actor.kind,
-      label: actor.label,
-      sourceId: actor.sourceId,
-      sourceRevision: actor.sourceRevision,
-      systemId: actor.systemId,
-      stableTieKey: actor.stableTieKey,
-      public: actor.public,
-      currentHitPoints: actor.currentHitPoints,
-      maxHitPoints: actor.maxHitPoints,
-      tempHitPoints: actor.tempHitPoints,
-      conditions: actor.conditions,
-      resources: actor.resources,
-      gmNotes: actor.gmNotes,
-      statBlock: snapshotStatBlock(actor),
-      features: snapshotFeatures(actor),
-      initiative: actor.initiative,
-      manualOrder: actor.manualOrder,
-      healthBand: healthBand(actor.currentHitPoints, actor.maxHitPoints)
-    })),
-    reminders: encounter.reminders.map((reminder) => ({
-      id: reminder.id,
-      label: reminder.label,
-      timing: reminder.timing,
-      round: reminder.round,
-      actorId: reminder.actorId,
-      public: reminder.public,
-      notes: reminder.notes,
-      order: reminder.order
-    })),
-    createdAt: encounter.createdAt,
-    updatedAt: encounter.updatedAt
-  })
-}
-
-function projectPlayer(encounter: EncounterRecord): EncounterPlayerProjectionDto {
-  return encounterPlayerProjectionDtoSchema.parse({
-    id: encounter.id,
-    campaignId: encounter.campaignId,
-    sessionId: encounter.sessionId,
-    templateId: encounter.templateId,
-    templateVersion: encounter.templateVersion,
-    name: encounter.name,
-    status: encounter.status,
-    version: encounter.version,
-    round: encounter.round,
-    currentActorId:
-      encounter.currentActorId &&
-      encounter.actors.find((actor) => actor.id === encounter.currentActorId)?.public
-        ? encounter.currentActorId
-        : null,
-    actors: stableActors(encounter)
-      .filter((actor) => actor.public)
-      .map((actor) => ({
-        id: actor.id,
-        encounterId: actor.encounterId,
-        kind: actor.kind,
-        label: actor.label,
-        sourceId: actor.kind === 'CHARACTER' ? actor.sourceId : null,
-        sourceRevision: null,
-        public: actor.public,
-        initiative: actor.initiative,
-        manualOrder: actor.manualOrder,
-        conditions: actor.conditions,
-        healthBand: healthBand(actor.currentHitPoints, actor.maxHitPoints)
-      })),
-    createdAt: encounter.createdAt,
-    updatedAt: encounter.updatedAt
-  })
 }
 
 async function assertOwner(db: DBLike, campaignId: string, userId: string) {
@@ -584,71 +274,103 @@ export async function createEncounter(
 export async function createEncounterTemplate(
   db: DBLike,
   userId: string,
-  input: CreateEncounterTemplateInputDto
+  rawInput: CreateEncounterTemplateInputDto
 ) {
+  const input = createEncounterTemplateInputDtoSchema.parse(rawInput)
   return withTransaction(db, async (trx) => {
     await assertOwner(trx, input.campaignId, userId)
-    const tier = await createAccountEntitlementsRepository(trx).lockTier(userId)
+    const commandFingerprint = fingerprint(input)
     const repository = createEncounterRepository(trx)
+    const prior = await repository.findTemplateByCampaignCommand(input.campaignId, input.commandId)
+    if (prior) {
+      if (prior.commandFingerprint !== commandFingerprint) {
+        throw new EncounterConflictError('Command ID was already used with different input.')
+      }
+      return encounterTemplateDtoSchema.parse(prior.template)
+    }
+
+    const tier = await createAccountEntitlementsRepository(trx).lockTier(userId)
     assertEntitlementLimit(
       'savedEncounters',
       await repository.countTemplatesForOwner(userId),
       ENTITLEMENT_LIMITS[tier].savedEncounters
     )
     const creatureRepository = createCreatureRepository(trx)
-    const enemies: EncounterTemplateEnemy[] = await Promise.all(
-      input.enemies.map(async (enemy) => {
-        if (enemy.kind === 'CUSTOM') {
-          return {
-            kind: 'CUSTOM' as const,
-            sourceId: null,
-            sourceRevision: null,
-            label: enemy.label,
-            systemId: null,
-            maxHitPoints: enemy.maxHitPoints,
-            snapshot: {
-              kind: 'CUSTOM',
-              label: enemy.label,
-              maxHitPoints: enemy.maxHitPoints
-            } as unknown as Json
-          }
-        }
-
-        const creature = await creatureRepository.findById(enemy.sourceId, {
-          userId,
-          includeMaster: true
-        })
-        if (!creature || creature.status !== 'ACTIVE') {
-          throw new EncounterValidationError('Creature is unavailable.')
-        }
-        const maxHitPoints = Math.max(creature.hitPoints, 0)
-        const sourceRevision = null
+    const creatureIds = [
+      ...new Set(
+        input.enemies.flatMap((enemy) => (enemy.kind === 'CREATURE' ? [enemy.sourceId] : []))
+      )
+    ]
+    const creatures = await creatureRepository.findByIds(creatureIds, {
+      userId,
+      includeMaster: true
+    })
+    const enemies: EncounterTemplateEnemy[] = input.enemies.map((enemy) => {
+      if (enemy.kind === 'CUSTOM') {
         return {
-          kind: 'CREATURE' as const,
-          sourceId: creature.id,
-          sourceRevision,
-          label: creature.label,
-          systemId: creature.systemId,
-          maxHitPoints,
+          kind: 'CUSTOM' as const,
+          sourceId: null,
+          sourceRevision: null,
+          label: enemy.label,
+          systemId: null,
+          maxHitPoints: enemy.maxHitPoints,
           snapshot: {
-            kind: 'CREATURE',
-            id: creature.id,
-            label: creature.label,
-            systemId: creature.systemId,
-            sourceRevision,
-            maxHitPoints,
-            payload: creature as unknown as Json
+            kind: 'CUSTOM',
+            label: enemy.label,
+            maxHitPoints: enemy.maxHitPoints
           } as unknown as Json
         }
-      })
-    )
+      }
+
+      const creature = creatures.get(enemy.sourceId)
+      if (!creature || creature.status !== 'ACTIVE') {
+        throw new EncounterValidationError('Creature is unavailable.')
+      }
+      const maxHitPoints = Math.max(creature.hitPoints, 0)
+      const sourceRevision = null
+      return {
+        kind: 'CREATURE' as const,
+        sourceId: creature.id,
+        sourceRevision,
+        label: creature.label,
+        systemId: creature.systemId,
+        maxHitPoints,
+        snapshot: {
+          kind: 'CREATURE',
+          id: creature.id,
+          label: creature.label,
+          systemId: creature.systemId,
+          sourceRevision,
+          maxHitPoints,
+          payload: creature as unknown as Json
+        } as unknown as Json
+      }
+    })
+    if (
+      new TextEncoder().encode(JSON.stringify(enemies)).byteLength >
+      AUTHORED_LIMITS.mutationPayloadBytes
+    ) {
+      throw new EncounterValidationError('Encounter template snapshots are too large.')
+    }
     const template = await repository.createTemplate({
       id: randomUUID(),
       campaignId: input.campaignId,
+      commandId: input.commandId,
+      commandFingerprint,
       name: input.name,
       enemies
     })
-    return encounterTemplateDtoSchema.parse(template)
+    if (template) return encounterTemplateDtoSchema.parse(template)
+
+    const concurrent = await repository.findTemplateByCampaignCommand(
+      input.campaignId,
+      input.commandId
+    )
+    if (!concurrent) throw new Error('Encounter template was not created.')
+    if (concurrent.commandFingerprint !== commandFingerprint) {
+      throw new EncounterConflictError('Command ID was already used with different input.')
+    }
+    return encounterTemplateDtoSchema.parse(concurrent.template)
   })
 }
 
@@ -1016,57 +738,4 @@ export async function listCampaignEncounterProjections(
   return authority.membership.role === 'OWNER'
     ? encounters.map(projectGm)
     : encounters.filter((encounter) => encounter.status === 'ACTIVE').map(projectPlayer)
-}
-
-function eventVisibility(event: {
-  commandType: string
-  commandPayload: Json
-}): 'PRIVATE' | 'TABLE' {
-  if (
-    event.commandType === 'ROLL_ENEMY_ACTION' &&
-    typeof event.commandPayload === 'object' &&
-    event.commandPayload !== null &&
-    !Array.isArray(event.commandPayload) &&
-    event.commandPayload.visibility === 'TABLE'
-  )
-    return 'TABLE'
-  return 'PRIVATE'
-}
-
-function eventRoll(resultPayload: Json): RollRecordDto | null {
-  const parsed = encounterCommandResultDtoSchema.safeParse(resultPayload)
-  return parsed.success ? parsed.data.roll : null
-}
-
-export async function getEncounterTimeline(
-  db: DBLike,
-  userId: string,
-  input: { encounterId: string; cursor?: string; limit: number }
-): Promise<EncounterTimelineDto> {
-  const encounter = await createEncounterRepository(db).find(input.encounterId)
-  if (!encounter) throw new EncounterNotFoundError()
-  const authority = await resolveCampaignAuthority(db, encounter.campaignId, userId)
-  assertActiveCampaignMember(authority)
-  const events = await createEncounterRepository(db).listEventsPage(
-    encounter.id,
-    input.cursor,
-    input.limit + 1
-  )
-  const visible =
-    authority.membership.role === 'OWNER'
-      ? events
-      : events.filter((event) => eventVisibility(event) === 'TABLE')
-  const entries = visible.slice(0, input.limit).map((event) => ({
-    id: event.id,
-    version: event.version,
-    commandType: event.commandType,
-    visibility: eventVisibility(event),
-    actorUserId: event.actorUserId,
-    createdAt: event.createdAt,
-    roll: eventRoll(event.resultPayload)
-  }))
-  return encounterTimelineDtoSchema.parse({
-    entries,
-    nextCursor: visible.length > input.limit ? (entries.at(-1)?.id ?? null) : null
-  })
 }

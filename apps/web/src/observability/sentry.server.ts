@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/tanstackstart-react'
+import { redactSentryEvent } from './sentryPrivacy'
 
 interface SentryServerEnvironment {
   dsn?: string
@@ -20,6 +21,8 @@ export function initializeServerSentry(
   }
 
   Sentry.init({
+    beforeSend: redactSentryEvent,
+    beforeSendTransaction: redactSentryEvent,
     dataCollection: {
       httpBodies: [],
       userInfo: false

@@ -44,6 +44,8 @@ Username profanity and reserved-name checks run when an account claims or rename
 
 `packages/emails` owns the portable React Email templates and signed-hook behavior. [`netlify/functions/send-auth-email.mts`](../netlify/functions/send-auth-email.mts) is the client-independent deployment entrypoint: Supabase signs the hook payload, the Netlify Function verifies it with Standard Webhooks, renders the selected template, and sends it through Resend. It supports signup confirmation/resend, password recovery, invitations, magic links/OTP, email changes, and reauthentication codes. Project-level security notifications remain disabled until matching templates are intentionally added.
 
+The hook rejects request bodies over 64 KiB before signature verification and derives one stable Resend idempotency key per signed webhook message and recipient. This lets a retried two-address email change resume without duplicating the delivery that already succeeded.
+
 The function uses Supabase's documented double-confirm email-change mapping: the current address receives `token` with `token_hash_new`, while the new address receives `token_new` with `token_hash`.
 
 ### Operator setup

@@ -4,29 +4,14 @@ import type {
   AuthoredListFilter,
   AuthoredListItem
 } from '#components/AuthoredList'
-
-function mapPermissions(
-  item: FeatListResponseDto['items'][number]
-): AuthoredListItem['permissions'] {
-  return {
-    canView: item.permissions.canView,
-    canEdit: item.permissions.canEdit,
-    canCopy: item.permissions.canCopy,
-    canDelete: item.permissions.canDelete
-  }
-}
-
-function summarizeDescription(description: string | null | undefined): string {
-  if (!description) return 'No description yet.'
-  return description.replace(/<[^>]*>/g, '').trim() || 'No description yet.'
-}
+import { summarizeAuthoredDescription } from '../authoredListMapper'
 
 export function mapFeatListToAuthoredItems(response: FeatListResponseDto): AuthoredListItem[] {
   return response.items.map((item) => ({
     id: item.id,
     publicId: item.publicId,
     name: item.label,
-    description: summarizeDescription(item.description),
+    description: summarizeAuthoredDescription(item.description),
     attributes: {},
     filterValues: {
       source: item.provenance.kind
@@ -34,10 +19,10 @@ export function mapFeatListToAuthoredItems(response: FeatListResponseDto): Autho
     sortValues: {
       name: item.label
     },
-    searchText: summarizeDescription(item.description),
+    searchText: summarizeAuthoredDescription(item.description),
     sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
     sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
-    permissions: mapPermissions(item)
+    permissions: item.permissions
   }))
 }
 

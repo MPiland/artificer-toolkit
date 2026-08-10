@@ -59,9 +59,10 @@ export const legendLore: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.LEGEND_LORE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Provide the Lore",
+                label: 'Provide the Lore',
                 reasonCode: 'NARRATIVE_JUDGMENT' as const,
-                instructions: "The information you learn is accurate but might be couched in figurative language."
+                instructions:
+                  'The information you learn is accurate but might be couched in figurative language.'
               }
             ]
           }

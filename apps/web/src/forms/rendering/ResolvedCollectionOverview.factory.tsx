@@ -49,6 +49,8 @@ import {
   ManualCollectionOrderingProvider,
   ManualCollectionOrderingRow
 } from './ManualCollectionOrdering'
+import { isRecord } from '../utils/valueGuards'
+import { toCollectionDomId } from './collectionPresentation'
 
 type ResolvedCollectionOverviewProps = {
   drawerTarget?: AuthoringNavigationTarget
@@ -123,7 +125,9 @@ export function createResolvedCollectionOverview<TValues extends object>(default
           rowIndex: drawerTarget.drawerRowIndex
         })
         const label = getCollectionRowLabel(node, row, drawerTarget.drawerRowIndex)
-        const opener = document.getElementById(`authoring-target-${toDomId(drawerTarget.id)}`)
+        const opener = document.getElementById(
+          `authoring-target-${toCollectionDomId(drawerTarget.id)}`
+        )
 
         setGroupEditor({
           fieldName: collectionFieldName,
@@ -202,7 +206,9 @@ export function createResolvedCollectionOverview<TValues extends object>(default
               if (overviewTargetId) authoring.goToNavigationTarget(overviewTargetId)
               window.setTimeout(() => {
                 const targetOpener = drawerTarget
-                  ? document.getElementById(`authoring-target-${toDomId(drawerTarget.id)}`)
+                  ? document.getElementById(
+                      `authoring-target-${toCollectionDomId(drawerTarget.id)}`
+                    )
                   : undefined
                 ;(opener?.isConnected ? opener : targetOpener)?.focus()
               }, 0)
@@ -332,7 +338,7 @@ export function createResolvedCollectionOverview<TValues extends object>(default
                               <button
                                 id={
                                   usesDrawer && targetId
-                                    ? `authoring-target-${toDomId(targetId)}`
+                                    ? `authoring-target-${toCollectionDomId(targetId)}`
                                     : undefined
                                 }
                                 aria-label={usesDrawer ? `Open ${label}` : undefined}
@@ -588,12 +594,4 @@ export function createResolvedCollectionOverview<TValues extends object>(default
 
 function getGroupRowKey(row: unknown, index: number) {
   return isRecord(row) && typeof row.id === 'string' ? row.id : String(index)
-}
-
-function toDomId(value: string) {
-  return value.replace(/[^a-zA-Z0-9_-]/g, '-')
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

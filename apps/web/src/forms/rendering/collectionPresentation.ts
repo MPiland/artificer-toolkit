@@ -16,6 +16,7 @@ import {
   TRIGGER_OPTIONS,
   VALUE_DOMAIN_OPTIONS
 } from '@artificer-toolkit/shared/core'
+import { isRecord } from '../utils/valueGuards'
 
 type CollectionAuthoring = NodeRuntimeCollectionAuthoringDto
 type RowSummary = CollectionAuthoring['rowSummary']
@@ -92,9 +93,7 @@ export function getCollectionRowLabel(
 ) {
   if (isRecord(row) && typeof row.label === 'string' && row.label.trim()) {
     const availableAtLevel = readNumber(row.availableAtLevel)
-    return availableAtLevel === undefined
-      ? row.label
-      : `Level ${availableAtLevel} · ${row.label}`
+    return availableAtLevel === undefined ? row.label : `Level ${availableAtLevel} · ${row.label}`
   }
 
   const summary = node.authoring?.collection?.rowSummary
@@ -228,11 +227,7 @@ export function getCollectionRowCells(
   if (!isRecord(row) || node.authoring?.collection?.rowSummary !== 'modifier') return []
 
   const source =
-    row.scope === 'SOURCE'
-      ? 'This item'
-      : row.scope === 'GLOBAL'
-        ? 'Global'
-        : 'Not specified'
+    row.scope === 'SOURCE' ? 'This item' : row.scope === 'GLOBAL' ? 'Global' : 'Not specified'
 
   return [
     { ...MODIFIER_COLUMNS[0], value: label },
@@ -352,10 +347,6 @@ function hasPredicateCode(value: unknown, predicateCode: string): boolean {
   return Object.values(value).some((item) => hasPredicateCode(item, predicateCode))
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
 function readString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
@@ -387,4 +378,8 @@ function toSingularLabel(label: string) {
 
 function toTitleCase(value: string) {
   return value ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : value
+}
+
+export function toCollectionDomId(value: string) {
+  return value.replace(/[^a-zA-Z0-9_-]/g, '-')
 }

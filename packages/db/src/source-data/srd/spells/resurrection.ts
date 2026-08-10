@@ -71,9 +71,10 @@ export const resurrection: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.RESURRECTION, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Resolve the Soul",
+                label: 'Resolve the Soul',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "If its soul is free and willing, the target returns to life with all its hit points."
+                instructions:
+                  'If its soul is free and willing, the target returns to life with all its hit points.'
               }
             ]
           }

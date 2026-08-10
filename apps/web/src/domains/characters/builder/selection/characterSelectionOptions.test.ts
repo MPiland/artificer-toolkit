@@ -70,7 +70,7 @@ describe('character selection options', () => {
       details: [
         {
           label: 'Feature',
-          value: 'Shelter of the Faithful Â· 1 more',
+          value: 'Shelter of the Faithful · 1 more',
           prominence: 'primary'
         },
         { label: 'Languages', value: 'Choose 2' },

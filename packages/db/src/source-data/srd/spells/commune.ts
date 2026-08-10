@@ -60,9 +60,9 @@ export const commune: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.COMMUNE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Answer the Questions",
+                label: 'Answer the Questions',
                 reasonCode: 'GM_CHOICE' as const,
-                instructions: "You receive a correct answer for each question."
+                instructions: 'You receive a correct answer for each question.'
               }
             ]
           }

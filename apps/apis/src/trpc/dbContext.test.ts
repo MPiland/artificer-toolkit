@@ -22,3 +22,12 @@ it('maps authored creation limits to a rate-limit response', () => {
     message: error.message
   })
 })
+
+it('does not expose unexpected internal error messages', () => {
+  expect(
+    toTrpcError(new Error('database host db.internal.example refused the connection'))
+  ).toMatchObject({
+    code: 'INTERNAL_SERVER_ERROR',
+    message: 'Internal Server Error'
+  })
+})

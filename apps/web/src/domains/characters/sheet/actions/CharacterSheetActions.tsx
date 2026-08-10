@@ -90,7 +90,7 @@ export function CharacterSheetActions({
         {visibleGroups.length ? (
           visibleGroups.map((group) => (
             <section className={actionSummaryStyles.actionGroup} key={group.id}>
-              <Text className={actionSummaryStyles.actionGroupTitle} component='h3'>
+              <Text className={actionSummaryStyles.actionGroupTitle} component='h2'>
                 {group.label}
               </Text>
               {group.id === 'ATTACK' && activeFilter !== 'LIMITED_USE' ? (

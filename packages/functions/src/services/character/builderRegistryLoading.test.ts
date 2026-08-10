@@ -97,11 +97,8 @@ vi.mock('@artificer-toolkit/db', () => ({
   createFeatureRepository: () => ({ findByIds: repositoryCalls.featureFindByIds })
 }))
 
-import {
-  createEmptyCharacterAuthored,
-  reconcileCharacterBuilderCharacter,
-  resolveCharacterBuilder
-} from './builderService.js'
+import { createEmptyCharacterAuthored, resolveCharacterBuilder } from './builderService.js'
+import { reconcileCharacterBuilderCharacter } from './builderReconciliation.js'
 
 function createRace(
   id: string,

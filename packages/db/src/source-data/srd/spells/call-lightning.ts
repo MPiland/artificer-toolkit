@@ -76,9 +76,10 @@ export const callLightning: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.CALL_LIGHTNING, 0x213, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Resolve Existing Weather",
+                label: 'Resolve Existing Weather',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "If you are outdoors in stormy conditions when you cast this spell, the spell gives you control over the existing storm instead of creating a new one."
+                instructions:
+                  'If you are outdoors in stormy conditions when you cast this spell, the spell gives you control over the existing storm instead of creating a new one.'
               }
             ]
           }

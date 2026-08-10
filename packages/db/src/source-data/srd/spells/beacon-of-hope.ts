@@ -22,7 +22,7 @@ export const beaconOfHope: SpellAuthored = {
   id: SPELL_IDS.BEACON_OF_HOPE,
   label: 'Beacon of Hope',
   description:
-    "<p>This spell bestows hope and vitality. Choose any number of creatures within range. For the duration, each target has advantage on Wisdom saving throws and death saving throws, and regains the maximum number of hit points possible from any healing.</p>",
+    '<p>This spell bestows hope and vitality. Choose any number of creatures within range. For the duration, each target has advantage on Wisdom saving throws and death saving throws, and regains the maximum number of hit points possible from any healing.</p>',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 3,
   classIds: [CLASS_IDS.CLERIC],

@@ -5,7 +5,7 @@ import { AppSelect } from '#ui/primitives/Select'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
 import type { AuthoredListFilter, AuthoredListSortOption } from './AuthoredList.types'
 import type { AuthoredListFilterValues } from './AuthoredList.filters'
-import * as styles from './AuthoredList.css'
+import * as styles from './MobileAuthoredListTools.css'
 
 interface MobileAuthoredListToolsProps {
   title: string

@@ -81,14 +81,14 @@ Phase 03 Campaigns own username/entitlement enforcement, invitations, membership
 
 The GM workflow is split by the moment of use instead of accumulated on one screen:
 
-| GM job | Owning phase |
-| --- | --- |
-| Form the table, establish expectations, manage membership/content/Characters, communicate, and share custody | Phase 03 Campaign Core plus Phase 04 Social Hub safety/discovery |
-| Schedule, prepare, run, capture, and close out a session; access pinned references, handouts, clock, announcements, and attendance | Phase 05 Live Campaign play |
-| Build reusable enemy templates and run authoritative combat with actionable enemy stat blocks, rolls, resources, turn order, and history | Phase 06 Encounters |
-| Add maps, scenes, tokens, fog, and measurement without creating another combat model | Phase 07 Web VTT |
-| Operate public paid tables, attendance-linked bookings, cancellations, refunds, disputes, and payouts | Phase 09 Paid tables |
-| Add deeper world knowledge, relationships, travel, ambience, co-GM roles, and optional automation only after the core loop is proven | [Future enhancements](future-enhancements.md) |
+| GM job                                                                                                                                   | Owning phase                                                     |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Form the table, establish expectations, manage membership/content/Characters, communicate, and share custody                             | Phase 03 Campaign Core plus Phase 04 Social Hub safety/discovery |
+| Schedule, prepare, run, capture, and close out a session; access pinned references, handouts, clock, announcements, and attendance       | Phase 05 Live Campaign play                                      |
+| Build reusable enemy templates and run authoritative combat with actionable enemy stat blocks, rolls, resources, turn order, and history | Phase 06 Encounters                                              |
+| Add maps, scenes, tokens, fog, and measurement without creating another combat model                                                     | Phase 07 Web VTT                                                 |
+| Operate public paid tables, attendance-linked bookings, cancellations, refunds, disputes, and payouts                                    | Phase 09 Paid tables                                             |
+| Add deeper world knowledge, relationships, travel, ambience, co-GM roles, and optional automation only after the core loop is proven     | [Future enhancements](future-enhancements.md)                    |
 
 ### Encounters and VTT
 
@@ -186,7 +186,7 @@ The numbered order is the default product sequence. Hard dependencies are shown 
 | Identity             | One Supabase user identity across web, iOS, and Android                                                                                                            |
 | Native secrets/cache | `expo-secure-store` for session secrets; `expo-sqlite` for non-authoritative read-only projections                                                                 |
 | Realtime             | Private Supabase Broadcast; Presence only for slow-changing connection state                                                                                       |
-| Notifications        | Phase 05 provider-neutral web inbox and announcements; Phase 09 external delivery; Expo notifications/Push in Phase 10, all with API-authorized deep links       |
+| Notifications        | Phase 05 provider-neutral web inbox and announcements; Phase 09 external delivery; Expo notifications/Push in Phase 10, all with API-authorized deep links         |
 | Media and files      | Private Supabase Storage, API-issued upload intents, signed/authenticated delivery, verified profile limits, image normalization, and quarantined supporting files |
 | Dice                 | Restricted server-authoritative evaluation with injected cryptographic randomness and exact per-die evidence; lazy Three/Fiber/Rapier presentation on web          |
 | VTT                  | Platform-neutral scene model; PixiJS on web and initially in an Expo DOM host; React Native Skia only if the benchmark gate fails                                  |
@@ -200,23 +200,23 @@ Supabase currently supports private buckets with RLS or time-limited signed deli
 
 ## Payment-channel strategy
 
-| Product                | Web                              | Native initial state                                     | Native paid state                                                  |
-| ---------------------- | -------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
-| Artificer subscription | Stripe Billing                   | Consume the existing entitlement; no purchase CTA        | StoreKit/Play Billing through RevenueCat                           |
-| Marketplace content    | Deferred until Phases 12–13      | Not part of the initial native release                    | Enable only after free licensing and creator-payout design         |
-| Paid table/session     | Stripe Connect                   | Join or manage an existing booking                       | Enable checkout only after service-payment policy review           |
-| GM onboarding          | Stripe Connect hosted onboarding | Open an authorized web flow                              | Remain web-hosted unless provider constraints require otherwise    |
+| Product                | Web                              | Native initial state                              | Native paid state                                               |
+| ---------------------- | -------------------------------- | ------------------------------------------------- | --------------------------------------------------------------- |
+| Artificer subscription | Stripe Billing                   | Consume the existing entitlement; no purchase CTA | StoreKit/Play Billing through RevenueCat                        |
+| Marketplace content    | Deferred until Phases 12–13      | Not part of the initial native release            | Enable only after free licensing and creator-payout design      |
+| Paid table/session     | Stripe Connect                   | Join or manage an existing booking                | Enable checkout only after service-payment policy review        |
+| GM onboarding          | Stripe Connect hosted onboarding | Open an authorized web flow                       | Remain web-hosted unless provider constraints require otherwise |
 
 Apple Pay and Google Pay are wallet methods inside an allowed payment path; they do not override app-store billing rules. Venmo remains outside the initial design because it adds a second processor and reconciliation model. Before paid native controls are designed, re-check [Apple's review guidelines](https://developer.apple.com/app-store/review/guidelines/), [Google Play's payments policy](https://support.google.com/googleplay/android-developer/answer/9858738), [Stripe's React Native SDK](https://docs.stripe.com/sdks/react-native), and [RevenueCat's Expo integration](https://www.revenuecat.com/docs/getting-started/installation/expo).
 
 ## Initial launch plans
 
-| Plan | Price | Owned capacity and hosted scale | Paid tables |
-| ---- | ----- | ------------------------------- | ----------- |
-| Free | $0 | 6 personal Characters, 20 owned homebrew roots, 250 MB, 1 active hosted Campaign, 5 player seats, 1 public free listing, and 3 saved Encounters | Not available |
-| Player | $4.99/month or $49.99/year | Unlimited personal Characters and homebrew, 1 GB, and the same Campaign-hosting limits as Free | Not available |
-| GM | $9.99/month or $99.99/year | Player benefits, 5 GB, 5 active Campaigns, 12 seats each, 5 public listings, and unlimited Encounters | 10% Artificer platform fee |
-| Pro GM | $49.99/month or $499.99/year | GM benefits, 25 GB, unlimited Campaigns and listings under fair use, and 12 seats per Campaign | 0% Artificer platform fee |
+| Plan   | Price                        | Owned capacity and hosted scale                                                                                                                 | Paid tables                |
+| ------ | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| Free   | $0                           | 6 personal Characters, 20 owned homebrew roots, 250 MB, 1 active hosted Campaign, 5 player seats, 1 public free listing, and 3 saved Encounters | Not available              |
+| Player | $4.99/month or $49.99/year   | Unlimited personal Characters and homebrew, 1 GB, and the same Campaign-hosting limits as Free                                                  | Not available              |
+| GM     | $9.99/month or $99.99/year   | Player benefits, 5 GB, 5 active Campaigns, 12 seats each, 5 public listings, and unlimited Encounters                                           | 10% Artificer platform fee |
+| Pro GM | $49.99/month or $499.99/year | GM benefits, 25 GB, unlimited Campaigns and listings under fair use, and 12 seats per Campaign                                                  | 0% Artificer platform fee  |
 
 All plans may join unlimited Campaigns, use Campaign-scoped content, contribute owned content when permitted, participate in party inventory, and use Encounters and VTT. Processing charges and applicable taxes are separate from the Artificer platform fee. These prices and limits are the planning baseline and may change from evidence before public launch. Creator and Ultimate plans are intentionally not specified while the creator Marketplace is deferred.
 
@@ -234,22 +234,22 @@ Exact numeric thresholds are a pre-launch business decision. The behaviors above
 
 ## Phase documents
 
-| Phase | Document                                                                                   | Exit result                                                                                                                         |
-| ----- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 00    | [Character Sheet play depth and overrides](00-character-sheet-play-depth-and-overrides.md) | **Complete:** authoritative Sheet play, adjustments, explanations, and portable semantic panels                                     |
-| 01    | [Dice and roll infrastructure](01-dice-and-roll-infrastructure.md)                         | **Complete:** authoritative rolls, private history, accessible results, and optional lazy 3D presentation                           |
-| 02    | [Media and supporting-file pipeline](02-media-and-file-pipeline.md)                        | **Complete:** private avatars, Character portraits, authored artwork, crop-derived variants, and reusable asset identity             |
-| 03    | [Campaign Core](03-campaign-core.md)                                                       | Entitlements, Campaign lifecycle/content/custody, GM authority, two-room chat/rolls, notes, and private Realtime work on web      |
-| 04    | [Social Hub](04-social-hub.md)                                                             | Adults can privately invite or publicly discover, apply to, moderate, and form free tables                                          |
-| 05    | [Live Campaign play](05-live-campaign-play.md)                                             | Session scheduling/prep/closeout, quick references, vehicles, Campaign files/clock, announcements, and the web inbox work on web     |
-| 06    | [Encounters](06-encounters.md)                                                             | Campaign and standalone Encounters provide authoritative GM-run combat and enemy action rolls on web                                |
-| 07    | [Web VTT](07-vtt.md)                                                                        | One Encounter-backed VTT provides maps, tokens, fog, measurement, initiative, and accessible controls on web                       |
-| 08    | [Plans and entitlements](08-entitlements-and-subscriptions.md)                             | Phase 03 limits gain Stripe web subscriptions and remaining capability enforcement                                                  |
-| 09    | [Paid tables](09-paid-tables.md)                                                           | Approved paid-table checkout, capacity, payouts, refunds, and plan-based fees work on web                                           |
-| 10    | [Native foundation and parity](10-cross-platform-foundation.md)                            | After web viability, iOS and Android provide first-class play journeys against the proven contracts                                |
-| 11    | [Store release and continuous validation](11-store-release-and-continuous-validation.md)   | Store-ready binaries and repeatable cross-platform release gates exist                                                              |
-| 12    | [Free creator Marketplace](12-free-marketplace.md)                                         | Immutable releases, licenses, free acquisition, and attributed consumption work                                                     |
-| 13    | [Paid creator Marketplace](13-paid-marketplace.md)                                         | Approved creator checkout, payouts, refunds, disputes, and immutable order economics work                                           |
+| Phase | Document                                                                                   | Exit result                                                                                                                      |
+| ----- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| 00    | [Character Sheet play depth and overrides](00-character-sheet-play-depth-and-overrides.md) | **Complete:** authoritative Sheet play, adjustments, explanations, and portable semantic panels                                  |
+| 01    | [Dice and roll infrastructure](01-dice-and-roll-infrastructure.md)                         | **Complete:** authoritative rolls, private history, accessible results, and optional lazy 3D presentation                        |
+| 02    | [Media and supporting-file pipeline](02-media-and-file-pipeline.md)                        | **Complete:** private avatars, Character portraits, authored artwork, crop-derived variants, and reusable asset identity         |
+| 03    | [Campaign Core](03-campaign-core.md)                                                       | Entitlements, Campaign lifecycle/content/custody, GM authority, two-room chat/rolls, notes, and private Realtime work on web     |
+| 04    | [Social Hub](04-social-hub.md)                                                             | Adults can privately invite or publicly discover, apply to, moderate, and form free tables                                       |
+| 05    | [Live Campaign play](05-live-campaign-play.md)                                             | Session scheduling/prep/closeout, quick references, vehicles, Campaign files/clock, announcements, and the web inbox work on web |
+| 06    | [Encounters](06-encounters.md)                                                             | Campaign and standalone Encounters provide authoritative GM-run combat and enemy action rolls on web                             |
+| 07    | [Web VTT](07-vtt.md)                                                                       | One Encounter-backed VTT provides maps, tokens, fog, measurement, initiative, and accessible controls on web                     |
+| 08    | [Plans and entitlements](08-entitlements-and-subscriptions.md)                             | Phase 03 limits gain Stripe web subscriptions and remaining capability enforcement                                               |
+| 09    | [Paid tables](09-paid-tables.md)                                                           | Approved paid-table checkout, capacity, payouts, refunds, and plan-based fees work on web                                        |
+| 10    | [Native foundation and parity](10-cross-platform-foundation.md)                            | After web viability, iOS and Android provide first-class play journeys against the proven contracts                              |
+| 11    | [Store release and continuous validation](11-store-release-and-continuous-validation.md)   | Store-ready binaries and repeatable cross-platform release gates exist                                                           |
+| 12    | [Free creator Marketplace](12-free-marketplace.md)                                         | Immutable releases, licenses, free acquisition, and attributed consumption work                                                  |
+| 13    | [Paid creator Marketplace](13-paid-marketplace.md)                                         | Approved creator checkout, payouts, refunds, disputes, and immutable order economics work                                        |
 
 ## Cross-phase acceptance gates
 

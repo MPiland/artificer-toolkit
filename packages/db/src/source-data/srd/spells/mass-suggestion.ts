@@ -71,9 +71,10 @@ export const massSuggestion: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.MASS_SUGGESTION, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Define the Suggested Course",
+                label: 'Define the Suggested Course',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "You suggest a course of activity (limited to a sentence or two) and magically influence up to twelve creatures of your choice that you can see within range and that can hear and understand you."
+                instructions:
+                  'You suggest a course of activity (limited to a sentence or two) and magically influence up to twelve creatures of your choice that you can see within range and that can hear and understand you.'
               }
             ]
           }

@@ -34,6 +34,28 @@ describe('node runtime service', () => {
     nodeRuntimeQueryMock.selectNodeRuntimeRows.mockResolvedValue([])
   })
 
+  it('enforces request structure limits at direct service entry points', async () => {
+    const overNestedValues: Record<string, unknown> = {}
+    let cursor = overNestedValues
+    for (let depth = 0; depth < 30; depth += 1) {
+      const child: Record<string, unknown> = {}
+      cursor.child = child
+      cursor = child
+    }
+
+    const request = {
+      mapId: 'feature',
+      systemId: 'system-1',
+      values: overNestedValues
+    }
+
+    await expect(resolveNodeRuntime(unusedDb, request)).rejects.toMatchObject({ name: 'ZodError' })
+    await expect(normalizeNodeRuntimeValues(unusedDb, request)).rejects.toMatchObject({
+      name: 'ZodError'
+    })
+    expect(nodeRuntimeQueryMock.selectNodeRuntimeRows).not.toHaveBeenCalled()
+  })
+
   it('registers active parent and child node maps used by authored forms', () => {
     expect(listRuntimeNodeMapIds()).toEqual(
       expect.arrayContaining([
@@ -273,9 +295,7 @@ describe('node runtime service', () => {
     ])
     expect(effects?.sections.map((section) => section.label)).toEqual(['Effects'])
     expect(
-      effects?.sections
-        .find((section) => section.label === 'Effects')
-        ?.nodes.map((node) => node.id)
+      effects?.sections.find((section) => section.label === 'Effects')?.nodes.map((node) => node.id)
     ).toContain('effects')
     expect(
       basics?.sections.find((section) => section.label === 'Usage')?.nodes.map((node) => node.id)

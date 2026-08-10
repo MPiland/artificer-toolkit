@@ -217,4 +217,37 @@ describe('handleTrpcRequest', () => {
       })
     )
   })
+
+  it.each([
+    ['getUser error', { data: { user: null }, error: new Error('Invalid session') }],
+    ['missing getUser user', { data: { user: null }, error: null }],
+    [
+      'mismatched getUser id',
+      { data: { user: { app_metadata: {}, id: 'other-user' } }, error: null }
+    ]
+  ])('treats a %s as unauthenticated', async (_name, getUserResult) => {
+    mocks.createServerClient.mockReturnValue({
+      auth: {
+        getClaims: vi.fn().mockResolvedValue({
+          data: { claims: { app_metadata: { admin: true }, sub: 'claimed-user' } },
+          error: null
+        }),
+        getUser: vi.fn().mockResolvedValue(getUserResult)
+      }
+    })
+
+    const { handleTrpcRequest } = await import('./trpc')
+    await handleTrpcRequest(
+      new Request('https://app.test/api/trpc/content.races.list', { method: 'POST' })
+    )
+
+    expect(mocks.handleTrpcFetchRequest).toHaveBeenCalledWith(
+      expect.any(Request),
+      expect.objectContaining({
+        invitationSetupPending: false,
+        isSuperAdmin: false,
+        userId: null
+      })
+    )
+  })
 })

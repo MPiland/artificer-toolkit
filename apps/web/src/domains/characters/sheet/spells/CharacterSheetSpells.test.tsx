@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { characterSheetFixture } from '../fixtures/characterSheet.fixtures'
-import { CharacterSheetSpellsPanelContent } from '../inspector/CharacterSheetSpellPanels'
+import { CharacterSheetSpellsPanelContent } from '../inspector/CharacterSheetSpellsPanelContent'
 import { spellsPanelFixture } from '../inspector/inspector.fixtures'
 import { createSheet } from '../tests/sheetTestHarness'
 import { CharacterSheetSpells } from './CharacterSheetSpells'
@@ -37,7 +37,6 @@ describe('Character Sheet spells', () => {
         pending={false}
         submitCommand={submitCommand}
         onTargetChange={vi.fn()}
-        onOpenBuilder={vi.fn()}
       />
     )
 
@@ -69,7 +68,6 @@ describe('Character Sheet spells', () => {
         pending={false}
         submitCommand={submitCommand}
         onTargetChange={vi.fn()}
-        onOpenBuilder={vi.fn()}
       />
     )
 
@@ -107,7 +105,6 @@ describe('Character Sheet spells', () => {
         pending={false}
         submitCommand={vi.fn().mockResolvedValue(true)}
         onTargetChange={vi.fn()}
-        onOpenBuilder={vi.fn()}
       />
     )
 
@@ -244,7 +241,6 @@ describe('Character Sheet spells', () => {
         pending={false}
         submitCommand={submitCommand}
         onTargetChange={vi.fn()}
-        onOpenBuilder={vi.fn()}
       />
     )
 
@@ -280,7 +276,6 @@ describe('Character Sheet spells', () => {
         pending={false}
         submitCommand={submitCommand}
         onTargetChange={vi.fn()}
-        onOpenBuilder={vi.fn()}
       />
     )
 

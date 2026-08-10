@@ -5,7 +5,8 @@ export const plateArmor: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
   id: S.equipId(49),
   label: 'Plate Armor',
-  description: "Plate consists of shaped, interlocking metal plates to cover the entire body. A suit of plate includes gauntlets, heavy leather boots, a visored helmet, and thick layers of padding underneath the armor. Buckles and straps distribute the weight over the body.",
+  description:
+    'Plate consists of shaped, interlocking metal plates to cover the entire body. A suit of plate includes gauntlets, heavy leather boots, a visored helmet, and thick layers of padding underneath the armor. Buckles and straps distribute the weight over the body.',
   category: S.EQUIPMENT_CATEGORY_CODE.ARMOR,
   properties: [S.EQUIPMENT_PROPERTY_CODE.HEAVY],
   armorClass: 18,

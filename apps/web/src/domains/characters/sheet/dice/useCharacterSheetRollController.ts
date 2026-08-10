@@ -65,7 +65,7 @@ export function useCharacterSheetRollController(
       executeRoll: async (request: CharacterSheetRollRequest) => {
         try {
           if (preferences.animate3d && !reducedMotion) {
-            void import('./DiceCanvas')
+            void import('./diceModelPreload')
               .then(({ preloadDiceModels }) => preloadDiceModels(request.expression))
               .catch(() => undefined)
           }

@@ -160,32 +160,6 @@ export const proficiencyPanelGrid = style({
   }
 })
 
-export const proficiencyColumns = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: '12px',
-      gridTemplateColumns: 'minmax(210px, 0.45fr) minmax(0, 1fr)',
-      minWidth: 0,
-      '@media': {
-        '(max-width: 900px)': {
-          gridTemplateColumns: '1fr'
-        }
-      }
-    }
-  }
-})
-
-export const proficiencyColumn = style({
-  '@layer': {
-    [app]: {
-      display: 'grid',
-      gap: '8px',
-      minWidth: 0
-    }
-  }
-})
-
 export const proficiencyHeading = style({
   '@layer': {
     [app]: {
@@ -202,30 +176,6 @@ export const proficiencyList = style({
     [app]: {
       display: 'grid',
       gap: 0
-    }
-  }
-})
-
-export const proficiencyRow = style({
-  '@layer': {
-    [app]: {
-      alignItems: 'center',
-      background: 'transparent',
-      borderLeft: 0,
-      borderRight: 0,
-      borderTop: 0,
-      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
-      display: 'grid',
-      gap: '8px',
-      gridTemplateColumns: '10px minmax(0, 1fr) minmax(34px, auto)',
-      minHeight: '28px',
-      minWidth: 0,
-      padding: '5px 0',
-      selectors: {
-        '&:last-child': {
-          borderBottom: 0
-        }
-      }
     }
   }
 })
@@ -281,7 +231,7 @@ export const savingThrowMarkerSpacer = style({
   }
 })
 
-export const savingThrowCardLabel = style({
+const savingThrowCardLabel = style({
   '@layer': {
     [app]: {
       color: foundationVars.color.text.secondary,
@@ -496,16 +446,6 @@ export const proficiencyMeta = style({
       color: foundationVars.color.text.secondary,
       fontSize: '0.68rem',
       lineHeight: 1.15
-    }
-  }
-})
-
-export const proficiencyBadge = style({
-  '@layer': {
-    [app]: {
-      justifySelf: 'end',
-      minWidth: '44px',
-      textAlign: 'center'
     }
   }
 })

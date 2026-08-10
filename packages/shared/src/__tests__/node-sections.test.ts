@@ -38,16 +38,22 @@ describe('node map sections', () => {
   })
 
   it('forwards a section description to its derived step', () => {
-    const nodeMap = buildNodeMap<{ label?: string }>().define('described-step', ({ map, nodes }) => {
-      map.set('label', nodes.text(['label'], 'Name', {
-        section: {
-          id: 'basics',
-          label: 'Basics',
-          description: 'Define the core identity for this item.',
-          order: 10
-        }
-      }))
-    })
+    const nodeMap = buildNodeMap<{ label?: string }>().define(
+      'described-step',
+      ({ map, nodes }) => {
+        map.set(
+          'label',
+          nodes.text(['label'], 'Name', {
+            section: {
+              id: 'basics',
+              label: 'Basics',
+              description: 'Define the core identity for this item.',
+              order: 10
+            }
+          })
+        )
+      }
+    )
 
     expect(resolveNodeMapSteps(nodeMap)).toMatchObject([
       {
@@ -261,12 +267,7 @@ describe('node map sections', () => {
     const featureSteps = resolveNodeMapSteps(FEATURE_NODE_MAP)
     const optionSteps = resolveNodeMapSteps(OPTION_NODE_MAP)
 
-    expect(featureSteps.map((step) => step.id)).toEqual([
-      'basics',
-      'effects',
-      'grants',
-      'options'
-    ])
+    expect(featureSteps.map((step) => step.id)).toEqual(['basics', 'effects', 'grants', 'options'])
     expect(optionSteps.map((step) => step.id)).toEqual(['basics', 'effects', 'grants'])
     expect(resolveNodeMapSteps(EQUIPMENT_NODE_MAP).map((step) => step.id)).toEqual([
       'basics',

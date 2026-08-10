@@ -60,13 +60,15 @@ vi.mock('./builderService.js', async (importOriginal) => {
       destructive: false
     }),
     loadCharacterBuilderContext: mocks.loadBuilderContext,
-    reconcileCharacterBuilderCharacter: mocks.reconcileCharacter,
     resolveCharacterBuilder: mocks.resolveBuilder
   }
 })
+vi.mock('./builderReconciliation.js', () => ({
+  reconcileCharacterBuilderCharacter: mocks.reconcileCharacter
+}))
 
-vi.mock('./sheetService.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./sheetService.js')>()
+vi.mock('./characterEngine.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./characterEngine.js')>()
   return {
     ...actual,
     resolveCharacterSheetEngine: mocks.resolveEngine
@@ -82,7 +84,8 @@ vi.mock('./campaignCharacterContent.js', () => ({
 }))
 
 const { createEmptyCharacterAuthored } = await import('./builderService.js')
-const { upsertCharacterBuilderForUser } = await import('./characterApplicationService.js')
+const { createCharacterDraftForUser, upsertCharacterBuilderForUser } =
+  await import('./characterApplicationService.js')
 
 const resolution: CharacterBuilderResolution = {
   mode: 'edit',
@@ -237,5 +240,20 @@ describe('Builder hit point reconciliation', () => {
 
     expect(mocks.resolveBuilder).not.toHaveBeenCalled()
     expect(mocks.upsertCharacter).not.toHaveBeenCalled()
+  })
+
+  it("rejects another user's Character draft before resolving Builder payload", async () => {
+    mocks.findCharacter.mockResolvedValue(createActiveCharacter(9))
+
+    await expect(
+      createCharacterDraftForUser(
+        {} as DBLike,
+        { id: 'character-1', systemId: 'system-1' },
+        'user-2'
+      )
+    ).rejects.toMatchObject({ name: 'AuthoredContentOwnershipError' })
+
+    expect(mocks.resolveBuilder).not.toHaveBeenCalled()
+    expect(mocks.ensureRouteIdentity).not.toHaveBeenCalled()
   })
 })

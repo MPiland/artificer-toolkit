@@ -11,7 +11,8 @@ import {
   listOwnedCampaignContent,
   loadCampaignContentSnapshot
 } from '../campaignContentSubmission'
-import * as styles from '../campaigns.css'
+import * as sharedStyles from '../campaigns.css'
+import * as contentStyles from './campaignContent.css'
 
 export function CampaignContent({ campaign }: { campaign: CampaignDetailDto }) {
   const queryClient = useQueryClient()
@@ -70,7 +71,7 @@ export function CampaignContent({ campaign }: { campaign: CampaignDetailDto }) {
   })
 
   return (
-    <section className={styles.panel} aria-labelledby='campaign-content-title'>
+    <section className={sharedStyles.panel} aria-labelledby='campaign-content-title'>
       <div>
         <Title order={2} id='campaign-content-title'>
           Campaign content
@@ -93,7 +94,7 @@ export function CampaignContent({ campaign }: { campaign: CampaignDetailDto }) {
           ) : null}
           <Group align='end' wrap='wrap'>
             <Select
-              classNames={{ input: styles.input }}
+              classNames={{ input: sharedStyles.input }}
               data={campaignContentTypeOptions}
               label='Content type'
               value={subjectKind}
@@ -103,7 +104,7 @@ export function CampaignContent({ campaign }: { campaign: CampaignDetailDto }) {
               }}
             />
             <Select
-              classNames={{ input: styles.input }}
+              classNames={{ input: sharedStyles.input }}
               data={(candidates.data ?? []).map((candidate) => ({
                 value: candidate.subjectId,
                 label: candidate.label
@@ -115,7 +116,7 @@ export function CampaignContent({ campaign }: { campaign: CampaignDetailDto }) {
               onChange={setSubjectId}
             />
             <Button
-              className={styles.inputRowButton}
+              className={contentStyles.inputRowButton}
               disabled={!subjectId || content.isPending}
               loading={submit.isPending}
               onClick={() => submit.mutate()}
@@ -130,7 +131,7 @@ export function CampaignContent({ campaign }: { campaign: CampaignDetailDto }) {
       ) : null}
       <Stack gap='sm'>
         {content.data?.map((version) => (
-          <div className={styles.memberRow} key={version.id}>
+          <div className={sharedStyles.memberRow} key={version.id}>
             <div>
               <Group gap='xs'>
                 <Text fw={600}>{version.subjectKind}</Text>

@@ -59,9 +59,10 @@ export const communeWithNature: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.COMMUNE_WITH_NATURE, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Reveal Natural Knowledge",
+                label: 'Reveal Natural Knowledge',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "You instantly gain knowledge of up to three facts of your choice about any of the following subjects as they relate to the area:"
+                instructions:
+                  'You instantly gain knowledge of up to three facts of your choice about any of the following subjects as they relate to the area:'
               }
             ]
           }

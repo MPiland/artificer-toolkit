@@ -72,9 +72,10 @@ export const animalMessenger: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.ANIMAL_MESSENGER, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Specify the Message and Recipient",
+                label: 'Specify the Message and Recipient',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "You specify a location, which you must have visited, and a recipient who matches a general description, such as \"a man or woman dressed in the uniform of the town guard\" or \"a red-haired dwarf wearing a pointed hat.\""
+                instructions:
+                  'You specify a location, which you must have visited, and a recipient who matches a general description, such as "a man or woman dressed in the uniform of the town guard" or "a red-haired dwarf wearing a pointed hat."'
               }
             ]
           }

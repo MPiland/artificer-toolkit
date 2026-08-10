@@ -4,27 +4,12 @@ import type {
   AuthoredListFilter,
   AuthoredListItem
 } from '#components/AuthoredList'
-
-function mapPermissions(
-  item: RaceListResponseDto['items'][number]
-): AuthoredListItem['permissions'] {
-  return {
-    canView: item.permissions.canView,
-    canEdit: item.permissions.canEdit,
-    canCopy: item.permissions.canCopy,
-    canDelete: item.permissions.canDelete
-  }
-}
+import { summarizeAuthoredDescription } from '../authoredListMapper'
 
 export function formatRaceCategory(category: string | undefined): string {
   if (category === 'SUBRACE') return 'Subrace'
   if (category === 'BASE') return 'Base Race'
   return 'Race'
-}
-
-function summarizeDescription(description: string | null | undefined): string {
-  if (!description) return 'No description yet.'
-  return description.replace(/<[^>]*>/g, '').trim() || 'No description yet.'
 }
 
 function isPlayableRaceListItem(item: RaceListResponseDto['items'][number]): boolean {
@@ -44,7 +29,7 @@ export function mapRaceListToAuthoredItems(response: RaceListResponseDto): Autho
       id: item.id,
       publicId: item.publicId,
       name: item.label,
-      description: summarizeDescription(item.description),
+      description: summarizeAuthoredDescription(item.description),
       badges: playableLabel ? [playableLabel] : undefined,
       hierarchy: parentRaceId
         ? {
@@ -61,10 +46,10 @@ export function mapRaceListToAuthoredItems(response: RaceListResponseDto): Autho
         category: formatRaceCategory(category),
         name: item.label
       },
-      searchText: `${summarizeDescription(item.description)} ${formatRaceCategory(category)} ${playableLabel}`,
+      searchText: `${summarizeAuthoredDescription(item.description)} ${formatRaceCategory(category)} ${playableLabel}`,
       sourceLabel: item.provenance.kind === 'MASTER' ? 'SRD' : 'Homebrew',
       sourceKind: item.provenance.kind === 'MASTER' ? 'master' : 'owned',
-      permissions: mapPermissions(item)
+      permissions: item.permissions
     }
   })
 }

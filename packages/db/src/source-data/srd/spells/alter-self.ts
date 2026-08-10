@@ -71,9 +71,10 @@ export const alterSelf: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.ALTER_SELF, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Choose Appearance",
+                label: 'Choose Appearance',
                 reasonCode: 'PLAYER_DECLARATION' as const,
-                instructions: "You decide what you look like, including your height, weight, facial features, sound of your voice, hair length, coloration, and distinguishing characteristics, if any."
+                instructions:
+                  'You decide what you look like, including your height, weight, facial features, sound of your voice, hair length, coloration, and distinguishing characteristics, if any.'
               }
             ]
           }

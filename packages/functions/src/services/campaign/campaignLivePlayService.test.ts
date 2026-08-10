@@ -50,8 +50,10 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
 
 vi.mock('../character/builderService.js', () => ({ resolveCharacterBuilder: mocks.resolveBuilder }))
 vi.mock('../character/sheetService.js', () => ({
-  buildCharacterSheetResponse: mocks.buildSheet,
   executeCharacterSheetCommand: mocks.executeSheet
+}))
+vi.mock('../character/sheetProjection.js', () => ({
+  buildCharacterSheetResponse: mocks.buildSheet
 }))
 vi.mock('./campaignService.js', () => ({
   assertActiveCampaignMember: vi.fn(),
@@ -67,11 +69,7 @@ vi.mock('./campaignService.js', () => ({
 }))
 vi.mock('./realtimeService.js', () => ({ broadcastCampaignInvalidation: mocks.broadcast }))
 
-import {
-  advanceCampaignClock,
-  initializeCampaignClock,
-  rewindCampaignClock
-} from './campaignLivePlayService.js'
+import { advanceCampaignClock, rewindCampaignClock } from './campaignLivePlayService.js'
 
 const owner = { id: ids.owner }
 let commandRecords = new Map<string, Record<string, unknown>>()
@@ -155,6 +153,33 @@ describe('campaign live-play clock', () => {
       ids.campaign,
       expect.objectContaining({ entity: 'CLOCK', event: 'UPDATED' })
     )
+  })
+
+  it('processes only the latest occurrence of each recovery boundary over a large jump', async () => {
+    let current = clock()
+    mocks.db = {
+      selectFrom: vi.fn(() => chain([{ characterId: ids.character, userId: ids.owner }]))
+    } as unknown as DBLike
+    mocks.live.lockClock.mockImplementation(async () => current)
+    mocks.live.updateClock.mockImplementation(async (input) => {
+      const { expectedVersion: _expectedVersion, ...changes } = input
+      current = { ...current, ...changes, version: current.version + 1 }
+      return current
+    })
+    mocks.character.findAuthoredById.mockResolvedValue({ id: ids.character })
+    mocks.character.findById.mockResolvedValue({ id: ids.character, stream_version: 1 })
+    mocks.buildSheet.mockResolvedValue({ resources: { items: [] } })
+
+    await expect(
+      advanceCampaignClock({} as DBLike, owner.id, {
+        campaignId: ids.campaign,
+        commandId: ids.command,
+        expectedVersion: 1,
+        minutes: 10_000_000
+      })
+    ).resolves.toMatchObject({ processedBoundaryAbsoluteMinute: 10_000_000 })
+
+    expect(mocks.buildSheet).toHaveBeenCalledTimes(3)
   })
 
   it('replays a command without applying it twice and never replays after rewind', async () => {

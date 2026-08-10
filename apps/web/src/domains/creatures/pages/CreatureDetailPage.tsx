@@ -5,7 +5,6 @@ import {
   type AuthoredDraftDto,
   type CreatureResponseDto
 } from '@artificer-toolkit/schema/api/content'
-import { type CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
 import {
   AuthoredDetailItemList,
   AuthoredDetailLayout,
@@ -14,35 +13,18 @@ import {
   buildDetailStatusLabels,
   compactAuthoredDetailActions,
   compactAuthoredDetailSections,
-  formatEnumLabel,
-  formatNumber,
-  formatReference,
-  formatReferenceLabel,
-  formatReferenceLabelList,
   hasDetailText,
   resolveAuthoredDetailState,
-  toDetailItems,
   useAuthoredDetailActions,
   useAuthoredExportAction,
-  type AuthoredDetailFact,
   type AuthoredDetailSectionModel
 } from '#components/AuthoredDetail'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCreatureRouteParams } from '#app/routing/authoredRouteParams'
-import * as styles from './CreatureDetailPage.css'
-
-type CreatureFeature = NonNullable<CreatureAuthoredDto['features']>[number]
-
-const abilityOrder = [
-  'STRENGTH',
-  'DEXTERITY',
-  'CONSTITUTION',
-  'INTELLIGENCE',
-  'WISDOM',
-  'CHARISMA'
-] as const
+import { buildCreatureDetailModel, type CreatureDetailModel } from './CreatureDetail.model'
+import { CreatureStats, LegendaryActionsContent } from './CreatureDetailSections'
 
 export function CreatureDetailPage({
   creatureId,
@@ -122,6 +104,7 @@ export function CreatureDetailPage({
   }
 
   const item = detailState.item
+  const creatureModel = buildCreatureDetailModel(item, references)
   const creatureParams = buildCreatureRouteParams(
     draft?.publicId ?? response?.publicId ?? creatureId,
     item.label
@@ -209,7 +192,7 @@ export function CreatureDetailPage({
           attach: { type: 'AUTHORED_IMAGE', subjectKind: 'CREATURE', subjectId: creatureId }
         }}
         eyebrow='Creature'
-        facts={getCreatureFacts(item, references)}
+        facts={creatureModel.facts}
         notice={buildAuthoredDetailNotice({
           canViewActive: detailState.canViewActive,
           domainLabel: 'Creature',
@@ -227,7 +210,7 @@ export function CreatureDetailPage({
             })
         })}
         pendingOperation={actions.pendingOperation}
-        sections={getCreatureSections(item, references)}
+        sections={getCreatureSections(creatureModel)}
         showSectionNav={false}
         status={buildDetailStatusLabels({
           draft: detailState.draft,
@@ -242,389 +225,118 @@ export function CreatureDetailPage({
   )
 }
 
-function getCreatureFacts(
-  creature: CreatureAuthoredDto,
-  references: Pick<AuthoredContentReferenceData, 'challengeRatings' | 'creatureTypes'>
-): AuthoredDetailFact[] {
-  return [
-    { label: 'Category', value: formatEnumLabel(creature.category) },
-    {
-      label: 'Type',
-      value: formatReferenceLabel(
-        creature.creatureTypeId,
-        'Creature type selected',
-        references.creatureTypes
-      )
-    },
-    { label: 'Size', value: formatReference(creature.size, 'Size selected') },
-    { label: 'Armor Class', value: formatNumber(creature.armorClass) },
-    { label: 'Hit Points', value: formatNumber(creature.hitPoints) },
-    {
-      label: 'Challenge',
-      value: formatReferenceLabel(
-        creature.challengeRatingId,
-        'Challenge selected',
-        references.challengeRatings
-      )
-    }
-  ]
-}
-
-function getCreatureSections(
-  creature: CreatureAuthoredDto,
-  references: Pick<AuthoredContentReferenceData, 'conditionTypes' | 'damageTypes' | 'speeds'>
-): AuthoredDetailSectionModel[] {
-  const defenseItems = [
-    {
-      id: 'damage-vulnerabilities',
-      title: 'Damage Vulnerabilities',
-      description: formatReferenceLabelList(
-        creature.damageVulnerabilities,
-        'damage type',
-        references.damageTypes
-      )
-    },
-    {
-      id: 'damage-resistances',
-      title: 'Damage Resistances',
-      description: formatReferenceLabelList(
-        creature.damageResistances,
-        'damage type',
-        references.damageTypes
-      )
-    },
-    {
-      id: 'damage-immunities',
-      title: 'Damage Immunities',
-      description: formatReferenceLabelList(
-        creature.damageImmunities,
-        'damage type',
-        references.damageTypes
-      )
-    },
-    {
-      id: 'condition-immunities',
-      title: 'Condition Immunities',
-      description: formatReferenceLabelList(
-        creature.conditionImmunities,
-        'condition',
-        references.conditionTypes
-      )
-    }
-  ].filter((item) => item.description !== 'None')
-  const legendaryActionFeature = creature.features?.find(isLegendaryActionFeature)
-  const featureBuckets = getCreatureFeatureBuckets(creature.features, legendaryActionFeature)
-  const actionItems = featureBuckets.actions
-  const bonusActionItems = featureBuckets.bonusActions
-  const reactionItems = featureBuckets.reactions
-  const lairActionItems = featureBuckets.lairActions
-  const profileItems = getCreatureProfileItems(creature)
-  const traitItems = [...toDetailItems(creature.details), ...featureBuckets.traits]
+function getCreatureSections(model: CreatureDetailModel): AuthoredDetailSectionModel[] {
+  const legendaryActions = model.legendaryActions
 
   return compactAuthoredDetailSections([
-    hasDetailText(creature.description)
+    hasDetailText(model.description)
       ? {
           id: 'description',
           title: 'Description',
-          content: <AuthoredDetailProse html={creature.description} />
+          content: <AuthoredDetailProse html={model.description} />
         }
       : null,
     {
       id: 'stats',
       title: 'Stats',
-      content: <CreatureStats creature={creature} references={references} />
+      content: <CreatureStats stats={model.stats} />
     },
-    defenseItems.length
+    model.defenseItems.length
       ? {
           id: 'defenses',
           title: 'Defenses',
           content: (
-            <AuthoredDetailItemList empty='No defenses have been added.' items={defenseItems} />
+            <AuthoredDetailItemList
+              empty='No defenses have been added.'
+              items={model.defenseItems}
+            />
           )
         }
       : null,
-    actionItems.length
+    model.actionItems.length
       ? {
           id: 'actions',
           title: 'Actions',
           content: (
-            <AuthoredDetailItemList empty='No actions have been added.' items={actionItems} />
+            <AuthoredDetailItemList empty='No actions have been added.' items={model.actionItems} />
           )
         }
       : null,
-    bonusActionItems.length
+    model.bonusActionItems.length
       ? {
           id: 'bonus-actions',
           title: 'Bonus Actions',
           content: (
             <AuthoredDetailItemList
               empty='No bonus actions have been added.'
-              items={bonusActionItems}
+              items={model.bonusActionItems}
             />
           )
         }
       : null,
-    reactionItems.length
+    model.reactionItems.length
       ? {
           id: 'reactions',
           title: 'Reactions',
           content: (
-            <AuthoredDetailItemList empty='No reactions have been added.' items={reactionItems} />
+            <AuthoredDetailItemList
+              empty='No reactions have been added.'
+              items={model.reactionItems}
+            />
           )
         }
       : null,
-    lairActionItems.length
+    model.lairActionItems.length
       ? {
           id: 'lair-actions',
           title: 'Lair Actions',
           content: (
             <AuthoredDetailItemList
               empty='No lair actions have been added.'
-              items={lairActionItems}
+              items={model.lairActionItems}
             />
           )
         }
       : null,
-    legendaryActionFeature
+    legendaryActions
       ? {
           id: 'legendary-actions',
           title: 'Legendary Actions',
-          content: <LegendaryActionsContent feature={legendaryActionFeature} />
+          content: <LegendaryActionsContent feature={legendaryActions} />
         }
       : null,
-    featureBuckets.regionalEffects.length
+    model.regionalEffectItems.length
       ? {
           id: 'regional-effects',
           title: 'Regional Effects',
           content: (
             <AuthoredDetailItemList
               empty='No regional effects have been added.'
-              items={featureBuckets.regionalEffects}
+              items={model.regionalEffectItems}
             />
           )
         }
       : null,
-    profileItems.length
+    model.profileItems.length
       ? {
           id: 'profile',
           title: 'Profile',
           content: (
             <AuthoredDetailItemList
               empty='No profile details have been added.'
-              items={profileItems}
+              items={model.profileItems}
             />
           )
         }
       : null,
-    traitItems.length
+    model.traitItems.length
       ? {
           id: 'traits',
           title: 'Traits',
-          content: <AuthoredDetailItemList empty='No traits have been added.' items={traitItems} />
+          content: (
+            <AuthoredDetailItemList empty='No traits have been added.' items={model.traitItems} />
+          )
         }
       : null
   ])
-}
-
-function CreatureStats({
-  creature,
-  references
-}: {
-  creature: CreatureAuthoredDto
-  references: Pick<AuthoredContentReferenceData, 'speeds'>
-}) {
-  return (
-    <div className={styles.statBlock}>
-      <div className={styles.abilityGrid}>
-        {abilityOrder.map((ability) => {
-          const value = creature.abilityScores[ability]
-
-          return (
-            <div className={styles.abilityCell} key={ability}>
-              <span className={styles.abilityLabel}>{formatAbilityAbbreviation(ability)}</span>
-              <strong className={styles.abilityScore}>{formatNumber(value)}</strong>
-              <span className={styles.abilityModifier}>{formatAbilityModifier(value)}</span>
-            </div>
-          )
-        })}
-      </div>
-      {creature.speeds.length ? (
-        <div className={styles.speedGrid} aria-label='Speeds'>
-          {creature.speeds.map((speed, index) => (
-            <span className={styles.speedPill} key={`${speed.speedId}-${index}`}>
-              <span>{formatReferenceLabel(speed.speedId, 'Speed', references.speeds)}</span>
-              <strong>
-                {speed.amount} {formatEnumLabel(speed.unit)}
-              </strong>
-            </span>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-function formatAbilityAbbreviation(ability: (typeof abilityOrder)[number]): string {
-  switch (ability) {
-    case 'STRENGTH':
-      return 'STR'
-    case 'DEXTERITY':
-      return 'DEX'
-    case 'CONSTITUTION':
-      return 'CON'
-    case 'INTELLIGENCE':
-      return 'INT'
-    case 'WISDOM':
-      return 'WIS'
-    case 'CHARISMA':
-      return 'CHA'
-  }
-}
-
-function formatAbilityModifier(score: number): string {
-  const modifier = Math.floor((score - 10) / 2)
-  return modifier >= 0 ? `+${modifier}` : String(modifier)
-}
-
-function isLegendaryActionFeature(feature: CreatureFeature) {
-  return feature.section === 'LEGENDARY_ACTION'
-}
-
-function LegendaryActionsContent({ feature }: { feature: CreatureFeature }) {
-  const options = toDetailItems(feature.options).map((item) => ({
-    id: item.id,
-    title: item.title,
-    description: item.description
-  }))
-
-  return (
-    <Stack gap='md'>
-      <AuthoredDetailProse html={feature.description} fallback='' />
-      <AuthoredDetailItemList
-        empty='No legendary action options have been added.'
-        items={options}
-      />
-    </Stack>
-  )
-}
-
-function getCreatureFeatureBuckets(
-  features: CreatureAuthoredDto['features'],
-  legendaryActionFeature: CreatureFeature | undefined
-) {
-  const buckets = {
-    traits: [] as ReturnType<typeof toCreatureFeatureItem>[],
-    actions: [] as ReturnType<typeof toCreatureFeatureItem>[],
-    bonusActions: [] as ReturnType<typeof toCreatureFeatureItem>[],
-    reactions: [] as ReturnType<typeof toCreatureFeatureItem>[],
-    lairActions: [] as ReturnType<typeof toCreatureFeatureItem>[],
-    regionalEffects: [] as ReturnType<typeof toCreatureFeatureItem>[]
-  }
-
-  for (const feature of features ?? []) {
-    if (feature.id === legendaryActionFeature?.id) continue
-
-    const item = toCreatureFeatureItem(feature)
-    const section = getCreatureFeatureSection(feature)
-
-    if (section === 'actions') {
-      buckets.actions.push(item)
-    } else if (section === 'bonusActions') {
-      buckets.bonusActions.push(item)
-    } else if (section === 'reactions') {
-      buckets.reactions.push(item)
-    } else if (section === 'lairActions') {
-      buckets.lairActions.push(item)
-    } else if (section === 'regionalEffects') {
-      buckets.regionalEffects.push(item)
-    } else {
-      buckets.traits.push(item)
-    }
-  }
-
-  return buckets
-}
-
-function toCreatureFeatureItem(feature: CreatureFeature) {
-  return {
-    id: feature.id,
-    title: feature.label,
-    description: feature.description
-  }
-}
-
-function getCreatureFeatureSection(
-  feature: CreatureFeature
-): 'traits' | 'actions' | 'bonusActions' | 'reactions' | 'lairActions' | 'regionalEffects' {
-  if (feature.section === 'ACTION') return 'actions'
-  if (feature.section === 'BONUS_ACTION') return 'bonusActions'
-  if (feature.section === 'REACTION') return 'reactions'
-  if (feature.section === 'LAIR_ACTION') return 'lairActions'
-  if (feature.section === 'REGIONAL_EFFECT') return 'regionalEffects'
-  if (hasFeatureActivation(feature, 'REACTION')) return 'reactions'
-  if (hasFeatureActivation(feature, 'BONUS_ACTION')) return 'bonusActions'
-  if (hasFeatureActivation(feature, 'ACTION') || feature.label.toLowerCase() === 'multiattack')
-    return 'actions'
-
-  return 'traits'
-}
-
-function hasFeatureActivation(
-  feature: CreatureFeature,
-  activationCode: 'ACTION' | 'BONUS_ACTION' | 'REACTION'
-) {
-  return (feature.effects ?? []).some(
-    (effect) =>
-      'activation' in effect.invocation && effect.invocation.activation.code === activationCode
-  )
-}
-
-function getCreatureProfileItems(creature: CreatureAuthoredDto) {
-  return [
-    ...(creature.npcProfile?.personalityTraits ?? []).map((trait, index) => ({
-      id: `personality-${index}`,
-      title: 'Personality Trait',
-      description: trait
-    })),
-    ...(creature.npcProfile?.ideals ?? []).map((ideal, index) => ({
-      id: `ideal-${index}`,
-      title: 'Ideal',
-      description: ideal
-    })),
-    ...(creature.npcProfile?.bonds ?? []).map((bond, index) => ({
-      id: `bond-${index}`,
-      title: 'Bond',
-      description: bond
-    })),
-    ...(creature.npcProfile?.flaws ?? []).map((flaw, index) => ({
-      id: `flaw-${index}`,
-      title: 'Flaw',
-      description: flaw
-    })),
-    ...(creature.mountProfile
-      ? [
-          {
-            id: 'mount-profile',
-            title: 'Mount Profile',
-            meta: formatEnumLabel(creature.mountProfile.mountType),
-            description: creature.mountProfile.notes
-          }
-        ]
-      : []),
-    ...(creature.companionProfile
-      ? [
-          {
-            id: 'companion-profile',
-            title: 'Companion Profile',
-            meta: formatEnumLabel(creature.companionProfile.bondType),
-            description: creature.companionProfile.notes
-          }
-        ]
-      : []),
-    ...(creature.logisticsNotes ?? []).map((note, index) => ({
-      id: `logistics-${index}`,
-      title: 'Logistics Note',
-      description: note
-    }))
-  ]
 }

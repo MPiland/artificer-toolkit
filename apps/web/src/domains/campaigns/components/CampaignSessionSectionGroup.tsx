@@ -10,7 +10,7 @@ import {
   campaignSessionSectionLabel,
   type CampaignSessionSectionKind
 } from './campaignSessionSections.model'
-import * as styles from '../campaigns.css'
+import * as sessionsStyles from '../campaignSessions.css'
 
 export function CampaignSessionSectionGroup({
   campaign,
@@ -52,18 +52,22 @@ export function CampaignSessionSectionGroup({
   const populatedKinds = sectionsByKind.filter(({ sections }) => sections.length > 0)
 
   return (
-    <Stack className={styles.sessionSectionCollection} gap={0}>
+    <Stack className={sessionsStyles.sessionSectionCollection} gap={0}>
       {populatedKinds.map(({ kind, sections }) => {
         const label = campaignSessionSectionLabel(kind)
         return (
-          <section className={styles.sessionSectionKind} key={kind}>
+          <section className={sessionsStyles.sessionSectionKind} key={kind}>
             <div>
               <Text fw={700}>{label}</Text>
               <Text c='dimmed' size='sm'>
                 {campaignSessionSectionDescription(kind)}
               </Text>
             </div>
-            <Accordion className={styles.sessionSectionAccordion} multiple variant='contained'>
+            <Accordion
+              className={sessionsStyles.sessionSectionAccordion}
+              multiple
+              variant='contained'
+            >
               {sections.map((section) => (
                 <Accordion.Item key={section.id} value={section.id}>
                   <Accordion.Control>{section.title}</Accordion.Control>
@@ -82,7 +86,7 @@ export function CampaignSessionSectionGroup({
           </section>
         )
       })}
-      <Group className={styles.sessionSectionAdder} justify='space-between' wrap='wrap'>
+      <Group className={sessionsStyles.sessionSectionAdder} justify='space-between' wrap='wrap'>
         <Text c='dimmed' size='sm'>
           {populatedKinds.length
             ? 'Add another planning section when it is useful.'

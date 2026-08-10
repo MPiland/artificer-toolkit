@@ -25,7 +25,7 @@ export const glibness: SpellAuthored = {
   id: SPELL_IDS.GLIBNESS,
   label: 'Glibness',
   description:
-    "<p>Until the spell ends, when you make a Charisma check, you can replace the number you roll with a 15. Additionally, no matter what you say, magic that would determine if you are telling the truth indicates that you are being truthful.</p>",
+    '<p>Until the spell ends, when you make a Charisma check, you can replace the number you roll with a 15. Additionally, no matter what you say, magic that would determine if you are telling the truth indicates that you are being truthful.</p>',
   castingTime: { unit: CASTING_TIME_UNIT_CODE.ROUND, amount: 1 },
   level: 8,
   classIds: [CLASS_IDS.BARD, CLASS_IDS.WARLOCK],

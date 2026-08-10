@@ -108,8 +108,7 @@ async function resolvePermittedOwner(
   campaignId: string,
   userId: string,
   isOwner: boolean,
-  ref: InventoryOwnerRef,
-  allowAnyAssignedCharacter = false
+  ref: InventoryOwnerRef
 ): Promise<InventoryOwner> {
   const inventory = createInventoryRepository(db)
   if (ref.kind === 'CAMPAIGN') {
@@ -119,7 +118,7 @@ async function resolvePermittedOwner(
       campaignId,
       ref.characterId
     )
-    if (!assignment || (!isOwner && !allowAnyAssignedCharacter && assignment.userId !== userId)) {
+    if (!assignment || (!isOwner && assignment.userId !== userId)) {
       throw new CampaignAccessError()
     }
   }
@@ -188,8 +187,7 @@ export async function getCampaignInventory(
     campaignId,
     userId,
     authority.membership.role === 'OWNER',
-    ownerRef,
-    true
+    ownerRef
   )
   const inventory = await createInventoryRepository(db).getInventoryByOwnerId(owner.id)
   if (!inventory) throw new CampaignNotFoundError()
@@ -205,6 +203,7 @@ export async function mutateCampaignPartyInventory(
     const authority = await lockCampaignAuthority(trx, input.campaignId, userId)
     assertActiveCampaignMember(authority)
     assertCampaignWritable(authority)
+    assertCampaignOwner(authority)
     const inventory = createInventoryRepository(trx)
     const existing = await inventory.findCampaignEventByIdempotency(
       input.campaignId,
@@ -443,14 +442,25 @@ export async function transferCampaignInventory(
       actorIsOwner,
       input.source
     )
-    const destination = await resolvePermittedOwner(
-      trx,
-      input.campaignId,
-      userId,
-      actorIsOwner,
-      input.destination,
-      true
-    )
+    let destination: InventoryOwner
+    if (!actorIsOwner && input.destination.kind === 'CHARACTER') {
+      const assignment = await createCampaignRepository(trx).findAssignmentByCharacter(
+        input.campaignId,
+        input.destination.characterId
+      )
+      if (!assignment) throw new CampaignAccessError()
+      const resolved = await inventory.resolveOwner(input.destination)
+      if (!resolved) throw new CampaignNotFoundError()
+      destination = resolved
+    } else {
+      destination = await resolvePermittedOwner(
+        trx,
+        input.campaignId,
+        userId,
+        actorIsOwner,
+        input.destination
+      )
+    }
     if (source.id === destination.id)
       throw new CampaignValidationError('Choose two different inventory owners.')
     const locked = await inventory.lockOwners([source.id, destination.id])

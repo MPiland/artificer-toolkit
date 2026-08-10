@@ -1,5 +1,9 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { getCampaignDetail, getCampaignRouteIdentity, getCampaignSession } from '#app/data/campaigns/queries'
+import {
+  getCampaignDetail,
+  getCampaignRouteIdentity,
+  getCampaignSession
+} from '#app/data/campaigns/queries'
 import { createServerApi } from '#app/lib/api'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import { normalizeAuthoredRouteSlug } from '#app/routing/authoredRouteHandles'
@@ -41,7 +45,9 @@ export const Route = createFileRoute(
         to: '/campaigns/$campaignPublicId/$campaignSlug'
       })
     }
-    await context.queryClient.ensureQueryData(getCampaignSession(campaign.id, sessionNumber, client))
+    await context.queryClient.ensureQueryData(
+      getCampaignSession(campaign.id, sessionNumber, client)
+    )
     return { campaignId: campaign.id, sessionNumber }
   },
   component: CampaignSessionRoute

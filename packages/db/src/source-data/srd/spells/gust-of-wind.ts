@@ -89,9 +89,10 @@ export const gustOfWind: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.GUST_OF_WIND, 0x213, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Resolve Flames and Vapors",
+                label: 'Resolve Flames and Vapors',
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
-                instructions: "The gust disperses gas or vapor, and it extinguishes candles, torches, and similar unprotected flames in the area. It causes protected flames, such as those of lanterns, to dance wildly and has a 50 percent chance to extinguish them."
+                instructions:
+                  'The gust disperses gas or vapor, and it extinguishes candles, torches, and similar unprotected flames in the area. It causes protected flames, such as those of lanterns, to dance wildly and has a 50 percent chance to extinguish them.'
               }
             ]
           }

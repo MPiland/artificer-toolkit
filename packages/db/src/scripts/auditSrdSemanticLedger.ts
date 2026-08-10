@@ -82,7 +82,8 @@ function collectManualExceptions(value: unknown, errors: string[], path = '$'): 
 
   const ids: string[] = []
   if (value.effectKind === 'MANUAL_ADJUDICATION') {
-    if (typeof value.id !== 'string' || !value.id) errors.push(`${path} has no manual exception id.`)
+    if (typeof value.id !== 'string' || !value.id)
+      errors.push(`${path} has no manual exception id.`)
     if (typeof value.label !== 'string' || !value.label.trim()) {
       errors.push(`${path} manual exception has no label.`)
     }
@@ -118,10 +119,7 @@ function normalizeSrdProse(value: string): string {
     .trim()
 }
 
-function collectAuthoredProse(
-  value: unknown,
-  path = '$'
-): Array<{ path: string; value: string }> {
+function collectAuthoredProse(value: unknown, path = '$'): Array<{ path: string; value: string }> {
   if (Array.isArray(value)) {
     return value.flatMap((entry, index) => collectAuthoredProse(entry, `${path}[${index}]`))
   }
@@ -300,10 +298,7 @@ export function auditSrdSemanticLedger(): { roots: number; manualExceptions: num
     if (JSON.stringify(actualManualIds) !== JSON.stringify(allowedManualIds)) {
       errors.push(`${key} manual exception allowlist does not match authored data.`)
     }
-    if (
-      actualManualIds.length > 0 &&
-      entry.mechanicsStatus !== 'COMPLETE_WITH_MANUAL_EXCEPTIONS'
-    ) {
+    if (actualManualIds.length > 0 && entry.mechanicsStatus !== 'COMPLETE_WITH_MANUAL_EXCEPTIONS') {
       errors.push(`${key} contains manual exceptions without the matching mechanics status.`)
     }
     if (

@@ -32,7 +32,7 @@ function preloadAbilityDice(configuration: string) {
     return
   }
 
-  void import('../../../sheet/dice/DiceCanvas')
+  void import('../../../sheet/dice/diceModelPreload')
     .then(({ preloadDiceModels }) => preloadDiceModels(configuration))
     .catch(() => undefined)
 }

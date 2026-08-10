@@ -11,6 +11,8 @@ import {
   type AuthEmailAction
 } from './authEmailContent.js'
 
+const AUTH_EMAIL_HOOK_MAX_BODY_BYTES = 64 * 1024
+
 type AuthEmailData = {
   email_action_type: string
   redirect_to?: string
@@ -30,6 +32,7 @@ type AuthEmailHookPayload = {
 
 type EmailMessage = {
   html: string
+  idempotencyKey: string
   subject: string
   text: string
   to: string
@@ -84,6 +87,43 @@ function isAuthEmailHookPayload(value: unknown): value is AuthEmailHookPayload {
 
 function readString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined
+}
+
+async function readRequestBody(request: Request): Promise<string | null> {
+  const declaredLength = request.headers.get('content-length')
+  if (
+    declaredLength !== null &&
+    Number.isFinite(Number(declaredLength)) &&
+    Number(declaredLength) > AUTH_EMAIL_HOOK_MAX_BODY_BYTES
+  ) {
+    return null
+  }
+  if (!request.body) return ''
+
+  const chunks: Uint8Array[] = []
+  const reader = request.body.getReader()
+  let byteLength = 0
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+
+    byteLength += value.byteLength
+    if (byteLength > AUTH_EMAIL_HOOK_MAX_BODY_BYTES) {
+      await reader.cancel().catch(() => undefined)
+      return null
+    }
+    chunks.push(value)
+  }
+
+  const body = new Uint8Array(byteLength)
+  let offset = 0
+  for (const chunk of chunks) {
+    body.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+
+  return new TextDecoder().decode(body)
 }
 
 function getVerificationUrl({
@@ -237,7 +277,11 @@ export function createSendAuthEmailHandler(
       return new Response('Method not allowed', { status: 405 })
     }
 
-    const body = await request.text()
+    const body = await readRequestBody(request)
+    if (body === null) {
+      return Response.json({ error: 'Authentication email request is too large' }, { status: 413 })
+    }
+
     let verifiedPayload: unknown
 
     try {
@@ -247,6 +291,11 @@ export function createSendAuthEmailHandler(
     }
 
     if (!isAuthEmailHookPayload(verifiedPayload)) {
+      return Response.json({ error: 'Invalid authentication email request' }, { status: 400 })
+    }
+
+    const webhookId = readString(request.headers.get('webhook-id'))
+    if (!webhookId) {
       return Response.json({ error: 'Invalid authentication email request' }, { status: 400 })
     }
 
@@ -269,7 +318,7 @@ export function createSendAuthEmailHandler(
     }
 
     try {
-      for (const message of messages) {
+      for (const [messageIndex, message] of messages.entries()) {
         const rendered = await dependencies.render({
           action,
           actionUrl: message.actionUrl,
@@ -279,6 +328,8 @@ export function createSendAuthEmailHandler(
 
         await dependencies.send({
           html: rendered.html,
+          // One stable key per recipient lets retries resume a two-message email change safely.
+          idempotencyKey: `${webhookId}:${messageIndex}`,
           subject: content.subject,
           text:
             rendered.text ||
@@ -311,14 +362,17 @@ export function createAuthEmailHookHandler(config: AuthEmailHookConfig) {
         text: await render(email, { plainText: true })
       }
     },
-    send: async ({ html, subject, text, to }) => {
-      const response = await resend.emails.send({
-        from: config.from,
-        html,
-        subject,
-        text,
-        to
-      })
+    send: async ({ html, idempotencyKey, subject, text, to }) => {
+      const response = await resend.emails.send(
+        {
+          from: config.from,
+          html,
+          subject,
+          text,
+          to
+        },
+        { idempotencyKey }
+      )
 
       if (response.error) {
         throw new Error('Resend delivery failed')

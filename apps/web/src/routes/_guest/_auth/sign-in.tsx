@@ -1,15 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { z } from 'zod'
 import { SignInPage } from '#app/auth/pages'
+import { signInRedirectSearchSchema } from './-signInRedirect'
 
 export const Route = createFileRoute('/_guest/_auth/sign-in')({
-  validateSearch: z.object({
-    redirect: z
-      .string()
-      .startsWith('/')
-      .refine((value) => !value.startsWith('//'))
-      .optional()
-  }),
+  validateSearch: signInRedirectSearchSchema,
   component: SignInRoute
 })
 

@@ -7,11 +7,8 @@ import {
 } from '@artificer-toolkit/db'
 import { characterBuilderDraftPayloadDtoSchema } from '@artificer-toolkit/schema/api/characters'
 import { AUTHORED_RECORD_STATUS } from '@artificer-toolkit/shared/core'
-import {
-  loadCharacterBuilderContext,
-  reconcileCharacterBuilderCharacter,
-  resolveCharacterBuilder
-} from './builderService.js'
+import { loadCharacterBuilderContext, resolveCharacterBuilder } from './builderService.js'
+import { reconcileCharacterBuilderCharacter } from './builderReconciliation.js'
 
 export async function reconcileCharacterAfterCampaignContentRemoval(
   db: DBLike,

@@ -158,8 +158,7 @@ export const CHARGE_LIMIT_REGISTRY: Record<ChargeLimitKind, ChargeLimitOption> =
   }
 } as const
 
-export const SOURCE_CHARGE_LIMIT_OPTION =
-  CHARGE_LIMIT_REGISTRY[CHARGE_LIMIT_KIND.SOURCE_CHARGES]
+export const SOURCE_CHARGE_LIMIT_OPTION = CHARGE_LIMIT_REGISTRY[CHARGE_LIMIT_KIND.SOURCE_CHARGES]
 
 export const CHARGE_LIMIT_OPTIONS = valuesOf(CHARGE_LIMIT_REGISTRY).filter(
   (option): option is ChargeLimitOption & { code: OwnedChargeLimitKind } =>

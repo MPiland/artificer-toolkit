@@ -83,9 +83,10 @@ export const suggestion: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.SUGGESTION, 0x213, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: "Judge the Suggested Course",
+                label: 'Judge the Suggested Course',
                 reasonCode: 'NARRATIVE_JUDGMENT' as const,
-                instructions: "The suggestion must be worded in such a manner as to make the course of action sound reasonable."
+                instructions:
+                  'The suggestion must be worded in such a manner as to make the course of action sound reasonable.'
               }
             ]
           }
