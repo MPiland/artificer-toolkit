@@ -37,6 +37,12 @@ export interface AuthoredListItem {
   permissions: AuthoredListPermissions
 }
 
+export interface AuthoredListActionHandlers {
+  onEdit?: (item: AuthoredListItem) => void
+  onCopy?: (item: AuthoredListItem) => void
+  onDelete?: (item: AuthoredListItem) => void
+}
+
 export interface AuthoredListFilter {
   key: string
   label: string

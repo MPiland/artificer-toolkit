@@ -1,12 +1,13 @@
 import type { CSSProperties, RefObject } from 'react'
 import { richHtmlToPlainText } from '#lib/richText'
-import { AuthoredListActions, type AuthoredListActionHandlers } from './AuthoredListActions'
+import { AuthoredListActions } from './AuthoredListActions'
 import {
   AuthoredListAccentDot,
   AuthoredListBadges,
   AuthoredListStatusChip
 } from './AuthoredListItemMeta'
 import type {
+  AuthoredListActionHandlers,
   AuthoredListAttributeColumn,
   AuthoredListAttributeValue,
   AuthoredListItem

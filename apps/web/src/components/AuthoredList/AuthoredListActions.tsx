@@ -4,14 +4,8 @@ import ICopy from '#assets/icons/ICopy'
 import IEdit from '#assets/icons/IEdit'
 import IMore from '#assets/icons/IMore'
 import ITrash from '#assets/icons/ITrash'
-import type { AuthoredListItem } from './AuthoredList.types'
+import type { AuthoredListActionHandlers, AuthoredListItem } from './AuthoredList.types'
 import * as styles from './AuthoredListActions.css'
-
-export interface AuthoredListActionHandlers {
-  onEdit?: (item: AuthoredListItem) => void
-  onCopy?: (item: AuthoredListItem) => void
-  onDelete?: (item: AuthoredListItem) => void
-}
 
 interface AuthoredListAction {
   label: string

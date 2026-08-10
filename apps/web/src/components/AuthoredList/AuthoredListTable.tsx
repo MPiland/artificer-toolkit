@@ -1,13 +1,14 @@
 import { Table } from '@mantine/core'
 import clsx from 'clsx'
 import type { CSSProperties, RefObject } from 'react'
-import { AuthoredListActions, type AuthoredListActionHandlers } from './AuthoredListActions'
+import { AuthoredListActions } from './AuthoredListActions'
 import {
   AuthoredListAccentDot,
   AuthoredListBadges,
   AuthoredListStatusChip
 } from './AuthoredListItemMeta'
 import type {
+  AuthoredListActionHandlers,
   AuthoredListAttributeColumn,
   AuthoredListAttributeValue,
   AuthoredListItem

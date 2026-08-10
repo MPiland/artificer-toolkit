@@ -19,10 +19,10 @@ import IMore from '#assets/icons/IMore'
 import { PageHeader } from '#app/shell'
 import { AppSelect } from '#ui/primitives/Select'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
-import { type AuthoredListActionHandlers } from './AuthoredListActions'
 import { AuthoredListCards } from './AuthoredListCards'
 import { AuthoredListTable } from './AuthoredListTable'
 import type {
+  AuthoredListActionHandlers,
   AuthoredListFilter,
   AuthoredListPageProps,
   AuthoredListViewMode
