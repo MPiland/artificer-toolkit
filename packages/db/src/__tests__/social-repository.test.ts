@@ -57,6 +57,19 @@ describe('Social repository', () => {
     expect(moderation).toContain('async insertSocialModerationAction')
   })
 
+  it('purges report evidence before deleting referenced terminal applications', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'packages/db/src/scripts/purgeSocialRetention.ts'),
+      'utf8'
+    )
+    const reportDelete = source.indexOf('delete from social_reports')
+    const applicationDelete = source.indexOf('delete from social_applications application')
+
+    expect(reportDelete).toBeGreaterThan(-1)
+    expect(reportDelete).toBeLessThan(applicationDelete)
+    expect(source).toContain('report.target_application_id = application.id')
+  })
+
   it('counts only open public Social listings for entitlements', () => {
     const source = readRepository('accountEntitlements.ts')
 

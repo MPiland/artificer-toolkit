@@ -120,6 +120,27 @@ export function createSocialModerationRepository(db: DBLike) {
       return row ? mapSocialReport(row) : null
     },
 
+    async advanceSocialReportVersion(input: {
+      reportId: string
+      expectedVersion: number
+      now: string
+    }): Promise<SocialReportRecord | null> {
+      const result = await sql<RawSocialReport>`
+        with updated as (
+          update social_reports
+          set version = version + 1, updated_at = ${input.now}::timestamptz
+          where id = ${input.reportId}::uuid and version = ${input.expectedVersion}
+          returning *
+        )
+        select ${socialReportColumns}
+        from updated report
+        join social_profiles reporter on reporter.id = report.reporter_profile_id
+        join profiles reporter_account on reporter_account.id = reporter.user_id
+      `.execute(db)
+      const row = result.rows[0]
+      return row ? mapSocialReport(row) : null
+    },
+
     async setSocialListingModerationStatus(
       listingId: string,
       status: 'VISIBLE' | 'HIDDEN',

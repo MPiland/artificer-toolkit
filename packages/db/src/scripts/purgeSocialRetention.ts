@@ -52,6 +52,15 @@ async function main() {
                and membership.status = 'ACTIVE'
            )
          )
+         and not exists (
+           select 1 from social_reports report
+           where report.target_application_id = application.id
+             and (
+               report.status not in ('RESOLVED', 'DISMISSED')
+               or report.resolved_at is null
+               or report.resolved_at >= now() - interval '2 years'
+             )
+         )
          and greatest(
            coalesce(application.withdrawn_at, application.responded_at, application.expired_at,
              application.blocked_at, application.updated_at),
@@ -94,6 +103,18 @@ async function main() {
            and coalesce(responded_at, revoked_at, expired_at, updated_at) < now() - interval '180 days'`
       )
       await client.query(
+        `delete from social_moderation_actions action
+         using social_reports report
+         where report.id = action.report_id
+           and report.status in ('RESOLVED', 'DISMISSED')
+           and report.resolved_at < now() - interval '2 years'`
+      )
+      await client.query(
+        `delete from social_reports
+         where status in ('RESOLVED', 'DISMISSED')
+           and resolved_at < now() - interval '2 years'`
+      )
+      await client.query(
         `delete from social_applications application
          using social_listings listing, social_profiles applicant
          where listing.id = application.listing_id
@@ -108,6 +129,10 @@ async function main() {
                  and membership.status = 'ACTIVE'
              )
            )
+           and not exists (
+             select 1 from social_reports report
+             where report.target_application_id = application.id
+           )
            and greatest(
              coalesce(application.withdrawn_at, application.responded_at, application.expired_at,
                application.blocked_at, application.updated_at),
@@ -118,18 +143,6 @@ async function main() {
                  and membership.user_id = applicant.user_id
              ), '-infinity'::timestamptz)
            ) < now() - interval '180 days'`
-      )
-      await client.query(
-        `delete from social_moderation_actions action
-         using social_reports report
-         where report.id = action.report_id
-           and report.status in ('RESOLVED', 'DISMISSED')
-           and report.resolved_at < now() - interval '2 years'`
-      )
-      await client.query(
-        `delete from social_reports
-         where status in ('RESOLVED', 'DISMISSED')
-           and resolved_at < now() - interval '2 years'`
       )
       await client.query(
         `delete from social_action_rate_limits

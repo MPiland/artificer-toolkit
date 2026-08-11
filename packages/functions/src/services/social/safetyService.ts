@@ -260,6 +260,16 @@ export function takeSocialModerationAction(
       }
     }
 
+    if (!nextReportStatus) {
+      const advanced = await repository.advanceSocialReportVersion({
+        reportId: report.id,
+        expectedVersion: input.expectedVersion,
+        now
+      })
+      if (!advanced) throw new SocialConflictError()
+      updatedReport = advanced
+    }
+
     const afterState: Record<string, unknown> = {
       reportStatus: updatedReport.status,
       reportVersion: updatedReport.version,

@@ -223,9 +223,9 @@ export function SocialListingFormPage({
           {changeStatus.error ? <Alert color='red'>{changeStatus.error.message}</Alert> : null}
           <div className={styles.actions}>
             <Button loading={save.isPending} type='submit'>
-              Save listing
+              {listing.data?.status === 'CLOSED' ? 'Return to draft' : 'Save listing'}
             </Button>
-            {listing.data?.status === 'DRAFT' || listing.data?.status === 'CLOSED' ? (
+            {listing.data?.status === 'DRAFT' ? (
               <Button
                 disabled={hasUnsavedChanges}
                 loading={changeStatus.isPending}
