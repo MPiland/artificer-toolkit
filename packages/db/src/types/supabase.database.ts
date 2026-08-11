@@ -774,11 +774,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "campaign_conversation_entries_conversation_id_fkey"
-            columns: ["conversation_id"]
+            foreignKeyName: "campaign_conversation_entries_conversation_campaign_fkey"
+            columns: ["conversation_id", "campaign_id"]
             isOneToOne: false
             referencedRelation: "campaign_conversations"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "campaign_id"]
           },
         ]
       }
@@ -816,11 +816,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "campaign_conversation_members_conversation_id_fkey"
-            columns: ["conversation_id"]
+            foreignKeyName: "campaign_conversation_members_conversation_campaign_fkey"
+            columns: ["conversation_id", "campaign_id"]
             isOneToOne: false
             referencedRelation: "campaign_conversations"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "campaign_id"]
           },
         ]
       }
@@ -994,50 +994,59 @@ export type Database = {
       }
       campaign_invites: {
         Row: {
-          campaign_id: string
           created_at: string
           created_by: string
+          expired_at: string | null
           expires_at: string
           id: string
-          kind: string
+          listing_id: string
+          listing_version: number
+          recipient_user_id: string
+          recipient_username: string
+          responded_at: string | null
           revoked_at: string | null
-          target_email: string | null
-          target_user_id: string | null
-          token_digest: string
+          status: string
           updated_at: string
+          version: number
         }
         Insert: {
-          campaign_id: string
           created_at?: string
           created_by: string
+          expired_at?: string | null
           expires_at: string
           id?: string
-          kind: string
+          listing_id: string
+          listing_version: number
+          recipient_user_id: string
+          recipient_username: string
+          responded_at?: string | null
           revoked_at?: string | null
-          target_email?: string | null
-          target_user_id?: string | null
-          token_digest: string
+          status?: string
           updated_at?: string
+          version?: number
         }
         Update: {
-          campaign_id?: string
           created_at?: string
           created_by?: string
+          expired_at?: string | null
           expires_at?: string
           id?: string
-          kind?: string
+          listing_id?: string
+          listing_version?: number
+          recipient_user_id?: string
+          recipient_username?: string
+          responded_at?: string | null
           revoked_at?: string | null
-          target_email?: string | null
-          target_user_id?: string | null
-          token_digest?: string
+          status?: string
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
-            foreignKeyName: "campaign_invites_campaign_id_fkey"
-            columns: ["campaign_id"]
+            foreignKeyName: "campaign_invites_listing_id_fkey"
+            columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "campaigns"
+            referencedRelation: "social_listings"
             referencedColumns: ["id"]
           },
         ]
@@ -1251,11 +1260,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "campaign_session_attendance_session_id_fkey"
-            columns: ["session_id"]
+            foreignKeyName: "campaign_session_attendance_session_campaign_fkey"
+            columns: ["session_id", "campaign_id"]
             isOneToOne: false
             referencedRelation: "campaign_sessions"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "campaign_id"]
           },
         ]
       }
@@ -1359,11 +1368,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "campaign_session_reference_pins_session_id_fkey"
-            columns: ["session_id"]
+            foreignKeyName: "campaign_session_reference_pins_session_campaign_fkey"
+            columns: ["session_id", "campaign_id"]
             isOneToOne: false
             referencedRelation: "campaign_sessions"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "campaign_id"]
           },
         ]
       }
@@ -1405,11 +1414,11 @@ export type Database = {
             referencedColumns: ["campaign_id", "user_id"]
           },
           {
-            foreignKeyName: "campaign_session_rsvps_session_id_fkey"
-            columns: ["session_id"]
+            foreignKeyName: "campaign_session_rsvps_session_campaign_fkey"
+            columns: ["session_id", "campaign_id"]
             isOneToOne: false
             referencedRelation: "campaign_sessions"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "campaign_id"]
           },
         ]
       }
@@ -1472,39 +1481,48 @@ export type Database = {
       campaigns: {
         Row: {
           attunement_slot_override: number | null
+          content_maturity: string
           created_at: string
           description: string | null
+          format: string
           id: string
           name: string
           owner_user_id: string
           status: string
+          tone_details: string | null
+          tone_tags: string[]
           updated_at: string
           version: number
-          visibility: string
         }
         Insert: {
           attunement_slot_override?: number | null
+          content_maturity: string
           created_at?: string
           description?: string | null
+          format: string
           id?: string
           name: string
           owner_user_id: string
           status?: string
+          tone_details?: string | null
+          tone_tags: string[]
           updated_at?: string
           version?: number
-          visibility?: string
         }
         Update: {
           attunement_slot_override?: number | null
+          content_maturity?: string
           created_at?: string
           description?: string | null
+          format?: string
           id?: string
           name?: string
           owner_user_id?: string
           status?: string
+          tone_details?: string | null
+          tone_tags?: string[]
           updated_at?: string
           version?: number
-          visibility?: string
         }
         Relationships: []
       }
@@ -12476,6 +12494,453 @@ export type Database = {
             columns: ["system_id"]
             isOneToOne: false
             referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_action_rate_limits: {
+        Row: {
+          action_count: number
+          action_kind: string
+          created_at: string
+          updated_at: string
+          user_id: string
+          window_kind: string
+          window_started_at: string
+        }
+        Insert: {
+          action_count: number
+          action_kind: string
+          created_at?: string
+          updated_at?: string
+          user_id: string
+          window_kind: string
+          window_started_at: string
+        }
+        Update: {
+          action_count?: number
+          action_kind?: string
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+          window_kind?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
+      social_applications: {
+        Row: {
+          applicant_profile_id: string
+          blocked_at: string | null
+          created_at: string
+          expectations_snapshot: Json
+          expired_at: string | null
+          id: string
+          listing_id: string
+          listing_version: number
+          message: string
+          responded_at: string | null
+          status: string
+          submitted_at: string
+          updated_at: string
+          version: number
+          withdrawn_at: string | null
+        }
+        Insert: {
+          applicant_profile_id: string
+          blocked_at?: string | null
+          created_at?: string
+          expectations_snapshot: Json
+          expired_at?: string | null
+          id?: string
+          listing_id: string
+          listing_version: number
+          message: string
+          responded_at?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          version?: number
+          withdrawn_at?: string | null
+        }
+        Update: {
+          applicant_profile_id?: string
+          blocked_at?: string | null
+          created_at?: string
+          expectations_snapshot?: Json
+          expired_at?: string | null
+          id?: string
+          listing_id?: string
+          listing_version?: number
+          message?: string
+          responded_at?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          version?: number
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_applications_applicant_profile_id_fkey"
+            columns: ["applicant_profile_id"]
+            isOneToOne: false
+            referencedRelation: "social_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_applications_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "social_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_blocks: {
+        Row: {
+          blocked_profile_id: string
+          blocker_profile_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_profile_id: string
+          blocker_profile_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_profile_id?: string
+          blocker_profile_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_blocks_blocked_profile_id_fkey"
+            columns: ["blocked_profile_id"]
+            isOneToOne: false
+            referencedRelation: "social_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_blocks_blocker_profile_id_fkey"
+            columns: ["blocker_profile_id"]
+            isOneToOne: false
+            referencedRelation: "social_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_listings: {
+        Row: {
+          allowed_content_rules: string
+          attendance_policy: string
+          audience: string
+          campaign_format: string
+          campaign_id: string
+          capacity: number
+          city: string | null
+          content_boundaries: string
+          content_guidance: string
+          content_maturity: string
+          created_at: string
+          id: string
+          is_free: boolean
+          local_start_time: string | null
+          moderation_status: string
+          play_mode: string
+          price_amount: number | null
+          price_currency: string | null
+          published_at: string | null
+          recurrence: string | null
+          safety_details: string
+          safety_practices: string[]
+          schedule_kind: string
+          schedule_summary: string
+          search_vector: unknown
+          starts_at: string | null
+          state_code: string | null
+          status: string
+          summary: string
+          system_id: string
+          table_conduct: string
+          time_zone: string
+          title: string
+          tone_details: string | null
+          tone_tags: string[]
+          updated_at: string
+          version: number
+          weekday: number | null
+        }
+        Insert: {
+          allowed_content_rules: string
+          attendance_policy: string
+          audience: string
+          campaign_format: string
+          campaign_id: string
+          capacity: number
+          city?: string | null
+          content_boundaries: string
+          content_guidance: string
+          content_maturity: string
+          created_at?: string
+          id?: string
+          is_free?: boolean
+          local_start_time?: string | null
+          moderation_status?: string
+          play_mode: string
+          price_amount?: number | null
+          price_currency?: string | null
+          published_at?: string | null
+          recurrence?: string | null
+          safety_details: string
+          safety_practices: string[]
+          schedule_kind: string
+          schedule_summary: string
+          search_vector?: unknown
+          starts_at?: string | null
+          state_code?: string | null
+          status?: string
+          summary: string
+          system_id: string
+          table_conduct: string
+          time_zone: string
+          title: string
+          tone_details?: string | null
+          tone_tags: string[]
+          updated_at?: string
+          version?: number
+          weekday?: number | null
+        }
+        Update: {
+          allowed_content_rules?: string
+          attendance_policy?: string
+          audience?: string
+          campaign_format?: string
+          campaign_id?: string
+          capacity?: number
+          city?: string | null
+          content_boundaries?: string
+          content_guidance?: string
+          content_maturity?: string
+          created_at?: string
+          id?: string
+          is_free?: boolean
+          local_start_time?: string | null
+          moderation_status?: string
+          play_mode?: string
+          price_amount?: number | null
+          price_currency?: string | null
+          published_at?: string | null
+          recurrence?: string | null
+          safety_details?: string
+          safety_practices?: string[]
+          schedule_kind?: string
+          schedule_summary?: string
+          search_vector?: unknown
+          starts_at?: string | null
+          state_code?: string | null
+          status?: string
+          summary?: string
+          system_id?: string
+          table_conduct?: string
+          time_zone?: string
+          title?: string
+          tone_details?: string | null
+          tone_tags?: string[]
+          updated_at?: string
+          version?: number
+          weekday?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_listings_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: true
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_listings_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_moderation_actions: {
+        Row: {
+          action: string
+          affected_listing_id: string | null
+          affected_profile_id: string | null
+          after_state: Json
+          before_state: Json
+          created_at: string
+          id: string
+          moderator_user_id: string
+          reason: string
+          report_id: string
+        }
+        Insert: {
+          action: string
+          affected_listing_id?: string | null
+          affected_profile_id?: string | null
+          after_state?: Json
+          before_state?: Json
+          created_at?: string
+          id?: string
+          moderator_user_id: string
+          reason: string
+          report_id: string
+        }
+        Update: {
+          action?: string
+          affected_listing_id?: string | null
+          affected_profile_id?: string | null
+          after_state?: Json
+          before_state?: Json
+          created_at?: string
+          id?: string
+          moderator_user_id?: string
+          reason?: string
+          report_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_moderation_actions_affected_listing_id_fkey"
+            columns: ["affected_listing_id"]
+            isOneToOne: false
+            referencedRelation: "social_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_moderation_actions_affected_profile_id_fkey"
+            columns: ["affected_profile_id"]
+            isOneToOne: false
+            referencedRelation: "social_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_moderation_actions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "social_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_profiles: {
+        Row: {
+          adult_attested_at: string | null
+          content_preference: string
+          created_at: string
+          id: string
+          status: string
+          updated_at: string
+          us_attested_at: string | null
+          user_id: string
+          version: number
+        }
+        Insert: {
+          adult_attested_at?: string | null
+          content_preference?: string
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          us_attested_at?: string | null
+          user_id: string
+          version?: number
+        }
+        Update: {
+          adult_attested_at?: string | null
+          content_preference?: string
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          us_attested_at?: string | null
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      social_reports: {
+        Row: {
+          created_at: string
+          details: string
+          evidence_snapshot: Json
+          id: string
+          reason: string
+          reporter_profile_id: string
+          resolved_at: string | null
+          review_started_at: string | null
+          status: string
+          target_application_id: string | null
+          target_listing_id: string | null
+          target_profile_id: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          details: string
+          evidence_snapshot: Json
+          id?: string
+          reason: string
+          reporter_profile_id: string
+          resolved_at?: string | null
+          review_started_at?: string | null
+          status?: string
+          target_application_id?: string | null
+          target_listing_id?: string | null
+          target_profile_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          details?: string
+          evidence_snapshot?: Json
+          id?: string
+          reason?: string
+          reporter_profile_id?: string
+          resolved_at?: string | null
+          review_started_at?: string | null
+          status?: string
+          target_application_id?: string | null
+          target_listing_id?: string | null
+          target_profile_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_reports_reporter_profile_id_fkey"
+            columns: ["reporter_profile_id"]
+            isOneToOne: false
+            referencedRelation: "social_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_reports_target_application_id_fkey"
+            columns: ["target_application_id"]
+            isOneToOne: false
+            referencedRelation: "social_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_reports_target_listing_id_fkey"
+            columns: ["target_listing_id"]
+            isOneToOne: false
+            referencedRelation: "social_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_reports_target_profile_id_fkey"
+            columns: ["target_profile_id"]
+            isOneToOne: false
+            referencedRelation: "social_profiles"
             referencedColumns: ["id"]
           },
         ]

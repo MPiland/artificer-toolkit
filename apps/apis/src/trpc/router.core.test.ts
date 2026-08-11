@@ -85,6 +85,14 @@ describe('tRPC router core', () => {
     })
     await expect(caller.rolls.history()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(
+      caller.socialHub.listings.getOwned({
+        listingPublicId: '00000000-0000-4000-8000-000000000000'
+      })
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    await expect(
+      caller.socialHub.preferences.update({ contentPreference: 'STANDARD' })
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    await expect(
       caller.characters.restPreview({
         id: 'character-1',
         input: {

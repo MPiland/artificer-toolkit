@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { Shell } from './Shell'
+import { platformNavigation } from './navigation'
 import { useShellReturnHref } from './returnLocation'
 
 describe('Shell', () => {
@@ -80,6 +81,27 @@ describe('Shell', () => {
       'href',
       '/settings'
     )
+  })
+
+  it('exposes Social Hub directly without adding it to the Create menu', async () => {
+    renderWithAppProviders(
+      <Shell
+        currentPath='/social'
+        isAuthenticated
+        navigation={platformNavigation}
+        userEmail='test@example.com'
+      >
+        <div>Page content</div>
+      </Shell>,
+      { initialPath: '/social' }
+    )
+
+    expect(screen.getByRole('link', { name: 'Social Hub' })).toHaveAttribute('href', '/social')
+    expect(screen.getByRole('link', { name: 'Social Hub' })).toHaveAttribute('aria-current', 'page')
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /create/i }))
+    await screen.findByRole('menu')
+    expect(screen.queryByRole('menuitem', { name: 'Social listing' })).not.toBeInTheDocument()
   })
 
   it('hides the Library importer unless its feature flag is enabled', async () => {

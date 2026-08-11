@@ -295,7 +295,6 @@ Common repo commands:
 
 Web workspace commands:
 
-- `yarn workspace @artificer-toolkit/web generate-routes`
 - `yarn workspace @artificer-toolkit/web typecheck:app`
 - `yarn workspace @artificer-toolkit/web typecheck:stories`
 - `yarn workspace @artificer-toolkit/web typecheck:tests`

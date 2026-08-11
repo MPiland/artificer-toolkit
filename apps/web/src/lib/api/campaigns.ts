@@ -12,9 +12,17 @@ export function buildCampaignsApi(client: TrpcClient) {
       request('campaigns.get', campaignContracts.campaignDetailDtoSchema, () =>
         client.campaigns.get.query({ campaignId })
       ),
+    getSettings: (campaignId: string) =>
+      request('campaigns.getSettings', campaignContracts.campaignDetailDtoSchema, () =>
+        client.campaigns.getSettings.query({ campaignId })
+      ),
     create: (input: campaignContracts.CreateCampaignInput) =>
       request('campaigns.create', campaignContracts.campaignDetailDtoSchema, () =>
         client.campaigns.create.mutate(input)
+      ),
+    copy: (input: campaignContracts.CopyCampaignInput) =>
+      request('campaigns.copy', campaignContracts.campaignDetailDtoSchema, () =>
+        client.campaigns.copy.mutate(input)
       ),
     update: (input: campaignContracts.UpdateCampaignInput) =>
       request('campaigns.update', campaignContracts.campaignDetailDtoSchema, () =>
@@ -34,15 +42,26 @@ export function buildCampaignsApi(client: TrpcClient) {
         request('campaigns.invites.create', campaignContracts.campaignInviteDtoSchema, () =>
           client.campaigns.invites.create.mutate(input)
         ),
-      revoke: async (campaignId: string, inviteId: string) => {
+      listReceived: () =>
+        request(
+          'campaigns.invites.listReceived',
+          campaignContracts.campaignInviteDtoSchema.array(),
+          () => client.campaigns.invites.listReceived.query()
+        ),
+      revoke: async (invitePublicId: string, expectedVersion: number) => {
         await request('campaigns.invites.revoke', okResponseSchema, () =>
-          client.campaigns.invites.revoke.mutate({ campaignId, inviteId })
+          client.campaigns.invites.revoke.mutate({ invitePublicId, expectedVersion })
         )
       },
-      accept: (token: string) =>
+      accept: (invitePublicId: string, expectedVersion: number) =>
         request('campaigns.invites.accept', campaignContracts.campaignDetailDtoSchema, () =>
-          client.campaigns.invites.accept.mutate({ token })
+          client.campaigns.invites.accept.mutate({ invitePublicId, expectedVersion })
+        ),
+      decline: async (invitePublicId: string, expectedVersion: number) => {
+        await request('campaigns.invites.decline', campaignContracts.campaignInviteDtoSchema, () =>
+          client.campaigns.invites.decline.mutate({ invitePublicId, expectedVersion })
         )
+      }
     },
     leave: async (campaignId: string) => {
       await request('campaigns.leave', okResponseSchema, () =>

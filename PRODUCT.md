@@ -23,7 +23,7 @@ The product should treat content creation as an authoring workspace, not as a ge
 
 The Character Sheet is the product's primary play surface. It should help a player recognize their current state, choose an action, and resolve it quickly. Immediate play information stays visible and compact; reference prose, provenance, customization, and management remain close at hand through focused inspectors, popovers, or drawers rather than competing with the play surface.
 
-The long-term product is a one-stop TTRPG experience: content creation, a Social Hub for posting, hosting, and finding virtual or local tables, Campaigns, Encounters, subscription tiers, native play, a VTT, and eventually creator marketplace distribution should operate as one connected product rather than unrelated utilities. The first viability proof is the complete web loop from creation and table formation through repeat Campaign play; native clients follow demonstrated web viability, and the creator marketplace follows native delivery.
+The long-term product is a one-stop TTRPG experience: content creation, a Social Hub for posting, hosting, and finding virtual or local tables, Campaigns, rules-driven notifications, Encounters, subscription tiers, native play, a VTT, and eventually creator marketplace distribution should operate as one connected product rather than unrelated utilities. The first viability proof is the complete web loop from creation and table formation through repeat Campaign play; native clients follow demonstrated web viability, and the creator marketplace follows native delivery.
 
 Success means:
 
@@ -40,13 +40,13 @@ Success means:
 
 Artificer Toolkit is the connected workspace and play platform for the full TTRPG lifecycle. Its differentiating mechanism is one structured content and rules foundation that can carry creator work from authoring through distribution, character building, Campaign and Encounter play, social table discovery, and VTT use while giving each client a platform-appropriate interface.
 
-The current alpha proves the first part of that lifecycle through Guided and Advanced authored-content creation, reusable authored content, Character Builder, authoritative Character Sheet play surfaces, authoritative dice, and reference workflows. Social Hub, Campaign, Encounter, subscription, paid-table, native, VTT, and creator marketplace capabilities are committed roadmap direction and must not be presented as current behavior until their phases ship. Import/export exists behind a disabled feature flag and is not a current public capability.
+The current alpha proves that lifecycle through Guided and Advanced authored-content creation, reusable authored content, Character Builder, authoritative Character Sheet play surfaces, authoritative dice, private Campaign collaboration, and authenticated Social Hub table formation for free private or public tables. Notification, Encounter, subscription, paid-table, native, VTT, and creator marketplace capabilities remain roadmap direction and must not be presented as current behavior until their phases ship. Import/export exists behind a disabled feature flag and is not a current public capability.
 
 ## Operating Context
 
 Creators work between sessions on content that may be private, freely shared, or eventually sold. Players use the product before play to find tables and prepare characters, and during play to make quick decisions, resolve actions, inspect rules, manage state, and coordinate with a virtual or local group.
 
-The web application currently owns the complete authoring experience and first play surfaces. It will deliver and validate the connected Campaign, Social Hub, Encounter, VTT, entitlement, and paid-table loop before native implementation begins. Native iOS and Android clients remain required first-class product surfaces, initially play-first, and must adapt interaction and composition to their platforms rather than wrap the website. Web, native, backend services, and VTT rendering share product contracts and authoritative rules without requiring identical presentation.
+The web application currently owns the complete authoring experience and first play surfaces. It will deliver and validate the connected Campaign, Social Hub, notification, Encounter, VTT, entitlement, and paid-table loop before native implementation begins. Native iOS and Android clients remain required first-class product surfaces, initially play-first, and must adapt interaction and composition to their platforms rather than wrap the website. Web, native, backend services, and VTT rendering share product contracts and authoritative rules without requiring identical presentation.
 
 ## Capabilities and Constraints
 
@@ -74,7 +74,11 @@ Current and committed constraints:
 - Backend rules and semantic contracts remain authoritative. Web and native clients own accessible platform presentation and do not reproduce mechanical calculations.
 - D&D 5e 2014 is the first ruleset, but the rules-system seam must support additional systems without accumulating D&D-specific conditionals in shared product infrastructure.
 - Complex authoring and future seller administration remain web-first initially. Native is a required first-class play client after web viability, not an optional companion or WebView wrapper.
-- Social Hub, Campaigns, Encounters, subscriptions, paid tables, VTT, native, and creator marketplace distribution remain roadmap capabilities until their documented phases ship.
+- Notifications, Encounters, subscriptions, paid tables, VTT, native, and creator marketplace distribution remain roadmap capabilities until their documented phases ship.
+- Social Hub is authenticated, 18+/US self-attested, free-table-only, and moderated by current superadmins. A submitted birth date is used transiently to calculate 18+ and is never stored; this remains self-attestation rather than age verification. Social does not provide location verification, background checks, direct messages, reviews, recommendations, or paid bookings.
+- Campaign is the single private aggregate for both one-shot and ongoing play. Format, one to three tone tags, optional tone guidance, and Standard or Mature presentation are Campaign metadata; Social listings project those values instead of owning copies.
+- Standard Campaigns apply best-effort server-side masking to known shared/public display text. Mature Social text is also masked by default, then shown to the Campaign owner or a viewer who has selected Mature in user settings after 18+ self-attestation. Private authoring and author-owned private notes retain their original text; neither mode is an age-verification or conduct guarantee.
+- English is the only supported Social discovery language at launch. Language is not a listing input or filter until the product can support another language end to end.
 - Initial launch packaging is Free, Player, GM, and Pro GM as recorded in `docs/roadmap/README.md`. Prices and limits may change from evidence before launch, but this packaging is the planning baseline rather than an unresolved phase decision.
 - Every plan may join unlimited Campaigns and use Campaign-scoped content, party inventory, Encounters, and VTT. Plans gate owned capacity, hosted scale, and paid-table commerce rather than core group play.
 - Campaign content access grants read/use access to referenced revisions; it does not transfer ownership, editing, personal export, or marketplace sale rights.
@@ -93,7 +97,7 @@ Play surfaces should feel compact and purposeful. Minimalism means reducing cogn
 - The repository contains working Guided and Advanced authored-content creation, Character Builder, completed Character Sheet play-depth work, authoritative dice, rules-engine, persistence, API, and reference implementations with focused tests.
 - `docs/mockups` contains approved and locked visual references, including responsive Character Sheet and focused-inspector states.
 - Route-backed Storybook fixtures exercise production Character Sheet components with representative data and responsive states.
-- `docs/roadmap` records the web-first path from the current alpha through Campaigns, Social Hub, Encounters, VTT, subscriptions, paid tables, a viability decision, native clients, and the deferred creator marketplace.
+- `docs/roadmap` records the web-first path from the current alpha through Campaigns, Social Hub, notifications, Encounters, VTT, subscriptions, paid tables, a viability decision, native clients, and the deferred creator marketplace.
 - No canonical customer testimonials, marketplace performance, pricing validation, conversion benchmarks, or published usage claims are currently recorded. Future product and marketing work must not fabricate them.
 
 ## Product Principles

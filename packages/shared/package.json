@@ -72,6 +72,10 @@
       "types": "./dist/domains/account/usernamePolicy.d.ts",
       "default": "./dist/domains/account/usernamePolicy.js"
     },
+    "./campaign/textPolicy": {
+      "types": "./dist/domains/campaign/campaignTextPolicy.d.ts",
+      "default": "./dist/domains/campaign/campaignTextPolicy.js"
+    },
     "./subjects/authored": {
       "types": "./dist/domains/subjects/authored/index.d.ts",
       "default": "./dist/domains/subjects/authored/index.js"

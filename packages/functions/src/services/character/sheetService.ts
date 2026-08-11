@@ -24,6 +24,7 @@ import {
   type CharacterSheetAdjustment,
   type CharacterSheetAdjustmentWrite
 } from '@artificer-toolkit/shared/character'
+import { maskStandardPlainText } from '@artificer-toolkit/shared/campaign/textPolicy'
 import { createHash } from 'node:crypto'
 import type {
   CharacterHistoryEntryDto,
@@ -244,7 +245,10 @@ export async function executeCharacterSheetCommand(params: {
         occurredAt: priorEvent.occurredAt,
         actorId: priorEvent.actorId,
         eventType: priorEvent.type,
-        summary: priorEvent.summary,
+        summary:
+          campaignContext.contentMaturity === 'STANDARD'
+            ? maskStandardPlainText(priorEvent.summary)
+            : priorEvent.summary,
         ...(priorEvent.result ? { result: priorEvent.result } : {})
       },
       ...(priorEvent.result ? { result: priorEvent.result } : {})
@@ -544,7 +548,8 @@ export async function executeCharacterSheetCommand(params: {
     schemaVersion: 1,
     commandType: params.command.type,
     commandFingerprint,
-    summary,
+    summary:
+      campaignContext.contentMaturity === 'STANDARD' ? maskStandardPlainText(summary) : summary,
     ...(commandResult ? { result: commandResult } : {})
   } satisfies CharacterEvent
   let nextStreamVersion: number

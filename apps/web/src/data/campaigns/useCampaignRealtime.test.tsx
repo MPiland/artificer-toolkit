@@ -100,11 +100,22 @@ describe('useCampaignRealtime', () => {
           cursor: '2'
         }
       })
+      ownerHandler?.({
+        payload: {
+          scope: 'OWNER',
+          entity: 'CAMPAIGN',
+          entityId: campaignId,
+          event: 'UPDATED',
+          eventId: '00000000-0000-4000-8000-000000000007',
+          cursor: '3'
+        }
+      })
     })
 
     await waitFor(() => {
       expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.characters.sheet(characterId) })
       expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.campaigns.clock(campaignId) })
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.socialHub.all() })
     })
   })
 

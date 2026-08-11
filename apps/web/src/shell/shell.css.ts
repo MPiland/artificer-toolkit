@@ -241,6 +241,16 @@ export const headerMenuButton = style({
   }
 })
 
+export const headerMenuButtonActive = style({
+  '@layer': {
+    [app]: {
+      borderColor: foundationVars.color.accent.border,
+      backgroundColor: foundationVars.color.accent.soft,
+      color: foundationVars.color.text.primary
+    }
+  }
+})
+
 export const menuItemText = style({
   '@layer': {
     [app]: {

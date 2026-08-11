@@ -21,6 +21,10 @@ import {
 } from '@artificer-toolkit/schema/api/campaigns'
 import type { z } from 'zod'
 import {
+  presentCampaignPlainText,
+  presentCampaignRichText
+} from '@artificer-toolkit/shared/campaign/textPolicy'
+import {
   createCampaignSessionInputSchema,
   createCampaignSessionNoteSectionInputSchema,
   createCampaignSessionReferencePinInputSchema,
@@ -115,25 +119,28 @@ function assertSessionSchedule(schedule: {
   }
 }
 
-function mapSession(session: {
-  id: string
-  campaignId: string
-  sessionNumber: number
-  title: string | null
-  scheduledStartAt: string | null
-  scheduledEndAt: string | null
-  timeZone: string | null
-  status: 'OPEN' | 'FINISHED'
-  finishedAt: string | null
-  version: number
-  createdAt: string
-  updatedAt: string
-}): CampaignSessionDto {
+function mapSession(
+  session: {
+    id: string
+    campaignId: string
+    sessionNumber: number
+    title: string | null
+    scheduledStartAt: string | null
+    scheduledEndAt: string | null
+    timeZone: string | null
+    status: 'OPEN' | 'FINISHED'
+    finishedAt: string | null
+    version: number
+    createdAt: string
+    updatedAt: string
+  },
+  maturity: 'STANDARD' | 'MATURE'
+): CampaignSessionDto {
   return campaignSessionDtoSchema.parse({
     id: session.id,
     campaignId: session.campaignId,
     sessionNumber: session.sessionNumber,
-    title: session.title,
+    title: session.title ? presentCampaignPlainText(session.title, maturity) : null,
     scheduledStartAt: session.scheduledStartAt,
     scheduledEndAt: session.scheduledEndAt,
     timeZone: session.timeZone,
@@ -159,15 +166,17 @@ function mapSessionNote(
     createdAt: string
     updatedAt: string
   },
-  campaignId: string
+  campaignId: string,
+  maturity: 'STANDARD' | 'MATURE'
 ): CampaignSessionNoteSectionDto {
+  const privateNote = section.visibility === 'GM_PRIVATE'
   return campaignSessionNoteSectionDtoSchema.parse({
     id: section.id,
     campaignId,
     sessionId: section.sessionId,
     authorUserId: section.createdBy,
-    title: section.title,
-    content: section.content,
+    title: privateNote ? section.title : presentCampaignPlainText(section.title, maturity),
+    content: privateNote ? section.content : presentCampaignRichText(section.content, maturity),
     visibility: section.visibility,
     kind: section.kind,
     sortOrder: section.sortOrder,
@@ -177,15 +186,29 @@ function mapSessionNote(
   })
 }
 
-function mapSessionReferencePin(pin: {
-  id: string
-  campaignId: string
-  sessionId: string
-  target: CampaignSessionReferencePinDto['target']
-  label: string
-  createdAt: string
-}): CampaignSessionReferencePinDto {
-  return campaignSessionReferencePinDtoSchema.parse(pin)
+function mapSessionReferencePin(
+  pin: {
+    id: string
+    campaignId: string
+    sessionId: string
+    target: CampaignSessionReferencePinDto['target']
+    label: string
+    createdAt: string
+  },
+  maturity: 'STANDARD' | 'MATURE'
+): CampaignSessionReferencePinDto {
+  return campaignSessionReferencePinDtoSchema.parse({
+    ...pin,
+    label: presentCampaignPlainText(pin.label, maturity)
+  })
+}
+
+async function campaignMaturity(
+  db: DBLike,
+  campaignId: string,
+  userId: string
+): Promise<'STANDARD' | 'MATURE'> {
+  return (await resolveCampaignAuthority(db, campaignId, userId)).campaign.contentMaturity
 }
 
 async function requireSession(db: DBLike, campaignId: string, sessionId: string) {
@@ -205,7 +228,7 @@ export async function listCampaignSessions(
   assertActiveCampaignMember(authority)
   return campaignSessionsDtoSchema.parse(
     (await createCampaignCollaborationRepository(db).listCampaignSessions(input.campaignId)).map(
-      mapSession
+      (session) => mapSession(session, authority.campaign.contentMaturity)
     )
   )
 }
@@ -244,7 +267,7 @@ export async function createCampaignSession(
     'CREATED',
     session.createdAt
   )
-  return mapSession(session)
+  return mapSession(session, await campaignMaturity(db, input.campaignId, userId))
 }
 
 export async function updateCampaignSession(
@@ -286,7 +309,7 @@ export async function updateCampaignSession(
     'UPDATED',
     session.updatedAt
   )
-  return mapSession(session)
+  return mapSession(session, await campaignMaturity(db, input.campaignId, userId))
 }
 
 export async function finishCampaignSession(
@@ -322,7 +345,7 @@ export async function finishCampaignSession(
     'UPDATED',
     session.updatedAt
   )
-  return mapSession(session)
+  return mapSession(session, await campaignMaturity(db, input.campaignId, userId))
 }
 
 export async function reopenCampaignSession(
@@ -358,7 +381,7 @@ export async function reopenCampaignSession(
     'UPDATED',
     session.updatedAt
   )
-  return mapSession(session)
+  return mapSession(session, await campaignMaturity(db, input.campaignId, userId))
 }
 
 export async function getCampaignSession(
@@ -373,7 +396,7 @@ export async function getCampaignSession(
     input.sessionNumber
   )
   if (!session) throw new CampaignNotFoundError()
-  return mapSession(session)
+  return mapSession(session, authority.campaign.contentMaturity)
 }
 
 export async function listCampaignSessionAttendance(
@@ -504,7 +527,7 @@ export async function listCampaignSessionReferencePins(
   return campaignSessionReferencePinsDtoSchema.parse(
     visible
       .filter((pin): pin is NonNullable<typeof pin> => pin !== null)
-      .map(mapSessionReferencePin)
+      .map((pin) => mapSessionReferencePin(pin, authority.campaign.contentMaturity))
   )
 }
 
@@ -548,6 +571,7 @@ export async function createCampaignSessionReferencePin(
     'UPDATED',
     pin.createdAt
   )
+  const maturity = await campaignMaturity(db, input.campaignId, userId)
   const pinTarget = pin.target
   if (pinTarget.kind === 'CAMPAIGN_NOTE') {
     const note = (
@@ -557,11 +581,11 @@ export async function createCampaignSessionReferencePin(
       )
     ).find((section) => section.id === pinTarget.noteSectionId)
     if (!note) throw new CampaignAccessError('Campaign note is unavailable.')
-    return mapSessionReferencePin({ ...pin, label: note.title })
+    return mapSessionReferencePin({ ...pin, label: note.title }, maturity)
   }
   const label = await resolveAuthoredReferenceLabel(db, userId, pinTarget)
   if (!label) throw new CampaignAccessError('Authored record is unavailable.')
-  return mapSessionReferencePin({ ...pin, label })
+  return mapSessionReferencePin({ ...pin, label }, maturity)
 }
 
 export async function deleteCampaignSessionReferencePin(
@@ -622,7 +646,9 @@ export async function listCampaignSessionNoteSections(
   return campaignSessionNoteSectionsDtoSchema.parse(
     (await createCampaignCollaborationRepository(db).listSessionNoteSections(input.sessionId))
       .filter((section) => section.visibility === 'SHARED' || authority.membership.role === 'OWNER')
-      .map((section) => mapSessionNote(section, input.campaignId))
+      .map((section) =>
+        mapSessionNote(section, input.campaignId, authority.campaign.contentMaturity)
+      )
   )
 }
 
@@ -656,7 +682,11 @@ export async function createCampaignSessionNoteSection(
     'CREATED',
     section.createdAt
   )
-  return mapSessionNote(section, input.campaignId)
+  return mapSessionNote(
+    section,
+    input.campaignId,
+    await campaignMaturity(db, input.campaignId, userId)
+  )
 }
 
 export async function updateCampaignSessionNoteSection(
@@ -707,7 +737,11 @@ export async function updateCampaignSessionNoteSection(
     'UPDATED',
     section.updatedAt
   )
-  return mapSessionNote(section, input.campaignId)
+  return mapSessionNote(
+    section,
+    input.campaignId,
+    await campaignMaturity(db, input.campaignId, userId)
+  )
 }
 
 export async function deleteCampaignSessionNoteSection(

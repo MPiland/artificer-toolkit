@@ -10,6 +10,7 @@ import IHome from '#assets/icons/IHome'
 import IRaces from '#assets/icons/IRaces'
 import IScroll from '#assets/icons/IScroll'
 import ISack from '#assets/icons/ISack'
+import IUser from '#assets/icons/IUser'
 
 export interface AppShellNavItem {
   label: string
@@ -40,6 +41,11 @@ export const platformNavigation: AppShellNavGroup[] = [
         label: 'Campaigns',
         href: '/campaigns',
         icon: ICampaign
+      },
+      {
+        label: 'Social Hub',
+        href: '/social',
+        icon: IUser
       }
     ]
   },

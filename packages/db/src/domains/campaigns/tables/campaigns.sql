@@ -3,16 +3,24 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
   owner_user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
   name text NOT NULL CHECK (char_length(btrim(name)) BETWEEN 1 AND 100),
   description text CHECK (description IS NULL OR char_length(description) <= 100000),
+  format text NOT NULL CHECK (format IN ('ONE_SHOT', 'ONGOING')),
+  tone_tags text[] NOT NULL CHECK (
+    cardinality(tone_tags) BETWEEN 1 AND 3
+    AND tone_tags <@ ARRAY[
+      'LIGHTHEARTED', 'HEROIC', 'SERIOUS', 'DARK',
+      'GRITTY', 'HORROR', 'COMEDIC', 'COZY'
+    ]::text[]
+  ),
+  tone_details text CHECK (tone_details IS NULL OR char_length(btrim(tone_details)) BETWEEN 1 AND 1000),
+  content_maturity text NOT NULL CHECK (content_maturity IN ('STANDARD', 'MATURE')),
   attunement_slot_override integer CHECK (attunement_slot_override >= 0),
   status text NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'ARCHIVED')),
-  visibility text NOT NULL DEFAULT 'PRIVATE' CHECK (visibility IN ('PRIVATE', 'PUBLIC')),
   version integer NOT NULL DEFAULT 0 CHECK (version >= 0),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS campaigns_owner_status_idx ON public.campaigns (owner_user_id, status);
-CREATE INDEX IF NOT EXISTS campaigns_public_active_idx ON public.campaigns (created_at DESC) WHERE status = 'ACTIVE' AND visibility = 'PUBLIC';
 ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.campaign_memberships (
@@ -116,32 +124,6 @@ SET
       )
     );
 $$;
-
-CREATE TABLE IF NOT EXISTS public.campaign_invites (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
-  created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
-  kind text NOT NULL CHECK (kind IN ('LINK', 'USERNAME', 'EMAIL')),
-  token_digest bytea NOT NULL UNIQUE,
-  target_user_id uuid REFERENCES auth.users (id) ON DELETE CASCADE,
-  target_email text,
-  expires_at timestamptz NOT NULL,
-  revoked_at timestamptz,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  CHECK (
-    (kind = 'LINK' AND target_user_id IS NULL AND target_email IS NULL)
-    OR (kind = 'USERNAME' AND target_user_id IS NOT NULL AND target_email IS NULL)
-    OR (kind = 'EMAIL' AND target_user_id IS NULL AND target_email IS NOT NULL
-      AND char_length(btrim(target_email)) BETWEEN 1 AND 320 AND target_email = lower(target_email))
-  )
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS campaign_invites_one_active_link_idx ON public.campaign_invites (campaign_id) WHERE kind = 'LINK' AND revoked_at IS NULL;
-CREATE INDEX IF NOT EXISTS campaign_invites_campaign_idx ON public.campaign_invites (campaign_id, expires_at);
-CREATE INDEX IF NOT EXISTS campaign_invites_target_user_idx ON public.campaign_invites (target_user_id) WHERE target_user_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS campaign_invites_target_email_idx ON public.campaign_invites (target_email) WHERE target_email IS NOT NULL;
-ALTER TABLE public.campaign_invites ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.campaign_ownership_transfers (
   campaign_id uuid PRIMARY KEY REFERENCES public.campaigns (id) ON DELETE CASCADE,

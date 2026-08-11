@@ -21,6 +21,27 @@ export function MobileAppFooter({
 }
 
 function MobileFooterItem({ item }: { item: MobileAppFooterItem }) {
+  const content = (
+    <>
+      <MobileAppFooterIcon icon={item.icon} />
+      <span className={styles.label}>{item.label}</span>
+    </>
+  )
+
+  if (item.href && !item.menuItems?.length && !item.menuContent) {
+    return (
+      <UnstyledButton
+        component={Link}
+        to={item.href}
+        aria-current={item.isActive ? 'page' : undefined}
+        aria-label={item.label}
+        className={clsx(styles.item, item.isActive && styles.itemActive)}
+      >
+        {content}
+      </UnstyledButton>
+    )
+  }
+
   const control = (
     <UnstyledButton
       className={clsx(styles.item, item.isActive && styles.itemActive)}
@@ -29,8 +50,7 @@ function MobileFooterItem({ item }: { item: MobileAppFooterItem }) {
       aria-current={item.isActive ? 'page' : undefined}
       onClick={item.menuItems?.length || item.menuContent ? undefined : item.onClick}
     >
-      <MobileAppFooterIcon icon={item.icon} />
-      <span className={styles.label}>{item.label}</span>
+      {content}
     </UnstyledButton>
   )
 

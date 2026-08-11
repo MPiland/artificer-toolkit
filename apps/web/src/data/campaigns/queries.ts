@@ -27,6 +27,13 @@ export function getCampaignDetail(campaignId: string, client: Api = api) {
   })
 }
 
+export function getCampaignSettings(campaignId: string, client: Api = api) {
+  return queryOptions({
+    queryKey: [...queryKeys.campaigns.detail(campaignId), 'settings'],
+    queryFn: () => client.campaigns.getSettings(campaignId)
+  })
+}
+
 export function getCampaignConversations(campaignId: string, client: Api = api) {
   return queryOptions({
     queryKey: queryKeys.campaigns.conversations(campaignId),

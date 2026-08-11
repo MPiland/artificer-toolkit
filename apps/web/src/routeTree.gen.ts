@@ -14,10 +14,12 @@ import { Route as GuestRouteImport } from './routes/_guest'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as GuestIndexRouteImport } from './routes/_guest/index'
 import { Route as GuestAuthRouteImport } from './routes/_guest/_auth'
+import { Route as AuthedSocialRouteImport } from './routes/_authed/social'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedVehiclesIndexRouteImport } from './routes/_authed/vehicles/index'
 import { Route as AuthedSystemsIndexRouteImport } from './routes/_authed/systems/index'
 import { Route as AuthedSpellsIndexRouteImport } from './routes/_authed/spells/index'
+import { Route as AuthedSocialIndexRouteImport } from './routes/_authed/social/index'
 import { Route as AuthedSettingsIndexRouteImport } from './routes/_authed/settings/index'
 import { Route as AuthedRacesIndexRouteImport } from './routes/_authed/races/index'
 import { Route as AuthedHomeIndexRouteImport } from './routes/_authed/home/index'
@@ -37,6 +39,7 @@ import { Route as AuthedVehiclesVehiclePublicIdRouteImport } from './routes/_aut
 import { Route as AuthedSystemsSystemIdRouteImport } from './routes/_authed/systems/$systemId'
 import { Route as AuthedSpellsNewRouteImport } from './routes/_authed/spells/new'
 import { Route as AuthedSpellsSpellPublicIdRouteImport } from './routes/_authed/spells/$spellPublicId'
+import { Route as AuthedSocialModerationRouteImport } from './routes/_authed/social/moderation'
 import { Route as AuthedSettingsProfileRouteImport } from './routes/_authed/settings/profile'
 import { Route as AuthedSettingsPreferencesRouteImport } from './routes/_authed/settings/preferences'
 import { Route as AuthedSettingsAccountRouteImport } from './routes/_authed/settings/account'
@@ -61,6 +64,8 @@ import { Route as GuestAuthAuthConfirmedRouteImport } from './routes/_guest/_aut
 import { Route as AuthedVehiclesVehiclePublicIdEditRouteImport } from './routes/_authed/vehicles/$vehiclePublicId/edit'
 import { Route as AuthedSpellsSpellPublicIdEditRouteImport } from './routes/_authed/spells/$spellPublicId/edit'
 import { Route as AuthedSpellsSpellPublicIdSpellSlugRouteImport } from './routes/_authed/spells/$spellPublicId/$spellSlug'
+import { Route as AuthedSocialProfilesProfilePublicIdRouteImport } from './routes/_authed/social/profiles/$profilePublicId'
+import { Route as AuthedSocialHostingNewRouteImport } from './routes/_authed/social/hosting/new'
 import { Route as AuthedRacesRacePublicIdEditRouteImport } from './routes/_authed/races/$racePublicId/edit'
 import { Route as AuthedRacesRacePublicIdRaceSlugRouteImport } from './routes/_authed/races/$racePublicId/$raceSlug'
 import { Route as AuthedFeatsFeatPublicIdEditRouteImport } from './routes/_authed/feats/$featPublicId/edit'
@@ -69,7 +74,6 @@ import { Route as AuthedEquipmentEquipmentPublicIdEditRouteImport } from './rout
 import { Route as AuthedCreaturesCreaturePublicIdEditRouteImport } from './routes/_authed/creatures/$creaturePublicId/edit'
 import { Route as AuthedCreaturesCreaturePublicIdCreatureSlugRouteImport } from './routes/_authed/creatures/$creaturePublicId/$creatureSlug'
 import { Route as AuthedClassesClassPublicIdEditRouteImport } from './routes/_authed/classes/$classPublicId/edit'
-import { Route as AuthedCampaignsInviteTokenRouteImport } from './routes/_authed/campaigns/invite/$token'
 import { Route as AuthedCampaignsCampaignPublicIdCampaignSlugRouteImport } from './routes/_authed/campaigns/$campaignPublicId/$campaignSlug'
 import { Route as AuthedBackgroundsBackgroundPublicIdEditRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/edit'
 import { Route as AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/$backgroundSlug'
@@ -85,6 +89,8 @@ import { Route as AuthedCampaignsCampaignPublicIdCampaignSlugIndexRouteImport } 
 import { Route as AuthedBackgroundsBackgroundPublicIdBackgroundSlugIndexRouteImport } from './routes/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/index'
 import { Route as AuthedVehiclesVehiclePublicIdVehicleSlugEditRouteImport } from './routes/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit'
 import { Route as AuthedSpellsSpellPublicIdSpellSlugEditRouteImport } from './routes/_authed/spells/$spellPublicId/$spellSlug/edit'
+import { Route as AuthedSocialListingsListingPublicIdSlugRouteImport } from './routes/_authed/social/listings/$listingPublicId/$slug'
+import { Route as AuthedSocialHostingListingPublicIdEditRouteImport } from './routes/_authed/social/hosting/$listingPublicId/edit'
 import { Route as AuthedRacesRacePublicIdRaceSlugEditRouteImport } from './routes/_authed/races/$racePublicId/$raceSlug/edit'
 import { Route as AuthedFeatsFeatPublicIdFeatSlugEditRouteImport } from './routes/_authed/feats/$featPublicId/$featSlug/edit'
 import { Route as AuthedEquipmentEquipmentPublicIdEquipmentSlugEditRouteImport } from './routes/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit'
@@ -117,6 +123,11 @@ const GuestAuthRoute = GuestAuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => GuestRoute,
 } as any)
+const AuthedSocialRoute = AuthedSocialRouteImport.update({
+  id: '/social',
+  path: '/social',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -136,6 +147,11 @@ const AuthedSpellsIndexRoute = AuthedSpellsIndexRouteImport.update({
   id: '/spells/',
   path: '/spells/',
   getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSocialIndexRoute = AuthedSocialIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthedSocialRoute,
 } as any)
 const AuthedSettingsIndexRoute = AuthedSettingsIndexRouteImport.update({
   id: '/',
@@ -234,6 +250,11 @@ const AuthedSpellsSpellPublicIdRoute =
     path: '/spells/$spellPublicId',
     getParentRoute: () => AuthedRoute,
   } as any)
+const AuthedSocialModerationRoute = AuthedSocialModerationRouteImport.update({
+  id: '/moderation',
+  path: '/moderation',
+  getParentRoute: () => AuthedSocialRoute,
+} as any)
 const AuthedSettingsProfileRoute = AuthedSettingsProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -364,6 +385,17 @@ const AuthedSpellsSpellPublicIdSpellSlugRoute =
     path: '/$spellSlug',
     getParentRoute: () => AuthedSpellsSpellPublicIdRoute,
   } as any)
+const AuthedSocialProfilesProfilePublicIdRoute =
+  AuthedSocialProfilesProfilePublicIdRouteImport.update({
+    id: '/profiles/$profilePublicId',
+    path: '/profiles/$profilePublicId',
+    getParentRoute: () => AuthedSocialRoute,
+  } as any)
+const AuthedSocialHostingNewRoute = AuthedSocialHostingNewRouteImport.update({
+  id: '/hosting/new',
+  path: '/hosting/new',
+  getParentRoute: () => AuthedSocialRoute,
+} as any)
 const AuthedRacesRacePublicIdEditRoute =
   AuthedRacesRacePublicIdEditRouteImport.update({
     id: '/edit',
@@ -411,12 +443,6 @@ const AuthedClassesClassPublicIdEditRoute =
     id: '/edit',
     path: '/edit',
     getParentRoute: () => AuthedClassesClassPublicIdRoute,
-  } as any)
-const AuthedCampaignsInviteTokenRoute =
-  AuthedCampaignsInviteTokenRouteImport.update({
-    id: '/campaigns/invite/$token',
-    path: '/campaigns/invite/$token',
-    getParentRoute: () => AuthedRoute,
   } as any)
 const AuthedCampaignsCampaignPublicIdCampaignSlugRoute =
   AuthedCampaignsCampaignPublicIdCampaignSlugRouteImport.update({
@@ -509,6 +535,18 @@ const AuthedSpellsSpellPublicIdSpellSlugEditRoute =
     path: '/edit',
     getParentRoute: () => AuthedSpellsSpellPublicIdSpellSlugRoute,
   } as any)
+const AuthedSocialListingsListingPublicIdSlugRoute =
+  AuthedSocialListingsListingPublicIdSlugRouteImport.update({
+    id: '/listings/$listingPublicId/$slug',
+    path: '/listings/$listingPublicId/$slug',
+    getParentRoute: () => AuthedSocialRoute,
+  } as any)
+const AuthedSocialHostingListingPublicIdEditRoute =
+  AuthedSocialHostingListingPublicIdEditRouteImport.update({
+    id: '/hosting/$listingPublicId/edit',
+    path: '/hosting/$listingPublicId/edit',
+    getParentRoute: () => AuthedSocialRoute,
+  } as any)
 const AuthedRacesRacePublicIdRaceSlugEditRoute =
   AuthedRacesRacePublicIdRaceSlugEditRouteImport.update({
     id: '/edit',
@@ -571,6 +609,7 @@ export interface FileRoutesByFullPath {
   '/': typeof GuestIndexRoute
   '/logout': typeof LogoutRoute
   '/settings': typeof AuthedSettingsRouteWithChildren
+  '/social': typeof AuthedSocialRouteWithChildren
   '/backgrounds/$backgroundPublicId': typeof AuthedBackgroundsBackgroundPublicIdRouteWithChildren
   '/backgrounds/new': typeof AuthedBackgroundsNewRoute
   '/campaigns/$campaignPublicId': typeof AuthedCampaignsCampaignPublicIdRouteWithChildren
@@ -591,6 +630,7 @@ export interface FileRoutesByFullPath {
   '/settings/account': typeof AuthedSettingsAccountRoute
   '/settings/preferences': typeof AuthedSettingsPreferencesRoute
   '/settings/profile': typeof AuthedSettingsProfileRoute
+  '/social/moderation': typeof AuthedSocialModerationRoute
   '/spells/$spellPublicId': typeof AuthedSpellsSpellPublicIdRouteWithChildren
   '/spells/new': typeof AuthedSpellsNewRoute
   '/systems/$systemId': typeof AuthedSystemsSystemIdRoute
@@ -610,13 +650,13 @@ export interface FileRoutesByFullPath {
   '/home/': typeof AuthedHomeIndexRoute
   '/races/': typeof AuthedRacesIndexRoute
   '/settings/': typeof AuthedSettingsIndexRoute
+  '/social/': typeof AuthedSocialIndexRoute
   '/spells/': typeof AuthedSpellsIndexRoute
   '/systems/': typeof AuthedSystemsIndexRoute
   '/vehicles/': typeof AuthedVehiclesIndexRoute
   '/backgrounds/$backgroundPublicId/$backgroundSlug': typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteWithChildren
   '/backgrounds/$backgroundPublicId/edit': typeof AuthedBackgroundsBackgroundPublicIdEditRoute
   '/campaigns/$campaignPublicId/$campaignSlug': typeof AuthedCampaignsCampaignPublicIdCampaignSlugRouteWithChildren
-  '/campaigns/invite/$token': typeof AuthedCampaignsInviteTokenRoute
   '/classes/$classPublicId/edit': typeof AuthedClassesClassPublicIdEditRoute
   '/creatures/$creaturePublicId/$creatureSlug': typeof AuthedCreaturesCreaturePublicIdCreatureSlugRouteWithChildren
   '/creatures/$creaturePublicId/edit': typeof AuthedCreaturesCreaturePublicIdEditRoute
@@ -625,6 +665,8 @@ export interface FileRoutesByFullPath {
   '/feats/$featPublicId/edit': typeof AuthedFeatsFeatPublicIdEditRoute
   '/races/$racePublicId/$raceSlug': typeof AuthedRacesRacePublicIdRaceSlugRouteWithChildren
   '/races/$racePublicId/edit': typeof AuthedRacesRacePublicIdEditRoute
+  '/social/hosting/new': typeof AuthedSocialHostingNewRoute
+  '/social/profiles/$profilePublicId': typeof AuthedSocialProfilesProfilePublicIdRoute
   '/spells/$spellPublicId/$spellSlug': typeof AuthedSpellsSpellPublicIdSpellSlugRouteWithChildren
   '/spells/$spellPublicId/edit': typeof AuthedSpellsSpellPublicIdEditRoute
   '/vehicles/$vehiclePublicId/edit': typeof AuthedVehiclesVehiclePublicIdEditRoute
@@ -637,6 +679,8 @@ export interface FileRoutesByFullPath {
   '/equipment/$equipmentPublicId/$equipmentSlug/edit': typeof AuthedEquipmentEquipmentPublicIdEquipmentSlugEditRoute
   '/feats/$featPublicId/$featSlug/edit': typeof AuthedFeatsFeatPublicIdFeatSlugEditRoute
   '/races/$racePublicId/$raceSlug/edit': typeof AuthedRacesRacePublicIdRaceSlugEditRoute
+  '/social/hosting/$listingPublicId/edit': typeof AuthedSocialHostingListingPublicIdEditRoute
+  '/social/listings/$listingPublicId/$slug': typeof AuthedSocialListingsListingPublicIdSlugRoute
   '/spells/$spellPublicId/$spellSlug/edit': typeof AuthedSpellsSpellPublicIdSpellSlugEditRoute
   '/vehicles/$vehiclePublicId/$vehicleSlug/edit': typeof AuthedVehiclesVehiclePublicIdVehicleSlugEditRoute
   '/backgrounds/$backgroundPublicId/$backgroundSlug/': typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugIndexRoute
@@ -674,6 +718,7 @@ export interface FileRoutesByTo {
   '/settings/account': typeof AuthedSettingsAccountRoute
   '/settings/preferences': typeof AuthedSettingsPreferencesRoute
   '/settings/profile': typeof AuthedSettingsProfileRoute
+  '/social/moderation': typeof AuthedSocialModerationRoute
   '/spells/$spellPublicId': typeof AuthedSpellsSpellPublicIdRouteWithChildren
   '/spells/new': typeof AuthedSpellsNewRoute
   '/systems/$systemId': typeof AuthedSystemsSystemIdRoute
@@ -693,16 +738,18 @@ export interface FileRoutesByTo {
   '/home': typeof AuthedHomeIndexRoute
   '/races': typeof AuthedRacesIndexRoute
   '/settings': typeof AuthedSettingsIndexRoute
+  '/social': typeof AuthedSocialIndexRoute
   '/spells': typeof AuthedSpellsIndexRoute
   '/systems': typeof AuthedSystemsIndexRoute
   '/vehicles': typeof AuthedVehiclesIndexRoute
   '/backgrounds/$backgroundPublicId/edit': typeof AuthedBackgroundsBackgroundPublicIdEditRoute
-  '/campaigns/invite/$token': typeof AuthedCampaignsInviteTokenRoute
   '/classes/$classPublicId/edit': typeof AuthedClassesClassPublicIdEditRoute
   '/creatures/$creaturePublicId/edit': typeof AuthedCreaturesCreaturePublicIdEditRoute
   '/equipment/$equipmentPublicId/edit': typeof AuthedEquipmentEquipmentPublicIdEditRoute
   '/feats/$featPublicId/edit': typeof AuthedFeatsFeatPublicIdEditRoute
   '/races/$racePublicId/edit': typeof AuthedRacesRacePublicIdEditRoute
+  '/social/hosting/new': typeof AuthedSocialHostingNewRoute
+  '/social/profiles/$profilePublicId': typeof AuthedSocialProfilesProfilePublicIdRoute
   '/spells/$spellPublicId/edit': typeof AuthedSpellsSpellPublicIdEditRoute
   '/vehicles/$vehiclePublicId/edit': typeof AuthedVehiclesVehiclePublicIdEditRoute
   '/auth/confirmed': typeof GuestAuthAuthConfirmedRoute
@@ -714,6 +761,8 @@ export interface FileRoutesByTo {
   '/equipment/$equipmentPublicId/$equipmentSlug/edit': typeof AuthedEquipmentEquipmentPublicIdEquipmentSlugEditRoute
   '/feats/$featPublicId/$featSlug/edit': typeof AuthedFeatsFeatPublicIdFeatSlugEditRoute
   '/races/$racePublicId/$raceSlug/edit': typeof AuthedRacesRacePublicIdRaceSlugEditRoute
+  '/social/hosting/$listingPublicId/edit': typeof AuthedSocialHostingListingPublicIdEditRoute
+  '/social/listings/$listingPublicId/$slug': typeof AuthedSocialListingsListingPublicIdSlugRoute
   '/spells/$spellPublicId/$spellSlug/edit': typeof AuthedSpellsSpellPublicIdSpellSlugEditRoute
   '/vehicles/$vehiclePublicId/$vehicleSlug/edit': typeof AuthedVehiclesVehiclePublicIdVehicleSlugEditRoute
   '/backgrounds/$backgroundPublicId/$backgroundSlug': typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugIndexRoute
@@ -734,6 +783,7 @@ export interface FileRoutesById {
   '/_guest': typeof GuestRouteWithChildren
   '/logout': typeof LogoutRoute
   '/_authed/settings': typeof AuthedSettingsRouteWithChildren
+  '/_authed/social': typeof AuthedSocialRouteWithChildren
   '/_guest/_auth': typeof GuestAuthRouteWithChildren
   '/_guest/': typeof GuestIndexRoute
   '/_authed/backgrounds/$backgroundPublicId': typeof AuthedBackgroundsBackgroundPublicIdRouteWithChildren
@@ -756,6 +806,7 @@ export interface FileRoutesById {
   '/_authed/settings/account': typeof AuthedSettingsAccountRoute
   '/_authed/settings/preferences': typeof AuthedSettingsPreferencesRoute
   '/_authed/settings/profile': typeof AuthedSettingsProfileRoute
+  '/_authed/social/moderation': typeof AuthedSocialModerationRoute
   '/_authed/spells/$spellPublicId': typeof AuthedSpellsSpellPublicIdRouteWithChildren
   '/_authed/spells/new': typeof AuthedSpellsNewRoute
   '/_authed/systems/$systemId': typeof AuthedSystemsSystemIdRoute
@@ -775,13 +826,13 @@ export interface FileRoutesById {
   '/_authed/home/': typeof AuthedHomeIndexRoute
   '/_authed/races/': typeof AuthedRacesIndexRoute
   '/_authed/settings/': typeof AuthedSettingsIndexRoute
+  '/_authed/social/': typeof AuthedSocialIndexRoute
   '/_authed/spells/': typeof AuthedSpellsIndexRoute
   '/_authed/systems/': typeof AuthedSystemsIndexRoute
   '/_authed/vehicles/': typeof AuthedVehiclesIndexRoute
   '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug': typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteWithChildren
   '/_authed/backgrounds/$backgroundPublicId/edit': typeof AuthedBackgroundsBackgroundPublicIdEditRoute
   '/_authed/campaigns/$campaignPublicId/$campaignSlug': typeof AuthedCampaignsCampaignPublicIdCampaignSlugRouteWithChildren
-  '/_authed/campaigns/invite/$token': typeof AuthedCampaignsInviteTokenRoute
   '/_authed/classes/$classPublicId/edit': typeof AuthedClassesClassPublicIdEditRoute
   '/_authed/creatures/$creaturePublicId/$creatureSlug': typeof AuthedCreaturesCreaturePublicIdCreatureSlugRouteWithChildren
   '/_authed/creatures/$creaturePublicId/edit': typeof AuthedCreaturesCreaturePublicIdEditRoute
@@ -790,6 +841,8 @@ export interface FileRoutesById {
   '/_authed/feats/$featPublicId/edit': typeof AuthedFeatsFeatPublicIdEditRoute
   '/_authed/races/$racePublicId/$raceSlug': typeof AuthedRacesRacePublicIdRaceSlugRouteWithChildren
   '/_authed/races/$racePublicId/edit': typeof AuthedRacesRacePublicIdEditRoute
+  '/_authed/social/hosting/new': typeof AuthedSocialHostingNewRoute
+  '/_authed/social/profiles/$profilePublicId': typeof AuthedSocialProfilesProfilePublicIdRoute
   '/_authed/spells/$spellPublicId/$spellSlug': typeof AuthedSpellsSpellPublicIdSpellSlugRouteWithChildren
   '/_authed/spells/$spellPublicId/edit': typeof AuthedSpellsSpellPublicIdEditRoute
   '/_authed/vehicles/$vehiclePublicId/edit': typeof AuthedVehiclesVehiclePublicIdEditRoute
@@ -802,6 +855,8 @@ export interface FileRoutesById {
   '/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit': typeof AuthedEquipmentEquipmentPublicIdEquipmentSlugEditRoute
   '/_authed/feats/$featPublicId/$featSlug/edit': typeof AuthedFeatsFeatPublicIdFeatSlugEditRoute
   '/_authed/races/$racePublicId/$raceSlug/edit': typeof AuthedRacesRacePublicIdRaceSlugEditRoute
+  '/_authed/social/hosting/$listingPublicId/edit': typeof AuthedSocialHostingListingPublicIdEditRoute
+  '/_authed/social/listings/$listingPublicId/$slug': typeof AuthedSocialListingsListingPublicIdSlugRoute
   '/_authed/spells/$spellPublicId/$spellSlug/edit': typeof AuthedSpellsSpellPublicIdSpellSlugEditRoute
   '/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit': typeof AuthedVehiclesVehiclePublicIdVehicleSlugEditRoute
   '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/': typeof AuthedBackgroundsBackgroundPublicIdBackgroundSlugIndexRoute
@@ -822,6 +877,7 @@ export interface FileRouteTypes {
     | '/'
     | '/logout'
     | '/settings'
+    | '/social'
     | '/backgrounds/$backgroundPublicId'
     | '/backgrounds/new'
     | '/campaigns/$campaignPublicId'
@@ -842,6 +898,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/preferences'
     | '/settings/profile'
+    | '/social/moderation'
     | '/spells/$spellPublicId'
     | '/spells/new'
     | '/systems/$systemId'
@@ -861,13 +918,13 @@ export interface FileRouteTypes {
     | '/home/'
     | '/races/'
     | '/settings/'
+    | '/social/'
     | '/spells/'
     | '/systems/'
     | '/vehicles/'
     | '/backgrounds/$backgroundPublicId/$backgroundSlug'
     | '/backgrounds/$backgroundPublicId/edit'
     | '/campaigns/$campaignPublicId/$campaignSlug'
-    | '/campaigns/invite/$token'
     | '/classes/$classPublicId/edit'
     | '/creatures/$creaturePublicId/$creatureSlug'
     | '/creatures/$creaturePublicId/edit'
@@ -876,6 +933,8 @@ export interface FileRouteTypes {
     | '/feats/$featPublicId/edit'
     | '/races/$racePublicId/$raceSlug'
     | '/races/$racePublicId/edit'
+    | '/social/hosting/new'
+    | '/social/profiles/$profilePublicId'
     | '/spells/$spellPublicId/$spellSlug'
     | '/spells/$spellPublicId/edit'
     | '/vehicles/$vehiclePublicId/edit'
@@ -888,6 +947,8 @@ export interface FileRouteTypes {
     | '/equipment/$equipmentPublicId/$equipmentSlug/edit'
     | '/feats/$featPublicId/$featSlug/edit'
     | '/races/$racePublicId/$raceSlug/edit'
+    | '/social/hosting/$listingPublicId/edit'
+    | '/social/listings/$listingPublicId/$slug'
     | '/spells/$spellPublicId/$spellSlug/edit'
     | '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
     | '/backgrounds/$backgroundPublicId/$backgroundSlug/'
@@ -925,6 +986,7 @@ export interface FileRouteTypes {
     | '/settings/account'
     | '/settings/preferences'
     | '/settings/profile'
+    | '/social/moderation'
     | '/spells/$spellPublicId'
     | '/spells/new'
     | '/systems/$systemId'
@@ -944,16 +1006,18 @@ export interface FileRouteTypes {
     | '/home'
     | '/races'
     | '/settings'
+    | '/social'
     | '/spells'
     | '/systems'
     | '/vehicles'
     | '/backgrounds/$backgroundPublicId/edit'
-    | '/campaigns/invite/$token'
     | '/classes/$classPublicId/edit'
     | '/creatures/$creaturePublicId/edit'
     | '/equipment/$equipmentPublicId/edit'
     | '/feats/$featPublicId/edit'
     | '/races/$racePublicId/edit'
+    | '/social/hosting/new'
+    | '/social/profiles/$profilePublicId'
     | '/spells/$spellPublicId/edit'
     | '/vehicles/$vehiclePublicId/edit'
     | '/auth/confirmed'
@@ -965,6 +1029,8 @@ export interface FileRouteTypes {
     | '/equipment/$equipmentPublicId/$equipmentSlug/edit'
     | '/feats/$featPublicId/$featSlug/edit'
     | '/races/$racePublicId/$raceSlug/edit'
+    | '/social/hosting/$listingPublicId/edit'
+    | '/social/listings/$listingPublicId/$slug'
     | '/spells/$spellPublicId/$spellSlug/edit'
     | '/vehicles/$vehiclePublicId/$vehicleSlug/edit'
     | '/backgrounds/$backgroundPublicId/$backgroundSlug'
@@ -984,6 +1050,7 @@ export interface FileRouteTypes {
     | '/_guest'
     | '/logout'
     | '/_authed/settings'
+    | '/_authed/social'
     | '/_guest/_auth'
     | '/_guest/'
     | '/_authed/backgrounds/$backgroundPublicId'
@@ -1006,6 +1073,7 @@ export interface FileRouteTypes {
     | '/_authed/settings/account'
     | '/_authed/settings/preferences'
     | '/_authed/settings/profile'
+    | '/_authed/social/moderation'
     | '/_authed/spells/$spellPublicId'
     | '/_authed/spells/new'
     | '/_authed/systems/$systemId'
@@ -1025,13 +1093,13 @@ export interface FileRouteTypes {
     | '/_authed/home/'
     | '/_authed/races/'
     | '/_authed/settings/'
+    | '/_authed/social/'
     | '/_authed/spells/'
     | '/_authed/systems/'
     | '/_authed/vehicles/'
     | '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug'
     | '/_authed/backgrounds/$backgroundPublicId/edit'
     | '/_authed/campaigns/$campaignPublicId/$campaignSlug'
-    | '/_authed/campaigns/invite/$token'
     | '/_authed/classes/$classPublicId/edit'
     | '/_authed/creatures/$creaturePublicId/$creatureSlug'
     | '/_authed/creatures/$creaturePublicId/edit'
@@ -1040,6 +1108,8 @@ export interface FileRouteTypes {
     | '/_authed/feats/$featPublicId/edit'
     | '/_authed/races/$racePublicId/$raceSlug'
     | '/_authed/races/$racePublicId/edit'
+    | '/_authed/social/hosting/new'
+    | '/_authed/social/profiles/$profilePublicId'
     | '/_authed/spells/$spellPublicId/$spellSlug'
     | '/_authed/spells/$spellPublicId/edit'
     | '/_authed/vehicles/$vehiclePublicId/edit'
@@ -1052,6 +1122,8 @@ export interface FileRouteTypes {
     | '/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit'
     | '/_authed/feats/$featPublicId/$featSlug/edit'
     | '/_authed/races/$racePublicId/$raceSlug/edit'
+    | '/_authed/social/hosting/$listingPublicId/edit'
+    | '/_authed/social/listings/$listingPublicId/$slug'
     | '/_authed/spells/$spellPublicId/$spellSlug/edit'
     | '/_authed/vehicles/$vehiclePublicId/$vehicleSlug/edit'
     | '/_authed/backgrounds/$backgroundPublicId/$backgroundSlug/'
@@ -1110,6 +1182,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuestAuthRouteImport
       parentRoute: typeof GuestRoute
     }
+    '/_authed/social': {
+      id: '/_authed/social'
+      path: '/social'
+      fullPath: '/social'
+      preLoaderRoute: typeof AuthedSocialRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/settings': {
       id: '/_authed/settings'
       path: '/settings'
@@ -1137,6 +1216,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/spells/'
       preLoaderRoute: typeof AuthedSpellsIndexRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/_authed/social/': {
+      id: '/_authed/social/'
+      path: '/'
+      fullPath: '/social/'
+      preLoaderRoute: typeof AuthedSocialIndexRouteImport
+      parentRoute: typeof AuthedSocialRoute
     }
     '/_authed/settings/': {
       id: '/_authed/settings/'
@@ -1270,6 +1356,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/spells/$spellPublicId'
       preLoaderRoute: typeof AuthedSpellsSpellPublicIdRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/_authed/social/moderation': {
+      id: '/_authed/social/moderation'
+      path: '/moderation'
+      fullPath: '/social/moderation'
+      preLoaderRoute: typeof AuthedSocialModerationRouteImport
+      parentRoute: typeof AuthedSocialRoute
     }
     '/_authed/settings/profile': {
       id: '/_authed/settings/profile'
@@ -1439,6 +1532,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSpellsSpellPublicIdSpellSlugRouteImport
       parentRoute: typeof AuthedSpellsSpellPublicIdRoute
     }
+    '/_authed/social/profiles/$profilePublicId': {
+      id: '/_authed/social/profiles/$profilePublicId'
+      path: '/profiles/$profilePublicId'
+      fullPath: '/social/profiles/$profilePublicId'
+      preLoaderRoute: typeof AuthedSocialProfilesProfilePublicIdRouteImport
+      parentRoute: typeof AuthedSocialRoute
+    }
+    '/_authed/social/hosting/new': {
+      id: '/_authed/social/hosting/new'
+      path: '/hosting/new'
+      fullPath: '/social/hosting/new'
+      preLoaderRoute: typeof AuthedSocialHostingNewRouteImport
+      parentRoute: typeof AuthedSocialRoute
+    }
     '/_authed/races/$racePublicId/edit': {
       id: '/_authed/races/$racePublicId/edit'
       path: '/edit'
@@ -1494,13 +1601,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/classes/$classPublicId/edit'
       preLoaderRoute: typeof AuthedClassesClassPublicIdEditRouteImport
       parentRoute: typeof AuthedClassesClassPublicIdRoute
-    }
-    '/_authed/campaigns/invite/$token': {
-      id: '/_authed/campaigns/invite/$token'
-      path: '/campaigns/invite/$token'
-      fullPath: '/campaigns/invite/$token'
-      preLoaderRoute: typeof AuthedCampaignsInviteTokenRouteImport
-      parentRoute: typeof AuthedRoute
     }
     '/_authed/campaigns/$campaignPublicId/$campaignSlug': {
       id: '/_authed/campaigns/$campaignPublicId/$campaignSlug'
@@ -1607,6 +1707,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSpellsSpellPublicIdSpellSlugEditRouteImport
       parentRoute: typeof AuthedSpellsSpellPublicIdSpellSlugRoute
     }
+    '/_authed/social/listings/$listingPublicId/$slug': {
+      id: '/_authed/social/listings/$listingPublicId/$slug'
+      path: '/listings/$listingPublicId/$slug'
+      fullPath: '/social/listings/$listingPublicId/$slug'
+      preLoaderRoute: typeof AuthedSocialListingsListingPublicIdSlugRouteImport
+      parentRoute: typeof AuthedSocialRoute
+    }
+    '/_authed/social/hosting/$listingPublicId/edit': {
+      id: '/_authed/social/hosting/$listingPublicId/edit'
+      path: '/hosting/$listingPublicId/edit'
+      fullPath: '/social/hosting/$listingPublicId/edit'
+      preLoaderRoute: typeof AuthedSocialHostingListingPublicIdEditRouteImport
+      parentRoute: typeof AuthedSocialRoute
+    }
     '/_authed/races/$racePublicId/$raceSlug/edit': {
       id: '/_authed/races/$racePublicId/$raceSlug/edit'
       path: '/edit'
@@ -1689,6 +1803,31 @@ const AuthedSettingsRouteChildren: AuthedSettingsRouteChildren = {
 
 const AuthedSettingsRouteWithChildren = AuthedSettingsRoute._addFileChildren(
   AuthedSettingsRouteChildren,
+)
+
+interface AuthedSocialRouteChildren {
+  AuthedSocialModerationRoute: typeof AuthedSocialModerationRoute
+  AuthedSocialIndexRoute: typeof AuthedSocialIndexRoute
+  AuthedSocialHostingNewRoute: typeof AuthedSocialHostingNewRoute
+  AuthedSocialProfilesProfilePublicIdRoute: typeof AuthedSocialProfilesProfilePublicIdRoute
+  AuthedSocialHostingListingPublicIdEditRoute: typeof AuthedSocialHostingListingPublicIdEditRoute
+  AuthedSocialListingsListingPublicIdSlugRoute: typeof AuthedSocialListingsListingPublicIdSlugRoute
+}
+
+const AuthedSocialRouteChildren: AuthedSocialRouteChildren = {
+  AuthedSocialModerationRoute: AuthedSocialModerationRoute,
+  AuthedSocialIndexRoute: AuthedSocialIndexRoute,
+  AuthedSocialHostingNewRoute: AuthedSocialHostingNewRoute,
+  AuthedSocialProfilesProfilePublicIdRoute:
+    AuthedSocialProfilesProfilePublicIdRoute,
+  AuthedSocialHostingListingPublicIdEditRoute:
+    AuthedSocialHostingListingPublicIdEditRoute,
+  AuthedSocialListingsListingPublicIdSlugRoute:
+    AuthedSocialListingsListingPublicIdSlugRoute,
+}
+
+const AuthedSocialRouteWithChildren = AuthedSocialRoute._addFileChildren(
+  AuthedSocialRouteChildren,
 )
 
 interface AuthedBackgroundsBackgroundPublicIdBackgroundSlugRouteChildren {
@@ -1986,6 +2125,7 @@ const AuthedVehiclesVehiclePublicIdRouteWithChildren =
 
 interface AuthedRouteChildren {
   AuthedSettingsRoute: typeof AuthedSettingsRouteWithChildren
+  AuthedSocialRoute: typeof AuthedSocialRouteWithChildren
   AuthedBackgroundsBackgroundPublicIdRoute: typeof AuthedBackgroundsBackgroundPublicIdRouteWithChildren
   AuthedBackgroundsNewRoute: typeof AuthedBackgroundsNewRoute
   AuthedCampaignsCampaignPublicIdRoute: typeof AuthedCampaignsCampaignPublicIdRouteWithChildren
@@ -2020,11 +2160,11 @@ interface AuthedRouteChildren {
   AuthedSpellsIndexRoute: typeof AuthedSpellsIndexRoute
   AuthedSystemsIndexRoute: typeof AuthedSystemsIndexRoute
   AuthedVehiclesIndexRoute: typeof AuthedVehiclesIndexRoute
-  AuthedCampaignsInviteTokenRoute: typeof AuthedCampaignsInviteTokenRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedSettingsRoute: AuthedSettingsRouteWithChildren,
+  AuthedSocialRoute: AuthedSocialRouteWithChildren,
   AuthedBackgroundsBackgroundPublicIdRoute:
     AuthedBackgroundsBackgroundPublicIdRouteWithChildren,
   AuthedBackgroundsNewRoute: AuthedBackgroundsNewRoute,
@@ -2065,7 +2205,6 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedSpellsIndexRoute: AuthedSpellsIndexRoute,
   AuthedSystemsIndexRoute: AuthedSystemsIndexRoute,
   AuthedVehiclesIndexRoute: AuthedVehiclesIndexRoute,
-  AuthedCampaignsInviteTokenRoute: AuthedCampaignsInviteTokenRoute,
 }
 
 const AuthedRouteWithChildren =
@@ -2111,3 +2250,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

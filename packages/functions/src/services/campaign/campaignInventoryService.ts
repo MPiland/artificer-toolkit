@@ -25,6 +25,10 @@ import type {
 } from '@artificer-toolkit/schema/api/campaigns'
 import { campaignInventoryAuditPageDtoSchema } from '@artificer-toolkit/schema/api/campaigns'
 import {
+  presentCampaignPlainText,
+  type CampaignContentMaturity
+} from '@artificer-toolkit/shared/campaign/textPolicy'
+import {
   CampaignAccessError,
   CampaignConflictError,
   CampaignNotFoundError,
@@ -66,13 +70,19 @@ function toOwnerRef(owner: InventoryOwner): InventoryOwnerRefDto {
   return { kind: 'CHARACTER', characterId: owner.characterId }
 }
 
-function toInventoryDto(inventory: InventoryAggregate): InventoryDto {
+function toInventoryDto(
+  inventory: InventoryAggregate,
+  maturity: CampaignContentMaturity
+): InventoryDto {
   return {
     owner: toOwnerRef(inventory.owner),
     version: inventory.owner.version,
     items: inventory.items.map((item) => ({
       id: item.id,
-      label: item.customName ?? item.equipmentLabel ?? item.equipmentId,
+      label: presentCampaignPlainText(
+        item.customName ?? item.equipmentLabel ?? item.equipmentId,
+        maturity
+      ),
       quantity: item.quantity,
       containerId: item.containerId,
       isContainer: item.isContainer
@@ -80,26 +90,42 @@ function toInventoryDto(inventory: InventoryAggregate): InventoryDto {
     currencies: inventory.currencies.map((currency) => ({
       kind: currency.denomination.kind,
       denominationId: currency.denomination.id,
-      label: currency.denomination.label,
-      abbreviation: currency.denomination.abbreviation,
+      label: presentCampaignPlainText(currency.denomination.label, maturity),
+      abbreviation: presentCampaignPlainText(currency.denomination.abbreviation, maturity),
       amount: safeNumber(currency.amount),
       containerId: currency.containerId
     }))
   }
 }
 
-function toCurrencySystemDto(system: CampaignCurrencySystem): CurrencySystemDto {
+function toCurrencySystemDto(
+  system: CampaignCurrencySystem,
+  maturity: CampaignContentMaturity
+): CurrencySystemDto {
   return {
     id: system.id,
-    label: system.name,
+    label: presentCampaignPlainText(system.name, maturity),
     isReference: system.isReference,
     version: system.version,
     denominations: system.denominations.map((denomination) => ({
       id: denomination.id,
-      label: denomination.name,
-      abbreviation: denomination.abbreviation,
+      label: presentCampaignPlainText(denomination.name, maturity),
+      abbreviation: presentCampaignPlainText(denomination.abbreviation, maturity),
       scaleInReference: safeNumber(denomination.scaleInReference)
     }))
+  }
+}
+
+function presentInventoryAuditPayload(payload: Json, maturity: CampaignContentMaturity): Json {
+  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) return payload
+  return {
+    ...payload,
+    ...(typeof payload.itemLabel === 'string'
+      ? { itemLabel: presentCampaignPlainText(payload.itemLabel, maturity) }
+      : {}),
+    ...(typeof payload.denominationLabel === 'string'
+      ? { denominationLabel: presentCampaignPlainText(payload.denominationLabel, maturity) }
+      : {})
   }
 }
 
@@ -169,8 +195,8 @@ export async function listCampaignCurrencySystems(
 ): Promise<CurrencySystemDto[]> {
   const authority = await resolveCampaignAuthority(db, campaignId, userId)
   assertActiveCampaignMember(authority)
-  return (await createInventoryRepository(db).listCurrencySystems(campaignId)).map(
-    toCurrencySystemDto
+  return (await createInventoryRepository(db).listCurrencySystems(campaignId)).map((system) =>
+    toCurrencySystemDto(system, authority.campaign.contentMaturity)
   )
 }
 
@@ -191,7 +217,7 @@ export async function getCampaignInventory(
   )
   const inventory = await createInventoryRepository(db).getInventoryByOwnerId(owner.id)
   if (!inventory) throw new CampaignNotFoundError()
-  return toInventoryDto(inventory)
+  return toInventoryDto(inventory, authority.campaign.contentMaturity)
 }
 
 export async function mutateCampaignPartyInventory(
@@ -409,7 +435,7 @@ export async function listCampaignInventoryAudit(
       subjectCharacterId: event.subjectCharacterId,
       kind: event.kind,
       visibility: 'OWNER' as const,
-      payload: event.payload,
+      payload: presentInventoryAuditPayload(event.payload, authority.campaign.contentMaturity),
       createdAt: event.createdAt
     })),
     nextCursor: page.nextCursor
@@ -810,7 +836,10 @@ export async function saveCampaignCurrencySystem(
     }
   })
   await broadcastInventory(db, input.campaignId, saved.id, 'UPDATED')
-  return toCurrencySystemDto(saved)
+  return toCurrencySystemDto(
+    saved,
+    (await resolveCampaignAuthority(db, input.campaignId, userId)).campaign.contentMaturity
+  )
 }
 
 export async function deleteCampaignCurrencySystem(

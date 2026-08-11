@@ -96,7 +96,7 @@ describe('Campaign Character Sheet authority and projection', () => {
   it('propagates the Campaign attunement slot override', async () => {
     mocks.findAssignedCampaign.mockResolvedValue({ campaignId: ids.campaign })
     mocks.resolveAuthority.mockResolvedValue({
-      campaign: { status: 'ACTIVE', attunementSlotOverride: 4 },
+      campaign: { status: 'ACTIVE', contentMaturity: 'STANDARD', attunementSlotOverride: 4 },
       membership: { role: 'PLAYER' }
     })
     mocks.listAdjustments.mockResolvedValue([])
@@ -125,6 +125,7 @@ describe('Campaign Character Sheet authority and projection', () => {
       viewer: 'CHARACTER_OWNER' as const,
       campaignId: ids.campaign,
       campaignStatus: 'ACTIVE' as const,
+      contentMaturity: 'MATURE' as const,
       attunementSlotOverride: null,
       adjustments: [campaign],
       secretAdjustmentIds: new Set([campaign.id]),
@@ -338,6 +339,7 @@ describe('Campaign Character Sheet authority and projection', () => {
         viewer: 'CAMPAIGN_OWNER',
         campaignId: ids.campaign,
         campaignStatus: 'ACTIVE',
+        contentMaturity: 'MATURE',
         attunementSlotOverride: null,
         adjustments: [],
         secretAdjustmentIds: new Set(),
@@ -363,6 +365,7 @@ describe('Campaign Character Sheet authority and projection', () => {
       viewer: 'CAMPAIGN_OWNER',
       campaignId: ids.campaign,
       campaignStatus: 'ACTIVE',
+      contentMaturity: 'MATURE',
       attunementSlotOverride: null,
       adjustments: [],
       secretAdjustmentIds: new Set(),

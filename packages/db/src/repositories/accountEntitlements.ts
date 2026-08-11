@@ -122,7 +122,12 @@ export function createAccountEntitlementsRepository(db: DBLike) {
               from media_assets asset where asset.owner_user_id = ${userId}::uuid
             ) as storage_bytes,
             (select count(*) from campaigns where owner_user_id = ${userId}::uuid and status = 'ACTIVE') as active_hosted_campaigns,
-            (select count(*) from campaigns where owner_user_id = ${userId}::uuid and status = 'ACTIVE' and visibility = 'PUBLIC') as public_listings,
+            (select count(*) from social_listings listing
+              join campaigns campaign on campaign.id = listing.campaign_id
+              where campaign.owner_user_id = ${userId}::uuid
+                and campaign.status = 'ACTIVE'
+                and listing.status = 'OPEN'
+                and listing.audience = 'PUBLIC') as public_listings,
             (select count(*) from encounters encounter join campaigns campaign on campaign.id = encounter.campaign_id
               where campaign.owner_user_id = ${userId}::uuid and encounter.status in ('PREPARED', 'ACTIVE')) as saved_encounters
         `.execute(db)

@@ -1,6 +1,6 @@
 import { Badge, Button, Group, Text, Title } from '@mantine/core'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
 import { getCampaignList } from '#app/data/campaigns/queries'
 import {
@@ -8,14 +8,28 @@ import {
   buildCharacterRouteParams
 } from '#app/routing/authoredRouteParams'
 import { richHtmlToPlainText } from '#app/lib/richText'
+import { api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 import * as sharedStyles from './campaigns.css'
 
 export function CampaignListPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { data } = useSuspenseQuery(getCampaignList())
   const campaigns = [...data].sort((left, right) => {
     if (left.status !== right.status) return left.status === 'ACTIVE' ? -1 : 1
-    return left.name.localeCompare(right.name)
+    return Date.parse(right.createdAt) - Date.parse(left.createdAt)
+  })
+  const copyCampaign = useMutation({
+    mutationFn: (campaign: (typeof campaigns)[number]) =>
+      api.campaigns.copy({ campaignId: campaign.id, expectedVersion: campaign.version }),
+    onSuccess: async (campaign) => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.list() })
+      await navigate({
+        to: '/campaigns/$campaignPublicId/$campaignSlug',
+        params: buildCampaignRouteParams(campaign.publicId, campaign.name)
+      })
+    }
   })
 
   return (
@@ -60,11 +74,14 @@ export function CampaignListPage() {
               </Text>
               <Group gap='xs' mt='auto'>
                 <Badge variant='light'>{campaign.role === 'OWNER' ? 'GM' : 'Player'}</Badge>
+                <Badge variant='light'>
+                  {campaign.format === 'ONE_SHOT' ? 'One-shot' : 'Ongoing'}
+                </Badge>
+                <Badge variant='light'>
+                  {campaign.contentMaturity === 'STANDARD' ? 'Standard' : 'Mature'}
+                </Badge>
                 <Text size='sm'>
                   {campaign.playerCount} {campaign.playerCount === 1 ? 'player' : 'players'}
-                </Text>
-                <Text size='sm' c='dimmed'>
-                  {campaign.visibility === 'PUBLIC' ? 'Public' : 'Private'}
                 </Text>
               </Group>
               {campaign.role === 'PLAYER' &&
@@ -128,7 +145,23 @@ export function CampaignListPage() {
                       ? 'Manage'
                       : 'View Campaign'}
                 </Button>
+                {campaign.role === 'OWNER' ? (
+                  <Button
+                    loading={copyCampaign.isPending && copyCampaign.variables?.id === campaign.id}
+                    onClick={() => copyCampaign.mutate(campaign)}
+                    size='sm'
+                    variant='subtle'
+                  >
+                    Copy
+                  </Button>
+                ) : null}
               </Group>
+              <Text c='dimmed' size='xs'>
+                Created{' '}
+                {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(
+                  new Date(campaign.createdAt)
+                )}
+              </Text>
             </article>
           ))}
         </section>

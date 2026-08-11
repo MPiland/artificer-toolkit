@@ -24,6 +24,30 @@ The character-construction workflow. It coordinates selections, provenance, reco
 
 The character play surface. It exposes mutable play-state interaction through commands and renders derived output from the character engine.
 
+### Campaign
+
+The private aggregate for one table, whether its format is a one-shot or ongoing game. It owns tone and maturity policy as well as membership, collaboration, preparation, sessions, and play state. An owner may copy reusable Campaign preparation into a fresh aggregate without copying cohort or run state.
+
+### Social profile
+
+The authenticated table-formation identity. It exposes only a random public ID and current username after the account completes the platform's 18+/US self-attestation. Its private record separately retains adult and US attestation timestamps plus the server-owned Standard/Mature viewing preference; a submitted birth date is discarded. It is not the private account profile or an authorization grant.
+
+### Social listing
+
+The discoverable or invitation-only projection for forming a free table. It owns public schedule, location, expectations, safety, capacity, publication, and moderation state while deriving title, format, tone, and maturity from its private Campaign.
+
+### Social application
+
+An applicant's bounded request to join one public Social listing. Acceptance is an explicit, capacity-safe admission into Campaign membership; the application ID alone grants no Campaign access.
+
+### Social block
+
+A directional persisted choice enforced symmetrically across Social discovery and admission. It does not silently change an existing Campaign membership or Campaign communication access.
+
+### Notification projection
+
+A planned Phase 05 per-recipient presentation derived from an authorized application source such as a Social application, invitation, or Campaign announcement. The source aggregate remains authoritative; Knock owns feed/read/archive/preferences, while the application stores only narrow transactional delivery intent and attempt metadata. A notification public source ID or deep link never grants access and must be reauthorized when opened.
+
 ## Data model
 
 ### System
@@ -131,7 +155,7 @@ Engine-produced values such as derived statistics, proficiencies, senses, spell 
 
 ### Encounter event
 
-A future VTT-scoped immutable fact about an encounter, actor, action, target, roll, or outcome. Encounter events are distinct from character Sheet commands/history. The pure character engine may help resolve actor state, but it does not own encounter sequencing or persistence.
+A future Encounter-scoped immutable fact about an encounter, actor, action, target, roll, or outcome. Encounter events are distinct from character Sheet commands/history. The pure character engine may help resolve actor state, but it does not own encounter sequencing or persistence.
 
 ## Architectural invariants
 

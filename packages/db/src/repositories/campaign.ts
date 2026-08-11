@@ -8,8 +8,12 @@ export type {
   CampaignAssignmentRecord,
   CampaignAuthorityRecord,
   CampaignCharacterRecord,
-  CampaignInviteKind,
+  CampaignContentMaturity,
+  CampaignFormat,
   CampaignInviteRecord,
+  CampaignInviteProjection,
+  CampaignInviteRecipientRecord,
+  CampaignInviteStatus,
   CampaignListRecord,
   CampaignMembershipProjection,
   CampaignMembershipRecord,
@@ -18,7 +22,7 @@ export type {
   CampaignRecord,
   CampaignRole,
   CampaignStatus,
-  CampaignVisibility
+  CampaignToneTag
 } from './campaignTypes.js'
 
 export function createCampaignRepository(db: DBLike) {

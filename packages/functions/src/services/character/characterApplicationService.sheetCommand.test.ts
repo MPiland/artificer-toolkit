@@ -130,6 +130,7 @@ describe('dispatchCommandForUser', () => {
       viewer: 'CHARACTER_OWNER',
       campaignId: null,
       campaignStatus: null,
+      contentMaturity: null,
       adjustments: [],
       secretAdjustmentIds: new Set(),
       conditions: []

@@ -14,6 +14,18 @@ import type {
   SubmitCampaignContentVersionInput
 } from '@artificer-toolkit/schema/api/campaigns'
 import {
+  BACKGROUND_NODE_MAP,
+  CLASS_NODE_MAP,
+  CREATURE_NODE_MAP,
+  EQUIPMENT_NODE_MAP,
+  FEAT_NODE_MAP,
+  RACE_NODE_MAP,
+  SPELL_NODE_MAP,
+  VEHICLE_NODE_MAP,
+  type NodeMap
+} from '@artificer-toolkit/shared/maps'
+import { presentAuthoredSnapshotText } from '@artificer-toolkit/shared/campaign/textPolicy'
+import {
   loadCharacterBuilderContext,
   resolveCharacterBuilder
 } from '../character/builderService.js'
@@ -30,13 +42,39 @@ import {
 } from './campaignService.js'
 import { broadcastCampaignInvalidation } from './realtimeService.js'
 
-function toDto(version: CampaignContentVersion): CampaignContentBindingDto {
+function authoredNodeMap(
+  subjectKind: CampaignContentVersion['subjectKind']
+): NodeMap<Record<string, unknown>> {
+  const nodeMap = {
+    BACKGROUND: BACKGROUND_NODE_MAP,
+    CLASS: CLASS_NODE_MAP,
+    CREATURE: CREATURE_NODE_MAP,
+    EQUIPMENT: EQUIPMENT_NODE_MAP,
+    FEAT: FEAT_NODE_MAP,
+    RACE: RACE_NODE_MAP,
+    SPELL: SPELL_NODE_MAP,
+    VEHICLE: VEHICLE_NODE_MAP
+  }[subjectKind]
+  return nodeMap as unknown as NodeMap<Record<string, unknown>>
+}
+
+function toDto(
+  version: CampaignContentVersion,
+  maturity: 'STANDARD' | 'MATURE',
+  privateAuthoring = false
+): CampaignContentBindingDto {
   return {
     id: version.id,
     subjectKind: version.subjectKind,
     subjectId: version.subjectId,
     version: version.revision,
-    snapshot: version.snapshot as unknown as CampaignContentBindingDto['snapshot'],
+    snapshot: (privateAuthoring
+      ? version.snapshot
+      : presentAuthoredSnapshotText(
+          version.snapshot,
+          authoredNodeMap(version.subjectKind),
+          maturity
+        )) as CampaignContentBindingDto['snapshot'],
     status: version.state,
     createdAt: version.createdAt,
     reviewedAt: version.approvedAt ?? version.rejectedAt
@@ -155,7 +193,7 @@ export async function listCampaignContentVersions(
         version.state === 'APPROVED' ||
         version.authoredBy === userId
     )
-    .map(toDto)
+    .map((version) => toDto(version, authority.campaign.contentMaturity))
 }
 
 export async function submitCampaignContentVersion(
@@ -198,7 +236,7 @@ export async function submitCampaignContentVersion(
   await broadcastContent(db, input.campaignId, version.id, 'CREATED', version.updatedAt, {
     scope: version.state === 'APPROVED' ? 'TABLE' : 'OWNER'
   })
-  return toDto(version)
+  return toDto(version, 'MATURE', true)
 }
 
 export async function reviewCampaignContentVersion(
@@ -254,5 +292,8 @@ export async function reviewCampaignContentVersion(
       })
     ])
   }
-  return toDto(version)
+  return toDto(
+    version,
+    (await resolveCampaignAuthority(db, input.campaignId, userId)).campaign.contentMaturity
+  )
 }

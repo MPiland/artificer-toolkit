@@ -1,10 +1,10 @@
-import { createHash, randomBytes } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import {
   createAccountEntitlementsRepository,
-  createAccountProfileRepository,
   createCampaignAdjustmentsRepository,
   createCampaignContentRepository,
   createCampaignRepository,
+  createSocialRepository,
   withTransaction,
   type CampaignAuthorityRecord,
   type CampaignListRecord,
@@ -20,9 +20,23 @@ import type {
   CreateCampaignInviteInput,
   UpdateCampaignInput
 } from '@artificer-toolkit/schema/api/campaigns'
+import {
+  presentCampaignPlainText,
+  presentCampaignRichText
+} from '@artificer-toolkit/shared/campaign/textPolicy'
 import { ENTITLEMENT_LIMITS, assertEntitlementLimit } from '../account/entitlementService.js'
 import { reconcileCharacterAfterCampaignContentRemoval } from '../character/campaignCharacterReconciliation.js'
+import { acceptSocialAdmission } from '../social/applicationService.js'
+import {
+  SocialConflictError,
+  SocialNotFoundError,
+  SocialValidationError
+} from '../social/errors.js'
+import { mapCampaignInvite, socialIso } from '../social/mapping.js'
+import { requireActiveSocialProfile } from '../social/profileService.js'
+import { consumeSocialRateLimit } from '../social/rateLimits.js'
 import { reconcileCampaignCurrencyDeparture } from './campaignInventoryService.js'
+import { broadcastCampaignInvalidation } from './realtimeService.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const DEFAULT_INVITE_MS = 7 * DAY_MS
@@ -64,9 +78,14 @@ export interface CampaignAuthority {
     ownerUserId: string
     name: string
     description: string | null
+    format: 'ONE_SHOT' | 'ONGOING'
+    toneTags: Array<
+      'LIGHTHEARTED' | 'HEROIC' | 'SERIOUS' | 'DARK' | 'GRITTY' | 'HORROR' | 'COMEDIC' | 'COZY'
+    >
+    toneDetails: string | null
+    contentMaturity: 'STANDARD' | 'MATURE'
     attunementSlotOverride: number | null
     status: 'ACTIVE' | 'ARCHIVED'
-    visibility: 'PRIVATE' | 'PUBLIC'
     version: number
     createdAt: string
     updatedAt: string
@@ -178,13 +197,17 @@ export function getCampaignCapabilities(
 }
 
 function mapSummary(record: CampaignListRecord): CampaignSummaryDto {
+  const maturity = record.contentMaturity
   return {
     id: record.id,
     publicId: record.publicId,
-    name: record.name,
-    description: record.description,
+    name: presentCampaignPlainText(record.name, maturity),
+    description: record.description ? presentCampaignRichText(record.description, maturity) : null,
+    format: record.format,
+    toneTags: record.toneTags,
+    toneDetails: record.toneDetails ? presentCampaignPlainText(record.toneDetails, maturity) : null,
+    contentMaturity: maturity,
     status: record.status,
-    visibility: record.visibility,
     role: record.role,
     version: record.version,
     memberCount: record.memberCount,
@@ -196,7 +219,11 @@ function mapSummary(record: CampaignListRecord): CampaignSummaryDto {
   }
 }
 
-async function buildDetail(db: DBLike, authority: CampaignAuthority): Promise<CampaignDetailDto> {
+async function buildDetail(
+  db: DBLike,
+  authority: CampaignAuthority,
+  privateOwnerView = false
+): Promise<CampaignDetailDto> {
   const repository = createCampaignRepository(db)
   const [counts, memberships] = await Promise.all([
     repository.countActiveMembers(authority.campaign.id),
@@ -206,11 +233,28 @@ async function buildDetail(db: DBLike, authority: CampaignAuthority): Promise<Ca
   return {
     id: authority.campaign.id,
     publicId: authority.campaign.publicId,
-    name: authority.campaign.name,
-    description: authority.campaign.description,
+    name: privateOwnerView
+      ? authority.campaign.name
+      : presentCampaignPlainText(authority.campaign.name, authority.campaign.contentMaturity),
+    description:
+      privateOwnerView || !authority.campaign.description
+        ? authority.campaign.description
+        : presentCampaignRichText(
+            authority.campaign.description,
+            authority.campaign.contentMaturity
+          ),
+    format: authority.campaign.format,
+    toneTags: authority.campaign.toneTags,
+    toneDetails:
+      privateOwnerView || !authority.campaign.toneDetails
+        ? authority.campaign.toneDetails
+        : presentCampaignPlainText(
+            authority.campaign.toneDetails,
+            authority.campaign.contentMaturity
+          ),
+    contentMaturity: authority.campaign.contentMaturity,
     attunementSlotOverride: authority.campaign.attunementSlotOverride,
     status: authority.campaign.status,
-    visibility: authority.campaign.visibility,
     role: authority.membership.role,
     version: authority.campaign.version,
     memberCount: counts.members,
@@ -250,10 +294,6 @@ function isUniqueViolation(error: unknown): boolean {
   )
 }
 
-function hashInviteToken(token: string): Uint8Array {
-  return createHash('sha256').update(token).digest()
-}
-
 function inviteExpiry(expiresAt?: string): string {
   const now = Date.now()
   const expires = expiresAt ? Date.parse(expiresAt) : now + DEFAULT_INVITE_MS
@@ -261,10 +301,6 @@ function inviteExpiry(expiresAt?: string): string {
     throw new CampaignValidationError('Invite expiry must be within the next 30 days.')
   }
   return new Date(expires).toISOString()
-}
-
-function invalidInvite(): never {
-  throw new CampaignValidationError('Invite is invalid or unavailable.')
 }
 
 async function requireActivePlayer(
@@ -319,6 +355,16 @@ export async function getCampaign(
   return buildDetail(db, authority)
 }
 
+export async function getCampaignSettings(
+  db: DBLike,
+  userId: string,
+  campaignId: string
+): Promise<CampaignDetailDto> {
+  const authority = await resolveCampaignAuthority(db, campaignId, userId)
+  assertCampaignOwner(authority)
+  return buildDetail(db, authority, true)
+}
+
 export function createCampaign(
   db: DBLike,
   userId: string,
@@ -334,44 +380,63 @@ export function createCampaign(
       await repository.countActiveOwned(userId),
       limits.activeHostedCampaigns
     )
-    const visibility = input.visibility ?? 'PRIVATE'
-    if (visibility === 'PUBLIC') {
-      assertEntitlementLimit(
-        'publicListings',
-        await repository.countPublicOwned(userId),
-        limits.publicListings
-      )
-    }
-
     const campaign = await repository.createCampaign(userId, {
       name: input.name,
       description: input.description ?? null,
-      visibility
+      format: input.format,
+      tone_tags: input.toneTags,
+      tone_details: input.toneDetails ?? null,
+      content_maturity: input.contentMaturity
     })
     await repository.insertOwnerMembership(campaign.id, userId)
     return buildDetail(trx, await resolveCampaignAuthority(trx, campaign.id, userId))
   })
 }
 
-export function updateCampaign(
+export async function updateCampaign(
   db: DBLike,
   userId: string,
   input: UpdateCampaignInput
 ): Promise<CampaignDetailDto> {
-  return withTransaction(db, async (trx) => {
+  const updated = await withTransaction(db, async (trx) => {
+    const socialRepository = createSocialRepository(trx)
+    const currentListing = await socialRepository.findSocialListingByCampaign(input.campaignId)
+    const lockedListing = currentListing
+      ? await socialRepository.lockSocialListing(currentListing.id)
+      : null
     const authority = await lockAuthority(trx, input.campaignId, userId)
     assertCampaignOwner(authority)
     assertCampaignWritable(authority)
     assertExpectedVersion(authority, input.expectedVersion)
-
-    if (input.visibility === 'PUBLIC' && authority.campaign.visibility !== 'PUBLIC') {
-      const tier = await createAccountEntitlementsRepository(trx).lockTier(userId)
-      assertEntitlementLimit(
-        'publicListings',
-        await createCampaignRepository(trx).countPublicOwned(userId),
-        ENTITLEMENT_LIMITS[tier].publicListings
+    if (
+      input.format === 'ONE_SHOT' &&
+      lockedListing?.status === 'OPEN' &&
+      lockedListing.scheduleKind === 'RECURRING'
+    ) {
+      throw new CampaignConflictError(
+        'Close or reschedule the recurring Social listing before changing this Campaign to One-shot.'
       )
     }
+
+    const nextName = input.name ?? authority.campaign.name
+    const nextFormat = input.format ?? authority.campaign.format
+    const nextToneTags = input.toneTags ?? authority.campaign.toneTags
+    const nextToneDetails =
+      input.toneDetails === undefined ? authority.campaign.toneDetails : input.toneDetails
+    const nextMaturity = input.contentMaturity ?? authority.campaign.contentMaturity
+    const projectionChanged =
+      nextName !== authority.campaign.name ||
+      nextFormat !== authority.campaign.format ||
+      nextToneDetails !== authority.campaign.toneDetails ||
+      nextMaturity !== authority.campaign.contentMaturity ||
+      nextToneTags.length !== authority.campaign.toneTags.length ||
+      nextToneTags.some((tag, index) => tag !== authority.campaign.toneTags[index])
+    const materialProjectionChanged =
+      nextFormat !== authority.campaign.format ||
+      nextToneDetails !== authority.campaign.toneDetails ||
+      nextMaturity !== authority.campaign.contentMaturity ||
+      nextToneTags.length !== authority.campaign.toneTags.length ||
+      nextToneTags.some((tag, index) => tag !== authority.campaign.toneTags[index])
 
     const updated = await createCampaignRepository(trx).updateCampaign(
       input.campaignId,
@@ -379,15 +444,61 @@ export function updateCampaign(
       {
         ...(input.name === undefined ? {} : { name: input.name }),
         ...(input.description === undefined ? {} : { description: input.description }),
+        ...(input.format === undefined ? {} : { format: input.format }),
+        ...(input.toneTags === undefined ? {} : { tone_tags: input.toneTags }),
+        ...(input.toneDetails === undefined ? {} : { tone_details: input.toneDetails }),
+        ...(input.contentMaturity === undefined ? {} : { content_maturity: input.contentMaturity }),
         ...(input.attunementSlotOverride === undefined
           ? {}
-          : { attunement_slot_override: input.attunementSlotOverride }),
-        ...(input.visibility === undefined ? {} : { visibility: input.visibility })
+          : { attunement_slot_override: input.attunementSlotOverride })
       }
     )
     if (!updated) throw new CampaignConflictError()
+    if (lockedListing && projectionChanged) {
+      const now = new Date().toISOString()
+      const synced = await socialRepository.syncSocialListingCampaignProjection({
+        listingId: lockedListing.id,
+        expectedVersion: lockedListing.version,
+        title: nextName,
+        campaignFormat: nextFormat,
+        toneTags: nextToneTags,
+        toneDetails: nextToneDetails,
+        contentMaturity: nextMaturity,
+        now
+      })
+      if (!synced) throw new CampaignConflictError()
+      if (materialProjectionChanged) {
+        await Promise.all([
+          socialRepository.expireSubmittedSocialApplications(synced.id, now),
+          createCampaignRepository(trx).expirePendingInvites(synced.id, now)
+        ])
+      } else {
+        await Promise.all([
+          socialRepository.advanceSubmittedSocialApplicationListingVersions(
+            synced.id,
+            synced.version,
+            now
+          ),
+          createCampaignRepository(trx).advancePendingInviteListingVersions(
+            synced.id,
+            synced.version,
+            now
+          )
+        ])
+      }
+    }
     return buildDetail(trx, await resolveCampaignAuthority(trx, input.campaignId, userId))
   })
+  const eventId = randomUUID()
+  await broadcastCampaignInvalidation(db, input.campaignId, {
+    scope: 'TABLE',
+    entity: 'CAMPAIGN',
+    entityId: input.campaignId,
+    event: 'UPDATED',
+    eventId,
+    cursor: eventId
+  })
+  return updated
 }
 
 export function archiveCampaign(
@@ -397,6 +508,9 @@ export function archiveCampaign(
   expectedVersion: number
 ): Promise<CampaignDetailDto> {
   return withTransaction(db, async (trx) => {
+    const socialRepository = createSocialRepository(trx)
+    const existingListing = await socialRepository.findSocialListingByCampaign(campaignId)
+    if (existingListing) await socialRepository.lockSocialListing(existingListing.id)
     const authority = await lockAuthority(trx, campaignId, userId)
     assertCampaignOwner(authority)
     assertCampaignWritable(authority)
@@ -464,110 +578,195 @@ export function createCampaignInvite(
   input: CreateCampaignInviteInput
 ): Promise<CampaignInviteDto> {
   return withTransaction(db, async (trx) => {
-    const authority = await lockAuthority(trx, input.campaignId, userId)
-    assertCampaignOwner(authority)
-    assertCampaignWritable(authority)
-    const repository = createCampaignRepository(trx)
-    let targetUserId: string | null = null
-    let targetEmail: string | null = null
-    if (input.kind === 'USERNAME') {
-      targetUserId = await createAccountProfileRepository(trx).findUserIdByUsername(
-        input.target ?? ''
-      )
-      if (!targetUserId) throw new CampaignValidationError('Invite target was not found.')
-    } else if (input.kind === 'EMAIL') {
-      targetEmail = input.target?.trim().toLowerCase() ?? ''
-      if (!targetEmail.includes('@')) throw new CampaignValidationError('Invite email is invalid.')
-    } else {
-      await repository.revokeActiveLink(input.campaignId, new Date().toISOString())
-    }
-
-    const token = randomBytes(32).toString('base64url')
-    const invite = await repository.insertInvite({
-      campaignId: input.campaignId,
-      createdBy: userId,
-      kind: input.kind,
-      tokenDigest: hashInviteToken(token),
-      targetUserId,
-      targetEmail,
-      expiresAt: inviteExpiry(input.expiresAt)
-    })
-    return {
-      id: invite.id,
-      campaignId: invite.campaignId,
-      kind: invite.kind,
-      token,
-      expiresAt: toIso(invite.expiresAt),
-      createdAt: toIso(invite.createdAt)
-    }
-  })
-}
-
-export function revokeCampaignInvite(
-  db: DBLike,
-  userId: string,
-  campaignId: string,
-  inviteId: string
-): Promise<void> {
-  return withTransaction(db, async (trx) => {
-    const authority = await lockAuthority(trx, campaignId, userId)
-    assertCampaignOwner(authority)
-    assertCampaignWritable(authority)
+    const host = await requireActiveSocialProfile(trx, userId)
+    const socialRepository = createSocialRepository(trx)
+    const listing = await socialRepository.lockSocialListing(input.listingPublicId)
+    if (!listing || listing.campaignOwnerUserId !== userId) throw new SocialNotFoundError()
     if (
-      !(await createCampaignRepository(trx).revokeInvite(
-        campaignId,
-        inviteId,
-        new Date().toISOString()
-      ))
+      listing.version !== input.expectedListingVersion ||
+      listing.status !== 'OPEN' ||
+      listing.moderationStatus !== 'VISIBLE' ||
+      listing.campaignStatus !== 'ACTIVE'
     ) {
-      throw new CampaignNotFoundError()
+      throw new SocialConflictError('This Social listing is not available for invitations.')
     }
-  })
-}
-
-export function acceptCampaignInvite(
-  db: DBLike,
-  userId: string,
-  token: string
-): Promise<CampaignDetailDto> {
-  const tokenDigest = hashInviteToken(token)
-  return withTransaction(db, async (trx) => {
     const repository = createCampaignRepository(trx)
-    const campaignId = await repository.findInviteCampaignId(tokenDigest)
-    if (!campaignId) invalidInvite()
-    const campaign = await repository.lockCampaign(campaignId)
-    if (!campaign) invalidInvite()
-    const invite = await repository.lockInviteByDigest(tokenDigest)
-    if (
-      !invite ||
-      invite.campaignId !== campaignId ||
-      invite.revokedAt ||
-      Date.parse(toIso(invite.expiresAt)) <= Date.now()
-    ) {
-      invalidInvite()
+    const campaign = await repository.lockCampaign(listing.campaignId)
+    if (!campaign || campaign.ownerUserId !== userId || campaign.status !== 'ACTIVE') {
+      throw new SocialNotFoundError()
     }
-
-    if (invite.kind === 'USERNAME' && invite.targetUserId !== userId) invalidInvite()
-    if (invite.kind === 'EMAIL') {
-      const email = await repository.getAuthEmail(userId)
-      if (!email || email !== invite.targetEmail) invalidInvite()
+    const now = new Date().toISOString()
+    await consumeSocialRateLimit(trx, userId, 'INVITE', [{ window: 'HOUR', limit: 20 }], now)
+    const recipient = await repository.findInviteRecipientByUsername(input.username)
+    if (!recipient || recipient.status !== 'ACTIVE' || recipient.userId === userId) {
+      throw new SocialNotFoundError()
     }
-
-    const existing = await repository.findMembership(campaignId, userId)
-    if (existing?.status === 'ACTIVE') {
-      return buildDetail(trx, await resolveCampaignAuthority(trx, campaignId, userId))
+    if (await socialRepository.hasSocialBlockEitherDirection(host.id, recipient.profileId)) {
+      throw new SocialNotFoundError()
     }
-    if (campaign.status !== 'ACTIVE') invalidInvite()
-
-    const tier = await createAccountEntitlementsRepository(trx).lockTier(campaign.ownerUserId)
-    const counts = await repository.countActiveMembers(campaignId)
+    const membership = await repository.findMembership(campaign.id, recipient.userId)
+    if (membership?.status === 'ACTIVE') {
+      throw new SocialValidationError('This user is already a Campaign member.')
+    }
+    const tier = await createAccountEntitlementsRepository(trx).lockTier(userId)
+    const counts = await repository.countActiveMembers(campaign.id)
+    if (counts.players >= listing.capacity) {
+      throw new SocialConflictError('This table no longer has an available seat.')
+    }
     assertEntitlementLimit(
       'playerSeatsPerCampaign',
       counts.players,
       ENTITLEMENT_LIMITS[tier].playerSeatsPerCampaign
     )
-    await repository.activatePlayerMembership(campaignId, userId, new Date().toISOString())
-    return buildDetail(trx, await resolveCampaignAuthority(trx, campaignId, userId))
+    let invite
+    try {
+      invite = await repository.insertInvite({
+        listingId: listing.id,
+        createdBy: userId,
+        recipientUserId: recipient.userId,
+        recipientUsername: recipient.username,
+        listingVersion: listing.version,
+        expiresAt: inviteExpiry(input.expiresAt)
+      })
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new SocialConflictError('This user already has a pending invitation.')
+      }
+      throw error
+    }
+    return {
+      invitePublicId: invite.id,
+      listingPublicId: listing.id,
+      listingTitle: listing.title,
+      hostProfilePublicId: host.id,
+      hostUsername: host.username,
+      recipientUsername: recipient.username,
+      status: invite.status,
+      expiresAt: socialIso(invite.expiresAt),
+      respondedAt: null,
+      createdAt: socialIso(invite.createdAt),
+      version: invite.version
+    }
+  })
+}
+
+export async function listReceivedCampaignInvites(
+  db: DBLike,
+  userId: string
+): Promise<CampaignInviteDto[]> {
+  return withTransaction(db, async (trx) => {
+    const recipient = await requireActiveSocialProfile(trx, userId)
+    const socialRepository = createSocialRepository(trx)
+    const repository = createCampaignRepository(trx)
+    await repository.expireDueReceivedInvites(userId, new Date().toISOString())
+    const invitations = await repository.listReceivedInvites(userId)
+    const visible: CampaignInviteDto[] = []
+    for (const invitation of invitations) {
+      if (await socialRepository.findActiveSocialProfile(recipient.id, invitation.hostProfileId)) {
+        visible.push(mapCampaignInvite(invitation, recipient.contentPreference === 'MATURE'))
+      }
+    }
+    return visible
+  })
+}
+
+export async function revokeCampaignInvite(
+  db: DBLike,
+  userId: string,
+  invitePublicId: string,
+  expectedVersion: number
+): Promise<void> {
+  const source = await createCampaignRepository(db).lockInvite(invitePublicId)
+  if (!source) throw new SocialNotFoundError()
+  return withTransaction(db, async (trx) => {
+    await requireActiveSocialProfile(trx, userId)
+    const repository = createCampaignRepository(trx)
+    const listing = await createSocialRepository(trx).lockSocialListing(source.listingId)
+    if (!listing || listing.campaignOwnerUserId !== userId) throw new SocialNotFoundError()
+    const campaign = await repository.lockCampaign(listing.campaignId)
+    if (!campaign || campaign.ownerUserId !== userId) throw new SocialNotFoundError()
+    const invite = await repository.lockInvite(invitePublicId)
+    if (!invite || invite.listingId !== listing.id) throw new SocialNotFoundError()
+    if (invite.status !== 'PENDING' || invite.version !== expectedVersion) {
+      throw new SocialConflictError()
+    }
+    if (
+      !(await repository.setInviteStatus({
+        inviteId: invite.id,
+        expectedVersion,
+        status: 'REVOKED',
+        now: new Date().toISOString()
+      }))
+    )
+      throw new SocialConflictError()
+  })
+}
+
+export async function acceptCampaignInvite(
+  db: DBLike,
+  userId: string,
+  invitePublicId: string,
+  expectedVersion: number
+): Promise<CampaignDetailDto> {
+  await withTransaction(db, async (trx) => {
+    await createCampaignRepository(trx).expireDueReceivedInvites(userId, new Date().toISOString())
+  })
+  const result = await acceptSocialAdmission(db, userId, {
+    kind: 'INVITATION',
+    publicId: invitePublicId,
+    expectedVersion
+  })
+  if (result.kind !== 'INVITATION') throw new SocialConflictError()
+  return getCampaign(db, userId, result.campaignId)
+}
+
+export async function declineCampaignInvite(
+  db: DBLike,
+  userId: string,
+  invitePublicId: string,
+  expectedVersion: number
+): Promise<CampaignInviteDto> {
+  await withTransaction(db, async (trx) => {
+    await createCampaignRepository(trx).expireDueReceivedInvites(userId, new Date().toISOString())
+  })
+  const source = await createCampaignRepository(db).lockInvite(invitePublicId)
+  if (!source) throw new SocialNotFoundError()
+  return withTransaction(db, async (trx) => {
+    const recipient = await requireActiveSocialProfile(trx, userId)
+    const repository = createCampaignRepository(trx)
+    const listing = await createSocialRepository(trx).lockSocialListing(source.listingId)
+    if (!listing) throw new SocialNotFoundError()
+    const campaign = await repository.lockCampaign(listing.campaignId)
+    if (!campaign) throw new SocialNotFoundError()
+    const invite = await repository.lockInvite(invitePublicId)
+    if (!invite || invite.listingId !== listing.id || invite.recipientUserId !== userId)
+      throw new SocialNotFoundError()
+    if (invite.status !== 'PENDING' || invite.version !== expectedVersion) {
+      throw new SocialConflictError()
+    }
+    const projection = (await repository.listReceivedInvites(userId)).find(
+      (item) => item.id === invite.id
+    )
+    if (!projection) throw new SocialNotFoundError()
+    if (
+      !(await createSocialRepository(trx).findActiveSocialProfile(
+        recipient.id,
+        projection.hostProfileId
+      ))
+    ) {
+      throw new SocialNotFoundError()
+    }
+    const declined = await repository.setInviteStatus({
+      inviteId: invite.id,
+      expectedVersion,
+      status: 'DECLINED',
+      now: new Date().toISOString()
+    })
+    if (!declined) throw new SocialConflictError()
+    return mapCampaignInvite(
+      { ...projection, ...declined },
+      recipient.contentPreference === 'MATURE'
+    )
   })
 }
 
@@ -792,6 +991,11 @@ export function acceptCampaignOwnershipTransfer(
   campaignId: string
 ): Promise<CampaignDetailDto> {
   return withTransaction(db, async (trx) => {
+    const socialRepository = createSocialRepository(trx)
+    const existingListing = await socialRepository.findSocialListingByCampaign(campaignId)
+    const lockedListing = existingListing
+      ? await socialRepository.lockSocialListing(existingListing.id)
+      : null
     const repository = createCampaignRepository(trx)
     const campaign = await repository.lockCampaign(campaignId)
     if (!campaign) throw new CampaignNotFoundError()
@@ -819,14 +1023,6 @@ export function acceptCampaignOwnershipTransfer(
       await repository.countActiveOwned(recipientUserId),
       ENTITLEMENT_LIMITS[recipientTier].activeHostedCampaigns
     )
-    if (campaign.visibility === 'PUBLIC') {
-      assertEntitlementLimit(
-        'publicListings',
-        await repository.countPublicOwned(recipientUserId),
-        ENTITLEMENT_LIMITS[recipientTier].publicListings
-      )
-    }
-
     const recipientAssignment = await repository.findAssignmentForUser(campaignId, recipientUserId)
     if (recipientAssignment) {
       await removeAssignedCharacterCampaignState(trx, {
@@ -850,6 +1046,21 @@ export function acceptCampaignOwnershipTransfer(
     }
 
     const now = new Date().toISOString()
+    if (lockedListing && lockedListing.status !== 'CLOSED') {
+      const closed = await socialRepository.setSocialListingStatus({
+        listingId: lockedListing.id,
+        expectedVersion: lockedListing.version,
+        status: 'CLOSED',
+        now
+      })
+      if (!closed) throw new CampaignConflictError()
+    }
+    if (lockedListing) {
+      await Promise.all([
+        socialRepository.expireSubmittedSocialApplications(lockedListing.id, now),
+        repository.expirePendingInvites(lockedListing.id, now)
+      ])
+    }
     if (
       !(await repository.setMembershipRoleAndAccess(campaignId, transfer.fromUserId, 'PLAYER', now))
     ) {

@@ -208,6 +208,23 @@ export function createCampaignContentRepository(db: DBLike) {
   const authoredContent = createAuthoredContentRepository(db)
 
   return {
+    async copyApprovedContentVersions(
+      sourceCampaignId: string,
+      targetCampaignId: string,
+      ownerUserId: string
+    ): Promise<void> {
+      await sql`
+        insert into campaign_content_versions (
+          campaign_id, subject_kind, subject_id, authored_by, revision, state,
+          snapshot, approved_by, approved_at
+        )
+        select ${targetCampaignId}::uuid, subject_kind, subject_id, authored_by, revision,
+          'APPROVED', snapshot, ${ownerUserId}::uuid, now()
+        from campaign_content_versions
+        where campaign_id = ${sourceCampaignId}::uuid and state = 'APPROVED'
+      `.execute(db)
+    },
+
     async listContentVersions(campaignId: string): Promise<CampaignContentVersionWithAuthor[]> {
       const rows = (await db
         .selectFrom('campaign_content_versions as version')

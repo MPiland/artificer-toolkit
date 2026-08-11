@@ -27,6 +27,9 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0011](0011-active-authored-content-and-json-drafts.md)          | Canonical active authored content with JSON drafts                    | decision   |
 | [0012](0012-private-media-assets-and-domain-owned-references.md) | Private media assets with domain-owned references                     | decision   |
 | [0013](0013-campaign-authority-and-collaboration.md)             | Campaign authority, custody, durable history, and private Realtime    | decision   |
+| [0014](0014-social-projection-and-tokenless-admission.md)        | Separate Social projection and tokenless Campaign admission           | decision   |
+| [0015](0015-campaign-format-copy-and-maturity-presentation.md)   | Campaign format, reusable copies, and maturity presentation           | decision   |
+| [0016](0016-knock-notification-delivery.md)                       | Knock workflows, safe delivery intents, and authorized destinations   | decision   |
 
 ## Updating an ADR
 

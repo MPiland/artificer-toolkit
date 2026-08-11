@@ -3,6 +3,7 @@ import { buildCampaignsApi } from './api/campaigns'
 import { buildCharactersApi } from './api/characters'
 import { buildContentApi } from './api/content'
 import { buildPlatformApi } from './api/platform'
+import { buildSocialHubApi } from './api/socialHub'
 import { ApiError, ApiParseError, createTrpcClient } from './api/transport'
 
 export type {
@@ -94,6 +95,27 @@ export type {
 export type { SystemListItemDto } from '@artificer-toolkit/schema/api/systems'
 
 export type {
+  CreateSocialListingInput,
+  CreateSocialReportInput,
+  SocialApplicationDto,
+  SocialBlockDto,
+  SocialDiscoveryInput,
+  SocialDiscoveryPageDto,
+  SocialEligibilityDto,
+  SocialListingDto,
+  SocialListingExpectationsDto,
+  SocialListingLocationDto,
+  SocialListingScheduleDto,
+  SocialModerationQueueItemDto,
+  SocialModerationReportDto,
+  SocialProfileDto,
+  SubmitSocialApplicationInput,
+  TakeSocialModerationActionInput,
+  UpdateSocialContentPreferenceInput,
+  UpdateSocialListingInput
+} from '@artificer-toolkit/schema/api/socialHub'
+
+export type {
   ExecuteDiceConfigurationInputDto,
   ExecuteRollInputDto,
   RollHistoryResponseDto,
@@ -154,7 +176,8 @@ export const api = {
   systems: platformApi.systems,
   media: platformApi.media,
   nodeRuntime: platformApi.nodeRuntime,
-  routeIds: platformApi.routeIds
+  routeIds: platformApi.routeIds,
+  socialHub: buildSocialHubApi(client)
 }
 
 export function createServerApi(_userId?: string | null) {

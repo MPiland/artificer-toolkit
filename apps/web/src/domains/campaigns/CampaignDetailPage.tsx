@@ -9,7 +9,6 @@ import { CampaignChatDrawer } from './components/CampaignChatDrawer'
 import { CampaignNotes } from './components/CampaignNotes'
 import { CampaignInventory } from './components/CampaignInventory'
 import { CampaignContent } from './components/CampaignContent'
-import { CampaignInviteButton } from './components/CampaignInviteButton'
 import { CampaignParty } from './components/CampaignParty'
 import { CampaignLiveControls } from './components/CampaignLiveControls'
 import { CampaignSessions } from './components/CampaignSessions'
@@ -72,9 +71,6 @@ export function CampaignDetailPage({
                 realtime={false}
                 trigger='icon'
               />
-            ) : null}
-            {campaign.capabilities.invite && campaign.status === 'ACTIVE' ? (
-              <CampaignInviteButton campaign={campaign} />
             ) : null}
           </Group>
         </div>

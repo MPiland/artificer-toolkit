@@ -2,7 +2,7 @@
 
 > **Status:** complete
 > **Depends on:** [Phase 00](00-character-sheet-play-depth-and-overrides.md)
-> **Consumed by:** [Phase 05](05-live-campaign-play.md) for Campaign visibility and persisted history, [Phase 06](06-encounters.md) for Encounter-scoped rolls, and [Phase 07](07-vtt.md) for web VTT presentation
+> **Consumed by:** [Phase 06](06-live-campaign-play.md) for Campaign visibility and persisted history, [Phase 07](07-encounters.md) for Encounter-scoped rolls, and [Phase 08](08-vtt.md) for web VTT presentation
 > **Primary ADRs:** [0001 package boundaries](../adr/0001-package-boundaries.md), [0005 pure rules-system engine](../adr/0005-pure-rules-system-engine.md), [0006 Builder/Sheet boundary](../adr/0006-character-builder-sheet-boundary.md), [0010 platform-neutral design system](../adr/0010-platform-neutral-design-system.md)
 
 ## Goal
@@ -14,7 +14,7 @@ Provide one restricted, server-authoritative roll service and a convincing but n
 - Phase 01 supports only explicitly approved roll expressions and limits. It does not expose every feature supported by the underlying parser.
 - The existing dice models are starting assets, not locked production artifacts. They may be optimized and corrected, but Phase 00 Branch 07 does not restore their renderer or modify their GLB files.
 - A backend result is authoritative. Browser physics is transient presentation and is not required to reproduce an identical trajectory.
-- Phase 01 keeps the latest 20 private rolls per user for Sheet review. Phase 05 owns Campaign visibility and Phase 06 owns Encounter-scoped history.
+- Phase 01 keeps the latest 20 private rolls per user for Sheet review. Phase 06 owns Campaign visibility and Phase 07 owns Encounter-scoped history.
 - Web ships the first animated adapter. Native clients consume the same semantic evidence with platform-specific presentation in a later phase.
 
 ## Requirements
@@ -94,7 +94,7 @@ The character-sheet shell is the table. Perspective tricks must not make the dic
 5. Add the lazy sheet overlay, real throw, collisions, target-assisted settle, timeout, cleanup, and error boundary.
 6. Add the three device-local presentation controls to Settings, then prove reduced-motion override, WebGL failure, renderer failure, focus return, resize, route change, and repeated-roll cleanup.
 7. Measure initial route weight, lazy chunk weight, model transfer size, frame time, and memory on representative desktop and mobile hardware.
-8. Publish the semantic contract for Phase 05 Campaign persistence and Phase 06 Encounter persistence without implementing either history model here.
+8. Publish the semantic contract for Phase 06 Campaign-scoped roll persistence and Phase 07 Encounter persistence without implementing either history model here.
 
 ## Acceptance gates
 
