@@ -23,6 +23,22 @@ it('maps authored creation limits to a rate-limit response', () => {
   })
 })
 
+it('maps Social unavailable and rate-limit errors without exposing private context', () => {
+  const unavailable = new Error('Social Hub item not found.')
+  unavailable.name = 'SocialNotFoundError'
+  const rateLimited = new Error('Too many Social Hub actions. Try again later.')
+  rateLimited.name = 'SocialRateLimitError'
+
+  expect(toTrpcError(unavailable)).toMatchObject({
+    code: 'NOT_FOUND',
+    message: 'Social Hub item not found.'
+  })
+  expect(toTrpcError(rateLimited)).toMatchObject({
+    code: 'TOO_MANY_REQUESTS',
+    message: rateLimited.message
+  })
+})
+
 it('does not expose unexpected internal error messages', () => {
   expect(
     toTrpcError(new Error('database host db.internal.example refused the connection'))

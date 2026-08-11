@@ -87,6 +87,7 @@ import type {
 } from '@artificer-toolkit/schema/api/systems'
 import * as campaignContracts from '@artificer-toolkit/schema/api/campaigns'
 import * as encounterContracts from '@artificer-toolkit/schema/api/encounters'
+import * as socialContracts from '@artificer-toolkit/schema/api/socialHub'
 import type { BackgroundAuthoringInputDto } from '@artificer-toolkit/schema/subjects/background'
 import type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
 import type { CreatureAuthoringInputDto } from '@artificer-toolkit/schema/subjects/creature'
@@ -217,8 +218,16 @@ export interface TrpcClient {
       SchemaInput<typeof campaignContracts.campaignIdInputSchema>,
       campaignContracts.CampaignDetailDto
     >
+    getSettings: QueryProcedure<
+      SchemaInput<typeof campaignContracts.campaignIdInputSchema>,
+      campaignContracts.CampaignDetailDto
+    >
     create: MutationProcedure<
       campaignContracts.CreateCampaignInput,
+      campaignContracts.CampaignDetailDto
+    >
+    copy: MutationProcedure<
+      campaignContracts.CopyCampaignInput,
       campaignContracts.CampaignDetailDto
     >
     update: MutationProcedure<
@@ -238,6 +247,7 @@ export interface TrpcClient {
         campaignContracts.CreateCampaignInviteInput,
         campaignContracts.CampaignInviteDto
       >
+      listReceived: EmptyQueryProcedure<campaignContracts.CampaignInviteDto[]>
       revoke: MutationProcedure<
         SchemaInput<typeof campaignContracts.revokeCampaignInviteInputSchema>,
         { ok: true }
@@ -245,6 +255,10 @@ export interface TrpcClient {
       accept: MutationProcedure<
         SchemaInput<typeof campaignContracts.acceptCampaignInviteInputSchema>,
         campaignContracts.CampaignDetailDto
+      >
+      decline: MutationProcedure<
+        SchemaInput<typeof campaignContracts.declineCampaignInviteInputSchema>,
+        { ok: true }
       >
     }
     leave: MutationProcedure<
@@ -502,6 +516,111 @@ export interface TrpcClient {
       events: QueryProcedure<
         SchemaInput<typeof campaignContracts.listCampaignEventsInputSchema>,
         campaignContracts.CampaignEventPageDto
+      >
+    }
+  }
+  socialHub: {
+    eligibility: {
+      get: EmptyQueryProcedure<socialContracts.SocialEligibilityDto>
+      accept: MutationProcedure<
+        SchemaInput<typeof socialContracts.acceptSocialEligibilityInputSchema>,
+        socialContracts.SocialEligibilityDto
+      >
+    }
+    preferences: {
+      update: MutationProcedure<
+        socialContracts.UpdateSocialContentPreferenceInput,
+        socialContracts.SocialEligibilityDto
+      >
+    }
+    profiles: {
+      get: QueryProcedure<
+        SchemaInput<typeof socialContracts.socialProfilePublicIdInputSchema>,
+        socialContracts.SocialProfileDto
+      >
+    }
+    discovery: {
+      search: QueryProcedure<
+        socialContracts.SocialDiscoveryInput,
+        socialContracts.SocialDiscoveryPageDto
+      >
+    }
+    listings: {
+      get: QueryProcedure<
+        SchemaInput<typeof socialContracts.socialListingPublicIdInputSchema>,
+        socialContracts.SocialListingDto
+      >
+      getOwned: QueryProcedure<
+        SchemaInput<typeof socialContracts.socialListingPublicIdInputSchema>,
+        socialContracts.SocialListingDto
+      >
+      mine: EmptyQueryProcedure<socialContracts.SocialListingDto[]>
+      create: MutationProcedure<
+        socialContracts.CreateSocialListingInput,
+        socialContracts.SocialListingDto
+      >
+      update: MutationProcedure<
+        socialContracts.UpdateSocialListingInput,
+        socialContracts.SocialListingDto
+      >
+      open: MutationProcedure<
+        SchemaInput<typeof socialContracts.socialListingVersionInputSchema>,
+        socialContracts.SocialListingDto
+      >
+      close: MutationProcedure<
+        SchemaInput<typeof socialContracts.socialListingVersionInputSchema>,
+        socialContracts.SocialListingDto
+      >
+      deleteDraft: MutationProcedure<
+        SchemaInput<typeof socialContracts.socialListingVersionInputSchema>,
+        { ok: true }
+      >
+    }
+    applications: {
+      mine: EmptyQueryProcedure<socialContracts.SocialApplicationDto[]>
+      forListing: QueryProcedure<
+        SchemaInput<typeof socialContracts.socialListingPublicIdInputSchema>,
+        socialContracts.SocialApplicationDto[]
+      >
+      submit: MutationProcedure<
+        socialContracts.SubmitSocialApplicationInput,
+        socialContracts.SocialApplicationDto
+      >
+      withdraw: MutationProcedure<
+        SchemaInput<typeof socialContracts.socialApplicationVersionInputSchema>,
+        socialContracts.SocialApplicationDto
+      >
+      decide: MutationProcedure<
+        SchemaInput<typeof socialContracts.decideSocialApplicationInputSchema>,
+        socialContracts.SocialApplicationDto
+      >
+    }
+    blocks: {
+      list: EmptyQueryProcedure<socialContracts.SocialBlockDto[]>
+      create: MutationProcedure<
+        SchemaInput<typeof socialContracts.socialBlockInputSchema>,
+        socialContracts.SocialBlockDto
+      >
+      remove: MutationProcedure<
+        SchemaInput<typeof socialContracts.socialBlockInputSchema>,
+        { ok: true }
+      >
+    }
+    reports: {
+      create: MutationProcedure<
+        socialContracts.CreateSocialReportInput,
+        z.infer<typeof socialContracts.socialReportReceiptDtoSchema>
+      >
+    }
+    moderation: {
+      queue: EmptyQueryProcedure<socialContracts.SocialModerationQueueItemDto[]>
+      openReport: MutationProcedure<
+        SchemaInput<typeof socialContracts.socialReportPublicIdInputSchema>,
+        socialContracts.SocialModerationReportDto
+      >
+      takeAction: MutationProcedure<
+        socialContracts.TakeSocialModerationActionInput,
+        socialContracts.SocialModerationReportDto
       >
     }
   }

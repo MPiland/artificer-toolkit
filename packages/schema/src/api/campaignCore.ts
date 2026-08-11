@@ -12,6 +12,7 @@ import {
 
 const campaignNameSchema = z.string().trim().min(1).max(100)
 const campaignDescriptionSchema = authoredRichTextSchema
+const campaignToneDetailsSchema = z.string().trim().min(1).max(1_000)
 
 export const entitlementTierDtoSchema = z.enum(['FREE', 'PLAYER', 'GM', 'PRO_GM'])
 export const entitlementLimitDtoSchema = z.strictObject({
@@ -47,7 +48,23 @@ export const entitlementProjectionDtoSchema = z.strictObject({
 
 export const campaignRoleDtoSchema = z.enum(['OWNER', 'PLAYER'])
 export const campaignStatusDtoSchema = z.enum(['ACTIVE', 'ARCHIVED'])
-export const campaignVisibilityDtoSchema = z.enum(['PRIVATE', 'PUBLIC'])
+export const campaignFormatDtoSchema = z.enum(['ONE_SHOT', 'ONGOING'])
+export const campaignToneTagDtoSchema = z.enum([
+  'LIGHTHEARTED',
+  'HEROIC',
+  'SERIOUS',
+  'DARK',
+  'GRITTY',
+  'HORROR',
+  'COMEDIC',
+  'COZY'
+])
+export const campaignContentMaturityDtoSchema = z.enum(['STANDARD', 'MATURE'])
+export const campaignToneTagsDtoSchema = z
+  .array(campaignToneTagDtoSchema)
+  .min(1)
+  .max(3)
+  .refine((tags) => new Set(tags).size === tags.length, 'Tone tags must be unique.')
 export const campaignCapabilitiesDtoSchema = z.strictObject({
   edit: z.boolean(),
   archive: z.boolean(),
@@ -84,8 +101,11 @@ const campaignBaseDtoSchema = z.strictObject({
   publicId: z.string().trim().min(1),
   name: campaignNameSchema,
   description: campaignDescriptionSchema.nullable(),
+  format: campaignFormatDtoSchema,
+  toneTags: campaignToneTagsDtoSchema,
+  toneDetails: campaignToneDetailsSchema.nullable(),
+  contentMaturity: campaignContentMaturityDtoSchema,
   status: campaignStatusDtoSchema,
-  visibility: campaignVisibilityDtoSchema,
   role: campaignRoleDtoSchema,
   version: versionSchema,
   memberCount: z.number().int().nonnegative(),
@@ -104,7 +124,10 @@ export const campaignDetailDtoSchema = campaignBaseDtoSchema.extend({
 export const createCampaignInputSchema = z.strictObject({
   name: campaignNameSchema,
   description: campaignDescriptionSchema.nullable().optional(),
-  visibility: campaignVisibilityDtoSchema.default('PRIVATE')
+  format: campaignFormatDtoSchema,
+  toneTags: campaignToneTagsDtoSchema,
+  toneDetails: campaignToneDetailsSchema.nullable().optional(),
+  contentMaturity: campaignContentMaturityDtoSchema
 })
 export const campaignPublicIdInputSchema = z.strictObject({
   campaignPublicId: z.string().trim().min(1)
@@ -113,8 +136,11 @@ export const updateCampaignInputSchema = z.strictObject({
   campaignId: uuidSchema,
   name: campaignNameSchema.optional(),
   description: campaignDescriptionSchema.nullable().optional(),
+  format: campaignFormatDtoSchema.optional(),
+  toneTags: campaignToneTagsDtoSchema.optional(),
+  toneDetails: campaignToneDetailsSchema.nullable().optional(),
+  contentMaturity: campaignContentMaturityDtoSchema.optional(),
   attunementSlotOverride: z.number().int().nonnegative().nullable().optional(),
-  visibility: campaignVisibilityDtoSchema.optional(),
   expectedVersion: versionSchema
 })
 const campaignVersionInputSchema = z.strictObject({
@@ -125,6 +151,7 @@ export const archiveCampaignInputSchema = campaignVersionInputSchema
 export const deleteCampaignInputSchema = campaignVersionInputSchema.extend({
   confirmation: z.literal('DELETE')
 })
+export const copyCampaignInputSchema = campaignVersionInputSchema
 export const campaignIdInputSchema = z.strictObject({ campaignId: uuidSchema })
 export const leaveCampaignInputSchema = campaignIdInputSchema
 export const removeCampaignMemberInputSchema = z.strictObject({
@@ -140,41 +167,39 @@ export const unassignCampaignCharacterInputSchema = z.strictObject({
   characterId: uuidSchema.optional()
 })
 
-export const campaignInviteKindDtoSchema = z.enum(['LINK', 'USERNAME', 'EMAIL'])
-export const createCampaignInviteInputSchema = z
-  .strictObject({
-    campaignId: uuidSchema,
-    kind: campaignInviteKindDtoSchema,
-    target: z.string().trim().min(1).max(320).optional(),
-    expiresAt: timestampSchema.optional()
-  })
-  .superRefine(({ kind, target }, context) => {
-    if (kind === 'LINK' && target !== undefined)
-      context.addIssue({
-        code: 'custom',
-        path: ['target'],
-        message: 'Link invites cannot target an account.'
-      })
-    if (kind !== 'LINK' && target === undefined)
-      context.addIssue({
-        code: 'custom',
-        path: ['target'],
-        message: 'Target is required for direct invites.'
-      })
-  })
+export const campaignInviteStatusDtoSchema = z.enum([
+  'PENDING',
+  'ACCEPTED',
+  'DECLINED',
+  'REVOKED',
+  'EXPIRED'
+])
+export const createCampaignInviteInputSchema = z.strictObject({
+  listingPublicId: uuidSchema,
+  expectedListingVersion: versionSchema,
+  username: z.string().trim().min(3).max(30),
+  expiresAt: timestampSchema.optional()
+})
 export const campaignInviteDtoSchema = z.strictObject({
-  id: uuidSchema,
-  campaignId: uuidSchema,
-  kind: campaignInviteKindDtoSchema,
-  token: z.string().min(1),
+  invitePublicId: uuidSchema,
+  listingPublicId: uuidSchema,
+  listingTitle: z.string().trim().min(1).max(100),
+  hostProfilePublicId: uuidSchema,
+  hostUsername: z.string().trim().min(3).max(30),
+  recipientUsername: z.string().trim().min(3).max(30),
+  status: campaignInviteStatusDtoSchema,
   expiresAt: timestampSchema,
-  createdAt: timestampSchema
+  respondedAt: timestampSchema.nullable(),
+  createdAt: timestampSchema,
+  version: versionSchema
 })
-export const acceptCampaignInviteInputSchema = z.strictObject({ token: z.string().min(1).max(512) })
-export const revokeCampaignInviteInputSchema = z.strictObject({
-  campaignId: uuidSchema,
-  inviteId: uuidSchema
+export const campaignInviteVersionInputSchema = z.strictObject({
+  invitePublicId: uuidSchema,
+  expectedVersion: versionSchema
 })
+export const acceptCampaignInviteInputSchema = campaignInviteVersionInputSchema
+export const declineCampaignInviteInputSchema = campaignInviteVersionInputSchema
+export const revokeCampaignInviteInputSchema = campaignInviteVersionInputSchema
 export const requestCampaignOwnershipTransferInputSchema = z.strictObject({
   campaignId: uuidSchema,
   recipientUserId: uuidSchema
@@ -219,7 +244,11 @@ export type EntitlementPricingDto = z.infer<typeof entitlementPricingDtoSchema>
 export type EntitlementProjectionDto = z.infer<typeof entitlementProjectionDtoSchema>
 export type CampaignSummaryDto = z.infer<typeof campaignSummaryDtoSchema>
 export type CampaignDetailDto = z.infer<typeof campaignDetailDtoSchema>
+export type CampaignFormatDto = z.infer<typeof campaignFormatDtoSchema>
+export type CampaignToneTagDto = z.infer<typeof campaignToneTagDtoSchema>
+export type CampaignContentMaturityDto = z.infer<typeof campaignContentMaturityDtoSchema>
 export type CreateCampaignInput = z.input<typeof createCampaignInputSchema>
+export type CopyCampaignInput = z.input<typeof copyCampaignInputSchema>
 export type CampaignPublicIdInput = z.input<typeof campaignPublicIdInputSchema>
 export type UpdateCampaignInput = z.input<typeof updateCampaignInputSchema>
 export type CampaignInviteDto = z.infer<typeof campaignInviteDtoSchema>

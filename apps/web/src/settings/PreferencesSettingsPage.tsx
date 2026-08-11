@@ -1,6 +1,7 @@
 import { SegmentedControl, useMantineColorScheme } from '@mantine/core'
 import { useAuthoringExperience } from '#forms/layout/useAuthoringExperience'
 import { DiceSettingsControls } from './DiceSettingsControls'
+import { MatureContentPreference } from './MatureContentPreference'
 import { useDicePresentationPreferences } from './dicePreferences'
 import * as styles from './settings.css'
 
@@ -57,6 +58,7 @@ export function PreferencesSettingsPage() {
           onChange={(value) => void setExperience(value === 'advanced' ? 'advanced' : 'guided')}
         />
       </div>
+      <MatureContentPreference />
       <DiceSettingsControls value={dicePreferences} onChange={setDicePreferences} />
     </section>
   )

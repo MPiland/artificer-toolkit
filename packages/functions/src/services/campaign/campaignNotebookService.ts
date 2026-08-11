@@ -10,6 +10,10 @@ import {
 } from '@artificer-toolkit/schema/api/campaigns'
 import type { z } from 'zod'
 import {
+  presentCampaignPlainText,
+  presentCampaignRichText
+} from '@artificer-toolkit/shared/campaign/textPolicy'
+import {
   createCampaignNotebookSectionInputSchema,
   deleteCampaignNotebookSectionInputSchema,
   listCampaignNotebookSectionsInputSchema,
@@ -29,22 +33,26 @@ type CreateNotebookInput = z.input<typeof createCampaignNotebookSectionInputSche
 type UpdateNotebookInput = z.input<typeof updateCampaignNotebookSectionInputSchema>
 type DeleteNotebookInput = z.input<typeof deleteCampaignNotebookSectionInputSchema>
 
-function mapNotebookSection(section: {
-  id: string
-  campaignId: string
-  title: string
-  content: string
-  visibility: 'GM_PRIVATE' | 'SHARED'
-  category: 'GENERAL' | 'PEOPLE' | 'PLACES'
-  version: number
-  createdAt: string
-  updatedAt: string
-}): CampaignNotebookSectionDto {
+function mapNotebookSection(
+  section: {
+    id: string
+    campaignId: string
+    title: string
+    content: string
+    visibility: 'GM_PRIVATE' | 'SHARED'
+    category: 'GENERAL' | 'PEOPLE' | 'PLACES'
+    version: number
+    createdAt: string
+    updatedAt: string
+  },
+  maturity: 'STANDARD' | 'MATURE'
+): CampaignNotebookSectionDto {
+  const privateNote = section.visibility === 'GM_PRIVATE'
   return campaignNotebookSectionDtoSchema.parse({
     id: section.id,
     campaignId: section.campaignId,
-    title: section.title,
-    content: section.content,
+    title: privateNote ? section.title : presentCampaignPlainText(section.title, maturity),
+    content: privateNote ? section.content : presentCampaignRichText(section.content, maturity),
     visibility: section.visibility,
     category: section.category,
     version: section.version,
@@ -71,7 +79,7 @@ export async function listCampaignNotebookSections(
         input.campaignId,
         visibility
       )
-    ).map(mapNotebookSection)
+    ).map((section) => mapNotebookSection(section, authority.campaign.contentMaturity))
   )
 }
 
@@ -105,7 +113,10 @@ export async function createCampaignNotebookSection(
     'CREATED',
     section.createdAt
   )
-  return mapNotebookSection(section)
+  return mapNotebookSection(
+    section,
+    (await resolveCampaignAuthority(db, input.campaignId, userId)).campaign.contentMaturity
+  )
 }
 
 export async function updateCampaignNotebookSection(
@@ -152,7 +163,10 @@ export async function updateCampaignNotebookSection(
       'UPDATED',
       section.updatedAt
     )
-  return mapNotebookSection(section)
+  return mapNotebookSection(
+    section,
+    (await resolveCampaignAuthority(db, input.campaignId, userId)).campaign.contentMaturity
+  )
 }
 
 export async function deleteCampaignNotebookSection(

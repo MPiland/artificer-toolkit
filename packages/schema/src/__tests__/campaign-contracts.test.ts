@@ -296,10 +296,30 @@ describe('campaign contracts', () => {
   })
 
   it('rejects unrecognized input fields and requires optimistic versions', () => {
-    expect(createCampaignInputSchema.safeParse({ name: 'x'.repeat(100) }).success).toBe(true)
-    expect(createCampaignInputSchema.safeParse({ name: 'x'.repeat(101) }).success).toBe(false)
+    const metadata = {
+      format: 'ONGOING',
+      toneTags: ['HEROIC'],
+      contentMaturity: 'STANDARD'
+    } as const
+    expect(createCampaignInputSchema.safeParse({ name: 'x'.repeat(100), ...metadata }).success).toBe(
+      true
+    )
+    expect(createCampaignInputSchema.safeParse({ name: 'x'.repeat(101), ...metadata }).success).toBe(
+      false
+    )
     expect(
-      createCampaignInputSchema.safeParse({ name: 'Game', description: 'x'.repeat(20_001) }).success
+      createCampaignInputSchema.safeParse({
+        name: 'Game',
+        description: 'x'.repeat(20_001),
+        ...metadata
+      }).success
+    ).toBe(false)
+    expect(
+      createCampaignInputSchema.safeParse({
+        name: 'Game',
+        ...metadata,
+        toneTags: ['HEROIC', 'DARK', 'GRITTY', 'HORROR']
+      }).success
     ).toBe(false)
     expect(acceptCampaignOwnershipTransferInputSchema.safeParse({ campaignId: id }).success).toBe(
       true

@@ -12,8 +12,6 @@ const URL_SPAN_DATA_KEYS = [
   'http.request.header.referrer'
 ] as const
 const QUERY_SPAN_DATA_KEYS = ['url.query', 'http.query'] as const
-const INVITE_PATH_PATTERN = /\/campaigns\/invite\/[^/?#]+/g
-
 function isUrlLike(value: string): boolean {
   return value.startsWith('/') || /^https?:\/\//i.test(value)
 }
@@ -21,8 +19,7 @@ function isUrlLike(value: string): boolean {
 export function scrubSentryUrl(value: string): string {
   if (!isUrlLike(value)) return value
 
-  const pathWithoutQueryOrFragment = value.split(/[?#]/, 1)[0]
-  return pathWithoutQueryOrFragment.replace(INVITE_PATH_PATTERN, '/campaigns/invite/[redacted]')
+  return value.split(/[?#]/, 1)[0]
 }
 
 function scrubUrlValue(value: unknown): string | undefined {

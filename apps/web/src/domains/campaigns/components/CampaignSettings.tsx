@@ -2,29 +2,41 @@ import {
   Alert,
   Button,
   Group,
+  Loader,
   NumberInput,
-  Radio,
   Stack,
   Text,
   TextInput,
   Title
 } from '@mantine/core'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { CampaignDetailDto } from '#app/lib/api'
 import { api } from '#app/lib/api'
+import { getCampaignSettings as getCampaignSettingsQuery } from '#app/data/campaigns/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
 import * as sharedStyles from '../campaigns.css'
 import * as settingsStyles from './campaignSettings.css'
+import { CampaignMetadataFields } from './CampaignMetadataFields'
 
 export function CampaignSettings({ campaign }: { campaign: CampaignDetailDto }) {
+  const settings = useQuery(getCampaignSettingsQuery(campaign.id))
+  if (settings.isPending) return <Loader aria-label='Loading Campaign settings' size='sm' />
+  if (settings.isError) return <Alert color='red'>Campaign settings are unavailable.</Alert>
+  return <CampaignSettingsForm campaign={settings.data} />
+}
+
+function CampaignSettingsForm({ campaign }: { campaign: CampaignDetailDto }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [name, setName] = useState(campaign.name)
   const [description, setDescription] = useState(campaign.description ?? '')
-  const [visibility, setVisibility] = useState<'PRIVATE' | 'PUBLIC'>(campaign.visibility)
+  const [format, setFormat] = useState(campaign.format)
+  const [toneTags, setToneTags] = useState(campaign.toneTags)
+  const [toneDetails, setToneDetails] = useState(campaign.toneDetails ?? '')
+  const [contentMaturity, setContentMaturity] = useState(campaign.contentMaturity)
   const [attunementSlotOverride, setAttunementSlotOverride] = useState<string | number>(
     campaign.attunementSlotOverride ?? ''
   )
@@ -33,7 +45,11 @@ export function CampaignSettings({ campaign }: { campaign: CampaignDetailDto }) 
   async function refreshCampaign() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.detail(campaign.id) }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.list() })
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.campaigns.detail(campaign.id), 'settings']
+      }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.list() }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.socialHub.all() })
     ])
   }
 
@@ -44,9 +60,12 @@ export function CampaignSettings({ campaign }: { campaign: CampaignDetailDto }) 
         expectedVersion: campaign.version,
         name: name.trim() || campaign.name,
         description: description.trim() || null,
+        format,
+        toneTags,
+        toneDetails: toneDetails.trim() || null,
+        contentMaturity,
         attunementSlotOverride:
-          attunementSlotOverride === '' ? null : Number(attunementSlotOverride),
-        visibility
+          attunementSlotOverride === '' ? null : Number(attunementSlotOverride)
       }),
     onSuccess: refreshCampaign
   })
@@ -87,24 +106,17 @@ export function CampaignSettings({ campaign }: { campaign: CampaignDetailDto }) 
           readOnly={!editable}
           value={description}
         />
-      </section>
-      <section className={sharedStyles.panel} aria-labelledby='campaign-access-title'>
-        <Title order={2} id='campaign-access-title'>
-          Campaign access
-        </Title>
-        <Radio.Group
-          label='Listing visibility'
-          value={visibility}
-          onChange={(value) => setVisibility(value === 'PUBLIC' ? 'PUBLIC' : 'PRIVATE')}
-        >
-          <Group mt='xs'>
-            <Radio disabled={!editable} label='Private' value='PRIVATE' />
-            <Radio disabled={!editable} label='Public' value='PUBLIC' />
-          </Group>
-        </Radio.Group>
-        <Text c='dimmed' size='sm'>
-          {visibility === 'PUBLIC' ? 'Public listing' : 'Private Campaign'}
-        </Text>
+        <CampaignMetadataFields
+          contentMaturity={contentMaturity}
+          disabled={!editable}
+          format={format}
+          toneDetails={toneDetails}
+          toneTags={toneTags}
+          onContentMaturityChange={setContentMaturity}
+          onFormatChange={setFormat}
+          onToneDetailsChange={setToneDetails}
+          onToneTagsChange={setToneTags}
+        />
       </section>
       <section className={sharedStyles.panel} aria-labelledby='campaign-rules-title'>
         <Title order={2} id='campaign-rules-title'>

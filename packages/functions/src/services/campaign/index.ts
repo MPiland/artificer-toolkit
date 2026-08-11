@@ -1,4 +1,5 @@
 export * from './campaignService.js'
+export * from './campaignCopyService.js'
 export * from './campaignChatService.js'
 export * from './campaignNotebookService.js'
 export * from './campaignSessionService.js'

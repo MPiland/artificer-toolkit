@@ -3,12 +3,16 @@ import {
   acceptCampaignOwnershipTransfer,
   archiveCampaign,
   assignCampaignCharacter,
+  copyCampaign,
   createCampaign,
   createCampaignInvite,
+  declineCampaignInvite,
   deleteCampaign,
   getCampaign,
+  getCampaignSettings,
   listCampaignContentVersions,
   leaveCampaign,
+  listReceivedCampaignInvites,
   listCampaigns,
   removeCampaignMember,
   requestCampaignOwnershipTransfer,
@@ -42,11 +46,25 @@ export const campaignRouter = createTRPCRouter({
     .query(({ ctx, input }) =>
       withExplicitAuthorityDb(ctx, (db, userId) => getCampaign(db, userId, input.campaignId))
     ),
+  getSettings: authenticatedProcedure
+    .input(campaignContracts.campaignIdInputSchema)
+    .output(campaignContracts.campaignDetailDtoSchema)
+    .query(({ ctx, input }) =>
+      withExplicitAuthorityDb(ctx, (db, userId) =>
+        getCampaignSettings(db, userId, input.campaignId)
+      )
+    ),
   create: authenticatedProcedure
     .input(campaignContracts.createCampaignInputSchema)
     .output(campaignContracts.campaignDetailDtoSchema)
     .mutation(({ ctx, input }) =>
       withExplicitAuthorityDb(ctx, (db, userId) => createCampaign(db, userId, input))
+    ),
+  copy: authenticatedProcedure
+    .input(campaignContracts.copyCampaignInputSchema)
+    .output(campaignContracts.campaignDetailDtoSchema)
+    .mutation(({ ctx, input }) =>
+      withExplicitAuthorityDb(ctx, (db, userId) => copyCampaign(db, userId, input))
     ),
   update: authenticatedProcedure
     .input(campaignContracts.updateCampaignInputSchema)
@@ -78,12 +96,17 @@ export const campaignRouter = createTRPCRouter({
       .mutation(({ ctx, input }) =>
         withExplicitAuthorityDb(ctx, (db, userId) => createCampaignInvite(db, userId, input))
       ),
+    listReceived: authenticatedProcedure
+      .output(campaignContracts.campaignInviteDtoSchema.array())
+      .query(({ ctx }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) => listReceivedCampaignInvites(db, userId))
+      ),
     revoke: authenticatedProcedure
       .input(campaignContracts.revokeCampaignInviteInputSchema)
       .output(okResponseSchema)
       .mutation(({ ctx, input }) =>
         withExplicitAuthorityDb(ctx, async (db, userId) => {
-          await revokeCampaignInvite(db, userId, input.campaignId, input.inviteId)
+          await revokeCampaignInvite(db, userId, input.invitePublicId, input.expectedVersion)
           return { ok: true as const }
         })
       ),
@@ -91,7 +114,17 @@ export const campaignRouter = createTRPCRouter({
       .input(campaignContracts.acceptCampaignInviteInputSchema)
       .output(campaignContracts.campaignDetailDtoSchema)
       .mutation(({ ctx, input }) =>
-        withExplicitAuthorityDb(ctx, (db, userId) => acceptCampaignInvite(db, userId, input.token))
+        withExplicitAuthorityDb(ctx, (db, userId) =>
+          acceptCampaignInvite(db, userId, input.invitePublicId, input.expectedVersion)
+        )
+      ),
+    decline: authenticatedProcedure
+      .input(campaignContracts.declineCampaignInviteInputSchema)
+      .output(campaignContracts.campaignInviteDtoSchema)
+      .mutation(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) =>
+          declineCampaignInvite(db, userId, input.invitePublicId, input.expectedVersion)
+        )
       )
   }),
   leave: authenticatedProcedure

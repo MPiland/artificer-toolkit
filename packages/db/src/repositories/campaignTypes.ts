@@ -1,8 +1,18 @@
 export type CampaignRole = 'OWNER' | 'PLAYER'
 export type CampaignStatus = 'ACTIVE' | 'ARCHIVED'
-export type CampaignVisibility = 'PRIVATE' | 'PUBLIC'
+export type CampaignFormat = 'ONE_SHOT' | 'ONGOING'
+export type CampaignToneTag =
+  | 'LIGHTHEARTED'
+  | 'HEROIC'
+  | 'SERIOUS'
+  | 'DARK'
+  | 'GRITTY'
+  | 'HORROR'
+  | 'COMEDIC'
+  | 'COZY'
+export type CampaignContentMaturity = 'STANDARD' | 'MATURE'
 export type CampaignMembershipStatus = 'ACTIVE' | 'LEFT'
-export type CampaignInviteKind = 'LINK' | 'USERNAME' | 'EMAIL'
+export type CampaignInviteStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'REVOKED' | 'EXPIRED'
 
 export type Timestamp = string | Date
 
@@ -12,9 +22,12 @@ export interface CampaignRecord {
   ownerUserId: string
   name: string
   description: string | null
+  format: CampaignFormat
+  toneTags: CampaignToneTag[]
+  toneDetails: string | null
+  contentMaturity: CampaignContentMaturity
   attunementSlotOverride: number | null
   status: CampaignStatus
-  visibility: CampaignVisibility
   version: number
   createdAt: Timestamp
   updatedAt: Timestamp
@@ -70,14 +83,34 @@ export interface CampaignMembershipProjection {
 
 export interface CampaignInviteRecord {
   id: string
+  listingId: string
   campaignId: string
   createdBy: string
-  kind: CampaignInviteKind
-  targetUserId: string | null
-  targetEmail: string | null
+  recipientUserId: string
+  recipientUsername: string
+  listingVersion: number
+  status: CampaignInviteStatus
   expiresAt: Timestamp
+  respondedAt: Timestamp | null
   revokedAt: Timestamp | null
+  expiredAt: Timestamp | null
   createdAt: Timestamp
+  updatedAt: Timestamp
+  version: number
+}
+
+export interface CampaignInviteProjection extends CampaignInviteRecord {
+  listingTitle: string
+  contentMaturity: CampaignContentMaturity
+  hostProfileId: string
+  hostUsername: string
+}
+
+export interface CampaignInviteRecipientRecord {
+  userId: string
+  profileId: string
+  username: string
+  status: 'ACTIVE' | 'SUSPENDED'
 }
 
 export interface CampaignOwnershipTransferRecord {
@@ -93,9 +126,12 @@ export interface RawCampaignRow {
   owner_user_id: string
   name: string
   description: string | null
+  format: string
+  tone_tags: string[]
+  tone_details: string | null
+  content_maturity: string
   attunement_slot_override?: number | null
   status: CampaignStatus
-  visibility: CampaignVisibility
   version: number
   created_at: Timestamp
   updated_at: Timestamp
@@ -118,9 +154,12 @@ export function mapCampaign(row: RawCampaignRow): CampaignRecord {
     ownerUserId: row.owner_user_id,
     name: row.name,
     description: row.description,
+    format: row.format as CampaignFormat,
+    toneTags: row.tone_tags as CampaignToneTag[],
+    toneDetails: row.tone_details,
+    contentMaturity: row.content_maturity as CampaignContentMaturity,
     attunementSlotOverride: row.attunement_slot_override ?? null,
     status: row.status,
-    visibility: row.visibility,
     version: row.version,
     createdAt: row.created_at,
     updatedAt: row.updated_at

@@ -8,10 +8,11 @@ export type MobileAppFooterMenuItem = {
   label: string
 }
 
-export type MobileAppFooterItemIcon = 'account' | 'create' | 'library' | 'search'
+export type MobileAppFooterItemIcon = 'account' | 'create' | 'library' | 'search' | 'social'
 
 export type MobileAppFooterItem = {
   icon: MobileAppFooterItemIcon
+  href?: string
   id: string
   isActive?: boolean
   label: string

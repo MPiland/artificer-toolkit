@@ -285,8 +285,8 @@ Web shapes come from the shared radius scale. Native implementations map the sam
 
 ### Navigation
 
-- **App Shell:** Signed-in desktop and tablet landscape use a top header with brand, breadcrumb context, Library and Create menu buttons, search, theme, and account. Library and Create are separate menus because browsing and starting new content are different intents. Signed-out pages use the marketing/auth header and do not render signed-in app navigation.
-- **Mobile App Navigation:** Mobile and tablet portrait use a sticky app footer for Library, Create, Search, and Account. Search opens a bottom drawer; account uses the same menu actions as desktop. The mobile footer is app-wide navigation and must never appear on desktop.
+- **App Shell:** Signed-in desktop and tablet landscape use a top header with brand, breadcrumb context, Library and Create menu buttons, direct Social Hub navigation, search, theme, and account. Library and Create are separate menus because browsing and starting new content are different intents. Signed-out pages use the marketing/auth header and do not render signed-in app navigation.
+- **Mobile App Navigation:** Mobile and tablet portrait use a sticky app footer for Library, Create, Social, Search, and Account. Search opens a bottom drawer; account uses the same menu actions as desktop. The mobile footer is app-wide navigation and must never appear on desktop.
 - **Structure Rail:** The rail belongs to the current authoring item only. It shows the step hierarchy, active step, child steps for the active branch, completion/dirty/warning markers, and the contextual footer summary. It is not a domain library, not a sidebar replacement, and not a place for global Create actions.
 - **Rail Behavior:** At wide desktop (`>=1280px`), the Structure rail and useful Preview rail stay inline for the whole authoring session; they are the studio composition, not optional chrome. Smaller widths use the existing drawer pattern for both rails, and those overlays start closed.
 - **Active State:** Active authoring rows use orange text and a restrained left fill/marker. Avoid loud full-row fills unless needed for clarity.
@@ -296,6 +296,17 @@ Web shapes come from the shared radius scale. Native implementations map the sam
 - **Style:** Empty states should feel like invitations, not blank admin pages. Use the domain icon, concise copy, and one clear next action.
 - **Tone:** Speak to the creative outcome: "Create your first spell" is better than "No records found."
 - **Constraint:** Do not use mascot-heavy, joke-heavy, or decorative-only empty states. Delight should point toward action.
+
+### Social Hub
+
+- **Purpose:** Help authenticated adults find or form a free table without exposing the private Campaign behind it.
+- **Composition:** Use the existing app Shell. Discovery keeps search visible and moves secondary filters into one focused drawer at every breakpoint, grouped into collapsible Game style, When & where, and Table needs sections. Omit explanations that merely restate a control's behavior. Keep the active-filter count and one page scroll owner. Listing rows remain information-dense and readable rather than becoming a generic card framework.
+- **Information hierarchy:** Lead with the Campaign-derived title, format, tone, maturity, system, play mode, schedule, location scope, and available seats. Expectations and safety practices belong in clearly labelled sections on detail and hosting forms; they are not decorative tags.
+- **Hosting form:** Select an owned Campaign once; do not ask for a duplicate listing title, table type, tone, maturity, or language. Show city and state only for in-person or hybrid play, and clear them when play becomes online. One-shot schedules offer flexible or one-time choices only.
+- **Privacy:** Public Social surfaces show only the Social profile ID and username. Never display or encode Campaign IDs, account IDs, email, bio, exact venue, application text, report evidence, or invitation credentials in routes or listing projections.
+- **Maturity preference:** User settings default to Standard. Selecting Mature opens age verification when none is on file; the date field says "Used once to verify your age." The preference changes server-side Social presentation, not Campaign maturity or authorization.
+- **Interaction:** URL state owns the `discover`, `applications`, `invitations`, and `hosting` views. Desktop uses a single active underline with text-only hover treatment; mobile replaces the tab row with a current-view control and bottom navigation drawer. My applications is the applicant-owned status and withdrawal inbox; GM review remains scoped to each hosted table through directly addressable `Listing details` and `Applications` views. Social Hub is a direct destination in the desktop Shell header and mobile app footer. Social posting stays out of the global Create menu; an eligible host uses the persistent `New Post` action in Social Hub. Mutations announce success or failure, return focus after drawers, and preserve keyboard, reduced-motion, contrast, and light/dark theme behavior.
+- **Tone:** Table formation should feel welcoming and practical. Use the Forge palette and strong editorial hierarchy without parchment, fantasy novelty controls, glass effects, or an admin-dashboard grid.
 
 ### Motion
 

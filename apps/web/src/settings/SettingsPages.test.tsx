@@ -7,7 +7,9 @@ const mocks = vi.hoisted(() => ({
   requestPasswordReset: vi.fn(),
   updateAuthUser: vi.fn(),
   updateEmail: vi.fn(),
-  updatePassword: vi.fn()
+  updatePassword: vi.fn(),
+  getSocialEligibility: vi.fn(),
+  updateSocialContentPreference: vi.fn()
 }))
 
 vi.mock('./accountClient', () => ({
@@ -23,6 +25,14 @@ vi.mock('#supabase/client', () => ({
     auth: { updateUser: mocks.updateAuthUser }
   })
 }))
+vi.mock('#app/lib/api', () => ({
+  api: {
+    socialHub: {
+      eligibility: { get: mocks.getSocialEligibility },
+      preferences: { update: mocks.updateSocialContentPreference }
+    }
+  }
+}))
 
 import { AccountSettingsPage } from './AccountSettingsPage'
 import { PreferencesSettingsPage } from './PreferencesSettingsPage'
@@ -31,6 +41,22 @@ describe('settings pages', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.updateAuthUser.mockResolvedValue({ error: null })
+    mocks.getSocialEligibility.mockResolvedValue({
+      eligible: false,
+      profilePublicId: null,
+      adultAttestedAt: null,
+      usAttestedAt: null,
+      contentPreference: 'STANDARD',
+      status: null
+    })
+    mocks.updateSocialContentPreference.mockResolvedValue({
+      eligible: false,
+      profilePublicId: '00000000-0000-4000-8000-000000000001',
+      adultAttestedAt: '2026-08-10T12:00:00.000Z',
+      usAttestedAt: null,
+      contentPreference: 'MATURE',
+      status: 'ACTIVE'
+    })
     window.localStorage.clear()
   })
 
@@ -64,6 +90,28 @@ describe('settings pages', () => {
       expect(document.documentElement).toHaveAttribute('data-mantine-color-scheme', 'light')
       expect(window.localStorage.getItem('mantine-color-scheme-value')).toBe('light')
     })
+  })
+
+  it('requires age verification before enabling Mature Social text', async () => {
+    renderWithAppProviders(<PreferencesSettingsPage />)
+
+    const maturePreference = await screen.findByRole('radio', { name: 'Mature' })
+    await waitFor(() => expect(maturePreference).toBeEnabled())
+    fireEvent.click(maturePreference)
+    const dialog = await screen.findByRole('dialog', { name: 'Verify you are 18 or older' })
+    const birthDate = dialog.querySelector<HTMLInputElement>('input[type="date"]')
+    expect(birthDate).not.toBeNull()
+    fireEvent.change(birthDate!, {
+      target: { value: '2000-01-01' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Verify age and show mature text' }))
+
+    await waitFor(() =>
+      expect(mocks.updateSocialContentPreference).toHaveBeenCalledWith({
+        contentPreference: 'MATURE',
+        birthDate: '2000-01-01'
+      })
+    )
   })
 
   it('requests a confirmed email change', async () => {

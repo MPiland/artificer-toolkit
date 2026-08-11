@@ -12,6 +12,8 @@
     "dev": "yarn dev:prepare && turbo run dev --filter=@artificer-toolkit/web",
     "turbo": "turbo",
     "db:reset:remote": "yarn workspace @artificer-toolkit/db db:reset:remote",
+    "social:retention": "yarn workspace @artificer-toolkit/db social:retention",
+    "test:social-hub:integration": "yarn build:schema && yarn build:db && tsx packages/functions/src/scripts/testSocialHubIntegration.ts",
     "audit:srd": "yarn workspace @artificer-toolkit/db audit:srd",
     "audit:srd:production": "yarn workspace @artificer-toolkit/db audit:srd:production",
     "test:character-sheet:integration": "yarn build:shared && yarn workspace @artificer-toolkit/db test:character-sheet:integration",

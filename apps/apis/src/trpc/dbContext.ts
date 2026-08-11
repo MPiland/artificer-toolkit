@@ -70,6 +70,13 @@ function mapErrorToCode(error: Error): TRPCError['code'] {
   if (error.name === 'CampaignValidationError' || error.name === 'RangeError') {
     return 'BAD_REQUEST'
   }
+  if (error.name === 'SocialAccessError' || error.name === 'SocialEligibilityError') {
+    return 'FORBIDDEN'
+  }
+  if (error.name === 'SocialNotFoundError') return 'NOT_FOUND'
+  if (error.name === 'SocialConflictError') return 'CONFLICT'
+  if (error.name === 'SocialValidationError') return 'BAD_REQUEST'
+  if (error.name === 'SocialRateLimitError') return 'TOO_MANY_REQUESTS'
   if (error.name === 'EncounterNotFoundError') return 'NOT_FOUND'
   if (error.name === 'EncounterConflictError') return 'CONFLICT'
   if (error.name === 'EncounterValidationError') return 'BAD_REQUEST'

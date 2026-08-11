@@ -1,4 +1,4 @@
-import { BookOpen, PlusCircle, Search, UserCircle } from 'lucide-react'
+import { BookOpen, PlusCircle, Search, UserCircle, UsersRound } from 'lucide-react'
 import type { MobileAppFooterItemIcon } from './MobileAppFooter.types'
 
 export function MobileAppFooterIcon({ icon }: { icon: MobileAppFooterItemIcon }) {
@@ -11,6 +11,8 @@ export function MobileAppFooterIcon({ icon }: { icon: MobileAppFooterItemIcon })
       return <PlusCircle size={size} />
     case 'search':
       return <Search size={size} />
+    case 'social':
+      return <UsersRound size={size} />
     case 'library':
     default:
       return <BookOpen size={size} />

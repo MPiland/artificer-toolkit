@@ -6,7 +6,7 @@
 ## Interactive `APPLY_GRANT` lifecycle
 
 This was previously labeled in source as a "Phase 8+ interactive runtime" follow-up. The current
-roadmap's Phase 08 is billing and subscriptions, so this backlog is the canonical replacement for
+roadmap's Phase 09 is billing and subscriptions, so this backlog is the canonical replacement for
 that older phase note.
 
 `ApplyGrantAuthored` currently represents permanent grants only. When the Encounter and character event pipelines support interactive effect consumption and expiry, add lifecycle metadata local to `APPLY_GRANT` rather than overloading the existing authored `Duration.durationKind` contract.
@@ -63,10 +63,10 @@ Campaigns will support a campaign-level **Feature** concept that applies tempora
 - Rich chat extensions: typing indicators, reactions, threads, and attachments.
 - Semantic note links/hover tooltips (campaign places, people, and lore references).
 - Multi-calendar support and reversible GM clock editing.
-- Native push delivery and external notification transports.
+- Additional notification channels beyond Phase 05 in-app/email and Phase 11 native push.
 - Structured Campaign knowledge beyond notes: NPCs/people, places/settlements, factions, quests/conflicts, relationships, timelines, and player-knowledge versus GM-secret projections.
-- Session-prep templates that a GM can customize or duplicate after the flexible Phase 05 prep blocks prove useful; no single prescribed prep method.
-- Scheduling polls, recurring-session generation, external calendar subscriptions, and delegated scheduling roles after the Phase 05 schedule and RSVP model is proven.
+- Session-prep templates that a GM can customize or duplicate after the flexible Phase 06 prep blocks prove useful; no single prescribed prep method.
+- Scheduling polls, recurring-session generation, external calendar subscriptions, and delegated scheduling roles after the Phase 06 schedule and RSVP model is proven.
 - Privacy-aware post-session feedback such as stars/wishes or anonymous safety check-ins after the table-safety policy and moderation boundaries are defined.
 - Professional-GM retention, onboarding, schedule-health, and table-performance analytics after paid-table operations produce enough data to define honest metrics without ranking GMs prematurely.
 - Travel planning, weather, encounter/name/treasure tables, and other system-aware GM quick generators.
@@ -74,5 +74,5 @@ Campaigns will support a campaign-level **Feature** concept that applies tempora
 - “View as player” and deliberate co-GM/assistant-GM roles with a separate permission model rather than treating every helper as the owner.
 - Ambience libraries, playlists, scene audio, and player presentation controls after the VTT/media usage model is known.
 - Optional session recording, transcription, recap drafting, and continuity extraction only after consent, privacy, retention, and cost policy are approved.
-- Deeper combat assistance such as recharge automation, concentration/effect duration rules, lair or environmental turn markers, group initiative, and automatic proposed outcomes. These must build on Phase 06 events rather than bypass them.
+- Deeper combat assistance such as recharge automation, concentration/effect duration rules, lair or environmental turn markers, group initiative, and automatic proposed outcomes. These must build on Phase 07 events rather than bypass them.
 - Home-base, settlement, bastion, faction-reputation, and downtime trackers after Campaign and Vehicle ownership seams are stable.

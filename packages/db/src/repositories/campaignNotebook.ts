@@ -1,4 +1,5 @@
 import type { DbTables, DBLike } from '#types'
+import { sql } from 'kysely'
 import { toIsoString, type RuntimeTimestamp } from './campaignCollaborationShared.js'
 
 export type CampaignNoteVisibility = 'GM_PRIVATE' | 'SHARED'
@@ -60,6 +61,22 @@ function toNoteSection(row: NoteSectionRow): CampaignNoteSection {
 }
 export function createCampaignNotebookRepository(db: DBLike) {
   return {
+    async copyCampaignNoteSections(
+      sourceCampaignId: string,
+      targetCampaignId: string,
+      ownerUserId: string
+    ): Promise<void> {
+      await sql`
+        insert into campaign_note_sections (
+          campaign_id, title, content, visibility, category, sort_order,
+          created_by, updated_by
+        )
+        select ${targetCampaignId}::uuid, title, content, visibility, category, sort_order,
+          ${ownerUserId}::uuid, ${ownerUserId}::uuid
+        from campaign_note_sections
+        where campaign_id = ${sourceCampaignId}::uuid
+      `.execute(db)
+    },
     async listCampaignNoteSections(
       campaignId: string,
       visibility: 'ALL' | 'SHARED'

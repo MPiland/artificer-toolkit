@@ -1,11 +1,17 @@
-import { Alert, Button, Group, Radio, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Button, Group, Text, TextInput, Title } from '@mantine/core'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { type SubmitEvent, useState } from 'react'
+import type {
+  CampaignContentMaturityDto,
+  CampaignFormatDto,
+  CampaignToneTagDto
+} from '@artificer-toolkit/schema/api/campaigns'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
+import { CampaignMetadataFields } from './components/CampaignMetadataFields'
 import * as sharedStyles from './campaigns.css'
 
 export function CampaignCreatePage() {
@@ -13,13 +19,19 @@ export function CampaignCreatePage() {
   const queryClient = useQueryClient()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [visibility, setVisibility] = useState<'PRIVATE' | 'PUBLIC'>('PRIVATE')
+  const [format, setFormat] = useState<CampaignFormatDto>('ONGOING')
+  const [toneTags, setToneTags] = useState<CampaignToneTagDto[]>(['HEROIC'])
+  const [toneDetails, setToneDetails] = useState('')
+  const [contentMaturity, setContentMaturity] = useState<CampaignContentMaturityDto>('STANDARD')
   const createCampaign = useMutation({
     mutationFn: () =>
       api.campaigns.create({
         name,
         description: description.trim() || null,
-        visibility
+        format,
+        toneTags,
+        toneDetails: toneDetails.trim() || null,
+        contentMaturity
       }),
     onSuccess: async (campaign) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.list() })
@@ -63,16 +75,16 @@ export function CampaignCreatePage() {
           placeholder='Set the scene, tone, and premise for your table.'
           value={description}
         />
-        <Radio.Group
-          label='Listing visibility'
-          value={visibility}
-          onChange={(value) => setVisibility(value as 'PRIVATE' | 'PUBLIC')}
-        >
-          <Group mt='xs'>
-            <Radio value='PRIVATE' label='Private' />
-            <Radio value='PUBLIC' label='Public listing' />
-          </Group>
-        </Radio.Group>
+        <CampaignMetadataFields
+          contentMaturity={contentMaturity}
+          format={format}
+          toneDetails={toneDetails}
+          toneTags={toneTags}
+          onContentMaturityChange={setContentMaturity}
+          onFormatChange={setFormat}
+          onToneDetailsChange={setToneDetails}
+          onToneTagsChange={setToneTags}
+        />
         <Group className={sharedStyles.createActions}>
           <Button loading={createCampaign.isPending} type='submit'>
             Create Campaign

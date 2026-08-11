@@ -2,7 +2,7 @@
 
 > **Status:** implemented baseline; approved Campaign-management extension planned
 > **Depends on:** [Phase 00](00-character-sheet-play-depth-and-overrides.md), [Phase 01](01-dice-and-roll-infrastructure.md), and [Phase 02](02-media-and-file-pipeline.md)
-> **Unlocks:** [Phase 04 Social Hub](04-social-hub.md), [Phase 05 live play](05-live-campaign-play.md), Campaign Encounters, and Campaign-scoped content
+> **Unlocks:** [Phase 04 Social Hub](04-social-hub.md), [Phase 05 notifications](05-notifications-and-delivery.md), [Phase 06 live play](06-live-campaign-play.md), [Phase 07 Encounters](07-encounters.md), and Campaign-scoped content
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0006](../adr/0006-character-builder-sheet-boundary.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md), [0011](../adr/0011-active-authored-content-and-json-drafts.md), and [0013](../adr/0013-campaign-authority-and-collaboration.md)
 
 ## Goal
@@ -12,12 +12,12 @@ Deliver the usable Campaign web core and its approved management extension: acco
 ## Assumptions
 
 - Campaign roles are `OWNER | PLAYER`; the sole owner is displayed as the GM. Accepted players consume seats; the owner does not.
-- Accounts start Free. Tier changes are manually assigned until Phase 08 billing. Existing over-limit records remain usable; limits block new creation or activation.
+- Accounts start Free. Tier changes are manually assigned until Phase 09 billing. Existing over-limit records remain usable; limits block new creation or activation.
 - A Character has at most one active Campaign assignment. Archived Campaigns are read-only; permanent deletion runs the defined reconciliation.
 - Campaign routes use a public base-36 identifier plus slug: `/campaigns/<public-id>/<slug>`. Session routes stay nested and do not expose UUIDs.
 - Conversation retention is the newest 500 entries per `TABLE`, `PARTY`, or `DIRECT` conversation. Structured conversations and notes do not consume media storage.
 - Campaign notes include GM-private and GM-shared sections; sessions remain collaborative with version-conflict reporting, not CRDT merging.
-- Supabase Storage remains the object store. A provider abstraction or R2 migration is deferred to [Phase 07](07-vtt.md).
+- Supabase Storage remains the object store. A provider abstraction or R2 migration is deferred to [Phase 08](08-vtt.md).
 
 ## Requirements
 
@@ -119,7 +119,7 @@ Unread state follows the same predicate as reads and subscriptions. Counts, deli
 ## Out of scope
 
 - Vehicles, Campaign files/handouts, Campaign clock, VTT, chat attachments/reactions/threads/search/typing, CRDTs/cursors/revision history, semantic note links/hover cards, payment, and a notification domain.
-- Phase 05 adds Campaign announcements and a web inbox; Phase 09 adds paid-event delivery; Phase 10 later adds native push.
+- Phase 05 establishes the Knock-backed web inbox, Resend email delivery, and notification preferences; Phase 06 adds Campaign announcements; Phase 10 adds paid-table notification sources; Phase 11 adds native push.
 
 ## New-session instruction
 

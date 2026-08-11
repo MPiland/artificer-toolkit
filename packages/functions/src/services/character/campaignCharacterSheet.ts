@@ -23,6 +23,7 @@ import {
   assertActiveCampaignMember,
   resolveCampaignAuthority
 } from '../campaign/campaignService.js'
+import { presentCampaignCharacterText } from './campaignCharacterPresentation.js'
 
 export type CharacterSheetViewer = 'CHARACTER_OWNER' | 'CAMPAIGN_OWNER'
 
@@ -30,6 +31,7 @@ export interface CharacterSheetCampaignContext {
   viewer: CharacterSheetViewer
   campaignId: string | null
   campaignStatus: 'ACTIVE' | 'ARCHIVED' | null
+  contentMaturity: 'STANDARD' | 'MATURE' | null
   attunementSlotOverride: number | null
   adjustments: CharacterSheetAdjustment[]
   secretAdjustmentIds: Set<string>
@@ -80,6 +82,7 @@ export async function resolveCharacterSheetCampaignContext(
       viewer: 'CHARACTER_OWNER',
       campaignId: null,
       campaignStatus: null,
+      contentMaturity: null,
       attunementSlotOverride: null,
       adjustments: [],
       secretAdjustmentIds: new Set(),
@@ -105,6 +108,7 @@ export async function resolveCharacterSheetCampaignContext(
     viewer,
     campaignId: assignment.campaignId,
     campaignStatus: authority.campaign.status,
+    contentMaturity: authority.campaign.contentMaturity,
     attunementSlotOverride: authority.campaign.attunementSlotOverride,
     adjustments: records.filter((record) => record.family !== 'CONDITION').map(toSheetAdjustment),
     secretAdjustmentIds: new Set(
@@ -383,48 +387,51 @@ export function projectCharacterSheetForViewer(
       const item = inventoryItems.find((candidate) => candidate.id === itemInstanceId)
       return item ? { ...feature, sourceLabel: item.label } : feature
     })
-    return {
-      ...projected,
-      inventory: {
-        ...projected.inventory,
-        items: inventoryItems,
-        containers: projected.inventory.containers?.map((container) => ({
-          ...container,
-          label: inventoryItems.find((item) => item.id === container.id)?.label ?? container.label
-        }))
+    return presentCampaignCharacterText(
+      {
+        ...projected,
+        inventory: {
+          ...projected.inventory,
+          items: inventoryItems,
+          containers: projected.inventory.containers?.map((container) => ({
+            ...container,
+            label: inventoryItems.find((item) => item.id === container.id)?.label ?? container.label
+          }))
+        },
+        extras: {
+          ...projected.extras,
+          items: extras
+        },
+        actions: {
+          ...projected.actions,
+          items: actions
+        },
+        reference: {
+          ...projected.reference,
+          features: referenceFeatures
+        },
+        resources: {
+          ...projected.resources,
+          items: resources
+        },
+        spells: {
+          ...projected.spells,
+          activeGroups,
+          spells
+        },
+        notes: {
+          ...projected.notes,
+          notes: undefined,
+          groups: undefined,
+          items: undefined
+        },
+        meta: {
+          ...projected.meta,
+          hasBuilderDraft: false
+        }
       },
-      extras: {
-        ...projected.extras,
-        items: extras
-      },
-      actions: {
-        ...projected.actions,
-        items: actions
-      },
-      reference: {
-        ...projected.reference,
-        features: referenceFeatures
-      },
-      resources: {
-        ...projected.resources,
-        items: resources
-      },
-      spells: {
-        ...projected.spells,
-        activeGroups,
-        spells
-      },
-      notes: {
-        ...projected.notes,
-        notes: undefined,
-        groups: undefined,
-        items: undefined
-      },
-      meta: {
-        ...projected.meta,
-        hasBuilderDraft: false
-      }
-    }
+      context.contentMaturity
+    )
   }
   const secretMaximumOverride = context.adjustments.some(
     (adjustment) =>
@@ -438,17 +445,22 @@ export function projectCharacterSheetForViewer(
       adjustment.field === 'MAXIMUM_MODIFIER' &&
       context.secretAdjustmentIds.has(adjustment.id)
   )
-  if (!secretMaximumOverride && !secretMaximumModifier) return projected
-  return {
-    ...projected,
-    overview: {
-      ...projected.overview,
-      ...(secretMaximumOverride ? { maxHitPointsOverride: null } : {}),
-      ...(secretMaximumModifier
-        ? { maxHitPointsModifier: 0, maxHitPointsModifierAdjustmentId: null }
-        : {})
-    }
+  if (!secretMaximumOverride && !secretMaximumModifier) {
+    return presentCampaignCharacterText(projected, context.contentMaturity)
   }
+  return presentCampaignCharacterText(
+    {
+      ...projected,
+      overview: {
+        ...projected.overview,
+        ...(secretMaximumOverride ? { maxHitPointsOverride: null } : {}),
+        ...(secretMaximumModifier
+          ? { maxHitPointsModifier: 0, maxHitPointsModifierAdjustmentId: null }
+          : {})
+      }
+    },
+    context.contentMaturity
+  )
 }
 
 export function projectCharacterRestForViewer(
@@ -456,14 +468,17 @@ export function projectCharacterRestForViewer(
   context: CharacterSheetCampaignContext
 ): CharacterRestPreviewResponseDto {
   if (context.viewer === 'CAMPAIGN_OWNER') {
-    return {
-      ...preview,
-      hitPoints: {
-        ...preview.hitPoints,
-        maximumHitPointModifier: 0,
-        canResetMaximumHitPointModifier: false
-      }
-    }
+    return presentCampaignCharacterText(
+      {
+        ...preview,
+        hitPoints: {
+          ...preview.hitPoints,
+          maximumHitPointModifier: 0,
+          canResetMaximumHitPointModifier: false
+        }
+      },
+      context.contentMaturity
+    )
   }
   if (
     !context.adjustments.some(
@@ -473,15 +488,18 @@ export function projectCharacterRestForViewer(
         context.secretAdjustmentIds.has(adjustment.id)
     )
   )
-    return preview
-  return {
-    ...preview,
-    hitPoints: {
-      ...preview.hitPoints,
-      maximumHitPointModifier: 0,
-      canResetMaximumHitPointModifier: false
-    }
-  }
+    return presentCampaignCharacterText(preview, context.contentMaturity)
+  return presentCampaignCharacterText(
+    {
+      ...preview,
+      hitPoints: {
+        ...preview.hitPoints,
+        maximumHitPointModifier: 0,
+        canResetMaximumHitPointModifier: false
+      }
+    },
+    context.contentMaturity
+  )
 }
 
 export function filterCharacterHistoryForViewer(

@@ -62,6 +62,21 @@ export const queryKeys = {
     content: (campaignId: string) => ['campaigns', campaignId, 'content'] as const
   },
 
+  socialHub: {
+    all: () => ['social-hub'] as const,
+    eligibility: () => ['social-hub', 'eligibility'] as const,
+    profile: (profilePublicId: string) => ['social-hub', 'profiles', profilePublicId] as const,
+    discovery: (filters: object) => ['social-hub', 'discovery', filters] as const,
+    listing: (listingPublicId: string) => ['social-hub', 'listings', listingPublicId] as const,
+    listingsMine: () => ['social-hub', 'listings', 'mine'] as const,
+    applicationsMine: () => ['social-hub', 'applications', 'mine'] as const,
+    applicationsForListing: (listingPublicId: string) =>
+      ['social-hub', 'applications', 'listing', listingPublicId] as const,
+    invitationsReceived: () => ['social-hub', 'invitations', 'received'] as const,
+    blocks: () => ['social-hub', 'blocks'] as const,
+    moderationQueue: () => ['social-hub', 'moderation', 'queue'] as const
+  },
+
   encounters: {
     detail: (encounterId: string) => ['encounters', encounterId] as const,
     timeline: (encounterId: string) => ['encounters', encounterId, 'timeline'] as const,

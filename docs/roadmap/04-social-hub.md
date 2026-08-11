@@ -1,34 +1,41 @@
 # Phase 04 — Social Hub and free table formation
 
-> **Status:** planned
-> **Depends on:** [Phase 03](03-campaign-core.md) and the current authenticated account/profile baseline; notification integration follows [Phase 05](05-live-campaign-play.md)
+> **Status:** implemented
+> **Depends on:** [Phase 03](03-campaign-core.md) and the current authenticated account/profile baseline; notification integration follows [Phase 05](05-notifications-and-delivery.md)
 > **Unlocks:** public table discovery and the paid-table extension
-> **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md)
+> **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0008](../adr/0008-ruleset-identity-and-content-binding.md), [0014](../adr/0014-social-projection-and-tokenless-admission.md), [0015](../adr/0015-campaign-format-copy-and-maturity-presentation.md)
 
 ## Goal
 
-Launch a moderated, adults-only table-formation service for private and public free Campaigns and one-shots. Hosts may invite directly or publish a structured listing; players search, filter, apply, and receive a decision; accepted applicants become Campaign members. Phase 06 later gives one-shot Campaigns a saved Encounter play surface.
+Launch a moderated, adults-only table-formation service for private and public free Campaigns in explicit One-shot or Ongoing formats. Hosts may invite directly or publish a structured listing; players search, filter, apply, and receive a decision; accepted applicants become Campaign members. Both formats use the same Campaign tools, and repeat one-shots begin from a fresh Campaign copy.
 
-## Current starting point
+## Implemented boundary
 
-- Accounts have a changeable, database-canonical username; email remains private. Public profile visibility beyond that username is not yet a complete product contract.
-- Campaign membership and invitations arrive in Phase 03; saved standalone Encounters do not yet exist.
-- No listing, application, seat, schedule, discovery, blocking, reporting, or moderation domain exists.
-- No external search service exists, and beta scale does not require one.
+- Browsing is authenticated and gated by one-time 18+/US self-attestation. The server uses a submitted birth date once to calculate 18+, discards it, and stores only the adult attestation timestamp. This is not age or location verification.
+- Public Social profiles expose only a random UUID and current username. Email, bio, account IDs, and account metadata remain private.
+- Campaigns are uniformly private. A separate Social listing owns invitation-only or public table formation and never grants Campaign access.
+- Campaign owns format, tone, and maturity. Social stores only the indexed projection needed for discovery and masks Standard shared/public text before serialization.
+- Product invitations are username-bound inbox records. Their UUIDs are identifiers, not bearer grants; link/email invite kinds and token storage are removed.
+- PostgreSQL owns discovery, indexed filters, deterministic cursors, durable rate limits, and admission locks. There is no external search, queue, or cache.
 
 ## Requirements
 
-- Listings include owner/GM, system/ruleset, Campaign or one-shot type, tone, adult age band, timezone, schedule summary, seat capacity/availability, language if approved, content guidance, selected table-safety practices, free/paid state, and nullable price metadata.
-- Phase 04 permits publishing free listings only. Paid state and price exist only where needed to avoid a destructive Phase 09 migration; paid activation remains server-disabled.
+- Listings derive title, Campaign format, one to three tone tags, optional tone details, and maturity from their Campaign. They own system/ruleset, play mode, schedule, coarse location, seat capacity, content guidance, expectations, safety practices, free/paid state, and nullable price metadata.
+- English is the only supported launch language. Social DTOs and discovery filters do not expose a language field.
+- One-shot listings permit flexible or one-time schedules, not recurring schedules. Converting an open recurring listing to One-shot is rejected until it is closed or rescheduled.
+- Owner-only Campaign copying carries reusable metadata, approved rules/content, attunement overrides, and Campaign-level notebook preparation into a fresh Campaign. It does not carry members, Sessions, run state, chat, inventory, invitations, applications, or a Social listing.
+- Phase 04 permits publishing free listings only. Paid state and price exist only where needed to avoid a destructive Phase 10 migration; paid activation remains server-disabled.
 - Search supports indexed filters and deterministic pagination using PostgreSQL.
 - Applications have explicit lifecycle: submitted, withdrawn, accepted, declined, expired, or blocked.
 - Acceptance consumes capacity safely and creates or prepares the appropriate Campaign membership/invitation.
 - Blocking prevents future interaction and discovery according to a documented policy.
 - Reporting supports listing, profile, and application concerns with reason, evidence metadata, status, moderator action, and audit.
 - Before acceptance, applicants can review the Campaign's player-facing expectations: attendance policy, allowed content/rules, tone, table conduct, content boundaries, and how the selected safety practice works. Do not collect private explanations for a boundary in a public listing.
-- Social surfaces are 18+ and US-only at launch; do not represent this assumption as age assurance.
-- Responsive web supports discovery, applications, invitation links, and listing administration. Native consumes these contracts only after the web viability gate.
-- When Phase 05 lands, application and membership events create its durable web inbox notifications. Records contain no sensitive copied application text and blocked parties cannot use them as a side channel.
+- Social surfaces are 18+ and US-only at launch; do not represent the birth-date prompt or attestation timestamp as age assurance.
+- The private Social viewing preference defaults to Standard. Selecting Mature in user settings requires 18+ self-attestation when none is on file; it does not waive the separate US requirement for Social access.
+- Standard Campaign shared/public fields are masked server-side with asterisks for every viewer, including their author and GM. Mature Social projections remain masked unless viewed by the Campaign owner or an adult-attested user who selected Mature; private authoring, author-owned private notes, and audited moderation evidence retain original text.
+- Responsive web supports discovery, applications, invitation inbox records, and listing administration. Native consumes these contracts only after the web viability gate.
+- Phase 05 turns application and invitation events into Knock-backed inbox notifications and preference-controlled email. Records contain no sensitive copied application text and blocked parties cannot use them as a side channel.
 
 ## Design
 
@@ -65,22 +72,39 @@ Social Hub authorizes public discovery separately from private Campaign/Encounte
 - Repeated acceptance creates one effective membership/invitation.
 - Blocking closes every documented interaction and notification path.
 - Report review and moderator action are audited.
-- Paid listings cannot be published until Phase 09 enables them.
+- Paid listings cannot be published until Phase 10 enables them.
 - A listing cannot be published without player-facing expectations and at least one selected safety practice; those disclosures remain available after acceptance.
+- Campaign name changes synchronize listing search data without expiring pending admission; format, tone, and maturity changes are material and expire pending applications and invitations.
+- Standard projections do not expose unmasked sentinel language through API DTOs, SSR, mutation responses, Realtime payloads, logs, or telemetry.
 - Responsive web application and membership status agree.
 
 ## Out of scope
 
 - Payments, paid-seat checkout, native clients, reviews, ratings, comments, direct messages, algorithmic recommendation, minors, identity verification, background checks, voice/video, and external search infrastructure.
 
-## Questions for the phase subplan
+## Locked launch policy
 
-- Is browsing anonymous or authenticated-only, and which profile fields are public?
-- What schedule model is required: free text, recurring structured slots, or both?
-- Is application text visible to all Campaign GMs or owner-only?
-- What happens to accepted applicants when a listing closes, changes schedule, or is moderated?
-- Which block direction and existing-Campaign exceptions are required?
-- Who moderates launch content, and what response/appeal expectations are promised?
+- Browsing is authenticated-only. Public identity is the Social profile UUID plus username.
+- Schedules are flexible, one-time, or weekly/biweekly recurring, always with an IANA timezone and plain-language summary. One-shot Campaigns exclude recurring schedules.
+- Application text is visible only to its applicant, the sole Campaign owner, and a superadmin opening report evidence through the audited mutation.
+- Accepted Campaign membership survives listing closure, edits, moderation removal, and ownership transfer. Submitted applications and pending invitations do not.
+- Blocks are directional records enforced symmetrically in Social Hub. They do not alter existing Campaign membership, chat, or access.
+- Current superadmins moderate launch content. Phase 04 promises no response SLA or in-product appeal workflow.
+
+## Privacy matrix
+
+| Data                                                                        | Applicant                                         | Campaign owner                       | Other eligible user                               | Superadmin                          |
+| --------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------ | ------------------------------------------------- | ----------------------------------- |
+| Social profile UUID and username                                            | visible unless blocked                            | visible unless blocked               | visible unless blocked                            | visible                             |
+| Open public listing projection                                              | Standard masked; Mature follows viewer preference | Standard masked; own Mature original | Standard masked; Mature follows viewer preference | visible; evidence access is audited |
+| Private, draft, closed, or hidden listing                                   | no                                                | own listing only                     | no                                                | report evidence only                |
+| Application message and expectations snapshot                               | own application                                   | masked for Standard listings         | no                                                | audited report evidence only        |
+| Campaign ID, route, roster, chat, exact venue, email, bio, account metadata | no Social access                                  | ordinary Campaign authority only     | no                                                | no Social projection                |
+| Report details and captured evidence                                        | receipt only                                      | no                                   | no                                                | audited evidence mutation only      |
+
+Phase 05 adds durable Knock inbox notifications and preference-controlled email for invitation and application decisions. Those records
+must reference source UUIDs, reauthorize destinations when read, omit application text, and apply the
+same symmetric block predicate. Phase 04 adds no event bus, notification table, or compatibility stub.
 
 ## New-session instruction
 

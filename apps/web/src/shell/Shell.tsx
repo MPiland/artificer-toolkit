@@ -13,7 +13,17 @@ import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Fragment, type ReactNode, useMemo, useRef, useState } from 'react'
-import { BookOpen, LogOut, Monitor, Moon, PlusCircle, Search, Settings, Sun } from 'lucide-react'
+import {
+  BookOpen,
+  LogOut,
+  Monitor,
+  Moon,
+  PlusCircle,
+  Search,
+  Settings,
+  Sun,
+  UsersRound
+} from 'lucide-react'
 import clsx from 'clsx'
 import IUser from '#assets/icons/IUser'
 import { api } from '#app/lib/api'
@@ -77,7 +87,7 @@ export function Shell({
   )
   const libraryItems = useMemo(
     () => [
-      ...toNavigationMenuItems(navigation, currentPath),
+      ...toNavigationMenuItems(navigation, currentPath).filter((item) => item.href !== '/social'),
       ...(libraryImportEnabled
         ? [
             {
@@ -93,15 +103,17 @@ export function Shell({
     [currentPath, libraryImportEnabled, navigation]
   )
   const createItems = useMemo(() => toCreateMenuItems(navigation), [navigation])
+  const socialHubActive = currentPath === '/social' || currentPath.startsWith('/social/')
   const mobileFooterItems = useMemo(
     () =>
       toMobileFooterItems({
         accountMenuContent: <AccountMenuItems />,
         createItems,
         libraryItems,
-        onSearchOpen: openSearch
+        onSearchOpen: openSearch,
+        socialHubActive
       }),
-    [openSearch, createItems, libraryItems]
+    [openSearch, createItems, libraryItems, socialHubActive]
   )
   const hasMobileFooter = usesOverlayRail && hasLibraryNavigation
   const authoring = isAuthoringPath(currentPath)
@@ -109,7 +121,11 @@ export function Shell({
   if (!authoring) returnHrefRef.current = currentHref
   const usesWideContent = isCharacterSheetPath(currentPath)
   const appNavigationActions = hasLibraryNavigation ? (
-    <AppNavigationMenus createItems={createItems} libraryItems={libraryItems} />
+    <AppNavigationMenus
+      createItems={createItems}
+      libraryItems={libraryItems}
+      socialHubActive={socialHubActive}
+    />
   ) : null
   const content = authoring ? (
     <main className={styles.authoringMain} data-testid='app-shell-main'>
@@ -278,10 +294,12 @@ function MobileSearchDrawer({ onClose, opened }: { onClose: () => void; opened: 
 
 function AppNavigationMenus({
   createItems,
-  libraryItems
+  libraryItems,
+  socialHubActive
 }: {
   createItems: readonly NavigationMenuItem[]
   libraryItems: readonly NavigationMenuItem[]
+  socialHubActive: boolean
 }) {
   return (
     <Group gap='xs' wrap='nowrap'>
@@ -295,6 +313,15 @@ function AppNavigationMenus({
         items={createItems}
         label='Create'
       />
+      <UnstyledButton
+        component={Link}
+        to='/social'
+        aria-current={socialHubActive ? 'page' : undefined}
+        className={clsx(styles.headerMenuButton, socialHubActive && styles.headerMenuButtonActive)}
+      >
+        <UsersRound size={15} aria-hidden='true' />
+        <span>Social Hub</span>
+      </UnstyledButton>
     </Group>
   )
 }
@@ -369,7 +396,7 @@ function toCreateMenuItems(navigation: AppShellNavGroup[]): readonly NavigationM
   return navigation.flatMap((group) =>
     group.items
       .filter(hasHref)
-      .filter((item) => item.href !== '/home')
+      .filter((item) => item.href !== '/home' && item.href !== '/social')
       .map((item) => ({
         href: `${item.href}/new`,
         id: `${item.href}/new`,
@@ -382,12 +409,14 @@ function toMobileFooterItems({
   accountMenuContent,
   createItems,
   libraryItems,
-  onSearchOpen
+  onSearchOpen,
+  socialHubActive
 }: {
   accountMenuContent: ReactNode
   createItems: readonly NavigationMenuItem[]
   libraryItems: readonly NavigationMenuItem[]
   onSearchOpen: () => void
+  socialHubActive: boolean
 }): readonly MobileAppFooterItem[] {
   return [
     {
@@ -401,6 +430,13 @@ function toMobileFooterItems({
       id: 'create',
       label: 'Create',
       menuItems: toMobileMenuItems(createItems)
+    },
+    {
+      href: '/social',
+      icon: 'social',
+      id: 'social',
+      isActive: socialHubActive,
+      label: 'Social'
     },
     {
       icon: 'search',

@@ -100,6 +100,9 @@ export function useCampaignRealtime(campaign: CampaignDetailDto, currentUserId: 
               queryKey: queryKeys.campaigns.detail(campaign.id)
             })
             void queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.list() })
+            if (entity === 'CAMPAIGN') {
+              void queryClient.invalidateQueries({ queryKey: queryKeys.socialHub.all() })
+            }
           }
         })
         .subscribe()

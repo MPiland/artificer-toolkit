@@ -5,11 +5,13 @@ import {
   mapCampaign,
   type CampaignAuthorityRecord,
   type CampaignListRecord,
+  type CampaignContentMaturity,
+  type CampaignFormat,
   type CampaignMembershipStatus,
   type CampaignRecord,
   type CampaignRole,
   type CampaignStatus,
-  type CampaignVisibility,
+  type CampaignToneTag,
   type RawCampaignListRow,
   type RawCampaignRow,
   type Timestamp
@@ -40,7 +42,7 @@ export function createCampaignLifecycleRepository(db: DBLike) {
           on route.subject_kind = 'CHARACTER' and route.subject_id = character.id
         where membership.user_id = ${userId}::uuid and membership.status = 'ACTIVE'
         order by case when campaign.status = 'ACTIVE' then 0 else 1 end,
-          campaign.updated_at desc,
+          campaign.created_at desc,
           campaign.id desc
       `.execute(db)
       return result.rows.map((row) => ({
@@ -139,8 +141,7 @@ export function createCampaignLifecycleRepository(db: DBLike) {
         ? mapCampaign({
             ...row,
             public_id: route.publicId,
-            status: row.status as CampaignStatus,
-            visibility: row.visibility as CampaignVisibility
+            status: row.status as CampaignStatus
           })
         : null
     },
@@ -152,17 +153,17 @@ export function createCampaignLifecycleRepository(db: DBLike) {
       )
       return Number(result.rows[0]?.count ?? 0)
     },
-    async countPublicOwned(userId: string): Promise<number> {
-      const result = await sql<{
-        count: string | number
-      }>`select count(*) as count from campaigns where owner_user_id = ${userId}::uuid and status = 'ACTIVE' and visibility = 'PUBLIC'`.execute(
-        db
-      )
-      return Number(result.rows[0]?.count ?? 0)
-    },
     async createCampaign(
       ownerUserId: string,
-      input: { name: string; description: string | null; visibility: CampaignVisibility }
+      input: {
+        name: string
+        description: string | null
+        format: CampaignFormat
+        tone_tags: CampaignToneTag[]
+        tone_details: string | null
+        content_maturity: CampaignContentMaturity
+        attunement_slot_override?: number | null
+      }
     ): Promise<CampaignRecord> {
       const row = await db
         .insertInto('campaigns')
@@ -176,8 +177,7 @@ export function createCampaignLifecycleRepository(db: DBLike) {
       return mapCampaign({
         ...row,
         public_id: route.publicId,
-        status: row.status as CampaignStatus,
-        visibility: row.visibility as CampaignVisibility
+        status: row.status as CampaignStatus
       })
     },
     async updateCampaign(
@@ -186,8 +186,11 @@ export function createCampaignLifecycleRepository(db: DBLike) {
       input: {
         name?: string
         description?: string | null
+        format?: CampaignFormat
+        tone_tags?: CampaignToneTag[]
+        tone_details?: string | null
+        content_maturity?: CampaignContentMaturity
         attunement_slot_override?: number | null
-        visibility?: CampaignVisibility
       }
     ): Promise<CampaignRecord | null> {
       const row = await db
@@ -207,8 +210,7 @@ export function createCampaignLifecycleRepository(db: DBLike) {
         ? mapCampaign({
             ...row,
             public_id: route.publicId,
-            status: row.status as CampaignStatus,
-            visibility: row.visibility as CampaignVisibility
+            status: row.status as CampaignStatus
           })
         : null
     },
@@ -233,12 +235,35 @@ export function createCampaignLifecycleRepository(db: DBLike) {
             subjectId: campaignId
           })
         : null
+      if (row) {
+        const now = new Date().toISOString()
+        await sql`
+          update social_listings
+          set status = 'CLOSED', version = version + 1, updated_at = ${now}::timestamptz
+          where campaign_id = ${campaignId}::uuid and status <> 'CLOSED'
+        `.execute(db)
+        await sql`
+          update social_applications application
+          set status = 'EXPIRED', expired_at = ${now}::timestamptz,
+            version = version + 1, updated_at = ${now}::timestamptz
+          from social_listings listing
+          where listing.campaign_id = ${campaignId}::uuid
+            and application.listing_id = listing.id and application.status = 'SUBMITTED'
+        `.execute(db)
+        await sql`
+          update campaign_invites invite
+          set status = 'EXPIRED', expired_at = ${now}::timestamptz,
+            version = version + 1, updated_at = ${now}::timestamptz
+          from social_listings listing
+          where listing.campaign_id = ${campaignId}::uuid
+            and invite.listing_id = listing.id and invite.status = 'PENDING'
+        `.execute(db)
+      }
       return row && route
         ? mapCampaign({
             ...row,
             public_id: route.publicId,
-            status: row.status as CampaignStatus,
-            visibility: row.visibility as CampaignVisibility
+            status: row.status as CampaignStatus
           })
         : null
     },

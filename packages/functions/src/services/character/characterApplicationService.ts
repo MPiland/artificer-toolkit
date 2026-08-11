@@ -80,6 +80,10 @@ import {
   projectCharacterSheetForViewer,
   resolveCharacterSheetCampaignContext
 } from './campaignCharacterSheet.js'
+import {
+  presentCampaignCharacterHistory,
+  presentCampaignCharacterText
+} from './campaignCharacterPresentation.js'
 import { materializeCharacterStartingEquipment } from './characterStartingEquipmentState.js'
 
 type CharacterBuilderMode = 'create' | 'edit'
@@ -708,20 +712,23 @@ export async function getCharacterSheetPanelForUser(
     spellCustomizations,
     additionalConditions: getVisibleCampaignConditions(campaignContext)
   })
-  return buildCharacterSheetPanel({
-    character,
-    resolution,
-    sheet: projectCharacterSheetForViewer(sheet, campaignContext),
-    adjustments: getCharacterSheetDisplayAdjustments(adjustments, campaignContext),
-    engineAdjustments: mergeCampaignSheetAdjustments(adjustments, campaignContext.adjustments),
-    movementDisplayPreference,
-    target,
-    editable:
-      campaignContext.viewer === 'CHARACTER_OWNER' ||
-      (campaignContext.viewer === 'CAMPAIGN_OWNER' &&
-        campaignContext.campaignStatus === 'ACTIVE' &&
-        target.kind === 'SPELLS')
-  })
+  return presentCampaignCharacterText(
+    buildCharacterSheetPanel({
+      character,
+      resolution,
+      sheet: projectCharacterSheetForViewer(sheet, campaignContext),
+      adjustments: getCharacterSheetDisplayAdjustments(adjustments, campaignContext),
+      engineAdjustments: mergeCampaignSheetAdjustments(adjustments, campaignContext.adjustments),
+      movementDisplayPreference,
+      target,
+      editable:
+        campaignContext.viewer === 'CHARACTER_OWNER' ||
+        (campaignContext.viewer === 'CAMPAIGN_OWNER' &&
+          campaignContext.campaignStatus === 'ACTIVE' &&
+          target.kind === 'SPELLS')
+    }),
+    campaignContext.contentMaturity
+  )
 }
 
 export async function resolveCharacterForUser(
@@ -920,8 +927,11 @@ export async function getCharacterHistoryForUser(
   }
   const campaignContext = await resolveCharacterSheetCampaignContext(db, character, userId)
   const events = await createCharacterEventRepository(db).listByCharacter(resolvedCharacterId)
-  return buildCharacterHistoryView(
-    filterCharacterHistoryForViewer(events, character.userId, campaignContext.viewer),
-    resolvedCharacterId
+  return presentCampaignCharacterHistory(
+    buildCharacterHistoryView(
+      filterCharacterHistoryForViewer(events, character.userId, campaignContext.viewer),
+      resolvedCharacterId
+    ),
+    campaignContext.contentMaturity
   )
 }

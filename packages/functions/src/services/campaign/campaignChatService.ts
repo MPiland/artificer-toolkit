@@ -19,6 +19,7 @@ import {
 } from '@artificer-toolkit/schema/api/campaigns'
 import { rollRecordDtoSchema, type RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
+import { presentCampaignPlainText } from '@artificer-toolkit/shared/campaign/textPolicy'
 import type { z } from 'zod'
 import {
   editCampaignChatEntryInputSchema,
@@ -77,23 +78,41 @@ function characterSnapshot(authority: CampaignAuthority, requestedCharacterId?: 
   return authority.assignedCharacter
 }
 
-function mapChatEntry(entry: {
-  id: string
-  campaignId: string
-  room: CampaignRoom
-  kind: 'CHAT' | 'ROLL'
-  mode: CampaignChatMode | null
-  body: string | null
-  rollPayload: unknown
-  authorUserId: string
-  usernameSnapshot: string
-  authorCharacterId: string | null
-  characterNameSnapshot: string | null
-  editedAt: string | null
-  unsentAt: string | null
-  createdAt: string
-  conversationId?: string
-}): CampaignChatEntryDto {
+function presentRoll(
+  value: unknown,
+  maturity: CampaignAuthority['campaign']['contentMaturity']
+): RollRecordDto {
+  const roll = rollRecordDtoSchema.parse(value)
+  return {
+    ...roll,
+    characterLabel: presentCampaignPlainText(roll.characterLabel, maturity),
+    source: {
+      ...roll.source,
+      label: presentCampaignPlainText(roll.source.label, maturity)
+    }
+  }
+}
+
+function mapChatEntry(
+  entry: {
+    id: string
+    campaignId: string
+    room: CampaignRoom
+    kind: 'CHAT' | 'ROLL'
+    mode: CampaignChatMode | null
+    body: string | null
+    rollPayload: unknown
+    authorUserId: string
+    usernameSnapshot: string
+    authorCharacterId: string | null
+    characterNameSnapshot: string | null
+    editedAt: string | null
+    unsentAt: string | null
+    createdAt: string
+    conversationId?: string
+  },
+  maturity: CampaignAuthority['campaign']['contentMaturity']
+): CampaignChatEntryDto {
   return campaignChatEntryDtoSchema.parse({
     id: entry.id,
     campaignId: entry.campaignId,
@@ -101,12 +120,14 @@ function mapChatEntry(entry: {
     room: entry.room,
     kind: entry.kind,
     mode: entry.mode,
-    body: entry.body,
-    roll: entry.rollPayload === null ? null : rollRecordDtoSchema.parse(entry.rollPayload),
+    body: entry.body ? presentCampaignPlainText(entry.body, maturity) : null,
+    roll: entry.rollPayload === null ? null : presentRoll(entry.rollPayload, maturity),
     authorUserId: entry.authorUserId,
     authorUsername: entry.usernameSnapshot,
     characterId: entry.authorCharacterId,
-    characterLabel: entry.characterNameSnapshot,
+    characterLabel: entry.characterNameSnapshot
+      ? presentCampaignPlainText(entry.characterNameSnapshot, maturity)
+      : null,
     editedAt: entry.editedAt,
     unsentAt: entry.unsentAt,
     createdAt: entry.createdAt
@@ -253,7 +274,9 @@ export async function listCampaignChatEntries(
         })
       : { lastReadAt: null, unreadCount: 0 }
   return campaignChatPageDtoSchema.parse({
-    entries: entries.slice(0, limit).map(mapChatEntry),
+    entries: entries
+      .slice(0, limit)
+      .map((entry) => mapChatEntry(entry, authority.campaign.contentMaturity)),
     nextCursor: hasNext ? (entries[limit - 1]?.id ?? null) : null,
     lastReadAt: readState.lastReadAt,
     unreadCount: readState.unreadCount
@@ -390,7 +413,10 @@ export async function sendCampaignChatEntry(
       entry.createdAt,
       entry.conversationId
     )
-  return mapChatEntry(entry)
+  return mapChatEntry(
+    entry,
+    (await resolveCampaignAuthority(db, input.campaignId, userId)).campaign.contentMaturity
+  )
 }
 
 export async function executeCampaignRoll(
@@ -482,7 +508,10 @@ export async function executeCampaignRoll(
       entry.createdAt,
       entry.conversationId
     )
-  return mapChatEntry(entry)
+  return mapChatEntry(
+    entry,
+    (await resolveCampaignAuthority(db, input.campaignId, userId)).campaign.contentMaturity
+  )
 }
 
 export async function insertPreEvaluatedCampaignTableRoll(
@@ -600,7 +629,10 @@ export async function editCampaignChatEntry(
     entry.editedAt ?? entry.createdAt,
     entry.conversationId
   )
-  return mapChatEntry(entry)
+  return mapChatEntry(
+    entry,
+    (await resolveCampaignAuthority(db, input.campaignId, userId)).campaign.contentMaturity
+  )
 }
 
 export async function unsendCampaignChatEntry(
@@ -651,5 +683,8 @@ export async function unsendCampaignChatEntry(
     entry.unsentAt ?? entry.createdAt,
     entry.conversationId
   )
-  return mapChatEntry(entry)
+  return mapChatEntry(
+    entry,
+    (await resolveCampaignAuthority(db, input.campaignId, userId)).campaign.contentMaturity
+  )
 }

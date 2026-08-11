@@ -91,7 +91,7 @@ const {
 
 function playerAuthority() {
   return {
-    campaign: { id: ids.campaign, status: 'ACTIVE' as const },
+    campaign: { id: ids.campaign, status: 'ACTIVE' as const, contentMaturity: 'MATURE' as const },
     membership: { role: 'PLAYER' as const, status: 'ACTIVE' as const },
     assignedCharacter: { id: ids.character, label: 'Nia', systemId: ids.campaign }
   }
@@ -275,6 +275,41 @@ describe('Campaign inventory service', () => {
         { amount: 5, containerId: null }
       ]
     })
+  })
+
+  it('masks shared inventory labels for a Standard Campaign', async () => {
+    mocks.authority.mockResolvedValue({
+      ...playerAuthority(),
+      campaign: { ...playerAuthority().campaign, contentMaturity: 'STANDARD' }
+    })
+    mocks.inventory.getInventoryByOwnerId.mockResolvedValueOnce({
+      owner: {
+        id: ids.campaignOwner,
+        kind: 'CAMPAIGN',
+        campaignId: ids.campaign,
+        characterId: null,
+        version: 2
+      },
+      items: [
+        {
+          id: ids.item,
+          equipmentId: ids.item,
+          equipmentLabel: 'Sword',
+          customName: 'shit sword',
+          quantity: 1,
+          containerId: null,
+          isContainer: false
+        }
+      ],
+      currencies: []
+    })
+
+    await expect(
+      getCampaignInventory({} as DBLike, ids.user, ids.campaign, {
+        kind: 'CAMPAIGN',
+        campaignId: ids.campaign
+      })
+    ).resolves.toMatchObject({ items: [{ label: '**** sword' }] })
   })
 
   it('prevents players from reading another assigned Character inventory', async () => {

@@ -10,7 +10,7 @@ export const root = style({
       zIndex: 2,
       display: 'grid',
       flexShrink: 0,
-      gridTemplateColumns: 'repeat(auto-fit, minmax(4rem, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(3.25rem, 1fr))',
       gap: foundationVars.space[1],
       marginBlockStart: 'auto',
       padding: `${foundationVars.space[1]} ${foundationVars.space[2]} calc(${foundationVars.space[1]} + env(safe-area-inset-bottom, 0px))`,
