@@ -2,9 +2,6 @@
   "name": "artificer-toolkit",
   "version": "0.0.1",
   "private": true,
-  "resolutions": {
-    "sanitize-html": "2.17.5"
-  },
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -13,6 +10,9 @@
   "scripts": {
     "dev:prepare": "yarn build:apis",
     "dev": "yarn dev:prepare && turbo run dev --filter=@artificer-toolkit/web",
+    "novu:bridge": "netlify dev --offline --filter @artificer-toolkit/web --dir apps/web/dist/client --port 8888 --no-open",
+    "novu:serve": "yarn novu:bridge & novu dev --port 8888 --route /.netlify/functions/novu",
+    "novu:dev": "yarn build:web && yarn novu:serve",
     "turbo": "turbo",
     "db:reset:remote": "yarn workspace @artificer-toolkit/db db:reset:remote",
     "social:retention": "yarn workspace @artificer-toolkit/db social:retention",
@@ -97,6 +97,7 @@
     "@typescript/analyze-trace": "^0.11.0",
     "gitpick": "^5.4.1",
     "netlify-cli": "^26.2.0",
+    "novu": "2.20.1",
     "oxfmt": "^0.52.0",
     "oxlint": "^1.67.0",
     "oxlint-tsgolint": "^0.23.0",
@@ -109,6 +110,9 @@
     "tsx": "^4.22.4",
     "turbo": "^2.9.16",
     "vitest": "^4.1.9"
+  },
+  "resolutions": {
+    "sanitize-html": "2.17.5"
   },
   "packageManager": "yarn@4.17.1"
 }

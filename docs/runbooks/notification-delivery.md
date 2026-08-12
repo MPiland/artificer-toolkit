@@ -16,18 +16,13 @@ These are deployment prerequisites, not checks completed by repository validatio
 
 ## Develop and sync workflows
 
-Run the app and root Netlify Functions locally from the repository root:
+From the repository root, build the app and start both the Netlify Framework Bridge and Novu Local Studio:
 
 ```sh
-yarn build:web
-yarn netlify dev --offline --filter @artificer-toolkit/web --dir apps/web/dist/client --port 8888 --no-open
+yarn novu:dev
 ```
 
-In another terminal, point Novu Local Studio at that locally served Bridge:
-
-```sh
-npx novu@latest dev --port 8888 --route /.netlify/functions/novu
-```
+Keep that terminal open while editing or syncing workflows. The command runs both development processes together; press Ctrl+C to stop them.
 
 After deploying the Bridge, sync its code-first workflows to Novu Cloud Development:
 
