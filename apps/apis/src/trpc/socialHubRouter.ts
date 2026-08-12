@@ -1,5 +1,4 @@
 import {
-  acceptSocialEligibility,
   closeSocialListing,
   createSocialBlock,
   createSocialListing,
@@ -10,6 +9,7 @@ import {
   getSocialListing,
   getOwnedSocialListing,
   getSocialProfile,
+  initializeSocialProfile,
   listOwnedSocialListings,
   listOwnSocialApplications,
   listSocialApplicationsForListing,
@@ -36,11 +36,10 @@ export const socialHubRouter = createTRPCRouter({
       .query(({ ctx }) =>
         withExplicitAuthorityDb(ctx, (db, userId) => getSocialEligibility(db, userId))
       ),
-    accept: authenticatedProcedure
-      .input(socialContracts.acceptSocialEligibilityInputSchema)
+    initialize: authenticatedProcedure
       .output(socialContracts.socialEligibilityDtoSchema)
-      .mutation(({ ctx, input }) =>
-        withExplicitAuthorityDb(ctx, (db, userId) => acceptSocialEligibility(db, userId, input))
+      .mutation(({ ctx }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) => initializeSocialProfile(db, userId))
       )
   }),
   preferences: createTRPCRouter({

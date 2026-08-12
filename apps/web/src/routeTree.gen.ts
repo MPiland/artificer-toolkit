@@ -16,6 +16,7 @@ import { Route as GuestIndexRouteImport } from './routes/_guest/index'
 import { Route as GuestAuthRouteImport } from './routes/_guest/_auth'
 import { Route as AuthedSocialRouteImport } from './routes/_authed/social'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
+import { Route as AuthedNotificationsRouteImport } from './routes/_authed/notifications'
 import { Route as AuthedVehiclesIndexRouteImport } from './routes/_authed/vehicles/index'
 import { Route as AuthedSystemsIndexRouteImport } from './routes/_authed/systems/index'
 import { Route as AuthedSpellsIndexRouteImport } from './routes/_authed/spells/index'
@@ -131,6 +132,11 @@ const AuthedSocialRoute = AuthedSocialRouteImport.update({
 const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedNotificationsRoute = AuthedNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedVehiclesIndexRoute = AuthedVehiclesIndexRouteImport.update({
@@ -608,6 +614,7 @@ const AuthedCampaignsCampaignPublicIdCampaignSlugSessionsSessionNumberRoute =
 export interface FileRoutesByFullPath {
   '/': typeof GuestIndexRoute
   '/logout': typeof LogoutRoute
+  '/notifications': typeof AuthedNotificationsRoute
   '/settings': typeof AuthedSettingsRouteWithChildren
   '/social': typeof AuthedSocialRouteWithChildren
   '/backgrounds/$backgroundPublicId': typeof AuthedBackgroundsBackgroundPublicIdRouteWithChildren
@@ -698,6 +705,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof GuestIndexRoute
   '/logout': typeof LogoutRoute
+  '/notifications': typeof AuthedNotificationsRoute
   '/backgrounds/$backgroundPublicId': typeof AuthedBackgroundsBackgroundPublicIdRouteWithChildren
   '/backgrounds/new': typeof AuthedBackgroundsNewRoute
   '/campaigns/$campaignPublicId': typeof AuthedCampaignsCampaignPublicIdRouteWithChildren
@@ -782,6 +790,7 @@ export interface FileRoutesById {
   '/_authed': typeof AuthedRouteWithChildren
   '/_guest': typeof GuestRouteWithChildren
   '/logout': typeof LogoutRoute
+  '/_authed/notifications': typeof AuthedNotificationsRoute
   '/_authed/settings': typeof AuthedSettingsRouteWithChildren
   '/_authed/social': typeof AuthedSocialRouteWithChildren
   '/_guest/_auth': typeof GuestAuthRouteWithChildren
@@ -876,6 +885,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/logout'
+    | '/notifications'
     | '/settings'
     | '/social'
     | '/backgrounds/$backgroundPublicId'
@@ -966,6 +976,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/logout'
+    | '/notifications'
     | '/backgrounds/$backgroundPublicId'
     | '/backgrounds/new'
     | '/campaigns/$campaignPublicId'
@@ -1049,6 +1060,7 @@ export interface FileRouteTypes {
     | '/_authed'
     | '/_guest'
     | '/logout'
+    | '/_authed/notifications'
     | '/_authed/settings'
     | '/_authed/social'
     | '/_guest/_auth'
@@ -1194,6 +1206,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthedSettingsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/notifications': {
+      id: '/_authed/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthedNotificationsRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/vehicles/': {
@@ -2124,6 +2143,7 @@ const AuthedVehiclesVehiclePublicIdRouteWithChildren =
   )
 
 interface AuthedRouteChildren {
+  AuthedNotificationsRoute: typeof AuthedNotificationsRoute
   AuthedSettingsRoute: typeof AuthedSettingsRouteWithChildren
   AuthedSocialRoute: typeof AuthedSocialRouteWithChildren
   AuthedBackgroundsBackgroundPublicIdRoute: typeof AuthedBackgroundsBackgroundPublicIdRouteWithChildren
@@ -2163,6 +2183,7 @@ interface AuthedRouteChildren {
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedNotificationsRoute: AuthedNotificationsRoute,
   AuthedSettingsRoute: AuthedSettingsRouteWithChildren,
   AuthedSocialRoute: AuthedSocialRouteWithChildren,
   AuthedBackgroundsBackgroundPublicIdRoute:

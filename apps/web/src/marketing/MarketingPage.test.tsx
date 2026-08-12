@@ -23,12 +23,12 @@ describe('MarketingPage', () => {
     expect(screen.getByTestId('marketing-page')).toBeInTheDocument()
     expect(
       screen.getByRole('heading', {
-        name: 'Create the content, then bring it straight into play.'
+        name: 'Build characters and homebrew you can use at the table.'
       })
     ).toBeInTheDocument()
     expect(
       screen.getByRole('heading', {
-        name: 'Built for real tabletop workflows, not generic content forms'
+        name: 'One place for preparation and play'
       })
     ).toBeInTheDocument()
     if (isMarketingSectionEnabled('#pricing')) {
@@ -50,7 +50,7 @@ describe('MarketingPage', () => {
     expect(signInLinks).toHaveLength(2)
     expect(signInLinks[1]).toHaveAttribute('href', '/sign-in')
     expect(screen.getByRole('button', { name: 'Switch to light mode' })).toBeInTheDocument()
-    expect(screen.getAllByRole('link', { name: 'Get started free' })).toHaveLength(1)
+    expect(screen.getAllByRole('link', { name: 'Create free account' })).toHaveLength(1)
   })
 
   it('removes public registration calls to action when sign-up is disabled', () => {

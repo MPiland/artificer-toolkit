@@ -24,57 +24,54 @@ export function isMarketingSectionEnabled(hash: MarketingSectionHash) {
 
 export const marketingHeroHighlights = [
   {
-    label: 'Create',
-    copy: 'Build homebrew that follows real game structure without fighting the form'
+    label: 'Homebrew',
+    copy: 'Create spells, classes, equipment, creatures, and more one section at a time'
   },
   {
-    label: 'Connect',
-    copy: 'Move from builder to sheet without losing the content you just authored'
+    label: 'Characters',
+    copy: 'Use SRD content and your homebrew in Character Builder'
   },
   {
-    label: 'Play',
-    copy: 'Keep rules, characters, and in-session actions ready when play starts'
+    label: 'At the table',
+    copy: 'Keep actions, spells, resources, and inventory ready during a session'
   }
 ] as const
 
 export const marketingFeatures = [
   {
     audience: 'For players',
-    title: 'Characters stay playable, not just editable',
-    copy: 'Build characters with guided structure, then switch to a dedicated sheet built for actions, spells, resources, and inventory at the table.',
+    title: 'Build a character, then play from the sheet',
+    copy: 'Use guided steps to build your character, then open actions, spells, resources, and inventory on the Character Sheet.',
     bullets: [
-      'Structural builder flow with review steps',
-      'Separate play-state sheet for real session use'
+      'Review your choices before finishing the build',
+      'Track the character during a session'
     ],
     icon: 'character'
   },
   {
     audience: 'For homebrewers',
-    title: 'Homebrew creation keeps complex rules readable',
-    copy: 'Author spells, equipment, races, classes, creatures, and vehicles in organized flows that surface the right structure at the right time.',
-    bullets: [
-      'Sectioned authoring instead of endless forms',
-      'Shared patterns across every major content domain'
-    ],
+    title: 'Author homebrew one section at a time',
+    copy: 'Create spells, equipment, races, classes, creatures, and vehicles without digging through one long form.',
+    bullets: ['Save your work as a draft', 'Review each section before activation'],
     icon: 'scroll'
   },
   {
     audience: 'For reference',
-    title: 'Rules and content stay close to the work',
-    copy: 'Keep SRD material, owned drafts, and copied master data in one place so creators and players can move without losing context.',
+    title: 'Keep SRD rules and your work in one Library',
+    copy: 'Browse SRD content for reference, or copy a read-only entry when you want your own editable version.',
     bullets: [
-      'Fast reference for spells, creatures, items, and rules',
-      'Master content can be copied into owned drafts safely'
+      'Find spells, creatures, equipment, and rules',
+      'Keep SRD content separate from your own version'
     ],
     icon: 'book'
   },
   {
     audience: 'For creators',
-    title: 'Drafts stay separate from playable content',
-    copy: 'Save work in progress, review it in context, and activate it when it is ready without directly editing locked master records.',
+    title: 'Edit drafts without changing active content',
+    copy: 'Save and review changes as a draft, then activate the content when it is ready for play.',
     bullets: [
-      'Clear draft and active states',
-      'Copy master content into an owned draft before editing'
+      'Keep the current version available while you edit',
+      'Choose when the draft replaces it'
     ],
     icon: 'status'
   }

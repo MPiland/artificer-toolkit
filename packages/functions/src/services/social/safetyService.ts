@@ -13,6 +13,10 @@ import type {
   TakeSocialModerationActionInput
 } from '@artificer-toolkit/schema/api/socialHub'
 import {
+  enqueueApplicationSubmittedCancellations,
+  enqueueInvitationReceivedCancellations
+} from '../notifications/notificationService.js'
+import {
   SocialAccessError,
   SocialConflictError,
   SocialNotFoundError,
@@ -55,9 +59,13 @@ export function createSocialBlock(
     if (!(await repository.createSocialBlock(blocker.id, target.id))) {
       throw new SocialConflictError('This Social profile is already blocked.')
     }
-    await Promise.all([
+    const [applicationIds, inviteIds] = await Promise.all([
       repository.blockPendingApplications(blocker.id, target.id, now),
       createCampaignRepository(trx).revokePendingInviteForProfiles(blocker.id, target.id, now)
+    ])
+    await Promise.all([
+      enqueueApplicationSubmittedCancellations(trx, applicationIds, now),
+      enqueueInvitationReceivedCancellations(trx, inviteIds, now)
     ])
     return { profile: mapSocialProfile(target), createdAt: now }
   })
@@ -232,9 +240,13 @@ export function takeSocialModerationAction(
       }
       beforeState.listingModerationStatus = moderationStatus === 'HIDDEN' ? 'VISIBLE' : 'HIDDEN'
       if (moderationStatus === 'HIDDEN') {
-        await Promise.all([
+        const [applicationIds, inviteIds] = await Promise.all([
           repository.expireSubmittedSocialApplications(report.targetListingId, now),
           createCampaignRepository(trx).expirePendingInvites(report.targetListingId, now)
+        ])
+        await Promise.all([
+          enqueueApplicationSubmittedCancellations(trx, applicationIds, now),
+          enqueueInvitationReceivedCancellations(trx, inviteIds, now)
         ])
       }
     } else {
@@ -252,9 +264,13 @@ export function takeSocialModerationAction(
           now
         )
         for (const listingId of listingIds) {
-          await Promise.all([
+          const [applicationIds, inviteIds] = await Promise.all([
             repository.expireSubmittedSocialApplications(listingId, now),
             createCampaignRepository(trx).expirePendingInvites(listingId, now)
+          ])
+          await Promise.all([
+            enqueueApplicationSubmittedCancellations(trx, applicationIds, now),
+            enqueueInvitationReceivedCancellations(trx, inviteIds, now)
           ])
         }
       }

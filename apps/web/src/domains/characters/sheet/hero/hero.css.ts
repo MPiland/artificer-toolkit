@@ -19,7 +19,7 @@ export const hero = style({
         },
         '(max-width: 760px)': {
           alignItems: 'center',
-          gridTemplateColumns: '44px minmax(0, 1fr)',
+          gridTemplateColumns: '44px minmax(0, 1fr) auto',
           gap: '8px',
           padding: '8px 10px'
         }
@@ -215,6 +215,19 @@ export const heroActions = style({
       '@media': {
         '(max-width: 760px)': {
           alignSelf: 'center',
+          justifyContent: 'flex-end',
+          justifySelf: 'end'
+        }
+      }
+    }
+  }
+})
+
+export const heroActionsMobileRow = style({
+  '@layer': {
+    [app]: {
+      '@media': {
+        '(max-width: 760px)': {
           gridColumn: '1 / -1',
           justifyContent: 'center',
           justifySelf: 'stretch'

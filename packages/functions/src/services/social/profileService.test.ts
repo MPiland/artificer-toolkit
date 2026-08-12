@@ -4,7 +4,7 @@ import type { DBLike, SocialProfileRecord } from '@artificer-toolkit/db'
 const mocks = vi.hoisted(() => ({
   findSocialProfileByUser: vi.fn(),
   setSocialContentPreference: vi.fn(),
-  attestSocialEligibility: vi.fn()
+  ensureSocialProfile: vi.fn()
 }))
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => {
@@ -12,7 +12,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   return { ...actual, createSocialRepository: () => mocks }
 })
 
-const { acceptSocialEligibility, updateSocialContentPreference } =
+const { initializeSocialProfile, updateSocialContentPreference } =
   await import('./profileService.js')
 
 const profile = {
@@ -20,7 +20,6 @@ const profile = {
   userId: '00000000-0000-4000-8000-000000000002',
   username: 'player-one',
   adultAttestedAt: null,
-  usAttestedAt: null,
   contentPreference: 'STANDARD',
   status: 'ACTIVE',
   version: 0,
@@ -65,7 +64,7 @@ describe('Social profile preferences', () => {
         contentPreference: 'MATURE',
         birthDate: '2020-01-01'
       })
-    ).rejects.toThrow('Mature content requires age verification')
+    ).rejects.toThrow('Mature content requires confirming that you are at least 18')
 
     expect(mocks.setSocialContentPreference).not.toHaveBeenCalled()
   })
@@ -90,16 +89,13 @@ describe('Social profile preferences', () => {
     )
   })
 
-  it('lets an adult-attested user complete the separate US Social gate', async () => {
-    const attested = { ...profile, adultAttestedAt: '2026-08-10T12:00:00.000Z' }
-    mocks.findSocialProfileByUser.mockResolvedValue(attested)
-    mocks.attestSocialEligibility.mockResolvedValue({
-      ...attested,
-      usAttestedAt: '2026-08-10T12:01:00.000Z'
-    })
+  it('initializes a Standard-viewing Social profile without adult attestation', async () => {
+    mocks.ensureSocialProfile.mockResolvedValue(profile)
 
-    await acceptSocialEligibility({} as DBLike, profile.userId, { isCurrentlyInUs: true })
+    const result = await initializeSocialProfile({} as DBLike, profile.userId)
 
-    expect(mocks.attestSocialEligibility).toHaveBeenCalledWith(profile.userId, expect.any(String))
+    expect(result.eligible).toBe(true)
+    expect(result.adultAttestedAt).toBeNull()
+    expect(mocks.ensureSocialProfile).toHaveBeenCalledWith(profile.userId)
   })
 })

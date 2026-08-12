@@ -7,11 +7,11 @@
 
 ## Goal
 
-Launch a moderated, adults-only table-formation service for private and public free Campaigns in explicit One-shot or Ongoing formats. Hosts may invite directly or publish a structured listing; players search, filter, apply, and receive a decision; accepted applicants become Campaign members. Both formats use the same Campaign tools, and repeat one-shots begin from a fresh Campaign copy.
+Launch a moderated table-formation service for authenticated users 13 and older to form private and public free Campaigns in explicit One-shot or Ongoing formats. Hosts may invite directly or publish a structured listing; players search, filter, apply, and receive a decision; accepted applicants become Campaign members. Both formats use the same Campaign tools, and repeat one-shots begin from a fresh Campaign copy.
 
 ## Implemented boundary
 
-- Browsing is authenticated and gated by one-time 18+/US self-attestation. The server uses a submitted birth date once to calculate 18+, discards it, and stores only the adult attestation timestamp. This is not age or location verification.
+- Browsing is authenticated. Public launch Terms require users to represent that they are at least 13; registration does not collect a birth date or perform age or location verification.
 - Public Social profiles expose only a random UUID and current username. Email, bio, account IDs, and account metadata remain private.
 - Campaigns are uniformly private. A separate Social listing owns invitation-only or public table formation and never grants Campaign access.
 - Campaign owns format, tone, and maturity. Social stores only the indexed projection needed for discovery and masks Standard shared/public text before serialization.
@@ -31,11 +31,11 @@ Launch a moderated, adults-only table-formation service for private and public f
 - Blocking prevents future interaction and discovery according to a documented policy.
 - Reporting supports listing, profile, and application concerns with reason, evidence metadata, status, moderator action, and audit.
 - Before acceptance, applicants can review the Campaign's player-facing expectations: attendance policy, allowed content/rules, tone, table conduct, content boundaries, and how the selected safety practice works. Do not collect private explanations for a boundary in a public listing.
-- Social surfaces are 18+ and US-only at launch; do not represent the birth-date prompt or attestation timestamp as age assurance.
-- The private Social viewing preference defaults to Standard. Selecting Mature in user settings requires 18+ self-attestation when none is on file; it does not waive the separate US requirement for Social access.
+- Social surfaces are intended for users 13 and older. The service relies on the account's Terms representation for the 13+ minimum rather than collecting a birth date at registration.
+- The private Social viewing preference defaults to Standard. Selecting Mature in user settings requires 18+ self-attestation when none is on file.
 - Standard Campaign shared/public fields are masked server-side with asterisks for every viewer, including their author and GM. Mature Social projections remain masked unless viewed by the Campaign owner or an adult-attested user who selected Mature; private authoring, author-owned private notes, and audited moderation evidence retain original text.
 - Responsive web supports discovery, applications, invitation inbox records, and listing administration. Native consumes these contracts only after the web viability gate.
-- Phase 05 turns application and invitation events into Knock-backed inbox notifications and preference-controlled email. Records contain no sensitive copied application text and blocked parties cannot use them as a side channel.
+- Phase 05 turns application and invitation events into Novu-backed inbox notifications and preference-controlled email. Records contain no sensitive copied application text and blocked parties cannot use them as a side channel.
 
 ## Design
 
@@ -54,7 +54,7 @@ Social Hub authorizes public discovery separately from private Campaign/Encounte
 
 ## Ordered workstreams
 
-1. **Define safety and visibility policy.** Decide public profile fields, anonymous versus authenticated browsing, block semantics, report categories, moderation roles, retention, appeals, and 18+ presentation.
+1. **Define safety and visibility policy.** Decide public profile fields, authenticated 13+ access, block semantics, report categories, moderation roles, retention, appeals, and Mature presentation.
 2. **Define listing and application contracts.** Include system/ruleset compatibility, schedule/timezone semantics, capacity, content guidance, selected safety practices, lifecycle, stable public IDs, and conversion results.
 3. **Add persistence, indexes, and RLS.** Create listings, schedule data, applications, blocks, reports, moderator actions, and capacity constraints.
 4. **Add discovery and lifecycle orchestration.** Use deterministic indexed Postgres queries; do not add an external search engine for unmeasured scale.
@@ -102,7 +102,7 @@ Social Hub authorizes public discovery separately from private Campaign/Encounte
 | Campaign ID, route, roster, chat, exact venue, email, bio, account metadata | no Social access                                  | ordinary Campaign authority only     | no                                                | no Social projection                |
 | Report details and captured evidence                                        | receipt only                                      | no                                   | no                                                | audited evidence mutation only      |
 
-Phase 05 adds durable Knock inbox notifications and preference-controlled email for invitation and application decisions. Those records
+Phase 05 adds durable Novu inbox notifications and preference-controlled email for invitation and application decisions. Those records
 must reference source UUIDs, reauthorize destinations when read, omit application text, and apply the
 same symmetric block predicate. Phase 04 adds no event bus, notification table, or compatibility stub.
 

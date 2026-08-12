@@ -1,10 +1,9 @@
-import { Alert, Button, Checkbox, Loader, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Loader, Text, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Outlet } from '@tanstack/react-router'
-import { type SubmitEvent, useState } from 'react'
+import { useEffect } from 'react'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
-import { latestAdultBirthDate } from './socialAge'
 import * as styles from './SocialEligibility.css'
 
 export function SocialEligibility() {
@@ -13,22 +12,20 @@ export function SocialEligibility() {
     queryKey: queryKeys.socialHub.eligibility(),
     queryFn: () => api.socialHub.eligibility.get()
   })
-  const [birthDate, setBirthDate] = useState('')
-  const [isCurrentlyInUs, setIsCurrentlyInUs] = useState(false)
-  const needsAdultAttestation = !eligibility.data?.adultAttestedAt
-  const accept = useMutation({
-    mutationFn: () =>
-      api.socialHub.eligibility.accept({
-        ...(needsAdultAttestation ? { birthDate } : {}),
-        isCurrentlyInUs: true
-      }),
+  const initialize = useMutation({
+    mutationFn: () => api.socialHub.eligibility.initialize(),
     onSuccess: (result) => {
       queryClient.setQueryData(queryKeys.socialHub.eligibility(), result)
     }
   })
+  const initializeProfile = initialize.mutate
+
+  useEffect(() => {
+    if (eligibility.data?.status === null && initialize.isIdle) initializeProfile()
+  }, [eligibility.data?.status, initialize.isIdle, initializeProfile])
 
   if (eligibility.isPending) {
-    return <Loader aria-label='Loading Social Hub eligibility' size='sm' />
+    return <Loader aria-label='Loading Social Hub' size='sm' />
   }
 
   if (eligibility.isError) {
@@ -48,60 +45,24 @@ export function SocialEligibility() {
     )
   }
 
-  if (!eligibility.data.eligible) {
+  if (initialize.isError) {
     return (
-      <section className={styles.narrowPage} aria-labelledby='social-eligibility-title'>
+      <section className={styles.narrowPage} aria-labelledby='social-unavailable-title'>
         <div className={styles.panel}>
-          <Title id='social-eligibility-title' order={1}>
-            Before you join Social Hub
+          <Title id='social-unavailable-title' order={1}>
+            Social Hub unavailable
           </Title>
-          <Text c='dimmed'>
-            Social Hub is currently limited to adults who are in the United States. Verify your age
-            and confirm your current location to continue.
-          </Text>
-          <form
-            onSubmit={(event: SubmitEvent) => {
-              event.preventDefault()
-              if ((!needsAdultAttestation || birthDate) && isCurrentlyInUs) accept.mutate()
-            }}
-          >
-            <Stack>
-              {needsAdultAttestation ? (
-                <TextInput
-                  required
-                  description='Used once to verify your age.'
-                  label='Date of birth'
-                  max={latestAdultBirthDate()}
-                  type='date'
-                  value={birthDate}
-                  onChange={(event) => setBirthDate(event.currentTarget.value)}
-                />
-              ) : (
-                <Text size='sm'>Your age has already been verified.</Text>
-              )}
-              <Checkbox
-                checked={isCurrentlyInUs}
-                label='I am currently in the United States.'
-                onChange={(event) => setIsCurrentlyInUs(event.currentTarget.checked)}
-              />
-              {accept.error ? (
-                <Alert color='red'>
-                  {accept.error.message}{' '}
-                  <Link to='/settings/profile'>Check your username in profile settings.</Link>
-                </Alert>
-              ) : null}
-              <Button
-                disabled={(needsAdultAttestation && !birthDate) || !isCurrentlyInUs}
-                loading={accept.isPending}
-                type='submit'
-              >
-                Continue to Social Hub
-              </Button>
-            </Stack>
-          </form>
+          <Alert color='red'>
+            {initialize.error.message}{' '}
+            <Link to='/settings/profile'>Check your username in profile settings.</Link>
+          </Alert>
         </div>
       </section>
     )
+  }
+
+  if (!eligibility.data.eligible) {
+    return <Loader aria-label='Preparing Social Hub' size='sm' />
   }
 
   return <Outlet />

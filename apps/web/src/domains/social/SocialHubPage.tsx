@@ -50,8 +50,12 @@ export function SocialHubPage({
       {search.view === 'discover' ? (
         <SocialDiscoveryView search={search} onSearchChange={onSearchChange} />
       ) : null}
-      {search.view === 'applications' ? <SocialApplicationsView /> : null}
-      {search.view === 'invitations' ? <SocialInvitationsView /> : null}
+      {search.view === 'applications' ? (
+        <SocialApplicationsView applicationPublicId={search.applicationPublicId} />
+      ) : null}
+      {search.view === 'invitations' ? (
+        <SocialInvitationsView invitePublicId={search.invitePublicId} />
+      ) : null}
       {search.view === 'hosting' ? <SocialHostingView /> : null}
     </section>
   )

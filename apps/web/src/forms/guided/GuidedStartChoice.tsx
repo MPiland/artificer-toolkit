@@ -116,7 +116,7 @@ export function GuidedStartChoice({
               {domain === 'class' ? <Badge size='xs'>Recommended</Badge> : null}
             </Group>
             <span className={styles.choiceDescription}>
-              Search active content and create an owned Copy draft to customize.
+              Choose an existing {nouns.singular} to copy and edit.
             </span>
           </span>
         </Button>

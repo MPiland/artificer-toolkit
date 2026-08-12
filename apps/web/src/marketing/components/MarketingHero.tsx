@@ -1,6 +1,5 @@
 import {
   ctaRow,
-  eyebrow,
   heroContent,
   heroCopy,
   heroHighlightCard,
@@ -28,18 +27,17 @@ export function MarketingHero({
   return (
     <section className={heroSection} aria-labelledby='marketing-hero-title'>
       <div className={heroContent}>
-        <p className={eyebrow}>Built for players, homebrewers, and DMs</p>
         <h1 id='marketing-hero-title' className={heroTitle}>
-          Create the content, then bring it straight into play.
+          Build characters and homebrew you can use at the table.
         </h1>
         <p className={heroCopy}>
-          Artificer Toolkit gives you a structured place to author homebrew, build characters from
-          that content, and use the result at the table without bouncing between disconnected tools.
+          Create spells, classes, creatures, equipment, and more. Use that content in Character
+          Builder, then play from the Character Sheet.
         </p>
         <div className={ctaRow}>
           {publicSignUpEnabled ? (
             <MarketingRouteLink className={primaryLink} to='/sign-up'>
-              Start building for free
+              Create free account
             </MarketingRouteLink>
           ) : null}
           {showPricingLink ? (

@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@artificer-toolkit/design-system": "workspace:^",
+    "@artificer-toolkit/schema": "workspace:^",
     "@react-email/components": "1.0.12",
     "@react-email/render": "2.1.0",
     "react": "19.2.6",

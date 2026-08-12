@@ -246,9 +246,15 @@ export function CharacterSheetView({
               </div>
             </div>
 
-            <div className={coreStyles.sheetCanvas}>
+            <div
+              className={`${coreStyles.sheetCanvas} ${
+                visibleActiveTab === 'overview' ? '' : coreStyles.tabletFocusedCanvas
+              }`}
+            >
               <div
-                className={coreStyles.overviewRegion}
+                className={`${coreStyles.overviewRegion} ${
+                  visibleActiveTab === 'overview' ? '' : coreStyles.tabletOverviewHidden
+                }`}
                 data-mobile-visible={visibleActiveMobilePage === 'overview' ? 'true' : undefined}
               >
                 <CharacterSheetOverview

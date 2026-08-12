@@ -12,14 +12,14 @@ export function MarketingFinalCta({
     <section className={finalCta} aria-labelledby='final-cta-title'>
       <div className={finalCtaPanel}>
         <h2 id='final-cta-title' className={sectionTitle}>
-          Start your first character or your first piece of homebrew.
+          Create your first character or homebrew draft.
         </h2>
         <p className={sectionCopy}>
-          Create structured homebrew, build a character, and take a dedicated sheet to the table
-          from one toolkit.
+          Start from SRD content or make your own, then use it on a Character Sheet when it is
+          ready.
         </p>
         <MarketingRouteLink className={primaryLink} to='/sign-up'>
-          Start creating for free
+          Create free account
         </MarketingRouteLink>
       </div>
     </section>

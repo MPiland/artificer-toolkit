@@ -101,7 +101,7 @@ export function SocialListingDetailPage({ listingPublicId }: { listingPublicId: 
             <strong>Location:</strong> {formatListingLocation(data)}
           </Text>
           <Text>
-            <strong>Age:</strong> 18+
+            <strong>Age:</strong> 13+
           </Text>
           <Text>
             <strong>Price:</strong> Free

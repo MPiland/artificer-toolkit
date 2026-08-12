@@ -8,9 +8,11 @@ export function buildSocialHubApi(client: TrpcClient) {
         request('socialHub.eligibility.get', socialContracts.socialEligibilityDtoSchema, () =>
           client.socialHub.eligibility.get.query()
         ),
-      accept: (input: SchemaInput<typeof socialContracts.acceptSocialEligibilityInputSchema>) =>
-        request('socialHub.eligibility.accept', socialContracts.socialEligibilityDtoSchema, () =>
-          client.socialHub.eligibility.accept.mutate(input)
+      initialize: () =>
+        request(
+          'socialHub.eligibility.initialize',
+          socialContracts.socialEligibilityDtoSchema,
+          () => client.socialHub.eligibility.initialize.mutate()
         )
     },
     preferences: {

@@ -1,5 +1,5 @@
 import { ActionIcon, Button, Drawer, Text } from '@mantine/core'
-import { useEffect, useRef, useState, type ReactNode, type TouchEvent } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   BookOpen,
   BadgeCheck,
@@ -15,8 +15,6 @@ import {
 import type { CharacterSheetMobilePageId } from '../core/CharacterSheet.types'
 import { CHARACTER_SHEET_MOBILE_PAGES } from '../core/characterSheetTabs'
 import * as mobileStyles from './mobile.css'
-
-const swipeThreshold = 52
 
 const mobilePageIcons = {
   overview: Shield,
@@ -45,12 +43,9 @@ export function CharacterSheetMobilePager({
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const viewportRef = useRef<HTMLDivElement>(null)
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const pageIndex = pages.findIndex((page) => page.id === activePage)
   const activeIndex = pageIndex >= 0 ? pageIndex : 0
   const activePageLabel = pages[activeIndex]?.label ?? 'Overview'
-  const previousPage = activeIndex > 0 ? pages[activeIndex - 1]?.id : undefined
-  const nextPage = activeIndex < pages.length - 1 ? pages[activeIndex + 1]?.id : undefined
 
   useEffect(() => {
     if (viewportRef.current) viewportRef.current.scrollTop = 0
@@ -61,37 +56,12 @@ export function CharacterSheetMobilePager({
     onPageChange(page)
   }
 
-  function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
-    const touch = event.touches[0]
-    if (!touch) return
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
-  }
-
-  function handleTouchEnd(event: TouchEvent<HTMLDivElement>) {
-    const touchStart = touchStartRef.current
-    const touch = event.changedTouches[0]
-    touchStartRef.current = null
-    if (!touchStart || !touch) return
-
-    const deltaX = touch.clientX - touchStart.x
-    const deltaY = touch.clientY - touchStart.y
-    if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaX) < Math.abs(deltaY) * 1.25) return
-
-    if (deltaX < 0 && nextPage) goToPage(nextPage)
-    if (deltaX > 0 && previousPage) goToPage(previousPage)
-  }
-
   return (
     <section className={mobileStyles.mobilePager} aria-label='Character sheet mobile pages'>
       <Text component='h2' className={mobileStyles.mobilePageLabel} aria-live='polite'>
         {activePageLabel}
       </Text>
-      <div
-        className={mobileStyles.mobilePageViewport}
-        ref={viewportRef}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-      >
+      <div className={mobileStyles.mobilePageViewport} ref={viewportRef}>
         {children}
       </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Alert, NumberInput, Select, Stack, Text } from '@mantine/core'
+import { Alert, NumberInput, Select, Stack } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useStore } from '@tanstack/react-form'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
@@ -297,7 +297,6 @@ export const GuidedClassAuthoring = withForm({
                 <Summary label='Spellcasting' value={values.hasSpellcasting ? 'Yes' : 'No'} />
               ) : null}
             </dl>
-            <Text c='dimmed'>Save the draft, or activate it when validation is complete.</Text>
           </Stack>
         ) : null}
       </GuidedAuthoringFrame>

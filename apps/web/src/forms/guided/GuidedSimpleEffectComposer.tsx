@@ -92,7 +92,7 @@ export function GuidedSimpleEffectComposer({
   return (
     <Stack gap='lg'>
       {hasUnsupportedEffects ? (
-        <Alert color='blue' title='Advanced mechanics preserved'>
+        <Alert color='blue' title='Some details require Advanced'>
           This content has {effects.length} effect{effects.length === 1 ? '' : 's'} Guided cannot
           fully represent. They remain unchanged unless you choose a simple replacement below.
         </Alert>

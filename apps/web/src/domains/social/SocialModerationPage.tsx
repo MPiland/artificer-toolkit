@@ -57,7 +57,7 @@ export function SocialModerationPage() {
         <Title id='social-moderation-title' order={1}>
           Social moderation
         </Title>
-        <Text c='dimmed'>Report metadata is shown first. Opening evidence is audited.</Text>
+        <Text c='dimmed'>Opening evidence is recorded in the audit log.</Text>
       </header>
       {queue.isPending ? <Loader aria-label='Loading moderation queue' size='sm' /> : null}
       {queue.isError ? <Alert color='red'>Moderation queue unavailable.</Alert> : null}
@@ -123,7 +123,7 @@ export function SocialModerationPage() {
                 </Stack>
               </>
             ) : (
-              <Text c='dimmed'>Open a report to record the audited evidence view.</Text>
+              <Text c='dimmed'>Select a report to view its evidence.</Text>
             )}
           </aside>
         </div>

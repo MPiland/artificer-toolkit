@@ -34,7 +34,7 @@ No phase should be implemented as one repository-wide branch. Start a new sessio
 
 ## Assumptions
 
-- Initial commerce and social availability is US-only and 18+.
+- Social is intended for users 13 and older through the launch Terms. Initial commerce availability remains US-only and 18+.
 - D&D 5e 2014 is the first playable ruleset. Every Campaign, Encounter, roll, and replayable event records explicit system and ruleset identity.
 - Character Sheet adjustments are per-character, mechanically authoritative, and owner-editable. Campaign owners may command assigned Sheet mechanics through the Phase 03 authority rules; hidden Campaign sources never leak into player projections.
 - One character may have one active Campaign initially. One-shot and ongoing Campaigns use the same Encounter model; Encounters do not create separate membership.
@@ -78,14 +78,14 @@ The completed private-by-default asset pipeline serves account avatars, Characte
 
 ### Campaigns and live play
 
-Phase 03 Campaigns own username/entitlement enforcement, invitations, membership, owner transfer, Character assignment, immutable content access, typed rules, party inventory/currency, GM Sheet authority, notes, durable Campaign conversations/rolls, and private Realtime hints. The Campaign management page is the GM workspace and launch point for live session controls; players use Sheet-side drawers for quick Notes/Chat/Party Inventory access while running. Phase 05 adds the Knock-backed inbox, Resend email delivery, and notification preferences. Phase 06 adds vehicles, files/handouts, session clock controls, and Campaign announcements through that notification boundary. Campaign rules modify engine assembly without rewriting character-authored intent. Campaign content references grant members read/use access to immutable Campaign content versions while relevant to the Campaign; they do not grant ownership, editing, personal export, or marketplace sale rights.
+Phase 03 Campaigns own username/entitlement enforcement, invitations, membership, owner transfer, Character assignment, immutable content access, typed rules, party inventory/currency, GM Sheet authority, notes, durable Campaign conversations/rolls, and private Realtime hints. The Campaign management page is the GM workspace and launch point for live session controls; players use Sheet-side drawers for quick Notes/Chat/Party Inventory access while running. Phase 05 adds the Novu-backed inbox, Resend email delivery, and notification preferences. Phase 06 adds vehicles, files/handouts, session clock controls, and Campaign announcements through that notification boundary. Campaign rules modify engine assembly without rewriting character-authored intent. Campaign content references grant members read/use access to immutable Campaign content versions while relevant to the Campaign; they do not grant ownership, editing, personal export, or marketplace sale rights.
 
 The GM workflow is split by the moment of use instead of accumulated on one screen:
 
 | GM job                                                                                                                                   | Owning phase                                                     |
 | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | Form the table, establish expectations, manage membership/content/Characters, communicate, and share custody                             | Phase 03 Campaign Core plus Phase 04 Social Hub safety/discovery |
-| Receive and control actionable application, invitation, Campaign, and paid-table updates through in-app and email channels             | Phase 05 Notifications and delivery                              |
+| Receive and control actionable application, invitation, Campaign, and paid-table updates through in-app and email channels               | Phase 05 Notifications and delivery                              |
 | Schedule, prepare, run, capture, and close out a session; access pinned references, handouts, clock, announcements, and attendance       | Phase 06 Live Campaign play                                      |
 | Build reusable enemy templates and run authoritative combat with actionable enemy stat blocks, rolls, resources, turn order, and history | Phase 07 Encounters                                              |
 | Add maps, scenes, tokens, fog, and measurement without creating another combat model                                                     | Phase 08 Web VTT                                                 |
@@ -118,7 +118,7 @@ flowchart LR
 
   Mobile --> Secure["SecureStore<br/>session secrets"]
   Mobile --> Cache["SQLite<br/>read-only projections"]
-  Functions --> Notify["Knock workflows + feed"]
+  Functions --> Notify["Novu workflows + feed"]
   Notify --> Web
   Notify --> Email["Resend email"]
   Notify --> Push["Expo Push Service"]
@@ -176,7 +176,7 @@ The numbered order is the default product sequence. Hard dependencies are shown 
 - Preserve canonical authored root identity from ADR 0011. Campaign content and Marketplace releases introduce explicit immutable version/snapshot contracts only where stable shared or licensed history is required; they do not restore general authored revision history.
 - Model authorization as centralized capabilities derived from an explicit authority context. Do not scatter `role === 'GM'` checks through routes and components.
 - Persist commands before broadcasting them. Realtime is delivery and invalidation infrastructure, not the source of truth.
-- Commit notification delivery intent with its authoritative source, then let Knock own feed and channel presentation. Notification payloads and links never grant access, and provider secrets remain server-only.
+- Commit notification delivery intent with its authoritative source, then let Novu Cloud own feed and channel presentation. Notification payloads and links never grant access, and provider secrets remain server-only.
 - Use idempotency keys, expected versions, row locks, and one Postgres transaction for multi-aggregate operations that must succeed or fail together.
 - Keep player-only chat operationally separate from GM-visible channels at authorization, RLS, fetch, subscription, notification, and ordinary analytics boundaries. It is not end-to-end encrypted.
 - Record exact inputs and results required for replay. Never re-run an old Encounter event against newly active content.
@@ -187,23 +187,23 @@ The numbered order is the default product sequence. Hard dependencies are shown 
 
 ## Technology direction
 
-| Area                 | Direction                                                                                                                                                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Shared language      | TypeScript for clients, transport, orchestration, and pure domain logic                                                                                            |
-| Persistence          | PostgreSQL, Supabase migrations/RLS, and Kysely repositories                                                                                                       |
-| Web                  | Existing TanStack Start, React, Mantine, Vanilla Extract, TanStack Query                                                                                           |
-| Native               | Expo, React Native, Expo Router, TanStack Query, Reanimated, Gesture Handler                                                                                       |
-| Contracts            | Zod DTOs in `packages/schema`; typed tRPC through `packages/api-client`                                                                                            |
-| Identity             | One Supabase user identity across web, iOS, and Android                                                                                                            |
-| Native secrets/cache | `expo-secure-store` for session secrets; `expo-sqlite` for non-authoritative read-only projections                                                                 |
-| Realtime             | Private Supabase Broadcast; Presence only for slow-changing connection state                                                                                       |
-| Notifications        | Phase 05 Knock workflows/feed/preferences with Resend email and API-authorized deep links; Phase 06 Campaign and Phase 10 paid-table sources reuse it; Phase 11 adds Expo push |
-| Media and files      | Private Supabase Storage, API-issued upload intents, signed/authenticated delivery, verified profile limits, image normalization, and quarantined supporting files |
-| Dice                 | Restricted server-authoritative evaluation with injected cryptographic randomness and exact per-die evidence; lazy Three/Fiber/Rapier presentation on web          |
-| VTT                  | Platform-neutral scene model; PixiJS on web and initially in an Expo DOM host; React Native Skia only if the benchmark gate fails                                  |
-| Web payments         | Stripe Billing for Artificer subscriptions; Stripe Connect for creator and professional-GM money movement                                                          |
-| Native subscriptions | StoreKit and Google Play Billing through RevenueCat after plan and store-policy approval                                                                           |
-| Tests                | Vitest for shared/packages, existing web tests and Playwright, `jest-expo`/React Native Testing Library, Maestro on EAS                                            |
+| Area                 | Direction                                                                                                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared language      | TypeScript for clients, transport, orchestration, and pure domain logic                                                                                                       |
+| Persistence          | PostgreSQL, Supabase migrations/RLS, and Kysely repositories                                                                                                                  |
+| Web                  | Existing TanStack Start, React, Mantine, Vanilla Extract, TanStack Query                                                                                                      |
+| Native               | Expo, React Native, Expo Router, TanStack Query, Reanimated, Gesture Handler                                                                                                  |
+| Contracts            | Zod DTOs in `packages/schema`; typed tRPC through `packages/api-client`                                                                                                       |
+| Identity             | One Supabase user identity across web, iOS, and Android                                                                                                                       |
+| Native secrets/cache | `expo-secure-store` for session secrets; `expo-sqlite` for non-authoritative read-only projections                                                                            |
+| Realtime             | Private Supabase Broadcast; Presence only for slow-changing connection state                                                                                                  |
+| Notifications        | Phase 05 Novu workflows/feed/preferences with Resend email and API-authorized deep links; Phase 06 Campaign and Phase 10 paid-table sources reuse it; Phase 11 adds Expo push |
+| Media and files      | Private Supabase Storage, API-issued upload intents, signed/authenticated delivery, verified profile limits, image normalization, and quarantined supporting files            |
+| Dice                 | Restricted server-authoritative evaluation with injected cryptographic randomness and exact per-die evidence; lazy Three/Fiber/Rapier presentation on web                     |
+| VTT                  | Platform-neutral scene model; PixiJS on web and initially in an Expo DOM host; React Native Skia only if the benchmark gate fails                                             |
+| Web payments         | Stripe Billing for Artificer subscriptions; Stripe Connect for creator and professional-GM money movement                                                                     |
+| Native subscriptions | StoreKit and Google Play Billing through RevenueCat after plan and store-policy approval                                                                                      |
+| Tests                | Vitest for shared/packages, existing web tests and Playwright, `jest-expo`/React Native Testing Library, Maestro on EAS                                                       |
 
 Expo's current guidance supports workspace monorepos, Router-based native navigation, SecureStore, development builds, and EAS profiles. Supabase's React Native guidance requires platform storage and foreground-aware session refresh. Re-check these external contracts when Phase 11 begins because SDK behavior changes: [Expo monorepos](https://docs.expo.dev/guides/monorepos/), [Expo Router](https://docs.expo.dev/router/introduction/), [Supabase React Native Auth](https://supabase.com/docs/guides/auth/quickstarts/react-native).
 
@@ -245,23 +245,23 @@ Exact numeric thresholds are a pre-launch business decision. The behaviors above
 
 ## Phase documents
 
-| Phase | Document                                                                                   | Exit result                                                                                                                      |
-| ----- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| 00    | [Character Sheet play depth and overrides](00-character-sheet-play-depth-and-overrides.md) | **Complete:** authoritative Sheet play, adjustments, explanations, and portable semantic panels                                  |
-| 01    | [Dice and roll infrastructure](01-dice-and-roll-infrastructure.md)                         | **Complete:** authoritative rolls, private history, accessible results, and optional lazy 3D presentation                        |
-| 02    | [Media and supporting-file pipeline](02-media-and-file-pipeline.md)                        | **Complete:** private avatars, Character portraits, authored artwork, crop-derived variants, and reusable asset identity         |
-| 03    | [Campaign Core](03-campaign-core.md)                                                       | Entitlements, Campaign lifecycle/content/custody, GM authority, two-room chat/rolls, notes, and private Realtime work on web     |
-| 04    | [Social Hub](04-social-hub.md)                                                             | Adults can privately invite or publicly discover, apply to, moderate, and form free tables                                       |
-| 05    | [Notifications and delivery](05-notifications-and-delivery.md)                             | Knock-backed in-app/email delivery, preferences, secure deep links, grouping, and retryable source intents work on web            |
-| 06    | [Live Campaign play](06-live-campaign-play.md)                                             | Session scheduling/prep/closeout, quick references, vehicles, Campaign files/clock, and announcements work on web                 |
-| 07    | [Encounters](07-encounters.md)                                                             | Campaign-owned Encounters provide authoritative GM-run combat and enemy action rolls for one-shot and ongoing play on web         |
-| 08    | [Web VTT](08-vtt.md)                                                                       | One Encounter-backed VTT provides maps, tokens, fog, measurement, initiative, and accessible controls on web                     |
-| 09    | [Plans and entitlements](09-entitlements-and-subscriptions.md)                             | Phase 03 limits gain Stripe web subscriptions and remaining capability enforcement                                               |
-| 10    | [Paid tables](10-paid-tables.md)                                                           | Approved paid-table checkout, capacity, payouts, refunds, and plan-based fees work on web                                        |
-| 11    | [Native foundation and parity](11-cross-platform-foundation.md)                            | After web viability, iOS and Android provide first-class play journeys against the proven contracts                              |
-| 12    | [Store release and continuous validation](12-store-release-and-continuous-validation.md)   | Store-ready binaries and repeatable cross-platform release gates exist                                                           |
-| 13    | [Free creator Marketplace](13-free-marketplace.md)                                         | Immutable releases, licenses, free acquisition, and attributed consumption work                                                  |
-| 14    | [Paid creator Marketplace](14-paid-marketplace.md)                                         | Approved creator checkout, payouts, refunds, disputes, and immutable order economics work                                        |
+| Phase | Document                                                                                   | Exit result                                                                                                                  |
+| ----- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| 00    | [Character Sheet play depth and overrides](00-character-sheet-play-depth-and-overrides.md) | **Complete:** authoritative Sheet play, adjustments, explanations, and portable semantic panels                              |
+| 01    | [Dice and roll infrastructure](01-dice-and-roll-infrastructure.md)                         | **Complete:** authoritative rolls, private history, accessible results, and optional lazy 3D presentation                    |
+| 02    | [Media and supporting-file pipeline](02-media-and-file-pipeline.md)                        | **Complete:** private avatars, Character portraits, authored artwork, crop-derived variants, and reusable asset identity     |
+| 03    | [Campaign Core](03-campaign-core.md)                                                       | Entitlements, Campaign lifecycle/content/custody, GM authority, two-room chat/rolls, notes, and private Realtime work on web |
+| 04    | [Social Hub](04-social-hub.md)                                                             | Users 13 and older can privately invite or publicly discover, apply to, moderate, and form free tables                       |
+| 05    | [Notifications and delivery](05-notifications-and-delivery.md)                             | Novu-backed in-app/email delivery, preferences, secure deep links, grouping, and retryable source intents work on web        |
+| 06    | [Live Campaign play](06-live-campaign-play.md)                                             | Session scheduling/prep/closeout, quick references, vehicles, Campaign files/clock, and announcements work on web            |
+| 07    | [Encounters](07-encounters.md)                                                             | Campaign-owned Encounters provide authoritative GM-run combat and enemy action rolls for one-shot and ongoing play on web    |
+| 08    | [Web VTT](08-vtt.md)                                                                       | One Encounter-backed VTT provides maps, tokens, fog, measurement, initiative, and accessible controls on web                 |
+| 09    | [Plans and entitlements](09-entitlements-and-subscriptions.md)                             | Phase 03 limits gain Stripe web subscriptions and remaining capability enforcement                                           |
+| 10    | [Paid tables](10-paid-tables.md)                                                           | Approved paid-table checkout, capacity, payouts, refunds, and plan-based fees work on web                                    |
+| 11    | [Native foundation and parity](11-cross-platform-foundation.md)                            | After web viability, iOS and Android provide first-class play journeys against the proven contracts                          |
+| 12    | [Store release and continuous validation](12-store-release-and-continuous-validation.md)   | Store-ready binaries and repeatable cross-platform release gates exist                                                       |
+| 13    | [Free creator Marketplace](13-free-marketplace.md)                                         | Immutable releases, licenses, free acquisition, and attributed consumption work                                              |
+| 14    | [Paid creator Marketplace](14-paid-marketplace.md)                                         | Approved creator checkout, payouts, refunds, disputes, and immutable order economics work                                    |
 
 ## Cross-phase acceptance gates
 

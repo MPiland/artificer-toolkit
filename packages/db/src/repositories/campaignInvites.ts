@@ -88,8 +88,6 @@ export function createCampaignInviteRepository(db: DBLike) {
         from profiles account
         join social_profiles social on social.user_id = account.id
         where lower(account.username) = lower(${username})
-          and social.adult_attested_at is not null
-          and social.us_attested_at is not null
       `.execute(db)
       const row = result.rows[0]
       return row
@@ -160,7 +158,7 @@ export function createCampaignInviteRepository(db: DBLike) {
       return result.rows.map(mapInviteProjection)
     },
 
-    async expireDueReceivedInvites(userId: string, now: string): Promise<number> {
+    async expireDueReceivedInvites(userId: string, now: string): Promise<string[]> {
       const result = await sql<{ id: string }>`
         update campaign_invites
         set status = 'EXPIRED', expired_at = ${now}::timestamptz,
@@ -169,7 +167,26 @@ export function createCampaignInviteRepository(db: DBLike) {
           and status = 'PENDING' and expires_at <= ${now}::timestamptz
         returning id
       `.execute(db)
-      return result.rows.length
+      return result.rows.map((row) => row.id)
+    },
+
+    async expireDueInvites(now: string, limit: number): Promise<string[]> {
+      const result = await sql<{ id: string }>`
+        with due as (
+          select id from campaign_invites
+          where status = 'PENDING' and expires_at <= ${now}::timestamptz
+          order by expires_at, id
+          for update skip locked
+          limit ${limit}
+        )
+        update campaign_invites invite
+        set status = 'EXPIRED', expired_at = ${now}::timestamptz,
+          version = invite.version + 1, updated_at = ${now}::timestamptz
+        from due
+        where invite.id = due.id
+        returning invite.id
+      `.execute(db)
+      return result.rows.map((row) => row.id)
     },
 
     async listInvitesForListing(listingId: string): Promise<CampaignInviteProjection[]> {
@@ -218,7 +235,7 @@ export function createCampaignInviteRepository(db: DBLike) {
       return row ? mapInvite(row) : null
     },
 
-    async expirePendingInvites(listingId: string, now: string): Promise<number> {
+    async expirePendingInvites(listingId: string, now: string): Promise<string[]> {
       const result = await sql<{ id: string }>`
         update campaign_invites
         set status = 'EXPIRED', expired_at = ${now}::timestamptz,
@@ -226,7 +243,7 @@ export function createCampaignInviteRepository(db: DBLike) {
         where listing_id = ${listingId}::uuid and status = 'PENDING'
         returning id
       `.execute(db)
-      return result.rows.length
+      return result.rows.map((row) => row.id)
     },
 
     async advancePendingInviteListingVersions(
@@ -248,7 +265,7 @@ export function createCampaignInviteRepository(db: DBLike) {
       firstProfileId: string,
       secondProfileId: string,
       now: string
-    ): Promise<number> {
+    ): Promise<string[]> {
       const result = await sql<{ id: string }>`
         update campaign_invites invite
         set status = 'REVOKED', revoked_at = ${now}::timestamptz,
@@ -264,7 +281,7 @@ export function createCampaignInviteRepository(db: DBLike) {
             or (host.id = ${secondProfileId}::uuid and recipient.id = ${firstProfileId}::uuid))
         returning invite.id
       `.execute(db)
-      return result.rows.length
+      return result.rows.map((row) => row.id)
     }
   }
 }

@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import { createCampaignInviteInputSchema, campaignInviteDtoSchema } from '../api/campaignCore.js'
 import {
   createSocialListingInputSchema,
-  acceptSocialEligibilityInputSchema,
   socialListingDtoSchema,
   submitSocialApplicationInputSchema,
   updateSocialContentPreferenceInputSchema
@@ -41,13 +40,7 @@ const createListing = {
 }
 
 describe('Social Hub contracts', () => {
-  it('accepts birth dates only as transient self-attestation input', () => {
-    expect(
-      acceptSocialEligibilityInputSchema.safeParse({
-        birthDate: '2000-01-01',
-        isCurrentlyInUs: true
-      }).success
-    ).toBe(true)
+  it('keeps birth dates limited to the optional Mature self-attestation', () => {
     expect(
       updateSocialContentPreferenceInputSchema.safeParse({
         contentPreference: 'MATURE',
@@ -105,7 +98,7 @@ describe('Social Hub contracts', () => {
       playMode: createListing.playMode,
       capacity: createListing.capacity,
       availableSeats: 4,
-      ageBand: '18_PLUS',
+      ageBand: '13_PLUS',
       schedule: createListing.schedule,
       location: null,
       expectations,

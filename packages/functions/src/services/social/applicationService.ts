@@ -13,6 +13,12 @@ import type {
   SubmitSocialApplicationInput
 } from '@artificer-toolkit/schema/api/socialHub'
 import { ENTITLEMENT_LIMITS, assertEntitlementLimit } from '../account/entitlementService.js'
+import {
+  enqueueApplicationDecisionNotifications,
+  enqueueApplicationSubmittedCancellations,
+  enqueueApplicationSubmittedNotification,
+  enqueueInvitationDecisionNotifications
+} from '../notifications/notificationService.js'
 import { SocialConflictError, SocialNotFoundError, SocialValidationError } from './errors.js'
 import { listingExpectations, mapSocialApplication, socialIso } from './mapping.js'
 import { hasActiveSocialEligibility, requireActiveSocialProfile } from './profileService.js'
@@ -153,6 +159,7 @@ export async function acceptSocialAdmission(
         now
       })
       if (!application) throw new SocialConflictError()
+      await enqueueApplicationDecisionNotifications(trx, application, 'ACCEPTED', now)
       return { kind: 'APPLICATION', campaignId: campaign.id, application }
     }
 
@@ -163,6 +170,12 @@ export async function acceptSocialAdmission(
       now
     })
     if (!invitation) throw new SocialConflictError()
+    await enqueueInvitationDecisionNotifications(trx, invitation, {
+      hostUserId: campaign.ownerUserId,
+      listingTitle: listing.title,
+      decision: 'ACCEPTED',
+      occurredAt: now
+    })
     return { kind: 'INVITATION', campaignId: campaign.id, invitation }
   })
 }
@@ -255,19 +268,18 @@ export function submitSocialApplication(
       throw new SocialValidationError('You are already a member of this Campaign.')
     }
     try {
-      return mapSocialApplication(
-        await repository.insertSocialApplication({
-          listingId: listing.id,
-          applicantProfileId: applicant.id,
-          message: input.message,
-          listingVersion: listing.version,
-          expectationsSnapshot: listingExpectations(listing, { privateOwnerView: true })
-        }),
-        {
-          privateApplicationText: true,
-          showMatureText: applicant.contentPreference === 'MATURE'
-        }
-      )
+      const application = await repository.insertSocialApplication({
+        listingId: listing.id,
+        applicantProfileId: applicant.id,
+        message: input.message,
+        listingVersion: listing.version,
+        expectationsSnapshot: listingExpectations(listing, { privateOwnerView: true })
+      })
+      await enqueueApplicationSubmittedNotification(trx, application, now)
+      return mapSocialApplication(application, {
+        privateApplicationText: true,
+        showMatureText: applicant.contentPreference === 'MATURE'
+      })
     } catch (error) {
       if (
         typeof error === 'object' &&
@@ -295,13 +307,15 @@ export function withdrawSocialApplication(
     if (application.status !== 'SUBMITTED' || application.version !== expectedVersion) {
       throw new SocialConflictError()
     }
+    const now = new Date().toISOString()
     const updated = await repository.setSocialApplicationStatus({
       applicationId: application.id,
       expectedVersion,
       status: 'WITHDRAWN',
-      now: new Date().toISOString()
+      now
     })
     if (!updated) throw new SocialConflictError()
+    await enqueueApplicationSubmittedCancellations(trx, [updated.id], now)
     return mapSocialApplication(updated, {
       privateApplicationText: true,
       showMatureText: applicant.contentPreference === 'MATURE'
@@ -342,13 +356,15 @@ export function decideSocialApplication(
     ) {
       socialUnavailable()
     }
+    const now = new Date().toISOString()
     const declined = await repository.setSocialApplicationStatus({
       applicationId: application.id,
       expectedVersion: input.expectedVersion,
       status: 'DECLINED',
-      now: new Date().toISOString()
+      now
     })
     if (!declined) throw new SocialConflictError()
+    await enqueueApplicationDecisionNotifications(trx, declined, 'DECLINED', now)
     return mapSocialApplication(declined, { showMatureText: true })
   })
 }

@@ -49,7 +49,7 @@ export const ShortRestRolled: Story = {
     })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Roll 1d10 + 1d8 + 4' }))
     await expect(await within(dialog).findByText('15 rolled')).toBeVisible()
-    await expect(within(dialog).getByText('6 HP staged')).toBeVisible()
+    await expect(within(dialog).getByText('6 HP selected')).toBeVisible()
   }
 }
 

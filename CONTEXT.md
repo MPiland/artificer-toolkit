@@ -30,7 +30,7 @@ The private aggregate for one table, whether its format is a one-shot or ongoing
 
 ### Social profile
 
-The authenticated table-formation identity. It exposes only a random public ID and current username after the account completes the platform's 18+/US self-attestation. Its private record separately retains adult and US attestation timestamps plus the server-owned Standard/Mature viewing preference; a submitted birth date is discarded. It is not the private account profile or an authorization grant.
+The authenticated table-formation identity for an account whose user represents that they are at least 13 under the platform Terms. It exposes only a random public ID and current username. Its private record separately retains the default-Standard viewing preference and an optional adult-attestation timestamp created only when Mature viewing is enabled; a submitted birth date is discarded. It is not the private account profile or an authorization grant.
 
 ### Social listing
 
@@ -46,7 +46,7 @@ A directional persisted choice enforced symmetrically across Social discovery an
 
 ### Notification projection
 
-A planned Phase 05 per-recipient presentation derived from an authorized application source such as a Social application, invitation, or Campaign announcement. The source aggregate remains authoritative; Knock owns feed/read/archive/preferences, while the application stores only narrow transactional delivery intent and attempt metadata. A notification public source ID or deep link never grants access and must be reauthorized when opened.
+A planned Phase 05 per-recipient presentation derived from an authorized application source such as a Social application, invitation, or Campaign announcement. The source aggregate remains authoritative; Novu Cloud owns feed/read/seen state and channel preferences, while the application stores only narrow transactional delivery intent and attempt metadata. A notification public source ID or deep link never grants access and must be reauthorized when opened.
 
 ## Data model
 

@@ -11,7 +11,7 @@ export function SignInPage({
   const navigate = useNavigate()
 
   return (
-    <AuthPageShell title='Sign in' description='Welcome back. Your table is waiting.'>
+    <AuthPageShell title='Sign in' description='Sign in to continue.'>
       <SignInForm
         publicSignUpEnabled={publicSignUpEnabled}
         onSuccess={() => {

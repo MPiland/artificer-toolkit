@@ -262,10 +262,10 @@ export function CampaignSessionWorkspace({
             >
               <div>
                 <Title id='session-current-plan-title' order={2}>
-                  Current plan & capture
+                  Session notes
                 </Title>
                 <Text c='dimmed' size='sm'>
-                  Keep planned beats and live scratch notes within reach.
+                  Review your plan and write notes during play.
                 </Text>
               </div>
               <CampaignSessionSectionGroup

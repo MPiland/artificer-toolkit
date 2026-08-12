@@ -9,6 +9,7 @@ import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { SocialInviteDialog } from './components/SocialInviteDialog'
 import { SocialListingApplications } from './components/listing-editor/SocialListingApplications'
+import { SocialListingInvitations } from './components/listing-editor/SocialListingInvitations'
 import { SocialListingBasicsSection } from './components/listing-editor/SocialListingBasicsSection'
 import { SocialListingExpectationsSection } from './components/listing-editor/SocialListingExpectationsSection'
 import { SocialListingScheduleSection } from './components/listing-editor/SocialListingScheduleSection'
@@ -27,10 +28,12 @@ import {
 import * as styles from './SocialListingFormPage.css'
 
 export function SocialListingFormPage({
+  invitePublicId,
   listingPublicId,
   section = 'listing',
   onSectionChange
 }: {
+  invitePublicId?: string
   listingPublicId?: string
   section?: SocialListingManagementSection
   onSectionChange?: (section: SocialListingManagementSection) => void
@@ -156,7 +159,9 @@ export function SocialListingFormPage({
           <Text c='dimmed'>
             {section === 'applications'
               ? 'Review applicants for this listing.'
-              : 'Listings describe a free table. Campaign details stay private until admission.'}
+              : section === 'invitations'
+                ? 'Track invitations sent for this listing.'
+                : 'Listings describe a free table. Campaign details stay private until admission.'}
           </Text>
         </div>
         <div className={styles.headerActions}>
@@ -274,6 +279,13 @@ export function SocialListingFormPage({
           isError={applications.isError}
           isPending={applications.isPending}
           listing={listing.data}
+        />
+      ) : null}
+
+      {listing.data && section === 'invitations' ? (
+        <SocialListingInvitations
+          invitePublicId={invitePublicId}
+          listingPublicId={listing.data.listingPublicId}
         />
       ) : null}
     </section>

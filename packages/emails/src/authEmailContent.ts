@@ -75,7 +75,7 @@ const contentByAction: Record<AuthEmailAction, AuthEmailContent> = {
     subject: 'Your Artificer Toolkit verification code',
     preview: 'Use this code to verify your identity.',
     title: 'Verify your identity',
-    body: 'Use this verification code to continue your secure account action.',
+    body: 'Enter this code in Artificer Toolkit to continue.',
     includeToken: true,
     securityNote: 'If you did not request this verification, you can safely ignore this email.'
   }

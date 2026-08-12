@@ -35,7 +35,7 @@ export function CharacterSheetRestRecoverySummary({
           {restKind === 'LONG'
             ? `Restores to ${preview.hitPoints.maximum} / ${preview.hitPoints.maximum}`
             : preview.stagedHealing > 0
-              ? `${preview.stagedHealing} HP staged`
+              ? `${preview.stagedHealing} HP selected`
               : `${preview.hitPoints.missing} HP missing`}
         </Text>
       </div>
@@ -43,7 +43,7 @@ export function CharacterSheetRestRecoverySummary({
         <>
           <div className={restStyles.recoveryLine}>
             <Text className={restStyles.recoveryLabel}>Hit Dice</Text>
-            <Text className={restStyles.recoveryValue}>Recover by active rules</Text>
+            <Text className={restStyles.recoveryValue}>Recovery is calculated automatically</Text>
           </div>
           <div className={restStyles.recoveryLine}>
             <Text className={restStyles.recoveryLabel}>Exhaustion</Text>
@@ -63,8 +63,8 @@ export function CharacterSheetRestRecoverySummary({
       </div>
       <Text className={restStyles.note}>
         {restKind === 'SHORT'
-          ? 'Temp HP is unchanged. The roll and selected recoveries commit with the rest.'
-          : 'Temp HP clears. Selected companion recoveries commit with the rest.'}
+          ? 'Temp HP is unchanged. The roll and selected recoveries apply when you finish the rest.'
+          : 'Temp HP clears. Selected companion recoveries apply when you finish the rest.'}
       </Text>
     </div>
   )

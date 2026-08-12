@@ -39,7 +39,7 @@ export function CharacterSheetOverviewVitals({
   const version = sheet.meta.streamVersion
   const [hpControlsOpen, setHpControlsOpen] = useState(false)
   const [activeRestKind, setActiveRestKind] = useState<'SHORT' | 'LONG'>()
-  const isMobile = useMediaQuery('(max-width: 48rem)', false)
+  const isMobile = useMediaQuery('(max-width: 760px)', false)
   const speedFact = sheet.overview.facts.find((fact) => fact.label.toLowerCase() === 'speed')
   const primaryFacts = [
     { label: 'Armor Class', mobileLabel: 'AC', value: String(sheet.overview.armorClass) },

@@ -27,6 +27,7 @@ const campaignMocks = vi.hoisted(() => {
     CampaignValidationError,
     EntitlementLimitError,
     listCampaigns: vi.fn(async () => []),
+    listSentCampaignInvites: vi.fn(async () => []),
     transferCampaignInventory: vi.fn(async () => ({
       eventId: '00000000-0000-4000-8000-000000000010'
     })),
@@ -100,6 +101,18 @@ describe('tRPC campaign router', () => {
     await expect(caller.campaigns.list()).resolves.toEqual([])
     expect(campaignMocks.listCampaigns).toHaveBeenCalledWith({}, 'user-1')
     expect(withExplicitAuthorityDb).toHaveBeenCalledTimes(1)
+  })
+
+  it('lists sent invitations through the authenticated listing owner service', async () => {
+    const caller = appRouter.createCaller(authenticatedContext)
+    const listingPublicId = '00000000-0000-4000-8000-000000000050'
+
+    await expect(caller.campaigns.invites.listSent({ listingPublicId })).resolves.toEqual([])
+    expect(campaignMocks.listSentCampaignInvites).toHaveBeenCalledWith(
+      {},
+      'user-1',
+      listingPublicId
+    )
   })
 
   it.each([

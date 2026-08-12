@@ -62,6 +62,18 @@ export const sheetCanvas = style({
   }
 })
 
+export const tabletFocusedCanvas = style({
+  '@layer': {
+    [app]: {
+      '@media': {
+        '(min-width: 761px) and (max-width: 1199px)': {
+          gridTemplateColumns: 'minmax(0, 1fr)'
+        }
+      }
+    }
+  }
+})
+
 export const overviewRegion = style({
   '@layer': {
     [app]: {
@@ -71,6 +83,18 @@ export const overviewRegion = style({
       '@media': {
         '(max-width: 1199px)': {
           overflow: 'visible'
+        }
+      }
+    }
+  }
+})
+
+export const tabletOverviewHidden = style({
+  '@layer': {
+    [app]: {
+      '@media': {
+        '(min-width: 761px) and (max-width: 1199px)': {
+          display: 'none'
         }
       }
     }

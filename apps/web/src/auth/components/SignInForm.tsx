@@ -49,7 +49,7 @@ export function SignInForm({
         return
       }
 
-      const message = 'Your toolkit is ready.'
+      const message = 'Signed in.'
       setFeedback({ tone: 'success', message })
       await onSuccess?.(result)
     } finally {
@@ -91,7 +91,7 @@ export function SignInForm({
         </Anchor>
       </div>
       <Button className={authButton} type='submit' disabled={isSubmitting}>
-        {isSubmitting ? 'Opening toolkit...' : 'Sign in'}
+        {isSubmitting ? 'Signing in...' : 'Sign in'}
       </Button>
       {feedback && (
         <div

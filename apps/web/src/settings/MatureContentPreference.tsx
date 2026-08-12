@@ -52,7 +52,7 @@ export function MatureContentPreference() {
           <h3 className={styles.settingTitle}>Social content visibility</h3>
           <p className={styles.settingDescription}>
             Standard masks strong language in public Social Hub content. Mature content shows after
-            age verification.
+            you confirm that you are 18 or older.
           </p>
         </div>
         <Stack gap='xs'>
@@ -77,7 +77,7 @@ export function MatureContentPreference() {
       </div>
       <Modal
         opened={attestationOpened}
-        title='Verify you are 18 or older'
+        title='Confirm you are 18 or older'
         onClose={() => {
           setAttestationOpened(false)
           setBirthDate('')
@@ -95,7 +95,7 @@ export function MatureContentPreference() {
           <Stack>
             <TextInput
               required
-              description='Used once to verify your age.'
+              description='Used once to confirm you are 18 or older. Your birth date is not stored.'
               label='Date of birth'
               max={latestAdultBirthDate()}
               type='date'
@@ -118,7 +118,7 @@ export function MatureContentPreference() {
                 Cancel
               </Button>
               <Button disabled={!birthDate} loading={updatePreference.isPending} type='submit'>
-                Verify age and show mature text
+                Confirm age and show mature text
               </Button>
             </Group>
           </Stack>

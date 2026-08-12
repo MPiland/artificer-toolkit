@@ -57,7 +57,11 @@ export function CharacterSheetHero({
           </Text>
         </div>
       </div>
-      <div className={heroStyles.heroActions}>
+      <div
+        className={`${heroStyles.heroActions} ${
+          campaignActions ? heroStyles.heroActionsMobileRow : ''
+        }`}
+      >
         {campaignActions}
         <Tooltip label='Roll history'>
           <ActionIcon

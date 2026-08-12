@@ -81,7 +81,7 @@ export const GuidedFeatAuthoring = withForm({
         {screen === 0 ? (
           <Stack gap='lg'>
             {session.mode === 'edit' && (effects.length > 1 || readGrants(values)) ? (
-              <Alert color='blue' title='Advanced mechanics preserved'>
+              <Alert color='blue' title='Some details require Advanced'>
                 This feat contains advanced effects or grants. Guided keeps them intact while you
                 edit the common fields.
               </Alert>

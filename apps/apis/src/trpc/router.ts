@@ -8,6 +8,7 @@ import { characterRouter } from './characterRouter.js'
 import { rollRouter } from './rollRouter.js'
 import { nodeRuntimeRouter } from './nodeRuntimeRouter.js'
 import { socialHubRouter } from './socialHubRouter.js'
+import { notificationsRouter } from './notificationsRouter.js'
 import { createTRPCRouter } from './procedures.js'
 
 export const appRouter = createTRPCRouter({
@@ -22,6 +23,7 @@ export const appRouter = createTRPCRouter({
   characters: characterRouter,
   rolls: rollRouter,
   socialHub: socialHubRouter,
+  notifications: notificationsRouter,
   nodeRuntime: nodeRuntimeRouter
 })
 

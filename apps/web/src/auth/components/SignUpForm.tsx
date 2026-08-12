@@ -47,7 +47,7 @@ export function SignUpForm({
     const parsedUsername = usernameInputSchema.safeParse(username)
     if (!parsedUsername.success) {
       setUsernameError(
-        'Use 3–30 letters, numbers, and single underscores between words. Capitalization is preserved.'
+        'Use 3 to 30 letters or numbers, with single underscores between them. Capitalization is preserved.'
       )
       return
     }
@@ -89,11 +89,11 @@ export function SignUpForm({
       }
 
       if (result.session) {
-        const message = 'Your toolkit is ready.'
+        const message = 'Account created.'
         setFeedback({ tone: 'success', message })
       } else {
         const message =
-          'If an account can be created for that email, a confirmation email has been sent.'
+          "If we can create an account with that email, we'll send a confirmation link. Check your inbox."
         setFeedback({ tone: 'success', message })
       }
       await onSuccess?.(result)
@@ -121,7 +121,7 @@ export function SignUpForm({
       />
       <TextInput
         label='Username'
-        description='Use 3–30 letters, numbers, and single underscores between words.'
+        description='Use 3 to 30 letters or numbers, with single underscores between them.'
         classNames={{
           input: textInput
         }}
@@ -140,7 +140,7 @@ export function SignUpForm({
       />
       <PasswordInput
         label='Password'
-        description={`Use ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} characters.`}
+        description={`Use ${PASSWORD_MIN_LENGTH} to ${PASSWORD_MAX_LENGTH} characters.`}
         classNames={{
           input: textInput
         }}

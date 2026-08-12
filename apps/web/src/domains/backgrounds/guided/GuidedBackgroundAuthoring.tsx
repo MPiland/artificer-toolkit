@@ -83,7 +83,7 @@ export const GuidedBackgroundAuthoring = withForm({
         {screen === 0 ? (
           <Stack gap='lg'>
             {session.mode === 'edit' && hasUnsupportedContent(values) ? (
-              <Alert color='blue' title='Advanced mechanics preserved'>
+              <Alert color='blue' title='Some details require Advanced'>
                 This background contains detailed proficiency or equipment rules. Guided keeps them
                 intact while you edit the common description and features.
               </Alert>

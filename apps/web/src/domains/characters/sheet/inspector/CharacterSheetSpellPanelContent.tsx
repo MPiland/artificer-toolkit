@@ -83,7 +83,7 @@ export function CharacterSheetSpellPanelContent({
           ))}
           {!panel.legalCastModes.length ? (
             <Text className={inspectorShellStyles.muted}>
-              No legal cast modes are currently available.
+              You cannot cast this spell right now.
             </Text>
           ) : null}
         </div>

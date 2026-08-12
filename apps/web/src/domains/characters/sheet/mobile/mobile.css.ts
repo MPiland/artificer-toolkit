@@ -59,7 +59,6 @@ export const mobilePageViewport = style({
       minWidth: 0,
       overflowY: 'auto',
       scrollbarWidth: 'none',
-      touchAction: 'pan-y',
       '@media': {
         '(min-width: 761px)': {
           display: 'contents'

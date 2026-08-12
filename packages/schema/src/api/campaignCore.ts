@@ -174,6 +174,9 @@ export const campaignInviteStatusDtoSchema = z.enum([
   'REVOKED',
   'EXPIRED'
 ])
+export const listSentCampaignInvitesInputSchema = z.strictObject({
+  listingPublicId: uuidSchema
+})
 export const createCampaignInviteInputSchema = z.strictObject({
   listingPublicId: uuidSchema,
   expectedListingVersion: versionSchema,

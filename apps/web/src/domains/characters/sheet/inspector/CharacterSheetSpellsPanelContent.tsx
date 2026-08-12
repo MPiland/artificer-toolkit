@@ -222,7 +222,7 @@ export function CharacterSheetSpellsPanelContent({
               </Accordion.Control>
               <Accordion.Panel>
                 <Text className={inspectorShellStyles.muted}>
-                  No Sheet-manageable spells are available.
+                  There are no spells you can learn or forget here.
                 </Text>
               </Accordion.Panel>
             </Accordion.Item>

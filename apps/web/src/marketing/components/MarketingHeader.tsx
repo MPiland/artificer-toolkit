@@ -36,7 +36,7 @@ export function MarketingHeader({
         ))}
         {publicSignUpEnabled ? (
           <MarketingRouteLink className={primaryLink} to='/sign-up'>
-            Get started free
+            Create free account
           </MarketingRouteLink>
         ) : null}
       </nav>

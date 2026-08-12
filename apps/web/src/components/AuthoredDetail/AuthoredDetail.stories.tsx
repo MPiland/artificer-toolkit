@@ -36,7 +36,7 @@ const meta = {
     notice: {
       tone: 'draft',
       title: 'Draft preview',
-      body: 'You are previewing unsaved draft changes. The active race remains unchanged until activation.'
+      body: 'You are previewing the draft. The active race will not change until you activate it.'
     },
     sections: [
       {
@@ -93,8 +93,8 @@ export const InvalidDraftFallback: Story = {
   args: {
     notice: {
       tone: 'warning',
-      title: 'Invalid draft found',
-      body: 'The active race is shown because the saved draft no longer matches the current schema.'
+      title: 'Draft needs attention',
+      body: 'This draft was saved in an older format. Your active race is unchanged. Discard the draft to continue.'
     },
     status: ['SRD', 'Active']
   }

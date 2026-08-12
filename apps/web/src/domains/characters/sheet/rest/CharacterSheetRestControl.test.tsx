@@ -101,7 +101,7 @@ describe('Character Sheet rests', () => {
 
     await user.click(within(dialog).getByRole('button', { name: /1d8 \+ 1/i }))
     expect((await within(dialog).findAllByText(/6 rolled/i)).length).toBeGreaterThan(0)
-    expect(within(dialog).getByText(/2 hp staged/i)).toBeInTheDocument()
+    expect(within(dialog).getByText(/2 hp selected/i)).toBeInTheDocument()
 
     await user.click(within(dialog).getByLabelText(/clockwork hound/i))
     await user.click(within(dialog).getByRole('button', { name: /take short rest/i }))
@@ -186,7 +186,7 @@ describe('Character Sheet rests', () => {
     const dialog = await screen.findByRole('dialog', { name: /^long rest$/i })
 
     expect(within(dialog).getByText('Restores to 12 / 12')).toBeInTheDocument()
-    expect(within(dialog).getByText('Recover by active rules')).toBeInTheDocument()
+    expect(within(dialog).getByText('Recovery is calculated automatically')).toBeInTheDocument()
     expect(within(dialog).getByText(/reduces from level 1/i)).toBeInTheDocument()
     expect(within(dialog).getByText(/temp hp clears/i)).toBeInTheDocument()
   })

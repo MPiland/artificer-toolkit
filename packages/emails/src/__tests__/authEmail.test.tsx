@@ -26,6 +26,8 @@ describe('AuthEmail', () => {
     )
 
     expect(html).toContain('Artificer Toolkit')
+    expect(html).not.toContain('Forge clarity')
+    expect(html).not.toContain('Manage notification preferences')
     const decodedHtml = html.replaceAll('&#x27;', "'")
 
     expect(decodedHtml).toContain(content.title)

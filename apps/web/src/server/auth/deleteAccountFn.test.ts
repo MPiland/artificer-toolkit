@@ -7,8 +7,28 @@ const mocks = vi.hoisted(() => ({
   getSupabaseAdminClient: vi.fn(),
   getSupabaseServerClient: vi.fn(),
   getUser: vi.fn(),
-  signInWithPassword: vi.fn()
+  signInWithPassword: vi.fn(),
+  from: vi.fn(),
+  select: vi.fn(),
+  eq: vi.fn(),
+  maybeSingle: vi.fn(),
+  novuDelete: vi.fn(),
+  NovuError: class NovuError extends Error {
+    statusCode: number
+
+    constructor(status: number) {
+      super(`HTTP ${status}`)
+      this.statusCode = status
+    }
+  }
 }))
+
+vi.mock('@novu/api', () => {
+  class MockNovu {
+    subscribers = { delete: mocks.novuDelete }
+  }
+  return { Novu: MockNovu }
+})
 
 vi.mock('@tanstack/react-start', () => ({
   createServerFn: () => ({
@@ -41,6 +61,7 @@ describe('deleteAccountFn', () => {
     email: 'player@example.com',
     currentPassword: 'password123'
   }
+  const recipientId = '00000000-0000-4000-8000-000000000001'
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -48,7 +69,11 @@ describe('deleteAccountFn', () => {
       auth: { signInWithPassword: mocks.signInWithPassword }
     })
     mocks.getBlockedAuthRequest.mockReturnValue(null)
+    mocks.from.mockReturnValue({ select: mocks.select })
+    mocks.select.mockReturnValue({ eq: mocks.eq })
+    mocks.eq.mockReturnValue({ maybeSingle: mocks.maybeSingle })
     mocks.getSupabaseAdminClient.mockReturnValue({
+      from: mocks.from,
       auth: { admin: { deleteUser: mocks.deleteUser } }
     })
     mocks.getSupabaseServerClient.mockReturnValue({
@@ -60,6 +85,12 @@ describe('deleteAccountFn', () => {
     })
     mocks.signInWithPassword.mockResolvedValue({ error: null })
     mocks.deleteUser.mockResolvedValue({ error: null })
+    mocks.maybeSingle.mockResolvedValue({
+      data: { notification_recipient_id: recipientId },
+      error: null
+    })
+    vi.stubEnv('NOVU_SECRET_KEY', 'novu-secret')
+    mocks.novuDelete.mockResolvedValue(undefined)
   })
 
   it('requires the exact signed-in account email before password verification', async () => {
@@ -75,11 +106,31 @@ describe('deleteAccountFn', () => {
 
   it('permanently deletes the verified user', async () => {
     await expect(deleteAccountFn({ data: input })).resolves.toEqual({ ok: true })
+    expect(mocks.novuDelete).toHaveBeenCalledWith(recipientId)
 
     expect(mocks.signInWithPassword).toHaveBeenCalledWith({
       email: input.email,
       password: input.currentPassword
     })
+    expect(mocks.deleteUser).toHaveBeenCalledWith('user-1')
+  })
+
+  it('blocks Supabase deletion when Novu cleanup fails', async () => {
+    mocks.novuDelete.mockRejectedValueOnce(new mocks.NovuError(503))
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    await expect(deleteAccountFn({ data: input })).resolves.toEqual({
+      error: true,
+      message: 'Could not delete your account. Try again.'
+    })
+    expect(mocks.deleteUser).not.toHaveBeenCalled()
+    consoleError.mockRestore()
+  })
+
+  it('continues Supabase deletion when Novu already deleted the recipient', async () => {
+    mocks.novuDelete.mockRejectedValueOnce(new mocks.NovuError(404))
+
+    await expect(deleteAccountFn({ data: input })).resolves.toEqual({ ok: true })
     expect(mocks.deleteUser).toHaveBeenCalledWith('user-1')
   })
 

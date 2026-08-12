@@ -69,7 +69,7 @@ export const GuidedVehicleAuthoring = withForm({
         {screen === 0 ? (
           <Stack gap='lg'>
             {session.mode === 'edit' && hasAdvancedData(values) ? (
-              <Alert color='blue' title='Advanced mechanics preserved'>
+              <Alert color='blue' title='Some details require Advanced'>
                 Detailed properties and feature mechanics stay intact while you edit this vehicle's
                 common fields.
               </Alert>

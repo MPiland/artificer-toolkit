@@ -9,6 +9,9 @@ const canonical = read('packages/db/src/domains/social/tables/social.sql')
 const campaigns = read('packages/db/src/domains/campaigns/tables/campaigns.sql')
 const bootstrap = read('packages/db/src/domains/utils/create_database.sql')
 const migration = read('supabase/migrations/20260810113601_phase_04_social_hub.sql')
+const removeUsAttestation = read(
+  'supabase/migrations/20260811162000_remove_social_us_attestation.sql'
+)
 const generatedTypes = read('packages/db/src/types/supabase.database.ts')
 
 const socialTables = [
@@ -110,6 +113,9 @@ describe('Phase 04 Social Hub schema', () => {
     expect(campaignType).toBeDefined()
     expect(campaignType).not.toContain('visibility')
     expect(generatedTypes).not.toContain('token_digest:')
+    expect(generatedTypes).not.toContain('us_attested_at:')
+    expect(canonical).not.toContain('us_attested_at')
+    expect(removeUsAttestation).toContain('DROP COLUMN IF EXISTS us_attested_at')
     // Supabase's generated TypeScript uses unknown for PostgreSQL tsvector columns.
     expect(generatedTypes).toContain('search_vector: unknown')
     expect(generatedTypes).toContain('expectations_snapshot: Json')

@@ -48,6 +48,12 @@ export function buildCampaignsApi(client: TrpcClient) {
           campaignContracts.campaignInviteDtoSchema.array(),
           () => client.campaigns.invites.listReceived.query()
         ),
+      listSent: (listingPublicId: string) =>
+        request(
+          'campaigns.invites.listSent',
+          campaignContracts.campaignInviteDtoSchema.array(),
+          () => client.campaigns.invites.listSent.query({ listingPublicId })
+        ),
       revoke: async (invitePublicId: string, expectedVersion: number) => {
         await request('campaigns.invites.revoke', okResponseSchema, () =>
           client.campaigns.invites.revoke.mutate({ invitePublicId, expectedVersion })

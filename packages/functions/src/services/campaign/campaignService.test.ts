@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
     insertInvite: vi.fn(),
     lockInvite: vi.fn(),
     listReceivedInvites: vi.fn(),
+    listInvitesForListing: vi.fn(),
     expireDueReceivedInvites: vi.fn(),
     setInviteStatus: vi.fn(),
     expirePendingInvites: vi.fn(),
@@ -47,16 +48,25 @@ const mocks = vi.hoisted(() => ({
   lockTier: vi.fn(),
   social: {
     findSocialListingByCampaign: vi.fn(),
+    findOwnedSocialListing: vi.fn(),
     lockSocialListing: vi.fn(),
     setSocialListingStatus: vi.fn(),
     expireSubmittedSocialApplications: vi.fn(),
     advanceSubmittedSocialApplicationListingVersions: vi.fn(),
     syncSocialListingCampaignProjection: vi.fn(),
-    hasSocialBlockEitherDirection: vi.fn()
+    hasSocialBlockEitherDirection: vi.fn(),
+    findActiveSocialProfile: vi.fn()
   },
   acceptSocialAdmission: vi.fn(),
   requireActiveSocialProfile: vi.fn(),
   consumeSocialRateLimit: vi.fn(),
+  notifications: {
+    enqueueApplicationSubmittedCancellations: vi.fn(),
+    enqueueInvitationDecisionNotifications: vi.fn(),
+    enqueueInvitationReceivedCancellations: vi.fn(),
+    enqueueInvitationReceivedNotification: vi.fn(),
+    expireDueCampaignInvitationsForUser: vi.fn()
+  },
   transaction: { isTransaction: true }
 }))
 
@@ -76,6 +86,10 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
 
 vi.mock('../character/campaignCharacterReconciliation.js', () => ({
   reconcileCharacterAfterCampaignContentRemoval: mocks.reconcileCharacter
+}))
+
+vi.mock('../notifications/notificationService.js', () => ({
+  ...mocks.notifications
 }))
 
 vi.mock('../social/applicationService.js', () => ({
@@ -102,8 +116,11 @@ const {
   acceptCampaignOwnershipTransfer,
   assignCampaignCharacter,
   createCampaignInvite,
+  declineCampaignInvite,
   deleteCampaign,
   leaveCampaign,
+  listSentCampaignInvites,
+  revokeCampaignInvite,
   unassignCampaignCharacter,
   getCampaignCapabilities,
   listCampaigns,
@@ -163,7 +180,10 @@ describe('Campaign lifecycle service', () => {
     })
     mocks.lockTier.mockResolvedValue('FREE')
     mocks.repository.countActiveOwned.mockResolvedValue(0)
-    mocks.repository.expireDueReceivedInvites.mockResolvedValue(0)
+    mocks.repository.expireDueReceivedInvites.mockResolvedValue([])
+    mocks.repository.expirePendingInvites.mockResolvedValue([])
+    mocks.social.expireSubmittedSocialApplications.mockResolvedValue([])
+    mocks.notifications.expireDueCampaignInvitationsForUser.mockResolvedValue(0)
     mocks.social.findSocialListingByCampaign.mockResolvedValue(null)
     mocks.social.hasSocialBlockEitherDirection.mockResolvedValue(false)
     mocks.requireActiveSocialProfile.mockImplementation(async (_db: DBLike, userId: string) => ({
@@ -172,7 +192,6 @@ describe('Campaign lifecycle service', () => {
       username: userId === campaign.ownerUserId ? 'host-user' : 'player-user',
       status: 'ACTIVE',
       adultAttestedAt: '2026-08-01T00:00:00.000Z',
-      usAttestedAt: '2026-08-01T00:00:00.000Z',
       contentPreference: 'STANDARD',
       version: 1,
       createdAt: '2026-08-01T00:00:00.000Z',
@@ -278,6 +297,190 @@ describe('Campaign lifecycle service', () => {
     expect(mocks.repository.insertInvite).toHaveBeenCalledWith(
       expect.not.objectContaining({ token: expect.anything(), tokenDigest: expect.anything() })
     )
+    expect(mocks.notifications.enqueueInvitationReceivedNotification).toHaveBeenCalledWith(
+      mocks.transaction,
+      expect.objectContaining({ id: result.invitePublicId }),
+      expect.objectContaining({ listingTitle: 'Friday table', hostUsername: 'host-user' })
+    )
+  })
+
+  it('lists sent invitations only for the authenticated listing owner', async () => {
+    const listing = {
+      id: '00000000-0000-4000-8000-000000000040',
+      title: 'Friday table'
+    }
+    const invitation = {
+      id: '00000000-0000-4000-8000-000000000030',
+      listingId: listing.id,
+      campaignId: campaign.id,
+      createdBy: campaign.ownerUserId,
+      recipientUserId: '00000000-0000-4000-8000-000000000020',
+      recipientUsername: 'player-user',
+      listingVersion: 2,
+      status: 'PENDING' as const,
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      respondedAt: null,
+      revokedAt: null,
+      expiredAt: null,
+      createdAt: '2026-08-01T00:00:00.000Z',
+      updatedAt: '2026-08-01T00:00:00.000Z',
+      version: 1,
+      listingTitle: listing.title,
+      contentMaturity: 'STANDARD' as const,
+      hostProfileId: '00000000-0000-4000-8000-000000000011',
+      hostUsername: 'host-user'
+    }
+    mocks.social.findOwnedSocialListing.mockResolvedValue(listing)
+    mocks.repository.listInvitesForListing.mockResolvedValue([invitation])
+
+    await expect(
+      listSentCampaignInvites({} as DBLike, campaign.ownerUserId, listing.id)
+    ).resolves.toEqual([
+      expect.objectContaining({
+        invitePublicId: invitation.id,
+        listingPublicId: listing.id,
+        recipientUsername: invitation.recipientUsername,
+        status: 'PENDING'
+      })
+    ])
+    expect(mocks.social.findOwnedSocialListing).toHaveBeenCalledWith(
+      campaign.ownerUserId,
+      listing.id
+    )
+    expect(mocks.repository.listInvitesForListing).toHaveBeenCalledWith(listing.id)
+  })
+
+  it('denies sent invitation history for a listing the user does not own', async () => {
+    mocks.social.findOwnedSocialListing.mockResolvedValue(null)
+
+    await expect(
+      listSentCampaignInvites(
+        {} as DBLike,
+        '00000000-0000-4000-8000-000000000099',
+        '00000000-0000-4000-8000-000000000040'
+      )
+    ).rejects.toMatchObject({ name: 'SocialNotFoundError' })
+    expect(mocks.repository.listInvitesForListing).not.toHaveBeenCalled()
+  })
+
+  it('cancels receipt and triggers an ended notification when the host revokes an invitation', async () => {
+    const playerId = '00000000-0000-4000-8000-000000000020'
+    const listing = {
+      id: '00000000-0000-4000-8000-000000000040',
+      campaignId: campaign.id,
+      campaignOwnerUserId: campaign.ownerUserId,
+      title: 'Friday table'
+    }
+    const invitation = {
+      id: '00000000-0000-4000-8000-000000000030',
+      listingId: listing.id,
+      campaignId: campaign.id,
+      createdBy: campaign.ownerUserId,
+      recipientUserId: playerId,
+      recipientUsername: 'player-user',
+      listingVersion: 2,
+      status: 'PENDING' as const,
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      respondedAt: null,
+      revokedAt: null,
+      expiredAt: null,
+      createdAt: '2026-08-01T00:00:00.000Z',
+      updatedAt: '2026-08-01T00:00:00.000Z',
+      version: 1
+    }
+    const revoked = { ...invitation, status: 'REVOKED' as const, version: 2 }
+    mocks.repository.lockInvite.mockResolvedValue(invitation)
+    mocks.social.lockSocialListing.mockResolvedValue(listing)
+    mocks.repository.setInviteStatus.mockResolvedValue(revoked)
+
+    await revokeCampaignInvite(
+      {} as DBLike,
+      campaign.ownerUserId,
+      invitation.id,
+      invitation.version
+    )
+
+    expect(mocks.notifications.enqueueInvitationReceivedCancellations).toHaveBeenCalledWith(
+      mocks.transaction,
+      [revoked.id],
+      expect.any(String)
+    )
+  })
+
+  it('cancels receipt and triggers the host decision when the recipient declines', async () => {
+    const playerId = '00000000-0000-4000-8000-000000000020'
+    const listing = {
+      id: '00000000-0000-4000-8000-000000000040',
+      campaignId: campaign.id,
+      campaignOwnerUserId: campaign.ownerUserId,
+      title: 'Friday table'
+    }
+    const invitation = {
+      id: '00000000-0000-4000-8000-000000000030',
+      listingId: listing.id,
+      campaignId: campaign.id,
+      createdBy: campaign.ownerUserId,
+      recipientUserId: playerId,
+      recipientUsername: 'player-user',
+      listingVersion: 2,
+      status: 'PENDING' as const,
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      respondedAt: null,
+      revokedAt: null,
+      expiredAt: null,
+      createdAt: '2026-08-01T00:00:00.000Z',
+      updatedAt: '2026-08-01T00:00:00.000Z',
+      version: 1
+    }
+    const projection = {
+      ...invitation,
+      listingTitle: listing.title,
+      contentMaturity: 'STANDARD' as const,
+      hostProfileId: '00000000-0000-4000-8000-000000000011',
+      hostUsername: 'host-user'
+    }
+    const declined = { ...invitation, status: 'DECLINED' as const, version: 2 }
+    mocks.repository.lockInvite.mockResolvedValue(invitation)
+    mocks.social.lockSocialListing.mockResolvedValue(listing)
+    mocks.repository.listReceivedInvites.mockResolvedValue([projection])
+    mocks.repository.setInviteStatus.mockResolvedValue(declined)
+    mocks.social.findActiveSocialProfile.mockResolvedValue({
+      id: projection.hostProfileId,
+      username: projection.hostUsername
+    })
+
+    await declineCampaignInvite({} as DBLike, playerId, invitation.id, invitation.version)
+
+    expect(mocks.notifications.enqueueInvitationDecisionNotifications).toHaveBeenCalledWith(
+      mocks.transaction,
+      declined,
+      {
+        hostUserId: campaign.ownerUserId,
+        listingTitle: listing.title,
+        decision: 'DECLINED',
+        occurredAt: expect.any(String)
+      }
+    )
+  })
+
+  it('emits no notification for a stale invitation revoke', async () => {
+    const invitation = {
+      id: '00000000-0000-4000-8000-000000000030',
+      listingId: '00000000-0000-4000-8000-000000000040',
+      status: 'PENDING',
+      version: 1
+    }
+    mocks.repository.lockInvite.mockResolvedValue(invitation)
+    mocks.social.lockSocialListing.mockResolvedValue({
+      id: invitation.listingId,
+      campaignId: campaign.id,
+      campaignOwnerUserId: campaign.ownerUserId
+    })
+
+    await expect(
+      revokeCampaignInvite({} as DBLike, campaign.ownerUserId, invitation.id, 2)
+    ).rejects.toMatchObject({ name: 'SocialConflictError' })
+    expect(mocks.notifications.enqueueInvitationReceivedCancellations).not.toHaveBeenCalled()
   })
 
   it('routes invitation acceptance through the shared Social admission transaction', async () => {
@@ -586,6 +789,8 @@ describe('Campaign lifecycle service', () => {
       ...listing,
       version: 5
     })
+    mocks.social.expireSubmittedSocialApplications.mockResolvedValue(['application-id'])
+    mocks.repository.expirePendingInvites.mockResolvedValue(['invite-id'])
 
     await updateCampaign({} as DBLike, campaign.ownerUserId, {
       campaignId: campaign.id,
@@ -603,6 +808,16 @@ describe('Campaign lifecycle service', () => {
     )
     expect(mocks.social.advanceSubmittedSocialApplicationListingVersions).not.toHaveBeenCalled()
     expect(mocks.repository.advancePendingInviteListingVersions).not.toHaveBeenCalled()
+    expect(mocks.notifications.enqueueApplicationSubmittedCancellations).toHaveBeenCalledWith(
+      mocks.transaction,
+      ['application-id'],
+      expect.any(String)
+    )
+    expect(mocks.notifications.enqueueInvitationReceivedCancellations).toHaveBeenCalledWith(
+      mocks.transaction,
+      ['invite-id'],
+      expect.any(String)
+    )
   })
 
   it('rejects changing an open recurring Campaign to One-shot', async () => {

@@ -49,7 +49,7 @@ describe('route states', () => {
   it('renders the route loading state with live progress copy', () => {
     renderWithRouter(<RouteLoadingState />, null)
 
-    expect(screen.getByRole('status')).toHaveTextContent('Forging weapons...')
+    expect(screen.getByRole('status')).toHaveTextContent('Loading...')
   })
 })
 

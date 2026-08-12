@@ -84,6 +84,8 @@ export function AuthoredListPage({
   })
   const viewportRef = useRef<HTMLDivElement>(null)
   const normalizedQuery = query.trim().toLowerCase()
+  const hasActiveFilters =
+    normalizedQuery.length > 0 || Object.values(filterValues).some((value) => Boolean(value))
   const visibleItems = contentPanel === 'draft' ? draftItems : items
   const draftEmptyState =
     contentPanel === 'draft' && draftItems.length === 0 ? (
@@ -279,14 +281,27 @@ export function AuthoredListPage({
         )}
         aria-label={`${title} results`}
       >
-        {loading ? <LoadingRows /> : null}
-        {!loading && error ? <StatePanel title='Something went sideways.' copy={error} /> : null}
+        {loading ? <LoadingRows title={title} /> : null}
+        {!loading && error ? (
+          <StatePanel
+            title={`Couldn't load ${title.toLowerCase()}.`}
+            copy='Refresh the page to try again.'
+          />
+        ) : null}
         {!loading && !error && filteredItems.length === 0
           ? (draftEmptyState ??
             emptyState ?? (
               <StatePanel
-                title={`No ${title.toLowerCase()} found.`}
-                copy='Try a different search or clear a filter.'
+                title={
+                  hasActiveFilters
+                    ? `No ${title.toLowerCase()} match these filters.`
+                    : `No ${title.toLowerCase()} yet.`
+                }
+                copy={
+                  hasActiveFilters
+                    ? 'Try a different search or clear a filter.'
+                    : `Use ${createLabel} to get started.`
+                }
               />
             ))
           : null}
@@ -327,11 +342,11 @@ export function AuthoredListPage({
   )
 }
 
-function LoadingRows() {
+function LoadingRows({ title }: { title: string }) {
   return (
     <div className={styles.statePanel} aria-label='Loading list'>
       <IMore />
-      <Text fw={600}>Loading content...</Text>
+      <Text fw={600}>Loading {title.toLowerCase()}...</Text>
       <Skeleton height={16} width='70%' />
       <Skeleton height={16} width='52%' />
     </div>

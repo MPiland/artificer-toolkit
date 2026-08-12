@@ -212,7 +212,6 @@ export const GuidedCreatureAuthoring = withForm({
               <Summary label='Hit Points' value={String(values.hitPoints ?? '—')} />
               <Summary label='Features and actions' value={String(values.features.length)} />
             </dl>
-            <Text c='dimmed'>Save the draft, or activate it when validation is complete.</Text>
           </Stack>
         ) : null}
       </GuidedAuthoringFrame>

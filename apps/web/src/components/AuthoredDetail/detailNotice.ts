@@ -24,9 +24,9 @@ export function buildAuthoredDetailNotice({
   if (hasInvalidDraft) {
     return {
       tone: 'warning',
-      title: 'Invalid draft found',
-      body: `The active ${lowerLabel} is shown because the saved draft no longer matches the current schema.`,
-      action: { label: 'Discard Draft', tone: 'secondary', onClick: onDiscard }
+      title: 'Draft needs attention',
+      body: `This draft was saved in an older format. Your active ${lowerLabel} is unchanged. Discard the draft to continue.`,
+      action: { label: 'Discard draft', tone: 'secondary', onClick: onDiscard }
     }
   }
 
@@ -38,11 +38,11 @@ export function buildAuthoredDetailNotice({
     body: canViewActive
       ? isViewingActive
         ? `You are viewing the active ${lowerLabel}. A draft is still available to resume.`
-        : `You are previewing unsaved draft changes. The active ${lowerLabel} remains unchanged until activation.`
+        : `You are previewing the draft. The active ${lowerLabel} will not change until you activate it.`
       : `This ${lowerLabel} has not been activated yet.`,
     action: canViewActive
       ? {
-          label: isViewingActive ? 'View Draft' : 'View Active',
+          label: isViewingActive ? 'View draft' : 'View active',
           tone: 'secondary',
           onClick: isViewingActive ? onViewDraft : onViewActive
         }
