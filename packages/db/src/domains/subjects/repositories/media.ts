@@ -34,8 +34,8 @@ export type MediaVariantRow = {
   object_key: string
   mime_type: string
   byte_size: number
-  width: number
-  height: number
+  width: number | null
+  height: number | null
 }
 
 export type AuthoredImageSlotRow = {
@@ -137,8 +137,8 @@ export function createMediaRepository(db: DBLike) {
       reservationBytes: number
       verifiedMimeType: string
       verifiedBytes: number
-      width: number
-      height: number
+      width: number | null
+      height: number | null
       variants: readonly Omit<MediaVariantRow, 'asset_id'>[]
     }): Promise<boolean> {
       return withTransaction(db, async (trx) => {

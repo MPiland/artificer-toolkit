@@ -21,7 +21,8 @@ const workflowByDataKind = {
   SOCIAL_APPLICATION_SUBMITTED: 'social-application-submitted',
   SOCIAL_APPLICATION_DECIDED: 'social-application-decided',
   SOCIAL_INVITATION_RECEIVED: 'social-invitation-received',
-  SOCIAL_INVITATION_DECIDED: 'social-invitation-decided'
+  SOCIAL_INVITATION_DECIDED: 'social-invitation-decided',
+  CAMPAIGN_ANNOUNCEMENT: 'campaign-announcement'
 } as const satisfies Record<string, NotificationWorkflowKey>
 
 export type NotificationDestination =
@@ -29,6 +30,11 @@ export type NotificationDestination =
   | { kind: 'MY_APPLICATION'; applicationPublicId: string }
   | { kind: 'MY_INVITATION'; invitePublicId: string }
   | { kind: 'HOST_INVITATION'; invitePublicId: string; listingPublicId: string }
+  | {
+      kind: 'CAMPAIGN_ANNOUNCEMENT'
+      announcementPublicId: string
+      campaignPublicId: string
+    }
 
 export interface NotificationViewModel {
   body: string
@@ -151,6 +157,17 @@ export function toNotificationViewModel(input: NovuNotification): NotificationVi
           kind: 'HOST_INVITATION',
           invitePublicId: data.data.sourcePublicId,
           listingPublicId: data.data.listingPublicId
+        }
+      }
+    case 'CAMPAIGN_ANNOUNCEMENT':
+      return {
+        ...base,
+        title: 'Campaign announcement',
+        body: data.data.summary,
+        destination: {
+          kind: 'CAMPAIGN_ANNOUNCEMENT',
+          announcementPublicId: data.data.announcementPublicId,
+          campaignPublicId: data.data.campaignPublicId
         }
       }
   }

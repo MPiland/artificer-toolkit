@@ -101,19 +101,12 @@ export const updateCampaignSessionInputSchema = z.strictObject({
   timeZone: timeZoneSchema.nullable().optional(),
   expectedVersion: versionSchema
 })
-export const deleteCampaignSessionInputSchema = z.strictObject({
-  campaignId: uuidSchema,
-  sessionId: uuidSchema
-})
 const campaignLivePlayCommandBaseSchema = z.strictObject({
   campaignId: uuidSchema,
   commandId: uuidSchema,
   expectedVersion: versionSchema
 })
 export const finishCampaignSessionInputSchema = campaignLivePlayCommandBaseSchema.extend({
-  sessionId: uuidSchema
-})
-export const reopenCampaignSessionInputSchema = campaignLivePlayCommandBaseSchema.extend({
   sessionId: uuidSchema
 })
 export const getCampaignSessionInputSchema = z.strictObject({
@@ -144,7 +137,10 @@ export const setCampaignSessionRsvpInputSchema = z.strictObject({
   response: z.enum(['YES', 'NO', 'MAYBE'])
 })
 const campaignSessionReferencePinTargetSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('CAMPAIGN_NOTE'), noteSectionId: uuidSchema }),
+  z.strictObject({
+    kind: z.literal('CAMPAIGN_NOTE'),
+    noteSectionId: uuidSchema
+  }),
   z.strictObject({
     kind: z.literal('AUTHORED_ROUTE'),
     routeSubjectKind: authoredSubjectKindDtoSchema,
@@ -205,10 +201,8 @@ export const initializeCampaignClockInputSchema = campaignLivePlayCommandBaseSch
   duskMinute: z.number().int().min(0).max(1439)
 })
 export const configureCampaignClockInputSchema = campaignLivePlayCommandBaseSchema.extend({
-  day: z.number().int().safe().min(1).optional(),
-  minuteOfDay: z.number().int().min(0).max(1439).optional(),
-  dawnMinute: z.number().int().min(0).max(1439).optional(),
-  duskMinute: z.number().int().min(0).max(1439).optional()
+  dawnMinute: z.number().int().min(0).max(1439),
+  duskMinute: z.number().int().min(0).max(1439)
 })
 export const startCampaignClockInputSchema = campaignLivePlayCommandBaseSchema
 export const pauseCampaignClockInputSchema = campaignLivePlayCommandBaseSchema
@@ -217,6 +211,11 @@ export const advanceCampaignClockInputSchema = campaignLivePlayCommandBaseSchema
 })
 export const rewindCampaignClockInputSchema = campaignLivePlayCommandBaseSchema.extend({
   minutes: z.number().int().safe().positive(),
+  correctionReason: z.string().trim().min(1).max(500)
+})
+export const resetCampaignClockInputSchema = campaignLivePlayCommandBaseSchema.extend({
+  day: z.number().int().safe().min(1),
+  minuteOfDay: z.number().int().min(0).max(1439),
   correctionReason: z.string().trim().min(1).max(500)
 })
 export const reconcileCampaignClockInputSchema = campaignLivePlayCommandBaseSchema
@@ -310,8 +309,12 @@ export const deleteCampaignSessionNoteSectionInputSchema = z.strictObject({
   sessionId: uuidSchema,
   sectionId: uuidSchema
 })
-export const listCampaignNotebookSectionsInputSchema = z.strictObject({ campaignId: uuidSchema })
-export const listCampaignSessionsInputSchema = z.strictObject({ campaignId: uuidSchema })
+export const listCampaignNotebookSectionsInputSchema = z.strictObject({
+  campaignId: uuidSchema
+})
+export const listCampaignSessionsInputSchema = z.strictObject({
+  campaignId: uuidSchema
+})
 export const listCampaignSessionNoteSectionsInputSchema = z.strictObject({
   campaignId: uuidSchema,
   sessionId: uuidSchema
@@ -324,7 +327,6 @@ export type CampaignNotebookSectionDto = z.infer<typeof campaignNotebookSectionD
 export type CampaignSessionDto = z.infer<typeof campaignSessionDtoSchema>
 export type CampaignSessionStatusDto = z.infer<typeof campaignSessionStatusDtoSchema>
 export type FinishCampaignSessionInput = z.input<typeof finishCampaignSessionInputSchema>
-export type ReopenCampaignSessionInput = z.input<typeof reopenCampaignSessionInputSchema>
 export type GetCampaignSessionInput = z.input<typeof getCampaignSessionInputSchema>
 export type CampaignSessionAttendanceDto = z.infer<typeof campaignSessionAttendanceDtoSchema>
 export type CampaignSessionRsvpDto = z.infer<typeof campaignSessionRsvpDtoSchema>
@@ -340,5 +342,6 @@ export type StartCampaignClockInput = z.input<typeof startCampaignClockInputSche
 export type PauseCampaignClockInput = z.input<typeof pauseCampaignClockInputSchema>
 export type AdvanceCampaignClockInput = z.input<typeof advanceCampaignClockInputSchema>
 export type RewindCampaignClockInput = z.input<typeof rewindCampaignClockInputSchema>
+export type ResetCampaignClockInput = z.input<typeof resetCampaignClockInputSchema>
 export type ReconcileCampaignClockInput = z.input<typeof reconcileCampaignClockInputSchema>
 export type CampaignSessionNoteSectionDto = z.infer<typeof campaignSessionNoteSectionDtoSchema>

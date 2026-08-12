@@ -57,10 +57,12 @@ import type {
 } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type {
   AttachImageInput,
+  CreateCampaignFileUploadIntentInput,
   CreateImageUploadIntentInput,
   FinalizeImageUploadInput,
   ImageLookupInput,
   RemoveImageInput,
+  SignedCampaignFileDeliveryDto,
   SignedImageDeliveryDto
 } from '@artificer-toolkit/schema/api/media'
 import type {
@@ -226,6 +228,16 @@ export interface TrpcClient {
       SchemaInput<typeof campaignContracts.campaignIdInputSchema>,
       campaignContracts.CampaignDetailDto
     >
+    playSettings: {
+      get: QueryProcedure<
+        SchemaInput<typeof campaignContracts.getCampaignPlaySettingsInputSchema>,
+        campaignContracts.CampaignPlaySettingsDto
+      >
+      save: MutationProcedure<
+        campaignContracts.SaveCampaignPlaySettingsInput,
+        campaignContracts.CampaignPlaySettingsDto
+      >
+    }
     create: MutationProcedure<
       campaignContracts.CreateCampaignInput,
       campaignContracts.CampaignDetailDto
@@ -349,16 +361,8 @@ export interface TrpcClient {
         SchemaInput<typeof campaignContracts.updateCampaignSessionInputSchema>,
         campaignContracts.CampaignSessionDto
       >
-      delete: MutationProcedure<
-        SchemaInput<typeof campaignContracts.deleteCampaignSessionInputSchema>,
-        { ok: true }
-      >
       finish: MutationProcedure<
         SchemaInput<typeof campaignContracts.finishCampaignSessionInputSchema>,
-        campaignContracts.CampaignSessionDto
-      >
-      reopen: MutationProcedure<
-        SchemaInput<typeof campaignContracts.reopenCampaignSessionInputSchema>,
         campaignContracts.CampaignSessionDto
       >
       get: QueryProcedure<
@@ -447,9 +451,63 @@ export interface TrpcClient {
         campaignContracts.RewindCampaignClockInput,
         campaignContracts.CampaignClockDto
       >
+      reset: MutationProcedure<
+        campaignContracts.ResetCampaignClockInput,
+        campaignContracts.CampaignClockDto
+      >
       reconcile: MutationProcedure<
         campaignContracts.ReconcileCampaignClockInput,
         campaignContracts.CampaignClockDto
+      >
+    }
+    vehicles: {
+      list: QueryProcedure<
+        SchemaInput<typeof campaignContracts.listCampaignVehiclesInputSchema>,
+        campaignContracts.CampaignVehicleDto[]
+      >
+      create: MutationProcedure<
+        campaignContracts.CreateCampaignVehicleInput,
+        campaignContracts.CampaignVehicleDto
+      >
+      update: MutationProcedure<
+        campaignContracts.UpdateCampaignVehicleInput,
+        campaignContracts.CampaignVehicleDto
+      >
+      delete: MutationProcedure<
+        SchemaInput<typeof campaignContracts.deleteCampaignVehicleInputSchema>,
+        { ok: true }
+      >
+    }
+    attachments: {
+      list: QueryProcedure<
+        SchemaInput<typeof campaignContracts.listCampaignAttachmentsInputSchema>,
+        campaignContracts.CampaignAttachmentDto[]
+      >
+      create: MutationProcedure<
+        campaignContracts.CreateCampaignAttachmentInput,
+        campaignContracts.CampaignAttachmentDto
+      >
+      delivery: QueryProcedure<
+        SchemaInput<typeof campaignContracts.getCampaignAttachmentDeliveryInputSchema>,
+        SignedCampaignFileDeliveryDto
+      >
+      delete: MutationProcedure<
+        SchemaInput<typeof campaignContracts.deleteCampaignAttachmentInputSchema>,
+        { ok: true }
+      >
+    }
+    announcements: {
+      list: QueryProcedure<
+        SchemaInput<typeof campaignContracts.listCampaignAnnouncementsInputSchema>,
+        campaignContracts.CampaignAnnouncementDto[]
+      >
+      get: QueryProcedure<
+        SchemaInput<typeof campaignContracts.getCampaignAnnouncementInputSchema>,
+        campaignContracts.CampaignAnnouncementDto
+      >
+      create: MutationProcedure<
+        campaignContracts.CreateCampaignAnnouncementInput,
+        campaignContracts.CampaignAnnouncementDto
       >
     }
     inventory: {
@@ -745,6 +803,16 @@ export interface TrpcClient {
     >
     getImage: QueryProcedure<ImageLookupInput, SignedImageDeliveryDto | null>
     removeImage: MutationProcedure<RemoveImageInput, { ok: true }>
+    createCampaignFileUpload: MutationProcedure<
+      CreateCampaignFileUploadIntentInput,
+      z.infer<
+        typeof import('@artificer-toolkit/schema/api/media').createImageUploadIntentOutputSchema
+      >
+    >
+    finalizeCampaignFileUpload: MutationProcedure<
+      FinalizeImageUploadInput,
+      z.infer<typeof import('@artificer-toolkit/schema/api/media').finalizeImageUploadOutputSchema>
+    >
   }
   nodeRuntime: {
     normalizeValues: MutationProcedure<

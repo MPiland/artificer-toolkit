@@ -64,7 +64,10 @@ export function NotificationFeed({
       case 'MY_INVITATION':
         void navigate({
           to: '/social',
-          search: { view: 'invitations', invitePublicId: destination.invitePublicId }
+          search: {
+            view: 'invitations',
+            invitePublicId: destination.invitePublicId
+          }
         })
         return
       case 'HOST_INVITATION':
@@ -76,6 +79,16 @@ export function NotificationFeed({
             invitePublicId: destination.invitePublicId
           }
         })
+        return
+      case 'CAMPAIGN_ANNOUNCEMENT': {
+        const query = new URLSearchParams({
+          tab: 'announcements',
+          announcementPublicId: destination.announcementPublicId
+        })
+        window.location.assign(
+          `/campaigns/${encodeURIComponent(destination.campaignPublicId)}?${query}`
+        )
+      }
     }
   }
 

@@ -91,6 +91,20 @@ const socialInvitationDecidedPayloadSchema = {
   additionalProperties: false
 } as const
 
+const campaignAnnouncementPayloadSchema = {
+  type: 'object',
+  properties: {
+    kind: { type: 'string', enum: ['CAMPAIGN_ANNOUNCEMENT'] },
+    announcementPublicId: { type: 'string', format: 'uuid' },
+    campaignPublicId: { type: 'string', minLength: 1, maxLength: 120 },
+    summary: { type: 'string', minLength: 1, maxLength: 240 },
+    scope: { type: 'string', enum: ['TABLE', 'PARTY'] },
+    occurredAt: { type: 'string', format: 'date-time' }
+  },
+  required: ['kind', 'announcementPublicId', 'campaignPublicId', 'summary', 'scope', 'occurredAt'],
+  additionalProperties: false
+} as const
+
 function siteUrl(): string {
   const value = process.env.SITE_URL
   if (!value) throw new Error('SITE_URL is required to render notification email content.')
@@ -102,7 +116,8 @@ function emailInput(workflowKey: NotificationIntentData['kind'], data: Notificat
     SOCIAL_APPLICATION_SUBMITTED: 'social-application-submitted',
     SOCIAL_APPLICATION_DECIDED: 'social-application-decided',
     SOCIAL_INVITATION_RECEIVED: 'social-invitation-received',
-    SOCIAL_INVITATION_DECIDED: 'social-invitation-decided'
+    SOCIAL_INVITATION_DECIDED: 'social-invitation-decided',
+    CAMPAIGN_ANNOUNCEMENT: 'campaign-announcement'
   } as const
 
   return {
@@ -140,7 +155,11 @@ export const socialApplicationSubmittedWorkflow = workflow(
         ...emailInput(payload.kind, payload),
         activityCount
       })
-      return { subject: rendered.subject, body: rendered.html, from: socialEmailFrom }
+      return {
+        subject: rendered.subject,
+        body: rendered.html,
+        from: socialEmailFrom
+      }
     })
   },
   { payloadSchema: socialApplicationSubmittedPayloadSchema, tags: ['social'] }
@@ -157,7 +176,11 @@ export const socialApplicationDecidedWorkflow = workflow(
 
     await step.email('application-decided-email', async () => {
       const rendered = await renderSocialNotificationEmail(emailInput(payload.kind, payload))
-      return { subject: rendered.subject, body: rendered.html, from: socialEmailFrom }
+      return {
+        subject: rendered.subject,
+        body: rendered.html,
+        from: socialEmailFrom
+      }
     })
   },
   { payloadSchema: socialApplicationDecidedPayloadSchema, tags: ['social'] }
@@ -174,7 +197,11 @@ export const socialInvitationReceivedWorkflow = workflow(
 
     await step.email('invitation-received-email', async () => {
       const rendered = await renderSocialNotificationEmail(emailInput(payload.kind, payload))
-      return { subject: rendered.subject, body: rendered.html, from: socialEmailFrom }
+      return {
+        subject: rendered.subject,
+        body: rendered.html,
+        from: socialEmailFrom
+      }
     })
   },
   { payloadSchema: socialInvitationReceivedPayloadSchema, tags: ['social'] }
@@ -191,15 +218,41 @@ export const socialInvitationDecidedWorkflow = workflow(
 
     await step.email('invitation-decided-email', async () => {
       const rendered = await renderSocialNotificationEmail(emailInput(payload.kind, payload))
-      return { subject: rendered.subject, body: rendered.html, from: socialEmailFrom }
+      return {
+        subject: rendered.subject,
+        body: rendered.html,
+        from: socialEmailFrom
+      }
     })
   },
   { payloadSchema: socialInvitationDecidedPayloadSchema, tags: ['social'] }
+)
+
+export const campaignAnnouncementWorkflow = workflow(
+  'campaign-announcement',
+  async ({ payload, step }) => {
+    await step.inApp('campaign-announcement-in-app', async () => ({
+      subject: 'New Campaign announcement',
+      body: payload.summary,
+      data: payload
+    }))
+
+    await step.email('campaign-announcement-email', async () => {
+      const rendered = await renderSocialNotificationEmail(emailInput(payload.kind, payload))
+      return {
+        subject: rendered.subject,
+        body: rendered.html,
+        from: socialEmailFrom
+      }
+    })
+  },
+  { payloadSchema: campaignAnnouncementPayloadSchema, tags: ['campaign'] }
 )
 
 export const notificationWorkflows = [
   socialApplicationSubmittedWorkflow,
   socialApplicationDecidedWorkflow,
   socialInvitationReceivedWorkflow,
-  socialInvitationDecidedWorkflow
+  socialInvitationDecidedWorkflow,
+  campaignAnnouncementWorkflow
 ]

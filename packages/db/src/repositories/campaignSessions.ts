@@ -484,16 +484,6 @@ export function createCampaignSessionRepository(db: DBLike) {
       return result.rows.length > 0
     },
 
-    async deleteCampaignSession(campaignId: string, id: string): Promise<boolean> {
-      const row = await db
-        .deleteFrom('campaign_sessions')
-        .where('campaign_id', '=', campaignId)
-        .where('id', '=', id)
-        .returning('id')
-        .executeTakeFirst()
-      return Boolean(row)
-    },
-
     async listSessionNoteSections(sessionId: string): Promise<CampaignSessionNoteSection[]> {
       const rows = (await db
         .selectFrom('campaign_session_note_sections')

@@ -75,6 +75,7 @@ function getConnectSrc() {
     "connect-src 'self' blob:",
     ...SUPABASE_CONNECT_SOURCES,
     'https://api.novu.co',
+    'wss://socket.novu.co',
     'wss://ws.novu.co',
     ...getSentryConnectSource(),
     ...getDevelopmentConnectSources()

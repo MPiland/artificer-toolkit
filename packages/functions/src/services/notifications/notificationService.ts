@@ -35,6 +35,34 @@ function notificationListingTitle(value: string): string {
   return presentCampaignPlainText(value, 'STANDARD')
 }
 
+export async function enqueueCampaignAnnouncementNotification(
+  db: DBLike,
+  input: {
+    announcementPublicId: string
+    campaignPublicId: string
+    recipientUserId: string
+    scope: 'TABLE' | 'PARTY'
+    occurredAt: string
+  }
+): Promise<void> {
+  await createNotificationRepository(db).insertDeliveryIntent({
+    operation: 'TRIGGER',
+    workflowKey: 'campaign-announcement',
+    sourceKind: 'CAMPAIGN_ANNOUNCEMENT',
+    sourcePublicId: input.announcementPublicId,
+    recipientUserId: input.recipientUserId,
+    payload: {
+      kind: 'CAMPAIGN_ANNOUNCEMENT',
+      announcementPublicId: input.announcementPublicId,
+      campaignPublicId: input.campaignPublicId,
+      summary: 'A new Campaign announcement is available.',
+      scope: input.scope,
+      occurredAt: input.occurredAt
+    },
+    occurredAt: input.occurredAt
+  })
+}
+
 export async function enqueueApplicationSubmittedNotification(
   db: DBLike,
   application: SocialApplicationRecord,

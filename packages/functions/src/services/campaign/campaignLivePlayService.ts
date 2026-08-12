@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 
 import {
   createCampaignAdjustmentsRepository,
@@ -9,8 +9,7 @@ import {
   createCharacterSheetPlayStateRepository,
   withTransaction,
   type CampaignClock,
-  type DBLike,
-  type Json
+  type DBLike
 } from '@artificer-toolkit/db'
 import {
   advanceCampaignClockInputSchema,
@@ -19,6 +18,7 @@ import {
   initializeCampaignClockInputSchema,
   pauseCampaignClockInputSchema,
   reconcileCampaignClockInputSchema,
+  resetCampaignClockInputSchema,
   rewindCampaignClockInputSchema,
   startCampaignClockInputSchema,
   type AdvanceCampaignClockInput,
@@ -27,6 +27,7 @@ import {
   type InitializeCampaignClockInput,
   type PauseCampaignClockInput,
   type ReconcileCampaignClockInput,
+  type ResetCampaignClockInput,
   type RewindCampaignClockInput,
   type StartCampaignClockInput
 } from '@artificer-toolkit/schema/api/campaigns'
@@ -49,6 +50,7 @@ import {
   resolveCampaignAuthority
 } from './campaignService.js'
 import { broadcastCampaignInvalidation } from './realtimeService.js'
+import { findCampaignCommandResult, storeCampaignCommandResult } from './campaignCommandService.js'
 
 const MINUTE_MS = 60_000
 
@@ -59,6 +61,7 @@ type LivePlayCommandInput =
   | PauseCampaignClockInput
   | AdvanceCampaignClockInput
   | RewindCampaignClockInput
+  | ResetCampaignClockInput
   | ReconcileCampaignClockInput
 
 interface LivePlayResult {
@@ -80,27 +83,14 @@ interface ClockTransactionResult {
   characterInvalidations: CharacterInvalidation[]
 }
 
-function fingerprint(value: unknown): string {
-  return createHash('sha256')
-    .update(JSON.stringify(sortValue(value)))
-    .digest('hex')
-}
-
-function sortValue(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(sortValue)
-  if (typeof value !== 'object' || value === null) return value
-  return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, entry]) => [key, sortValue(entry)])
-  )
-}
-
 function absoluteMinute(day: number, minuteOfDay: number): number {
   return (day - 1) * 1440 + minuteOfDay
 }
 
-function splitAbsoluteMinute(value: number): { day: number; minuteOfDay: number } {
+function splitAbsoluteMinute(value: number): {
+  day: number
+  minuteOfDay: number
+} {
   return {
     day: Math.floor(value / 1440) + 1,
     minuteOfDay: value % 1440
@@ -129,37 +119,6 @@ async function lockCampaignOwner(db: DBLike, campaignId: string, userId: string)
     throw new CampaignNotFoundError()
   }
   return assertOwner(db, campaignId, userId)
-}
-
-async function priorResult(
-  db: DBLike,
-  input: LivePlayCommandInput,
-  commandType: string
-): Promise<LivePlayResult | null> {
-  const prior = await createCampaignLivePlayRepository(db).findCommand(
-    input.campaignId,
-    input.commandId
-  )
-  if (!prior) return null
-  if (prior.commandType !== commandType || prior.inputFingerprint !== fingerprint(input)) {
-    throw new CampaignConflictError('This command ID was already used with different input.')
-  }
-  return prior.resultPayload as unknown as LivePlayResult
-}
-
-async function storeResult(
-  db: DBLike,
-  input: LivePlayCommandInput,
-  commandType: string,
-  result: LivePlayResult
-): Promise<void> {
-  await createCampaignLivePlayRepository(db).insertCommand({
-    campaignId: input.campaignId,
-    commandId: input.commandId,
-    commandType,
-    inputFingerprint: fingerprint(input),
-    resultPayload: result as unknown as Json
-  })
 }
 
 // Clock commands are atomic, so no resource use can occur between repeated boundaries of the
@@ -295,7 +254,10 @@ async function recoverBoundary(
         resourceKey,
         eventId: event.id
       })
-      invalidations.push({ characterId: assignment.characterId, eventId: event.id })
+      invalidations.push({
+        characterId: assignment.characterId,
+        eventId: event.id
+      })
     }
   }
   return invalidations
@@ -331,7 +293,10 @@ async function advanceDerivedClock(
   clock: CampaignClock,
   targetAbsolute: number,
   actorUserId: string
-): Promise<{ clock: CampaignClock; characterInvalidations: CharacterInvalidation[] }> {
+): Promise<{
+  clock: CampaignClock
+  characterInvalidations: CharacterInvalidation[]
+}> {
   const from = clock.processedBoundaryAbsoluteMinute + 1
   const boundaries = latestBoundaryOccurrences(
     from,
@@ -359,6 +324,26 @@ async function advanceDerivedClock(
     },
     characterInvalidations
   }
+}
+
+async function rotateRunningClockSegment(
+  db: DBLike,
+  clock: CampaignClock,
+  targetAbsoluteMinute: number,
+  at: string
+): Promise<void> {
+  if (!clock.running) return
+  const repository = createCampaignLivePlayRepository(db)
+  await repository.closeClockSegment({
+    campaignId: clock.campaignId,
+    stoppedAt: at,
+    endAbsoluteMinute: absoluteMinute(clock.day, clock.minuteOfDay)
+  })
+  await repository.openClockSegment({
+    campaignId: clock.campaignId,
+    startedAt: at,
+    startAbsoluteMinute: targetAbsoluteMinute
+  })
 }
 
 async function saveClock(
@@ -390,13 +375,16 @@ async function runClockCommand(
   apply: (
     db: DBLike,
     clock: CampaignClock | null
-  ) => Promise<{ clock: CampaignClock; characterInvalidations: CharacterInvalidation[] }>
+  ) => Promise<{
+    clock: CampaignClock
+    characterInvalidations: CharacterInvalidation[]
+  }>
 ): Promise<CampaignClockDto> {
   const transactionResult = await withTransaction(
     db,
     async (trx): Promise<ClockTransactionResult> => {
       await lockCampaignOwner(trx, input.campaignId, userId)
-      const previous = await priorResult(trx, input, commandType)
+      const previous = await findCampaignCommandResult<LivePlayResult>(trx, input, commandType)
       if (previous) return { result: previous, characterInvalidations: [] }
       const clock = await createCampaignLivePlayRepository(trx).lockClock(input.campaignId)
       if (input.expectedVersion !== (clock?.version ?? 0)) {
@@ -405,8 +393,17 @@ async function runClockCommand(
       const applied = await apply(trx, clock)
       const saved = clock ? await saveClock(trx, clock, applied.clock) : applied.clock
       const commandResult: LivePlayResult = { clock: asClockDto(saved) }
-      await storeResult(trx, input, commandType, commandResult)
-      return { result: commandResult, characterInvalidations: applied.characterInvalidations }
+      await storeCampaignCommandResult(
+        trx,
+        input,
+        commandType,
+        commandResult,
+        'correctionReason' in input ? input.correctionReason : undefined
+      )
+      return {
+        result: commandResult,
+        characterInvalidations: applied.characterInvalidations
+      }
     }
   )
   const result = transactionResult.result
@@ -480,9 +477,8 @@ export async function configureCampaignClock(
   return runClockCommand(db, userId, input, 'CONFIGURE_CLOCK', async (trx, existing) => {
     if (!existing) throw new CampaignValidationError('Campaign clock is not initialized.')
     const derived = await deriveClock(existing, now())
-    const day = input.day ?? derived.clock.day
-    const minuteOfDay = input.minuteOfDay ?? derived.clock.minuteOfDay
-    const target = absoluteMinute(day, minuteOfDay)
+    const target = absoluteMinute(derived.clock.day, derived.clock.minuteOfDay)
+    await rotateRunningClockSegment(trx, derived.clock, target, now())
     const advanced = await advanceDerivedClock(
       trx,
       {
@@ -515,8 +511,14 @@ export async function startCampaignClock(
   return runClockCommand(db, userId, input, 'START_CLOCK', async (trx, existing) => {
     if (!existing) throw new CampaignValidationError('Campaign clock is not initialized.')
     if (existing.running) throw new CampaignValidationError('Campaign clock is already running.')
+    const startedAt = now()
+    await createCampaignLivePlayRepository(trx).openClockSegment({
+      campaignId: input.campaignId,
+      startedAt,
+      startAbsoluteMinute: absoluteMinute(existing.day, existing.minuteOfDay)
+    })
     return {
-      clock: { ...existing, running: true, runningSince: now() },
+      clock: { ...existing, running: true, runningSince: startedAt },
       characterInvalidations: []
     }
   })
@@ -532,6 +534,11 @@ export async function pauseCampaignClock(
     if (!existing) throw new CampaignValidationError('Campaign clock is not initialized.')
     if (!existing.running) return { clock: existing, characterInvalidations: [] }
     const derived = await deriveClock(existing, now())
+    await createCampaignLivePlayRepository(trx).closeClockSegment({
+      campaignId: input.campaignId,
+      stoppedAt: now(),
+      endAbsoluteMinute: absoluteMinute(derived.clock.day, derived.clock.minuteOfDay)
+    })
     const advanced = await advanceDerivedClock(
       trx,
       derived.clock,
@@ -555,8 +562,12 @@ export async function advanceCampaignClock(
     if (!existing) throw new CampaignValidationError('Campaign clock is not initialized.')
     const derived = await deriveClock(existing, now())
     const target = absoluteMinute(derived.clock.day, derived.clock.minuteOfDay) + input.minutes
+    await rotateRunningClockSegment(trx, derived.clock, target, now())
     const advanced = await advanceDerivedClock(trx, derived.clock, target, userId)
-    return { clock: advanced.clock, characterInvalidations: advanced.characterInvalidations }
+    return {
+      clock: advanced.clock,
+      characterInvalidations: advanced.characterInvalidations
+    }
   })
 }
 
@@ -573,8 +584,46 @@ export async function rewindCampaignClock(
     if (target < 0)
       throw new CampaignValidationError('Campaign time cannot move before Day 1 · 00:00.')
     const next = splitAbsoluteMinute(target)
+    await rotateRunningClockSegment(trx, derived.clock, target, now())
     return {
-      clock: { ...derived.clock, day: next.day, minuteOfDay: next.minuteOfDay },
+      clock: {
+        ...derived.clock,
+        day: next.day,
+        minuteOfDay: next.minuteOfDay
+      },
+      characterInvalidations: []
+    }
+  })
+}
+
+export async function resetCampaignClock(
+  db: DBLike,
+  userId: string,
+  rawInput: ResetCampaignClockInput
+): Promise<CampaignClockDto> {
+  const input = resetCampaignClockInputSchema.parse(rawInput)
+  return runClockCommand(db, userId, input, 'RESET_CLOCK', async (trx, existing) => {
+    if (!existing) throw new CampaignValidationError('Campaign clock is not initialized.')
+    const derived = await deriveClock(existing, now())
+    const target = absoluteMinute(input.day, input.minuteOfDay)
+    await rotateRunningClockSegment(trx, derived.clock, target, now())
+    if (target >= absoluteMinute(derived.clock.day, derived.clock.minuteOfDay)) {
+      const advanced = await advanceDerivedClock(trx, derived.clock, target, userId)
+      return {
+        clock: advanced.clock,
+        characterInvalidations: advanced.characterInvalidations
+      }
+    }
+    return {
+      clock: {
+        ...derived.clock,
+        day: input.day,
+        minuteOfDay: input.minuteOfDay,
+        processedBoundaryAbsoluteMinute: Math.max(
+          derived.clock.processedBoundaryAbsoluteMinute,
+          target
+        )
+      },
       characterInvalidations: []
     }
   })
@@ -589,6 +638,12 @@ export async function reconcileCampaignClock(
   return runClockCommand(db, userId, input, 'RECONCILE_CLOCK', async (trx, existing) => {
     if (!existing) throw new CampaignValidationError('Campaign clock is not initialized.')
     const derived = await deriveClock(existing, now())
+    await rotateRunningClockSegment(
+      trx,
+      derived.clock,
+      absoluteMinute(derived.clock.day, derived.clock.minuteOfDay),
+      now()
+    )
     const advanced = await advanceDerivedClock(
       trx,
       derived.clock,

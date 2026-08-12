@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { notificationWorkflows } from './workflows.js'
 
 describe('notification workflows', () => {
-  it('exposes only the four Social Hub workflows', async () => {
+  it('exposes the Social Hub and Campaign announcement workflows', async () => {
     const definitions = await Promise.all(
       notificationWorkflows.map((notificationWorkflow) => notificationWorkflow.discover())
     )
@@ -12,9 +12,13 @@ describe('notification workflows', () => {
       'social-application-submitted',
       'social-application-decided',
       'social-invitation-received',
-      'social-invitation-decided'
+      'social-invitation-decided',
+      'campaign-announcement'
     ])
-    expect(definitions.every((definition) => definition.tags.includes('social'))).toBe(true)
+    expect(definitions.slice(0, 4).every((definition) => definition.tags.includes('social'))).toBe(
+      true
+    )
+    expect(definitions[4]?.tags).toContain('campaign')
   })
 
   it('keeps the application-submitted digest ahead of both delivery channels', async () => {

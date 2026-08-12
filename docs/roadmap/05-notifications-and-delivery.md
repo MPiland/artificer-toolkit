@@ -1,6 +1,6 @@
 # Phase 05 — Notifications and delivery
 
-> **Status:** Implemented baseline; provider configuration/deployment and staging smoke pending
+> **Status:** Complete — production infrastructure deployed and four Novu workflows synced; comprehensive pre-launch validation remains a release gate
 > **Depends on:** [Phase 03](03-campaign-core.md), [Phase 04](04-social-hub.md), and the current authenticated account/profile baseline
 > **Unlocks:** Campaign announcements in [Phase 06](06-live-campaign-play.md), paid-table delivery in [Phase 10](10-paid-tables.md), and native push in [Phase 11](11-cross-platform-foundation.md)
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0014](../adr/0014-social-projection-and-tokenless-admission.md), and [0016](../adr/0016-novu-notification-delivery.md)
@@ -89,10 +89,12 @@ sequenceDiagram
 - [x] Add the existing-Shell headless feed, responsive drawer/page composition, Social Hub channel preferences, and reauthorized public-ID deep links.
 - [x] Add repository-owned Novu Framework workflow definitions with branded React Email rendering in the public Netlify Bridge, without adding rendered content to runtime payloads.
 - [x] Pass focused contract, persistence, service, API, Social Hub, web, build, Netlify, and affected-typecheck gates; document the canonical boundaries and operator path.
-- [ ] Configure Novu Development and Production, sync the four workflows, configure the Social Hub preference category and Resend integration, and set server-only environment values. Use Novu Development for the deployed app's staging smoke unless another provider environment is intentionally provisioned.
-- [ ] Deploy the migration, app, and scheduled function, then record the live staging smoke checks from the [notification delivery runbook](../runbooks/notification-delivery.md).
+- [x] Configure Novu Development and Production, sync the four workflows, configure the Social Hub preference category and Resend integration, and set server-only environment values.
+- [x] Deploy the migration, app, public Bridge, and scheduled function; verify the production Bridge discovers four workflows and nine steps.
 
 ## Acceptance gates
+
+Repository validation and Development provider testing cover the implemented paths. Comprehensive production testing remains required before public launch under the [notification delivery runbook](../runbooks/notification-delivery.md); that release gate does not keep Phase 05 implementation open.
 
 - A GM receives a grouped count for new applications and reaches the correct listing review screen after a fresh authorization check.
 - Applicants and invite recipients receive the correct decision/status notifications without application text or private Campaign data in Novu, email, URLs, logs, or telemetry.

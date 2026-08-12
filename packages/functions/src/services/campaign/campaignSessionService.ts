@@ -28,7 +28,6 @@ import {
   createCampaignSessionInputSchema,
   createCampaignSessionNoteSectionInputSchema,
   createCampaignSessionReferencePinInputSchema,
-  deleteCampaignSessionInputSchema,
   deleteCampaignSessionNoteSectionInputSchema,
   deleteCampaignSessionReferencePinInputSchema,
   listCampaignSessionNoteSectionsInputSchema,
@@ -40,7 +39,6 @@ import {
   setCampaignSessionRsvpInputSchema,
   finishCampaignSessionInputSchema,
   getCampaignSessionInputSchema,
-  reopenCampaignSessionInputSchema,
   updateCampaignSessionInputSchema,
   updateCampaignSessionNoteSectionInputSchema
 } from '@artificer-toolkit/schema/api/campaigns'
@@ -59,12 +57,11 @@ import {
   resolveCampaignAuthority
 } from './campaignService.js'
 import { broadcast, lockCampaign, now } from './campaignCollaborationShared.js'
+import { findCampaignCommandResult, storeCampaignCommandResult } from './campaignCommandService.js'
 
 type CreateSessionInput = z.input<typeof createCampaignSessionInputSchema>
 type UpdateSessionInput = z.input<typeof updateCampaignSessionInputSchema>
-type DeleteSessionInput = z.input<typeof deleteCampaignSessionInputSchema>
 type FinishSessionInput = z.input<typeof finishCampaignSessionInputSchema>
-type ReopenSessionInput = z.input<typeof reopenCampaignSessionInputSchema>
 type SetSessionAttendanceInput = z.input<typeof setCampaignSessionAttendanceInputSchema>
 type SetSessionRsvpInput = z.input<typeof setCampaignSessionRsvpInputSchema>
 type CreateSessionReferencePinInput = z.input<typeof createCampaignSessionReferencePinInputSchema>
@@ -318,11 +315,13 @@ export async function finishCampaignSession(
   userId: string
 ): Promise<CampaignSessionDto> {
   const input = finishCampaignSessionInputSchema.parse(rawInput)
-  const session = await withTransaction(db, async (trx) => {
+  const session = await withTransaction(db, async (trx): Promise<CampaignSessionDto> => {
     await lockCampaign(trx, input.campaignId)
     const authority = await resolveCampaignAuthority(trx, input.campaignId, userId)
     assertCampaignOwner(authority)
     assertCampaignWritable(authority)
+    const prior = await findCampaignCommandResult<CampaignSessionDto>(trx, input, 'FINISH_SESSION')
+    if (prior) return campaignSessionDtoSchema.parse(prior)
     const existing = await requireSession(trx, input.campaignId, input.sessionId)
     if (existing.version !== input.expectedVersion) throw new CampaignConflictError()
     if (existing.status !== 'OPEN') throw new CampaignConflictError('Session is already finished.')
@@ -334,7 +333,9 @@ export async function finishCampaignSession(
       finishedAt: now()
     })
     if (!saved) throw new CampaignConflictError()
-    return saved
+    const result = mapSession(saved, authority.campaign.contentMaturity)
+    await storeCampaignCommandResult(trx, input, 'FINISH_SESSION', result)
+    return result
   })
   await broadcast(
     db,
@@ -345,43 +346,7 @@ export async function finishCampaignSession(
     'UPDATED',
     session.updatedAt
   )
-  return mapSession(session, await campaignMaturity(db, input.campaignId, userId))
-}
-
-export async function reopenCampaignSession(
-  db: DBLike,
-  rawInput: ReopenSessionInput,
-  userId: string
-): Promise<CampaignSessionDto> {
-  const input = reopenCampaignSessionInputSchema.parse(rawInput)
-  const session = await withTransaction(db, async (trx) => {
-    await lockCampaign(trx, input.campaignId)
-    const authority = await resolveCampaignAuthority(trx, input.campaignId, userId)
-    assertCampaignOwner(authority)
-    assertCampaignWritable(authority)
-    const existing = await requireSession(trx, input.campaignId, input.sessionId)
-    if (existing.version !== input.expectedVersion) throw new CampaignConflictError()
-    if (existing.status !== 'FINISHED') throw new CampaignConflictError('Session is already open.')
-    const saved = await createCampaignCollaborationRepository(trx).updateCampaignSessionLifecycle({
-      campaignId: input.campaignId,
-      id: input.sessionId,
-      expectedVersion: input.expectedVersion,
-      status: 'OPEN',
-      finishedAt: null
-    })
-    if (!saved) throw new CampaignConflictError()
-    return saved
-  })
-  await broadcast(
-    db,
-    input.campaignId,
-    'TABLE',
-    'SESSION',
-    session.id,
-    'UPDATED',
-    session.updatedAt
-  )
-  return mapSession(session, await campaignMaturity(db, input.campaignId, userId))
+  return session
 }
 
 export async function getCampaignSession(
@@ -460,6 +425,7 @@ export async function listCampaignSessionRsvps(
   const authority = await resolveCampaignAuthority(db, input.campaignId, userId)
   assertActiveCampaignMember(authority)
   await requireSession(db, input.campaignId, input.sessionId)
+  if (authority.membership.role !== 'OWNER') return []
   return campaignSessionRsvpDtoListSchema.parse(
     await createCampaignCollaborationRepository(db).listSessionRsvps(input.sessionId)
   )
@@ -610,28 +576,6 @@ export async function deleteCampaignSessionReferencePin(
     }
   })
   await broadcast(db, input.campaignId, 'TABLE', 'SESSION', input.sessionId, 'UPDATED', now())
-  return { ok: true }
-}
-
-export async function deleteCampaignSession(
-  db: DBLike,
-  input: DeleteSessionInput,
-  userId: string
-): Promise<{ ok: true }> {
-  await withTransaction(db, async (trx) => {
-    await lockCampaign(trx, input.campaignId)
-    const authority = await resolveCampaignAuthority(trx, input.campaignId, userId)
-    assertCampaignOwner(authority)
-    assertCampaignWritable(authority)
-    if (
-      !(await createCampaignCollaborationRepository(trx).deleteCampaignSession(
-        input.campaignId,
-        input.sessionId
-      ))
-    )
-      throw new CampaignAccessError()
-  })
-  await broadcast(db, input.campaignId, 'TABLE', 'SESSION', input.sessionId, 'DELETED', now())
   return { ok: true }
 }
 

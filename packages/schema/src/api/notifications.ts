@@ -9,11 +9,16 @@ export const notificationWorkflowKeySchema = z.enum([
   'social-application-submitted',
   'social-application-decided',
   'social-invitation-received',
-  'social-invitation-decided'
+  'social-invitation-decided',
+  'campaign-announcement'
 ])
 
 export const notificationIntentOperationSchema = z.enum(['TRIGGER', 'CANCEL'])
-export const notificationSourceKindSchema = z.enum(['SOCIAL_APPLICATION', 'CAMPAIGN_INVITE'])
+export const notificationSourceKindSchema = z.enum([
+  'SOCIAL_APPLICATION',
+  'CAMPAIGN_INVITE',
+  'CAMPAIGN_ANNOUNCEMENT'
+])
 
 const socialSourceSchema = z.strictObject({
   sourcePublicId: uuidSchema,
@@ -44,11 +49,21 @@ export const socialInvitationDecidedNotificationDataSchema = socialSourceSchema.
   decision: z.enum(['ACCEPTED', 'DECLINED'])
 })
 
+export const campaignAnnouncementNotificationDataSchema = z.strictObject({
+  kind: z.literal('CAMPAIGN_ANNOUNCEMENT'),
+  announcementPublicId: uuidSchema,
+  campaignPublicId: z.string().trim().min(1).max(120),
+  summary: z.string().trim().min(1).max(240),
+  scope: z.enum(['TABLE', 'PARTY']),
+  occurredAt: timestampSchema
+})
+
 export const notificationIntentDataSchema = z.discriminatedUnion('kind', [
   socialApplicationSubmittedNotificationDataSchema,
   socialApplicationDecidedNotificationDataSchema,
   socialInvitationReceivedNotificationDataSchema,
-  socialInvitationDecidedNotificationDataSchema
+  socialInvitationDecidedNotificationDataSchema,
+  campaignAnnouncementNotificationDataSchema
 ])
 
 export const notificationSessionDtoSchema = z.strictObject({

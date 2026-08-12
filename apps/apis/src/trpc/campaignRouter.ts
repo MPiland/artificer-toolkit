@@ -36,6 +36,10 @@ import {
 import { campaignSessionRouter } from './campaignSessionRouter.js'
 import { campaignInventoryRouter } from './campaignInventoryRouter.js'
 import { campaignClockRouter, campaignGmRouter } from './campaignPlayRouter.js'
+import { campaignPlaySettingsRouter } from './campaignPlaySettingsRouter.js'
+import { campaignVehicleRouter } from './campaignVehicleRouter.js'
+import { campaignAttachmentRouter } from './campaignAttachmentRouter.js'
+import { campaignAnnouncementRouter } from './campaignAnnouncementRouter.js'
 
 export const campaignRouter = createTRPCRouter({
   list: authenticatedProcedure
@@ -228,5 +232,9 @@ export const campaignRouter = createTRPCRouter({
   sessions: campaignSessionRouter,
   inventory: campaignInventoryRouter,
   clock: campaignClockRouter,
+  playSettings: campaignPlaySettingsRouter,
+  vehicles: campaignVehicleRouter,
+  attachments: campaignAttachmentRouter,
+  announcements: campaignAnnouncementRouter,
   gm: campaignGmRouter
 })

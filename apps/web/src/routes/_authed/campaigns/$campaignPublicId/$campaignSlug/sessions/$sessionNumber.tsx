@@ -38,13 +38,6 @@ export const Route = createFileRoute(
         to: '/campaigns/$campaignPublicId/$campaignSlug/sessions/$sessionNumber'
       })
     }
-    if (campaign.role !== 'OWNER') {
-      throw redirect({
-        params: buildCampaignRouteParams(campaign.publicId, campaign.name),
-        replace: true,
-        to: '/campaigns/$campaignPublicId/$campaignSlug'
-      })
-    }
     await context.queryClient.ensureQueryData(
       getCampaignSession(campaign.id, sessionNumber, client)
     )

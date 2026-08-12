@@ -5,9 +5,10 @@ CREATE TABLE IF NOT EXISTS public.notification_delivery_intents (
     'social-application-submitted',
     'social-application-decided',
     'social-invitation-received',
-    'social-invitation-decided'
+    'social-invitation-decided',
+    'campaign-announcement'
   )),
-  source_kind text NOT NULL CHECK (source_kind IN ('SOCIAL_APPLICATION', 'CAMPAIGN_INVITE')),
+  source_kind text NOT NULL CHECK (source_kind IN ('SOCIAL_APPLICATION', 'CAMPAIGN_INVITE', 'CAMPAIGN_ANNOUNCEMENT')),
   source_public_id uuid NOT NULL,
   recipient_notification_id uuid NOT NULL
     REFERENCES public.profiles (notification_recipient_id) ON DELETE CASCADE,

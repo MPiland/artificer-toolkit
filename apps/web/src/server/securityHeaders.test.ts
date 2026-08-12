@@ -27,6 +27,7 @@ describe('security headers', () => {
     )
     expect(csp).toContain("connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co")
     expect(csp).toContain('https://api.novu.co')
+    expect(csp).toContain('wss://socket.novu.co')
     expect(csp).toContain('wss://ws.novu.co')
     expect(csp).toContain('http://127.0.0.1:54321')
     expect(csp).toContain('ws://127.0.0.1:54321')

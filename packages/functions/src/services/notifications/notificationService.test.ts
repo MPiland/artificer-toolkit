@@ -44,7 +44,9 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@artificer-toolkit/db')>()
   return {
     ...actual,
-    createCampaignRepository: () => ({ expireDueInvites: mocks.expireDueInvites }),
+    createCampaignRepository: () => ({
+      expireDueInvites: mocks.expireDueInvites
+    }),
     createNotificationRepository: () => ({
       findRecipientIdForUser: mocks.findRecipientIdForUser,
       insertDeliveryIntent: mocks.insertDeliveryIntent,
@@ -63,6 +65,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
 const {
   createNotificationSession,
   dispatchPendingNotifications,
+  enqueueCampaignAnnouncementNotification,
   enqueueInvitationReceivedNotification,
   expireDueCampaignInvitations
 } = await import('./notificationService.js')
@@ -108,6 +111,33 @@ describe('notification delivery service', () => {
     mocks.claimDeliveryIntents.mockResolvedValue([])
   })
 
+  it('enqueues Campaign announcements with generic ID-only copy', async () => {
+    await enqueueCampaignAnnouncementNotification({} as DBLike, {
+      announcementPublicId: sourcePublicId,
+      campaignPublicId: listingPublicId,
+      recipientUserId: recipientId,
+      scope: 'PARTY',
+      occurredAt: now
+    })
+
+    expect(mocks.insertDeliveryIntent).toHaveBeenCalledWith({
+      operation: 'TRIGGER',
+      workflowKey: 'campaign-announcement',
+      sourceKind: 'CAMPAIGN_ANNOUNCEMENT',
+      sourcePublicId,
+      recipientUserId: recipientId,
+      payload: {
+        kind: 'CAMPAIGN_ANNOUNCEMENT',
+        announcementPublicId: sourcePublicId,
+        campaignPublicId: listingPublicId,
+        summary: 'A new Campaign announcement is available.',
+        scope: 'PARTY',
+        occurredAt: now
+      },
+      occurredAt: now
+    })
+  })
+
   it('returns a recipient-scoped HMAC session without provider tokens', async () => {
     mocks.findRecipientIdForUser.mockResolvedValue(recipientId)
 
@@ -150,7 +180,9 @@ describe('notification delivery service', () => {
 
     expect(mocks.insertDeliveryIntent).toHaveBeenCalledWith(
       expect.objectContaining({
-        payload: expect.objectContaining({ listingTitle: 'The ****storm citadel' })
+        payload: expect.objectContaining({
+          listingTitle: 'The ****storm citadel'
+        })
       })
     )
   })
@@ -226,7 +258,10 @@ describe('notification delivery service', () => {
 
   it('sends only the supported Novu subscriber identity fields', async () => {
     mocks.claimDeliveryIntents.mockResolvedValue([
-      claimedIntent({ recipientEmail: 'player@example.com', recipientUsername: 'Player' })
+      claimedIntent({
+        recipientEmail: 'player@example.com',
+        recipientUsername: 'Player'
+      })
     ])
 
     await dispatchPendingNotifications({} as DBLike, 'novu-secret')

@@ -13,6 +13,7 @@ import {
   uuidSchema,
   versionSchema
 } from './campaignContractSchemas.js'
+import { tableSafetyPracticeDtoSchema } from './tableSafety.js'
 
 const usernameSchema = z.string().trim().min(3).max(30)
 const titleSchema = z.string().trim().min(1).max(100)
@@ -31,14 +32,7 @@ export const socialListingStatusDtoSchema = z.enum(['DRAFT', 'OPEN', 'CLOSED'])
 export const socialListingAudienceDtoSchema = z.enum(['PRIVATE', 'PUBLIC'])
 export const socialListingModerationStatusDtoSchema = z.enum(['VISIBLE', 'HIDDEN'])
 export const socialPlayModeDtoSchema = z.enum(['ONLINE', 'IN_PERSON', 'HYBRID'])
-export const socialSafetyPracticeDtoSchema = z.enum([
-  'SESSION_ZERO',
-  'LINES_AND_VEILS',
-  'X_CARD',
-  'OPEN_DOOR',
-  'SCRIPT_CHANGE',
-  'OTHER'
-])
+export const socialSafetyPracticeDtoSchema = tableSafetyPracticeDtoSchema
 export const socialScheduleKindDtoSchema = z.enum(['FLEXIBLE', 'ONE_TIME', 'RECURRING'])
 export const socialRecurrenceDtoSchema = z.enum(['WEEKLY', 'BIWEEKLY'])
 export const socialApplicationStatusDtoSchema = z.enum([
@@ -181,7 +175,10 @@ const socialListingFieldsSchema = z.strictObject({
 })
 
 const validateSocialListingLocation = (
-  value: { playMode: z.infer<typeof socialPlayModeDtoSchema>; location: unknown },
+  value: {
+    playMode: z.infer<typeof socialPlayModeDtoSchema>
+    location: unknown
+  },
   context: z.RefinementCtx
 ) => {
   const needsLocation = value.playMode !== 'ONLINE'

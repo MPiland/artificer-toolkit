@@ -70,4 +70,10 @@ describe('media service safety contracts', () => {
   it('rejects missing active authored targets', () => {
     expect(source).toContain('if (!ownership) throw new MediaAccessError()')
   })
+
+  it('stores validated text files without fake image dimensions', () => {
+    expect(source).toContain("verifiedMimeType: 'text/plain'")
+    expect(source).toContain('width: null')
+    expect(source).toContain('height: null')
+  })
 })

@@ -68,6 +68,29 @@ describe('toNotificationViewModel', () => {
     expect(result.title).toBe('Notification unavailable')
     expect(result.destination).toBeUndefined()
   })
+
+  it('maps Campaign announcements without trusting private provider copy', () => {
+    const result = toNotificationViewModel(
+      notification('campaign-announcement', {
+        kind: 'CAMPAIGN_ANNOUNCEMENT',
+        announcementPublicId: sourcePublicId,
+        campaignPublicId: 'campaign-public-id',
+        summary: 'The next Session starts an hour later.',
+        scope: 'TABLE',
+        occurredAt: '2026-08-10T15:00:00.000Z'
+      })
+    )
+
+    expect(result).toMatchObject({
+      title: 'Campaign announcement',
+      body: 'The next Session starts an hour later.',
+      destination: {
+        kind: 'CAMPAIGN_ANNOUNCEMENT',
+        announcementPublicId: sourcePublicId,
+        campaignPublicId: 'campaign-public-id'
+      }
+    })
+  })
 })
 
 describe('notification feed presentation', () => {

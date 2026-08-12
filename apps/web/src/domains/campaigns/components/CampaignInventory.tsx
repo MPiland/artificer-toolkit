@@ -15,7 +15,11 @@ import { useState } from 'react'
 import type { InventoryDto } from '@artificer-toolkit/schema/api/campaigns'
 import type { CampaignDetailDto, InventoryOwnerRefDto } from '#app/lib/api'
 import { api } from '#app/lib/api'
-import { getCampaignCurrencySystems, getCampaignInventory } from '#app/data/campaigns/queries'
+import {
+  getCampaignCurrencySystems,
+  getCampaignInventory,
+  getCampaignVehicles
+} from '#app/data/campaigns/queries'
 import { CurrencySystemEditor } from './CurrencySystemEditor'
 import { CampaignInventoryAudit } from './CampaignInventoryAudit'
 import { CampaignPartyInventoryActions } from './CampaignPartyInventoryActions'
@@ -32,8 +36,9 @@ export function CampaignInventory({
   partyOnly?: boolean
 }) {
   const queryClient = useQueryClient()
-  const ownerOptions = getAuthorizedSourceOwners(campaign, currentUserId)
-  const destinationOptions = getTransferDestinationOwners(campaign)
+  const vehicles = useQuery(getCampaignVehicles(campaign.id))
+  const ownerOptions = getAuthorizedSourceOwners(campaign, currentUserId, vehicles.data ?? [])
+  const destinationOptions = getTransferDestinationOwners(campaign, vehicles.data ?? [])
   const [ownerValue, setOwnerValue] = useState('PARTY')
   const [destinationValue, setDestinationValue] = useState(destinationOptions[1]?.value ?? '')
   const [assetValue, setAssetValue] = useState('')
@@ -46,7 +51,8 @@ export function CampaignInventory({
     enabled: !partyOnly && campaign.role === 'OWNER'
   })
   const canTransfer =
-    campaign.capabilities.managePartyInventory || campaign.capabilities.transferOwnInventory
+    (sourceOwner.kind !== 'VEHICLE' || campaign.capabilities.managePartyInventory) &&
+    (campaign.capabilities.managePartyInventory || campaign.capabilities.transferOwnInventory)
   const carriedItems = (inventory.data?.items ?? []).filter((item) => !item.containerId)
   const carriedCurrencies = (inventory.data?.currencies ?? []).filter(
     (currency) => !currency.containerId
@@ -282,7 +288,11 @@ function InventoryEntries({
   )
 }
 
-function getAuthorizedSourceOwners(campaign: CampaignDetailDto, currentUserId: string) {
+export function getAuthorizedSourceOwners(
+  campaign: CampaignDetailDto,
+  currentUserId: string,
+  vehicles: ReadonlyArray<{ id: string; label: string | null }>
+) {
   const memberships =
     campaign.role === 'OWNER'
       ? campaign.memberships
@@ -298,11 +308,18 @@ function getAuthorizedSourceOwners(campaign: CampaignDetailDto, currentUserId: s
             }
           ]
         : []
-    )
+    ),
+    ...vehicles.map((vehicle) => ({
+      value: `VEHICLE:${vehicle.id}`,
+      label: vehicle.label ?? 'Campaign Vehicle'
+    }))
   ]
 }
 
-function getTransferDestinationOwners(campaign: CampaignDetailDto) {
+function getTransferDestinationOwners(
+  campaign: CampaignDetailDto,
+  vehicles: ReadonlyArray<{ id: string; label: string | null }>
+) {
   return [
     { value: 'PARTY', label: 'Party inventory' },
     ...campaign.memberships.flatMap((member) =>
@@ -314,12 +331,17 @@ function getTransferDestinationOwners(campaign: CampaignDetailDto) {
             }
           ]
         : []
-    )
+    ),
+    ...vehicles.map((vehicle) => ({
+      value: `VEHICLE:${vehicle.id}`,
+      label: vehicle.label ?? 'Campaign Vehicle'
+    }))
   ]
 }
 
-function parseOwner(value: string, campaignId: string): InventoryOwnerRefDto {
-  return value === 'PARTY'
-    ? { kind: 'CAMPAIGN', campaignId }
-    : { kind: 'CHARACTER', characterId: value.slice('CHARACTER:'.length) }
+export function parseOwner(value: string, campaignId: string): InventoryOwnerRefDto {
+  if (value === 'PARTY') return { kind: 'CAMPAIGN', campaignId }
+  if (value.startsWith('VEHICLE:'))
+    return { kind: 'VEHICLE', vehicleId: value.slice('VEHICLE:'.length) }
+  return { kind: 'CHARACTER', characterId: value.slice('CHARACTER:'.length) }
 }

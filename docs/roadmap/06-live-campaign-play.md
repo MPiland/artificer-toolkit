@@ -1,6 +1,6 @@
 # Phase 06 — Live Campaign play
 
-> **Status:** planned
+> **Status:** implemented; production storage/provider configuration and pre-launch smoke remain release gates
 > **Depends on:** [Phase 02](02-media-and-file-pipeline.md), [Phase 03](03-campaign-core.md), and [Phase 05](05-notifications-and-delivery.md)
 > **Unlocks:** [Phase 07 Encounters](07-encounters.md), [Phase 08 VTT](08-vtt.md), and [Phase 10 paid-table session operations](10-paid-tables.md)
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0006](../adr/0006-character-builder-sheet-boundary.md), and [0009](../adr/0009-vtt-encounter-event-boundary.md)
@@ -9,11 +9,12 @@
 
 Extend Campaign Core with a lightweight prepare/run/closeout loop for sessions, vehicles, supporting files and handouts, a manual authoritative Campaign clock, richer live-play workflows, and GM Campaign announcements delivered through Phase 05 notifications.
 
-## Current starting point
+## Implemented scope
 
-- Phase 03 already owns party inventory/currency, durable Campaign rolls/chat, Campaign and session notes, and private Broadcast reconciliation.
-- Phase 02 provides ready asset identity and private transfer/delivery. This phase owns Campaign file/handout references, not another asset lifecycle.
-- Phase 05 owns the Novu-backed inbox, email delivery, preferences, and reliable delivery intents. No Campaign-announcement, live-session, or Campaign-clock domain exists yet.
+- Campaign management now owns player-readable table settings, pinned Vehicle instances with isolated inventory custody, private Campaign files/handouts, immutable announcements, and the manual Campaign clock.
+- The existing Session workspace now composes focused prepare, run, and closeout views. Active players may open the authorized live/history surface without receiving GM-private preparation or reference pins.
+- Phase 02 remains the asset lifecycle owner, Phase 05 remains the delivery/preference owner, and Encounters remain the Session-bound run owner. Phase 06 adds only the Campaign references and authorization seams.
+- Campaign files intentionally accept normalized JPEG/PNG/WebP or strict UTF-8 plain text up to 6 MiB. PDF, office, archive, executable, SVG/HTML, malware-scanning vendors, VTT behavior, and resumable transfer remain out of scope.
 
 ## Requirements
 

@@ -145,7 +145,8 @@ describe('Campaign session service', () => {
       'session-read',
       'session-write',
       'commit',
-      'broadcast'
+      'broadcast',
+      'authority'
     ])
   })
 
@@ -334,7 +335,8 @@ describe('Campaign session service', () => {
       'session-read',
       'note-write',
       'commit',
-      'broadcast'
+      'broadcast',
+      'authority'
     ])
   })
 })
