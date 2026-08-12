@@ -55,6 +55,26 @@ export const deleteAccountFn = createServerFn({ method: 'POST' })
     }
 
     const adminClient = getSupabaseAdminClient()
+    const { data: ownedCampaign, error: ownedCampaignError } = await adminClient
+      .from('campaigns')
+      .select('id')
+      .eq('owner_user_id', user.id)
+      .limit(1)
+      .maybeSingle()
+    if (ownedCampaignError) {
+      console.error('Account deletion eligibility lookup failed.')
+      return {
+        error: true,
+        message: 'Could not delete your account. Try again.'
+      }
+    }
+    if (ownedCampaign) {
+      return {
+        error: true,
+        message: 'Transfer or delete your Campaigns before deleting your account.'
+      }
+    }
+
     const { data: profile, error: profileError } = await adminClient
       .from('profiles')
       .select('notification_recipient_id')

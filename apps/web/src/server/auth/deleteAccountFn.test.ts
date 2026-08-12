@@ -9,9 +9,13 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   signInWithPassword: vi.fn(),
   from: vi.fn(),
-  select: vi.fn(),
-  eq: vi.fn(),
-  maybeSingle: vi.fn(),
+  profileSelect: vi.fn(),
+  profileEq: vi.fn(),
+  profileMaybeSingle: vi.fn(),
+  campaignSelect: vi.fn(),
+  campaignEq: vi.fn(),
+  campaignLimit: vi.fn(),
+  campaignMaybeSingle: vi.fn(),
   novuDelete: vi.fn(),
   NovuError: class NovuError extends Error {
     statusCode: number
@@ -69,9 +73,15 @@ describe('deleteAccountFn', () => {
       auth: { signInWithPassword: mocks.signInWithPassword }
     })
     mocks.getBlockedAuthRequest.mockReturnValue(null)
-    mocks.from.mockReturnValue({ select: mocks.select })
-    mocks.select.mockReturnValue({ eq: mocks.eq })
-    mocks.eq.mockReturnValue({ maybeSingle: mocks.maybeSingle })
+    mocks.from.mockImplementation((table: string) => {
+      if (table === 'campaigns') return { select: mocks.campaignSelect }
+      return { select: mocks.profileSelect }
+    })
+    mocks.campaignSelect.mockReturnValue({ eq: mocks.campaignEq })
+    mocks.campaignEq.mockReturnValue({ limit: mocks.campaignLimit })
+    mocks.campaignLimit.mockReturnValue({ maybeSingle: mocks.campaignMaybeSingle })
+    mocks.profileSelect.mockReturnValue({ eq: mocks.profileEq })
+    mocks.profileEq.mockReturnValue({ maybeSingle: mocks.profileMaybeSingle })
     mocks.getSupabaseAdminClient.mockReturnValue({
       from: mocks.from,
       auth: { admin: { deleteUser: mocks.deleteUser } }
@@ -85,7 +95,8 @@ describe('deleteAccountFn', () => {
     })
     mocks.signInWithPassword.mockResolvedValue({ error: null })
     mocks.deleteUser.mockResolvedValue({ error: null })
-    mocks.maybeSingle.mockResolvedValue({
+    mocks.campaignMaybeSingle.mockResolvedValue({ data: null, error: null })
+    mocks.profileMaybeSingle.mockResolvedValue({
       data: { notification_recipient_id: recipientId },
       error: null
     })
@@ -113,6 +124,37 @@ describe('deleteAccountFn', () => {
       password: input.currentPassword
     })
     expect(mocks.deleteUser).toHaveBeenCalledWith('user-1')
+  })
+
+  it('keeps the Novu subscriber when an owned Campaign prevents account deletion', async () => {
+    mocks.campaignMaybeSingle.mockResolvedValueOnce({
+      data: { id: 'campaign-1' },
+      error: null
+    })
+
+    await expect(deleteAccountFn({ data: input })).resolves.toEqual({
+      error: true,
+      message: 'Transfer or delete your Campaigns before deleting your account.'
+    })
+    expect(mocks.novuDelete).not.toHaveBeenCalled()
+    expect(mocks.deleteUser).not.toHaveBeenCalled()
+  })
+
+  it('stops before provider cleanup when Campaign ownership cannot be checked', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.campaignMaybeSingle.mockResolvedValueOnce({
+      data: null,
+      error: new Error('sensitive database detail')
+    })
+
+    await expect(deleteAccountFn({ data: input })).resolves.toEqual({
+      error: true,
+      message: 'Could not delete your account. Try again.'
+    })
+    expect(mocks.novuDelete).not.toHaveBeenCalled()
+    expect(mocks.deleteUser).not.toHaveBeenCalled()
+    expect(consoleError).toHaveBeenCalledWith('Account deletion eligibility lookup failed.')
+    consoleError.mockRestore()
   })
 
   it('blocks Supabase deletion when Novu cleanup fails', async () => {
