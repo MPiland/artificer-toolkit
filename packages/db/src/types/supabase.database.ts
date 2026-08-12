@@ -11160,6 +11160,68 @@ export type Database = {
           },
         ]
       }
+      notification_delivery_intents: {
+        Row: {
+          attempt_count: number
+          claimed_at: string | null
+          delivered_at: string | null
+          failed_at: string | null
+          grouping_key: string | null
+          id: string
+          last_error_code: string | null
+          next_attempt_at: string
+          occurred_at: string
+          operation: string
+          payload: Json
+          recipient_notification_id: string
+          source_kind: string
+          source_public_id: string
+          workflow_key: string
+        }
+        Insert: {
+          attempt_count?: number
+          claimed_at?: string | null
+          delivered_at?: string | null
+          failed_at?: string | null
+          grouping_key?: string | null
+          id?: string
+          last_error_code?: string | null
+          next_attempt_at?: string
+          occurred_at: string
+          operation: string
+          payload?: Json
+          recipient_notification_id: string
+          source_kind: string
+          source_public_id: string
+          workflow_key: string
+        }
+        Update: {
+          attempt_count?: number
+          claimed_at?: string | null
+          delivered_at?: string | null
+          failed_at?: string | null
+          grouping_key?: string | null
+          id?: string
+          last_error_code?: string | null
+          next_attempt_at?: string
+          occurred_at?: string
+          operation?: string
+          payload?: Json
+          recipient_notification_id?: string
+          source_kind?: string
+          source_public_id?: string
+          workflow_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_delivery_intents_recipient_notification_id_fkey"
+            columns: ["recipient_notification_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["notification_recipient_id"]
+          },
+        ]
+      }
       option_attributes: {
         Row: {
           attribute_code: string
@@ -11780,6 +11842,7 @@ export type Database = {
           bio: string | null
           full_name: string | null
           id: string
+          notification_recipient_id: string
           updated_at: string | null
           username: string | null
           website: string | null
@@ -11790,6 +11853,7 @@ export type Database = {
           bio?: string | null
           full_name?: string | null
           id: string
+          notification_recipient_id?: string
           updated_at?: string | null
           username?: string | null
           website?: string | null
@@ -11800,6 +11864,7 @@ export type Database = {
           bio?: string | null
           full_name?: string | null
           id?: string
+          notification_recipient_id?: string
           updated_at?: string | null
           username?: string | null
           website?: string | null
@@ -12837,7 +12902,6 @@ export type Database = {
           id: string
           status: string
           updated_at: string
-          us_attested_at: string | null
           user_id: string
           version: number
         }
@@ -12848,7 +12912,6 @@ export type Database = {
           id?: string
           status?: string
           updated_at?: string
-          us_attested_at?: string | null
           user_id: string
           version?: number
         }
@@ -12859,7 +12922,6 @@ export type Database = {
           id?: string
           status?: string
           updated_at?: string
-          us_attested_at?: string | null
           user_id?: string
           version?: number
         }

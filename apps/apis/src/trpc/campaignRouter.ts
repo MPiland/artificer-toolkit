@@ -12,6 +12,7 @@ import {
   getCampaignSettings,
   listCampaignContentVersions,
   leaveCampaign,
+  listSentCampaignInvites,
   listReceivedCampaignInvites,
   listCampaigns,
   removeCampaignMember,
@@ -100,6 +101,14 @@ export const campaignRouter = createTRPCRouter({
       .output(campaignContracts.campaignInviteDtoSchema.array())
       .query(({ ctx }) =>
         withExplicitAuthorityDb(ctx, (db, userId) => listReceivedCampaignInvites(db, userId))
+      ),
+    listSent: authenticatedProcedure
+      .input(campaignContracts.listSentCampaignInvitesInputSchema)
+      .output(campaignContracts.campaignInviteDtoSchema.array())
+      .query(({ ctx, input }) =>
+        withExplicitAuthorityDb(ctx, (db, userId) =>
+          listSentCampaignInvites(db, userId, input.listingPublicId)
+        )
       ),
     revoke: authenticatedProcedure
       .input(campaignContracts.revokeCampaignInviteInputSchema)

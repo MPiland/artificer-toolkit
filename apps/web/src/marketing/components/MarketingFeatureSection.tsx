@@ -19,7 +19,6 @@ import {
   section,
   sectionCopy,
   sectionHeader,
-  sectionLabel,
   sectionTitle
 } from '../marketing.css'
 
@@ -34,13 +33,12 @@ export function MarketingFeatureSection() {
   return (
     <section id='features' className={section} aria-labelledby='features-title'>
       <div className={sectionHeader} data-marketing-scroll-target='features'>
-        <p className={sectionLabel}>Features</p>
         <h2 id='features-title' className={sectionTitle}>
-          Built for real tabletop workflows, not generic content forms
+          One place for preparation and play
         </h2>
         <p className={sectionCopy}>
-          Building and playing need different surfaces. The toolkit keeps their structure consistent
-          without flattening them into one crowded screen.
+          Author homebrew, build characters, check rules, and manage a character during a session
+          without moving your work between separate apps.
         </p>
       </div>
 

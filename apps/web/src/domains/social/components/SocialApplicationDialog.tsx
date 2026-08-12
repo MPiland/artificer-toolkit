@@ -1,4 +1,4 @@
-import { Alert, Button, Modal, Stack, Text, Textarea } from '@mantine/core'
+import { Alert, Button, Modal, Stack, Textarea } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { notifications } from '@mantine/notifications'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -6,6 +6,7 @@ import { type SubmitEvent, useState } from 'react'
 import type { SocialListingDto } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import * as inputStyles from '#ui/primitives/Select/Select.css'
 
 export function SocialApplicationDialog({ listing }: { listing: SocialListingDto }) {
   const queryClient = useQueryClient()
@@ -44,14 +45,20 @@ export function SocialApplicationDialog({ listing }: { listing: SocialListingDto
           }}
         >
           <Stack>
-            <Text c='dimmed' size='sm'>
-              Tell the host why this table is a good fit. Only you and the host can read this.
-            </Text>
             <Textarea
               autosize
+              classNames={{
+                root: inputStyles.root,
+                label: inputStyles.label,
+                description: inputStyles.description,
+                required: inputStyles.required,
+                input: inputStyles.input
+              }}
+              description='Tell the host why this table is a good fit. Only you and the host can read this.'
               label='Message to the host'
               maxLength={2000}
               minRows={5}
+              name='message'
               required
               value={message}
               onChange={(event) => setMessage(event.currentTarget.value)}

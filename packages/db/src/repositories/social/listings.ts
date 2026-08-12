@@ -209,7 +209,6 @@ export function createSocialListingRepository(db: DBLike) {
         and listing.status = 'OPEN' and listing.audience = 'PUBLIC'
         and listing.moderation_status = 'VISIBLE'
         and campaign.status = 'ACTIVE' and host.status = 'ACTIVE'
-        and host.adult_attested_at is not null and host.us_attested_at is not null
         and not exists (
           select 1 from social_blocks block
           where (block.blocker_profile_id = ${viewerProfileId}::uuid
@@ -242,8 +241,6 @@ export function createSocialListingRepository(db: DBLike) {
         sql`listing.moderation_status = 'VISIBLE'`,
         sql`campaign.status = 'ACTIVE'`,
         sql`host.status = 'ACTIVE'`,
-        sql`host.adult_attested_at is not null`,
-        sql`host.us_attested_at is not null`,
         sql`not exists (
           select 1 from social_blocks block
           where (block.blocker_profile_id = ${viewerProfileId}::uuid

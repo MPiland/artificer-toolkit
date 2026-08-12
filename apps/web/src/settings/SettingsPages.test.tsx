@@ -45,7 +45,6 @@ describe('settings pages', () => {
       eligible: false,
       profilePublicId: null,
       adultAttestedAt: null,
-      usAttestedAt: null,
       contentPreference: 'STANDARD',
       status: null
     })
@@ -53,7 +52,6 @@ describe('settings pages', () => {
       eligible: false,
       profilePublicId: '00000000-0000-4000-8000-000000000001',
       adultAttestedAt: '2026-08-10T12:00:00.000Z',
-      usAttestedAt: null,
       contentPreference: 'MATURE',
       status: 'ACTIVE'
     })
@@ -92,19 +90,19 @@ describe('settings pages', () => {
     })
   })
 
-  it('requires age verification before enabling Mature Social text', async () => {
+  it('requires adult self-attestation before enabling Mature Social text', async () => {
     renderWithAppProviders(<PreferencesSettingsPage />)
 
     const maturePreference = await screen.findByRole('radio', { name: 'Mature' })
     await waitFor(() => expect(maturePreference).toBeEnabled())
     fireEvent.click(maturePreference)
-    const dialog = await screen.findByRole('dialog', { name: 'Verify you are 18 or older' })
+    const dialog = await screen.findByRole('dialog', { name: 'Confirm you are 18 or older' })
     const birthDate = dialog.querySelector<HTMLInputElement>('input[type="date"]')
     expect(birthDate).not.toBeNull()
     fireEvent.change(birthDate!, {
       target: { value: '2000-01-01' }
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Verify age and show mature text' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm age and show mature text' }))
 
     await waitFor(() =>
       expect(mocks.updateSocialContentPreference).toHaveBeenCalledWith({

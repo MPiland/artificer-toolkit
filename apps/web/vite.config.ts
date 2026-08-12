@@ -9,6 +9,8 @@ import viteReact from '@vitejs/plugin-react'
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url))
 const serverOnlyEnvKeys = [
   'DATABASE_CONNECTION_STRING',
+  'NOVU_APPLICATION_IDENTIFIER',
+  'NOVU_SECRET_KEY',
   'LIBRARY_IMPORT_ENABLED',
   'PUBLIC_SIGN_UP_ENABLED'
 ] as const
@@ -26,9 +28,7 @@ function setServerOnlyEnv(
 
 function loadServerOnlyEnv(mode: string) {
   const rootEnv = loadEnv(mode, repoRoot, '')
-  setServerOnlyEnv('LIBRARY_IMPORT_ENABLED', rootEnv.LIBRARY_IMPORT_ENABLED)
-  setServerOnlyEnv('PUBLIC_SIGN_UP_ENABLED', rootEnv.PUBLIC_SIGN_UP_ENABLED)
-  setServerOnlyEnv('DATABASE_CONNECTION_STRING', rootEnv.DATABASE_CONNECTION_STRING)
+  for (const key of serverOnlyEnvKeys) setServerOnlyEnv(key, rootEnv[key])
 
   return rootEnv
 }

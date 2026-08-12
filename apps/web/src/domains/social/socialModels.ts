@@ -7,13 +7,14 @@ import { buildAuthoredRouteHandle } from '#app/routing/authoredRouteHandles'
 export const socialViews = ['discover', 'applications', 'invitations', 'hosting'] as const
 export type SocialView = (typeof socialViews)[number]
 
-export const socialListingManagementSections = ['listing', 'applications'] as const
+export const socialListingManagementSections = ['listing', 'applications', 'invitations'] as const
 export type SocialListingManagementSection = (typeof socialListingManagementSections)[number]
 
 export const socialListingManagementSectionLabels: Record<SocialListingManagementSection, string> =
   {
     listing: 'Listing details',
-    applications: 'Applications'
+    applications: 'Applications',
+    invitations: 'Invitations'
   }
 
 export const socialViewLabels: Record<SocialView, string> = {
@@ -134,4 +135,11 @@ export function formatStatusLabel(value: string) {
     .split('_')
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(' ')
+}
+
+export function formatSocialTimestamp(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(new Date(value))
 }

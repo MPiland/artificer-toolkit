@@ -447,6 +447,9 @@ export const hpManageButton = style({
       minWidth: 0,
       width: '100%',
       '@media': {
+        '(min-width: 761px) and (max-width: 1280px)': {
+          paddingInline: '4px'
+        },
         '(max-width: 520px)': {
           paddingInline: '6px'
         }

@@ -38,7 +38,8 @@ export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }:
         return
       }
 
-      const message = 'If email delivery is enabled, a secure reset link is on its way.'
+      const message =
+        "If an account exists for that email, we'll send a reset link. Check your inbox."
       setFeedback({ tone: 'success', message })
       await onSuccess?.(result)
     } finally {

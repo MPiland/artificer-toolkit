@@ -109,7 +109,9 @@ export const browserAuthClient: AuthClient = {
     const { error } = await getSupabaseBrowserClient().auth.resetPasswordForEmail(input.email, {
       redirectTo: getAuthRedirectUrl('/update-password')
     })
-    return error ? { ok: false, message: error.message } : { ok: true }
+    return error
+      ? { ok: false, message: "We couldn't send a reset link. Try again." }
+      : { ok: true }
   },
   async updatePassword(input) {
     const parsed = authPasswordUpdateInputSchema.safeParse(input)
@@ -120,7 +122,9 @@ export const browserAuthClient: AuthClient = {
     const { error } = await getSupabaseBrowserClient().auth.updateUser({
       password: parsed.data.password
     })
-    return error ? { ok: false, message: error.message } : { ok: true }
+    return error
+      ? { ok: false, message: "We couldn't update your password. Try again." }
+      : { ok: true }
   },
   async signOut() {
     const { error } = await getSupabaseBrowserClient().auth.signOut()

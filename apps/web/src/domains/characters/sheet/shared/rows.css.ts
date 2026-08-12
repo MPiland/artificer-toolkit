@@ -190,10 +190,10 @@ export const resourceStepButton = style({
       width: '30px',
       '@media': {
         '(max-width: 620px), (pointer: coarse)': {
-          height: '34px',
-          minHeight: '34px',
-          minWidth: '34px',
-          width: '34px'
+          height: '44px',
+          minHeight: '44px',
+          minWidth: '44px',
+          width: '44px'
         }
       },
       selectors: {

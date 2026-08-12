@@ -24,10 +24,9 @@ export function AuthPageShell({ title, description, children }: AuthPageShellPro
         </div>
 
         <div className={styles.authHeroCopy}>
-          <h1 className={styles.authHeroTitle}>Make something worth playing.</h1>
+          <h1 className={styles.authHeroTitle}>Create homebrew and characters for your table.</h1>
           <p className={styles.authHeroSubtitle}>
-            Keep your homebrew, characters, and table tools close without turning creativity into
-            paperwork.
+            Use your work in Character Builder and on the Character Sheet.
           </p>
         </div>
       </section>
@@ -35,7 +34,7 @@ export function AuthPageShell({ title, description, children }: AuthPageShellPro
       <section className={styles.authPanel} aria-label={title}>
         <Link to='/' className={styles.authBackLink}>
           <MoveLeft />
-          Back
+          Back to homepage
         </Link>
         <div className={styles.authCard}>
           <header className={styles.authCardHeader}>

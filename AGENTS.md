@@ -167,6 +167,8 @@ Avoid wrapper functions that simply call another function.
 
 Match validation to risk.
 
+Store disposable validation logs, screenshots, and generated evidence only under `.codex/validation/<task>/`. Do not create root-level logs or use `tmp/`, `logs/`, or `artifacts/` for validation output. Keep intentionally retained design-review evidence under `.impeccable/critique/` and canonical product references under `docs/mockups/`.
+
 Skip validation for low-risk changes and say so plainly.
 Use the cheapest useful check for risky changes.
 Run typecheck validation through Turbo-backed repo commands by default, such as `yarn turbo:typecheck:web` or `yarn turbo:affected:typecheck`, so local caching is used. Do not run direct workspace typecheck commands like `yarn workspace @artificer-toolkit/web typecheck:app` unless diagnosing Turbo itself or a Turbo-backed command is unavailable.

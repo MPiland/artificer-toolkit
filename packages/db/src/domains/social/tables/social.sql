@@ -2,7 +2,6 @@ CREATE TABLE IF NOT EXISTS public.social_profiles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL UNIQUE REFERENCES auth.users (id) ON DELETE CASCADE,
   adult_attested_at timestamptz,
-  us_attested_at timestamptz,
   content_preference text NOT NULL DEFAULT 'STANDARD'
     CHECK (content_preference IN ('STANDARD', 'MATURE')),
   status text NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'SUSPENDED')),

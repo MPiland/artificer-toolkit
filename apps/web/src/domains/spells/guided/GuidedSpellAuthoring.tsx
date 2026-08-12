@@ -149,7 +149,7 @@ export const GuidedSpellAuthoring = withForm({
         {screen === 0 ? (
           <Stack gap='lg'>
             {effects?.length && !rehydrated ? (
-              <Alert color='blue' title='Advanced mechanics preserved'>
+              <Alert color='blue' title='Some details require Advanced'>
                 This draft contains {effects.length} effect{effects.length === 1 ? '' : 's'} that
                 Guided cannot fully represent. You can edit the spell's common details here or
                 switch to Advanced to edit those mechanics.

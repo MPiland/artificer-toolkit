@@ -12,10 +12,10 @@ import {
   listReceivedCampaignInvites
 } from '../services/campaign/campaignService.js'
 import {
-  acceptSocialEligibility,
   closeSocialListing,
   createSocialListing,
   decideSocialApplication,
+  initializeSocialProfile,
   openSocialListing,
   submitSocialApplication,
   updateSocialListing
@@ -87,10 +87,7 @@ async function prepareUsers(db: DBLike, users: FixtureUsers): Promise<void> {
       set username = ${user.username}, updated_at = now()
       where id = ${user.id}::uuid
     `.execute(db)
-    await acceptSocialEligibility(db, user.id, {
-      birthDate: '2000-01-01',
-      isCurrentlyInUs: true
-    })
+    await initializeSocialProfile(db, user.id)
   }
 }
 

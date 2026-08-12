@@ -15,7 +15,7 @@ The owner-only Campaign copy command creates a fresh aggregate with a new public
 
 Original text remains persisted. Before transport or SSR serialization, Standard Campaign shared and public projections mask known whole-word English profanity plus explicitly identified compound terms such as `shitstorm` in display-text fields with `****`. A small local allow-list covers known false positives. Mature Social projections are masked by default and return original text only to the Campaign owner or a viewer whose server-owned preference is Mature after 18+ self-attestation. Private authoring and editing reads, author-owned private notes, and audited moderator evidence return the original. Authored snapshots use Node Map text metadata; structural IDs, enums, formulas, URLs, cursors, and arbitrary JSON are not rewritten. Realtime messages carry identifiers for invalidation only.
 
-The default viewing preference is `STANDARD`. Enabling `MATURE` without a prior adult attestation accepts a birth date only long enough for the server to calculate 18+, then discards it and stores only the attestation timestamp. Social's separate US attestation remains required for Social access. This is an easily bypassed self-attestation, not identity or age verification.
+The default viewing preference is `STANDARD`. Enabling `MATURE` without a prior adult attestation accepts a birth date only long enough for the server to calculate 18+, then discards it and stores only the attestation timestamp. This is an easily bypassed self-attestation, not identity or age verification.
 
 ## Consequences
 

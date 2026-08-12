@@ -34,7 +34,7 @@ export const mobileStatusItem = style({
       borderInlineEnd: `1px solid ${foundationVars.color.border.subtle}`,
       display: 'grid',
       gap: '2px',
-      minHeight: '42px',
+      minHeight: '44px',
       minWidth: 0,
       padding: '5px 8px',
       selectors: {
@@ -105,8 +105,10 @@ export const mobileInspirationButton = style({
       fontSize: '0.7rem',
       fontWeight: 750,
       gap: '4px',
+      minHeight: '44px',
       minWidth: 0,
       padding: 0,
+      width: '100%',
       selectors: {
         '&[data-active="true"]': {
           color: foundationVars.color.text.accent

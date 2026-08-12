@@ -11,6 +11,10 @@ const mocks = vi.hoisted(() => ({
     insertSocialModerationAction: vi.fn()
   },
   campaign: { expirePendingInvites: vi.fn() },
+  notifications: {
+    enqueueApplicationSubmittedCancellations: vi.fn(),
+    enqueueInvitationReceivedCancellations: vi.fn()
+  },
   transaction: { isTransaction: true }
 }))
 
@@ -25,6 +29,10 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   }
 })
 
+vi.mock('../notifications/notificationService.js', () => ({
+  ...mocks.notifications
+}))
+
 const { takeSocialModerationAction } = await import('./safetyService.js')
 
 const moderatorUserId = '00000000-0000-4000-8000-000000000001'
@@ -36,7 +44,6 @@ const moderatorProfile: SocialProfileRecord = {
   userId: moderatorUserId,
   username: 'moderator',
   adultAttestedAt: '2026-08-01T00:00:00.000Z',
-  usAttestedAt: '2026-08-01T00:00:00.000Z',
   contentPreference: 'STANDARD',
   status: 'ACTIVE',
   version: 1,
@@ -69,12 +76,12 @@ describe('Social moderation enforcement', () => {
     mocks.social.findSocialProfileByUser.mockResolvedValue(moderatorProfile)
     mocks.social.lockSocialReport.mockResolvedValue(report)
     mocks.social.setSocialListingModerationStatus.mockResolvedValue(true)
-    mocks.social.expireSubmittedSocialApplications.mockResolvedValue(undefined)
+    mocks.social.expireSubmittedSocialApplications.mockResolvedValue(['application-id'])
     mocks.social.advanceSocialReportVersion.mockResolvedValue({ ...report, version: 2 })
     mocks.social.insertSocialModerationAction.mockResolvedValue(
       '00000000-0000-4000-8000-000000000006'
     )
-    mocks.campaign.expirePendingInvites.mockResolvedValue(undefined)
+    mocks.campaign.expirePendingInvites.mockResolvedValue(['invite-id'])
   })
 
   it('advances the report version for listing enforcement and rejects a stale retry', async () => {
@@ -98,6 +105,16 @@ describe('Social moderation enforcement', () => {
     )
     expect(mocks.social.insertSocialModerationAction).toHaveBeenCalledWith(
       expect.objectContaining({ afterState: expect.objectContaining({ reportVersion: 2 }) })
+    )
+    expect(mocks.notifications.enqueueApplicationSubmittedCancellations).toHaveBeenCalledWith(
+      mocks.transaction,
+      ['application-id'],
+      expect.any(String)
+    )
+    expect(mocks.notifications.enqueueInvitationReceivedCancellations).toHaveBeenCalledWith(
+      mocks.transaction,
+      ['invite-id'],
+      expect.any(String)
     )
 
     mocks.social.lockSocialReport.mockResolvedValue({ ...report, version: 2 })

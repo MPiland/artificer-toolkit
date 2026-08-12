@@ -208,7 +208,7 @@ export function CharacterSheetRestPreviewContent({
           variant='default'
           onClick={onAcceptManualHealing}
         >
-          Stage {preview.stagedHealing} HP healing
+          Use {preview.stagedHealing} HP healing
         </Button>
       ) : null}
 
@@ -247,7 +247,7 @@ export function CharacterSheetRestPreviewContent({
         {previewPending
           ? 'Updating rest preview.'
           : preview.rollEvidence
-            ? `${preview.rollEvidence.total} rolled. ${preview.stagedHealing} hit points staged.`
+            ? `${preview.rollEvidence.total} rolled. ${preview.stagedHealing} hit points selected.`
             : ''}
       </Text>
       {previewError ? (

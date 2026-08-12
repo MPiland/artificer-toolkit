@@ -1,5 +1,6 @@
 import { SegmentedControl, useMantineColorScheme } from '@mantine/core'
 import { useAuthoringExperience } from '#forms/layout/useAuthoringExperience'
+import { NotificationPreferences } from '#app/notifications/NotificationPreferences'
 import { DiceSettingsControls } from './DiceSettingsControls'
 import { MatureContentPreference } from './MatureContentPreference'
 import { useDicePresentationPreferences } from './dicePreferences'
@@ -60,6 +61,15 @@ export function PreferencesSettingsPage() {
       </div>
       <MatureContentPreference />
       <DiceSettingsControls value={dicePreferences} onChange={setDicePreferences} />
+      <div className={styles.settingRow}>
+        <div className={styles.settingCopy}>
+          <h3 className={styles.settingTitle}>Social Hub notifications</h3>
+          <p className={styles.settingDescription}>
+            Choose where application and invitation updates reach you.
+          </p>
+        </div>
+        <NotificationPreferences />
+      </div>
     </section>
   )
 }

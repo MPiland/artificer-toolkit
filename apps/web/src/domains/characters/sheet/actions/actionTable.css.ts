@@ -42,6 +42,7 @@ export const actionIdentityButton = style({
       cursor: 'pointer',
       font: 'inherit',
       fontWeight: 700,
+      minHeight: '44px',
       minWidth: 0,
       padding: 0,
       textAlign: 'left',

@@ -33,6 +33,10 @@ export const queryKeys = {
     entitlements: () => ['account', 'entitlements'] as const
   },
 
+  notifications: {
+    session: () => ['notifications', 'session'] as const
+  },
+
   campaigns: {
     all: () => ['campaigns'] as const,
     list: () => ['campaigns', 'list'] as const,
@@ -73,6 +77,8 @@ export const queryKeys = {
     applicationsForListing: (listingPublicId: string) =>
       ['social-hub', 'applications', 'listing', listingPublicId] as const,
     invitationsReceived: () => ['social-hub', 'invitations', 'received'] as const,
+    invitationsSent: (listingPublicId: string) =>
+      ['social-hub', 'invitations', 'sent', listingPublicId] as const,
     blocks: () => ['social-hub', 'blocks'] as const,
     moderationQueue: () => ['social-hub', 'moderation', 'queue'] as const
   },

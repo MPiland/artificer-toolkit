@@ -16,6 +16,15 @@ export const row = style({
       border: `1px solid ${foundationVars.color.border.subtle}`,
       borderRadius: foundationVars.radius.lg,
       background: foundationVars.color.surface.panel,
+      selectors: {
+        '&[data-highlighted]': {
+          borderColor: foundationVars.color.accent.border,
+          boxShadow: foundationVars.shadow.focus
+        },
+        '&[data-highlighted]:focus': {
+          outline: 'none'
+        }
+      },
       '@media': { [media.mobile]: { gridTemplateColumns: '1fr', padding: foundationVars.space[4] } }
     }
   }

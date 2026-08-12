@@ -26,7 +26,7 @@ export function SignUpPage({ publicSignUpEnabled = false }: { publicSignUpEnable
   return (
     <AuthPageShell
       title='Create your account'
-      description='Start with a character or homebrew draft, then keep it ready for play.'
+      description='Create an account to save your characters and homebrew.'
     >
       <SignUpForm
         onSuccess={(result) => (result.session ? navigate({ to: '/home' }) : undefined)}

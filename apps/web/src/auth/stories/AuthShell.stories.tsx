@@ -24,7 +24,7 @@ type Story = StoryObj<typeof meta>
 export const SignIn: Story = {
   args: {
     title: 'Sign in',
-    description: 'Welcome back. Your table is waiting.',
+    description: 'Sign in to continue.',
     children: null
   },
   render: ({ title, description }) => (
@@ -37,7 +37,7 @@ export const SignIn: Story = {
 export const SignUp: Story = {
   args: {
     title: 'Create your account',
-    description: 'Start with a character or homebrew draft, then keep it ready for play.',
+    description: 'Create an account to save your characters and homebrew.',
     children: null
   },
   render: ({ title, description }) => (
@@ -50,8 +50,7 @@ export const SignUp: Story = {
 export const ResetPassword: Story = {
   args: {
     title: 'Reset your password',
-    description:
-      "Enter your email and we'll send a secure reset link if email delivery is available.",
+    description: 'Enter the email address for your account.',
     children: null
   },
   render: ({ title, description }) => (
@@ -64,7 +63,7 @@ export const ResetPassword: Story = {
 export const UpdatePassword: Story = {
   args: {
     title: 'Set a new password',
-    description: 'Choose a new password, then return to your toolkit.',
+    description: 'Choose a new password for your account.',
     children: null
   },
   render: ({ title, description }) => (

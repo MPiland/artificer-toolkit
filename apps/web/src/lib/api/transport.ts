@@ -87,6 +87,7 @@ import type {
 } from '@artificer-toolkit/schema/api/systems'
 import * as campaignContracts from '@artificer-toolkit/schema/api/campaigns'
 import * as encounterContracts from '@artificer-toolkit/schema/api/encounters'
+import * as notificationContracts from '@artificer-toolkit/schema/api/notifications'
 import * as socialContracts from '@artificer-toolkit/schema/api/socialHub'
 import type { BackgroundAuthoringInputDto } from '@artificer-toolkit/schema/subjects/background'
 import type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
@@ -204,6 +205,9 @@ export interface AuthoredDomainProcedures<TList, TResponse, TInput extends Autho
 }
 
 export interface TrpcClient {
+  notifications: {
+    session: EmptyQueryProcedure<notificationContracts.NotificationSessionDto>
+  }
   account: {
     completeInvitation: MutationProcedure<AuthInvitationCompletionInput, { ok: true }>
     entitlements: EmptyQueryProcedure<campaignContracts.EntitlementProjectionDto>
@@ -248,6 +252,7 @@ export interface TrpcClient {
         campaignContracts.CampaignInviteDto
       >
       listReceived: EmptyQueryProcedure<campaignContracts.CampaignInviteDto[]>
+      listSent: QueryProcedure<{ listingPublicId: string }, campaignContracts.CampaignInviteDto[]>
       revoke: MutationProcedure<
         SchemaInput<typeof campaignContracts.revokeCampaignInviteInputSchema>,
         { ok: true }
@@ -522,10 +527,7 @@ export interface TrpcClient {
   socialHub: {
     eligibility: {
       get: EmptyQueryProcedure<socialContracts.SocialEligibilityDto>
-      accept: MutationProcedure<
-        SchemaInput<typeof socialContracts.acceptSocialEligibilityInputSchema>,
-        socialContracts.SocialEligibilityDto
-      >
+      initialize: EmptyMutationProcedure<socialContracts.SocialEligibilityDto>
     }
     preferences: {
       update: MutationProcedure<

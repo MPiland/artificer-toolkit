@@ -229,7 +229,7 @@ export function GuidedFeatureAccordion({
                     ) : null}
 
                     {hasUnsupportedMechanics(feature) ? (
-                      <Alert color='blue' title='Advanced mechanics preserved'>
+                      <Alert color='blue' title='Some details require Advanced'>
                         This feature has advanced grants, restrictions, or effects. Guided keeps
                         them intact; switch to Advanced to edit those mechanics.
                       </Alert>

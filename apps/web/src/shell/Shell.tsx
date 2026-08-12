@@ -34,6 +34,11 @@ import { Header } from './Header/Header'
 import { MobileAppFooter } from './MobileAppFooter/MobileAppFooter'
 import { SentryFeedbackMenuItem } from './SentryFeedbackMenuItem'
 import { ShellReturnHrefContext } from './returnLocation'
+import {
+  NotificationDesktopAction,
+  NotificationMobileAction
+} from '#app/notifications/NotificationShellActions'
+import { useNotificationAvailability } from '#app/notifications/notificationContext'
 import type {
   MobileAppFooterItem,
   MobileAppFooterMenuItem
@@ -77,6 +82,7 @@ export function Shell({
   children
 }: ShellProps) {
   const [headerSupplement, setHeaderSupplement] = useState<ShellHeaderSupplement | null>(null)
+  const notificationsAvailable = useNotificationAvailability() === 'ready'
   const [searchOpened, { close: closeSearch, open: openSearch }] = useDisclosure(false)
   const headerSupplementContext = useMemo(() => ({ setHeaderSupplement }), [])
   const isSignedIn = isAuthenticated ?? Boolean(userEmail)
@@ -141,6 +147,20 @@ export function Shell({
       </div>
     </main>
   )
+  const headerActions =
+    notificationsAvailable || headerSupplement?.actions ? (
+      <Group gap='xs' wrap='nowrap'>
+        {notificationsAvailable ? <NotificationDesktopAction /> : null}
+        {headerSupplement?.actions}
+      </Group>
+    ) : undefined
+  const mobileActions =
+    notificationsAvailable || headerSupplement?.authoringChrome?.mobileActions ? (
+      <Group gap='xs' wrap='nowrap'>
+        {headerSupplement?.authoringChrome?.mobileActions}
+        {notificationsAvailable ? <NotificationMobileAction /> : null}
+      </Group>
+    ) : undefined
 
   return (
     <ShellReturnHrefContext value={returnHrefRef.current}>
@@ -155,7 +175,8 @@ export function Shell({
               )
             }
             accountLabel={isSignedIn ? (userEmail ?? 'Account') : 'Sign in'}
-            actions={headerSupplement?.actions}
+            actions={headerActions}
+            mobileActions={mobileActions}
             navigationActions={appNavigationActions}
             supplement={headerSupplement?.content}
           />

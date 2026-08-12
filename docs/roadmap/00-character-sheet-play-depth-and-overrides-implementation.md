@@ -588,7 +588,7 @@ stale-version rejection, and touched play state.
 - `yarn format:check`: green — 2,460 matched files.
 - `git diff --check`: green.
 
-Full command output is retained locally under the ignored `tmp/verification/` directory.
+Full command output is retained locally under the ignored `.codex/validation/character-sheet-play-depth/` directory.
 The locked visual evidence is indexed in the preceding section, including desktop, mobile,
 tablet portrait/landscape, narrow overflow, inspector, HP, action, spell, inventory, and
 limited-use states.

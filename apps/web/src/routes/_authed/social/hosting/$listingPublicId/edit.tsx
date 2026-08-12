@@ -9,12 +9,13 @@ export const Route = createFileRoute('/_authed/social/hosting/$listingPublicId/e
 
 function SocialListingEditRoute() {
   const { listingPublicId } = Route.useParams()
-  const { section } = Route.useSearch()
+  const { invitePublicId, section } = Route.useSearch()
   const navigate = Route.useNavigate()
 
   return (
     <SocialListingFormPage
       listingPublicId={listingPublicId}
+      invitePublicId={invitePublicId}
       section={section}
       onSectionChange={(nextSection) =>
         void navigate({ replace: true, search: { section: nextSection } })

@@ -8,6 +8,7 @@ import {
 import { Shell, platformNavigation } from '#app/shell'
 import { authoringSearchSchema } from '#app/forms/layout/authoringSearch'
 import { hasPendingInvitationSetup } from '#app/auth/invitationStatus'
+import { NotificationsProvider } from '#app/notifications/NotificationsProvider'
 
 export const Route = createFileRoute('/_authed')({
   validateSearch: authoringSearchSchema,
@@ -35,16 +36,18 @@ function AuthedLayout() {
   })
 
   return (
-    <Shell
-      navigation={platformNavigation}
-      currentHref={currentHref}
-      currentPath={currentPath}
-      isAuthenticated={Boolean(user)}
-      libraryImportEnabled={featureFlags?.libraryImportEnabled}
-      publicSignUpEnabled={featureFlags?.publicSignUpEnabled}
-      userEmail={user?.email}
-    >
-      <Outlet />
-    </Shell>
+    <NotificationsProvider>
+      <Shell
+        navigation={platformNavigation}
+        currentHref={currentHref}
+        currentPath={currentPath}
+        isAuthenticated={Boolean(user)}
+        libraryImportEnabled={featureFlags?.libraryImportEnabled}
+        publicSignUpEnabled={featureFlags?.publicSignUpEnabled}
+        userEmail={user?.email}
+      >
+        <Outlet />
+      </Shell>
+    </NotificationsProvider>
   )
 }

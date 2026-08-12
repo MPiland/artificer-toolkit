@@ -4,7 +4,6 @@ import {
   type SocialProfileRecord
 } from '@artificer-toolkit/db'
 import type {
-  AcceptSocialEligibilityInput,
   SocialEligibilityDto,
   SocialProfileDto,
   UpdateSocialContentPreferenceInput
@@ -14,9 +13,7 @@ import { isAtLeast18 } from './ageAttestation.js'
 import { mapSocialProfile, socialIso } from './mapping.js'
 
 export function hasActiveSocialEligibility(profile: SocialProfileRecord): boolean {
-  return (
-    profile.status === 'ACTIVE' && profile.adultAttestedAt !== null && profile.usAttestedAt !== null
-  )
+  return profile.status === 'ACTIVE'
 }
 
 function mapEligibility(profile: SocialProfileRecord | null): SocialEligibilityDto {
@@ -24,7 +21,6 @@ function mapEligibility(profile: SocialProfileRecord | null): SocialEligibilityD
     eligible: profile ? hasActiveSocialEligibility(profile) : false,
     profilePublicId: profile?.id ?? null,
     adultAttestedAt: profile?.adultAttestedAt ? socialIso(profile.adultAttestedAt) : null,
-    usAttestedAt: profile?.usAttestedAt ? socialIso(profile.usAttestedAt) : null,
     contentPreference: profile?.contentPreference ?? 'STANDARD',
     status: profile?.status ?? null
   }
@@ -47,24 +43,11 @@ export async function getSocialEligibility(
   return mapEligibility(profile)
 }
 
-export async function acceptSocialEligibility(
+export async function initializeSocialProfile(
   db: DBLike,
-  userId: string,
-  input: AcceptSocialEligibilityInput
+  userId: string
 ): Promise<SocialEligibilityDto> {
-  const existing = await createSocialRepository(db).findSocialProfileByUser(userId)
-  if (
-    !existing?.adultAttestedAt &&
-    (!input.birthDate || !isAtLeast18(input.birthDate, new Date()))
-  ) {
-    throw new SocialValidationError(
-      'Enter a birth date that confirms you are at least 18 years old.'
-    )
-  }
-  const profile = await createSocialRepository(db).attestSocialEligibility(
-    userId,
-    new Date().toISOString()
-  )
+  const profile = await createSocialRepository(db).ensureSocialProfile(userId)
   return mapEligibility(profile)
 }
 
@@ -81,7 +64,7 @@ export async function updateSocialContentPreference(
   if (input.contentPreference === 'MATURE' && !existing?.adultAttestedAt) {
     if (!input.birthDate || !isAtLeast18(input.birthDate, now)) {
       throw new SocialValidationError(
-        'Mature content requires age verification using your birth date.'
+        'Mature content requires confirming that you are at least 18 using your birth date.'
       )
     }
     adultAttestedAt = now.toISOString()

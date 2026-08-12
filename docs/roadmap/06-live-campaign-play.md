@@ -13,7 +13,7 @@ Extend Campaign Core with a lightweight prepare/run/closeout loop for sessions, 
 
 - Phase 03 already owns party inventory/currency, durable Campaign rolls/chat, Campaign and session notes, and private Broadcast reconciliation.
 - Phase 02 provides ready asset identity and private transfer/delivery. This phase owns Campaign file/handout references, not another asset lifecycle.
-- Phase 05 owns the Knock-backed inbox, email delivery, preferences, and reliable delivery intents. No Campaign-announcement, live-session, or Campaign-clock domain exists yet.
+- Phase 05 owns the Novu-backed inbox, email delivery, preferences, and reliable delivery intents. No Campaign-announcement, live-session, or Campaign-clock domain exists yet.
 
 ## Requirements
 
@@ -35,7 +35,7 @@ Extend Campaign Core with a lightweight prepare/run/closeout loop for sessions, 
 ### Campaign announcements
 
 - Owners may publish Campaign announcements stored independently from Phase 03's 500-entry chat cap and addressed only to current authorized Campaign members.
-- Publishing an announcement inserts a Phase 05 delivery intent after the announcement source is committed. The source public ID and safe summary are sufficient; private Campaign or party-only text is never copied into Knock or email payloads.
+- Publishing an announcement inserts a Phase 05 delivery intent after the announcement source is committed. The source public ID and safe summary are sufficient; private Campaign or party-only text is never copied into Novu or email payloads.
 - Announcement delivery is idempotent and auditable. Opening an announcement reauthorizes current Campaign membership, and removal closes the destination even when an older feed item remains.
 - Party-only sources preserve Phase 03 room isolation across recipient selection, counts, delivery, and destination reads.
 
@@ -44,9 +44,9 @@ Extend Campaign Core with a lightweight prepare/run/closeout loop for sessions, 
 ```mermaid
 flowchart LR
   Announcement["GM Campaign announcement source"] --> Intent["Phase 05 delivery intent"]
-  Intent --> Knock["Knock workflow"]
-  Knock --> Inbox["In-app feed"]
-  Knock --> Email["Resend email when enabled"]
+  Intent --> Novu["Novu workflow"]
+  Novu --> Inbox["In-app feed"]
+  Novu --> Email["Resend email when enabled"]
   Inbox --> Read["Authorized Campaign read"]
   Email --> Read
 ```
@@ -92,4 +92,4 @@ Clock start, pause, advance, and correction commands persist before any derived 
 
 ## New-session instruction
 
-Reuse Phase 05 notification workflows and delivery intents directly. Do not create another notification store, preference model, provider facade, or delivery worker in this phase.
+Reuse Phase 05 Novu workflows and delivery intents directly. Do not create another notification store, preference model, provider facade, or delivery worker in this phase.

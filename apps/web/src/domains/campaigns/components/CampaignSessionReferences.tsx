@@ -81,7 +81,7 @@ export function CampaignSessionReferences({
         <div>
           <Text fw={700}>Pinned references</Text>
           <Text c='dimmed' size='sm'>
-            Keep the notes and records you expect to reach for during play.
+            Pin notes and rules for this session.
           </Text>
         </div>
         {editable && !adding ? (

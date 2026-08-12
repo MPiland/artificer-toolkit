@@ -202,8 +202,11 @@ export const actionAttackColumns = style({
     [app]: {
       gridTemplateColumns: 'minmax(160px, 1fr) 72px 72px minmax(128px, 0.78fr)',
       '@media': {
-        '(max-width: 620px)': {
+        '(max-width: 959px)': {
           gridTemplateColumns: 'minmax(84px, 1.15fr) 44px 44px minmax(72px, 0.9fr)'
+        },
+        '(max-width: 340px)': {
+          gridTemplateColumns: 'minmax(64px, 1.15fr) 38px 38px minmax(58px, 0.9fr)'
         }
       }
     }

@@ -3,6 +3,7 @@ import { buildCampaignsApi } from './api/campaigns'
 import { buildCharactersApi } from './api/characters'
 import { buildContentApi } from './api/content'
 import { buildPlatformApi } from './api/platform'
+import { buildNotificationsApi } from './api/notifications'
 import { buildSocialHubApi } from './api/socialHub'
 import { ApiError, ApiParseError, createTrpcClient } from './api/transport'
 
@@ -176,6 +177,7 @@ export const api = {
   systems: platformApi.systems,
   media: platformApi.media,
   nodeRuntime: platformApi.nodeRuntime,
+  notifications: buildNotificationsApi(client),
   routeIds: platformApi.routeIds,
   socialHub: buildSocialHubApi(client)
 }

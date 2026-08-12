@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Alert, Stack, Text } from '@mantine/core'
+import { Alert, Stack } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
 import { useStore } from '@tanstack/react-form'
 import type { EffectDto } from '@artificer-toolkit/schema/effects'
@@ -187,7 +187,6 @@ export const GuidedEquipmentAuthoring = withForm({
               <Summary label='Core outcomes' value={String(values.effects.length)} />
               <Summary label='Features' value={String(values.features.length)} />
             </dl>
-            <Text c='dimmed'>Save the draft, or activate it when validation is complete.</Text>
           </Stack>
         ) : null}
       </GuidedAuthoringFrame>

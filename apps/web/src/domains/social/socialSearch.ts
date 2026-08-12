@@ -3,6 +3,8 @@ import { socialListingManagementSections, socialViews } from './socialModels'
 
 export const socialHubSearchSchema = z.object({
   view: z.enum(socialViews).catch('discover'),
+  applicationPublicId: z.string().uuid().optional(),
+  invitePublicId: z.string().uuid().optional(),
   query: z.string().trim().max(200).optional(),
   systemId: z.string().uuid().optional(),
   format: z.enum(['ONE_SHOT', 'ONGOING']).optional(),
@@ -32,7 +34,8 @@ export const socialHubSearchSchema = z.object({
 })
 
 export const socialListingManagementSearchSchema = z.object({
-  section: z.enum(socialListingManagementSections).catch('listing')
+  section: z.enum(socialListingManagementSections).catch('listing'),
+  invitePublicId: z.string().uuid().optional()
 })
 
 export type SocialHubSearch = z.infer<typeof socialHubSearchSchema>

@@ -14,7 +14,6 @@ type RawProfile = {
   user_id: string
   username: string
   adult_attested_at: string | Date | null
-  us_attested_at: string | Date | null
   content_preference: SocialContentPreference
   status: SocialProfileStatus
   version: number
@@ -27,7 +26,6 @@ const mapProfile = (row: RawProfile): SocialProfileRecord => ({
   userId: row.user_id,
   username: row.username,
   adultAttestedAt: row.adult_attested_at,
-  usAttestedAt: row.us_attested_at,
   contentPreference: row.content_preference,
   status: row.status,
   version: row.version,
@@ -57,8 +55,6 @@ export function createSocialProfileRepository(db: DBLike) {
         from social_profiles social
         join profiles account on account.id = social.user_id
         where social.id = ${profileId}::uuid and social.status = 'ACTIVE'
-          and social.adult_attested_at is not null
-          and social.us_attested_at is not null
           and not exists (
             select 1 from social_blocks block
             where (block.blocker_profile_id = ${viewerProfileId}::uuid
@@ -71,19 +67,13 @@ export function createSocialProfileRepository(db: DBLike) {
       return row ? mapProfile(row) : null
     },
 
-    async attestSocialEligibility(userId: string, now: string): Promise<SocialProfileRecord> {
+    async ensureSocialProfile(userId: string): Promise<SocialProfileRecord> {
       const result = await sql<RawProfile>`
         with inserted as (
-          insert into social_profiles (user_id, adult_attested_at, us_attested_at)
-          values (${userId}::uuid, ${now}::timestamptz, ${now}::timestamptz)
+          insert into social_profiles (user_id)
+          values (${userId}::uuid)
           on conflict (user_id) do update
-          set adult_attested_at = coalesce(
-                social_profiles.adult_attested_at,
-                excluded.adult_attested_at
-              ),
-              us_attested_at = coalesce(social_profiles.us_attested_at, excluded.us_attested_at),
-              version = social_profiles.version + 1,
-              updated_at = ${now}::timestamptz
+          set user_id = excluded.user_id
           returning *
         )
         select inserted.*, account.username
@@ -91,7 +81,7 @@ export function createSocialProfileRepository(db: DBLike) {
         join profiles account on account.id = inserted.user_id
       `.execute(db)
       const row = result.rows[0]
-      if (!row) throw new Error('Failed to attest Social eligibility.')
+      if (!row) throw new Error('Failed to initialize Social profile.')
       return mapProfile(row)
     },
 
@@ -187,7 +177,7 @@ export function createSocialProfileRepository(db: DBLike) {
       firstProfileId: string,
       secondProfileId: string,
       now: string
-    ): Promise<number> {
+    ): Promise<string[]> {
       const result = await sql<{ id: string }>`
         update social_applications application
         set status = 'BLOCKED', blocked_at = ${now}::timestamptz,
@@ -203,7 +193,7 @@ export function createSocialProfileRepository(db: DBLike) {
               and application.applicant_profile_id = ${firstProfileId}::uuid))
         returning application.id
       `.execute(db)
-      return result.rows.length
+      return result.rows.map((row) => row.id)
     }
   }
 }

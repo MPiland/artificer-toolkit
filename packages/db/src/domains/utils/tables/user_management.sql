@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY
     REFERENCES auth.users ON DELETE CASCADE NOT NULL,
 
+  notification_recipient_id uuid NOT NULL DEFAULT gen_random_uuid(),
+
   updated_at timestamptz,
   username   text,
   full_name  text,
@@ -41,6 +43,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS profiles_username_key ON public.profiles (lower(username));
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_notification_recipient_id_key
+  ON public.profiles (notification_recipient_id);
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 

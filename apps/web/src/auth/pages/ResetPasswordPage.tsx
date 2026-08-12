@@ -4,7 +4,7 @@ export function ResetPasswordPage() {
   return (
     <AuthPageShell
       title='Reset your password'
-      description="Enter your email and we'll send a secure reset link if email delivery is available."
+      description='Enter the email address for your account.'
     >
       <ResetPasswordForm />
     </AuthPageShell>

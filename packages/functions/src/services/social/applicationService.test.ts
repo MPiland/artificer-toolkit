@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
+  CampaignInviteRecord,
   DBLike,
   SocialApplicationRecord,
   SocialListingRecord,
@@ -12,6 +13,8 @@ const mocks = vi.hoisted(() => ({
     findSocialApplicationById: vi.fn(),
     lockSocialListing: vi.fn(),
     lockSocialApplication: vi.fn(),
+    findVisibleSocialListing: vi.fn(),
+    insertSocialApplication: vi.fn(),
     hasSocialBlockEitherDirection: vi.fn(),
     setSocialApplicationStatus: vi.fn()
   },
@@ -24,6 +27,13 @@ const mocks = vi.hoisted(() => ({
     setInviteStatus: vi.fn()
   },
   entitlement: { lockTier: vi.fn() },
+  notifications: {
+    enqueueApplicationDecisionNotifications: vi.fn(),
+    enqueueApplicationSubmittedCancellations: vi.fn(),
+    enqueueApplicationSubmittedNotification: vi.fn(),
+    enqueueInvitationDecisionNotifications: vi.fn()
+  },
+  consumeSocialRateLimit: vi.fn(),
   transaction: { isTransaction: true }
 }))
 
@@ -39,7 +49,18 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   }
 })
 
-const { acceptSocialAdmission } = await import('./applicationService.js')
+vi.mock('../notifications/notificationService.js', () => ({
+  ...mocks.notifications
+}))
+
+vi.mock('./rateLimits.js', () => ({ consumeSocialRateLimit: mocks.consumeSocialRateLimit }))
+
+const {
+  acceptSocialAdmission,
+  decideSocialApplication,
+  submitSocialApplication,
+  withdrawSocialApplication
+} = await import('./applicationService.js')
 
 const ownerUserId = '00000000-0000-4000-8000-000000000001'
 const applicantUserId = '00000000-0000-4000-8000-000000000002'
@@ -51,7 +72,6 @@ const hostProfile: SocialProfileRecord = {
   userId: ownerUserId,
   username: 'host-user',
   adultAttestedAt: '2026-08-01T00:00:00.000Z',
-  usAttestedAt: '2026-08-01T00:00:00.000Z',
   contentPreference: 'STANDARD',
   status: 'ACTIVE',
   version: 1,
@@ -155,6 +175,8 @@ describe('Social admission', () => {
     mocks.social.findSocialApplicationById.mockResolvedValue(application)
     mocks.social.lockSocialListing.mockResolvedValue(listing)
     mocks.social.lockSocialApplication.mockResolvedValue(application)
+    mocks.social.findVisibleSocialListing.mockResolvedValue(listing)
+    mocks.social.insertSocialApplication.mockResolvedValue(application)
     mocks.social.hasSocialBlockEitherDirection.mockResolvedValue(false)
     mocks.campaign.lockCampaign.mockResolvedValue({
       id: listing.campaignId,
@@ -171,6 +193,7 @@ describe('Social admission', () => {
       respondedAt: '2026-08-01T00:01:00.000Z',
       version: 2
     })
+    mocks.consumeSocialRateLimit.mockResolvedValue(undefined)
   })
 
   it('locks listing, Campaign, source, and entitlement before activating one membership', async () => {
@@ -195,6 +218,12 @@ describe('Social admission', () => {
     )
     expect(mocks.campaign.activatePlayerMembership.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.social.setSocialApplicationStatus.mock.invocationCallOrder[0] ?? 0
+    )
+    expect(mocks.notifications.enqueueApplicationDecisionNotifications).toHaveBeenCalledWith(
+      mocks.transaction,
+      expect.objectContaining({ id: applicationId, status: 'ACCEPTED' }),
+      'ACCEPTED',
+      expect.any(String)
     )
   })
 
@@ -225,5 +254,133 @@ describe('Social admission', () => {
     expect(mocks.entitlement.lockTier).not.toHaveBeenCalled()
     expect(mocks.campaign.activatePlayerMembership).not.toHaveBeenCalled()
     expect(mocks.social.setSocialApplicationStatus).not.toHaveBeenCalled()
+    expect(mocks.notifications.enqueueApplicationDecisionNotifications).not.toHaveBeenCalled()
+  })
+
+  it('enqueues the submitted workflow in the application insert transaction', async () => {
+    await submitSocialApplication({} as DBLike, applicantUserId, {
+      listingPublicId: listing.id,
+      expectedListingVersion: listing.version,
+      message: application.message
+    })
+
+    expect(mocks.notifications.enqueueApplicationSubmittedNotification).toHaveBeenCalledWith(
+      mocks.transaction,
+      application,
+      expect.any(String)
+    )
+  })
+
+  it('cancels the submitted workflow when the applicant withdraws', async () => {
+    const withdrawn = {
+      ...application,
+      status: 'WITHDRAWN' as const,
+      withdrawnAt: '2026-08-01T00:01:00.000Z',
+      version: 2
+    }
+    mocks.social.setSocialApplicationStatus.mockResolvedValue(withdrawn)
+
+    await withdrawSocialApplication(
+      {} as DBLike,
+      applicantUserId,
+      application.id,
+      application.version
+    )
+
+    expect(mocks.notifications.enqueueApplicationSubmittedCancellations).toHaveBeenCalledWith(
+      mocks.transaction,
+      [application.id],
+      expect.any(String)
+    )
+  })
+
+  it('cancels the host submission and triggers the applicant decision when declined', async () => {
+    const declined = {
+      ...application,
+      status: 'DECLINED' as const,
+      respondedAt: '2026-08-01T00:01:00.000Z',
+      version: 2
+    }
+    mocks.social.setSocialApplicationStatus.mockResolvedValue(declined)
+
+    await decideSocialApplication({} as DBLike, ownerUserId, {
+      applicationPublicId: application.id,
+      expectedVersion: application.version,
+      decision: 'DECLINE'
+    })
+
+    expect(mocks.notifications.enqueueApplicationDecisionNotifications).toHaveBeenCalledWith(
+      mocks.transaction,
+      declined,
+      'DECLINED',
+      expect.any(String)
+    )
+  })
+
+  it('cancels invitation receipt and triggers the host decision when accepted', async () => {
+    const invitation = {
+      id: '00000000-0000-4000-8000-000000000010',
+      listingId: listing.id,
+      campaignId: listing.campaignId,
+      createdBy: ownerUserId,
+      recipientUserId: applicantUserId,
+      recipientUsername: applicantProfile.username,
+      listingVersion: listing.version,
+      status: 'PENDING',
+      expiresAt: '2099-08-01T00:00:00.000Z',
+      respondedAt: null,
+      revokedAt: null,
+      expiredAt: null,
+      createdAt: '2026-08-01T00:00:00.000Z',
+      updatedAt: '2026-08-01T00:00:00.000Z',
+      version: 1
+    } satisfies CampaignInviteRecord
+    const accepted = {
+      ...invitation,
+      status: 'ACCEPTED' as const,
+      respondedAt: '2026-08-01T00:01:00.000Z',
+      version: 2
+    }
+    mocks.campaign.lockInvite.mockResolvedValue(invitation)
+    mocks.campaign.setInviteStatus.mockResolvedValue(accepted)
+
+    await acceptSocialAdmission({} as DBLike, applicantUserId, {
+      kind: 'INVITATION',
+      publicId: invitation.id,
+      expectedVersion: invitation.version
+    })
+
+    expect(mocks.notifications.enqueueInvitationDecisionNotifications).toHaveBeenCalledWith(
+      mocks.transaction,
+      accepted,
+      {
+        hostUserId: ownerUserId,
+        listingTitle: listing.title,
+        decision: 'ACCEPTED',
+        occurredAt: expect.any(String)
+      }
+    )
+  })
+
+  it('emits no intent for failed or stale mutations', async () => {
+    mocks.social.insertSocialApplication.mockRejectedValueOnce({ code: '23505' })
+    await expect(
+      submitSocialApplication({} as DBLike, applicantUserId, {
+        listingPublicId: listing.id,
+        expectedListingVersion: listing.version,
+        message: application.message
+      })
+    ).rejects.toBeInstanceOf(Error)
+    expect(mocks.notifications.enqueueApplicationSubmittedNotification).not.toHaveBeenCalled()
+
+    await expect(
+      withdrawSocialApplication(
+        {} as DBLike,
+        applicantUserId,
+        application.id,
+        application.version + 1
+      )
+    ).rejects.toBeInstanceOf(Error)
+    expect(mocks.notifications.enqueueApplicationSubmittedCancellations).not.toHaveBeenCalled()
   })
 })

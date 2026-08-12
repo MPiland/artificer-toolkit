@@ -15,7 +15,7 @@ describe('buildAuthoredDetailNotice', () => {
     })
 
     expect(notice?.title).toBe('Draft preview')
-    expect(notice?.action?.label).toBe('View Draft')
+    expect(notice?.action?.label).toBe('View draft')
     expect(notice?.body).toContain('active spell')
   })
 })

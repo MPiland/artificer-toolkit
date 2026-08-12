@@ -17,6 +17,10 @@ import type {
 } from '@artificer-toolkit/schema/api/socialHub'
 import { ENTITLEMENT_LIMITS, assertEntitlementLimit } from '../account/entitlementService.js'
 import {
+  enqueueApplicationSubmittedCancellations,
+  enqueueInvitationReceivedCancellations
+} from '../notifications/notificationService.js'
+import {
   SocialAccessError,
   SocialConflictError,
   SocialNotFoundError,
@@ -256,9 +260,13 @@ export function updateSocialListing(
     if (!updated) throw new SocialConflictError()
     if (isMaterialListingEdit(current, next)) {
       const now = new Date().toISOString()
-      await Promise.all([
+      const [applicationIds, inviteIds] = await Promise.all([
         repository.expireSubmittedSocialApplications(current.id, now),
         createCampaignRepository(trx).expirePendingInvites(current.id, now)
+      ])
+      await Promise.all([
+        enqueueApplicationSubmittedCancellations(trx, applicationIds, now),
+        enqueueInvitationReceivedCancellations(trx, inviteIds, now)
       ])
     } else {
       const now = new Date().toISOString()
@@ -354,9 +362,13 @@ export function closeSocialListing(
       now
     })
     if (!closed) throw new SocialConflictError()
-    await Promise.all([
+    const [applicationIds, inviteIds] = await Promise.all([
       repository.expireSubmittedSocialApplications(listing.id, now),
       createCampaignRepository(trx).expirePendingInvites(listing.id, now)
+    ])
+    await Promise.all([
+      enqueueApplicationSubmittedCancellations(trx, applicationIds, now),
+      enqueueInvitationReceivedCancellations(trx, inviteIds, now)
     ])
     return mapSocialListing(closed, { privateOwnerView: true })
   })

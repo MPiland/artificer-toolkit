@@ -10,16 +10,16 @@ import {
 
 const homePanels = [
   {
-    title: 'Open a content list',
-    copy: 'Find spells, classes, races, backgrounds, feats, equipment, creatures, and vehicles from one consistent place.'
+    title: 'Library',
+    copy: 'Browse spells, classes, races, backgrounds, feats, equipment, creatures, and vehicles.'
   },
   {
-    title: 'Keep drafts separate',
-    copy: 'Work on changes without losing the active version your table already trusts.'
+    title: 'Drafts',
+    copy: 'Edit a draft without changing the active version your table uses.'
   },
   {
-    title: 'Start from the SRD',
-    copy: 'Use locked SRD records for reference, then duplicate one when you need your own version.'
+    title: 'SRD content',
+    copy: 'SRD content is read-only. Copy an entry when you want to make your own version.'
   }
 ] as const
 
@@ -27,8 +27,8 @@ export function HomePage() {
   return (
     <div className={homeStack}>
       <PageHeader
-        title='What are you building today?'
-        description='Open a list, review active records, or turn a trusted starting point into homebrew for your table.'
+        title='Start with Library or Create'
+        description='Open Library to browse your content. Use Create to start a character or homebrew draft.'
       />
 
       <section className={homeGrid} aria-label='Home next steps'>

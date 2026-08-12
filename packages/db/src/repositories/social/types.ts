@@ -49,7 +49,6 @@ export interface SocialProfileRecord {
   userId: string
   username: string
   adultAttestedAt: Timestamp | null
-  usAttestedAt: Timestamp | null
   contentPreference: SocialContentPreference
   status: SocialProfileStatus
   version: number

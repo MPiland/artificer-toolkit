@@ -26,6 +26,13 @@ import {
 } from '@artificer-toolkit/shared/campaign/textPolicy'
 import { ENTITLEMENT_LIMITS, assertEntitlementLimit } from '../account/entitlementService.js'
 import { reconcileCharacterAfterCampaignContentRemoval } from '../character/campaignCharacterReconciliation.js'
+import {
+  enqueueApplicationSubmittedCancellations,
+  enqueueInvitationDecisionNotifications,
+  enqueueInvitationReceivedCancellations,
+  enqueueInvitationReceivedNotification,
+  expireDueCampaignInvitationsForUser
+} from '../notifications/notificationService.js'
 import { acceptSocialAdmission } from '../social/applicationService.js'
 import {
   SocialConflictError,
@@ -468,9 +475,13 @@ export async function updateCampaign(
       })
       if (!synced) throw new CampaignConflictError()
       if (materialProjectionChanged) {
-        await Promise.all([
+        const [applicationIds, inviteIds] = await Promise.all([
           socialRepository.expireSubmittedSocialApplications(synced.id, now),
           createCampaignRepository(trx).expirePendingInvites(synced.id, now)
+        ])
+        await Promise.all([
+          enqueueApplicationSubmittedCancellations(trx, applicationIds, now),
+          enqueueInvitationReceivedCancellations(trx, inviteIds, now)
         ])
       } else {
         await Promise.all([
@@ -510,13 +521,26 @@ export function archiveCampaign(
   return withTransaction(db, async (trx) => {
     const socialRepository = createSocialRepository(trx)
     const existingListing = await socialRepository.findSocialListingByCampaign(campaignId)
-    if (existingListing) await socialRepository.lockSocialListing(existingListing.id)
+    const lockedListing = existingListing
+      ? await socialRepository.lockSocialListing(existingListing.id)
+      : null
     const authority = await lockAuthority(trx, campaignId, userId)
     assertCampaignOwner(authority)
     assertCampaignWritable(authority)
     assertExpectedVersion(authority, expectedVersion)
     if (!(await createCampaignRepository(trx).archiveCampaign(campaignId, expectedVersion))) {
       throw new CampaignConflictError()
+    }
+    if (lockedListing) {
+      const now = new Date().toISOString()
+      const [applicationIds, inviteIds] = await Promise.all([
+        socialRepository.expireSubmittedSocialApplications(lockedListing.id, now),
+        createCampaignRepository(trx).expirePendingInvites(lockedListing.id, now)
+      ])
+      await Promise.all([
+        enqueueApplicationSubmittedCancellations(trx, applicationIds, now),
+        enqueueInvitationReceivedCancellations(trx, inviteIds, now)
+      ])
     }
     return buildDetail(trx, await resolveCampaignAuthority(trx, campaignId, userId))
   })
@@ -535,11 +559,27 @@ export function deleteCampaign(
   expectedVersion: number
 ): Promise<DeleteCampaignReconciliation> {
   return withTransaction(db, async (trx) => {
+    const socialRepository = createSocialRepository(trx)
+    const existingListing = await socialRepository.findSocialListingByCampaign(campaignId)
+    const lockedListing = existingListing
+      ? await socialRepository.lockSocialListing(existingListing.id)
+      : null
     const authority = await lockAuthority(trx, campaignId, userId)
     assertCampaignOwner(authority)
     assertCampaignWritable(authority)
     assertExpectedVersion(authority, expectedVersion)
     const repository = createCampaignRepository(trx)
+    if (lockedListing) {
+      const now = new Date().toISOString()
+      const [applicationIds, inviteIds] = await Promise.all([
+        socialRepository.expireSubmittedSocialApplications(lockedListing.id, now),
+        repository.expirePendingInvites(lockedListing.id, now)
+      ])
+      await Promise.all([
+        enqueueApplicationSubmittedCancellations(trx, applicationIds, now),
+        enqueueInvitationReceivedCancellations(trx, inviteIds, now)
+      ])
+    }
     const unassignedCharacterIds = (await repository.listAssignmentCharacterIds(campaignId)).sort()
     for (const characterId of unassignedCharacterIds) {
       await removeAssignedCharacterCampaignState(trx, {
@@ -634,6 +674,11 @@ export function createCampaignInvite(
       }
       throw error
     }
+    await enqueueInvitationReceivedNotification(trx, invite, {
+      listingTitle: listing.title,
+      hostUsername: host.username,
+      occurredAt: now
+    })
     return {
       invitePublicId: invite.id,
       listingPublicId: listing.id,
@@ -658,7 +703,7 @@ export async function listReceivedCampaignInvites(
     const recipient = await requireActiveSocialProfile(trx, userId)
     const socialRepository = createSocialRepository(trx)
     const repository = createCampaignRepository(trx)
-    await repository.expireDueReceivedInvites(userId, new Date().toISOString())
+    await expireDueCampaignInvitationsForUser(trx, userId, new Date().toISOString())
     const invitations = await repository.listReceivedInvites(userId)
     const visible: CampaignInviteDto[] = []
     for (const invitation of invitations) {
@@ -668,6 +713,19 @@ export async function listReceivedCampaignInvites(
     }
     return visible
   })
+}
+
+export async function listSentCampaignInvites(
+  db: DBLike,
+  userId: string,
+  listingPublicId: string
+): Promise<CampaignInviteDto[]> {
+  await requireActiveSocialProfile(db, userId)
+  const listing = await createSocialRepository(db).findOwnedSocialListing(userId, listingPublicId)
+  if (!listing) throw new SocialNotFoundError()
+  return (await createCampaignRepository(db).listInvitesForListing(listing.id)).map((invitation) =>
+    mapCampaignInvite(invitation, true)
+  )
 }
 
 export async function revokeCampaignInvite(
@@ -690,15 +748,15 @@ export async function revokeCampaignInvite(
     if (invite.status !== 'PENDING' || invite.version !== expectedVersion) {
       throw new SocialConflictError()
     }
-    if (
-      !(await repository.setInviteStatus({
-        inviteId: invite.id,
-        expectedVersion,
-        status: 'REVOKED',
-        now: new Date().toISOString()
-      }))
-    )
-      throw new SocialConflictError()
+    const now = new Date().toISOString()
+    const revoked = await repository.setInviteStatus({
+      inviteId: invite.id,
+      expectedVersion,
+      status: 'REVOKED',
+      now
+    })
+    if (!revoked) throw new SocialConflictError()
+    await enqueueInvitationReceivedCancellations(trx, [revoked.id], now)
   })
 }
 
@@ -709,7 +767,7 @@ export async function acceptCampaignInvite(
   expectedVersion: number
 ): Promise<CampaignDetailDto> {
   await withTransaction(db, async (trx) => {
-    await createCampaignRepository(trx).expireDueReceivedInvites(userId, new Date().toISOString())
+    await expireDueCampaignInvitationsForUser(trx, userId, new Date().toISOString())
   })
   const result = await acceptSocialAdmission(db, userId, {
     kind: 'INVITATION',
@@ -727,7 +785,7 @@ export async function declineCampaignInvite(
   expectedVersion: number
 ): Promise<CampaignInviteDto> {
   await withTransaction(db, async (trx) => {
-    await createCampaignRepository(trx).expireDueReceivedInvites(userId, new Date().toISOString())
+    await expireDueCampaignInvitationsForUser(trx, userId, new Date().toISOString())
   })
   const source = await createCampaignRepository(db).lockInvite(invitePublicId)
   if (!source) throw new SocialNotFoundError()
@@ -756,13 +814,20 @@ export async function declineCampaignInvite(
     ) {
       throw new SocialNotFoundError()
     }
+    const now = new Date().toISOString()
     const declined = await repository.setInviteStatus({
       inviteId: invite.id,
       expectedVersion,
       status: 'DECLINED',
-      now: new Date().toISOString()
+      now
     })
     if (!declined) throw new SocialConflictError()
+    await enqueueInvitationDecisionNotifications(trx, declined, {
+      hostUserId: campaign.ownerUserId,
+      listingTitle: listing.title,
+      decision: 'DECLINED',
+      occurredAt: now
+    })
     return mapCampaignInvite(
       { ...projection, ...declined },
       recipient.contentPreference === 'MATURE'
@@ -1056,9 +1121,13 @@ export function acceptCampaignOwnershipTransfer(
       if (!closed) throw new CampaignConflictError()
     }
     if (lockedListing) {
-      await Promise.all([
+      const [applicationIds, inviteIds] = await Promise.all([
         socialRepository.expireSubmittedSocialApplications(lockedListing.id, now),
         repository.expirePendingInvites(lockedListing.id, now)
+      ])
+      await Promise.all([
+        enqueueApplicationSubmittedCancellations(trx, applicationIds, now),
+        enqueueInvitationReceivedCancellations(trx, inviteIds, now)
       ])
     }
     if (

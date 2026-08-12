@@ -84,14 +84,8 @@ export const socialEligibilityDtoSchema = z.strictObject({
   eligible: z.boolean(),
   profilePublicId: uuidSchema.nullable(),
   adultAttestedAt: timestampSchema.nullable(),
-  usAttestedAt: timestampSchema.nullable(),
   contentPreference: socialContentPreferenceDtoSchema,
   status: socialProfileStatusDtoSchema.nullable()
-})
-
-export const acceptSocialEligibilityInputSchema = z.strictObject({
-  birthDate: z.iso.date().optional(),
-  isCurrentlyInUs: z.literal(true)
 })
 
 export const updateSocialContentPreferenceInputSchema = z.discriminatedUnion('contentPreference', [
@@ -166,7 +160,7 @@ export const socialListingDtoSchema = z.strictObject({
   playMode: socialPlayModeDtoSchema,
   capacity: z.number().int().positive(),
   availableSeats: z.number().int().nonnegative(),
-  ageBand: z.literal('18_PLUS'),
+  ageBand: z.literal('13_PLUS'),
   schedule: socialListingScheduleDtoSchema,
   location: socialListingLocationDtoSchema.nullable(),
   expectations: socialListingExpectationsDtoSchema,
@@ -337,7 +331,6 @@ export const takeSocialModerationActionInputSchema = z.strictObject({
 
 export type SocialProfileDto = z.infer<typeof socialProfileDtoSchema>
 export type SocialEligibilityDto = z.infer<typeof socialEligibilityDtoSchema>
-export type AcceptSocialEligibilityInput = z.input<typeof acceptSocialEligibilityInputSchema>
 export type UpdateSocialContentPreferenceInput = z.input<
   typeof updateSocialContentPreferenceInputSchema
 >

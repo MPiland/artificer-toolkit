@@ -186,7 +186,7 @@ export function createSocialApplicationRepository(db: DBLike) {
       return row ? mapApplication(row) : null
     },
 
-    async expireSubmittedSocialApplications(listingId: string, now: string): Promise<number> {
+    async expireSubmittedSocialApplications(listingId: string, now: string): Promise<string[]> {
       const result = await sql<{ id: string }>`
         update social_applications
         set status = 'EXPIRED', expired_at = ${now}::timestamptz,
@@ -194,7 +194,7 @@ export function createSocialApplicationRepository(db: DBLike) {
         where listing_id = ${listingId}::uuid and status = 'SUBMITTED'
         returning id
       `.execute(db)
-      return result.rows.length
+      return result.rows.map((row) => row.id)
     },
 
     async advanceSubmittedSocialApplicationListingVersions(

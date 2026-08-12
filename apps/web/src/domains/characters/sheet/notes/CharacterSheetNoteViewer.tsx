@@ -36,7 +36,7 @@ export function CharacterSheetNoteViewer({
     return (
       <div className={detailStyles.sheetEmptyState}>
         <IconFilePlus size={28} />
-        <Title order={3}>Keep the table details close</Title>
+        <Title order={3}>No notes yet</Title>
         <Text className={panelStyles.muted}>
           Add session notes, loot, characters, or places as play unfolds.
         </Text>

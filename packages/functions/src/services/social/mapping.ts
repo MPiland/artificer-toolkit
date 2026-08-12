@@ -129,7 +129,7 @@ export function mapSocialListing(
     playMode: record.playMode,
     capacity: record.capacity,
     availableSeats: Math.max(0, record.capacity - record.activePlayerCount),
-    ageBand: '18_PLUS',
+    ageBand: '13_PLUS',
     schedule,
     location:
       record.city && record.stateCode ? { city: record.city, stateCode: record.stateCode } : null,
