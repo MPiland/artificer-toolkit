@@ -1,6 +1,7 @@
 # Phase 06 — Live Campaign play
 
-> **Status:** implemented; production storage/provider configuration and pre-launch smoke remain release gates
+> **Status:** Complete — implementation, local integration validation, production Supabase migration, and Novu environment updates are complete; the operator-owned production smoke remains a pre-launch release gate
+> **Completed:** 2026-08-12
 > **Depends on:** [Phase 02](02-media-and-file-pipeline.md), [Phase 03](03-campaign-core.md), and [Phase 05](05-notifications-and-delivery.md)
 > **Unlocks:** [Phase 07 Encounters](07-encounters.md), [Phase 08 VTT](08-vtt.md), and [Phase 10 paid-table session operations](10-paid-tables.md)
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0006](../adr/0006-character-builder-sheet-boundary.md), and [0009](../adr/0009-vtt-encounter-event-boundary.md)
@@ -84,6 +85,15 @@ Clock start, pause, advance, and correction commands persist before any derived 
 - Clock segments, Day N projection, dawn/dusk configuration, correction-only rewind, and monotonic reset boundaries remain correct across retries, reconnects, and concurrent GM commands.
 - Vehicle custody remains isolated from Builder aggregate replacement.
 
+## Verification
+
+- The Phase 06 migration was rebuilt from a clean local Supabase reset, canonical bootstrap SQL and generated database types were refreshed, and the production migration was confirmed applied by the operator.
+- Focused schema, database, service, API, email/workflow, web-model, and security-header tests cover the new contracts and authorization boundaries. The affected monorepo typecheck passed across all eight participating packages.
+- A disposable two-user local integration exercised the shipped path: a GM created a Campaign, an active Player membership was established, the GM published a table announcement through the web UI, exactly one player-only delivery intent was claimed, and Novu Development delivered the in-app item through the documented local Framework Bridge.
+- The Player opened the unread notification, reached the authorized Campaign announcement destination, and read the exact source title/body. The test verified that the publisher received no delivery intent and removed the disposable Campaign, Auth users, and Novu subscribers afterward.
+- The integration run found and fixed two release blockers: strict announcement DTO projection no longer leaks persistence-only command fields into output validation, and browser CSP permits Novu's current realtime socket origin.
+- Production Supabase and Novu configuration are operator-confirmed. A production GM-to-Player notification smoke, cleanup of its test identities/provider subscribers, and the broader pre-launch checklist remain release operations rather than unfinished Phase 06 implementation.
+
 ## Out of scope
 
 - Party inventory/currency, conversations/rolls, base notes/collaborative session sections, and Broadcast reconciliation: [Phase 03](03-campaign-core.md).
@@ -91,6 +101,6 @@ Clock start, pause, advance, and correction commands persist before any derived 
 - Native push and device registration: [Phase 11](11-cross-platform-foundation.md). Co-GMs, custom calendars, and automatic clock-driven jobs remain later work.
 - VTT maps/scenes/tokens, voice/video, automated recaps or session transcription, end-to-end encryption, unlimited history, and general background-job infrastructure.
 
-## New-session instruction
+## Phase 07 handoff
 
-Reuse Phase 05 Novu workflows and delivery intents directly. Do not create another notification store, preference model, provider facade, or delivery worker in this phase.
+Phase 06 has no remaining implementation work. Phase 07 should reuse the existing Session-linked Encounter records, Campaign authority, reference surfaces, announcement delivery seam, and manual Campaign clock. It must not create a second Session/Encounter association, Campaign aggregate, notification store, preference model, provider facade, or delivery worker.
