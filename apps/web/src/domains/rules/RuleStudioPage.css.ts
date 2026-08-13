@@ -95,6 +95,7 @@ export const editorToolbar = style({
 export const graph = style({
   '@layer': {
     [app]: {
+      position: 'relative',
       minBlockSize: 0,
       minInlineSize: 0,
       overflow: 'hidden'

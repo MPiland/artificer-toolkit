@@ -37,7 +37,7 @@ describe('AuthForms', () => {
     renderAuthForm(<SignInForm authClient={createAuthClient()} />)
 
     const identifierInput = screen.getByRole('textbox', { name: /email or username/i })
-    const passwordInput = screen.getByLabelText(/password/i, { selector: 'input' })
+    const passwordInput = screen.getByLabelText(/^password/i, { selector: 'input' })
 
     expect(identifierInput.closest('form')).toHaveAttribute('method', 'post')
     expect(identifierInput).toHaveAttribute('autocomplete', 'username')
@@ -79,11 +79,42 @@ describe('AuthForms', () => {
     expect(onSuccess).toHaveBeenCalled()
   })
 
+  it('keeps the sign-in action visible while its button shows progress', async () => {
+    let resolveSignIn: ((result: AuthResult) => void) | undefined
+    const signIn = vi.fn(
+      () =>
+        new Promise<AuthResult>((resolve) => {
+          resolveSignIn = resolve
+        })
+    )
+
+    renderAuthForm(<SignInForm authClient={createAuthClient({ signIn })} />)
+
+    fireEvent.change(screen.getByRole('textbox', { name: /email or username/i }), {
+      target: { value: 'player@example.com' }
+    })
+    fireEvent.change(screen.getByLabelText(/password/i, { selector: 'input' }), {
+      target: { value: 'password123' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    const button = screen.getByRole('button', { name: 'Sign in' })
+    await waitFor(() => expect(button).toHaveAttribute('data-loading', 'true'))
+    expect(button).toBeDisabled()
+    expect(screen.queryByText('Signing in...')).not.toBeInTheDocument()
+
+    resolveSignIn?.({ ok: false })
+    await waitFor(() => expect(button).not.toHaveAttribute('data-loading'))
+  })
+
   it('marks sign-up credentials for account creation autofill', () => {
     renderAuthForm(<SignUpForm authClient={createAuthClient()} />)
 
     const emailInput = screen.getByRole('textbox', { name: /email address/i })
-    const passwordInput = screen.getByLabelText(/password/i, { selector: 'input' })
+    const passwordInput = screen.getByLabelText(/^password/i, { selector: 'input' })
+    const confirmPasswordInput = screen.getByLabelText(/confirm password/i, {
+      selector: 'input'
+    })
 
     expect(emailInput.closest('form')).toHaveAttribute('method', 'post')
     expect(screen.queryByRole('textbox', { name: /^name/i })).not.toBeInTheDocument()
@@ -95,6 +126,7 @@ describe('AuthForms', () => {
     expect(passwordInput).toHaveAttribute('autocomplete', 'new-password')
     expect(passwordInput).toHaveAttribute('minlength', '12')
     expect(passwordInput).toHaveAttribute('maxlength', '128')
+    expect(confirmPasswordInput).toHaveAttribute('autocomplete', 'new-password')
     expect(screen.getByText('Use 12 to 128 characters.')).toBeInTheDocument()
   })
 
@@ -114,7 +146,10 @@ describe('AuthForms', () => {
     fireEvent.change(screen.getByRole('textbox', { name: /^username/i }), {
       target: { value: 'morgan' }
     })
-    fireEvent.change(screen.getByLabelText(/password/i, { selector: 'input' }), {
+    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), {
+      target: { value: 'password1234' }
+    })
+    fireEvent.change(screen.getByLabelText(/confirm password/i, { selector: 'input' }), {
       target: { value: 'password1234' }
     })
     fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
@@ -126,9 +161,11 @@ describe('AuthForms', () => {
         username: 'morgan'
       })
     )
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      "If we can create an account with that email, we'll send a confirmation link. Check your inbox."
-    )
+    expect(
+      await screen.findByText(
+        "If we can create an account with that email, we'll send a confirmation link. Check your inbox."
+      )
+    ).toBeInTheDocument()
   })
 
   it('passes auto-confirm signup sessions to the success handler', async () => {
@@ -162,7 +199,10 @@ describe('AuthForms', () => {
     fireEvent.change(screen.getByRole('textbox', { name: /^username/i }), {
       target: { value: 'morgan' }
     })
-    fireEvent.change(screen.getByLabelText(/password/i, { selector: 'input' }), {
+    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), {
+      target: { value: 'password1234' }
+    })
+    fireEvent.change(screen.getByLabelText(/confirm password/i, { selector: 'input' }), {
       target: { value: 'password1234' }
     })
     fireEvent.click(screen.getByRole('button', { name: 'Create account' }))
@@ -186,8 +226,14 @@ describe('AuthForms', () => {
 
   it('requests a password reset', async () => {
     const requestPasswordReset = vi.fn(async () => ({ ok: true }))
+    const onCodeSent = vi.fn()
 
-    renderAuthForm(<ResetPasswordForm authClient={createAuthClient({ requestPasswordReset })} />)
+    renderAuthForm(
+      <ResetPasswordForm
+        authClient={createAuthClient({ requestPasswordReset })}
+        onCodeSent={onCodeSent}
+      />
+    )
 
     fireEvent.change(screen.getByRole('textbox', { name: /email address/i }), {
       target: { value: 'reset@example.com' }
@@ -199,6 +245,7 @@ describe('AuthForms', () => {
         email: 'reset@example.com'
       })
     )
+    expect(onCodeSent).toHaveBeenCalledWith('reset@example.com')
   })
 
   it('shows reset-password submit errors only in the form', async () => {
@@ -219,24 +266,22 @@ describe('AuthForms', () => {
     expect(screen.queryByText('Unable to send reset link')).not.toBeInTheDocument()
   })
 
-  it('verifies a recovery code before password entry', async () => {
+  it('prefills the email and automatically verifies a complete recovery code', async () => {
     const verifyPasswordRecovery = vi.fn(async () => ({ ok: true }))
     const onSuccess = vi.fn()
 
     renderAuthForm(
       <VerifyPasswordResetForm
         authClient={createAuthClient({ verifyPasswordRecovery })}
+        initialEmail='reset@example.com'
         onSuccess={onSuccess}
       />
     )
 
-    fireEvent.change(screen.getByRole('textbox', { name: /email address/i }), {
-      target: { value: 'reset@example.com' }
-    })
-    fireEvent.change(screen.getByRole('textbox', { name: /verification code/i }), {
+    expect(screen.getByRole('textbox', { name: /email address/i })).toHaveValue('reset@example.com')
+    fireEvent.change(screen.getByRole('textbox', { name: 'Verification code digit 1' }), {
       target: { value: '123456' }
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
 
     await waitFor(() =>
       expect(verifyPasswordRecovery).toHaveBeenCalledWith({
@@ -245,6 +290,23 @@ describe('AuthForms', () => {
       })
     )
     expect(onSuccess).toHaveBeenCalled()
+  })
+
+  it('shows live password confirmation feedback during sign-up', () => {
+    renderAuthForm(<SignUpForm authClient={createAuthClient()} />)
+
+    fireEvent.change(screen.getByLabelText(/^password/i, { selector: 'input' }), {
+      target: { value: 'password1234' }
+    })
+    fireEvent.change(screen.getByLabelText(/confirm password/i, { selector: 'input' }), {
+      target: { value: 'password123' }
+    })
+    expect(screen.getByRole('status')).toHaveTextContent('Passwords do not match.')
+
+    fireEvent.change(screen.getByLabelText(/confirm password/i, { selector: 'input' }), {
+      target: { value: 'password1234' }
+    })
+    expect(screen.getByRole('status')).toHaveTextContent('Passwords match.')
   })
 
   it('marks update-password fields as new-password entries without GET fallback', () => {
@@ -311,6 +373,23 @@ describe('AuthForms', () => {
       })
     )
     expect(onSuccess).toHaveBeenCalled()
+  })
+
+  it('shows live password confirmation feedback during password updates', () => {
+    renderAuthForm(<UpdatePasswordForm authClient={createAuthClient()} />)
+
+    fireEvent.change(screen.getByLabelText(/new password/i, { selector: 'input' }), {
+      target: { value: 'new-password-123' }
+    })
+    fireEvent.change(screen.getByLabelText(/confirm password/i, { selector: 'input' }), {
+      target: { value: 'new-password-12' }
+    })
+    expect(screen.getByRole('status')).toHaveTextContent('Passwords do not match.')
+
+    fireEvent.change(screen.getByLabelText(/confirm password/i, { selector: 'input' }), {
+      target: { value: 'new-password-123' }
+    })
+    expect(screen.getByRole('status')).toHaveTextContent('Passwords match.')
   })
 
   it('completes an invitation with a username and new password', async () => {

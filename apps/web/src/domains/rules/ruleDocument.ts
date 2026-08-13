@@ -4,14 +4,6 @@ import {
   rulePackDocumentDtoSchema
 } from '@artificer-toolkit/schema/api/rules'
 
-export const editorNodeComponents = [
-  'inputNode',
-  'outputNode',
-  'decisionTableNode',
-  'expressionNode',
-  'switchNode'
-] as const
-
 function record(value: unknown): Record<string, unknown> | null {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)

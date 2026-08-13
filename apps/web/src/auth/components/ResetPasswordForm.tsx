@@ -17,7 +17,11 @@ import {
 import { AuthDivider } from './AuthDivider'
 import { AuthFormProps } from './authForm.types'
 
-export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }: AuthFormProps) {
+export function ResetPasswordForm({
+  authClient = browserAuthClient,
+  onCodeSent,
+  onSuccess
+}: AuthFormProps & { onCodeSent?: (email: string) => void | Promise<void> }) {
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
@@ -42,6 +46,7 @@ export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }:
         "If an account exists for that email, we'll send a verification code. Check your inbox."
       setFeedback({ tone: 'success', message })
       await onSuccess?.(result)
+      await onCodeSent?.(email.trim())
     } finally {
       setIsSubmitting(false)
     }
@@ -60,10 +65,11 @@ export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }:
         placeholder='you@example.com'
         value={email}
         onChange={(event) => setEmail(event.currentTarget.value)}
+        disabled={isSubmitting}
         required
       />
-      <Button className={authButton} type='submit' disabled={isSubmitting}>
-        {isSubmitting ? 'Sending code...' : 'Send verification code'}
+      <Button className={authButton} type='submit' loading={isSubmitting}>
+        Send verification code
       </Button>
       {feedback && (
         <div

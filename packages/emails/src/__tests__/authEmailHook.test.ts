@@ -153,7 +153,9 @@ describe('send auth email hook', () => {
     expect(response.status).toBe(200)
     expect(sent).toHaveLength(1)
     expect(sent[0]?.to).toBe('player@example.com')
-    expect(sent[0]?.html).toContain('https://artificertoolkit.app/verify-password-reset')
+    expect(sent[0]?.html).toContain(
+      'https://artificertoolkit.app/verify-password-reset?email=player%40example.com'
+    )
     expect(sent[0]?.html).toContain('123456')
     expect(sent[0]?.html).not.toContain('recovery-token-hash')
     expect(sent[0]?.html).not.toContain('project.supabase.co/auth/v1/verify')

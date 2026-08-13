@@ -24,6 +24,7 @@ import {
 } from '../auth.css'
 import { AuthFormProps } from './authForm.types'
 import { AuthDivider } from './AuthDivider'
+import { PasswordMatchFeedback } from './PasswordMatchFeedback'
 
 export function SignUpForm({
   authClient = browserAuthClient,
@@ -36,6 +37,7 @@ export function SignUpForm({
   const [username, setUsername] = useState('')
   const [usernameError, setUsernameError] = useState<string | null>(null)
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
     null
@@ -58,6 +60,11 @@ export function SignUpForm({
         tone: 'error',
         message: parsedPassword.error.issues[0]?.message ?? 'Enter a valid password.'
       })
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setFeedback({ tone: 'error', message: 'Enter the same password in both fields.' })
       return
     }
 
@@ -117,6 +124,7 @@ export function SignUpForm({
         placeholder='you@example.com'
         value={email}
         onChange={(event) => setEmail(event.currentTarget.value)}
+        disabled={isSubmitting}
         required
       />
       <TextInput
@@ -136,6 +144,7 @@ export function SignUpForm({
           setUsername(event.currentTarget.value)
           setUsernameError(null)
         }}
+        disabled={isSubmitting}
         required
       />
       <PasswordInput
@@ -152,10 +161,25 @@ export function SignUpForm({
         placeholder='********'
         value={password}
         onChange={(event) => setPassword(event.currentTarget.value)}
+        disabled={isSubmitting}
         required
       />
-      <Button className={authButton} type='submit' disabled={isSubmitting}>
-        {isSubmitting ? 'Creating account...' : 'Create account'}
+      <PasswordInput
+        label='Confirm password'
+        classNames={{ input: textInput }}
+        autoComplete='new-password'
+        minLength={PASSWORD_MIN_LENGTH}
+        maxLength={PASSWORD_MAX_LENGTH}
+        name='confirmPassword'
+        placeholder='********'
+        value={confirmPassword}
+        onChange={(event) => setConfirmPassword(event.currentTarget.value)}
+        disabled={isSubmitting}
+        required
+      />
+      <PasswordMatchFeedback confirmation={confirmPassword} password={password} />
+      <Button className={authButton} type='submit' loading={isSubmitting}>
+        Create account
       </Button>
       {feedback && (
         <div

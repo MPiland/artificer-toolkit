@@ -1,5 +1,5 @@
-import { type SubmitEvent, useState } from 'react'
-import { Anchor, Button, TextInput } from '@mantine/core'
+import { type SubmitEvent, useRef, useState } from 'react'
+import { Anchor, Button, PinInput, TextInput } from '@mantine/core'
 import IArrowLeft from '#assets/icons/IArrowLeft'
 import { browserAuthClient } from '../authClient'
 import {
@@ -8,30 +8,44 @@ import {
   authForm,
   authFormMessage,
   authFormMessageError,
+  fieldGroup,
+  fieldHint,
+  fieldLabel,
   inlineLink,
   inlineLinkIcon,
   inlineLinkIconGlyph,
-  textInput
+  textInput,
+  verificationCodeDigit,
+  verificationCodeGroup
 } from '../auth.css'
 import { AuthDivider } from './AuthDivider'
 import { AuthFormProps } from './authForm.types'
 
 export function VerifyPasswordResetForm({
   authClient = browserAuthClient,
+  initialEmail = '',
   onSuccess
-}: AuthFormProps) {
-  const [email, setEmail] = useState('')
+}: AuthFormProps & { initialEmail?: string }) {
+  const [email, setEmail] = useState(initialEmail)
   const [token, setToken] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isVerifying = useRef(false)
 
-  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function verifyCode(code: string) {
+    if (isVerifying.current || code.length !== 6) return
+
+    if (!email.trim()) {
+      setError('Enter the email address that received this verification code.')
+      return
+    }
+
+    isVerifying.current = true
     setIsSubmitting(true)
     setError(null)
 
     try {
-      const result = await authClient.verifyPasswordRecovery({ email, token })
+      const result = await authClient.verifyPasswordRecovery({ email: email.trim(), token: code })
       if (!result.ok) {
         setError(result.message ?? 'That verification code is invalid or has expired.')
         return
@@ -39,8 +53,14 @@ export function VerifyPasswordResetForm({
 
       await onSuccess?.(result)
     } finally {
+      isVerifying.current = false
       setIsSubmitting(false)
     }
+  }
+
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault()
+    void verifyCode(token)
   }
 
   return (
@@ -53,26 +73,46 @@ export function VerifyPasswordResetForm({
         type='email'
         placeholder='you@example.com'
         value={email}
-        onChange={(event) => setEmail(event.currentTarget.value)}
+        onChange={(event) => {
+          setEmail(event.currentTarget.value)
+          setError(null)
+        }}
+        disabled={isSubmitting}
         required
       />
-      <TextInput
-        label='Verification code'
-        description='Enter the six-digit code from your password reset email.'
-        classNames={{ input: textInput }}
-        autoComplete='one-time-code'
-        inputMode='numeric'
-        maxLength={6}
-        minLength={6}
-        name='token'
-        pattern='[0-9]{6}'
-        placeholder='123456'
-        value={token}
-        onChange={(event) => setToken(event.currentTarget.value.replace(/\D/g, '').slice(0, 6))}
-        required
-      />
-      <Button className={authButton} type='submit' disabled={isSubmitting}>
-        {isSubmitting ? 'Verifying code...' : 'Continue'}
+      <div className={fieldGroup}>
+        <span className={fieldLabel} id='verification-code-label'>
+          Verification code
+        </span>
+        <p className={fieldHint}>Enter the six-digit code from your password reset email.</p>
+        <PinInput
+          aria-labelledby='verification-code-label'
+          classNames={{ pinInput: verificationCodeDigit, root: verificationCodeGroup }}
+          disabled={isSubmitting}
+          error={Boolean(error)}
+          getInputProps={(index) => ({
+            'aria-label': `Verification code digit ${index + 1}`
+          })}
+          hiddenInputProps={{ pattern: '[0-9]{6}', required: true }}
+          length={6}
+          name='token'
+          oneTimeCode
+          type='number'
+          value={token}
+          onChange={(value) => {
+            setToken(value)
+            setError(null)
+          }}
+          onComplete={(value) => void verifyCode(value)}
+        />
+      </div>
+      <Button
+        className={authButton}
+        type='submit'
+        disabled={token.length !== 6}
+        loading={isSubmitting}
+      >
+        Continue
       </Button>
       {error && (
         <div

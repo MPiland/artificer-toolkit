@@ -1,13 +1,8 @@
 import './rules.css'
-import {
-  DecisionGraph,
-  JdmConfigProvider,
-  nodeSpecification,
-  type DecisionGraphType
-} from '@gorules/jdm-editor'
-import { editorNodeComponents } from './ruleDocument'
-
-const components = editorNodeComponents.map((key) => nodeSpecification[key])
+import { useComputedColorScheme } from '@mantine/core'
+import { DecisionGraph, JdmConfigProvider, type DecisionGraphType } from '@gorules/jdm-editor'
+import { RuleNodePalette } from './RuleNodePalette'
+import * as styles from './RuleGraphEditor.css'
 
 export function RuleGraphEditor({
   disabled,
@@ -18,14 +13,19 @@ export function RuleGraphEditor({
   value: DecisionGraphType
   onChange: (value: DecisionGraphType) => void
 }) {
+  const colorScheme = useComputedColorScheme('dark')
+
   return (
-    <JdmConfigProvider>
-      <DecisionGraph
-        components={components}
-        disabled={disabled}
-        value={value}
-        onChange={onChange}
-      />
+    <JdmConfigProvider theme={{ mode: colorScheme }}>
+      <div className={styles.root}>
+        <RuleNodePalette
+          disabled={disabled}
+          hasInputNode={value.nodes.some((node) => node.type === 'inputNode')}
+        />
+        <div className={styles.canvas}>
+          <DecisionGraph disabled={disabled} hideLeftToolbar value={value} onChange={onChange} />
+        </div>
+      </div>
     </JdmConfigProvider>
   )
 }

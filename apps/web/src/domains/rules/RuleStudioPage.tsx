@@ -1,15 +1,4 @@
-import {
-  Alert,
-  Badge,
-  Button,
-  Group,
-  Loader,
-  Paper,
-  Stack,
-  Text,
-  TextInput,
-  Title
-} from '@mantine/core'
+import { Alert, Badge, Button, Group, Paper, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { DecisionGraphType } from '@gorules/jdm-editor'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
@@ -20,6 +9,7 @@ import { RuleFixturePanel } from './RuleFixturePanel'
 import { RuleImportExportActions } from './RuleImportExportActions'
 import { RuleModelToolbar } from './RuleModelToolbar'
 import { RulePackNavigator } from './RulePackNavigator'
+import { RuleStudioLoadingOverlay } from './RuleStudioLoadingOverlay'
 import {
   addRuleModel,
   createDefaultRuleDocument,
@@ -334,7 +324,9 @@ export function RuleStudioPage() {
     }
   }
 
-  if (packsQuery.isPending) return <Loader aria-label='Loading rule packs' />
+  if (packsQuery.isPending) {
+    return <RuleStudioLoadingOverlay label='Loading Rule Studio' />
+  }
   if (packsQuery.isError) return <Alert color='red'>Unable to load rule packs.</Alert>
 
   const currentModel = document.models[modelKey]
@@ -466,7 +458,9 @@ export function RuleStudioPage() {
           </div>
           <div className={styles.graph}>
             {currentModel && RuleGraphEditor ? (
-              <Suspense fallback={<Loader aria-label='Loading rule editor' />}>
+              <Suspense
+                fallback={<RuleStudioLoadingOverlay contained label='Loading rule editor' />}
+              >
                 <RuleGraphEditor
                   disabled={!editable}
                   value={currentModel as unknown as DecisionGraphType}
@@ -474,7 +468,7 @@ export function RuleStudioPage() {
                 />
               </Suspense>
             ) : currentModel ? (
-              <Loader aria-label='Loading rule editor' />
+              <RuleStudioLoadingOverlay contained label='Loading rule editor' />
             ) : (
               <Alert color='red'>The selected model is missing.</Alert>
             )}

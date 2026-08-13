@@ -22,6 +22,7 @@ import {
 import { AuthDivider } from './AuthDivider'
 import { AuthFormProps } from './authForm.types'
 import IArrowLeft from '#assets/icons/IArrowLeft'
+import { PasswordMatchFeedback } from './PasswordMatchFeedback'
 
 export function UpdatePasswordForm({
   authClient = browserAuthClient,
@@ -132,6 +133,7 @@ export function UpdatePasswordForm({
             setUsername(event.currentTarget.value)
             setUsernameError(null)
           }}
+          disabled={isSubmitting}
           required
         />
       )}
@@ -149,6 +151,7 @@ export function UpdatePasswordForm({
         placeholder='********'
         value={password}
         onChange={(event) => setPassword(event.currentTarget.value)}
+        disabled={isSubmitting}
         required
       />
       <PasswordInput
@@ -164,16 +167,12 @@ export function UpdatePasswordForm({
         placeholder='********'
         value={confirmPassword}
         onChange={(event) => setConfirmPassword(event.currentTarget.value)}
+        disabled={isSubmitting}
         required
       />
-      <Button className={authButton} type='submit' disabled={isSubmitting}>
-        {isSubmitting
-          ? invitation
-            ? 'Completing registration...'
-            : 'Updating password...'
-          : invitation
-            ? 'Complete registration'
-            : 'Update password'}
+      <PasswordMatchFeedback confirmation={confirmPassword} password={password} />
+      <Button className={authButton} type='submit' loading={isSubmitting}>
+        {invitation ? 'Complete registration' : 'Update password'}
       </Button>
       {feedback && (
         <div

@@ -70,6 +70,7 @@ export function SignInForm({
         placeholder='you@example.com or morgan_emberfall'
         value={identifier}
         onChange={(event) => setIdentifier(event.currentTarget.value)}
+        disabled={isSubmitting}
         required
       />
       <PasswordInput
@@ -83,6 +84,7 @@ export function SignInForm({
         placeholder='********'
         value={password}
         onChange={(event) => setPassword(event.currentTarget.value)}
+        disabled={isSubmitting}
         required
       />
       <div className={forgotRow}>
@@ -90,8 +92,8 @@ export function SignInForm({
           Forgot password?
         </Anchor>
       </div>
-      <Button className={authButton} type='submit' disabled={isSubmitting}>
-        {isSubmitting ? 'Signing in...' : 'Sign in'}
+      <Button className={authButton} type='submit' loading={isSubmitting}>
+        Sign in
       </Button>
       {feedback && (
         <div
