@@ -8,11 +8,13 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto, CampaignSessionDto } from '#app/lib/api'
 import { api } from '#app/lib/api'
+import { getCampaignSessionAttendance } from '#app/data/campaigns/queries'
 import { getCampaignEncounters, getEncounterTemplates } from '#app/data/encounters/queries'
 import { getSystemList } from '#app/data/systems/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import { CampaignEncounterWorkspace } from './CampaignEncounterWorkspace'
+import { attendanceCanSupplyEncounterSystem } from './campaignSessionEncounterSystem'
 import * as sharedStyles from '../campaigns.css'
 import * as sessionsStyles from '../campaignSessions.css'
 
@@ -39,8 +41,20 @@ export function CampaignSessionEncounters({
     enabled: campaign.status === 'ACTIVE' && encounterAdderOpen
   })
   const selectedTemplate = templates.data?.find((template) => template.id === selectedTemplateId)
-  const needsExplicitSystem =
+  const templateNeedsSystem =
     selectedTemplate?.enemies.every((enemy) => enemy.systemId === null) === true
+  const attendance = useQuery({
+    ...getCampaignSessionAttendance(campaign.id, session.id),
+    enabled: encounterAdderOpen && templateNeedsSystem
+  })
+  const presentCharacterCanSupplySystem = attendanceCanSupplyEncounterSystem(
+    attendance.data,
+    campaign.memberships
+  )
+  const needsExplicitSystem =
+    templateNeedsSystem &&
+    (attendance.isError || (attendance.isSuccess && !presentCharacterCanSupplySystem))
+  const systemResolutionPending = templateNeedsSystem && attendance.isPending
   const systems = useQuery({
     ...getSystemList(),
     enabled: encounterAdderOpen && needsExplicitSystem
@@ -171,6 +185,7 @@ export function CampaignSessionEncounters({
                 <Button
                   disabled={
                     !selectedTemplateId ||
+                    systemResolutionPending ||
                     (needsExplicitSystem && !selectedSystemId) ||
                     addEncounter.isPending
                   }
@@ -208,6 +223,11 @@ export function CampaignSessionEncounters({
               ) : null}
               {templates.error ? (
                 <Alert color='red'>Saved encounters couldn’t be loaded.</Alert>
+              ) : null}
+              {templateNeedsSystem && attendance.isError ? (
+                <Alert color='yellow'>
+                  Attendance couldn’t be checked. Choose the encounter’s game system instead.
+                </Alert>
               ) : null}
               {addEncounter.error ? (
                 <Alert color='red'>That encounter couldn’t be added.</Alert>

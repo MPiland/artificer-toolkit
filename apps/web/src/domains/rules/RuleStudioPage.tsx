@@ -132,8 +132,7 @@ export function RuleStudioPage() {
       revision: RulePackDocumentDto
       fixture: RulePackDocumentDto['fixtures'][number]
     }) =>
-      api.rules.simulate({ document: revision, modelKey: fixture.modelKey, input: fixture.input }),
-    onError: (cause) => setError(errorMessage(cause, 'Unable to simulate the fixture.'))
+      api.rules.simulate({ document: revision, modelKey: fixture.modelKey, input: fixture.input })
   })
 
   const activateRevision = useMutation({
@@ -308,6 +307,12 @@ export function RuleStudioPage() {
     simulateFixture.mutate({ revision: document, fixture })
   }
 
+  const selectFixture = (nextFixtureId: string | null) => {
+    simulateFixture.reset()
+    setError(null)
+    setFixtureId(nextFixtureId)
+  }
+
   const importDocument = async (file: File | null) => {
     if (!file) return
     if (file.size > 1024 * 1024) {
@@ -330,6 +335,7 @@ export function RuleStudioPage() {
   if (packsQuery.isError) return <Alert color='red'>Unable to load rule packs.</Alert>
 
   const currentModel = document.models[modelKey]
+  const simulationMatchesSelection = simulateFixture.variables?.fixture.id === fixtureId
   const mutationPending = saveDraft.isPending || activateRevision.isPending || retirePack.isPending
   const canSave = editable && dirty && Boolean(rulesetCode) && Boolean(rulesetVersion)
 
@@ -479,15 +485,19 @@ export function RuleStudioPage() {
           <RuleFixturePanel
             document={document}
             editable={editable}
-            error={null}
-            result={simulateFixture.data ?? null}
-            running={simulateFixture.isPending}
+            error={
+              simulationMatchesSelection && simulateFixture.error
+                ? errorMessage(simulateFixture.error, 'Unable to simulate the fixture.')
+                : null
+            }
+            result={simulationMatchesSelection ? (simulateFixture.data ?? null) : null}
+            running={simulationMatchesSelection && simulateFixture.isPending}
             selectedId={fixtureId}
             onAdd={addFixture}
             onChange={changeFixture}
             onRemove={removeFixture}
             onRun={runFixture}
-            onSelect={setFixtureId}
+            onSelect={selectFixture}
           />
         </Paper>
       </div>
