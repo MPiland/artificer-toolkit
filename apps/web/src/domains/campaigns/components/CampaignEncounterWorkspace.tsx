@@ -24,6 +24,7 @@ import type {
 import type { CampaignDetailDto } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { getEncounterTimeline } from '#app/data/encounters/queries'
+import { getSystemList } from '#app/data/systems/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import * as sharedStyles from '../campaigns.css'
 import * as encounterStyles from './encounter.css'
@@ -47,8 +48,17 @@ export function CampaignEncounterWorkspace({
   const queryClient = useQueryClient()
   const [completeConfirmOpen, setCompleteConfirmOpen] = useState(false)
   const [removeActorId, setRemoveActorId] = useState<string | null>(null)
+  const [rulesetSystemId, setRulesetSystemId] = useState<string | null>(null)
   const [round, setRound] = useState(encounter.round)
   const timeline = useQuery(getEncounterTimeline(encounter.id))
+  const needsExplicitSystem =
+    encounter.status === 'PREPARED' &&
+    encounter.rulePackRevisionId === null &&
+    encounter.actors.every((actor) => actor.systemId === null)
+  const systems = useQuery({
+    ...getSystemList(),
+    enabled: needsExplicitSystem && campaign.role === 'OWNER' && sessionOpen
+  })
   const [openedActorId, setOpenedActorId] = useState<string | null>(
     encounter.currentActorId ??
       encounter.actors.find((actor) => actor.initiative === null)?.id ??
@@ -112,6 +122,7 @@ export function CampaignEncounterWorkspace({
   }, [encounter.actors, encounter.currentActorId, encounter.status])
 
   useEffect(() => setRound(encounter.round), [encounter.round])
+  useEffect(() => setRulesetSystemId(null), [encounter.id])
 
   return (
     <section className={encounterStyles.encounterManager} aria-labelledby='encounter-manager-title'>
@@ -143,7 +154,38 @@ export function CampaignEncounterWorkspace({
             </Text>
           </Group>
         </div>
-        {canManage && encounter.status === 'PREPARED' ? (
+        {canManage && encounter.status === 'PREPARED' && needsExplicitSystem ? (
+          <Group align='end' gap='xs' wrap='wrap'>
+            <Select
+              className={encounterStyles.encounterTurnSelect}
+              classNames={{ input: sharedStyles.input }}
+              data={(systems.data ?? []).map((system) => ({
+                label: `${system.label} · ${system.rulesetCode} ${system.rulesetVersion}`,
+                value: system.id
+              }))}
+              disabled={systems.isPending || !systems.data?.length || command.isPending}
+              label='Game system'
+              placeholder={systems.isPending ? 'Loading systems…' : 'Choose a system'}
+              searchable
+              value={rulesetSystemId}
+              onChange={setRulesetSystemId}
+            />
+            <Button
+              disabled={
+                readOnly ||
+                missingInitiative ||
+                encounter.actors.length === 0 ||
+                !rulesetSystemId ||
+                command.isPending
+              }
+              onClick={() =>
+                rulesetSystemId && commandWithVersion({ type: 'START', systemId: rulesetSystemId })
+              }
+            >
+              Start encounter
+            </Button>
+          </Group>
+        ) : canManage && encounter.status === 'PREPARED' ? (
           <Button
             disabled={
               readOnly || missingInitiative || encounter.actors.length === 0 || command.isPending

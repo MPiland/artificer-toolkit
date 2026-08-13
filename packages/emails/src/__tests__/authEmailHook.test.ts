@@ -129,6 +129,36 @@ describe('send auth email hook', () => {
     expect(sent[0]?.text).not.toContain('Verification code')
   })
 
+  it('sends password recovery to code entry without putting a recovery secret in the link', async () => {
+    const sent: Array<{ html: string; text: string; to: string }> = []
+    const handler = createSendAuthEmailHandler({
+      render: async (input) => ({ html: JSON.stringify(input), text: '' }),
+      send: async (message) => {
+        sent.push(message)
+      },
+      siteUrl: 'https://artificertoolkit.app',
+      supabaseUrl: 'https://project.supabase.co',
+      verifyWebhook: () => ({
+        email_data: {
+          email_action_type: 'recovery',
+          token: '123456',
+          token_hash: 'recovery-token-hash'
+        },
+        user: { email: 'player@example.com' }
+      })
+    })
+
+    const response = await handler(createRequest())
+
+    expect(response.status).toBe(200)
+    expect(sent).toHaveLength(1)
+    expect(sent[0]?.to).toBe('player@example.com')
+    expect(sent[0]?.html).toContain('https://artificertoolkit.app/verify-password-reset')
+    expect(sent[0]?.html).toContain('123456')
+    expect(sent[0]?.html).not.toContain('recovery-token-hash')
+    expect(sent[0]?.html).not.toContain('project.supabase.co/auth/v1/verify')
+  })
+
   it("uses Supabase's reversed token-hash mapping for double-confirm email changes", async () => {
     const sent: Array<{ html: string; idempotencyKey: string; to: string }> = []
     const handler = createSendAuthEmailHandler({

@@ -31,6 +31,7 @@ import { Route as AuthedClassesIndexRouteImport } from './routes/_authed/classes
 import { Route as AuthedCharactersIndexRouteImport } from './routes/_authed/characters/index'
 import { Route as AuthedCampaignsIndexRouteImport } from './routes/_authed/campaigns/index'
 import { Route as AuthedBackgroundsIndexRouteImport } from './routes/_authed/backgrounds/index'
+import { Route as GuestAuthVerifyPasswordResetRouteImport } from './routes/_guest/_auth/verify-password-reset'
 import { Route as GuestAuthUpdatePasswordRouteImport } from './routes/_guest/_auth/update-password'
 import { Route as GuestAuthSignUpRouteImport } from './routes/_guest/_auth/sign-up'
 import { Route as GuestAuthSignInRouteImport } from './routes/_guest/_auth/sign-in'
@@ -210,6 +211,12 @@ const AuthedBackgroundsIndexRoute = AuthedBackgroundsIndexRouteImport.update({
   path: '/backgrounds/',
   getParentRoute: () => AuthedRoute,
 } as any)
+const GuestAuthVerifyPasswordResetRoute =
+  GuestAuthVerifyPasswordResetRouteImport.update({
+    id: '/verify-password-reset',
+    path: '/verify-password-reset',
+    getParentRoute: () => GuestAuthRoute,
+  } as any)
 const GuestAuthUpdatePasswordRoute = GuestAuthUpdatePasswordRouteImport.update({
   id: '/update-password',
   path: '/update-password',
@@ -654,6 +661,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof GuestAuthSignInRoute
   '/sign-up': typeof GuestAuthSignUpRoute
   '/update-password': typeof GuestAuthUpdatePasswordRoute
+  '/verify-password-reset': typeof GuestAuthVerifyPasswordResetRoute
   '/backgrounds/': typeof AuthedBackgroundsIndexRoute
   '/campaigns/': typeof AuthedCampaignsIndexRoute
   '/characters/': typeof AuthedCharactersIndexRoute
@@ -744,6 +752,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof GuestAuthSignInRoute
   '/sign-up': typeof GuestAuthSignUpRoute
   '/update-password': typeof GuestAuthUpdatePasswordRoute
+  '/verify-password-reset': typeof GuestAuthVerifyPasswordResetRoute
   '/backgrounds': typeof AuthedBackgroundsIndexRoute
   '/campaigns': typeof AuthedCampaignsIndexRoute
   '/characters': typeof AuthedCharactersIndexRoute
@@ -834,6 +843,7 @@ export interface FileRoutesById {
   '/_guest/_auth/sign-in': typeof GuestAuthSignInRoute
   '/_guest/_auth/sign-up': typeof GuestAuthSignUpRoute
   '/_guest/_auth/update-password': typeof GuestAuthUpdatePasswordRoute
+  '/_guest/_auth/verify-password-reset': typeof GuestAuthVerifyPasswordResetRoute
   '/_authed/backgrounds/': typeof AuthedBackgroundsIndexRoute
   '/_authed/campaigns/': typeof AuthedCampaignsIndexRoute
   '/_authed/characters/': typeof AuthedCharactersIndexRoute
@@ -928,6 +938,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/update-password'
+    | '/verify-password-reset'
     | '/backgrounds/'
     | '/campaigns/'
     | '/characters/'
@@ -1018,6 +1029,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/update-password'
+    | '/verify-password-reset'
     | '/backgrounds'
     | '/campaigns'
     | '/characters'
@@ -1107,6 +1119,7 @@ export interface FileRouteTypes {
     | '/_guest/_auth/sign-in'
     | '/_guest/_auth/sign-up'
     | '/_guest/_auth/update-password'
+    | '/_guest/_auth/verify-password-reset'
     | '/_authed/backgrounds/'
     | '/_authed/campaigns/'
     | '/_authed/characters/'
@@ -1324,6 +1337,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/backgrounds/'
       preLoaderRoute: typeof AuthedBackgroundsIndexRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/_guest/_auth/verify-password-reset': {
+      id: '/_guest/_auth/verify-password-reset'
+      path: '/verify-password-reset'
+      fullPath: '/verify-password-reset'
+      preLoaderRoute: typeof GuestAuthVerifyPasswordResetRouteImport
+      parentRoute: typeof GuestAuthRoute
     }
     '/_guest/_auth/update-password': {
       id: '/_guest/_auth/update-password'
@@ -2257,6 +2277,7 @@ interface GuestAuthRouteChildren {
   GuestAuthSignInRoute: typeof GuestAuthSignInRoute
   GuestAuthSignUpRoute: typeof GuestAuthSignUpRoute
   GuestAuthUpdatePasswordRoute: typeof GuestAuthUpdatePasswordRoute
+  GuestAuthVerifyPasswordResetRoute: typeof GuestAuthVerifyPasswordResetRoute
   GuestAuthAuthConfirmedRoute: typeof GuestAuthAuthConfirmedRoute
 }
 
@@ -2265,6 +2286,7 @@ const GuestAuthRouteChildren: GuestAuthRouteChildren = {
   GuestAuthSignInRoute: GuestAuthSignInRoute,
   GuestAuthSignUpRoute: GuestAuthSignUpRoute,
   GuestAuthUpdatePasswordRoute: GuestAuthUpdatePasswordRoute,
+  GuestAuthVerifyPasswordResetRoute: GuestAuthVerifyPasswordResetRoute,
   GuestAuthAuthConfirmedRoute: GuestAuthAuthConfirmedRoute,
 }
 

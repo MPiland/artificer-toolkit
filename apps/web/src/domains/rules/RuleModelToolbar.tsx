@@ -1,4 +1,4 @@
-import { Button, Group, Select, TextInput } from '@mantine/core'
+import { Button, Group, Select } from '@mantine/core'
 
 export function RuleModelToolbar({
   editable,

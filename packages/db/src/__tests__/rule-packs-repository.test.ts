@@ -69,6 +69,26 @@ describe('rule pack repository', () => {
     expect(sqlState.statements[1]).toContain('FOR UPDATE')
   })
 
+  it('updates the locked draft after validating its millisecond timestamp', async () => {
+    const hydratedDraft = { ...draftRow, updated_at: new Date(timestamp) }
+    sqlState.rows = [[{ id: 'pack-1' }], [hydratedDraft], [draftRow]]
+    const repository = createRulePackRepository({ isTransaction: true } as DBLike)
+
+    await expect(
+      repository.saveDraft({
+        rulePackId: 'pack-1',
+        expectedUpdatedAt: timestamp,
+        document: { rules: [] },
+        checksum: 'b'.repeat(64),
+        createdBy: 'user-1'
+      })
+    ).resolves.toMatchObject({ id: 'revision-1', state: 'DRAFT' })
+
+    expect(sqlState.statements).toHaveLength(3)
+    expect(sqlState.statements[2]).toContain('WHERE id = revision-1')
+    expect(sqlState.statements[2]).not.toContain('AND updated_at =')
+  })
+
   it('activates only the exact draft checksum and points the pack at it atomically', async () => {
     sqlState.rows = [
       [{ ...draftRow, activated_by: 'user-1', activated_at: timestamp }],

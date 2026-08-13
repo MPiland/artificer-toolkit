@@ -32,6 +32,27 @@ describe('encounter contracts', () => {
     ).toThrow()
   })
 
+  it('accepts an explicit system when a custom-only run needs rule-pack identity', () => {
+    expect(
+      createEncounterInputDtoSchema.parse({
+        campaignId: encounterId,
+        sessionId: encounterId,
+        templateId: encounterId,
+        systemId: encounterId,
+        commandId
+      }).systemId
+    ).toBe(encounterId)
+    expect(
+      encounterCommandInputDtoSchema.parse({
+        encounterId,
+        commandId,
+        expectedVersion: 1,
+        type: 'START',
+        systemId: encounterId
+      })
+    ).toMatchObject({ type: 'START', systemId: encounterId })
+  })
+
   it('caps the number of enemies in a saved template', () => {
     expect(() =>
       createEncounterTemplateInputDtoSchema.parse({

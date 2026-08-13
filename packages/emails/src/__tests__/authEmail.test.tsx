@@ -34,14 +34,14 @@ describe('AuthEmail', () => {
     expect(decodedHtml).toContain(content.securityNote)
   })
 
-  it('keeps the action URL and verification code in the plaintext fallback', () => {
+  it('keeps the code-entry URL and verification code in the recovery plaintext fallback', () => {
     expect(
       getAuthEmailPlainText({
         action: 'recovery',
         actionUrl: 'https://app.example.test/reset',
         token: '123456'
       })
-    ).toContain('Reset password: https://app.example.test/reset')
+    ).toContain('Enter verification code: https://app.example.test/reset')
     expect(
       getAuthEmailPlainText({
         action: 'recovery',

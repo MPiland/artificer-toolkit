@@ -12,6 +12,41 @@ export const editorNodeComponents = [
   'switchNode'
 ] as const
 
+function record(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+}
+
+function referencesModel(model: RulePackDocumentDto['models'][string], modelKey: string): boolean {
+  const nodes = record(model)?.nodes
+  return (
+    Array.isArray(nodes) &&
+    nodes.some((value) => {
+      const node = record(value)
+      return node?.type === 'decisionNode' && record(node.content)?.key === modelKey
+    })
+  )
+}
+
+function rewriteModelReference(
+  model: RulePackDocumentDto['models'][string],
+  from: string,
+  to: string
+): RulePackDocumentDto['models'][string] {
+  const graph = record(model)
+  if (!graph || !Array.isArray(graph.nodes)) return model
+  let changed = false
+  const nodes = graph.nodes.map((value) => {
+    const node = record(value)
+    const content = record(node?.content)
+    if (node?.type !== 'decisionNode' || content?.key !== from) return value
+    changed = true
+    return { ...node, content: { ...content, key: to } }
+  })
+  return changed ? ({ ...graph, nodes } as RulePackDocumentDto['models'][string]) : model
+}
+
 export function createDefaultRuleDocument(): RulePackDocumentDto {
   return {
     schemaVersion: 1,
@@ -65,7 +100,12 @@ export function renameRuleModel(
   if (!model) throw new Error('The selected model no longer exists.')
   return {
     ...document,
-    models: { ...models, [modelKey]: model },
+    models: Object.fromEntries(
+      Object.entries({ ...models, [modelKey]: model }).map(([key, value]) => [
+        key,
+        rewriteModelReference(value, from, modelKey)
+      ])
+    ),
     fixtures: document.fixtures.map((fixture) =>
       fixture.modelKey === from ? { ...fixture, modelKey } : fixture
     )
@@ -75,6 +115,10 @@ export function renameRuleModel(
 export function removeRuleModel(document: RulePackDocumentDto, key: string): RulePackDocumentDto {
   if (Object.keys(document.models).length === 1)
     throw new Error('A rule document must contain at least one model.')
+  const caller = Object.entries(document.models).find(
+    ([modelKey, model]) => modelKey !== key && referencesModel(model, key)
+  )
+  if (caller) throw new Error(`Model "${key}" is referenced by model "${caller[0]}".`)
   const { [key]: _removed, ...models } = document.models
   return {
     ...document,

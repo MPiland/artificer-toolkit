@@ -9,6 +9,7 @@ import {
 import type { CampaignDetailDto, CampaignSessionDto } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { getCampaignEncounters, getEncounterTemplates } from '#app/data/encounters/queries'
+import { getSystemList } from '#app/data/systems/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import { CampaignEncounterWorkspace } from './CampaignEncounterWorkspace'
@@ -32,9 +33,17 @@ export function CampaignSessionEncounters({
   const [selectedEncounterId, setSelectedEncounterId] = useState<string | null>(null)
   const [encounterAdderOpen, setEncounterAdderOpen] = useState(false)
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null)
   const templates = useQuery({
     ...getEncounterTemplates(campaign.id),
     enabled: campaign.status === 'ACTIVE' && encounterAdderOpen
+  })
+  const selectedTemplate = templates.data?.find((template) => template.id === selectedTemplateId)
+  const needsExplicitSystem =
+    selectedTemplate?.enemies.every((enemy) => enemy.systemId === null) === true
+  const systems = useQuery({
+    ...getSystemList(),
+    enabled: encounterAdderOpen && needsExplicitSystem
   })
   const sessionEncounters = (encounters.data ?? []).flatMap((candidate) => {
     const parsed = encounterGmProjectionDtoSchema.safeParse(candidate)
@@ -54,11 +63,13 @@ export function CampaignSessionEncounters({
         campaignId: campaign.id,
         sessionId: session.id,
         templateId,
+        ...(needsExplicitSystem && selectedSystemId ? { systemId: selectedSystemId } : {}),
         commandId: crypto.randomUUID()
       }),
     onSuccess: (created) => {
       setSelectedEncounterId(created.id)
       setSelectedTemplateId(null)
+      setSelectedSystemId(null)
       setEncounterAdderOpen(false)
       queryClient.setQueryData(
         queryKeys.encounters.list(campaign.id),
@@ -136,10 +147,33 @@ export function CampaignSessionEncounters({
                   placeholder={templates.isPending ? 'Loading encounters…' : 'Choose an encounter'}
                   searchable
                   value={selectedTemplateId}
-                  onChange={setSelectedTemplateId}
+                  onChange={(value) => {
+                    setSelectedTemplateId(value)
+                    setSelectedSystemId(null)
+                  }}
                 />
+                {needsExplicitSystem ? (
+                  <Select
+                    className={sessionsStyles.sessionEncounterSelect}
+                    classNames={{ input: sharedStyles.input }}
+                    data={(systems.data ?? []).map((system) => ({
+                      label: `${system.label} · ${system.rulesetCode} ${system.rulesetVersion}`,
+                      value: system.id
+                    }))}
+                    disabled={systems.isPending || !systems.data?.length}
+                    label='Game system'
+                    placeholder={systems.isPending ? 'Loading systems…' : 'Choose a system'}
+                    searchable
+                    value={selectedSystemId}
+                    onChange={setSelectedSystemId}
+                  />
+                ) : null}
                 <Button
-                  disabled={!selectedTemplateId || addEncounter.isPending}
+                  disabled={
+                    !selectedTemplateId ||
+                    (needsExplicitSystem && !selectedSystemId) ||
+                    addEncounter.isPending
+                  }
                   loading={addEncounter.isPending}
                   onClick={() => selectedTemplateId && addEncounter.mutate(selectedTemplateId)}
                 >
@@ -156,7 +190,14 @@ export function CampaignSessionEncounters({
                 >
                   Build new
                 </Button>
-                <Button variant='subtle' onClick={() => setEncounterAdderOpen(false)}>
+                <Button
+                  variant='subtle'
+                  onClick={() => {
+                    setEncounterAdderOpen(false)
+                    setSelectedTemplateId(null)
+                    setSelectedSystemId(null)
+                  }}
+                >
                   Cancel
                 </Button>
               </Group>

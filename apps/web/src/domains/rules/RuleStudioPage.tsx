@@ -33,9 +33,7 @@ import * as styles from './RuleStudioPage.css'
 // Keep JDM and its browser-only Monaco dependency out of the Netlify server bundle.
 const RuleGraphEditor = import.meta.env.SSR
   ? null
-  : lazy(() =>
-      import('./RuleGraphEditor').then((module) => ({ default: module.RuleGraphEditor }))
-    )
+  : lazy(() => import('./RuleGraphEditor').then((module) => ({ default: module.RuleGraphEditor })))
 
 const defaultFixtureExpected = {
   eligibility: { allowed: true, reasonCode: 'ALLOWED' },
@@ -68,12 +66,19 @@ export function RuleStudioPage() {
 
   const packs = packsQuery.data ?? []
   const revisions = revisionsQuery.data ?? []
-  const selectedRevision = revisionQuery.data
+  const selectedRevision = revisionQuery.data?.id === revisionId ? revisionQuery.data : undefined
+  const selectionPending =
+    packId !== null &&
+    (revisionsQuery.isPending ||
+      (revisionId === null && revisions.length > 0) ||
+      (revisionId !== null && (revisionQuery.isPending || !selectedRevision)))
   const selectedPack = useMemo(
     () => packs.find((pack) => pack.id === (selectedRevision?.packId ?? packId)),
     [packId, packs, selectedRevision?.packId]
   )
-  const editable = !selectedRevision || selectedRevision.lifecycle === 'DRAFT' || copyingRevision
+  const editable =
+    !selectionPending &&
+    (!selectedRevision || selectedRevision.lifecycle === 'DRAFT' || copyingRevision)
   const rulesetCode = selectedPack?.rulesetCode ?? newRulesetCode.trim()
   const rulesetVersion = selectedPack?.rulesetVersion ?? newRulesetVersion.trim()
 
@@ -195,6 +200,9 @@ export function RuleStudioPage() {
     loadedRevisionKey.current = null
     setPackId(nextPackId)
     setRevisionId(null)
+    setDocument(createDefaultRuleDocument())
+    setModelKey('main')
+    setFixtureId(null)
     setCopyingRevision(false)
     setDirty(false)
     setError(null)
@@ -205,6 +213,9 @@ export function RuleStudioPage() {
     if (!confirmDiscard()) return
     loadedRevisionKey.current = null
     setRevisionId(nextRevisionId)
+    setDocument(createDefaultRuleDocument())
+    setModelKey('main')
+    setFixtureId(null)
     setCopyingRevision(false)
     setDirty(false)
     setError(null)

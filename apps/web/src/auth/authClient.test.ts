@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   setSession: vi.fn(),
   signInWithPassword: vi.fn(),
   signInWithUsername: vi.fn(),
+  verifyOtp: vi.fn(),
   updateUser: vi.fn()
 }))
 
@@ -21,6 +22,7 @@ vi.mock('../supabase/client', () => ({
     auth: {
       setSession: mocks.setSession,
       signInWithPassword: mocks.signInWithPassword,
+      verifyOtp: mocks.verifyOtp,
       updateUser: mocks.updateUser
     }
   })
@@ -43,6 +45,10 @@ describe('browserAuthClient', () => {
     mocks.signInWithUsername.mockResolvedValue({
       accessToken: 'access-token',
       refreshToken: 'refresh-token'
+    })
+    mocks.verifyOtp.mockResolvedValue({
+      data: { session: { id: 'recovery-session' } },
+      error: null
     })
     mocks.updateUser.mockResolvedValue({ error: null })
   })
@@ -102,6 +108,35 @@ describe('browserAuthClient', () => {
       ok: false,
       message: 'Too many sign-in attempts. Try again shortly.'
     })
+  })
+
+  it('verifies password recovery with the emailed OTP', async () => {
+    await expect(
+      browserAuthClient.verifyPasswordRecovery({
+        email: ' player@example.com ',
+        token: '123456'
+      })
+    ).resolves.toEqual({ ok: true, session: { id: 'recovery-session' } })
+
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({
+      email: 'player@example.com',
+      token: '123456',
+      type: 'recovery'
+    })
+  })
+
+  it('rejects malformed password recovery codes before calling Supabase', async () => {
+    await expect(
+      browserAuthClient.verifyPasswordRecovery({
+        email: 'player@example.com',
+        token: '12345'
+      })
+    ).resolves.toEqual({
+      ok: false,
+      message: 'Enter the six-digit verification code.'
+    })
+
+    expect(mocks.verifyOtp).not.toHaveBeenCalled()
   })
 
   it('rejects invalid new passwords before calling Supabase', async () => {

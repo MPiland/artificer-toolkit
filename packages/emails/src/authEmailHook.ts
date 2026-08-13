@@ -198,6 +198,18 @@ function buildMessages(
       : null
   }
 
+  if (action === 'recovery') {
+    return token
+      ? [
+          {
+            actionUrl: new URL('/verify-password-reset', siteUrl).toString(),
+            token,
+            to: payload.user.email
+          }
+        ]
+      : null
+  }
+
   if (action === 'email_change') {
     const tokenNew = readString(payload.email_data.token_new)
     const tokenHash = readString(payload.email_data.token_hash)

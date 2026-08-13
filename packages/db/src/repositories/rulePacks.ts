@@ -168,7 +168,7 @@ export function createRulePackRepository(db: DBLike) {
           const updated = await sql<Record<string, unknown>>`
             UPDATE public.rule_pack_revisions
             SET document = ${JSON.stringify(input.document)}::jsonb, checksum = ${input.checksum}
-            WHERE id = ${String(existing.id)} AND updated_at = ${input.expectedUpdatedAt}::timestamptz
+            WHERE id = ${String(existing.id)}
             RETURNING *
           `.execute(trx)
           const row = updated.rows[0]

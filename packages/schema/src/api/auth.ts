@@ -50,6 +50,15 @@ export const authPasswordUpdateInputSchema = z.strictObject({
 
 export type AuthPasswordUpdateInput = z.infer<typeof authPasswordUpdateInputSchema>
 
+export const authPasswordRecoveryVerificationInputSchema = z.strictObject({
+  email: z.string().trim().email(),
+  token: z.string().regex(/^\d{6}$/, 'Enter the six-digit verification code.')
+})
+
+export type AuthPasswordRecoveryVerificationInput = z.infer<
+  typeof authPasswordRecoveryVerificationInputSchema
+>
+
 export const authInvitationCompletionInputSchema = authPasswordUpdateInputSchema.extend({
   username: usernameInputSchema
 })

@@ -18,6 +18,19 @@ describe('Rule Studio document helpers', () => {
 
   it('keeps fixture references aligned when a model is renamed', () => {
     const document = addRuleModel(createDefaultRuleDocument(), 'attack')
+    document.models.main = {
+      ...document.models.main,
+      nodes: [
+        ...(document.models.main as { nodes: unknown[] }).nodes,
+        {
+          id: 'attack-decision',
+          type: 'decisionNode',
+          name: 'Attack',
+          position: { x: 180, y: 120 },
+          content: { key: 'attack' }
+        }
+      ]
+    }
     const renamed = renameRuleModel(
       {
         ...document,
@@ -37,6 +50,9 @@ describe('Rule Studio document helpers', () => {
 
     expect(renamed.models).toHaveProperty('melee-attack')
     expect(renamed.fixtures[0]?.modelKey).toBe('melee-attack')
+    expect(renamed.models.main).toMatchObject({
+      nodes: expect.arrayContaining([expect.objectContaining({ content: { key: 'melee-attack' } })])
+    })
   })
 
   it('removes fixtures owned by a removed model', () => {
@@ -59,6 +75,27 @@ describe('Rule Studio document helpers', () => {
 
     expect(removed.fixtures).toEqual([])
     expect(removed.models).not.toHaveProperty('attack')
+  })
+
+  it('does not remove a model while another model references it', () => {
+    const document = addRuleModel(createDefaultRuleDocument(), 'attack')
+    document.models.main = {
+      ...document.models.main,
+      nodes: [
+        ...(document.models.main as { nodes: unknown[] }).nodes,
+        {
+          id: 'attack-decision',
+          type: 'decisionNode',
+          name: 'Attack',
+          position: { x: 180, y: 120 },
+          content: { key: 'attack' }
+        }
+      ]
+    }
+
+    expect(() => removeRuleModel(document, 'attack')).toThrow(
+      'Model "attack" is referenced by model "main".'
+    )
   })
 
   it('rejects imported documents with invalid model keys', () => {

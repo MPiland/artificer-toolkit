@@ -39,7 +39,7 @@ export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }:
       }
 
       const message =
-        "If an account exists for that email, we'll send a reset link. Check your inbox."
+        "If an account exists for that email, we'll send a verification code. Check your inbox."
       setFeedback({ tone: 'success', message })
       await onSuccess?.(result)
     } finally {
@@ -63,7 +63,7 @@ export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }:
         required
       />
       <Button className={authButton} type='submit' disabled={isSubmitting}>
-        {isSubmitting ? 'Sending link...' : 'Send reset link'}
+        {isSubmitting ? 'Sending code...' : 'Send verification code'}
       </Button>
       {feedback && (
         <div
@@ -78,6 +78,9 @@ export function ResetPasswordForm({ authClient = browserAuthClient, onSuccess }:
       )}
       <AuthDivider />
       <div className={authFooterRow}>
+        <Anchor className={inlineLink} href='/verify-password-reset'>
+          Enter verification code
+        </Anchor>
         <Anchor className={inlineLink} href='/sign-in'>
           <span className={inlineLinkIcon} aria-hidden='true'>
             <IArrowLeft className={inlineLinkIconGlyph} size={14} />

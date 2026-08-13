@@ -256,7 +256,8 @@ export const reorderEncounterInputDtoSchema = commandBaseDtoSchema.extend({
 })
 
 export const startEncounterInputDtoSchema = commandBaseDtoSchema.extend({
-  type: z.literal('START')
+  type: z.literal('START'),
+  systemId: postgresUuidSchema.optional()
 })
 export const advanceEncounterTurnInputDtoSchema = commandBaseDtoSchema.extend({
   type: z.literal('ADVANCE_TURN')
@@ -369,6 +370,7 @@ export const createEncounterInputDtoSchema = z.strictObject({
   campaignId: uuidSchema,
   sessionId: uuidSchema,
   templateId: uuidSchema,
+  systemId: postgresUuidSchema.optional(),
   commandId: uuidSchema
 })
 export const getCampaignEncounterTemplatesInputDtoSchema = z.strictObject({

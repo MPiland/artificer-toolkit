@@ -62,6 +62,7 @@ import {
 import { projectGm, projectPlayer } from './encounterProjection.js'
 import { resolveEncounterAction } from './encounterActionResolution.js'
 import {
+  encounterSystemIds,
   requireCompatibleActiveRulePackRevision,
   resolveActiveRulePackForSystems
 } from './encounterRuleIdentity.js'
@@ -199,6 +200,7 @@ export async function createEncounter(
       )
     ).filter((entry) => entry !== null)
     const { revision: activeRuleRevision } = await resolveActiveRulePackForSystems(trx, [
+      input.systemId ?? null,
       ...attendingCharacters.map(({ authored }) => authored.systemId),
       ...template.enemies.map((enemy) => enemy.systemId)
     ])
@@ -528,10 +530,13 @@ export async function executeEncounterCommand(
       case 'START':
         if (locked.status !== 'PREPARED')
           throw new EncounterConflictError('Only prepared Encounters can start.')
-        if (!locked.rulePackRevisionId)
-          throw new EncounterValidationError(
-            'Select an active rule-pack revision before starting this Encounter.'
-          )
+        if (!locked.rulePackRevisionId) {
+          const { revision } = await resolveActiveRulePackForSystems(trx, [
+            input.systemId ?? null,
+            ...encounterSystemIds(locked)
+          ])
+          await repository.setRulePackRevision(locked.id, revision.id)
+        }
         if (locked.actors.length === 0)
           throw new EncounterValidationError('Add an actor before starting.')
         nextStatus = 'ACTIVE'

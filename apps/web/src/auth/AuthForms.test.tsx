@@ -2,7 +2,13 @@ import { MantineProvider } from '@mantine/core'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { resolver, theme } from '#css/theme'
-import { ResetPasswordForm, SignInForm, SignUpForm, UpdatePasswordForm } from './components'
+import {
+  ResetPasswordForm,
+  SignInForm,
+  SignUpForm,
+  UpdatePasswordForm,
+  VerifyPasswordResetForm
+} from './components'
 import type { AuthClient, AuthResult } from './authClient'
 
 function renderAuthForm(ui: ReactElement) {
@@ -19,6 +25,7 @@ function createAuthClient(overrides: Partial<AuthClient> = {}): AuthClient {
     signIn: async () => ({ ok: true }),
     signUp: async () => ({ ok: true }),
     requestPasswordReset: async () => ({ ok: true }),
+    verifyPasswordRecovery: async () => ({ ok: true }),
     updatePassword: async () => ({ ok: true }),
     signOut: async () => ({ ok: true }),
     ...overrides
@@ -185,7 +192,7 @@ describe('AuthForms', () => {
     fireEvent.change(screen.getByRole('textbox', { name: /email address/i }), {
       target: { value: 'reset@example.com' }
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Send reset link' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Send verification code' }))
 
     await waitFor(() =>
       expect(requestPasswordReset).toHaveBeenCalledWith({
@@ -205,11 +212,39 @@ describe('AuthForms', () => {
     fireEvent.change(screen.getByRole('textbox', { name: /email address/i }), {
       target: { value: 'reset@example.com' }
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Send reset link' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Send verification code' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Unable to reach the reset service.')
     expect(screen.getAllByText('Unable to reach the reset service.')).toHaveLength(1)
     expect(screen.queryByText('Unable to send reset link')).not.toBeInTheDocument()
+  })
+
+  it('verifies a recovery code before password entry', async () => {
+    const verifyPasswordRecovery = vi.fn(async () => ({ ok: true }))
+    const onSuccess = vi.fn()
+
+    renderAuthForm(
+      <VerifyPasswordResetForm
+        authClient={createAuthClient({ verifyPasswordRecovery })}
+        onSuccess={onSuccess}
+      />
+    )
+
+    fireEvent.change(screen.getByRole('textbox', { name: /email address/i }), {
+      target: { value: 'reset@example.com' }
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: /verification code/i }), {
+      target: { value: '123456' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+    await waitFor(() =>
+      expect(verifyPasswordRecovery).toHaveBeenCalledWith({
+        email: 'reset@example.com',
+        token: '123456'
+      })
+    )
+    expect(onSuccess).toHaveBeenCalled()
   })
 
   it('marks update-password fields as new-password entries without GET fallback', () => {
@@ -254,7 +289,7 @@ describe('AuthForms', () => {
     expect(calls).toEqual(['sign-out', 'navigate'])
   })
 
-  it('updates the password after a recovery link is accepted', async () => {
+  it('updates the password after a recovery code is accepted', async () => {
     const updatePassword = vi.fn(async () => ({ ok: true }))
     const onSuccess = vi.fn()
 
