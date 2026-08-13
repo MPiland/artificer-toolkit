@@ -28,6 +28,15 @@ describe('media service safety contracts', () => {
     expect(source).toContain("throw new Error('Unable to load uploaded image.')")
   })
 
+  it('retains the raw text upload when finalization can be retried', () => {
+    const retryCleanup = source.slice(
+      source.indexOf('[readyKey].filter((key): key is string => Boolean(key))'),
+      source.indexOf('await media.resetPending(assetId)')
+    )
+
+    expect(retryCleanup).not.toContain('asset.raw_object_key')
+  })
+
   it('checks character ownership before loading the crop source', () => {
     expect(source.indexOf('select id from characters')).toBeLessThan(
       source.indexOf('download(source.object_key)')

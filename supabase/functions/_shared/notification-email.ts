@@ -32,7 +32,7 @@ function contentFor(
         body: payload.summary,
         actionLabel: 'View announcement',
         actionUrl: appUrl(
-          `/campaigns/${payload.campaignPublicId}/announcements/${payload.announcementPublicId}`
+          `/campaigns/${encodeURIComponent(payload.campaignPublicId)}?tab=announcements&announcementPublicId=${encodeURIComponent(payload.announcementPublicId)}`
         ),
         html: ''
       }

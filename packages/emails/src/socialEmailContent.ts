@@ -40,7 +40,7 @@ export function getSocialEmailContent({
         actionLabel: 'View announcement',
         actionUrl: socialUrl(
           appUrl,
-          `/campaigns/${data.campaignPublicId}/announcements/${data.announcementPublicId}`
+          `/campaigns/${encodeURIComponent(data.campaignPublicId)}?tab=announcements&announcementPublicId=${encodeURIComponent(data.announcementPublicId)}`
         )
       }
     }

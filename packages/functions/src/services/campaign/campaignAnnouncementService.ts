@@ -10,6 +10,7 @@ import {
   type CampaignAnnouncementDto,
   type CreateCampaignAnnouncementInput
 } from '@artificer-toolkit/schema/api/campaigns'
+import { presentCampaignPlainText } from '@artificer-toolkit/shared/campaign/textPolicy'
 import { enqueueCampaignAnnouncementNotification } from '../notifications/notificationService.js'
 import {
   assertActiveCampaignMember,
@@ -22,24 +23,28 @@ import {
 } from './campaignService.js'
 import { campaignCommandFingerprint } from './campaignCommandService.js'
 
-function mapAnnouncement(record: {
-  id: string
-  campaignId: string
-  authorUserId: string
-  scope: 'TABLE' | 'PARTY'
-  partyId: string | null
-  title: string
-  body: string
-  createdAt: string
-}): CampaignAnnouncementDto {
+function mapAnnouncement(
+  record: {
+    id: string
+    campaignId: string
+    authorUserId: string
+    scope: 'TABLE' | 'PARTY'
+    partyId: string | null
+    title: string
+    body: string
+    createdAt: string
+  },
+  maturity: 'STANDARD' | 'MATURE',
+  privateOwnerView: boolean
+): CampaignAnnouncementDto {
   return campaignAnnouncementDtoSchema.parse({
     announcementPublicId: record.id,
     campaignId: record.campaignId,
     authorUserId: record.authorUserId,
     scope: record.scope,
     partyId: record.partyId,
-    title: record.title,
-    body: record.body,
+    title: privateOwnerView ? record.title : presentCampaignPlainText(record.title, maturity),
+    body: privateOwnerView ? record.body : presentCampaignPlainText(record.body, maturity),
     createdAt: record.createdAt
   })
 }
@@ -74,7 +79,13 @@ export async function listCampaignAnnouncements(
   )
   return visible
     .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
-    .map(mapAnnouncement)
+    .map((entry) =>
+      mapAnnouncement(
+        entry,
+        authority.campaign.contentMaturity,
+        authority.membership.role === 'OWNER'
+      )
+    )
 }
 
 export async function getCampaignAnnouncement(
@@ -91,7 +102,11 @@ export async function getCampaignAnnouncement(
   )
   if (!announcement) throw new CampaignNotFoundError()
   if (!(await canViewAnnouncement(db, userId, announcement))) throw new CampaignAccessError()
-  return mapAnnouncement(announcement)
+  return mapAnnouncement(
+    announcement,
+    authority.campaign.contentMaturity,
+    authority.membership.role === 'OWNER'
+  )
 }
 
 export async function createCampaignAnnouncement(
@@ -110,7 +125,7 @@ export async function createCampaignAnnouncement(
     if (prior) {
       if (prior.inputFingerprint !== inputFingerprint)
         throw new CampaignConflictError('This command ID was already used with different input.')
-      return mapAnnouncement(prior)
+      return mapAnnouncement(prior, authority.campaign.contentMaturity, true)
     }
     if (input.scope === 'PARTY') {
       const room = await trx
@@ -159,6 +174,6 @@ export async function createCampaignAnnouncement(
         })
       )
     )
-    return mapAnnouncement(announcement)
+    return mapAnnouncement(announcement, authority.campaign.contentMaturity, true)
   })
 }

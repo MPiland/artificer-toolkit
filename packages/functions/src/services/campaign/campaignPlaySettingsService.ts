@@ -10,6 +10,7 @@ import {
   type CampaignPlaySettingsDto,
   type SaveCampaignPlaySettingsInput
 } from '@artificer-toolkit/schema/api/campaigns'
+import { presentCampaignPlainText } from '@artificer-toolkit/shared/campaign/textPolicy'
 import {
   assertActiveCampaignMember,
   assertCampaignOwner,
@@ -18,6 +19,25 @@ import {
   CampaignNotFoundError,
   resolveCampaignAuthority
 } from './campaignService.js'
+
+function presentSettings(
+  settings: CampaignPlaySettingsDto,
+  maturity: 'STANDARD' | 'MATURE',
+  privateOwnerView: boolean
+): CampaignPlaySettingsDto {
+  if (privateOwnerView) return settings
+  const present = (value: string | null) =>
+    value === null ? null : presentCampaignPlainText(value, maturity)
+  return {
+    ...settings,
+    absentCharacterPolicy: present(settings.absentCharacterPolicy),
+    contentGuidance: present(settings.contentGuidance),
+    allowedContentRules: present(settings.allowedContentRules),
+    tableConduct: present(settings.tableConduct),
+    contentBoundaries: present(settings.contentBoundaries),
+    liveSafetyMethod: present(settings.liveSafetyMethod)
+  }
+}
 
 export async function getCampaignPlaySettings(
   db: DBLike,
@@ -28,7 +48,11 @@ export async function getCampaignPlaySettings(
   assertActiveCampaignMember(authority)
   const settings = await createCampaignSettingsRepository(db).find(campaignId)
   if (!settings) throw new CampaignNotFoundError()
-  return campaignPlaySettingsDtoSchema.parse(settings)
+  return presentSettings(
+    campaignPlaySettingsDtoSchema.parse(settings),
+    authority.campaign.contentMaturity,
+    authority.membership.role === 'OWNER'
+  )
 }
 
 export async function saveCampaignPlaySettings(

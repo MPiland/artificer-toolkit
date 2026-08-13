@@ -76,10 +76,19 @@ vi.mock('../notifications/notificationService.js', () => ({
 const { listCampaignAnnouncements, getCampaignAnnouncement, createCampaignAnnouncement } =
   await import('./campaignAnnouncementService.js')
 
-function authority(memberId: string) {
+function authority(
+  memberId: string,
+  role: 'OWNER' | 'PLAYER' = 'OWNER',
+  contentMaturity: 'STANDARD' | 'MATURE' = 'STANDARD'
+) {
   return {
-    campaign: { id: ids.campaignId, publicId: ids.campaignId, status: 'ACTIVE' },
-    membership: { userId: memberId, role: 'OWNER', status: 'ACTIVE' as const },
+    campaign: {
+      id: ids.campaignId,
+      publicId: ids.campaignId,
+      status: 'ACTIVE',
+      contentMaturity
+    },
+    membership: { userId: memberId, role, status: 'ACTIVE' as const },
     assignedCharacter: null
   }
 }
@@ -192,6 +201,23 @@ describe('Campaign announcement service', () => {
         scope: 'TABLE'
       })
     ])
+  })
+
+  it('masks Standard announcement text for players while preserving the owner view', async () => {
+    const announcement = baseAnnouncement('TABLE', null, ids.tableAnnouncementId)
+    announcement.title = 'Shitstorm update'
+    announcement.body = 'The fucking gate is closed.'
+    mocks.announcements.list.mockResolvedValue([announcement])
+    mocks.authority.mockResolvedValue(authority(ids.memberId, 'PLAYER'))
+
+    const playerView = await listCampaignAnnouncements({} as DBLike, ids.memberId, ids.campaignId)
+    expect(playerView[0]?.title).toBe('****storm update')
+    expect(playerView[0]?.body).not.toContain('fucking')
+
+    mocks.authority.mockResolvedValue(authority(ids.ownerId))
+    const ownerView = await listCampaignAnnouncements({} as DBLike, ids.ownerId, ids.campaignId)
+    expect(ownerView[0]?.title).toBe(announcement.title)
+    expect(ownerView[0]?.body).toBe(announcement.body)
   })
 
   it('filters party announcements for list/get using conversation membership, not campaign role', async () => {

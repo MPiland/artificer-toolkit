@@ -6,6 +6,8 @@ const appUrl = 'https://app.example.test'
 const listingPublicId = '00000000-0000-4000-8000-000000000001'
 const sourcePublicId = '00000000-0000-4000-8000-000000000002'
 const occurredAt = '2026-08-11T16:00:00.000Z'
+const campaignPublicId = '00000000-0000-4000-8000-000000000003'
+const announcementPublicId = '00000000-0000-4000-8000-000000000004'
 
 const inputs: readonly SocialNotificationEmailInput[] = [
   {
@@ -57,6 +59,19 @@ const inputs: readonly SocialNotificationEmailInput[] = [
       recipientUsername: 'apprentice',
       sourcePublicId
     }
+  },
+  {
+    appUrl,
+    workflowKey: 'campaign-announcement',
+    data: {
+      kind: 'CAMPAIGN_ANNOUNCEMENT',
+      announcementPublicId,
+      campaignPublicId,
+      occurredAt,
+      scope: 'TABLE',
+      sourcePublicId: announcementPublicId,
+      summary: 'A new Campaign announcement is available.'
+    }
   }
 ]
 
@@ -81,6 +96,10 @@ describe('renderSocialNotificationEmail', () => {
     [
       inputs[3],
       `/social/hosting/${listingPublicId}/edit?section=invitations&invitePublicId=${sourcePublicId}`
+    ],
+    [
+      inputs[4],
+      `/campaigns/${campaignPublicId}?tab=announcements&announcementPublicId=${announcementPublicId}`
     ]
   ])('uses the authoritative %s deep link', async (input, path) => {
     const email = await renderSocialNotificationEmail(input!)

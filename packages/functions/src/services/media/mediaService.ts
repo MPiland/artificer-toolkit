@@ -523,14 +523,18 @@ export async function finalizeCampaignFileUpload(
     await removeMediaObjects(db, [asset.raw_object_key])
     return { assetId, status: 'READY', preview: null }
   } catch (error) {
-    await removeMediaObjects(
-      db,
-      [readyKey, asset.raw_object_key].filter((key): key is string => Boolean(key))
-    )
     if (error instanceof MediaValidationError || error instanceof MediaQuotaError) {
+      await removeMediaObjects(
+        db,
+        [readyKey, asset.raw_object_key].filter((key): key is string => Boolean(key))
+      )
       await media.reject(assetId, error.message)
       return { assetId, status: 'REJECTED', preview: null }
     }
+    await removeMediaObjects(
+      db,
+      [readyKey].filter((key): key is string => Boolean(key))
+    )
     await media.resetPending(assetId)
     throw error
   }
