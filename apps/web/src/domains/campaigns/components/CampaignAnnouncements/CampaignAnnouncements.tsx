@@ -1,28 +1,33 @@
 import { Alert, Badge, Group, Loader, Stack, Text, Title } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import type { CampaignDetailDto } from '#app/lib/api'
-import { getCampaignAnnouncement, getCampaignAnnouncements } from '#app/data/campaigns/queries'
+import { getCampaignAnnouncements } from '#app/data/campaigns/queries'
 import { CampaignAnnouncementComposer } from './CampaignAnnouncementComposer'
 import * as styles from './CampaignAnnouncements.css'
 
-export function CampaignAnnouncements({ campaign }: { campaign: CampaignDetailDto }) {
+export function CampaignAnnouncements({
+  campaign,
+  announcementPublicId
+}: {
+  campaign: CampaignDetailDto
+  announcementPublicId?: string | null
+}) {
   const announcements = useQuery(getCampaignAnnouncements(campaign.id))
-  const [requestedAnnouncementId] = useState(() =>
-    typeof window === 'undefined'
-      ? null
-      : new URLSearchParams(window.location.search).get('announcementPublicId')
+  const selectedAnnouncement = announcements.data?.find(
+    (announcement) => announcement.announcementPublicId === announcementPublicId
   )
-  const requested = useQuery({
-    ...getCampaignAnnouncement(campaign.id, requestedAnnouncementId ?? ''),
-    enabled: Boolean(requestedAnnouncementId)
-  })
+
   useEffect(() => {
-    if (!requested.data) return
-    document
-      .getElementById(`announcement-${requested.data.announcementPublicId}`)
-      ?.scrollIntoView({ block: 'center' })
-  }, [requested.data])
+    if (!selectedAnnouncement) return
+    const element = document.getElementById(
+      `announcement-${selectedAnnouncement.announcementPublicId}`
+    )
+    if (!element) return
+    element.focus({ preventScroll: true })
+    element.scrollIntoView({ block: 'center' })
+  }, [selectedAnnouncement])
+
   return (
     <div className={styles.layout}>
       {campaign.role === 'OWNER' && campaign.status === 'ACTIVE' ? (
@@ -45,6 +50,16 @@ export function CampaignAnnouncements({ campaign }: { campaign: CampaignDetailDt
               className={styles.announcement}
               id={`announcement-${announcement.announcementPublicId}`}
               key={announcement.announcementPublicId}
+              aria-current={
+                announcement.announcementPublicId === selectedAnnouncement?.announcementPublicId
+                  ? 'true'
+                  : undefined
+              }
+              tabIndex={
+                announcement.announcementPublicId === selectedAnnouncement?.announcementPublicId
+                  ? -1
+                  : undefined
+              }
             >
               <Group justify='space-between' wrap='wrap'>
                 <Title order={3}>{announcement.title}</Title>

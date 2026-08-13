@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Loader, Select, Stack, Text, Title } from '@mantine/core'
+import { Alert, Button, Loader, Select, Stack, Text, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import type { CampaignContentBindingDto, CampaignDetailDto } from '#app/lib/api'

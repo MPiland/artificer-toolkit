@@ -471,6 +471,7 @@ export async function listCampaignSessionReferencePins(
   const input = listCampaignSessionReferencePinsInputSchema.parse(rawInput)
   const authority = await resolveCampaignAuthority(db, input.campaignId, userId)
   assertActiveCampaignMember(authority)
+  if (authority.membership.role !== 'OWNER') return []
   await requireSession(db, input.campaignId, input.sessionId)
   const pins = await createCampaignCollaborationRepository(db).listSessionReferencePins(
     input.sessionId

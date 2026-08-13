@@ -3,57 +3,89 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TrpcContext } from './dbContext.js'
 import { authenticatedContext, unauthenticatedContext } from './routerTestFixtures.js'
 
-const createNotificationSession = vi.hoisted(() => vi.fn())
-const withExplicitAuthorityDb = vi.hoisted(() => vi.fn())
-
-vi.mock('@artificer-toolkit/functions', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@artificer-toolkit/functions')>()),
-  createNotificationSession
+const mocks = vi.hoisted(() => ({
+  getNotificationFeed: vi.fn(),
+  getNotificationPreferences: vi.fn(),
+  markAllNotificationsSeen: vi.fn(),
+  markNotificationRead: vi.fn(),
+  updateNotificationPreferences: vi.fn(),
+  withExplicitAuthorityDb: vi.fn()
 }))
 
+vi.mock('@artificer-toolkit/functions', () => mocks)
 vi.mock('./dbContext.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./dbContext.js')>()
-  withExplicitAuthorityDb.mockImplementation(
+  mocks.withExplicitAuthorityDb.mockImplementation(
     async <TResult>(
       context: TrpcContext,
       callback: (db: DBLike, userId: string) => Promise<TResult>
     ): Promise<TResult> => callback({} as DBLike, actual.requireUserId(context))
   )
-  return { ...actual, withExplicitAuthorityDb }
+  return { ...actual, withExplicitAuthorityDb: mocks.withExplicitAuthorityDb }
 })
 
 const { notificationsRouter } = await import('./notificationsRouter.js')
 
+const feed = { items: [], unseenCount: 0 }
+const preferences = {
+  campaign: { email: true, inApp: true },
+  social: { email: true, inApp: true }
+}
+
 describe('tRPC notifications router', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.stubEnv('NOVU_SECRET_KEY', 'secret-key')
-    vi.stubEnv('NOVU_APPLICATION_IDENTIFIER', 'application-identifier')
-    createNotificationSession.mockResolvedValue({
-      recipientId: '00000000-0000-4000-8000-000000000001',
-      subscriberHash: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-      applicationIdentifier: 'application-identifier'
-    })
+    mocks.getNotificationFeed.mockResolvedValue(feed)
+    mocks.getNotificationPreferences.mockResolvedValue(preferences)
+    mocks.updateNotificationPreferences.mockResolvedValue(preferences)
   })
 
-  it('returns only the authenticated recipient session DTO', async () => {
-    await expect(notificationsRouter.createCaller(authenticatedContext).session()).resolves.toEqual(
-      {
-        recipientId: '00000000-0000-4000-8000-000000000001',
-        subscriberHash: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-        applicationIdentifier: 'application-identifier'
-      }
+  it('uses the authenticated user for feed and preference reads', async () => {
+    await expect(notificationsRouter.createCaller(authenticatedContext).feed()).resolves.toEqual(
+      feed
     )
-    expect(createNotificationSession).toHaveBeenCalledWith({}, 'user-1', {
-      secretKey: 'secret-key',
-      applicationIdentifier: 'application-identifier'
+    await expect(
+      notificationsRouter.createCaller(authenticatedContext).preferences()
+    ).resolves.toEqual(preferences)
+    expect(mocks.getNotificationFeed).toHaveBeenCalledWith({}, 'user-1')
+    expect(mocks.getNotificationPreferences).toHaveBeenCalledWith({}, 'user-1')
+  })
+
+  it('marks only the authenticated user feed items', async () => {
+    const caller = notificationsRouter.createCaller(authenticatedContext)
+    await expect(caller.markAllSeen()).resolves.toEqual({ ok: true })
+    await expect(caller.markRead({ id: '00000000-0000-4000-8000-000000000001' })).resolves.toEqual({
+      ok: true
+    })
+    expect(mocks.markAllNotificationsSeen).toHaveBeenCalledWith({}, 'user-1')
+    expect(mocks.markNotificationRead).toHaveBeenCalledWith(
+      {},
+      'user-1',
+      '00000000-0000-4000-8000-000000000001'
+    )
+  })
+
+  it('updates one category for the authenticated user', async () => {
+    await expect(
+      notificationsRouter.createCaller(authenticatedContext).updatePreferences({
+        category: 'SOCIAL',
+        email: false,
+        inApp: true
+      })
+    ).resolves.toEqual(preferences)
+    expect(mocks.updateNotificationPreferences).toHaveBeenCalledWith({}, 'user-1', {
+      category: 'SOCIAL',
+      email: false,
+      inApp: true
     })
   })
 
-  it('rejects unauthenticated session requests before service access', async () => {
+  it('rejects unauthenticated notification requests before service access', async () => {
     await expect(
-      notificationsRouter.createCaller(unauthenticatedContext).session()
-    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
-    expect(createNotificationSession).not.toHaveBeenCalled()
+      notificationsRouter.createCaller(unauthenticatedContext).feed()
+    ).rejects.toMatchObject({
+      code: 'UNAUTHORIZED'
+    })
+    expect(mocks.getNotificationFeed).not.toHaveBeenCalled()
   })
 })

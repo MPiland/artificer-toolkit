@@ -1,5 +1,7 @@
 # Notification delivery
 
+> **Historical:** This Novu runbook is superseded by the [Supabase notification delivery runbook](supabase-notification-delivery.md). Do not use the commands below for current deployments.
+
 Use this runbook for the Phase 05 Novu dispatcher and Framework Bridge. Artificer remains authoritative for applications, invitations, memberships, and destinations; Novu Cloud owns feed state and channel preferences.
 
 ## Deployment prerequisites

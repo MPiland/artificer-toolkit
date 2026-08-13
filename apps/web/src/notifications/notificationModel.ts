@@ -1,29 +1,11 @@
-import {
-  notificationIntentDataSchema,
-  notificationWorkflowKeySchema,
-  type NotificationWorkflowKey
-} from '@artificer-toolkit/schema/api/notifications'
-import type { Notification } from '@novu/react'
+import { notificationIntentDataSchema } from '@artificer-toolkit/schema/api/notifications'
 import { z } from 'zod'
 
 const notificationIdentitySchema = z.object({
-  createdAt: z.string().datetime(),
   id: z.string().min(1),
-  isRead: z.boolean(),
-  workflow: z.object({ identifier: notificationWorkflowKeySchema }).optional()
+  occurredAt: z.string().datetime(),
+  readAt: z.string().datetime().nullable()
 })
-
-const notificationProviderDataSchema = z
-  .object({ activityCount: z.number().int().positive().optional() })
-  .passthrough()
-
-const workflowByDataKind = {
-  SOCIAL_APPLICATION_SUBMITTED: 'social-application-submitted',
-  SOCIAL_APPLICATION_DECIDED: 'social-application-decided',
-  SOCIAL_INVITATION_RECEIVED: 'social-invitation-received',
-  SOCIAL_INVITATION_DECIDED: 'social-invitation-decided',
-  CAMPAIGN_ANNOUNCEMENT: 'campaign-announcement'
-} as const satisfies Record<string, NotificationWorkflowKey>
 
 export type NotificationDestination =
   | { kind: 'HOST_APPLICATIONS'; listingPublicId: string }
@@ -57,11 +39,6 @@ export interface NotificationFeedViewProps {
 
 export const notificationHistoryLimit = 25
 
-type NovuNotification = Pick<Notification, 'createdAt' | 'id' | 'isRead'> & {
-  data?: Record<string, unknown>
-  workflow?: { identifier: string }
-}
-
 export function formatNotificationTimestamp(value: string) {
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
@@ -77,40 +54,27 @@ export function notificationBadge(newCount: number) {
   return newCount > 99 ? '99+' : String(newCount)
 }
 
-export function toNotificationViewModel(input: NovuNotification): NotificationViewModel {
+export function toNotificationViewModel(input: unknown): NotificationViewModel {
   const identity = notificationIdentitySchema.safeParse(input)
-  const providerData = notificationProviderDataSchema.safeParse(input.data)
-  if (!providerData.success) return malformedNotification(input)
-  const { activityCount, ...intentData } = providerData.data
-  const data = notificationIntentDataSchema.safeParse(intentData)
-  if (
-    !identity.success ||
-    !data.success ||
-    (identity.data.workflow &&
-      workflowByDataKind[data.data.kind] !== identity.data.workflow.identifier) ||
-    (activityCount !== undefined && data.data.kind !== 'SOCIAL_APPLICATION_SUBMITTED')
-  ) {
+  const data = notificationIntentDataSchema.safeParse(
+    typeof input === 'object' && input !== null && 'data' in input ? input.data : undefined
+  )
+  if (!identity.success || !data.success) {
     return malformedNotification(input)
   }
 
   const base = {
     id: identity.data.id,
-    insertedAt: identity.data.createdAt,
-    isRead: identity.data.isRead
+    insertedAt: identity.data.occurredAt,
+    isRead: identity.data.readAt !== null
   }
 
   switch (data.data.kind) {
     case 'SOCIAL_APPLICATION_SUBMITTED':
       return {
         ...base,
-        title:
-          activityCount && activityCount > 1
-            ? activityCount + ' new applications for ' + data.data.listingTitle
-            : 'New application for ' + data.data.listingTitle,
-        body:
-          activityCount && activityCount > 1
-            ? 'Review ' + activityCount + ' new applicants.'
-            : 'Review the latest applicant.',
+        title: 'New application for ' + data.data.listingTitle,
+        body: 'Review the latest applicant.',
         destination: {
           kind: 'HOST_APPLICATIONS',
           listingPublicId: data.data.listingPublicId
@@ -176,16 +140,16 @@ export function toNotificationViewModel(input: NovuNotification): NotificationVi
 function malformedNotification(input: unknown): NotificationViewModel {
   const identity = z
     .object({
-      createdAt: z.string().datetime(),
+      occurredAt: z.string().datetime(),
       id: z.string().min(1),
-      isRead: z.boolean()
+      readAt: z.string().datetime().nullable()
     })
     .safeParse(input)
 
   return {
     id: identity.success ? identity.data.id : 'unavailable-notification',
-    insertedAt: identity.success ? identity.data.createdAt : new Date(0).toISOString(),
-    isRead: identity.success && identity.data.isRead,
+    insertedAt: identity.success ? identity.data.occurredAt : new Date(0).toISOString(),
+    isRead: identity.success && identity.data.readAt !== null,
     title: 'Notification unavailable',
     body: 'This notification can no longer be displayed.'
   }

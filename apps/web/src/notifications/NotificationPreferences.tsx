@@ -1,13 +1,11 @@
 import { Button, Loader, Stack, Text } from '@mantine/core'
-import { useNovu, usePreferences } from '@novu/react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 import { useNotificationAvailability } from './notificationContext'
 import { NotificationPreferencesView } from './NotificationPreferencesView'
-import {
-  readNotificationChannels,
-  socialWorkflowIdentifiers,
-  type ChannelPreferences
-} from './notificationPreferencesModel'
+import { readNotificationChannels, type ChannelPreferences } from './notificationPreferencesModel'
 import * as styles from './notifications.css'
 
 export function NotificationPreferences() {
@@ -24,60 +22,51 @@ export function NotificationPreferences() {
 }
 
 function ConnectedNotificationPreferences() {
-  const novu = useNovu()
-  const [loadFailed, setLoadFailed] = useState(false)
-  const [isRetrying, setIsRetrying] = useState(false)
-  const {
-    error: loadError,
-    isLoading,
-    preferences,
-    refetch
-  } = usePreferences({
-    filter: { tags: ['social'] },
-    onError: () => setLoadFailed(true),
-    onSuccess: () => setLoadFailed(false)
+  const queryClient = useQueryClient()
+  const preferencesKey = queryKeys.notifications.preferences()
+  const preferences = useQuery({
+    queryKey: preferencesKey,
+    queryFn: () => api.notifications.preferences()
   })
-  const [optimistic, setOptimistic] = useState<ChannelPreferences>()
-  const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState('')
-  const current = optimistic ?? readNotificationChannels(preferences)
+  const updatePreferences = useMutation({
+    mutationFn: (input: { category: 'SOCIAL' | 'CAMPAIGN'; channels: ChannelPreferences }) =>
+      api.notifications.updatePreferences({ category: input.category, ...input.channels })
+  })
+  const [isRetrying, setIsRetrying] = useState(false)
+  const [optimistic, setOptimistic] = useState<
+    Partial<Record<'SOCIAL' | 'CAMPAIGN', ChannelPreferences>>
+  >({})
+  const [errors, setErrors] = useState<Partial<Record<'SOCIAL' | 'CAMPAIGN', string>>>({})
 
-  async function update(next: ChannelPreferences) {
-    const previous = current
-    setError('')
-    setOptimistic(next)
-    setIsSaving(true)
+  async function update(category: 'SOCIAL' | 'CAMPAIGN', next: ChannelPreferences) {
+    setErrors((current) => ({ ...current, [category]: undefined }))
+    setOptimistic((current) => ({ ...current, [category]: next }))
     try {
-      const { error: updateError } = await novu.preferences.bulkUpdate(
-        socialWorkflowIdentifiers.map((workflowId) => ({
-          workflowId,
-          channels: { email: next.email, in_app: next.inApp }
-        }))
-      )
-      if (!updateError) return
-      setOptimistic(previous)
-      setError('Notification preferences could not be saved.')
+      const saved = await updatePreferences.mutateAsync({ category, channels: next })
+      queryClient.setQueryData(preferencesKey, saved)
     } catch {
-      setOptimistic(previous)
-      setError('Notification preferences could not be saved.')
+      setErrors((current) => ({
+        ...current,
+        [category]: 'Notification preferences could not be saved.'
+      }))
     } finally {
-      setIsSaving(false)
+      setOptimistic((current) => ({ ...current, [category]: undefined }))
     }
   }
 
   async function retryLoad() {
     setIsRetrying(true)
     try {
-      await refetch()
+      await preferences.refetch()
     } finally {
       setIsRetrying(false)
     }
   }
 
-  if (isLoading && !preferences) {
+  if (preferences.isLoading && !preferences.data) {
     return <Loader aria-label='Loading notification preferences' size='sm' />
   }
-  if (loadFailed || (loadError && !preferences)) {
+  if (preferences.isError && !preferences.data) {
     return (
       <Stack align='flex-start' gap='xs'>
         <Text c='red' role='alert'>
@@ -96,16 +85,24 @@ function ConnectedNotificationPreferences() {
   }
 
   return (
-    <>
+    <Stack gap='lg'>
       <NotificationPreferencesView
-        channels={current}
-        error={error}
-        isSaving={isSaving}
-        onChange={(next) => void update(next)}
+        channels={optimistic.SOCIAL ?? readNotificationChannels(preferences.data, 'SOCIAL')}
+        error={errors.SOCIAL}
+        isSaving={updatePreferences.isPending}
+        label='Social Hub'
+        onChange={(next) => void update('SOCIAL', next)}
+      />
+      <NotificationPreferencesView
+        channels={optimistic.CAMPAIGN ?? readNotificationChannels(preferences.data, 'CAMPAIGN')}
+        error={errors.CAMPAIGN}
+        isSaving={updatePreferences.isPending}
+        label='Campaign'
+        onChange={(next) => void update('CAMPAIGN', next)}
       />
       <span aria-live='polite' className={styles.visuallyHidden}>
-        {error}
+        {errors.SOCIAL ?? errors.CAMPAIGN}
       </span>
-    </>
+    </Stack>
   )
 }

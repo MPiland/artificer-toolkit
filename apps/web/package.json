@@ -41,8 +41,6 @@
     "@mantine/hooks": "9.2.2",
     "@mantine/notifications": "9.2.2",
     "@mantine/tiptap": "9.2.2",
-    "@novu/api": "^3.19.0",
-    "@novu/react": "^3.19.0",
     "@react-three/fiber": "9.5.0",
     "@react-three/rapier": "2.2.0",
     "@sentry/tanstackstart-react": "10.67.0",

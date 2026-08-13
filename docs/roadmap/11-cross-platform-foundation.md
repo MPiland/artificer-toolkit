@@ -33,7 +33,7 @@ Verify all of these statements on the phase branch before planning implementatio
 - Reuse Phase 02 asset identities and authorized delivery without reading Storage paths directly.
 - Reuse Phase 08 scene and Encounter contracts. Benchmark an Expo DOM PixiJS host first and switch only the native renderer to React Native Skia if the physical-device gate fails.
 - Add private Realtime reconciliation, visibly stale read-only SQLite projection caching, push registration/revocation, and authorized deep links. Offline mutations remain disabled.
-- Consume the Phase 05 Novu feed and preferences, add Expo push tokens as another Novu channel, and configure the custom URL scheme plus universal links/App Links against the production origin. Do not add another inbox or notification policy model.
+- Consume the Phase 05 feed and preferences, add Expo push tokens as another dispatcher channel, and configure the custom URL scheme plus universal links/App Links against the production origin. Do not add another inbox or notification policy model.
 - Add EAS development, internal preview, and production profiles without publishing a store build.
 - Use a development client once SecureStore, notifications, VTT hosting, or other required native modules exceed Expo Go.
 

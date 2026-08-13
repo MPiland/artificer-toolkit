@@ -211,6 +211,18 @@ describe('Campaign announcement service', () => {
       })
     ])
 
+    mocks.announcements.find.mockResolvedValue(
+      baseAnnouncement('TABLE', null, ids.tableAnnouncementId)
+    )
+    await expect(
+      getCampaignAnnouncement({} as DBLike, ids.ownerId, ids.campaignId, ids.tableAnnouncementId)
+    ).resolves.toEqual(
+      expect.objectContaining({
+        announcementPublicId: ids.tableAnnouncementId,
+        scope: 'TABLE'
+      })
+    )
+
     mocks.announcements.find.mockResolvedValue(baseAnnouncement('PARTY', ids.partyId, ids.priorId))
     await expect(
       getCampaignAnnouncement({} as DBLike, ids.ownerId, ids.campaignId, ids.priorId)
@@ -292,10 +304,12 @@ describe('Campaign announcement service', () => {
   it('rejects repeated commandId when command input changes', async () => {
     const firstInput = createAnnouncementInput()
     const secondInput = createAnnouncementInput({ body: 'Different body' })
-    mocks.announcements.findByCommand.mockResolvedValue(existingAnnouncement('fixed-fingerprint'))
+    mocks.announcements.findByCommand.mockResolvedValue(
+      existingAnnouncement(campaignCommandFingerprint(firstInput))
+    )
 
     await expect(
-      createCampaignAnnouncement({} as DBLike, ids.ownerId, firstInput)
+      createCampaignAnnouncement({} as DBLike, ids.ownerId, secondInput)
     ).rejects.toBeInstanceOf(mocks.CampaignConflictError)
     expect(mocks.announcements.insert).not.toHaveBeenCalled()
     expect(mocks.campaigns.lockCampaign).toHaveBeenCalled()

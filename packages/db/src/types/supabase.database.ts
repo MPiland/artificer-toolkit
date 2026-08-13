@@ -11493,6 +11493,86 @@ export type Database = {
           },
         ]
       }
+      notification_feed_items: {
+        Row: {
+          category: string
+          created_at: string
+          delivery_intent_id: string
+          grouping_key: string | null
+          id: string
+          occurred_at: string
+          payload: Json
+          read_at: string | null
+          recipient_user_id: string
+          seen_at: string | null
+          source_kind: string
+          source_public_id: string
+          workflow_key: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          delivery_intent_id: string
+          grouping_key?: string | null
+          id?: string
+          occurred_at: string
+          payload: Json
+          read_at?: string | null
+          recipient_user_id: string
+          seen_at?: string | null
+          source_kind: string
+          source_public_id: string
+          workflow_key: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          delivery_intent_id?: string
+          grouping_key?: string | null
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          read_at?: string | null
+          recipient_user_id?: string
+          seen_at?: string | null
+          source_kind?: string
+          source_public_id?: string
+          workflow_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_feed_items_delivery_intent_id_fkey"
+            columns: ["delivery_intent_id"]
+            isOneToOne: true
+            referencedRelation: "notification_delivery_intents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          category: string
+          email_enabled: boolean
+          in_app_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       option_attributes: {
         Row: {
           attribute_code: string
@@ -14274,7 +14354,50 @@ export type Database = {
         Args: { p_subject_id: string; p_subject_kind: string }
         Returns: boolean
       }
+      claim_notification_delivery_intents: {
+        Args: { p_limit: number; p_now: string; p_stale_before: string }
+        Returns: {
+          attempt_count: number
+          email_enabled: boolean
+          grouping_key: string
+          id: string
+          in_app_enabled: boolean
+          operation: string
+          payload: Json
+          recipient_email: string
+          recipient_notification_id: string
+          recipient_user_id: string
+          recipient_username: string
+          source_kind: string
+          source_public_id: string
+          workflow_key: string
+        }[]
+      }
       jsonb_has_all: { Args: { arr: Json }; Returns: boolean }
+      notification_expire_due_campaign_invites: {
+        Args: { p_limit: number; p_now: string }
+        Returns: number
+      }
+      notification_mark_delivery_failed: {
+        Args: { p_error_code: string; p_failed_at: string; p_intent_id: string }
+        Returns: undefined
+      }
+      notification_mark_delivery_retry: {
+        Args: {
+          p_error_code: string
+          p_intent_id: string
+          p_next_attempt_at: string
+        }
+        Returns: undefined
+      }
+      notification_mark_delivery_succeeded: {
+        Args: { p_delivered_at: string; p_intent_id: string }
+        Returns: undefined
+      }
+      record_notification_feed_item: {
+        Args: { p_intent_id: string }
+        Returns: string
+      }
       set_admin_claims: { Args: { event: Json }; Returns: Json }
       srd_authored_route_number: {
         Args: { subject_id: string }

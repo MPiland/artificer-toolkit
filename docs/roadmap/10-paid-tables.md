@@ -31,7 +31,7 @@ Do not write payment code until the business owner and qualified legal/tax advis
 - Grant paid Campaign access only after the approved payment state is reached. A checkout redirect grants nothing.
 - Model cancellations, refunds, disputes, chargebacks, rescheduling, and access removal without deleting financial or moderation history.
 - Keep paid-table orders, seats, and payouts separate from future creator release licenses and Marketplace orders.
-- Create notification events for paid-game application, acceptance, booking, payment, cancellation, rescheduling, refund, dispute, payout, and scheduled-session reminders. Reuse Phase 05 Novu workflows, preferences, grouping, and delivery intents; email remains required for time-sensitive paid-GM operations and payloads contain no sensitive application or Campaign text.
+- Create notification events for paid-game application, acceptance, booking, payment, cancellation, rescheduling, refund, dispute, payout, and scheduled-session reminders. Reuse Phase 05 feed, preferences, grouping, and delivery intents; email remains required for time-sensitive paid-GM operations and payloads contain no sensitive application or Campaign text.
 - Paid offerings publish the Campaign's table expectations, content guidance, attendance/cancellation policy, and selected safety practices. At least one approved safety practice is required before publication.
 - A paid session correlates Phase 06's scheduled time, RSVP, and actual attendance with its immutable booking economics. The GM confirms whether the session ran before payout eligibility; correction and dispute paths retain the original record and actor audit.
 - Minimum-player rules, cancellation windows, no-shows, late joins, partial attendance, GM cancellation, and technical-failure handling are explicit stored policy inputs, not ad hoc support notes.
@@ -68,7 +68,7 @@ Payment receipt handling and table fulfillment coordinate through explicit ident
 4. **Add server-owned checkout and webhook convergence.** Store provider identities and idempotency; never fulfill from client navigation.
 5. **Coordinate capacity and access.** Make reservation, payment, seat consumption, and Campaign membership converge without overselling or orphaning access.
 6. **Apply plan-based fees.** Snapshot the GM 10% or Pro GM 0% Artificer platform fee while keeping processing charges and taxes explicit.
-7. **Add paid-game notifications.** Reuse Phase 05 Novu workflows and delivery intents; add RSVP and scheduled reminders without another inbox, preference store, or delivery abstraction.
+7. **Add paid-game notifications.** Reuse Phase 05 feed, preferences, Edge dispatcher, and delivery intents; add RSVP and scheduled reminders without another inbox or preference store.
 8. **Build responsive web flows.** Cover onboarding, offering management, the GM operations view, table expectations/safety practices, application/booking/attendance status, checkout, receipts, cancellation, refund, notification state, and operator diagnostics.
 9. **Validate policy and failure behavior.** Test signatures, retries, reordering, stale prices, capacity races, plan changes, refund/dispute cases, GM isolation, notification delivery, and reconciliation.
 

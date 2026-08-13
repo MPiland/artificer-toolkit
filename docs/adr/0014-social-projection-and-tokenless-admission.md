@@ -24,4 +24,4 @@ Blocking is symmetric for Social visibility and future admission but does not al
 - Closing, editing, hiding, or transferring a listing stops pending admission without ejecting accepted members.
 - Direct table access remains denied even though browsing is authenticated; public projections are schema-owned API DTOs.
 - PostgreSQL full-text search, indexed filters, fixed-window rate limits, and row locks are sufficient for launch. External search, queues, caches, event buses, and generalized social abstractions are not part of this decision.
-- [Phase 05 notifications](../roadmap/05-notifications-and-delivery.md) may reference Social source public IDs through the [ADR 0016](0016-novu-notification-delivery.md) delivery boundary, but every destination read must reauthorize access and apply symmetric block predicates.
+- [Phase 05 notifications](../roadmap/05-notifications-and-delivery.md) may reference Social source public IDs through the [ADR 0017](0017-supabase-notification-delivery.md) delivery boundary, but every destination read must reauthorize access and apply symmetric block predicates.

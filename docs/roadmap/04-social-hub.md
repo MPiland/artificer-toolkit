@@ -35,7 +35,7 @@ Launch a moderated table-formation service for authenticated users 13 and older 
 - The private Social viewing preference defaults to Standard. Selecting Mature in user settings requires 18+ self-attestation when none is on file.
 - Standard Campaign shared/public fields are masked server-side with asterisks for every viewer, including their author and GM. Mature Social projections remain masked unless viewed by the Campaign owner or an adult-attested user who selected Mature; private authoring, author-owned private notes, and audited moderation evidence retain original text.
 - Responsive web supports discovery, applications, invitation inbox records, and listing administration. Native consumes these contracts only after the web viability gate.
-- Phase 05 turns application and invitation events into Novu-backed inbox notifications and preference-controlled email. Records contain no sensitive copied application text and blocked parties cannot use them as a side channel.
+- Phase 05 turns application and invitation events into Supabase-backed inbox notifications and preference-controlled Resend email. Records contain no sensitive copied application text and blocked parties cannot use them as a side channel.
 
 ## Design
 
@@ -102,7 +102,7 @@ Social Hub authorizes public discovery separately from private Campaign/Encounte
 | Campaign ID, route, roster, chat, exact venue, email, bio, account metadata | no Social access                                  | ordinary Campaign authority only     | no                                                | no Social projection                |
 | Report details and captured evidence                                        | receipt only                                      | no                                   | no                                                | audited evidence mutation only      |
 
-Phase 05 adds durable Novu inbox notifications and preference-controlled email for invitation and application decisions. Those records
+Phase 05 adds durable Supabase inbox notifications and preference-controlled email for invitation and application decisions. Those records
 must reference source UUIDs, reauthorize destinations when read, omit application text, and apply the
 same symmetric block predicate. Phase 04 adds no event bus, notification table, or compatibility stub.
 

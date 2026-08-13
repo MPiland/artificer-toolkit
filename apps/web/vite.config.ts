@@ -9,8 +9,6 @@ import viteReact from '@vitejs/plugin-react'
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url))
 const serverOnlyEnvKeys = [
   'DATABASE_CONNECTION_STRING',
-  'NOVU_APPLICATION_IDENTIFIER',
-  'NOVU_SECRET_KEY',
   'LIBRARY_IMPORT_ENABLED',
   'PUBLIC_SIGN_UP_ENABLED'
 ] as const

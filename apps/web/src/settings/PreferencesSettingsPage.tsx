@@ -63,9 +63,9 @@ export function PreferencesSettingsPage() {
       <DiceSettingsControls value={dicePreferences} onChange={setDicePreferences} />
       <div className={styles.settingRow}>
         <div className={styles.settingCopy}>
-          <h3 className={styles.settingTitle}>Social Hub notifications</h3>
+          <h3 className={styles.settingTitle}>Product notifications</h3>
           <p className={styles.settingDescription}>
-            Choose where application and invitation updates reach you.
+            Choose where Social Hub and Campaign updates reach you.
           </p>
         </div>
         <NotificationPreferences />

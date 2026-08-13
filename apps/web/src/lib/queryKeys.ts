@@ -34,7 +34,9 @@ export const queryKeys = {
   },
 
   notifications: {
-    session: () => ['notifications', 'session'] as const
+    all: () => ['notifications'] as const,
+    feed: () => ['notifications', 'feed'] as const,
+    preferences: () => ['notifications', 'preferences'] as const
   },
 
   campaigns: {

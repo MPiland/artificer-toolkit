@@ -46,7 +46,7 @@ A directional persisted choice enforced symmetrically across Social discovery an
 
 ### Notification projection
 
-A planned Phase 05 per-recipient presentation derived from an authorized application source such as a Social application, invitation, or Campaign announcement. The source aggregate remains authoritative; Novu Cloud owns feed/read/seen state and channel preferences, while the application stores only narrow transactional delivery intent and attempt metadata. A notification public source ID or deep link never grants access and must be reauthorized when opened.
+A Phase 05 per-recipient presentation derived from an authorized application source such as a Social application, invitation, or Campaign announcement. The source aggregate remains authoritative; protected Postgres tables own feed/read/seen state and channel preferences, while a narrow transactional delivery intent tracks bounded Edge delivery. A notification public source ID or deep link never grants access and must be reauthorized when opened.
 
 ## Data model
 

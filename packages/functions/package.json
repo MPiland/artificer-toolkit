@@ -22,10 +22,6 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./services/notifications/workflows": {
-      "types": "./dist/services/notifications/workflows.d.ts",
-      "default": "./dist/services/notifications/workflows.js"
-    },
     "./*": {
       "types": "./dist/*/index.d.ts",
       "default": "./dist/*/index.js"
@@ -42,8 +38,6 @@
     "@artificer-toolkit/emails": "workspace:^",
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
-    "@novu/api": "^3.19.0",
-    "@novu/framework": "^2.13.0",
     "@supabase/supabase-js": "^2.108.2",
     "sharp": "^0.35.3",
     "zod": "^4.4.3",

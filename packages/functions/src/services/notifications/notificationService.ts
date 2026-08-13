@@ -1,5 +1,3 @@
-import { createHmac } from 'node:crypto'
-import { Novu } from '@novu/api'
 import {
   createCampaignRepository,
   createNotificationRepository,
@@ -10,26 +8,14 @@ import {
 } from '@artificer-toolkit/db'
 import {
   notificationIntentDataSchema,
-  type NotificationSessionDto
+  type NotificationFeedDto,
+  type NotificationPreferencesDto,
+  type UpdateNotificationPreferencesInput
 } from '@artificer-toolkit/schema/api/notifications'
 import { presentCampaignPlainText } from '@artificer-toolkit/shared/campaign/textPolicy'
 
-const CLAIM_LEASE_MILLISECONDS = 5 * 60 * 1_000
-const MAX_DELIVERY_ATTEMPTS = 10
 // ponytail: 10 deliveries per minute is the measured-volume ceiling; raise it only after backlog or latency evidence.
 export const NOTIFICATION_DISPATCH_LIMIT = 10
-
-export interface NotificationDispatchResult {
-  claimed: number
-  delivered: number
-  retried: number
-  failed: number
-  expiredInvitations: number
-}
-
-function cancellationKey(workflowKey: string, sourcePublicId: string): string {
-  return `${workflowKey}:${sourcePublicId}`
-}
 
 function notificationListingTitle(value: string): string {
   return presentCampaignPlainText(value, 'STANDARD')
@@ -232,122 +218,65 @@ export function expireDueCampaignInvitationsForUser(
   })
 }
 
-export async function createNotificationSession(
+export async function getNotificationFeed(
+  db: DBLike,
+  userId: string
+): Promise<NotificationFeedDto> {
+  const repository = createNotificationRepository(db)
+  const [records, unseenCount] = await Promise.all([
+    repository.listFeed(userId),
+    repository.countUnseenFeedItems(userId)
+  ])
+  return {
+    unseenCount,
+    items: records.map((record) => ({
+      id: record.id,
+      workflowKey: record.workflowKey,
+      sourceKind: record.sourceKind,
+      sourcePublicId: record.sourcePublicId,
+      groupingKey: record.groupingKey,
+      data: notificationIntentDataSchema.parse(record.payload),
+      occurredAt: record.occurredAt,
+      seenAt: record.seenAt,
+      readAt: record.readAt
+    }))
+  }
+}
+
+export async function markAllNotificationsSeen(db: DBLike, userId: string): Promise<void> {
+  await createNotificationRepository(db).markAllFeedItemsSeen(userId, new Date().toISOString())
+}
+
+export async function markNotificationRead(
   db: DBLike,
   userId: string,
-  config: { secretKey: string; applicationIdentifier: string }
-): Promise<NotificationSessionDto> {
-  const recipientId = await createNotificationRepository(db).findRecipientIdForUser(userId)
-  if (!recipientId) throw new Error('Notification recipient is unavailable.')
-
-  return {
-    recipientId,
-    subscriberHash: createHmac('sha256', config.secretKey).update(recipientId).digest('hex'),
-    applicationIdentifier: config.applicationIdentifier
-  }
-}
-
-function retryDelayMilliseconds(attemptCount: number): number {
-  return Math.min(60 * 2 ** Math.max(0, attemptCount - 1), 60 * 60) * 1_000
-}
-
-function deliveryError(error: unknown): { retryable: boolean; code: string } {
-  if (typeof error !== 'object' || error === null) return { retryable: true, code: 'NETWORK' }
-
-  const candidate = error as { statusCode?: unknown; status?: unknown }
-  const status =
-    typeof candidate.statusCode === 'number'
-      ? candidate.statusCode
-      : typeof candidate.status === 'number'
-        ? candidate.status
-        : undefined
-  if (status === undefined) return { retryable: true, code: 'NETWORK' }
-
-  return {
-    retryable: status === 429 || status >= 500,
-    code: `HTTP_${status}`
-  }
-}
-
-export async function dispatchPendingNotifications(
-  db: DBLike,
-  secretKey: string
-): Promise<NotificationDispatchResult> {
-  const now = new Date()
-  const expiredInvitations = await expireDueCampaignInvitations(db, now.toISOString())
-  const repository = createNotificationRepository(db)
-  const staleBefore = new Date(now.getTime() - CLAIM_LEASE_MILLISECONDS).toISOString()
-  await repository.suppressCancelledDeliveryTriggers(now.toISOString(), staleBefore)
-  const exhaustedIntents = await repository.markExhaustedDeliveryIntents(
-    now.toISOString(),
-    staleBefore
-  )
-  const intents = await repository.claimDeliveryIntents({
-    limit: NOTIFICATION_DISPATCH_LIMIT,
-    now: now.toISOString(),
-    staleBefore
+  feedItemId: string
+): Promise<void> {
+  const updated = await createNotificationRepository(db).markFeedItemRead({
+    userId,
+    feedItemId,
+    readAt: new Date().toISOString()
   })
-  const novu = new Novu({ secretKey, retryConfig: { strategy: 'none' } })
-  const result: NotificationDispatchResult = {
-    claimed: intents.length,
-    delivered: 0,
-    retried: 0,
-    failed: exhaustedIntents,
-    expiredInvitations
-  }
+  if (!updated) throw new Error('Notification is unavailable.')
+}
 
-  for (const intent of intents) {
-    try {
-      if (intent.operation === 'CANCEL') {
-        await novu.cancel(cancellationKey(intent.workflowKey, intent.sourcePublicId), intent.id)
-      } else {
-        const payload = notificationIntentDataSchema.safeParse(intent.payload)
-        if (!payload.success) {
-          await repository.markDeliveryFailed({
-            intentId: intent.id,
-            failedAt: new Date().toISOString(),
-            errorCode: 'INVALID_PAYLOAD'
-          })
-          result.failed += 1
-          continue
-        }
-        await novu.trigger(
-          {
-            workflowId: intent.workflowKey,
-            to: {
-              subscriberId: intent.recipientNotificationId,
-              ...(intent.recipientEmail ? { email: intent.recipientEmail } : {}),
-              ...(intent.recipientUsername ? { firstName: intent.recipientUsername } : {})
-            },
-            payload: payload.data,
-            transactionId: cancellationKey(intent.workflowKey, intent.sourcePublicId)
-          },
-          intent.id
-        )
-      }
-      await repository.markDeliverySucceeded(intent.id, new Date().toISOString())
-      result.delivered += 1
-    } catch (error) {
-      const classified = deliveryError(error)
-      if (classified.retryable && intent.attemptCount < MAX_DELIVERY_ATTEMPTS) {
-        await repository.markDeliveryRetry({
-          intentId: intent.id,
-          nextAttemptAt: new Date(
-            Date.now() + retryDelayMilliseconds(intent.attemptCount)
-          ).toISOString(),
-          errorCode: classified.code
-        })
-        result.retried += 1
-      } else {
-        await repository.markDeliveryFailed({
-          intentId: intent.id,
-          failedAt: new Date().toISOString(),
-          errorCode: classified.code
-        })
-        result.failed += 1
-      }
-    }
-  }
+export function getNotificationPreferences(
+  db: DBLike,
+  userId: string
+): Promise<NotificationPreferencesDto> {
+  return createNotificationRepository(db).getPreferences(userId)
+}
 
-  return result
+export function updateNotificationPreferences(
+  db: DBLike,
+  userId: string,
+  input: UpdateNotificationPreferencesInput
+): Promise<NotificationPreferencesDto> {
+  return createNotificationRepository(db).updatePreferences({
+    userId,
+    category: input.category,
+    inApp: input.inApp,
+    email: input.email,
+    updatedAt: new Date().toISOString()
+  })
 }

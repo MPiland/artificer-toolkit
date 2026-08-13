@@ -50,6 +50,15 @@ async function isPartyMember(db: DBLike, partyId: string, userId: string): Promi
   )
 }
 
+async function canViewAnnouncement(
+  db: DBLike,
+  userId: string,
+  announcement: { scope: 'TABLE' | 'PARTY'; partyId: string | null }
+): Promise<boolean> {
+  if (announcement.scope === 'TABLE') return true
+  return Boolean(announcement.partyId && (await isPartyMember(db, announcement.partyId, userId)))
+}
+
 export async function listCampaignAnnouncements(
   db: DBLike,
   userId: string,
@@ -60,9 +69,7 @@ export async function listCampaignAnnouncements(
   const announcements = await createCampaignAnnouncementRepository(db).list(campaignId)
   const visible = await Promise.all(
     announcements.map(async (entry) =>
-      entry.scope === 'TABLE' || (entry.partyId && (await isPartyMember(db, entry.partyId, userId)))
-        ? entry
-        : null
+      (await canViewAnnouncement(db, userId, entry)) ? entry : null
     )
   )
   return visible
@@ -83,12 +90,7 @@ export async function getCampaignAnnouncement(
     announcementPublicId
   )
   if (!announcement) throw new CampaignNotFoundError()
-  if (
-    announcement.scope === 'PARTY' &&
-    (!announcement.partyId || !(await isPartyMember(db, announcement.partyId, userId)))
-  ) {
-    throw new CampaignAccessError()
-  }
+  if (!(await canViewAnnouncement(db, userId, announcement))) throw new CampaignAccessError()
   return mapAnnouncement(announcement)
 }
 

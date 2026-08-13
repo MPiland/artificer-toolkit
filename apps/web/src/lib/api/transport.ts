@@ -208,7 +208,17 @@ export interface AuthoredDomainProcedures<TList, TResponse, TInput extends Autho
 
 export interface TrpcClient {
   notifications: {
-    session: EmptyQueryProcedure<notificationContracts.NotificationSessionDto>
+    feed: EmptyQueryProcedure<notificationContracts.NotificationFeedDto>
+    markAllSeen: EmptyMutationProcedure<{ ok: true }>
+    markRead: MutationProcedure<
+      SchemaInput<typeof notificationContracts.notificationFeedItemIdInputSchema>,
+      { ok: true }
+    >
+    preferences: EmptyQueryProcedure<notificationContracts.NotificationPreferencesDto>
+    updatePreferences: MutationProcedure<
+      notificationContracts.UpdateNotificationPreferencesInput,
+      notificationContracts.NotificationPreferencesDto
+    >
   }
   account: {
     completeInvitation: MutationProcedure<AuthInvitationCompletionInput, { ok: true }>

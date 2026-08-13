@@ -1,10 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
+import { sql } from 'kysely'
 import { pathToFileURL } from 'node:url'
+
+import { createDb } from '../index.js'
 
 function requireLocalAuthEnv() {
   const email = process.env.LOCAL_AUTH_EMAIL
   const password = process.env.LOCAL_AUTH_PASSWORD
   const username = process.env.LOCAL_AUTH_USERNAME
+  const connectionString = process.env.DATABASE_CONNECTION_STRING
   const secretKey = process.env.SUPABASE_SECRET_KEY
   const url = process.env.SUPABASE_URL
 
@@ -28,12 +32,17 @@ function requireLocalAuthEnv() {
     throw new Error('LOCAL_AUTH_USERNAME is required to create or update a local auth user.')
   }
 
+  if (!connectionString) {
+    throw new Error('DATABASE_CONNECTION_STRING is required to update the local profile.')
+  }
+
   if (!url.includes('127.0.0.1') && !url.includes('localhost')) {
     throw new Error('seedLocalAuthUser only runs against local Supabase URLs.')
   }
 
   return {
     email,
+    connectionString,
     password,
     secretKey,
     username,
@@ -42,7 +51,7 @@ function requireLocalAuthEnv() {
 }
 
 async function main() {
-  const { email, password, secretKey, username, url } = requireLocalAuthEnv()
+  const { connectionString, email, password, secretKey, username, url } = requireLocalAuthEnv()
   const supabase = createClient(url, secretKey, {
     auth: {
       autoRefreshToken: false,
@@ -76,11 +85,15 @@ async function main() {
     throw new Error(`Supabase did not return a user for "${email}".`)
   }
 
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update({ username })
-    .eq('id', result.data.user.id)
-  if (profileError) throw profileError
+  const db = createDb({ connectionString })
+  try {
+    await sql`
+      update profiles set username = ${username}, updated_at = now()
+      where id = ${result.data.user.id}::uuid
+    `.execute(db)
+  } finally {
+    await db.destroy()
+  }
 
   console.info(`Local auth user ready: ${result.data.user.email}`)
 }

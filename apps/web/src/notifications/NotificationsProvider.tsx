@@ -1,45 +1,59 @@
 import type { ReactNode } from 'react'
-import { NovuProvider, useCounts } from '@novu/react'
-import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { getSupabaseBrowserClient } from '#supabase/client'
 import {
   NotificationAvailabilityContext,
   NotificationUnseenCountContext
 } from './notificationContext'
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
-  const session = useQuery({
-    queryKey: queryKeys.notifications.session(),
-    queryFn: () => api.notifications.session()
+  const queryClient = useQueryClient()
+  const feed = useQuery({
+    queryKey: queryKeys.notifications.feed(),
+    queryFn: () => api.notifications.feed(),
+    refetchInterval: 60_000
   })
 
-  if (!session.data) {
-    return (
-      <NotificationAvailabilityContext value={session.isError ? 'error' : 'loading'}>
-        {children}
-      </NotificationAvailabilityContext>
-    )
-  }
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient()
+    let channel: ReturnType<typeof supabase.channel> | undefined
+    let disposed = false
+
+    void Promise.all([supabase.auth.getUser(), supabase.auth.getSession()])
+      .then(
+        ([
+          {
+            data: { user }
+          },
+          {
+            data: { session }
+          }
+        ]) => {
+          if (!user || disposed) return
+          if (session?.access_token) void supabase.realtime.setAuth(session.access_token)
+
+          channel = supabase
+            .channel(`notifications:${user.id}`, { config: { private: true } })
+            .on('broadcast', { event: '*' }, () => {
+              void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all() })
+            })
+            .subscribe()
+        }
+      )
+      .catch(() => undefined)
+
+    return () => {
+      disposed = true
+      if (channel) void supabase.removeChannel(channel)
+    }
+  }, [queryClient])
 
   return (
-    <NovuProvider
-      applicationIdentifier={session.data.applicationIdentifier}
-      realtime
-      subscriber={session.data.recipientId}
-      subscriberHash={session.data.subscriberHash}
-    >
-      <ConnectedNotificationContext>{children}</ConnectedNotificationContext>
-    </NovuProvider>
-  )
-}
-
-function ConnectedNotificationContext({ children }: { children: ReactNode }) {
-  const { counts } = useCounts({ filters: [{ seen: false }] })
-
-  return (
-    <NotificationAvailabilityContext value='ready'>
-      <NotificationUnseenCountContext value={counts?.[0]?.count ?? 0}>
+    <NotificationAvailabilityContext value={feed.isError ? 'error' : 'ready'}>
+      <NotificationUnseenCountContext value={feed.data?.unseenCount ?? 0}>
         {children}
       </NotificationUnseenCountContext>
     </NotificationAvailabilityContext>

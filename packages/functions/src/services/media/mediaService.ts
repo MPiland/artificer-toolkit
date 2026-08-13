@@ -467,7 +467,22 @@ export async function finalizeCampaignFileUpload(
     } catch {
       throw new MediaValidationError('Text files must use valid UTF-8.')
     }
-    if (/\0|[\u0001-\u0008\u000B\u000C\u000E-\u001F\u007F]/u.test(text)) {
+    let containsControlCharacter = false
+    for (let index = 0; index < text.length; index += 1) {
+      const code = text.charCodeAt(index)
+      if (
+        code === 0 ||
+        (code >= 1 && code <= 8) ||
+        code === 11 ||
+        code === 12 ||
+        (code >= 14 && code <= 31) ||
+        code === 127
+      ) {
+        containsControlCharacter = true
+        break
+      }
+    }
+    if (containsControlCharacter) {
       throw new MediaValidationError('Text files cannot contain control characters.')
     }
     const body = Buffer.from(text, 'utf8')

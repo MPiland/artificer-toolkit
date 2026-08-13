@@ -42,15 +42,22 @@ export function CampaignDetailPage({
   const tabs = getCampaignTabs(campaign)
   const [activeTab, setActiveTab] = useState<CampaignTab>(tabs[0])
   const [openCharacterPicker, setOpenCharacterPicker] = useState(false)
+  const [requestedAnnouncementId, setRequestedAnnouncementId] = useState<string | null>(null)
   useCampaignRealtime(campaign, currentUserId)
 
   useEffect(() => {
     const search = new URLSearchParams(window.location.search)
     const requestedTab = search.get('tab')
+    const announcementPublicId = search.get('announcementPublicId')
     if (requestedTab && tabs.includes(requestedTab as CampaignTab))
       setActiveTab(requestedTab as CampaignTab)
+    if (announcementPublicId) {
+      setRequestedAnnouncementId(announcementPublicId)
+      if (tabs.includes('announcements')) setActiveTab('announcements')
+    }
     if (search.get('action') === 'assign-character') setOpenCharacterPicker(true)
-    if (!requestedTab && search.get('action') !== 'assign-character') return
+    if (!requestedTab && !announcementPublicId && search.get('action') !== 'assign-character')
+      return
     window.history.replaceState({}, '', window.location.pathname)
   }, [tabs])
 
@@ -118,7 +125,10 @@ export function CampaignDetailPage({
           <CampaignSessions campaign={campaign} currentUserId={currentUserId} />
         </Tabs.Panel>
         <Tabs.Panel value='announcements' pt='md'>
-          <CampaignAnnouncements campaign={campaign} />
+          <CampaignAnnouncements
+            announcementPublicId={requestedAnnouncementId}
+            campaign={campaign}
+          />
         </Tabs.Panel>
         <Tabs.Panel value='party' pt='md'>
           <CampaignParty
