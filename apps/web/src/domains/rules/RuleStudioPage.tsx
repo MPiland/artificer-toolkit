@@ -30,9 +30,12 @@ import {
 } from './ruleDocument'
 import * as styles from './RuleStudioPage.css'
 
-const RuleGraphEditor = lazy(() =>
-  import('./RuleGraphEditor').then((module) => ({ default: module.RuleGraphEditor }))
-)
+// Keep JDM and its browser-only Monaco dependency out of the Netlify server bundle.
+const RuleGraphEditor = import.meta.env.SSR
+  ? null
+  : lazy(() =>
+      import('./RuleGraphEditor').then((module) => ({ default: module.RuleGraphEditor }))
+    )
 
 const defaultFixtureExpected = {
   eligibility: { allowed: true, reasonCode: 'ALLOWED' },
@@ -451,7 +454,7 @@ export function RuleStudioPage() {
             />
           </div>
           <div className={styles.graph}>
-            {currentModel ? (
+            {currentModel && RuleGraphEditor ? (
               <Suspense fallback={<Loader aria-label='Loading rule editor' />}>
                 <RuleGraphEditor
                   disabled={!editable}
@@ -459,6 +462,8 @@ export function RuleStudioPage() {
                   onChange={updateModel}
                 />
               </Suspense>
+            ) : currentModel ? (
+              <Loader aria-label='Loading rule editor' />
             ) : (
               <Alert color='red'>The selected model is missing.</Alert>
             )}
