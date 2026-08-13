@@ -1,18 +1,35 @@
-import { style } from '@vanilla-extract/css'
+import { createVar, style } from '@vanilla-extract/css'
 import { foundationVars } from '../../css/foundations.css'
 import { app } from '../../css/layers.css'
+
+export const nodeColor = createVar()
 
 export const root = style({
   '@layer': {
     [app]: {
+      position: 'absolute',
+      zIndex: 5,
+      insetBlockStart: foundationVars.space[3],
+      insetInlineStart: foundationVars.space[3],
       display: 'flex',
       flexDirection: 'column',
-      gap: foundationVars.space[3],
+      gap: foundationVars.space[2],
+      inlineSize: '9.5rem',
+      maxBlockSize: 'calc(100% - 1.5rem)',
       minBlockSize: 0,
-      padding: foundationVars.space[3],
-      borderInlineEnd: `1px solid ${foundationVars.color.border.subtle}`,
-      backgroundColor: foundationVars.color.surface.subtle,
-      color: foundationVars.color.text.primary
+      padding: foundationVars.space[2],
+      overflow: 'auto',
+      border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderRadius: foundationVars.radius.md,
+      backgroundColor: foundationVars.color.surface.panel,
+      boxShadow: foundationVars.shadow.card,
+      color: foundationVars.color.text.primary,
+      transition: `inline-size ${foundationVars.motion.fast}`,
+      selectors: {
+        '&[data-collapsed]': {
+          inlineSize: '3rem'
+        }
+      }
     }
   }
 })
@@ -20,8 +37,15 @@ export const root = style({
 export const header = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gap: foundationVars.space[1]
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: foundationVars.space[1],
+      selectors: {
+        [`${root}[data-collapsed] &`]: {
+          justifyContent: 'center'
+        }
+      }
     }
   }
 })
@@ -53,7 +77,7 @@ export const list = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gap: foundationVars.space[2]
+      gap: foundationVars.space[1]
     }
   }
 })
@@ -64,30 +88,33 @@ export const item = style({
       display: 'flex',
       alignItems: 'center',
       gap: foundationVars.space[2],
-      minBlockSize: '2.5rem',
+      minBlockSize: '2.25rem',
       paddingInline: foundationVars.space[2],
       border: `1px solid ${foundationVars.color.border.subtle}`,
+      borderInlineStart: `3px solid ${nodeColor}`,
       borderRadius: foundationVars.radius.md,
-      backgroundColor: foundationVars.color.surface.panel,
-      boxShadow: foundationVars.shadow.card,
+      backgroundColor: foundationVars.color.surface.subtle,
       color: foundationVars.color.text.primary,
       cursor: 'grab',
       fontSize: foundationVars.typography.caption.fontSize,
       fontWeight: foundationVars.fontWeight.medium,
       lineHeight: foundationVars.typography.caption.lineHeight,
-      transition: `border-color ${foundationVars.motion.fast}, background-color ${foundationVars.motion.fast}, box-shadow ${foundationVars.motion.fast}`,
+      transition: `border-color ${foundationVars.motion.fast}, background-color ${foundationVars.motion.fast}`,
       userSelect: 'none',
       selectors: {
+        [`${root}[data-collapsed] &`]: {
+          justifyContent: 'center',
+          paddingInline: foundationVars.space[1]
+        },
         '&:hover:not([data-disabled])': {
           borderColor: foundationVars.color.border.strong,
-          backgroundColor: foundationVars.color.surface.raised,
-          boxShadow: foundationVars.shadow.cardHover
+          borderInlineStartColor: nodeColor,
+          backgroundColor: foundationVars.color.surface.raised
         },
         '&:active:not([data-disabled])': {
           cursor: 'grabbing'
         },
         '&[data-disabled]': {
-          boxShadow: 'none',
           cursor: 'not-allowed',
           opacity: 0.5
         }
@@ -104,7 +131,18 @@ export const icon = style({
       inlineSize: '1.125rem',
       blockSize: '1.125rem',
       placeItems: 'center',
-      color: foundationVars.color.icon.default
+      color: nodeColor
+    }
+  }
+})
+
+export const label = style({
+  '@layer': {
+    [app]: {
+      minInlineSize: 0,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
     }
   }
 })

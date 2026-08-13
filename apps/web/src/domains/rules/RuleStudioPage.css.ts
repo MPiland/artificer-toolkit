@@ -39,6 +39,7 @@ export const header = style({
 export const pageAlert = style({
   '@layer': {
     [app]: {
+      gridRow: '2',
       minBlockSize: 0
     }
   }
@@ -48,7 +49,8 @@ export const workspace = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gridTemplateColumns: '16rem minmax(28rem, 1fr) 22rem',
+      gridRow: '3',
+      gridTemplateColumns: '16rem minmax(28rem, 1fr) 18rem',
       gap: foundationVars.space[3],
       minBlockSize: 0,
       minInlineSize: 0,
@@ -66,7 +68,12 @@ export const sidebar = style({
   '@layer': {
     [app]: {
       minBlockSize: 0,
-      overflow: 'auto'
+      overflow: 'auto',
+      selectors: {
+        [`${workspace}[data-graph-focused] &`]: {
+          display: 'none'
+        }
+      }
     }
   }
 })
@@ -78,7 +85,12 @@ export const editorPanel = style({
       gridTemplateRows: 'auto minmax(0, 1fr)',
       minBlockSize: '36rem',
       minInlineSize: 0,
-      overflow: 'hidden'
+      overflow: 'hidden',
+      selectors: {
+        [`${workspace}[data-graph-focused] &`]: {
+          gridColumn: '1 / -1'
+        }
+      }
     }
   }
 })
@@ -86,6 +98,11 @@ export const editorPanel = style({
 export const editorToolbar = style({
   '@layer': {
     [app]: {
+      display: 'flex',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      gap: foundationVars.space[3],
+      flexWrap: 'wrap',
       padding: foundationVars.space[3],
       borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`
     }
@@ -107,7 +124,13 @@ export const fixturePanel = style({
   '@layer': {
     [app]: {
       minBlockSize: 0,
+      minInlineSize: 0,
       overflow: 'auto',
+      selectors: {
+        [`${workspace}[data-graph-focused] &`]: {
+          display: 'none'
+        }
+      },
       '@media': {
         [narrow]: {
           gridColumn: '1 / -1'

@@ -1,6 +1,7 @@
 import { Alert, Badge, Button, Group, Paper, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { DecisionGraphType } from '@gorules/jdm-editor'
+import { IconArrowsMaximize, IconArrowsMinimize } from '@tabler/icons-react'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { ruleQueries } from '#app/data/rules/queries'
 import { api, type RulePackDocumentDto, type RulePackRevisionDto } from '#app/lib/api'
@@ -52,6 +53,7 @@ export function RuleStudioPage() {
   const [copyingRevision, setCopyingRevision] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [graphFocused, setGraphFocused] = useState(false)
   const loadedRevisionKey = useRef<string | null>(null)
 
   const packs = packsQuery.data ?? []
@@ -400,7 +402,7 @@ export function RuleStudioPage() {
         </Alert>
       ) : null}
 
-      <div className={styles.workspace}>
+      <div className={styles.workspace} data-graph-focused={graphFocused || undefined}>
         <Paper className={styles.sidebar} p='md' radius='md' withBorder>
           <Stack gap='md'>
             <Button variant='default' onClick={startNewPack}>
@@ -461,6 +463,21 @@ export function RuleStudioPage() {
               onRename={renameModel}
               onSelect={(value) => value && setModelKey(value)}
             />
+            <Button
+              aria-pressed={graphFocused}
+              leftSection={
+                graphFocused ? (
+                  <IconArrowsMinimize aria-hidden='true' size={16} />
+                ) : (
+                  <IconArrowsMaximize aria-hidden='true' size={16} />
+                )
+              }
+              size='xs'
+              variant='default'
+              onClick={() => setGraphFocused((current) => !current)}
+            >
+              {graphFocused ? 'Restore panels' : 'Focus graph'}
+            </Button>
           </div>
           <div className={styles.graph}>
             {currentModel && RuleGraphEditor ? (

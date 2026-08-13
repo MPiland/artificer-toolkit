@@ -102,4 +102,19 @@ describe('RuleGraphEditor', () => {
       'true'
     )
   })
+
+  it('collapses the floating component palette without removing its nodes', () => {
+    renderWithAppProviders(
+      <RuleGraphEditor disabled={false} value={{ nodes: [], edges: [] }} onChange={vi.fn()} />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse components' }))
+
+    expect(screen.getByRole('complementary', { name: 'Rule components' })).toHaveAttribute(
+      'data-collapsed'
+    )
+    expect(screen.queryByText('Request')).not.toBeInTheDocument()
+    expect(screen.getAllByRole('listitem')).toHaveLength(5)
+    expect(screen.getByRole('button', { name: 'Expand components' })).toBeInTheDocument()
+  })
 })

@@ -5,8 +5,6 @@ import { app } from '../../css/layers.css'
 export const root = style({
   '@layer': {
     [app]: {
-      display: 'grid',
-      gridTemplateColumns: '10rem minmax(0, 1fr)',
       blockSize: '100%',
       minBlockSize: 0,
       minInlineSize: 0
@@ -17,6 +15,7 @@ export const root = style({
 export const canvas = style({
   '@layer': {
     [app]: {
+      position: 'relative',
       blockSize: '100%',
       minBlockSize: 0,
       minInlineSize: 0,

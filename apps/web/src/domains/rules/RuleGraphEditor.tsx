@@ -18,12 +18,12 @@ export function RuleGraphEditor({
   return (
     <JdmConfigProvider theme={{ mode: colorScheme }}>
       <div className={styles.root}>
-        <RuleNodePalette
-          disabled={disabled}
-          hasInputNode={value.nodes.some((node) => node.type === 'inputNode')}
-        />
         <div className={styles.canvas}>
           <DecisionGraph disabled={disabled} hideLeftToolbar value={value} onChange={onChange} />
+          <RuleNodePalette
+            disabled={disabled}
+            hasInputNode={value.nodes.some((node) => node.type === 'inputNode')}
+          />
         </div>
       </div>
     </JdmConfigProvider>
