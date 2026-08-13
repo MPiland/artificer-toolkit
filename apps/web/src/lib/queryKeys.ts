@@ -208,5 +208,11 @@ export const queryKeys = {
     resolve: (mapId: string, fingerprint: string) => ['node-runtime', mapId, fingerprint] as const,
     normalizeValues: (mapId: string, fingerprint: string) =>
       ['node-runtime', mapId, 'normalize-values', fingerprint] as const
+  },
+  rules: {
+    all: () => ['rules'] as const,
+    packs: () => ['rules', 'packs'] as const,
+    revisions: (packId: string) => ['rules', 'packs', packId, 'revisions'] as const,
+    revision: (revisionId: string) => ['rules', 'revisions', revisionId] as const
   }
 } as const

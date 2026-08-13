@@ -87,6 +87,7 @@ import type {
   SystemListResponseDto,
   SystemResponseDto
 } from '@artificer-toolkit/schema/api/systems'
+import type * as ruleContracts from '@artificer-toolkit/schema/api/rules'
 import * as campaignContracts from '@artificer-toolkit/schema/api/campaigns'
 import * as encounterContracts from '@artificer-toolkit/schema/api/encounters'
 import * as notificationContracts from '@artificer-toolkit/schema/api/notifications'
@@ -693,6 +694,27 @@ export interface TrpcClient {
         socialContracts.SocialModerationReportDto
       >
     }
+  }
+  rules: {
+    listPacks: EmptyQueryProcedure<ruleContracts.RulePackSummaryDto[]>
+    listRevisions: QueryProcedure<
+      ruleContracts.ListRulePackRevisionsInputDto,
+      ruleContracts.RulePackRevisionDto[]
+    >
+    getRevision: QueryProcedure<{ revisionId: string }, ruleContracts.RulePackRevisionDto>
+    saveDraft: MutationProcedure<
+      ruleContracts.SaveRulePackDraftInputDto,
+      ruleContracts.RulePackRevisionDto
+    >
+    simulate: MutationProcedure<
+      ruleContracts.SimulateRulePackInputDto,
+      ruleContracts.SimulateRulePackResultDto
+    >
+    activate: MutationProcedure<
+      ruleContracts.ActivateRulePackRevisionInputDto,
+      ruleContracts.RulePackRevisionDto
+    >
+    retire: MutationProcedure<ruleContracts.RetireRulePackInputDto, { ok: true }>
   }
   encounters: {
     templates: {

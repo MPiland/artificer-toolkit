@@ -23,7 +23,7 @@ Add one Encounter-backed responsive web virtual tabletop. The first slice suppor
 - Extend Encounter commands/events for durable scene actions such as token placement, committed movement, map selection, grid configuration, and fog changes.
 - Keep selection, hover, open panels, camera position, drag interpolation, measurement preview, and similar transient UI state local or ephemeral.
 - Use PixiJS as the first responsive web renderer. Keep navigation, chat, initiative, actor panels, menus, controls, and accessibility in ordinary web UI outside the canvas.
-- Persist final token positions before announcing them as committed. Throttle ephemeral remote movement separately.
+- Render the locally dragged token immediately without waiting for a network round trip. Broadcast bounded transient positions separately, interpolate them for remote viewers, and persist/validate only the final committed drop. A stale transient position can never replace a newer committed position.
 - Maps and token assets reuse Phase 02 ready-asset identity, opaque object keys, authorized Supabase Storage paths, and API-owned metadata. A Cloudflare R2/provider move is deferred until VTT storage needs justify it; stable asset IDs keep Campaign and scene references portable.
 - `VTT_MAP` has separate byte, dimension, pixel-count, quota, transfer, and processing rules from ordinary Campaign attachments and handout maps.
 - Large map transfers use the resumable path selected by Phase 02. Phase 08 may add renderer-oriented optimization or tiling without creating a second upload authorization model.
@@ -88,6 +88,10 @@ If the gate fails, retain the scene model and command contracts and simplify or 
 ## Out of scope
 
 - Automated attacks, saves, damage, conditions, reactions, authored-effect execution, dynamic lighting, 3D, physics, voice/video, AI, marketplace asset sales, offline play, LAN-only hosting, peer-authoritative state, arbitrary scripting, and premature storage-provider abstraction. An optional LAN/self-hosted mode may be evaluated later only as an alternative transport; it cannot become required for online play. Revisit R2 only when VTT map volume or egress evidence requires it.
+
+## Concerns and expansions
+
+The responsive browser/PWA remains the canonical VTT client and must pass the benchmark on its own. Packaging does not fix a slow synchronization protocol. A later Tauri desktop distribution may reuse the same web renderer, API, scene contracts, and Realtime protocol when offline asset libraries, filesystem integration, multi-window GM tools, or other proven native capabilities justify the additional release surface. Electron is not a planned dependency. A native mobile app should be evaluated as a focused companion experience rather than a compressed copy of the full tabletop.
 
 ## Questions for the phase subplan
 

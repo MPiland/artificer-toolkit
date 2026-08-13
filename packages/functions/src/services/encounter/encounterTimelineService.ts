@@ -5,6 +5,7 @@ import {
   type EncounterTimelineDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import type { RuleOutcomeKindDto } from '@artificer-toolkit/schema/api/rules'
 
 import {
   assertActiveCampaignMember,
@@ -17,7 +18,7 @@ function eventVisibility(event: {
   commandPayload: Json
 }): 'PRIVATE' | 'TABLE' {
   if (
-    event.commandType === 'ROLL_ENEMY_ACTION' &&
+    (event.commandType === 'ROLL_ENEMY_ACTION' || event.commandType === 'RESOLVE_ACTION') &&
     typeof event.commandPayload === 'object' &&
     event.commandPayload !== null &&
     !Array.isArray(event.commandPayload) &&
@@ -27,9 +28,30 @@ function eventVisibility(event: {
   return 'PRIVATE'
 }
 
-function eventRoll(resultPayload: Json): RollRecordDto | null {
+function eventResult(resultPayload: Json): {
+  roll: RollRecordDto | null
+  resolution: {
+    rolls: RollRecordDto[]
+    outcomes: { kind: RuleOutcomeKindDto; status: 'APPLIED' | 'MANUAL' | 'OVERRIDDEN' }[]
+    overridden: boolean
+  } | null
+} {
   const parsed = encounterCommandResultDtoSchema.safeParse(resultPayload)
-  return parsed.success ? parsed.data.roll : null
+  if (!parsed.success) return { roll: null, resolution: null }
+  const evidence = parsed.data.resolution
+  return {
+    roll: parsed.data.roll,
+    resolution: evidence
+      ? {
+          rolls: evidence.rolls,
+          outcomes: evidence.appliedOutcomes.map(({ proposed, status }) => ({
+            kind: proposed.kind,
+            status
+          })),
+          overridden: evidence.override !== null
+        }
+      : null
+  }
 }
 
 export async function getEncounterTimeline(
@@ -47,15 +69,19 @@ export async function getEncounterTimeline(
     input.limit + 1,
     authority.membership.role === 'OWNER' ? 'ALL' : 'TABLE'
   )
-  const entries = events.slice(0, input.limit).map((event) => ({
-    id: event.id,
-    version: event.version,
-    commandType: event.commandType,
-    visibility: eventVisibility(event),
-    actorUserId: event.actorUserId,
-    createdAt: event.createdAt,
-    roll: eventRoll(event.resultPayload)
-  }))
+  const entries = events.slice(0, input.limit).map((event) => {
+    const result = eventResult(event.resultPayload)
+    return {
+      id: event.id,
+      version: event.version,
+      commandType: event.commandType,
+      visibility: eventVisibility(event),
+      actorUserId: event.actorUserId,
+      createdAt: event.createdAt,
+      roll: result.roll,
+      resolution: result.resolution
+    }
+  })
   return encounterTimelineDtoSchema.parse({
     entries,
     nextCursor: events.length > input.limit ? (entries.at(-1)?.id ?? null) : null

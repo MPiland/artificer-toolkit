@@ -5,6 +5,12 @@ import { featureDtoSchema } from '../features/feature.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { AUTHORED_LIMITS } from '../shared/authoredLimits.js'
 import { rollRecordDtoSchema } from './rolls.js'
+import {
+  ruleModelKeyDtoSchema,
+  ruleOutcomeKindDtoSchema,
+  ruleOutcomeOverrideDtoSchema,
+  ruleResolutionEvidenceDtoSchema
+} from './rules.js'
 
 const uuidSchema = z.string().uuid()
 const versionSchema = z.number().int().nonnegative()
@@ -88,6 +94,7 @@ export const encounterPlayerProjectionDtoSchema = z.strictObject({
   templateVersion: versionSchema,
   name: z.string().trim().min(1).max(160),
   status: encounterStatusDtoSchema,
+  rulePackRevisionId: uuidSchema.nullable().default(null),
   version: versionSchema,
   round: z.number().int().nonnegative(),
   currentActorId: uuidSchema.nullable(),
@@ -104,6 +111,7 @@ export const encounterGmProjectionDtoSchema = z.strictObject({
   templateVersion: versionSchema,
   name: z.string().trim().min(1).max(160),
   status: encounterStatusDtoSchema,
+  rulePackRevisionId: uuidSchema.nullable().default(null),
   version: versionSchema,
   round: z.number().int().nonnegative(),
   currentActorId: uuidSchema.nullable(),
@@ -128,7 +136,21 @@ export const encounterGmProjectionDtoSchema = z.strictObject({
 
 export const encounterCommandResultDtoSchema = z.strictObject({
   projection: encounterGmProjectionDtoSchema,
-  roll: rollRecordDtoSchema.nullable()
+  roll: rollRecordDtoSchema.nullable(),
+  resolution: ruleResolutionEvidenceDtoSchema.nullable().default(null)
+})
+
+export const encounterTimelineResolutionSummaryDtoSchema = z.strictObject({
+  rolls: z.array(rollRecordDtoSchema).max(50),
+  outcomes: z
+    .array(
+      z.strictObject({
+        kind: ruleOutcomeKindDtoSchema,
+        status: z.enum(['APPLIED', 'MANUAL', 'OVERRIDDEN'])
+      })
+    )
+    .max(50),
+  overridden: z.boolean()
 })
 
 export const encounterTimelineEntryDtoSchema = z.strictObject({
@@ -138,7 +160,8 @@ export const encounterTimelineEntryDtoSchema = z.strictObject({
   visibility: z.enum(['PRIVATE', 'TABLE']),
   actorUserId: uuidSchema,
   createdAt: timestampSchema,
-  roll: rollRecordDtoSchema.nullable()
+  roll: rollRecordDtoSchema.nullable(),
+  resolution: encounterTimelineResolutionSummaryDtoSchema.nullable().default(null)
 })
 export const encounterTimelineDtoSchema = z.strictObject({
   entries: z.array(encounterTimelineEntryDtoSchema),
@@ -298,6 +321,28 @@ export const rollEncounterEnemyActionInputDtoSchema = commandBaseDtoSchema.exten
 export const completeEncounterInputDtoSchema = commandBaseDtoSchema.extend({
   type: z.literal('COMPLETE')
 })
+export const upgradeEncounterRulePackInputDtoSchema = commandBaseDtoSchema.extend({
+  type: z.literal('UPGRADE_RULE_PACK'),
+  revisionId: uuidSchema
+})
+export const resolveEncounterActionInputDtoSchema = commandBaseDtoSchema
+  .extend({
+    type: z.literal('RESOLVE_ACTION'),
+    actorId: uuidSchema,
+    modelKey: ruleModelKeyDtoSchema,
+    targetActorIds: z.array(uuidSchema).max(50),
+    selections: jsonSchema,
+    visibility: z.enum(['PRIVATE', 'TABLE']),
+    override: ruleOutcomeOverrideDtoSchema.optional()
+  })
+  .superRefine(({ targetActorIds }, context) => {
+    if (new Set(targetActorIds).size !== targetActorIds.length)
+      context.addIssue({
+        code: 'custom',
+        path: ['targetActorIds'],
+        message: 'Target actor IDs must be unique.'
+      })
+  })
 
 export const encounterCommandInputDtoSchema = z.discriminatedUnion('type', [
   updateEncounterActorInputDtoSchema,
@@ -314,7 +359,9 @@ export const encounterCommandInputDtoSchema = z.discriminatedUnion('type', [
   upsertEncounterReminderInputDtoSchema,
   removeEncounterReminderInputDtoSchema,
   rollEncounterEnemyActionInputDtoSchema,
-  completeEncounterInputDtoSchema
+  completeEncounterInputDtoSchema,
+  upgradeEncounterRulePackInputDtoSchema,
+  resolveEncounterActionInputDtoSchema
 ])
 export const getEncounterInputDtoSchema = z.strictObject({ encounterId: uuidSchema })
 export const getCampaignEncounterInputDtoSchema = z.strictObject({ campaignId: uuidSchema })
@@ -352,4 +399,8 @@ export type RemoveEncounterActorInputDto = z.infer<typeof removeEncounterActorIn
 export type SetEncounterInitiativeInputDto = z.infer<typeof setEncounterInitiativeInputDtoSchema>
 export type SetEncounterRoundInputDto = z.infer<typeof setEncounterRoundInputDtoSchema>
 export type ReorderEncounterInputDto = z.infer<typeof reorderEncounterInputDtoSchema>
+export type UpgradeEncounterRulePackInputDto = z.infer<
+  typeof upgradeEncounterRulePackInputDtoSchema
+>
+export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActionInputDtoSchema>
 export type EncounterCommandInputDto = z.infer<typeof encounterCommandInputDtoSchema>

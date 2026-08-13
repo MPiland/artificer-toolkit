@@ -19,6 +19,7 @@ describe('encounter projection', () => {
       sessionId: ids.command,
       templateId: ids.template,
       templateVersion: 1,
+      rulePackRevisionId: null,
       name: 'Goblin ambush',
       status: 'ACTIVE',
       version: 1,

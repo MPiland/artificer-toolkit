@@ -38,6 +38,7 @@
     "@artificer-toolkit/emails": "workspace:^",
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
+    "@gorules/zen-engine": "0.54.0",
     "@supabase/supabase-js": "^2.108.2",
     "sharp": "^0.35.3",
     "zod": "^4.4.3",

@@ -68,6 +68,7 @@ export function projectGm(encounter: EncounterRecord): EncounterGmProjectionDto 
     templateVersion: encounter.templateVersion,
     name: encounter.name,
     status: encounter.status,
+    rulePackRevisionId: encounter.rulePackRevisionId,
     version: encounter.version,
     round: encounter.round,
     currentActorId: encounter.currentActorId,
@@ -117,6 +118,7 @@ export function projectPlayer(encounter: EncounterRecord): EncounterPlayerProjec
     templateVersion: encounter.templateVersion,
     name: encounter.name,
     status: encounter.status,
+    rulePackRevisionId: encounter.rulePackRevisionId,
     version: encounter.version,
     round: encounter.round,
     currentActorId:

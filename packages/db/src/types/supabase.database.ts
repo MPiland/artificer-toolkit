@@ -7828,6 +7828,7 @@ export type Database = {
           id: string
           name: string
           round: number
+          rule_pack_revision_id: string | null
           session_id: string
           status: string
           template_id: string
@@ -7842,6 +7843,7 @@ export type Database = {
           id?: string
           name: string
           round?: number
+          rule_pack_revision_id?: string | null
           session_id: string
           status?: string
           template_id: string
@@ -7856,6 +7858,7 @@ export type Database = {
           id?: string
           name?: string
           round?: number
+          rule_pack_revision_id?: string | null
           session_id?: string
           status?: string
           template_id?: string
@@ -7876,6 +7879,13 @@ export type Database = {
             columns: ["current_actor_id"]
             isOneToOne: false
             referencedRelation: "encounter_actors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encounters_rule_pack_revision_id_fkey"
+            columns: ["rule_pack_revision_id"]
+            isOneToOne: false
+            referencedRelation: "rule_pack_revisions"
             referencedColumns: ["id"]
           },
           {
@@ -12565,6 +12575,88 @@ export type Database = {
             columns: ["system_id"]
             isOneToOne: false
             referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_pack_revisions: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          checksum: string
+          created_at: string
+          created_by: string
+          document: Json
+          id: string
+          revision: number
+          rule_pack_id: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          checksum: string
+          created_at?: string
+          created_by: string
+          document: Json
+          id?: string
+          revision: number
+          rule_pack_id: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          checksum?: string
+          created_at?: string
+          created_by?: string
+          document?: Json
+          id?: string
+          revision?: number
+          rule_pack_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_pack_revisions_rule_pack_id_fkey"
+            columns: ["rule_pack_id"]
+            isOneToOne: false
+            referencedRelation: "rule_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_packs: {
+        Row: {
+          active_revision_id: string | null
+          created_at: string
+          id: string
+          ruleset_code: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          active_revision_id?: string | null
+          created_at?: string
+          id?: string
+          ruleset_code: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          active_revision_id?: string | null
+          created_at?: string
+          id?: string
+          ruleset_code?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_packs_active_revision_fk"
+            columns: ["active_revision_id"]
+            isOneToOne: false
+            referencedRelation: "rule_pack_revisions"
             referencedColumns: ["id"]
           },
         ]

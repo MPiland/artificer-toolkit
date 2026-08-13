@@ -11,7 +11,8 @@ These products are references for capability research, not visual authorities or
 ### Alkemion Studio
 
 - Primary research area: Campaign preparation.
-- Review its preparation workflow and the features that help a GM organize material before play.
+- Review its visual planning board and the way places, NPCs, clues, scenes, and notes connect.
+- Treat a board as an optional view over Campaign-owned records, not a second Campaign data model.
 - Capture promising ideas as specific user problems and outcomes before considering roadmap work.
 
 ### Inkarnate
@@ -23,7 +24,8 @@ These products are references for capability research, not visual authorities or
 ### Myth Meister
 
 - Primary research area: Campaign management.
-- Review its Campaign organization, ongoing management, and table-support features.
+- Review its structured management of NPCs, cities and other locations, factions, relationships, and notes.
+- Look for ways those records can connect directly to sessions, encounters, references, and later map pins.
 - Compare promising ideas with the existing Campaign and live-play roadmap before proposing additions.
 
 ## Research rule

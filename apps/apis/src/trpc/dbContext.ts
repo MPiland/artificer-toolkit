@@ -80,6 +80,12 @@ function mapErrorToCode(error: Error): TRPCError['code'] {
   if (error.name === 'EncounterNotFoundError') return 'NOT_FOUND'
   if (error.name === 'EncounterConflictError') return 'CONFLICT'
   if (error.name === 'EncounterValidationError') return 'BAD_REQUEST'
+  if (error.name === 'RuleAccessError') return 'FORBIDDEN'
+  if (error.name === 'RuleNotFoundError') return 'NOT_FOUND'
+  if (error.name === 'RuleConflictError') return 'CONFLICT'
+  if (error.name === 'RuleDocumentValidationError' || error.name === 'RuleConformanceError') {
+    return 'BAD_REQUEST'
+  }
   if (
     error.name === 'InsufficientInventoryCurrencyError' ||
     error.name === 'InventoryCurrencyAmountRangeError'

@@ -27,7 +27,7 @@ export const Route = createFileRoute('/_authed')({
 })
 
 function AuthedLayout() {
-  const { featureFlags, user } = Route.useRouteContext()
+  const { featureFlags, isSuperAdmin, user } = Route.useRouteContext()
   const currentPath = useMatches({
     select: (matches) => matches.at(-1)?.pathname ?? '/'
   })
@@ -42,6 +42,7 @@ function AuthedLayout() {
         currentHref={currentHref}
         currentPath={currentPath}
         isAuthenticated={Boolean(user)}
+        isSuperAdmin={isSuperAdmin}
         libraryImportEnabled={featureFlags?.libraryImportEnabled}
         publicSignUpEnabled={featureFlags?.publicSignUpEnabled}
         userEmail={user?.email}

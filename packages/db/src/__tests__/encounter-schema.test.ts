@@ -15,6 +15,10 @@ const idempotencyMigration = readFileSync(
   join(root, 'supabase/migrations/20260809010000_encounter_template_idempotency.sql'),
   'utf8'
 )
+const rulePackMigration = readFileSync(
+  join(root, 'supabase/migrations/20260813010000_phase_07_rule_packs.sql'),
+  'utf8'
+)
 const bootstrapBundle = readFileSync(
   join(root, 'packages/db/src/domains/bootstrap/generated/create_database.bundle.sql'),
   'utf8'
@@ -31,8 +35,14 @@ describe('encounter persistence schema', () => {
     expect(sql).toContain('encounters_one_active_per_campaign_idx')
     expect(sql).toContain('UNIQUE (encounter_id, command_id)')
     expect(sql).toContain('campaign_id, command_id')
-    expect(sql).toContain('OFFSET 2000')
     expect(sql).toContain('REVOKE ALL ON TABLE')
+  })
+
+  it('keeps command receipts and rule-resolution evidence after Phase 07', () => {
+    expect(migration).toContain('OFFSET 2000')
+    expect(rulePackMigration).toContain('DROP TRIGGER IF EXISTS encounter_events_trim')
+    expect(rulePackMigration).toContain('DROP FUNCTION IF EXISTS public.trim_encounter_events')
+    expect(canonical).not.toContain('CREATE TRIGGER encounter_events_trim')
   })
 
   it('lists prepared work and counts only saved active work against tiers', () => {
@@ -65,7 +75,7 @@ describe('encounter persistence schema', () => {
     expect(repository).toContain('ON CONFLICT (campaign_id, command_id) DO NOTHING')
     expect(repository).toContain('Promise<EncounterTemplateRecord | null>')
     expect(repository).toContain("visibility: 'ALL' | 'TABLE' = 'ALL'")
-    expect(repository).toContain("event.command_type = 'ROLL_ENEMY_ACTION'")
+    expect(repository).toContain("event.command_type IN ('ROLL_ENEMY_ACTION', 'RESOLVE_ACTION')")
     expect(repository).toContain("event.command_payload->>'visibility' = 'TABLE'")
   })
 })
