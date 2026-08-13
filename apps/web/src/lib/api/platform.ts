@@ -4,6 +4,7 @@ import {
   finalizeImageUploadOutputSchema,
   signedImageDeliveryDtoSchema,
   type AttachImageInput,
+  type CreateCampaignFileUploadIntentInput,
   type CreateImageUploadIntentInput,
   type FinalizeImageUploadInput,
   type ImageLookupInput,
@@ -120,7 +121,17 @@ export function buildPlatformApi(client: TrpcClient) {
           client.media.getImage.query(input)
         ),
       removeImage: (input: RemoveImageInput) =>
-        request('media.removeImage', okResponseSchema, () => client.media.removeImage.mutate(input))
+        request('media.removeImage', okResponseSchema, () =>
+          client.media.removeImage.mutate(input)
+        ),
+      createCampaignFileUpload: (input: CreateCampaignFileUploadIntentInput) =>
+        request('media.createCampaignFileUpload', createImageUploadIntentOutputSchema, () =>
+          client.media.createCampaignFileUpload.mutate(input)
+        ),
+      finalizeCampaignFileUpload: (input: FinalizeImageUploadInput) =>
+        request('media.finalizeCampaignFileUpload', finalizeImageUploadOutputSchema, () =>
+          client.media.finalizeCampaignFileUpload.mutate(input)
+        )
     },
     nodeRuntime: {
       normalizeValues: (input: NodeRuntimeNormalizeValuesRequestDto) =>

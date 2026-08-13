@@ -26,8 +26,7 @@ describe('security headers', () => {
       "img-src 'self' data: blob: https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321"
     )
     expect(csp).toContain("connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co")
-    expect(csp).toContain('https://api.novu.co')
-    expect(csp).toContain('wss://ws.novu.co')
+    expect(csp).not.toContain('novu.co')
     expect(csp).toContain('http://127.0.0.1:54321')
     expect(csp).toContain('ws://127.0.0.1:54321')
     expect(response.headers.get('Content-Security-Policy-Report-Only')).toBeNull()

@@ -1,10 +1,3 @@
-export const socialWorkflowIdentifiers = [
-  'social-application-submitted',
-  'social-application-decided',
-  'social-invitation-received',
-  'social-invitation-decided'
-] as const
-
 export interface ChannelPreferences {
   email: boolean
   inApp: boolean
@@ -12,29 +5,21 @@ export interface ChannelPreferences {
 
 export interface NotificationPreferencesViewProps {
   channels: ChannelPreferences
+  label: string
   error?: string
   isSaving?: boolean
   onChange?: (channels: ChannelPreferences) => void
 }
 
-interface SocialPreference {
-  channels: { email?: boolean; in_app?: boolean }
-  workflow?: { identifier: string }
-}
-
 export function readNotificationChannels(
-  preferences: readonly SocialPreference[] | undefined
+  preferences: NotificationPreferencesDto | undefined,
+  category: 'SOCIAL' | 'CAMPAIGN'
 ): ChannelPreferences {
-  return {
-    email: socialWorkflowIdentifiers.every(
-      (identifier) =>
-        preferences?.find((preference) => preference.workflow?.identifier === identifier)?.channels
-          .email !== false
-    ),
-    inApp: socialWorkflowIdentifiers.every(
-      (identifier) =>
-        preferences?.find((preference) => preference.workflow?.identifier === identifier)?.channels
-          .in_app !== false
-    )
-  }
+  return (
+    preferences?.[category === 'SOCIAL' ? 'social' : 'campaign'] ?? {
+      email: true,
+      inApp: true
+    }
+  )
 }
+import type { NotificationPreferencesDto } from '@artificer-toolkit/schema/api/notifications'

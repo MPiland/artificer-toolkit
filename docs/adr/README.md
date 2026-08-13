@@ -29,7 +29,8 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0013](0013-campaign-authority-and-collaboration.md)             | Campaign authority, custody, durable history, and private Realtime    | decision   |
 | [0014](0014-social-projection-and-tokenless-admission.md)        | Separate Social projection and tokenless Campaign admission           | decision   |
 | [0015](0015-campaign-format-copy-and-maturity-presentation.md)   | Campaign format, reusable copies, and maturity presentation           | decision   |
-| [0016](0016-novu-notification-delivery.md)                       | Novu workflows, safe delivery intents, and authorized destinations    | decision   |
+| [0016](0016-novu-notification-delivery.md)                       | Former Novu delivery implementation                                  | historical |
+| [0017](0017-supabase-notification-delivery.md)                   | Supabase feed, preferences, Edge delivery, and authorized destinations | decision   |
 
 ## Updating an ADR
 

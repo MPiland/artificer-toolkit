@@ -1,7 +1,9 @@
 # ADR 0016: Use Novu Cloud for product notification delivery
 
-- **Status:** decision
+- **Status:** historical
 - **Date:** 2026-08-10
+
+Superseded on 2026-08-12 by [ADR 0017](0017-supabase-notification-delivery.md). This record explains the short-lived Novu implementation and must not guide new work.
 
 ## Context
 

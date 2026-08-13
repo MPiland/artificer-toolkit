@@ -6,12 +6,10 @@ import {
   listCampaignSessionAttendance,
   listCampaignSessionReferencePins,
   listCampaignSessionRsvps,
-  deleteCampaignSession,
   deleteCampaignSessionNoteSection,
   listCampaignSessionNoteSections,
   listCampaignSessions,
   updateCampaignSession,
-  reopenCampaignSession,
   createCampaignSessionReferencePin,
   deleteCampaignSessionReferencePin,
   setCampaignSessionRsvp,
@@ -42,23 +40,11 @@ export const campaignSessionRouter = createTRPCRouter({
     .mutation(({ ctx, input }) =>
       withExplicitAuthorityDb(ctx, (db, userId) => updateCampaignSession(db, input, userId))
     ),
-  delete: authenticatedProcedure
-    .input(campaignContracts.deleteCampaignSessionInputSchema)
-    .output(okResponseSchema)
-    .mutation(({ ctx, input }) =>
-      withExplicitAuthorityDb(ctx, (db, userId) => deleteCampaignSession(db, input, userId))
-    ),
   finish: authenticatedProcedure
     .input(campaignContracts.finishCampaignSessionInputSchema)
     .output(campaignContracts.campaignSessionDtoSchema)
     .mutation(({ ctx, input }) =>
       withExplicitAuthorityDb(ctx, (db, userId) => finishCampaignSession(db, input, userId))
-    ),
-  reopen: authenticatedProcedure
-    .input(campaignContracts.reopenCampaignSessionInputSchema)
-    .output(campaignContracts.campaignSessionDtoSchema)
-    .mutation(({ ctx, input }) =>
-      withExplicitAuthorityDb(ctx, (db, userId) => reopenCampaignSession(db, input, userId))
     ),
   get: authenticatedProcedure
     .input(campaignContracts.getCampaignSessionInputSchema)

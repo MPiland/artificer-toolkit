@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  notificationFeedDtoSchema,
   notificationIntentDataSchema,
-  notificationSessionDtoSchema,
+  notificationPreferencesDtoSchema,
+  updateNotificationPreferencesInputSchema,
   notificationWorkflowKeySchema
 } from '../api/notifications.js'
 
@@ -10,12 +12,13 @@ const sourcePublicId = '00000000-0000-4000-8000-000000000001'
 const listingPublicId = '00000000-0000-4000-8000-000000000002'
 
 describe('notification contracts', () => {
-  it('keeps the workflow set fixed to the four Social Hub workflows', () => {
+  it('keeps the supported Social and Campaign workflow set fixed', () => {
     expect(notificationWorkflowKeySchema.options).toEqual([
       'social-application-submitted',
       'social-application-decided',
       'social-invitation-received',
-      'social-invitation-decided'
+      'social-invitation-decided',
+      'campaign-announcement'
     ])
   })
 
@@ -47,17 +50,53 @@ describe('notification contracts', () => {
     }
   })
 
-  it('accepts the Novu subscriber hash without exposing server secrets', () => {
+  it('keeps feed data safe and bounded to the latest twenty-five entries', () => {
     expect(
-      notificationSessionDtoSchema.parse({
-        recipientId: sourcePublicId,
-        subscriberHash: 'a'.repeat(64),
-        applicationIdentifier: 'application-identifier'
+      notificationFeedDtoSchema.parse({
+        items: [
+          {
+            id: sourcePublicId,
+            workflowKey: 'campaign-announcement',
+            sourceKind: 'CAMPAIGN_ANNOUNCEMENT',
+            sourcePublicId,
+            groupingKey: null,
+            data: {
+              kind: 'CAMPAIGN_ANNOUNCEMENT',
+              announcementPublicId: sourcePublicId,
+              campaignPublicId: 'campaign-abc',
+              summary: 'Session starts at seven.',
+              scope: 'TABLE',
+              occurredAt
+            },
+            occurredAt,
+            seenAt: null,
+            readAt: null
+          }
+        ],
+        unseenCount: 1
+      })
+    ).toMatchObject({ unseenCount: 1 })
+  })
+
+  it('requires both channel choices for each notification category', () => {
+    expect(
+      notificationPreferencesDtoSchema.parse({
+        social: { inApp: true, email: false },
+        campaign: { inApp: true, email: true }
       })
     ).toEqual({
-      recipientId: sourcePublicId,
-      subscriberHash: 'a'.repeat(64),
-      applicationIdentifier: 'application-identifier'
+      social: { inApp: true, email: false },
+      campaign: { inApp: true, email: true }
     })
+  })
+
+  it('updates exactly one notification category at a time', () => {
+    expect(
+      updateNotificationPreferencesInputSchema.parse({
+        category: 'CAMPAIGN',
+        inApp: false,
+        email: true
+      })
+    ).toEqual({ category: 'CAMPAIGN', inApp: false, email: true })
   })
 })

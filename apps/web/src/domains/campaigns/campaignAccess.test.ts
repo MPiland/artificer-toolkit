@@ -5,7 +5,15 @@ describe('Campaign access presentation', () => {
   it('keeps PARTY chat and owner workspaces out of a player without those capabilities', () => {
     const campaign = createCampaign()
 
-    expect(getCampaignTabs(campaign)).toEqual(['sessions', 'party', 'notes', 'inventory'])
+    expect(getCampaignTabs(campaign)).toEqual([
+      'sessions',
+      'announcements',
+      'party',
+      'notes',
+      'files',
+      'inventory',
+      'table'
+    ])
   })
 
   it('includes PARTY chat and owner-only workspaces for the GM', () => {
@@ -24,9 +32,12 @@ describe('Campaign access presentation', () => {
     expect(getCampaignTabs(campaign)).toContain('content')
     expect(getCampaignTabs(campaign)).toEqual([
       'sessions',
+      'announcements',
       'party',
       'notes',
+      'files',
       'inventory',
+      'table',
       'content',
       'settings'
     ])

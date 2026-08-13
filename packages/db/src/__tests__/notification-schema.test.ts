@@ -6,7 +6,8 @@ const root = process.cwd()
 const read = (relativePath: string) => readFileSync(join(root, relativePath), 'utf8')
 
 const canonical = read('packages/db/src/domains/notifications/tables/notifications.sql')
-const migration = read('supabase/migrations/20260811010000_phase_05_notifications.sql')
+const phase05Migration = read('supabase/migrations/20260811010000_phase_05_notifications.sql')
+const feedMigration = read('supabase/migrations/20260812222601_supabase_notification_feed.sql')
 const profiles = read('packages/db/src/domains/utils/tables/user_management.sql')
 const bootstrap = read('packages/db/src/domains/utils/create_database.sql')
 const generatedBundle = read(
@@ -15,9 +16,9 @@ const generatedBundle = read(
 const generatedTypes = read('packages/db/src/types/supabase.database.ts')
 const repository = read('packages/db/src/repositories/notifications.ts')
 
-describe('Phase 05 notification persistence', () => {
+describe('notification persistence', () => {
   it('keeps one server-only outbox table under forced RLS', () => {
-    for (const source of [canonical, migration]) {
+    for (const source of [canonical, phase05Migration]) {
       expect(source).toMatch(
         /CREATE TABLE(?: IF NOT EXISTS)? public\.notification_delivery_intents \(/
       )
@@ -31,16 +32,13 @@ describe('Phase 05 notification persistence', () => {
         'REVOKE ALL ON TABLE public.notification_delivery_intents FROM anon, authenticated'
       )
       expect(source).not.toContain('source_version')
-      expect(source).not.toMatch(
-        /CREATE TABLE[^;]*(attempt_history|notification_preferences|inbox)/i
-      )
     }
   })
 
   it('constrains identity, idempotency, due work, and terminal state', () => {
     expect(profiles).toContain('notification_recipient_id uuid NOT NULL DEFAULT gen_random_uuid()')
     expect(profiles).toContain('profiles_notification_recipient_id_key')
-    for (const source of [canonical, migration]) {
+    for (const source of [canonical, phase05Migration]) {
       expect(source).not.toContain('social-invitation-ended')
       expect(source).toContain(
         'UNIQUE (recipient_notification_id, source_kind, source_public_id, workflow_key, operation)'
@@ -62,6 +60,31 @@ describe('Phase 05 notification persistence', () => {
     )
     expect(generatedTypes).toContain('notification_delivery_intents: {')
     expect(generatedTypes).toContain('notification_recipient_id: string')
+  })
+
+  it('keeps feed and preferences private while service-only dispatcher RPCs claim intents', () => {
+    for (const source of [canonical, feedMigration]) {
+      expect(source).toContain('CREATE TABLE')
+      expect(source).toContain('notification_preferences')
+      expect(source).toContain('notification_feed_items')
+      expect(source).toContain('FORCE ROW LEVEL SECURITY')
+      expect(source).toContain(
+        'REVOKE ALL ON TABLE public.notification_feed_items FROM anon, authenticated'
+      )
+      expect(source).toContain(
+        'CREATE OR REPLACE FUNCTION public.claim_notification_delivery_intents'
+      )
+      expect(source).toContain('FOR UPDATE SKIP LOCKED')
+      expect(source).toContain(
+        'GRANT EXECUTE ON FUNCTION public.claim_notification_delivery_intents'
+      )
+      expect(source).toContain('TO service_role')
+      expect(source).toContain('notification_expire_due_campaign_invites')
+      expect(source).toContain('notification_realtime_topics')
+      expect(source).toContain("'notifications:' || changed.recipient_user_id::text")
+    }
+    expect(generatedBundle).toContain('notification_feed_items')
+    expect(generatedBundle).toContain('notification_preferences')
   })
 
   it('claims concurrently, reclaims stale leases, and terminates exhausted claims', () => {

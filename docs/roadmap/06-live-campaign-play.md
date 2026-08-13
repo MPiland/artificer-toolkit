@@ -1,6 +1,7 @@
 # Phase 06 — Live Campaign play
 
-> **Status:** planned
+> **Status:** Complete — implementation and local integration validation are complete; the Supabase-native notification migration is ready for deployment and the operator-owned production smoke remains a pre-launch release gate
+> **Completed:** 2026-08-12
 > **Depends on:** [Phase 02](02-media-and-file-pipeline.md), [Phase 03](03-campaign-core.md), and [Phase 05](05-notifications-and-delivery.md)
 > **Unlocks:** [Phase 07 Encounters](07-encounters.md), [Phase 08 VTT](08-vtt.md), and [Phase 10 paid-table session operations](10-paid-tables.md)
 > **Primary ADRs:** [0001](../adr/0001-package-boundaries.md), [0006](../adr/0006-character-builder-sheet-boundary.md), and [0009](../adr/0009-vtt-encounter-event-boundary.md)
@@ -9,11 +10,12 @@
 
 Extend Campaign Core with a lightweight prepare/run/closeout loop for sessions, vehicles, supporting files and handouts, a manual authoritative Campaign clock, richer live-play workflows, and GM Campaign announcements delivered through Phase 05 notifications.
 
-## Current starting point
+## Implemented scope
 
-- Phase 03 already owns party inventory/currency, durable Campaign rolls/chat, Campaign and session notes, and private Broadcast reconciliation.
-- Phase 02 provides ready asset identity and private transfer/delivery. This phase owns Campaign file/handout references, not another asset lifecycle.
-- Phase 05 owns the Novu-backed inbox, email delivery, preferences, and reliable delivery intents. No Campaign-announcement, live-session, or Campaign-clock domain exists yet.
+- Campaign management now owns player-readable table settings, pinned Vehicle instances with isolated inventory custody, private Campaign files/handouts, immutable announcements, and the manual Campaign clock.
+- The existing Session workspace now composes focused prepare, run, and closeout views. Active players may open the authorized live/history surface without receiving GM-private preparation or reference pins.
+- Phase 02 remains the asset lifecycle owner, Phase 05 remains the delivery/preference owner, and Encounters remain the Session-bound run owner. Phase 06 adds only the Campaign references and authorization seams.
+- Campaign files intentionally accept normalized JPEG/PNG/WebP or strict UTF-8 plain text up to 6 MiB. PDF, office, archive, executable, SVG/HTML, malware-scanning vendors, VTT behavior, and resumable transfer remain out of scope.
 
 ## Requirements
 
@@ -35,7 +37,7 @@ Extend Campaign Core with a lightweight prepare/run/closeout loop for sessions, 
 ### Campaign announcements
 
 - Owners may publish Campaign announcements stored independently from Phase 03's 500-entry chat cap and addressed only to current authorized Campaign members.
-- Publishing an announcement inserts a Phase 05 delivery intent after the announcement source is committed. The source public ID and safe summary are sufficient; private Campaign or party-only text is never copied into Novu or email payloads.
+- Publishing an announcement inserts a Phase 05 delivery intent after the announcement source is committed. The source public ID and safe summary are sufficient; private Campaign or party-only text is never copied into feed or email payloads.
 - Announcement delivery is idempotent and auditable. Opening an announcement reauthorizes current Campaign membership, and removal closes the destination even when an older feed item remains.
 - Party-only sources preserve Phase 03 room isolation across recipient selection, counts, delivery, and destination reads.
 
@@ -44,9 +46,9 @@ Extend Campaign Core with a lightweight prepare/run/closeout loop for sessions, 
 ```mermaid
 flowchart LR
   Announcement["GM Campaign announcement source"] --> Intent["Phase 05 delivery intent"]
-  Intent --> Novu["Novu workflow"]
-  Novu --> Inbox["In-app feed"]
-  Novu --> Email["Resend email when enabled"]
+  Intent --> Edge["Supabase Edge dispatcher"]
+  Edge --> Inbox["Postgres in-app feed"]
+  Edge --> Email["Resend email when enabled"]
   Inbox --> Read["Authorized Campaign read"]
   Email --> Read
 ```
@@ -83,6 +85,14 @@ Clock start, pause, advance, and correction commands persist before any derived 
 - Clock segments, Day N projection, dawn/dusk configuration, correction-only rewind, and monotonic reset boundaries remain correct across retries, reconnects, and concurrent GM commands.
 - Vehicle custody remains isolated from Builder aggregate replacement.
 
+## Verification
+
+- The Phase 06 migration was rebuilt from a clean local Supabase reset, canonical bootstrap SQL and generated database types were refreshed, and the production migration was confirmed applied by the operator.
+- Focused schema, database, service, API, email/workflow, web-model, and security-header tests cover the new contracts and authorization boundaries. The affected monorepo typecheck passed across all eight participating packages.
+- The final local proof creates a GM and Player, establishes active Campaign membership, publishes a table announcement, dispatches exactly one player delivery, reads the durable feed/deep link, verifies publisher exclusion, and cleans up the fixtures.
+- Final review also locks GM-private Session pins, identical PARTY announcement visibility for list/get, immutable Session history, strict text-file finalization, and required clock correction reasons.
+- The production Supabase migration, Edge Function deployment/secrets/schedule, one GM-to-Player smoke, and broader pre-launch checklist remain release operations rather than unfinished Phase 06 product implementation.
+
 ## Out of scope
 
 - Party inventory/currency, conversations/rolls, base notes/collaborative session sections, and Broadcast reconciliation: [Phase 03](03-campaign-core.md).
@@ -90,6 +100,6 @@ Clock start, pause, advance, and correction commands persist before any derived 
 - Native push and device registration: [Phase 11](11-cross-platform-foundation.md). Co-GMs, custom calendars, and automatic clock-driven jobs remain later work.
 - VTT maps/scenes/tokens, voice/video, automated recaps or session transcription, end-to-end encryption, unlimited history, and general background-job infrastructure.
 
-## New-session instruction
+## Phase 07 handoff
 
-Reuse Phase 05 Novu workflows and delivery intents directly. Do not create another notification store, preference model, provider facade, or delivery worker in this phase.
+Phase 06 has no remaining implementation work. Phase 07 should reuse the existing Session-linked Encounter records, Campaign authority, reference surfaces, announcement delivery seam, and manual Campaign clock. It must not create a second Session/Encounter association, Campaign aggregate, notification store, preference model, provider facade, or delivery worker.

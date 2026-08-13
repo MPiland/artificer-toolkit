@@ -3,12 +3,14 @@ import type { DbTables, Json } from '#types'
 export type InventoryOwnerRef =
   | { kind: 'CHARACTER'; characterId: string }
   | { kind: 'CAMPAIGN'; campaignId: string }
+  | { kind: 'VEHICLE'; vehicleId: string }
 
 export interface InventoryOwner {
   id: string
   kind: InventoryOwnerRef['kind']
   characterId: string | null
   campaignId: string | null
+  vehicleId: string | null
   version: number
 }
 export interface InventoryItem {
@@ -153,6 +155,7 @@ export function toOwner(row: InventoryOwnerRow): InventoryOwner {
     kind: row.kind as InventoryOwner['kind'],
     characterId: row.character_id,
     campaignId: row.campaign_id,
+    vehicleId: row.vehicle_id,
     version: row.version
   }
 }

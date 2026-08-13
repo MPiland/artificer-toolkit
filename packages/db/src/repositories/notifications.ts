@@ -20,6 +20,23 @@ export interface NotificationDeliveryIntentRecord {
   recipientUsername: string | null
 }
 
+export interface NotificationFeedItemRecord {
+  id: string
+  workflowKey: NotificationWorkflowKey
+  sourceKind: NotificationSourceKind
+  sourcePublicId: string
+  groupingKey: string | null
+  payload: unknown
+  occurredAt: string
+  seenAt: string | null
+  readAt: string | null
+}
+
+export interface NotificationPreferencesRecord {
+  social: { inApp: boolean; email: boolean }
+  campaign: { inApp: boolean; email: boolean }
+}
+
 type RawClaimedIntent = {
   id: string
   operation: NotificationIntentOperation
@@ -30,6 +47,24 @@ type RawClaimedIntent = {
   attempt_count: number
   recipient_email: string | null
   recipient_username: string | null
+}
+
+type RawFeedItem = {
+  id: string
+  workflow_key: NotificationWorkflowKey
+  source_kind: NotificationSourceKind
+  source_public_id: string
+  grouping_key: string | null
+  payload: unknown
+  occurred_at: string
+  seen_at: string | null
+  read_at: string | null
+}
+
+type RawPreference = {
+  category: 'SOCIAL' | 'CAMPAIGN'
+  in_app_enabled: boolean
+  email_enabled: boolean
 }
 
 function mapClaimedIntent(row: RawClaimedIntent): NotificationDeliveryIntentRecord {
@@ -46,6 +81,33 @@ function mapClaimedIntent(row: RawClaimedIntent): NotificationDeliveryIntentReco
   }
 }
 
+function mapFeedItem(row: RawFeedItem): NotificationFeedItemRecord {
+  return {
+    id: row.id,
+    workflowKey: row.workflow_key,
+    sourceKind: row.source_kind,
+    sourcePublicId: row.source_public_id,
+    groupingKey: row.grouping_key,
+    payload: row.payload,
+    occurredAt: row.occurred_at,
+    seenAt: row.seen_at,
+    readAt: row.read_at
+  }
+}
+
+function mapPreferences(rows: RawPreference[]): NotificationPreferencesRecord {
+  const preferences: NotificationPreferencesRecord = {
+    social: { inApp: true, email: true },
+    campaign: { inApp: true, email: true }
+  }
+  for (const row of rows) {
+    const target = row.category === 'SOCIAL' ? preferences.social : preferences.campaign
+    target.inApp = row.in_app_enabled
+    target.email = row.email_enabled
+  }
+  return preferences
+}
+
 export function createNotificationRepository(db: DBLike) {
   return {
     async findRecipientIdForUser(userId: string): Promise<string | null> {
@@ -55,6 +117,89 @@ export function createNotificationRepository(db: DBLike) {
         .where('id', '=', userId)
         .executeTakeFirst()
       return profile?.notification_recipient_id ?? null
+    },
+
+    async listFeed(userId: string): Promise<NotificationFeedItemRecord[]> {
+      const result = await sql<RawFeedItem>`
+        select id, workflow_key, source_kind, source_public_id, grouping_key,
+          payload, occurred_at, seen_at, read_at
+        from notification_feed_items
+        where recipient_user_id = ${userId}::uuid
+        order by occurred_at desc, id desc
+        limit 25
+      `.execute(db)
+      return result.rows.map(mapFeedItem)
+    },
+
+    async countUnseenFeedItems(userId: string): Promise<number> {
+      const result = await sql<{ count: string }>`
+        select count(*)::text as count
+        from notification_feed_items
+        where recipient_user_id = ${userId}::uuid and seen_at is null
+      `.execute(db)
+      return Number(result.rows[0]?.count ?? '0')
+    },
+
+    async markAllFeedItemsSeen(userId: string, seenAt: string): Promise<number> {
+      const result = await sql<{ id: string }>`
+        update notification_feed_items
+        set seen_at = ${seenAt}::timestamptz
+        where recipient_user_id = ${userId}::uuid and seen_at is null
+        returning id
+      `.execute(db)
+      return result.rows.length
+    },
+
+    async markFeedItemRead(input: {
+      userId: string
+      feedItemId: string
+      readAt: string
+    }): Promise<boolean> {
+      const result = await sql<{ id: string }>`
+        update notification_feed_items
+        set read_at = coalesce(read_at, ${input.readAt}::timestamptz),
+          seen_at = coalesce(seen_at, ${input.readAt}::timestamptz)
+        where id = ${input.feedItemId}::uuid
+          and recipient_user_id = ${input.userId}::uuid
+        returning id
+      `.execute(db)
+      return result.rows.length === 1
+    },
+
+    async getPreferences(userId: string): Promise<NotificationPreferencesRecord> {
+      const result = await sql<RawPreference>`
+        select category, in_app_enabled, email_enabled
+        from notification_preferences
+        where user_id = ${userId}::uuid
+      `.execute(db)
+      return mapPreferences(result.rows)
+    },
+
+    async updatePreferences(input: {
+      userId: string
+      category: 'SOCIAL' | 'CAMPAIGN'
+      inApp: boolean
+      email: boolean
+      updatedAt: string
+    }): Promise<NotificationPreferencesRecord> {
+      await sql`
+        insert into notification_preferences (
+          user_id, category, in_app_enabled, email_enabled, updated_at
+        ) values (
+          ${input.userId}::uuid, ${input.category}, ${input.inApp}, ${input.email},
+          ${input.updatedAt}::timestamptz
+        )
+        on conflict (user_id, category) do update
+        set in_app_enabled = excluded.in_app_enabled,
+          email_enabled = excluded.email_enabled,
+          updated_at = excluded.updated_at
+      `.execute(db)
+      const result = await sql<RawPreference>`
+        select category, in_app_enabled, email_enabled
+        from notification_preferences
+        where user_id = ${input.userId}::uuid
+      `.execute(db)
+      return mapPreferences(result.rows)
     },
 
     async insertDeliveryIntent(input: {

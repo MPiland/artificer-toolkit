@@ -19,6 +19,7 @@ Add one Encounter-backed responsive web virtual tabletop. The first slice suppor
 ## Requirements
 
 - Add a platform-neutral VTT scene model derived from the authoritative Encounter projection and exact scene events.
+- Make hosted internet play the required topology: every authorized player connects independently to the deployed Artificer API, Storage, and private Realtime channels. Players must never need to share a LAN, Wi-Fi network, machine, browser host, or inbound port.
 - Extend Encounter commands/events for durable scene actions such as token placement, committed movement, map selection, grid configuration, and fog changes.
 - Keep selection, hover, open panels, camera position, drag interpolation, measurement preview, and similar transient UI state local or ephemeral.
 - Use PixiJS as the first responsive web renderer. Keep navigation, chat, initiative, actor panels, menus, controls, and accessibility in ordinary web UI outside the canvas.
@@ -28,6 +29,7 @@ Add one Encounter-backed responsive web virtual tabletop. The first slice suppor
 - Large map transfers use the resumable path selected by Phase 02. Phase 08 may add renderer-oriented optimization or tiling without creating a second upload authorization model.
 - Manual fog is explicit Encounter/scene state with GM-only mutation in v1.
 - Every durable action is idempotent, versioned, authorized, replayable, and reconcilable after reconnect.
+- Treat connectivity as intermittent: reconnect restores the committed scene from the authoritative Encounter projection/events, then resumes private invalidation and ephemeral cues without peer-hosted state.
 - Provide non-canvas alternatives for initiative, actor selection, token selection/movement, measurements, rolls, chat, and state inspection.
 
 ## Design
@@ -73,6 +75,7 @@ If the gate fails, retain the scene model and command contracts and simplify or 
 
 - Replaying the same Encounter projection/events reconstructs byte-for-byte equivalent scene-domain values across responsive web sessions.
 - A non-member cannot load map assets, subscribe to scene broadcasts, or issue scene commands.
+- A remote table on unrelated home, mobile, or public networks completes the same join, scene load, action, reconnect, and asset-access journeys as a local table.
 - Players cannot move or reveal tokens outside their actor-control capability.
 - Duplicate/reordered movement delivery does not duplicate or regress committed position.
 - Reload/reconnect restores the committed scene and discards stale local drag state.
@@ -84,7 +87,7 @@ If the gate fails, retain the scene model and command contracts and simplify or 
 
 ## Out of scope
 
-- Automated attacks, saves, damage, conditions, reactions, authored-effect execution, dynamic lighting, 3D, physics, voice/video, AI, marketplace asset sales, offline play, arbitrary scripting, and premature storage-provider abstraction. Revisit R2 only when VTT map volume or egress evidence requires it.
+- Automated attacks, saves, damage, conditions, reactions, authored-effect execution, dynamic lighting, 3D, physics, voice/video, AI, marketplace asset sales, offline play, LAN-only hosting, peer-authoritative state, arbitrary scripting, and premature storage-provider abstraction. An optional LAN/self-hosted mode may be evaluated later only as an alternative transport; it cannot become required for online play. Revisit R2 only when VTT map volume or egress evidence requires it.
 
 ## Questions for the phase subplan
 

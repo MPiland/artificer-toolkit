@@ -11,7 +11,9 @@ const mocks = vi.hoisted(() => ({
     updateCampaignSession: vi.fn(),
     insertSessionNoteSection: vi.fn(),
     listSessionNoteSections: vi.fn(),
-    upsertSessionRsvp: vi.fn()
+    upsertSessionRsvp: vi.fn(),
+    listSessionReferencePins: vi.fn(),
+    listCampaignNoteSections: vi.fn()
   },
   broadcast: vi.fn(),
   lockCampaign: vi.fn(),
@@ -54,6 +56,7 @@ const {
   updateCampaignSession,
   createCampaignSessionNoteSection,
   listCampaignSessionNoteSections,
+  listCampaignSessionReferencePins,
   setCampaignSessionRsvp
 } = await import('./campaignSessionService.js')
 
@@ -145,7 +148,8 @@ describe('Campaign session service', () => {
       'session-read',
       'session-write',
       'commit',
-      'broadcast'
+      'broadcast',
+      'authority'
     ])
   })
 
@@ -271,6 +275,19 @@ describe('Campaign session service', () => {
     expect(sections.map((section) => section.title)).toEqual(['Shared notes'])
   })
 
+  it('does not expose GM reference pins to a player', async () => {
+    const sessionId = '00000000-0000-4000-8000-000000000008'
+    mocks.authority.mockResolvedValue(authority('PLAYER'))
+
+    await expect(
+      listCampaignSessionReferencePins({} as DBLike, { campaignId: id, sessionId }, userId)
+    ).resolves.toEqual([])
+
+    expect(mocks.entries.listCampaignSessions).not.toHaveBeenCalled()
+    expect(mocks.entries.listSessionReferencePins).not.toHaveBeenCalled()
+    expect(mocks.entries.listCampaignNoteSections).not.toHaveBeenCalled()
+  })
+
   it('locks, re-authorizes, and checks writability before creating a session note', async () => {
     mocks.authority.mockImplementation(async () => {
       mocks.steps.push('authority')
@@ -334,7 +351,8 @@ describe('Campaign session service', () => {
       'session-read',
       'note-write',
       'commit',
-      'broadcast'
+      'broadcast',
+      'authority'
     ])
   })
 })

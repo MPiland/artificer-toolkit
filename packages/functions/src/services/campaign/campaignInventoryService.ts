@@ -66,6 +66,10 @@ function toOwnerRef(owner: InventoryOwner): InventoryOwnerRefDto {
     if (!owner.campaignId) throw new Error('Campaign inventory owner is missing its Campaign.')
     return { kind: 'CAMPAIGN', campaignId: owner.campaignId }
   }
+  if (owner.kind === 'VEHICLE') {
+    if (!owner.vehicleId) throw new Error('Vehicle inventory owner is missing its Vehicle.')
+    return { kind: 'VEHICLE', vehicleId: owner.vehicleId }
+  }
   if (!owner.characterId) throw new Error('Character inventory owner is missing its Character.')
   return { kind: 'CHARACTER', characterId: owner.characterId }
 }
@@ -124,7 +128,9 @@ function presentInventoryAuditPayload(payload: Json, maturity: CampaignContentMa
       ? { itemLabel: presentCampaignPlainText(payload.itemLabel, maturity) }
       : {}),
     ...(typeof payload.denominationLabel === 'string'
-      ? { denominationLabel: presentCampaignPlainText(payload.denominationLabel, maturity) }
+      ? {
+          denominationLabel: presentCampaignPlainText(payload.denominationLabel, maturity)
+        }
       : {})
   }
 }
@@ -134,11 +140,21 @@ async function resolvePermittedOwner(
   campaignId: string,
   userId: string,
   isOwner: boolean,
-  ref: InventoryOwnerRef
+  ref: InventoryOwnerRef,
+  allowVehicleRead = false
 ): Promise<InventoryOwner> {
   const inventory = createInventoryRepository(db)
   if (ref.kind === 'CAMPAIGN') {
     if (ref.campaignId !== campaignId) throw new CampaignAccessError()
+  } else if (ref.kind === 'VEHICLE') {
+    const vehicle = await db
+      .selectFrom('campaign_vehicles')
+      .select('id')
+      .where('campaign_id', '=', campaignId)
+      .where('id', '=', ref.vehicleId)
+      .executeTakeFirst()
+    if (!vehicle) throw new CampaignAccessError()
+    if (!isOwner && !allowVehicleRead) throw new CampaignAccessError()
   } else {
     const assignment = await createCampaignRepository(db).findAssignmentByCharacter(
       campaignId,
@@ -213,7 +229,8 @@ export async function getCampaignInventory(
     campaignId,
     userId,
     authority.membership.role === 'OWNER',
-    ownerRef
+    ownerRef,
+    true
   )
   const inventory = await createInventoryRepository(db).getInventoryByOwnerId(owner.id)
   if (!inventory) throw new CampaignNotFoundError()
@@ -354,7 +371,10 @@ export async function mutateCampaignPartyInventory(
       })
       const denomination =
         campaignDenomination ??
-        (await inventory.findDenomination({ kind: 'RULESET', id: input.denominationId }))
+        (await inventory.findDenomination({
+          kind: 'RULESET',
+          id: input.denominationId
+        }))
       if (!denomination) throw new CampaignValidationError('Currency denomination not found.')
       if (denomination.kind === 'CAMPAIGN') {
         const system = await inventory.getCurrencySystem(denomination.systemId)
@@ -469,15 +489,31 @@ export async function transferCampaignInventory(
       input.source
     )
     let destination: InventoryOwner
-    if (!actorIsOwner && input.destination.kind === 'CHARACTER') {
-      const assignment = await createCampaignRepository(trx).findAssignmentByCharacter(
-        input.campaignId,
-        input.destination.characterId
-      )
-      if (!assignment) throw new CampaignAccessError()
-      const resolved = await inventory.resolveOwner(input.destination)
-      if (!resolved) throw new CampaignNotFoundError()
-      destination = resolved
+    if (
+      !actorIsOwner &&
+      (input.destination.kind === 'CHARACTER' || input.destination.kind === 'VEHICLE')
+    ) {
+      if (input.destination.kind === 'VEHICLE') {
+        const vehicle = await trx
+          .selectFrom('campaign_vehicles')
+          .select('id')
+          .where('campaign_id', '=', input.campaignId)
+          .where('id', '=', input.destination.vehicleId)
+          .executeTakeFirst()
+        if (!vehicle) throw new CampaignAccessError()
+        const resolved = await inventory.resolveOwner(input.destination)
+        if (!resolved) throw new CampaignNotFoundError()
+        destination = resolved
+      } else {
+        const assignment = await createCampaignRepository(trx).findAssignmentByCharacter(
+          input.campaignId,
+          input.destination.characterId
+        )
+        if (!assignment) throw new CampaignAccessError()
+        const resolved = await inventory.resolveOwner(input.destination)
+        if (!resolved) throw new CampaignNotFoundError()
+        destination = resolved
+      }
     } else {
       destination = await resolvePermittedOwner(
         trx,
@@ -544,7 +580,10 @@ export async function transferCampaignInventory(
       })
       const denomination =
         campaignDenomination ??
-        (await inventory.findDenomination({ kind: 'RULESET', id: input.denominationId }))
+        (await inventory.findDenomination({
+          kind: 'RULESET',
+          id: input.denominationId
+        }))
       if (!denomination) throw new CampaignValidationError('Currency denomination not found.')
       if (denomination.kind === 'CAMPAIGN') {
         const system = await inventory.getCurrencySystem(denomination.systemId)
@@ -618,13 +657,24 @@ export async function transferCampaignInventory(
 
 export async function reconcileCampaignCurrencyDeparture(
   db: DBLike,
-  input: { campaignId: string; characterId: string; actorUserId: string; reason: string }
+  input: {
+    campaignId: string
+    characterId: string
+    actorUserId: string
+    reason: string
+  }
 ): Promise<{ moved: CampaignCurrencyCleanup[]; eventId: string | null }> {
   return withTransaction(db, async (trx) => {
     const inventory = createInventoryRepository(trx)
     const [characterOwner, campaignOwner] = await Promise.all([
-      inventory.resolveOwner({ kind: 'CHARACTER', characterId: input.characterId }),
-      inventory.resolveOwner({ kind: 'CAMPAIGN', campaignId: input.campaignId })
+      inventory.resolveOwner({
+        kind: 'CHARACTER',
+        characterId: input.characterId
+      }),
+      inventory.resolveOwner({
+        kind: 'CAMPAIGN',
+        campaignId: input.campaignId
+      })
     ])
     if (!characterOwner || !campaignOwner) {
       throw new CampaignConflictError(

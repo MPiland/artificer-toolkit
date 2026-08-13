@@ -1,7 +1,7 @@
 # Media lifecycle and delivery
 
 > **Status:** canonical
-> **Scope:** image asset identity, processing, domain references, and private delivery
+> **Scope:** image and restricted Campaign-file asset identity, processing, domain references, and private delivery
 > **Update when:** asset profiles, lifecycle states, variants, storage provider, or attachment ownership changes
 > **Verification:** `packages/schema/src/api/media.ts`, `packages/functions/src/services/media`, `packages/db/src/domains/subjects/repositories/media.ts`, and the Phase 02 media tests
 
@@ -20,11 +20,11 @@ flowchart LR
 
 Signed URLs and upload tokens are credentials, never persisted domain truth. Domain rows store stable asset IDs; asset and variant rows store opaque object keys.
 
-## Current image profiles
+## Current profiles
 
 Phase 02 enables `ACCOUNT_AVATAR`, `CHARACTER_PORTRAIT`, and `AUTHORED_IMAGE`. Each accepted upload is normalized once and produces immutable source, display, and thumbnail variants. Account avatars, Character portraits, and authored artwork store normalized square thumbnail framing; authored detail pages and Character Sheet inspectors use the uncropped display variant. Originals are temporary and are removed after successful normalization. Clients cannot choose a bucket, object key, visibility, or output variant path.
 
-Campaign files, Marketplace supplements, and VTT maps add profiles only when their owning domains ship. They reuse the asset identity and delivery flow but may add malware scanning, public derivatives, resumable transfer, larger dimensions, or map-specific outputs.
+Phase 06 adds `CAMPAIGN_FILE` and `CAMPAIGN_HANDOUT_MAP`. Campaign files accept normalized JPEG/PNG/WebP or strict UTF-8 `text/plain`, and handout maps accept normalized images only. Both remain private, limited to 6 MiB, and require fresh Campaign membership before attachment listing or signed delivery. Handout maps are ordinary Campaign assets and have no VTT behavior. PDF, office, archive, executable, SVG/HTML, resumable upload, and external malware-scanning support remain deferred rather than being represented as accepted safe formats.
 
 ## Lifecycle
 
@@ -47,6 +47,7 @@ Storage writes cannot share a transaction with Postgres. Every new or replaced o
 - `profiles.avatar_asset_id` owns the current account avatar reference.
 - `characters.portrait_asset_id` owns Character presentation independently of Builder aggregate replacement.
 - `authored_image_slots` owns one `DRAFT` and one `ACTIVE` artwork slot per authored route identity.
+- `campaign_attachments` owns Campaign file and handout references, including uploader identity and optional Session or Campaign-note association.
 
 Saving an authored draft initializes its draft slot from active artwork once. Editing artwork changes only the draft slot. Activation promotes that slot in the same transaction that replaces the active aggregate and removes the draft. Discarding a draft removes only its draft slot. This follows [ADR 0011](../adr/0011-active-authored-content-and-json-drafts.md); media does not recreate authored revision history.
 

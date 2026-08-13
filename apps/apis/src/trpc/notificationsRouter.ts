@@ -1,27 +1,41 @@
-import { createNotificationSession } from '@artificer-toolkit/functions'
-import { notificationSessionDtoSchema } from '@artificer-toolkit/schema/api/notifications'
+import {
+  getNotificationFeed,
+  getNotificationPreferences,
+  markAllNotificationsSeen,
+  markNotificationRead,
+  updateNotificationPreferences
+} from '@artificer-toolkit/functions'
+import {
+  notificationFeedDtoSchema,
+  notificationFeedItemIdInputSchema,
+  notificationPreferencesDtoSchema,
+  updateNotificationPreferencesInputSchema
+} from '@artificer-toolkit/schema/api/notifications'
 import { withExplicitAuthorityDb } from './dbContext.js'
-import { authenticatedProcedure, createTRPCRouter } from './procedures.js'
-
-const runtimeEnvironment = (
-  globalThis as typeof globalThis & {
-    process?: { env?: Record<string, string | undefined> }
-  }
-).process?.env
-
-function requiredEnvironmentVariable(name: string): string {
-  const value = runtimeEnvironment?.[name]
-  if (!value) throw new Error(`${name} is required.`)
-  return value
-}
+import { authenticatedProcedure, createTRPCRouter, okResponseSchema } from './procedures.js'
 
 export const notificationsRouter = createTRPCRouter({
-  session: authenticatedProcedure.output(notificationSessionDtoSchema).query(({ ctx }) =>
-    withExplicitAuthorityDb(ctx, (db, userId) =>
-      createNotificationSession(db, userId, {
-        secretKey: requiredEnvironmentVariable('NOVU_SECRET_KEY'),
-        applicationIdentifier: requiredEnvironmentVariable('NOVU_APPLICATION_IDENTIFIER')
-      })
+  feed: authenticatedProcedure
+    .output(notificationFeedDtoSchema)
+    .query(({ ctx }) => withExplicitAuthorityDb(ctx, getNotificationFeed)),
+  markAllSeen: authenticatedProcedure.output(okResponseSchema).mutation(async ({ ctx }) => {
+    await withExplicitAuthorityDb(ctx, markAllNotificationsSeen)
+    return { ok: true }
+  }),
+  markRead: authenticatedProcedure
+    .input(notificationFeedItemIdInputSchema)
+    .output(okResponseSchema)
+    .mutation(async ({ ctx, input }) => {
+      await withExplicitAuthorityDb(ctx, (db, userId) => markNotificationRead(db, userId, input.id))
+      return { ok: true }
+    }),
+  preferences: authenticatedProcedure
+    .output(notificationPreferencesDtoSchema)
+    .query(({ ctx }) => withExplicitAuthorityDb(ctx, getNotificationPreferences)),
+  updatePreferences: authenticatedProcedure
+    .input(updateNotificationPreferencesInputSchema)
+    .output(notificationPreferencesDtoSchema)
+    .mutation(({ ctx, input }) =>
+      withExplicitAuthorityDb(ctx, (db, userId) => updateNotificationPreferences(db, userId, input))
     )
-  )
 })

@@ -4,49 +4,13 @@ import { renderWithAppProviders } from '#test/renderWithAppProviders'
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
-  read: vi.fn(),
-  seenAll: vi.fn()
+  feed: vi.fn(),
+  markAllSeen: vi.fn(),
+  markRead: vi.fn()
 }))
 
-vi.mock('@novu/react', () => ({
-  useNotifications: () => ({
-    isLoading: false,
-    notifications: [
-      {
-        id: 'notification-1',
-        transactionId: 'transaction-1',
-        body: 'Ignored provider body',
-        to: { subscriberId: 'subscriber-1' },
-        isRead: false,
-        isSeen: false,
-        isArchived: false,
-        isSnoozed: false,
-        createdAt: '2026-08-10T15:00:00.000Z',
-        channelType: 'in_app',
-        data: {
-          kind: 'SOCIAL_INVITATION_RECEIVED',
-          sourcePublicId: '00000000-0000-4000-8000-000000000001',
-          listingPublicId: '00000000-0000-4000-8000-000000000002',
-          listingTitle: 'The Glass Harbor',
-          occurredAt: '2026-08-10T15:00:00.000Z',
-          hostUsername: 'harbormaster',
-          expiresAt: '2026-08-17T15:00:00.000Z'
-        },
-        workflow: {
-          id: 'workflow-1',
-          identifier: 'social-invitation-received',
-          name: 'Social notification',
-          critical: false,
-          severity: 'none'
-        },
-        severity: 'none'
-      }
-    ],
-    hasMore: true,
-    refetch: vi.fn(),
-    seenAll: mocks.seenAll
-  }),
-  useNovu: () => ({ notifications: { read: mocks.read } })
+vi.mock('#app/lib/api', () => ({
+  api: { notifications: mocks }
 }))
 
 vi.mock('@tanstack/react-router', async (importOriginal) => ({
@@ -57,19 +21,45 @@ vi.mock('@tanstack/react-router', async (importOriginal) => ({
 import { NotificationFeed } from './NotificationFeed'
 
 describe('NotificationFeed', () => {
-  it('marks the full provider feed seen and uses Novu read before the typed deep link', async () => {
+  it('marks the full feed seen and records a read before the typed deep link', async () => {
     const onNavigate = vi.fn()
-    mocks.read.mockResolvedValue({})
-    mocks.seenAll.mockResolvedValue({})
+    mocks.feed.mockResolvedValue({
+      items: [
+        {
+          data: {
+            kind: 'SOCIAL_INVITATION_RECEIVED',
+            sourcePublicId: '00000000-0000-4000-8000-000000000001',
+            listingPublicId: '00000000-0000-4000-8000-000000000002',
+            listingTitle: 'The Glass Harbor',
+            occurredAt: '2026-08-10T15:00:00.000Z',
+            hostUsername: 'harbormaster',
+            expiresAt: '2026-08-17T15:00:00.000Z'
+          },
+          groupingKey: null,
+          id: '00000000-0000-4000-8000-000000000003',
+          occurredAt: '2026-08-10T15:00:00.000Z',
+          readAt: null,
+          seenAt: null,
+          sourceKind: 'CAMPAIGN_INVITE',
+          sourcePublicId: '00000000-0000-4000-8000-000000000001',
+          workflowKey: 'social-invitation-received'
+        }
+      ],
+      unseenCount: 1
+    })
+    mocks.markRead.mockResolvedValue({ ok: true })
+    mocks.markAllSeen.mockResolvedValue({ ok: true })
     renderWithAppProviders(<NotificationFeed onNavigate={onNavigate} />)
 
     await waitFor(() => {
-      expect(mocks.seenAll).toHaveBeenCalledWith()
+      expect(mocks.markAllSeen).toHaveBeenCalledWith()
     })
 
     fireEvent.click(screen.getByRole('button', { name: /invitation from/i }))
 
-    expect(mocks.read).toHaveBeenCalledWith({ notificationId: 'notification-1' })
+    await waitFor(() => {
+      expect(mocks.markRead).toHaveBeenCalledWith({ id: '00000000-0000-4000-8000-000000000003' })
+    })
     expect(onNavigate).toHaveBeenCalledOnce()
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: '/social',

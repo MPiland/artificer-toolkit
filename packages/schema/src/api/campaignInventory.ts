@@ -40,7 +40,8 @@ export const deleteCampaignCurrencySystemInputSchema = z.strictObject({
 
 export const inventoryOwnerRefDtoSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('CHARACTER'), characterId: uuidSchema }),
-  z.strictObject({ kind: z.literal('CAMPAIGN'), campaignId: uuidSchema })
+  z.strictObject({ kind: z.literal('CAMPAIGN'), campaignId: uuidSchema }),
+  z.strictObject({ kind: z.literal('VEHICLE'), vehicleId: uuidSchema })
 ])
 export const inventoryItemDtoSchema = z.strictObject({
   id: uuidSchema,
@@ -91,7 +92,9 @@ export const transferCampaignInventoryInputSchema = z.discriminatedUnion('kind',
     idempotencyKey: uuidSchema
   })
 ])
-export const campaignInventoryTransferResultDtoSchema = z.strictObject({ eventId: uuidSchema })
+export const campaignInventoryTransferResultDtoSchema = z.strictObject({
+  eventId: uuidSchema
+})
 const inventoryMutationVersionFields = {
   campaignId: uuidSchema,
   expectedOwnerVersion: versionSchema,
@@ -132,7 +135,9 @@ export const campaignPartyInventoryMutationInputSchema = z.discriminatedUnion('k
       .refine((value) => value !== 0)
   })
 ])
-export const campaignPartyInventoryMutationResultDtoSchema = z.strictObject({ eventId: uuidSchema })
+export const campaignPartyInventoryMutationResultDtoSchema = z.strictObject({
+  eventId: uuidSchema
+})
 export const listCampaignInventoryAuditInputSchema = z.strictObject({
   campaignId: uuidSchema,
   cursor: uuidSchema.optional(),

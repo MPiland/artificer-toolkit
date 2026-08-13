@@ -10,12 +10,14 @@ import {
 import { assertWritableAuthoredSubject } from '../authoredContent/authoredContentService.js'
 import type {
   AttachImageInput,
+  CreateCampaignFileUploadIntentInput,
   CreateImageUploadIntentInput,
   FinalizeImageUploadOutput,
   ImageLookupInput,
   MediaTarget,
   MediaVariantKind,
   RemoveImageInput,
+  SignedCampaignFileDeliveryDto,
   SignedImageDeliveryDto
 } from '@artificer-toolkit/schema/api/media'
 import { createSupabaseClient } from '../../clients/supabaseClient.js'
@@ -116,7 +118,30 @@ async function normalizeImage(source: Buffer) {
 function mediaTargetKey(target: MediaTarget): string {
   if (target.type === 'ACCOUNT_AVATAR') return target.type
   if (target.type === 'CHARACTER_PORTRAIT') return `${target.type}:${target.characterId}`
+  if (target.type === 'CAMPAIGN_FILE' || target.type === 'CAMPAIGN_HANDOUT_MAP') {
+    return `${target.type}:${target.campaignId}`
+  }
   return `${target.type}:${target.subjectKind}:${target.subjectId}`
+}
+
+async function requireActiveCampaignMember(db: DBLike, campaignId: string, userId: string) {
+  const membership = await db
+    .selectFrom('campaign_memberships')
+    .select('user_id')
+    .where('campaign_id', '=', campaignId)
+    .where('user_id', '=', userId)
+    .where('status', '=', 'ACTIVE')
+    .executeTakeFirst()
+  if (!membership) throw new MediaAccessError()
+}
+
+export async function createCampaignFileUploadIntent(
+  db: DBLike,
+  userId: string,
+  input: CreateCampaignFileUploadIntentInput
+) {
+  await requireActiveCampaignMember(db, input.target.campaignId, userId)
+  return createImageUploadIntent(db, userId, input)
 }
 
 function assertReadyOwnedAsset(
@@ -163,7 +188,7 @@ async function signedDelivery(
   const asset = await media.findById(assetId)
   if (!asset || asset.status !== 'READY') return null
   const variant = await media.findVariant(assetId, variantKind)
-  if (!variant) return null
+  if (!variant || variant.width === null || variant.height === null) return null
   const supabase = createSupabaseClient()
   const { data, error } = await supabase.storage
     .from(bucket)
@@ -194,7 +219,7 @@ async function signedDelivery(
 export async function createImageUploadIntent(
   db: DBLike,
   userId: string,
-  input: CreateImageUploadIntentInput
+  input: CreateImageUploadIntentInput | CreateCampaignFileUploadIntentInput
 ) {
   const targetKey = mediaTargetKey(input.target)
   if (input.target.type === 'CHARACTER_PORTRAIT') {
@@ -258,7 +283,11 @@ export async function finalizeImageUpload(
   if (found.owner_user_id !== userId) throw new MediaAccessError()
   if (found.status === 'READY') {
     try {
-      return { assetId, status: 'READY', preview: await signedDelivery(db, assetId, 'DISPLAY') }
+      return {
+        assetId,
+        status: 'READY',
+        preview: await signedDelivery(db, assetId, 'DISPLAY')
+      }
     } catch {
       return { assetId, status: 'READY', preview: null }
     }
@@ -334,7 +363,10 @@ export async function finalizeImageUpload(
         kind === 'SOURCE'
           ? normalized.data
           : await sharp(normalized.data)
-              .resize(size.width, size.height, { fit: 'inside', withoutEnlargement: true })
+              .resize(size.width, size.height, {
+                fit: 'inside',
+                withoutEnlargement: true
+              })
               .webp({ quality: 85 })
               .toBuffer()
       const id = randomUUID()
@@ -373,7 +405,11 @@ export async function finalizeImageUpload(
     isReady = true
     await removeMediaObjects(db, [asset.raw_object_key])
     try {
-      return { assetId, status: 'READY', preview: await signedDelivery(db, assetId, 'DISPLAY') }
+      return {
+        assetId,
+        status: 'READY',
+        preview: await signedDelivery(db, assetId, 'DISPLAY')
+      }
     } catch {
       return { assetId, status: 'READY', preview: null }
     }
@@ -387,6 +423,148 @@ export async function finalizeImageUpload(
     await removeMediaObjects(db, newKeys)
     await media.resetPending(assetId)
     throw error
+  }
+}
+
+export async function finalizeCampaignFileUpload(
+  db: DBLike,
+  userId: string,
+  assetId: string
+): Promise<FinalizeImageUploadOutput> {
+  const media = createMediaRepository(db)
+  const found = await media.findById(assetId)
+  if (!found) throw new MediaNotFoundError()
+  if (found.owner_user_id !== userId) throw new MediaAccessError()
+  if (found.profile !== 'CAMPAIGN_FILE' && found.profile !== 'CAMPAIGN_HANDOUT_MAP') {
+    throw new MediaAccessError()
+  }
+  const campaignId = found.target_key.slice(found.target_key.indexOf(':') + 1)
+  await requireActiveCampaignMember(db, campaignId, userId)
+  if (found.declared_mime_type !== 'text/plain') {
+    const result = await finalizeImageUpload(db, userId, assetId)
+    return { ...result, preview: null }
+  }
+  if (found.profile === 'CAMPAIGN_HANDOUT_MAP') {
+    throw new MediaValidationError('Handout maps must be images.')
+  }
+  if (found.status === 'READY') return { assetId, status: 'READY', preview: null }
+
+  const asset = await media.claimForProcessing(assetId, userId)
+  if (!asset) throw new MediaConflictError()
+  let readyKey: string | null = null
+  try {
+    const download = await createSupabaseClient()
+      .storage.from(bucket)
+      .download(asset.raw_object_key)
+    if (download.error || !download.data)
+      throw new MediaValidationError('Upload data was not found.')
+    const source = Buffer.from(await download.data.arrayBuffer())
+    if (source.byteLength > maxBytes)
+      throw new MediaValidationError('File exceeds the 6 MiB limit.')
+    let text: string
+    try {
+      text = new TextDecoder('utf-8', { fatal: true }).decode(source)
+    } catch {
+      throw new MediaValidationError('Text files must use valid UTF-8.')
+    }
+    let containsControlCharacter = false
+    for (let index = 0; index < text.length; index += 1) {
+      const code = text.charCodeAt(index)
+      if (
+        code === 0 ||
+        (code >= 1 && code <= 8) ||
+        code === 11 ||
+        code === 12 ||
+        (code >= 14 && code <= 31) ||
+        code === 127
+      ) {
+        containsControlCharacter = true
+        break
+      }
+    }
+    if (containsControlCharacter) {
+      throw new MediaValidationError('Text files cannot contain control characters.')
+    }
+    const body = Buffer.from(text, 'utf8')
+    readyKey = `ready/${userId}/${assetId}/${randomUUID()}.txt`
+    const objectKey = readyKey
+    await media.scheduleObjectDeletions([objectKey])
+    const upload = await createSupabaseClient().storage.from(bucket).upload(objectKey, body, {
+      contentType: 'text/plain; charset=utf-8',
+      upsert: false
+    })
+    if (upload.error) throw new Error('Unable to store processed text file.')
+    const ready = await withTransaction(db, async (trx) => {
+      const repository = createMediaRepository(trx)
+      if (!(await repository.lockOwner(userId))) throw new MediaAccessError()
+      return repository.replaceReady({
+        assetId,
+        ownerUserId: userId,
+        quotaBytes: await getStorageQuotaBytes(trx, userId),
+        reservationBytes: maxBytes,
+        verifiedMimeType: 'text/plain',
+        verifiedBytes: body.byteLength,
+        width: null,
+        height: null,
+        variants: [
+          {
+            id: randomUUID(),
+            kind: 'SOURCE',
+            object_key: objectKey,
+            mime_type: 'text/plain',
+            byte_size: body.byteLength,
+            width: null,
+            height: null
+          }
+        ]
+      })
+    })
+    if (!ready) throw new MediaQuotaError()
+    await removeMediaObjects(db, [asset.raw_object_key])
+    return { assetId, status: 'READY', preview: null }
+  } catch (error) {
+    if (error instanceof MediaValidationError || error instanceof MediaQuotaError) {
+      await removeMediaObjects(
+        db,
+        [readyKey, asset.raw_object_key].filter((key): key is string => Boolean(key))
+      )
+      await media.reject(assetId, error.message)
+      return { assetId, status: 'REJECTED', preview: null }
+    }
+    await removeMediaObjects(
+      db,
+      [readyKey].filter((key): key is string => Boolean(key))
+    )
+    await media.resetPending(assetId)
+    throw error
+  }
+}
+
+export async function getCampaignFileDelivery(
+  db: DBLike,
+  assetId: string
+): Promise<SignedCampaignFileDeliveryDto> {
+  const media = createMediaRepository(db)
+  const asset = await media.findById(assetId)
+  if (!asset || asset.status !== 'READY') throw new MediaNotFoundError()
+  if (asset.profile !== 'CAMPAIGN_FILE' && asset.profile !== 'CAMPAIGN_HANDOUT_MAP') {
+    throw new MediaAccessError()
+  }
+  const variant = await media.findVariant(assetId, 'SOURCE')
+  if (!variant) throw new MediaNotFoundError()
+  const { data, error } = await createSupabaseClient()
+    .storage.from(bucket)
+    .createSignedUrl(variant.object_key, 5 * 60, {
+      download: asset.original_file_name
+    })
+  if (error || !data?.signedUrl) throw new Error('Unable to create file delivery URL.')
+  return {
+    assetId,
+    url: data.signedUrl,
+    expiresAt: isoAfter(5 * 60 * 1000),
+    mimeType: variant.mime_type as SignedCampaignFileDeliveryDto['mimeType'],
+    fileName: asset.original_file_name,
+    byteSize: variant.byte_size
   }
 }
 
@@ -456,7 +634,7 @@ export async function attachImage(
     if (!character.rows[0]) throw new MediaAccessError()
   }
   const source = await media.findVariant(asset.id, 'SOURCE')
-  if (!source) throw new MediaNotFoundError()
+  if (!source || source.width === null || source.height === null) throw new MediaNotFoundError()
   const supabase = createSupabaseClient()
   const { data: file, error } = await supabase.storage.from(bucket).download(source.object_key)
   if (error || !file) throw new Error('Unable to load source image.')
@@ -543,6 +721,7 @@ export async function removeImage(
     return
   }
   const target = input.target
+  if (target.type !== 'AUTHORED_IMAGE') throw new MediaAccessError()
   await withTransaction(db, async (trx) => {
     await lockAuthoredDraft(trx, userId, target.subjectKind, target.subjectId)
     await createMediaRepository(trx).upsertAuthoredSlot({

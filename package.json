@@ -2,9 +2,6 @@
   "name": "artificer-toolkit",
   "version": "0.0.1",
   "private": true,
-  "resolutions": {
-    "sanitize-html": "2.17.5"
-  },
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -13,11 +10,13 @@
   "scripts": {
     "dev:prepare": "yarn build:apis",
     "dev": "yarn dev:prepare && turbo run dev --filter=@artificer-toolkit/web",
+    "notifications:serve": "supabase functions serve notification-dispatch --env-file .env.local",
     "turbo": "turbo",
     "db:reset:remote": "yarn workspace @artificer-toolkit/db db:reset:remote",
     "social:retention": "yarn workspace @artificer-toolkit/db social:retention",
     "test:social-hub:integration": "yarn build:schema && yarn build:db && tsx packages/functions/src/scripts/testSocialHubIntegration.ts",
     "test:notifications:integration": "yarn build:schema && yarn build:db && tsx packages/functions/src/scripts/testNotificationsIntegration.ts",
+    "test:campaign-announcement:integration": "yarn build:schema && yarn build:db && tsx packages/functions/src/scripts/testCampaignAnnouncementIntegration.ts",
     "audit:srd": "yarn workspace @artificer-toolkit/db audit:srd",
     "audit:srd:production": "yarn workspace @artificer-toolkit/db audit:srd:production",
     "test:character-sheet:integration": "yarn build:shared && yarn workspace @artificer-toolkit/db test:character-sheet:integration",
@@ -109,6 +108,9 @@
     "tsx": "^4.22.4",
     "turbo": "^2.9.16",
     "vitest": "^4.1.9"
+  },
+  "resolutions": {
+    "sanitize-html": "2.17.5"
   },
   "packageManager": "yarn@4.17.1"
 }

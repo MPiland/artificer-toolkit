@@ -23,7 +23,7 @@ For authoring, the flow is route → node-runtime DTO → `AuthoringFormLayout`/
 - Keep detail/read routes separate from `/edit` authoring routes and keep Builder state separate from Sheet play-state commands.
 - Public-registration behavior comes from the server-owned `PUBLIC_SIGN_UP_ENABLED` flag. The root loader exposes only its parsed boolean to routes; the sign-up server function rechecks it before calling Supabase Auth.
 - Library import remains hidden unless the server-owned `LIBRARY_IMPORT_ENABLED` flag is exactly `true`. Disabled direct-route requests return to the authenticated Home surface.
-- Novu Cloud owns product-notification feed engagement and channel-preference state. The authenticated notifications session resolves only the caller's subscriber and returns a server-issued HMAC plus the application identifier. Notification links contain public source IDs and always reauthorize through the owning Social or Campaign API.
+- Supabase Postgres owns product-notification feed engagement and channel preferences. Authenticated notification APIs resolve only the caller; private Realtime messages invalidate cached state but never replace the authoritative API read. Notification links contain public source IDs and always reauthorize through the owning Social or Campaign API.
 - `auth/confirmed` verifies Supabase invitation tokens and redirects invitees to account setup. Authenticated invite sessions remain limited to that setup until a unique username and password are recorded and completion is marked in auth metadata. Public signup also requires a username. Sign-in accepts either the private account email directly or the username through the same-origin API without exposing the associated email; production username sign-in requires Supabase IP Address Forwarding to be enabled. Password reset and ordinary email-confirmation routes remain independent of the public-registration flag.
 
 ## Focused validation
@@ -48,13 +48,11 @@ Set these values in the Netlify UI rather than in `netlify.toml`:
 - `SENTRY_AUTH_TOKEN` for production source-map uploads. Keep it secret and available only to the build environment.
 - `SUPABASE_URL` and `SUPABASE_SECRET_KEY` for server-only request authentication. They are required by the current server functions; make them available to Functions at runtime only.
 - `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, `AUTH_EMAIL_FROM`, and the canonical public app origin as `SITE_URL` for the server-only Supabase Auth Send Email Hook in `netlify/functions`. These values must be available to Functions at runtime only.
-- `NOVU_SECRET_KEY` for server-only workflow delivery, subscriber management, and HMAC signing. Keep it secret and available to Functions at runtime only.
-- `NOVU_APPLICATION_IDENTIFIER` for the authenticated notifications session response. It is a public provider identifier but remains a server environment value rather than global `VITE_` configuration.
 - `DATABASE_CONNECTION_STRING` for database-backed server routes. Use Supabase's Transaction Pooler connection string for Netlify's transient serverless functions. Make it available during the build and to Functions at runtime.
 - `PUBLIC_SIGN_UP_ENABLED=false` for closed alpha. Make it available during the build and to Functions at runtime.
 - `LIBRARY_IMPORT_ENABLED=false` until the importer is ready for public use. Make it available during the build and to Functions at runtime.
 
-Do not set `SUPABASE_SECRET_KEY`, `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, `SENTRY_AUTH_TOKEN`, `NOVU_SECRET_KEY`, or any database credential in a `VITE_` variable. These values must remain build or server secrets and must never reach browser code. Redeploy after changing an environment variable. Once the first production URL exists, add its `/auth/confirmed`, `/update-password`, and `/settings/account` paths to Supabase Auth's redirect URL allow list before sending invitations, password-recovery emails, or email-change confirmations.
+Do not set `SUPABASE_SECRET_KEY`, `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, `SENTRY_AUTH_TOKEN`, or any database credential in a `VITE_` variable. These values must remain build or server secrets and must never reach browser code. Redeploy after changing an environment variable. Once the first production URL exists, add its `/auth/confirmed`, `/update-password`, and `/settings/account` paths to Supabase Auth's redirect URL allow list before sending invitations, password-recovery emails, or email-change confirmations.
 
 ## Canonical references
 

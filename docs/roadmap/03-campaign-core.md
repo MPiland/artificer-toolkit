@@ -119,7 +119,7 @@ Unread state follows the same predicate as reads and subscriptions. Counts, deli
 ## Out of scope
 
 - Vehicles, Campaign files/handouts, Campaign clock, VTT, chat attachments/reactions/threads/search/typing, CRDTs/cursors/revision history, semantic note links/hover cards, payment, and a notification domain.
-- Phase 05 establishes the Novu-backed web inbox, Resend email delivery, and notification preferences; Phase 06 adds Campaign announcements; Phase 10 adds paid-table notification sources; Phase 11 adds native push.
+- Phase 05 establishes the Supabase-backed web inbox, Resend email delivery, and notification preferences; Phase 06 adds Campaign announcements; Phase 10 adds paid-table notification sources; Phase 11 adds native push.
 
 ## New-session instruction
 

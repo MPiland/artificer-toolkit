@@ -6,6 +6,7 @@ export function NotificationPreferencesView({
   channels,
   error,
   isSaving,
+  label,
   onChange
 }: NotificationPreferencesViewProps) {
   return (
@@ -14,14 +15,14 @@ export function NotificationPreferencesView({
         checked={channels.inApp}
         className={styles.preferenceControl}
         disabled={isSaving}
-        label='In-app notifications'
+        label={`${label} in-app notifications`}
         onChange={(event) => onChange?.({ ...channels, inApp: event.currentTarget.checked })}
       />
       <Switch
         checked={channels.email}
         className={styles.preferenceControl}
         disabled={isSaving}
-        label='Email notifications'
+        label={`${label} email notifications`}
         onChange={(event) => onChange?.({ ...channels, email: event.currentTarget.checked })}
       />
       {error ? (

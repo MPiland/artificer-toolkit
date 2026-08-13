@@ -78,7 +78,7 @@ The completed private-by-default asset pipeline serves account avatars, Characte
 
 ### Campaigns and live play
 
-Phase 03 Campaigns own username/entitlement enforcement, invitations, membership, owner transfer, Character assignment, immutable content access, typed rules, party inventory/currency, GM Sheet authority, notes, durable Campaign conversations/rolls, and private Realtime hints. The Campaign management page is the GM workspace and launch point for live session controls; players use Sheet-side drawers for quick Notes/Chat/Party Inventory access while running. Phase 05 adds the Novu-backed inbox, Resend email delivery, and notification preferences. Phase 06 adds vehicles, files/handouts, session clock controls, and Campaign announcements through that notification boundary. Campaign rules modify engine assembly without rewriting character-authored intent. Campaign content references grant members read/use access to immutable Campaign content versions while relevant to the Campaign; they do not grant ownership, editing, personal export, or marketplace sale rights.
+Phase 03 Campaigns own username/entitlement enforcement, invitations, membership, owner transfer, Character assignment, immutable content access, typed rules, party inventory/currency, GM Sheet authority, notes, durable Campaign conversations/rolls, and private Realtime hints. The Campaign management page is the GM workspace and launch point for live session controls; players use Sheet-side drawers for quick Notes/Chat/Party Inventory access while running. Phase 05 adds the Supabase-backed inbox, direct Resend email delivery, and notification preferences. Phase 06 adds vehicles, files/handouts, session clock controls, and Campaign announcements through that notification boundary. Campaign rules modify engine assembly without rewriting character-authored intent. Campaign content references grant members read/use access to immutable Campaign content versions while relevant to the Campaign; they do not grant ownership, editing, personal export, or marketplace sale rights.
 
 The GM workflow is split by the moment of use instead of accumulated on one screen:
 
@@ -118,7 +118,7 @@ flowchart LR
 
   Mobile --> Secure["SecureStore<br/>session secrets"]
   Mobile --> Cache["SQLite<br/>read-only projections"]
-  Functions --> Notify["Novu workflows + feed"]
+  Functions --> Notify["Supabase feed + Edge delivery"]
   Notify --> Web
   Notify --> Email["Resend email"]
   Notify --> Push["Expo Push Service"]
@@ -176,7 +176,7 @@ The numbered order is the default product sequence. Hard dependencies are shown 
 - Preserve canonical authored root identity from ADR 0011. Campaign content and Marketplace releases introduce explicit immutable version/snapshot contracts only where stable shared or licensed history is required; they do not restore general authored revision history.
 - Model authorization as centralized capabilities derived from an explicit authority context. Do not scatter `role === 'GM'` checks through routes and components.
 - Persist commands before broadcasting them. Realtime is delivery and invalidation infrastructure, not the source of truth.
-- Commit notification delivery intent with its authoritative source, then let Novu Cloud own feed and channel presentation. Notification payloads and links never grant access, and provider secrets remain server-only.
+- Commit notification delivery intent with its authoritative source, then let protected Postgres feed/preferences and the Supabase Edge dispatcher own presentation and channel delivery. Notification payloads and links never grant access, and provider secrets remain server-only.
 - Use idempotency keys, expected versions, row locks, and one Postgres transaction for multi-aggregate operations that must succeed or fail together.
 - Keep player-only chat operationally separate from GM-visible channels at authorization, RLS, fetch, subscription, notification, and ordinary analytics boundaries. It is not end-to-end encrypted.
 - Record exact inputs and results required for replay. Never re-run an old Encounter event against newly active content.
@@ -197,7 +197,7 @@ The numbered order is the default product sequence. Hard dependencies are shown 
 | Identity             | One Supabase user identity across web, iOS, and Android                                                                                                                       |
 | Native secrets/cache | `expo-secure-store` for session secrets; `expo-sqlite` for non-authoritative read-only projections                                                                            |
 | Realtime             | Private Supabase Broadcast; Presence only for slow-changing connection state                                                                                                  |
-| Notifications        | Phase 05 Novu workflows/feed/preferences with Resend email and API-authorized deep links; Phase 06 Campaign and Phase 10 paid-table sources reuse it; Phase 11 adds Expo push |
+| Notifications        | Phase 05 Supabase feed/preferences/Edge delivery with Resend email and API-authorized deep links; Phase 06 Campaign and Phase 10 paid-table sources reuse it; Phase 11 adds Expo push |
 | Media and files      | Private Supabase Storage, API-issued upload intents, signed/authenticated delivery, verified profile limits, image normalization, and quarantined supporting files            |
 | Dice                 | Restricted server-authoritative evaluation with injected cryptographic randomness and exact per-die evidence; lazy Three/Fiber/Rapier presentation on web                     |
 | VTT                  | Platform-neutral scene model; PixiJS on web and initially in an Expo DOM host; React Native Skia only if the benchmark gate fails                                             |
@@ -252,8 +252,8 @@ Exact numeric thresholds are a pre-launch business decision. The behaviors above
 | 02    | [Media and supporting-file pipeline](02-media-and-file-pipeline.md)                        | **Complete:** private avatars, Character portraits, authored artwork, crop-derived variants, and reusable asset identity     |
 | 03    | [Campaign Core](03-campaign-core.md)                                                       | Entitlements, Campaign lifecycle/content/custody, GM authority, two-room chat/rolls, notes, and private Realtime work on web |
 | 04    | [Social Hub](04-social-hub.md)                                                             | Users 13 and older can privately invite or publicly discover, apply to, moderate, and form free tables                       |
-| 05    | [Notifications and delivery](05-notifications-and-delivery.md)                             | Novu-backed in-app/email delivery, preferences, secure deep links, grouping, and retryable source intents work on web        |
-| 06    | [Live Campaign play](06-live-campaign-play.md)                                             | Session scheduling/prep/closeout, quick references, vehicles, Campaign files/clock, and announcements work on web            |
+| 05    | [Notifications and delivery](05-notifications-and-delivery.md)                             | Supabase-backed in-app/email delivery, preferences, secure deep links, grouping, and retryable source intents work on web    |
+| 06    | [Live Campaign play](06-live-campaign-play.md)                                             | **Complete:** Session prep/play/closeout, references, vehicles, files, clock, settings, and announcements work on web          |
 | 07    | [Encounters](07-encounters.md)                                                             | Campaign-owned Encounters provide authoritative GM-run combat and enemy action rolls for one-shot and ongoing play on web    |
 | 08    | [Web VTT](08-vtt.md)                                                                       | One Encounter-backed VTT provides maps, tokens, fog, measurement, initiative, and accessible controls on web                 |
 | 09    | [Plans and entitlements](09-entitlements-and-subscriptions.md)                             | Phase 03 limits gain Stripe web subscriptions and remaining capability enforcement                                           |

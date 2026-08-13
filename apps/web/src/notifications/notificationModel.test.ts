@@ -1,4 +1,3 @@
-import { ChannelType, SeverityLevelEnum } from '@novu/js'
 import { describe, expect, it } from 'vitest'
 import {
   notificationBellLabel,
@@ -10,21 +9,17 @@ const sourcePublicId = '00000000-0000-4000-8000-000000000001'
 const listingPublicId = '00000000-0000-4000-8000-000000000002'
 
 describe('toNotificationViewModel', () => {
-  it('maps validated Novu data to a typed internal destination without provider workflow metadata', () => {
+  it('maps validated feed data to a typed internal destination', () => {
     const result = toNotificationViewModel(
-      notification(
-        'social-invitation-received',
-        {
-          kind: 'SOCIAL_INVITATION_RECEIVED',
-          sourcePublicId,
-          listingPublicId,
-          listingTitle: 'The Glass Harbor',
-          occurredAt: '2026-08-10T15:00:00.000Z',
-          hostUsername: 'harbormaster',
-          expiresAt: '2026-08-17T15:00:00.000Z'
-        },
-        false
-      )
+      notification({
+        kind: 'SOCIAL_INVITATION_RECEIVED',
+        sourcePublicId,
+        listingPublicId,
+        listingTitle: 'The Glass Harbor',
+        occurredAt: '2026-08-10T15:00:00.000Z',
+        hostUsername: 'harbormaster',
+        expiresAt: '2026-08-17T15:00:00.000Z'
+      })
     )
 
     expect(result).toMatchObject({
@@ -33,29 +28,28 @@ describe('toNotificationViewModel', () => {
     })
   })
 
-  it('renders a validated application digest count without trusting provider copy', () => {
+  it('renders a validated application without trusting stored presentation copy', () => {
     const result = toNotificationViewModel(
-      notification('social-application-submitted', {
+      notification({
         kind: 'SOCIAL_APPLICATION_SUBMITTED',
         sourcePublicId,
         listingPublicId,
         listingTitle: 'The Glass Harbor',
         occurredAt: '2026-08-10T15:00:00.000Z',
-        applicantUsername: 'pathfinder',
-        activityCount: 3
+        applicantUsername: 'pathfinder'
       })
     )
 
     expect(result).toMatchObject({
-      title: '3 new applications for The Glass Harbor',
-      body: 'Review 3 new applicants.'
+      title: 'New application for The Glass Harbor',
+      body: 'Review the latest applicant.'
     })
   })
 
-  it('does not navigate when the Novu workflow and validated data disagree', () => {
+  it('does not navigate when the feed data is malformed', () => {
     const result = toNotificationViewModel(
-      notification('social-application-decided', {
-        kind: 'SOCIAL_INVITATION_RECEIVED',
+      notification({
+        kind: 'SOCIAL_INVITATION_RECEIVED_INVALID',
         sourcePublicId,
         listingPublicId,
         listingTitle: 'The Glass Harbor',
@@ -68,6 +62,29 @@ describe('toNotificationViewModel', () => {
     expect(result.title).toBe('Notification unavailable')
     expect(result.destination).toBeUndefined()
   })
+
+  it('maps Campaign announcements without trusting private delivery copy', () => {
+    const result = toNotificationViewModel(
+      notification({
+        kind: 'CAMPAIGN_ANNOUNCEMENT',
+        announcementPublicId: sourcePublicId,
+        campaignPublicId: 'campaign-public-id',
+        summary: 'The next Session starts an hour later.',
+        scope: 'TABLE',
+        occurredAt: '2026-08-10T15:00:00.000Z'
+      })
+    )
+
+    expect(result).toMatchObject({
+      title: 'Campaign announcement',
+      body: 'The next Session starts an hour later.',
+      destination: {
+        kind: 'CAMPAIGN_ANNOUNCEMENT',
+        announcementPublicId: sourcePublicId,
+        campaignPublicId: 'campaign-public-id'
+      }
+    })
+  })
 })
 
 describe('notification feed presentation', () => {
@@ -77,35 +94,16 @@ describe('notification feed presentation', () => {
   })
 })
 
-function notification(
-  workflowIdentifier: string,
-  data: Record<string, unknown>,
-  includeWorkflow = true
-) {
+function notification(data: Record<string, unknown>) {
   return {
-    id: 'notification-1',
-    transactionId: 'transaction-1',
-    body: 'Ignored provider body',
-    to: { subscriberId: 'subscriber-1' },
-    isRead: false,
-    isSeen: false,
-    isArchived: false,
-    isSnoozed: false,
-    createdAt: '2026-08-10T15:00:00.000Z',
-    channelType: ChannelType.IN_APP,
+    id: '00000000-0000-4000-8000-000000000003',
+    workflowKey: 'social-invitation-received',
+    sourceKind: 'CAMPAIGN_INVITE',
+    sourcePublicId,
+    groupingKey: null,
     data,
-    ...(includeWorkflow
-      ? {
-          workflow: {
-            id: 'workflow-1',
-            identifier: workflowIdentifier,
-            name: 'Social notification',
-            critical: false,
-            severity: SeverityLevelEnum.NONE,
-            tags: ['social']
-          }
-        }
-      : {}),
-    severity: SeverityLevelEnum.NONE
+    occurredAt: '2026-08-10T15:00:00.000Z',
+    seenAt: null,
+    readAt: null
   }
 }

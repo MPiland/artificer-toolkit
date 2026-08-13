@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT media_assets_profile_chk
     CHECK (
-      profile IN ('ACCOUNT_AVATAR', 'CHARACTER_PORTRAIT', 'AUTHORED_IMAGE')
+      profile IN ('ACCOUNT_AVATAR', 'CHARACTER_PORTRAIT', 'AUTHORED_IMAGE', 'CAMPAIGN_FILE', 'CAMPAIGN_HANDOUT_MAP')
     ),
   CONSTRAINT media_assets_target_key_chk CHECK (length(btrim(target_key)) > 0),
   CONSTRAINT media_assets_status_chk
@@ -43,11 +43,11 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
       status IN ('PENDING_UPLOAD', 'PROCESSING', 'READY', 'REJECTED', 'DELETED')
     ),
   CONSTRAINT media_assets_declared_mime_type_chk
-    CHECK (declared_mime_type IN ('image/jpeg', 'image/png', 'image/webp')),
+    CHECK (declared_mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'text/plain') AND (profile <> 'CAMPAIGN_HANDOUT_MAP' OR declared_mime_type <> 'text/plain')),
   CONSTRAINT media_assets_verified_mime_type_chk
     CHECK (
       verified_mime_type IS NULL
-      OR verified_mime_type IN ('image/jpeg', 'image/png', 'image/webp')
+      OR (verified_mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'text/plain') AND (profile <> 'CAMPAIGN_HANDOUT_MAP' OR verified_mime_type <> 'text/plain'))
     ),
   CONSTRAINT media_assets_original_file_name_chk
     CHECK (length(btrim(original_file_name)) BETWEEN 1 AND 255),
@@ -85,13 +85,14 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
       OR (
         verified_mime_type IS NOT NULL
         AND verified_bytes IS NOT NULL
-        AND width IS NOT NULL
-        AND height IS NOT NULL
+        AND ((verified_mime_type = 'text/plain' AND width IS NULL AND height IS NULL)
+          OR (verified_mime_type <> 'text/plain' AND width IS NOT NULL AND height IS NOT NULL))
         AND ready_at IS NOT NULL
       )
     ),
   CONSTRAINT media_assets_owner_idempotency_unique
-    UNIQUE (owner_user_id, idempotency_key)
+    UNIQUE (owner_user_id, idempotency_key),
+  CONSTRAINT media_assets_id_profile_key UNIQUE (id, profile)
 );
 
 CREATE INDEX IF NOT EXISTS idx_media_assets_owner_status ON public.media_assets (
@@ -141,15 +142,15 @@ CREATE TABLE IF NOT EXISTS public.media_variants (
   object_key text NOT NULL UNIQUE,
   mime_type text NOT NULL,
   byte_size BIGINT NOT NULL,
-  width INTEGER NOT NULL,
-  height INTEGER NOT NULL,
+  width INTEGER,
+  height INTEGER,
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT media_variants_kind_chk
     CHECK (kind IN ('SOURCE', 'DISPLAY', 'THUMBNAIL')),
   CONSTRAINT media_variants_mime_type_chk
-    CHECK (mime_type IN ('image/jpeg', 'image/png', 'image/webp')),
+    CHECK (mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'text/plain')),
   CONSTRAINT media_variants_size_chk CHECK (byte_size > 0),
-  CONSTRAINT media_variants_dimensions_chk CHECK (width > 0 AND height > 0),
+  CONSTRAINT media_variants_dimensions_chk CHECK ((mime_type = 'text/plain' AND width IS NULL AND height IS NULL) OR (mime_type <> 'text/plain' AND width > 0 AND height > 0)),
   CONSTRAINT media_variants_asset_kind_unique UNIQUE (asset_id, kind)
 );
 
@@ -299,7 +300,7 @@ VALUES
     'media',
     FALSE,
     6291456,
-    ARRAY['image/jpeg', 'image/png', 'image/webp']::text[]
+    ARRAY['image/jpeg', 'image/png', 'image/webp', 'text/plain']::text[]
   )
 ON CONFLICT (id) DO UPDATE
   SET

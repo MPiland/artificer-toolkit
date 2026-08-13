@@ -7,6 +7,8 @@ export const mediaImageProfileSchema = z.enum([
   'CHARACTER_PORTRAIT',
   'AUTHORED_IMAGE'
 ])
+export const campaignFileProfileSchema = z.enum(['CAMPAIGN_FILE', 'CAMPAIGN_HANDOUT_MAP'])
+export const mediaProfileSchema = z.union([mediaImageProfileSchema, campaignFileProfileSchema])
 
 export const mediaAssetStatusSchema = z.enum([
   'PENDING_UPLOAD',
@@ -19,6 +21,12 @@ export const mediaAssetStatusSchema = z.enum([
 export const mediaVariantKindSchema = z.enum(['SOURCE', 'DISPLAY', 'THUMBNAIL'])
 
 export const imageMimeTypeSchema = z.enum(['image/jpeg', 'image/png', 'image/webp'])
+export const campaignFileMimeTypeSchema = z.enum([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'text/plain'
+])
 
 export const normalizedImageCropSchema = z
   .strictObject({
@@ -29,19 +37,79 @@ export const normalizedImageCropSchema = z
   })
   .superRefine((crop, context) => {
     if (crop.x + crop.width > 1 || crop.y + crop.height > 1) {
-      context.addIssue({ code: 'custom', message: 'Crop must stay within the image bounds.' })
+      context.addIssue({
+        code: 'custom',
+        message: 'Crop must stay within the image bounds.'
+      })
     }
   })
 
 export const mediaTargetSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('ACCOUNT_AVATAR') }),
-  z.strictObject({ type: z.literal('CHARACTER_PORTRAIT'), characterId: z.string().uuid() }),
+  z.strictObject({
+    type: z.literal('CHARACTER_PORTRAIT'),
+    characterId: z.string().uuid()
+  }),
   z.strictObject({
     type: z.literal('AUTHORED_IMAGE'),
     subjectKind: authoredSubjectKindDtoSchema,
     subjectId: z.string().uuid()
+  }),
+  z.strictObject({
+    type: z.literal('CAMPAIGN_FILE'),
+    campaignId: z.string().uuid()
+  }),
+  z.strictObject({
+    type: z.literal('CAMPAIGN_HANDOUT_MAP'),
+    campaignId: z.string().uuid()
   })
 ])
+
+export const createCampaignFileUploadIntentInputSchema = z
+  .strictObject({
+    profile: campaignFileProfileSchema,
+    target: z.discriminatedUnion('type', [
+      z.strictObject({
+        type: z.literal('CAMPAIGN_FILE'),
+        campaignId: z.string().uuid()
+      }),
+      z.strictObject({
+        type: z.literal('CAMPAIGN_HANDOUT_MAP'),
+        campaignId: z.string().uuid()
+      })
+    ]),
+    originalFileName: z.string().trim().min(1).max(255),
+    declaredMimeType: campaignFileMimeTypeSchema,
+    declaredBytes: z
+      .number()
+      .int()
+      .positive()
+      .max(6 * 1024 * 1024),
+    idempotencyKey: z.string().uuid()
+  })
+  .superRefine((input, context) => {
+    if (input.profile !== input.target.type)
+      context.addIssue({
+        code: 'custom',
+        path: ['target'],
+        message: 'The upload profile must match its target.'
+      })
+    if (input.profile === 'CAMPAIGN_HANDOUT_MAP' && input.declaredMimeType === 'text/plain')
+      context.addIssue({
+        code: 'custom',
+        path: ['declaredMimeType'],
+        message: 'Handout maps must be images.'
+      })
+  })
+
+export const signedCampaignFileDeliveryDtoSchema = z.strictObject({
+  assetId: z.string().uuid(),
+  url: z.string().url(),
+  expiresAt: z.string().datetime(),
+  mimeType: campaignFileMimeTypeSchema,
+  fileName: z.string().trim().min(1).max(255),
+  byteSize: z.number().int().positive()
+})
 
 export const signedImageDeliveryDtoSchema = z.strictObject({
   assetId: z.string().uuid(),
@@ -146,11 +214,16 @@ export const attachImageInputSchema = z
     }
   })
 
-export const removeImageInputSchema = z.strictObject({ target: mediaTargetSchema })
+export const removeImageInputSchema = z.strictObject({
+  target: mediaTargetSchema
+})
 
 export const imageLookupTargetSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('ACCOUNT_AVATAR') }),
-  z.strictObject({ type: z.literal('CHARACTER_PORTRAIT'), characterId: z.string().uuid() }),
+  z.strictObject({
+    type: z.literal('CHARACTER_PORTRAIT'),
+    characterId: z.string().uuid()
+  }),
   z.strictObject({
     type: z.literal('AUTHORED_IMAGE'),
     subjectKind: authoredSubjectKindDtoSchema,
@@ -165,6 +238,11 @@ export const imageLookupInputSchema = z.strictObject({
 })
 
 export type MediaImageProfile = z.infer<typeof mediaImageProfileSchema>
+export type CampaignFileProfile = z.infer<typeof campaignFileProfileSchema>
+export type CreateCampaignFileUploadIntentInput = z.infer<
+  typeof createCampaignFileUploadIntentInputSchema
+>
+export type SignedCampaignFileDeliveryDto = z.infer<typeof signedCampaignFileDeliveryDtoSchema>
 export type MediaAssetStatus = z.infer<typeof mediaAssetStatusSchema>
 export type MediaVariantKind = z.infer<typeof mediaVariantKindSchema>
 export type NormalizedImageCrop = z.infer<typeof normalizedImageCropSchema>

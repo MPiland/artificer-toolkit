@@ -53,7 +53,11 @@ export function CampaignSessionNotes({
         onChange={setSelectedSessionId}
       />
       {sessionId ? (
-        <SessionSections campaign={campaign} currentUserId={currentUserId} sessionId={sessionId} />
+        <CampaignSharedSessionNotes
+          campaign={campaign}
+          currentUserId={currentUserId}
+          sessionId={sessionId}
+        />
       ) : null}
     </section>
   )
@@ -68,7 +72,7 @@ function formatSessionDate(value: string, timeZone: string | null) {
   }).format(new Date(value))
 }
 
-function SessionSections({
+export function CampaignSharedSessionNotes({
   campaign,
   currentUserId,
   sessionId

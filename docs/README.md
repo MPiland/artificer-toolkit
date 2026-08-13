@@ -40,6 +40,10 @@ Keep intent at the interface it explains. Cross-module flows belong in architect
 
 - [MVP readiness audit (2026-07-10)](audits/mvp-readiness-2026-07-10.md)
 
+## Market research
+
+- [Product and capability references](market-research.md) — transitional notes on products worth evaluating for Campaign preparation, management, maps, and VTT workflows
+
 ## Future roadmap
 
 - [Future platform roadmap](roadmap/README.md) — transitional, phase-oriented planning for Character Sheet play depth and overrides, media/files, native clients, Campaigns, notifications, Encounters, commerce, Social Hub, Marketplace, and VTT

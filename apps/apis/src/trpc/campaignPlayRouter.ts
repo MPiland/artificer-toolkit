@@ -12,6 +12,7 @@ import {
   initializeCampaignClock,
   pauseCampaignClock,
   reconcileCampaignClock,
+  resetCampaignClock,
   rewindCampaignClock,
   startCampaignClock
 } from '@artificer-toolkit/functions'
@@ -62,6 +63,12 @@ export const campaignClockRouter = createTRPCRouter({
     .output(campaignContracts.campaignClockDtoSchema)
     .mutation(({ ctx, input }) =>
       withExplicitAuthorityDb(ctx, (db, userId) => rewindCampaignClock(db, userId, input))
+    ),
+  reset: authenticatedProcedure
+    .input(campaignContracts.resetCampaignClockInputSchema)
+    .output(campaignContracts.campaignClockDtoSchema)
+    .mutation(({ ctx, input }) =>
+      withExplicitAuthorityDb(ctx, (db, userId) => resetCampaignClock(db, userId, input))
     ),
   reconcile: authenticatedProcedure
     .input(campaignContracts.reconcileCampaignClockInputSchema)

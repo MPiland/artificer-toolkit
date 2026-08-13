@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Alert,
+  Anchor,
   Badge,
   Button,
   Group,
@@ -20,6 +21,7 @@ import { getCampaignNotebook, getCampaignSessionReferences } from '#app/data/cam
 import { queryKeys } from '#app/lib/queryKeys'
 import {
   authoredReferenceSubjectOptions,
+  campaignSessionReferenceHref,
   type AuthoredReferenceTarget
 } from './campaignSessionReferences.model'
 import * as sharedStyles from '../campaigns.css'
@@ -45,7 +47,11 @@ export function CampaignSessionReferences({
   const [publicId, setPublicId] = useState('')
   const create = useMutation({
     mutationFn: (target: CampaignSessionReferencePinDto['target']) =>
-      api.campaigns.sessions.references.create({ campaignId: campaign.id, sessionId, target }),
+      api.campaigns.sessions.references.create({
+        campaignId: campaign.id,
+        sessionId,
+        target
+      }),
     onSuccess: async () => {
       setAdding(false)
       setNoteSectionId(null)
@@ -71,7 +77,11 @@ export function CampaignSessionReferences({
     }
     const normalizedPublicId = publicId.trim().toLowerCase()
     if (normalizedPublicId) {
-      create.mutate({ kind: 'AUTHORED_ROUTE', routeSubjectKind, publicId: normalizedPublicId })
+      create.mutate({
+        kind: 'AUTHORED_ROUTE',
+        routeSubjectKind,
+        publicId: normalizedPublicId
+      })
     }
   }
 
@@ -101,7 +111,9 @@ export function CampaignSessionReferences({
               justify='space-between'
             >
               <Group gap='xs'>
-                <Text fw={600}>{reference.label}</Text>
+                <Anchor fw={600} href={campaignSessionReferenceHref(campaign, reference)}>
+                  {reference.label}
+                </Anchor>
                 <Badge color='gray' size='xs' variant='light'>
                   {reference.target.kind === 'CAMPAIGN_NOTE'
                     ? 'Campaign note'

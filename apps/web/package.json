@@ -41,8 +41,6 @@
     "@mantine/hooks": "9.2.2",
     "@mantine/notifications": "9.2.2",
     "@mantine/tiptap": "9.2.2",
-    "@novu/api": "^3.19.0",
-    "@novu/react": "^3.19.0",
     "@react-three/fiber": "9.5.0",
     "@react-three/rapier": "2.2.0",
     "@sentry/tanstackstart-react": "10.67.0",
@@ -117,9 +115,9 @@
     "playwright": "^1.59.1",
     "postcss": "^8.5.14",
     "postcss-preset-mantine": "^1.18.0",
-    "storybook": "10.5.0-alpha.5",
+    "storybook": "^10.5.7",
     "typescript": "^7.0.2",
-    "vite": "^8.0.16",
+    "vite": "^8.2.1",
     "vitest": "^4.1.9"
   },
   "msw": {

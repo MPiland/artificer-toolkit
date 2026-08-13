@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNotifications, useNovu } from '@novu/react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
+import { api } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
 import { NotificationFeedView } from './NotificationFeedView'
-import {
-  notificationHistoryLimit,
-  toNotificationViewModel,
-  type NotificationDestination
-} from './notificationModel'
+import { toNotificationViewModel, type NotificationDestination } from './notificationModel'
 import * as styles from './notifications.css'
 
 export function NotificationFeed({
@@ -17,30 +15,32 @@ export function NotificationFeed({
   onNavigate?: () => void
 }) {
   const navigate = useNavigate()
-  const novu = useNovu()
-  const { error, isLoading, notifications, refetch, seenAll } = useNotifications({
-    limit: notificationHistoryLimit
+  const feed = useQuery({
+    queryKey: queryKeys.notifications.feed(),
+    queryFn: () => api.notifications.feed()
   })
+  const markAllSeen = useMutation({ mutationFn: () => api.notifications.markAllSeen() })
+  const markRead = useMutation({ mutationFn: (id: string) => api.notifications.markRead({ id }) })
   const hasMarkedFeedSeen = useRef(false)
   const [actionError, setActionError] = useState('')
   const viewItems = useMemo(
-    () => notifications?.slice(0, notificationHistoryLimit).map(toNotificationViewModel) ?? [],
-    [notifications]
+    () => feed.data?.items.map(toNotificationViewModel) ?? [],
+    [feed.data?.items]
   )
 
   useEffect(() => {
-    if (hasMarkedFeedSeen.current) return
+    if (hasMarkedFeedSeen.current || !feed.data) return
     hasMarkedFeedSeen.current = true
 
-    void seenAll().then(({ error: seenError }) => {
-      if (seenError) setActionError('Notifications could not be marked as seen.')
+    markAllSeen.mutate(undefined, {
+      onError: () => setActionError('Notifications could not be marked as seen.')
     })
-  }, [seenAll])
+  }, [feed.data, markAllSeen])
 
   function open(id: string, destination: NotificationDestination) {
     setActionError('')
-    void novu.notifications.read({ notificationId: id }).then(({ error: readError }) => {
-      if (readError) setActionError('That notification could not be updated.')
+    markRead.mutate(id, {
+      onError: () => setActionError('That notification could not be updated.')
     })
     onNavigate?.()
 
@@ -64,7 +64,10 @@ export function NotificationFeed({
       case 'MY_INVITATION':
         void navigate({
           to: '/social',
-          search: { view: 'invitations', invitePublicId: destination.invitePublicId }
+          search: {
+            view: 'invitations',
+            invitePublicId: destination.invitePublicId
+          }
         })
         return
       case 'HOST_INVITATION':
@@ -76,6 +79,16 @@ export function NotificationFeed({
             invitePublicId: destination.invitePublicId
           }
         })
+        return
+      case 'CAMPAIGN_ANNOUNCEMENT': {
+        const query = new URLSearchParams({
+          tab: 'announcements',
+          announcementPublicId: destination.announcementPublicId
+        })
+        window.location.assign(
+          `/campaigns/${encodeURIComponent(destination.campaignPublicId)}?${query}`
+        )
+      }
     }
   }
 
@@ -83,15 +96,15 @@ export function NotificationFeed({
     <>
       <NotificationFeedView
         contained={contained}
-        isError={Boolean(error)}
-        isLoading={isLoading && viewItems.length === 0}
+        isError={feed.isError}
+        isLoading={feed.isLoading && viewItems.length === 0}
         items={viewItems}
         onExplore={() => {
           onNavigate?.()
           void navigate({ to: '/social', search: { view: 'discover' } })
         }}
         onOpen={open}
-        onRetry={() => void refetch()}
+        onRetry={() => void feed.refetch()}
       />
       <span className={styles.visuallyHidden} aria-live='polite'>
         {actionError}

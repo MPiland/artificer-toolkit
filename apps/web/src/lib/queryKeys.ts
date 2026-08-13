@@ -34,13 +34,16 @@ export const queryKeys = {
   },
 
   notifications: {
-    session: () => ['notifications', 'session'] as const
+    all: () => ['notifications'] as const,
+    feed: () => ['notifications', 'feed'] as const,
+    preferences: () => ['notifications', 'preferences'] as const
   },
 
   campaigns: {
     all: () => ['campaigns'] as const,
     list: () => ['campaigns', 'list'] as const,
     detail: (campaignId: string) => ['campaigns', 'detail', campaignId] as const,
+    playSettings: (campaignId: string) => ['campaigns', campaignId, 'play-settings'] as const,
     conversations: (campaignId: string) => ['campaigns', campaignId, 'conversations'] as const,
     chat: (campaignId: string, room: 'TABLE' | 'PARTY' | 'DIRECT', directUserId?: string) =>
       ['campaigns', campaignId, 'chat', room, directUserId ?? null] as const,
@@ -63,7 +66,12 @@ export const queryKeys = {
       ['campaigns', campaignId, 'inventory', ownerKey] as const,
     inventoryAudit: (campaignId: string) =>
       ['campaigns', campaignId, 'inventory', 'audit'] as const,
-    content: (campaignId: string) => ['campaigns', campaignId, 'content'] as const
+    content: (campaignId: string) => ['campaigns', campaignId, 'content'] as const,
+    vehicles: (campaignId: string) => ['campaigns', campaignId, 'vehicles'] as const,
+    attachments: (campaignId: string) => ['campaigns', campaignId, 'attachments'] as const,
+    announcements: (campaignId: string) => ['campaigns', campaignId, 'announcements'] as const,
+    announcement: (campaignId: string, announcementPublicId: string) =>
+      ['campaigns', campaignId, 'announcements', announcementPublicId] as const
   },
 
   socialHub: {

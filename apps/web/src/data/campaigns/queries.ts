@@ -15,7 +15,10 @@ export function getCampaignRouteIdentity(publicId: string, client: Api = api) {
   return queryOptions({
     queryKey: queryKeys.routeIds.resolve('CAMPAIGN', normalizedPublicId),
     queryFn: () =>
-      client.routeIds.resolve({ subjectKind: 'CAMPAIGN', publicId: normalizedPublicId })
+      client.routeIds.resolve({
+        subjectKind: 'CAMPAIGN',
+        publicId: normalizedPublicId
+      })
   })
 }
 
@@ -31,6 +34,13 @@ export function getCampaignSettings(campaignId: string, client: Api = api) {
   return queryOptions({
     queryKey: [...queryKeys.campaigns.detail(campaignId), 'settings'],
     queryFn: () => client.campaigns.getSettings(campaignId)
+  })
+}
+
+export function getCampaignPlaySettings(campaignId: string, client: Api = api) {
+  return queryOptions({
+    queryKey: queryKeys.campaigns.playSettings(campaignId),
+    queryFn: () => client.campaigns.playSettings.get(campaignId)
   })
 }
 
@@ -143,7 +153,12 @@ export function getCampaignInventory(
   owner: InventoryOwnerRefDto,
   client: Api = api
 ) {
-  const ownerKey = owner.kind === 'CAMPAIGN' ? 'party' : `character:${owner.characterId}`
+  const ownerKey =
+    owner.kind === 'CAMPAIGN'
+      ? 'party'
+      : owner.kind === 'CHARACTER'
+        ? `character:${owner.characterId}`
+        : `vehicle:${owner.vehicleId}`
   return queryOptions({
     queryKey: queryKeys.campaigns.inventory(campaignId, ownerKey),
     queryFn: () => client.campaigns.inventory.get(campaignId, owner),
@@ -166,5 +181,37 @@ export function getCampaignContent(campaignId: string, client: Api = api) {
     queryKey: queryKeys.campaigns.content(campaignId),
     queryFn: () => client.campaigns.content.list(campaignId),
     refetchInterval: 30_000
+  })
+}
+
+export function getCampaignVehicles(campaignId: string, client: Api = api) {
+  return queryOptions({
+    queryKey: queryKeys.campaigns.vehicles(campaignId),
+    queryFn: () => client.campaigns.vehicles.list(campaignId)
+  })
+}
+
+export function getCampaignAttachments(campaignId: string, client: Api = api) {
+  return queryOptions({
+    queryKey: queryKeys.campaigns.attachments(campaignId),
+    queryFn: () => client.campaigns.attachments.list(campaignId)
+  })
+}
+
+export function getCampaignAnnouncements(campaignId: string, client: Api = api) {
+  return queryOptions({
+    queryKey: queryKeys.campaigns.announcements(campaignId),
+    queryFn: () => client.campaigns.announcements.list(campaignId)
+  })
+}
+
+export function getCampaignAnnouncement(
+  campaignId: string,
+  announcementPublicId: string,
+  client: Api = api
+) {
+  return queryOptions({
+    queryKey: queryKeys.campaigns.announcement(campaignId, announcementPublicId),
+    queryFn: () => client.campaigns.announcements.get(campaignId, announcementPublicId)
   })
 }

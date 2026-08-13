@@ -21,6 +21,7 @@ export const Route = createFileRoute('/_authed/campaigns/$campaignPublicId')({
     throw redirect({
       params: buildCampaignRouteParams(campaign.publicId, campaign.name),
       replace: true,
+      search: location.search,
       to: '/campaigns/$campaignPublicId/$campaignSlug'
     })
   },

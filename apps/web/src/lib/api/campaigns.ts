@@ -1,4 +1,5 @@
 import * as campaignContracts from '@artificer-toolkit/schema/api/campaigns'
+import { signedCampaignFileDeliveryDtoSchema } from '@artificer-toolkit/schema/api/media'
 import { rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { okResponseSchema, request, type SchemaInput, type TrpcClient } from './transport'
 
@@ -16,6 +17,18 @@ export function buildCampaignsApi(client: TrpcClient) {
       request('campaigns.getSettings', campaignContracts.campaignDetailDtoSchema, () =>
         client.campaigns.getSettings.query({ campaignId })
       ),
+    playSettings: {
+      get: (campaignId: string) =>
+        request('campaigns.playSettings.get', campaignContracts.campaignPlaySettingsDtoSchema, () =>
+          client.campaigns.playSettings.get.query({ campaignId })
+        ),
+      save: (input: campaignContracts.SaveCampaignPlaySettingsInput) =>
+        request(
+          'campaigns.playSettings.save',
+          campaignContracts.campaignPlaySettingsDtoSchema,
+          () => client.campaigns.playSettings.save.mutate(input)
+        )
+    },
     create: (input: campaignContracts.CreateCampaignInput) =>
       request('campaigns.create', campaignContracts.campaignDetailDtoSchema, () =>
         client.campaigns.create.mutate(input)
@@ -34,7 +47,11 @@ export function buildCampaignsApi(client: TrpcClient) {
       ),
     delete: async (campaignId: string, expectedVersion: number) => {
       await request('campaigns.delete', okResponseSchema, () =>
-        client.campaigns.delete.mutate({ campaignId, expectedVersion, confirmation: 'DELETE' })
+        client.campaigns.delete.mutate({
+          campaignId,
+          expectedVersion,
+          confirmation: 'DELETE'
+        })
       )
     },
     invites: {
@@ -56,16 +73,25 @@ export function buildCampaignsApi(client: TrpcClient) {
         ),
       revoke: async (invitePublicId: string, expectedVersion: number) => {
         await request('campaigns.invites.revoke', okResponseSchema, () =>
-          client.campaigns.invites.revoke.mutate({ invitePublicId, expectedVersion })
+          client.campaigns.invites.revoke.mutate({
+            invitePublicId,
+            expectedVersion
+          })
         )
       },
       accept: (invitePublicId: string, expectedVersion: number) =>
         request('campaigns.invites.accept', campaignContracts.campaignDetailDtoSchema, () =>
-          client.campaigns.invites.accept.mutate({ invitePublicId, expectedVersion })
+          client.campaigns.invites.accept.mutate({
+            invitePublicId,
+            expectedVersion
+          })
         ),
       decline: async (invitePublicId: string, expectedVersion: number) => {
         await request('campaigns.invites.decline', campaignContracts.campaignInviteDtoSchema, () =>
-          client.campaigns.invites.decline.mutate({ invitePublicId, expectedVersion })
+          client.campaigns.invites.decline.mutate({
+            invitePublicId,
+            expectedVersion
+          })
         )
       }
     },
@@ -112,7 +138,13 @@ export function buildCampaignsApi(client: TrpcClient) {
         directUserId?: string
       ) =>
         request('campaigns.chat.list', campaignContracts.campaignChatPageDtoSchema, () =>
-          client.campaigns.chat.list.query({ campaignId, room, cursor, limit, directUserId })
+          client.campaigns.chat.list.query({
+            campaignId,
+            room,
+            cursor,
+            limit,
+            directUserId
+          })
         ),
       send: (input: campaignContracts.SendCampaignChatEntryInput) =>
         request('campaigns.chat.send', campaignContracts.campaignChatEntryDtoSchema, () =>
@@ -177,18 +209,9 @@ export function buildCampaignsApi(client: TrpcClient) {
         request('campaigns.sessions.update', campaignContracts.campaignSessionDtoSchema, () =>
           client.campaigns.sessions.update.mutate(input)
         ),
-      delete: async (campaignId: string, sessionId: string) => {
-        await request('campaigns.sessions.delete', okResponseSchema, () =>
-          client.campaigns.sessions.delete.mutate({ campaignId, sessionId })
-        )
-      },
       finish: (input: SchemaInput<typeof campaignContracts.finishCampaignSessionInputSchema>) =>
         request('campaigns.sessions.finish', campaignContracts.campaignSessionDtoSchema, () =>
           client.campaigns.sessions.finish.mutate(input)
-        ),
-      reopen: (input: SchemaInput<typeof campaignContracts.reopenCampaignSessionInputSchema>) =>
-        request('campaigns.sessions.reopen', campaignContracts.campaignSessionDtoSchema, () =>
-          client.campaigns.sessions.reopen.mutate(input)
         ),
       get: (input: SchemaInput<typeof campaignContracts.getCampaignSessionInputSchema>) =>
         request('campaigns.sessions.get', campaignContracts.campaignSessionDtoSchema, () =>
@@ -217,7 +240,11 @@ export function buildCampaignsApi(client: TrpcClient) {
           request(
             'campaigns.sessions.rsvps.list',
             campaignContracts.campaignSessionRsvpDtoListSchema,
-            () => client.campaigns.sessions.rsvps.list.query({ campaignId, sessionId })
+            () =>
+              client.campaigns.sessions.rsvps.list.query({
+                campaignId,
+                sessionId
+              })
           ),
         set: (input: SchemaInput<typeof campaignContracts.setCampaignSessionRsvpInputSchema>) =>
           request(
@@ -231,7 +258,11 @@ export function buildCampaignsApi(client: TrpcClient) {
           request(
             'campaigns.sessions.references.list',
             campaignContracts.campaignSessionReferencePinsDtoSchema,
-            () => client.campaigns.sessions.references.list.query({ campaignId, sessionId })
+            () =>
+              client.campaigns.sessions.references.list.query({
+                campaignId,
+                sessionId
+              })
           ),
         create: (
           input: SchemaInput<typeof campaignContracts.createCampaignSessionReferencePinInputSchema>
@@ -243,7 +274,11 @@ export function buildCampaignsApi(client: TrpcClient) {
           ),
         delete: async (campaignId: string, sessionId: string, pinId: string) => {
           await request('campaigns.sessions.references.delete', okResponseSchema, () =>
-            client.campaigns.sessions.references.delete.mutate({ campaignId, sessionId, pinId })
+            client.campaigns.sessions.references.delete.mutate({
+              campaignId,
+              sessionId,
+              pinId
+            })
           )
         }
       },
@@ -252,7 +287,11 @@ export function buildCampaignsApi(client: TrpcClient) {
           request(
             'campaigns.sessions.notes.list',
             campaignContracts.campaignSessionNoteSectionsDtoSchema,
-            () => client.campaigns.sessions.notes.list.query({ campaignId, sessionId })
+            () =>
+              client.campaigns.sessions.notes.list.query({
+                campaignId,
+                sessionId
+              })
           ),
         create: (
           input: SchemaInput<typeof campaignContracts.createCampaignSessionNoteSectionInputSchema>
@@ -272,7 +311,11 @@ export function buildCampaignsApi(client: TrpcClient) {
           ),
         delete: async (campaignId: string, sessionId: string, sectionId: string) => {
           await request('campaigns.sessions.notes.delete', okResponseSchema, () =>
-            client.campaigns.sessions.notes.delete.mutate({ campaignId, sessionId, sectionId })
+            client.campaigns.sessions.notes.delete.mutate({
+              campaignId,
+              sessionId,
+              sectionId
+            })
           )
         }
       }
@@ -306,9 +349,83 @@ export function buildCampaignsApi(client: TrpcClient) {
         request('campaigns.clock.rewind', campaignContracts.campaignClockDtoSchema, () =>
           client.campaigns.clock.rewind.mutate(input)
         ),
+      reset: (input: campaignContracts.ResetCampaignClockInput) =>
+        request('campaigns.clock.reset', campaignContracts.campaignClockDtoSchema, () =>
+          client.campaigns.clock.reset.mutate(input)
+        ),
       reconcile: (input: campaignContracts.ReconcileCampaignClockInput) =>
         request('campaigns.clock.reconcile', campaignContracts.campaignClockDtoSchema, () =>
           client.campaigns.clock.reconcile.mutate(input)
+        )
+    },
+    vehicles: {
+      list: (campaignId: string) =>
+        request('campaigns.vehicles.list', campaignContracts.campaignVehiclesDtoSchema, () =>
+          client.campaigns.vehicles.list.query({ campaignId })
+        ),
+      create: (input: campaignContracts.CreateCampaignVehicleInput) =>
+        request('campaigns.vehicles.create', campaignContracts.campaignVehicleDtoSchema, () =>
+          client.campaigns.vehicles.create.mutate(input)
+        ),
+      update: (input: campaignContracts.UpdateCampaignVehicleInput) =>
+        request('campaigns.vehicles.update', campaignContracts.campaignVehicleDtoSchema, () =>
+          client.campaigns.vehicles.update.mutate(input)
+        ),
+      delete: async (
+        input: SchemaInput<typeof campaignContracts.deleteCampaignVehicleInputSchema>
+      ) => {
+        await request('campaigns.vehicles.delete', okResponseSchema, () =>
+          client.campaigns.vehicles.delete.mutate(input)
+        )
+      }
+    },
+    attachments: {
+      list: (campaignId: string) =>
+        request('campaigns.attachments.list', campaignContracts.campaignAttachmentsDtoSchema, () =>
+          client.campaigns.attachments.list.query({ campaignId })
+        ),
+      create: (input: campaignContracts.CreateCampaignAttachmentInput) =>
+        request('campaigns.attachments.create', campaignContracts.campaignAttachmentDtoSchema, () =>
+          client.campaigns.attachments.create.mutate(input)
+        ),
+      delivery: (campaignId: string, attachmentId: string) =>
+        request('campaigns.attachments.delivery', signedCampaignFileDeliveryDtoSchema, () =>
+          client.campaigns.attachments.delivery.query({
+            campaignId,
+            attachmentId
+          })
+        ),
+      delete: async (campaignId: string, attachmentId: string) => {
+        await request('campaigns.attachments.delete', okResponseSchema, () =>
+          client.campaigns.attachments.delete.mutate({
+            campaignId,
+            attachmentId
+          })
+        )
+      }
+    },
+    announcements: {
+      list: (campaignId: string) =>
+        request(
+          'campaigns.announcements.list',
+          campaignContracts.campaignAnnouncementDtoSchema.array(),
+          () => client.campaigns.announcements.list.query({ campaignId })
+        ),
+      get: (campaignId: string, announcementPublicId: string) =>
+        request(
+          'campaigns.announcements.get',
+          campaignContracts.campaignAnnouncementDtoSchema,
+          () =>
+            client.campaigns.announcements.get.query({
+              campaignId,
+              announcementPublicId
+            })
+        ),
+      create: (input: campaignContracts.CreateCampaignAnnouncementInput) =>
+        request(
+          'campaigns.announcements.create',
+          campaignContracts.campaignAnnouncementDtoSchema,
+          () => client.campaigns.announcements.create.mutate(input)
         )
     },
     inventory: {
@@ -382,7 +499,11 @@ export function buildCampaignsApi(client: TrpcClient) {
           request(
             'campaigns.gm.adjustments.list',
             campaignContracts.campaignAdjustmentsDtoSchema,
-            () => client.campaigns.gm.adjustments.list.query({ campaignId, characterId })
+            () =>
+              client.campaigns.gm.adjustments.list.query({
+                campaignId,
+                characterId
+              })
           ),
         delete: async (
           campaignId: string,
@@ -405,7 +526,11 @@ export function buildCampaignsApi(client: TrpcClient) {
           request(
             'campaigns.gm.conditions.list',
             campaignContracts.campaignConditionsDtoSchema,
-            () => client.campaigns.gm.conditions.list.query({ campaignId, characterId })
+            () =>
+              client.campaigns.gm.conditions.list.query({
+                campaignId,
+                characterId
+              })
           ),
         save: (input: campaignContracts.SaveCampaignConditionInput) =>
           request(
@@ -421,7 +546,12 @@ export function buildCampaignsApi(client: TrpcClient) {
       },
       events: (campaignId: string, characterId: string, cursor?: string, limit = 50) =>
         request('campaigns.gm.events', campaignContracts.campaignEventPageDtoSchema, () =>
-          client.campaigns.gm.events.query({ campaignId, characterId, cursor, limit })
+          client.campaigns.gm.events.query({
+            campaignId,
+            characterId,
+            cursor,
+            limit
+          })
         )
     }
   }

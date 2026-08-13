@@ -17,10 +17,9 @@ export function createInventoryOwnerItemRepository(
 ) {
   async function resolveOwner(ref: InventoryOwnerRef): Promise<InventoryOwner | null> {
     let query = db.selectFrom('inventory_owners').selectAll().where('kind', '=', ref.kind)
-    query =
-      ref.kind === 'CHARACTER'
-        ? query.where('character_id', '=', ref.characterId)
-        : query.where('campaign_id', '=', ref.campaignId)
+    if (ref.kind === 'CHARACTER') query = query.where('character_id', '=', ref.characterId)
+    else if (ref.kind === 'CAMPAIGN') query = query.where('campaign_id', '=', ref.campaignId)
+    else query = query.where('vehicle_id', '=', ref.vehicleId)
     const row = await query.executeTakeFirst()
     return row ? toOwner(row) : null
   }
@@ -70,7 +69,10 @@ export function createInventoryOwnerItemRepository(
       return (
         await db
           .updateTable('inventory_owners')
-          .set((eb) => ({ version: eb('version', '+', 1), updated_at: sql`now()` }))
+          .set((eb) => ({
+            version: eb('version', '+', 1),
+            updated_at: sql`now()`
+          }))
           .where('id', 'in', ids)
           .returningAll()
           .execute()

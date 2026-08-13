@@ -1,4 +1,4 @@
-import { Alert, Badge, Group, Select, Tabs, Title } from '@mantine/core'
+import { Alert, Badge, Group, Select, Stack, Tabs, Title } from '@mantine/core'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
@@ -13,13 +13,20 @@ import { CampaignParty } from './components/CampaignParty'
 import { CampaignLiveControls } from './components/CampaignLiveControls'
 import { CampaignSessions } from './components/CampaignSessions'
 import { CampaignGmRoller } from './components/CampaignGmRoller'
+import { CampaignAnnouncements } from './components/CampaignAnnouncements/CampaignAnnouncements'
+import { CampaignFiles } from './components/CampaignFiles/CampaignFiles'
+import { CampaignTableSettings } from './components/CampaignTableSettings/CampaignTableSettings'
+import { CampaignVehicles } from './components/CampaignVehicles/CampaignVehicles'
 import * as sharedStyles from './campaigns.css'
 
 const tabLabels: Record<CampaignTab, string> = {
   sessions: 'Sessions',
+  announcements: 'Announcements',
   party: 'Party',
   notes: 'Notes',
+  files: 'Files',
   inventory: 'Inventory',
+  table: 'Table',
   content: 'Content',
   settings: 'Settings'
 }
@@ -35,15 +42,22 @@ export function CampaignDetailPage({
   const tabs = getCampaignTabs(campaign)
   const [activeTab, setActiveTab] = useState<CampaignTab>(tabs[0])
   const [openCharacterPicker, setOpenCharacterPicker] = useState(false)
+  const [requestedAnnouncementId, setRequestedAnnouncementId] = useState<string | null>(null)
   useCampaignRealtime(campaign, currentUserId)
 
   useEffect(() => {
     const search = new URLSearchParams(window.location.search)
     const requestedTab = search.get('tab')
+    const announcementPublicId = search.get('announcementPublicId')
     if (requestedTab && tabs.includes(requestedTab as CampaignTab))
       setActiveTab(requestedTab as CampaignTab)
+    if (announcementPublicId) {
+      setRequestedAnnouncementId(announcementPublicId)
+      if (tabs.includes('announcements')) setActiveTab('announcements')
+    }
     if (search.get('action') === 'assign-character') setOpenCharacterPicker(true)
-    if (!requestedTab && search.get('action') !== 'assign-character') return
+    if (!requestedTab && !announcementPublicId && search.get('action') !== 'assign-character')
+      return
     window.history.replaceState({}, '', window.location.pathname)
   }, [tabs])
 
@@ -110,6 +124,12 @@ export function CampaignDetailPage({
         <Tabs.Panel value='sessions' pt='md'>
           <CampaignSessions campaign={campaign} currentUserId={currentUserId} />
         </Tabs.Panel>
+        <Tabs.Panel value='announcements' pt='md'>
+          <CampaignAnnouncements
+            announcementPublicId={requestedAnnouncementId}
+            campaign={campaign}
+          />
+        </Tabs.Panel>
         <Tabs.Panel value='party' pt='md'>
           <CampaignParty
             campaign={campaign}
@@ -124,9 +144,18 @@ export function CampaignDetailPage({
         ) : null}
         {tabs.includes('inventory') ? (
           <Tabs.Panel value='inventory' pt='md'>
-            <CampaignInventory campaign={campaign} currentUserId={currentUserId} />
+            <Stack gap='lg'>
+              <CampaignVehicles campaign={campaign} />
+              <CampaignInventory campaign={campaign} currentUserId={currentUserId} />
+            </Stack>
           </Tabs.Panel>
         ) : null}
+        <Tabs.Panel value='files' pt='md'>
+          <CampaignFiles campaign={campaign} currentUserId={currentUserId} />
+        </Tabs.Panel>
+        <Tabs.Panel value='table' pt='md'>
+          <CampaignTableSettings campaign={campaign} />
+        </Tabs.Panel>
         {tabs.includes('content') ? (
           <Tabs.Panel value='content' pt='md'>
             <CampaignContent campaign={campaign} />

@@ -86,10 +86,12 @@ export type {
 
 export type {
   AttachImageInput,
+  CreateCampaignFileUploadIntentInput,
   CreateImageUploadIntentInput,
   FinalizeImageUploadInput,
   ImageLookupInput,
   RemoveImageInput,
+  SignedCampaignFileDeliveryDto,
   SignedImageDeliveryDto
 } from '@artificer-toolkit/schema/api/media'
 
@@ -128,16 +130,20 @@ export type {
   CampaignChatEntryDto,
   CampaignChatPageDto,
   CampaignAdjustmentDto,
+  CampaignAnnouncementDto,
+  CampaignAttachmentDto,
   CampaignConditionDto,
   CampaignContentBindingDto,
   CampaignDetailDto,
   CampaignEventPageDto,
   CampaignInviteDto,
+  CampaignPlaySettingsDto,
   CampaignNotebookSectionDto,
   CampaignSessionDto,
   CampaignSessionNoteSectionDto,
   CampaignSessionReferencePinDto,
   CampaignSummaryDto,
+  CampaignVehicleDto,
   CurrencySystemDto,
   EntitlementProjectionDto,
   ExecuteCampaignRollInput,

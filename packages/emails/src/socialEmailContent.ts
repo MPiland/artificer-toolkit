@@ -29,6 +29,21 @@ export function getSocialEmailContent({
   const preferencesUrl = socialUrl(appUrl, '/settings/preferences')
 
   switch (workflowKey) {
+    case 'campaign-announcement': {
+      if (data.kind !== 'CAMPAIGN_ANNOUNCEMENT') invalidWorkflowData(workflowKey, data.kind)
+      return {
+        subject: 'New Campaign announcement',
+        preview: data.summary,
+        title: 'New Campaign announcement',
+        body: data.summary,
+        preferencesUrl,
+        actionLabel: 'View announcement',
+        actionUrl: socialUrl(
+          appUrl,
+          `/campaigns/${encodeURIComponent(data.campaignPublicId)}?tab=announcements&announcementPublicId=${encodeURIComponent(data.announcementPublicId)}`
+        )
+      }
+    }
     case 'social-application-submitted': {
       if (data.kind !== 'SOCIAL_APPLICATION_SUBMITTED') invalidWorkflowData(workflowKey, data.kind)
       const count = Math.max(1, activityCount ?? 1)

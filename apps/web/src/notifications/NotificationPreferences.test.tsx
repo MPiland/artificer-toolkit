@@ -1,47 +1,34 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { NotificationAvailabilityContext } from './notificationContext'
-import { socialWorkflowIdentifiers } from './notificationPreferencesModel'
 
 const mocks = vi.hoisted(() => ({
-  bulkUpdate: vi.fn(),
-  refetch: vi.fn(),
-  usePreferences: vi.fn()
+  preferences: vi.fn(),
+  updatePreferences: vi.fn()
 }))
 
-vi.mock('@novu/react', () => ({
-  useNovu: () => ({ preferences: { bulkUpdate: mocks.bulkUpdate } }),
-  usePreferences: mocks.usePreferences
+vi.mock('#app/lib/api', () => ({
+  api: { notifications: mocks }
 }))
 
 import { NotificationPreferences } from './NotificationPreferences'
 
 describe('NotificationPreferences', () => {
-  const enabledPreferences = socialWorkflowIdentifiers.map((identifier) => ({
-    workflow: { identifier },
-    channels: { email: true, in_app: true }
-  }))
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-    mocks.usePreferences.mockReturnValue({
-      isLoading: false,
-      refetch: mocks.refetch,
-      preferences: enabledPreferences
-    })
-  })
-
   it('rolls an optimistic channel update back and announces the save failure', async () => {
-    mocks.bulkUpdate.mockResolvedValueOnce({ error: new Error('unavailable') })
+    mocks.preferences.mockResolvedValue({
+      campaign: { email: true, inApp: true },
+      social: { email: true, inApp: true }
+    })
+    mocks.updatePreferences.mockRejectedValueOnce(new Error('unavailable'))
     renderWithAppProviders(
       <NotificationAvailabilityContext value='ready'>
         <NotificationPreferences />
       </NotificationAvailabilityContext>
     )
 
-    const inApp = screen.getByRole('switch', { name: 'In-app notifications' })
-    const email = screen.getByRole('switch', { name: 'Email notifications' })
+    const inApp = await screen.findByRole('switch', { name: 'Social Hub in-app notifications' })
+    const email = screen.getByRole('switch', { name: 'Social Hub email notifications' })
     expect(inApp).toBeChecked()
     expect(email).toBeChecked()
 
@@ -53,29 +40,21 @@ describe('NotificationPreferences', () => {
         'Notification preferences could not be saved.'
       )
     })
-    expect(mocks.bulkUpdate).toHaveBeenCalledWith(
-      socialWorkflowIdentifiers.map((workflowId) => ({
-        workflowId,
-        channels: { email: false, in_app: true }
-      }))
-    )
+    expect(mocks.updatePreferences).toHaveBeenCalledWith({
+      category: 'SOCIAL',
+      email: false,
+      inApp: true
+    })
   })
 
-  it('blocks edits after a load failure and restores them after a successful retry', async () => {
-    const staleError = new Error('unavailable')
-    mocks.usePreferences.mockReturnValue({
-      error: staleError,
-      isLoading: false,
-      preferences: undefined,
-      refetch: mocks.refetch
+  it('updates Campaign delivery independently', async () => {
+    mocks.preferences.mockResolvedValue({
+      campaign: { email: true, inApp: true },
+      social: { email: true, inApp: true }
     })
-    mocks.refetch.mockImplementationOnce(async () => {
-      mocks.usePreferences.mockReturnValue({
-        error: staleError,
-        isLoading: false,
-        preferences: enabledPreferences,
-        refetch: mocks.refetch
-      })
+    mocks.updatePreferences.mockResolvedValue({
+      campaign: { email: true, inApp: false },
+      social: { email: true, inApp: true }
     })
     renderWithAppProviders(
       <NotificationAvailabilityContext value='ready'>
@@ -83,13 +62,14 @@ describe('NotificationPreferences', () => {
       </NotificationAvailabilityContext>
     )
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Could not load notification preferences.')
-    expect(screen.queryByRole('switch')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    fireEvent.click(await screen.findByRole('switch', { name: 'Campaign in-app notifications' }))
+
     await waitFor(() => {
-      expect(mocks.refetch).toHaveBeenCalledOnce()
-      expect(screen.getAllByRole('switch')).toHaveLength(2)
+      expect(mocks.updatePreferences).toHaveBeenCalledWith({
+        category: 'CAMPAIGN',
+        email: true,
+        inApp: false
+      })
     })
-    expect(mocks.bulkUpdate).not.toHaveBeenCalled()
   })
 })

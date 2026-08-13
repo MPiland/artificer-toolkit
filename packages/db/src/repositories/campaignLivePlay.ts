@@ -25,6 +25,7 @@ interface LivePlayCommand {
   commandType: string
   inputFingerprint: string
   resultPayload: Json
+  correctionReason: string | null
   createdAt: string
 }
 
@@ -60,6 +61,7 @@ function commandFromRow(row: Record<string, unknown>): LivePlayCommand {
     commandType: String(row.command_type),
     inputFingerprint: String(row.input_fingerprint),
     resultPayload: row.result_payload as Json,
+    correctionReason: row.correction_reason as string | null,
     createdAt: iso(row.created_at as Timestamp)
   }
 }
@@ -140,15 +142,71 @@ export function createCampaignLivePlayRepository(db: DBLike) {
       commandType: string
       inputFingerprint: string
       resultPayload: Json
+      correctionReason?: string
     }): Promise<void> {
       await sql`
         INSERT INTO public.campaign_live_play_commands (
-          campaign_id, command_id, command_type, input_fingerprint, result_payload
+          campaign_id, command_id, command_type, input_fingerprint, result_payload, correction_reason
         ) VALUES (
           ${input.campaignId}::uuid, ${input.commandId}::uuid, ${input.commandType},
-          ${input.inputFingerprint}, ${JSON.stringify(input.resultPayload)}::jsonb
+          ${input.inputFingerprint}, ${JSON.stringify(input.resultPayload)}::jsonb,
+          ${input.correctionReason ?? null}
         )
       `.execute(db)
+    },
+
+    async findOpenClockSegment(campaignId: string): Promise<{
+      id: string
+      campaignId: string
+      startedAt: string
+      startAbsoluteMinute: number
+    } | null> {
+      const result = await sql<Record<string, unknown>>`
+        SELECT * FROM public.campaign_clock_segments
+        WHERE campaign_id = ${campaignId}::uuid AND stopped_at IS NULL
+      `.execute(db)
+      const row = result.rows[0]
+      return row
+        ? {
+            id: String(row.id),
+            campaignId: String(row.campaign_id),
+            startedAt: iso(row.started_at as Timestamp),
+            startAbsoluteMinute: Number(row.start_absolute_minute)
+          }
+        : null
+    },
+
+    async openClockSegment(input: {
+      campaignId: string
+      startedAt: string
+      startAbsoluteMinute: number
+    }): Promise<string> {
+      const result = await sql<{ id: string }>`
+        INSERT INTO public.campaign_clock_segments (
+          campaign_id, started_at, start_absolute_minute
+        ) VALUES (
+          ${input.campaignId}::uuid, ${input.startedAt}::timestamptz,
+          ${input.startAbsoluteMinute}
+        ) RETURNING id
+      `.execute(db)
+      const id = result.rows[0]?.id
+      if (!id) throw new Error('Campaign clock segment was not created.')
+      return id
+    },
+
+    async closeClockSegment(input: {
+      campaignId: string
+      stoppedAt: string
+      endAbsoluteMinute: number
+    }): Promise<boolean> {
+      const result = await sql<{ id: string }>`
+        UPDATE public.campaign_clock_segments
+        SET stopped_at = ${input.stoppedAt}::timestamptz,
+            end_absolute_minute = ${input.endAbsoluteMinute}
+        WHERE campaign_id = ${input.campaignId}::uuid AND stopped_at IS NULL
+        RETURNING id
+      `.execute(db)
+      return result.rows.length > 0
     },
 
     async hasRecovery(input: {

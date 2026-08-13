@@ -35,6 +35,7 @@ const meta = {
   render: (args) => <StatefulPreferencesStory {...args} />,
   args: {
     channels: { email: true, inApp: true },
+    label: 'Social Hub',
     onChange: () => undefined
   }
 } satisfies Meta<typeof NotificationPreferencesView>

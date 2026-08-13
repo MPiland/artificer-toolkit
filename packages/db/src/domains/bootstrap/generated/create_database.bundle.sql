@@ -680,9 +680,10 @@ CREATE TABLE IF NOT EXISTS public.notification_delivery_intents (
     'social-application-submitted',
     'social-application-decided',
     'social-invitation-received',
-    'social-invitation-decided'
+    'social-invitation-decided',
+    'campaign-announcement'
   )),
-  source_kind text NOT NULL CHECK (source_kind IN ('SOCIAL_APPLICATION', 'CAMPAIGN_INVITE')),
+  source_kind text NOT NULL CHECK (source_kind IN ('SOCIAL_APPLICATION', 'CAMPAIGN_INVITE', 'CAMPAIGN_ANNOUNCEMENT')),
   source_public_id uuid NOT NULL,
   recipient_notification_id uuid NOT NULL
     REFERENCES public.profiles (notification_recipient_id) ON DELETE CASCADE,
@@ -708,6 +709,413 @@ CREATE INDEX IF NOT EXISTS notification_delivery_intents_due_idx
 ALTER TABLE public.notification_delivery_intents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notification_delivery_intents FORCE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.notification_delivery_intents FROM anon, authenticated;
+
+CREATE TABLE IF NOT EXISTS public.notification_preferences (
+  user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  category text NOT NULL CHECK (category IN ('SOCIAL', 'CAMPAIGN')),
+  in_app_enabled boolean NOT NULL DEFAULT true,
+  email_enabled boolean NOT NULL DEFAULT true,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, category)
+);
+
+ALTER TABLE public.notification_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notification_preferences FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.notification_preferences FROM anon, authenticated;
+
+CREATE TABLE IF NOT EXISTS public.notification_feed_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  delivery_intent_id uuid NOT NULL UNIQUE
+    REFERENCES public.notification_delivery_intents (id) ON DELETE CASCADE,
+  recipient_user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  category text NOT NULL CHECK (category IN ('SOCIAL', 'CAMPAIGN')),
+  workflow_key text NOT NULL CHECK (workflow_key IN (
+    'social-application-submitted',
+    'social-application-decided',
+    'social-invitation-received',
+    'social-invitation-decided',
+    'campaign-announcement'
+  )),
+  source_kind text NOT NULL CHECK (source_kind IN ('SOCIAL_APPLICATION', 'CAMPAIGN_INVITE', 'CAMPAIGN_ANNOUNCEMENT')),
+  source_public_id uuid NOT NULL,
+  grouping_key text CHECK (grouping_key IS NULL OR char_length(grouping_key) BETWEEN 1 AND 200),
+  payload jsonb NOT NULL CHECK (jsonb_typeof(payload) = 'object'),
+  occurred_at timestamptz NOT NULL,
+  seen_at timestamptz,
+  read_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS notification_feed_items_recipient_occurred_idx
+  ON public.notification_feed_items (recipient_user_id, occurred_at DESC, id DESC);
+
+ALTER TABLE public.notification_feed_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notification_feed_items FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.notification_feed_items FROM anon, authenticated;
+
+CREATE SCHEMA IF NOT EXISTS private;
+REVOKE ALL ON SCHEMA private FROM PUBLIC;
+GRANT USAGE ON SCHEMA private TO authenticated;
+
+CREATE OR REPLACE FUNCTION private.notification_category(source_kind text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+SET search_path = pg_catalog
+AS $$
+  SELECT CASE
+    WHEN source_kind IN ('SOCIAL_APPLICATION', 'CAMPAIGN_INVITE') THEN 'SOCIAL'
+    WHEN source_kind = 'CAMPAIGN_ANNOUNCEMENT' THEN 'CAMPAIGN'
+    ELSE NULL
+  END
+$$;
+
+REVOKE ALL ON FUNCTION private.notification_category(text) FROM PUBLIC;
+
+CREATE OR REPLACE FUNCTION public.claim_notification_delivery_intents(
+  p_limit integer,
+  p_now timestamptz,
+  p_stale_before timestamptz
+)
+RETURNS TABLE (
+  id uuid,
+  operation text,
+  workflow_key text,
+  source_kind text,
+  source_public_id uuid,
+  recipient_notification_id uuid,
+  recipient_user_id uuid,
+  grouping_key text,
+  payload jsonb,
+  attempt_count integer,
+  recipient_email text,
+  recipient_username text,
+  in_app_enabled boolean,
+  email_enabled boolean
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, private
+AS $$
+BEGIN
+  IF p_limit < 1 OR p_limit > 100 THEN
+    RAISE EXCEPTION 'p_limit must be between 1 and 100';
+  END IF;
+
+  UPDATE public.notification_delivery_intents exhausted
+  SET claimed_at = NULL, failed_at = p_now, last_error_code = 'ATTEMPTS_EXHAUSTED'
+  WHERE exhausted.delivered_at IS NULL AND exhausted.failed_at IS NULL
+    AND exhausted.attempt_count >= 10
+    AND (exhausted.claimed_at IS NULL OR exhausted.claimed_at <= p_stale_before);
+
+  UPDATE public.notification_delivery_intents trigger_intent
+  SET claimed_at = NULL, failed_at = p_now, last_error_code = 'SOURCE_CANCELLED'
+  WHERE trigger_intent.operation = 'TRIGGER'
+    AND trigger_intent.delivered_at IS NULL AND trigger_intent.failed_at IS NULL
+    AND (trigger_intent.claimed_at IS NULL OR trigger_intent.claimed_at <= p_stale_before)
+    AND EXISTS (
+      SELECT 1
+      FROM public.notification_delivery_intents cancel_intent
+      WHERE cancel_intent.operation = 'CANCEL'
+        AND cancel_intent.recipient_notification_id = trigger_intent.recipient_notification_id
+        AND cancel_intent.source_kind = trigger_intent.source_kind
+        AND cancel_intent.source_public_id = trigger_intent.source_public_id
+        AND cancel_intent.workflow_key = trigger_intent.workflow_key
+    );
+
+  RETURN QUERY
+  WITH due AS (
+    SELECT intent.id
+    FROM public.notification_delivery_intents intent
+    WHERE intent.delivered_at IS NULL AND intent.failed_at IS NULL
+      AND intent.next_attempt_at <= p_now
+      AND (intent.claimed_at IS NULL OR intent.claimed_at <= p_stale_before)
+      AND intent.attempt_count < 10
+      AND (
+        intent.operation <> 'TRIGGER'
+        OR NOT EXISTS (
+          SELECT 1
+          FROM public.notification_delivery_intents cancel_intent
+          WHERE cancel_intent.operation = 'CANCEL'
+            AND cancel_intent.recipient_notification_id = intent.recipient_notification_id
+            AND cancel_intent.source_kind = intent.source_kind
+            AND cancel_intent.source_public_id = intent.source_public_id
+            AND cancel_intent.workflow_key = intent.workflow_key
+        )
+      )
+      AND (
+        intent.operation <> 'CANCEL'
+        OR NOT EXISTS (
+          SELECT 1
+          FROM public.notification_delivery_intents active_trigger
+          WHERE active_trigger.operation = 'TRIGGER'
+            AND active_trigger.recipient_notification_id = intent.recipient_notification_id
+            AND active_trigger.source_kind = intent.source_kind
+            AND active_trigger.source_public_id = intent.source_public_id
+            AND active_trigger.workflow_key = intent.workflow_key
+            AND active_trigger.delivered_at IS NULL
+            AND active_trigger.failed_at IS NULL
+            AND active_trigger.claimed_at > p_stale_before
+        )
+      )
+    ORDER BY intent.next_attempt_at, intent.occurred_at, intent.id
+    FOR UPDATE SKIP LOCKED
+    LIMIT p_limit
+  ), claimed AS (
+    UPDATE public.notification_delivery_intents intent
+    SET claimed_at = p_now, attempt_count = intent.attempt_count + 1
+    FROM due
+    WHERE intent.id = due.id
+    RETURNING intent.*
+  )
+  SELECT
+    claimed.id,
+    claimed.operation,
+    claimed.workflow_key,
+    claimed.source_kind,
+    claimed.source_public_id,
+    claimed.recipient_notification_id,
+    profile.id,
+    claimed.grouping_key,
+    claimed.payload,
+    claimed.attempt_count,
+    auth_user.email::text,
+    profile.username::text,
+    COALESCE(preference.in_app_enabled, true),
+    COALESCE(preference.email_enabled, true)
+  FROM claimed
+  JOIN public.profiles profile ON profile.notification_recipient_id = claimed.recipient_notification_id
+  JOIN auth.users auth_user ON auth_user.id = profile.id
+  LEFT JOIN public.notification_preferences preference
+    ON preference.user_id = profile.id
+    AND preference.category = private.notification_category(claimed.source_kind)
+  ORDER BY claimed.next_attempt_at, claimed.occurred_at, claimed.id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.record_notification_feed_item(
+  p_intent_id uuid
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, private
+AS $$
+DECLARE
+  feed_item_id uuid;
+BEGIN
+  INSERT INTO public.notification_feed_items (
+    delivery_intent_id, recipient_user_id, category, workflow_key, source_kind,
+    source_public_id, grouping_key, payload, occurred_at
+  )
+  SELECT
+    intent.id,
+    profile.id,
+    private.notification_category(intent.source_kind),
+    intent.workflow_key,
+    intent.source_kind,
+    intent.source_public_id,
+    intent.grouping_key,
+    intent.payload,
+    intent.occurred_at
+  FROM public.notification_delivery_intents intent
+  JOIN public.profiles profile ON profile.notification_recipient_id = intent.recipient_notification_id
+  LEFT JOIN public.notification_preferences preference
+    ON preference.user_id = profile.id
+    AND preference.category = private.notification_category(intent.source_kind)
+  WHERE intent.id = p_intent_id
+    AND intent.operation = 'TRIGGER'
+    AND COALESCE(preference.in_app_enabled, true)
+  ON CONFLICT (delivery_intent_id) DO UPDATE
+    SET delivery_intent_id = EXCLUDED.delivery_intent_id
+  RETURNING id INTO feed_item_id;
+
+  IF feed_item_id IS NOT NULL THEN
+    DELETE FROM public.notification_feed_items item
+    WHERE item.recipient_user_id = (
+      SELECT recipient_user_id
+      FROM public.notification_feed_items
+      WHERE id = feed_item_id
+    )
+      AND item.id IN (
+        SELECT id
+        FROM public.notification_feed_items
+        WHERE recipient_user_id = (
+          SELECT recipient_user_id
+          FROM public.notification_feed_items
+          WHERE id = feed_item_id
+        )
+        ORDER BY occurred_at DESC, id DESC
+        OFFSET 25
+      );
+  END IF;
+
+  RETURN feed_item_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.notification_mark_delivery_succeeded(
+  p_intent_id uuid,
+  p_delivered_at timestamptz
+)
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+  UPDATE public.notification_delivery_intents
+  SET claimed_at = NULL, delivered_at = p_delivered_at, last_error_code = NULL
+  WHERE id = p_intent_id AND failed_at IS NULL
+$$;
+
+CREATE OR REPLACE FUNCTION public.notification_mark_delivery_retry(
+  p_intent_id uuid,
+  p_next_attempt_at timestamptz,
+  p_error_code text
+)
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+  UPDATE public.notification_delivery_intents
+  SET claimed_at = NULL, next_attempt_at = p_next_attempt_at, last_error_code = p_error_code
+  WHERE id = p_intent_id AND delivered_at IS NULL AND failed_at IS NULL
+$$;
+
+CREATE OR REPLACE FUNCTION public.notification_mark_delivery_failed(
+  p_intent_id uuid,
+  p_failed_at timestamptz,
+  p_error_code text
+)
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+  UPDATE public.notification_delivery_intents
+  SET claimed_at = NULL, failed_at = p_failed_at, last_error_code = p_error_code
+  WHERE id = p_intent_id AND delivered_at IS NULL AND failed_at IS NULL
+$$;
+
+CREATE OR REPLACE FUNCTION public.notification_expire_due_campaign_invites(
+  p_now timestamptz,
+  p_limit integer
+)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  expired_count integer;
+BEGIN
+  IF p_limit < 1 OR p_limit > 100 THEN
+    RAISE EXCEPTION 'p_limit must be between 1 and 100';
+  END IF;
+
+  WITH due AS (
+    SELECT id
+    FROM public.campaign_invites
+    WHERE status = 'PENDING' AND expires_at <= p_now
+    ORDER BY expires_at, id
+    FOR UPDATE SKIP LOCKED
+    LIMIT p_limit
+  ), expired AS (
+    UPDATE public.campaign_invites invite
+    SET status = 'EXPIRED', expired_at = p_now,
+      version = invite.version + 1, updated_at = p_now
+    FROM due
+    WHERE invite.id = due.id
+    RETURNING invite.id, invite.recipient_user_id
+  ), cancelled AS (
+    INSERT INTO public.notification_delivery_intents (
+      operation, workflow_key, source_kind, source_public_id,
+      recipient_notification_id, payload, occurred_at
+    )
+    SELECT
+      'CANCEL',
+      'social-invitation-received',
+      'CAMPAIGN_INVITE',
+      expired.id,
+      profile.notification_recipient_id,
+      '{}'::jsonb,
+      p_now
+    FROM expired
+    JOIN public.profiles profile ON profile.id = expired.recipient_user_id
+    ON CONFLICT (
+      recipient_notification_id, source_kind, source_public_id, workflow_key, operation
+    ) DO NOTHING
+    RETURNING id
+  )
+  SELECT count(*)::integer INTO expired_count FROM expired;
+
+  RETURN expired_count;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.claim_notification_delivery_intents(integer, timestamptz, timestamptz) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.record_notification_feed_item(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notification_mark_delivery_succeeded(uuid, timestamptz) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notification_mark_delivery_retry(uuid, timestamptz, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notification_mark_delivery_failed(uuid, timestamptz, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.notification_expire_due_campaign_invites(timestamptz, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_notification_delivery_intents(integer, timestamptz, timestamptz) TO service_role;
+GRANT EXECUTE ON FUNCTION public.record_notification_feed_item(uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.notification_mark_delivery_succeeded(uuid, timestamptz) TO service_role;
+GRANT EXECUTE ON FUNCTION public.notification_mark_delivery_retry(uuid, timestamptz, text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.notification_mark_delivery_failed(uuid, timestamptz, text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.notification_expire_due_campaign_invites(timestamptz, integer) TO service_role;
+
+CREATE OR REPLACE FUNCTION private.can_subscribe_notification_realtime_topic(requested_topic text)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $$
+  SELECT requested_topic = 'notifications:' || auth.uid()::text
+$$;
+
+REVOKE ALL ON FUNCTION private.can_subscribe_notification_realtime_topic(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION private.can_subscribe_notification_realtime_topic(text) TO authenticated;
+
+DROP POLICY IF EXISTS notification_realtime_topics ON realtime.messages;
+CREATE POLICY notification_realtime_topics ON realtime.messages FOR SELECT TO authenticated
+USING (private.can_subscribe_notification_realtime_topic(realtime.topic()));
+
+CREATE OR REPLACE FUNCTION public.broadcast_notification_feed_change()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, realtime
+AS $$
+DECLARE
+  changed public.notification_feed_items;
+  unseen_count integer;
+BEGIN
+  changed := COALESCE(NEW, OLD);
+  SELECT count(*)::integer INTO unseen_count
+  FROM public.notification_feed_items
+  WHERE recipient_user_id = changed.recipient_user_id
+    AND seen_at IS NULL;
+
+  PERFORM realtime.send(
+    jsonb_build_object('feedItemId', changed.id, 'unseenCountHint', unseen_count),
+    'feed-changed',
+    'notifications:' || changed.recipient_user_id::text,
+    true
+  );
+  RETURN changed;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.broadcast_notification_feed_change() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS notification_feed_items_broadcast_trigger ON public.notification_feed_items;
+CREATE TRIGGER notification_feed_items_broadcast_trigger
+AFTER INSERT OR UPDATE OF seen_at, read_at ON public.notification_feed_items
+FOR EACH ROW EXECUTE FUNCTION public.broadcast_notification_feed_change();
 -- END INCLUDE: src\domains\notifications\tables\notifications.sql
 -- BEGIN INCLUDE: src\domains\subjects\tables\systems.sql
 /* ──────────────────────────────────────────────
@@ -9979,7 +10387,7 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT media_assets_profile_chk
     CHECK (
-      profile IN ('ACCOUNT_AVATAR', 'CHARACTER_PORTRAIT', 'AUTHORED_IMAGE')
+      profile IN ('ACCOUNT_AVATAR', 'CHARACTER_PORTRAIT', 'AUTHORED_IMAGE', 'CAMPAIGN_FILE', 'CAMPAIGN_HANDOUT_MAP')
     ),
   CONSTRAINT media_assets_target_key_chk CHECK (length(btrim(target_key)) > 0),
   CONSTRAINT media_assets_status_chk
@@ -9987,11 +10395,11 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
       status IN ('PENDING_UPLOAD', 'PROCESSING', 'READY', 'REJECTED', 'DELETED')
     ),
   CONSTRAINT media_assets_declared_mime_type_chk
-    CHECK (declared_mime_type IN ('image/jpeg', 'image/png', 'image/webp')),
+    CHECK (declared_mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'text/plain') AND (profile <> 'CAMPAIGN_HANDOUT_MAP' OR declared_mime_type <> 'text/plain')),
   CONSTRAINT media_assets_verified_mime_type_chk
     CHECK (
       verified_mime_type IS NULL
-      OR verified_mime_type IN ('image/jpeg', 'image/png', 'image/webp')
+      OR (verified_mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'text/plain') AND (profile <> 'CAMPAIGN_HANDOUT_MAP' OR verified_mime_type <> 'text/plain'))
     ),
   CONSTRAINT media_assets_original_file_name_chk
     CHECK (length(btrim(original_file_name)) BETWEEN 1 AND 255),
@@ -10029,13 +10437,14 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
       OR (
         verified_mime_type IS NOT NULL
         AND verified_bytes IS NOT NULL
-        AND width IS NOT NULL
-        AND height IS NOT NULL
+        AND ((verified_mime_type = 'text/plain' AND width IS NULL AND height IS NULL)
+          OR (verified_mime_type <> 'text/plain' AND width IS NOT NULL AND height IS NOT NULL))
         AND ready_at IS NOT NULL
       )
     ),
   CONSTRAINT media_assets_owner_idempotency_unique
-    UNIQUE (owner_user_id, idempotency_key)
+    UNIQUE (owner_user_id, idempotency_key),
+  CONSTRAINT media_assets_id_profile_key UNIQUE (id, profile)
 );
 
 CREATE INDEX IF NOT EXISTS idx_media_assets_owner_status ON public.media_assets (
@@ -10085,15 +10494,15 @@ CREATE TABLE IF NOT EXISTS public.media_variants (
   object_key text NOT NULL UNIQUE,
   mime_type text NOT NULL,
   byte_size BIGINT NOT NULL,
-  width INTEGER NOT NULL,
-  height INTEGER NOT NULL,
+  width INTEGER,
+  height INTEGER,
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT media_variants_kind_chk
     CHECK (kind IN ('SOURCE', 'DISPLAY', 'THUMBNAIL')),
   CONSTRAINT media_variants_mime_type_chk
-    CHECK (mime_type IN ('image/jpeg', 'image/png', 'image/webp')),
+    CHECK (mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'text/plain')),
   CONSTRAINT media_variants_size_chk CHECK (byte_size > 0),
-  CONSTRAINT media_variants_dimensions_chk CHECK (width > 0 AND height > 0),
+  CONSTRAINT media_variants_dimensions_chk CHECK ((mime_type = 'text/plain' AND width IS NULL AND height IS NULL) OR (mime_type <> 'text/plain' AND width > 0 AND height > 0)),
   CONSTRAINT media_variants_asset_kind_unique UNIQUE (asset_id, kind)
 );
 
@@ -10243,7 +10652,7 @@ VALUES
     'media',
     FALSE,
     6291456,
-    ARRAY['image/jpeg', 'image/png', 'image/webp']::text[]
+    ARRAY['image/jpeg', 'image/png', 'image/webp', 'text/plain']::text[]
   )
 ON CONFLICT (id) DO UPDATE
   SET
@@ -10333,6 +10742,25 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
 
 CREATE INDEX IF NOT EXISTS campaigns_owner_status_idx ON public.campaigns (owner_user_id, status);
 ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.campaign_play_settings (
+  campaign_id uuid PRIMARY KEY REFERENCES public.campaigns (id) ON DELETE CASCADE,
+  normal_cadence_days integer CHECK (normal_cadence_days BETWEEN 1 AND 365),
+  expected_duration_minutes integer CHECK (expected_duration_minutes BETWEEN 15 AND 1440),
+  quorum integer CHECK (quorum BETWEEN 1 AND 100),
+  absent_character_policy text CHECK (absent_character_policy IS NULL OR char_length(btrim(absent_character_policy)) BETWEEN 1 AND 4000),
+  content_guidance text CHECK (content_guidance IS NULL OR char_length(btrim(content_guidance)) BETWEEN 1 AND 4000),
+  allowed_content_rules text CHECK (allowed_content_rules IS NULL OR char_length(btrim(allowed_content_rules)) BETWEEN 1 AND 4000),
+  table_conduct text CHECK (table_conduct IS NULL OR char_length(btrim(table_conduct)) BETWEEN 1 AND 4000),
+  content_boundaries text CHECK (content_boundaries IS NULL OR char_length(btrim(content_boundaries)) BETWEEN 1 AND 4000),
+  safety_practices text[] NOT NULL DEFAULT '{}'::text[] CHECK (cardinality(safety_practices) <= 6 AND safety_practices <@ ARRAY['SESSION_ZERO', 'LINES_AND_VEILS', 'X_CARD', 'OPEN_DOOR', 'SCRIPT_CHANGE', 'OTHER']::text[]),
+  live_safety_method text CHECK (live_safety_method IS NULL OR char_length(btrim(live_safety_method)) BETWEEN 1 AND 500),
+  version integer NOT NULL DEFAULT 0 CHECK (version >= 0),
+  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.campaign_play_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.campaign_play_settings FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.campaign_play_settings FROM anon, authenticated;
 
 CREATE TABLE IF NOT EXISTS public.campaign_memberships (
   campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
@@ -10526,19 +10954,37 @@ CREATE TABLE IF NOT EXISTS public.campaign_character_content_bindings (
 CREATE INDEX IF NOT EXISTS campaign_character_content_bindings_version_idx ON public.campaign_character_content_bindings (content_version_id);
 ALTER TABLE public.campaign_character_content_bindings ENABLE ROW LEVEL SECURITY;
 
+CREATE TABLE IF NOT EXISTS public.campaign_vehicles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
+  content_version_id uuid NOT NULL REFERENCES public.campaign_content_versions (id) ON DELETE RESTRICT,
+  label text CHECK (label IS NULL OR char_length(btrim(label)) BETWEEN 1 AND 120),
+  version integer NOT NULL DEFAULT 0 CHECK (version >= 0),
+  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (id, campaign_id)
+);
+CREATE INDEX IF NOT EXISTS campaign_vehicles_campaign_idx ON public.campaign_vehicles (campaign_id, created_at, id);
+ALTER TABLE public.campaign_vehicles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.campaign_vehicles FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.campaign_vehicles FROM anon, authenticated;
+CREATE OR REPLACE FUNCTION public.validate_campaign_vehicle_version() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, public AS $$ BEGIN IF NOT EXISTS (SELECT 1 FROM public.campaign_content_versions version WHERE version.id = NEW.content_version_id AND version.campaign_id = NEW.campaign_id AND version.subject_kind = 'VEHICLE' AND version.state = 'APPROVED') THEN RAISE EXCEPTION 'Campaign vehicle requires an approved Vehicle content version.'; END IF; RETURN NEW; END; $$;
+CREATE TRIGGER campaign_vehicles_validate_version BEFORE INSERT OR UPDATE OF campaign_id, content_version_id ON public.campaign_vehicles FOR EACH ROW EXECUTE FUNCTION public.validate_campaign_vehicle_version();
+
 CREATE TABLE IF NOT EXISTS public.inventory_owners (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  kind text NOT NULL CHECK (kind IN ('CHARACTER', 'CAMPAIGN')),
+  kind text NOT NULL CHECK (kind IN ('CHARACTER', 'CAMPAIGN', 'VEHICLE')),
   character_id uuid REFERENCES public.characters (id) ON DELETE CASCADE,
   campaign_id uuid REFERENCES public.campaigns (id) ON DELETE CASCADE,
+  vehicle_id uuid REFERENCES public.campaign_vehicles (id) ON DELETE CASCADE,
   version integer NOT NULL DEFAULT 0 CHECK (version >= 0),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CHECK ((kind = 'CHARACTER' AND character_id IS NOT NULL AND campaign_id IS NULL) OR (kind = 'CAMPAIGN' AND campaign_id IS NOT NULL AND character_id IS NULL))
+  CHECK ((kind = 'CHARACTER' AND character_id IS NOT NULL AND campaign_id IS NULL AND vehicle_id IS NULL) OR (kind = 'CAMPAIGN' AND campaign_id IS NOT NULL AND character_id IS NULL AND vehicle_id IS NULL) OR (kind = 'VEHICLE' AND vehicle_id IS NOT NULL AND character_id IS NULL AND campaign_id IS NULL))
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS inventory_owners_character_idx ON public.inventory_owners (character_id) WHERE character_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS inventory_owners_campaign_idx ON public.inventory_owners (campaign_id) WHERE campaign_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS inventory_owners_vehicle_idx ON public.inventory_owners (vehicle_id) WHERE vehicle_id IS NOT NULL;
 ALTER TABLE public.inventory_owners ENABLE ROW LEVEL SECURITY;
 
 CREATE OR REPLACE FUNCTION public.create_campaign_inventory_owner()
@@ -10564,6 +11010,9 @@ $$;
 DROP TRIGGER IF EXISTS characters_create_inventory_owner ON public.characters;
 CREATE TRIGGER characters_create_inventory_owner AFTER INSERT ON public.characters
   FOR EACH ROW EXECUTE FUNCTION public.create_character_inventory_owner();
+
+CREATE OR REPLACE FUNCTION public.create_vehicle_inventory_owner() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, public AS $$ BEGIN INSERT INTO public.inventory_owners (kind, vehicle_id) VALUES ('VEHICLE', NEW.id) ON CONFLICT (vehicle_id) WHERE vehicle_id IS NOT NULL DO NOTHING; RETURN NEW; END; $$;
+CREATE TRIGGER campaign_vehicles_create_inventory_owner AFTER INSERT ON public.campaign_vehicles FOR EACH ROW EXECUTE FUNCTION public.create_vehicle_inventory_owner();
 
 CREATE TABLE IF NOT EXISTS public.inventory_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -10745,6 +11194,28 @@ CREATE UNIQUE INDEX IF NOT EXISTS campaign_conversations_direct_pair_idx ON publ
 CREATE INDEX IF NOT EXISTS campaign_conversations_campaign_idx ON public.campaign_conversations (campaign_id, created_at DESC, id DESC);
 ALTER TABLE public.campaign_conversations ENABLE ROW LEVEL SECURITY;
 
+CREATE TABLE IF NOT EXISTS public.campaign_announcements (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
+  command_id uuid NOT NULL,
+  input_fingerprint text NOT NULL CHECK (char_length(input_fingerprint) = 64),
+  author_user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  scope text NOT NULL CHECK (scope IN ('TABLE', 'PARTY')),
+  party_id uuid,
+  title text NOT NULL CHECK (char_length(btrim(title)) BETWEEN 1 AND 120),
+  body text NOT NULL CHECK (char_length(btrim(body)) BETWEEN 1 AND 10000),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK ((scope = 'TABLE' AND party_id IS NULL) OR (scope = 'PARTY' AND party_id IS NOT NULL)),
+  FOREIGN KEY (party_id, campaign_id) REFERENCES public.campaign_conversations (id, campaign_id) ON DELETE CASCADE,
+  UNIQUE (campaign_id, command_id)
+);
+CREATE INDEX IF NOT EXISTS campaign_announcements_campaign_idx ON public.campaign_announcements (campaign_id, created_at DESC, id DESC);
+ALTER TABLE public.campaign_announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.campaign_announcements FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.campaign_announcements FROM anon, authenticated;
+CREATE OR REPLACE FUNCTION public.reject_campaign_announcement_update() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, public AS $$ BEGIN RAISE EXCEPTION 'Published Campaign announcements are immutable.'; END; $$;
+CREATE TRIGGER campaign_announcements_immutable BEFORE UPDATE ON public.campaign_announcements FOR EACH ROW EXECUTE FUNCTION public.reject_campaign_announcement_update();
+
 CREATE TABLE IF NOT EXISTS public.campaign_conversation_members (
   conversation_id uuid NOT NULL,
   campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
@@ -10833,7 +11304,8 @@ CREATE TABLE IF NOT EXISTS public.campaign_note_sections (
   created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (id, campaign_id)
 );
 
 CREATE INDEX IF NOT EXISTS campaign_note_sections_campaign_sort_idx ON public.campaign_note_sections (campaign_id, sort_order);
@@ -10938,6 +11410,30 @@ CREATE INDEX IF NOT EXISTS campaign_session_reference_pins_session_idx ON public
 ALTER TABLE public.campaign_session_reference_pins ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.campaign_session_reference_pins FROM anon, authenticated;
 
+CREATE TABLE IF NOT EXISTS public.campaign_attachments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
+  asset_id uuid NOT NULL UNIQUE,
+  profile text NOT NULL CHECK (profile IN ('CAMPAIGN_FILE', 'CAMPAIGN_HANDOUT_MAP')),
+  uploader_user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,
+  display_name text NOT NULL CHECK (char_length(btrim(display_name)) BETWEEN 1 AND 120),
+  description text CHECK (description IS NULL OR char_length(btrim(description)) BETWEEN 1 AND 1000),
+  session_id uuid, note_section_id uuid, created_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (asset_id, profile) REFERENCES public.media_assets (id, profile) ON DELETE RESTRICT,
+  FOREIGN KEY (session_id, campaign_id) REFERENCES public.campaign_sessions (id, campaign_id) ON DELETE CASCADE,
+  FOREIGN KEY (note_section_id, campaign_id) REFERENCES public.campaign_note_sections (id, campaign_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS campaign_attachments_campaign_idx ON public.campaign_attachments (campaign_id, created_at DESC, id DESC);
+ALTER TABLE public.campaign_attachments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.campaign_attachments FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.campaign_attachments FROM anon, authenticated;
+CREATE OR REPLACE FUNCTION public.validate_ready_campaign_attachment() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, public AS $$ BEGIN IF NOT EXISTS (SELECT 1 FROM public.media_assets asset WHERE asset.id = NEW.asset_id AND asset.status = 'READY') THEN RAISE EXCEPTION 'Campaign attachments require a ready media asset.'; END IF; RETURN NEW; END; $$;
+CREATE TRIGGER campaign_attachments_validate_ready BEFORE INSERT OR UPDATE OF asset_id ON public.campaign_attachments FOR EACH ROW EXECUTE FUNCTION public.validate_ready_campaign_attachment();
+CREATE OR REPLACE FUNCTION public.protect_referenced_campaign_asset() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, public AS $$ BEGIN IF EXISTS (SELECT 1 FROM public.campaign_attachments attachment WHERE attachment.asset_id = OLD.id) AND (NEW.status <> 'READY' OR NEW.profile IS DISTINCT FROM OLD.profile) THEN RAISE EXCEPTION 'Referenced Campaign assets must remain ready and keep their profile.'; END IF; RETURN NEW; END; $$;
+CREATE TRIGGER media_assets_protect_campaign_reference BEFORE UPDATE OF status, profile ON public.media_assets FOR EACH ROW EXECUTE FUNCTION public.protect_referenced_campaign_asset();
+CREATE TRIGGER campaign_attachments_media_asset_reference_trigger AFTER INSERT OR UPDATE OR DELETE ON public.campaign_attachments FOR EACH ROW EXECUTE FUNCTION public.sync_media_asset_unreferenced_at('asset_id');
+CREATE OR REPLACE FUNCTION public.sync_media_asset_unreferenced_at() RETURNS trigger LANGUAGE plpgsql AS $$ DECLARE old_asset_id uuid; new_asset_id uuid; BEGIN IF TG_OP <> 'INSERT' THEN old_asset_id := (to_jsonb(OLD) ->> TG_ARGV[0])::uuid; END IF; IF TG_OP <> 'DELETE' THEN new_asset_id := (to_jsonb(NEW) ->> TG_ARGV[0])::uuid; END IF; IF new_asset_id IS NOT NULL THEN UPDATE public.media_assets SET unreferenced_at = NULL WHERE id = new_asset_id; END IF; IF old_asset_id IS NOT NULL AND old_asset_id IS DISTINCT FROM new_asset_id THEN UPDATE public.media_assets SET unreferenced_at = COALESCE(unreferenced_at, now()) WHERE id = old_asset_id AND NOT EXISTS (SELECT 1 FROM public.profiles WHERE avatar_asset_id = old_asset_id) AND NOT EXISTS (SELECT 1 FROM public.characters WHERE portrait_asset_id = old_asset_id) AND NOT EXISTS (SELECT 1 FROM public.authored_image_slots WHERE asset_id = old_asset_id) AND NOT EXISTS (SELECT 1 FROM public.campaign_attachments WHERE asset_id = old_asset_id); END IF; IF TG_OP = 'DELETE' THEN RETURN OLD; END IF; RETURN NEW; END; $$;
+
 CREATE TABLE IF NOT EXISTS public.campaign_clocks (
   campaign_id uuid PRIMARY KEY REFERENCES public.campaigns (id) ON DELETE CASCADE,
   day integer NOT NULL CHECK (day >= 1),
@@ -10954,14 +11450,30 @@ CREATE TABLE IF NOT EXISTS public.campaign_clocks (
 ALTER TABLE public.campaign_clocks ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.campaign_clocks FROM anon, authenticated;
 
+CREATE TABLE IF NOT EXISTS public.campaign_clock_segments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
+  started_at timestamptz NOT NULL, stopped_at timestamptz,
+  start_absolute_minute bigint NOT NULL CHECK (start_absolute_minute >= 0),
+  end_absolute_minute bigint CHECK (end_absolute_minute >= 0),
+  CHECK ((stopped_at IS NULL AND end_absolute_minute IS NULL) OR (stopped_at IS NOT NULL AND end_absolute_minute IS NOT NULL AND stopped_at >= started_at))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS campaign_clock_segments_one_open_idx ON public.campaign_clock_segments (campaign_id) WHERE stopped_at IS NULL;
+CREATE INDEX IF NOT EXISTS campaign_clock_segments_campaign_idx ON public.campaign_clock_segments (campaign_id, started_at, id);
+ALTER TABLE public.campaign_clock_segments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.campaign_clock_segments FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.campaign_clock_segments FROM anon, authenticated;
+
 CREATE TABLE IF NOT EXISTS public.campaign_live_play_commands (
   campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
   command_id uuid NOT NULL,
   command_type text NOT NULL CHECK (char_length(btrim(command_type)) BETWEEN 1 AND 80),
   input_fingerprint text NOT NULL,
+  correction_reason text,
   result_payload jsonb NOT NULL CHECK (jsonb_typeof(result_payload) = 'object'),
   created_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (campaign_id, command_id)
+  PRIMARY KEY (campaign_id, command_id),
+  CHECK ((command_type IN ('REWIND_CLOCK', 'RESET_CLOCK') AND correction_reason IS NOT NULL AND char_length(btrim(correction_reason)) BETWEEN 1 AND 500) OR (command_type NOT IN ('REWIND_CLOCK', 'RESET_CLOCK') AND correction_reason IS NULL))
 );
 ALTER TABLE public.campaign_live_play_commands ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.campaign_live_play_commands FROM anon, authenticated;

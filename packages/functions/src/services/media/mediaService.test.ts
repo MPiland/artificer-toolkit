@@ -28,6 +28,15 @@ describe('media service safety contracts', () => {
     expect(source).toContain("throw new Error('Unable to load uploaded image.')")
   })
 
+  it('retains the raw text upload when finalization can be retried', () => {
+    const retryCleanup = source.slice(
+      source.indexOf('[readyKey].filter((key): key is string => Boolean(key))'),
+      source.indexOf('await media.resetPending(assetId)')
+    )
+
+    expect(retryCleanup).not.toContain('asset.raw_object_key')
+  })
+
   it('checks character ownership before loading the crop source', () => {
     expect(source.indexOf('select id from characters')).toBeLessThan(
       source.indexOf('download(source.object_key)')
@@ -69,5 +78,11 @@ describe('media service safety contracts', () => {
 
   it('rejects missing active authored targets', () => {
     expect(source).toContain('if (!ownership) throw new MediaAccessError()')
+  })
+
+  it('stores validated text files without fake image dimensions', () => {
+    expect(source).toContain("verifiedMimeType: 'text/plain'")
+    expect(source).toContain('width: null')
+    expect(source).toContain('height: null')
   })
 })

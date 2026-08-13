@@ -1,70 +1,55 @@
 import type {
   CampaignInviteRecord,
   DBLike,
-  NotificationDeliveryIntentRecord
+  NotificationFeedItemRecord,
+  NotificationPreferencesRecord
 } from '@artificer-toolkit/db'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => {
-  class ApiError extends Error {
-    statusCode: number | undefined
-
-    constructor(status?: number) {
-      super(status === undefined ? 'Network error' : `HTTP ${status}`)
-      this.statusCode = status
-    }
-  }
-
-  return {
-    ApiError,
-    trigger: vi.fn(),
-    cancel: vi.fn(),
-    expireDueInvites: vi.fn(),
-    findRecipientIdForUser: vi.fn(),
-    insertDeliveryIntent: vi.fn(),
-    insertInvitationReceivedCancellations: vi.fn(),
-    suppressCancelledDeliveryTriggers: vi.fn(),
-    markExhaustedDeliveryIntents: vi.fn(),
-    claimDeliveryIntents: vi.fn(),
-    markDeliverySucceeded: vi.fn(),
-    markDeliveryRetry: vi.fn(),
-    markDeliveryFailed: vi.fn()
-  }
-})
-
-vi.mock('@novu/api', () => {
-  class MockNovu {
-    trigger = mocks.trigger
-    cancel = mocks.cancel
-  }
-  return { Novu: MockNovu }
-})
+const mocks = vi.hoisted(() => ({
+  expireDueInvites: vi.fn(),
+  findRecipientIdForUser: vi.fn(),
+  insertDeliveryIntent: vi.fn(),
+  insertInvitationReceivedCancellations: vi.fn(),
+  markAllFeedItemsSeen: vi.fn(),
+  markFeedItemRead: vi.fn(),
+  getPreferences: vi.fn(),
+  updatePreferences: vi.fn(),
+  listFeed: vi.fn(),
+  countUnseenFeedItems: vi.fn()
+}))
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@artificer-toolkit/db')>()
   return {
     ...actual,
-    createCampaignRepository: () => ({ expireDueInvites: mocks.expireDueInvites }),
+    createCampaignRepository: () => ({
+      expireDueInvites: mocks.expireDueInvites
+    }),
     createNotificationRepository: () => ({
       findRecipientIdForUser: mocks.findRecipientIdForUser,
       insertDeliveryIntent: mocks.insertDeliveryIntent,
       insertInvitationReceivedCancellations: mocks.insertInvitationReceivedCancellations,
-      suppressCancelledDeliveryTriggers: mocks.suppressCancelledDeliveryTriggers,
-      markExhaustedDeliveryIntents: mocks.markExhaustedDeliveryIntents,
-      claimDeliveryIntents: mocks.claimDeliveryIntents,
-      markDeliverySucceeded: mocks.markDeliverySucceeded,
-      markDeliveryRetry: mocks.markDeliveryRetry,
-      markDeliveryFailed: mocks.markDeliveryFailed
+      markAllFeedItemsSeen: mocks.markAllFeedItemsSeen,
+      markFeedItemRead: mocks.markFeedItemRead,
+      getPreferences: mocks.getPreferences,
+      updatePreferences: mocks.updatePreferences,
+      listFeed: mocks.listFeed,
+      countUnseenFeedItems: mocks.countUnseenFeedItems
     }),
     withTransaction: (_db: DBLike, callback: (trx: DBLike) => Promise<unknown>) => callback(_db)
   }
 })
 
 const {
-  createNotificationSession,
-  dispatchPendingNotifications,
+  enqueueCampaignAnnouncementNotification,
   enqueueInvitationReceivedNotification,
-  expireDueCampaignInvitations
+  expireDueCampaignInvitations,
+  getNotificationFeed,
+  getNotificationPreferences,
+  markAllNotificationsSeen,
+  markNotificationRead,
+  updateNotificationPreferences
 } = await import('./notificationService.js')
 
 const now = '2026-08-11T12:00:00.000Z'
@@ -72,26 +57,26 @@ const recipientId = '00000000-0000-4000-8000-000000000001'
 const sourcePublicId = '00000000-0000-4000-8000-000000000002'
 const listingPublicId = '00000000-0000-4000-8000-000000000003'
 
-function claimedIntent(
-  overrides: Partial<NotificationDeliveryIntentRecord> = {}
-): NotificationDeliveryIntentRecord {
+function nowFeedItem(
+  overrides: Partial<NotificationFeedItemRecord> = {}
+): NotificationFeedItemRecord {
   return {
     id: '00000000-0000-4000-8000-000000000004',
-    operation: 'TRIGGER',
-    workflowKey: 'social-application-decided',
+    workflowKey: 'campaign-announcement',
+    sourceKind: 'CAMPAIGN_ANNOUNCEMENT',
     sourcePublicId,
-    recipientNotificationId: recipientId,
+    groupingKey: null,
     payload: {
-      kind: 'SOCIAL_APPLICATION_DECIDED',
-      sourcePublicId,
-      listingPublicId,
-      listingTitle: 'Friday table',
-      decision: 'ACCEPTED',
+      kind: 'CAMPAIGN_ANNOUNCEMENT',
+      announcementPublicId: sourcePublicId,
+      campaignPublicId: listingPublicId,
+      summary: 'A new Campaign announcement is available.',
+      scope: 'PARTY',
       occurredAt: now
     },
-    attemptCount: 1,
-    recipientEmail: null,
-    recipientUsername: null,
+    occurredAt: now,
+    seenAt: null,
+    readAt: null,
     ...overrides
   }
 }
@@ -101,25 +86,48 @@ describe('notification delivery service', () => {
     vi.resetAllMocks()
     vi.useFakeTimers()
     vi.setSystemTime(now)
+    mocks.findRecipientIdForUser.mockResolvedValue(recipientId)
     mocks.expireDueInvites.mockResolvedValue([])
-    mocks.insertInvitationReceivedCancellations.mockResolvedValue(0)
-    mocks.suppressCancelledDeliveryTriggers.mockResolvedValue(0)
-    mocks.markExhaustedDeliveryIntents.mockResolvedValue(0)
-    mocks.claimDeliveryIntents.mockResolvedValue([])
+    mocks.insertDeliveryIntent.mockResolvedValue('00000000-0000-4000-8000-000000000999')
+    mocks.insertInvitationReceivedCancellations.mockResolvedValue(1)
+    mocks.markAllFeedItemsSeen.mockResolvedValue(1)
+    mocks.markFeedItemRead.mockResolvedValue(true)
+    mocks.getPreferences.mockResolvedValue({
+      social: { inApp: true, email: true },
+      campaign: { inApp: true, email: true }
+    })
+    mocks.updatePreferences.mockResolvedValue({
+      social: { inApp: false, email: true },
+      campaign: { inApp: true, email: false }
+    })
+    mocks.listFeed.mockResolvedValue([nowFeedItem()])
+    mocks.countUnseenFeedItems.mockResolvedValue(1)
   })
 
-  it('returns a recipient-scoped HMAC session without provider tokens', async () => {
-    mocks.findRecipientIdForUser.mockResolvedValue(recipientId)
+  it('enqueues Campaign announcements with generic ID-only copy', async () => {
+    await enqueueCampaignAnnouncementNotification({} as DBLike, {
+      announcementPublicId: sourcePublicId,
+      campaignPublicId: listingPublicId,
+      recipientUserId: recipientId,
+      scope: 'PARTY',
+      occurredAt: now
+    })
 
-    await expect(
-      createNotificationSession({} as DBLike, 'user-id', {
-        secretKey: 'secret-key',
-        applicationIdentifier: 'application-identifier'
-      })
-    ).resolves.toEqual({
-      recipientId,
-      subscriberHash: '3a8cfdb4dd901a74dfe1c1b110187bea9e7f1a0d531fe987a6deb36e78235797',
-      applicationIdentifier: 'application-identifier'
+    expect(mocks.insertDeliveryIntent).toHaveBeenCalledWith({
+      operation: 'TRIGGER',
+      workflowKey: 'campaign-announcement',
+      sourceKind: 'CAMPAIGN_ANNOUNCEMENT',
+      sourcePublicId,
+      recipientUserId: recipientId,
+      payload: {
+        kind: 'CAMPAIGN_ANNOUNCEMENT',
+        announcementPublicId: sourcePublicId,
+        campaignPublicId: listingPublicId,
+        summary: 'A new Campaign announcement is available.',
+        scope: 'PARTY',
+        occurredAt: now
+      },
+      occurredAt: now
     })
   })
 
@@ -150,12 +158,14 @@ describe('notification delivery service', () => {
 
     expect(mocks.insertDeliveryIntent).toHaveBeenCalledWith(
       expect.objectContaining({
-        payload: expect.objectContaining({ listingTitle: 'The ****storm citadel' })
+        payload: expect.objectContaining({
+          listingTitle: 'The ****storm citadel'
+        })
       })
     )
   })
 
-  it('silently cancels the received workflow when an invitation expires', async () => {
+  it('records due invitation expiry as a cancellation intent', async () => {
     mocks.expireDueInvites.mockResolvedValue([sourcePublicId])
 
     await expect(expireDueCampaignInvitations({} as DBLike, now)).resolves.toBe(1)
@@ -163,124 +173,101 @@ describe('notification delivery service', () => {
     expect(mocks.insertInvitationReceivedCancellations).toHaveBeenCalledWith([sourcePublicId], now)
   })
 
-  it('sweeps stale exhausted claims, claims ten at most, and omits absent identity fields', async () => {
-    mocks.markExhaustedDeliveryIntents.mockResolvedValue(1)
-    mocks.claimDeliveryIntents.mockResolvedValue([claimedIntent()])
+  it('maps feed payloads and unseen count', async () => {
+    const feedItem = nowFeedItem()
+    mocks.listFeed.mockResolvedValue([feedItem])
+    mocks.countUnseenFeedItems.mockResolvedValue(7)
 
-    await expect(dispatchPendingNotifications({} as DBLike, 'novu-secret')).resolves.toEqual({
-      claimed: 1,
-      delivered: 1,
-      retried: 0,
-      failed: 1,
-      expiredInvitations: 0
-    })
-    expect(mocks.markExhaustedDeliveryIntents).toHaveBeenCalledWith(now, '2026-08-11T11:55:00.000Z')
-    expect(mocks.suppressCancelledDeliveryTriggers).toHaveBeenCalledWith(
-      now,
-      '2026-08-11T11:55:00.000Z'
-    )
-    expect(mocks.claimDeliveryIntents).toHaveBeenCalledWith({
-      limit: 10,
-      now,
-      staleBefore: '2026-08-11T11:55:00.000Z'
-    })
-    expect(mocks.trigger).toHaveBeenCalledWith(
-      {
-        workflowId: 'social-application-decided',
-        to: { subscriberId: recipientId },
-        payload: claimedIntent().payload,
-        transactionId: `social-application-decided:${sourcePublicId}`
-      },
-      claimedIntent().id
-    )
-  })
-
-  it('retries network failures with exponential delay below the ten-attempt ceiling', async () => {
-    mocks.claimDeliveryIntents.mockResolvedValue([claimedIntent({ attemptCount: 3 })])
-    mocks.trigger.mockRejectedValue(new Error('connection reset'))
-
-    const result = await dispatchPendingNotifications({} as DBLike, 'novu-secret')
-
-    expect(result).toMatchObject({ retried: 1, failed: 0 })
-    expect(mocks.markDeliveryRetry).toHaveBeenCalledWith({
-      intentId: claimedIntent().id,
-      nextAttemptAt: '2026-08-11T12:04:00.000Z',
-      errorCode: 'NETWORK'
-    })
-  })
-
-  it('cancels a transaction with the intent idempotency key', async () => {
-    mocks.claimDeliveryIntents.mockResolvedValue([
-      claimedIntent({ operation: 'CANCEL', payload: {} })
-    ])
-
-    await expect(dispatchPendingNotifications({} as DBLike, 'novu-secret')).resolves.toMatchObject({
-      delivered: 1
-    })
-    expect(mocks.cancel).toHaveBeenCalledWith(
-      `social-application-decided:${sourcePublicId}`,
-      claimedIntent().id
-    )
-    expect(mocks.trigger).not.toHaveBeenCalled()
-  })
-
-  it('sends only the supported Novu subscriber identity fields', async () => {
-    mocks.claimDeliveryIntents.mockResolvedValue([
-      claimedIntent({ recipientEmail: 'player@example.com', recipientUsername: 'Player' })
-    ])
-
-    await dispatchPendingNotifications({} as DBLike, 'novu-secret')
-
-    expect(mocks.trigger).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: {
-          subscriberId: recipientId,
-          email: 'player@example.com',
-          firstName: 'Player'
+    await expect(getNotificationFeed({} as DBLike, recipientId)).resolves.toEqual({
+      unseenCount: 7,
+      items: [
+        {
+          id: feedItem.id,
+          workflowKey: feedItem.workflowKey,
+          sourceKind: feedItem.sourceKind,
+          sourcePublicId: feedItem.sourcePublicId,
+          groupingKey: null,
+          data: feedItem.payload,
+          occurredAt: feedItem.occurredAt,
+          seenAt: null,
+          readAt: null
         }
-      }),
-      claimedIntent().id
-    )
+      ]
+    })
+    expect(mocks.listFeed).toHaveBeenCalledWith(recipientId)
+    expect(mocks.countUnseenFeedItems).toHaveBeenCalledWith(recipientId)
   })
 
-  it('terminates non-retryable 4xx responses and the tenth provider attempt', async () => {
-    mocks.claimDeliveryIntents.mockResolvedValueOnce([claimedIntent()])
-    mocks.trigger.mockRejectedValueOnce(new mocks.ApiError(400))
+  it('throws when a feed payload fails schema parsing', async () => {
+    mocks.listFeed.mockResolvedValue([
+      {
+        ...nowFeedItem(),
+        payload: {
+          kind: 'CAMPAIGN_ANNOUNCEMENT',
+          announcementPublicId: sourcePublicId,
+          campaignPublicId: listingPublicId
+        }
+      }
+    ])
 
-    await expect(dispatchPendingNotifications({} as DBLike, 'novu-secret')).resolves.toMatchObject({
-      retried: 0,
-      failed: 1
-    })
-    expect(mocks.markDeliveryFailed).toHaveBeenLastCalledWith(
-      expect.objectContaining({ errorCode: 'HTTP_400' })
-    )
-
-    vi.clearAllMocks()
-    mocks.expireDueInvites.mockResolvedValue([])
-    mocks.markExhaustedDeliveryIntents.mockResolvedValue(0)
-    mocks.claimDeliveryIntents.mockResolvedValue([claimedIntent({ attemptCount: 10 })])
-    mocks.trigger.mockRejectedValue(new Error('connection reset'))
-
-    await expect(dispatchPendingNotifications({} as DBLike, 'novu-secret')).resolves.toMatchObject({
-      retried: 0,
-      failed: 1
-    })
-    expect(mocks.markDeliveryRetry).not.toHaveBeenCalled()
-    expect(mocks.markDeliveryFailed).toHaveBeenLastCalledWith(
-      expect.objectContaining({ errorCode: 'NETWORK' })
-    )
+    await expect(getNotificationFeed({} as DBLike, recipientId)).rejects.toThrow()
   })
 
-  it('fails malformed trigger payloads without calling Novu', async () => {
-    mocks.claimDeliveryIntents.mockResolvedValue([claimedIntent({ payload: { email: 'private' } })])
+  it('delegates markAllNotificationsSeen with a timestamp', async () => {
+    await markAllNotificationsSeen({} as DBLike, recipientId)
 
-    await expect(dispatchPendingNotifications({} as DBLike, 'novu-secret')).resolves.toMatchObject({
-      delivered: 0,
-      failed: 1
-    })
-    expect(mocks.trigger).not.toHaveBeenCalled()
-    expect(mocks.markDeliveryFailed).toHaveBeenCalledWith(
-      expect.objectContaining({ errorCode: 'INVALID_PAYLOAD' })
+    expect(mocks.markAllFeedItemsSeen).toHaveBeenCalledWith(recipientId, now)
+  })
+
+  it('marks a notification read and throws when the target row is unavailable', async () => {
+    mocks.markFeedItemRead.mockResolvedValue(false)
+    await expect(markNotificationRead({} as DBLike, recipientId, 'item-1')).rejects.toThrow(
+      'Notification is unavailable.'
     )
+
+    mocks.markFeedItemRead.mockResolvedValueOnce(true)
+    await expect(markNotificationRead({} as DBLike, recipientId, 'item-1')).resolves.toBeUndefined()
+    expect(mocks.markFeedItemRead).toHaveBeenLastCalledWith({
+      userId: recipientId,
+      feedItemId: 'item-1',
+      readAt: now
+    })
+  })
+
+  it('delegates preference lookup to the repository', async () => {
+    const preferences: NotificationPreferencesRecord = {
+      social: { inApp: true, email: false },
+      campaign: { inApp: false, email: true }
+    }
+    mocks.getPreferences.mockResolvedValue(preferences)
+
+    await expect(getNotificationPreferences({} as DBLike, recipientId)).resolves.toEqual(
+      preferences
+    )
+    expect(mocks.getPreferences).toHaveBeenCalledWith(recipientId)
+  })
+
+  it('delegates preference update with timestamp and normalized payload', async () => {
+    const updated: NotificationPreferencesRecord = {
+      social: { inApp: true, email: true },
+      campaign: { inApp: true, email: false }
+    }
+    mocks.updatePreferences.mockResolvedValue(updated)
+
+    await expect(
+      updateNotificationPreferences({} as DBLike, recipientId, {
+        category: 'SOCIAL',
+        inApp: true,
+        email: true
+      })
+    ).resolves.toEqual(updated)
+
+    expect(mocks.updatePreferences).toHaveBeenCalledWith({
+      userId: recipientId,
+      category: 'SOCIAL',
+      inApp: true,
+      email: true,
+      updatedAt: now
+    })
   })
 })

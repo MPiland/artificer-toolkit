@@ -45,7 +45,9 @@ export function CampaignSessions({
   const [timeZone, setTimeZone] = useState(browserTimeZone)
 
   const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.sessions(campaign.id) })
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.campaigns.sessions(campaign.id)
+    })
   const create = useMutation({
     mutationFn: () =>
       api.campaigns.sessions.create({
@@ -164,7 +166,6 @@ export function CampaignSessions({
       <Stack className={sessionsStyles.sessionList} gap={0}>
         {sessions.data?.map((session) => (
           <SessionRow
-            canEdit={editable}
             campaign={campaign}
             currentUserId={currentUserId}
             key={session.id}
@@ -186,13 +187,11 @@ export function CampaignSessions({
 }
 
 function SessionRow({
-  canEdit,
   campaign,
   currentUserId,
   session,
   onOpen
 }: {
-  canEdit: boolean
   campaign: CampaignDetailDto
   currentUserId: string
   session: CampaignSessionDto
@@ -229,18 +228,14 @@ function SessionRow({
   )
   return (
     <div className={sessionsStyles.sessionRow}>
-      {canEdit ? (
-        <UnstyledButton
-          aria-label={`Open ${sessionLabel(session)}`}
-          className={sessionsStyles.sessionRowMain}
-          onClick={onOpen}
-        >
-          {identity}
-          <IconChevronRight aria-hidden className={sessionsStyles.sessionOpenCue} size={18} />
-        </UnstyledButton>
-      ) : (
-        <div className={sessionsStyles.sessionRowMain}>{identity}</div>
-      )}
+      <UnstyledButton
+        aria-label={`Open ${sessionLabel(session)}`}
+        className={sessionsStyles.sessionRowMain}
+        onClick={onOpen}
+      >
+        {identity}
+        <IconChevronRight aria-hidden className={sessionsStyles.sessionOpenCue} size={18} />
+      </UnstyledButton>
       {session.status === 'OPEN' && campaign.role === 'PLAYER' ? (
         <SegmentedControl
           aria-label={`RSVP for ${sessionLabel(session)}`}
