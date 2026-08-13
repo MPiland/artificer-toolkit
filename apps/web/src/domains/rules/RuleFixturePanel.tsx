@@ -38,22 +38,24 @@ export function RuleFixturePanel({
 
   return (
     <Stack>
-      <Group align='flex-end'>
+      <Stack gap='xs'>
         <Select
           data={document.fixtures.map((item) => ({ value: item.id, label: item.label }))}
           label='Fixture'
           value={selectedId}
           onChange={onSelect}
         />
-        <Button disabled={!editable} onClick={onAdd}>
-          Add fixture
-        </Button>
-        {fixture ? (
-          <Button color='red' disabled={!editable} variant='default' onClick={onRemove}>
-            Remove
+        <Group gap='xs' grow>
+          <Button disabled={!editable} onClick={onAdd}>
+            Add fixture
           </Button>
-        ) : null}
-      </Group>
+          {fixture ? (
+            <Button color='red' disabled={!editable} variant='default' onClick={onRemove}>
+              Remove
+            </Button>
+          ) : null}
+        </Group>
+      </Stack>
       {fixture ? (
         <>
           <TextInput

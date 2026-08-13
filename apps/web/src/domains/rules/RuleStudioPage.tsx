@@ -10,6 +10,7 @@ import { RuleFixturePanel } from './RuleFixturePanel'
 import { RuleImportExportActions } from './RuleImportExportActions'
 import { RuleModelToolbar } from './RuleModelToolbar'
 import { RulePackNavigator } from './RulePackNavigator'
+import { RuleStudioControlRail } from './RuleStudioControlRail'
 import { RuleStudioLoadingOverlay } from './RuleStudioLoadingOverlay'
 import {
   addRuleModel,
@@ -356,6 +357,20 @@ export function RuleStudioPage() {
           </Text>
         </div>
         <Group gap='xs' justify='flex-end'>
+          <Button
+            aria-pressed={graphFocused}
+            leftSection={
+              graphFocused ? (
+                <IconArrowsMinimize aria-hidden='true' size={16} />
+              ) : (
+                <IconArrowsMaximize aria-hidden='true' size={16} />
+              )
+            }
+            variant='default'
+            onClick={() => setGraphFocused((current) => !current)}
+          >
+            {graphFocused ? 'Restore controls' : 'Focus graph'}
+          </Button>
           <RuleImportExportActions
             disabled={!editable || mutationPending}
             document={document}
@@ -403,82 +418,90 @@ export function RuleStudioPage() {
       ) : null}
 
       <div className={styles.workspace} data-graph-focused={graphFocused || undefined}>
-        <Paper className={styles.sidebar} p='md' radius='md' withBorder>
-          <Stack gap='md'>
-            <Button variant='default' onClick={startNewPack}>
-              New rule pack
-            </Button>
-            <RulePackNavigator
-              packId={packId}
-              packs={packs}
-              revisionId={revisionId}
-              revisions={revisions}
-              onPackChange={selectPack}
-              onRevisionChange={selectRevision}
-            />
-            {selectedPack ? (
-              <Stack gap={2}>
-                <Text fw={600}>{selectedPack.rulesetCode}</Text>
-                <Text c='dimmed' size='sm'>
-                  Version {selectedPack.rulesetVersion}
-                </Text>
+        <div className={styles.controlRail}>
+          <RuleStudioControlRail
+            rulePack={
+              <Stack gap='md'>
+                <Button variant='default' onClick={startNewPack}>
+                  New rule pack
+                </Button>
+                <RulePackNavigator
+                  packId={packId}
+                  packs={packs}
+                  revisionId={revisionId}
+                  revisions={revisions}
+                  onPackChange={selectPack}
+                  onRevisionChange={selectRevision}
+                />
+                {selectedPack ? (
+                  <Stack gap={2}>
+                    <Text fw={600}>{selectedPack.rulesetCode}</Text>
+                    <Text c='dimmed' size='sm'>
+                      Version {selectedPack.rulesetVersion}
+                    </Text>
+                  </Stack>
+                ) : (
+                  <>
+                    <TextInput
+                      disabled={!editable}
+                      label='Ruleset code'
+                      maxLength={80}
+                      placeholder='dnd5e'
+                      value={newRulesetCode}
+                      onChange={(event) => {
+                        setNewRulesetCode(event.currentTarget.value)
+                        setDirty(true)
+                      }}
+                    />
+                    <TextInput
+                      disabled={!editable}
+                      label='Ruleset version'
+                      maxLength={80}
+                      placeholder='2014'
+                      value={newRulesetVersion}
+                      onChange={(event) => {
+                        setNewRulesetVersion(event.currentTarget.value)
+                        setDirty(true)
+                      }}
+                    />
+                  </>
+                )}
               </Stack>
-            ) : (
-              <>
-                <TextInput
-                  disabled={!editable}
-                  label='Ruleset code'
-                  maxLength={80}
-                  placeholder='dnd5e'
-                  value={newRulesetCode}
-                  onChange={(event) => {
-                    setNewRulesetCode(event.currentTarget.value)
-                    setDirty(true)
-                  }}
-                />
-                <TextInput
-                  disabled={!editable}
-                  label='Ruleset version'
-                  maxLength={80}
-                  placeholder='2014'
-                  value={newRulesetVersion}
-                  onChange={(event) => {
-                    setNewRulesetVersion(event.currentTarget.value)
-                    setDirty(true)
-                  }}
-                />
-              </>
-            )}
-          </Stack>
-        </Paper>
+            }
+            model={
+              <RuleModelToolbar
+                editable={editable}
+                keys={Object.keys(document.models)}
+                value={modelKey}
+                onAdd={addModel}
+                onRemove={removeModel}
+                onRename={renameModel}
+                onSelect={(value) => value && setModelKey(value)}
+              />
+            }
+            fixtures={
+              <RuleFixturePanel
+                document={document}
+                editable={editable}
+                error={
+                  simulationMatchesSelection && simulateFixture.error
+                    ? errorMessage(simulateFixture.error, 'Unable to simulate the fixture.')
+                    : null
+                }
+                result={simulationMatchesSelection ? (simulateFixture.data ?? null) : null}
+                running={simulationMatchesSelection && simulateFixture.isPending}
+                selectedId={fixtureId}
+                onAdd={addFixture}
+                onChange={changeFixture}
+                onRemove={removeFixture}
+                onRun={runFixture}
+                onSelect={selectFixture}
+              />
+            }
+          />
+        </div>
 
         <Paper className={styles.editorPanel} radius='md' withBorder>
-          <div className={styles.editorToolbar}>
-            <RuleModelToolbar
-              editable={editable}
-              keys={Object.keys(document.models)}
-              value={modelKey}
-              onAdd={addModel}
-              onRemove={removeModel}
-              onRename={renameModel}
-              onSelect={(value) => value && setModelKey(value)}
-            />
-            <Button
-              aria-pressed={graphFocused}
-              leftSection={
-                graphFocused ? (
-                  <IconArrowsMinimize aria-hidden='true' size={16} />
-                ) : (
-                  <IconArrowsMaximize aria-hidden='true' size={16} />
-                )
-              }
-              size='xs'
-              variant='default'
-              onClick={() => setGraphFocused((current) => !current)}
-            >
-              {graphFocused ? 'Restore panels' : 'Focus graph'}
-            </Button>
-          </div>
           <div className={styles.graph}>
             {currentModel && RuleGraphEditor ? (
               <Suspense
@@ -496,26 +519,6 @@ export function RuleStudioPage() {
               <Alert color='red'>The selected model is missing.</Alert>
             )}
           </div>
-        </Paper>
-
-        <Paper className={styles.fixturePanel} p='md' radius='md' withBorder>
-          <RuleFixturePanel
-            document={document}
-            editable={editable}
-            error={
-              simulationMatchesSelection && simulateFixture.error
-                ? errorMessage(simulateFixture.error, 'Unable to simulate the fixture.')
-                : null
-            }
-            result={simulationMatchesSelection ? (simulateFixture.data ?? null) : null}
-            running={simulationMatchesSelection && simulateFixture.isPending}
-            selectedId={fixtureId}
-            onAdd={addFixture}
-            onChange={changeFixture}
-            onRemove={removeFixture}
-            onRun={runFixture}
-            onSelect={selectFixture}
-          />
         </Paper>
       </div>
     </div>

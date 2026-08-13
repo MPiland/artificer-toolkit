@@ -50,13 +50,13 @@ export const workspace = style({
     [app]: {
       display: 'grid',
       gridRow: '3',
-      gridTemplateColumns: '16rem minmax(28rem, 1fr) 18rem',
+      gridTemplateColumns: '18rem minmax(28rem, 1fr)',
       gap: foundationVars.space[3],
       minBlockSize: 0,
       minInlineSize: 0,
       '@media': {
         [narrow]: {
-          gridTemplateColumns: '14rem minmax(28rem, 1fr)',
+          gridTemplateColumns: '17rem minmax(28rem, 1fr)',
           overflow: 'auto'
         }
       }
@@ -64,11 +64,11 @@ export const workspace = style({
   }
 })
 
-export const sidebar = style({
+export const controlRail = style({
   '@layer': {
     [app]: {
       minBlockSize: 0,
-      overflow: 'auto',
+      minInlineSize: 0,
       selectors: {
         [`${workspace}[data-graph-focused] &`]: {
           display: 'none'
@@ -82,7 +82,7 @@ export const editorPanel = style({
   '@layer': {
     [app]: {
       display: 'grid',
-      gridTemplateRows: 'auto minmax(0, 1fr)',
+      gridTemplateRows: 'minmax(0, 1fr)',
       minBlockSize: '36rem',
       minInlineSize: 0,
       overflow: 'hidden',
@@ -95,20 +95,6 @@ export const editorPanel = style({
   }
 })
 
-export const editorToolbar = style({
-  '@layer': {
-    [app]: {
-      display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'space-between',
-      gap: foundationVars.space[3],
-      flexWrap: 'wrap',
-      padding: foundationVars.space[3],
-      borderBlockEnd: `1px solid ${foundationVars.color.border.subtle}`
-    }
-  }
-})
-
 export const graph = style({
   '@layer': {
     [app]: {
@@ -116,26 +102,6 @@ export const graph = style({
       minBlockSize: 0,
       minInlineSize: 0,
       overflow: 'hidden'
-    }
-  }
-})
-
-export const fixturePanel = style({
-  '@layer': {
-    [app]: {
-      minBlockSize: 0,
-      minInlineSize: 0,
-      overflow: 'auto',
-      selectors: {
-        [`${workspace}[data-graph-focused] &`]: {
-          display: 'none'
-        }
-      },
-      '@media': {
-        [narrow]: {
-          gridColumn: '1 / -1'
-        }
-      }
     }
   }
 })

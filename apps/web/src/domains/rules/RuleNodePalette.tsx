@@ -35,7 +35,7 @@ export function RuleNodePalette({
           variant='subtle'
           onClick={() => setCollapsed((current) => !current)}
         >
-          {collapsed ? <IconChevronRight size={16} /> : <IconChevronLeft size={16} />}
+          {collapsed ? <IconChevronLeft size={16} /> : <IconChevronRight size={16} />}
         </ActionIcon>
       </div>
       <div className={styles.list} role='list'>

@@ -1,4 +1,4 @@
-import { Button, Group, Select } from '@mantine/core'
+import { Button, Group, Select, Stack } from '@mantine/core'
 
 export function RuleModelToolbar({
   editable,
@@ -18,22 +18,24 @@ export function RuleModelToolbar({
   onRemove: () => void
 }) {
   return (
-    <Group align='flex-end'>
+    <Stack gap='xs'>
       <Select data={keys} label='Model' value={value} onChange={onSelect} />
-      <Button disabled={!editable} variant='default' onClick={onAdd}>
-        Add model
-      </Button>
-      <Button disabled={!editable} variant='default' onClick={onRename}>
-        Rename
-      </Button>
-      <Button
-        color='red'
-        disabled={!editable || keys.length === 1}
-        variant='default'
-        onClick={onRemove}
-      >
-        Remove
-      </Button>
-    </Group>
+      <Group gap='xs' grow>
+        <Button disabled={!editable} variant='default' onClick={onAdd}>
+          Add
+        </Button>
+        <Button disabled={!editable} variant='default' onClick={onRename}>
+          Rename
+        </Button>
+        <Button
+          color='red'
+          disabled={!editable || keys.length === 1}
+          variant='default'
+          onClick={onRemove}
+        >
+          Remove
+        </Button>
+      </Group>
+    </Stack>
   )
 }
