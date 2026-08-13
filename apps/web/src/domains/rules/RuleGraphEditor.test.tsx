@@ -52,7 +52,13 @@ describe('RuleGraphEditor', () => {
 
   it('offers one supported palette and hides JDM built-ins', () => {
     renderWithAppProviders(
-      <RuleGraphEditor disabled={false} value={{ nodes: [], edges: [] }} onChange={vi.fn()} />
+      <RuleGraphEditor
+        disabled={false}
+        focused={false}
+        value={{ nodes: [], edges: [] }}
+        onChange={vi.fn()}
+        onToggleFocus={vi.fn()}
+      />
     )
 
     expect(screen.getAllByRole('listitem')).toHaveLength(5)
@@ -65,7 +71,13 @@ describe('RuleGraphEditor', () => {
 
   it('uses the application color scheme and emits JDM drag data', () => {
     const { rerender } = renderWithAppProviders(
-      <RuleGraphEditor disabled={false} value={{ nodes: [], edges: [] }} onChange={vi.fn()} />
+      <RuleGraphEditor
+        disabled={false}
+        focused={false}
+        value={{ nodes: [], edges: [] }}
+        onChange={vi.fn()}
+        onToggleFocus={vi.fn()}
+      />
     )
     expect(jdmMocks.provider).toHaveBeenLastCalledWith({ mode: 'dark' })
 
@@ -80,7 +92,13 @@ describe('RuleGraphEditor', () => {
 
     themeMock.mode = 'light'
     rerender(
-      <RuleGraphEditor disabled={false} value={{ nodes: [], edges: [] }} onChange={vi.fn()} />
+      <RuleGraphEditor
+        disabled={false}
+        focused={false}
+        value={{ nodes: [], edges: [] }}
+        onChange={vi.fn()}
+        onToggleFocus={vi.fn()}
+      />
     )
     expect(jdmMocks.provider).toHaveBeenLastCalledWith({ mode: 'light' })
   })
@@ -89,11 +107,13 @@ describe('RuleGraphEditor', () => {
     renderWithAppProviders(
       <RuleGraphEditor
         disabled={false}
+        focused={false}
         value={{
           nodes: [{ id: 'input', type: 'inputNode', name: 'Input', position: { x: 0, y: 0 } }],
           edges: []
         }}
         onChange={vi.fn()}
+        onToggleFocus={vi.fn()}
       />
     )
 
@@ -105,7 +125,13 @@ describe('RuleGraphEditor', () => {
 
   it('collapses the floating component palette without removing its nodes', () => {
     renderWithAppProviders(
-      <RuleGraphEditor disabled={false} value={{ nodes: [], edges: [] }} onChange={vi.fn()} />
+      <RuleGraphEditor
+        disabled={false}
+        focused={false}
+        value={{ nodes: [], edges: [] }}
+        onChange={vi.fn()}
+        onToggleFocus={vi.fn()}
+      />
     )
 
     fireEvent.click(screen.getByRole('button', { name: 'Collapse components' }))
@@ -116,5 +142,35 @@ describe('RuleGraphEditor', () => {
     expect(screen.queryByText('Request')).not.toBeInTheDocument()
     expect(screen.getAllByRole('listitem')).toHaveLength(5)
     expect(screen.getByRole('button', { name: 'Expand components' })).toBeInTheDocument()
+  })
+
+  it('toggles focused graph mode from the canvas controls', () => {
+    const onToggleFocus = vi.fn()
+    const { rerender } = renderWithAppProviders(
+      <RuleGraphEditor
+        disabled={false}
+        focused={false}
+        value={{ nodes: [], edges: [] }}
+        onChange={vi.fn()}
+        onToggleFocus={onToggleFocus}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Focus graph' }))
+    expect(onToggleFocus).toHaveBeenCalledOnce()
+
+    rerender(
+      <RuleGraphEditor
+        disabled={false}
+        focused
+        value={{ nodes: [], edges: [] }}
+        onChange={vi.fn()}
+        onToggleFocus={onToggleFocus}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Restore Rule Studio controls' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
   })
 })

@@ -1,7 +1,6 @@
 import { Alert, Badge, Button, Group, Paper, Stack, Text, TextInput, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { DecisionGraphType } from '@gorules/jdm-editor'
-import { IconArrowsMaximize, IconArrowsMinimize } from '@tabler/icons-react'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { ruleQueries } from '#app/data/rules/queries'
 import { api, type RulePackDocumentDto, type RulePackRevisionDto } from '#app/lib/api'
@@ -357,20 +356,6 @@ export function RuleStudioPage() {
           </Text>
         </div>
         <Group gap='xs' justify='flex-end'>
-          <Button
-            aria-pressed={graphFocused}
-            leftSection={
-              graphFocused ? (
-                <IconArrowsMinimize aria-hidden='true' size={16} />
-              ) : (
-                <IconArrowsMaximize aria-hidden='true' size={16} />
-              )
-            }
-            variant='default'
-            onClick={() => setGraphFocused((current) => !current)}
-          >
-            {graphFocused ? 'Restore controls' : 'Focus graph'}
-          </Button>
           <RuleImportExportActions
             disabled={!editable || mutationPending}
             document={document}
@@ -509,8 +494,10 @@ export function RuleStudioPage() {
               >
                 <RuleGraphEditor
                   disabled={!editable}
+                  focused={graphFocused}
                   value={currentModel as unknown as DecisionGraphType}
                   onChange={updateModel}
+                  onToggleFocus={() => setGraphFocused((current) => !current)}
                 />
               </Suspense>
             ) : currentModel ? (

@@ -19,7 +19,11 @@ export function RuleStudioControlRail({
       radius='md'
       withBorder
     >
-      <Accordion defaultValue='rule-pack' variant='contained'>
+      <Accordion
+        classNames={{ control: styles.control, item: styles.item, panel: styles.panel }}
+        defaultValue='rule-pack'
+        variant='contained'
+      >
         <Accordion.Item value='rule-pack'>
           <Accordion.Control>Rule pack</Accordion.Control>
           <Accordion.Panel>{rulePack}</Accordion.Panel>

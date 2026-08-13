@@ -25,6 +25,33 @@ export const canvas = style({
   }
 })
 
+export const focusControl = style({
+  '@layer': {
+    [app]: {
+      position: 'absolute',
+      zIndex: 6,
+      insetInlineStart: '3.5rem',
+      insetBlockEnd: foundationVars.space[3],
+      borderColor: foundationVars.color.border.strong,
+      backgroundColor: foundationVars.color.surface.panel,
+      color: foundationVars.color.icon.default,
+      boxShadow: foundationVars.shadow.floatingControl,
+      selectors: {
+        '&:hover': {
+          borderColor: foundationVars.color.accent.emphasisBorder,
+          backgroundColor: foundationVars.color.surface.raised,
+          color: foundationVars.color.icon.accent
+        },
+        '&[aria-pressed="true"]': {
+          borderColor: foundationVars.color.accent.emphasisBorder,
+          backgroundColor: foundationVars.color.accent.soft,
+          color: foundationVars.color.icon.accent
+        }
+      }
+    }
+  }
+})
+
 globalStyle(`${canvas} .grl-dg__aside__menu`, {
   '@layer': {
     [app]: {
