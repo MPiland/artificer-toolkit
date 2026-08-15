@@ -23,6 +23,27 @@ Migration files establish the schema and RLS policies → local/remote Supabase 
 
 Inspect the relevant migration and run the narrow DB/repository test first. For local schema work, verify with the Supabase CLI reset/diff workflow documented by the repository commands; confirm Docker/Supabase is running before diagnosing application auth or sheet failures.
 
+## Isolated production seed source
+
+Keep ordinary development and test records in the normal `artificer-toolkit` local Supabase project. Production SRD synchronization uses a second persistent local Docker project, `artificer-toolkit-srd-seed-source`. Both use the standard local ports, so the commands run only one at a time; stopping a project preserves its Docker volume.
+
+```mermaid
+flowchart LR
+  D["Development volume\ncharacters and test data"] -->|"yarn seed-source:prepare\nstops but preserves"| S["Isolated seed-source volume\nmaster corpus only"]
+  S -->|"dry-run, then explicit production seed"| P["Hosted production Supabase"]
+  S -->|"yarn seed-source:stop"| D
+```
+
+Use this workflow:
+
+1. Run `yarn seed-source:prepare`. It stages the current Supabase config/migrations into the ignored `.supabase-seed-source` worktree, stops the development stack without deleting it, resets only the isolated database, seeds it, and audits it.
+2. Run `yarn seed:srd:production:dry-run` and inspect the report.
+3. Run `yarn seed:srd:production` only when the dry run is correct.
+4. Run `yarn audit:srd:production` for the final hosted audit.
+5. Run `yarn seed-source:stop` to stop the isolated stack and restore the development stack with its original data.
+
+`yarn seed-source:start` switches to the isolated stack without resetting or seeding it, which is useful for inspection. Never pass `--no-backup` when stopping either local project. The production commands remain separate and explicit; preparing the local source cannot write to production.
+
 ## Closed-alpha authentication
 
 `PUBLIC_SIGN_UP_ENABLED` controls application presentation and the application-initiated sign-up action. It defaults to disabled unless its server-only environment value is exactly `true`. Change the value in the root `.env.local` for local work or in the hosted application environment for deployment, then restart or redeploy the application.

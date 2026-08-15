@@ -40,7 +40,7 @@
           "sha256": "2a9e31442bada8e83542783ec7d438ae4219581ad1d9682321d4161835925f6e"
         }
       ],
-      "authoredSha256": "f55f0b20e27b7e66218434d5b9bd5008917d2bf84ff043248f14f5c246a8e863",
+      "authoredSha256": "d2e2922483baeb09a6f3abff2c0cb671039dd9a2dad5830d0ada9edcb64d4655",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -79,7 +79,7 @@
           "sha256": "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0"
         }
       ],
-      "authoredSha256": "1144efbeed71b05538ef58b13f5a9686e55d3eba9cb845ed08b86bedcf867c68",
+      "authoredSha256": "1825e056af37d8b861f287a6ff8a3414e442a65d1ffe429f757f7f94a827aa1b",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
       "manualExceptionIds": ["00000000-0000-0000-c003-6c0b00000000"]
@@ -106,7 +106,7 @@
           "sha256": "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0"
         }
       ],
-      "authoredSha256": "0f2a2956255b795243dea38e37bb9b66ab3091e283bae2bb6e0c585ace42ae1a",
+      "authoredSha256": "2f362bc2743e1c8ef0c531b56ddd757b5c07c5fa5795d316c1c9eacc68802080",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -123,7 +123,7 @@
           "sha256": "e82c708bce53bf271b10734516e9a83426afb553ccf09c4e6e18cee7c09a8556"
         }
       ],
-      "authoredSha256": "cb48170124459fa9a3c39606b15460a6a9b15af41309091cdc0a3cd4555bbe53",
+      "authoredSha256": "d00a07410143fb5b824fd08b901058987ec4d480e03f56426ee7ab08daba4b42",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -350,7 +350,7 @@
           "sha256": "df02b1cd8bb9bcf4f63bcbe1fa90acfc2546cfdc1e1e75037cd834d5d90c64c1"
         }
       ],
-      "authoredSha256": "92f2ee7150cda9b7552849bdc4d8fe12620f7bc6a9c553c457b9f702d3f1b807",
+      "authoredSha256": "f81554efa56aeec07f0c9bc9f19f9615f589f1cc825078fda1bcd130771d5eb0",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -384,7 +384,7 @@
           "sha256": "a81553c2ffa69f803a88f67fe4c927d237472b47935879091b3e1653dbc3f2fe"
         }
       ],
-      "authoredSha256": "2951241ae03110ca0f80e705012a0bd026ce03954b80a2ad1dcd128ce1da5b71",
+      "authoredSha256": "e513d9f0caaa16ef32848b113ecf3c75981e62e82ef8cd56173ff5ca04c76edb",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -401,7 +401,7 @@
           "sha256": "df70dc5142164e29db545e69cbd3df564df052269d9fffc2af47597f5c382623"
         }
       ],
-      "authoredSha256": "9fab2359029acb74b88bd439d43b911787fccdf647745c501f153c73b31511c3",
+      "authoredSha256": "0c4ab913ef755ad36fac4cbb7fee997c6457997ab1d06a915e85ddd3198988db",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -479,7 +479,7 @@
           "sha256": "54d5f77ef1d2eff86be14a46af985d2167382470810e956d3f306515a34caf3a"
         }
       ],
-      "authoredSha256": "72338686ff2fba30a311d843d7d5ec777901c7b9bdeb1a836655c38dc894e2bb",
+      "authoredSha256": "4eeca7030162bba3e4d2c9cae746d5ec126d8cd066cd311445e2869c3c63ea16",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3486,7 +3486,7 @@
           "sha256": "26b0dbbb61266195e7f1e3ac4cef3190326919c830037875ed70cf1f4a33b1ee"
         }
       ],
-      "authoredSha256": "90419f1e9442b9e1750a3a0ef69311986e8e630394cbbbac6e31e55baa4ad304",
+      "authoredSha256": "90531c2332b8c0185f2d2324d113690dd8236e282d52d5a3cddffadc243c51df",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -8366,7 +8366,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "dcadc37e885e2dc0f1614fffd301d2729726c7ede41ef5cb0a58e0aab454f4cc",
+      "authoredSha256": "585c50c81fc2ffdebaaf27a280f4925406e34c0fe3019b5bb267e1bab9f48918",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -13467,7 +13467,7 @@
           "sha256": "9dd304f359a6601b69a9104a1d9ea89ea38277d1c2ea50e528c4215eea3386fb"
         }
       ],
-      "authoredSha256": "df49e36135dc4c5b52826534b602aa9ed2ec2e4b8fb64e99d1463d5ace58b32d",
+      "authoredSha256": "e4c4a87b18b612e1cbee9613601c933aa019cfcaae0ca795213ac0239a6f6f5d",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []

@@ -118,7 +118,9 @@ function mapFeatureRow<N extends NodeSubjectCode>(json_data: FeatureAuthored<N>)
     restriction_id: json_data.restrictions?.id ?? null,
     sort_order: json_data.order,
     available_at_level: json_data.availableAtLevel ?? null,
-    roll_definitions: JSON.parse(JSON.stringify(json_data.rollDefinitions ?? [])) as Json
+    // node-postgres serializes JavaScript arrays as PostgreSQL array literals (for example,
+    // [] becomes {}). Serialize explicitly so the jsonb column receives a JSON array.
+    roll_definitions: JSON.stringify(json_data.rollDefinitions ?? [])
   }
 }
 

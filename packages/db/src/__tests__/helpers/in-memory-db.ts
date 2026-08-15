@@ -351,6 +351,10 @@ export class InMemoryDb {
   insertRow(table: string, row: Row, conflictColumns: string[], conflictMode: ConflictMode) {
     const rows = this.readTable(table)
     const nextRow = { ...row }
+    // Mirror PostgreSQL decoding the explicitly serialized jsonb array on insert.
+    if (table === 'features' && typeof nextRow.roll_definitions === 'string') {
+      nextRow.roll_definitions = JSON.parse(nextRow.roll_definitions)
+    }
     const existingIndex = rows.findIndex((candidate) =>
       conflictColumns.every((column) => candidate[column] === nextRow[column])
     )
