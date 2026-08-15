@@ -16,8 +16,10 @@ const mocks = vi.hoisted(() => ({
   getMovementPreference: vi.fn(),
   listResourceUsage: vi.fn(),
   listSpellCustomizations: vi.fn(),
+  loadBuilderContext: vi.fn(),
   resolveBuilder: vi.fn(),
-  buildSheet: vi.fn(),
+  resolveRuleBinding: vi.fn(),
+  buildSheetBundle: vi.fn(),
   resolveContext: vi.fn(),
   buildPanel: vi.fn(),
   resolveByPublicIdForUser: vi.fn()
@@ -51,7 +53,11 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
 
 vi.mock('./builderService.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./builderService.js')>()
-  return { ...actual, resolveCharacterBuilder: mocks.resolveBuilder }
+  return {
+    ...actual,
+    loadCharacterBuilderContext: mocks.loadBuilderContext,
+    resolveCharacterBuilder: mocks.resolveBuilder
+  }
 })
 
 vi.mock('./sheetService.js', async (importOriginal) => {
@@ -64,8 +70,12 @@ vi.mock('./sheetService.js', async (importOriginal) => {
 
 vi.mock('./sheetProjection.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./sheetProjection.js')>()
-  return { ...actual, buildCharacterSheetResponse: mocks.buildSheet }
+  return { ...actual, buildCharacterSheetBundle: mocks.buildSheetBundle }
 })
+
+vi.mock('./characterRuleBinding.js', () => ({
+  resolveCharacterRuleBinding: mocks.resolveRuleBinding
+}))
 
 vi.mock('./campaignCharacterSheet.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./campaignCharacterSheet.js')>()
@@ -87,7 +97,12 @@ vi.mock('./sheetPanelService.js', async (importOriginal) => {
   }
 })
 
-const { dispatchCommandForUser } = await import('./characterApplicationService.js')
+const {
+  dispatchCommandForUser,
+  getCharacterSheetForUser,
+  getCharacterSheetPanelForUser,
+  previewCharacterRuleUpgradeForUser
+} = await import('./characterApplicationService.js')
 
 const command = {
   type: 'SET_INSPIRATION',
@@ -107,14 +122,19 @@ describe('dispatchCommandForUser', () => {
     mocks.getMovementPreference.mockReset()
     mocks.listResourceUsage.mockReset()
     mocks.listSpellCustomizations.mockReset()
+    mocks.loadBuilderContext.mockReset()
     mocks.resolveBuilder.mockReset()
-    mocks.buildSheet.mockReset()
+    mocks.resolveRuleBinding.mockReset()
+    mocks.buildSheetBundle.mockReset()
     mocks.resolveContext.mockReset()
     mocks.buildPanel.mockReset()
     mocks.resolveByPublicIdForUser.mockReset()
     mocks.ensureRouteIdentity.mockResolvedValue({ publicId: 'aria-sheet' })
     mocks.findBuilderDraft.mockResolvedValue(null)
-    mocks.findCharacterById.mockResolvedValue({ stream_version: 3 })
+    mocks.findCharacterById.mockResolvedValue({
+      stream_version: 3,
+      rule_pack_revision_id: 'revision-1'
+    })
     mocks.findAuthoredById.mockResolvedValue({
       id: '00000000-0000-4000-8000-000000000001',
       userId: 'user-1',
@@ -124,29 +144,46 @@ describe('dispatchCommandForUser', () => {
     mocks.getMovementPreference.mockResolvedValue({ mode: 'AUTO' })
     mocks.listResourceUsage.mockResolvedValue([])
     mocks.listSpellCustomizations.mockResolvedValue([])
+    mocks.loadBuilderContext.mockResolvedValue({ catalog: {}, registry: {} })
     mocks.resolveBuilder.mockResolvedValue({})
-    mocks.buildSheet.mockResolvedValue({ meta: {} })
+    mocks.resolveRuleBinding.mockImplementation(async ({ existingRevisionId }) => ({
+      revisionId: existingRevisionId ?? '00000000-0000-4000-8000-000000000202',
+      checksum: existingRevisionId ? 'current-checksum' : 'target-checksum',
+      evaluatorKind: 'ZEN',
+      evaluatorVersion: '0.54.0',
+      modelContractVersion: 4
+    }))
+    mocks.buildSheetBundle.mockResolvedValue({
+      sheet: { meta: {} },
+      ruleProjection: { characterId: '00000000-0000-4000-8000-000000000001' },
+      ruleEvaluation: { evaluation: { revisionId: 'revision-1' } }
+    })
     mocks.resolveContext.mockResolvedValue({
       viewer: 'CHARACTER_OWNER',
       campaignId: null,
       campaignStatus: null,
       contentMaturity: null,
+      attunementSlotOverride: 4,
       adjustments: [],
       secretAdjustmentIds: new Set(),
       conditions: []
     })
     mocks.buildPanel.mockImplementation(({ target }: { target: { kind: string } }) => target)
-    mocks.executeCharacterSheetCommand.mockResolvedValue({
-      characterId: '00000000-0000-4000-8000-000000000001',
-      sheet: {
-        meta: {
+    mocks.executeCharacterSheetCommand.mockImplementation(
+      async ({ panelTargets }: { panelTargets?: Array<{ kind: string }> }) =>
+        ({
           characterId: '00000000-0000-4000-8000-000000000001',
-          systemId: 'system-1',
-          status: 'ACTIVE',
-          streamVersion: 3
-        }
-      }
-    } as CharacterSheetCommandResponseDto)
+          sheet: {
+            meta: {
+              characterId: '00000000-0000-4000-8000-000000000001',
+              systemId: 'system-1',
+              status: 'ACTIVE',
+              streamVersion: 3
+            }
+          },
+          ...(panelTargets?.length ? { panels: panelTargets } : {})
+        }) as CharacterSheetCommandResponseDto
+    )
   })
 
   it('resolves public character handles before executing a Sheet command', async () => {
@@ -166,6 +203,7 @@ describe('dispatchCommandForUser', () => {
       db,
       characterId: canonicalCharacterId,
       command,
+      panelTargets: [],
       userId: 'user-1'
     })
     expect(result.sheet).toMatchObject({
@@ -204,13 +242,93 @@ describe('dispatchCommandForUser', () => {
 
     const knownResult = await dispatchCommandForUser(db, 'aria-sheet', knownSpells, 'user-1')
     expect(knownResult.panels).toEqual([{ kind: 'SPELLS' }])
-    expect(mocks.buildPanel).toHaveBeenCalledWith(
-      expect.objectContaining({ target: { kind: 'SPELLS' } })
+    expect(mocks.executeCharacterSheetCommand).toHaveBeenLastCalledWith(
+      expect.objectContaining({ panelTargets: [{ kind: 'SPELLS' }] })
     )
 
-    mocks.buildPanel.mockClear()
     const resourceResult = await dispatchCommandForUser(db, 'aria-sheet', typedResource, 'user-1')
     expect(resourceResult.panels).toBeUndefined()
-    expect(mocks.buildPanel).not.toHaveBeenCalled()
+    expect(mocks.executeCharacterSheetCommand).toHaveBeenLastCalledWith(
+      expect.objectContaining({ panelTargets: [] })
+    )
+  })
+
+  it('builds Sheet and panel projections from one exact pinned rule evaluation', async () => {
+    const db = {} as DBLike
+    const characterId = '00000000-0000-4000-8000-000000000001'
+
+    await getCharacterSheetForUser(db, characterId, 'user-1')
+    expect(mocks.loadBuilderContext).toHaveBeenCalledWith(db, expect.anything(), [], {
+      includeEffects: true
+    })
+    expect(mocks.resolveBuilder).toHaveBeenCalledWith(
+      db,
+      expect.anything(),
+      'edit',
+      expect.objectContaining({ catalog: {}, registry: {} }),
+      null,
+      'revision-1'
+    )
+    expect(mocks.buildSheetBundle).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ruleEvaluation: {
+          context: expect.objectContaining({ catalog: {}, registry: {} }),
+          revisionId: 'revision-1',
+          attunementSlotOverride: 4
+        }
+      })
+    )
+
+    mocks.buildSheetBundle.mockClear()
+    await getCharacterSheetPanelForUser(db, characterId, { kind: 'SPELLS' }, 'user-1')
+    expect(mocks.buildSheetBundle).toHaveBeenCalledTimes(1)
+    expect(mocks.buildPanel).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ruleProjection: expect.objectContaining({ characterId }),
+        target: { kind: 'SPELLS' }
+      })
+    )
+  })
+
+  it('fails closed when an active Character has no pinned rule revision', async () => {
+    mocks.findCharacterById.mockResolvedValue({
+      stream_version: 3,
+      rule_pack_revision_id: null
+    })
+
+    await expect(
+      getCharacterSheetForUser({} as DBLike, '00000000-0000-4000-8000-000000000001', 'user-1')
+    ).rejects.toMatchObject({ name: 'CharacterRuleBindingError' })
+    expect(mocks.buildSheetBundle).not.toHaveBeenCalled()
+  })
+
+  it('previews the current active rule revision without changing the Character pin', async () => {
+    const characterId = '00000000-0000-4000-8000-000000000001'
+    mocks.findCharacterById.mockResolvedValue({
+      stream_version: 3,
+      rule_pack_revision_id: '00000000-0000-4000-8000-000000000201'
+    })
+
+    const preview = await previewCharacterRuleUpgradeForUser(
+      {} as DBLike,
+      characterId,
+      { expectedVersion: 3 },
+      'user-1'
+    )
+
+    expect(preview).toMatchObject({
+      characterId,
+      streamVersion: 3,
+      upgradeAvailable: true,
+      currentRevision: { revisionId: '00000000-0000-4000-8000-000000000201' },
+      targetRevision: { revisionId: '00000000-0000-4000-8000-000000000202' }
+    })
+    expect(mocks.buildSheetBundle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ruleEvaluation: expect.objectContaining({
+          revisionId: '00000000-0000-4000-8000-000000000202'
+        })
+      })
+    )
   })
 })

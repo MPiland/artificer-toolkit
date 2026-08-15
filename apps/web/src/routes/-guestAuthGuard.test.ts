@@ -4,6 +4,7 @@ import { canAuthenticatedUserVisitGuestAuthPath } from './_guest/-guestRouteGuar
 describe('guest auth route guard', () => {
   it('allows authenticated users to complete password recovery and invitation password setup', () => {
     expect(canAuthenticatedUserVisitGuestAuthPath('/update-password')).toBe(true)
+    expect(canAuthenticatedUserVisitGuestAuthPath('/verify-password-reset')).toBe(true)
   })
 
   it('keeps other auth routes guest-only', () => {

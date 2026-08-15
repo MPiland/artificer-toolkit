@@ -153,6 +153,11 @@ describe('character play-state persistence schema', () => {
       'CREATE TABLE IF NOT EXISTS public.character_sheet_resource_usage'
     )
     expect(characterAdjustmentTables).toContain("owner_kind = 'SPELL_SOURCE'")
+    expect(characterAdjustmentTables).toContain("owner_kind = 'AUTHORED_SOURCE'")
+    expect(characterAdjustmentTables).toContain('source_id text')
+    expect(characterAdjustmentTables).toContain(
+      'ON public.character_sheet_resource_usage (character_id, source_id, charge_id)'
+    )
     expect(characterAdjustmentTables).toContain('source_kind IN (')
     expect(characterAdjustmentTables).toContain('AND source_instance_id IS NOT NULL')
     expect(characterAdjustmentTables).toContain(

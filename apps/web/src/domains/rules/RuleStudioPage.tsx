@@ -1,0 +1,543 @@
+import { Alert, Badge, Button, Group, Paper, Stack, Text, TextInput, Title } from '@mantine/core'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { DecisionGraphType } from '@gorules/jdm-editor'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { ruleQueries } from '#app/data/rules/queries'
+import { api, type RulePackDocumentDto, type RulePackRevisionDto } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
+import { RuleFixturePanel } from './RuleFixturePanel'
+import { RuleImportExportActions } from './RuleImportExportActions'
+import { RuleModelToolbar } from './RuleModelToolbar'
+import { RulePackNavigator } from './RulePackNavigator'
+import { RuleStudioControlRail } from './RuleStudioControlRail'
+import { RuleStudioLoadingOverlay } from './RuleStudioLoadingOverlay'
+import {
+  addRuleModel,
+  createDefaultRuleDocument,
+  errorMessage,
+  getVisibleRuleFixtures,
+  getVisibleRuleModelKeys,
+  isReservedRuleModelKey,
+  mergeImportedRuleDocument,
+  parseRuleDocument,
+  removeRuleModel,
+  renameRuleModel
+} from './ruleDocument'
+import * as styles from './RuleStudioPage.css'
+
+// Keep JDM and its browser-only Monaco dependency out of the Netlify server bundle.
+const RuleGraphEditor = import.meta.env.SSR
+  ? null
+  : lazy(() => import('./RuleGraphEditor').then((module) => ({ default: module.RuleGraphEditor })))
+
+const defaultFixtureExpected = {
+  eligibility: { allowed: true, reasonCode: 'ALLOWED' },
+  outcomes: [],
+  rollRequests: []
+}
+
+export function RuleStudioPage() {
+  const queryClient = useQueryClient()
+  const packsQuery = useQuery(ruleQueries.packs())
+  const [packId, setPackId] = useState<string | null>(null)
+  const revisionsQuery = useQuery({
+    ...ruleQueries.revisions(packId ?? ''),
+    enabled: Boolean(packId)
+  })
+  const [revisionId, setRevisionId] = useState<string | null>(null)
+  const revisionQuery = useQuery({
+    ...ruleQueries.revision(revisionId ?? ''),
+    enabled: Boolean(revisionId)
+  })
+  const [document, setDocument] = useState<RulePackDocumentDto>(createDefaultRuleDocument)
+  const [newRulesetCode, setNewRulesetCode] = useState('')
+  const [newRulesetVersion, setNewRulesetVersion] = useState('')
+  const [modelKey, setModelKey] = useState('main')
+  const [fixtureId, setFixtureId] = useState<string | null>(null)
+  const [copyingRevision, setCopyingRevision] = useState(false)
+  const [dirty, setDirty] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [graphFocused, setGraphFocused] = useState(false)
+  const loadedRevisionKey = useRef<string | null>(null)
+
+  const packs = packsQuery.data ?? []
+  const revisions = revisionsQuery.data ?? []
+  const selectedRevision = revisionQuery.data?.id === revisionId ? revisionQuery.data : undefined
+  const selectionPending =
+    packId !== null &&
+    (revisionsQuery.isPending ||
+      (revisionId === null && revisions.length > 0) ||
+      (revisionId !== null && (revisionQuery.isPending || !selectedRevision)))
+  const selectedPack = useMemo(
+    () => packs.find((pack) => pack.id === (selectedRevision?.packId ?? packId)),
+    [packId, packs, selectedRevision?.packId]
+  )
+  const visibleModelKeys = useMemo(() => getVisibleRuleModelKeys(document), [document])
+  const visibleFixtures = useMemo(() => getVisibleRuleFixtures(document), [document])
+  const editable =
+    !selectionPending &&
+    (!selectedRevision || selectedRevision.lifecycle === 'DRAFT' || copyingRevision)
+  const rulesetCode = selectedPack?.rulesetCode ?? newRulesetCode.trim()
+  const rulesetVersion = selectedPack?.rulesetVersion ?? newRulesetVersion.trim()
+
+  useEffect(() => {
+    if (!packId || revisionId || !revisionsQuery.data?.length) return
+    const firstRevision =
+      revisionsQuery.data.find((revision) => revision.lifecycle === 'DRAFT') ??
+      revisionsQuery.data[0]
+    setRevisionId(firstRevision?.id ?? null)
+  }, [packId, revisionId, revisionsQuery.data])
+
+  useEffect(() => {
+    if (!selectedRevision || copyingRevision) return
+    const key = `${selectedRevision.id}:${selectedRevision.updatedAt}`
+    if (loadedRevisionKey.current === key) return
+    loadedRevisionKey.current = key
+    setDocument(selectedRevision.document)
+    setModelKey(getVisibleRuleModelKeys(selectedRevision.document)[0] ?? '')
+    setFixtureId(getVisibleRuleFixtures(selectedRevision.document)[0]?.id ?? null)
+    setDirty(false)
+    setError(null)
+  }, [copyingRevision, selectedRevision])
+
+  useEffect(() => {
+    if (!dirty) return
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => event.preventDefault()
+    globalThis.addEventListener('beforeunload', warnBeforeUnload)
+    return () => globalThis.removeEventListener('beforeunload', warnBeforeUnload)
+  }, [dirty])
+
+  useEffect(() => {
+    if (!visibleModelKeys.includes(modelKey)) setModelKey(visibleModelKeys[0] ?? '')
+  }, [modelKey, visibleModelKeys])
+
+  useEffect(() => {
+    if (fixtureId && !visibleFixtures.some((fixture) => fixture.id === fixtureId))
+      setFixtureId(visibleFixtures[0]?.id ?? null)
+  }, [fixtureId, visibleFixtures])
+
+  const refreshRules = () => queryClient.invalidateQueries({ queryKey: queryKeys.rules.all() })
+
+  const saveDraft = useMutation({
+    mutationFn: () =>
+      api.rules.saveDraft({
+        rulesetCode,
+        rulesetVersion,
+        document,
+        ...(selectedRevision?.lifecycle === 'DRAFT' && !copyingRevision
+          ? { expectedUpdatedAt: selectedRevision.updatedAt }
+          : {})
+      }),
+    onSuccess: async (saved) => {
+      loadedRevisionKey.current = `${saved.id}:${saved.updatedAt}`
+      setPackId(saved.packId)
+      setRevisionId(saved.id)
+      setDocument(saved.document)
+      setCopyingRevision(false)
+      setDirty(false)
+      setError(null)
+      await refreshRules()
+    },
+    onError: (cause) => setError(errorMessage(cause, 'Unable to save the rule pack draft.'))
+  })
+
+  const simulateFixture = useMutation({
+    mutationFn: ({
+      revision,
+      fixture
+    }: {
+      revision: RulePackDocumentDto
+      fixture: RulePackDocumentDto['fixtures'][number]
+    }) =>
+      api.rules.simulate({
+        rulesetCode,
+        rulesetVersion,
+        document: revision,
+        modelKey: fixture.modelKey,
+        input: fixture.input
+      })
+  })
+
+  const activateRevision = useMutation({
+    mutationFn: (revision: RulePackRevisionDto) =>
+      api.rules.activate({ revisionId: revision.id, expectedChecksum: revision.checksum }),
+    onSuccess: async (activated) => {
+      loadedRevisionKey.current = `${activated.id}:${activated.updatedAt}`
+      setRevisionId(activated.id)
+      setDirty(false)
+      setError(null)
+      await refreshRules()
+    },
+    onError: (cause) => setError(errorMessage(cause, 'Unable to activate the rule pack revision.'))
+  })
+
+  const retirePack = useMutation({
+    mutationFn: (revision: RulePackRevisionDto) =>
+      api.rules.retire({ packId: revision.packId, expectedRevisionId: revision.id }),
+    onSuccess: async () => {
+      setError(null)
+      await refreshRules()
+    },
+    onError: (cause) => setError(errorMessage(cause, 'Unable to retire the active rule pack.'))
+  })
+
+  const confirmDiscard = () =>
+    !dirty || globalThis.confirm('Discard the unsaved Rule Studio changes?')
+
+  const markDocumentChanged = (nextDocument: RulePackDocumentDto) => {
+    setDocument(nextDocument)
+    setDirty(true)
+    setError(null)
+    simulateFixture.reset()
+  }
+
+  const startNewPack = () => {
+    if (!confirmDiscard()) return
+    loadedRevisionKey.current = null
+    setPackId(null)
+    setRevisionId(null)
+    setDocument(createDefaultRuleDocument())
+    setNewRulesetCode('')
+    setNewRulesetVersion('')
+    setModelKey('main')
+    setFixtureId(null)
+    setCopyingRevision(false)
+    setDirty(false)
+    setError(null)
+    simulateFixture.reset()
+  }
+
+  const selectPack = (nextPackId: string | null) => {
+    if (!confirmDiscard()) return
+    loadedRevisionKey.current = null
+    setPackId(nextPackId)
+    setRevisionId(null)
+    setDocument(createDefaultRuleDocument())
+    setModelKey('main')
+    setFixtureId(null)
+    setCopyingRevision(false)
+    setDirty(false)
+    setError(null)
+    simulateFixture.reset()
+  }
+
+  const selectRevision = (nextRevisionId: string | null) => {
+    if (!confirmDiscard()) return
+    loadedRevisionKey.current = null
+    setRevisionId(nextRevisionId)
+    setDocument(createDefaultRuleDocument())
+    setModelKey('main')
+    setFixtureId(null)
+    setCopyingRevision(false)
+    setDirty(false)
+    setError(null)
+    simulateFixture.reset()
+  }
+
+  const copyToDraft = () => {
+    const existingDraft = revisions.find((revision) => revision.lifecycle === 'DRAFT')
+    if (existingDraft) {
+      selectRevision(existingDraft.id)
+      return
+    }
+    setCopyingRevision(true)
+    setDirty(true)
+    setError(null)
+  }
+
+  const updateModel = (graph: DecisionGraphType) => {
+    markDocumentChanged({
+      ...document,
+      models: {
+        ...document.models,
+        [modelKey]: graph as unknown as RulePackDocumentDto['models'][string]
+      }
+    })
+  }
+
+  const addModel = () => {
+    const nextKey = globalThis.prompt('Model key (lowercase letters, numbers, and hyphens)')?.trim()
+    if (!nextKey) return
+    try {
+      markDocumentChanged(addRuleModel(document, nextKey))
+      setModelKey(nextKey)
+    } catch (cause) {
+      setError(errorMessage(cause, 'Unable to add the model.'))
+    }
+  }
+
+  const renameModel = () => {
+    const nextKey = globalThis.prompt('New model key', modelKey)?.trim()
+    if (!nextKey || nextKey === modelKey) return
+    try {
+      markDocumentChanged(renameRuleModel(document, modelKey, nextKey))
+      setModelKey(nextKey)
+    } catch (cause) {
+      setError(errorMessage(cause, 'Unable to rename the model.'))
+    }
+  }
+
+  const selectModel = (nextModelKey: string | null) => {
+    if (!nextModelKey || isReservedRuleModelKey(nextModelKey)) return
+    setModelKey(nextModelKey)
+  }
+
+  const removeModel = () => {
+    if (!globalThis.confirm(`Remove the ${modelKey} model and its fixtures?`)) return
+    try {
+      const nextDocument = removeRuleModel(document, modelKey)
+      markDocumentChanged(nextDocument)
+      setModelKey(getVisibleRuleModelKeys(nextDocument)[0] ?? '')
+      setFixtureId(getVisibleRuleFixtures(nextDocument)[0]?.id ?? null)
+    } catch (cause) {
+      setError(errorMessage(cause, 'Unable to remove the model.'))
+    }
+  }
+
+  const addFixture = () => {
+    if (isReservedRuleModelKey(modelKey)) return
+    const nextFixture = {
+      id: globalThis.crypto.randomUUID(),
+      label: `Fixture ${document.fixtures.length + 1}`,
+      modelKey,
+      input: {},
+      expected: defaultFixtureExpected
+    }
+    markDocumentChanged({ ...document, fixtures: [...document.fixtures, nextFixture] })
+    setFixtureId(nextFixture.id)
+  }
+
+  const changeFixture = (field: 'label' | 'modelKey' | 'input' | 'expected', value: string) => {
+    if (!fixtureId) return
+    try {
+      const parsedValue = field === 'input' || field === 'expected' ? JSON.parse(value) : value
+      markDocumentChanged({
+        ...document,
+        fixtures: document.fixtures.map((fixture) =>
+          fixture.id === fixtureId ? { ...fixture, [field]: parsedValue } : fixture
+        )
+      })
+    } catch {
+      setError(`${field === 'input' ? 'Input' : 'Expected'} must be valid JSON.`)
+    }
+  }
+
+  const removeFixture = () => {
+    if (!fixtureId) return
+    const nextFixtures = document.fixtures.filter((fixture) => fixture.id !== fixtureId)
+    const nextDocument = { ...document, fixtures: nextFixtures }
+    markDocumentChanged(nextDocument)
+    setFixtureId(getVisibleRuleFixtures(nextDocument)[0]?.id ?? null)
+  }
+
+  const runFixture = () => {
+    const fixture = document.fixtures.find((item) => item.id === fixtureId)
+    if (!fixture) return
+    setError(null)
+    simulateFixture.mutate({ revision: document, fixture })
+  }
+
+  const selectFixture = (nextFixtureId: string | null) => {
+    simulateFixture.reset()
+    setError(null)
+    setFixtureId(nextFixtureId)
+  }
+
+  const importDocument = async (file: File | null) => {
+    if (!file) return
+    if (file.size > 1024 * 1024) {
+      setError('Imports must be 1 MiB or smaller.')
+      return
+    }
+    try {
+      const nextDocument = mergeImportedRuleDocument(document, parseRuleDocument(await file.text()))
+      markDocumentChanged(nextDocument)
+      setModelKey(getVisibleRuleModelKeys(nextDocument)[0] ?? '')
+      setFixtureId(getVisibleRuleFixtures(nextDocument)[0]?.id ?? null)
+    } catch (cause) {
+      setError(errorMessage(cause, 'Import is not a valid rule pack document.'))
+    }
+  }
+
+  if (packsQuery.isPending) {
+    return <RuleStudioLoadingOverlay label='Loading Rule Studio' />
+  }
+  if (packsQuery.isError) return <Alert color='red'>Unable to load rule packs.</Alert>
+
+  const currentModel = document.models[modelKey]
+  const simulationMatchesSelection = simulateFixture.variables?.fixture.id === fixtureId
+  const mutationPending = saveDraft.isPending || activateRevision.isPending || retirePack.isPending
+  const canSave = editable && dirty && Boolean(rulesetCode) && Boolean(rulesetVersion)
+
+  return (
+    <div className={styles.root}>
+      <header className={styles.header}>
+        <div>
+          <Group gap='sm'>
+            <Title order={1}>Rule Studio</Title>
+            {selectedRevision ? <Badge variant='light'>{selectedRevision.lifecycle}</Badge> : null}
+            {dirty ? <Badge color='yellow'>Unsaved</Badge> : null}
+          </Group>
+          <Text c='dimmed' size='sm'>
+            Build deterministic rules, prove them with fixtures, then activate an immutable
+            revision.
+          </Text>
+        </div>
+        <Group gap='xs' justify='flex-end'>
+          <RuleImportExportActions
+            disabled={!editable || mutationPending}
+            document={document}
+            onImport={importDocument}
+          />
+          {selectedRevision && selectedRevision.lifecycle !== 'DRAFT' && !copyingRevision ? (
+            <Button disabled={mutationPending} variant='default' onClick={copyToDraft}>
+              Edit as draft
+            </Button>
+          ) : null}
+          {selectedRevision?.lifecycle === 'ACTIVE' && !copyingRevision ? (
+            <Button
+              color='red'
+              disabled={mutationPending}
+              variant='default'
+              onClick={() => retirePack.mutate(selectedRevision)}
+            >
+              Retire
+            </Button>
+          ) : null}
+          <Button disabled={!canSave || mutationPending} onClick={() => saveDraft.mutate()}>
+            Save draft
+          </Button>
+          <Button
+            color='teal'
+            disabled={
+              mutationPending || dirty || copyingRevision || selectedRevision?.lifecycle !== 'DRAFT'
+            }
+            onClick={() => selectedRevision && activateRevision.mutate(selectedRevision)}
+          >
+            Activate
+          </Button>
+        </Group>
+      </header>
+
+      {error ? (
+        <Alert
+          className={styles.pageAlert}
+          color='red'
+          onClose={() => setError(null)}
+          withCloseButton
+        >
+          {error}
+        </Alert>
+      ) : null}
+
+      <div className={styles.workspace} data-graph-focused={graphFocused || undefined}>
+        <div className={styles.controlRail}>
+          <RuleStudioControlRail
+            rulePack={
+              <Stack gap='md'>
+                <Button variant='default' onClick={startNewPack}>
+                  New rule pack
+                </Button>
+                <RulePackNavigator
+                  packId={packId}
+                  packs={packs}
+                  revisionId={revisionId}
+                  revisions={revisions}
+                  onPackChange={selectPack}
+                  onRevisionChange={selectRevision}
+                />
+                {selectedPack ? (
+                  <Stack gap={2}>
+                    <Text fw={600}>{selectedPack.rulesetCode}</Text>
+                    <Text c='dimmed' size='sm'>
+                      Version {selectedPack.rulesetVersion}
+                    </Text>
+                  </Stack>
+                ) : (
+                  <>
+                    <TextInput
+                      disabled={!editable}
+                      label='Ruleset code'
+                      maxLength={80}
+                      placeholder='dnd5e'
+                      value={newRulesetCode}
+                      onChange={(event) => {
+                        setNewRulesetCode(event.currentTarget.value)
+                        setDirty(true)
+                      }}
+                    />
+                    <TextInput
+                      disabled={!editable}
+                      label='Ruleset version'
+                      maxLength={80}
+                      placeholder='2014'
+                      value={newRulesetVersion}
+                      onChange={(event) => {
+                        setNewRulesetVersion(event.currentTarget.value)
+                        setDirty(true)
+                      }}
+                    />
+                  </>
+                )}
+              </Stack>
+            }
+            model={
+              <RuleModelToolbar
+                editable={editable}
+                keys={visibleModelKeys}
+                value={modelKey}
+                onAdd={addModel}
+                onRemove={removeModel}
+                onRename={renameModel}
+                onSelect={selectModel}
+              />
+            }
+            fixtures={
+              <RuleFixturePanel
+                document={document}
+                modelKeys={visibleModelKeys}
+                fixtures={visibleFixtures}
+                editable={editable}
+                error={
+                  simulationMatchesSelection && simulateFixture.error
+                    ? errorMessage(simulateFixture.error, 'Unable to simulate the fixture.')
+                    : null
+                }
+                result={simulationMatchesSelection ? (simulateFixture.data ?? null) : null}
+                running={simulationMatchesSelection && simulateFixture.isPending}
+                selectedId={fixtureId}
+                onAdd={addFixture}
+                onChange={changeFixture}
+                onRemove={removeFixture}
+                onRun={runFixture}
+                onSelect={selectFixture}
+              />
+            }
+          />
+        </div>
+
+        <Paper className={styles.editorPanel} radius='md' withBorder>
+          <div className={styles.graph}>
+            {currentModel && RuleGraphEditor ? (
+              <Suspense
+                fallback={<RuleStudioLoadingOverlay contained label='Loading rule editor' />}
+              >
+                <RuleGraphEditor
+                  disabled={!editable}
+                  focused={graphFocused}
+                  value={currentModel as unknown as DecisionGraphType}
+                  onChange={updateModel}
+                  onToggleFocus={() => setGraphFocused((current) => !current)}
+                />
+              </Suspense>
+            ) : currentModel ? (
+              <RuleStudioLoadingOverlay contained label='Loading rule editor' />
+            ) : (
+              <Alert color='red'>The selected model is missing.</Alert>
+            )}
+          </div>
+        </Paper>
+      </div>
+    </div>
+  )
+}

@@ -3,7 +3,17 @@ import { describe, expect, it } from 'vitest'
 import { DURATION_KIND, EQUIPMENT_PROPERTY_CODE } from '@artificer-toolkit/shared/core'
 import { compileVehicle } from '@artificer-toolkit/shared/compilers'
 import { cloneAuthoredItem } from '@artificer-toolkit/shared/utils'
+import { barbarian } from '../source-data/srd/classes/barbarian.js'
+import { circleOfTheLand } from '../source-data/srd/classes/circle-of-the-land.js'
+import { cleric } from '../source-data/srd/classes/cleric.js'
+import { druid } from '../source-data/srd/classes/druid.js'
+import { fighter } from '../source-data/srd/classes/fighter.js'
+import { oathOfDevotion } from '../source-data/srd/classes/oath-of-devotion.js'
+import { theFiend } from '../source-data/srd/classes/the-fiend.js'
+import { wayOfTheOpenHand } from '../source-data/srd/classes/way-of-the-open-hand.js'
+import { healersKit10Uses } from '../source-data/srd/equipment/healers-kit-10-uses.js'
 import { srdBaselineContent } from '../source-data/srd/index.js'
+import { dragonborn } from '../source-data/srd/races/dragonborn.js'
 import {
   hasSpellCastLevelScaling,
   stripHtml,
@@ -16,7 +26,89 @@ import {
   hasManualAdjudicationOutcome
 } from './helpers/srdSourceDataHelpers.js'
 
+interface ResourceUse {
+  chargeId: string
+  cost: number
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function collectChargeIds(value: unknown, chargeIds = new Set<string>()): Set<string> {
+  if (Array.isArray(value)) {
+    value.forEach((entry) => collectChargeIds(entry, chargeIds))
+    return chargeIds
+  }
+
+  if (!isRecord(value)) return chargeIds
+
+  if (isRecord(value.charges) && typeof value.charges.id === 'string') {
+    chargeIds.add(value.charges.id)
+  }
+
+  Object.values(value).forEach((entry) => collectChargeIds(entry, chargeIds))
+  return chargeIds
+}
+
+function collectResourceUses(value: unknown, resourceUses: ResourceUse[] = []): ResourceUse[] {
+  if (Array.isArray(value)) {
+    value.forEach((entry) => collectResourceUses(entry, resourceUses))
+    return resourceUses
+  }
+
+  if (!isRecord(value)) return resourceUses
+
+  if (
+    isRecord(value.resourceUse) &&
+    typeof value.resourceUse.chargeId === 'string' &&
+    typeof value.resourceUse.cost === 'number'
+  ) {
+    resourceUses.push({ chargeId: value.resourceUse.chargeId, cost: value.resourceUse.cost })
+  }
+
+  Object.values(value).forEach((entry) => collectResourceUses(entry, resourceUses))
+  return resourceUses
+}
+
 describe('SRD source data', () => {
+  it('binds proven limited actions to an owned charge and preserves that binding when cloned', () => {
+    const boundSubjects = [
+      fighter,
+      barbarian,
+      cleric,
+      druid,
+      circleOfTheLand,
+      oathOfDevotion,
+      theFiend,
+      wayOfTheOpenHand,
+      dragonborn,
+      healersKit10Uses
+    ]
+
+    for (const subject of boundSubjects) {
+      const chargeIds = collectChargeIds(subject)
+      const resourceUses = collectResourceUses(subject)
+
+      expect(resourceUses).not.toEqual([])
+      for (const resourceUse of resourceUses) {
+        expect(resourceUse.cost).toBe(1)
+        expect(chargeIds).toContain(resourceUse.chargeId)
+      }
+    }
+
+    const originalChargeId = healersKit10Uses.charges?.id
+    if (!originalChargeId) throw new Error("Healer's Kit charge is required.")
+
+    const clonedHealersKit = cloneAuthoredItem(healersKit10Uses)
+    const clonedChargeIds = collectChargeIds(clonedHealersKit)
+    const clonedResourceUses = collectResourceUses(clonedHealersKit)
+
+    expect(clonedChargeIds).not.toContain(originalChargeId)
+    expect(clonedResourceUses).toEqual([{ chargeId: expect.any(String), cost: 1 }])
+    expect(clonedChargeIds).toContain(clonedResourceUses[0]!.chargeId)
+  })
+
   it('preserves the exact SRD vehicle logistics through authored and compiled data', () => {
     const vehicles = new Map(
       srdBaselineContent.subjects.vehicles.map((vehicle) => [vehicle.label, vehicle])

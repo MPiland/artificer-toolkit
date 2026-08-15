@@ -6,11 +6,7 @@ import {
   createRollHistoryRepository
 } from '@artificer-toolkit/db'
 import type { DBLike } from '@artificer-toolkit/db'
-import {
-  AUTHORED_RECORD_STATUS,
-  CLASS_CATEGORY,
-  resolveRulesSystem
-} from '@artificer-toolkit/shared/core'
+import { AUTHORED_RECORD_STATUS, CLASS_CATEGORY } from '@artificer-toolkit/shared/core'
 import {
   clampCharacterCurrentHitPoints,
   formatCharacterHitDiceRollExpression,
@@ -30,7 +26,12 @@ import type {
 } from '@artificer-toolkit/schema/api/characters'
 
 import type { CharacterCompletedRestResultDto } from '@artificer-toolkit/schema/api/characterSheet'
-import { resolveCharacterBuilder, type CharacterBuilderResolution } from './builderService.js'
+import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import {
+  loadCharacterBuilderContext,
+  resolveCharacterBuilder,
+  type CharacterBuilderResolution
+} from './builderService.js'
 
 import {
   getVisibleCampaignConditions,
@@ -45,8 +46,7 @@ import {
   createNamedError,
   getHitPointAdjustment
 } from './sheetCommandReducer.js'
-import { buildCharacterSheetResponse } from './sheetProjection.js'
-import { resolveCharacterSheetEngine } from './characterEngine.js'
+import { buildCharacterSheetBundle } from './sheetProjection.js'
 
 function parseCharacterClassHitDie(dieConfig: string | undefined): number | undefined {
   const match = dieConfig?.trim().match(/^(?:1)?d(\d+)$/i)
@@ -148,40 +148,23 @@ export function buildCharacterRestPreview(params: {
   character: CharacterAuthored
   resolution: CharacterBuilderResolution
   characterAdjustments?: readonly CharacterSheetAdjustment[]
-  adjustments: readonly CharacterSheetAdjustment[]
+  effectiveMaximum: number
+  restPolicy: CharacterRulePolicyOutput['rest']
+  ruleRevisionId: string
   sheet: CharacterSheetResponseDto
   input: CharacterRestPreviewRequestDto
 }): CharacterRestPreviewResponseDto {
-  const { character, resolution, adjustments, sheet, input } = params
-  const characterAdjustments = params.characterAdjustments ?? adjustments
-  const rulesSystem = resolveRulesSystem({
-    code: resolution.registry.system?.rulesetCode ?? '',
-    version: resolution.registry.system?.rulesetVersion ?? ''
-  })
-  const characterMaximumModifier = characterAdjustments.find(
-    (adjustment) => adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_MODIFIER'
-  )
+  const { character, resolution, sheet, input } = params
+  const characterAdjustments = params.characterAdjustments ?? []
   const maximumModifier = getHitPointAdjustment(characterAdjustments, 'MAXIMUM_MODIFIER') ?? 0
   const canResetMaximumModifier = maximumModifier !== 0
-  const effectiveAdjustments =
-    input.resetMaximumHitPointModifier && canResetMaximumModifier
-      ? adjustments.filter((adjustment) => adjustment !== characterMaximumModifier)
-      : adjustments
-  const effectiveMaximum = resolveCharacterEffectiveMaximumHitPoints(
-    resolveCharacterSheetEngine({
-      character,
-      resolution,
-      adjustments: effectiveAdjustments
-    }).derivedStats.maxHitPoints
-  )
+  const effectiveMaximum = params.effectiveMaximum
   const currentMaximum = resolveCharacterEffectiveMaximumHitPoints(sheet.overview.maxHitPoints)
   const currentHitPoints = clampCharacterCurrentHitPoints(
     sheet.overview.currentHitPoints,
     input.resetMaximumHitPointModifier ? effectiveMaximum : currentMaximum
   )
-  const constitutionModifier = rulesSystem.abilityModifier(
-    resolution.summary.abilities.CONSTITUTION ?? 10
-  )
+  const constitutionModifier = params.restPolicy.hitDieConstitutionModifier
 
   const classLabelsByDie = new Map<number, string[]>()
   for (const classSummary of resolution.summary.classes) {
@@ -258,18 +241,25 @@ export function buildCharacterRestPreview(params: {
     .sort((left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id))
 
   const selectedCompanionIds = new Set(input.selectedCompanionInstanceIds)
+  const companionHitDiceRecoveryById = new Map(
+    params.restPolicy.companionHitDiceRecoveredAfterLongRest.map((companion) => [
+      companion.companionInstanceId,
+      companion.recovered
+    ])
+  )
   const eligibleCompanions = sheet.extras.items
     .filter((extra) => extra.kind !== 'VEHICLE' && extra.isActive)
     .flatMap((extra) => {
       if (extra.kind === 'VEHICLE') return []
+      const companionHitDiceRecovery = companionHitDiceRecoveryById.get(extra.id)
+      if (input.restKind === 'LONG' && companionHitDiceRecovery === undefined) {
+        throw new CharacterSheetCommandError(
+          `Companion "${extra.id}" is missing from the Character rest policy.`
+        )
+      }
       const hitDiceRecovery =
         input.restKind === 'LONG'
-          ? recoverCharacterHitDice(
-              extra.hitDice,
-              rulesSystem.rest.hitDiceRecoveredAfterLongRest(
-                extra.hitDice.reduce((total, pool) => total + pool.total, 0)
-              )
-            ).recovered
+          ? recoverCharacterHitDice(extra.hitDice, companionHitDiceRecovery ?? 0).recovered
           : []
       const resources = sheet.resources.items
         .filter(
@@ -343,13 +333,9 @@ export function buildCharacterRestPreview(params: {
   const longRestPolicy =
     input.restKind === 'LONG'
       ? (() => {
-          const hitDiceRecoveryCount = rulesSystem.rest.hitDiceRecoveredAfterLongRest(
-            character.state.hitpoints.hitDice.reduce((total, pool) => total + pool.total, 0)
-          )
+          const hitDiceRecoveryCount = params.restPolicy.hitDiceRecoveredAfterLongRest
           return {
-            exhaustionAfter: rulesSystem.exhaustion.levelAfterLongRest(
-              sheet.overview.exhaustion.level
-            ),
+            exhaustionAfter: params.restPolicy.exhaustionAfterLongRest,
             hitDiceRecoveryCount,
             recoveredHitDice: recoverCharacterHitDice(
               character.state.hitpoints.hitDice,
@@ -363,11 +349,8 @@ export function buildCharacterRestPreview(params: {
     restKind: input.restKind,
     streamVersion: sheet.meta.streamVersion,
     rulesPolicy: {
-      identity: rulesSystem.identity,
-      exhaustion: {
-        minimumLevel: rulesSystem.exhaustion.minimumLevel,
-        maximumLevel: rulesSystem.exhaustion.maximumLevel
-      },
+      revisionId: params.ruleRevisionId,
+      rest: params.restPolicy,
       longRest: longRestPolicy
     },
     hitPoints: {
@@ -425,19 +408,15 @@ export function applyCompletedCharacterRest(params: {
   character: CharacterAuthored
   command: Extract<CharacterSheetCommandInputDto, { type: 'COMPLETE_REST' }>
   preview: CharacterRestPreviewResponseDto
-  resolution: CharacterBuilderResolution
+  restPolicy: CharacterRulePolicyOutput['rest']
   sheet: CharacterSheetResponseDto
 }): {
   character: CharacterAuthored
   result: CharacterCompletedRestResultDto
   allRecoveredResourceIds: string[]
 } {
-  const { character, command, preview, resolution, sheet } = params
+  const { character, command, preview, sheet } = params
   const next = structuredClone(character)
-  const rulesSystem = resolveRulesSystem({
-    code: resolution.registry.system?.rulesetCode ?? '',
-    version: resolution.registry.system?.rulesetVersion ?? ''
-  })
   const currentBefore = clampCharacterCurrentHitPoints(
     sheet.overview.currentHitPoints,
     sheet.overview.maxHitPoints
@@ -465,16 +444,14 @@ export function applyCompletedCharacterRest(params: {
   } else {
     const characterHitDice = recoverCharacterHitDice(
       next.state.hitpoints.hitDice,
-      rulesSystem.rest.hitDiceRecoveredAfterLongRest(
-        next.state.hitpoints.hitDice.reduce((total, pool) => total + pool.total, 0)
-      )
+      params.restPolicy.hitDiceRecoveredAfterLongRest
     )
     next.state.hitpoints.current = preview.hitPoints.maximum
     next.state.hitpoints.temp = 0
     next.state.hitpoints.hitDice = characterHitDice.hitDice
     next.state.spellSlots = undefined
     recoveredHitDice = characterHitDice.recovered
-    const exhaustionAfter = rulesSystem.exhaustion.levelAfterLongRest(exhaustionBefore)
+    const exhaustionAfter = params.restPolicy.exhaustionAfterLongRest
     next.state.exhaustion =
       exhaustionAfter > 0
         ? {
@@ -576,6 +553,12 @@ export async function previewCharacterRest(params: {
   if ((character.status ?? AUTHORED_RECORD_STATUS.ACTIVE) !== AUTHORED_RECORD_STATUS.ACTIVE) {
     throw new CharacterSheetCommandError(`Character "${params.characterId}" is not finalized yet.`)
   }
+  if (!row.rule_pack_revision_id) {
+    throw createNamedError(
+      'CharacterRuleBindingError',
+      `Active Character "${character.id}" does not have a pinned rule revision.`
+    )
+  }
   if (row.stream_version !== params.input.expectedVersion) {
     throw new ConcurrencyError(params.characterId, params.input.expectedVersion)
   }
@@ -590,23 +573,31 @@ export async function previewCharacterRest(params: {
   const adjustmentRepository = createCharacterSheetAdjustmentRepository(params.db)
   const playStateRepository = createCharacterSheetPlayStateRepository(params.db)
   const [
-    resolution,
+    context,
     characterAdjustments,
     movementDisplayPreference,
     resourceUsage,
     spellCustomizations
   ] = await Promise.all([
-    resolveCharacterBuilder(params.db, character, 'edit'),
+    loadCharacterBuilderContext(params.db, character, [], { includeEffects: true }),
     adjustmentRepository.listByCharacter(params.characterId),
     adjustmentRepository.getMovementPreference(params.characterId),
     playStateRepository.listResourceUsage(params.characterId),
     playStateRepository.listSpellCustomizations(params.characterId)
   ])
+  const resolution = await resolveCharacterBuilder(
+    params.db,
+    character,
+    'edit',
+    context,
+    null,
+    row.rule_pack_revision_id
+  )
   const adjustments = mergeCampaignSheetAdjustments(
     characterAdjustments,
     campaignContext.adjustments
   )
-  const sheet = await buildCharacterSheetResponse({
+  const currentBundle = await buildCharacterSheetBundle({
     db: params.db,
     character,
     resolution,
@@ -615,16 +606,55 @@ export async function previewCharacterRest(params: {
     movementDisplayPreference,
     resourceUsage,
     spellCustomizations,
-    additionalConditions: getVisibleCampaignConditions(campaignContext)
+    additionalConditions: getVisibleCampaignConditions(campaignContext),
+    ruleEvaluation: {
+      context,
+      revisionId: row.rule_pack_revision_id,
+      attunementSlotOverride: campaignContext.attunementSlotOverride
+    }
   })
+  const resetMaximumModifier = params.input.resetMaximumHitPointModifier
+    ? characterAdjustments.find(
+        (adjustment) =>
+          adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_MODIFIER'
+      )
+    : undefined
+  const restBundle = resetMaximumModifier
+    ? await buildCharacterSheetBundle({
+        db: params.db,
+        character,
+        resolution,
+        streamVersion: row.stream_version,
+        adjustments: adjustments.filter((adjustment) => adjustment.id !== resetMaximumModifier.id),
+        movementDisplayPreference,
+        resourceUsage,
+        spellCustomizations,
+        additionalConditions: getVisibleCampaignConditions(campaignContext),
+        ruleEvaluation: {
+          context,
+          revisionId: row.rule_pack_revision_id,
+          attunementSlotOverride: campaignContext.attunementSlotOverride
+        }
+      })
+    : currentBundle
+  if (!restBundle.ruleEvaluation) {
+    throw createNamedError(
+      'CharacterRuleBindingError',
+      `Character "${character.id}" did not produce a rule evaluation.`
+    )
+  }
 
   return projectCharacterRestForViewer(
     buildCharacterRestPreview({
       character,
       resolution,
       characterAdjustments,
-      adjustments,
-      sheet,
+      effectiveMaximum: resolveCharacterEffectiveMaximumHitPoints(
+        restBundle.sheet.overview.maxHitPoints
+      ),
+      restPolicy: restBundle.ruleEvaluation.output.rest,
+      ruleRevisionId: row.rule_pack_revision_id,
+      sheet: currentBundle.sheet,
       input: params.input
     }),
     campaignContext

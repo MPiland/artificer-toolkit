@@ -1,4 +1,4 @@
-import type { ContentRef } from '../../engine/snapshot.js'
+import type { ContentRef } from '../ruleSnapshot.js'
 import type { CharacterSheetCommandResult } from '../sheetRest.js'
 
 /* ──────────────────────────────────────────────

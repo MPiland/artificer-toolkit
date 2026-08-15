@@ -74,6 +74,13 @@ export const authenticatedProcedure = t.procedure.use(async ({ ctx, next, path, 
   return result
 })
 
+export const superAdminProcedure = authenticatedProcedure.use(({ ctx, next }) => {
+  if (ctx.isSuperAdmin !== true) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'Superadmin access is required.' })
+  }
+  return next({ ctx })
+})
+
 export const idInputSchema = z.object({
   id: z.string().min(1)
 })

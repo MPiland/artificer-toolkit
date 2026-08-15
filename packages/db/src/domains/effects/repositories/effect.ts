@@ -2009,6 +2009,8 @@ async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored
       'trigger_code',
       'activation_type',
       'activation_value',
+      'resource_charge_id',
+      'resource_cost',
       'range_characteristic_id',
       'shape_characteristic_id',
       'saving_throw_id',
@@ -2085,6 +2087,14 @@ async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored
             activation,
             `Effect "${id}" is missing activation payload.`
           ),
+          ...(invocation.resource_charge_id && invocation.resource_cost
+            ? {
+                resourceUse: {
+                  chargeId: invocation.resource_charge_id,
+                  cost: invocation.resource_cost
+                }
+              }
+            : {}),
           range,
           ...(shape ? { shape } : {}),
           ...(targeting ? { targeting } : {})
@@ -2096,6 +2106,14 @@ async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored
             activation,
             `Effect "${id}" is missing activation payload.`
           ),
+          ...(invocation.resource_charge_id && invocation.resource_cost
+            ? {
+                resourceUse: {
+                  chargeId: invocation.resource_charge_id,
+                  cost: invocation.resource_cost
+                }
+              }
+            : {}),
           range,
           ...(shape ? { shape } : {}),
           ...(targeting ? { targeting } : {})
@@ -2128,6 +2146,8 @@ async function hydrateSimpleFixedEffectsByIds(
         'trigger_code',
         'activation_type',
         'activation_value',
+        'resource_charge_id',
+        'resource_cost',
         'range_characteristic_id',
         'shape_characteristic_id',
         'saving_throw_id',
@@ -2348,6 +2368,14 @@ async function hydrateSimpleFixedEffectsByIds(
               activation,
               `Effect "${id}" is missing activation payload.`
             ),
+            ...(invocation.resource_charge_id && invocation.resource_cost
+              ? {
+                  resourceUse: {
+                    chargeId: invocation.resource_charge_id,
+                    cost: invocation.resource_cost
+                  }
+                }
+              : {}),
             range,
             ...(shape ? { shape } : {}),
             ...(targeting ? { targeting } : {})
@@ -2359,6 +2387,14 @@ async function hydrateSimpleFixedEffectsByIds(
               activation,
               `Effect "${id}" is missing activation payload.`
             ),
+            ...(invocation.resource_charge_id && invocation.resource_cost
+              ? {
+                  resourceUse: {
+                    chargeId: invocation.resource_charge_id,
+                    cost: invocation.resource_cost
+                  }
+                }
+              : {}),
             range,
             ...(shape ? { shape } : {}),
             ...(targeting ? { targeting } : {})

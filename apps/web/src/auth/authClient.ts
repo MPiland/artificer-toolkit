@@ -4,8 +4,10 @@ import { api } from '../lib/api'
 import {
   authInvitationCompletionInputSchema,
   authPasswordUpdateInputSchema,
+  authPasswordRecoveryVerificationInputSchema,
   authSignInInputSchema,
   type AuthInvitationCompletionInput,
+  type AuthPasswordRecoveryVerificationInput,
   type AuthPasswordUpdateInput,
   type AuthSignInInput,
   type AuthSignUpInput
@@ -28,6 +30,8 @@ export interface RequestPasswordResetInput {
 
 export type UpdatePasswordInput = AuthPasswordUpdateInput
 
+export type VerifyPasswordRecoveryInput = AuthPasswordRecoveryVerificationInput
+
 export type CompleteInvitationInput = AuthInvitationCompletionInput
 
 export interface AuthClient {
@@ -35,6 +39,7 @@ export interface AuthClient {
   signIn(input: SignInInput): Promise<AuthResult>
   signUp(input: SignUpInput): Promise<AuthResult>
   requestPasswordReset(input: RequestPasswordResetInput): Promise<AuthResult>
+  verifyPasswordRecovery(input: VerifyPasswordRecoveryInput): Promise<AuthResult>
   updatePassword(input: UpdatePasswordInput): Promise<AuthResult>
   signOut(): Promise<AuthResult>
 }
@@ -110,8 +115,23 @@ export const browserAuthClient: AuthClient = {
       redirectTo: getAuthRedirectUrl('/update-password')
     })
     return error
-      ? { ok: false, message: "We couldn't send a reset link. Try again." }
+      ? { ok: false, message: "We couldn't send a verification code. Try again." }
       : { ok: true }
+  },
+  async verifyPasswordRecovery(input) {
+    const parsed = authPasswordRecoveryVerificationInputSchema.safeParse(input)
+    if (!parsed.success) {
+      return { ok: false, message: parsed.error.issues[0]?.message }
+    }
+
+    const { data, error } = await getSupabaseBrowserClient().auth.verifyOtp({
+      email: parsed.data.email,
+      token: parsed.data.token,
+      type: 'recovery'
+    })
+    return error
+      ? { ok: false, message: 'That verification code is invalid or has expired.' }
+      : { ok: true, session: data.session ?? null }
   },
   async updatePassword(input) {
     const parsed = authPasswordUpdateInputSchema.safeParse(input)

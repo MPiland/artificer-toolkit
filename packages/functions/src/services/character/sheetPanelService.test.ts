@@ -1,6 +1,10 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
-import type { CharacterSheetAdjustment } from '@artificer-toolkit/shared/character'
+import {
+  createCharacterResourceOwnerKey,
+  toCharacterResourceOwnerKey,
+  type CharacterSheetAdjustment
+} from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import type { CharacterBuilderResolution } from './builderService.js'
@@ -9,15 +13,9 @@ import {
   getAffectedCharacterSheetPanelTargets
 } from './sheetPanelService.js'
 import { characterSheetAdjustmentMatchesPanelTarget } from './sheetPanelTarget.js'
+import { createEmptyCharacterSheetRuleProjection } from './sheetTestFixtures.js'
 
-vi.mock('./characterEngine.js', () => ({
-  resolveCharacterSheetEngine: () => ({
-    spellMechanics: [],
-    itemMechanics: [],
-    equipmentFeatureChargeUses: []
-  }),
-  resolveCharacterSheetSkillKey: () => undefined
-}))
+const ruleProjection = createEmptyCharacterSheetRuleProjection()
 
 describe('getAffectedCharacterSheetPanelTargets', () => {
   it('returns the owning item panel for owned-item and item-resource commands', () => {
@@ -44,6 +42,62 @@ describe('getAffectedCharacterSheetPanelTargets', () => {
         }
       })
     ).toEqual([{ kind: 'ITEM', itemInstanceId: itemId }])
+  })
+})
+
+describe('resource panel projection', () => {
+  it('returns the exact policy-backed resource after a typed resource command', () => {
+    const characterId = '00000000-0000-4000-8000-000000000101'
+    const owner = {
+      kind: 'AUTHORED_GRANT' as const,
+      resourceGrantId: 'resource-1',
+      source: {
+        kind: 'SYSTEM' as const,
+        systemId: '00000000-0000-4000-8000-000000000199'
+      }
+    }
+    const resourceId = createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(owner))
+    const sheet = {
+      resources: {
+        items: [
+          {
+            id: resourceId,
+            owner,
+            label: 'Second Wind',
+            sourceLabel: 'Fighter',
+            used: 1,
+            max: 2,
+            remaining: 1,
+            recoveries: [{ trigger: 'SHORT_REST' as const, amount: { kind: 'ALL' as const } }]
+          }
+        ]
+      }
+    } as unknown as CharacterSheetResponseDto
+    const character = { id: characterId } as CharacterAuthored
+    const resolution = {} as CharacterBuilderResolution
+
+    const panel = buildCharacterSheetPanel({
+      character,
+      resolution,
+      sheet,
+      ruleProjection,
+      adjustments: [],
+      movementDisplayPreference: { mode: 'AUTO' },
+      target: { kind: 'RESOURCE', owner },
+      editable: true
+    })
+
+    expect(panel).toMatchObject({
+      kind: 'RESOURCE',
+      panelId: `resource:${resourceId}`,
+      owner,
+      title: 'Second Wind',
+      sourceLabel: 'Fighter',
+      used: 1,
+      maximum: 2,
+      remaining: 1,
+      allowedCommands: ['USE_RESOURCE', 'RECOVER_RESOURCE']
+    })
   })
 })
 
@@ -89,10 +143,25 @@ describe('known spell panel projection', () => {
       }
     } as unknown as CharacterSheetResponseDto
 
+    const character = {
+      id: '00000000-0000-4000-8000-000000000101'
+    } as CharacterAuthored
+    const resolution = {
+      sourceRegistry: {
+        system: null,
+        races: [],
+        classes: [],
+        backgrounds: [],
+        equipment: [],
+        features: []
+      },
+      registry: { equipment: [] }
+    } as unknown as CharacterBuilderResolution
     const panel = buildCharacterSheetPanel({
-      character: { id: '00000000-0000-4000-8000-000000000101' } as CharacterAuthored,
-      resolution: {} as CharacterBuilderResolution,
+      character,
+      resolution,
       sheet,
+      ruleProjection,
       adjustments: [],
       movementDisplayPreference: { mode: 'AUTO' },
       target: { kind: 'SPELLS' },
@@ -122,9 +191,23 @@ describe('known spell panel projection', () => {
 
 describe('campaign projection panel redaction', () => {
   it('does not expose private item customization through an item panel', () => {
+    const character = {
+      id: '00000000-0000-4000-8000-000000000101'
+    } as CharacterAuthored
+    const resolution = {
+      registry: { equipment: [] },
+      sourceRegistry: {
+        system: null,
+        races: [],
+        classes: [],
+        backgrounds: [],
+        equipment: [],
+        features: []
+      }
+    } as unknown as CharacterBuilderResolution
     const panel = buildCharacterSheetPanel({
-      character: { id: '00000000-0000-4000-8000-000000000101' } as CharacterAuthored,
-      resolution: { registry: { equipment: [] } } as unknown as CharacterBuilderResolution,
+      character,
+      resolution,
       sheet: {
         inventory: {
           items: [
@@ -144,6 +227,7 @@ describe('campaign projection panel redaction', () => {
         },
         resources: { items: [] }
       } as unknown as CharacterSheetResponseDto,
+      ruleProjection,
       adjustments: [],
       movementDisplayPreference: { mode: 'AUTO' },
       target: { kind: 'ITEM', itemInstanceId: '00000000-0000-4000-8000-000000000102' },

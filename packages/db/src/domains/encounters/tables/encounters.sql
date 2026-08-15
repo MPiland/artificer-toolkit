@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.encounters (
   session_id uuid NOT NULL REFERENCES public.campaign_sessions (id) ON DELETE CASCADE,
   template_id uuid NOT NULL REFERENCES public.encounter_templates (id) ON DELETE RESTRICT,
   template_version integer NOT NULL CHECK (template_version > 0),
+  rule_pack_revision_id uuid REFERENCES public.rule_pack_revisions (id) ON DELETE RESTRICT,
   name text NOT NULL CHECK (char_length(btrim(name)) BETWEEN 1 AND 160),
   status text NOT NULL DEFAULT 'PREPARED' CHECK (status IN ('PREPARED', 'ACTIVE', 'COMPLETED')),
   version integer NOT NULL DEFAULT 0 CHECK (version >= 0),
@@ -132,22 +133,3 @@ CREATE UNIQUE INDEX IF NOT EXISTS encounter_events_campaign_command_idx
   ON public.encounter_events (campaign_id, command_id);
 ALTER TABLE public.encounter_events ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.encounter_events FROM anon, authenticated;
-
-CREATE OR REPLACE FUNCTION public.trim_encounter_events()
-RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, public AS $$
-BEGIN
-  DELETE FROM public.encounter_events
-  WHERE id IN (
-    SELECT id
-    FROM public.encounter_events
-    WHERE encounter_id = NEW.encounter_id
-    ORDER BY version DESC, created_at DESC, id DESC
-    OFFSET 2000
-  );
-  RETURN NULL;
-END;
-$$;
-DROP TRIGGER IF EXISTS encounter_events_trim ON public.encounter_events;
-CREATE TRIGGER encounter_events_trim
-  AFTER INSERT ON public.encounter_events
-  FOR EACH ROW EXECUTE FUNCTION public.trim_encounter_events();

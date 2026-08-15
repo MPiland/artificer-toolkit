@@ -66,10 +66,6 @@ export class CharacterSheetCommandError extends Error {
   }
 }
 
-export function abilityModifier(score: number): number {
-  return Math.floor((score - 10) / 2)
-}
-
 export function formatModifier(value: number): string {
   return value >= 0 ? `+${value}` : String(value)
 }
@@ -82,10 +78,6 @@ export function formatCodeLabel(value: string): string {
     .join(' ')
 }
 
-function getCalculatedMaxHitPoints(character: CharacterAuthored): number {
-  return character.intent.hitpoints.levels.reduce((total, level) => total + level.value, 0)
-}
-
 export function getHitPointAdjustment(
   adjustments: readonly CharacterSheetAdjustment[],
   field: 'MAXIMUM_MODIFIER' | 'MAXIMUM_OVERRIDE'
@@ -94,16 +86,6 @@ export function getHitPointAdjustment(
     (candidate) => candidate.family === 'HIT_POINTS' && candidate.field === field
   )
   return adjustment?.family === 'HIT_POINTS' ? adjustment.value : undefined
-}
-
-function getMaxHitPoints(
-  character: CharacterAuthored,
-  adjustments: readonly CharacterSheetAdjustment[] = []
-): number {
-  const calculated = getCalculatedMaxHitPoints(character)
-  const base = calculated > 0 ? calculated : character.state.hitpoints.current
-  const adjusted = Math.max(base + (getHitPointAdjustment(adjustments, 'MAXIMUM_MODIFIER') ?? 0), 0)
-  return getHitPointAdjustment(adjustments, 'MAXIMUM_OVERRIDE') ?? adjusted
 }
 
 export function getSpellSlotKey(level: number): string {
@@ -140,23 +122,6 @@ export function getNoteGroups(character: CharacterAuthored) {
     .sort(
       (left, right) => left.sortOrder - right.sortOrder || left.label.localeCompare(right.label)
     )
-}
-
-function restoreHitDiceForLongRest(
-  hitDice: CharacterAuthored['state']['hitpoints']['hitDice']
-): CharacterAuthored['state']['hitpoints']['hitDice'] {
-  const totalHitDice = hitDice.reduce((total, die) => total + die.total, 0)
-  let remainingRecovery = Math.max(Math.floor(totalHitDice / 2), 1)
-
-  return hitDice.map((die) => {
-    const recovered = Math.min(die.used, remainingRecovery)
-    remainingRecovery -= recovered
-
-    return {
-      ...die,
-      used: die.used - recovered
-    }
-  })
 }
 
 export function clearEmptyStateArrays(character: CharacterAuthored): CharacterAuthored {
@@ -223,6 +188,37 @@ export function resolveSpellCastSource(
   return { source, spell }
 }
 
+function resolveAvailableSpellCast(
+  sheet: CharacterSheetResponseDto,
+  command: Extract<CharacterSheetStateCommand, { type: 'CAST_SPELL' }>
+): {
+  source: SheetSpellSource | undefined
+  spell: SheetSpell
+  slotKey: string | undefined
+} {
+  const { source, spell } = resolveSpellCastSource(sheet, command)
+  const sourceId = source?.id ?? source?.source.sourceInstanceId
+  const entry = sheet.spells.activeGroups
+    .flatMap((group) => group.entries)
+    .find(
+      (candidate) =>
+        candidate.spellId === spell.id &&
+        candidate.sourceId === sourceId &&
+        candidate.cast.slotKey === command.slotKey
+    )
+  if (!entry) {
+    throw new CharacterSheetCommandError(
+      `Spell "${spell.label}" does not have a matching rule-approved cast.`
+    )
+  }
+  if (!entry.available) {
+    throw new CharacterSheetCommandError(
+      entry.unavailableReason ?? `Spell "${spell.label}" is not available to cast.`
+    )
+  }
+  return { source, spell, slotKey: entry.cast.slotKey }
+}
+
 function ensureInventoryItem(character: CharacterAuthored, itemId: string) {
   const item = character.state.equipment.inventory.find((candidate) => candidate.id === itemId)
   if (!item)
@@ -233,12 +229,11 @@ function ensureInventoryItem(character: CharacterAuthored, itemId: string) {
 function updateSpellSlotUsage(
   character: CharacterAuthored,
   slotKey: string,
-  max: number,
   updater: (used: number) => number
 ): CharacterAuthored {
   const existing = character.state.spellSlots ?? []
   const next = new Map(existing.map((slot) => [slot.slotKey, slot.used]))
-  const used = clamp(updater(next.get(slotKey) ?? 0), 0, max)
+  const used = Math.max(updater(next.get(slotKey) ?? 0), 0)
   next.set(slotKey, used)
 
   return clearEmptyStateArrays({
@@ -250,69 +245,6 @@ function updateSpellSlotUsage(
         .map(([key, amount]) => ({ slotKey: key, used: amount }))
     }
   })
-}
-
-type CharacterSheetResourceRecoveryTrigger =
-  CharacterSheetResponseDto['resources']['items'][number]['recoveries'][number]['trigger']
-
-function restoreResourcesForRecoveries(
-  character: CharacterAuthored,
-  sheet: CharacterSheetResponseDto,
-  triggers: readonly CharacterSheetResourceRecoveryTrigger[]
-): CharacterAuthored {
-  const recoverySet = new Set(triggers)
-  const restorableResourceIds = new Set(
-    sheet.resources.items
-      .filter((resource) =>
-        resource.recoveries.some((recovery) => recoverySet.has(recovery.trigger))
-      )
-      .map((resource) => resource.id)
-  )
-  if (restorableResourceIds.size === 0) return character
-
-  return {
-    ...character,
-    state: {
-      ...character.state,
-      resources: character.state.resources?.filter(
-        (resource) => !restorableResourceIds.has(resource.resourceGrantId)
-      )
-    }
-  }
-}
-
-function restoreResourcesForRest(
-  character: CharacterAuthored,
-  sheet: CharacterSheetResponseDto,
-  recovery: CharacterSheetResourceRecoveryTrigger
-): CharacterAuthored {
-  return restoreResourcesForRecoveries(character, sheet, [recovery])
-}
-
-function restorePactSpellSlotsForShortRest(
-  character: CharacterAuthored,
-  sheet: CharacterSheetResponseDto
-): CharacterAuthored {
-  const pactSlotKeys = new Set(
-    sheet.spells.slots.filter((slot) => slot.slotKey === 'PACT').map((slot) => slot.slotKey)
-  )
-  if (pactSlotKeys.size === 0) return character
-
-  return {
-    ...character,
-    state: {
-      ...character.state,
-      spellSlots: character.state.spellSlots?.filter((slot) => !pactSlotKeys.has(slot.slotKey))
-    }
-  }
-}
-
-function applyShortRestRecovery(
-  character: CharacterAuthored,
-  sheet: CharacterSheetResponseDto
-): CharacterAuthored {
-  const withResources = restoreResourcesForRest(character, sheet, 'SHORT_REST')
-  return restorePactSpellSlotsForShortRest(withResources, sheet)
 }
 
 function setOptionalText(value: string | null | undefined): string | undefined {
@@ -412,6 +344,9 @@ export function applyCharacterSheetCommand(
   }
 
   switch (command.type) {
+    case 'UPGRADE_RULE_PACK':
+      return next
+
     case 'UPSERT_SHEET_ADJUSTMENT':
     case 'REMOVE_SHEET_ADJUSTMENT':
     case 'RESET_SHEET_PANEL_ADJUSTMENTS':
@@ -618,13 +553,7 @@ export function applyCharacterSheetCommand(
         command.maxOverride === undefined
           ? sheet.overview.maxHitPoints
           : command.maxOverride === null
-            ? getMaxHitPoints(
-                next,
-                (context.adjustments ?? []).filter(
-                  (adjustment) =>
-                    adjustment.family !== 'HIT_POINTS' || adjustment.field !== 'MAXIMUM_OVERRIDE'
-                )
-              )
+            ? Number.MAX_SAFE_INTEGER
             : command.maxOverride
       next.state.hitpoints.current = clamp(
         command.current ?? next.state.hitpoints.current,
@@ -670,26 +599,6 @@ export function applyCharacterSheetCommand(
       )
       return clearEmptyStateArrays(next)
     }
-
-    case 'APPLY_REST':
-      if (command.restKind === 'LONG') {
-        const maxHitPoints = sheet.overview.maxHitPoints
-        next.state.hitpoints.current = maxHitPoints
-        next.state.hitpoints.temp = 0
-        next.state.hitpoints.hitDice = restoreHitDiceForLongRest(next.state.hitpoints.hitDice)
-        next.state.resources = restoreResourcesForRecoveries(next, sheet, [
-          'SHORT_REST',
-          'LONG_REST'
-        ]).state.resources
-        next.state.spellSlots = undefined
-        next.state.exhaustion =
-          next.state.exhaustion && next.state.exhaustion.level > 1
-            ? { ...next.state.exhaustion, level: next.state.exhaustion.level - 1 }
-            : undefined
-      } else {
-        return clearEmptyStateArrays(applyShortRestRecovery(next, sheet))
-      }
-      return clearEmptyStateArrays(next)
 
     case 'COMPLETE_REST':
       throw new CharacterSheetCommandError(
@@ -759,63 +668,21 @@ export function applyCharacterSheetCommand(
 
     case 'USE_SPELL_SLOT': {
       const slot = ensureSpellSlot(sheet, command.slotKey)
-      return updateSpellSlotUsage(next, command.slotKey, slot.max, (used) => used + 1)
+      if (slot.remaining < 1)
+        throw new CharacterSheetCommandError(`Spell slot "${slot.label}" has no uses remaining.`)
+      return updateSpellSlotUsage(next, command.slotKey, (used) => used + 1)
     }
 
     case 'RESTORE_SPELL_SLOT': {
-      const slot = ensureSpellSlot(sheet, command.slotKey)
-      return updateSpellSlotUsage(next, command.slotKey, slot.max, (used) =>
-        command.all ? 0 : used - 1
-      )
+      ensureSpellSlot(sheet, command.slotKey)
+      return updateSpellSlotUsage(next, command.slotKey, (used) => (command.all ? 0 : used - 1))
     }
 
     case 'CAST_SPELL': {
-      const { source, spell } = resolveSpellCastSource(sheet, command)
-      if (
-        source?.canPrepare &&
-        source.acquisition !== 'ALWAYS_PREPARED' &&
-        source.acquisition !== 'GRANTED' &&
-        !source.prepared
-      ) {
-        throw new CharacterSheetCommandError(
-          `Spell "${spell.label}" is not prepared for this source.`
-        )
-      }
-      const castMode = source?.castMode ?? 'SPELL_SLOT'
-      if (castMode === 'AT_WILL' || castMode === 'RITUAL' || spell.level === 0)
-        return clearEmptyStateArrays(next)
-      if (castMode === 'LIMITED_USE') {
-        if (!source?.resourceOwner)
-          throw new CharacterSheetCommandError('This limited-use spell has no linked resource.')
-        const resource = ensureResourceByOwner(sheet, source.resourceOwner)
-        if (resource.used >= resource.max)
-          throw new CharacterSheetCommandError(
-            `Resource "${resource.label}" has no uses remaining.`
-          )
-        return next
-      }
-      if (castMode === 'FIXED_LEVEL') {
-        if (!source?.resourceOwner) return clearEmptyStateArrays(next)
-        const resource = ensureResourceByOwner(sheet, source.resourceOwner)
-        if (resource.used >= resource.max)
-          throw new CharacterSheetCommandError(
-            `Resource "${resource.label}" has no uses remaining.`
-          )
-        return next
-      }
-      if (!command.slotKey)
-        throw new CharacterSheetCommandError('Choose a spell slot before casting.')
-      const slot = ensureSpellSlot(sheet, command.slotKey)
-      const castLevel = slot.level ?? parseSlotLevel(slot.slotKey)
-      const minimumLevel = source?.fixedLevel ?? spell.level
-      if (castLevel === null || castLevel < minimumLevel) {
-        throw new CharacterSheetCommandError(
-          `This spell requires a level ${minimumLevel} or higher spell slot.`
-        )
-      }
-      if (slot.used >= slot.max)
-        throw new CharacterSheetCommandError(`Spell slot "${slot.label}" has no uses remaining.`)
-      return updateSpellSlotUsage(next, command.slotKey, slot.max, (used) => used + 1)
+      const cast = resolveAvailableSpellCast(sheet, command)
+      if (!cast.slotKey) return clearEmptyStateArrays(next)
+      ensureSpellSlot(sheet, cast.slotKey)
+      return updateSpellSlotUsage(next, cast.slotKey, (used) => used + 1)
     }
 
     case 'SET_PREPARED_SPELLS': {
@@ -1302,6 +1169,8 @@ export function summarizeCharacterSheetCommand(
   sheet?: CharacterSheetResponseDto
 ): string {
   switch (command.type) {
+    case 'UPGRADE_RULE_PACK':
+      return 'Character rules upgraded'
     case 'UPSERT_SHEET_ADJUSTMENT':
       return 'Character sheet adjustment updated'
     case 'REMOVE_SHEET_ADJUSTMENT':
@@ -1334,8 +1203,6 @@ export function summarizeCharacterSheetCommand(
         : `${command.amount} HP restored`
     case 'USE_HIT_DIE':
       return `Used one d${command.die} hit die`
-    case 'APPLY_REST':
-      return command.restKind === 'LONG' ? 'Long rest applied' : 'Short rest applied'
     case 'COMPLETE_REST':
       return command.restKind === 'LONG' ? 'Long rest completed' : 'Short rest completed'
     case 'SET_EXHAUSTION':

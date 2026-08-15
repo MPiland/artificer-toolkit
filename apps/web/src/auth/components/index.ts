@@ -1,5 +1,7 @@
 export * from './SignInForm'
 export * from './UpdatePasswordForm'
 export * from './ResetPasswordForm'
+export * from './VerifyPasswordResetForm'
 export * from './SignUpForm'
 export * from './AuthPageShell'
+export * from './PasswordMatchFeedback'

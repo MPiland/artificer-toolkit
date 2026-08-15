@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   campaignLock: vi.fn(),
   characterLock: vi.fn(),
   findCharacter: vi.fn(),
+  findCharacterRow: vi.fn(),
   authority: vi.fn(),
   reconcile: vi.fn(),
   resolveBuilder: vi.fn(),
@@ -40,7 +41,8 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createCampaignRepository: () => ({ lockCampaign: mocks.campaignLock }),
     createCharacterRepository: () => ({
       findUpdatedAtByIdForUpdate: mocks.characterLock,
-      findAuthoredById: mocks.findCharacter
+      findAuthoredById: mocks.findCharacter,
+      findById: mocks.findCharacterRow
     }),
     withTransaction: async (_db: DBLike, callback: (trx: DBLike) => Promise<unknown>) => {
       const result = await callback({} as DBLike)
@@ -128,6 +130,7 @@ describe('Campaign content service', () => {
     mocks.content.findOwnedDraftPayload.mockResolvedValue(null)
     mocks.content.lockNextRevision.mockResolvedValue(1)
     mocks.content.lockRootBindings.mockResolvedValue([])
+    mocks.findCharacterRow.mockResolvedValue({ rule_pack_revision_id: 'revision-1' })
     mocks.content.insertContentVersion.mockImplementation(async (input: { state: string }) =>
       version(input.state as 'PENDING' | 'APPROVED')
     )

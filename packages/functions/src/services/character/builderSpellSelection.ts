@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderChosenGrantChoice } from './chosenGrantChoiceResolver.js'
 import type { CharacterBuilderCatalog } from './builderCatalog.js'
-import type { ResolvedClassSelection } from './builderEligibility.js'
+import type { ResolvedClassSelection } from './characterBuilderSelections.js'
 import type { CharacterBuilderValidation } from './builderService.js'
 
 export interface CharacterSpellChoiceRequirement {

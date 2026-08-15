@@ -20,6 +20,8 @@ Encounter timelines are actor-aware at the repository boundary. For a non-owner 
 
 Authored effects and outcomes describe mechanics; they are not persisted encounter events. An eventual effect executor must produce explicit proposed outcomes that encounter orchestration validates and records.
 
+Each new Encounter pins an activated rule-pack revision. `RESOLVE_ACTION` evaluates that exact immutable document, permits one application-owned roll stage, validates typed targets and outcomes, and records the revision checksum plus resolution evidence in the same transaction as any Encounter- or Sheet-owned mutation. Encounter command events are not trimmed because they are also durable idempotency receipts and the only exact rule-resolution audit record. Timeline pagination remains bounded independently of retention.
+
 ## Consequences
 
 Character play remains usable without a VTT, Encounter replay can be authoritative for the table, and rules logic can be shared without sharing persistence ownership. Correlated Character mutations lock both aggregates and commit the Encounter event plus Character command in one transaction, or neither. No universal event abstraction is introduced.

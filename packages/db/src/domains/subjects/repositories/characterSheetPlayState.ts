@@ -47,6 +47,7 @@ function toIsoString(value: Date | string): string {
 function resourceOwnerFromRow(row: {
   owner_kind: string
   resource_grant_id: string | null
+  source_id: string | null
   spell_id: string | null
   source_kind: string | null
   source_instance_id: string | null
@@ -59,6 +60,12 @@ function resourceOwnerFromRow(row: {
   switch (row.owner_kind) {
     case 'AUTHORED_GRANT':
       return { kind: row.owner_kind, resourceGrantId: row.resource_grant_id! }
+    case 'AUTHORED_SOURCE':
+      return {
+        kind: row.owner_kind,
+        sourceId: row.source_id!,
+        chargeId: row.charge_id!
+      }
     case 'SPELL_SOURCE':
       return {
         kind: row.owner_kind,
@@ -90,6 +97,7 @@ function resourceOwnerFromRow(row: {
 function ownerColumns(owner: CharacterResourceOwnerKey) {
   const empty = {
     resource_grant_id: null,
+    source_id: null,
     spell_id: null,
     source_kind: null,
     source_instance_id: null,
@@ -102,6 +110,8 @@ function ownerColumns(owner: CharacterResourceOwnerKey) {
   switch (owner.kind) {
     case 'AUTHORED_GRANT':
       return { ...empty, resource_grant_id: owner.resourceGrantId }
+    case 'AUTHORED_SOURCE':
+      return { ...empty, source_id: owner.sourceId, charge_id: owner.chargeId }
     case 'SPELL_SOURCE':
       return {
         ...empty,
@@ -140,6 +150,9 @@ async function removeResourceOwner(
   switch (owner.kind) {
     case 'AUTHORED_GRANT':
       query = query.where('resource_grant_id', '=', owner.resourceGrantId)
+      break
+    case 'AUTHORED_SOURCE':
+      query = query.where('source_id', '=', owner.sourceId).where('charge_id', '=', owner.chargeId)
       break
     case 'SPELL_SOURCE':
       query = query

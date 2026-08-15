@@ -1,4 +1,5 @@
 import type { EncounterActorRecord, EncounterRecord } from '@artificer-toolkit/db'
+import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
 import {
   encounterGmProjectionDtoSchema,
   encounterPlayerProjectionDtoSchema,
@@ -7,6 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 
 import { snapshotFeatures, stableActors } from './encounterActorState.js'
+import { requireEncounterActorRuleResult } from './encounterActorRuleEvaluation.js'
 
 export function healthBand(current: number, maximum: number) {
   if (current <= 0) return 'DEFEATED' as const
@@ -59,7 +61,10 @@ export function snapshotStatBlock(actor: EncounterActorRecord) {
   }
 }
 
-export function projectGm(encounter: EncounterRecord): EncounterGmProjectionDto {
+export function projectGm(
+  encounter: EncounterRecord,
+  actorRules: EncounterActorRuleOutput
+): EncounterGmProjectionDto {
   return encounterGmProjectionDtoSchema.parse({
     id: encounter.id,
     campaignId: encounter.campaignId,
@@ -68,6 +73,7 @@ export function projectGm(encounter: EncounterRecord): EncounterGmProjectionDto 
     templateVersion: encounter.templateVersion,
     name: encounter.name,
     status: encounter.status,
+    rulePackRevisionId: encounter.rulePackRevisionId,
     version: encounter.version,
     round: encounter.round,
     currentActorId: encounter.currentActorId,
@@ -88,7 +94,10 @@ export function projectGm(encounter: EncounterRecord): EncounterGmProjectionDto 
       resources: actor.resources,
       gmNotes: actor.gmNotes,
       statBlock: snapshotStatBlock(actor),
-      features: snapshotFeatures(actor),
+      features:
+        actor.kind === 'CHARACTER'
+          ? []
+          : snapshotFeatures(actor, requireEncounterActorRuleResult(actorRules, actor.id)),
       initiative: actor.initiative,
       manualOrder: actor.manualOrder,
       healthBand: healthBand(actor.currentHitPoints, actor.maxHitPoints)
@@ -117,6 +126,7 @@ export function projectPlayer(encounter: EncounterRecord): EncounterPlayerProjec
     templateVersion: encounter.templateVersion,
     name: encounter.name,
     status: encounter.status,
+    rulePackRevisionId: encounter.rulePackRevisionId,
     version: encounter.version,
     round: encounter.round,
     currentActorId:

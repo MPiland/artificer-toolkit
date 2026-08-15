@@ -53,6 +53,7 @@ SET CONSTRAINTS ALL DEFERRED;
 \i :etl_root'/subjects/tables/media.sql'
 \i :etl_root'/subjects/tables/user_roll_history.sql'
 \i :etl_root'/subjects/tables/character_events.sql'
+\i :etl_root'/rules/tables/rule_packs.sql'
 \i :etl_root'/campaigns/tables/campaigns.sql'
 \i :etl_root'/social/tables/social.sql'
 \i :etl_root'/subjects/tables/character_sheet_adjustments.sql'

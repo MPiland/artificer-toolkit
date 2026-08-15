@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { DBLike } from '#types'
 import { upsertCharacter } from '../domains/subjects/upserts/character.js'
-import { createCharacterRepository } from '../repositories/index.js'
+import { createCharacterRepository } from '../domains/subjects/repositories/character.js'
 import { createInventoryRepository } from '../repositories/inventory.js'
 import { InMemoryDb } from './helpers/in-memory-db.js'
 

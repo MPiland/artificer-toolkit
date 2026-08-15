@@ -15,6 +15,7 @@ describe('Character Sheet actions', () => {
         id: 'feature-1',
         label: 'Action Surge',
         kind: 'ACTION',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Fighter',
         description: '<p>Take one additional action on your turn.</p>'
       },
@@ -22,6 +23,7 @@ describe('Character Sheet actions', () => {
         id: 'feature-2',
         label: 'Parry',
         kind: 'REACTION',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Fighter',
         description: '<p>Reduce incoming melee damage.</p>'
       },
@@ -29,6 +31,7 @@ describe('Character Sheet actions', () => {
         id: 'feature-3',
         label: 'Second Wind',
         kind: 'BONUS_ACTION',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Fighter',
         description: '<p>Regain hit points without giving up your action.</p>',
         resourceGrantId: 'resource-1'
@@ -37,6 +40,7 @@ describe('Character Sheet actions', () => {
         id: 'feature-4',
         label: 'Trance',
         kind: 'OTHER',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Sea Elf',
         description: '<p>Meditate deeply instead of sleeping.</p>'
       }
@@ -104,6 +108,7 @@ describe('Character Sheet actions', () => {
         id: 'equipment:quarterstaff:attack',
         label: 'Quarterstaff',
         kind: 'ACTION',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Equipment',
         description: '<p>A plain wooden staff.</p>',
         rollable: true,
@@ -128,6 +133,7 @@ describe('Character Sheet actions', () => {
         id: 'feature-option:force-ballista',
         label: 'Force Ballista',
         kind: 'ACTION',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Artificer',
         description: '<p>Build a magical turret that attacks your enemies.</p>',
         rollable: true,
@@ -158,6 +164,7 @@ describe('Character Sheet actions', () => {
         id: 'feature:dash',
         label: 'Dash',
         kind: 'ACTION',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Core action',
         rollable: false,
         mechanic: {
@@ -208,6 +215,7 @@ describe('Character Sheet actions', () => {
         id: 'action-second-wind',
         label: 'Second Wind',
         kind: 'BONUS_ACTION',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Fighter',
         description: '<p>Recover your fighting spirit.</p>',
         resourceGrantId: 'resource-1'
@@ -242,6 +250,7 @@ describe('Character Sheet actions', () => {
     )
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'USE_RESOURCE',
+      actionId: 'action-second-wind',
       resourceGrantId: 'resource-1',
       expectedVersion: 4
     })
@@ -267,6 +276,7 @@ describe('Character Sheet actions', () => {
         id: 'action-warping-strike',
         label: 'Warping Strike',
         kind: 'ACTION',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Astral Tear',
         resourceGrantId: 'resource-1',
         resourceCost: 2
@@ -287,6 +297,7 @@ describe('Character Sheet actions', () => {
 
     expect(submitCommand).toHaveBeenCalledWith({
       type: 'USE_RESOURCE',
+      actionId: 'action-warping-strike',
       resourceGrantId: 'resource-1',
       amount: 2,
       expectedVersion: 4
@@ -301,6 +312,7 @@ describe('Character Sheet actions', () => {
         id: 'action-force-ballista',
         label: 'Force Ballista',
         kind: 'ACTION',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Artificer',
         description: '<p>Build a magical turret that attacks your enemies.</p>',
         resourceGrantId: 'resource-1',
@@ -354,6 +366,7 @@ describe('Character Sheet actions', () => {
         id: 'feature:arcane-recovery:recovery',
         label: 'Arcane Recovery',
         kind: 'OTHER',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Wizard',
         description: '<p>Recover expended spell slots after a short rest.</p>',
         resourceGrantId: 'resource-arcane-recovery',
@@ -443,6 +456,44 @@ describe('Character Sheet actions', () => {
     expect(screen.getByText(/rebuild your courage mid-battle/i)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /^other$/i })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: /^limited use$/i })).not.toBeInTheDocument()
+  })
+
+  it('keeps unavailable actions visible while allowing manual recovery', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+    const sheet = createSheet()
+    sheet.actions.items = [
+      {
+        id: 'action-wand-burst',
+        label: 'Wand Burst',
+        kind: 'ACTION',
+        availability: { status: 'UNAVAILABLE', reasonCode: 'SOURCE_NOT_ATTUNED' },
+        resourceGrantId: 'resource-1',
+        resourceCost: 1,
+        sourceLabel: 'Wand of Bursts'
+      }
+    ]
+    sheet.resources.items[0] = {
+      ...sheet.resources.items[0]!,
+      used: 1,
+      max: 2,
+      remaining: 1
+    }
+
+    renderWithAppProviders(
+      <CharacterSheetActions pending={false} sheet={sheet} submitCommand={submitCommand} />
+    )
+
+    expect(screen.getByText(/attune to this item/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /use one wand burst charge/i })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: /restore one wand burst charge/i }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'RESTORE_RESOURCE',
+      resourceGrantId: 'resource-1',
+      expectedVersion: 4
+    })
   })
 
   it('shows only spell sources explicitly marked for the Attack list', async () => {

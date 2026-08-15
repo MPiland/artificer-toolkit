@@ -7,6 +7,7 @@ import {
   encounterProjectionListDtoSchema,
   encounterPlayerProjectionDtoSchema
 } from '../api/encounters.js'
+import { proposedRuleOutcomeDtoSchema, ruleOutcomeOverrideDtoSchema } from '../api/rules.js'
 import { AUTHORED_LIMITS } from '../shared/authoredLimits.js'
 
 const encounterId = '00000000-0000-4000-8000-000000000001'
@@ -29,6 +30,27 @@ describe('encounter contracts', () => {
         sessionId: encounterId
       })
     ).toThrow()
+  })
+
+  it('accepts an explicit system when a custom-only run needs rule-pack identity', () => {
+    expect(
+      createEncounterInputDtoSchema.parse({
+        campaignId: encounterId,
+        sessionId: encounterId,
+        templateId: encounterId,
+        systemId: encounterId,
+        commandId
+      }).systemId
+    ).toBe(encounterId)
+    expect(
+      encounterCommandInputDtoSchema.parse({
+        encounterId,
+        commandId,
+        expectedVersion: 1,
+        type: 'START',
+        systemId: encounterId
+      })
+    ).toMatchObject({ type: 'START', systemId: encounterId })
   })
 
   it('caps the number of enemies in a saved template', () => {
@@ -93,6 +115,7 @@ describe('encounter contracts', () => {
       templateVersion: 1,
       name: 'Goblin ambush',
       status: 'ACTIVE' as const,
+      rulePackRevisionId: null,
       version: 1,
       round: 1,
       currentActorId: null,
@@ -185,5 +208,52 @@ describe('encounter contracts', () => {
         direction: 'USE'
       })
     ).toMatchObject({ type: 'ADJUST_FEATURE_RESOURCE', amount: 1 })
+  })
+
+  it('pins a nullable rule pack revision for staged legacy encounters', () => {
+    expect(
+      encounterPlayerProjectionDtoSchema.parse({
+        id: encounterId,
+        campaignId: commandId,
+        sessionId: encounterId,
+        templateId: commandId,
+        templateVersion: 1,
+        name: 'Legacy encounter',
+        status: 'PREPARED',
+        rulePackRevisionId: null,
+        version: 0,
+        round: 0,
+        currentActorId: null,
+        actors: [],
+        createdAt: '2026-08-07T00:00:00.000Z',
+        updatedAt: '2026-08-07T00:00:00.000Z'
+      }).rulePackRevisionId
+    ).toBeNull()
+  })
+
+  it('requires unique resolve targets and parses only strict proposed outcomes', () => {
+    expect(() =>
+      encounterCommandInputDtoSchema.parse({
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        type: 'RESOLVE_ACTION',
+        actorId: encounterId,
+        modelKey: 'attack',
+        targetActorIds: [commandId, commandId],
+        selections: {},
+        visibility: 'TABLE'
+      })
+    ).toThrow()
+    expect(() =>
+      proposedRuleOutcomeDtoSchema.parse({
+        kind: 'DAMAGE',
+        targetActorId: commandId,
+        amount: 4,
+        damageTypeId: null,
+        forged: true
+      })
+    ).toThrow()
+    expect(() => ruleOutcomeOverrideDtoSchema.parse({ reason: '   ', outcomes: [] })).toThrow()
   })
 })

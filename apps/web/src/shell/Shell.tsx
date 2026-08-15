@@ -50,6 +50,7 @@ export interface ShellProps {
   currentPath: string
   currentHref?: string
   isAuthenticated?: boolean
+  isSuperAdmin?: boolean
   libraryImportEnabled?: boolean
   publicSignUpEnabled?: boolean
   userEmail?: string | null
@@ -76,6 +77,7 @@ export function Shell({
   currentPath,
   currentHref = currentPath,
   isAuthenticated,
+  isSuperAdmin = false,
   libraryImportEnabled = false,
   publicSignUpEnabled = false,
   userEmail,
@@ -113,13 +115,13 @@ export function Shell({
   const mobileFooterItems = useMemo(
     () =>
       toMobileFooterItems({
-        accountMenuContent: <AccountMenuItems />,
+        accountMenuContent: <AccountMenuItems isSuperAdmin={isSuperAdmin} />,
         createItems,
         libraryItems,
         onSearchOpen: openSearch,
         socialHubActive
       }),
-    [openSearch, createItems, libraryItems, socialHubActive]
+    [openSearch, createItems, isSuperAdmin, libraryItems, socialHubActive]
   )
   const hasMobileFooter = usesOverlayRail && hasLibraryNavigation
   const authoring = isAuthoringPath(currentPath)
@@ -169,7 +171,7 @@ export function Shell({
           <Header
             accountControl={
               isSignedIn ? (
-                <UserMenu />
+                <UserMenu isSuperAdmin={isSuperAdmin} />
               ) : (
                 <SignedOutActions publicSignUpEnabled={publicSignUpEnabled} />
               )
@@ -204,7 +206,7 @@ export function PageHeader({ eyebrow, title, description, actions }: PageHeaderP
   )
 }
 
-function UserMenu() {
+function UserMenu({ isSuperAdmin }: { isSuperAdmin: boolean }) {
   const avatarQuery = useQuery({
     queryKey: ['media', { type: 'ACCOUNT_AVATAR' }, 'THUMBNAIL'],
     queryFn: () =>
@@ -227,13 +229,13 @@ function UserMenu() {
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown>
-        <AccountMenuItems />
+        <AccountMenuItems isSuperAdmin={isSuperAdmin} />
       </Menu.Dropdown>
     </Menu>
   )
 }
 
-function AccountMenuItems() {
+function AccountMenuItems({ isSuperAdmin }: { isSuperAdmin: boolean }) {
   const { colorScheme, setColorScheme } = useMantineColorScheme()
 
   return (
@@ -272,6 +274,11 @@ function AccountMenuItems() {
       >
         Settings
       </Menu.Item>
+      {isSuperAdmin ? (
+        <Menu.Item component={Link} to='/admin/rules'>
+          Rule Studio
+        </Menu.Item>
+      ) : null}
       <SentryFeedbackMenuItem />
       <Menu.Item
         component={Link}
@@ -491,7 +498,7 @@ function hasHref(item: AppShellNavItem): item is AppShellNavItem & { href: strin
 }
 
 function isAuthoringPath(pathname: string): boolean {
-  return pathname.endsWith('/new') || pathname.endsWith('/edit')
+  return pathname === '/admin/rules' || pathname.endsWith('/new') || pathname.endsWith('/edit')
 }
 
 function isCharacterSheetPath(pathname: string): boolean {

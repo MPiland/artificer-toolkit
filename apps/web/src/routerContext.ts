@@ -4,6 +4,7 @@ import type { User } from '@supabase/supabase-js'
 
 export interface AppRouterContext {
   featureFlags?: ApplicationFeatureFlagsDto
+  isSuperAdmin?: boolean
   nonce?: string
   queryClient: QueryClient
   user: User | null

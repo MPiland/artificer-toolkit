@@ -37,8 +37,9 @@ export async function loadCharacterAssemblyRegistry(params: {
   character: CharacterAuthored
   catalog: CharacterBuilderCatalog
   campaignContent?: CampaignCharacterContentOverlay | null
+  includeEffects?: boolean
 }): Promise<CharacterAssemblyLoadResult> {
-  const { db, character, catalog, campaignContent } = params
+  const { db, character, catalog, campaignContent, includeEffects = false } = params
   const selectedRaceIds = [
     ...new Set(
       [character.intent.race.raceId, character.intent.race.subraceId].filter((id): id is string =>
@@ -150,7 +151,7 @@ export async function loadCharacterAssemblyRegistry(params: {
   const equipmentRepository = createEquipmentRepository(db)
   const selectedFeatureOptions = {
     allowedFeatureIds: plan.activeFeatureIds,
-    includeFeatureEffects: false
+    includeFeatureEffects: includeEffects
   }
 
   const [system, races, classesById, backgroundsById, featsById, featuresById, equipment] =
@@ -163,7 +164,7 @@ export async function loadCharacterAssemblyRegistry(params: {
             // The builder exposes every ancestry option as an immediate, backend-supplied preview.
             // Restricting this query to the active assembly plan leaves every other option without
             // its feature summaries until a later resolver request completes.
-            includeFeatureEffects: false
+            includeFeatureEffects: includeEffects
           })
         )
       ).then((records) => records.filter((record): record is ResolvedRace => record !== null)),
@@ -183,18 +184,18 @@ export async function loadCharacterAssemblyRegistry(params: {
         ? featRepository.findByIds([...selectedFeatIds], {
             systemId: character.systemId,
             allowedFeatureIds: plan.activeFeatureIds,
-            includeEffects: false
+            includeEffects
           })
         : Promise.resolve(new Map<string, FeatAuthored>()),
       activeAcquiredFeatureIds.length > 0
-        ? featureRepository.findByIds(activeAcquiredFeatureIds, { includeEffects: false })
+        ? featureRepository.findByIds(activeAcquiredFeatureIds, { includeEffects })
         : Promise.resolve(new Map<string, FeatureAuthored>()),
       Promise.all(
         ownedEquipmentIds.map((equipmentId) =>
           equipmentRepository.findResolvedById(equipmentId, {
             systemId: character.systemId,
             allowedFeatureIds: plan.activeFeatureIds,
-            includeEffects: false
+            includeEffects
           })
         )
       ).then((records) => records.filter((record): record is ResolvedEquipment => record !== null))

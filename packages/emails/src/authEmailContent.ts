@@ -37,10 +37,10 @@ const contentByAction: Record<AuthEmailAction, AuthEmailContent> = {
   },
   recovery: {
     subject: 'Reset your Artificer Toolkit password',
-    preview: 'Use this email to choose a new password for your account.',
+    preview: 'Use this verification code to choose a new password.',
     title: 'Reset your password',
-    body: 'We received a request to reset your Artificer Toolkit password.',
-    actionLabel: 'Reset password',
+    body: 'Enter this code in Artificer Toolkit to verify your password reset request.',
+    actionLabel: 'Enter verification code',
     includeToken: true,
     securityNote: 'If you did not request a password reset, you can safely ignore this email.'
   },

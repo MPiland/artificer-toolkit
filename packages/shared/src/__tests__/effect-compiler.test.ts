@@ -19,6 +19,45 @@ import {
 import { compileEffectResult } from '#compilers'
 
 describe('effect compiler', () => {
+  it('preserves authored action resource use on compiled effect groups', () => {
+    const result = compileEffectResult({
+      id: 'resource-use-effect',
+      order: 1,
+      invocation: {
+        triggerCode: TRIGGER.ACTIVATED,
+        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+        resourceUse: { chargeId: 'resource-use-charge', cost: 2 },
+        range: { id: 'resource-use-range', rangeKind: RANGE_KIND.SELF }
+      },
+      paths: [
+        {
+          id: 'resource-use-path',
+          order: 1,
+          pathCode: PATH_CODE.ON_USE,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: 'resource-use-result',
+            resultKind: 'SINGLE' as const,
+            outcomes: [
+              {
+                id: 'resource-use-outcome',
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: 'resource-use-condition'
+              }
+            ]
+          }
+        }
+      ]
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected compileEffectResult to succeed')
+    expect(result.value.invocation).toMatchObject({
+      resourceUse: { chargeId: 'resource-use-charge', cost: 2 }
+    })
+  })
+
   it('compiles exact roll-table condition paths through the effect result wrapper', () => {
     const result = compileEffectResult({
       id: 'potion-side-effects',

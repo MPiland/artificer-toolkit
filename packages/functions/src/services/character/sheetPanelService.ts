@@ -13,8 +13,7 @@ import {
   FEATURE_ATTRIBUTE,
   SIZE_OPTIONS,
   type CharacterCalculation,
-  type CharacterMechanicSourceRef,
-  type EngineCharacterOutput
+  type CharacterMechanicSourceRef
 } from '@artificer-toolkit/shared/core'
 import type {
   CharacterMovementDisplayPreference,
@@ -22,12 +21,14 @@ import type {
 } from '@artificer-toolkit/shared/character'
 import {
   createCharacterResourceOwnerKey,
-  createCharacterSpellSourceKey
+  createCharacterSpellSourceKey,
+  toCharacterResourceOwnerKey
 } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import type { CharacterBuilderResolution } from './builderService.js'
-import { resolveCharacterSheetEngine, resolveCharacterSheetSkillKey } from './characterEngine.js'
+import type { CharacterSheetRuleProjection } from './characterSheetRuleProjection.js'
+import { resolveCharacterSheetSkillKey } from './characterSheetVocabulary.js'
 import { characterSheetAdjustmentMatchesPanelTarget } from './sheetPanelTarget.js'
 import { getProficiencyTargetKind, type CharacterSheetProficiencyKind } from './sheetProficiency.js'
 
@@ -226,7 +227,10 @@ function findAdjustment<
   )
 }
 
-function findEngineSkillKey(resolution: CharacterBuilderResolution, skillId: string): string {
+function findRuleProjectionSkillKey(
+  resolution: CharacterBuilderResolution,
+  skillId: string
+): string {
   return resolveCharacterSheetSkillKey(resolution.registry.system?.skills, skillId)
 }
 
@@ -245,7 +249,7 @@ function findPassiveSkill(
 }
 
 function getProficiencyLabel(
-  proficiency: EngineCharacterOutput['proficiencies'][number],
+  proficiency: CharacterSheetRuleProjection['proficiencies'][number],
   kind: CharacterSheetProficiencyKind,
   resolution: CharacterBuilderResolution
 ): string {
@@ -270,7 +274,7 @@ function getProficiencyLabel(
 
 function buildAbilityPanel(
   params: BuildCharacterSheetPanelParams,
-  engine: EngineCharacterOutput,
+  ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'ABILITY' }>
 ): CharacterSheetPanelDto {
   const ability = ABILITIES[target.ability]
@@ -287,7 +291,7 @@ function buildAbilityPanel(
     'ABILITY',
     (adjustment) => adjustment.ability === target.ability && adjustment.field === 'SCORE_OVERRIDE'
   )
-  const calculation = toPanelCalculation(engine.calculations.abilityScores[target.ability], params)
+  const calculation = toPanelCalculation(ruleProjection.calculations.abilityScores[target.ability], params)
 
   return {
     kind: 'ABILITY',
@@ -301,7 +305,7 @@ function buildAbilityPanel(
     allowedCommands: [...CORE_PANEL_COMMANDS],
     ability: target.ability,
     score: calculation.effective,
-    modifier: engine.derivedStats.abilityModifiers[target.ability] ?? 0,
+    modifier: ruleProjection.derivedStats.abilityModifiers[target.ability] ?? 0,
     scoreCalculation: calculation,
     editors: [
       {
@@ -328,7 +332,7 @@ function buildAbilityPanel(
 
 function buildSavingThrowPanel(
   params: BuildCharacterSheetPanelParams,
-  engine: EngineCharacterOutput,
+  ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'SAVING_THROW' }>
 ): CharacterSheetPanelDto {
   const ability = ABILITIES[target.ability]
@@ -355,10 +359,10 @@ function buildSavingThrowPanel(
     editable: params.editable,
     allowedCommands: [...CORE_PANEL_COMMANDS],
     ability: target.ability,
-    total: engine.derivedStats.savingThrows[target.ability] ?? 0,
+    total: ruleProjection.derivedStats.savingThrows[target.ability] ?? 0,
     proficiency:
-      engine.calculations.savingThrowProficiencyLevels[target.ability]?.effective ?? 'NONE',
-    calculation: toPanelCalculation(engine.calculations.savingThrows[target.ability], params),
+      ruleProjection.calculations.savingThrowProficiencyLevels[target.ability]?.effective ?? 'NONE',
+    calculation: toPanelCalculation(ruleProjection.calculations.savingThrows[target.ability], params),
     numericEditors: [
       ['MAGIC_BONUS', 'Magic bonus'],
       ['MISC_BONUS', 'Miscellaneous bonus'],
@@ -389,12 +393,12 @@ function buildSavingThrowPanel(
 
 function buildSkillPanel(
   params: BuildCharacterSheetPanelParams,
-  engine: EngineCharacterOutput,
+  ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'SKILL' }>
 ): CharacterSheetPanelDto {
   const row = params.sheet.overview.skills.find((skill) => skill.skillId === target.skillId)
   if (!row) throw new Error(`Skill "${target.skillId}" is not available on this character sheet.`)
-  const engineKey = findEngineSkillKey(params.resolution, target.skillId)
+  const ruleProjectionKey = findRuleProjectionSkillKey(params.resolution, target.skillId)
   const getNumeric = (field: 'MAGIC_BONUS' | 'MISC_BONUS' | 'TOTAL_OVERRIDE') =>
     findAdjustment(
       params.adjustments,
@@ -428,7 +432,10 @@ function buildSkillPanel(
     ability: row.ability,
     total: row.total,
     proficiency: row.proficiency,
-    calculation: toPanelCalculation(engine.calculations.skillBonuses[engineKey], params),
+    calculation: toPanelCalculation(
+      ruleProjection.calculations.skillBonuses[ruleProjectionKey],
+      params
+    ),
     numericEditors: [
       ['MAGIC_BONUS', 'Magic bonus'],
       ['MISC_BONUS', 'Miscellaneous bonus'],
@@ -493,13 +500,13 @@ function buildSkillsPanel(
 
 function buildSensesPanel(
   params: BuildCharacterSheetPanelParams,
-  engine: EngineCharacterOutput,
+  ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'SENSES' }>
 ): CharacterSheetPanelDto {
   const passiveChecks = (params.resolution.registry.system?.passives ?? []).flatMap((passive) => {
     const skill = findPassiveSkill(params.sheet, passive)
     if (!skill) return []
-    const engineKey = findEngineSkillKey(params.resolution, skill.skillId)
+    const ruleProjectionKey = findRuleProjectionSkillKey(params.resolution, skill.skillId)
     const adjustment = findAdjustment(
       params.adjustments,
       'PASSIVE',
@@ -509,9 +516,13 @@ function buildSensesPanel(
       {
         skillId: skill.skillId,
         label: passive.label,
-        total: engine.derivedStats.passiveChecks[engineKey] ?? 10 + skill.total,
+        total:
+          ruleProjection.derivedStats.passiveChecks[ruleProjectionKey] ?? 10 + skill.total,
         state: adjustment ? ('OVERRIDDEN' as const) : ('DEFAULT' as const),
-        calculation: toPanelCalculation(engine.calculations.passiveChecks[engineKey], params),
+        calculation: toPanelCalculation(
+          ruleProjection.calculations.passiveChecks[ruleProjectionKey],
+          params
+        ),
         editor: {
           kind: 'NUMBER' as const,
           field: 'TOTAL_OVERRIDE' as const,
@@ -530,15 +541,15 @@ function buildSensesPanel(
       'SENSE',
       (candidate) => candidate.senseId === sense.id
     )
-    const engineSense = engine.senses.find(
+    const ruleSense = ruleProjection.senses.find(
       (candidate) => candidate.senseCode === sense.id || candidate.senseCode === sense.code
     )
     const calculation =
-      engine.calculations.senseRanges[sense.id] ?? engine.calculations.senseRanges[sense.code]
+      ruleProjection.calculations.senseRanges[sense.id] ?? ruleProjection.calculations.senseRanges[sense.code]
     const range =
       calculation?.effective ??
-      (engineSense?.range?.rangeKind === 'DISTANCE' ? engineSense.range.amount : 0)
-    const unit = engineSense?.range?.rangeKind === 'DISTANCE' ? engineSense.range.unit : 'FEET'
+      (ruleSense?.range?.rangeKind === 'DISTANCE' ? ruleSense.range.amount : 0)
+    const unit = ruleSense?.range?.rangeKind === 'DISTANCE' ? ruleSense.range.unit : 'FEET'
     return {
       senseId: sense.id,
       label: sense.label,
@@ -591,7 +602,7 @@ function buildSensesPanel(
 
 function buildMovementPanel(
   params: BuildCharacterSheetPanelParams,
-  engine: EngineCharacterOutput,
+  ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'MOVEMENT' }>
 ): CharacterSheetPanelDto {
   const speeds = (params.resolution.registry.system?.speeds ?? []).map((speed) => {
@@ -600,16 +611,16 @@ function buildMovementPanel(
       'MOVEMENT',
       (candidate) => candidate.speedId === speed.id
     )
-    const engineSpeed = engine.derivedStats.movementSpeeds.find(
+    const ruleSpeed = ruleProjection.derivedStats.movementSpeeds.find(
       (candidate) => candidate.speedId === speed.id || candidate.speedId === speed.code
     )
     const calculation =
-      engine.calculations.movementSpeeds[speed.id] ?? engine.calculations.movementSpeeds[speed.code]
+      ruleProjection.calculations.movementSpeeds[speed.id] ?? ruleProjection.calculations.movementSpeeds[speed.code]
     return {
       speedId: speed.id,
       label: speed.label,
-      amount: calculation?.effective ?? engineSpeed?.amount ?? 0,
-      unitLabel: formatCode(engineSpeed?.unit ?? 'FEET').toLowerCase(),
+      amount: calculation?.effective ?? ruleSpeed?.amount ?? 0,
+      unitLabel: formatCode(ruleSpeed?.unit ?? 'FEET').toLowerCase(),
       state: adjustment ? ('OVERRIDDEN' as const) : ('DEFAULT' as const),
       calculation: toPanelCalculation(calculation, params),
       editor: {
@@ -632,8 +643,8 @@ function buildMovementPanel(
     state: resolvePanelState(params.adjustments, target),
     editable: params.editable,
     allowedCommands: [...CORE_PANEL_COMMANDS, 'SET_MOVEMENT_DISPLAY_PREFERENCE'],
-    ...(engine.derivedStats.primaryMovementSpeedId
-      ? { primarySpeedId: engine.derivedStats.primaryMovementSpeedId }
+    ...(ruleProjection.derivedStats.primaryMovementSpeedId
+      ? { primarySpeedId: ruleProjection.derivedStats.primaryMovementSpeedId }
       : {}),
     preference: params.movementDisplayPreference,
     preferenceOptions: [
@@ -648,11 +659,11 @@ function buildMovementPanel(
 
 function buildDefensePanel(
   params: BuildCharacterSheetPanelParams,
-  engine: EngineCharacterOutput,
+  ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'DEFENSES' }>
 ): CharacterSheetPanelDto {
   const damageTypes = params.resolution.registry.system?.damageTypes ?? []
-  const defenses = engine.defenses.map((defense) => {
+  const defenses = ruleProjection.defenses.map((defense) => {
     const adjustmentId = getDisplayAdjustmentId(defense.source, params.adjustments)
     const source = defense.source
       ? findSourceLabel({ ...params, source: defense.source })
@@ -696,10 +707,10 @@ function buildDefensePanel(
 
 function buildProficiencyPanel(
   params: BuildCharacterSheetPanelParams,
-  engine: EngineCharacterOutput,
+  ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'PROFICIENCIES' }>
 ): CharacterSheetPanelDto {
-  const proficiencies = engine.proficiencies.flatMap((proficiency) => {
+  const proficiencies = ruleProjection.proficiencies.flatMap((proficiency) => {
     const kind = getProficiencyTargetKind(proficiency, params.resolution)
     if (!kind || proficiency.subjectId === '*') return []
     const source = proficiency.source
@@ -826,7 +837,7 @@ function formatItemMeasurement(
 
 function buildItemPanel(
   params: BuildCharacterSheetPanelParams,
-  engine: EngineCharacterOutput,
+  ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'ITEM' }>
 ): CharacterSheetPanelDto {
   const item = params.sheet.inventory.items.find(
@@ -838,7 +849,7 @@ function buildItemPanel(
     )
   }
 
-  const mechanics = engine.itemMechanics.find(
+  const mechanics = ruleProjection.itemMechanics.find(
     (candidate) => candidate.itemInstanceId === target.itemInstanceId
   )
   const equipment = params.resolution.registry.equipment.find(
@@ -846,7 +857,7 @@ function buildItemPanel(
   )
   const features = (equipment?.features ?? []).flatMap((feature) => {
     if (feature.attributes?.includes(FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET)) return []
-    const chargeUse = engine.equipmentFeatureChargeUses.find(
+    const chargeUse = ruleProjection.equipmentFeatureChargeUses.find(
       (use) =>
         use.featureId === feature.id &&
         use.equipmentId === item.equipmentId &&
@@ -1103,7 +1114,7 @@ function getKnownSpellPanelFields(source: CharacterSheetSpellSource) {
 
 function buildSpellPanel(
   params: BuildCharacterSheetPanelParams,
-  engine: EngineCharacterOutput,
+  ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'SPELL' }>
 ): CharacterSheetPanelDto {
   const spell = params.sheet.spells.spells.find(
@@ -1117,7 +1128,7 @@ function buildSpellPanel(
     throw new Error(`Spell source "${sourceKey}" is not available on this character sheet.`)
   }
 
-  const sourceMechanics = engine.spellMechanics.find(
+  const sourceMechanics = ruleProjection.spellMechanics.find(
     (candidate) => createCharacterSpellSourceKey(candidate.source) === sourceKey
   )
   const castLevel = target.castLevel ?? source.fixedLevel ?? spell.level
@@ -1336,6 +1347,35 @@ function buildExtrasPanel(
     mountCount: items.filter((item) => item.kind === 'MOUNT').length,
     ownedCreatureCount: items.filter((item) => item.kind === 'OWNED').length,
     vehicleCount: items.filter((item) => item.kind === 'VEHICLE').length
+  }
+}
+
+function buildResourcePanel(
+  params: BuildCharacterSheetPanelParams,
+  target: Extract<CharacterSheetPanelTargetDto, { kind: 'RESOURCE' }>
+): CharacterSheetPanelDto {
+  const resourceId = createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(target.owner))
+  const resource = params.sheet.resources.items.find((item) => item.id === resourceId)
+  if (!resource) {
+    throw new Error(`Resource "${resourceId}" is not available on this character sheet.`)
+  }
+
+  return {
+    kind: 'RESOURCE',
+    panelId: `resource:${resourceId}`,
+    characterId: params.character.id,
+    target,
+    title: resource.label,
+    ...(resource.description ? { description: resource.description } : {}),
+    state: 'DEFAULT',
+    editable: params.editable,
+    allowedCommands: ['USE_RESOURCE', 'RECOVER_RESOURCE'],
+    owner: resource.owner,
+    sourceLabel: resource.sourceLabel,
+    used: resource.used,
+    maximum: resource.max,
+    remaining: resource.remaining,
+    recoveries: resource.recoveries
   }
 }
 
@@ -1570,8 +1610,8 @@ export interface BuildCharacterSheetPanelParams {
   character: CharacterAuthored
   resolution: CharacterBuilderResolution
   sheet: CharacterSheetResponseDto
+  ruleProjection: CharacterSheetRuleProjection
   adjustments: readonly CharacterSheetAdjustment[]
-  engineAdjustments?: readonly CharacterSheetAdjustment[]
   movementDisplayPreference: CharacterMovementDisplayPreference
   target: CharacterSheetPanelTargetDto
   editable: boolean
@@ -1580,49 +1620,47 @@ export interface BuildCharacterSheetPanelParams {
 export function buildCharacterSheetPanel(
   params: BuildCharacterSheetPanelParams
 ): CharacterSheetPanelDto {
-  const engine = resolveCharacterSheetEngine({
-    character: params.character,
-    resolution: params.resolution,
-    adjustments: params.engineAdjustments ?? params.adjustments,
-    movementDisplayPreference: params.movementDisplayPreference
-  })
+  const ruleProjection = params.ruleProjection
   let panel: CharacterSheetPanelDto
   switch (params.target.kind) {
     case 'ABILITY':
-      panel = buildAbilityPanel(params, engine, params.target)
+      panel = buildAbilityPanel(params, ruleProjection, params.target)
       break
     case 'SAVING_THROW':
-      panel = buildSavingThrowPanel(params, engine, params.target)
+      panel = buildSavingThrowPanel(params, ruleProjection, params.target)
       break
     case 'SKILL':
-      panel = buildSkillPanel(params, engine, params.target)
+      panel = buildSkillPanel(params, ruleProjection, params.target)
       break
     case 'SKILLS':
       panel = buildSkillsPanel(params, params.target)
       break
     case 'SENSES':
-      panel = buildSensesPanel(params, engine, params.target)
+      panel = buildSensesPanel(params, ruleProjection, params.target)
       break
     case 'MOVEMENT':
-      panel = buildMovementPanel(params, engine, params.target)
+      panel = buildMovementPanel(params, ruleProjection, params.target)
       break
     case 'DEFENSES':
-      panel = buildDefensePanel(params, engine, params.target)
+      panel = buildDefensePanel(params, ruleProjection, params.target)
       break
     case 'PROFICIENCIES':
-      panel = buildProficiencyPanel(params, engine, params.target)
+      panel = buildProficiencyPanel(params, ruleProjection, params.target)
       break
     case 'SPELL':
-      panel = buildSpellPanel(params, engine, params.target)
+      panel = buildSpellPanel(params, ruleProjection, params.target)
       break
     case 'SPELLS':
       panel = buildSpellsPanel(params, params.target)
       break
     case 'ITEM':
-      panel = buildItemPanel(params, engine, params.target)
+      panel = buildItemPanel(params, ruleProjection, params.target)
       break
     case 'EXTRAS':
       panel = buildExtrasPanel(params, params.target)
+      break
+    case 'RESOURCE':
+      panel = buildResourcePanel(params, params.target)
       break
     case 'COMPANION':
       panel = buildCompanionPanel(params, params.target)
@@ -1632,7 +1670,6 @@ export function buildCharacterSheetPanel(
       break
     case 'FEATURE':
     case 'BACKGROUND':
-    case 'RESOURCE':
     case 'HIT_POINTS':
       throw new Error(`Character Sheet panel "${params.target.kind}" is not implemented yet.`)
   }

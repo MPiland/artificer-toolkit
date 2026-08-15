@@ -9,6 +9,7 @@ import {
   getCharacterSheetForUser,
   listCharactersForUser,
   previewCharacterRestForUser,
+  previewCharacterRuleUpgradeForUser,
   previewCharacterSaveForUser,
   resolveCharacterForUser,
   saveCharacterBuilderDraftForUser,
@@ -28,6 +29,8 @@ import {
   characterRestPreviewRequestDtoSchema,
   characterListResponseDtoSchema,
   characterRestPreviewResponseDtoSchema,
+  characterRuleUpgradePreviewRequestDtoSchema,
+  characterRuleUpgradePreviewResponseDtoSchema,
   characterSheetCommandInputDtoSchema,
   characterSheetCommandResponseDtoSchema,
   characterSheetResponseDtoSchema
@@ -58,6 +61,11 @@ const characterCommandProcedureInputSchema = z.object({
 const characterRestPreviewProcedureInputSchema = z.object({
   id: z.string().min(1),
   input: characterRestPreviewRequestDtoSchema
+})
+
+const characterRuleUpgradePreviewProcedureInputSchema = z.object({
+  id: z.string().min(1),
+  input: characterRuleUpgradePreviewRequestDtoSchema
 })
 
 const characterSheetPanelProcedureInputSchema = z.object({
@@ -126,6 +134,15 @@ export const characterRouter = createTRPCRouter({
     .mutation(({ ctx, input }) =>
       withAuthenticatedDb(ctx, async (db, userId) =>
         previewCharacterRestForUser(db, input.id, input.input, userId)
+      )
+    ),
+
+  ruleUpgradePreview: authenticatedProcedure
+    .input(characterRuleUpgradePreviewProcedureInputSchema)
+    .output(characterRuleUpgradePreviewResponseDtoSchema)
+    .query(({ ctx, input }) =>
+      withAuthenticatedDb(ctx, async (db, userId) =>
+        previewCharacterRuleUpgradeForUser(db, input.id, input.input, userId)
       )
     ),
 

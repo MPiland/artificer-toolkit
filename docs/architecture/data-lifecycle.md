@@ -52,6 +52,6 @@ flowchart LR
 
 Structural character selections keep stable authored root IDs. Outside a Campaign, roots resolve against the canonical `ACTIVE` aggregate. An assigned Character may instead have an explicit binding from that selected root identity to an immutable approved Campaign content version.
 
-Campaign versions persist a schema-validated hydrated/resolved root snapshot rather than duplicating normalized authored tables. Builder registry loading merges approved Campaign snapshots with ordinary active content, while assembly derives the same root-feature and ancestry structure expected by `planCharacterAssembly`. Persisted Character intent and the pure engine remain unchanged.
+Campaign versions persist a schema-validated hydrated/resolved root snapshot rather than duplicating normalized authored tables. Builder registry loading merges approved Campaign snapshots with ordinary active content, while assembly derives the same root-feature and ancestry structure expected by `planCharacterAssembly`. Persisted Character intent remains unchanged; the resulting normalized facts are evaluated through the Character's exact pinned Zen revision.
 
 Removing an assignment deletes Campaign bindings before resolution. Reconciliation removes invalid dependent selections, preserves stale structural IDs as repair context, and persists the active Character plus owner-scoped Builder draft as `DRAFT` when a granted structural root is no longer available.

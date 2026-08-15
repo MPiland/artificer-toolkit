@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
+import { performance } from 'node:perf_hooks'
 
 import {
   createBackgroundRepository,
@@ -24,7 +25,12 @@ import {
 } from '@artificer-toolkit/shared/subjects/authored'
 import { createEmptyCharacterAuthored } from '../services/character/builderService.js'
 
-const LOCAL_DATABASE_HOSTS = new Set(['127.0.0.1', '::1', 'localhost'])
+const LOCAL_DATABASE_HOSTS = new Set([
+  '127.0.0.1',
+  '::1',
+  'host.docker.internal',
+  'localhost'
+])
 
 type CharacterStartingEquipmentView = NonNullable<CharacterBuilderStartingEquipmentViewDto>
 export function requireLocalDatabaseUrl(): string {
@@ -186,6 +192,26 @@ export interface BuilderResolutionTiming {
   stage: 'initial' | 'structural' | 'completed' | 'reloaded'
 }
 
+export interface SheetReadTiming {
+  durationMs: number
+  fixture: string
+  stage: 'cold' | 'warm'
+}
+
+export interface CharacterRuleEvaluationTiming {
+  bindingMs: number
+  documentBytes: number
+  factDiscoveryMs: number
+  factAssemblyMs: number
+  fixture: string
+  normalizedFactsBytes: number
+  resultBytes: number
+  runtimeMs: number
+  spellHydrationMs: number
+  totalMs: number
+  zenEvaluationMs: number
+}
+
 export async function measureBuilderResolution<T>(
   timings: BuilderResolutionTiming[],
   fixture: CharacterLifecycleFixture,
@@ -212,8 +238,26 @@ export async function measureBuilderResolution<T>(
   return result
 }
 
+export async function measureSheetRead<T>(
+  timings: SheetReadTiming[],
+  fixture: CharacterLifecycleFixture,
+  stage: SheetReadTiming['stage'],
+  read: () => Promise<T>
+): Promise<T> {
+  const startedAt = performance.now()
+  const result = await read()
+  const timing: SheetReadTiming = {
+    durationMs: performance.now() - startedAt,
+    fixture: fixture.label,
+    stage
+  }
+  timings.push(timing)
+  console.info(JSON.stringify({ sheetReadTiming: timing }))
+  return result
+}
+
 export function percentileDuration(
-  timings: readonly BuilderResolutionTiming[],
+  timings: ReadonlyArray<{ durationMs: number }>,
   percentile: number
 ): number {
   const durations = timings.map(({ durationMs }) => durationMs).sort((left, right) => left - right)
@@ -588,25 +632,44 @@ export function completeBuilderChoices(
   const backgroundStartingEquipment = payload.view.equipment.backgroundStartingEquipment
   assert.ok(backgroundStartingEquipment, 'Seeded Acolyte should expose starting equipment choices.')
   const selectedFullProficiencies = new Map<string, Set<string>>()
-  const chosenGrantSelections = grantChoices.map((choice) => {
+  const chosenGrantSelections = grantChoices.flatMap((choice) => {
     const selectedForKind =
       choice.proficiencyLevel === 'FULL' && choice.proficiencyKind
         ? (selectedFullProficiencies.get(choice.proficiencyKind) ?? new Set<string>())
         : new Set<string>()
-    const targetIds = chooseGrantTargets(choice, selectedForKind)
+    const retainedTargetIds = choice.selectedTargetIds.filter(
+      (targetId) =>
+        !selectedForKind.has(targetId) &&
+        choice.options.some((option) => option.id === targetId && !option.disabled)
+    )
+    const selectableCount = choice.options.filter(
+      (option) => !option.disabled && !selectedForKind.has(option.id)
+    ).length
+    if (
+      retainedTargetIds.length !== choice.requiredCount &&
+      selectableCount < choice.requiredCount
+    ) {
+      return []
+    }
+    const targetIds =
+      retainedTargetIds.length === choice.requiredCount
+        ? retainedTargetIds
+        : chooseGrantTargets(choice, selectedForKind)
     if (choice.proficiencyLevel === 'FULL' && choice.proficiencyKind) {
       for (const targetId of targetIds) selectedForKind.add(targetId)
       selectedFullProficiencies.set(choice.proficiencyKind, selectedForKind)
     }
 
-    return {
-      id: randomUUID(),
-      grantId: choice.grantId,
-      source: choice.source,
-      timing: choice.timing,
-      progressionLevel: choice.progressionLevel,
-      targetIds
-    }
+    return [
+      {
+        id: randomUUID(),
+        grantId: choice.grantId,
+        source: choice.source,
+        timing: choice.timing,
+        progressionLevel: choice.progressionLevel,
+        targetIds
+      }
+    ]
   })
   const startingEquipment: NonNullable<CharacterAuthored['intent']['startingEquipment']> = {
     class: classStartingEquipment

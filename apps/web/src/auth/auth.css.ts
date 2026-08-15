@@ -307,6 +307,63 @@ export const fieldLabel = style({
   }
 })
 
+export const fieldHint = style({
+  '@layer': {
+    [app]: {
+      margin: 0,
+      color: foundationVars.color.text.secondary,
+      fontSize: foundationVars.typography.caption.fontSize,
+      lineHeight: foundationVars.typography.caption.lineHeight
+    }
+  }
+})
+
+export const verificationCodeGroup = style({
+  '@layer': {
+    [app]: {
+      justifyContent: 'center',
+      inlineSize: '100%'
+    }
+  }
+})
+
+export const verificationCodeDigit = style({
+  '@layer': {
+    [app]: {
+      borderColor: foundationVars.color.input.border.default,
+      backgroundColor: foundationVars.color.input.background.default,
+      color: foundationVars.color.text.primary,
+      fontWeight: foundationVars.fontWeight.medium
+    }
+  }
+})
+
+export const passwordMatchFeedback = style({
+  '@layer': {
+    [app]: {
+      marginTop: `-${foundationVars.space[2]}`,
+      fontSize: foundationVars.typography.caption.fontSize,
+      lineHeight: foundationVars.typography.caption.lineHeight
+    }
+  }
+})
+
+export const passwordMatchFeedbackSuccess = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.status.success
+    }
+  }
+})
+
+export const passwordMatchFeedbackError = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.status.danger
+    }
+  }
+})
+
 export const textInput = style({
   '@layer': {
     [app]: {

@@ -158,6 +158,14 @@ function getInviteConfirmationUrl(siteUrl: string, tokenHash: string): string {
   return url.toString()
 }
 
+function getPasswordRecoveryUrl(siteUrl: string, email: string): string {
+  const url = new URL('/verify-password-reset', siteUrl)
+
+  url.searchParams.set('email', email)
+
+  return url.toString()
+}
+
 function isTrustedRedirect(redirectTo: string | undefined, siteUrl: string): boolean {
   if (!redirectTo) return true
 
@@ -192,6 +200,18 @@ function buildMessages(
       ? [
           {
             actionUrl: getInviteConfirmationUrl(siteUrl, tokenHash),
+            to: payload.user.email
+          }
+        ]
+      : null
+  }
+
+  if (action === 'recovery') {
+    return token
+      ? [
+          {
+            actionUrl: getPasswordRecoveryUrl(siteUrl, payload.user.email),
+            token,
             to: payload.user.email
           }
         ]

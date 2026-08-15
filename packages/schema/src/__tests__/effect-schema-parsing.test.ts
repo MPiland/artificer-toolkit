@@ -107,6 +107,55 @@ function exactRollTablePath(
 }
 
 describe('effect schema parsing', () => {
+  it('accepts action resource use and rejects passive, zero-cost, and partial resource use', () => {
+    const actionEffect = {
+      id: 'resource-use-effect',
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'ACTIVATED',
+        activation: { code: 'ACTION', amount: 1 },
+        range: { id: 'resource-use-range', rangeKind: 'SELF' },
+        resourceUse: { chargeId: 'resource-use-charge', cost: 2 }
+      },
+      paths: [
+        fixedPath(
+          'resource-use-path',
+          1,
+          'ON_USE',
+          singleResultBlock('resource-use-result', {
+            id: 'resource-use-outcome',
+            effectKind: 'CONDITION',
+            conditionId: 'resource-use-condition'
+          })
+        )
+      ]
+    }
+
+    expect(effectDtoSchema.safeParse(actionEffect).success).toBe(true)
+    expect(
+      effectDtoSchema.safeParse({
+        ...actionEffect,
+        invocation: { ...actionEffect.invocation, kind: 'PASSIVE' }
+      }).success
+    ).toBe(false)
+    expect(
+      effectDtoSchema.safeParse({
+        ...actionEffect,
+        invocation: {
+          ...actionEffect.invocation,
+          resourceUse: { chargeId: 'resource-use-charge', cost: 0 }
+        }
+      }).success
+    ).toBe(false)
+    expect(
+      effectDtoSchema.safeParse({
+        ...actionEffect,
+        invocation: { ...actionEffect.invocation, resourceUse: { chargeId: 'resource-use-charge' } }
+      }).success
+    ).toBe(false)
+  })
+
   it('parses effects with nested saving throw invocations and fixed paths', () => {
     const parsed = effectDtoSchema.parse({
       id: 'burning-hands-effect',

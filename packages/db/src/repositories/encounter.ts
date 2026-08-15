@@ -68,6 +68,7 @@ export interface EncounterRecord {
   sessionId: string
   templateId: string
   templateVersion: number
+  rulePackRevisionId: string | null
   name: string
   status: EncounterStatus
   version: number
@@ -146,6 +147,8 @@ function encounterFromRow(
     sessionId: String(row.session_id),
     templateId: String(row.template_id),
     templateVersion: Number(row.template_version),
+    rulePackRevisionId:
+      row.rule_pack_revision_id == null ? null : String(row.rule_pack_revision_id),
     name: String(row.name),
     status: row.status as EncounterStatus,
     version: Number(row.version),
@@ -363,11 +366,16 @@ export function createEncounterRepository(db: DBLike) {
       sessionId: string
       templateId: string
       templateVersion: number
+      rulePackRevisionId?: string | null
       name: string
     }): Promise<EncounterRecord> {
       await sql`
-        INSERT INTO public.encounters (id, campaign_id, session_id, template_id, template_version, name)
-        VALUES (${input.id}, ${input.campaignId}, ${input.sessionId}, ${input.templateId}, ${input.templateVersion}, ${input.name})
+        INSERT INTO public.encounters (
+          id, campaign_id, session_id, template_id, template_version, rule_pack_revision_id, name
+        ) VALUES (
+          ${input.id}, ${input.campaignId}, ${input.sessionId}, ${input.templateId}, ${input.templateVersion},
+          ${input.rulePackRevisionId ?? null}, ${input.name}
+        )
       `.execute(db)
       const result = await readEncounter(db, input.id)
       if (!result) throw new Error('Encounter was not created.')
@@ -386,6 +394,14 @@ export function createEncounterRepository(db: DBLike) {
         SET status = ${input.status}, version = ${input.version}, round = ${input.round},
             current_actor_id = ${input.currentActorId}, updated_at = now()
         WHERE id = ${input.encounterId}
+      `.execute(db)
+    },
+
+    async setRulePackRevision(encounterId: string, rulePackRevisionId: string): Promise<void> {
+      await sql`
+        UPDATE public.encounters
+        SET rule_pack_revision_id = ${rulePackRevisionId}, updated_at = now()
+        WHERE id = ${encounterId}
       `.execute(db)
     },
 
@@ -563,7 +579,7 @@ export function createEncounterRepository(db: DBLike) {
               SELECT event.* FROM public.encounter_events event
               CROSS JOIN public.encounter_events cursor_event
               WHERE event.encounter_id = ${encounterId} AND cursor_event.id = ${cursor}
-                AND event.command_type = 'ROLL_ENEMY_ACTION'
+                AND event.command_type IN ('ROLL_ENEMY_ACTION', 'RESOLVE_ACTION')
                 AND event.command_payload->>'visibility' = 'TABLE'
                 AND (event.version, event.created_at, event.id) < (cursor_event.version, cursor_event.created_at, cursor_event.id)
               ORDER BY event.version DESC, event.created_at DESC, event.id DESC
@@ -581,7 +597,7 @@ export function createEncounterRepository(db: DBLike) {
           ? await sql<Record<string, unknown>>`
               SELECT * FROM public.encounter_events event
               WHERE event.encounter_id = ${encounterId}
-                AND event.command_type = 'ROLL_ENEMY_ACTION'
+                AND event.command_type IN ('ROLL_ENEMY_ACTION', 'RESOLVE_ACTION')
                 AND event.command_payload->>'visibility' = 'TABLE'
               ORDER BY event.version DESC, event.created_at DESC, event.id DESC
               LIMIT ${limit}

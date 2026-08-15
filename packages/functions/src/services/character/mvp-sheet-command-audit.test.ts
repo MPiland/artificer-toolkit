@@ -12,7 +12,9 @@ const mocks = vi.hoisted(() => ({
   listAdjustments: vi.fn(),
   listResourceUsage: vi.fn(),
   listSpellCustomizations: vi.fn(),
+  loadCharacterBuilderContext: vi.fn(),
   patchSheetState: vi.fn(),
+  buildSheetBundle: vi.fn(),
   setResourceUsage: vi.fn(),
   setSpellCustomization: vi.fn(),
   resolveCharacterBuilder: vi.fn()
@@ -58,7 +60,16 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
 
 vi.mock('./builderService.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./builderService.js')>()
-  return { ...actual, resolveCharacterBuilder: mocks.resolveCharacterBuilder }
+  return {
+    ...actual,
+    loadCharacterBuilderContext: mocks.loadCharacterBuilderContext,
+    resolveCharacterBuilder: mocks.resolveCharacterBuilder
+  }
+})
+
+vi.mock('./sheetProjection.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./sheetProjection.js')>()
+  return { ...actual, buildCharacterSheetBundle: mocks.buildSheetBundle }
 })
 
 const { applyCharacterSheetCommand } = await import('./sheetCommandReducer.js')
@@ -148,6 +159,36 @@ function createResolution(): CharacterBuilderResolution {
       equipment: [],
       features: []
     },
+    sourceRegistry: {
+      system: {
+        id: 'dnd5e2014',
+        label: 'D&D 5e 2014',
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '2014',
+        alignments: [],
+        challengeRatings: [],
+        conditionTypes: [],
+        creatureTypes: [],
+        currencies: [],
+        damageTypes: [],
+        heritages: [],
+        languages: [],
+        lifestyles: [],
+        magicSchools: [],
+        passives: [],
+        rarities: [],
+        senses: [],
+        skills: [],
+        speeds: [],
+        terrains: [],
+        userId: 'user-1'
+      },
+      races: [],
+      classes: [],
+      backgrounds: [],
+      equipment: [],
+      features: []
+    },
     summary: { totalLevel: 1, abilities: { DEXTERITY: 14 }, classes: [] },
     grants: { features: [], resources: [], spellcasting: [] },
     chosenGrantChoices: [],
@@ -155,6 +196,86 @@ function createResolution(): CharacterBuilderResolution {
     validations: [],
     readiness: { ready: true, blockingIssues: [], outstandingRequiredChoices: [] },
     recommendedSectionId: 'REVIEW'
+  }
+}
+
+function createAuditSheet(character: CharacterAuthored, streamVersion: number) {
+  return {
+    meta: {
+      characterId: character.id,
+      viewer: 'CHARACTER_OWNER' as const,
+      capabilities: {
+        managePlayState: true,
+        managePrivateNotes: true,
+        manageInventory: true,
+        openBuilder: true
+      },
+      systemId: character.systemId,
+      status: 'ACTIVE' as const,
+      streamVersion
+    },
+    overview: {
+      abilities: [],
+      savingThrows: [],
+      skills: [],
+      facts: [],
+      armorClass: 10,
+      initiative: 0,
+      initiativeRollMode: 'NORMAL' as const,
+      proficiencyBonus: 2,
+      currentHitPoints: character.state.hitpoints.current,
+      maxHitPoints: 10,
+      tempHitPoints: 0,
+      maxHitPointsOverride: null,
+      maxHitPointsModifier: 0,
+      maxHitPointsModifierAdjustmentId: null,
+      exhaustion: {
+        label: 'Exhaustion',
+        description: 'Exhaustion measures cumulative physical and mental fatigue.',
+        level: 0,
+        minimumLevel: 0,
+        maximumLevel: 6
+      },
+      conditions: [],
+      hitDice: []
+    },
+    identity: { label: character.label, classSummary: 'Fighter 1', totalLevel: 1 },
+    actions: { items: [] },
+    extras: {
+      kindOptions: [],
+      originOptions: [],
+      creatureOptions: [],
+      vehicleOptions: [],
+      items: []
+    },
+    resources: { items: [], hitDice: [] },
+    spells: { saveDc: null, attackBonus: null, spells: [], slots: [], activeGroups: [] },
+    inventory: { items: [], currencies: [] },
+    currency: { groups: [] },
+    reference: {
+      conditionOptions: [],
+      equipmentOptions: [],
+      currencyOptions: [],
+      skillOptions: [],
+      languageOptions: [],
+      senseOptions: [],
+      features: [],
+      proficiencies: [],
+      defenses: [],
+      senses: []
+    },
+    notes: {
+      description: character.description,
+      personalityTraits: character.profile.personalityTraits,
+      ideals: character.profile.ideals,
+      bonds: character.profile.bonds,
+      flaws: character.profile.flaws,
+      organizations: character.profile.organizations,
+      allies: character.profile.allies,
+      enemies: character.profile.enemies,
+      backstory: character.profile.backstory,
+      profileNotes: character.profile.notes
+    }
   }
 }
 
@@ -172,19 +293,44 @@ describe('MVP character Sheet command audit', () => {
     mocks.listResourceUsage.mockResolvedValue([])
     mocks.listSpellCustomizations.mockReset()
     mocks.listSpellCustomizations.mockResolvedValue([])
+    mocks.loadCharacterBuilderContext.mockReset()
     mocks.resolveCharacterBuilder.mockReset()
+    mocks.buildSheetBundle.mockReset()
     mocks.patchSheetState.mockReset()
     mocks.setResourceUsage.mockReset()
     mocks.setSpellCustomization.mockReset()
     mocks.findByCommandId.mockResolvedValue(null)
-    mocks.resolveCharacterBuilder.mockResolvedValue(createResolution())
+    const resolution = createResolution()
+    mocks.loadCharacterBuilderContext.mockResolvedValue({
+      catalog: resolution.catalog,
+      registry: resolution.sourceRegistry
+    })
+    mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
+    mocks.buildSheetBundle.mockImplementation(
+      async ({
+        character,
+        streamVersion
+      }: {
+        character: CharacterAuthored
+        streamVersion: number
+      }) => ({
+        sheet: createAuditSheet(character, streamVersion),
+        ruleProjection: {
+          derivedStats: {
+            maxHitPoints: { base: 10, effective: 10, contributions: [], override: null }
+          }
+        },
+        ruleEvaluation: { output: { rest: { attunementSlotLimit: 3 } } }
+      })
+    )
   })
 
   it('rejects one of two concurrent commands using the same stream version', async () => {
     let streamVersion = 1
     mocks.findById.mockImplementation(async () => ({
       id: 'character-1',
-      stream_version: streamVersion
+      stream_version: streamVersion,
+      rule_pack_revision_id: 'revision-1'
     }))
     mocks.findAuthoredById.mockResolvedValue(createCharacter())
     mocks.patchSheetState.mockImplementation(async (_characterId, _patches, options) => {
@@ -229,7 +375,8 @@ describe('MVP character Sheet command audit', () => {
     let appliedEvent: object | null = null
     mocks.findById.mockImplementation(async () => ({
       id: 'character-1',
-      stream_version: streamVersion
+      stream_version: streamVersion,
+      rule_pack_revision_id: 'revision-1'
     }))
     mocks.findAuthoredById.mockImplementation(async () => persisted)
     mocks.patchSheetState.mockImplementation(async (_characterId, patches, options) => {

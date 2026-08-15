@@ -8,10 +8,13 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto, CampaignSessionDto } from '#app/lib/api'
 import { api } from '#app/lib/api'
+import { getCampaignSessionAttendance } from '#app/data/campaigns/queries'
 import { getCampaignEncounters, getEncounterTemplates } from '#app/data/encounters/queries'
+import { getSystemList } from '#app/data/systems/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import { CampaignEncounterWorkspace } from './CampaignEncounterWorkspace'
+import { attendanceCanSupplyEncounterSystem } from './campaignSessionEncounterSystem'
 import * as sharedStyles from '../campaigns.css'
 import * as sessionsStyles from '../campaignSessions.css'
 
@@ -32,9 +35,29 @@ export function CampaignSessionEncounters({
   const [selectedEncounterId, setSelectedEncounterId] = useState<string | null>(null)
   const [encounterAdderOpen, setEncounterAdderOpen] = useState(false)
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null)
   const templates = useQuery({
     ...getEncounterTemplates(campaign.id),
     enabled: campaign.status === 'ACTIVE' && encounterAdderOpen
+  })
+  const selectedTemplate = templates.data?.find((template) => template.id === selectedTemplateId)
+  const templateNeedsSystem =
+    selectedTemplate?.enemies.every((enemy) => enemy.systemId === null) === true
+  const attendance = useQuery({
+    ...getCampaignSessionAttendance(campaign.id, session.id),
+    enabled: encounterAdderOpen && templateNeedsSystem
+  })
+  const presentCharacterCanSupplySystem = attendanceCanSupplyEncounterSystem(
+    attendance.data,
+    campaign.memberships
+  )
+  const needsExplicitSystem =
+    templateNeedsSystem &&
+    (attendance.isError || (attendance.isSuccess && !presentCharacterCanSupplySystem))
+  const systemResolutionPending = templateNeedsSystem && attendance.isPending
+  const systems = useQuery({
+    ...getSystemList(),
+    enabled: encounterAdderOpen && needsExplicitSystem
   })
   const sessionEncounters = (encounters.data ?? []).flatMap((candidate) => {
     const parsed = encounterGmProjectionDtoSchema.safeParse(candidate)
@@ -54,11 +77,13 @@ export function CampaignSessionEncounters({
         campaignId: campaign.id,
         sessionId: session.id,
         templateId,
+        ...(needsExplicitSystem && selectedSystemId ? { systemId: selectedSystemId } : {}),
         commandId: crypto.randomUUID()
       }),
     onSuccess: (created) => {
       setSelectedEncounterId(created.id)
       setSelectedTemplateId(null)
+      setSelectedSystemId(null)
       setEncounterAdderOpen(false)
       queryClient.setQueryData(
         queryKeys.encounters.list(campaign.id),
@@ -136,10 +161,34 @@ export function CampaignSessionEncounters({
                   placeholder={templates.isPending ? 'Loading encounters…' : 'Choose an encounter'}
                   searchable
                   value={selectedTemplateId}
-                  onChange={setSelectedTemplateId}
+                  onChange={(value) => {
+                    setSelectedTemplateId(value)
+                    setSelectedSystemId(null)
+                  }}
                 />
+                {needsExplicitSystem ? (
+                  <Select
+                    className={sessionsStyles.sessionEncounterSelect}
+                    classNames={{ input: sharedStyles.input }}
+                    data={(systems.data ?? []).map((system) => ({
+                      label: `${system.label} · ${system.rulesetCode} ${system.rulesetVersion}`,
+                      value: system.id
+                    }))}
+                    disabled={systems.isPending || !systems.data?.length}
+                    label='Game system'
+                    placeholder={systems.isPending ? 'Loading systems…' : 'Choose a system'}
+                    searchable
+                    value={selectedSystemId}
+                    onChange={setSelectedSystemId}
+                  />
+                ) : null}
                 <Button
-                  disabled={!selectedTemplateId || addEncounter.isPending}
+                  disabled={
+                    !selectedTemplateId ||
+                    systemResolutionPending ||
+                    (needsExplicitSystem && !selectedSystemId) ||
+                    addEncounter.isPending
+                  }
                   loading={addEncounter.isPending}
                   onClick={() => selectedTemplateId && addEncounter.mutate(selectedTemplateId)}
                 >
@@ -156,7 +205,14 @@ export function CampaignSessionEncounters({
                 >
                   Build new
                 </Button>
-                <Button variant='subtle' onClick={() => setEncounterAdderOpen(false)}>
+                <Button
+                  variant='subtle'
+                  onClick={() => {
+                    setEncounterAdderOpen(false)
+                    setSelectedTemplateId(null)
+                    setSelectedSystemId(null)
+                  }}
+                >
                   Cancel
                 </Button>
               </Group>
@@ -167,6 +223,11 @@ export function CampaignSessionEncounters({
               ) : null}
               {templates.error ? (
                 <Alert color='red'>Saved encounters couldn’t be loaded.</Alert>
+              ) : null}
+              {templateNeedsSystem && attendance.isError ? (
+                <Alert color='yellow'>
+                  Attendance couldn’t be checked. Choose the encounter’s game system instead.
+                </Alert>
               ) : null}
               {addEncounter.error ? (
                 <Alert color='red'>That encounter couldn’t be added.</Alert>

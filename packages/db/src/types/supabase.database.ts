@@ -4740,6 +4740,7 @@ export type Database = {
           owner_kind: string
           resource_grant_id: string | null
           sense_grant_id: string | null
+          source_id: string | null
           source_instance_id: string | null
           source_kind: string | null
           spell_id: string | null
@@ -4759,6 +4760,7 @@ export type Database = {
           owner_kind: string
           resource_grant_id?: string | null
           sense_grant_id?: string | null
+          source_id?: string | null
           source_instance_id?: string | null
           source_kind?: string | null
           spell_id?: string | null
@@ -4778,6 +4780,7 @@ export type Database = {
           owner_kind?: string
           resource_grant_id?: string | null
           sense_grant_id?: string | null
+          source_id?: string | null
           source_instance_id?: string | null
           source_kind?: string | null
           spell_id?: string | null
@@ -5434,6 +5437,7 @@ export type Database = {
           inspiration: boolean
           label: string
           portrait_asset_id: string | null
+          rule_pack_revision_id: string | null
           status: string
           stream_version: number
           system_id: string
@@ -5447,6 +5451,7 @@ export type Database = {
           inspiration?: boolean
           label: string
           portrait_asset_id?: string | null
+          rule_pack_revision_id?: string | null
           status?: string
           stream_version?: number
           system_id: string
@@ -5460,6 +5465,7 @@ export type Database = {
           inspiration?: boolean
           label?: string
           portrait_asset_id?: string | null
+          rule_pack_revision_id?: string | null
           status?: string
           stream_version?: number
           system_id?: string
@@ -5472,6 +5478,13 @@ export type Database = {
             columns: ["portrait_asset_id"]
             isOneToOne: false
             referencedRelation: "media_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "characters_rule_pack_revision_id_fkey"
+            columns: ["rule_pack_revision_id"]
+            isOneToOne: false
+            referencedRelation: "rule_pack_revisions"
             referencedColumns: ["id"]
           },
           {
@@ -7228,6 +7241,8 @@ export type Database = {
           range_characteristic_id: string
           resolution_count: number | null
           resolution_count_scaling: Json | null
+          resource_charge_id: string | null
+          resource_cost: number | null
           saving_throw_id: string | null
           shape_characteristic_id: string | null
           target_disposition_kind: string | null
@@ -7247,6 +7262,8 @@ export type Database = {
           range_characteristic_id: string
           resolution_count?: number | null
           resolution_count_scaling?: Json | null
+          resource_charge_id?: string | null
+          resource_cost?: number | null
           saving_throw_id?: string | null
           shape_characteristic_id?: string | null
           target_disposition_kind?: string | null
@@ -7266,6 +7283,8 @@ export type Database = {
           range_characteristic_id?: string
           resolution_count?: number | null
           resolution_count_scaling?: Json | null
+          resource_charge_id?: string | null
+          resource_cost?: number | null
           saving_throw_id?: string | null
           shape_characteristic_id?: string | null
           target_disposition_kind?: string | null
@@ -7286,6 +7305,13 @@ export type Database = {
             columns: ["range_characteristic_id"]
             isOneToOne: false
             referencedRelation: "characteristics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "effect_invocations_resource_charge_id_fkey"
+            columns: ["resource_charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
             referencedColumns: ["id"]
           },
           {
@@ -7828,6 +7854,7 @@ export type Database = {
           id: string
           name: string
           round: number
+          rule_pack_revision_id: string | null
           session_id: string
           status: string
           template_id: string
@@ -7842,6 +7869,7 @@ export type Database = {
           id?: string
           name: string
           round?: number
+          rule_pack_revision_id?: string | null
           session_id: string
           status?: string
           template_id: string
@@ -7856,6 +7884,7 @@ export type Database = {
           id?: string
           name?: string
           round?: number
+          rule_pack_revision_id?: string | null
           session_id?: string
           status?: string
           template_id?: string
@@ -7876,6 +7905,13 @@ export type Database = {
             columns: ["current_actor_id"]
             isOneToOne: false
             referencedRelation: "encounter_actors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encounters_rule_pack_revision_id_fkey"
+            columns: ["rule_pack_revision_id"]
+            isOneToOne: false
+            referencedRelation: "rule_pack_revisions"
             referencedColumns: ["id"]
           },
           {
@@ -10914,6 +10950,35 @@ export type Database = {
           },
         ]
       }
+      live_session_command_leases: {
+        Row: {
+          authority_id: string
+          expires_at: string
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          authority_id: string
+          expires_at: string
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          authority_id?: string
+          expires_at?: string
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_session_command_leases_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "campaign_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       magic_schools: {
         Row: {
           code: string
@@ -12565,6 +12630,97 @@ export type Database = {
             columns: ["system_id"]
             isOneToOne: false
             referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_pack_revisions: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          checksum: string
+          created_at: string
+          created_by: string
+          document: Json
+          evaluator_kind: string
+          evaluator_version: string
+          id: string
+          model_contract_version: number
+          revision: number
+          rule_pack_id: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          checksum: string
+          created_at?: string
+          created_by: string
+          document: Json
+          evaluator_kind?: string
+          evaluator_version?: string
+          id?: string
+          model_contract_version?: number
+          revision: number
+          rule_pack_id: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          checksum?: string
+          created_at?: string
+          created_by?: string
+          document?: Json
+          evaluator_kind?: string
+          evaluator_version?: string
+          id?: string
+          model_contract_version?: number
+          revision?: number
+          rule_pack_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_pack_revisions_rule_pack_id_fkey"
+            columns: ["rule_pack_id"]
+            isOneToOne: false
+            referencedRelation: "rule_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_packs: {
+        Row: {
+          active_revision_id: string | null
+          created_at: string
+          id: string
+          ruleset_code: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          active_revision_id?: string | null
+          created_at?: string
+          id?: string
+          ruleset_code: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          active_revision_id?: string | null
+          created_at?: string
+          id?: string
+          ruleset_code?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_packs_active_revision_fk"
+            columns: ["active_revision_id"]
+            isOneToOne: false
+            referencedRelation: "rule_pack_revisions"
             referencedColumns: ["id"]
           },
         ]

@@ -14,11 +14,21 @@ import {
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE
 } from '@artificer-toolkit/shared/core'
-import type { ClassAuthored, FeatAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type {
+  BackgroundAuthored,
+  ClassAuthored,
+  FeatAuthored
+} from '@artificer-toolkit/shared/subjects/authored'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 
 import type { CharacterBuilderContext, CharacterBuilderRegistry } from './builderService.js'
 import type { CharacterBuilderSpellCatalogRecord } from './builderCatalog.js'
+
+vi.mock('./characterRuleEvaluation.js', async () => {
+  const { evaluateCharacterBuilderTestPolicy } =
+    await import('./characterBuilderRuleEvaluation.testUtils.js')
+  return { evaluateCharacterRulePolicy: evaluateCharacterBuilderTestPolicy }
+})
 
 const repositoryState = vi.hoisted(() => ({
   classes: [] as ClassAuthored[],
@@ -97,7 +107,11 @@ vi.mock('@artificer-toolkit/db', () => ({
   createFeatureRepository: () => ({ findByIds: repositoryCalls.featureFindByIds })
 }))
 
-import { createEmptyCharacterAuthored, resolveCharacterBuilder } from './builderService.js'
+import {
+  createEmptyCharacterAuthored,
+  loadCharacterBuilderContext,
+  resolveCharacterBuilder
+} from './builderService.js'
 import { reconcileCharacterBuilderCharacter } from './builderReconciliation.js'
 
 function createRace(
@@ -174,6 +188,57 @@ function createSpellGrantFeature<N extends NodeSubjectCode = NodeSubjectCode>(
       ]
     }
   }
+}
+
+function createLevelRestrictedChoiceFeature(): FeatureAuthored {
+  return {
+    id: 'veteran-feat',
+    label: 'Veteran',
+    description: '',
+    order: 0,
+    optionChoices: [{ level: 1, count: 1 }],
+    options: [
+      {
+        id: 'veteran',
+        label: 'Veteran',
+        description: 'Requires Fighter level 2.',
+        order: 0,
+        restrictions: {
+          id: 'veteran-restrictions',
+          groups: [
+            {
+              id: 'veteran-group',
+              order: 0,
+              contexts: [
+                {
+                  id: 'veteran-context',
+                  order: 0,
+                  subject: 'CHARACTER',
+                  conditions: [
+                    {
+                      id: 'veteran-condition',
+                      order: 0,
+                      kind: 'PREDICATE',
+                      constraint: 'INCLUDE',
+                      predicateCode: 'CLASS_LEVEL',
+                      classIds: ['fighter'],
+                      min: 2
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        id: 'rookie',
+        label: 'Rookie',
+        description: 'Always valid option.',
+        order: 1
+      }
+    ]
+  } satisfies FeatureAuthored
 }
 
 function createCharacter(raceId: string, classId: string) {
@@ -582,7 +647,9 @@ describe('character Builder conditional spell registry loading', () => {
     const reconciled = await reconcileCharacterBuilderCharacter(
       {} as never,
       character,
-      structuredClone(character)
+      structuredClone(character),
+      undefined,
+      'builder-test-rule-revision'
     )
 
     expect(reconciled.state.hitpoints.current).toBe(3)
@@ -730,5 +797,156 @@ describe('character Builder conditional spell registry loading', () => {
       includeEffects: false
     })
     expect(repositoryCalls.spellListQuery).toHaveBeenCalledOnce()
+  })
+
+  it('loads Builder sources without effects and Sheet sources with effects', async () => {
+    repositoryState.races = [createRace('human')]
+    repositoryState.classes = [createFighter()]
+    repositoryState.feats = [
+      {
+        id: 'magic-initiate',
+        label: 'Magic Initiate',
+        description: '',
+        userId: 'user-1',
+        systemId: 'system-1'
+      }
+    ]
+    repositoryState.features = [
+      { id: 'direct-feature', label: 'Direct Feature', description: '', order: 0 }
+    ]
+    repositoryState.equipment = [
+      {
+        kind: 'EQUIPMENT',
+        id: 'wand-of-sparks',
+        label: 'Wand of Sparks',
+        description: null,
+        category: 'ADVENTURING_GEAR',
+        properties: [],
+        weight: { amount: 1, unit: 'POUNDS' },
+        rarityId: 'COMMON',
+        userId: 'user-1',
+        systemId: 'system-1'
+      }
+    ]
+    const background: BackgroundAuthored = {
+      kind: 'BACKGROUND',
+      id: 'acolyte',
+      label: 'Acolyte',
+      description: '',
+      userId: 'user-1',
+      systemId: 'system-1'
+    }
+    repositoryCalls.backgroundFindByIds.mockResolvedValue(new Map([[background.id, background]]))
+
+    const character = createCharacter('human', 'fighter')
+    character.intent.background = { backgroundId: background.id }
+    character.intent.featureAcquisitions = [
+      {
+        id: 'direct-feature-acquisition',
+        featureId: 'direct-feature',
+        source: { kind: 'FEATURE', featureId: 'direct-feature' },
+        timing: { kind: 'IMMEDIATE' }
+      },
+      {
+        id: 'feat-acquisition',
+        featureId: 'magic-initiate',
+        source: { kind: 'FEAT', featId: 'magic-initiate' },
+        timing: { kind: 'IMMEDIATE' }
+      }
+    ]
+    character.state.equipment.inventory = [
+      { id: 'owned-wand', equipmentId: 'wand-of-sparks', quantity: 1 }
+    ]
+
+    await loadCharacterBuilderContext({} as never, character)
+
+    expect(repositoryCalls.raceFindResolvedById).toHaveBeenLastCalledWith('human', {
+      systemId: 'system-1',
+      includeFeatureEffects: false
+    })
+    expect(repositoryCalls.classFindByIds).toHaveBeenLastCalledWith(['fighter'], {
+      systemId: 'system-1',
+      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
+      includeFeatureEffects: false
+    })
+    expect(repositoryCalls.backgroundFindByIds).toHaveBeenLastCalledWith(['acolyte'], {
+      systemId: 'system-1',
+      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
+      includeFeatureEffects: false
+    })
+    expect(repositoryCalls.featFindByIds).toHaveBeenLastCalledWith(['magic-initiate'], {
+      systemId: 'system-1',
+      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
+      includeEffects: false
+    })
+    expect(repositoryCalls.featureFindByIds).toHaveBeenLastCalledWith(['direct-feature'], {
+      includeEffects: false
+    })
+    expect(repositoryCalls.equipmentFindResolvedById).toHaveBeenLastCalledWith('wand-of-sparks', {
+      systemId: 'system-1',
+      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
+      includeEffects: false
+    })
+
+    vi.clearAllMocks()
+
+    await loadCharacterBuilderContext({} as never, character, [], { includeEffects: true })
+
+    expect(repositoryCalls.raceFindResolvedById).toHaveBeenLastCalledWith('human', {
+      systemId: 'system-1',
+      includeFeatureEffects: true
+    })
+    expect(repositoryCalls.classFindByIds).toHaveBeenLastCalledWith(['fighter'], {
+      systemId: 'system-1',
+      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
+      includeFeatureEffects: true
+    })
+    expect(repositoryCalls.backgroundFindByIds).toHaveBeenLastCalledWith(['acolyte'], {
+      systemId: 'system-1',
+      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
+      includeFeatureEffects: true
+    })
+    expect(repositoryCalls.featFindByIds).toHaveBeenLastCalledWith(['magic-initiate'], {
+      systemId: 'system-1',
+      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
+      includeEffects: true
+    })
+    expect(repositoryCalls.featureFindByIds).toHaveBeenLastCalledWith(['direct-feature'], {
+      includeEffects: true
+    })
+    expect(repositoryCalls.equipmentFindResolvedById).toHaveBeenLastCalledWith('wand-of-sparks', {
+      systemId: 'system-1',
+      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
+      includeEffects: true
+    })
+  })
+
+  it('keeps filtered out feature options out of registry while preserving sourceRegistry', async () => {
+    repositoryState.races = [createRace('human', [createLevelRestrictedChoiceFeature()])]
+    repositoryState.classes = [createFighter()]
+
+    const resolution = await resolveCharacterBuilder(
+      {} as never,
+      createCharacter('human', 'fighter'),
+      'create'
+    )
+
+    const sourceFeature = resolution.sourceRegistry.races
+      .find((race) => race.id === 'human')
+      ?.features?.find((feature) => feature.id === 'veteran-feat')
+    const filteredFeature = resolution.registry.races
+      .find((race) => race.id === 'human')
+      ?.features?.find((feature) => feature.id === 'veteran-feat')
+
+    expect(sourceFeature).toMatchObject({
+      options: expect.arrayContaining([
+        expect.objectContaining({ id: 'veteran' }),
+        expect.objectContaining({ id: 'rookie' })
+      ])
+    })
+    expect(filteredFeature).toMatchObject({
+      options: expect.arrayContaining([expect.objectContaining({ id: 'rookie' })])
+    })
+    expect(filteredFeature?.options?.map((option) => option.id)).not.toContain('veteran')
   })
 })

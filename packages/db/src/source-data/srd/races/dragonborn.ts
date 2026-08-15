@@ -102,6 +102,7 @@ function dragonbornAncestryFeatures(
           invocation: {
             kind: 'ACTION' as const,
             triggerCode: TRIGGER.SAVING_THROW,
+            resourceUse: { chargeId: ancestryFeatureId(optionIndex, 2), cost: 1 },
             savingThrow: {
               id: ancestryFeatureId(optionIndex, 4),
               dcMethod: SAVING_THROW_DC_METHOD.DERIVED_DC,

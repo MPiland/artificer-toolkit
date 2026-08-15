@@ -69,7 +69,8 @@ const abilityScoreImprovementDescription =
 function selfClassRuleEffect(
   entry: number,
   ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>
+  activationCode?: Exclude<ActivationCode, 'FREE'>,
+  resourceChargeId?: string
 ): EffectAuthored {
   const range = { id: classRowId(D, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
   return closedRuleEffect({
@@ -79,6 +80,7 @@ function selfClassRuleEffect(
       ? {
           kind: 'ACTION',
           triggerCode: TRIGGER.ACTIVATED,
+          ...(resourceChargeId ? { resourceUse: { chargeId: resourceChargeId, cost: 1 } } : {}),
           activation: { code: activationCode, amount: 1 },
           range,
           targeting: { selectionKind: 'SELF' }
@@ -680,7 +682,12 @@ export const druid: ClassAuthored = {
         amount: 2
       },
       effects: [
-        selfClassRuleEffect(3, CLOSED_RULE_KIND.CLASS_DRUID_WILD_SHAPE, ACTIVATION_CODE.ACTION)
+        selfClassRuleEffect(
+          3,
+          CLOSED_RULE_KIND.CLASS_DRUID_WILD_SHAPE,
+          ACTIVATION_CODE.ACTION,
+          classRowId(D, 0x66, 3)
+        )
       ]
     },
     {

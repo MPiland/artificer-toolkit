@@ -30,6 +30,7 @@ export type CharacterSheetPlayableAction = {
   }
   limitedUseOnly?: boolean
   rollable: boolean
+  availability: SheetAction['availability']
 }
 
 export const CHARACTER_SHEET_ACTION_FILTERS = [
@@ -83,7 +84,8 @@ export function getPlayableActions(sheet: CharacterSheet): CharacterSheetPlayabl
             effect: entry.primaryEffect
           },
           target: entry.target,
-          rollable: true
+          rollable: true,
+          availability: { status: 'AVAILABLE' }
         }
       ]
     })
@@ -152,7 +154,8 @@ function toPlayableSheetAction(
     playFacts: mechanic ? toPlayableActionFacts(mechanic) : undefined,
     description: action.description ? toPlainText(action.description) : undefined,
     resource: toPlayableResource(resource, action.resourceCost),
-    rollable: action.rollable === true
+    rollable: action.rollable === true,
+    availability: action.availability
   }
 }
 
@@ -196,7 +199,25 @@ function toResourceAction(resource: SheetResource): CharacterSheetPlayableAction
     resource: toPlayableResource(resource),
     description: resource.description ? toPlainText(resource.description) : undefined,
     limitedUseOnly: true,
-    rollable: false
+    rollable: false,
+    availability: { status: 'AVAILABLE' }
+  }
+}
+
+export function formatActionUnavailableReason(
+  reasonCode: Extract<SheetAction['availability'], { status: 'UNAVAILABLE' }>['reasonCode']
+): string {
+  switch (reasonCode) {
+    case 'SOURCE_NOT_EQUIPPED':
+      return 'Equip this item to use this action.'
+    case 'SOURCE_NOT_ATTUNED':
+      return 'Attune to this item to use this action.'
+    case 'SOURCE_REQUIREMENTS_NOT_MET':
+      return 'This action’s requirements are not currently met.'
+    case 'RESOURCE_MISSING':
+      return 'The required resource is unavailable.'
+    case 'INSUFFICIENT_RESOURCE':
+      return 'Not enough uses remain.'
   }
 }
 

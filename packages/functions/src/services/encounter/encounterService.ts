@@ -7,6 +7,7 @@ import {
   createAccountEntitlementsRepository,
   createCreatureRepository,
   createEncounterRepository,
+  createRulePackRepository,
   withTransaction,
   type DBLike,
   type CampaignRoomEntry,
@@ -29,8 +30,10 @@ import {
   type EncounterPlayerProjectionDto,
   type UpdateEncounterActorInputDto
 } from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import type { RuleResolutionEvidenceDto } from '@artificer-toolkit/schema/api/rules'
 import { executeDiceConfiguration } from '../rolls/rollService.js'
 import { ENTITLEMENT_LIMITS, assertEntitlementLimit } from '../account/entitlementService.js'
 import { executeCharacterSheetCommand } from '../character/sheetService.js'
@@ -45,19 +48,36 @@ import {
 import { insertPreEvaluatedCampaignTableRoll } from '../campaign/campaignChatService.js'
 import { broadcastCampaignInvalidation } from '../campaign/realtimeService.js'
 import {
+  assertSessionLiveSessionCommandAuthority,
+  type LiveSessionCommandAuthority
+} from '../campaign/liveSessionCommandAuthority.js'
+import {
   executeEnemyRoll,
-  featureChargeMaximum,
   featureChargeUsed,
   snapshotFeatureDefinitions,
   stableActors,
   withFeatureChargeUsed
 } from './encounterActorState.js'
 import {
+  evaluateEncounterActorRuleSnapshot,
+  evaluateEncounterActorRules,
+  findEncounterFeatureResource,
+  refreshEncounterActorRuleSnapshot,
+  type EncounterActorRuleSnapshot,
+  requireEncounterActorRuleResult
+} from './encounterActorRuleEvaluation.js'
+import {
   EncounterConflictError,
   EncounterNotFoundError,
   EncounterValidationError
 } from './encounterErrors.js'
 import { projectGm, projectPlayer } from './encounterProjection.js'
+import { resolveEncounterAction } from './encounterActionResolution.js'
+import {
+  encounterSystemIds,
+  requireCompatibleActiveRulePackRevision,
+  resolveActiveRulePackForSystems
+} from './encounterRuleIdentity.js'
 
 function fingerprint(input: unknown): string {
   return createHash('sha256').update(JSON.stringify(input)).digest('hex')
@@ -76,7 +96,12 @@ async function assertOwner(db: DBLike, campaignId: string, userId: string) {
   return authority
 }
 
-async function lockEncounter(db: DBLike, encounterId: string, userId: string) {
+async function lockEncounter(
+  db: DBLike,
+  encounterId: string,
+  userId: string,
+  liveSessionAuthority?: LiveSessionCommandAuthority
+) {
   const repository = createEncounterRepository(db)
   const encounter = await repository.lock(encounterId)
   if (!encounter) throw new EncounterNotFoundError()
@@ -87,6 +112,7 @@ async function lockEncounter(db: DBLike, encounterId: string, userId: string) {
   if (session.rows[0]?.status !== 'OPEN') {
     throw new EncounterConflictError('Finished Sessions cannot change Encounters.')
   }
+  await assertSessionLiveSessionCommandAuthority(db, encounter.sessionId, liveSessionAuthority)
   return encounter
 }
 
@@ -100,7 +126,8 @@ async function applyCharacterCommand(
   db: DBLike,
   userId: string,
   actor: EncounterActorRecord,
-  input: UpdateEncounterActorInputDto
+  input: UpdateEncounterActorInputDto,
+  liveSessionAuthority?: LiveSessionCommandAuthority
 ): Promise<{ actor: EncounterActorRecord; correlationId: string }> {
   const command = input.characterCommand
   if (!command) return { actor, correlationId: '' }
@@ -112,7 +139,8 @@ async function applyCharacterCommand(
     db,
     characterId: actor.sourceId,
     command,
-    userId
+    userId,
+    ...(liveSessionAuthority ? { liveSessionAuthority } : {})
   })
   await sql`
     UPDATE public.character_events
@@ -131,10 +159,15 @@ async function applyCharacterCommand(
   }
 }
 
-function commandResult(encounter: EncounterRecord, roll: RollRecordDto | null = null): Json {
+function commandResult(
+  encounter: EncounterRecord,
+  actorRules: EncounterActorRuleOutput,
+  roll: RollRecordDto | null = null
+): Json {
   return encounterCommandResultDtoSchema.parse({
-    projection: projectGm(encounter),
-    roll
+    projection: projectGm(encounter, actorRules),
+    roll,
+    resolution: null
   }) as unknown as Json
 }
 
@@ -143,7 +176,7 @@ export async function createEncounter(
   userId: string,
   input: CreateEncounterInputDto
 ): Promise<EncounterGmProjectionDto> {
-  const encounter = await withTransaction(db, async (trx) => {
+  return withTransaction(db, async (trx) => {
     await assertOwner(trx, input.campaignId, userId)
     const encounterRepository = createEncounterRepository(trx)
     const campaign = createCampaignRepository(trx)
@@ -171,13 +204,33 @@ export async function createEncounter(
       }
       const existing = await encounterRepository.find(prior.encounterId)
       if (!existing) throw new EncounterNotFoundError()
-      return existing
+      return projectGm(
+        existing,
+        await evaluateEncounterActorRules({ db: trx, encounter: existing })
+      )
     }
     const attendance = await sql<{ character_id: string }>`
       SELECT character_id FROM public.campaign_session_attendance
       WHERE session_id = ${input.sessionId} AND present = true
       ORDER BY character_id ASC
     `.execute(trx)
+    const attendingCharacters = (
+      await Promise.all(
+        attendance.rows.map(async (row) => {
+          const [character, authored, sheet] = await Promise.all([
+            createCharacterRepository(trx).findById(row.character_id),
+            createCharacterRepository(trx).findAuthoredById(row.character_id),
+            getCharacterSheetForUser(trx, row.character_id, userId)
+          ])
+          return character && authored && sheet ? { character, authored, sheet } : null
+        })
+      )
+    ).filter((entry) => entry !== null)
+    const { revision: activeRuleRevision } = await resolveActiveRulePackForSystems(trx, [
+      input.systemId ?? null,
+      ...attendingCharacters.map(({ authored }) => authored.systemId),
+      ...template.enemies.map((enemy) => enemy.systemId)
+    ])
     let created: EncounterRecord
     try {
       created = await encounterRepository.create({
@@ -186,6 +239,7 @@ export async function createEncounter(
         sessionId: input.sessionId,
         templateId: template.id,
         templateVersion: template.version,
+        rulePackRevisionId: activeRuleRevision.id,
         name: template.name
       })
     } catch (error) {
@@ -194,18 +248,12 @@ export async function createEncounter(
       }
       throw error
     }
-    for (const row of attendance.rows) {
-      const [character, authored, sheet] = await Promise.all([
-        createCharacterRepository(trx).findById(row.character_id),
-        createCharacterRepository(trx).findAuthoredById(row.character_id),
-        getCharacterSheetForUser(trx, row.character_id, userId)
-      ])
-      if (!character || !authored || !sheet) continue
+    for (const { character, authored, sheet } of attendingCharacters) {
       await encounterRepository.addActor({
         id: randomUUID(),
         encounterId: created.id,
         kind: 'CHARACTER',
-        sourceId: row.character_id,
+        sourceId: character.id,
         sourceRevision: character.stream_version,
         label: authored.label,
         systemId: authored.systemId,
@@ -253,6 +301,7 @@ export async function createEncounter(
     const hydrated = await encounterRepository.find(created.id)
     if (!hydrated) throw new EncounterNotFoundError()
     created = hydrated
+    const actorRules = await evaluateEncounterActorRules({ db: trx, encounter: created })
     await encounterRepository.appendEvent({
       id: randomUUID(),
       encounterId: created.id,
@@ -262,13 +311,12 @@ export async function createEncounter(
       commandType: 'CREATE',
       commandFingerprint,
       commandPayload: input as unknown as Json,
-      resultPayload: commandResult(created),
+      resultPayload: commandResult(created, actorRules),
       actorUserId: userId,
       correlationId: null
     })
-    return created
+    return projectGm(created, actorRules)
   })
-  return projectGm(encounter)
 }
 
 export async function createEncounterTemplate(
@@ -381,14 +429,47 @@ export async function listEncounterTemplates(db: DBLike, userId: string, campaig
   )
 }
 
-export async function executeEncounterCommand(
+export interface EncounterCommandServiceTiming {
+  evaluationLane: 'NONE' | 'ENCOUNTER_ACTOR' | 'ENCOUNTER_ACTION'
+  actorEvaluationMs: number
+  actorZenEvaluationMs: number
+  actionEvaluationMs: number
+  actionZenEvaluationMs: number
+  totalMs: number
+}
+
+export interface EncounterCommandExecutionResult {
+  replayed: boolean
+  response: EncounterCommandResultDto
+  ruleSnapshot?: EncounterActorRuleSnapshot
+}
+
+export interface ExecuteEncounterCommandOptions {
+  committedRuleSnapshot?: EncounterActorRuleSnapshot
+  onTiming?: (timing: EncounterCommandServiceTiming) => void
+  liveSessionAuthority?: LiveSessionCommandAuthority
+}
+
+export async function executeEncounterCommandWithRuleSnapshot(
   db: DBLike,
   userId: string,
-  input: EncounterCommandInputDto
-): Promise<EncounterCommandResultDto> {
-  const { command, tableEntry } = await withTransaction(db, async (trx) => {
+  input: EncounterCommandInputDto,
+  options: ExecuteEncounterCommandOptions = {}
+): Promise<EncounterCommandExecutionResult> {
+  const startedAt = performance.now()
+  let evaluationLane: EncounterCommandServiceTiming['evaluationLane'] = 'NONE'
+  let actorEvaluationMs = 0
+  let actorZenEvaluationMs = 0
+  let actionEvaluationMs = 0
+  let actionZenEvaluationMs = 0
+  const { command, replayed, tableEntry, ruleSnapshot } = await withTransaction(db, async (trx) => {
     const repository = createEncounterRepository(trx)
-    const locked = await lockEncounter(trx, input.encounterId, userId)
+    const locked = await lockEncounter(trx, input.encounterId, userId, options.liveSessionAuthority)
+    const matchingCommittedRuleSnapshot =
+      options.committedRuleSnapshot?.encounterVersion === locked.version &&
+      options.committedRuleSnapshot.revisionId === locked.rulePackRevisionId
+        ? options.committedRuleSnapshot
+        : undefined
     const commandFingerprint = fingerprint(input)
     const prior = await repository.findEventByCampaignCommand(locked.campaignId, input.commandId)
     if (prior) {
@@ -401,7 +482,9 @@ export async function executeEncounterCommand(
       }
       return {
         command: encounterCommandResultDtoSchema.parse(prior.resultPayload),
-        tableEntry: null
+        replayed: true,
+        tableEntry: null,
+        ruleSnapshot: matchingCommittedRuleSnapshot
       }
     }
     if (locked.version !== input.expectedVersion) {
@@ -415,7 +498,33 @@ export async function executeEncounterCommand(
     let nextCurrentActorId = locked.currentActorId
     let correlationId: string | null = null
     let rolled: RollRecordDto | null = null
+    let resolution: RuleResolutionEvidenceDto | null = null
     let tableEntry: CampaignRoomEntry | null = null
+    let actorRuleSnapshot = matchingCommittedRuleSnapshot
+
+    const evaluateActorSnapshot = async (
+      encounter: EncounterRecord,
+      revisionId?: string | null
+    ): Promise<EncounterActorRuleSnapshot> => {
+      const evaluationStartedAt = performance.now()
+      const evaluated = await evaluateEncounterActorRuleSnapshot({ db: trx, encounter, revisionId })
+      actorEvaluationMs += performance.now() - evaluationStartedAt
+      actorZenEvaluationMs += evaluated.zenEvaluationMs
+      if (evaluationLane === 'NONE') evaluationLane = 'ENCOUNTER_ACTOR'
+      return evaluated.snapshot
+    }
+
+    const currentActorRules = async () => {
+      if (actorRuleSnapshot) return actorRuleSnapshot.output
+      let revisionId = locked.rulePackRevisionId
+      if (!revisionId) {
+        revisionId = (await resolveActiveRulePackForSystems(trx, encounterSystemIds(locked)))
+          .revision.id
+        await repository.setRulePackRevision(locked.id, revisionId)
+      }
+      actorRuleSnapshot = await evaluateActorSnapshot(locked, revisionId)
+      return actorRuleSnapshot.output
+    }
 
     switch (input.type) {
       case 'UPDATE_ACTOR': {
@@ -430,7 +539,13 @@ export async function executeEncounterCommand(
             'Character HP must be changed through its Sheet command.'
           )
         }
-        const characterMutation = await applyCharacterCommand(trx, userId, current, input)
+        const characterMutation = await applyCharacterCommand(
+          trx,
+          userId,
+          current,
+          input,
+          options.liveSessionAuthority
+        )
         let next = characterMutation.actor
         if (input.currentHitPoints !== undefined)
           next = { ...next, currentHitPoints: input.currentHitPoints }
@@ -467,26 +582,11 @@ export async function executeEncounterCommand(
           modifier =
             (await getCharacterSheetForUser(trx, current.sourceId, userId))?.overview.initiative ??
             0
-        } else if (
-          current.kind === 'CREATURE' &&
-          typeof current.snapshot === 'object' &&
-          current.snapshot !== null &&
-          !Array.isArray(current.snapshot)
-        ) {
-          const payload = current.snapshot.payload
-          const abilityScores =
-            typeof payload === 'object' && payload !== null && !Array.isArray(payload)
-              ? payload.abilityScores
-              : null
-          const dexterity =
-            typeof abilityScores === 'object' &&
-            abilityScores !== null &&
-            !Array.isArray(abilityScores)
-              ? abilityScores.DEXTERITY
-              : null
-          if (typeof dexterity === 'number' && Number.isFinite(dexterity)) {
-            modifier = Math.floor((dexterity - 10) / 2)
-          }
+        } else {
+          modifier = requireEncounterActorRuleResult(
+            await currentActorRules(),
+            current.id
+          ).initiativeModifier
         }
         const result = executeDiceConfiguration({ configuration: '1d20' })
         await repository.updateActor({ ...current, initiative: result.evidence.total + modifier })
@@ -508,6 +608,13 @@ export async function executeEncounterCommand(
       case 'START':
         if (locked.status !== 'PREPARED')
           throw new EncounterConflictError('Only prepared Encounters can start.')
+        if (!locked.rulePackRevisionId) {
+          const { revision } = await resolveActiveRulePackForSystems(trx, [
+            input.systemId ?? null,
+            ...encounterSystemIds(locked)
+          ])
+          await repository.setRulePackRevision(locked.id, revision.id)
+        }
         if (locked.actors.length === 0)
           throw new EncounterValidationError('Add an actor before starting.')
         nextStatus = 'ACTIVE'
@@ -565,7 +672,10 @@ export async function executeEncounterCommand(
         const feature = snapshotFeatureDefinitions(current).find(
           (candidate) => candidate.id === input.featureId
         )
-        const maximum = feature ? featureChargeMaximum(current, feature) : null
+        const maximum = feature
+          ? (findEncounterFeatureResource(await currentActorRules(), current.id, feature.id)
+              ?.maximum ?? null)
+          : null
         if (!feature || maximum === null) {
           throw new EncounterValidationError('This enemy feature does not have usable charges.')
         }
@@ -613,7 +723,12 @@ export async function executeEncounterCommand(
         if (!feature || !definition) {
           throw new EncounterValidationError('Enemy roll definition was not found.')
         }
-        const maximum = featureChargeMaximum(current, feature)
+        const resource = findEncounterFeatureResource(
+          await currentActorRules(),
+          current.id,
+          feature.id
+        )
+        const maximum = resource?.maximum ?? null
         const used = featureChargeUsed(current, feature.id)
         if (definition.chargeCost) {
           if (maximum === null || used + definition.chargeCost > maximum) {
@@ -653,6 +768,51 @@ export async function executeEncounterCommand(
         }
         break
       }
+      case 'UPGRADE_RULE_PACK': {
+        if (locked.status !== 'PREPARED') {
+          throw new EncounterConflictError('Only prepared Encounters can change rule revisions.')
+        }
+        const revision = await requireCompatibleActiveRulePackRevision(
+          trx,
+          locked,
+          input.revisionId
+        )
+        await repository.setRulePackRevision(locked.id, revision.id)
+        break
+      }
+      case 'RESOLVE_ACTION': {
+        if (locked.status !== 'ACTIVE') {
+          throw new EncounterConflictError('Only active Encounters can resolve actions.')
+        }
+        if (!locked.rulePackRevisionId) {
+          throw new EncounterValidationError('This Encounter does not have a pinned rule revision.')
+        }
+        const rulePacks = createRulePackRepository(trx)
+        const revision = await rulePacks.getRevision(locked.rulePackRevisionId)
+        const pack = revision ? await rulePacks.getPack(revision.rulePackId) : null
+        if (!revision || !pack || revision.state === 'DRAFT') {
+          throw new EncounterValidationError('The pinned rule-pack revision is unavailable.')
+        }
+        const actionEvaluationStartedAt = performance.now()
+        const resolved = await resolveEncounterAction({
+          db: trx,
+          userId,
+          encounter: locked,
+          command: input,
+          pack,
+          revision,
+          actorRules: await currentActorRules(),
+          ...(options.liveSessionAuthority
+            ? { liveSessionAuthority: options.liveSessionAuthority }
+            : {})
+        })
+        actionEvaluationMs += performance.now() - actionEvaluationStartedAt
+        actionZenEvaluationMs += resolved.zenEvaluationMs
+        evaluationLane = 'ENCOUNTER_ACTION'
+        resolution = resolved.evidence
+        correlationId = resolved.correlationId
+        break
+      }
       case 'COMPLETE':
         if (locked.status !== 'ACTIVE')
           throw new EncounterConflictError('Only active Encounters can complete.')
@@ -671,9 +831,15 @@ export async function executeEncounterCommand(
     })
     const updated = await repository.find(locked.id)
     if (!updated) throw new EncounterNotFoundError()
+    const refreshedSnapshot = actorRuleSnapshot
+      ? refreshEncounterActorRuleSnapshot(actorRuleSnapshot, updated)
+      : null
+    const projectionRuleSnapshot =
+      refreshedSnapshot ?? (await evaluateActorSnapshot(updated, updated.rulePackRevisionId))
     const command = encounterCommandResultDtoSchema.parse({
-      projection: projectGm(updated),
-      roll: rolled
+      projection: projectGm(updated, projectionRuleSnapshot.output),
+      roll: rolled,
+      resolution
     })
     await repository.appendEvent({
       id: randomUUID(),
@@ -688,7 +854,15 @@ export async function executeEncounterCommand(
       actorUserId: userId,
       correlationId
     })
-    return { command, tableEntry }
+    return {
+      command,
+      replayed: false,
+      tableEntry,
+      ruleSnapshot:
+        updated.rulePackRevisionId === projectionRuleSnapshot.revisionId
+          ? projectionRuleSnapshot
+          : undefined
+    }
   })
   if (tableEntry) {
     await broadcastCampaignInvalidation(db, tableEntry.campaignId, {
@@ -700,7 +874,23 @@ export async function executeEncounterCommand(
       cursor: tableEntry.createdAt
     })
   }
-  return command
+  options.onTiming?.({
+    evaluationLane,
+    actorEvaluationMs,
+    actorZenEvaluationMs,
+    actionEvaluationMs,
+    actionZenEvaluationMs,
+    totalMs: performance.now() - startedAt
+  })
+  return { replayed, response: command, ruleSnapshot }
+}
+
+export async function executeEncounterCommand(
+  db: DBLike,
+  userId: string,
+  input: EncounterCommandInputDto
+): Promise<EncounterCommandResultDto> {
+  return (await executeEncounterCommandWithRuleSnapshot(db, userId, input)).response
 }
 
 export async function getEncounterProjection(
@@ -712,7 +902,9 @@ export async function getEncounterProjection(
   if (!encounter) throw new EncounterNotFoundError()
   const authority = await resolveCampaignAuthority(db, encounter.campaignId, userId)
   assertActiveCampaignMember(authority)
-  return authority.membership.role === 'OWNER' ? projectGm(encounter) : projectPlayer(encounter)
+  return authority.membership.role === 'OWNER'
+    ? projectGm(encounter, await evaluateEncounterActorRules({ db, encounter }))
+    : projectPlayer(encounter)
 }
 
 export async function getActiveEncounterProjection(
@@ -724,7 +916,9 @@ export async function getActiveEncounterProjection(
   assertActiveCampaignMember(authority)
   const encounter = await createEncounterRepository(db).findActiveForCampaign(campaignId)
   if (!encounter) return null
-  return authority.membership.role === 'OWNER' ? projectGm(encounter) : projectPlayer(encounter)
+  return authority.membership.role === 'OWNER'
+    ? projectGm(encounter, await evaluateEncounterActorRules({ db, encounter }))
+    : projectPlayer(encounter)
 }
 
 export async function listCampaignEncounterProjections(
@@ -735,7 +929,12 @@ export async function listCampaignEncounterProjections(
   const authority = await resolveCampaignAuthority(db, campaignId, userId)
   assertActiveCampaignMember(authority)
   const encounters = await createEncounterRepository(db).listForCampaign(campaignId)
-  return authority.membership.role === 'OWNER'
-    ? encounters.map(projectGm)
-    : encounters.filter((encounter) => encounter.status === 'ACTIVE').map(projectPlayer)
+  if (authority.membership.role !== 'OWNER') {
+    return encounters.filter((encounter) => encounter.status === 'ACTIVE').map(projectPlayer)
+  }
+  return Promise.all(
+    encounters.map(async (encounter) =>
+      projectGm(encounter, await evaluateEncounterActorRules({ db, encounter }))
+    )
+  )
 }

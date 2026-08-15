@@ -139,11 +139,32 @@ async function propagateApprovedVersion(
   const characters = createCharacterRepository(db)
   for (const binding of bindings) {
     await characters.findUpdatedAtByIdForUpdate(binding.characterId)
-    const character = await characters.findAuthoredById(binding.characterId)
-    if (!character) throw new CampaignConflictError('An affected Character no longer exists.')
+    const [character, row] = await Promise.all([
+      characters.findAuthoredById(binding.characterId),
+      characters.findById(binding.characterId)
+    ])
+    if (!character || !row) {
+      throw new CampaignConflictError('An affected Character no longer exists.')
+    }
+    if (!row.rule_pack_revision_id) {
+      throw new CampaignConflictError('An affected Character has no pinned rule revision.')
+    }
     const context = await loadCharacterBuilderContext(db, character, [snapshot])
-    const reconciled = await reconcileCharacterBuilderCharacter(db, character, character, context)
-    const resolution = await resolveCharacterBuilder(db, reconciled, 'edit', context)
+    const reconciled = await reconcileCharacterBuilderCharacter(
+      db,
+      character,
+      character,
+      context,
+      row.rule_pack_revision_id
+    )
+    const resolution = await resolveCharacterBuilder(
+      db,
+      reconciled,
+      'edit',
+      context,
+      null,
+      row.rule_pack_revision_id
+    )
     if (!resolution.readiness.ready || !isDeepStrictEqual(reconciled, character)) {
       throw new CampaignConflictError(
         `Campaign content update conflicts with Character "${character.label}".`

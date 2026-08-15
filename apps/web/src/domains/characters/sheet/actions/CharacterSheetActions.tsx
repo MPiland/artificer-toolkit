@@ -8,6 +8,7 @@ import * as panelStyles from '../shared/panel.css'
 import * as rowStyles from '../shared/rows.css'
 import {
   CHARACTER_SHEET_ACTION_FILTERS,
+  formatActionUnavailableReason,
   formatPlayableActionSummary,
   getPlayableActions,
   type CharacterSheetActionFilter,
@@ -116,6 +117,10 @@ export function CharacterSheetActions({
                         action.playFacts?.effect ??
                         undefined)
                   const rollTargets = getMechanicRollTargets(action.mechanics, action.label)
+                  const unavailableReason =
+                    action.availability.status === 'UNAVAILABLE'
+                      ? formatActionUnavailableReason(action.availability.reasonCode)
+                      : undefined
 
                   if (!isTabularAttack)
                     return (
@@ -155,7 +160,9 @@ export function CharacterSheetActions({
                               className={actionSummaryStyles.actionDescriptionUses}
                             >
                               <ActionResourceStepper
+                                actionId={action.id}
                                 actionLabel={action.label}
+                                available={!unavailableReason}
                                 pending={pending}
                                 resource={resource}
                                 setFailedResourceId={setFailedResourceId}
@@ -169,6 +176,9 @@ export function CharacterSheetActions({
                           <Text className={actionSummaryStyles.actionDescriptionText}>
                             <CharacterSheetRollText targets={rollTargets} text={effect} />
                           </Text>
+                        ) : null}
+                        {unavailableReason ? (
+                          <Text className={panelStyles.muted}>{unavailableReason}</Text>
                         ) : null}
                         {resource && failedResourceId === resource.id ? (
                           <Text className={rowStyles.commandInlineError} role='alert'>
@@ -199,11 +209,12 @@ export function CharacterSheetActions({
                             {action.label}
                           </Text>
                         )}
-                        {action.sourceLabel || resource ? (
+                        {action.sourceLabel || resource || unavailableReason ? (
                           <Text className={actionTableStyles.actionCompactSource} component='span'>
                             {[
                               action.sourceLabel,
-                              resource ? `${resource.remaining} / ${resource.max} uses` : undefined
+                              resource ? `${resource.remaining} / ${resource.max} uses` : undefined,
+                              unavailableReason
                             ]
                               .filter(Boolean)
                               .join(' · ')}
@@ -258,14 +269,18 @@ export function CharacterSheetActions({
 }
 
 function ActionResourceStepper({
+  actionId,
   actionLabel,
+  available,
   pending,
   resource,
   setFailedResourceId,
   submitCommand,
   version
 }: {
+  actionId: string
   actionLabel: string
+  available: boolean
   pending: boolean
   resource: NonNullable<CharacterSheetPlayableAction['resource']>
   setFailedResourceId: (resourceId: string | undefined) => void
@@ -277,6 +292,7 @@ function ActionResourceStepper({
     const succeeded = await submitCommand({
       type,
       resourceGrantId: resource.id,
+      ...(type === 'USE_RESOURCE' ? { actionId } : {}),
       ...(type === 'USE_RESOURCE' && resource.cost > 1 ? { amount: resource.cost } : {}),
       expectedVersion: version
     })
@@ -285,7 +301,7 @@ function ActionResourceStepper({
 
   return (
     <CharacterSheetResourceStepper
-      decreaseDisabled={pending || resource.remaining < resource.cost}
+      decreaseDisabled={pending || !available || resource.remaining < resource.cost}
       decreaseLabel={`Use ${resource.cost === 1 ? 'one' : resource.cost} ${actionLabel} charge${resource.cost === 1 ? '' : 's'}`}
       increaseDisabled={pending || resource.used <= 0}
       increaseLabel={`Restore one ${actionLabel} charge`}

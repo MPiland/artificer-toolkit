@@ -1,24 +1,23 @@
 # Character engine
 
-> Status: canonical (current working-tree baseline)
+> Status: canonical current production Character authority
 >
-> Scope: snapshot assembly, compiled registry, pure resolution, `RulesSystem`, and derived output
+> Scope: normalized Character facts, versioned rules evaluation, and derived output
 >
 > Update when: engine input/output, rule ordering, resolver stages, or a system implementation changes
 >
-> Verification: `packages/shared/src/domains/engine/kernel.ts`, `snapshot.ts`, `registry.ts`, `contracts/rulesSystem.ts`, `domains/engine/dnd5e2014`, and engine tests
+> Verification: rule-pack revision and Character evaluator contracts, migration fixtures, and focused Character tests
 
-The engine turns an ephemeral `CharacterBuildSnapshot` plus a caller-populated `CharacterAssemblyRegistry` and `RulesSystem` into deterministic derived play data. It is not a repository and it does not own persistence.
+The rules boundary turns normalized Character facts plus an exact pinned rule revision into deterministic derived play data. It is not a repository and does not own persistence. Production Character Builder and Sheet flows use this boundary and fail closed without a compatible revision. The superseded TypeScript `runEngine`/`RulesSystem` implementation has been removed after the parity, lifecycle, and Linux deployment gates; [ADR 0019](../adr/0019-versioned-cross-domain-rules-runtime.md) governs the replacement.
 
 ```mermaid
 flowchart LR
-  Authored[Character authored intent/state] --> Snap[CharacterBuildSnapshot]
-  Adjustments[Typed Sheet adjustments] --> Snap
-  Content[Compiled content] --> Reg[CharacterAssemblyRegistry]
-  Snap --> Kernel[runEngine(snapshot, registry, rules)]
-  Reg --> Kernel
-  Rules[RulesSystem\nordering + arithmetic + stacking] --> Kernel
-  Kernel --> Output[EngineCharacterOutput\nstats, proficiencies, slots, resources, senses]
+  Authored[Character intent/state + bound content] --> Facts[Normalized Character facts]
+  Adjustments[Typed Sheet adjustments] --> Facts
+  Content[Current/Campaign-bound compiled content] --> Facts
+  Pin[Exact Character rule revision] --> Zen[Embedded Zen evaluation]
+  Facts --> Zen
+  Zen --> Output[Typed mechanics, explanations, source IDs]
 ```
 
 ## Inputs
@@ -27,17 +26,19 @@ flowchart LR
 
 Chosen grants are addressed by grant ID, progression level, and stable provenance identity. Reusing one authored grant under multiple classes, features, or options must never let one owner's selection satisfy another owner. A selected feature option uses the character feature-acquisition ID plus option ID as its grant provenance.
 
-Current structural selections use stable authored root IDs and resolve against active content. Equipment snapshot entries additionally carry an explicit `ContentRef` with system ID and `ACTIVE` binding plus the compiled item. Other exact compiled inputs are supplied through the assembly registry. Historical revision pinning is unsupported without a separate authored history store.
+Current structural selections use stable authored root IDs and resolve against active content. Equipment snapshot entries additionally carry an explicit `ContentRef` with system ID and `ACTIVE` binding plus the compiled item. Other exact compiled inputs are supplied through the assembly registry. Historical authored-content revision pinning is unsupported. Immutable Encounter rule-pack revisions are a separate application-owned binding described below; they do not revise the Character assembly model.
 
 `CharacterAssemblyRegistry` contains compiled classes, races, backgrounds, features, feats, equipment, spell and grant material, and optional system references. The caller loads it (normally through DB repositories/functions); engine and assembly functions are pure readers. Ordered active spell groups are backend Sheet projection output, not registry contents. For each projected active spell group, authored `SPELL_CAST_LEVEL` scaling is the explicit intersection of the spell's legal cast levels and the source's available slot levels. Contextual `TO_HIT` and `SAVE_DC` targets are mutually exclusive; `DAMAGE` targets are bonus-only.
 
-`RulesSystem` injects D&D-5e-family policy such as proficiency/ability arithmetic, passive checks, movement-display selection, modifier stacking configuration, grant application order, and feature-source order. `dnd5e2014RulesSystem` is the first implementation. This keeps the current 5e engine pure and policy-driven; it does not make its class, spell-slot, armor-class, rest, and proficiency contracts universal across unrelated game systems.
+The normalized facts include the data needed for grant/source ordering and eligibility, modifiers/stacking, derived formulas, spell access/slots, resources/charges, rest/exhaustion/attunement, and action availability. TypeScript attaches stable identities and provenance but does not decide those mechanics. Zen returns typed results with domain explanations and source IDs; its native trace is diagnostic only.
 
-## Resolution order
+## Resolution responsibilities
 
-`runEngine` resolves spell grants, applies class/subclass/background/feature/feat and eligible equipment grants, filters equipment by character restrictions and attunement requirements, resolves source-aware modifier stacking, applies typed Sheet adjustments, calculates dependent derived stats, resolves spell slots and class resources, and records active item contributions. Eligible equipment features that consume `SOURCE_CHARGES` also emit a deterministic binding containing the feature, equipment definition, exact owned item instance, parent charge, and authored cost. The first class applies its normal proficiency grants; later base classes apply only their authored multiclass proficiency grants while retaining level-appropriate class and subclass features. D&D ordering details are in `packages/shared/src/domains/engine/dnd5e2014/RULE_ORDER.md`.
+One top-level Zen Character derivation resolves all mechanics for one structural fact set and may invoke pack submodels. It applies grant/source ordering and eligibility, modifiers/stacking, derived formulas, spell access/slots, resources/charges, rest/exhaustion/attunement, and action availability. Fact discovery and spell hydration run before that evaluation, in parallel with exact revision binding where possible; no intermediate mechanics result is rendered. The D&D 5e 2014 policy implementation and its [rule-order contract](../../packages/functions/src/services/rules/systems/dnd5e/2014/RULE_ORDER.md) are grouped under `packages/functions/src/services/rules/systems/dnd5e/2014/`.
 
-The output includes derived ability scores/modifiers, saving throws, skills, passive checks, movement, initiative, armor class, max hit points, proficiencies, senses, spell state/slots, resources, per-source spell mechanics, per-instance item mechanics, equipment-feature source-charge bindings, companion stats, and source-aware calculation breakdowns. Re-running identical inputs must produce identical output.
+That complete result is a materialized mechanical snapshot, not the handler for every play-state command. Fast HP, usage, notes, and presentation commands validate and apply against the committed snapshot without rebuilding it. Commands that change mechanical facts evaluate `character-policy` once for the prospective facts. Character and Encounter actions use their bounded action contracts under the same exact rule revision. One command selects zero or one evaluation lane; the browser does not make rules requests per Sheet section, and the backend does not fan one command out across independent models. [ADR 0021](../adr/0021-command-scoped-rules-responsibilities.md) owns the invalidation matrix.
+
+The output includes derived ability scores/modifiers, saving throws, skills, passive checks, movement, initiative, armor class, max hit points, proficiencies, senses, spell state/slots, resources, per-source spell mechanics, per-instance item mechanics, equipment-feature source-charge bindings, companion stats, and typed explanations. Identical normalized facts plus the exact revision/checksum and evaluator/model-contract version must produce identical output.
 
 Compiled effect groups preserve their stable effect ID and order, compiled invocation, and compiled path entries. A compiler must not reduce an authored effect to outcome arrays or otherwise discard targeting, saves, path overrides, timing, roll-table behavior, follow-up checks/saves, duration, lifecycle, or manifestation data.
 
@@ -49,14 +50,18 @@ Spell access resolves class, race, and subrace grants against the same character
 
 Application orchestration projects persisted adjustments through `toCharacterMechanicalAdjustment` before snapshot assembly. That projection deliberately removes character ownership, optional `sourceNote`, actors, and timestamps. The engine receives only stable adjustment identity, typed target, and mechanical value.
 
-Each calculation returns its effective value and breakdown from the same pure resolver. Authored, equipment, and feature contributions retain stable mechanical provenance in the breakdown; manual additions participate in normal calculation; an absolute target override is applied last and marks retained contributions as suppressed. Removing the override restores the current authored and additive result without restoring a cached total. Adjusted abilities feed saves, skills, passives, spell values, Constitution-derived maximum HP, and ability-based resource maxima. Repeated spells are keyed by source identity, while items and companions are keyed by owned-instance UUID.
+Each calculation returns its effective value and breakdown from the same pure resolver. Authored, equipment, and feature contributions retain stable mechanical provenance in the breakdown; repeated accepted grants are distinguished by their ordered fold index plus typed source identity rather than grant ID alone. Manual additions participate in normal calculation; an absolute target override is applied last and marks retained contributions as suppressed. Removing the override restores the current authored and additive result without restoring a cached total. Adjusted abilities feed saves, skills, passives, spell values, Constitution-derived maximum HP, and ability-based resource maxima. Repeated spells are keyed by source identity, while items and companions are keyed by owned-instance UUID.
 
-Calculation output is never persisted. Dice-based recovery receives an injected `CharacterDiceRandomSource`; production callers supply a cryptographically secure implementation while tests may supply a deterministic source.
+Calculation output is never persisted. The evaluator receives application-owned dice evidence as normalized facts and has no random access.
 
 ## Rules-system and encounter boundaries
 
-Application orchestration resolves the system's `rulesetCode` and `rulesetVersion` through the fail-closed rules registry before calling the engine. An unsupported identity is an error, never a fallback to D&D.
+Application orchestration resolves the system's `rulesetCode` and `rulesetVersion` through a fail-closed rule-pack registry before calling Zen. A Character draft preview uses the current compatible active revision; first finalization rechecks and pins that exact revision transactionally. An unsupported identity is an error, never a fallback to D&D.
 
-The registry is the extension seam. Another D&D-5e-family ruleset may reuse this kernel when its contracts fit. A materially different game should register a system-specific engine adapter with its own snapshot/output contracts instead of adding cross-system conditionals to the current kernel.
+The SRD seed installs the repository-owned D&D 5e 2014 Character model after the content corpus. It replaces only canonical model keys and their fixtures, preserves unrelated administrator-authored models, activates a new immutable revision only when the merged document changed, and backfills only active Characters that do not yet have a revision pin. A different open administrator draft aborts installation instead of being overwritten; rerunning after an activation/backfill interruption is idempotent.
 
-Future VTT encounter sequencing belongs in a separate encounter/event application module. Encounter commands will supply actors, resolved targets, rolls, selections, and external world state to pure compiled-rule resolvers, then apply and persist the proposed outcomes in the Encounter aggregate. The character engine and compiled content do not persist rolls, targets, turns, or outcomes.
+The versioned rule pack is the extension seam. Later active-pack changes never silently affect a Character; retirement does not invalidate a pin. Explicit upgrade preview and `UPGRADE_RULE_PACK` commands re-evaluate and repin a Character transactionally, incrementing its stream version without exposing an intermediate client state. Authored content still follows its current or Campaign binding, so this pin is not a promise of full historical content replay.
+
+VTT encounter sequencing belongs in the separate Encounter event application module. New Encounters retain their existing activated rule-pack pin. The repository-owned `encounter-actor-policy` evaluates all non-Character actors as one bounded fact set for initiative modifiers and feature-resource maxima; GM projection and state-changing commands use the exact Encounter pin, and a changed state is evaluated before the final response. A `RESOLVE_ACTION` command supplies server-assembled actors, targets, current Encounter state, untrusted selections, and application-owned dice evidence as normalized facts to the same embedded Zen evaluator. Orchestration validates target scope, applies Encounter and Character Sheet changes in one transaction, and stores exact revision/version identity, facts, diagnostic trace, rolls, proposed/applied outcomes, and optional GM override. The character evaluator and compiled authored content still do not persist rolls, targets, turns, or outcomes.
+
+Arbitrary JDM Function nodes and nondeterministic or I/O-bearing expressions are rejected. The reserved `character-grant-fold`, `character-action-resolve`, and `encounter-actor-policy` models are the only Functions: their complete graphs and sources are repository-owned and server-locked, their facts/results are bounded, execution is capped at 50 ms, and Rule Studio cannot expose or edit them. They handle the ordered accumulator, bounded action-template work, and batched Encounter actor calculations that expression nodes cannot safely represent; the surrounding Character graph continues to own visible rule tables and expressions. Application-owned dice remains external and supplied as facts. `CLOSED_RULE`, `MANUAL_ADJUDICATION`, and effect kinds without an explicit resolver remain manual; neither Zen nor the compiled-effect catalog implies blanket execution. Geometry, movement, fog, walls, doors, zones, and renderer state remain outside this rules boundary; mechanically triggered effects are inside it. See [ADR 0019](../adr/0019-versioned-cross-domain-rules-runtime.md).

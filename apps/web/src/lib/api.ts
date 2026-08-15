@@ -5,6 +5,7 @@ import { buildContentApi } from './api/content'
 import { buildPlatformApi } from './api/platform'
 import { buildNotificationsApi } from './api/notifications'
 import { buildSocialHubApi } from './api/socialHub'
+import { buildRulesApi } from './api/rules'
 import { ApiError, ApiParseError, createTrpcClient } from './api/transport'
 
 export type {
@@ -98,6 +99,17 @@ export type {
 export type { SystemListItemDto } from '@artificer-toolkit/schema/api/systems'
 
 export type {
+  ActivateRulePackRevisionInputDto,
+  RetireRulePackInputDto,
+  RulePackDocumentDto,
+  RulePackRevisionDto,
+  RulePackSummaryDto,
+  SaveRulePackDraftInputDto,
+  SimulateRulePackInputDto,
+  SimulateRulePackResultDto
+} from '@artificer-toolkit/schema/api/rules'
+
+export type {
   CreateSocialListingInput,
   CreateSocialReportInput,
   SocialApplicationDto,
@@ -185,7 +197,8 @@ export const api = {
   nodeRuntime: platformApi.nodeRuntime,
   notifications: buildNotificationsApi(client),
   routeIds: platformApi.routeIds,
-  socialHub: buildSocialHubApi(client)
+  socialHub: buildSocialHubApi(client),
+  rules: buildRulesApi(client)
 }
 
 export function createServerApi(_userId?: string | null) {

@@ -27,6 +27,7 @@ export async function upsertCharacter(
   options: {
     expectedStreamVersion?: number
     incrementStreamVersion?: boolean
+    rulePackRevisionId?: string | null
     afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
   } = {}
 ): Promise<number> {
@@ -75,6 +76,9 @@ export async function upsertCharacter(
         description: json_data.description ?? null,
         status: normalizeSubjectStatus(json_data.status),
         inspiration: json_data.state.inspiration ?? false,
+        ...(options.rulePackRevisionId === undefined
+          ? {}
+          : { rule_pack_revision_id: options.rulePackRevisionId }),
         stream_version: nextStreamVersion
       })
       .onConflict((oc) =>
@@ -85,6 +89,9 @@ export async function upsertCharacter(
           description: eb.ref('excluded.description'),
           status: eb.ref('excluded.status'),
           inspiration: eb.ref('excluded.inspiration'),
+          ...(options.rulePackRevisionId === undefined
+            ? {}
+            : { rule_pack_revision_id: eb.ref('excluded.rule_pack_revision_id') }),
           stream_version: eb.ref('excluded.stream_version')
         }))
       )

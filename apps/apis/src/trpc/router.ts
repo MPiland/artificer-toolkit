@@ -9,6 +9,7 @@ import { rollRouter } from './rollRouter.js'
 import { nodeRuntimeRouter } from './nodeRuntimeRouter.js'
 import { socialHubRouter } from './socialHubRouter.js'
 import { notificationsRouter } from './notificationsRouter.js'
+import { ruleRouter } from './ruleRouter.js'
 import { createTRPCRouter } from './procedures.js'
 
 export const appRouter = createTRPCRouter({
@@ -24,7 +25,8 @@ export const appRouter = createTRPCRouter({
   rolls: rollRouter,
   socialHub: socialHubRouter,
   notifications: notificationsRouter,
-  nodeRuntime: nodeRuntimeRouter
+  nodeRuntime: nodeRuntimeRouter,
+  rules: ruleRouter
 })
 
 export type AppRouter = typeof appRouter

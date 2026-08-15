@@ -52,6 +52,27 @@ const characterSheetCommandBaseDtoSchema = z.object({
   expectedVersion: z.number().int()
 })
 
+export const characterRuleRevisionIdentityDtoSchema = z.strictObject({
+  revisionId: z.string().uuid(),
+  checksum: z.string().trim().min(1),
+  evaluatorKind: z.literal('ZEN'),
+  evaluatorVersion: z.string().trim().min(1),
+  modelContractVersion: z.number().int().positive()
+})
+
+export const characterRuleUpgradePreviewRequestDtoSchema = z.strictObject({
+  expectedVersion: z.number().int().nonnegative()
+})
+
+export const characterRuleUpgradePreviewResponseDtoSchema = z.strictObject({
+  characterId: z.string().uuid(),
+  streamVersion: z.number().int().nonnegative(),
+  currentRevision: characterRuleRevisionIdentityDtoSchema,
+  targetRevision: characterRuleRevisionIdentityDtoSchema,
+  upgradeAvailable: z.boolean(),
+  sheet: characterSheetResponseDtoSchema
+})
+
 export const characterRestPreviewRequestDtoSchema = z
   .strictObject({
     restKind: characterRestKindDtoSchema,
@@ -145,6 +166,10 @@ export const characterRestPreviewResponseDtoSchema = z.strictObject({
 
 export const characterSheetCommandInputDtoSchema = z
   .discriminatedUnion('type', [
+    characterSheetCommandBaseDtoSchema.extend({
+      type: z.literal('UPGRADE_RULE_PACK'),
+      revisionId: z.string().uuid()
+    }),
     characterSheetCommandBaseDtoSchema.extend({
       type: z.literal('UPSERT_SHEET_ADJUSTMENT'),
       adjustment: z.union([
@@ -246,6 +271,7 @@ export const characterSheetCommandInputDtoSchema = z
     characterSheetCommandBaseDtoSchema.extend({
       type: z.literal('USE_SHEET_RESOURCE'),
       owner: characterResourceOwnerRefDtoSchema,
+      actionId: z.string().min(1).optional(),
       amount: z.number().int().positive().optional()
     }),
     characterSheetCommandBaseDtoSchema.extend({
@@ -271,10 +297,6 @@ export const characterSheetCommandInputDtoSchema = z
     characterSheetCommandBaseDtoSchema.extend({
       type: z.literal('USE_HIT_DIE'),
       die: z.number().int()
-    }),
-    characterSheetCommandBaseDtoSchema.extend({
-      type: z.literal('APPLY_REST'),
-      restKind: z.enum(['SHORT', 'LONG'])
     }),
     characterSheetCommandBaseDtoSchema.extend({
       type: z.literal('COMPLETE_REST'),
@@ -305,6 +327,7 @@ export const characterSheetCommandInputDtoSchema = z
     characterSheetCommandBaseDtoSchema.extend({
       type: z.literal('USE_RESOURCE'),
       resourceGrantId: z.string(),
+      actionId: z.string().min(1).optional(),
       amount: z.number().int().min(1).optional()
     }),
     characterSheetCommandBaseDtoSchema.extend({
@@ -461,6 +484,15 @@ export const characterSheetCommandResponseDtoSchema = z.object({
 
 export type CharacterRestPreviewRequestDto = z.infer<typeof characterRestPreviewRequestDtoSchema>
 export type CharacterRestPreviewResponseDto = z.infer<typeof characterRestPreviewResponseDtoSchema>
+export type CharacterRuleRevisionIdentityDto = z.infer<
+  typeof characterRuleRevisionIdentityDtoSchema
+>
+export type CharacterRuleUpgradePreviewRequestDto = z.infer<
+  typeof characterRuleUpgradePreviewRequestDtoSchema
+>
+export type CharacterRuleUpgradePreviewResponseDto = z.infer<
+  typeof characterRuleUpgradePreviewResponseDtoSchema
+>
 export type CharacterHistoryEntryDto = z.infer<typeof characterHistoryEntryDtoSchema>
 export type CharacterHistoryResponseDto = z.infer<typeof characterHistoryResponseDtoSchema>
 export type CharacterSheetCommandInputDto = z.infer<typeof characterSheetCommandInputDtoSchema>

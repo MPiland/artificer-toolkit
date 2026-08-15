@@ -15,9 +15,11 @@ import {
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderResolution } from './builderService.js'
+import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 
 const mocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
+  assertCommandAuthority: vi.fn(),
   findAllCreatures: vi.fn(),
   findAllVehicles: vi.fn(),
   findByCommandId: vi.fn(),
@@ -28,11 +30,16 @@ const mocks = vi.hoisted(() => ({
   listResourceUsage: vi.fn(),
   listSpellCustomizations: vi.fn(),
   patchSheetState: vi.fn(),
+  resolveRuleBinding: vi.fn(),
   removeAdjustment: vi.fn(),
   consumeRollForUser: vi.fn(),
+  evaluateActionStateChange: vi.fn(),
   findRollByIdForUser: vi.fn(),
+  loadCharacterBuilderContext: vi.fn(),
   resolveCharacterBuilder: vi.fn(),
+  buildSheetBundle: vi.fn(),
   setMovementPreference: vi.fn(),
+  setRulePackRevision: vi.fn(),
   setResourceUsage: vi.fn(),
   setSpellCustomization: vi.fn(),
   upsertAdjustment: vi.fn()
@@ -57,7 +64,8 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createCharacterRepository: () => ({
       findById: mocks.findById,
       findAuthoredById: mocks.findAuthoredById,
-      patchSheetState: mocks.patchSheetState
+      patchSheetState: mocks.patchSheetState,
+      setRulePackRevision: mocks.setRulePackRevision
     }),
     createCampaignContentRepository: () => ({
       findAssignedCampaign: async () => null
@@ -105,12 +113,46 @@ vi.mock('./builderService.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./builderService.js')>()
   return {
     ...actual,
+    loadCharacterBuilderContext: mocks.loadCharacterBuilderContext,
     resolveCharacterBuilder: mocks.resolveCharacterBuilder
   }
 })
 
-const { executeCharacterSheetCommand } = await import('./sheetService.js')
+vi.mock('./sheetProjection.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./sheetProjection.js')>()
+  return {
+    ...actual,
+    buildCharacterSheetBundle: mocks.buildSheetBundle
+  }
+})
+
+vi.mock('./characterRuleBinding.js', () => ({
+  resolveCharacterRuleBinding: mocks.resolveRuleBinding
+}))
+
+vi.mock('./characterActionEvaluation.js', () => ({
+  evaluateCharacterActionStateChange: mocks.evaluateActionStateChange
+}))
+
+vi.mock('../campaign/liveSessionCommandAuthority.js', () => ({
+  assertCharacterLiveSessionCommandAuthority: mocks.assertCommandAuthority
+}))
+
+vi.mock('./characterRuleEvaluation.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('./characterRuleEvaluation.js')>()
+  const { evaluateCharacterBuilderTestPolicy } =
+    await import('./characterBuilderRuleEvaluation.testUtils.js')
+  return { ...original, evaluateCharacterRulePolicy: evaluateCharacterBuilderTestPolicy }
+})
+
+const { executeCharacterSheetCommand, executeCharacterSheetCommandWithRuleEvaluation } =
+  await import('./sheetService.js')
 const { previewCharacterRest } = await import('./sheetRestService.js')
+const sheetProjection = await import('./sheetProjection.js')
+const { evaluateCharacterBuilderTestPolicy } =
+  await import('./characterBuilderRuleEvaluation.testUtils.js')
+const { projectCharacterRulePolicyToSheetProjection } =
+  await import('./characterRulePolicyAdapter.js')
 
 const emptyQuery = {
   select: () => emptyQuery,
@@ -191,6 +233,23 @@ function createResolution(): CharacterBuilderResolution {
       equipment: [],
       features: []
     },
+    sourceRegistry: {
+      system: {
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '2014',
+        currencies: [{ id: 'currency-1', label: 'Gold' }],
+        speeds: [
+          { id: 'speed-walk', code: 'WALK', label: 'Walking Speed' },
+          { id: 'speed-fly', code: 'FLY', label: 'Flying Speed' },
+          { id: 'speed-climb', code: 'CLIMB', label: 'Climbing Speed' }
+        ]
+      } as CharacterBuilderResolution['registry']['system'],
+      races: [],
+      classes: [],
+      backgrounds: [],
+      equipment: [],
+      features: []
+    },
     summary: {
       totalLevel: 1,
       abilities: { DEXTERITY: 14 },
@@ -238,8 +297,34 @@ function createCreature(overrides: Partial<CreatureAuthored> = {}): CreatureAuth
   }
 }
 
+async function buildPolicyTestSheetBundle(
+  params: Parameters<typeof sheetProjection.buildCharacterSheetResponse>[0]
+) {
+  const ruleEvaluation = await evaluateCharacterBuilderTestPolicy({
+    db: params.db,
+    character: params.character,
+    context: params.ruleEvaluation.context,
+    existingRevisionId: params.ruleEvaluation.revisionId,
+    expectedRevisionId: params.ruleEvaluation.revisionId,
+    adjustments: params.adjustments,
+    movementDisplayPreference: params.movementDisplayPreference,
+    resourceUsage: params.resourceUsage,
+    attunementSlotOverride: params.ruleEvaluation.attunementSlotOverride
+  })
+  const ruleProjection = projectCharacterRulePolicyToSheetProjection(ruleEvaluation)
+  return {
+    sheet: await sheetProjection.buildCharacterSheetResponse({
+      ...params,
+      committedRuleEvaluation: undefined
+    }),
+    ruleProjection,
+    ruleEvaluation
+  }
+}
+
 describe('executeCharacterSheetCommand persistence', () => {
   beforeEach(() => {
+    mocks.assertCommandAuthority.mockResolvedValue(undefined)
     mocks.appendEvent.mockReset()
     mocks.findAllCreatures.mockReset()
     mocks.findAllCreatures.mockResolvedValue([])
@@ -250,7 +335,15 @@ describe('executeCharacterSheetCommand persistence', () => {
     mocks.findAuthoredById.mockReset()
     mocks.consumeRollForUser.mockReset()
     mocks.consumeRollForUser.mockResolvedValue(true)
+    mocks.evaluateActionStateChange.mockReset()
+    mocks.evaluateActionStateChange.mockImplementation(
+      async ({ committed }: { committed: CharacterRuleEvaluationResult }) => ({
+        ruleEvaluation: committed,
+        zenEvaluationMs: 0
+      })
+    )
     mocks.findRollByIdForUser.mockReset()
+    mocks.loadCharacterBuilderContext.mockReset()
     mocks.getMovementPreference.mockReset()
     mocks.getMovementPreference.mockResolvedValue({ mode: 'AUTO' })
     mocks.listAdjustments.mockReset()
@@ -262,21 +355,38 @@ describe('executeCharacterSheetCommand persistence', () => {
     mocks.removeAdjustment.mockReset()
     mocks.upsertAdjustment.mockReset()
     mocks.resolveCharacterBuilder.mockReset()
+    mocks.buildSheetBundle.mockReset()
     mocks.setMovementPreference.mockReset()
+    mocks.setRulePackRevision.mockReset()
+    mocks.setRulePackRevision.mockResolvedValue(true)
     mocks.setResourceUsage.mockReset()
     mocks.setSpellCustomization.mockReset()
     mocks.patchSheetState.mockReset()
     mocks.findById.mockResolvedValue({
       id: 'character-1',
-      stream_version: 1
+      stream_version: 1,
+      rule_pack_revision_id: 'revision-1'
     })
     mocks.findByCommandId.mockResolvedValue(null)
     mocks.findAuthoredById.mockResolvedValue(createCharacter())
-    mocks.resolveCharacterBuilder.mockResolvedValue(createResolution())
+    const resolution = createResolution()
+    mocks.loadCharacterBuilderContext.mockResolvedValue({
+      catalog: resolution.catalog,
+      registry: resolution.sourceRegistry
+    })
+    mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
+    mocks.buildSheetBundle.mockImplementation(buildPolicyTestSheetBundle)
     mocks.patchSheetState.mockImplementation(async (_characterId, _patches, options) => {
       await options.afterPersist?.(db, 2)
       return 2
     })
+    mocks.resolveRuleBinding.mockImplementation(async ({ existingRevisionId }) => ({
+      revisionId: existingRevisionId ?? '00000000-0000-4000-8000-000000000202',
+      checksum: existingRevisionId ? 'current-checksum' : 'target-checksum',
+      evaluatorKind: 'ZEN',
+      evaluatorVersion: '0.54.0',
+      modelContractVersion: 5
+    }))
   })
 
   it('persists clearing inspiration as an explicit false patch', async () => {
@@ -302,6 +412,153 @@ describe('executeCharacterSheetCommand persistence', () => {
       expect.objectContaining({ expectedStreamVersion: 1 })
     )
     expect(response.sheet.overview.inspiration).toBe(false)
+  })
+
+  it('updates spell-slot availability through the bounded Character action lane', async () => {
+    mocks.buildSheetBundle.mockImplementation(async (params) => {
+      const bundle = await buildPolicyTestSheetBundle(params)
+      return {
+        ...bundle,
+        sheet: {
+          ...bundle.sheet,
+          spells: {
+            ...bundle.sheet.spells,
+            slots: [
+              {
+                slotKey: 'STANDARD:1',
+                label: 'Level 1',
+                level: 1,
+                used: 0,
+                max: 2,
+                remaining: 2
+              }
+            ]
+          }
+        }
+      }
+    })
+
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'USE_SPELL_SLOT',
+        commandId: '00000000-0000-4000-8000-000000000097',
+        expectedVersion: 1,
+        slotKey: 'STANDARD:1'
+      }
+    })
+
+    expect(mocks.patchSheetState).toHaveBeenCalledWith(
+      'character-1',
+      [{ kind: 'SPELL_SLOTS', value: [{ slotKey: 'STANDARD:1', used: 1 }] }],
+      expect.objectContaining({ expectedStreamVersion: 1 })
+    )
+    expect(mocks.evaluateActionStateChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        changedSpellSlotKey: 'STANDARD:1',
+        spellSlotUsage: [{ slotKey: 'STANDARD:1', used: 1 }]
+      })
+    )
+  })
+
+  it('falls back to the pinned full policy for pre-v5 spell play-state revisions', async () => {
+    let buildCount = 0
+    mocks.buildSheetBundle.mockImplementation(async (params) => {
+      const bundle = await buildPolicyTestSheetBundle(params)
+      buildCount += 1
+      return {
+        ...bundle,
+        ruleEvaluation:
+          buildCount === 1
+            ? {
+                ...bundle.ruleEvaluation,
+                binding: { ...bundle.ruleEvaluation.binding, modelContractVersion: 4 }
+              }
+            : bundle.ruleEvaluation,
+        sheet: {
+          ...bundle.sheet,
+          spells: {
+            ...bundle.sheet.spells,
+            slots: [
+              {
+                slotKey: 'STANDARD:1',
+                label: 'Level 1',
+                level: 1,
+                used: 0,
+                max: 2,
+                remaining: 2
+              }
+            ]
+          }
+        }
+      }
+    })
+
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'USE_SPELL_SLOT',
+        commandId: '00000000-0000-4000-8000-000000000096',
+        expectedVersion: 1,
+        slotKey: 'STANDARD:1'
+      }
+    })
+
+    expect(mocks.evaluateActionStateChange).not.toHaveBeenCalled()
+    expect(mocks.buildSheetBundle).toHaveBeenCalledTimes(2)
+    expect(mocks.buildSheetBundle.mock.calls[1]?.[0]).toEqual(
+      expect.objectContaining({ committedRuleEvaluation: undefined })
+    )
+  })
+
+  it('rejects spending through an unavailable action before persisting usage', async () => {
+    mocks.buildSheetBundle.mockImplementation(
+      async (params: Parameters<typeof sheetProjection.buildCharacterSheetResponse>[0]) => {
+        const bundle = await buildPolicyTestSheetBundle(params)
+        return {
+          ...bundle,
+          sheet: {
+            ...bundle.sheet,
+            actions: {
+              items: [
+                {
+                  id: 'action-wand-burst',
+                  label: 'Wand Burst',
+                  kind: 'ACTION' as const,
+                  availability: {
+                    status: 'UNAVAILABLE' as const,
+                    reasonCode: 'SOURCE_NOT_ATTUNED' as const
+                  },
+                  resourceGrantId: 'resource-wand-burst',
+                  resourceCost: 1
+                }
+              ]
+            }
+          }
+        }
+      }
+    )
+
+    await expect(
+      executeCharacterSheetCommand({
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command: {
+          type: 'USE_RESOURCE',
+          actionId: 'action-wand-burst',
+          commandId: '00000000-0000-4000-8000-000000000199',
+          expectedVersion: 1,
+          resourceGrantId: 'resource-wand-burst'
+        }
+      })
+    ).rejects.toThrow('Action "Wand Burst" is unavailable: Source Not Attuned.')
+    expect(mocks.patchSheetState).not.toHaveBeenCalled()
+    expect(mocks.setResourceUsage).not.toHaveBeenCalled()
   })
 
   it('clamps current HP when a maximum modifier adjustment lowers the effective maximum', async () => {
@@ -461,6 +718,108 @@ describe('executeCharacterSheetCommand persistence', () => {
     })
     expect(mocks.findAuthoredById).toHaveBeenCalledTimes(1)
     expect(mocks.resolveCharacterBuilder).toHaveBeenCalledTimes(1)
+    expect(mocks.buildSheetBundle).toHaveBeenLastCalledWith(
+      expect.objectContaining({ committedRuleEvaluation: expect.any(Object) })
+    )
+  })
+
+  it('reuses the matching committed rule context for play-state-only commands', async () => {
+    const character = createCharacter()
+    const resolution = createResolution()
+    const context = {
+      catalog: resolution.catalog,
+      registry: resolution.sourceRegistry
+    }
+    const committedRuleEvaluation = await evaluateCharacterBuilderTestPolicy({
+      db: db as unknown as DBLike,
+      character,
+      context,
+      existingRevisionId: 'revision-1',
+      expectedRevisionId: 'revision-1',
+      adjustments: [],
+      movementDisplayPreference: { mode: 'AUTO' },
+      resourceUsage: []
+    })
+    mocks.loadCharacterBuilderContext.mockClear()
+    mocks.resolveCharacterBuilder.mockClear()
+
+    const result = await executeCharacterSheetCommandWithRuleEvaluation({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      committedRuleSnapshot: {
+        streamVersion: 1,
+        evaluation: committedRuleEvaluation,
+        resolution
+      },
+      command: {
+        type: 'ADJUST_HIT_POINTS',
+        mode: 'DAMAGE',
+        amount: 1,
+        expectedVersion: 1,
+        commandId: '00000000-0000-4000-8000-000000000105'
+      }
+    })
+
+    expect(mocks.loadCharacterBuilderContext).not.toHaveBeenCalled()
+    expect(mocks.resolveCharacterBuilder).not.toHaveBeenCalled()
+    expect(mocks.buildSheetBundle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        committedRuleEvaluation,
+        ruleEvaluation: expect.objectContaining({ context })
+      })
+    )
+    expect(result.ruleSnapshot).toMatchObject({
+      streamVersion: 2,
+      resolution
+    })
+  })
+
+  it('rechecks and repins an explicit active rule upgrade in the versioned command transaction', async () => {
+    mocks.findById.mockResolvedValue({
+      id: 'character-1',
+      stream_version: 1,
+      rule_pack_revision_id: '00000000-0000-4000-8000-000000000201'
+    })
+
+    const response = await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'UPGRADE_RULE_PACK',
+        revisionId: '00000000-0000-4000-8000-000000000202',
+        expectedVersion: 1,
+        commandId: '00000000-0000-4000-8000-000000000203'
+      }
+    })
+
+    expect(mocks.resolveRuleBinding).toHaveBeenCalledWith(
+      expect.objectContaining({
+        existingRevisionId: null,
+        expectedRevisionId: '00000000-0000-4000-8000-000000000202'
+      })
+    )
+    expect(mocks.setRulePackRevision).toHaveBeenCalledWith(
+      'character-1',
+      '00000000-0000-4000-8000-000000000201',
+      '00000000-0000-4000-8000-000000000202'
+    )
+    expect(mocks.appendEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        commandType: 'UPGRADE_RULE_PACK',
+        summary: 'Character rules upgraded'
+      })
+    )
+    expect(mocks.resolveCharacterBuilder).toHaveBeenLastCalledWith(
+      db,
+      expect.any(Object),
+      'edit',
+      expect.any(Object),
+      null,
+      '00000000-0000-4000-8000-000000000202'
+    )
+    expect(response.streamVersion).toBe(2)
   })
 
   it('rejects commands for characters owned by another user', async () => {
@@ -499,18 +858,23 @@ describe('executeCharacterSheetCommand persistence', () => {
     })
     const persistedEvent = mocks.appendEvent.mock.calls[0]?.[0]
     expect(persistedEvent).toBeDefined()
-    mocks.findById.mockResolvedValue({ id: 'character-1', stream_version: 2 })
+    mocks.findById.mockResolvedValue({
+      id: 'character-1',
+      stream_version: 2,
+      rule_pack_revision_id: 'revision-1'
+    })
     mocks.findByCommandId.mockResolvedValue(persistedEvent)
 
-    const response = await executeCharacterSheetCommand({
+    const execution = await executeCharacterSheetCommandWithRuleEvaluation({
       db: db as unknown as DBLike,
       characterId: 'character-1',
       userId: 'user-1',
       command
     })
 
-    expect(response.streamVersion).toBe(2)
-    expect(response.historyEntry?.eventId).toBe(persistedEvent.eventId)
+    expect(execution.replayed).toBe(true)
+    expect(execution.response.streamVersion).toBe(2)
+    expect(execution.response.historyEntry?.eventId).toBe(persistedEvent.eventId)
     expect(mocks.patchSheetState).toHaveBeenCalledTimes(1)
     expect(mocks.appendEvent).toHaveBeenCalledTimes(1)
   })
@@ -538,8 +902,16 @@ describe('executeCharacterSheetCommand persistence', () => {
     )
     mocks.findById
       .mockReset()
-      .mockResolvedValueOnce({ id: 'character-1', stream_version: 1 })
-      .mockResolvedValue({ id: 'character-1', stream_version: 2 })
+      .mockResolvedValueOnce({
+        id: 'character-1',
+        stream_version: 1,
+        rule_pack_revision_id: 'revision-1'
+      })
+      .mockResolvedValue({
+        id: 'character-1',
+        stream_version: 2,
+        rule_pack_revision_id: 'revision-1'
+      })
     mocks.findByCommandId
       .mockReset()
       .mockResolvedValueOnce(null)
@@ -574,7 +946,11 @@ describe('executeCharacterSheetCommand persistence', () => {
     })
     const persistedEvent = mocks.appendEvent.mock.calls[0]?.[0]
     expect(persistedEvent).toBeDefined()
-    mocks.findById.mockResolvedValue({ id: 'character-1', stream_version: 2 })
+    mocks.findById.mockResolvedValue({
+      id: 'character-1',
+      stream_version: 2,
+      rule_pack_revision_id: 'revision-1'
+    })
     mocks.findByCommandId.mockResolvedValue(persistedEvent)
 
     await expect(
@@ -598,7 +974,8 @@ describe('executeCharacterSheetCommand persistence', () => {
   it('rejects stale expected versions before writing state or history', async () => {
     mocks.findById.mockResolvedValue({
       id: 'character-1',
-      stream_version: 2
+      stream_version: 2,
+      rule_pack_revision_id: 'revision-1'
     })
 
     await expect(
@@ -791,6 +1168,10 @@ describe('executeCharacterSheetCommand persistence', () => {
       }
     ]
     mocks.findAuthoredById.mockResolvedValue(character)
+    mocks.loadCharacterBuilderContext.mockResolvedValue({
+      catalog: resolution.catalog,
+      registry: resolution.sourceRegistry
+    })
     mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
     mocks.listSpellCustomizations.mockResolvedValue([
       {
@@ -969,32 +1350,31 @@ describe('executeCharacterSheetCommand persistence', () => {
       }
     ]
     mocks.findAuthoredById.mockResolvedValue(character)
-    mocks.findAllCreatures.mockResolvedValue([
-      createCreature({
-        features: [
-          {
-            id: featureId,
-            label: 'Keen Senses',
-            description: 'Focus your senses.',
-            order: 1,
-            charges: {
-              id: chargeId,
-              resetKind: 'MANUAL',
-              limitKind: 'FIXED_AMOUNT',
-              scalingKind: 'NONE',
-              amount: 2
-            }
+    const creature = createCreature({
+      features: [
+        {
+          id: featureId,
+          label: 'Keen Senses',
+          description: 'Focus your senses.',
+          order: 1,
+          charges: {
+            id: chargeId,
+            resetKind: 'MANUAL',
+            limitKind: 'FIXED_AMOUNT',
+            scalingKind: 'NONE',
+            amount: 3
           }
-        ]
-      })
-    ])
+        }
+      ]
+    })
+    mocks.findAllCreatures.mockResolvedValue([creature])
     const owner = {
       kind: 'COMPANION_FEATURE' as const,
       companionInstanceId,
       featureId,
       chargeId
     }
-    let usage: Array<{ id: string; owner: typeof owner; used: number }> = []
+    let usage: Array<{ id: string; owner: CharacterResourceOwnerKey; used: number }> = []
     mocks.listResourceUsage.mockImplementation(async () => usage)
     mocks.setResourceUsage.mockImplementation(async (input) => {
       usage = input.used === 0 ? [] : [{ id: input.id, owner: input.owner, used: input.used }]
@@ -1015,8 +1395,16 @@ describe('executeCharacterSheetCommand persistence', () => {
       expect.objectContaining({ owner, used: 1 })
     )
     expect(used.sheet.resources.items).toContainEqual(expect.objectContaining({ owner, used: 1 }))
+    expect(mocks.loadCharacterBuilderContext).toHaveBeenCalledTimes(1)
+    expect(mocks.evaluateActionStateChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ changedPoolId: createCharacterResourceOwnerKey(owner) })
+    )
 
-    mocks.findById.mockResolvedValue({ id: 'character-1', stream_version: 2 })
+    mocks.findById.mockResolvedValue({
+      id: 'character-1',
+      stream_version: 2,
+      rule_pack_revision_id: 'revision-1'
+    })
     const recovered = await executeCharacterSheetCommand({
       db: db as unknown as DBLike,
       characterId: 'character-1',
@@ -1037,7 +1425,11 @@ describe('executeCharacterSheetCommand persistence', () => {
     )
 
     const resourceGrantId = createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(owner))
-    mocks.findById.mockResolvedValue({ id: 'character-1', stream_version: 3 })
+    mocks.findById.mockResolvedValue({
+      id: 'character-1',
+      stream_version: 3,
+      rule_pack_revision_id: 'revision-1'
+    })
     const legacyUsed = await executeCharacterSheetCommand({
       db: db as unknown as DBLike,
       characterId: 'character-1',
@@ -1047,17 +1439,45 @@ describe('executeCharacterSheetCommand persistence', () => {
         expectedVersion: 3,
         commandId: '00000000-0000-4000-8000-000000000112',
         resourceGrantId,
-        amount: 2
+        amount: 3
       }
     })
     expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
-      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 2 })
+      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 3 })
     )
     expect(legacyUsed.sheet.resources.items).toContainEqual(
-      expect.objectContaining({ owner, used: 2 })
+      expect.objectContaining({ owner, used: 3 })
     )
 
-    mocks.findById.mockResolvedValue({ id: 'character-1', stream_version: 4 })
+    const patchCount = mocks.patchSheetState.mock.calls.length
+    const eventCount = mocks.appendEvent.mock.calls.length
+    mocks.findById.mockResolvedValue({
+      id: 'character-1',
+      stream_version: 4,
+      rule_pack_revision_id: 'revision-1'
+    })
+    await expect(
+      executeCharacterSheetCommand({
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command: {
+          type: 'USE_SHEET_RESOURCE',
+          expectedVersion: 4,
+          commandId: '00000000-0000-4000-8000-000000000116',
+          owner
+        }
+      })
+    ).rejects.toThrow('only has 0 uses remaining')
+    expect(mocks.patchSheetState).toHaveBeenCalledTimes(patchCount)
+    expect(mocks.setResourceUsage).toHaveBeenCalledTimes(3)
+    expect(mocks.appendEvent).toHaveBeenCalledTimes(eventCount)
+
+    mocks.findById.mockResolvedValue({
+      id: 'character-1',
+      stream_version: 4,
+      rule_pack_revision_id: 'revision-1'
+    })
     await expect(
       executeCharacterSheetCommand({
         db: db as unknown as DBLike,
@@ -1086,11 +1506,131 @@ describe('executeCharacterSheetCommand persistence', () => {
       }
     })
     expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
-      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 1 })
+      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 2 })
     )
     expect(legacyRecovered.sheet.resources.items).toContainEqual(
-      expect.objectContaining({ owner, used: 1 })
+      expect.objectContaining({ owner, used: 2 })
     )
+
+    usage = [
+      {
+        id: 'raw-overcap-usage',
+        owner: toCharacterResourceOwnerKey(owner),
+        used: 7
+      }
+    ]
+    mocks.findById.mockResolvedValue({
+      id: 'character-1',
+      stream_version: 4,
+      rule_pack_revision_id: 'revision-1'
+    })
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'RESTORE_RESOURCE',
+        expectedVersion: 4,
+        commandId: '00000000-0000-4000-8000-000000000115',
+        resourceGrantId,
+        amount: 1
+      }
+    })
+    expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 6 })
+    )
+
+    usage = [
+      {
+        id: 'raw-overcap-usage',
+        owner: toCharacterResourceOwnerKey(owner),
+        used: 7
+      }
+    ]
+    mocks.findAllCreatures.mockResolvedValue([
+      createCreature({
+        features: [
+          {
+            id: featureId,
+            label: 'Keen Senses',
+            description: 'Focus your senses.',
+            order: 1,
+            charges: {
+              id: chargeId,
+              resetKind: 'MANUAL',
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: 'NONE',
+              amount: 10
+            }
+          }
+        ]
+      })
+    ])
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'USE_SHEET_RESOURCE',
+        expectedVersion: 4,
+        commandId: '00000000-0000-4000-8000-000000000117',
+        owner
+      }
+    })
+    expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 8 })
+    )
+
+    const buildCharacterSheetResponse = sheetProjection.buildCharacterSheetResponse
+    const projectionSpy = vi
+      .spyOn(sheetProjection, 'buildCharacterSheetResponse')
+      .mockImplementation(async (params) => {
+        const sheet = await buildCharacterSheetResponse(params)
+        return {
+          ...sheet,
+          resources: {
+            ...sheet.resources,
+            items: sheet.resources.items.map((resource) =>
+              createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(resource.owner)) ===
+              resourceGrantId
+                ? { ...resource, used: 2, remaining: 1 }
+                : resource
+            )
+          }
+        }
+      })
+    usage = []
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'USE_RESOURCE',
+        expectedVersion: 4,
+        commandId: '00000000-0000-4000-8000-000000000118',
+        resourceGrantId
+      }
+    })
+    expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 3 })
+    )
+
+    usage = []
+    await executeCharacterSheetCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        type: 'RESTORE_RESOURCE',
+        expectedVersion: 4,
+        commandId: '00000000-0000-4000-8000-000000000119',
+        resourceGrantId
+      }
+    })
+    expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 1 })
+    )
+    projectionSpy.mockRestore()
   })
 
   it('persists charged spell casts by their spell-source owner', async () => {
@@ -1188,6 +1728,12 @@ describe('executeCharacterSheetCommand persistence', () => {
         magicSchoolId: 'ABJURATION'
       }
     ]
+    resolution.sourceRegistry.classes = resolution.registry.classes
+    resolution.sourceRegistry.features = resolution.registry.features
+    mocks.loadCharacterBuilderContext.mockResolvedValue({
+      catalog: resolution.catalog,
+      registry: resolution.sourceRegistry
+    })
     mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
 
     const sourceInstanceId = 'CLASS:wizard:wizard:limited-feature:limited-grant'
@@ -1220,6 +1766,9 @@ describe('executeCharacterSheetCommand persistence', () => {
 
     expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
       expect.objectContaining({ owner, used: 1 })
+    )
+    expect(mocks.evaluateActionStateChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ changedPoolId: createCharacterResourceOwnerKey(owner) })
     )
     expect(response.sheet.resources.items).toContainEqual(
       expect.objectContaining({

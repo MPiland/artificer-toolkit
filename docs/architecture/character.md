@@ -6,7 +6,7 @@
 >
 > Update when: Builder DTOs, provenance rules, commit conflict checks, snapshot assembly, Sheet commands, or character persistence changes
 >
-> Verification: `apps/apis/src/trpc/characterRouter.ts`; `packages/functions/src/services/character/characterApplicationService.ts`, `builderService.ts`, `builderEligibility.ts`, `builderReconciliation.ts`, `characterBuilderView.ts`, `characterEngine.ts`, `sheetProjection.ts`, `sheetRestService.ts`, `sheetCommandReducer.ts`, `sheetCommandValidation.ts`, and `sheetService.ts`; `packages/db/src/domains/subjects/upserts/character.ts`; and character schema/tests
+> Verification: `apps/apis/src/trpc/characterRouter.ts`; `packages/functions/src/services/character/characterApplicationService.ts`, `builderService.ts`, `builderEligibility.ts`, `builderReconciliation.ts`, `characterBuilderView.ts`, `characterRuleEvaluation.ts`, `sheetProjection.ts`, `sheetRestService.ts`, `sheetCommandReducer.ts`, `sheetCommandValidation.ts`, and `sheetService.ts`; `packages/db/src/domains/subjects/upserts/character.ts`; and character schema/tests
 
 Characters are playable aggregates, not generic authored-content forms. Builder owns structural character changes; Sheet owns play-state interaction. Both use shared authored models, repositories, compiled content, and engine primitives, but their workflows and contracts remain separate.
 
@@ -16,7 +16,7 @@ sequenceDiagram
   participant API as tRPC characters
   participant B as Builder service
   participant DB as repositories
-  participant E as pure engine
+   participant E as versioned Zen evaluator
   participant S as Sheet
   UI->>API: draft/save/resolve
   API->>B: load registry + reconcile + resolve
@@ -27,7 +27,7 @@ sequenceDiagram
   S->>API: sheet / command
   API->>B: sheet read/command use case
   B->>DB: hydrate authored + state/history
-  B->>E: assemble snapshot + registry
+   B->>E: normalize facts + evaluate exact revision
   E-->>S: derived stats and play output
   B->>DB: persist Sheet command state/event
 ```
@@ -66,7 +66,9 @@ Builder registry catalog reads must scale with relation shape, not the number of
 
 ## Preview, commit, and conflicts
 
-`previewSave` reconciles and resolves a proposed authored character, predicts status changes and destructive removals, and returns a change preview. It is safe to display before commit.
+`previewSave` reconciles and resolves a proposed authored character against the current compatible active rule revision, predicts status changes and destructive removals, and returns a change preview. It is safe to display before commit.
+
+First finalization rechecks the active compatible revision inside the locked commit transaction and records its exact revision/checksum plus evaluator and model-contract versions with the Character. An explicit upgrade preview/reconciliation command is the only later path to change that pin, and it advances the Character stream version.
 
 `upsert` requires readiness, locks the active row, checks the draft’s `baseActiveUpdatedAt` (and stream version where supplied), then calls the repository aggregate upsert. On success it ensures route identity, deletes the builder draft, and returns the persisted character/resolution. A stale active row becomes `CharacterBuilderDraftConflictError`/tRPC `CONFLICT`.
 
@@ -76,7 +78,7 @@ The repository upsert is replacement-based and transactional; omitted child stat
 
 Sheet roll controls call the authenticated roll service with structured source context. The service owns randomness and returns immutable evidence; the web only presents that result. Non-manual requests must match a roll surface derived from the current Sheet projection. Ability checks, saves, skills, initiative, attacks, damage, healing, manual dice, and short-rest hit dice use this path; applying hit-die healing also references the persisted roll by ID. Canceling an unsettled presentation discards that caller-owned, unconsumed record so it never becomes visible roll history. The engine projects resolved initiative, saving-throw, and attack advantage/disadvantage modes; paired advantage and disadvantage cancel. Manual one-d20 rolls may choose a situational mode in the dice popover. Manual mixed-dice rows retain one modifier per dice term in evidence while preserving the aggregate modifier used by existing verification. Numeric modifiers apply once after the kept d20 is selected. Device-local presentation settings never affect roll authority.
 
-The Sheet path only serves active characters. It hydrates authored character/state plus separately persisted typed adjustments/preferences, resolves Builder content for labels/choices, assembles a `CharacterBuildSnapshot` containing both automatic structural features and explicit acquisitions, loads a compiled registry, and runs the pure engine before projecting the `CharacterSheetResponseDto`. Optional manual source notes, actors, and timestamps remain Sheet metadata; only typed mechanical value intent is eligible for engine assembly. Authored engine provenance retains its authoritative source labels independently of those notes.
+The Sheet path only serves active characters. It hydrates authored character/state plus separately persisted typed adjustments/preferences, resolves Builder content for labels/choices, normalizes facts containing both automatic structural features and explicit acquisitions, and evaluates the Character's exact pinned Zen revision before projecting the `CharacterSheetResponseDto`. Optional manual source notes, actors, and timestamps remain Sheet metadata; only typed mechanical value intent is eligible for rules evaluation. Authored provenance retains its authoritative source labels independently of those notes.
 
 One Campaign-aware authority resolver gates Sheet reads, panels, rests, rolls, history, and commands. The Character owner retains ordinary Sheet access; the active Campaign owner may access an assigned Character and issue only the explicit GM command allowlist. Archived Campaigns are readable but reject mutations. Builder reads and structural mutations remain Character-owner-only.
 
@@ -84,7 +86,7 @@ The main Sheet reference projection keeps canonical skills and saving throws in 
 
 Focused Sheet inspection uses the closed `CharacterSheetPanelDto` union. The backend panel resolver combines engine-authored effective values and breakdowns with Sheet-owned labels, notes, editability, valid options, and allowed commands. These DTOs contain design-system semantics only; drawer geometry, responsive composition, focus behavior, and native control selection remain client responsibilities. The web exhaustively maps panel variants into one overlay inspector and does not recalculate mechanics.
 
-Functions modules follow those ownership boundaries directly. Builder loading/resolution orchestration stays in `builderService`; eligibility, reconciliation, hit points, spell selection, starting equipment, presentation, and DTO view construction have named sibling owners. `characterEngine` adapts the resolved Character into pure engine input. Sheet projection, completed-rest policy, pure command reduction, command validation, and transactional persistence are owned by `sheetProjection`, `sheetRestService`, `sheetCommandReducer`, `sheetCommandValidation`, and `sheetService` respectively. Callers import the real owner rather than a compatibility facade.
+Functions modules follow those ownership boundaries directly. Builder loading/resolution orchestration stays in `builderService`; eligibility, reconciliation, hit points, spell selection, starting equipment, presentation, and DTO view construction have named sibling owners. `characterRuleEvaluation` is the production mechanical boundary; the superseded TypeScript mechanics engine has been removed. Sheet projection, completed-rest orchestration, pure command reduction, command validation, and transactional persistence are owned by `sheetProjection`, `sheetRestService`, `sheetCommandReducer`, `sheetCommandValidation`, and `sheetService` respectively. Callers import the real owner rather than a compatibility facade.
 
 ### Web Sheet state and composition
 
@@ -99,6 +101,8 @@ The web Character domain exposes only its list and Sheet pages through `apps/web
 `CharacterSheetView` owns command dispatch, navigation, inspector focus restoration, and coordination of the one active Sheet overlay. Feature components receive only the Sheet slices and callbacks they use. Rest remains one public feature interface with private state, preview-content, recovery-summary, and responsive-overlay modules; the mobile drawer/desktop popover switch is presentation owned by that feature at `48rem`. The Sheet does not add a React context because current coordination is shallow and TanStack Query already owns authoritative and optimistic server state.
 
 Character content selections store stable authored root IDs. Outside a Campaign they resolve against `ACTIVE` content. Assigned Characters may additionally bind a selected root to an immutable approved Campaign content version. Builder registry loading and assembly merge those pinned snapshots before planning the engine snapshot, including root feature and ancestry structure; the engine remains persistence-agnostic.
+
+Rule evaluation is a separate pin: active Characters retain the exact activated rule revision/checksum and evaluator/model-contract version selected at first finalization. Later rule-pack activation or retirement never silently changes them. An explicit upgrade preview/reconciliation command may re-evaluate against a current compatible revision and repin it transactionally; that command increments the Character stream version. This does not pin ordinary authored content, which continues to follow its current or Campaign binding.
 
 Sheet commands (typed adjustments, movement-display preference, rest, hit points, spell casting and slots, resources, conditions, exhaustion, runtime inventory add/remove/update, equipment/container placement, currency movement, and play notes) are dispatched through `dispatchCommandForUser`/`executeCharacterSheetCommand`, validated against the resolved viewer, persisted atomically, and returned with updated sheet data. Campaign-owner commands are restricted to approved play mechanics; player adjustments, private notes/customization, structural changes, and legacy inventory/currency custody commands remain denied. Typed resource and limited-use spell commands validate against resolved resource definitions, then persist usage through the typed resource repository path; the pure reducer does not duplicate that usage into `CharacterAuthored.state.resources`. Adjustment and preference commands also return the affected authoritative panel projections so immediate Sheet controls can replace optimistic local input with server truth. `commandId` is retry-idempotent per character: the event repository checks prior application and the database enforces a unique `(character_id, command_id)` pair.
 

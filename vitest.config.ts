@@ -31,7 +31,8 @@ export default defineConfig({
       'packages/db/src/__tests__/**/*.test.ts',
       'packages/functions/src/__tests__/**/*.test.ts',
       'packages/functions/src/**/*.test.ts',
-      'apps/apis/src/**/*.test.ts'
+      'apps/apis/src/**/*.test.ts',
+      'apps/session-host/src/**/*.test.ts'
     ]
   }
 })

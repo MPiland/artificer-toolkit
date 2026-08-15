@@ -82,6 +82,12 @@ vi.mock('@artificer-toolkit/db', () => ({
   })
 }))
 
+vi.mock('./characterRuleEvaluation.js', async () => {
+  const { evaluateCharacterBuilderTestPolicy } =
+    await import('./characterBuilderRuleEvaluation.testUtils.js')
+  return { evaluateCharacterRulePolicy: evaluateCharacterBuilderTestPolicy }
+})
+
 import { createEmptyCharacterAuthored, resolveCharacterBuilder } from './builderService.js'
 import { reconcileCharacterBuilderCharacter } from './builderReconciliation.js'
 

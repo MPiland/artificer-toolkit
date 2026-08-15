@@ -169,12 +169,28 @@ export async function saveCampaignAdjustment(
     assertCampaignWritable(authority)
     await assertAssignedCharacter(trx, authority, input.characterId)
 
-    const character = await createCharacterRepository(trx).findAuthoredById(input.characterId)
-    if (!character) throw new CampaignValidationError('Assigned character is unavailable.')
+    const characterRepository = createCharacterRepository(trx)
+    const [character, row] = await Promise.all([
+      characterRepository.findAuthoredById(input.characterId),
+      characterRepository.findById(input.characterId)
+    ])
+    if (!character || !row) {
+      throw new CampaignValidationError('Assigned character is unavailable.')
+    }
+    if (!row.rule_pack_revision_id) {
+      throw new CampaignValidationError('Assigned character has no pinned rule revision.')
+    }
     const adjustment = characterSheetAdjustmentCommandDtoSchema.parse(input.adjustment)
     validateSheetAdjustmentTarget(
       adjustment,
-      await resolveCharacterBuilder(trx, character, 'edit'),
+      await resolveCharacterBuilder(
+        trx,
+        character,
+        'edit',
+        undefined,
+        null,
+        row.rule_pack_revision_id
+      ),
       character
     )
     const { id: _commandId, ...payload } = adjustment

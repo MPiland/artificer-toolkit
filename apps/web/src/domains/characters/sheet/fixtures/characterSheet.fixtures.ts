@@ -285,6 +285,7 @@ export const characterSheetFixture = {
         id: 'equipment-staff:attack',
         label: 'Quarterstaff',
         kind: 'ACTION',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Equipment',
         description: '<p>A sturdy staff marked with research notches and salt stains.</p>',
         rollable: true,
@@ -310,6 +311,7 @@ export const characterSheetFixture = {
         id: 'action-trance',
         label: 'Trance',
         kind: 'OTHER',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Elf',
         description: '<p>Meditate deeply instead of sleeping, remaining semiconscious.</p>'
       }

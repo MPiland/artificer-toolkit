@@ -139,23 +139,27 @@ The engine-facing snapshot assembled from authored character intent/state and co
 
 ### Content reference
 
-A stable authored root ID plus a binding policy. Current structural character selections store stable root IDs and resolve them against `ACTIVE` content. Equipment engine inputs additionally carry an explicit `ContentRef` with system ID and `ACTIVE` binding. Historical revision pinning is unsupported because authored revision history is not retained.
+A stable authored root ID plus a binding policy. Current structural character selections store stable root IDs and resolve them against `ACTIVE` content. Equipment inputs additionally carry an explicit `ContentRef` with system ID and `ACTIVE` binding. Historical authored-content revision pinning is unsupported because authored revision history is not retained. A Character rule-revision pin is separate from content binding.
 
 ### Character assembly registry
 
 The compiled content registry supplied to the engine for the character's selected race, classes, features, grants, equipment, and related content.
 
-### Rules system
+### Rules evaluator
 
-The D&D-5e-family policy contract supplied to the pure character engine. The current engine is deterministic and side-effect-free and injects 5e policy such as arithmetic, stacking, and grant ordering. Future non-5e games should use system-specific engine contracts behind the ruleset registry seam rather than being forced through this D&D-shaped kernel.
+The embedded, versioned Zen runtime that makes production game-system decisions for Character, Encounter, and future VTT mechanics. It consumes TypeScript-normalized facts with stable IDs/provenance and returns typed mechanics, explanations, and source IDs. Native trace output is diagnostic only. Arbitrary Function nodes and all I/O, wall-clock, random, authentication, persistence, or mutation access are forbidden. The bounded, exact repository-owned `character-grant-fold`, `character-action-resolve`, and `encounter-actor-policy` models are the only Function exceptions; their complete graphs and source are server-locked and hidden from Rule Studio. Application-owned dice is supplied as facts.
+
+### Rule revision pin
+
+The exact activated rule-pack revision, checksum, evaluator kind/version, and model-contract version bound to a Character at first finalization or to an Encounter under its existing lifecycle policy. A Character draft preview uses the current compatible active revision; a finalized Character changes pins only through an explicit transactional upgrade/reconciliation command that increments its stream version. Retirement does not invalidate a pin. This pin does not make current or Campaign-bound authored content historically replayable.
 
 ### Derived output
 
-Engine-produced values such as derived statistics, proficiencies, senses, spell state, spell slots, resources, and item contributions. Derived output is not authored intent and should not be persisted as a second source of truth.
+Rules-evaluator-produced values such as derived statistics, proficiencies, senses, spell state, spell slots, resources, and item contributions. Derived output is not authored intent and should not be persisted as a second source of truth.
 
 ### Encounter event
 
-A future Encounter-scoped immutable fact about an encounter, actor, action, target, roll, or outcome. Encounter events are distinct from character Sheet commands/history. The pure character engine may help resolve actor state, but it does not own encounter sequencing or persistence.
+An Encounter-scoped immutable fact about an encounter, actor, action, target, roll, or outcome. Encounter events are distinct from Character Sheet commands/history. Pinned rule models resolve mechanics, while Encounter services own sequencing, transactional application, and persistence.
 
 ## Architectural invariants
 

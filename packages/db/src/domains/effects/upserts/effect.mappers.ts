@@ -43,6 +43,8 @@ export type EffectInvocationRow = {
   trigger_code: string
   activation_type: string
   activation_value: number | null
+  resource_charge_id: string | null
+  resource_cost: number | null
   range_characteristic_id: string
   shape_characteristic_id: string | null
   saving_throw_id: string | null
@@ -414,6 +416,8 @@ export function mapEffectRow(json_data: EffectAuthored): EffectRow {
 
 export function mapInvocationRow(json_data: EffectAuthored): EffectInvocationRow {
   const isPassive = json_data.invocation.kind === EFFECT_INVOCATION_KIND.PASSIVE
+  const resourceUse =
+    'resourceUse' in json_data.invocation ? json_data.invocation.resourceUse : undefined
   const activation =
     'activation' in json_data.invocation
       ? json_data.invocation.activation
@@ -424,6 +428,8 @@ export function mapInvocationRow(json_data: EffectAuthored): EffectInvocationRow
     trigger_code: requireTriggerCode(json_data.id, json_data.invocation.triggerCode),
     activation_type: requireActivationCode(json_data.id, activation.code),
     activation_value: isPassive ? -1 : 'amount' in activation ? activation.amount : null,
+    resource_charge_id: isPassive ? null : (resourceUse?.chargeId ?? null),
+    resource_cost: isPassive ? null : (resourceUse?.cost ?? null),
     range_characteristic_id: json_data.invocation.range.id,
     shape_characteristic_id: json_data.invocation.shape?.id ?? null,
     saving_throw_id:

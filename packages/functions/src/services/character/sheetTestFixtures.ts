@@ -2,8 +2,10 @@ import type { DBLike } from '@artificer-toolkit/db'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import { SPELLCASTING_ATTRIBUTE } from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderResolution } from './builderService.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CharacterSheetRuleProjection } from './characterSheetRuleProjection.js'
 
 export function createCharacter(overrides: Partial<CharacterAuthored> = {}): CharacterAuthored {
   return {
@@ -72,6 +74,88 @@ export function createCharacter(overrides: Partial<CharacterAuthored> = {}): Cha
         }
       ]
     },
+    ...overrides
+  }
+}
+
+export function createEmptyCharacterSheetRuleProjection(
+  overrides: Partial<CharacterSheetRuleProjection> = {}
+): CharacterSheetRuleProjection {
+  const numericCalculation = (value: number) => ({
+    base: value,
+    contributions: [],
+    effective: value
+  })
+
+  return {
+    characterId: 'character-1',
+    systemId: 'system-1',
+    proficiencies: [],
+    senses: [],
+    defenses: [],
+    derivedStats: {
+      proficiencyBonus: 2,
+      abilityScores: {},
+      abilityModifiers: {},
+      savingThrows: {},
+      skillBonuses: {},
+      skillGoverningAbilities: {},
+      passiveChecks: {},
+      movementSpeeds: [],
+      initiative: 0,
+      armorClass: 10,
+      maxHitPoints: 0
+    },
+    calculations: {
+      proficiencyBonus: numericCalculation(2),
+      abilityScores: {},
+      abilityModifiers: {},
+      savingThrowProficiencyLevels: {},
+      savingThrows: {},
+      skillGoverningAbilities: {},
+      skillProficiencyLevels: {},
+      skillBonuses: {},
+      passiveChecks: {},
+      movementSpeeds: {},
+      senseRanges: {},
+      initiative: numericCalculation(0),
+      armorClass: numericCalculation(10),
+      maxHitPoints: numericCalculation(0)
+    },
+    rollModes: {
+      initiative: 'NORMAL',
+      abilityChecks: {
+        CHARISMA: 'NORMAL',
+        CONSTITUTION: 'NORMAL',
+        DEXTERITY: 'NORMAL',
+        INTELLIGENCE: 'NORMAL',
+        STRENGTH: 'NORMAL',
+        WISDOM: 'NORMAL'
+      },
+      savingThrows: {
+        CHARISMA: 'NORMAL',
+        CONSTITUTION: 'NORMAL',
+        DEXTERITY: 'NORMAL',
+        INTELLIGENCE: 'NORMAL',
+        STRENGTH: 'NORMAL',
+        WISDOM: 'NORMAL'
+      },
+      skillChecks: {},
+      attacks: {
+        MELEE: 'NORMAL',
+        RANGED: 'NORMAL',
+        SPELL: 'NORMAL',
+        UNARMED: 'NORMAL'
+      }
+    },
+    spellSlots: { maxByLevel: {}, fusionStrategy: 'NONE' },
+    resources: [],
+    spellMechanics: [],
+    spellAccess: [],
+    itemMechanics: [],
+    companions: [],
+    activeItemContributions: [],
+    equipmentFeatureChargeUses: [],
     ...overrides
   }
 }
@@ -235,7 +319,8 @@ export function createSheet(
 
 export function createConditionDb(
   rows: Array<{ id: string; code: string; label: string; description?: string | null }> = [],
-  rowsByTable: Readonly<Record<string, unknown[]>> = {}
+  rowsByTable: Readonly<Record<string, unknown[]>> = {},
+  ruleSpells: readonly SpellAuthored[] = []
 ): DBLike {
   type TestQueryBuilder = {
     select: (...args: unknown[]) => TestQueryBuilder
@@ -259,6 +344,7 @@ export function createConditionDb(
   }
 
   return {
+    __characterRuleTestSpells: ruleSpells,
     selectFrom: (table: string) =>
       createQueryBuilder(rowsByTable[table] ?? (table === 'condition_types' ? rows : []))
   } as unknown as DBLike
@@ -294,6 +380,38 @@ export function createSystem(
 }
 
 export function createResolution(): CharacterBuilderResolution {
+  const sourceRegistry: CharacterBuilderResolution['registry'] = {
+    system: createSystem(),
+    races: [],
+    classes: [
+      {
+        id: 'subclass-1',
+        label: 'Battle Master',
+        category: 'SUBCLASS',
+        parentClassId: 'class-1',
+        specializations: [{ id: 'subclass-choice-1', label: 'Battle Master', order: 1 }],
+        resources: {
+          id: 'resource-1',
+          label: 'Superiority Dice',
+          description: 'Spend a die to fuel combat maneuvers.',
+          availableAtLevel: 1,
+          charges: {
+            id: 'charge-1',
+            resetKind: 'SHORT_REST',
+            limitKind: 'FIXED_AMOUNT',
+            scalingKind: 'NONE',
+            amount: 4
+          }
+        },
+        systemId: 'system-1',
+        userId: 'user-1'
+      }
+    ],
+    backgrounds: [],
+    equipment: [],
+    features: []
+  }
+
   return {
     mode: 'edit',
     catalog: {
@@ -302,38 +420,12 @@ export function createResolution(): CharacterBuilderResolution {
       backgrounds: [],
       equipment: [],
       feats: [],
-      spells: []
+      spells: [
+        createSpell({ classIds: ['class-1'], id: 'spell-1', label: 'Test Spell', level: 1 })
+      ]
     },
-    registry: {
-      system: createSystem(),
-      races: [],
-      classes: [
-        {
-          id: 'subclass-1',
-          label: 'Battle Master',
-          category: 'SUBCLASS',
-          parentClassId: 'class-1',
-          resources: {
-            id: 'resource-1',
-            label: 'Superiority Dice',
-            description: 'Spend a die to fuel combat maneuvers.',
-            availableAtLevel: 1,
-            charges: {
-              id: 'charge-1',
-              resetKind: 'SHORT_REST',
-              limitKind: 'FIXED_AMOUNT',
-              scalingKind: 'NONE',
-              amount: 4
-            }
-          },
-          systemId: 'system-1',
-          userId: 'user-1'
-        }
-      ],
-      backgrounds: [],
-      equipment: [],
-      features: []
-    },
+    registry: sourceRegistry,
+    sourceRegistry,
     summary: {
       totalLevel: 3,
       abilities: { DEXTERITY: 14 },
@@ -475,6 +567,22 @@ export function createSpell(params: {
   }
 }
 
+export function createAuthoredSpell(params: {
+  classIds: string[]
+  effects?: SpellAuthored['effects']
+  id: string
+  label: string
+  level: number
+}): SpellAuthored {
+  return {
+    kind: 'SPELL',
+    ...createSpell(params),
+    ...(params.effects ? { effects: params.effects } : {}),
+    userId: 'user-1',
+    systemId: 'system-1'
+  }
+}
+
 export function createEquipment(params: {
   armorClass?: number
   category: CharacterBuilderResolution['registry']['equipment'][number]['category']
@@ -549,6 +657,24 @@ export function createExecuteCharacter(
 }
 
 export function createExecuteResolution(): CharacterBuilderResolution {
+  const sourceRegistry: CharacterBuilderResolution['registry'] = {
+    system: {
+      rulesetCode: 'dnd5e',
+      rulesetVersion: '2014',
+      currencies: [{ id: 'currency-1', label: 'Gold' }],
+      speeds: [
+        { id: 'speed-walk', code: 'WALK', label: 'Walking Speed' },
+        { id: 'speed-fly', code: 'FLY', label: 'Flying Speed' },
+        { id: 'speed-climb', code: 'CLIMB', label: 'Climbing Speed' }
+      ]
+    } as CharacterBuilderResolution['registry']['system'],
+    races: [],
+    classes: [],
+    backgrounds: [],
+    equipment: [],
+    features: []
+  }
+
   return {
     mode: 'edit',
     catalog: {
@@ -576,6 +702,7 @@ export function createExecuteResolution(): CharacterBuilderResolution {
       equipment: [],
       features: []
     },
+    sourceRegistry,
     summary: {
       totalLevel: 1,
       abilities: { DEXTERITY: 14 },

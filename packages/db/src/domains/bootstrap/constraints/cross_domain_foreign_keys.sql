@@ -833,3 +833,20 @@ BEGIN
   END IF;
 END;
 $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'characters_rule_pack_revision_id_fkey'
+      AND conrelid = 'public.characters'::regclass
+  ) THEN
+    ALTER TABLE public.characters
+      ADD CONSTRAINT characters_rule_pack_revision_id_fkey
+      FOREIGN KEY (rule_pack_revision_id)
+      REFERENCES public.rule_pack_revisions (id)
+      ON DELETE RESTRICT;
+  END IF;
+END;
+$$;

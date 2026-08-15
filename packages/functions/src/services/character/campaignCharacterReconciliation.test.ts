@@ -3,6 +3,7 @@ import type { DBLike } from '@artificer-toolkit/db'
 
 const mocks = vi.hoisted(() => ({
   findCharacter: vi.fn(),
+  findCharacterRow: vi.fn(),
   findUpdatedAt: vi.fn(),
   lockCharacter: vi.fn(),
   upsertCharacter: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     ...actual,
     createCharacterRepository: () => ({
       findAuthoredById: mocks.findCharacter,
+      findById: mocks.findCharacterRow,
       findUpdatedAtById: mocks.findUpdatedAt,
       findUpdatedAtByIdForUpdate: mocks.lockCharacter,
       upsertAuthored: mocks.upsertCharacter
@@ -46,6 +48,7 @@ describe('Campaign Character removal reconciliation', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     mocks.findUpdatedAt.mockResolvedValue('2026-08-06T12:00:00.000Z')
+    mocks.findCharacterRow.mockResolvedValue({ rule_pack_revision_id: 'revision-1' })
     mocks.lockCharacter.mockResolvedValue('2026-08-06T11:59:00.000Z')
     mocks.upsertCharacter.mockResolvedValue(2)
     mocks.loadContext.mockResolvedValue({})

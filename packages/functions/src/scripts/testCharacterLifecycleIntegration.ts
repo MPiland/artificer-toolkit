@@ -4,7 +4,8 @@ import { randomUUID } from 'node:crypto'
 import { createDb } from '@artificer-toolkit/db'
 import {
   assertCommandEquipmentWasRolledBack,
-  assertFixtureWasRolledBack
+  assertFixtureWasRolledBack,
+  sheetCommandTimings
 } from './characterLifecycleIntegrationAssertions.js'
 import {
   createAttunementEquipmentFixture,
@@ -12,7 +13,9 @@ import {
   percentileDuration,
   requireLocalDatabaseUrl,
   type BuilderResolutionTiming,
-  type CharacterLifecycleFixture
+  type CharacterRuleEvaluationTiming,
+  type CharacterLifecycleFixture,
+  type SheetReadTiming
 } from './characterLifecycleIntegrationFixtures.js'
 import { proveFixtureLifecycle } from './characterLifecycleIntegrationBuilderProof.js'
 import {
@@ -27,6 +30,16 @@ import {
   proveHitPointRestAndResourceCommands,
   proveRetryAndConcurrencyCommands
 } from './characterLifecycleIntegrationStateProofs.js'
+
+function summarizeLatency<T>(samples: readonly T[], select: (sample: T) => number) {
+  const durations = samples.map((sample) => ({ durationMs: select(sample) }))
+  return {
+    maxMs: Math.max(...durations.map(({ durationMs }) => durationMs)),
+    p50Ms: percentileDuration(durations, 0.5),
+    p95Ms: percentileDuration(durations, 0.95)
+  }
+}
+
 async function main(): Promise<void> {
   const connectionString = requireLocalDatabaseUrl()
   const db = createDb({ connectionString })
@@ -47,6 +60,8 @@ async function main(): Promise<void> {
   let executedFixtureLabels: string[] = []
   const startedAt = Date.now()
   const builderResolutionTimings: BuilderResolutionTiming[] = []
+  const ruleEvaluationTimings: CharacterRuleEvaluationTiming[] = []
+  const sheetReadTimings: SheetReadTiming[] = []
 
   try {
     try {
@@ -143,7 +158,13 @@ async function main(): Promise<void> {
         executedFixtureLabels = selectedFixtures.map(({ label }) => label)
 
         for (const fixture of selectedFixtures) {
-          let sheet = await proveFixtureLifecycle(trx, fixture, builderResolutionTimings)
+          let sheet = await proveFixtureLifecycle(
+            trx,
+            fixture,
+            builderResolutionTimings,
+            sheetReadTimings,
+            ruleEvaluationTimings
+          )
           console.info(
             JSON.stringify({
               fixture: fixture.label,
@@ -201,10 +222,45 @@ async function main(): Promise<void> {
         multiclassHitPointOrder: 'verified',
         preparedSpellPersistence: 'verified',
         preview: 'verified',
+        ruleEvaluationLatency: {
+          binding: summarizeLatency(ruleEvaluationTimings, ({ bindingMs }) => bindingMs),
+          factDiscovery: summarizeLatency(
+            ruleEvaluationTimings,
+            ({ factDiscoveryMs }) => factDiscoveryMs
+          ),
+          factAssembly: summarizeLatency(
+            ruleEvaluationTimings,
+            ({ factAssemblyMs }) => factAssemblyMs
+          ),
+          runtime: summarizeLatency(ruleEvaluationTimings, ({ runtimeMs }) => runtimeMs),
+          spellHydration: summarizeLatency(
+            ruleEvaluationTimings,
+            ({ spellHydrationMs }) => spellHydrationMs
+          ),
+          total: summarizeLatency(ruleEvaluationTimings, ({ totalMs }) => totalMs),
+          zenEvaluation: summarizeLatency(
+            ruleEvaluationTimings,
+            ({ zenEvaluationMs }) => zenEvaluationMs
+          ),
+          maximumBytes: {
+            document: Math.max(...ruleEvaluationTimings.map(({ documentBytes }) => documentBytes)),
+            normalizedFacts: Math.max(
+              ...ruleEvaluationTimings.map(({ normalizedFactsBytes }) => normalizedFactsBytes)
+            ),
+            result: Math.max(...ruleEvaluationTimings.map(({ resultBytes }) => resultBytes))
+          },
+          samples: ruleEvaluationTimings
+        },
         resolution: 'verified',
         rollback: persistLocalFixtures ? 'skipped for local fixture persistence' : 'verified',
         persistedLocalFixtures: persistLocalFixtures,
         sheet: 'verified',
+        sheetReadLatency: {
+          maxMs: Math.max(...sheetReadTimings.map(({ durationMs }) => durationMs)),
+          p50Ms: percentileDuration(sheetReadTimings, 0.5),
+          p95Ms: percentileDuration(sheetReadTimings, 0.95),
+          samples: sheetReadTimings
+        },
         sheetCommandPersistence: {
           conditions: ['SET_EXHAUSTION', 'ADD_CONDITION', 'REMOVE_CONDITION'],
           currency: ['ADJUST_CURRENCY', 'MOVE_CURRENCY'],
@@ -240,6 +296,12 @@ async function main(): Promise<void> {
             'DELETE_NOTE'
           ],
           spells: ['SET_PREPARED_SPELLS', 'CAST_SPELL', 'RESTORE_SPELL_SLOT', 'USE_SPELL_SLOT']
+        },
+        sheetCommandLatency: {
+          maxMs: Math.max(0, ...sheetCommandTimings.map(({ durationMs }) => durationMs)),
+          p50Ms: percentileDuration(sheetCommandTimings, 0.5),
+          p95Ms: percentileDuration(sheetCommandTimings, 0.95),
+          samples: sheetCommandTimings
         },
         sheetReload: 'verified'
       })

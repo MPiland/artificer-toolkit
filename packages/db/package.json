@@ -51,12 +51,12 @@
     "kysely": "^0.28.17",
     "kysely-supabase": "^0.2.1",
     "pg": "^8.20.0",
-    "supabase": "^2.111.0"
+    "supabase": "^2.111.0",
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@types/pg": "^8.20.0",
     "tsx": "^4.22.4",
-    "typescript": "^7.0.2",
-    "uuid": "^14.0.0"
+    "typescript": "^7.0.2"
   }
 }

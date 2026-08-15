@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   DummyDriver,
   Kysely,
@@ -24,6 +24,12 @@ import {
   reconcileCharacterHitpointProgression
 } from './builderHitPoints.js'
 import type { CharacterBuilderCatalog } from './builderCatalog.js'
+
+vi.mock('./characterRuleEvaluation.js', async () => {
+  const { evaluateCharacterBuilderTestPolicy } =
+    await import('./characterBuilderRuleEvaluation.testUtils.js')
+  return { evaluateCharacterRulePolicy: evaluateCharacterBuilderTestPolicy }
+})
 
 const unusedDb = new Kysely<Database>({
   dialect: {
@@ -53,13 +59,20 @@ function createRegistry(): CharacterBuilderRegistry {
         id: 'dragonborn',
         label: 'Dragonborn',
         category: 'BASE',
+        selectionMode: 'DIRECT',
+        size: 'MEDIUM',
+        speeds: [],
+        userId: 'user-1',
+        systemId: 'dnd5e2014',
         ancestry: {
           id: 'draconic-ancestry',
           label: 'Draconic Ancestry',
           options: [
             {
               id: 'red',
-              label: 'Red'
+              label: 'Red',
+              description: '',
+              order: 0
             }
           ]
         }

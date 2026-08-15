@@ -42,20 +42,25 @@ export const executeRollInputDtoSchema = z
     }
   })
 
-export const executeDiceConfigurationInputDtoSchema = z
-  .object({ configuration: z.string().trim().min(1).max(80) })
-  .strict()
-  .superRefine(({ configuration }, context) => {
+export const standaloneDiceConfigurationDtoSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(80)
+  .superRefine((configuration, context) => {
     try {
       parseStandaloneDiceConfiguration(configuration)
     } catch (error) {
       context.addIssue({
         code: 'custom',
-        path: ['configuration'],
         message: error instanceof Error ? error.message : 'Invalid dice configuration.'
       })
     }
   })
+
+export const executeDiceConfigurationInputDtoSchema = z
+  .object({ configuration: standaloneDiceConfigurationDtoSchema })
+  .strict()
 
 const rollTermEvidenceDtoSchema = z.object({
   count: z.number().int().positive(),

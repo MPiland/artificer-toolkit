@@ -78,6 +78,7 @@ export const wayOfTheOpenHand: ClassAuthored = {
           invocation: {
             kind: 'ACTION' as const,
             triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: classRowId(M, 11, 20), cost: 1 },
             activation: {
               code: ACTIVATION_CODE.ACTION,
               amount: 1
