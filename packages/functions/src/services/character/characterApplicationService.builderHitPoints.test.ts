@@ -1,21 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { DBLike } from '@artificer-toolkit/db'
-import type { EngineCharacterOutput } from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderResolution } from './builderService.js'
 
 const mocks = vi.hoisted(() => ({
   deleteDraft: vi.fn(),
   ensureRouteIdentity: vi.fn(),
+  evaluatePolicy: vi.fn(),
   findBuilderDraft: vi.fn(),
-  findCharacter: vi.fn(),
+  findAuthoredCharacter: vi.fn(),
+  findCharacterRow: vi.fn(),
   findUpdatedAtForUpdate: vi.fn(),
   listAdjustments: vi.fn(),
+  listResourceUsage: vi.fn(),
   loadBuilderContext: vi.fn(),
   reconcileCharacter: vi.fn(),
   resolveBuilder: vi.fn(),
-  resolveEngine: vi.fn(),
+  resolveRuleBinding: vi.fn(),
   lockCampaignContent: vi.fn(),
   replaceCampaignBindings: vi.fn(),
   upsertCharacter: vi.fn(),
@@ -34,12 +36,16 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       findByCharacter: mocks.findBuilderDraft
     }),
     createCharacterRepository: () => ({
-      findAuthoredById: mocks.findCharacter,
+      findAuthoredById: mocks.findAuthoredCharacter,
+      findById: mocks.findCharacterRow,
       findUpdatedAtByIdForUpdate: mocks.findUpdatedAtForUpdate,
       upsertAuthored: mocks.upsertCharacter
     }),
     createCharacterSheetAdjustmentRepository: () => ({
       listByCharacter: mocks.listAdjustments
+    }),
+    createCharacterSheetPlayStateRepository: () => ({
+      listResourceUsage: mocks.listResourceUsage
     })
   }
 })
@@ -67,13 +73,13 @@ vi.mock('./builderReconciliation.js', () => ({
   reconcileCharacterBuilderCharacter: mocks.reconcileCharacter
 }))
 
-vi.mock('./characterEngine.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./characterEngine.js')>()
-  return {
-    ...actual,
-    resolveCharacterSheetEngine: mocks.resolveEngine
-  }
-})
+vi.mock('./characterRuleEvaluation.js', () => ({
+  evaluateCharacterRulePolicy: mocks.evaluatePolicy
+}))
+
+vi.mock('./characterRuleBinding.js', () => ({
+  resolveCharacterRuleBinding: mocks.resolveRuleBinding
+}))
 
 vi.mock('../account/entitlementService.js', () => ({
   withPersonalCharacterLimit: mocks.withCharacterLimit
@@ -98,6 +104,14 @@ const resolution: CharacterBuilderResolution = {
     spells: []
   },
   registry: {
+    system: null,
+    races: [],
+    classes: [],
+    backgrounds: [],
+    equipment: [],
+    features: []
+  },
+  sourceRegistry: {
     system: null,
     races: [],
     classes: [],
@@ -147,13 +161,26 @@ async function finalizeWithMaximum(
   let persisted: CharacterAuthored | null = null
   const upsertCallIndex = mocks.upsertCharacter.mock.calls.length
 
-  mocks.findCharacter.mockResolvedValueOnce(existing).mockImplementation(async () => persisted)
+  mocks.findAuthoredCharacter.mockImplementation(async () => persisted ?? existing)
+  mocks.findCharacterRow.mockResolvedValue({
+    id: existing.id,
+    rule_pack_revision_id: 'revision-1'
+  })
   mocks.upsertCharacter.mockImplementation(async (character: CharacterAuthored) => {
     persisted = structuredClone(character)
   })
-  mocks.resolveEngine.mockReturnValue({
-    derivedStats: { maxHitPoints: effectiveMaxHitPoints }
-  } as unknown as EngineCharacterOutput)
+  mocks.evaluatePolicy.mockResolvedValue({
+    binding: {
+      revisionId: 'revision-1',
+      checksum: 'checksum-1',
+      evaluatorKind: 'ZEN',
+      evaluatorVersion: '0.54.0',
+      modelContractVersion: 4
+    },
+    output: {
+      derivedStats: { maxHitPoints: { effective: effectiveMaxHitPoints } }
+    }
+  })
 
   await upsertCharacterBuilderForUser(
     {} as DBLike,
@@ -178,11 +205,19 @@ describe('Builder hit point reconciliation', () => {
     mocks.findBuilderDraft.mockResolvedValue(null)
     mocks.findUpdatedAtForUpdate.mockResolvedValue('2026-07-28T00:00:00.000Z')
     mocks.listAdjustments.mockResolvedValue([])
+    mocks.listResourceUsage.mockResolvedValue([])
     mocks.loadBuilderContext.mockResolvedValue({})
     mocks.reconcileCharacter.mockImplementation(async (_db: DBLike, character: CharacterAuthored) =>
       structuredClone(character)
     )
     mocks.resolveBuilder.mockResolvedValue(resolution)
+    mocks.resolveRuleBinding.mockResolvedValue({
+      revisionId: 'revision-1',
+      checksum: 'checksum-1',
+      evaluatorKind: 'ZEN',
+      evaluatorVersion: '0.54.0',
+      modelContractVersion: 4
+    })
     mocks.lockCampaignContent.mockResolvedValue(undefined)
     mocks.replaceCampaignBindings.mockResolvedValue(undefined)
     mocks.withCharacterLimit.mockImplementation(
@@ -206,6 +241,25 @@ describe('Builder hit point reconciliation', () => {
     )
     expect(persisted.state.hitpoints.current).toBe(5)
     expect(persisted.state.hitpoints.temp).toBe(3)
+    expect(mocks.loadBuilderContext).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ id: 'character-1' }),
+      [],
+      { includeEffects: true }
+    )
+    expect(mocks.evaluatePolicy).toHaveBeenCalledWith(
+      expect.objectContaining({ existingRevisionId: 'revision-1' })
+    )
+    expect(mocks.resolveRuleBinding).toHaveBeenCalledWith(
+      expect.objectContaining({
+        existingRevisionId: 'revision-1',
+        expectedRevisionId: 'revision-1'
+      })
+    )
+    expect(mocks.upsertCharacter).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ rulePackRevisionId: 'revision-1' })
+    )
   })
 
   it('preserves live current hit points when the effective maximum is unchanged or higher', async () => {
@@ -223,8 +277,54 @@ describe('Builder hit point reconciliation', () => {
     expect(persisted.state.hitpoints.current).toBe(0)
   })
 
+  it('treats a first-finalization candidate as an unpinned draft until its revision is committed', async () => {
+    const candidate = createActiveCharacter(9)
+    mocks.findAuthoredCharacter.mockResolvedValue(null)
+    mocks.findCharacterRow.mockResolvedValue(null)
+    mocks.upsertCharacter.mockResolvedValue(undefined)
+    mocks.evaluatePolicy.mockResolvedValue({
+      binding: {
+        revisionId: 'revision-1',
+        checksum: 'checksum-1',
+        evaluatorKind: 'ZEN',
+        evaluatorVersion: '0.54.0',
+        modelContractVersion: 4
+      },
+      output: { derivedStats: { maxHitPoints: { effective: 9 } } }
+    })
+
+    await upsertCharacterBuilderForUser(
+      {} as DBLike,
+      {
+        character: candidate,
+        mode: 'create',
+        targetStatus: 'ACTIVE'
+      },
+      'user-1'
+    )
+
+    expect(mocks.reconcileCharacter).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ status: 'DRAFT' }),
+      null,
+      expect.anything(),
+      null
+    )
+    expect(mocks.evaluatePolicy).toHaveBeenCalledWith(
+      expect.objectContaining({ existingRevisionId: null })
+    )
+    expect(mocks.upsertCharacter).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ rulePackRevisionId: 'revision-1' })
+    )
+  })
+
   it('rejects a Builder commit before resolving when the Character belongs to another user', async () => {
-    mocks.findCharacter.mockResolvedValue(createActiveCharacter(9))
+    mocks.findAuthoredCharacter.mockResolvedValue(createActiveCharacter(9))
+    mocks.findCharacterRow.mockResolvedValue({
+      id: 'character-1',
+      rule_pack_revision_id: 'revision-1'
+    })
 
     await expect(
       upsertCharacterBuilderForUser(
@@ -243,7 +343,7 @@ describe('Builder hit point reconciliation', () => {
   })
 
   it("rejects another user's Character draft before resolving Builder payload", async () => {
-    mocks.findCharacter.mockResolvedValue(createActiveCharacter(9))
+    mocks.findAuthoredCharacter.mockResolvedValue(createActiveCharacter(9))
 
     await expect(
       createCharacterDraftForUser(

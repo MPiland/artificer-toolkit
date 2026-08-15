@@ -2,6 +2,7 @@ import type { DBLike } from '#types'
 import { upsertCharacter } from '../upserts/character.js'
 import { createCharacterReadRepository, type CharacterRepository } from './characterRead.js'
 import { patchCharacterSheetState } from './characterSheetState.js'
+import { setCharacterRulePackRevision } from './characterRuleRevision.js'
 
 export {
   ConcurrencyError,
@@ -15,6 +16,8 @@ export function createCharacterRepository(db: DBLike): CharacterRepository {
     ...createCharacterReadRepository(db),
     upsertAuthored: (character, options) => upsertCharacter(db, character, options),
     patchSheetState: (characterId, patches, options) =>
-      patchCharacterSheetState(db, characterId, patches, options)
+      patchCharacterSheetState(db, characterId, patches, options),
+    setRulePackRevision: (characterId, expectedRevisionId, revisionId) =>
+      setCharacterRulePackRevision(db, characterId, expectedRevisionId, revisionId)
   }
 }

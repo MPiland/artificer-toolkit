@@ -2,9 +2,9 @@ import { randomInt, randomUUID } from 'node:crypto'
 
 import type { EncounterActorRecord, EncounterRecord, Json } from '@artificer-toolkit/db'
 import { encounterFeatureReferenceDtoSchema } from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterActorRuleResult } from '@artificer-toolkit/schema/api/encounterActorRules'
 import { rollResultDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { featureDtoSchema, type FeatureDto } from '@artificer-toolkit/schema/features/feature'
-import { compileCharge, resolveCompiledChargeMaximum } from '@artificer-toolkit/shared/compilers'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
 export function snapshotFeatureDefinitions(actor: EncounterActorRecord): FeatureDto[] {
@@ -25,61 +25,6 @@ export function snapshotFeatureDefinitions(actor: EncounterActorRecord): Feature
     const parsed = featureDtoSchema.safeParse(feature)
     return parsed.success ? [parsed.data] : []
   })
-}
-
-export function featureChargeMaximum(
-  actor: EncounterActorRecord,
-  feature: FeatureDto
-): number | null {
-  const charge = feature.charges
-  if (
-    !charge ||
-    charge.limitKind === 'SOURCE_CHARGES' ||
-    charge.scalingKind !== 'NONE' ||
-    (charge.limitKind !== 'FIXED_AMOUNT' && charge.limitKind !== 'ABILITY_MODIFIER') ||
-    charge.bonuses?.some((bonus) => bonus.bonusKind !== 'ABILITY_MODIFIER')
-  ) {
-    return null
-  }
-  let abilities: Record<string, number> = {}
-  if (charge.limitKind === 'ABILITY_MODIFIER' || charge.bonuses?.length) {
-    if (
-      typeof actor.snapshot !== 'object' ||
-      actor.snapshot === null ||
-      Array.isArray(actor.snapshot)
-    ) {
-      return null
-    }
-    const payload = actor.snapshot.payload
-    const abilityScores =
-      typeof payload === 'object' && payload !== null && !Array.isArray(payload)
-        ? payload.abilityScores
-        : null
-    if (
-      typeof abilityScores !== 'object' ||
-      abilityScores === null ||
-      Array.isArray(abilityScores)
-    ) {
-      return null
-    }
-    abilities = Object.fromEntries(
-      Object.entries(abilityScores).filter(
-        (entry): entry is [string, number] =>
-          typeof entry[1] === 'number' && Number.isFinite(entry[1])
-      )
-    )
-  }
-
-  try {
-    const maximum = resolveCompiledChargeMaximum(compileCharge(charge), {
-      abilities,
-      proficiencyBonus: 0,
-      totalLevel: 0
-    })
-    return maximum > 0 ? maximum : null
-  } catch {
-    return null
-  }
 }
 
 export function featureChargeUsed(actor: EncounterActorRecord, featureId: string): number {
@@ -113,23 +58,23 @@ export function withFeatureChargeUsed(
   return { ...resources, featureCharges: { ...featureCharges, [featureId]: used } }
 }
 
-export function snapshotFeatures(actor: EncounterActorRecord) {
+export function snapshotFeatures(actor: EncounterActorRecord, rules: EncounterActorRuleResult) {
+  const resourcesByFeatureId = new Map(
+    rules.featureResources.map((resource) => [resource.featureId, resource])
+  )
   return snapshotFeatureDefinitions(actor).map((feature) => {
-    const maximum = featureChargeMaximum(actor, feature)
-    const used = maximum === null ? 0 : Math.min(featureChargeUsed(actor, feature.id), maximum)
+    const resource = resourcesByFeatureId.get(feature.id)
+    const maximum = resource?.maximum ?? null
     return encounterFeatureReferenceDtoSchema.parse({
       ...feature,
       resource:
         maximum === null
           ? null
           : {
-              used,
+              used: resource?.used ?? 0,
               maximum,
-              remaining: maximum - used,
-              resetKind:
-                feature.charges && feature.charges.limitKind !== 'SOURCE_CHARGES'
-                  ? feature.charges.resetKind
-                  : 'MANUAL'
+              remaining: resource?.remaining ?? 0,
+              resetKind: resource?.resetKind ?? 'MANUAL'
             }
     })
   })

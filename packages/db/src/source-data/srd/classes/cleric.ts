@@ -903,6 +903,7 @@ export const cleric: ClassAuthored = {
           invocation: {
             kind: 'ACTION',
             triggerCode: TRIGGER.SAVING_THROW,
+            resourceUse: { chargeId: classRowId(C, 0x66, 3), cost: 1 },
             activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
             savingThrow: {
               id: classRowId(C, 0x6e, 3),

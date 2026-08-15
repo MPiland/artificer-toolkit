@@ -256,6 +256,7 @@ export const circleOfTheLand: ClassAuthored = {
           invocation: {
             kind: 'ACTION',
             triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: classRowId(D, 22, 1), cost: 1 },
             activation: { code: ACTIVATION_CODE.FREE },
             range: { id: classRowId(D, 21, 1), rangeKind: RANGE_KIND.SELF },
             targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }

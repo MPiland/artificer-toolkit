@@ -340,6 +340,7 @@ CREATE TABLE IF NOT EXISTS public.character_sheet_resource_usage (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE,
   owner_kind text NOT NULL,
   resource_grant_id text,
+  source_id text,
   spell_id uuid REFERENCES public.spells (id) ON DELETE RESTRICT,
   source_kind text,
   source_instance_id text,
@@ -366,6 +367,7 @@ CREATE TABLE IF NOT EXISTS public.character_sheet_resource_usage (
     (
       owner_kind = 'AUTHORED_GRANT'
       AND resource_grant_id IS NOT NULL
+      AND source_id IS NULL
       AND spell_id IS NULL
       AND source_kind IS NULL
       AND source_instance_id IS NULL
@@ -376,8 +378,22 @@ CREATE TABLE IF NOT EXISTS public.character_sheet_resource_usage (
       AND feature_id IS NULL
     )
     OR (
+      owner_kind = 'AUTHORED_SOURCE'
+      AND resource_grant_id IS NULL
+      AND source_id IS NOT NULL
+      AND spell_id IS NULL
+      AND source_kind IS NULL
+      AND source_instance_id IS NULL
+      AND charge_id IS NOT NULL
+      AND item_instance_id IS NULL
+      AND sense_grant_id IS NULL
+      AND companion_instance_id IS NULL
+      AND feature_id IS NULL
+    )
+    OR (
       owner_kind = 'SPELL_SOURCE'
       AND resource_grant_id IS NOT NULL
+      AND source_id IS NULL
       AND spell_id IS NOT NULL
       AND source_kind IN ('BACKGROUND', 'CLASS', 'FEAT', 'FEATURE', 'ITEM', 'OPTION', 'RACE', 'SUBCLASS')
       AND source_instance_id IS NOT NULL
@@ -390,6 +406,7 @@ CREATE TABLE IF NOT EXISTS public.character_sheet_resource_usage (
     OR (
       owner_kind = 'ITEM_INSTANCE'
       AND resource_grant_id IS NULL
+      AND source_id IS NULL
       AND spell_id IS NULL
       AND source_kind IS NULL
       AND source_instance_id IS NULL
@@ -402,6 +419,7 @@ CREATE TABLE IF NOT EXISTS public.character_sheet_resource_usage (
     OR (
       owner_kind = 'SENSE_GRANT'
       AND resource_grant_id IS NULL
+      AND source_id IS NULL
       AND spell_id IS NULL
       AND source_kind IS NULL
       AND source_instance_id IS NULL
@@ -414,6 +432,7 @@ CREATE TABLE IF NOT EXISTS public.character_sheet_resource_usage (
     OR (
       owner_kind = 'COMPANION_FEATURE'
       AND resource_grant_id IS NULL
+      AND source_id IS NULL
       AND spell_id IS NULL
       AND source_kind IS NULL
       AND source_instance_id IS NULL
@@ -429,6 +448,9 @@ CREATE TABLE IF NOT EXISTS public.character_sheet_resource_usage (
 CREATE UNIQUE INDEX IF NOT EXISTS character_sheet_resource_usage_authored_uq
   ON public.character_sheet_resource_usage (character_id, resource_grant_id)
   WHERE owner_kind = 'AUTHORED_GRANT';
+CREATE UNIQUE INDEX IF NOT EXISTS character_sheet_resource_usage_authored_source_uq
+  ON public.character_sheet_resource_usage (character_id, source_id, charge_id)
+  WHERE owner_kind = 'AUTHORED_SOURCE';
 CREATE UNIQUE INDEX IF NOT EXISTS character_sheet_resource_usage_spell_uq
   ON public.character_sheet_resource_usage (
     character_id,

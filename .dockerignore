@@ -1,0 +1,14 @@
+.codex
+.git
+.netlify
+.turbo
+**/.cache
+**/*.tsbuildinfo
+**/dist
+**/node_modules
+**/storybook-static
+.env
+.env.*
+logs
+playwright-report
+test-results

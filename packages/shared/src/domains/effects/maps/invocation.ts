@@ -1,4 +1,9 @@
-import type { ActivationAuthored, EffectInvocationKind, EffectInvocationAuthored } from '#authored'
+import type {
+  ActivationAuthored,
+  EffectInvocationKind,
+  EffectInvocationAuthored,
+  ResourceUseAuthored
+} from '#authored'
 import { ACTIVATION_OPTIONS, TRIGGER_OPTIONS } from '#core'
 import { buildNodeMap, type NodeMap } from '#utils'
 import { RANGE_NODE_MAP, SAVING_THROW_NODE_MAP, SHAPE_NODE_MAP } from '../../shared/maps/index.js'
@@ -10,6 +15,7 @@ const INVOCATION_KIND_OPTIONS: { code: EffectInvocationKind; label: string }[] =
 ]
 
 const activation = buildNodeMap<ActivationAuthored>()
+const resourceUse = buildNodeMap<ResourceUseAuthored>()
 
 export const ACTIVATION_NODE_MAP = activation.define(
   'activation',
@@ -44,6 +50,14 @@ export const ACTIVATION_NODE_MAP = activation.define(
       )
   }
 )
+
+const RESOURCE_USE_NODE_MAP = resourceUse.define('resourceUse', ({ map, nodes }) => {
+  const { text, number } = nodes
+
+  map
+    .set('chargeId', text(['chargeId'], 'Charge ID', { requiredIf: true }))
+    .set('cost', number(['cost'], 'Cost', { constraints: { minimum: 1 }, requiredIf: true }))
+})
 
 const invocation = buildNodeMap<EffectInvocationAuthored>()
 
@@ -105,22 +119,30 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
         })
       )
       .set(
+        'resourceUse',
+        groupObject(['resourceUse'], 'Resource Use', () => RESOURCE_USE_NODE_MAP, {
+          presentation: 'inline',
+          order: 5,
+          showIf: local.field(['kind']).eq('ACTION')
+        })
+      )
+      .set(
         'range',
         groupObject(['range'], 'Range', () => RANGE_NODE_MAP, {
           presentation: 'inline',
-          order: 5,
+          order: 6,
           requiredIf: true
         })
       )
       .set(
         'shape',
-        groupObject(['shape'], 'Shape', () => SHAPE_NODE_MAP, { presentation: 'inline', order: 6 })
+        groupObject(['shape'], 'Shape', () => SHAPE_NODE_MAP, { presentation: 'inline', order: 7 })
       )
       .set(
         'targeting',
         groupObject(['targeting'], 'Targeting', () => TARGETING_NODE_MAP, {
           presentation: 'inline',
-          order: 7
+          order: 8
         })
       )
   }

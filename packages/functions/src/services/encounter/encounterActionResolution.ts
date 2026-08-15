@@ -4,10 +4,10 @@ import { z } from 'zod'
 import type { EncounterRecord, RulePackRecord, RulePackRevisionRecord } from '@artificer-toolkit/db'
 import type { DBLike } from '@artificer-toolkit/db'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
 import type { RollRecordDto, RollSourceDto } from '@artificer-toolkit/schema/api/rolls'
 import {
   ruleEvaluationDtoSchema,
-  rulePackDocumentDtoSchema,
   ruleResolutionEvidenceDtoSchema,
   type ProposedRuleOutcomeDto,
   type RuleEvaluationDto,
@@ -15,9 +15,9 @@ import {
   type RuleRollRequestDto
 } from '@artificer-toolkit/schema/api/rules'
 
-import { checksumRuleDocument } from '../rules/ruleChecksum.js'
-import { evaluateZenRuleModel } from '../rules/zenRuleEngine.js'
+import { evaluateRuleRevision } from '../rules/ruleRevisionRuntime.js'
 import { executeDiceConfiguration } from '../rolls/rollService.js'
+import type { LiveSessionCommandAuthority } from '../campaign/liveSessionCommandAuthority.js'
 import { buildEncounterActionFacts } from './encounterActionFacts.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { applyEncounterRuleOutcomes } from './encounterOutcomeApplication.js'
@@ -114,18 +114,29 @@ function rollRequestRecord(input: {
 }
 
 async function evaluateModel(input: {
-  document: ReturnType<typeof rulePackDocumentDtoSchema.parse>
+  db: DBLike
+  revisionId: string
   modelKey: string
   context: JsonValue
-}): Promise<{ evaluation: RuleEvaluationDto; trace: JsonValue | null }> {
+}): Promise<{
+  evaluation: RuleEvaluationDto
+  trace: JsonValue | null
+  zenEvaluationMs: number
+}> {
   try {
-    const result = await evaluateZenRuleModel({
-      document: input.document,
+    const result = await evaluateRuleRevision({
+      db: input.db,
+      revisionId: input.revisionId,
       modelKey: input.modelKey,
-      context: input.context,
+      contractKey: 'encounter-resolve',
+      normalizedFacts: input.context,
       trace: true
     })
-    return { evaluation: evaluateOutput(result.result), trace: result.trace }
+    return {
+      evaluation: evaluateOutput(result.result),
+      trace: result.trace,
+      zenEvaluationMs: result.evaluationDurationMs
+    }
   } catch (error) {
     if (error instanceof EncounterValidationError) throw error
     const detail = error instanceof Error ? ` ${error.message.slice(0, 300)}` : ''
@@ -142,23 +153,27 @@ export async function resolveEncounterAction(input: {
   command: ResolveEncounterActionInputDto
   pack: RulePackRecord
   revision: RulePackRevisionRecord
-}): Promise<{ evidence: RuleResolutionEvidenceDto; correlationId: string }> {
+  actorRules: EncounterActorRuleOutput
+  liveSessionAuthority?: LiveSessionCommandAuthority
+}): Promise<{
+  evidence: RuleResolutionEvidenceDto
+  correlationId: string
+  zenEvaluationMs: number
+}> {
   if (input.revision.state === 'DRAFT') {
     throw new EncounterValidationError('Encounter rule revisions must be activated.')
-  }
-  const document = rulePackDocumentDtoSchema.parse(input.revision.document)
-  if (checksumRuleDocument(document) !== input.revision.checksum) {
-    throw new EncounterValidationError('The pinned rule-pack checksum does not match its document.')
   }
   const normalizedFacts = await buildEncounterActionFacts({
     db: input.db,
     userId: input.userId,
     encounter: input.encounter,
-    command: input.command
+    command: input.command,
+    actorRules: input.actorRules
   })
   const allowedActorIds = new Set([input.command.actorId, ...input.command.targetActorIds])
   const initial = await evaluateModel({
-    document,
+    db: input.db,
+    revisionId: input.revision.id,
     modelKey: input.command.modelKey,
     context: normalizedFacts
   })
@@ -201,7 +216,8 @@ export async function resolveEncounterAction(input: {
       }))
     })
     final = await evaluateModel({
-      document,
+      db: input.db,
+      revisionId: input.revision.id,
       modelKey: input.command.modelKey,
       context: resolvedContext
     })
@@ -224,7 +240,9 @@ export async function resolveEncounterAction(input: {
     outcomes: effectiveOutcomes,
     allowedActorIds,
     overridden: input.command.override !== undefined,
-    correlationId
+    correlationId,
+    actorRules: input.actorRules,
+    ...(input.liveSessionAuthority ? { liveSessionAuthority: input.liveSessionAuthority } : {})
   })
   const trace = z.json().parse({
     initial: initial.trace,
@@ -232,9 +250,14 @@ export async function resolveEncounterAction(input: {
   })
   return {
     correlationId,
+    zenEvaluationMs:
+      initial.zenEvaluationMs + (requestedRolls.length > 0 ? final.zenEvaluationMs : 0),
     evidence: ruleResolutionEvidenceDtoSchema.parse({
       rulePackRevisionId: input.revision.id,
       checksum: input.revision.checksum,
+      evaluatorKind: input.revision.evaluatorKind,
+      evaluatorVersion: input.revision.evaluatorVersion,
+      modelContractVersion: input.revision.modelContractVersion,
       modelKey: input.command.modelKey,
       normalizedFacts,
       trace,

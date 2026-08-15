@@ -32,6 +32,9 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0016](0016-novu-notification-delivery.md)                       | Former Novu delivery implementation                                    | historical |
 | [0017](0017-supabase-notification-delivery.md)                   | Supabase feed, preferences, Edge delivery, and authorized destinations | decision   |
 | [0018](0018-embedded-rule-packs-and-encounter-resolution.md)     | Embedded rule packs and authoritative Encounter resolution             | decision   |
+| [0019](0019-versioned-cross-domain-rules-runtime.md)             | Versioned embedded evaluator for Character and Encounter mechanics     | decision   |
+| [0020](0020-local-and-remote-live-session-host.md)               | Local and remote authoritative Colyseus live-session host              | decision   |
+| [0021](0021-command-scoped-rules-responsibilities.md)            | Command-scoped rules evaluation and live mechanical snapshots          | decision   |
 
 ## Updating an ADR
 

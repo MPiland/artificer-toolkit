@@ -4,6 +4,8 @@ import type { RulePackDocumentDto, SimulateRulePackResultDto } from '#app/lib/ap
 
 export function RuleFixturePanel({
   document,
+  fixtures,
+  modelKeys,
   selectedId,
   editable,
   result,
@@ -16,6 +18,8 @@ export function RuleFixturePanel({
   onRun
 }: {
   document: RulePackDocumentDto
+  fixtures: RulePackDocumentDto['fixtures']
+  modelKeys: string[]
   selectedId: string | null
   editable: boolean
   result: SimulateRulePackResultDto | null
@@ -40,7 +44,7 @@ export function RuleFixturePanel({
     <Stack>
       <Stack gap='xs'>
         <Select
-          data={document.fixtures.map((item) => ({ value: item.id, label: item.label }))}
+          data={fixtures.map((item) => ({ value: item.id, label: item.label }))}
           label='Fixture'
           value={selectedId}
           onChange={onSelect}
@@ -65,7 +69,7 @@ export function RuleFixturePanel({
             onChange={(event) => onChange('label', event.currentTarget.value)}
           />
           <Select
-            data={Object.keys(document.models)}
+            data={modelKeys}
             disabled={!editable}
             label='Model'
             value={fixture.modelKey}

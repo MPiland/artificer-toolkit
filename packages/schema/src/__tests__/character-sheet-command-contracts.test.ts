@@ -7,7 +7,8 @@ import {
   characterSheetInventoryItemDtoSchema,
   characterSheetProficiencyFactDtoSchema,
   characterSheetResponseDtoSchema,
-  characterRestPreviewRequestDtoSchema
+  characterRestPreviewRequestDtoSchema,
+  characterRuleUpgradePreviewRequestDtoSchema
 } from '../api/characters.js'
 import {
   characterCompletedRestResultDtoSchema,
@@ -15,11 +16,31 @@ import {
 } from '../api/characterSheet.js'
 
 describe('character sheet command contracts', () => {
+  it('accepts versioned rule upgrade preview and apply inputs', () => {
+    expect(characterRuleUpgradePreviewRequestDtoSchema.parse({ expectedVersion: 3 })).toEqual({
+      expectedVersion: 3
+    })
+    expect(
+      characterSheetCommandInputDtoSchema.parse({
+        type: 'UPGRADE_RULE_PACK',
+        commandId: '00000000-0000-4000-8000-000000000001',
+        expectedVersion: 3,
+        revisionId: '00000000-0000-4000-8000-000000000202'
+      })
+    ).toEqual({
+      type: 'UPGRADE_RULE_PACK',
+      commandId: '00000000-0000-4000-8000-000000000001',
+      expectedVersion: 3,
+      revisionId: '00000000-0000-4000-8000-000000000202'
+    })
+  })
+
   it('accepts positive source-charge action costs and rejects zero cost', () => {
     const action = {
       id: 'action-warping-strike',
       label: 'Warping Strike',
       kind: 'ACTION',
+      availability: { status: 'AVAILABLE' },
       resourceGrantId: 'ITEM_INSTANCE:item-1:astral-tear-charges',
       resourceCost: 2
     } as const
@@ -144,6 +165,7 @@ describe('character sheet command contracts', () => {
               sourceLabel: 'Fighter',
               description: '<p>Regain hit points.</p>',
               rollable: true,
+              availability: { status: 'AVAILABLE' },
               mechanic: {
                 effectId: 'effect-second-wind',
                 trigger: 'HEAL',

@@ -23,7 +23,9 @@ const INSERT_BATCH_SIZE = 500
 const NON_CORPUS_TABLES = new Set([
   'authored_creation_rate_limits',
   'authored_drafts',
-  'authored_import_refs'
+  'authored_import_refs',
+  'rule_pack_revisions',
+  'rule_packs'
 ])
 const ROOT_TABLES = [
   'backgrounds',

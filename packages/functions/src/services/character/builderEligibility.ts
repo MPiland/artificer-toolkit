@@ -1,49 +1,55 @@
 import {
   ABILITY_CODE,
-  applyGrants,
+  AUTHORED_RECORD_STATUS,
   CLASS_CATEGORY,
   CHARACTER_ABILITY_GENERATION_METHOD,
-  createCharacterEligibilityContext,
-  evaluateCharacterFacet,
   POINT_BUY_SCORE_REGISTRY,
   POINT_BUY_TOTAL_POINTS,
-  RACE_CATEGORY_CODE,
-  resolveRulesSystem,
-  resolveSpellGrantState,
-  runEngine,
-  type AbilityCode,
-  type CharacterBuildSnapshot,
-  type CharacterEligibilityContext
+  type AbilityCode
 } from '@artificer-toolkit/shared/core'
-import { evaluateMulticlassRequirements } from '@artificer-toolkit/shared/character'
+import type { DBLike } from '@artificer-toolkit/db'
+import type {
+  CharacterRulePolicyInput,
+  CharacterRulePolicyOutput
+} from '@artificer-toolkit/schema/api/characterRules'
+import {
+  evaluateMulticlassRequirements,
+  resolveAbilityAlias
+} from '@artificer-toolkit/shared/character'
 import {
   getSelectedFeatureOptionIds,
   type CharacterChosenGrantOwner
 } from './chosenGrantChoiceResolver.js'
-import {
-  createCharacterAssemblyRegistry,
-  toCharacterEngineFeatureSource,
-  toCharacterEngineFeatureTiming
-} from './characterEngine.js'
 import type {
   BackgroundAuthored,
-  CharacterAbilityScoresIntent,
   CharacterAcquisitionTiming,
   CharacterAuthored,
   CharacterClassIntent,
   CharacterProvenance,
   CharacterResourceGrantRecord,
-  ClassAuthored,
   ParentClassAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 import { isSameCharacterProvenanceIdentity } from '@artificer-toolkit/shared/subjects/authored'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
-import type { ResolvedRace } from '@artificer-toolkit/shared/subjects/compilers'
 import type {
   CharacterBuilderClassCatalogRecord,
   CharacterBuilderCatalog
 } from './builderCatalog.js'
-import type { CharacterBuilderRegistry, CharacterBuilderValidation } from './builderService.js'
+import type {
+  CharacterBuilderContext,
+  CharacterBuilderRegistry,
+  CharacterBuilderValidation
+} from './builderService.js'
+import { compileCharacterEligibilityRuleFacts } from './characterEligibilityRuleFacts.js'
+import {
+  evaluateCharacterRulePolicy,
+  type CharacterRuleEvaluationResult
+} from './characterRuleEvaluation.js'
+import {
+  getCharacterRaceSelection,
+  type GrantedFeatureRecord,
+  type ResolvedClassSelection
+} from './characterBuilderSelections.js'
 
 export const abilityOrder: AbilityCode[] = [
   ABILITY_CODE.STRENGTH,
@@ -54,43 +60,9 @@ export const abilityOrder: AbilityCode[] = [
   ABILITY_CODE.CHARISMA
 ]
 
-export type ResolvedClassSelection = {
-  row: CharacterClassIntent
-  baseClass?: ParentClassAuthored
-  subclass?: Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.SUBCLASS }>
-  features: FeatureAuthored[]
-  resources: NonNullable<ClassAuthored['resources']>[]
-  spellcasting: NonNullable<ClassAuthored['spellcasting']>[]
-}
-
-export type GrantedFeatureRecord = {
-  feature: FeatureAuthored
-  source: CharacterProvenance
-  sourceLabel: string
-  level: number
-}
-
 type CharacterBuilderGrantedFeatureLookup = readonly {
   feature: Pick<FeatureAuthored, 'id'>
 }[]
-
-export function deriveAbilityScores(
-  abilities: CharacterAbilityScoresIntent
-): Partial<Record<AbilityCode, number>> {
-  switch (abilities.method) {
-    case CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY:
-    case CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY:
-      return Object.fromEntries(
-        abilities.assignments.map((assignment) => [assignment.ability, Number(assignment.option)])
-      ) as Partial<Record<AbilityCode, number>>
-    case CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED:
-      return Object.fromEntries(
-        abilities.state.assignments.map((assignment) => [assignment.ability, assignment.score])
-      ) as Partial<Record<AbilityCode, number>>
-    default:
-      return {}
-  }
-}
 
 export function appendAbilityIntentValidationIssues(
   character: CharacterAuthored,
@@ -164,57 +136,6 @@ export function getAvailableSubclassesForClass(params: {
   )
 }
 
-function loadClassSelection(
-  row: CharacterClassIntent,
-  registry: CharacterBuilderRegistry
-): ResolvedClassSelection {
-  const baseClass = registry.classes.find(
-    (record): record is ParentClassAuthored =>
-      record.category === CLASS_CATEGORY.BASE && record.id === row.classId
-  )
-
-  const subclass = row.subclassId
-    ? registry.classes.find(
-        (record): record is Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.SUBCLASS }> =>
-          record.category === CLASS_CATEGORY.SUBCLASS && record.id === row.subclassId
-      )
-    : undefined
-
-  const baseFeatures = (baseClass?.features ?? []).filter(
-    (feature) => (feature.availableAtLevel ?? 0) <= row.classLevel
-  )
-  const subclassFeatures = (subclass?.features ?? []).filter(
-    (feature) => (feature.availableAtLevel ?? 0) <= row.classLevel
-  )
-
-  const resources = [
-    ...(baseClass?.resources && baseClass.resources.availableAtLevel <= row.classLevel
-      ? [baseClass.resources]
-      : []),
-    ...(subclass?.resources && subclass.resources.availableAtLevel <= row.classLevel
-      ? [subclass.resources]
-      : [])
-  ]
-
-  const spellcasting = [
-    ...(baseClass?.spellcasting && (baseClass.spellcasting.availableAtLevel ?? 1) <= row.classLevel
-      ? [baseClass.spellcasting]
-      : []),
-    ...(subclass?.spellcasting && (subclass.spellcasting.availableAtLevel ?? 1) <= row.classLevel
-      ? [subclass.spellcasting]
-      : [])
-  ]
-
-  return {
-    row,
-    baseClass,
-    subclass,
-    features: [...baseFeatures, ...subclassFeatures],
-    resources,
-    spellcasting
-  }
-}
-
 export function validateMulticlass(
   classSelections: ResolvedClassSelection[],
   abilityScores: Partial<Record<AbilityCode, number>>
@@ -240,62 +161,11 @@ export function validateMulticlass(
   return validations
 }
 
-export function isValidAncestrySource(
-  character: CharacterAuthored,
-  source: Extract<CharacterProvenance, { kind: 'RACE' | 'SUBRACE' }>
-): boolean {
-  if (source.kind === 'RACE') return character.intent.race.raceId === source.raceId
-  return character.intent.race.subraceId === source.subraceId
-}
-
 function isClassSourceLevelStillAvailable(
   source: Extract<CharacterProvenance, { kind: 'CLASS' | 'SUBCLASS' }>,
   row: CharacterClassIntent
 ): boolean {
   return source.classLevel == null || source.classLevel <= row.classLevel
-}
-
-function getCharacterRaceSelection(
-  character: CharacterAuthored,
-  registry: CharacterBuilderRegistry
-): {
-  baseRace?: ResolvedRace
-  selectedRace?: ResolvedRace
-  ancestryRace?: ResolvedRace
-  selectedAncestry?: NonNullable<CharacterAuthored['intent']['ancestrySelections']>[number]
-  selectedAncestryOption?: NonNullable<ResolvedRace['ancestry']>['options'][number]
-} {
-  const baseRace = character.intent.race.raceId
-    ? registry.races.find(
-        (record) =>
-          record.category === RACE_CATEGORY_CODE.BASE && record.id === character.intent.race.raceId
-      )
-    : undefined
-  const selectedRace = character.intent.race.subraceId
-    ? registry.races.find((record) => record.id === character.intent.race.subraceId)
-    : baseRace
-  const ancestryRace = selectedRace?.ancestry
-    ? selectedRace
-    : baseRace?.ancestry
-      ? baseRace
-      : undefined
-  const selectedAncestry = ancestryRace?.ancestry
-    ? character.intent.ancestrySelections?.find(
-        (selection) => selection.ancestryId === ancestryRace.ancestry?.id
-      )
-    : undefined
-  const selectedAncestryOption =
-    selectedAncestry && isValidAncestrySource(character, selectedAncestry.source)
-      ? ancestryRace?.ancestry?.options.find((option) => option.id === selectedAncestry.optionId)
-      : undefined
-
-  return {
-    baseRace,
-    selectedRace,
-    ancestryRace,
-    selectedAncestry,
-    selectedAncestryOption
-  }
 }
 
 export function isCharacterBuilderProvenanceStillValid({
@@ -500,125 +370,6 @@ export function featureContributesSpellGrant(
   )
 }
 
-export function collectGrantedFeaturesForCharacter(
-  character: CharacterAuthored,
-  registry: CharacterBuilderRegistry
-): {
-  classSelections: ResolvedClassSelection[]
-  totalLevel: number
-  baseRace?: ResolvedRace
-  selectedRace?: ResolvedRace
-  ancestryRace?: ResolvedRace
-  selectedBackground?: BackgroundAuthored
-  selectedAncestry?: NonNullable<CharacterAuthored['intent']['ancestrySelections']>[number]
-  selectedAncestryOption?: NonNullable<ResolvedRace['ancestry']>['options'][number]
-  grantedFeatures: GrantedFeatureRecord[]
-} {
-  const classSelections = character.intent.classes.map((row) => loadClassSelection(row, registry))
-  const totalLevel = character.intent.classes.reduce((sum, row) => sum + row.classLevel, 0)
-  const { baseRace, selectedRace, ancestryRace, selectedAncestry, selectedAncestryOption } =
-    getCharacterRaceSelection(character, registry)
-  const selectedBackground = character.intent.background.backgroundId
-    ? registry.backgrounds.find((record) => record.id === character.intent.background.backgroundId)
-    : undefined
-
-  const grantedFeatures: GrantedFeatureRecord[] = []
-
-  if (baseRace?.features?.length) {
-    for (const feature of baseRace.features) {
-      grantedFeatures.push({
-        feature,
-        source: { kind: 'RACE', raceId: baseRace.id },
-        sourceLabel: baseRace.label,
-        level: totalLevel
-      })
-    }
-  }
-
-  if (selectedRace && selectedRace.id !== baseRace?.id && selectedRace.features?.length) {
-    const inheritedFeatureIds = new Set(
-      selectedRace.category === RACE_CATEGORY_CODE.SUBRACE
-        ? (selectedRace.subrace.inherited.features ?? []).map((feature) => feature.id)
-        : []
-    )
-    for (const feature of selectedRace.features) {
-      if (inheritedFeatureIds.has(feature.id)) continue
-      grantedFeatures.push({
-        feature,
-        source: { kind: 'SUBRACE', subraceId: selectedRace.id },
-        sourceLabel: selectedRace.label,
-        level: totalLevel
-      })
-    }
-  }
-
-  if (selectedAncestryOption?.features?.length && ancestryRace?.ancestry) {
-    for (const feature of selectedAncestryOption.features) {
-      grantedFeatures.push({
-        feature,
-        source: {
-          kind: 'ANCESTRY',
-          ancestryId: ancestryRace.ancestry.id,
-          optionId: selectedAncestryOption.id
-        },
-        sourceLabel: selectedAncestryOption.label,
-        level: totalLevel
-      })
-    }
-  }
-
-  if (selectedBackground?.features?.length) {
-    for (const feature of selectedBackground.features) {
-      grantedFeatures.push({
-        feature,
-        source: { kind: 'BACKGROUND', backgroundId: selectedBackground.id },
-        sourceLabel: selectedBackground.label,
-        level: totalLevel
-      })
-    }
-  }
-
-  for (const selection of classSelections) {
-    for (const feature of selection.features) {
-      const source =
-        selection.subclass &&
-        (selection.subclass.features ?? []).some((record) => record.id === feature.id)
-          ? ({
-              kind: 'SUBCLASS',
-              subclassId: selection.subclass.id,
-              classLevel: selection.row.classLevel
-            } as const)
-          : ({
-              kind: 'CLASS',
-              classId: selection.row.classId,
-              classLevel: selection.row.classLevel
-            } as const)
-
-      grantedFeatures.push({
-        feature,
-        source,
-        sourceLabel:
-          source.kind === 'CLASS'
-            ? (selection.baseClass?.label ?? 'Class')
-            : (selection.subclass?.label ?? 'Subclass'),
-        level: selection.row.classLevel
-      })
-    }
-  }
-
-  return {
-    classSelections,
-    totalLevel,
-    baseRace,
-    selectedRace,
-    ancestryRace,
-    selectedBackground,
-    selectedAncestry,
-    selectedAncestryOption,
-    grantedFeatures
-  }
-}
-
 export function getCharacterChosenGrantOwners(
   character: CharacterAuthored,
   classSelections: ResolvedClassSelection[],
@@ -760,142 +511,71 @@ function getChosenGrantOwnerTiming(
   return { kind: 'IMMEDIATE' }
 }
 
-function createCharacterBuilderEvaluationSnapshot(
-  character: CharacterAuthored,
-  grantedFeatures: readonly GrantedFeatureRecord[],
-  abilityScores: Partial<Record<AbilityCode, number>>
-): CharacterBuildSnapshot {
-  const abilities: Record<string, number> = {}
-  for (const [ability, score] of Object.entries(abilityScores)) {
-    if (typeof score === 'number') abilities[ability] = score
-  }
-
-  const automaticFeatures = grantedFeatures.map((granted) => {
-    const acquisition = character.intent.featureAcquisitions.find(
-      (candidate) =>
-        candidate.featureId === granted.feature.id &&
-        isSameCharacterProvenanceIdentity(candidate.source, granted.source)
-    )
-    const timing = acquisition?.timing ?? getChosenGrantOwnerTiming(character, granted)
-
-    return {
-      ...(acquisition ? { acquisitionId: acquisition.id } : {}),
-      featureId: granted.feature.id,
-      source: toCharacterEngineFeatureSource(granted.source),
-      timing: toCharacterEngineFeatureTiming(timing),
-      ...(acquisition?.selections ? { selections: acquisition.selections } : {})
-    }
-  })
-  const explicitFeatures = character.intent.featureAcquisitions
-    .filter(
-      (acquisition) =>
-        !grantedFeatures.some(
-          (granted) =>
-            acquisition.featureId === granted.feature.id &&
-            isSameCharacterProvenanceIdentity(acquisition.source, granted.source)
-        )
-    )
-    .map((acquisition) => ({
-      acquisitionId: acquisition.id,
-      featureId: acquisition.featureId,
-      source: toCharacterEngineFeatureSource(acquisition.source),
-      timing: toCharacterEngineFeatureTiming(acquisition.timing),
-      ...(acquisition.selections ? { selections: acquisition.selections } : {})
-    }))
-
-  return {
-    characterId: character.id,
-    systemId: character.systemId,
-    totalLevel: character.intent.classes.reduce((sum, entry) => sum + entry.classLevel, 0),
-    raceId: character.intent.race.raceId,
-    subraceId: character.intent.race.subraceId,
-    backgroundId: character.intent.background.backgroundId,
-    chosenGrantSelections: character.intent.chosenGrantSelections ?? [],
-    classes: character.intent.classes.map((entry) => ({
-      classId: entry.classId,
-      level: entry.classLevel,
-      subclassId: entry.subclassId,
-      specializationId: entry.specializationId
-    })),
-    abilities,
-    hitpoints: [],
-    features: [...automaticFeatures, ...explicitFeatures],
-    equipmentItems: []
-  }
-}
-
 export function resolveCharacterBuilderEffectiveAbilityScores(
-  character: CharacterAuthored,
-  registry: CharacterBuilderRegistry,
-  grantedFeatures: readonly GrantedFeatureRecord[]
+  output: CharacterRulePolicyOutput
 ): Partial<Record<AbilityCode, number>> {
-  const assignedAbilityScores = deriveAbilityScores(character.intent.abilities)
-  if (!registry.system) return assignedAbilityScores
-
-  const engineOutput = runEngine(
-    createCharacterBuilderEvaluationSnapshot(character, grantedFeatures, assignedAbilityScores),
-    createCharacterAssemblyRegistry(registry),
-    resolveRulesSystem({
-      code: registry.system.rulesetCode,
-      version: registry.system.rulesetVersion
-    })
-  )
   const effectiveAbilityScores: Partial<Record<AbilityCode, number>> = {}
-  for (const ability of abilityOrder) {
-    const score = engineOutput.derivedStats.abilityScores[ability]
-    if (typeof score === 'number') effectiveAbilityScores[ability] = score
+  for (const ability of output.derivedStats.abilities) {
+    const canonical = resolveAbilityAlias(ability.abilityId)
+    if (canonical && abilityOrder.includes(canonical as AbilityCode)) {
+      effectiveAbilityScores[canonical as AbilityCode] = ability.score.effective
+    }
   }
 
   return effectiveAbilityScores
 }
 
-export function createCharacterBuilderEligibilityContext(params: {
-  character: CharacterAuthored
-  registry: CharacterBuilderRegistry
-  grantedFeatures: readonly GrantedFeatureRecord[]
-  abilityScores: Partial<Record<AbilityCode, number>>
-}): {
-  context: CharacterEligibilityContext
-  registry: ReturnType<typeof createCharacterAssemblyRegistry>
-} {
-  const registry = createCharacterAssemblyRegistry(params.registry)
-  const snapshot = createCharacterBuilderEvaluationSnapshot(
-    params.character,
-    params.grantedFeatures,
-    params.abilityScores
-  )
-  const rulesSystem = resolveRulesSystem({
-    code: params.registry.system?.rulesetCode ?? '',
-    version: params.registry.system?.rulesetVersion ?? ''
-  })
-  const { spellAccess } = resolveSpellGrantState(snapshot, registry)
-  const accumulatedState = applyGrants(snapshot, registry, rulesSystem, spellAccess)
-
-  return {
-    context: createCharacterEligibilityContext(snapshot, spellAccess, accumulatedState),
-    registry
-  }
-}
-
 type FeatureOptionEligibility = {
   character: CharacterAuthored
   optionsByFeatureId: ReadonlyMap<string, NonNullable<FeatureAuthored['options']>>
+  eligibilityById: ReadonlyMap<string, boolean>
+  ruleEvaluation: CharacterRuleEvaluationResult | null
+}
+
+type EligibilityFacet = CharacterRulePolicyInput['eligibilityFacets'][number]
+
+function featureOptionEvaluationId(featureId: string, optionId: string): string {
+  return `feature-option:${featureId}:${optionId}`
+}
+
+function compileFeatureOptionEligibilityRuleFacts(
+  grantedFeatures: readonly GrantedFeatureRecord[]
+): EligibilityFacet[] {
+  const seen = new Set<string>()
+  const facts: EligibilityFacet[] = []
+  for (const { feature } of grantedFeatures) {
+    for (const option of feature.options ?? []) {
+      if (!option.restrictions) continue
+      const evaluationId = featureOptionEvaluationId(feature.id, option.id)
+      if (seen.has(evaluationId)) continue
+      seen.add(evaluationId)
+      facts.push(
+        compileCharacterEligibilityRuleFacts({
+          evaluationId,
+          facet: option.restrictions
+        })
+      )
+    }
+  }
+  return facts
 }
 
 function getFeatureOptionsById(
   grantedFeatures: readonly GrantedFeatureRecord[],
-  context?: CharacterEligibilityContext,
-  registry?: ReturnType<typeof createCharacterAssemblyRegistry>
+  eligibilityById: ReadonlyMap<string, boolean>
 ): Map<string, NonNullable<FeatureAuthored['options']>> {
   return new Map(
     grantedFeatures.map(({ feature }) => [
       feature.id,
-      (feature.options ?? []).filter(
-        (option) =>
-          !context ||
-          !registry ||
-          evaluateCharacterFacet(option.restrictions, context, registry).passed
-      )
+      (feature.options ?? []).filter((option) => {
+        if (!option.restrictions) return true
+        const evaluationId = featureOptionEvaluationId(feature.id, option.id)
+        const passed = eligibilityById.get(evaluationId)
+        if (passed === undefined) {
+          throw new Error(`Missing Character rule eligibility result "${evaluationId}".`)
+        }
+        return passed
+      })
     ])
   )
 }
@@ -969,35 +649,67 @@ function filterFeatureOptionSelections(
   }
 }
 
-export function resolveFeatureOptionEligibility(params: {
+export async function resolveFeatureOptionEligibility(params: {
+  db: DBLike
   character: CharacterAuthored
-  registry: CharacterBuilderRegistry
+  context: CharacterBuilderContext
   grantedFeatures: readonly GrantedFeatureRecord[]
-  abilityScores: Partial<Record<AbilityCode, number>>
-}): FeatureOptionEligibility {
-  const hasRestrictions = params.grantedFeatures.some((granted) =>
-    granted.feature.options?.some((option) => Boolean(option.restrictions))
-  )
-  if (!hasRestrictions) {
+  existingRevisionId: string | null
+  additionalEligibilityFacets?: readonly EligibilityFacet[]
+  requireEvaluation?: boolean
+}): Promise<FeatureOptionEligibility> {
+  if (params.character.status === AUTHORED_RECORD_STATUS.ACTIVE && !params.existingRevisionId) {
+    const error = new Error(
+      `Active Character "${params.character.id}" does not have a pinned rule revision.`
+    )
+    error.name = 'CharacterRuleBindingError'
+    throw error
+  }
+
+  const featureFacets = compileFeatureOptionEligibilityRuleFacts(params.grantedFeatures)
+  const eligibilityFacets = [...featureFacets, ...(params.additionalEligibilityFacets ?? [])]
+  if (eligibilityFacets.length === 0 && !params.requireEvaluation) {
+    const eligibilityById = new Map<string, boolean>()
     return {
       character: params.character,
-      optionsByFeatureId: getFeatureOptionsById(params.grantedFeatures)
+      optionsByFeatureId: getFeatureOptionsById(params.grantedFeatures, eligibilityById),
+      eligibilityById,
+      ruleEvaluation: null
     }
   }
 
   let candidate = params.character
+  let expectedRevisionId: string | undefined
   while (true) {
-    const { context, registry } = createCharacterBuilderEligibilityContext({
-      ...params,
-      character: candidate
+    const ruleEvaluation = await evaluateCharacterRulePolicy({
+      db: params.db,
+      character: candidate,
+      context: params.context,
+      existingRevisionId: params.existingRevisionId,
+      expectedRevisionId,
+      eligibilityFacets
     })
-    const optionsByFeatureId = getFeatureOptionsById(params.grantedFeatures, context, registry)
+    expectedRevisionId = ruleEvaluation.binding.revisionId
+    const eligibilityById = new Map(
+      ruleEvaluation.output.eligibilityFacets.map((evaluation) => [
+        evaluation.evaluationId,
+        evaluation.passed
+      ])
+    )
+    const optionsByFeatureId = getFeatureOptionsById(params.grantedFeatures, eligibilityById)
     const filtered = filterFeatureOptionSelections(
       candidate,
       params.grantedFeatures,
       optionsByFeatureId
     )
-    if (!filtered.changed) return { character: candidate, optionsByFeatureId }
+    if (!filtered.changed) {
+      return {
+        character: candidate,
+        optionsByFeatureId,
+        eligibilityById,
+        ruleEvaluation
+      }
+    }
     candidate = filtered.character
   }
 }

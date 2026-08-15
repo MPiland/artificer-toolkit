@@ -29,6 +29,11 @@ export const activationDtoSchema = z.discriminatedUnion('code', [
   })
 ])
 
+const resourceUseDtoSchema = z.object({
+  chargeId: authoredIdentifierSchema,
+  cost: z.number().int().positive()
+})
+
 export const invocationDtoSchema = z.union([
   z.object({
     kind: z.literal(invocationKindSchema.enum.PASSIVE),
@@ -36,7 +41,8 @@ export const invocationDtoSchema = z.union([
     savingThrow: savingThrowDtoSchema,
     range: rangeDtoSchema,
     shape: shapeDtoSchema.optional(),
-    targeting: targetingDtoSchema.optional()
+    targeting: targetingDtoSchema.optional(),
+    resourceUse: z.never().optional()
   }),
   z.object({
     kind: z.literal(invocationKindSchema.enum.PASSIVE),
@@ -51,7 +57,8 @@ export const invocationDtoSchema = z.union([
     ]),
     range: rangeDtoSchema,
     shape: shapeDtoSchema.optional(),
-    targeting: targetingDtoSchema.optional()
+    targeting: targetingDtoSchema.optional(),
+    resourceUse: z.never().optional()
   }),
   z.object({
     kind: z.literal(invocationKindSchema.enum.ACTION).optional(),
@@ -60,7 +67,8 @@ export const invocationDtoSchema = z.union([
     activation: activationDtoSchema,
     range: rangeDtoSchema,
     shape: shapeDtoSchema.optional(),
-    targeting: targetingDtoSchema.optional()
+    targeting: targetingDtoSchema.optional(),
+    resourceUse: resourceUseDtoSchema.optional()
   }),
   z.object({
     kind: z.literal(invocationKindSchema.enum.ACTION).optional(),
@@ -76,7 +84,8 @@ export const invocationDtoSchema = z.union([
     activation: activationDtoSchema,
     range: rangeDtoSchema,
     shape: shapeDtoSchema.optional(),
-    targeting: targetingDtoSchema.optional()
+    targeting: targetingDtoSchema.optional(),
+    resourceUse: resourceUseDtoSchema.optional()
   })
 ])
 

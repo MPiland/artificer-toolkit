@@ -3,7 +3,7 @@
 > **Status:** planned
 > **Depends on:** [Phase 01](01-dice-and-roll-infrastructure.md), [Phase 02](02-media-and-file-pipeline.md), [Phase 06](06-live-campaign-play.md), and [Phase 07](07-encounters.md)
 > **Unlocks:** the complete connected web play loop and its viability test
-> **Primary ADRs:** [0005](../adr/0005-pure-rules-system-engine.md), [0009](../adr/0009-vtt-encounter-event-boundary.md), [0010](../adr/0010-platform-neutral-design-system.md)
+> **Primary ADRs:** [0009](../adr/0009-vtt-encounter-event-boundary.md), [0010](../adr/0010-platform-neutral-design-system.md), [0019](../adr/0019-versioned-cross-domain-rules-runtime.md), and [0020](../adr/0020-local-and-remote-live-session-host.md)
 
 ## Goal
 
@@ -15,11 +15,13 @@ Add one Encounter-backed responsive web virtual tabletop. The first slice suppor
 - The Character Sheet remains a standalone play surface and does not own rounds or a combat log.
 - `packages/design-system` can share semantic intent but not canvas or platform presentation components.
 - No map asset, scene, token, fog, measurement, or canvas renderer exists today.
+- `apps/session-host` establishes the deployment-neutral Colyseus process and authenticated ordered command-room foundation for existing Sheet and Encounter play. Phase 08 adds scene state and VTT-specific command contracts to that room.
 
 ## Requirements
 
 - Add a platform-neutral VTT scene model derived from the authoritative Encounter projection and exact scene events.
-- Make hosted internet play the required topology: every authorized player connects independently to the deployed Artificer API, Storage, and private Realtime channels. Players must never need to share a LAN, Wi-Fi network, machine, browser host, or inbound port.
+- Support both managed internet play and local hosting through the same Colyseus room implementation and protocol. Managed players connect independently without sharing a LAN or opening an inbound port; local hosting runs the same headless package on the host machine and may serve loopback, LAN, or an explicitly configured remote endpoint.
+- Route live-session commands through one authoritative room per active session. The room orders commands, evaluates mechanics through the exact pinned Zen revision, commits durable events/projections, and then publishes compact versioned deltas.
 - Extend Encounter commands/events for durable scene actions such as token placement, committed movement, map selection, grid configuration, and fog changes.
 - Keep selection, hover, open panels, camera position, drag interpolation, measurement preview, and similar transient UI state local or ephemeral.
 - Use PixiJS as the first responsive web renderer. Keep navigation, chat, initiative, actor panels, menus, controls, and accessibility in ordinary web UI outside the canvas.
@@ -39,9 +41,10 @@ flowchart TD
   Encounter["Encounter projection + events"] --> Scene["packages/shared<br/>platform-neutral scene model"]
   Scene --> WebRenderer["PixiJS web renderer"]
   WebRenderer --> Intent["Typed semantic scene intent"]
-  Intent --> Command["Encounter command"]
-  Command --> API["Authoritative API"]
-  API --> Encounter
+  Intent --> Command["Typed live-session command"]
+  Command --> Host["apps/session-host\nColyseus authoritative room"]
+  Host --> Encounter
+  Host --> Zen["Pinned embedded Zen runtime"]
 
   WebUI["Web panels and controls"] --> Command
 ```
@@ -67,9 +70,10 @@ If the gate fails, retain the scene model and command contracts and simplify or 
 2. **Define scene contracts.** Add renderer-neutral scene projection, asset metadata, semantic intents, durable command/event extensions, transient broadcast envelopes, and version reconciliation.
 3. **Extend the asset pipeline for VTT maps and tokens.** Lock VTT-specific limits, resumable transfer, optimization/tiling decision, Scene references, signed access, deletion, and Campaign/Encounter authorization without duplicating Phase 02 upload lifecycle.
 4. **Build the pure scene reducer.** Reconstruct identical scene state from the same Encounter projection/events and cover ordering, visibility, fog, movement, and reconnect with deterministic tests.
-5. **Build the web PixiJS renderer and host.** Keep UI panels outside the canvas and route durable actions through the Encounter API.
-6. **Add ephemeral collaboration.** Broadcast throttled drag previews/pointers only after private-channel authorization; committed positions always come from persisted events.
-7. **Run responsive, load, accessibility, memory, and recovery tests.** Execute the web benchmark before beta and preserve the non-canvas interaction path.
+5. **Extend authenticated session rooms.** Reuse Phase 07 admission, ordering, pinned Zen, persist-before-acknowledgement, and reconnect behavior; add scene snapshots, scene command routing, and VTT-specific private state views.
+6. **Build the web PixiJS renderer.** Keep UI panels outside the canvas and route durable play actions through the authoritative room while a live session is attached.
+7. **Add ephemeral collaboration.** Broadcast throttled drag previews/pointers through the room only after admission; committed positions always come from persisted events.
+8. **Run responsive, load, accessibility, memory, and recovery tests.** Execute the web benchmark in managed-remote and local-host modes before beta and preserve the non-canvas interaction path.
 
 ## Acceptance gates
 
@@ -87,11 +91,11 @@ If the gate fails, retain the scene model and command contracts and simplify or 
 
 ## Out of scope
 
-- Automated attacks, saves, damage, conditions, reactions, authored-effect execution, dynamic lighting, 3D, physics, voice/video, AI, marketplace asset sales, offline play, LAN-only hosting, peer-authoritative state, arbitrary scripting, and premature storage-provider abstraction. An optional LAN/self-hosted mode may be evaluated later only as an alternative transport; it cannot become required for online play. Revisit R2 only when VTT map volume or egress evidence requires it.
+- Automated attacks, saves, damage, conditions, reactions, authored-effect execution, dynamic lighting, 3D, physics, voice/video, AI, marketplace asset sales, offline-first persistence, peer-authoritative state, arbitrary scripting, and premature storage-provider abstraction. Local hosting is supported but cannot become required for managed online play. Revisit R2 only when VTT map volume or egress evidence requires it.
 
 ## Concerns and expansions
 
-The responsive browser/PWA remains the canonical VTT client and must pass the benchmark on its own. Packaging does not fix a slow synchronization protocol. A later Tauri desktop distribution may reuse the same web renderer, API, scene contracts, and Realtime protocol when offline asset libraries, filesystem integration, multi-window GM tools, or other proven native capabilities justify the additional release surface. Electron is not a planned dependency. A native mobile app should be evaluated as a focused companion experience rather than a compressed copy of the full tabletop.
+The responsive browser/PWA remains the canonical VTT client and must pass the benchmark on its own. Packaging does not fix a slow synchronization protocol. A later desktop launcher may reuse the same web renderer and start `apps/session-host` invisibly for local hosting; the headless host is not a reason to duplicate scene or rules code. Electron is not a planned dependency. A native mobile app should be evaluated as a focused companion experience rather than a compressed copy of the full tabletop.
 
 ## Questions for the phase subplan
 

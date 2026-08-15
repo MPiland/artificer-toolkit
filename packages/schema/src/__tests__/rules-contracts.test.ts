@@ -20,6 +20,8 @@ describe('rule pack contracts', () => {
   it('accepts a bounded rule pack document and simulation input', () => {
     expect(
       simulateRulePackInputDtoSchema.parse({
+        rulesetCode: 'test',
+        rulesetVersion: '1',
         document,
         modelKey: 'attack',
         input: { actorId: revisionId }
@@ -41,6 +43,9 @@ describe('rule pack contracts', () => {
         packId: authorId,
         revision: 1,
         lifecycle: 'DRAFT',
+        evaluatorKind: 'ZEN',
+        evaluatorVersion: '0.54.0',
+        modelContractVersion: 1,
         checksum: 'a'.repeat(64),
         document,
         createdBy: authorId,
@@ -50,6 +55,30 @@ describe('rule pack contracts', () => {
         updatedAt: '2026-08-07T00:00:00.000Z'
       }).checksum
     ).toHaveLength(64)
+  })
+
+  it('rejects revision metadata outside the supported evaluator contract', () => {
+    const revision = {
+      id: revisionId,
+      packId: authorId,
+      revision: 1,
+      lifecycle: 'DRAFT' as const,
+      evaluatorKind: 'ZEN' as const,
+      evaluatorVersion: '0.54.0',
+      modelContractVersion: 1,
+      checksum: 'a'.repeat(64),
+      document,
+      createdBy: authorId,
+      activatedBy: null,
+      activatedAt: null,
+      createdAt: '2026-08-07T00:00:00.000Z',
+      updatedAt: '2026-08-07T00:00:00.000Z'
+    }
+
+    expect(() => rulePackRevisionDtoSchema.parse({ ...revision, evaluatorKind: 'OTHER' })).toThrow()
+    expect(() =>
+      rulePackRevisionDtoSchema.parse({ ...revision, modelContractVersion: 0 })
+    ).toThrow()
   })
 
   it('defaults omitted evaluation collections to empty arrays', () => {

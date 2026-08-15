@@ -35,6 +35,7 @@ Keep intent at the interface it explains. Cross-module flows belong in architect
 - [Character Builder, Sheet, and engine flow](architecture/character.md)
 - [Media lifecycle and delivery](architecture/media.md)
 - [Engine](architecture/engine.md)
+- [Live-session host](architecture/live-sessions.md)
 
 ## Audits
 
@@ -58,6 +59,7 @@ Each major module has a concise local README describing its interface and common
 
 - [Web](../apps/web/README.md)
 - [APIs](../apps/apis/README.md)
+- [Session host](../apps/session-host/README.md)
 - [Schema](../packages/schema/README.md)
 - [Shared](../packages/shared/README.md)
 - [Functions](../packages/functions/README.md)

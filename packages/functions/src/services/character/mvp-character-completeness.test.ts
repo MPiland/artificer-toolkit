@@ -2,18 +2,14 @@ import { describe, expect, it, vi } from 'vitest'
 
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderResolution } from './builderService.js'
+import { assembleCharacterRuleSnapshot } from './characterRuleSnapshot.js'
 import { buildCharacterSheetResponse } from './sheetProjection.js'
 
-const mocks = vi.hoisted(() => ({
-  runEngine: vi.fn()
-}))
-
-vi.mock('@artificer-toolkit/shared/core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@artificer-toolkit/shared/core')>()
-  return {
-    ...actual,
-    runEngine: mocks.runEngine
-  }
+vi.mock('./characterRuleEvaluation.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('./characterRuleEvaluation.js')>()
+  const { evaluateCharacterBuilderTestPolicy } =
+    await import('./characterBuilderRuleEvaluation.testUtils.js')
+  return { ...original, evaluateCharacterRulePolicy: evaluateCharacterBuilderTestPolicy }
 })
 
 function createCharacter(): CharacterAuthored {
@@ -153,6 +149,56 @@ function createResolution(): CharacterBuilderResolution {
       ],
       features: []
     },
+    sourceRegistry: {
+      system: {
+        id: 'dnd5e2014',
+        label: 'D&D 5e 2014',
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '2014',
+        alignments: [],
+        challengeRatings: [],
+        conditionTypes: [],
+        creatureTypes: [],
+        currencies: [],
+        damageTypes: [],
+        heritages: [],
+        languages: [],
+        lifestyles: [],
+        magicSchools: [],
+        passives: [],
+        rarities: [],
+        senses: [],
+        skills: [],
+        speeds: [],
+        terrains: [],
+        userId: 'user-1'
+      },
+      races: [
+        {
+          id: 'race-1',
+          label: 'Human',
+          category: 'BASE',
+          selectionMode: 'DIRECT',
+          size: 'MEDIUM',
+          speeds: [{ speedId: 'WALKING', amount: 30, unit: 'FEET' }],
+          userId: 'user-1',
+          systemId: 'system-1'
+        }
+      ],
+      classes: [],
+      backgrounds: [],
+      equipment: [],
+      feats: [
+        {
+          id: 'feat-1',
+          label: 'Alert',
+          description: '',
+          userId: 'user-1',
+          systemId: 'system-1'
+        }
+      ],
+      features: []
+    },
     summary: {
       totalLevel: 3,
       abilities: { DEXTERITY: 14 },
@@ -183,97 +229,42 @@ const db = {
   selectFrom: () => createEmptyQuery()
 }
 
-describe('MVP character Builder-to-engine completeness', () => {
+describe('MVP character Builder-to-rule-policy completeness', () => {
   it('passes race, feat, and ordered multiclass hitpoint data without hydrating spell aggregates', async () => {
-    mocks.runEngine.mockImplementation((snapshot, registry) => {
-      expect(snapshot).toMatchObject({
-        raceId: 'race-1',
-        hitpoints: [
-          { classId: 'class-1', classLevel: 1, value: 10 },
-          { classId: 'class-2', classLevel: 1, value: 7 },
-          { classId: 'class-1', classLevel: 2, value: 6 }
-        ]
-      })
-      expect(registry.races).toHaveProperty('race-1')
-      expect(registry.feats).toHaveProperty('feat-1')
-      expect(registry.spells).toEqual({})
-      return {
-        characterId: 'character-1',
-        systemId: 'system-1',
-        defenses: [],
-        proficiencies: [],
-        senses: [],
-        derivedStats: {
-          proficiencyBonus: 2,
-          abilityScores: { DEXTERITY: 14 },
-          abilityModifiers: { DEXTERITY: 2 },
-          savingThrows: {},
-          skillBonuses: {},
-          skillGoverningAbilities: {},
-          passiveChecks: {},
-          movementSpeeds: [],
-          initiative: 2,
-          armorClass: 12,
-          maxHitPoints: 23
-        },
-        calculations: {
-          proficiencyBonus: { base: 2, contributions: [], effective: 2 },
-          abilityScores: {},
-          abilityModifiers: {},
-          savingThrowProficiencyLevels: {},
-          savingThrows: {},
-          skillGoverningAbilities: {},
-          skillProficiencyLevels: {},
-          skillBonuses: {},
-          passiveChecks: {},
-          movementSpeeds: {},
-          senseRanges: {},
-          initiative: { base: 2, contributions: [], effective: 2 },
-          armorClass: { base: 12, contributions: [], effective: 12 },
-          maxHitPoints: { base: 23, contributions: [], effective: 23 }
-        },
-        rollModes: {
-          initiative: 'NORMAL',
-          abilityChecks: {
-            CHARISMA: 'NORMAL',
-            CONSTITUTION: 'NORMAL',
-            DEXTERITY: 'NORMAL',
-            INTELLIGENCE: 'NORMAL',
-            STRENGTH: 'NORMAL',
-            WISDOM: 'NORMAL'
-          },
-          savingThrows: {
-            CHARISMA: 'NORMAL',
-            CONSTITUTION: 'NORMAL',
-            DEXTERITY: 'NORMAL',
-            INTELLIGENCE: 'NORMAL',
-            STRENGTH: 'NORMAL',
-            WISDOM: 'NORMAL'
-          },
-          skillChecks: {},
-          attacks: {
-            MELEE: 'NORMAL',
-            RANGED: 'NORMAL',
-            SPELL: 'NORMAL',
-            UNARMED: 'NORMAL'
-          }
-        },
-        spellSlots: { maxByLevel: {}, fusionStrategy: 'NONE' },
-        spellAccess: [],
-        resources: [],
-        spellMechanics: [],
-        itemMechanics: [],
-        equipmentFeatureChargeUses: [],
-        companions: [],
-        activeItemContributions: []
+    const resolution = createResolution()
+    const character = createCharacter()
+    const assembled = assembleCharacterRuleSnapshot({
+      character,
+      context: {
+        catalog: resolution.catalog,
+        registry: resolution.sourceRegistry
       }
     })
+
+    expect(assembled.snapshot).toMatchObject({
+      raceId: 'race-1',
+      hitpoints: [
+        { classId: 'class-1', classLevel: 1, value: 10 },
+        { classId: 'class-2', classLevel: 1, value: 7 },
+        { classId: 'class-1', classLevel: 2, value: 6 }
+      ]
+    })
+    expect(assembled.registry.races).toHaveProperty('race-1')
+    expect(assembled.registry.feats).toHaveProperty('feat-1')
+    expect(assembled.registry.spells).toEqual({})
 
     await expect(
       buildCharacterSheetResponse({
         db: db as unknown as import('@artificer-toolkit/db').DBLike,
-        character: createCharacter(),
-        resolution: createResolution(),
+        character,
+        resolution,
+        ruleEvaluation: {
+          context: {
+            catalog: resolution.catalog,
+            registry: resolution.sourceRegistry
+          },
+          revisionId: 'mvp-completeness-test-revision'
+        },
         streamVersion: 1
       })
     ).resolves.toBeDefined()

@@ -91,6 +91,7 @@ export const oathOfDevotion: ClassAuthored = {
           invocation: {
             kind: 'ACTION',
             triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: classRowId(P, 22, 1), cost: 1 },
             activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
             range: { id: classRowId(P, 21, 1), rangeKind: RANGE_KIND.SELF },
             targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }

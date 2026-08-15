@@ -30,7 +30,10 @@
   "scripts": {
     "clean": "rimraf dist",
     "build": "tsc -p tsconfig.build.json",
-    "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/functions/src",
+    "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/functions/src --maxWorkers=1 --no-file-parallelism",
+    "measure:encounter-actor-policy": "tsx src/scripts/measureEncounterActorPolicy.ts",
+    "seed:canonical-rule-packs:local": "tsx src/scripts/seedCanonicalRulePacks.ts --local",
+    "seed:canonical-rule-packs:production": "tsx src/scripts/seedCanonicalRulePacks.ts --production",
     "typecheck": "tsc -p tsconfig.build.json --noEmit"
   },
   "dependencies": {

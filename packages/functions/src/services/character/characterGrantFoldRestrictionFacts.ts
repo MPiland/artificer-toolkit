@@ -1,0 +1,188 @@
+import type { CharacterGrantFoldRestriction } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import type { FacetAuthored, FacetConditionAuthored } from '@artificer-toolkit/shared/authored'
+
+type RestrictionCondition = CharacterGrantFoldRestriction[number]['conditions'][number]
+type NormalizeProficiencyTarget = (kind: string, targetId: string) => string
+
+function strings(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string')
+    : []
+}
+
+function numberOrNull(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function baseCondition(
+  condition: FacetConditionAuthored<'CHARACTER'>,
+  kind: RestrictionCondition['kind']
+): RestrictionCondition {
+  const value = condition as unknown as Record<string, unknown>
+  return {
+    conditionId: condition.id,
+    constraint: condition.constraint,
+    kind,
+    mode: value.authoringModeKind === 'SELECTED' ? 'SELECTED' : 'ALL',
+    abilityId: null,
+    classIds: [],
+    requiredIds: [],
+    secondaryRequiredIds: [],
+    min: null,
+    max: null,
+    proficiencyKind: null,
+    minimumRank: null,
+    category: null,
+    requiredProperties: [],
+    sourceState: null
+  }
+}
+
+function normalizeCondition(
+  condition: FacetConditionAuthored<'CHARACTER'>,
+  normalizeProficiencyTarget: NormalizeProficiencyTarget
+): RestrictionCondition {
+  if (condition.kind === 'EXISTS') return baseCondition(condition, 'UNSUPPORTED')
+
+  switch (condition.predicateCode) {
+    case 'ABILITY_SCORE':
+      return condition.authoringModeKind === 'SELECTED'
+        ? {
+            ...baseCondition(condition, 'ABILITY_SCORE'),
+            abilityId: condition.abilities,
+            min: condition.min ?? null,
+            max: condition.max ?? null
+          }
+        : baseCondition(condition, 'UNAVAILABLE')
+    case 'HERITAGE':
+      return {
+        ...baseCondition(condition, 'HERITAGE'),
+        requiredIds: condition.authoringModeKind === 'SELECTED' ? [...condition.heritageIds] : []
+      }
+    case 'CHARACTER_LEVEL':
+      return {
+        ...baseCondition(condition, 'CHARACTER_LEVEL'),
+        min: condition.min ?? null,
+        max: condition.max ?? null
+      }
+    case 'CLASS_LEVEL':
+      return {
+        ...baseCondition(condition, 'CLASS_LEVEL'),
+        classIds: [...condition.classIds],
+        min: condition.min ?? null,
+        max: condition.max ?? null
+      }
+    case 'FEAT_OBTAINED':
+      return {
+        ...baseCondition(condition, 'FEAT_OBTAINED'),
+        mode: 'SELECTED',
+        requiredIds: [...condition.featIds]
+      }
+    case 'FEATURE_OBTAINED':
+      return {
+        ...baseCondition(condition, 'FEATURE_OBTAINED'),
+        mode: 'SELECTED',
+        requiredIds: [...condition.featureIds]
+      }
+    case 'OPTION_OBTAINED':
+      return {
+        ...baseCondition(condition, 'OPTION_OBTAINED'),
+        mode: 'SELECTED',
+        requiredIds: [...(condition.featureIds ?? [])],
+        secondaryRequiredIds: [...condition.optionIds]
+      }
+    case 'SPELL_OBTAINED':
+      return {
+        ...baseCondition(condition, 'SPELL_OBTAINED'),
+        mode: 'SELECTED',
+        requiredIds: [...condition.spellIds]
+      }
+    case 'CAN_CAST_SPELL':
+      return baseCondition(condition, 'CAN_CAST_SPELL')
+    case 'EQUIPMENT_PROFICIENCY':
+      return {
+        ...baseCondition(condition, 'PROFICIENCY'),
+        proficiencyKind: 'EQUIPMENT',
+        requiredIds: condition.authoringModeKind === 'SELECTED' ? [...condition.equipmentIds] : [],
+        category: condition.category ?? null,
+        minimumRank: condition.level ?? null
+      }
+    case 'EQUIPMENT_PROPERTY_PROFICIENCY':
+      return {
+        ...baseCondition(condition, 'PROFICIENCY'),
+        proficiencyKind: 'EQUIPMENT_PROPERTY',
+        requiredIds: condition.authoringModeKind === 'SELECTED' ? [...condition.properties] : [],
+        category: condition.category ?? null
+      }
+    case 'SAVE_ABILITY_PROFICIENCY':
+      return {
+        ...baseCondition(condition, 'PROFICIENCY'),
+        proficiencyKind: 'SAVE_ABILITY',
+        requiredIds:
+          condition.authoringModeKind === 'SELECTED'
+            ? [normalizeProficiencyTarget('SAVE_ABILITY', condition.abilities)]
+            : [],
+        minimumRank: condition.level ?? null
+      }
+    case 'LANGUAGE_PROFICIENCY':
+      return {
+        ...baseCondition(condition, 'PROFICIENCY'),
+        proficiencyKind: 'LANGUAGE',
+        requiredIds: condition.authoringModeKind === 'SELECTED' ? [...condition.languageIds] : [],
+        minimumRank: condition.level ?? null
+      }
+    case 'SKILL_PROFICIENCY':
+      return {
+        ...baseCondition(condition, 'PROFICIENCY'),
+        proficiencyKind: 'SKILL',
+        requiredIds:
+          condition.authoringModeKind === 'SELECTED'
+            ? condition.skillIds.map((skillId) => normalizeProficiencyTarget('SKILL', skillId))
+            : [],
+        minimumRank: condition.level ?? null
+      }
+    case 'EQUIPMENT_EQUIPPED':
+      return {
+        ...baseCondition(condition, 'EQUIPMENT_EQUIPPED'),
+        requiredIds: condition.authoringModeKind === 'SELECTED' ? [...condition.equipmentIds] : [],
+        category: condition.category ?? null,
+        requiredProperties: [...(condition.properties ?? [])]
+      }
+    case 'WHILE_SOURCE_CARRIED':
+      return { ...baseCondition(condition, 'SOURCE_STATE'), sourceState: 'CARRIED' }
+    case 'WHILE_SOURCE_EQUIPPED':
+      return { ...baseCondition(condition, 'SOURCE_STATE'), sourceState: 'EQUIPPED' }
+    case 'WHILE_SOURCE_ATTUNED':
+      return { ...baseCondition(condition, 'SOURCE_STATE'), sourceState: 'ATTUNED' }
+    case 'SKILL_SCORE':
+    case 'SAVING_THROW_ABILITY_BONUS':
+      return baseCondition(condition, 'UNAVAILABLE')
+    default: {
+      const value = condition as unknown as Record<string, unknown>
+      return {
+        ...baseCondition(condition, 'UNAVAILABLE'),
+        requiredIds: strings(value.requiredIds),
+        min: numberOrNull(value.min),
+        max: numberOrNull(value.max)
+      }
+    }
+  }
+}
+
+export function normalizeCharacterGrantRestrictions(
+  facet: FacetAuthored | FacetAuthored<'CHARACTER'> | undefined,
+  normalizeProficiencyTarget: NormalizeProficiencyTarget = (_kind, targetId) => targetId
+): CharacterGrantFoldRestriction {
+  return (facet?.groups ?? []).map((group) => ({
+    conditions: group.contexts.flatMap((context) =>
+      context.subject === 'CHARACTER'
+        ? (context.conditions ?? []).map((condition) =>
+            normalizeCondition(
+              condition as FacetConditionAuthored<'CHARACTER'>,
+              normalizeProficiencyTarget
+            )
+          )
+        : []
+    )
+  }))
+}

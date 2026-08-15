@@ -13,7 +13,7 @@ const ids = {
 
 describe('encounter projection', () => {
   it('projects immutable Creature actions to the GM', () => {
-    const projection = projectGm({
+    const encounter = {
       id: ids.command,
       campaignId: ids.campaign,
       sessionId: ids.command,
@@ -72,7 +72,25 @@ describe('encounter projection', () => {
       reminders: [],
       createdAt: '2026-08-07T00:00:00.000Z',
       updatedAt: '2026-08-07T00:00:00.000Z'
-    } satisfies EncounterRecord)
+    } satisfies EncounterRecord
+    const projection = projectGm(encounter, {
+      actors: [
+        {
+          actorId: ids.creature,
+          initiativeModifier: 0,
+          featureResources: [
+            {
+              featureId: 'scimitar',
+              maximum: 2,
+              rawUsed: 1,
+              used: 1,
+              remaining: 1,
+              resetKind: 'MANUAL'
+            }
+          ]
+        }
+      ]
+    })
 
     expect(projection.actors[0]).toMatchObject({
       features: [

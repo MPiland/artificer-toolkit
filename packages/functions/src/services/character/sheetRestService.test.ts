@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DBLike } from '@artificer-toolkit/db'
-import { dnd5e2014RulesSystem } from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderResolution } from './builderService.js'
 
@@ -19,7 +18,9 @@ const mocks = vi.hoisted(() => ({
   removeAdjustment: vi.fn(),
   consumeRollForUser: vi.fn(),
   findRollByIdForUser: vi.fn(),
+  loadCharacterBuilderContext: vi.fn(),
   resolveCharacterBuilder: vi.fn(),
+  buildSheetBundle: vi.fn(),
   setMovementPreference: vi.fn(),
   setResourceUsage: vi.fn(),
   setSpellCustomization: vi.fn(),
@@ -93,12 +94,32 @@ vi.mock('./builderService.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./builderService.js')>()
   return {
     ...actual,
+    loadCharacterBuilderContext: mocks.loadCharacterBuilderContext,
     resolveCharacterBuilder: mocks.resolveCharacterBuilder
   }
 })
 
+vi.mock('./sheetProjection.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./sheetProjection.js')>()
+  return {
+    ...actual,
+    buildCharacterSheetBundle: mocks.buildSheetBundle
+  }
+})
+
+vi.mock('./characterRuleEvaluation.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('./characterRuleEvaluation.js')>()
+  const { evaluateCharacterBuilderTestPolicy } =
+    await import('./characterBuilderRuleEvaluation.testUtils.js')
+  return { ...original, evaluateCharacterRulePolicy: evaluateCharacterBuilderTestPolicy }
+})
+
 const { executeCharacterSheetCommand } = await import('./sheetService.js')
 const { previewCharacterRest } = await import('./sheetRestService.js')
+const sheetProjection = await import('./sheetProjection.js')
+const { evaluateCharacterBuilderTestPolicy } =
+  await import('./characterBuilderRuleEvaluation.testUtils.js')
+const { projectCharacterRulePolicyToSheetProjection } = await import('./characterRulePolicyAdapter.js')
 
 const emptyQuery = {
   select: () => emptyQuery,
@@ -179,6 +200,23 @@ function createResolution(): CharacterBuilderResolution {
       equipment: [],
       features: []
     },
+    sourceRegistry: {
+      system: {
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '2014',
+        currencies: [{ id: 'currency-1', label: 'Gold' }],
+        speeds: [
+          { id: 'speed-walk', code: 'WALK', label: 'Walking Speed' },
+          { id: 'speed-fly', code: 'FLY', label: 'Flying Speed' },
+          { id: 'speed-climb', code: 'CLIMB', label: 'Climbing Speed' }
+        ]
+      } as CharacterBuilderResolution['registry']['system'],
+      races: [],
+      classes: [],
+      backgrounds: [],
+      equipment: [],
+      features: []
+    },
     summary: {
       totalLevel: 1,
       abilities: { DEXTERITY: 14 },
@@ -201,6 +239,30 @@ function createResolution(): CharacterBuilderResolution {
   }
 }
 
+async function buildPolicyTestSheetBundle(
+  params: Parameters<typeof sheetProjection.buildCharacterSheetResponse>[0]
+) {
+  const ruleEvaluation = await evaluateCharacterBuilderTestPolicy({
+    db: params.db,
+    character: params.character,
+    context: params.ruleEvaluation.context,
+    existingRevisionId: params.ruleEvaluation.revisionId,
+    expectedRevisionId: params.ruleEvaluation.revisionId,
+    adjustments: params.adjustments,
+    movementDisplayPreference: params.movementDisplayPreference,
+    resourceUsage: params.resourceUsage,
+    attunementSlotOverride: params.ruleEvaluation.attunementSlotOverride
+  })
+  const ruleProjection = projectCharacterRulePolicyToSheetProjection(ruleEvaluation)
+  return {
+    sheet: await sheetProjection.buildCharacterSheetResponse({
+      ...params
+    }),
+    ruleProjection,
+    ruleEvaluation
+  }
+}
+
 describe('character sheet rest policy', () => {
   beforeEach(() => {
     mocks.appendEvent.mockReset()
@@ -214,6 +276,7 @@ describe('character sheet rest policy', () => {
     mocks.consumeRollForUser.mockReset()
     mocks.consumeRollForUser.mockResolvedValue(true)
     mocks.findRollByIdForUser.mockReset()
+    mocks.loadCharacterBuilderContext.mockReset()
     mocks.getMovementPreference.mockReset()
     mocks.getMovementPreference.mockResolvedValue({ mode: 'AUTO' })
     mocks.listAdjustments.mockReset()
@@ -225,17 +288,25 @@ describe('character sheet rest policy', () => {
     mocks.removeAdjustment.mockReset()
     mocks.upsertAdjustment.mockReset()
     mocks.resolveCharacterBuilder.mockReset()
+    mocks.buildSheetBundle.mockReset()
     mocks.setMovementPreference.mockReset()
     mocks.setResourceUsage.mockReset()
     mocks.setSpellCustomization.mockReset()
     mocks.patchSheetState.mockReset()
     mocks.findById.mockResolvedValue({
       id: 'character-1',
-      stream_version: 1
+      stream_version: 1,
+      rule_pack_revision_id: 'revision-1'
     })
     mocks.findByCommandId.mockResolvedValue(null)
     mocks.findAuthoredById.mockResolvedValue(createCharacter())
-    mocks.resolveCharacterBuilder.mockResolvedValue(createResolution())
+    const resolution = createResolution()
+    mocks.loadCharacterBuilderContext.mockResolvedValue({
+      catalog: resolution.catalog,
+      registry: resolution.sourceRegistry
+    })
+    mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
+    mocks.buildSheetBundle.mockImplementation(buildPolicyTestSheetBundle)
     mocks.patchSheetState.mockImplementation(async (_characterId, _patches, options) => {
       await options.afterPersist?.(db, 2)
       return 2
@@ -249,8 +320,11 @@ describe('character sheet rest policy', () => {
       temp: 3,
       hitDice: [{ die: 10, total: 1, used: 0 }]
     }
+    character.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: { assignments: [{ ability: 'CONSTITUTION', score: 16 }] }
+    }
     const resolution = createResolution()
-    resolution.summary.abilities.CONSTITUTION = 16
     mocks.findAuthoredById.mockResolvedValue(character)
     mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
     const rollId = '00000000-0000-4000-8000-000000000097'
@@ -379,33 +453,43 @@ describe('character sheet rest policy', () => {
       }
     })
 
-    const changedPolicy = vi
-      .spyOn(dnd5e2014RulesSystem.rest, 'hitDiceRecoveredAfterLongRest')
-      .mockReturnValue(0)
-    try {
-      await expect(
-        executeCharacterSheetCommand({
-          db: db as unknown as DBLike,
-          characterId: 'character-1',
-          userId: 'user-1',
-          command: {
-            type: 'COMPLETE_REST',
-            commandId: '00000000-0000-4000-8000-000000000139',
-            expectedVersion: 1,
-            restKind: 'LONG',
-            previewFingerprint: preview.previewFingerprint,
-            selectedHitDice: [],
-            resetMaximumHitPointModifier: false,
-            healingMode: 'AUTOMATIC',
-            manualHealingAccepted: false,
-            selectedCompanionInstanceIds: []
+    mocks.buildSheetBundle.mockImplementation(
+      async (params: Parameters<typeof sheetProjection.buildCharacterSheetResponse>[0]) => {
+        const bundle = await buildPolicyTestSheetBundle(params)
+        return {
+          ...bundle,
+          ruleEvaluation: {
+            output: {
+              rest: {
+                ...bundle.ruleEvaluation.output.rest,
+                hitDiceRecoveredAfterLongRest: 0
+              }
+            }
           }
-        })
-      ).rejects.toBeInstanceOf(MockConcurrencyError)
-      expect(mocks.patchSheetState).not.toHaveBeenCalled()
-      expect(mocks.appendEvent).not.toHaveBeenCalled()
-    } finally {
-      changedPolicy.mockRestore()
-    }
+        }
+      }
+    )
+
+    await expect(
+      executeCharacterSheetCommand({
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command: {
+          type: 'COMPLETE_REST',
+          commandId: '00000000-0000-4000-8000-000000000139',
+          expectedVersion: 1,
+          restKind: 'LONG',
+          previewFingerprint: preview.previewFingerprint,
+          selectedHitDice: [],
+          resetMaximumHitPointModifier: false,
+          healingMode: 'AUTOMATIC',
+          manualHealingAccepted: false,
+          selectedCompanionInstanceIds: []
+        }
+      })
+    ).rejects.toBeInstanceOf(MockConcurrencyError)
+    expect(mocks.patchSheetState).not.toHaveBeenCalled()
+    expect(mocks.appendEvent).not.toHaveBeenCalled()
   })
 })

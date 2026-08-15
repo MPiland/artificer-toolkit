@@ -12,6 +12,11 @@ CREATE TABLE IF NOT EXISTS public.rule_pack_revisions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   rule_pack_id uuid NOT NULL REFERENCES public.rule_packs (id) ON DELETE RESTRICT,
   revision integer NOT NULL CHECK (revision > 0),
+  evaluator_kind text NOT NULL DEFAULT 'ZEN' CHECK (evaluator_kind = 'ZEN'),
+  evaluator_version text NOT NULL DEFAULT '0.54.0'
+    CHECK (char_length(btrim(evaluator_version)) BETWEEN 1 AND 80),
+  model_contract_version integer NOT NULL DEFAULT 5
+    CHECK (model_contract_version BETWEEN 1 AND 10000),
   document jsonb NOT NULL CHECK (jsonb_typeof(document) = 'object'),
   checksum text NOT NULL CHECK (checksum ~ '^[0-9a-f]{64}$'),
   created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE RESTRICT,

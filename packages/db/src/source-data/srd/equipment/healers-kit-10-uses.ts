@@ -23,6 +23,10 @@ export const healersKit10Uses: EquipmentAuthored = {
       invocation: {
         kind: 'ACTION' as const,
         triggerCode: S.TRIGGER.ACTIVATED,
+        resourceUse: {
+          chargeId: S.equipmentChildId(S.equipId(140), 0x205, 1),
+          cost: 1
+        },
         activation: {
           code: S.ACTIVATION_CODE.ACTION,
           amount: 1

@@ -7,8 +7,14 @@ import type {
   RulePackRevisionRecord
 } from '@artificer-toolkit/db'
 import { rulePackDocumentDtoSchema } from '@artificer-toolkit/schema/api/rules'
+import {
+  ENCOUNTER_ACTOR_MODEL_KEY,
+  encounterActorRuleOutputSchema
+} from '@artificer-toolkit/schema/api/encounterActorRules'
 
 import { checksumRuleDocument } from '../rules/ruleChecksum.js'
+import { RULE_MODEL_CONTRACT_VERSION } from '../rules/ruleModelContracts.js'
+import { dnd5e2014EncounterActorModel } from '../rules/systems/dnd5e/2014/encounterActorSource.js'
 
 const ids = {
   actor: '00000000-0000-4000-8000-000000000001',
@@ -22,11 +28,12 @@ const ids = {
   template: '00000000-0000-4000-8000-000000000009'
 }
 
-const mocks = vi.hoisted(() => ({ updateActor: vi.fn() }))
+const mocks = vi.hoisted(() => ({ getRevision: vi.fn(), updateActor: vi.fn() }))
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@artificer-toolkit/db')>()),
-  createEncounterRepository: () => ({ updateActor: mocks.updateActor })
+  createEncounterRepository: () => ({ updateActor: mocks.updateActor }),
+  createRulePackRepository: () => ({ getRevision: mocks.getRevision })
 }))
 
 import { resolveEncounterAction } from './encounterActionResolution.js'
@@ -106,7 +113,10 @@ function graph(targetActorId: string) {
 function fixture() {
   const document = rulePackDocumentDtoSchema.parse({
     schemaVersion: 1,
-    models: { 'resolve-action': graph(ids.actor) },
+    models: {
+      'resolve-action': graph(ids.actor),
+      [ENCOUNTER_ACTOR_MODEL_KEY]: dnd5e2014EncounterActorModel
+    },
     fixtures: []
   })
   const encounter: EncounterRecord = {
@@ -161,6 +171,9 @@ function fixture() {
     id: ids.revision,
     rulePackId: ids.pack,
     revision: 1,
+    evaluatorKind: 'ZEN',
+    evaluatorVersion: '0.54.0',
+    modelContractVersion: RULE_MODEL_CONTRACT_VERSION,
     document,
     checksum: checksumRuleDocument(document),
     createdBy: ids.actor,
@@ -170,6 +183,7 @@ function fixture() {
     createdAt: encounter.createdAt,
     updatedAt: encounter.updatedAt
   }
+  mocks.getRevision.mockResolvedValue(revision)
   return { document, encounter, pack, revision }
 }
 
@@ -184,6 +198,9 @@ describe('Encounter action resolution', () => {
       encounter,
       pack,
       revision,
+      actorRules: encounterActorRuleOutputSchema.parse({
+        actors: [{ actorId: ids.actor, initiativeModifier: 0, featureResources: [] }]
+      }),
       command: {
         encounterId: encounter.id,
         commandId: ids.command,
@@ -207,6 +224,8 @@ describe('Encounter action resolution', () => {
       appliedOutcomes: [{ status: 'APPLIED', after: { hitPoints: { current: 7 } } }]
     })
     expect(result.evidence.trace).not.toBeNull()
+    expect(mocks.getRevision).toHaveBeenCalledTimes(1)
+    expect(result.zenEvaluationMs).toBeGreaterThan(0)
   })
 
   it('returns a stable denial without mutating Encounter state', async () => {
@@ -218,6 +237,9 @@ describe('Encounter action resolution', () => {
         encounter,
         pack,
         revision,
+        actorRules: encounterActorRuleOutputSchema.parse({
+          actors: [{ actorId: ids.actor, initiativeModifier: 0, featureResources: [] }]
+        }),
         command: {
           encounterId: encounter.id,
           commandId: ids.command,

@@ -16,12 +16,31 @@ export async function reconcileCharacterAfterCampaignContentRemoval(
 ): Promise<boolean> {
   const characters = createCharacterRepository(db)
   await characters.findUpdatedAtByIdForUpdate(characterId)
-  const character = await characters.findAuthoredById(characterId)
-  if (!character) return false
+  const [character, row] = await Promise.all([
+    characters.findAuthoredById(characterId),
+    characters.findById(characterId)
+  ])
+  if (!character || !row) return false
+  if (!row.rule_pack_revision_id) {
+    throw new Error(`Active Character "${character.id}" does not have a pinned rule revision.`)
+  }
 
   const context = await loadCharacterBuilderContext(db, character)
-  const reconciled = await reconcileCharacterBuilderCharacter(db, character, character, context)
-  const resolution = await resolveCharacterBuilder(db, reconciled, 'edit', context)
+  const reconciled = await reconcileCharacterBuilderCharacter(
+    db,
+    character,
+    character,
+    context,
+    row.rule_pack_revision_id
+  )
+  const resolution = await resolveCharacterBuilder(
+    db,
+    reconciled,
+    'edit',
+    context,
+    null,
+    row.rule_pack_revision_id
+  )
   if (resolution.readiness.ready && isDeepStrictEqual(reconciled, character)) return false
 
   const draftCharacter = { ...reconciled, status: AUTHORED_RECORD_STATUS.DRAFT }

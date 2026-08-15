@@ -21,6 +21,9 @@ export interface RulePackRevisionRecord {
   id: string
   rulePackId: string
   revision: number
+  evaluatorKind: 'ZEN'
+  evaluatorVersion: string
+  modelContractVersion: number
   document: RulePackDocument
   checksum: string
   createdBy: string
@@ -29,6 +32,21 @@ export interface RulePackRevisionRecord {
   state: RulePackRevisionState
   createdAt: string
   updatedAt: string
+}
+
+export interface RulePackRevisionWithPackRecord {
+  pack: RulePackRecord
+  revision: RulePackRevisionRecord
+}
+
+export interface RulePackRulesetRecord {
+  systemId: string
+  code: string
+  version: string
+}
+
+export interface SeededRulesetRecord extends RulePackRulesetRecord {
+  ownerId: string | null
 }
 
 function iso(value: RuntimeTimestamp): string {
@@ -56,6 +74,9 @@ function revisionFromRow(
     id: String(row.id),
     rulePackId: String(row.rule_pack_id),
     revision: Number(row.revision),
+    evaluatorKind: 'ZEN',
+    evaluatorVersion: String(row.evaluator_version),
+    modelContractVersion: Number(row.model_contract_version),
     document: row.document as RulePackDocument,
     checksum: String(row.checksum),
     createdBy: String(row.created_by),
@@ -64,6 +85,18 @@ function revisionFromRow(
     state,
     createdAt: iso(row.created_at as RuntimeTimestamp),
     updatedAt: iso(row.updated_at as RuntimeTimestamp)
+  }
+}
+
+function packFromRevisionRow(row: Record<string, unknown>): RulePackRecord {
+  return {
+    id: String(row.pack_id),
+    rulesetCode: String(row.pack_ruleset_code),
+    version: String(row.pack_version),
+    activeRevisionId:
+      row.pack_active_revision_id == null ? null : String(row.pack_active_revision_id),
+    createdAt: iso(row.pack_created_at as RuntimeTimestamp),
+    updatedAt: iso(row.pack_updated_at as RuntimeTimestamp)
   }
 }
 
@@ -128,6 +161,70 @@ export function createRulePackRepository(db: DBLike) {
       return row ? revisionFromRow(row, revisionState(row)) : null
     },
 
+    async getRevisionWithPack(revisionId: string): Promise<RulePackRevisionWithPackRecord | null> {
+      const result = await sql<Record<string, unknown>>`
+        SELECT revision.*, revision.id = pack.active_revision_id AS is_active,
+          pack.id AS pack_id, pack.ruleset_code AS pack_ruleset_code,
+          pack.version AS pack_version, pack.active_revision_id AS pack_active_revision_id,
+          pack.created_at AS pack_created_at, pack.updated_at AS pack_updated_at
+        FROM public.rule_pack_revisions revision
+        JOIN public.rule_packs pack ON pack.id = revision.rule_pack_id
+        WHERE revision.id = ${revisionId}
+        FOR SHARE OF pack, revision
+      `.execute(db)
+      const row = result.rows[0]
+      return row
+        ? { pack: packFromRevisionRow(row), revision: revisionFromRow(row, revisionState(row)) }
+        : null
+    },
+
+    async findRulesetForSystem(systemId: string): Promise<RulePackRulesetRecord | null> {
+      const result = await sql<{
+        system_id: string
+        ruleset_code: string
+        ruleset_version: string
+      }>`
+        SELECT id AS system_id, ruleset_code, ruleset_version
+        FROM public.systems
+        WHERE id = ${systemId}
+        FOR SHARE
+      `.execute(db)
+      const row = result.rows[0]
+      return row
+        ? { systemId: row.system_id, code: row.ruleset_code, version: row.ruleset_version }
+        : null
+    },
+
+    async findSeededRuleset(
+      rulesetCode: string,
+      version: string
+    ): Promise<SeededRulesetRecord | null> {
+      const result = await sql<{
+        system_id: string
+        ruleset_code: string
+        ruleset_version: string
+        owner_id: string | null
+      }>`
+        SELECT id AS system_id, ruleset_code, ruleset_version, user_id AS owner_id
+        FROM public.systems
+        WHERE ruleset_code = ${rulesetCode}
+          AND ruleset_version = ${version}
+          AND user_id IS NOT NULL
+        ORDER BY id
+        LIMIT 1
+        FOR SHARE
+      `.execute(db)
+      const row = result.rows[0]
+      return row
+        ? {
+            systemId: row.system_id,
+            code: row.ruleset_code,
+            version: row.ruleset_version,
+            ownerId: row.owner_id
+          }
+        : null
+    },
+
     async findActiveByRuleset(
       rulesetCode: string,
       version: string
@@ -143,9 +240,31 @@ export function createRulePackRepository(db: DBLike) {
       return row ? revisionFromRow(row, 'ACTIVE') : null
     },
 
+    async backfillActiveCharacterRevision(input: {
+      rulesetCode: string
+      version: string
+      revisionId: string
+    }): Promise<number> {
+      const result = await sql<{ id: string }>`
+        UPDATE public.characters character
+        SET rule_pack_revision_id = ${input.revisionId}
+        FROM public.systems system
+        WHERE character.system_id = system.id
+          AND character.status = 'ACTIVE'
+          AND character.rule_pack_revision_id IS NULL
+          AND system.ruleset_code = ${input.rulesetCode}
+          AND system.ruleset_version = ${input.version}
+        RETURNING character.id
+      `.execute(db)
+      return result.rows.length
+    },
+
     async saveDraft(input: {
       rulePackId: string
       expectedUpdatedAt: string | null
+      evaluatorKind: 'ZEN'
+      evaluatorVersion: string
+      modelContractVersion: number
       document: RulePackDocument
       checksum: string
       createdBy: string
@@ -167,7 +286,12 @@ export function createRulePackRepository(db: DBLike) {
           if (input.expectedUpdatedAt !== iso(existing.updated_at as RuntimeTimestamp)) return null
           const updated = await sql<Record<string, unknown>>`
             UPDATE public.rule_pack_revisions
-            SET document = ${JSON.stringify(input.document)}::jsonb, checksum = ${input.checksum}
+            SET
+              evaluator_kind = ${input.evaluatorKind},
+              evaluator_version = ${input.evaluatorVersion},
+              model_contract_version = ${input.modelContractVersion},
+              document = ${JSON.stringify(input.document)}::jsonb,
+              checksum = ${input.checksum}
             WHERE id = ${String(existing.id)}
             RETURNING *
           `.execute(trx)
@@ -178,10 +302,12 @@ export function createRulePackRepository(db: DBLike) {
         if (input.expectedUpdatedAt !== null) return null
         const inserted = await sql<Record<string, unknown>>`
           INSERT INTO public.rule_pack_revisions (
-            rule_pack_id, revision, document, checksum, created_by
+            rule_pack_id, revision, evaluator_kind, evaluator_version, model_contract_version,
+            document, checksum, created_by
           ) VALUES (
             ${input.rulePackId},
             (SELECT COALESCE(MAX(revision), 0) + 1 FROM public.rule_pack_revisions WHERE rule_pack_id = ${input.rulePackId}),
+            ${input.evaluatorKind}, ${input.evaluatorVersion}, ${input.modelContractVersion},
             ${JSON.stringify(input.document)}::jsonb, ${input.checksum}, ${input.createdBy}
           )
           RETURNING *
@@ -196,8 +322,24 @@ export function createRulePackRepository(db: DBLike) {
       revisionId: string
       checksum: string
       actorId: string
+      expectedActiveRevisionId?: string | null
     }): Promise<RulePackRevisionRecord | null> {
       return withTransaction(db, async (trx) => {
+        const pack = await sql<{ id: string; active_revision_id: string | null }>`
+          SELECT id, active_revision_id
+          FROM public.rule_packs
+          WHERE id = ${input.rulePackId}
+          FOR UPDATE
+        `.execute(trx)
+        const lockedPack = pack.rows[0]
+        if (!lockedPack) return null
+        if (
+          input.expectedActiveRevisionId !== undefined &&
+          lockedPack.active_revision_id !== input.expectedActiveRevisionId
+        ) {
+          return null
+        }
+
         const activated = await sql<Record<string, unknown>>`
           UPDATE public.rule_pack_revisions
           SET activated_by = ${input.actorId}, activated_at = now()
@@ -210,13 +352,13 @@ export function createRulePackRepository(db: DBLike) {
         const row = activated.rows[0]
         if (!row) return null
 
-        const pack = await sql<{ id: string }>`
+        const updatedPack = await sql<{ id: string }>`
           UPDATE public.rule_packs
           SET active_revision_id = ${input.revisionId}
           WHERE id = ${input.rulePackId}
           RETURNING id
         `.execute(trx)
-        if (!pack.rows[0]) return null
+        if (!updatedPack.rows[0]) return null
         return revisionFromRow(row, 'ACTIVE')
       })
     },

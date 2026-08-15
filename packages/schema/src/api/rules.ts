@@ -45,6 +45,9 @@ export const rulePackRevisionDtoSchema = z.strictObject({
   packId: uuidSchema,
   revision: z.number().int().positive(),
   lifecycle: rulePackLifecycleDtoSchema,
+  evaluatorKind: z.literal('ZEN'),
+  evaluatorVersion: z.string().trim().min(1).max(80),
+  modelContractVersion: z.number().int().min(1).max(10000),
   checksum: z.string().regex(/^[a-f0-9]{64}$/),
   document: rulePackDocumentDtoSchema,
   createdBy: uuidSchema,
@@ -144,6 +147,9 @@ export const appliedRuleOutcomeDtoSchema = z.strictObject({
 export const ruleResolutionEvidenceDtoSchema = z.strictObject({
   rulePackRevisionId: uuidSchema,
   checksum: z.string().regex(/^[a-f0-9]{64}$/),
+  evaluatorKind: z.literal('ZEN'),
+  evaluatorVersion: z.string().trim().min(1).max(80),
+  modelContractVersion: z.number().int().min(1).max(10000),
   modelKey: ruleModelKeyDtoSchema,
   normalizedFacts: jsonSchema,
   trace: jsonSchema.nullable(),
@@ -153,6 +159,8 @@ export const ruleResolutionEvidenceDtoSchema = z.strictObject({
   override: ruleOutcomeOverrideDtoSchema.nullable()
 })
 export const simulateRulePackInputDtoSchema = z.strictObject({
+  rulesetCode: z.string().trim().min(1).max(80),
+  rulesetVersion: z.string().trim().min(1).max(80),
   document: rulePackDocumentDtoSchema,
   modelKey: ruleModelKeyDtoSchema,
   input: jsonSchema

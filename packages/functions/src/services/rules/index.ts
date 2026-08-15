@@ -1,5 +1,7 @@
 export * from './ruleChecksum.js'
 export * from './ruleConformance.js'
 export * from './ruleDocumentValidation.js'
+export * from './ruleModelContracts.js'
 export * from './rulePackService.js'
+export * from './ruleRevisionRuntime.js'
 export * from './zenRuleEngine.js'

@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.characters (
   description text,
   status text NOT NULL DEFAULT 'DRAFT',
   inspiration boolean NOT NULL DEFAULT false,
+  rule_pack_revision_id uuid,
   CONSTRAINT chk_characters_status CHECK (status IN ('DRAFT', 'ACTIVE')),
   CONSTRAINT characters_id_user_id_key UNIQUE (id, user_id),
   -- Optimistic concurrency guard — incremented on every command write
@@ -23,6 +24,9 @@ CREATE TABLE IF NOT EXISTS public.characters (
 CREATE INDEX IF NOT EXISTS idx_characters_system_id ON public.characters (system_id);
 
 CREATE INDEX IF NOT EXISTS idx_characters_user_id ON public.characters (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_characters_rule_pack_revision_id
+  ON public.characters (rule_pack_revision_id);
 
 DO $$
 BEGIN

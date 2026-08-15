@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
+import { performance } from 'node:perf_hooks'
 
 import { createDb, type DBLike } from '@artificer-toolkit/db'
 import {
@@ -11,6 +12,7 @@ import {
   dispatchCommandForUser,
   getCharacterSheetForUser
 } from '../services/character/characterApplicationService.js'
+import type { CharacterSheetCommandServiceTiming } from '../services/character/sheetService.js'
 import {
   expectedClassSummary,
   expectedTotalLevel,
@@ -22,6 +24,16 @@ type CharacterSheetCommandPayload = CharacterSheetCommandInputDto extends infer 
     ? Omit<Command, 'commandId' | 'expectedVersion'>
     : never
   : never
+
+export interface SheetCommandTiming {
+  command: CharacterSheetCommandPayload['type']
+  durationMs: number
+  fixture: string
+  service: CharacterSheetCommandServiceTiming
+}
+
+export const sheetCommandTimings: SheetCommandTiming[] = []
+
 export function canonicalize(value: unknown): unknown {
   return JSON.parse(JSON.stringify(value)) as unknown
 }
@@ -37,7 +49,21 @@ export async function dispatchAndReloadSheetCommand(
     commandId: randomUUID(),
     expectedVersion: sheet.meta.streamVersion
   } as CharacterSheetCommandInputDto
-  const result = await dispatchCommandForUser(db, fixture.characterId, command, fixture.userId)
+  let serviceTiming: CharacterSheetCommandServiceTiming | undefined
+  const startedAt = performance.now()
+  const result = await dispatchCommandForUser(db, fixture.characterId, command, fixture.userId, {
+    onServiceTiming: (timing) => {
+      serviceTiming = timing
+    }
+  })
+  assert.ok(serviceTiming, `${fixture.label} ${payload.type} did not report service timing.`)
+  const timing: SheetCommandTiming = {
+    command: payload.type,
+    durationMs: performance.now() - startedAt,
+    fixture: fixture.label,
+    service: serviceTiming
+  }
+  sheetCommandTimings.push(timing)
   assert.equal(
     result.streamVersion,
     sheet.meta.streamVersion + 1,
@@ -55,7 +81,8 @@ export async function dispatchAndReloadSheetCommand(
     JSON.stringify({
       command: payload.type,
       fixture: fixture.label,
-      persistedReload: 'verified'
+      persistedReload: 'verified',
+      sheetCommandTiming: timing
     })
   )
 

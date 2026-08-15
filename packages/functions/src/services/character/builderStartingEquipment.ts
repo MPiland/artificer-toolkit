@@ -1,10 +1,5 @@
-import {
-  evaluateCharacterFacet,
-  type CharacterEligibilityContext,
-  type EquipmentCategoryCode,
-  type EquipmentPropertyCode,
-  type AbilityCode
-} from '@artificer-toolkit/shared/core'
+import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
+import type { EquipmentCategoryCode, EquipmentPropertyCode } from '@artificer-toolkit/shared/core'
 import type {
   BackgroundAuthored,
   CharacterAuthored,
@@ -12,10 +7,7 @@ import type {
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { StartingEquipmentAuthored } from '@artificer-toolkit/shared/authored'
 import type { CharacterBuilderCatalog } from './builderCatalog.js'
-import { createCharacterBuilderEligibilityContext } from './builderEligibility.js'
-import type { GrantedFeatureRecord } from './builderEligibility.js'
-import type { CharacterBuilderRegistry } from './builderService.js'
-import { createCharacterAssemblyRegistry } from './characterEngine.js'
+import { compileCharacterEligibilityRuleFacts } from './characterEligibilityRuleFacts.js'
 
 export type CharacterStartingEquipmentDecision = NonNullable<
   NonNullable<CharacterAuthored['intent']['startingEquipment']>['class']
@@ -163,10 +155,48 @@ export function clearObsoleteStartingEquipmentSelections(
   return nextCharacter
 }
 
+type EligibilityFacet = CharacterRulePolicyInput['eligibilityFacets'][number]
+
+function startingEquipmentEvaluationId(
+  source: 'CLASS' | 'BACKGROUND',
+  setId: string,
+  groupId: string,
+  optionId: string
+): string {
+  return `starting-equipment:${source}:${setId}:${groupId}:${optionId}`
+}
+
+export function compileStartingEquipmentEligibilityRuleFacts(params: {
+  source: 'CLASS' | 'BACKGROUND'
+  startingEquipment: StartingEquipmentAuthored | undefined
+}): EligibilityFacet[] {
+  if (!params.startingEquipment) return []
+
+  return params.startingEquipment.sets.flatMap((set) =>
+    set.groups.flatMap((group) =>
+      group.options.flatMap((option) =>
+        option.eligibility
+          ? [
+              compileCharacterEligibilityRuleFacts({
+                evaluationId: startingEquipmentEvaluationId(
+                  params.source,
+                  set.id,
+                  group.id,
+                  option.id
+                ),
+                facet: option.eligibility
+              })
+            ]
+          : []
+      )
+    )
+  )
+}
+
 function filterStartingEquipmentByEligibility(
+  source: 'CLASS' | 'BACKGROUND',
   startingEquipment: StartingEquipmentAuthored,
-  context: CharacterEligibilityContext,
-  registry: ReturnType<typeof createCharacterAssemblyRegistry>
+  eligibilityById: ReadonlyMap<string, boolean>
 ): StartingEquipmentAuthored {
   return {
     ...startingEquipment,
@@ -174,21 +204,24 @@ function filterStartingEquipmentByEligibility(
       ...set,
       groups: set.groups.map((group) => ({
         ...group,
-        options: group.options.filter(
-          (option) => evaluateCharacterFacet(option.eligibility, context, registry).passed
-        )
+        options: group.options.filter((option) => {
+          if (!option.eligibility) return true
+          const evaluationId = startingEquipmentEvaluationId(source, set.id, group.id, option.id)
+          const passed = eligibilityById.get(evaluationId)
+          if (passed === undefined) {
+            throw new Error(`Missing Character rule eligibility result "${evaluationId}".`)
+          }
+          return passed
+        })
       }))
     }))
   }
 }
 
 export function resolveEligibleStartingEquipment(params: {
-  character: CharacterAuthored
-  registry: CharacterBuilderRegistry
-  grantedFeatures: readonly GrantedFeatureRecord[]
-  abilityScores: Partial<Record<AbilityCode, number>>
   primaryClass?: ParentClassAuthored
   selectedBackground?: BackgroundAuthored
+  eligibilityById: ReadonlyMap<string, boolean>
 }): {
   classStartingEquipment?: StartingEquipmentAuthored
   backgroundStartingEquipment?: StartingEquipmentAuthored
@@ -197,28 +230,20 @@ export function resolveEligibleStartingEquipment(params: {
   const backgroundStartingEquipment = params.selectedBackground?.startingEquipment
   if (!classStartingEquipment && !backgroundStartingEquipment) return {}
 
-  const hasEligibility = [classStartingEquipment, backgroundStartingEquipment]
-    .filter((record): record is StartingEquipmentAuthored => Boolean(record))
-    .some((record) =>
-      record.sets.some((set) =>
-        set.groups.some((group) => group.options.some((option) => Boolean(option.eligibility)))
-      )
-    )
-  if (!hasEligibility) {
-    return {
-      classStartingEquipment,
-      backgroundStartingEquipment
-    }
-  }
-
-  const { context, registry } = createCharacterBuilderEligibilityContext(params)
-
   return {
     classStartingEquipment: classStartingEquipment
-      ? filterStartingEquipmentByEligibility(classStartingEquipment, context, registry)
+      ? filterStartingEquipmentByEligibility(
+          'CLASS',
+          classStartingEquipment,
+          params.eligibilityById
+        )
       : undefined,
     backgroundStartingEquipment: backgroundStartingEquipment
-      ? filterStartingEquipmentByEligibility(backgroundStartingEquipment, context, registry)
+      ? filterStartingEquipmentByEligibility(
+          'BACKGROUND',
+          backgroundStartingEquipment,
+          params.eligibilityById
+        )
       : undefined
   }
 }

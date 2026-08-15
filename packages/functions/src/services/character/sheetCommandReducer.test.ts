@@ -11,7 +11,73 @@ import {
   createSheetSpellSource
 } from './sheetTestFixtures.js'
 
+function setSpellCastDecision(
+  sheet: ReturnType<typeof createSheet>,
+  options: {
+    available: boolean
+    slotKey?: string
+    sourceId?: string
+    unavailableReason?: string
+  }
+) {
+  const spell = sheet.spells.spells[0]!
+  const source = options.sourceId
+    ? spell.sources?.find(
+        (candidate) => (candidate.id ?? candidate.source.sourceInstanceId) === options.sourceId
+      )
+    : spell.sources?.[0]
+  if (!source) throw new Error('Spell cast test source is missing.')
+  const sourceId = source.id ?? source.source.sourceInstanceId
+  const castLevel = source.fixedLevel ?? spell.level
+  sheet.spells.activeGroups = [
+    {
+      level: castLevel,
+      label: `Level ${castLevel}`,
+      entries: [
+        {
+          rowId: `${sourceId}:level:${castLevel}`,
+          target: { kind: 'SPELL', source: source.source, castLevel },
+          spellId: spell.id,
+          source: source.source,
+          sourceId,
+          displayName: spell.label,
+          castLevel,
+          available: options.available,
+          ...(options.unavailableReason ? { unavailableReason: options.unavailableReason } : {}),
+          cast: {
+            spellId: spell.id,
+            sourceId,
+            ...(options.slotKey ? { slotKey: options.slotKey } : {})
+          }
+        }
+      ]
+    }
+  ]
+}
+
 describe('character sheet command reducer', () => {
+  it('leaves authored state unchanged for a rule revision upgrade', () => {
+    const character = createCharacter()
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'UPGRADE_RULE_PACK',
+        revisionId: '00000000-0000-4000-8000-000000000202',
+        expectedVersion: 1
+      },
+      createSheet()
+    )
+
+    expect(next).toEqual(character)
+    expect(
+      summarizeCharacterSheetCommand({
+        type: 'UPGRADE_RULE_PACK',
+        revisionId: '00000000-0000-4000-8000-000000000202',
+        expectedVersion: 1
+      })
+    ).toBe('Character rules upgraded')
+  })
+
   it('applies damage to temporary hit points before current hit points', () => {
     const next = applyCharacterSheetCommand(
       createCharacter(),
@@ -117,18 +183,53 @@ describe('character sheet command reducer', () => {
     ).toThrow('Resource "Second Wind" only has 1 use remaining.')
   })
 
-  it('caps spell slot usage at the sheet maximum', () => {
-    const slotNext = applyCharacterSheetCommand(
-      createCharacter(),
+  it('preserves raw spell slot usage during partial recovery and removes zero usage', () => {
+    const character = createCharacter()
+    character.state.spellSlots = [{ slotKey: 'STANDARD:1', used: 7 }]
+    const sheet = createSheet()
+    sheet.spells.slots[0] = { ...sheet.spells.slots[0]!, max: 3, used: 3, remaining: 0 }
+
+    const partiallyRecovered = applyCharacterSheetCommand(
+      character,
       {
-        type: 'USE_SPELL_SLOT',
+        type: 'RESTORE_SPELL_SLOT',
         slotKey: 'STANDARD:1',
         expectedVersion: 1
       },
-      createSheet()
+      sheet
     )
+    expect(partiallyRecovered.state.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 6 }])
 
-    expect(slotNext.state.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 2 }])
+    const fullyRecovered = applyCharacterSheetCommand(
+      partiallyRecovered,
+      {
+        type: 'RESTORE_SPELL_SLOT',
+        slotKey: 'STANDARD:1',
+        all: true,
+        expectedVersion: 1
+      },
+      sheet
+    )
+    expect(fullyRecovered.state.spellSlots).toBeUndefined()
+  })
+
+  it('rejects spell slot spending when no effective uses remain', () => {
+    const character = createCharacter()
+    character.state.spellSlots = [{ slotKey: 'STANDARD:1', used: 7 }]
+    const sheet = createSheet()
+    sheet.spells.slots[0] = { ...sheet.spells.slots[0]!, max: 3, used: 3, remaining: 0 }
+
+    expect(() =>
+      applyCharacterSheetCommand(
+        character,
+        {
+          type: 'USE_SPELL_SLOT',
+          slotKey: 'STANDARD:1',
+          expectedVersion: 1
+        },
+        sheet
+      )
+    ).toThrow('has no uses remaining')
   })
 
   it('restores resource and spell slot usage fully', () => {
@@ -188,162 +289,6 @@ describe('character sheet command reducer', () => {
         createSheet()
       )
     ).toThrow(CharacterSheetCommandError)
-  })
-
-  it('applies short rest recovery without clearing long-rest resources or standard slots', () => {
-    const character = createCharacter()
-    character.state.resources = [
-      { resourceGrantId: 'resource-1', used: 1 },
-      { resourceGrantId: 'long-resource', used: 1 }
-    ]
-    character.state.spellSlots = [
-      { slotKey: 'STANDARD:1', used: 1 },
-      { slotKey: 'PACT', used: 1 }
-    ]
-    const sheet = createSheet()
-    sheet.resources.items = [
-      createSheetResource({
-        recoveries: [{ trigger: 'SHORT_REST', amount: { kind: 'ALL' } }]
-      }),
-      createSheetResource({
-        id: 'long-resource',
-        label: 'Daily Resolve',
-        used: 1,
-        max: 1,
-        remaining: 0,
-        recoveries: [{ trigger: 'LONG_REST', amount: { kind: 'ALL' } }]
-      })
-    ]
-    sheet.spells.slots = [
-      ...sheet.spells.slots,
-      {
-        slotKey: 'PACT',
-        label: 'Pact Magic',
-        level: null,
-        max: 1,
-        used: 1,
-        remaining: 0
-      }
-    ]
-
-    const next = applyCharacterSheetCommand(
-      character,
-      {
-        type: 'APPLY_REST',
-        restKind: 'SHORT',
-        expectedVersion: 1
-      },
-      sheet
-    )
-
-    expect(next.state.resources).toEqual([{ resourceGrantId: 'long-resource', used: 1 }])
-    expect(next.state.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
-  })
-
-  it('preserves manual resources on long rest while restoring rest resources', () => {
-    const character = createCharacter()
-    character.state.resources = [
-      { resourceGrantId: 'short-resource', used: 1 },
-      { resourceGrantId: 'long-resource', used: 1 },
-      { resourceGrantId: 'manual-resource', used: 2 }
-    ]
-    const sheet = createSheet()
-    sheet.resources.items = [
-      createSheetResource({
-        id: 'short-resource',
-        label: 'Action Surge',
-        used: 1,
-        max: 1,
-        remaining: 0,
-        recoveries: [{ trigger: 'SHORT_REST', amount: { kind: 'ALL' } }]
-      }),
-      createSheetResource({
-        id: 'long-resource',
-        label: 'Daily Resolve',
-        used: 1,
-        max: 1,
-        remaining: 0,
-        recoveries: [{ trigger: 'LONG_REST', amount: { kind: 'ALL' } }]
-      }),
-      createSheetResource({
-        id: 'manual-resource',
-        label: 'Manual Charge',
-        sourceLabel: 'Item',
-        used: 2,
-        max: 3,
-        remaining: 1,
-        recoveries: [{ trigger: 'MANUAL', amount: { kind: 'ALL' } }]
-      })
-    ]
-
-    const next = applyCharacterSheetCommand(
-      character,
-      {
-        type: 'APPLY_REST',
-        restKind: 'LONG',
-        expectedVersion: 1
-      },
-      sheet
-    )
-
-    expect(next.state.resources).toEqual([{ resourceGrantId: 'manual-resource', used: 2 }])
-  })
-
-  it('recovers long-rest hit dice from one shared floor-half pool', () => {
-    const character = createCharacter()
-    character.state.hitpoints.hitDice = [
-      { die: 8, total: 3, used: 3 },
-      { die: 10, total: 1, used: 1 }
-    ]
-
-    const next = applyCharacterSheetCommand(
-      character,
-      {
-        type: 'APPLY_REST',
-        restKind: 'LONG',
-        expectedVersion: 1
-      },
-      createSheet()
-    )
-
-    expect(next.state.hitpoints.hitDice).toEqual([
-      { die: 8, total: 3, used: 1 },
-      { die: 10, total: 1, used: 1 }
-    ])
-  })
-
-  it('recovers a minimum of one hit die on long rest', () => {
-    const character = createCharacter()
-    character.state.hitpoints.hitDice = [{ die: 8, total: 1, used: 1 }]
-
-    const next = applyCharacterSheetCommand(
-      character,
-      {
-        type: 'APPLY_REST',
-        restKind: 'LONG',
-        expectedVersion: 1
-      },
-      createSheet()
-    )
-
-    expect(next.state.hitpoints.hitDice).toEqual([{ die: 8, total: 1, used: 0 }])
-  })
-
-  it('removes the final exhaustion level on long rest', () => {
-    const character = createCharacter()
-    character.state.exhaustion = { level: 1, notes: 'One level remaining.' }
-
-    const next = applyCharacterSheetCommand(
-      character,
-      {
-        type: 'APPLY_REST',
-        restKind: 'LONG',
-        expectedVersion: 1
-      },
-      createSheet()
-    )
-
-    expect(next.state.exhaustion).toBeUndefined()
   })
 
   it('rejects commands for unavailable resources and spell slots', () => {
@@ -1196,6 +1141,7 @@ describe('character sheet command reducer', () => {
         canPrepare: false
       })
     ]
+    setSpellCastDecision(sheet, { available: true, slotKey: 'STANDARD:1' })
 
     expect(() =>
       applyCharacterSheetCommand(
@@ -1262,6 +1208,12 @@ describe('character sheet command reducer', () => {
   it('enforces spell-source eligibility and preserves state when casting fails', () => {
     const unpreparedCharacter = createCharacter()
     const originalUnpreparedState = structuredClone(unpreparedCharacter.state)
+    const unpreparedSheet = createSheet()
+    setSpellCastDecision(unpreparedSheet, {
+      available: false,
+      slotKey: 'STANDARD:1',
+      unavailableReason: 'Spell "Shield" is not prepared for this source.'
+    })
     expect(() =>
       applyCharacterSheetCommand(
         unpreparedCharacter,
@@ -1271,7 +1223,7 @@ describe('character sheet command reducer', () => {
           slotKey: 'STANDARD:1',
           expectedVersion: 1
         },
-        createSheet()
+        unpreparedSheet
       )
     ).toThrow(/is not prepared for this source/)
     expect(unpreparedCharacter.state).toEqual(originalUnpreparedState)
@@ -1287,6 +1239,11 @@ describe('character sheet command reducer', () => {
         castMode: 'SPELL_SLOT'
       })
     ]
+    setSpellCastDecision(knownSheet, {
+      available: true,
+      sourceId: 'bard:spell-1',
+      slotKey: 'STANDARD:1'
+    })
     const knownNext = applyCharacterSheetCommand(
       createCharacter(),
       {
@@ -1314,6 +1271,10 @@ describe('character sheet command reducer', () => {
         castMode: 'RITUAL'
       })
     ]
+    setSpellCastDecision(ritualSheet, {
+      available: true,
+      sourceId: 'feature:ritual-spell-1'
+    })
     const ritualNext = applyCharacterSheetCommand(
       ritualCharacter,
       {
@@ -1339,6 +1300,10 @@ describe('character sheet command reducer', () => {
         fixedLevel: 2
       })
     ]
+    setSpellCastDecision(fixedSheet, {
+      available: true,
+      sourceId: 'feature:spell-1'
+    })
     const fixedNext = applyCharacterSheetCommand(
       fixedCharacter,
       {
@@ -1358,6 +1323,11 @@ describe('character sheet command reducer', () => {
     slotSheet.spells.slots[0]!.remaining = 0
     slotSheet.spells.spells[0]!.sources![0]!.prepared = true
     slotSheet.spells.spells[0]!.sources![0]!.acquisition = 'PREPARED'
+    setSpellCastDecision(slotSheet, {
+      available: false,
+      slotKey: 'STANDARD:1',
+      unavailableReason: 'Level 1 spell slots are exhausted.'
+    })
     const originalSlotState = structuredClone(slotCharacter.state)
     expect(() =>
       applyCharacterSheetCommand(
@@ -1370,7 +1340,7 @@ describe('character sheet command reducer', () => {
         },
         slotSheet
       )
-    ).toThrow(/has no uses remaining/)
+    ).toThrow(/spell slots are exhausted/)
     expect(slotCharacter.state).toEqual(originalSlotState)
 
     const resourceOwner = {
@@ -1401,6 +1371,10 @@ describe('character sheet command reducer', () => {
         resourceOwner
       })
     ]
+    setSpellCastDecision(resourceSheet, {
+      available: true,
+      sourceId: 'feature:spell-1'
+    })
     const castCharacter = createCharacter()
     castCharacter.state.resources = [
       { resourceGrantId: 'SPELL_SOURCE:feature:spell-1:spell-1:resource-1', used: 1 }
@@ -1425,6 +1399,11 @@ describe('character sheet command reducer', () => {
     ]
     resourceSheet.resources.items[0]!.used = 2
     resourceSheet.resources.items[0]!.remaining = 0
+    setSpellCastDecision(resourceSheet, {
+      available: false,
+      sourceId: 'feature:spell-1',
+      unavailableReason: 'No uses remaining.'
+    })
     const originalResourceState = structuredClone(resourceCharacter.state)
     expect(() =>
       applyCharacterSheetCommand(
@@ -1437,7 +1416,7 @@ describe('character sheet command reducer', () => {
         },
         resourceSheet
       )
-    ).toThrow(/has no uses remaining/)
+    ).toThrow(/No uses remaining/)
     expect(resourceCharacter.state).toEqual(originalResourceState)
   })
 

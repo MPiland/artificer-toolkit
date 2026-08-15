@@ -11,6 +11,16 @@ it('maps username uniqueness races to a conflict response', () => {
   })
 })
 
+it('maps an active live-session command authority to a conflict response', () => {
+  const error = new Error('This aggregate is controlled by its active live-session room.')
+  error.name = 'LiveSessionCommandAuthorityError'
+
+  expect(toTrpcError(error)).toMatchObject({
+    code: 'CONFLICT',
+    message: error.message
+  })
+})
+
 it('maps authored creation limits to a rate-limit response', () => {
   const error = new Error(
     'You can create at most 10 authored records per minute. Try again when the minute resets.'

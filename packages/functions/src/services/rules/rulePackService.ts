@@ -15,11 +15,22 @@ import {
   type SimulateRulePackInputDto,
   type SimulateRulePackResultDto
 } from '@artificer-toolkit/schema/api/rules'
+import { ENCOUNTER_ACTOR_MODEL_KEY } from '@artificer-toolkit/schema/api/encounterActorRules'
+import { CHARACTER_GRANT_FOLD_MODEL_KEY } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import { CHARACTER_ACTION_MODEL_KEY } from '@artificer-toolkit/schema/api/characterActionRules'
 
 import { checksumRuleDocument } from './ruleChecksum.js'
 import { assertRulePackConformance } from './ruleConformance.js'
-import { validateRulePackDocument } from './ruleDocumentValidation.js'
+import { RuleDocumentValidationError, validateRulePackDocument } from './ruleDocumentValidation.js'
+import {
+  RULE_EVALUATOR_KIND,
+  RULE_EVALUATOR_VERSION,
+  RULE_MODEL_CONTRACT_VERSION
+} from './ruleModelContracts.js'
 import { evaluateZenRuleModel } from './zenRuleEngine.js'
+
+const DND5E_RULESET_CODE = 'dnd5e'
+const DND5E_2014_RULESET_VERSION = '2014'
 
 export class RuleAccessError extends Error {
   constructor() {
@@ -46,12 +57,34 @@ function requireSuperAdmin(isSuperAdmin: boolean): void {
   if (!isSuperAdmin) throw new RuleAccessError()
 }
 
+function requireRulesetOwnedModels(
+  document: RulePackDocumentDto,
+  rulesetCode: string,
+  rulesetVersion: string
+): void {
+  if (rulesetCode !== DND5E_RULESET_CODE || rulesetVersion !== DND5E_2014_RULESET_VERSION) return
+
+  const missing = [
+    CHARACTER_GRANT_FOLD_MODEL_KEY,
+    CHARACTER_ACTION_MODEL_KEY,
+    ENCOUNTER_ACTOR_MODEL_KEY
+  ].filter((modelKey) => !Object.hasOwn(document.models, modelKey))
+  if (missing.length > 0) {
+    throw new RuleDocumentValidationError(
+      `The ${DND5E_RULESET_CODE}/${DND5E_2014_RULESET_VERSION} rule pack requires repository-owned models: ${missing.join(', ')}.`
+    )
+  }
+}
+
 function toRulePackRevisionDto(record: RulePackRevisionRecord): RulePackRevisionDto {
   return {
     id: record.id,
     packId: record.rulePackId,
     revision: record.revision,
     lifecycle: record.state,
+    evaluatorKind: record.evaluatorKind,
+    evaluatorVersion: record.evaluatorVersion,
+    modelContractVersion: record.modelContractVersion,
     checksum: record.checksum,
     document: rulePackDocumentDtoSchema.parse(record.document),
     createdBy: record.createdBy,
@@ -109,12 +142,16 @@ export async function saveRulePackDraft(
   requireSuperAdmin(isSuperAdmin)
   const document = rulePackDocumentDtoSchema.parse(input.document)
   validateRulePackDocument(document)
+  requireRulesetOwnedModels(document, input.rulesetCode, input.rulesetVersion)
 
   const repository = createRulePackRepository(db)
   const pack = await repository.findOrCreatePack(input.rulesetCode, input.rulesetVersion)
   const draft = await repository.saveDraft({
     rulePackId: pack.id,
     expectedUpdatedAt: input.expectedUpdatedAt ?? null,
+    evaluatorKind: RULE_EVALUATOR_KIND,
+    evaluatorVersion: RULE_EVALUATOR_VERSION,
+    modelContractVersion: RULE_MODEL_CONTRACT_VERSION,
     document,
     checksum: checksumRuleDocument(document),
     createdBy: userId
@@ -131,6 +168,7 @@ export async function simulateRulePack(
 ): Promise<SimulateRulePackResultDto> {
   requireSuperAdmin(isSuperAdmin)
   const document = rulePackDocumentDtoSchema.parse(input.document)
+  requireRulesetOwnedModels(document, input.rulesetCode, input.rulesetVersion)
   return evaluateZenRuleModel({
     document,
     modelKey: input.modelKey,
@@ -147,16 +185,25 @@ export async function activateRulePackRevision(
 ): Promise<RulePackRevisionDto> {
   requireSuperAdmin(isSuperAdmin)
   const repository = createRulePackRepository(db)
-  const revision = await repository.getRevision(input.revisionId)
-  if (!revision) throw new RuleNotFoundError('Rule pack revision was not found.')
+  const stored = await repository.getRevisionWithPack(input.revisionId)
+  if (!stored) throw new RuleNotFoundError('Rule pack revision was not found.')
+  const { pack, revision } = stored
   if (revision.state !== 'DRAFT') {
     throw new RuleConflictError('Only draft rule pack revisions can be activated.')
   }
   if (revision.checksum !== input.expectedChecksum) {
     throw new RuleConflictError('Rule pack revision was changed by another editor.')
   }
+  if (
+    revision.evaluatorKind !== RULE_EVALUATOR_KIND ||
+    revision.evaluatorVersion !== RULE_EVALUATOR_VERSION ||
+    revision.modelContractVersion !== RULE_MODEL_CONTRACT_VERSION
+  ) {
+    throw new RuleConflictError('Rule pack revision uses an unsupported runtime contract.')
+  }
 
   const document: RulePackDocumentDto = rulePackDocumentDtoSchema.parse(revision.document)
+  requireRulesetOwnedModels(document, pack.rulesetCode, pack.version)
   await assertRulePackConformance(document)
   const activated = await repository.activateDraft({
     rulePackId: revision.rulePackId,

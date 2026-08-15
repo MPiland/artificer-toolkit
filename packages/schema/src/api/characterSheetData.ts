@@ -22,6 +22,7 @@ import {
   characterSpellSourceRefDtoSchema
 } from './characterSheet.js'
 import { characterSheetReferenceFeatureDtoSchema } from './characterBuilder.js'
+import { characterActionReasonCodeSchema } from './characterActionRules.js'
 
 export const characterSheetFactDtoSchema = z.object({
   label: z.string(),
@@ -211,6 +212,13 @@ export const characterSheetActionDtoSchema = z.object({
   description: z.string().optional(),
   rollable: z.boolean().optional(),
   mechanic: characterSheetMechanicDtoSchema.optional(),
+  availability: z.discriminatedUnion('status', [
+    z.object({ status: z.literal('AVAILABLE') }),
+    z.object({
+      status: z.literal('UNAVAILABLE'),
+      reasonCode: characterActionReasonCodeSchema
+    })
+  ]),
   resourceGrantId: z.string().optional(),
   resourceCost: z.number().int().positive().optional()
 })

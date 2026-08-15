@@ -56,10 +56,6 @@
       "types": "./dist/barrels/maps/index.d.ts",
       "default": "./dist/barrels/maps/index.js"
     },
-    "./engine/resolution": {
-      "types": "./dist/domains/engine/resolution/index.d.ts",
-      "default": "./dist/domains/engine/resolution/index.js"
-    },
     "./character": {
       "types": "./dist/domains/character/index.d.ts",
       "default": "./dist/domains/character/index.js"

@@ -20,7 +20,7 @@ const mocks = vi.hoisted(() => ({
     insertCampaignEvent: vi.fn(),
     listVisibleEvents: vi.fn()
   },
-  character: { findAuthoredById: vi.fn(), upsertAuthored: vi.fn() },
+  character: { findAuthoredById: vi.fn(), findById: vi.fn(), upsertAuthored: vi.fn() },
   resolveBuilder: vi.fn(),
   validateTarget: vi.fn(),
   validateCondition: vi.fn(),
@@ -83,6 +83,7 @@ describe('Campaign GM adjustment service', () => {
       systemId: ids.campaign,
       state: { equipment: { inventory: [] } }
     })
+    mocks.character.findById.mockResolvedValue({ rule_pack_revision_id: 'revision-1' })
     mocks.resolveBuilder.mockResolvedValue({
       registry: { system: null },
       catalog: { equipment: [] }

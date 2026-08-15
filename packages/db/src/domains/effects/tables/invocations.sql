@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS public.effect_invocations (
   trigger_code text NOT NULL,
   activation_type text NOT NULL,
   activation_value integer,
+  resource_charge_id uuid REFERENCES public.charges (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  resource_cost integer,
   range_characteristic_id uuid NOT NULL REFERENCES public.characteristics (id) ON DELETE RESTRICT DEFERRABLE INITIALLY DEFERRED,
   shape_characteristic_id uuid REFERENCES public.characteristics (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
   saving_throw_id uuid REFERENCES public.saving_throws (id) ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
@@ -19,7 +21,11 @@ CREATE TABLE IF NOT EXISTS public.effect_invocations (
   allow_repeated_targets boolean,
   excluded_creature_type_ids uuid[],
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT effect_invocations_resource_use_pair_check CHECK (
+    (resource_charge_id IS NULL AND resource_cost IS NULL)
+    OR (resource_charge_id IS NOT NULL AND resource_cost > 0)
+  )
 );
 
 CREATE INDEX IF NOT EXISTS idx_effect_invocations_trigger ON public.effect_invocations (trigger_code);

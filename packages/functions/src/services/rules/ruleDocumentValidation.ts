@@ -1,5 +1,13 @@
 import type { RulePackDocumentDto } from '@artificer-toolkit/schema/api/rules'
+import { ENCOUNTER_ACTOR_MODEL_KEY } from '@artificer-toolkit/schema/api/encounterActorRules'
+import { CHARACTER_GRANT_FOLD_MODEL_KEY } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import { CHARACTER_ACTION_MODEL_KEY } from '@artificer-toolkit/schema/api/characterActionRules'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits'
+
+import { dnd5e2014CharacterActionModel } from './systems/dnd5e/2014/characterActionSource.js'
+import { dnd5e2014CharacterGrantFoldModel } from './systems/dnd5e/2014/characterGrantFoldSource.js'
+import { dnd5e2014EncounterActorModel } from './systems/dnd5e/2014/encounterActorSource.js'
+import { equalCanonicalJson } from './ruleChecksum.js'
 
 const ALLOWED_NODE_TYPES = new Set([
   'inputNode',
@@ -13,6 +21,11 @@ const NONDETERMINISTIC_CALL = /\b(?:now|today|random|rand|uuid)\s*\(/i
 const MAX_JSON_DEPTH = 32
 const MAX_GRAPH_NODES = 100
 const MAX_GRAPH_EDGES = 200
+const RESERVED_MODELS: Readonly<Record<string, RulePackDocumentDto['models'][string]>> = {
+  [ENCOUNTER_ACTOR_MODEL_KEY]: dnd5e2014EncounterActorModel,
+  [CHARACTER_ACTION_MODEL_KEY]: dnd5e2014CharacterActionModel,
+  [CHARACTER_GRANT_FOLD_MODEL_KEY]: dnd5e2014CharacterGrantFoldModel
+}
 
 export class RuleDocumentValidationError extends Error {
   constructor(message: string) {
@@ -53,7 +66,12 @@ function assertDeterministicModel(value: unknown): void {
   if (object) Object.values(object).forEach(assertDeterministicModel)
 }
 
-function assertSafeGraph(modelKey: string, model: unknown, modelKeys: Set<string>): void {
+function assertSafeGraph(
+  modelKey: string,
+  model: unknown,
+  modelKeys: Set<string>,
+  allowReservedFunction: boolean
+): void {
   const graph = record(model)
   if (!graph) throw new RuleDocumentValidationError(`Rule model "${modelKey}" must be an object.`)
   const nodes = graph.nodes
@@ -91,7 +109,10 @@ function assertSafeGraph(modelKey: string, model: unknown, modelKeys: Set<string
       throw new RuleDocumentValidationError(`Rule model "${modelKey}" repeats node ID "${id}".`)
     }
     ids.add(id)
-    if (typeof type !== 'string' || !ALLOWED_NODE_TYPES.has(type)) {
+    if (
+      typeof type !== 'string' ||
+      (!ALLOWED_NODE_TYPES.has(type) && !(allowReservedFunction && type === 'functionNode'))
+    ) {
       throw new RuleDocumentValidationError(
         `Rule model "${modelKey}" contains unsupported node type "${String(type)}".`
       )
@@ -138,11 +159,20 @@ export function validateRulePackDocument(document: RulePackDocumentDto): void {
       `Rule documents cannot exceed ${AUTHORED_LIMITS.mutationPayloadBytes} bytes.`
     )
   }
+  for (const [modelKey, canonicalModel] of Object.entries(RESERVED_MODELS)) {
+    const reservedModel = document.models[modelKey]
+    if (reservedModel !== undefined && !equalCanonicalJson(reservedModel, canonicalModel)) {
+      throw new RuleDocumentValidationError(
+        `Rule model "${modelKey}" must exactly match the repository-owned model.`
+      )
+    }
+  }
   assertJsonDepth(document)
   const modelKeys = new Set(Object.keys(document.models))
-  Object.entries(document.models).forEach(([modelKey, model]) =>
-    assertSafeGraph(modelKey, model, modelKeys)
-  )
+  Object.entries(document.models).forEach(([modelKey, model]) => {
+    const reserved = Object.hasOwn(RESERVED_MODELS, modelKey)
+    assertSafeGraph(modelKey, model, modelKeys, reserved)
+  })
 
   const fixtureIds = new Set<string>()
   for (const fixture of document.fixtures) {

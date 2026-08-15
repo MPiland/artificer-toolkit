@@ -1,24 +1,36 @@
 import {
   CLASS_CATEGORY,
-  HITPOINT_CALCULATION_METHOD_CODE,
-  type AbilityCode
+  HITPOINT_CALCULATION_METHOD_CODE
 } from '@artificer-toolkit/shared/core'
+import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
 import type {
   CharacterAuthored,
   ParentClassAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
+import type {
+  CharacterRulePolicyInput,
+  CharacterRulePolicyOutput
+} from '@artificer-toolkit/schema/api/characterRules'
 
 import type { CharacterBuilderRegistry, CharacterBuilderValidation } from './builderService.js'
 
 export type CharacterHitpointLevelEntry = CharacterAuthored['intent']['hitpoints']['levels'][number]
 export type CharacterHitDie = CharacterAuthored['state']['hitpoints']['hitDice'][number]
+type CharacterHitpointProgressionFacts = NonNullable<
+  NonNullable<CharacterRulePolicyInput['hitPointFacts']>['progression']
+>
 
-export function normalizeCharacterHitpointLevels(
+export interface CharacterHitpointProgressionPreparation {
+  facts: CharacterHitpointProgressionFacts
+  entries: CharacterHitpointLevelEntry[]
+}
+
+export function prepareCharacterHitpointProgression(
   character: CharacterAuthored,
   authoredClasses: CharacterBuilderRegistry['classes'],
   existingCharacter: CharacterAuthored | null,
-  abilityScores: Partial<Record<AbilityCode, number>>
-): CharacterHitpointLevelEntry[] {
+  abilityIds: readonly string[]
+): CharacterHitpointProgressionPreparation {
   const submittedLevels = character.intent.hitpoints.levels
   const persistedLevels = existingCharacter?.intent.hitpoints.levels ?? []
   const levelsByClass = new Map(
@@ -75,35 +87,27 @@ export function normalizeCharacterHitpointLevels(
     }
   }
 
-  return orderedLevels.map((orderedLevel, index) => {
+  const entries: CharacterHitpointLevelEntry[] = []
+  const rows = orderedLevels.map((orderedLevel, index) => {
     const level = index + 1
     const authoredClass = authoredClasses.find(
       (record): record is ParentClassAuthored =>
         record.category === CLASS_CATEGORY.BASE && record.id === orderedLevel.classId
     )
     const die = parseClassHitDie(authoredClass?.hitpoint?.dieConfig)
-    if (!authoredClass || die === null) return { ...orderedLevel, level }
-
-    const hitpointAbility = authoredClass.hitpoint?.ability
-    const score = hitpointAbility ? abilityScores[hitpointAbility] : undefined
-    const modifier = typeof score === 'number' ? Math.floor((score - 10) / 2) : 0
+    const hitpointAbility = authoredClass?.hitpoint?.ability
+    const normalizedHitpointAbility = hitpointAbility
+      ? (resolveAbilityAlias(hitpointAbility) ?? hitpointAbility)
+      : null
+    const abilityIndex = normalizedHitpointAbility
+      ? abilityIds.findIndex(
+          (abilityId) =>
+            (resolveAbilityAlias(abilityId) ?? abilityId) === normalizedHitpointAbility
+        )
+      : -1
     const key = `${orderedLevel.classId}:${orderedLevel.classLevel}`
     const submitted = levelsByClass.get(key)
     const persisted = existingLevelsByClass.get(key)
-    const fixedDieValue = level === 1 ? die : Math.floor(die / 2) + 1
-
-    if (
-      character.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.FIXED ||
-      level === 1
-    ) {
-      return {
-        level,
-        classId: orderedLevel.classId,
-        classLevel: orderedLevel.classLevel,
-        value: Math.max(fixedDieValue + modifier, 1)
-      }
-    }
-
     const roll = submitted?.rolls?.[0]
     const persistedLegacyOverride =
       existingCharacter?.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.MANUAL &&
@@ -111,18 +115,73 @@ export function normalizeCharacterHitpointLevels(
       !persisted.rolls?.length &&
       persisted.overridden !== false
 
+    if (!authoredClass || die === null) {
+      entries.push({ ...orderedLevel, level })
+    } else if (
+      character.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.FIXED ||
+      level === 1
+    ) {
+      entries.push({
+        level,
+        classId: orderedLevel.classId,
+        classLevel: orderedLevel.classLevel,
+        value: orderedLevel.value
+      })
+    } else {
+      entries.push({
+        level,
+        classId: orderedLevel.classId,
+        classLevel: orderedLevel.classLevel,
+        value: orderedLevel.value,
+        ...(roll ? { rolls: submitted?.rolls, overridden: false } : {}),
+        ...(!roll && persistedLegacyOverride ? { overridden: true } : { overridden: false })
+      })
+    }
+
     return {
+      sequence: index,
       level,
       classId: orderedLevel.classId,
       classLevel: orderedLevel.classLevel,
-      value: roll
-        ? Math.max(roll.value + modifier, 1)
-        : persistedLegacyOverride
-          ? Math.max(submitted?.value ?? persisted.value, 1)
-          : Math.max(modifier + 1, 1),
-      ...(roll ? { rolls: submitted?.rolls, overridden: false } : {}),
-      ...(!roll && persistedLegacyOverride ? { overridden: true } : { overridden: false })
+      die,
+      abilityIndex: abilityIndex < 0 ? null : abilityIndex,
+      fallbackValue: orderedLevel.value,
+      rollValue: roll?.value ?? null,
+      legacyOverrideValue: persistedLegacyOverride
+        ? (submitted?.value ?? persisted.value)
+        : null
     }
+  })
+
+  return {
+    facts: {
+      method: character.intent.hitpoints.method,
+      rows
+    },
+    entries
+  }
+}
+
+export function applyCharacterHitpointProgression(
+  preparation: CharacterHitpointProgressionPreparation,
+  resolved: CharacterRulePolicyOutput['hitPointProgression']
+): CharacterHitpointLevelEntry[] {
+  if (resolved.length !== preparation.entries.length) {
+    throw new Error('Character rule output did not resolve every hit point progression row.')
+  }
+
+  return resolved.map((row, index) => {
+    const entry = preparation.entries[index]
+    if (
+      !entry ||
+      row.sequence !== index ||
+      row.level !== entry.level ||
+      row.classId !== entry.classId ||
+      row.classLevel !== entry.classLevel
+    ) {
+      throw new Error('Character rule output changed hit point progression identity or order.')
+    }
+    return { ...entry, value: row.value }
   })
 }
 

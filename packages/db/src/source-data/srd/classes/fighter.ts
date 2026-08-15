@@ -79,14 +79,6 @@ function selfClassRuleEffect(
         }
   })
 }
-// Second Wind charge - resets on short or long rest
-const secondWindCharge = {
-  id: classRowId(F, 1, 1),
-  limitKind: 'FIXED_AMOUNT' as const,
-  scalingKind: SCALING.NONE,
-  resetKind: 'SHORT_REST' as const,
-  amount: 1
-}
 export const fighter: ClassAuthored = {
   id: CLASS_IDS.FIGHTER,
   label: 'Fighter',
@@ -413,13 +405,6 @@ export const fighter: ClassAuthored = {
       order: 5
     }
   ],
-  resources: {
-    order: 0,
-    id: classRowId(F, 0x6d, 2),
-    label: 'Second Wind',
-    availableAtLevel: 1,
-    charges: secondWindCharge
-  },
   features: [
     {
       id: classRowId(F, 3, 1),
@@ -609,6 +594,7 @@ export const fighter: ClassAuthored = {
           invocation: {
             kind: 'ACTION' as const,
             triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: classRowId(F, 3, 20), cost: 1 },
             activation: {
               code: ACTIVATION_CODE.BONUS_ACTION,
               amount: 1
@@ -682,6 +668,7 @@ export const fighter: ClassAuthored = {
           invocation: {
             kind: 'ACTION',
             triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: classRowId(F, 0x66, 3), cost: 1 },
             activation: { code: ACTIVATION_CODE.FREE },
             range: { id: classRowId(F, 0x69, 3), rangeKind: RANGE_KIND.SELF },
             targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
@@ -788,6 +775,7 @@ export const fighter: ClassAuthored = {
           invocation: {
             kind: 'ACTION',
             triggerCode: TRIGGER.SAVING_THROW,
+            resourceUse: { chargeId: classRowId(F, 0x66, 10), cost: 1 },
             activation: { code: ACTIVATION_CODE.FREE },
             savingThrow: {
               id: classRowId(F, 0x72, index + 1),

@@ -10,33 +10,35 @@ import {
   createVehicleRepository,
   type DBLike
 } from '@artificer-toolkit/db'
-import {
-  AUTHORED_RECORD_STATUS,
-  resolveRulesSystem,
-  type CharacterEvent
-} from '@artificer-toolkit/shared/core'
+import { AUTHORED_RECORD_STATUS, type CharacterEvent } from '@artificer-toolkit/shared/core'
 import {
   clampCharacterCurrentHitPoints,
   createCharacterResourceOwnerKey,
   createCharacterSpellSourceKey,
   resolveCharacterEffectiveMaximumHitPoints,
   toCharacterResourceOwnerKey,
+  type CharacterMovementDisplayPreference,
   type CharacterSheetAdjustment,
   type CharacterSheetAdjustmentWrite
 } from '@artificer-toolkit/shared/character'
 import { maskStandardPlainText } from '@artificer-toolkit/shared/campaign/textPolicy'
+import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { createHash } from 'node:crypto'
+import { performance } from 'node:perf_hooks'
 import type {
   CharacterHistoryEntryDto,
   CharacterSheetCommandInputDto,
   CharacterSheetCommandResponseDto
 } from '@artificer-toolkit/schema/api/characters'
-import { resolveCharacterBuilder } from './builderService.js'
+import type {
+  CharacterSheetPanelDto,
+  CharacterSheetPanelTargetDto
+} from '@artificer-toolkit/schema/api/characterSheetPanel'
+import { loadCharacterBuilderContext, resolveCharacterBuilder } from './builderService.js'
 import {
   characterSheetAdjustmentMatchesPanelTarget,
   getCharacterSheetPanelAdjustmentIds
 } from './sheetPanelTarget.js'
-import { resolveCharacterSheetEngine } from './characterEngine.js'
 import {
   CharacterSheetCommandError,
   applyCharacterSheetCommand,
@@ -49,7 +51,7 @@ import {
   summarizeCharacterSheetCommand,
   type SheetResource
 } from './sheetCommandReducer.js'
-import { buildCharacterSheetResponse } from './sheetProjection.js'
+import { buildCharacterSheetBundle } from './sheetProjection.js'
 import {
   applyCompletedCharacterRest,
   buildCharacterRestPreview,
@@ -67,13 +69,50 @@ import {
   validateSpellSource
 } from './sheetCommandValidation.js'
 
+export interface CharacterSheetCommandServiceTiming {
+  ruleResponsibility: CharacterSheetCommandRuleResponsibility
+  evaluationLane: 'NONE' | 'CHARACTER_POLICY' | 'CHARACTER_ACTION'
+  boundedEvaluationMs: number
+  boundedZenEvaluationMs: number
+  recordLoadMs: number
+  campaignContextMs: number
+  inputHydrationMs: number
+  idempotencyLookupMs: number
+  builderResolutionMs: number
+  currentProjectionMs: number
+  commandPreparationMs: number
+  transactionMs: number
+  postCommitHydrationMs: number
+  postCommitBuilderResolutionMs: number
+  postCommitProjectionMs: number
+  totalMs: number
+}
+
 import {
+  getCharacterSheetDisplayAdjustments,
   getVisibleCampaignConditions,
   mergeCampaignSheetAdjustments,
   projectCharacterSheetForViewer,
   resolveCharacterSheetCampaignContext,
   sameCharacterSheetAdjustmentSlot
 } from './campaignCharacterSheet.js'
+import { presentCampaignCharacterText } from './campaignCharacterPresentation.js'
+import { buildCharacterSheetPanel } from './sheetPanelService.js'
+import type { CharacterBuilderResolution } from './builderService.js'
+import type { CharacterSheetBuildBundle } from './sheetProjection.js'
+import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
+import { evaluateCharacterActionStateChange } from './characterActionEvaluation.js'
+import { resolveCharacterRuleBinding } from './characterRuleBinding.js'
+import { CHARACTER_ACTION_SPELL_STATE_CONTRACT_VERSION } from '../rules/ruleModelContracts.js'
+import {
+  assertCharacterLiveSessionCommandAuthority,
+  type LiveSessionCommandAuthority
+} from '../campaign/liveSessionCommandAuthority.js'
+import {
+  canReuseCommittedCharacterRuleEvaluation,
+  classifyCharacterSheetCommandRuleResponsibility,
+  type CharacterSheetCommandRuleResponsibility
+} from './characterSheetCommandResponsibility.js'
 
 function toProspectiveSheetAdjustment(
   write: CharacterSheetAdjustmentWrite,
@@ -155,27 +194,116 @@ function getProspectiveSheetAdjustments(params: {
   return adjustments
 }
 
-export async function executeCharacterSheetCommand(params: {
+function buildRequestedPanels(params: {
+  character: CharacterAuthored
+  resolution: CharacterBuilderResolution
+  bundle: CharacterSheetBuildBundle
+  characterAdjustments: readonly CharacterSheetAdjustment[]
+  movementDisplayPreference: CharacterMovementDisplayPreference
+  targets: readonly CharacterSheetPanelTargetDto[] | undefined
+  campaignContext: Awaited<ReturnType<typeof resolveCharacterSheetCampaignContext>>
+}): CharacterSheetPanelDto[] | undefined {
+  if (!params.targets?.length) return undefined
+  const sheet = projectCharacterSheetForViewer(params.bundle.sheet, params.campaignContext)
+  return params.targets.map((target) =>
+    presentCampaignCharacterText(
+      buildCharacterSheetPanel({
+        character: params.character,
+        resolution: params.resolution,
+        sheet,
+        ruleProjection: params.bundle.ruleProjection,
+        adjustments: getCharacterSheetDisplayAdjustments(
+          params.characterAdjustments,
+          params.campaignContext
+        ),
+        movementDisplayPreference: params.movementDisplayPreference,
+        target,
+        editable:
+          params.campaignContext.viewer === 'CHARACTER_OWNER' ||
+          (params.campaignContext.viewer === 'CAMPAIGN_OWNER' &&
+            params.campaignContext.campaignStatus === 'ACTIVE' &&
+            target.kind === 'SPELLS')
+      }),
+      params.campaignContext.contentMaturity
+    )
+  )
+}
+
+function validateActionResourceUse(params: {
+  sheet: CharacterSheetCommandResponseDto['sheet']
+  actionId: string | undefined
+  resourceId: string
+  amount: number
+}): void {
+  if (!params.actionId) return
+  const action = params.sheet.actions.items.find((candidate) => candidate.id === params.actionId)
+  if (!action) {
+    throw new CharacterSheetCommandError(`Action "${params.actionId}" is not available.`)
+  }
+  if (action.availability.status === 'UNAVAILABLE') {
+    throw new CharacterSheetCommandError(
+      `Action "${action.label}" is unavailable: ${formatCodeLabel(action.availability.reasonCode)}.`
+    )
+  }
+  if (action.resourceGrantId !== params.resourceId || action.resourceCost !== params.amount) {
+    throw new CharacterSheetCommandError(
+      `Action "${action.label}" does not use the requested resource and cost.`
+    )
+  }
+}
+
+export interface ExecuteCharacterSheetCommandParams {
   db: DBLike
   characterId: string
   command: CharacterSheetCommandInputDto
   userId: string
-}): Promise<CharacterSheetCommandResponseDto> {
+  panelTargets?: readonly CharacterSheetPanelTargetDto[]
+  onTiming?: (timing: CharacterSheetCommandServiceTiming) => void
+  committedRuleSnapshot?: CharacterSheetCommittedRuleSnapshot
+  liveSessionAuthority?: LiveSessionCommandAuthority
+}
+
+export interface CharacterSheetCommittedRuleSnapshot {
+  streamVersion: number
+  evaluation: CharacterRuleEvaluationResult
+  resolution: CharacterBuilderResolution
+}
+
+export interface CharacterSheetCommandExecutionResult {
+  response: CharacterSheetCommandResponseDto
+  ruleSnapshot: CharacterSheetCommittedRuleSnapshot
+}
+
+export async function executeCharacterSheetCommandWithRuleEvaluation(
+  params: ExecuteCharacterSheetCommandParams
+): Promise<CharacterSheetCommandExecutionResult> {
+  const startedAt = performance.now()
   const command = params.command
+  const ruleResponsibility = classifyCharacterSheetCommandRuleResponsibility(command)
+  const reuseCommittedRuleEvaluation = canReuseCommittedCharacterRuleEvaluation(command)
   const repository = createCharacterRepository(params.db)
+  const recordLoadStartedAt = performance.now()
   const [row, character] = await Promise.all([
     repository.findById(params.characterId),
     repository.findAuthoredById(params.characterId)
   ])
+  const recordLoadMs = performance.now() - recordLoadStartedAt
   if (!character || !row) {
     throw createNamedError('NotFoundError', `Character "${params.characterId}" was not found.`)
   }
+  await assertCharacterLiveSessionCommandAuthority(
+    params.db,
+    params.characterId,
+    params.liveSessionAuthority
+  )
 
+  const campaignContextStartedAt = performance.now()
   const campaignContext = await resolveCharacterSheetCampaignContext(
     params.db,
     character,
     params.userId
   )
+  const campaignContextMs = performance.now() - campaignContextStartedAt
   if (campaignContext.viewer === 'CAMPAIGN_OWNER') {
     if (campaignContext.campaignStatus !== 'ACTIVE') {
       throw new CharacterSheetCommandError('Archived Campaigns are read-only.')
@@ -186,26 +314,51 @@ export async function executeCharacterSheetCommand(params: {
   if ((character.status ?? AUTHORED_RECORD_STATUS.ACTIVE) !== AUTHORED_RECORD_STATUS.ACTIVE) {
     throw new CharacterSheetCommandError(`Character "${params.characterId}" is not finalized yet.`)
   }
-
+  if (!row.rule_pack_revision_id) {
+    throw createNamedError(
+      'CharacterRuleBindingError',
+      `Active Character "${character.id}" does not have a pinned rule revision.`
+    )
+  }
+  const currentRevisionId = row.rule_pack_revision_id
+  const matchingCommittedRuleSnapshot =
+    params.committedRuleSnapshot?.streamVersion === row.stream_version &&
+    params.committedRuleSnapshot.evaluation.snapshot.characterId === character.id &&
+    params.committedRuleSnapshot.evaluation.binding.revisionId === currentRevisionId
+      ? params.committedRuleSnapshot
+      : undefined
+  const matchingCommittedRuleEvaluation = matchingCommittedRuleSnapshot?.evaluation
   const adjustmentRepository = createCharacterSheetAdjustmentRepository(params.db)
   const playStateRepository = createCharacterSheetPlayStateRepository(params.db)
-  const [characterAdjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
-    await Promise.all([
-      adjustmentRepository.listByCharacter(params.characterId),
-      adjustmentRepository.getMovementPreference(params.characterId),
-      playStateRepository.listResourceUsage(params.characterId),
-      playStateRepository.listSpellCustomizations(params.characterId)
-    ])
+  const inputHydrationStartedAt = performance.now()
+  const [
+    context,
+    characterAdjustments,
+    movementDisplayPreference,
+    resourceUsage,
+    spellCustomizations
+  ] = await Promise.all([
+    matchingCommittedRuleEvaluation
+      ? Promise.resolve(matchingCommittedRuleEvaluation.context)
+      : loadCharacterBuilderContext(params.db, character, [], { includeEffects: true }),
+    adjustmentRepository.listByCharacter(params.characterId),
+    adjustmentRepository.getMovementPreference(params.characterId),
+    playStateRepository.listResourceUsage(params.characterId),
+    playStateRepository.listSpellCustomizations(params.characterId)
+  ])
+  const inputHydrationMs = performance.now() - inputHydrationStartedAt
   const adjustments = mergeCampaignSheetAdjustments(
     characterAdjustments,
     campaignContext.adjustments
   )
   const eventRepository = createCharacterEventRepository(params.db)
   const commandFingerprint = fingerprintCharacterSheetCommand(params.command)
+  const idempotencyLookupStartedAt = performance.now()
   const priorEvent = await eventRepository.findByCommandId(
     params.characterId,
     params.command.commandId
   )
+  const idempotencyLookupMs = performance.now() - idempotencyLookupStartedAt
   if (priorEvent) {
     if (priorEvent.type !== 'CHARACTER_SHEET_COMMAND_APPLIED') {
       throw new CharacterSheetCommandError(
@@ -222,24 +375,49 @@ export async function executeCharacterSheetCommand(params: {
         `Command "${params.command.commandId}" was already used with different input.`
       )
     }
-    const resolution = await resolveCharacterBuilder(params.db, character, 'edit')
-    return {
+    const resolution =
+      ruleResponsibility === 'COMMITTED_SNAPSHOT' && matchingCommittedRuleSnapshot
+        ? matchingCommittedRuleSnapshot.resolution
+        : await resolveCharacterBuilder(
+            params.db,
+            character,
+            'edit',
+            context,
+            null,
+            row.rule_pack_revision_id
+          )
+    const bundle = await buildCharacterSheetBundle({
+      db: params.db,
+      character,
+      resolution,
+      streamVersion: row.stream_version,
+      adjustments,
+      movementDisplayPreference,
+      resourceUsage,
+      spellCustomizations,
+      additionalConditions: getVisibleCampaignConditions(campaignContext),
+      ruleEvaluation: {
+        context,
+        revisionId: row.rule_pack_revision_id,
+        attunementSlotOverride: campaignContext.attunementSlotOverride
+      },
+      committedRuleEvaluation: matchingCommittedRuleEvaluation
+    })
+    const sheet = projectCharacterSheetForViewer(bundle.sheet, campaignContext)
+    const panels = buildRequestedPanels({
+      character,
+      resolution,
+      bundle,
+      characterAdjustments,
+      movementDisplayPreference,
+      targets: params.panelTargets,
+      campaignContext
+    })
+    const response: CharacterSheetCommandResponseDto = {
       characterId: params.characterId,
       streamVersion: row.stream_version,
-      sheet: projectCharacterSheetForViewer(
-        await buildCharacterSheetResponse({
-          db: params.db,
-          character,
-          resolution,
-          streamVersion: row.stream_version,
-          adjustments,
-          movementDisplayPreference,
-          resourceUsage,
-          spellCustomizations,
-          additionalConditions: getVisibleCampaignConditions(campaignContext)
-        }),
-        campaignContext
-      ),
+      sheet,
+      ...(panels ? { panels } : {}),
       historyEntry: {
         eventId: priorEvent.eventId,
         occurredAt: priorEvent.occurredAt,
@@ -253,19 +431,49 @@ export async function executeCharacterSheetCommand(params: {
       },
       ...(priorEvent.result ? { result: priorEvent.result } : {})
     }
+    return {
+      response,
+      ruleSnapshot: {
+        streamVersion: row.stream_version,
+        evaluation: bundle.ruleEvaluation,
+        resolution
+      }
+    }
   }
 
   if (row.stream_version !== params.command.expectedVersion) {
     throw new ConcurrencyError(params.characterId, params.command.expectedVersion)
   }
 
-  const resolution = await resolveCharacterBuilder(params.db, character, 'edit')
-  const rulesSystem = resolveRulesSystem({
-    code: resolution.registry.system?.rulesetCode ?? '',
-    version: resolution.registry.system?.rulesetVersion ?? ''
-  })
-  const attunementSlotLimit =
-    campaignContext.attunementSlotOverride ?? rulesSystem.attunementSlotLimit
+  if (command.type === 'UPGRADE_RULE_PACK' && campaignContext.viewer !== 'CHARACTER_OWNER') {
+    throw new CharacterSheetCommandError('Only the Character owner can upgrade its rules.')
+  }
+  const targetRuleBinding =
+    command.type === 'UPGRADE_RULE_PACK'
+      ? await resolveCharacterRuleBinding({
+          db: params.db,
+          systemId: character.systemId,
+          existingRevisionId: null,
+          expectedRevisionId: command.revisionId
+        })
+      : null
+  if (targetRuleBinding?.revisionId === row.rule_pack_revision_id) {
+    throw new CharacterSheetCommandError('This Character already uses the active rule revision.')
+  }
+
+  const builderResolutionStartedAt = performance.now()
+  const resolution =
+    ruleResponsibility === 'COMMITTED_SNAPSHOT' && matchingCommittedRuleSnapshot
+      ? matchingCommittedRuleSnapshot.resolution
+      : await resolveCharacterBuilder(
+          params.db,
+          character,
+          'edit',
+          context,
+          null,
+          row.rule_pack_revision_id
+        )
+  const builderResolutionMs = performance.now() - builderResolutionStartedAt
   if (command.type === 'UPSERT_SHEET_ADJUSTMENT') {
     validateSheetAdjustmentTarget(command.adjustment, resolution, character)
   }
@@ -302,12 +510,18 @@ export async function executeCharacterSheetCommand(params: {
     if (!equipmentAlreadyLoaded) {
       const equipment = await createEquipmentRepository(params.db).findResolvedById(equipmentId, {
         systemId: character.systemId,
-        includeEffects: false
+        includeEffects: true
       })
-      if (equipment) resolution.registry.equipment.push(equipment)
+      if (equipment) {
+        resolution.registry.equipment.push(equipment)
+        if (!context.registry.equipment.some((entry) => entry.id === equipment.id)) {
+          context.registry.equipment.push(equipment)
+        }
+      }
     }
   }
-  const currentSheet = await buildCharacterSheetResponse({
+  const currentProjectionStartedAt = performance.now()
+  const currentBundle = await buildCharacterSheetBundle({
     db: params.db,
     character,
     resolution,
@@ -315,8 +529,48 @@ export async function executeCharacterSheetCommand(params: {
     adjustments,
     movementDisplayPreference,
     resourceUsage,
-    spellCustomizations
+    spellCustomizations,
+    ruleEvaluation: {
+      context,
+      revisionId: row.rule_pack_revision_id,
+      attunementSlotOverride: campaignContext.attunementSlotOverride
+    },
+    committedRuleEvaluation: matchingCommittedRuleEvaluation
   })
+  const currentProjectionMs = performance.now() - currentProjectionStartedAt
+  const commandPreparationStartedAt = performance.now()
+  const currentSheet = currentBundle.sheet
+  if (!currentBundle.ruleEvaluation) {
+    throw createNamedError(
+      'CharacterRuleBindingError',
+      `Character "${character.id}" did not produce a rule evaluation.`
+    )
+  }
+  const attunementSlotLimit = currentBundle.ruleEvaluation.output.rest.attunementSlotLimit
+  const upgradeBundle = targetRuleBinding
+    ? await buildCharacterSheetBundle({
+        db: params.db,
+        character,
+        resolution,
+        streamVersion: row.stream_version,
+        adjustments,
+        movementDisplayPreference,
+        resourceUsage,
+        spellCustomizations,
+        ruleEvaluation: {
+          context,
+          revisionId: targetRuleBinding.revisionId,
+          attunementSlotOverride: campaignContext.attunementSlotOverride
+        }
+      })
+    : null
+  const rawResourceUsageByOwner = new Map(
+    resourceUsage.map((usage) => [createCharacterResourceOwnerKey(usage.owner), usage.used])
+  )
+  const getRawResourceUsed = (resource: SheetResource) =>
+    rawResourceUsageByOwner.get(
+      createCharacterResourceOwnerKey(toCharacterResourceOwnerKey(resource.owner))
+    ) ?? resource.used
   if (
     command.type === 'SET_SPELL_MECHANIC_CUSTOMIZATION' ||
     command.type === 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION'
@@ -328,6 +582,21 @@ export async function executeCharacterSheetCommand(params: {
   }
   if (command.type === 'USE_SHEET_RESOURCE' || command.type === 'RECOVER_SHEET_RESOURCE') {
     const resource = ensureResourceByOwner(currentSheet, command.owner)
+    if (command.type === 'USE_SHEET_RESOURCE') {
+      validateActionResourceUse({
+        sheet: currentSheet,
+        actionId: command.actionId,
+        resourceId: resource.id,
+        amount: command.amount ?? 1
+      })
+    }
+    if (command.type === 'USE_SHEET_RESOURCE' && (command.amount ?? 1) > resource.remaining) {
+      throw new CharacterSheetCommandError(
+        `Resource "${resource.label}" only has ${resource.remaining} ${
+          resource.remaining === 1 ? 'use' : 'uses'
+        } remaining.`
+      )
+    }
     if (
       command.type === 'RECOVER_SHEET_RESOURCE' &&
       !resource.recoveries.some((recovery) => recovery.trigger === command.trigger)
@@ -336,6 +605,14 @@ export async function executeCharacterSheetCommand(params: {
         `Resource cannot be recovered by ${formatCodeLabel(command.trigger)}.`
       )
     }
+  }
+  if (command.type === 'USE_RESOURCE') {
+    validateActionResourceUse({
+      sheet: currentSheet,
+      actionId: command.actionId,
+      resourceId: command.resourceGrantId,
+      amount: command.amount ?? 1
+    })
   }
   const prospectiveAdjustments = mergeCampaignSheetAdjustments(
     getProspectiveSheetAdjustments({
@@ -413,13 +690,48 @@ export async function executeCharacterSheetCommand(params: {
       userId: params.userId
     })
   }
+  const resetMaximumModifier =
+    command.type === 'COMPLETE_REST' && command.resetMaximumHitPointModifier
+      ? characterAdjustments.find(
+          (adjustment) =>
+            adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_MODIFIER'
+        )
+      : undefined
+  const restBundle = resetMaximumModifier
+    ? await buildCharacterSheetBundle({
+        db: params.db,
+        character,
+        resolution,
+        streamVersion: row.stream_version,
+        adjustments: adjustments.filter((adjustment) => adjustment.id !== resetMaximumModifier.id),
+        movementDisplayPreference,
+        resourceUsage,
+        spellCustomizations,
+        additionalConditions: getVisibleCampaignConditions(campaignContext),
+        ruleEvaluation: {
+          context,
+          revisionId: row.rule_pack_revision_id,
+          attunementSlotOverride: campaignContext.attunementSlotOverride
+        }
+      })
+    : currentBundle
+  if (!restBundle.ruleEvaluation) {
+    throw createNamedError(
+      'CharacterRuleBindingError',
+      `Character "${character.id}" did not produce a rest rule evaluation.`
+    )
+  }
   const restPreview =
     command.type === 'COMPLETE_REST'
       ? buildCharacterRestPreview({
           character,
           resolution,
           characterAdjustments,
-          adjustments,
+          effectiveMaximum: resolveCharacterEffectiveMaximumHitPoints(
+            restBundle.sheet.overview.maxHitPoints
+          ),
+          restPolicy: restBundle.ruleEvaluation.output.rest,
+          ruleRevisionId: row.rule_pack_revision_id,
           sheet: currentSheet,
           input: {
             restKind: command.restKind,
@@ -451,7 +763,7 @@ export async function executeCharacterSheetCommand(params: {
           character,
           command,
           preview: restPreview,
-          resolution,
+          restPolicy: restBundle.ruleEvaluation.output.rest,
           sheet: currentSheet
         })
       : undefined
@@ -462,13 +774,52 @@ export async function executeCharacterSheetCommand(params: {
       attunementSlotLimit,
       extraDefaults
     })
+  if (upgradeBundle) {
+    nextCharacter = {
+      ...nextCharacter,
+      state: {
+        ...nextCharacter.state,
+        hitpoints: {
+          ...nextCharacter.state.hitpoints,
+          current: clampCharacterCurrentHitPoints(
+            nextCharacter.state.hitpoints.current,
+            resolveCharacterEffectiveMaximumHitPoints(
+              upgradeBundle.ruleProjection.derivedStats.maxHitPoints
+            )
+          )
+        }
+      }
+    }
+  }
   if (shouldPersistHitPointClamp) {
+    const prospectiveContext = await loadCharacterBuilderContext(params.db, nextCharacter, [], {
+      includeEffects: true
+    })
+    const prospectiveResolution = await resolveCharacterBuilder(
+      params.db,
+      nextCharacter,
+      'edit',
+      prospectiveContext,
+      null,
+      row.rule_pack_revision_id
+    )
+    const prospectiveBundle = await buildCharacterSheetBundle({
+      db: params.db,
+      character: nextCharacter,
+      resolution: prospectiveResolution,
+      streamVersion: row.stream_version,
+      adjustments: prospectiveAdjustments,
+      movementDisplayPreference,
+      resourceUsage,
+      spellCustomizations,
+      ruleEvaluation: {
+        context: prospectiveContext,
+        revisionId: row.rule_pack_revision_id,
+        attunementSlotOverride: campaignContext.attunementSlotOverride
+      }
+    })
     const maximumHitPoints = resolveCharacterEffectiveMaximumHitPoints(
-      resolveCharacterSheetEngine({
-        character: nextCharacter,
-        resolution,
-        adjustments: prospectiveAdjustments
-      }).derivedStats.maxHitPoints
+      prospectiveBundle.ruleProjection.derivedStats.maxHitPoints
     )
     nextCharacter = {
       ...nextCharacter,
@@ -490,7 +841,7 @@ export async function executeCharacterSheetCommand(params: {
       const resource = ensureResource(currentSheet, command.resourceGrantId)
       resourceUsageUpdate = {
         resource,
-        used: resource.used + (command.amount ?? 1)
+        used: getRawResourceUsed(resource) + (command.amount ?? 1)
       }
       break
     }
@@ -498,7 +849,7 @@ export async function executeCharacterSheetCommand(params: {
       const resource = ensureResource(currentSheet, command.resourceGrantId)
       resourceUsageUpdate = {
         resource,
-        used: command.all ? 0 : Math.max(resource.used - (command.amount ?? 1), 0)
+        used: command.all ? 0 : Math.max(getRawResourceUsed(resource) - (command.amount ?? 1), 0)
       }
       break
     }
@@ -506,7 +857,7 @@ export async function executeCharacterSheetCommand(params: {
       const resource = ensureResourceByOwner(currentSheet, command.owner)
       resourceUsageUpdate = {
         resource,
-        used: Math.min(resource.used + (command.amount ?? 1), resource.max)
+        used: getRawResourceUsed(resource) + (command.amount ?? 1)
       }
       break
     }
@@ -527,11 +878,59 @@ export async function executeCharacterSheetCommand(params: {
         const resource = ensureResourceByOwner(currentSheet, source.resourceOwner)
         resourceUsageUpdate = {
           resource,
-          used: Math.min(resource.used + 1, resource.max)
+          used: getRawResourceUsed(resource) + 1
         }
       }
       break
     }
+  }
+  const changedPoolId = resourceUsageUpdate
+    ? createCharacterResourceOwnerKey(
+        toCharacterResourceOwnerKey(resourceUsageUpdate.resource.owner)
+      )
+    : undefined
+  const changedSpellSlotKey =
+    command.type === 'USE_SPELL_SLOT' || command.type === 'RESTORE_SPELL_SLOT'
+      ? command.slotKey
+      : command.type === 'CAST_SPELL' && resourceUsageUpdate === undefined
+        ? (command.slotKey ?? undefined)
+        : undefined
+  const prospectiveResourceUsage = resourceUsageUpdate
+    ? [
+        ...resourceUsage.filter(
+          (usage) => createCharacterResourceOwnerKey(usage.owner) !== changedPoolId
+        ),
+        ...(resourceUsageUpdate.used === 0
+          ? []
+          : [
+              {
+                owner: toCharacterResourceOwnerKey(resourceUsageUpdate.resource.owner),
+                used: resourceUsageUpdate.used
+              }
+            ])
+      ]
+    : resourceUsage
+  let boundedActionEvaluation: CharacterRuleEvaluationResult | undefined
+  let boundedEvaluationMs = 0
+  let boundedZenEvaluationMs = 0
+  const actionStateChanged = changedPoolId !== undefined || changedSpellSlotKey !== undefined
+  if (
+    actionStateChanged &&
+    currentBundle.ruleEvaluation.binding.modelContractVersion >=
+      CHARACTER_ACTION_SPELL_STATE_CONTRACT_VERSION
+  ) {
+    const boundedEvaluationStartedAt = performance.now()
+    const bounded = await evaluateCharacterActionStateChange({
+      db: params.db,
+      committed: currentBundle.ruleEvaluation,
+      ...(changedPoolId === undefined ? {} : { changedPoolId }),
+      ...(changedSpellSlotKey === undefined ? {} : { changedSpellSlotKey }),
+      resourceUsage: prospectiveResourceUsage,
+      spellSlotUsage: nextCharacter.state.spellSlots ?? []
+    })
+    boundedActionEvaluation = bounded.ruleEvaluation
+    boundedZenEvaluationMs = bounded.zenEvaluationMs
+    boundedEvaluationMs = performance.now() - boundedEvaluationStartedAt
   }
   const statePatches = createCharacterSheetStatePatches(character, nextCharacter)
   const summary = summarizeCharacterSheetCommand(params.command, currentSheet)
@@ -552,11 +951,35 @@ export async function executeCharacterSheetCommand(params: {
       campaignContext.contentMaturity === 'STANDARD' ? maskStandardPlainText(summary) : summary,
     ...(commandResult ? { result: commandResult } : {})
   } satisfies CharacterEvent
+  const commandPreparationMs = performance.now() - commandPreparationStartedAt
   let nextStreamVersion: number
+  const transactionStartedAt = performance.now()
   try {
     nextStreamVersion = await repository.patchSheetState(params.characterId, statePatches, {
       expectedStreamVersion: params.command.expectedVersion,
       afterPersist: async (trx) => {
+        await assertCharacterLiveSessionCommandAuthority(
+          trx,
+          params.characterId,
+          params.liveSessionAuthority
+        )
+        if (targetRuleBinding) {
+          await resolveCharacterRuleBinding({
+            db: trx,
+            systemId: character.systemId,
+            existingRevisionId: null,
+            expectedRevisionId: targetRuleBinding.revisionId
+          })
+          if (
+            !(await createCharacterRepository(trx).setRulePackRevision(
+              params.characterId,
+              currentRevisionId,
+              targetRuleBinding.revisionId
+            ))
+          ) {
+            throw new ConcurrencyError(params.characterId, params.command.expectedVersion)
+          }
+        }
         const typedAdjustmentRepository = createCharacterSheetAdjustmentRepository(trx)
         const typedPlayStateRepository = createCharacterSheetPlayStateRepository(trx)
         if (command.type === 'UPSERT_SHEET_ADJUSTMENT') {
@@ -777,37 +1200,77 @@ export async function executeCharacterSheetCommand(params: {
         params.command.commandId
       )
       if (concurrentEvent) {
-        return executeCharacterSheetCommand(params)
+        return executeCharacterSheetCommandWithRuleEvaluation(params)
       }
     }
     throw error
   }
+  const transactionMs = performance.now() - transactionStartedAt
 
+  const postCommitHydrationStartedAt = performance.now()
   const [
+    nextContext,
     persistedAdjustments,
     persistedMovementDisplayPreference,
     persistedResourceUsage,
     persistedSpellCustomizations
   ] = await Promise.all([
+    ruleResponsibility === 'COMMITTED_SNAPSHOT'
+      ? Promise.resolve(context)
+      : loadCharacterBuilderContext(params.db, nextCharacter, [], { includeEffects: true }),
     adjustmentRepository.listByCharacter(params.characterId),
     adjustmentRepository.getMovementPreference(params.characterId),
     playStateRepository.listResourceUsage(params.characterId),
     playStateRepository.listSpellCustomizations(params.characterId)
   ])
-  const sheet = projectCharacterSheetForViewer(
-    await buildCharacterSheetResponse({
-      db: params.db,
-      character: nextCharacter,
-      resolution,
-      streamVersion: nextStreamVersion,
-      adjustments: mergeCampaignSheetAdjustments(persistedAdjustments, campaignContext.adjustments),
-      movementDisplayPreference: persistedMovementDisplayPreference,
-      resourceUsage: persistedResourceUsage,
-      spellCustomizations: persistedSpellCustomizations,
-      additionalConditions: getVisibleCampaignConditions(campaignContext)
-    }),
+  const postCommitHydrationMs = performance.now() - postCommitHydrationStartedAt
+  const nextRevisionId = targetRuleBinding?.revisionId ?? row.rule_pack_revision_id
+  const postCommitBuilderResolutionStartedAt = performance.now()
+  const nextResolution =
+    ruleResponsibility === 'COMMITTED_SNAPSHOT'
+      ? resolution
+      : await resolveCharacterBuilder(
+          params.db,
+          nextCharacter,
+          'edit',
+          nextContext,
+          null,
+          nextRevisionId
+        )
+  const postCommitBuilderResolutionMs = performance.now() - postCommitBuilderResolutionStartedAt
+  const postCommitProjectionStartedAt = performance.now()
+  const nextBundle = await buildCharacterSheetBundle({
+    db: params.db,
+    character: nextCharacter,
+    resolution: nextResolution,
+    streamVersion: nextStreamVersion,
+    adjustments: mergeCampaignSheetAdjustments(persistedAdjustments, campaignContext.adjustments),
+    movementDisplayPreference: persistedMovementDisplayPreference,
+    resourceUsage: persistedResourceUsage,
+    spellCustomizations: persistedSpellCustomizations,
+    additionalConditions: getVisibleCampaignConditions(campaignContext),
+    ruleEvaluation: {
+      context: nextContext,
+      revisionId: nextRevisionId,
+      attunementSlotOverride: campaignContext.attunementSlotOverride
+    },
+    committedRuleEvaluation:
+      boundedActionEvaluation ??
+      (reuseCommittedRuleEvaluation && !actionStateChanged
+        ? currentBundle.ruleEvaluation
+        : undefined)
+  })
+  const postCommitProjectionMs = performance.now() - postCommitProjectionStartedAt
+  const sheet = projectCharacterSheetForViewer(nextBundle.sheet, campaignContext)
+  const panels = buildRequestedPanels({
+    character: nextCharacter,
+    resolution: nextResolution,
+    bundle: nextBundle,
+    characterAdjustments: persistedAdjustments,
+    movementDisplayPreference: persistedMovementDisplayPreference,
+    targets: params.panelTargets,
     campaignContext
-  )
+  })
   const historyEntry: CharacterHistoryEntryDto = {
     eventId: event.eventId,
     occurredAt: event.occurredAt,
@@ -817,13 +1280,51 @@ export async function executeCharacterSheetCommand(params: {
     ...(commandResult ? { result: commandResult } : {})
   }
 
-  return {
+  params.onTiming?.({
+    ruleResponsibility,
+    evaluationLane: boundedActionEvaluation
+      ? 'CHARACTER_ACTION'
+      : matchingCommittedRuleEvaluation && reuseCommittedRuleEvaluation
+        ? 'NONE'
+        : 'CHARACTER_POLICY',
+    boundedEvaluationMs,
+    boundedZenEvaluationMs,
+    recordLoadMs,
+    campaignContextMs,
+    inputHydrationMs,
+    idempotencyLookupMs,
+    builderResolutionMs,
+    currentProjectionMs,
+    commandPreparationMs,
+    transactionMs,
+    postCommitHydrationMs,
+    postCommitBuilderResolutionMs,
+    postCommitProjectionMs,
+    totalMs: performance.now() - startedAt
+  })
+
+  const response: CharacterSheetCommandResponseDto = {
     characterId: params.characterId,
     streamVersion: nextStreamVersion,
     sheet,
+    ...(panels ? { panels } : {}),
     historyEntry,
     ...(commandResult ? { result: commandResult } : {})
   }
+  return {
+    response,
+    ruleSnapshot: {
+      streamVersion: nextStreamVersion,
+      evaluation: nextBundle.ruleEvaluation,
+      resolution: nextResolution
+    }
+  }
+}
+
+export async function executeCharacterSheetCommand(
+  params: ExecuteCharacterSheetCommandParams
+): Promise<CharacterSheetCommandResponseDto> {
+  return (await executeCharacterSheetCommandWithRuleEvaluation(params)).response
 }
 
 function fingerprintCharacterSheetCommand(command: CharacterSheetCommandInputDto): string {

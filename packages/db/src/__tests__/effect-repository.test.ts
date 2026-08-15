@@ -80,6 +80,10 @@ describe('createEffectRepository', () => {
           code: 'ACTION',
           amount: 1
         },
+        resourceUse: {
+          chargeId: 'resource-charge-1',
+          cost: 2
+        },
         range: {
           id: 'range-1',
           rangeKind: 'DISTANCE',
@@ -177,6 +181,10 @@ describe('createEffectRepository', () => {
         activation: {
           code: 'ACTION',
           amount: 1
+        },
+        resourceUse: {
+          chargeId: 'resource-charge-1',
+          cost: 2
         },
         range: {
           id: 'range-1',

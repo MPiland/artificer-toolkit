@@ -10,6 +10,7 @@ import {
 } from '@artificer-toolkit/db'
 import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
+import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
 import {
   appliedRuleOutcomeDtoSchema,
   type AppliedRuleOutcomeDto,
@@ -18,12 +19,13 @@ import {
 
 import { getCharacterSheetForUser } from '../character/characterApplicationService.js'
 import { executeCharacterSheetCommand } from '../character/sheetService.js'
+import type { LiveSessionCommandAuthority } from '../campaign/liveSessionCommandAuthority.js'
 import {
-  featureChargeMaximum,
   featureChargeUsed,
   snapshotFeatureDefinitions,
   withFeatureChargeUsed
 } from './encounterActorState.js'
+import { findEncounterFeatureResource } from './encounterActorRuleEvaluation.js'
 import { EncounterValidationError } from './encounterErrors.js'
 
 type JsonValue = z.infer<ReturnType<typeof z.json>>
@@ -76,7 +78,8 @@ function enemyConditionIds(actor: EncounterActorRecord): string[] {
 
 function applyEnemyOutcome(
   actor: EncounterActorRecord,
-  outcome: Exclude<ProposedRuleOutcomeDto, { kind: 'MANUAL' }>
+  outcome: Exclude<ProposedRuleOutcomeDto, { kind: 'MANUAL' }>,
+  actorRules: EncounterActorRuleOutput
 ): EncounterActorRecord {
   switch (outcome.kind) {
     case 'DAMAGE': {
@@ -108,7 +111,9 @@ function applyEnemyOutcome(
       const feature = snapshotFeatureDefinitions(actor).find(
         (candidate) => candidate.id === outcome.resourceId
       )
-      const maximum = feature ? featureChargeMaximum(actor, feature) : null
+      const maximum = feature
+        ? (findEncounterFeatureResource(actorRules, actor.id, feature.id)?.maximum ?? null)
+        : null
       if (!feature || maximum === null) {
         throw new EncounterValidationError(`Enemy resource "${outcome.resourceId}" is unavailable.`)
       }
@@ -182,6 +187,7 @@ async function applyCharacterOutcome(input: {
   state: CharacterOutcomeState
   outcome: Exclude<ProposedRuleOutcomeDto, { kind: 'MANUAL' }>
   correlationId: string
+  liveSessionAuthority?: LiveSessionCommandAuthority
 }): Promise<{ applied: AppliedRuleOutcomeDto; state: CharacterOutcomeState }> {
   const before = sheetState(input.state.sheet)
   const commandId = randomUUID()
@@ -189,7 +195,8 @@ async function applyCharacterOutcome(input: {
     db: input.db,
     characterId: input.state.actor.sourceId as string,
     command: characterCommand(input.outcome, input.state, commandId),
-    userId: input.userId
+    userId: input.userId,
+    ...(input.liveSessionAuthority ? { liveSessionAuthority: input.liveSessionAuthority } : {})
   })
   await sql`
     UPDATE public.character_events
@@ -225,6 +232,8 @@ export async function applyEncounterRuleOutcomes(input: {
   allowedActorIds: Set<string>
   overridden: boolean
   correlationId: string
+  actorRules: EncounterActorRuleOutput
+  liveSessionAuthority?: LiveSessionCommandAuthority
 }): Promise<AppliedRuleOutcomeDto[]> {
   for (const outcome of input.outcomes) {
     if (outcome.kind !== 'MANUAL' && !input.allowedActorIds.has(outcome.targetActorId)) {
@@ -274,7 +283,8 @@ export async function applyEncounterRuleOutcomes(input: {
         repository,
         state,
         outcome,
-        correlationId: input.correlationId
+        correlationId: input.correlationId,
+        ...(input.liveSessionAuthority ? { liveSessionAuthority: input.liveSessionAuthority } : {})
       })
       characterStates.set(actor.id, applied.state)
       actors.set(actor.id, applied.state.actor)
@@ -286,7 +296,7 @@ export async function applyEncounterRuleOutcomes(input: {
     }
 
     const before = actorState(actor)
-    const next = applyEnemyOutcome(actor, outcome)
+    const next = applyEnemyOutcome(actor, outcome, input.actorRules)
     await repository.updateActor(next)
     actors.set(actor.id, next)
     results.set(

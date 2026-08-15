@@ -14,6 +14,8 @@ import {
   saveCharacterBuilderDraftForUser,
   upsertCharacterBuilderForUser
 } from '../services/character/characterApplicationService.js'
+import { loadCharacterBuilderContext } from '../services/character/builderService.js'
+import { evaluateCharacterRulePolicy } from '../services/character/characterRuleEvaluation.js'
 import {
   assertSheetMatchesFixture,
   canonicalize
@@ -26,13 +28,18 @@ import {
   completeBuilderChoices,
   createFixtureCharacter,
   measureBuilderResolution,
+  measureSheetRead,
   type BuilderResolutionTiming,
-  type CharacterLifecycleFixture
+  type CharacterRuleEvaluationTiming,
+  type CharacterLifecycleFixture,
+  type SheetReadTiming
 } from './characterLifecycleIntegrationFixtures.js'
 export async function proveFixtureLifecycle(
   db: DBLike,
   fixture: CharacterLifecycleFixture,
-  resolutionTimings: BuilderResolutionTiming[]
+  resolutionTimings: BuilderResolutionTiming[],
+  sheetReadTimings: SheetReadTiming[],
+  ruleEvaluationTimings: CharacterRuleEvaluationTiming[]
 ): Promise<CharacterSheetResponseDto> {
   const initialCharacter = createFixtureCharacter(fixture)
   assertCharacterProgression(initialCharacter, fixture, 'create input', false)
@@ -98,21 +105,24 @@ export async function proveFixtureLifecycle(
       `${fixture.label} did not expose its required Builder spell choices.`
     )
   }
-  const completedCharacter = completeBuilderChoices(structuralPayload.character, structuralPayload)
-  const resolvedPayload = await measureBuilderResolution(
-    resolutionTimings,
-    fixture,
-    'completed',
-    () =>
-      resolveCharacterForUser(
-        db,
-        {
-          character: completedCharacter,
-          mode: 'create'
-        },
-        fixture.userId
-      )
-  )
+  let resolvedPayload = structuralPayload
+  for (let pass = 0; pass < 4 && !resolvedPayload.resolution.readiness.ready; pass += 1) {
+    const completedCharacter = completeBuilderChoices(resolvedPayload.character, resolvedPayload)
+    resolvedPayload = await measureBuilderResolution(
+      resolutionTimings,
+      fixture,
+      'completed',
+      () =>
+        resolveCharacterForUser(
+          db,
+          {
+            character: completedCharacter,
+            mode: 'create'
+          },
+          fixture.userId
+        )
+    )
+  }
   assert.deepEqual(resolvedPayload.resolution.validations, [])
   assert.deepEqual(resolvedPayload.resolution.outstandingChoices, [])
   assert.equal(resolvedPayload.resolution.readiness.ready, true)
@@ -206,12 +216,35 @@ export async function proveFixtureLifecycle(
     `${fixture.label} finalization did not remove the Builder draft.`
   )
 
-  const sheet = await getCharacterSheetForUser(db, fixture.characterId, fixture.userId)
+  const persistedRow = await createCharacterRepository(db).findById(fixture.characterId)
+  assert.ok(persistedRow?.rule_pack_revision_id, `${fixture.label} has no pinned rule revision.`)
+  const evaluationContext = await loadCharacterBuilderContext(db, persisted, [], {
+    includeEffects: true
+  })
+  const measuredRuleEvaluation = await evaluateCharacterRulePolicy({
+    db,
+    character: persisted,
+    context: evaluationContext,
+    existingRevisionId: persistedRow.rule_pack_revision_id,
+    expectedRevisionId: persistedRow.rule_pack_revision_id
+  })
+  const ruleEvaluationTiming: CharacterRuleEvaluationTiming = {
+    fixture: fixture.label,
+    ...measuredRuleEvaluation.evaluation.timing
+  }
+  ruleEvaluationTimings.push(ruleEvaluationTiming)
+  console.info(JSON.stringify({ characterRuleEvaluationTiming: ruleEvaluationTiming }))
+
+  const sheet = await measureSheetRead(sheetReadTimings, fixture, 'cold', () =>
+    getCharacterSheetForUser(db, fixture.characterId, fixture.userId)
+  )
   assert.ok(sheet, `${fixture.label} could not be loaded through the Sheet service.`)
   assert.equal(sheet.meta.streamVersion, 1)
   assertSheetMatchesFixture(sheet, fixture, 'Sheet load')
 
-  const reloadedSheet = await getCharacterSheetForUser(db, fixture.characterId, fixture.userId)
+  const reloadedSheet = await measureSheetRead(sheetReadTimings, fixture, 'warm', () =>
+    getCharacterSheetForUser(db, fixture.characterId, fixture.userId)
+  )
   assert.ok(reloadedSheet, `${fixture.label} could not be reloaded through the Sheet service.`)
   assert.equal(reloadedSheet.meta.streamVersion, 1)
   assertSheetMatchesFixture(reloadedSheet, fixture, 'Sheet reload')

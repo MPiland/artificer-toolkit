@@ -48,6 +48,22 @@ describe('effect node maps', () => {
     expect(levelsNode.kind === 'GROUP' && levelsNode.presentation).toBe('inline')
   })
 
+  it('exposes resource use only on action invocations', () => {
+    const invocationNode = EFFECT_NODE_MAP.nodes.invocation
+
+    if (invocationNode.kind !== 'GROUP') {
+      throw new Error('Expected invocation to be a group node')
+    }
+
+    const invocationMap =
+      typeof invocationNode.nodes === 'function' ? invocationNode.nodes() : invocationNode.nodes
+    const resourceUseNode = invocationMap.nodes.resourceUse
+
+    expect(resourceUseNode?.kind).toBe('GROUP')
+    expect(resourceUseNode?.kind === 'GROUP' && resourceUseNode.presentation).toBe('inline')
+    expect(resourceUseNode?.kind === 'GROUP' && resourceUseNode.showIf).toBeDefined()
+  })
+
   it('exposes result structure on all effect result blocks', () => {
     const directResultNode = PATH_NODE_MAP.nodes.resultBlock
     const choiceOptionsNode = PATH_NODE_MAP.nodes.options

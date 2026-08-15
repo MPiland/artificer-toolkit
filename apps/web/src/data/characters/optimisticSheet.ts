@@ -539,7 +539,6 @@ export function projectOptimisticCharacterSheet(
     case 'SET_SPELL_MECHANIC_CUSTOMIZATION':
     case 'REMOVE_SPELL_MECHANIC_CUSTOMIZATION':
     case 'USE_HIT_DIE':
-    case 'APPLY_REST':
     case 'COMPLETE_REST':
     case 'ADD_INVENTORY_ITEM':
     case 'ADJUST_CURRENCY':
@@ -550,6 +549,7 @@ export function projectOptimisticCharacterSheet(
     case 'CREATE_NOTE_GROUP':
     case 'UPDATE_NOTE_GROUP':
     case 'DELETE_NOTE_GROUP':
+    case 'UPGRADE_RULE_PACK':
       return sheet
     default:
       return command satisfies never
@@ -798,7 +798,6 @@ export function projectOptimisticCharacterSheetPanel(
     case 'SET_HIT_POINTS':
     case 'ADJUST_HIT_POINTS':
     case 'USE_HIT_DIE':
-    case 'APPLY_REST':
     case 'COMPLETE_REST':
     case 'SET_EXHAUSTION':
     case 'ADD_CONDITION':
@@ -825,6 +824,7 @@ export function projectOptimisticCharacterSheetPanel(
     case 'CREATE_NOTE_GROUP':
     case 'UPDATE_NOTE_GROUP':
     case 'DELETE_NOTE_GROUP':
+    case 'UPGRADE_RULE_PACK':
       return panel
     default:
       return command satisfies never

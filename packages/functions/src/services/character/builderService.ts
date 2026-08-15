@@ -42,17 +42,19 @@ import {
 } from './campaignCharacterContent.js'
 import {
   appendAbilityIntentValidationIssues,
-  collectGrantedFeaturesForCharacter,
-  deriveAbilityScores,
   featureContributesSpellGrant,
   filterRegistryFeatureOptions,
   getAvailableSubclassesForClass,
   getCharacterChosenGrantOwners,
   isProvenanceStillValid,
-  isValidAncestrySource,
   resolveFeatureOptionEligibility,
   validateMulticlass
 } from './builderEligibility.js'
+import {
+  collectGrantedFeaturesForCharacter,
+  deriveAbilityScores,
+  isValidAncestrySource
+} from './characterBuilderSelections.js'
 import {
   appendDuplicateSpellSelectionIssues,
   getClassSpellChoiceRequirements,
@@ -60,6 +62,7 @@ import {
   getSpellSelectionCounts
 } from './builderSpellSelection.js'
 import {
+  compileStartingEquipmentEligibilityRuleFacts,
   hasStartingEquipmentGroupWithoutEligibleOptions,
   isStartingEquipmentDecisionComplete,
   resolveEligibleStartingEquipment
@@ -88,6 +91,10 @@ export interface CharacterBuilderRegistry {
 export interface CharacterBuilderContext {
   catalog: CharacterBuilderCatalog
   registry: CharacterBuilderRegistry
+}
+
+export interface CharacterBuilderContextLoadOptions {
+  includeEffects?: boolean
 }
 
 export function getCharacterChosenGrantChoiceRegistry(
@@ -206,6 +213,7 @@ export interface CharacterBuilderResolution {
   mode: BuilderMode
   catalog: CharacterBuilderCatalog
   registry: CharacterBuilderRegistry
+  sourceRegistry: CharacterBuilderRegistry
   summary: CharacterBuilderSummary
   grants: CharacterBuilderGrantedContent
   chosenGrantChoices: CharacterBuilderChosenGrantChoice[]
@@ -261,7 +269,8 @@ export function createEmptyCharacterAuthored(params: {
 export async function loadCharacterBuilderContext(
   db: DBLike,
   character: CharacterAuthored,
-  campaignContentOverrides: readonly CampaignAuthoredSnapshot[] = []
+  campaignContentOverrides: readonly CampaignAuthoredSnapshot[] = [],
+  options: CharacterBuilderContextLoadOptions = {}
 ): Promise<CharacterBuilderContext> {
   const [baseCatalog, campaignContent] = await Promise.all([
     loadCharacterBuilderCatalog(db, character.systemId, { includeSpells: false }),
@@ -277,7 +286,8 @@ export async function loadCharacterBuilderContext(
     db,
     character,
     catalog,
-    campaignContent
+    campaignContent,
+    includeEffects: options.includeEffects
   })
   const feats = lightRegistry.feats ?? []
   const equipment = lightRegistry.equipment
@@ -517,7 +527,8 @@ export async function resolveCharacterBuilder(
   character: CharacterAuthored,
   mode: BuilderMode,
   providedContext?: CharacterBuilderContext,
-  previousCharacter: CharacterAuthored | null = null
+  previousCharacter: CharacterAuthored | null = null,
+  existingRevisionId: string | null = null
 ): Promise<CharacterBuilderResolution> {
   const context = providedContext ?? (await loadCharacterBuilderContext(db, character))
   const { catalog, registry } = context
@@ -532,25 +543,34 @@ export async function resolveCharacterBuilder(
     selectedAncestryOption,
     grantedFeatures
   } = collectGrantedFeaturesForCharacter(character, registry)
-  const featureOptionEligibility = resolveFeatureOptionEligibility({
+  const primaryClass = classSelections[0]?.baseClass
+  const startingEquipmentEligibilityFacets = [
+    ...compileStartingEquipmentEligibilityRuleFacts({
+      source: 'CLASS',
+      startingEquipment: primaryClass?.startingEquipment
+    }),
+    ...compileStartingEquipmentEligibilityRuleFacts({
+      source: 'BACKGROUND',
+      startingEquipment: selectedBackground?.startingEquipment
+    })
+  ]
+  const featureOptionEligibility = await resolveFeatureOptionEligibility({
+    db,
     character,
-    registry,
+    context,
     grantedFeatures,
-    abilityScores
+    existingRevisionId,
+    additionalEligibilityFacets: startingEquipmentEligibilityFacets
   })
   const chosenGrantChoices = resolveCharacterChosenGrantChoices(
     character,
     getCharacterChosenGrantChoiceRegistry(context),
     getCharacterChosenGrantOwners(character, classSelections, selectedBackground, grantedFeatures)
   )
-  const primaryClass = classSelections[0]?.baseClass
   const eligibleStartingEquipment = resolveEligibleStartingEquipment({
-    character,
-    registry,
-    grantedFeatures,
-    abilityScores,
     primaryClass,
-    selectedBackground
+    selectedBackground,
+    eligibilityById: featureOptionEligibility.eligibilityById
   })
   const classStartingEquipment = eligibleStartingEquipment.classStartingEquipment
   const backgroundStartingEquipment = eligibleStartingEquipment.backgroundStartingEquipment
@@ -1076,6 +1096,7 @@ export async function resolveCharacterBuilder(
     mode,
     catalog,
     registry: resolvedRegistry,
+    sourceRegistry: registry,
     summary,
     grants,
     chosenGrantChoices,

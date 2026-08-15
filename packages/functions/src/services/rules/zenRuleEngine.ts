@@ -1,4 +1,9 @@
-import { ZenDecisionContent, ZenEngine, type ZenEngineResponse } from '@gorules/zen-engine'
+import {
+  overrideConfig,
+  ZenDecisionContent,
+  ZenEngine,
+  type ZenEngineResponse
+} from '@gorules/zen-engine'
 import { z } from 'zod'
 
 import type {
@@ -7,6 +12,8 @@ import type {
 } from '@artificer-toolkit/schema/api/rules'
 
 import { validateRulePackDocument } from './ruleDocumentValidation.js'
+
+overrideConfig({ functionTimeoutMillis: 50 })
 
 function jsonValue(value: unknown): z.infer<ReturnType<typeof z.json>> {
   const serialized = JSON.stringify(value)

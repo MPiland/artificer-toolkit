@@ -1,19 +1,19 @@
 # Character services
 
-This module orchestrates the character Builder and Sheet workflows. It is the application-service seam between API procedures, repositories, shared authored/compiled models, and the pure engine.
+This module orchestrates the character Builder and Sheet workflows. It is the application-service seam between API procedures, repositories, shared authored/compiled models, and the pinned Zen rules runtime.
 
 ## Owns and does not own
 
 - `builderService.ts` loads a `CharacterBuilderRegistry` and orchestrates resolution. Eligibility, hit points, spell selection, starting equipment, reconciliation, presentation, and DTO view construction belong to their named sibling modules.
 - `characterApplicationService.ts` owns authenticated Builder/Sheet use cases; `characterBuilderView.ts` maps resolved Builder state into API DTOs. Transport adapters only parse requests and bind user-scoped database context.
 - `chosenGrantChoiceResolver.ts` derives required chosen-grant options and reconciles persisted selections with provenance and timing.
-- `characterEngine.ts` adapts resolved Character state into a `CharacterBuildSnapshot`/registry and runs the pure engine.
+- `characterRuleSnapshot.ts` and the focused `*RuleFacts.ts` modules assemble normalized facts. `characterRuleEvaluation.ts` resolves the exact revision pin and invokes the shared Zen runtime once per fact set. The superseded shared TypeScript mechanics engine has been removed.
 - `sheetProjection.ts`, `sheetRestService.ts`, `sheetCommandReducer.ts`, and `sheetCommandValidation.ts` own Sheet reads, completed-rest policy, pure state transitions, and command policy respectively. `sheetService.ts` owns prospective persistence state plus transaction/idempotency orchestration.
-- Does not own tRPC procedure definitions, database row layouts, node-map definitions, or the pure engine algorithm.
+- Does not own tRPC procedure definitions, database row layouts, node-map definitions, or system-specific rule graphs. D&D 5e 2014 graphs live under `../rules/systems/dnd5e/2014/`.
 
 ## Key flow
 
-Builder request → load authored/compiled registry → resolve provenance, grants, choices, and validation → save draft or preview destructive changes → commit through repositories. Sheet read → project current character/typed state through the engine. Sheet command → validate and reduce pure state → persist typed changes and event atomically → return the authoritative projection.
+Builder request → load authored/compiled registry → assemble facts → evaluate the compatible rule revision → resolve choices and validation → save draft or commit through repositories. Sheet read → evaluate the exact Character revision pin → project the typed result. Sheet command → evaluate current/prospective facts as required → validate and reduce state → persist typed changes and the event atomically → return the authoritative projection.
 
 Builder is intentionally distinct from node-map authoring: node maps structure authored content forms; Builder resolves a character's intent and progression.
 
@@ -29,14 +29,14 @@ Builder is intentionally distinct from node-map authoring: node maps structure a
 - Starting-gold intent stores the class dice formula as text alongside the player-entered total; the formula is not an authored equipment-option reference.
 - Selected-class grant summaries are normalized on the server by availability level, authored presentation order, and stable kind/ID. Background references are compact derived projections; clients must not re-sort or persist them.
 - Preview is separate from commit and must surface destructive removals/status downgrades before persistence.
-- Engine input is ephemeral; services assemble it from current persisted state and never persist the snapshot itself.
-- Sheet commands mutate play-state through the event/repository path and return a refreshed, engine-derived Sheet.
+- Rule facts are ephemeral; services assemble them from current persisted state and never persist the snapshot itself.
+- Sheet commands mutate play-state through the event/repository path and return a refreshed, pinned-rule-derived Sheet. Projection without an exact revision fails closed.
 - Typed resource usage is persisted through its typed repository path; the pure command reducer validates resource operations without copying usage into `CharacterAuthored.state.resources`.
 - Campaign-owner projection preserves authoritative mechanics while removing Character-owner-private custom names, notes, spell customizations, and labels derived from them. The GM command allowlist cannot mutate those fields or reset the private Character maximum-hit-point adjustment during rest.
 
 ## Focused validation
 
-Run the focused owner tests: `builderEligibility.test.ts`, `builderHitPoints.test.ts`, `builderSpellSelection.test.ts`, `builderStartingEquipment.test.ts`, `builderPresentation.test.ts`, `characterBuilderView.test.ts`, the `sheet*.test.ts` files, and the related API character contract/route tests. Use shared engine tests when changing snapshot assembly or engine resolution.
+Run the focused owner tests: `builderEligibility.test.ts`, `builderHitPoints.test.ts`, `builderSpellSelection.test.ts`, `builderStartingEquipment.test.ts`, `builderPresentation.test.ts`, `characterBuilderView.test.ts`, the `sheet*.test.ts` files, and the related API character contract/route tests. Use the system policy tests under `../rules/systems/dnd5e/2014/` when changing fact assembly or mechanical evaluation.
 
 ## Canonical references
 

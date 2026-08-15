@@ -24,12 +24,18 @@ export type ActivationAuthored =
       amount: number
     }
 
+export type ResourceUseAuthored = {
+  chargeId: string
+  cost: number
+}
+
 export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
   | {
       kind?: typeof EFFECT_INVOCATION_KIND.ACTION
       triggerCode: Extract<TTrigger, 'SAVING_THROW'>
       savingThrow: SavingThrowAuthored
       activation: ActivationAuthored
+      resourceUse?: ResourceUseAuthored
       range: RangeAuthored
       shape?: ShapeAuthored
       targeting?: TargetingAuthored
@@ -38,6 +44,7 @@ export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
       kind?: typeof EFFECT_INVOCATION_KIND.ACTION
       triggerCode: Exclude<TTrigger, 'SAVING_THROW'>
       activation: ActivationAuthored
+      resourceUse?: ResourceUseAuthored
       range: RangeAuthored
       shape?: ShapeAuthored
       targeting?: TargetingAuthored

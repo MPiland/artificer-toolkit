@@ -19,6 +19,7 @@ export interface CharacterRow {
   description: string | null
   status: string
   inspiration: boolean
+  rule_pack_revision_id: string | null
   stream_version: number
   created_at: string
   updated_at: string
@@ -34,6 +35,7 @@ export interface CharacterRepository {
     options?: {
       expectedStreamVersion?: number
       incrementStreamVersion?: boolean
+      rulePackRevisionId?: string | null
       afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
     }
   ): Promise<number>
@@ -45,6 +47,11 @@ export interface CharacterRepository {
       afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
     }
   ): Promise<number>
+  setRulePackRevision(
+    characterId: string,
+    expectedRevisionId: string,
+    revisionId: string
+  ): Promise<boolean>
   listByUser(
     userId: string
   ): Promise<Pick<CharacterRow, 'id' | 'label' | 'system_id' | 'stream_version' | 'status'>[]>

@@ -18,8 +18,38 @@ export {
 } from './builderPresentation.js'
 export { buildCharacterBuilderView } from './characterBuilderView.js'
 export * from './characterApplicationService.js'
+export * from './characterRuleBinding.js'
+export { compileCharacterGrantFoldRuleFacts } from './characterGrantFoldRuleFacts.js'
+export { buildCharacterProficiencyRuleFacts } from './characterProficiencyRuleFacts.js'
+export { buildCharacterResourceRuleFacts } from './characterResourceRuleFacts.js'
+export {
+  assembleCharacterRuleSnapshot,
+  type CharacterRuleSnapshotInput,
+  type CharacterRuleSnapshotResult
+} from './characterRuleSnapshot.js'
+export {
+  composeCharacterRulePolicyFacts,
+  type CharacterRulePolicyFactsInput,
+  type CharacterRulePolicyFactsResult
+} from './characterRulePolicyFacts.js'
+export {
+  evaluateCharacterRulePolicy,
+  type CharacterRuleEvaluationInput,
+  type CharacterRuleEvaluationResult
+} from './characterRuleEvaluation.js'
+export { projectCharacterRulePolicyToSheetProjection } from './characterRulePolicyAdapter.js'
+export { projectCharacterRuleResources } from './characterRuleResourceProjection.js'
+export {
+  classifyCharacterSheetCommandRuleResponsibility,
+  type CharacterSheetCommandRuleResponsibility
+} from './characterSheetCommandResponsibility.js'
 export * from './characterBuilderDraftConflict.js'
 export { executeCharacterSheetCommand } from './sheetService.js'
+export { executeCharacterSheetCommandWithRuleEvaluation } from './sheetService.js'
+export type {
+  CharacterSheetCommittedRuleSnapshot,
+  CharacterSheetCommandServiceTiming
+} from './sheetService.js'
 export {
   applyCharacterSheetCommand,
   CharacterSheetCommandError,
@@ -33,5 +63,4 @@ export {
   validateSheetAdjustmentTarget
 } from './sheetCommandValidation.js'
 export type { CharacterSheetAdjustmentCommand } from './sheetCommandValidation.js'
-export { resolveCharacterSheetEngine, resolveCharacterSheetSkillKey } from './characterEngine.js'
 export * from './sheetPanelService.js'

@@ -2,9 +2,11 @@ import { z } from 'zod'
 
 import type { DBLike, EncounterActorRecord, EncounterRecord } from '@artificer-toolkit/db'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
 
 import { getCharacterSheetForUser } from '../character/characterApplicationService.js'
 import { snapshotFeatures } from './encounterActorState.js'
+import { requireEncounterActorRuleResult } from './encounterActorRuleEvaluation.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { snapshotStatBlock } from './encounterProjection.js'
 
@@ -19,7 +21,8 @@ function requireActor(encounter: EncounterRecord, actorId: string): EncounterAct
 async function actorFacts(
   db: DBLike,
   userId: string,
-  actor: EncounterActorRecord
+  actor: EncounterActorRecord,
+  actorRules: EncounterActorRuleOutput
 ): Promise<RuleFacts> {
   if (actor.kind === 'CHARACTER' && actor.sourceId) {
     const sheet = await getCharacterSheetForUser(db, actor.sourceId, userId)
@@ -55,7 +58,7 @@ async function actorFacts(
     conditions: actor.conditions,
     resources: actor.resources,
     statBlock: snapshotStatBlock(actor),
-    features: snapshotFeatures(actor)
+    features: snapshotFeatures(actor, requireEncounterActorRuleResult(actorRules, actor.id))
   })
 }
 
@@ -64,14 +67,17 @@ export async function buildEncounterActionFacts(input: {
   userId: string
   encounter: EncounterRecord
   command: ResolveEncounterActionInputDto
+  actorRules: EncounterActorRuleOutput
 }): Promise<RuleFacts> {
   const actor = requireActor(input.encounter, input.command.actorId)
   const targets = input.command.targetActorIds.map((actorId) =>
     requireActor(input.encounter, actorId)
   )
   const [resolvedActor, resolvedTargets] = await Promise.all([
-    actorFacts(input.db, input.userId, actor),
-    Promise.all(targets.map((target) => actorFacts(input.db, input.userId, target)))
+    actorFacts(input.db, input.userId, actor, input.actorRules),
+    Promise.all(
+      targets.map((target) => actorFacts(input.db, input.userId, target, input.actorRules))
+    )
   ])
 
   return z.json().parse({

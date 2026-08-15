@@ -13,9 +13,12 @@ import {
   createCharacterBuilderChangePreview,
   resolveRecommendedCharacterBuilderSection
 } from './builderPresentation.js'
-import { executeCharacterSheetCommand } from './sheetService.js'
-import { resolveCharacterSheetEngine } from './characterEngine.js'
-import { buildCharacterSheetResponse } from './sheetProjection.js'
+import {
+  executeCharacterSheetCommand,
+  type CharacterSheetCommittedRuleSnapshot,
+  type CharacterSheetCommandServiceTiming
+} from './sheetService.js'
+import { buildCharacterSheetBundle } from './sheetProjection.js'
 import { previewCharacterRest } from './sheetRestService.js'
 import {
   buildCharacterSheetPanel,
@@ -23,11 +26,13 @@ import {
 } from './sheetPanelService.js'
 import {
   type Json,
+  ConcurrencyError,
   createAuthoredRouteIdRepository,
   createCharacterBuilderDraftRepository,
   type CharacterBuilderDraft,
   createCharacterEventRepository,
   createCharacterRepository,
+  createCreatureRepository,
   createCharacterSheetAdjustmentRepository,
   createCharacterSheetPlayStateRepository
 } from '@artificer-toolkit/db'
@@ -39,6 +44,7 @@ import {
 } from '@artificer-toolkit/shared/core'
 import {
   type CharacterAuthored,
+  type CreatureAuthored,
   type ParentClassAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 import {
@@ -57,6 +63,9 @@ import {
   type CharacterListResponseDto,
   type CharacterRestPreviewRequestDto,
   type CharacterRestPreviewResponseDto,
+  type CharacterRuleRevisionIdentityDto,
+  type CharacterRuleUpgradePreviewRequestDto,
+  type CharacterRuleUpgradePreviewResponseDto,
   type CharacterSheetCommandResponseDto,
   characterSheetCommandInputDtoSchema,
   type CharacterSheetResponseDto,
@@ -67,6 +76,8 @@ import type {
   CharacterSheetPanelTargetDto
 } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { assertCharacterBuilderDraftRevisionFresh } from './characterBuilderDraftConflict.js'
+import { resolveCharacterRuleBinding, type CharacterRuleBinding } from './characterRuleBinding.js'
+import { evaluateCharacterRulePolicy } from './characterRuleEvaluation.js'
 import { withPersonalCharacterLimit } from '../account/entitlementService.js'
 import {
   lockCampaignCharacterContentForSave,
@@ -121,6 +132,18 @@ function toCharacterBuilderDraftSummary(
     baseActiveUpdatedAt: draft.baseActiveUpdatedAt,
     createdAt: draft.createdAt,
     updatedAt: draft.updatedAt
+  }
+}
+
+function toCharacterRuleRevisionIdentity(
+  binding: CharacterRuleBinding
+): CharacterRuleRevisionIdentityDto {
+  return {
+    revisionId: binding.revisionId,
+    checksum: binding.checksum,
+    evaluatorKind: binding.evaluatorKind,
+    evaluatorVersion: binding.evaluatorVersion,
+    modelContractVersion: binding.modelContractVersion
   }
 }
 
@@ -184,22 +207,28 @@ async function buildCharacterBuilderSavePayload(params: {
   mode: CharacterBuilderMode
   targetStatus?: AuthoredRecordStatus
   existing: CharacterAuthored | null
+  existingRevisionId: string | null
   userId: string
 }): Promise<{
   character: CharacterAuthored
   resolution: CharacterBuilderResolution
   preview: CharacterBuilderPreview
+  ruleBinding?: CharacterRuleBinding
 }> {
   const authored = {
     ...params.character,
+    status: params.existing?.status ?? AUTHORED_RECORD_STATUS.DRAFT,
     userId: params.userId
   }
-  const context = await loadCharacterBuilderContext(params.db, authored)
+  let context = await loadCharacterBuilderContext(params.db, authored, [], {
+    includeEffects: true
+  })
   const reconciled = await reconcileCharacterBuilderCharacter(
     params.db,
     authored,
     params.existing,
-    context
+    context,
+    params.existingRevisionId
   )
   let draftResolution = await resolveCharacterBuilder(
     params.db,
@@ -209,7 +238,8 @@ async function buildCharacterBuilderSavePayload(params: {
     },
     params.mode,
     context,
-    params.existing
+    params.existing,
+    params.existingRevisionId
   )
   const persistedStatus = resolvePersistedCharacterStatus({
     existingStatus: params.existing?.status,
@@ -236,24 +266,43 @@ async function buildCharacterBuilderSavePayload(params: {
     })
     character = materialized.character
     if (materialized.changed) {
-      const materializedContext = await loadCharacterBuilderContext(params.db, character)
+      context = await loadCharacterBuilderContext(params.db, character, [], {
+        includeEffects: true
+      })
       draftResolution = await resolveCharacterBuilder(
         params.db,
         { ...character, status: AUTHORED_RECORD_STATUS.DRAFT },
         params.mode,
-        materializedContext,
-        params.existing
+        context,
+        params.existing,
+        params.existingRevisionId
       )
     }
-    const adjustments = await createCharacterSheetAdjustmentRepository(params.db).listByCharacter(
-      character.id
-    )
+    const creatureIds = [
+      ...new Set((character.state.creatures ?? []).map((entry) => entry.creatureId))
+    ]
+    const [adjustments, resourceUsage, creaturesById] = await Promise.all([
+      createCharacterSheetAdjustmentRepository(params.db).listByCharacter(character.id),
+      createCharacterSheetPlayStateRepository(params.db).listResourceUsage(character.id),
+      creatureIds.length > 0
+        ? createCreatureRepository(params.db).findByIds(creatureIds, {
+            systemId: character.systemId,
+            userId: character.userId,
+            includeMaster: true
+          })
+        : Promise.resolve(new Map<string, CreatureAuthored>())
+    ])
+    const ruleEvaluation = await evaluateCharacterRulePolicy({
+      db: params.db,
+      character,
+      context,
+      existingRevisionId: params.existingRevisionId,
+      adjustments,
+      creaturesById,
+      resourceUsage
+    })
     const effectiveMaxHitPoints = Math.max(
-      resolveCharacterSheetEngine({
-        character,
-        resolution: draftResolution,
-        adjustments
-      }).derivedStats.maxHitPoints,
+      ruleEvaluation.output.derivedStats.maxHitPoints.effective,
       0
     )
 
@@ -266,6 +315,28 @@ async function buildCharacterBuilderSavePayload(params: {
           current: Math.min(Math.max(character.state.hitpoints.current, 0), effectiveMaxHitPoints)
         }
       }
+    }
+
+    const resolution = {
+      ...draftResolution,
+      recommendedSectionId: resolveRecommendedCharacterBuilderSection(
+        character,
+        params.mode,
+        draftResolution.summary,
+        draftResolution.validations,
+        draftResolution.outstandingChoices
+      )
+    }
+    return {
+      character,
+      resolution,
+      ruleBinding: ruleEvaluation.binding,
+      preview: createCharacterBuilderChangePreview({
+        previousCharacter: params.existing,
+        nextCharacter: character,
+        predictedStatus: persistedStatus,
+        context
+      })
     }
   }
   const resolution =
@@ -433,11 +504,22 @@ export async function createCharacterDraftForUser(
       label: draft.label
     })
 
-    const resolution = await resolveCharacterBuilder(db, character, draft.mode)
+    const row = await repository.findById(draft.characterId)
+    const resolution = await resolveCharacterBuilder(
+      db,
+      character,
+      draft.mode,
+      undefined,
+      null,
+      row?.rule_pack_revision_id ?? null
+    )
     return toCharacterBuilderPayload(character, resolution, parsedDraftPayload.builderIntent)
   }
 
-  const existing = await repository.findAuthoredById(body.id)
+  const [existing, existingRow] = await Promise.all([
+    repository.findAuthoredById(body.id),
+    repository.findById(body.id)
+  ])
   if (existing) {
     if (existing.userId !== userId) {
       throw createNamedError(
@@ -447,7 +529,14 @@ export async function createCharacterDraftForUser(
     }
     return toCharacterBuilderPayload(
       existing,
-      await resolveCharacterBuilder(db, existing, 'create')
+      await resolveCharacterBuilder(
+        db,
+        existing,
+        'create',
+        undefined,
+        null,
+        existingRow?.rule_pack_revision_id ?? null
+      )
     )
   }
 
@@ -564,8 +653,9 @@ export async function getCharacterForUser(
   if (!resolvedCharacterId) return null
 
   const repository = createCharacterRepository(db)
-  const [character, activeUpdatedAt] = await Promise.all([
+  const [character, row, activeUpdatedAt] = await Promise.all([
     repository.findAuthoredById(resolvedCharacterId),
+    repository.findById(resolvedCharacterId),
     repository.findUpdatedAtById(resolvedCharacterId)
   ])
   if (!character || character.userId !== userId) {
@@ -578,18 +668,30 @@ export async function getCharacterForUser(
 
   return toCharacterBuilderPayload(
     character,
-    await resolveCharacterBuilder(db, character, 'edit'),
+    await resolveCharacterBuilder(
+      db,
+      character,
+      'edit',
+      undefined,
+      null,
+      row?.rule_pack_revision_id ?? null
+    ),
     undefined,
     activeUpdatedAt,
     routeIdentity.publicId
   )
 }
 
-export async function getCharacterSheetForUser(
+export interface CharacterSheetForUserBundle {
+  response: CharacterSheetResponseDto
+  ruleSnapshot: CharacterSheetCommittedRuleSnapshot
+}
+
+export async function getCharacterSheetBundleForUser(
   db: Parameters<typeof createCharacterRepository>[0],
   characterId: string,
   userId: string
-): Promise<CharacterSheetResponseDto | null> {
+): Promise<CharacterSheetForUserBundle | null> {
   const resolvedCharacterId = await resolveCharacterRouteSubjectId(db, characterId)
   if (!resolvedCharacterId) return null
 
@@ -599,10 +701,17 @@ export async function getCharacterSheetForUser(
     repository.findAuthoredById(resolvedCharacterId)
   ])
   if (
+    !row ||
     !character ||
     (character.status ?? AUTHORED_RECORD_STATUS.ACTIVE) !== AUTHORED_RECORD_STATUS.ACTIVE
   ) {
     return null
+  }
+  if (!row.rule_pack_revision_id) {
+    throw createNamedError(
+      'CharacterRuleBindingError',
+      `Active Character "${character.id}" does not have a pinned rule revision.`
+    )
   }
   const campaignContext = await resolveCharacterSheetCampaignContext(db, character, userId)
 
@@ -617,35 +726,180 @@ export async function getCharacterSheetForUser(
 
   const adjustmentRepository = createCharacterSheetAdjustmentRepository(db)
   const playStateRepository = createCharacterSheetPlayStateRepository(db)
-  const [adjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
+  const [context, adjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
     await Promise.all([
+      loadCharacterBuilderContext(db, character, [], { includeEffects: true }),
       adjustmentRepository.listByCharacter(character.id),
       adjustmentRepository.getMovementPreference(character.id),
       playStateRepository.listResourceUsage(character.id),
       playStateRepository.listSpellCustomizations(character.id)
     ])
 
-  const sheet = await buildCharacterSheetResponse({
+  const resolution = await resolveCharacterBuilder(
     db,
     character,
-    resolution: await resolveCharacterBuilder(db, character, 'edit'),
-    streamVersion: row?.stream_version ?? 0,
+    'edit',
+    context,
+    null,
+    row.rule_pack_revision_id
+  )
+  const bundle = await buildCharacterSheetBundle({
+    db,
+    character,
+    resolution,
+    streamVersion: row.stream_version,
     hasBuilderDraft: Boolean(draft),
     adjustments: mergeCampaignSheetAdjustments(adjustments, campaignContext.adjustments),
     movementDisplayPreference,
     resourceUsage,
     spellCustomizations,
-    additionalConditions: getVisibleCampaignConditions(campaignContext)
+    additionalConditions: getVisibleCampaignConditions(campaignContext),
+    ruleEvaluation: {
+      context,
+      revisionId: row.rule_pack_revision_id,
+      attunementSlotOverride: campaignContext.attunementSlotOverride
+    }
   })
 
-  return projectCharacterSheetForViewer(
-    {
-      ...sheet,
-      publicId: routeIdentity.publicId,
-      meta: { ...sheet.meta, campaignId: campaignContext.campaignId }
-    },
-    campaignContext
+  return {
+    response: projectCharacterSheetForViewer(
+      {
+        ...bundle.sheet,
+        publicId: routeIdentity.publicId,
+        meta: { ...bundle.sheet.meta, campaignId: campaignContext.campaignId }
+      },
+      campaignContext
+    ),
+    ruleSnapshot: {
+      streamVersion: row.stream_version,
+      evaluation: bundle.ruleEvaluation,
+      resolution
+    }
+  }
+}
+
+export async function getCharacterSheetForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  characterId: string,
+  userId: string
+): Promise<CharacterSheetResponseDto | null> {
+  return (await getCharacterSheetBundleForUser(db, characterId, userId))?.response ?? null
+}
+
+export async function previewCharacterRuleUpgradeForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  characterId: string,
+  input: CharacterRuleUpgradePreviewRequestDto,
+  userId: string
+): Promise<CharacterRuleUpgradePreviewResponseDto> {
+  const resolvedCharacterId = await resolveCharacterRouteSubjectId(db, characterId)
+  if (!resolvedCharacterId) {
+    throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
+  }
+
+  const repository = createCharacterRepository(db)
+  const [row, character] = await Promise.all([
+    repository.findById(resolvedCharacterId),
+    repository.findAuthoredById(resolvedCharacterId)
+  ])
+  if (
+    !row ||
+    !character ||
+    character.userId !== userId ||
+    (character.status ?? AUTHORED_RECORD_STATUS.ACTIVE) !== AUTHORED_RECORD_STATUS.ACTIVE
+  ) {
+    throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
+  }
+  if (!row.rule_pack_revision_id) {
+    throw createNamedError(
+      'CharacterRuleBindingError',
+      `Active Character "${character.id}" does not have a pinned rule revision.`
+    )
+  }
+  if (row.stream_version !== input.expectedVersion) {
+    throw new ConcurrencyError(character.id, input.expectedVersion)
+  }
+
+  const adjustmentRepository = createCharacterSheetAdjustmentRepository(db)
+  const playStateRepository = createCharacterSheetPlayStateRepository(db)
+  const [
+    currentRevision,
+    targetRevision,
+    campaignContext,
+    context,
+    adjustments,
+    movementDisplayPreference,
+    resourceUsage,
+    spellCustomizations,
+    draft,
+    routeIdentity
+  ] = await Promise.all([
+    resolveCharacterRuleBinding({
+      db,
+      systemId: character.systemId,
+      existingRevisionId: row.rule_pack_revision_id
+    }),
+    resolveCharacterRuleBinding({
+      db,
+      systemId: character.systemId,
+      existingRevisionId: null
+    }),
+    resolveCharacterSheetCampaignContext(db, character, userId),
+    loadCharacterBuilderContext(db, character, [], { includeEffects: true }),
+    adjustmentRepository.listByCharacter(character.id),
+    adjustmentRepository.getMovementPreference(character.id),
+    playStateRepository.listResourceUsage(character.id),
+    playStateRepository.listSpellCustomizations(character.id),
+    createCharacterBuilderDraftRepository(db).findByCharacter({
+      characterId: character.id,
+      userId: character.userId
+    }),
+    createAuthoredRouteIdRepository(db).ensure({
+      subjectKind: 'CHARACTER',
+      subjectId: character.id
+    })
+  ])
+  const resolution = await resolveCharacterBuilder(
+    db,
+    character,
+    'edit',
+    context,
+    null,
+    targetRevision.revisionId
   )
+  const { sheet } = await buildCharacterSheetBundle({
+    db,
+    character,
+    resolution,
+    streamVersion: row.stream_version,
+    hasBuilderDraft: Boolean(draft),
+    adjustments: mergeCampaignSheetAdjustments(adjustments, campaignContext.adjustments),
+    movementDisplayPreference,
+    resourceUsage,
+    spellCustomizations,
+    additionalConditions: getVisibleCampaignConditions(campaignContext),
+    ruleEvaluation: {
+      context,
+      revisionId: targetRevision.revisionId,
+      attunementSlotOverride: campaignContext.attunementSlotOverride
+    }
+  })
+
+  return {
+    characterId: character.id,
+    streamVersion: row.stream_version,
+    currentRevision: toCharacterRuleRevisionIdentity(currentRevision),
+    targetRevision: toCharacterRuleRevisionIdentity(targetRevision),
+    upgradeAvailable: currentRevision.revisionId !== targetRevision.revisionId,
+    sheet: projectCharacterSheetForViewer(
+      {
+        ...sheet,
+        publicId: routeIdentity.publicId,
+        meta: { ...sheet.meta, campaignId: campaignContext.campaignId }
+      },
+      campaignContext
+    )
+  }
 }
 
 export async function previewCharacterRestForUser(
@@ -689,19 +943,33 @@ export async function getCharacterSheetPanelForUser(
   ) {
     throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
   }
+  if (!row.rule_pack_revision_id) {
+    throw createNamedError(
+      'CharacterRuleBindingError',
+      `Active Character "${character.id}" does not have a pinned rule revision.`
+    )
+  }
   const campaignContext = await resolveCharacterSheetCampaignContext(db, character, userId)
 
   const adjustmentRepository = createCharacterSheetAdjustmentRepository(db)
   const playStateRepository = createCharacterSheetPlayStateRepository(db)
-  const [resolution, adjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
+  const [context, adjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
     await Promise.all([
-      resolveCharacterBuilder(db, character, 'edit'),
+      loadCharacterBuilderContext(db, character, [], { includeEffects: true }),
       adjustmentRepository.listByCharacter(resolvedCharacterId),
       adjustmentRepository.getMovementPreference(resolvedCharacterId),
       playStateRepository.listResourceUsage(resolvedCharacterId),
       playStateRepository.listSpellCustomizations(resolvedCharacterId)
     ])
-  const sheet = await buildCharacterSheetResponse({
+  const resolution = await resolveCharacterBuilder(
+    db,
+    character,
+    'edit',
+    context,
+    null,
+    row.rule_pack_revision_id
+  )
+  const bundle = await buildCharacterSheetBundle({
     db,
     character,
     resolution,
@@ -710,15 +978,20 @@ export async function getCharacterSheetPanelForUser(
     movementDisplayPreference,
     resourceUsage,
     spellCustomizations,
-    additionalConditions: getVisibleCampaignConditions(campaignContext)
+    additionalConditions: getVisibleCampaignConditions(campaignContext),
+    ruleEvaluation: {
+      context,
+      revisionId: row.rule_pack_revision_id,
+      attunementSlotOverride: campaignContext.attunementSlotOverride
+    }
   })
   return presentCampaignCharacterText(
     buildCharacterSheetPanel({
       character,
       resolution,
-      sheet: projectCharacterSheetForViewer(sheet, campaignContext),
+      sheet: projectCharacterSheetForViewer(bundle.sheet, campaignContext),
+      ruleProjection: bundle.ruleProjection,
       adjustments: getCharacterSheetDisplayAdjustments(adjustments, campaignContext),
-      engineAdjustments: mergeCampaignSheetAdjustments(adjustments, campaignContext.adjustments),
       movementDisplayPreference,
       target,
       editable:
@@ -740,8 +1013,14 @@ export async function resolveCharacterForUser(
     ...body.character,
     userId
   }
-  const existing =
-    body.mode === 'edit' ? await createCharacterRepository(db).findAuthoredById(authored.id) : null
+  const repository = createCharacterRepository(db)
+  const [existing, row] =
+    body.mode === 'edit'
+      ? await Promise.all([
+          repository.findAuthoredById(authored.id),
+          repository.findById(authored.id)
+        ])
+      : [null, null]
 
   return toCharacterBuilderPayload(
     authored,
@@ -750,7 +1029,8 @@ export async function resolveCharacterForUser(
       authored,
       body.mode,
       undefined,
-      existing?.userId === userId ? existing : null
+      existing?.userId === userId ? existing : null,
+      existing?.userId === userId ? (row?.rule_pack_revision_id ?? null) : null
     )
   )
 }
@@ -761,7 +1041,10 @@ export async function previewCharacterSaveForUser(
   userId: string
 ): Promise<CharacterBuilderPreviewPayloadDto> {
   const repository = createCharacterRepository(db)
-  const existing = await repository.findAuthoredById(body.character.id)
+  const [existing, row] = await Promise.all([
+    repository.findAuthoredById(body.character.id),
+    repository.findById(body.character.id)
+  ])
   if (existing && existing.userId !== userId) {
     throw createNamedError(
       'AuthoredContentOwnershipError',
@@ -774,6 +1057,7 @@ export async function previewCharacterSaveForUser(
     mode: body.mode,
     targetStatus: body.targetStatus,
     existing,
+    existingRevisionId: row?.rule_pack_revision_id ?? null,
     userId
   })
 
@@ -786,7 +1070,10 @@ export async function upsertCharacterBuilderForUser(
   userId: string
 ): Promise<CharacterBuilderPayloadDto> {
   const repository = createCharacterRepository(db)
-  const existing = await repository.findAuthoredById(body.character.id)
+  const [existing, row] = await Promise.all([
+    repository.findAuthoredById(body.character.id),
+    repository.findById(body.character.id)
+  ])
   if (existing && existing.userId !== userId) {
     throw createNamedError(
       'AuthoredContentOwnershipError',
@@ -799,6 +1086,7 @@ export async function upsertCharacterBuilderForUser(
     mode: body.mode,
     targetStatus: body.targetStatus ?? AUTHORED_RECORD_STATUS.ACTIVE,
     existing,
+    existingRevisionId: row?.rule_pack_revision_id ?? null,
     userId
   })
 
@@ -808,6 +1096,13 @@ export async function upsertCharacterBuilderForUser(
       'Character cannot be finalized until all required builder choices are complete.'
     )
   }
+  if (!payload.ruleBinding) {
+    throw createNamedError(
+      'CharacterRuleBindingError',
+      'An active Character save did not produce a rule revision binding.'
+    )
+  }
+  const evaluatedRuleRevisionId = payload.ruleBinding.revisionId
 
   const routeIdentity = await withPersonalCharacterLimit(
     db,
@@ -821,6 +1116,7 @@ export async function upsertCharacterBuilderForUser(
       const activeUpdatedAt = await lockedRepository.findUpdatedAtByIdForUpdate(
         payload.character.id
       )
+      const lockedCharacter = await lockedRepository.findById(payload.character.id)
       const draft = await lockedDraftRepository.findByCharacter({
         characterId: payload.character.id,
         userId
@@ -833,8 +1129,15 @@ export async function upsertCharacterBuilderForUser(
         shouldCheckRevision: draft != null || body.baseActiveUpdatedAt != null
       })
 
+      const ruleBinding = await resolveCharacterRuleBinding({
+        db: trx,
+        systemId: payload.character.systemId,
+        existingRevisionId: lockedCharacter?.rule_pack_revision_id ?? null,
+        expectedRevisionId: evaluatedRuleRevisionId
+      })
       await lockedRepository.upsertAuthored(payload.character, {
-        incrementStreamVersion: true
+        incrementStreamVersion: true,
+        rulePackRevisionId: ruleBinding.revisionId
       })
       await replaceCampaignCharacterContentBindings(trx, payload.character)
       const identity = await createAuthoredRouteIdRepository(trx).ensure({
@@ -864,18 +1167,24 @@ export async function dispatchCommandForUser(
   db: Parameters<typeof createCharacterRepository>[0],
   characterId: string,
   command: ReturnType<typeof characterSheetCommandInputDtoSchema.parse>,
-  userId: string
+  userId: string,
+  options?: {
+    onServiceTiming?: (timing: CharacterSheetCommandServiceTiming) => void
+  }
 ): Promise<CharacterSheetCommandResponseDto> {
   const resolvedCharacterId = await resolveCharacterRouteSubjectId(db, characterId)
   if (!resolvedCharacterId) {
     throw createNamedError('NotFoundError', `Character "${characterId}" was not found.`)
   }
 
+  const panelTargets = getAffectedCharacterSheetPanelTargets(command)
   const result = await executeCharacterSheetCommand({
     db,
     characterId: resolvedCharacterId,
     command,
-    userId
+    userId,
+    panelTargets,
+    onTiming: options?.onServiceTiming
   })
   const [draft, routeIdentity] = await Promise.all([
     createCharacterBuilderDraftRepository(db).findByCharacter({
@@ -887,19 +1196,8 @@ export async function dispatchCommandForUser(
       subjectId: resolvedCharacterId
     })
   ])
-  const panelTargets = getAffectedCharacterSheetPanelTargets(command)
-  const panels =
-    panelTargets.length > 0
-      ? await Promise.all(
-          panelTargets.map((target) =>
-            getCharacterSheetPanelForUser(db, resolvedCharacterId, target, userId)
-          )
-        )
-      : undefined
-
   return {
     ...result,
-    ...(panels ? { panels } : {}),
     sheet: {
       ...result.sheet,
       meta: {

@@ -12,20 +12,26 @@ import {
   type CharacterBuilderContext
 } from './builderService.js'
 import {
-  collectGrantedFeaturesForCharacter,
-  deriveAbilityScores,
   getCharacterChosenGrantOwners,
   getRequiredClassResourceGrants,
   isProvenanceStillValid,
   isSameRequiredResourceGrant,
-  isValidAncestrySource,
   mergeRequiredResourceGrants,
-  resolveCharacterBuilderEffectiveAbilityScores,
   resolveFeatureOptionEligibility
 } from './builderEligibility.js'
-import { normalizeCharacterHitpointLevels, reconcileCharacterHitDice } from './builderHitPoints.js'
+import {
+  collectGrantedFeaturesForCharacter,
+  isValidAncestrySource
+} from './characterBuilderSelections.js'
+import {
+  applyCharacterHitpointProgression,
+  prepareCharacterHitpointProgression,
+  reconcileCharacterHitDice
+} from './builderHitPoints.js'
+import { evaluateCharacterRulePolicy } from './characterRuleEvaluation.js'
 import {
   clearObsoleteStartingEquipmentSelections,
+  compileStartingEquipmentEligibilityRuleFacts,
   reconcileStartingEquipmentDecision,
   resolveEligibleStartingEquipment
 } from './builderStartingEquipment.js'
@@ -35,7 +41,8 @@ export async function reconcileCharacterBuilderCharacter(
   db: DBLike,
   character: CharacterAuthored,
   existingCharacter: CharacterAuthored | null = null,
-  providedContext?: CharacterBuilderContext
+  providedContext?: CharacterBuilderContext,
+  existingRevisionId: string | null = null
 ): Promise<CharacterAuthored> {
   const context = providedContext ?? (await loadCharacterBuilderContext(db, character))
   const { catalog, registry } = context
@@ -84,11 +91,12 @@ export async function reconcileCharacterBuilderCharacter(
 
   nextCharacter.intent.featureAcquisitions = featureAcquisitions
 
-  const featureOptionEligibility = resolveFeatureOptionEligibility({
+  const featureOptionEligibility = await resolveFeatureOptionEligibility({
+    db,
     character: nextCharacter,
-    registry,
+    context,
     grantedFeatures,
-    abilityScores: deriveAbilityScores(nextCharacter.intent.abilities)
+    existingRevisionId
   })
   nextCharacter.intent.featureAcquisitions =
     featureOptionEligibility.character.intent.featureAcquisitions
@@ -127,16 +135,47 @@ export async function reconcileCharacterBuilderCharacter(
   )
   nextCharacter.intent.spellSelections = spellSelections.length > 0 ? spellSelections : undefined
 
-  const effectiveAbilityScores = resolveCharacterBuilderEffectiveAbilityScores(
-    nextCharacter,
-    registry,
-    grantedFeatures
-  )
-  nextCharacter.intent.hitpoints.levels = normalizeCharacterHitpointLevels(
+  const primaryClass = classSelections[0]?.baseClass
+  const startingEquipmentEligibilityFacets = [
+    ...compileStartingEquipmentEligibilityRuleFacts({
+      source: 'CLASS',
+      startingEquipment: primaryClass?.startingEquipment
+    }),
+    ...compileStartingEquipmentEligibilityRuleFacts({
+      source: 'BACKGROUND',
+      startingEquipment: selectedBackground?.startingEquipment
+    })
+  ]
+  const finalRuleState = await resolveFeatureOptionEligibility({
+    db,
+    character: nextCharacter,
+    context,
+    grantedFeatures,
+    existingRevisionId,
+    additionalEligibilityFacets: startingEquipmentEligibilityFacets,
+    requireEvaluation: true
+  })
+  nextCharacter.intent.featureAcquisitions = finalRuleState.character.intent.featureAcquisitions
+  if (!finalRuleState.ruleEvaluation) {
+    throw new Error('Character rules evaluation did not produce an effective Builder state.')
+  }
+  const hitPointProgression = prepareCharacterHitpointProgression(
     nextCharacter,
     registry.classes,
     existingCharacter,
-    effectiveAbilityScores
+    Object.keys(finalRuleState.ruleEvaluation.snapshot.abilities)
+  )
+  const hitPointRuleEvaluation = await evaluateCharacterRulePolicy({
+    db,
+    character: nextCharacter,
+    context,
+    existingRevisionId,
+    expectedRevisionId: finalRuleState.ruleEvaluation.binding.revisionId,
+    hitPointProgression: hitPointProgression.facts
+  })
+  nextCharacter.intent.hitpoints.levels = applyCharacterHitpointProgression(
+    hitPointProgression,
+    hitPointRuleEvaluation.output.hitPointProgression
   )
   nextCharacter.state.hitpoints.hitDice = reconcileCharacterHitDice(
     nextCharacter.intent.classes,
@@ -144,10 +183,7 @@ export async function reconcileCharacterBuilderCharacter(
     nextCharacter.state.hitpoints.hitDice
   )
   if (existingCharacter?.status !== AUTHORED_RECORD_STATUS.ACTIVE) {
-    const startingHitPoints = nextCharacter.intent.hitpoints.levels.reduce(
-      (total, level) => total + level.value,
-      0
-    )
+    const startingHitPoints = hitPointRuleEvaluation.output.derivedStats.maxHitPoints.base
     if (startingHitPoints > 0) {
       nextCharacter.state.hitpoints.current = startingHitPoints
     }
@@ -168,15 +204,11 @@ export async function reconcileCharacterBuilderCharacter(
   const resourceGrants = mergeRequiredResourceGrants(validResourceGrants, requiredResourceGrants)
   nextCharacter.intent.resourceGrants = resourceGrants.length > 0 ? resourceGrants : undefined
 
-  const primaryClass = classSelections[0]?.baseClass
   if (primaryClass || selectedBackground?.startingEquipment) {
     const eligibleStartingEquipment = resolveEligibleStartingEquipment({
-      character: nextCharacter,
-      registry,
-      grantedFeatures,
-      abilityScores: deriveAbilityScores(nextCharacter.intent.abilities),
       primaryClass,
-      selectedBackground
+      selectedBackground,
+      eligibilityById: finalRuleState.eligibilityById
     })
 
     if (nextCharacter.intent.startingEquipment?.class) {

@@ -27,8 +27,10 @@ const mocks = vi.hoisted(() => ({
   adjustments: { listByCharacter: vi.fn() },
   playState: { listResourceUsage: vi.fn() },
   events: { insertCampaignEvent: vi.fn() },
+  loadBuilderContext: vi.fn(),
   resolveBuilder: vi.fn(),
-  buildSheet: vi.fn(),
+  buildSheetBundle: vi.fn(),
+  resolveCampaignContext: vi.fn(),
   executeSheet: vi.fn(),
   broadcast: vi.fn()
 }))
@@ -48,12 +50,19 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   }
 })
 
-vi.mock('../character/builderService.js', () => ({ resolveCharacterBuilder: mocks.resolveBuilder }))
+vi.mock('../character/builderService.js', () => ({
+  loadCharacterBuilderContext: mocks.loadBuilderContext,
+  resolveCharacterBuilder: mocks.resolveBuilder
+}))
 vi.mock('../character/sheetService.js', () => ({
   executeCharacterSheetCommand: mocks.executeSheet
 }))
 vi.mock('../character/sheetProjection.js', () => ({
-  buildCharacterSheetResponse: mocks.buildSheet
+  buildCharacterSheetBundle: mocks.buildSheetBundle
+}))
+vi.mock('../character/campaignCharacterSheet.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../character/campaignCharacterSheet.js')>()),
+  resolveCharacterSheetCampaignContext: mocks.resolveCampaignContext
 }))
 vi.mock('./campaignService.js', () => ({
   assertActiveCampaignMember: vi.fn(),
@@ -122,6 +131,8 @@ beforeEach(() => {
   mocks.live.hasRecovery.mockResolvedValue(false)
   mocks.live.insertRecovery.mockResolvedValue(undefined)
   mocks.resolveBuilder.mockResolvedValue({})
+  mocks.loadBuilderContext.mockResolvedValue({})
+  mocks.resolveCampaignContext.mockResolvedValue({ adjustments: [], attunementSlotOverride: null })
   mocks.adjustments.listByCharacter.mockResolvedValue([])
   mocks.playState.listResourceUsage.mockResolvedValue([])
   mocks.broadcast.mockResolvedValue(true)
@@ -167,8 +178,12 @@ describe('campaign live-play clock', () => {
       return current
     })
     mocks.character.findAuthoredById.mockResolvedValue({ id: ids.character })
-    mocks.character.findById.mockResolvedValue({ id: ids.character, stream_version: 1 })
-    mocks.buildSheet.mockResolvedValue({ resources: { items: [] } })
+    mocks.character.findById.mockResolvedValue({
+      id: ids.character,
+      stream_version: 1,
+      rule_pack_revision_id: 'revision-1'
+    })
+    mocks.buildSheetBundle.mockResolvedValue({ sheet: { resources: { items: [] } } })
 
     await expect(
       advanceCampaignClock({} as DBLike, owner.id, {
@@ -179,7 +194,7 @@ describe('campaign live-play clock', () => {
       })
     ).resolves.toMatchObject({ processedBoundaryAbsoluteMinute: 10_000_000 })
 
-    expect(mocks.buildSheet).toHaveBeenCalledTimes(3)
+    expect(mocks.buildSheetBundle).toHaveBeenCalledTimes(3)
   })
 
   it('replays a command without applying it twice and never replays after rewind', async () => {
@@ -239,25 +254,31 @@ describe('campaign live-play clock', () => {
       return current
     })
     mocks.character.findAuthoredById.mockResolvedValue({ id: ids.character })
-    mocks.character.findById.mockResolvedValue({ id: ids.character, stream_version: 1 })
-    mocks.buildSheet.mockResolvedValue({
-      resources: {
-        items: [
-          {
-            used: 1,
-            owner: {
-              kind: 'AUTHORED_GRANT',
-              resourceGrantId: 'resource',
-              source: {
-                kind: 'AUTHORED',
-                sourceKind: 'CLASS',
-                definitionId: 'class',
-                sourceInstanceId: 'CLASS:class'
-              }
-            },
-            recoveries: [{ trigger: 'DAWN' }]
-          }
-        ]
+    mocks.character.findById.mockResolvedValue({
+      id: ids.character,
+      stream_version: 1,
+      rule_pack_revision_id: 'revision-1'
+    })
+    mocks.buildSheetBundle.mockResolvedValue({
+      sheet: {
+        resources: {
+          items: [
+            {
+              used: 1,
+              owner: {
+                kind: 'AUTHORED_GRANT',
+                resourceGrantId: 'resource',
+                source: {
+                  kind: 'AUTHORED',
+                  sourceKind: 'CLASS',
+                  definitionId: 'class',
+                  sourceInstanceId: 'CLASS:class'
+                }
+              },
+              recoveries: [{ trigger: 'DAWN' }]
+            }
+          ]
+        }
       }
     })
     mocks.executeSheet.mockResolvedValue({ historyEntry: { eventId: ids.event } })

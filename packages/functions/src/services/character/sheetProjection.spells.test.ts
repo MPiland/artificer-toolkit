@@ -1,7 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { CharacterBuilderResolution } from './builderService.js'
 import { CharacterSheetCommandError, applyCharacterSheetCommand } from './sheetCommandReducer.js'
-import { buildCharacterSheetResponse } from './sheetProjection.js'
+import {
+  buildCharacterSheetResponse as buildPinnedCharacterSheetResponse,
+  type BuildCharacterSheetResponseParams
+} from './sheetProjection.js'
 import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
@@ -12,6 +15,7 @@ import {
 } from '@artificer-toolkit/shared/core'
 import {
   createCharacter,
+  createAuthoredSpell,
   createConditionDb,
   createResolution,
   createSpellcastingClass,
@@ -19,6 +23,28 @@ import {
   createSpell,
   createFullCasterSpellLimits
 } from './sheetTestFixtures.js'
+
+vi.mock('./characterRuleEvaluation.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('./characterRuleEvaluation.js')>()
+  const { evaluateCharacterBuilderTestPolicy } =
+    await import('./characterBuilderRuleEvaluation.testUtils.js')
+  return { ...original, evaluateCharacterRulePolicy: evaluateCharacterBuilderTestPolicy }
+})
+
+function buildCharacterSheetResponse(
+  params: Omit<BuildCharacterSheetResponseParams, 'ruleEvaluation'>
+) {
+  return buildPinnedCharacterSheetResponse({
+    ...params,
+    ruleEvaluation: {
+      context: {
+        catalog: params.resolution.catalog,
+        registry: params.resolution.sourceRegistry
+      },
+      revisionId: 'sheet-spell-projection-test-revision'
+    }
+  })
+}
 
 describe('character sheet spell projection', () => {
   it('hydrates spell casting reference details into sheet spells', async () => {
@@ -61,6 +87,7 @@ describe('character sheet spell projection', () => {
     const resolution = createResolution()
     resolution.registry.classes = [
       createSpellcastingClass({
+        ability: 'CHARISMA',
         id: 'class-1',
         label: 'Sorcerer',
         attributes: [],
@@ -198,6 +225,10 @@ describe('character sheet spell projection', () => {
   it('projects source-specific granted spell access and exhausted limited uses', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'wizard', classLevel: 3 }]
+    character.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: { assignments: [{ ability: 'INTELLIGENCE', score: 16 }] }
+    }
     character.intent.spellSelections = []
     character.state.classes = []
     const resolution = createResolution()
@@ -381,6 +412,10 @@ describe('character sheet spell projection', () => {
   it('projects active-spell activation, range, and source-adjusted attack or save facts', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'wizard', classLevel: 3 }]
+    character.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: { assignments: [{ ability: 'INTELLIGENCE', score: 16 }] }
+    }
     character.intent.spellSelections = [
       {
         id: 'wizard-spell-selection',
@@ -396,7 +431,6 @@ describe('character sheet spell projection', () => {
       }
     ]
     const resolution = createResolution()
-    resolution.summary.abilities = { INTELLIGENCE: 16 }
     resolution.registry.classes = [
       createSpellcastingClass({
         ability: 'INTELLIGENCE',
@@ -580,7 +614,85 @@ describe('character sheet spell projection', () => {
             baseDc: null
           }
         ]
-      }),
+      }, [
+        createAuthoredSpell({
+          classIds: ['wizard'],
+          id: 'spell-attack',
+          label: 'Arcane Bolt',
+          level: 1,
+          effects: [
+            {
+              id: 'effect-attack',
+              order: 1,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'SPELL_ATTACK',
+                activation: { code: 'ACTION', amount: 1 },
+                range: {
+                  id: 'range-attack',
+                  rangeKind: 'DISTANCE',
+                  amount: 120,
+                  unit: 'FEET'
+                }
+              },
+              paths: []
+            }
+          ]
+        }),
+        createAuthoredSpell({
+          classIds: ['wizard'],
+          id: 'spell-save',
+          label: 'Arcane Burst',
+          level: 1,
+          effects: [
+            {
+              id: 'effect-save',
+              order: 1,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'SAVING_THROW',
+                activation: { code: 'BONUS_ACTION', amount: 1 },
+                range: {
+                  id: 'range-save',
+                  rangeKind: 'DISTANCE',
+                  amount: 150,
+                  unit: 'FEET'
+                },
+                savingThrow: {
+                  id: 'save-dexterity',
+                  ability: 'DEXTERITY',
+                  dcMethod: 'SOURCE_SAVE_DC'
+                }
+              },
+              paths: []
+            }
+          ]
+        }),
+        createAuthoredSpell({
+          classIds: ['wizard'],
+          id: 'spell-utility',
+          label: 'Arcane Ward',
+          level: 1,
+          effects: [
+            {
+              id: 'effect-utility',
+              order: 1,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'ACTIVATED',
+                activation: { code: 'REACTION', amount: 1 },
+                range: {
+                  id: 'range-utility',
+                  rangeKind: 'DISTANCE',
+                  amount: 60,
+                  unit: 'FEET'
+                }
+              },
+              paths: []
+            }
+          ]
+        })
+      ]),
       hasBuilderDraft: false,
       resolution,
       adjustments: [
@@ -652,6 +764,10 @@ describe('character sheet spell projection', () => {
   it('projects only explicit upcast levels with source-specific damage bonuses', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'wizard', classLevel: 3 }]
+    character.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: { assignments: [{ ability: 'INTELLIGENCE', score: 16 }] }
+    }
     character.intent.spellSelections = [
       {
         id: 'wizard-spell-selection',
@@ -808,7 +924,53 @@ describe('character sheet spell projection', () => {
             dice: '3d8'
           }
         ]
-      }),
+      }, [
+        createAuthoredSpell({
+          classIds: ['wizard'],
+          id: 'spell-1',
+          label: 'Arcane Burst',
+          level: 1,
+          effects: [
+            {
+              id: 'effect-1',
+              order: 1,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'SPELL_ATTACK',
+                activation: { code: 'ACTION', amount: 1 },
+                range: { id: 'range-self', rangeKind: 'SELF' }
+              },
+              paths: [
+                {
+                  id: 'path-1',
+                  order: 1,
+                  pathCode: 'ON_HIT',
+                  groupType: 'SINGLE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: 'result-1',
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: 'damage-1',
+                        effectKind: 'DAMAGE',
+                        damageTypeId: 'force',
+                        valueKind: 'DICE',
+                        scalingKind: 'PER_LEVEL',
+                        scalingSource: 'SPELL_CAST_LEVEL',
+                        levels: [
+                          { id: 'damage-1-1', level: 1, order: 1, diceConfig: '1d8' },
+                          { id: 'damage-1-3', level: 3, order: 2, diceConfig: '3d8' }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        })
+      ]),
       hasBuilderDraft: false,
       resolution,
       adjustments: [
@@ -912,6 +1074,10 @@ describe('character sheet spell projection', () => {
   it('derives prepared spell limits from prepare-limit method rules', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'wizard', classLevel: 3 }]
+    character.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: { assignments: [{ ability: 'INTELLIGENCE', score: 16 }] }
+    }
     character.intent.spellSelections = [
       {
         id: 'wizard-spells',
@@ -932,7 +1098,6 @@ describe('character sheet spell projection', () => {
       methodKinds: ['CLASS_LEVEL', 'SPELLCASTING_ABILITY']
     }
     const resolution = createResolution()
-    resolution.summary.abilities = { INTELLIGENCE: 16 }
     resolution.registry.classes = [wizard]
     resolution.catalog.spells = [
       createSpell({
@@ -964,6 +1129,10 @@ describe('character sheet spell projection', () => {
   it('floors formula-based prepared spell limits at one for prepared casters', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'wizard', classLevel: 1 }]
+    character.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: { assignments: [{ ability: 'INTELLIGENCE', score: 8 }] }
+    }
     character.intent.spellSelections = [
       {
         id: 'wizard-spells',
@@ -984,7 +1153,6 @@ describe('character sheet spell projection', () => {
       methodKinds: ['CLASS_LEVEL', 'SPELLCASTING_ABILITY']
     }
     const resolution = createResolution()
-    resolution.summary.abilities = { INTELLIGENCE: 8 }
     resolution.registry.classes = [wizard]
     resolution.catalog.spells = [
       createSpell({
@@ -1205,6 +1373,7 @@ describe('character sheet spell projection', () => {
     resolution.registry.classes = [
       createSpellcastingClass({
         attributes: [SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT],
+        ability: 'CHARISMA',
         id: 'bard',
         label: 'Bard',
         resetKind: 'LONG_REST',
@@ -1563,10 +1732,11 @@ describe('character sheet spell projection', () => {
   it('derives spell DC and attack bonus from the engine spellcasting ability', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'wizard', classLevel: 1 }]
-    const resolution = createResolution()
-    resolution.summary.abilities = {
-      INTELLIGENCE: 16
+    character.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: { assignments: [{ ability: 'INTELLIGENCE', score: 16 }] }
     }
+    const resolution = createResolution()
     resolution.registry.classes = [
       createSpellcastingClass({
         ability: 'INTELLIGENCE',

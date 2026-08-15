@@ -24,6 +24,9 @@
     },
     {
       "path": "./apps/apis"
+    },
+    {
+      "path": "./apps/session-host"
     }
   ],
   "extends": "./tsconfig.base.json"

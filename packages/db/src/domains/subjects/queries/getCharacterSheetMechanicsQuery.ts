@@ -89,6 +89,8 @@ export interface CharacterSheetMechanicsInvocationRow {
   triggerCode: string
   activationType: string
   activationValue: number | null
+  resourceChargeId: string | null
+  resourceCost: number | null
   rangeCharacteristicId: string
   shapeCharacteristicId: string | null
   savingThrowId: string | null
@@ -730,6 +732,8 @@ export async function getCharacterSheetMechanicsQuery(
             'trigger_code as triggerCode',
             'activation_type as activationType',
             'activation_value as activationValue',
+            'resource_charge_id as resourceChargeId',
+            'resource_cost as resourceCost',
             'range_characteristic_id as rangeCharacteristicId',
             'shape_characteristic_id as shapeCharacteristicId',
             'saving_throw_id as savingThrowId',

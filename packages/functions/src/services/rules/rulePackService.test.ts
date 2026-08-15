@@ -5,6 +5,10 @@ import {
   rulePackDocumentDtoSchema,
   type RulePackDocumentDto
 } from '@artificer-toolkit/schema/api/rules'
+import { CHARACTER_ACTION_MODEL_KEY } from '@artificer-toolkit/schema/api/characterActionRules'
+import { CHARACTER_GRANT_FOLD_MODEL_KEY } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import { dnd5e2014CharacterActionModel } from './systems/dnd5e/2014/characterActionSource.js'
+import { dnd5e2014CharacterGrantFoldModel } from './systems/dnd5e/2014/characterGrantFoldSource.js'
 
 const ids = {
   pack: '00000000-0000-4000-8000-000000000001',
@@ -18,6 +22,7 @@ const mocks = vi.hoisted(() => ({
     activateDraft: vi.fn(),
     findOrCreatePack: vi.fn(),
     getRevision: vi.fn(),
+    getRevisionWithPack: vi.fn(),
     listPacks: vi.fn(),
     listRevisions: vi.fn(),
     retireActiveRevision: vi.fn(),
@@ -79,6 +84,9 @@ function revision(doc = document()): RulePackRevisionRecord {
     id: ids.revision,
     rulePackId: ids.pack,
     revision: 1,
+    evaluatorKind: 'ZEN',
+    evaluatorVersion: '0.54.0',
+    modelContractVersion: 4,
     document: doc,
     checksum: checksumRuleDocument(doc),
     createdBy: ids.user,
@@ -87,6 +95,24 @@ function revision(doc = document()): RulePackRevisionRecord {
     state: 'DRAFT',
     createdAt: '2026-08-12T00:00:00.000Z',
     updatedAt: '2026-08-12T00:00:00.000Z'
+  }
+}
+
+function storedRevision(
+  value: RulePackRevisionRecord,
+  rulesetCode = 'DND_5E',
+  rulesetVersion = '2014'
+) {
+  return {
+    pack: {
+      id: ids.pack,
+      rulesetCode,
+      version: rulesetVersion,
+      activeRevisionId: null,
+      createdAt: '2026-08-12T00:00:00.000Z',
+      updatedAt: '2026-08-12T00:00:00.000Z'
+    },
+    revision: value
   }
 }
 
@@ -101,6 +127,8 @@ describe('rule pack service', () => {
     )
     await expect(
       simulateRulePack({} as DBLike, ids.user, false, {
+        rulesetCode: 'DND_5E',
+        rulesetVersion: '2014',
         document: document(),
         input: {},
         modelKey: 'charges'
@@ -129,7 +157,10 @@ describe('rule pack service', () => {
       expect.objectContaining({
         checksum: checksumRuleDocument(doc),
         expectedUpdatedAt: null,
-        rulePackId: ids.pack
+        rulePackId: ids.pack,
+        evaluatorKind: 'ZEN',
+        evaluatorVersion: '0.54.0',
+        modelContractVersion: 4
       })
     )
   })
@@ -151,9 +182,73 @@ describe('rule pack service', () => {
     expect(mocks.repository.findOrCreatePack).not.toHaveBeenCalled()
   })
 
+  it('rejects dnd5e/2014 documents missing repository-owned models before writes or evaluation', async () => {
+    const missingReserved = document()
+    const missingAction: RulePackDocumentDto = {
+      ...missingReserved,
+      models: {
+        ...missingReserved.models,
+        [CHARACTER_GRANT_FOLD_MODEL_KEY]: dnd5e2014CharacterGrantFoldModel
+      }
+    }
+    const missingEncounterActor: RulePackDocumentDto = {
+      ...missingReserved,
+      models: {
+        ...missingReserved.models,
+        [CHARACTER_GRANT_FOLD_MODEL_KEY]: dnd5e2014CharacterGrantFoldModel,
+        [CHARACTER_ACTION_MODEL_KEY]: dnd5e2014CharacterActionModel
+      }
+    }
+    const draft = revision(missingReserved)
+
+    await expect(
+      saveRulePackDraft({} as DBLike, ids.user, true, {
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '2014',
+        document: missingReserved
+      })
+    ).rejects.toMatchObject({ name: 'RuleDocumentValidationError' })
+    await expect(
+      saveRulePackDraft({} as DBLike, ids.user, true, {
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '2014',
+        document: missingAction
+      })
+    ).rejects.toThrow('character-action-resolve')
+    await expect(
+      saveRulePackDraft({} as DBLike, ids.user, true, {
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '2014',
+        document: missingEncounterActor
+      })
+    ).rejects.toThrow('encounter-actor-policy')
+    await expect(
+      simulateRulePack({} as DBLike, ids.user, true, {
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '2014',
+        document: missingReserved,
+        input: {},
+        modelKey: 'charges'
+      })
+    ).rejects.toMatchObject({ name: 'RuleDocumentValidationError' })
+
+    mocks.repository.getRevisionWithPack.mockResolvedValue(storedRevision(draft, 'dnd5e', '2014'))
+    await expect(
+      activateRulePackRevision({} as DBLike, ids.user, true, {
+        revisionId: ids.revision,
+        expectedChecksum: draft.checksum
+      })
+    ).rejects.toMatchObject({ name: 'RuleDocumentValidationError' })
+
+    expect(mocks.repository.findOrCreatePack).not.toHaveBeenCalled()
+    expect(mocks.repository.saveDraft).not.toHaveBeenCalled()
+    expect(mocks.repository.activateDraft).not.toHaveBeenCalled()
+    expect(mocks.evaluator).not.toHaveBeenCalled()
+  })
+
   it('blocks activation when a fixture does not match', async () => {
     const draft = revision(document(true))
-    mocks.repository.getRevision.mockResolvedValue(draft)
+    mocks.repository.getRevisionWithPack.mockResolvedValue(storedRevision(draft))
     mocks.evaluator.mockResolvedValue({
       result: {
         eligibility: { allowed: false, reasonCode: 'NO_CHARGES' },
@@ -172,9 +267,24 @@ describe('rule pack service', () => {
     expect(mocks.repository.activateDraft).not.toHaveBeenCalled()
   })
 
+  it('rejects a restored v1 draft before conformance or activation', async () => {
+    const draft = { ...revision(), modelContractVersion: 1 }
+    mocks.repository.getRevisionWithPack.mockResolvedValue(storedRevision(draft))
+
+    await expect(
+      activateRulePackRevision({} as DBLike, ids.user, true, {
+        revisionId: ids.revision,
+        expectedChecksum: draft.checksum
+      })
+    ).rejects.toThrow('unsupported runtime contract')
+
+    expect(mocks.repository.activateDraft).not.toHaveBeenCalled()
+    expect(mocks.evaluator).not.toHaveBeenCalled()
+  })
+
   it('executes a deterministic roll stage before accepting fixture output', async () => {
     const draft = revision()
-    mocks.repository.getRevision.mockResolvedValue(draft)
+    mocks.repository.getRevisionWithPack.mockResolvedValue(storedRevision(draft))
     mocks.repository.activateDraft.mockResolvedValue({
       ...draft,
       activatedAt: '2026-08-12T01:00:00.000Z',
@@ -226,7 +336,7 @@ describe('rule pack service', () => {
 
   it('simulates with trace and activates a conforming draft', async () => {
     const draft = revision()
-    mocks.repository.getRevision.mockResolvedValue(draft)
+    mocks.repository.getRevisionWithPack.mockResolvedValue(storedRevision(draft))
     mocks.repository.activateDraft.mockResolvedValue({
       ...draft,
       activatedAt: '2026-08-12T01:00:00.000Z',
@@ -244,6 +354,8 @@ describe('rule pack service', () => {
 
     await expect(
       simulateRulePack({} as DBLike, ids.user, true, {
+        rulesetCode: 'DND_5E',
+        rulesetVersion: '2014',
         document: draft.document as RulePackDocumentDto,
         input: { remainingCharges: 0 },
         modelKey: 'charges'

@@ -470,6 +470,11 @@ export const characterResourceOwnerRefDtoSchema = z.union([
     source: characterMechanicSourceRefDtoSchema
   }),
   z.object({
+    kind: z.literal('AUTHORED_SOURCE'),
+    chargeId: identifierSchema,
+    source: characterMechanicSourceRefDtoSchema
+  }),
+  z.object({
     kind: z.literal('SPELL_SOURCE'),
     resourceGrantId: identifierSchema,
     source: characterSpellSourceRefDtoSchema

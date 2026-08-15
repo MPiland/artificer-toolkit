@@ -3,7 +3,10 @@ import type { DBLike } from '@artificer-toolkit/db'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderResolution } from './builderService.js'
-import { buildCharacterSheetResponse } from './sheetProjection.js'
+import {
+  buildCharacterSheetResponse as buildPinnedCharacterSheetResponse,
+  type BuildCharacterSheetResponseParams
+} from './sheetProjection.js'
 import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
@@ -21,6 +24,43 @@ import {
   createSpellcastingClass,
   createEquipment
 } from './sheetTestFixtures.js'
+
+vi.mock('./characterRuleEvaluation.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('./characterRuleEvaluation.js')>()
+  const { evaluateCharacterBuilderTestPolicy } =
+    await import('./characterBuilderRuleEvaluation.testUtils.js')
+  return { ...original, evaluateCharacterRulePolicy: evaluateCharacterBuilderTestPolicy }
+})
+
+function buildCharacterSheetResponse(
+  params: Omit<BuildCharacterSheetResponseParams, 'ruleEvaluation'>
+) {
+  return buildPinnedCharacterSheetResponse({
+    ...params,
+    ruleEvaluation: {
+      context: {
+        catalog: params.resolution.catalog,
+        registry: params.resolution.sourceRegistry
+      },
+      revisionId: 'sheet-projection-test-revision'
+    }
+  })
+}
+
+function selectSubclassResource(
+  character: CharacterAuthored,
+  classLevel: number,
+  subclassId = 'subclass-1'
+): void {
+  character.intent.resourceGrants = [
+    {
+      id: 'resource-1',
+      resourceId: 'resource-1',
+      source: { kind: 'SUBCLASS', subclassId, classLevel },
+      timing: { kind: 'CLASS_LEVEL', classId: 'class-1', classLevel: 1 }
+    }
+  ]
+}
 
 describe('character sheet projection', () => {
   it('hydrates exhaustion notes into the sheet overview', async () => {
@@ -299,9 +339,12 @@ describe('character sheet projection', () => {
     ]
     resolution.registry.classes = [fighter]
     resolution.summary.totalLevel = 1
-    resolution.summary.abilities = { DEXTERITY: 14 }
 
     const character = createCharacter()
+    character.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: { assignments: [{ ability: 'DEXTERITY', score: 14 }] }
+    }
     character.intent.featureAcquisitions = [
       {
         id: 'feature-acquisition-1',
@@ -404,9 +447,13 @@ describe('character sheet projection', () => {
       ]
     })
     resolution.summary.totalLevel = 1
-    resolution.summary.abilities = { STRENGTH: 14 }
+    resolution.summary.abilities = { STRENGTH: 0 }
 
     const character = createCharacter()
+    character.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: { assignments: [{ ability: 'STRENGTH', score: 14 }] }
+    }
     character.intent.featureAcquisitions = [
       {
         id: 'feature-acquisition-1',
@@ -463,13 +510,19 @@ describe('character sheet projection', () => {
         { id: 'skill-insight', code: 'INSIGHT', label: 'Insight' }
       ]
     })
-    resolution.summary.abilities = {
-      INTELLIGENCE: 12,
-      WISDOM: 14
+    const character = createCharacter()
+    character.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: {
+        assignments: [
+          { ability: 'INTELLIGENCE', score: 12 },
+          { ability: 'WISDOM', score: 14 }
+        ]
+      }
     }
 
     const sheet = await buildCharacterSheetResponse({
-      character: createCharacter(),
+      character,
       db: createConditionDb(),
       hasBuilderDraft: false,
       resolution,
@@ -536,7 +589,34 @@ describe('character sheet projection', () => {
   it('links a recovery-only feature action to its resource row', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-1', classLevel: 3 }]
+    selectSubclassResource(character, 3)
     const resolution = createResolution()
+    const subclass = resolution.registry.classes[0]
+    if (!subclass) throw new Error('subclass fixture missing')
+    subclass.features = [
+      {
+        id: 'subclass-1',
+        label: 'Superiority Dice',
+        description: '<p>Recover your expended superiority dice.</p>',
+        section: 'ACTION',
+        order: 1,
+        availableAtLevel: 1,
+        effects: [
+          {
+            id: 'recover-superiority-dice',
+            order: 1,
+            invocation: {
+              kind: 'ACTION',
+              triggerCode: 'ACTIVATED',
+              activation: { code: 'ACTION', amount: 1 },
+              range: { id: 'recover-superiority-dice-range', rangeKind: 'SELF' },
+              resourceUse: { chargeId: 'charge-1', cost: 1 }
+            },
+            paths: []
+          }
+        ]
+      }
+    ]
     resolution.grants.features = [
       {
         id: 'subclass-1',
@@ -566,6 +646,8 @@ describe('character sheet projection', () => {
           triggerCode: 'ACTIVATED',
           activationType: 'OTHER',
           activationValue: 1,
+          resourceChargeId: 'charge-1',
+          resourceCost: 1,
           rangeCharacteristicId: null,
           shapeCharacteristicId: null,
           savingThrowId: null,
@@ -642,7 +724,7 @@ describe('character sheet projection', () => {
     expect(sheet.actions.items).toContainEqual(
       expect.objectContaining({
         label: 'Superiority Dice',
-        kind: 'OTHER',
+        kind: 'ACTION',
         resourceGrantId: resource?.id
       })
     )
@@ -692,7 +774,21 @@ describe('character sheet projection', () => {
           cost: 2
         },
         section: 'ACTION',
-        order: 1
+        order: 1,
+        effects: [
+          {
+            id: 'warping-strike-effect',
+            order: 1,
+            invocation: {
+              kind: 'ACTION',
+              triggerCode: 'ACTIVATED',
+              activation: { code: 'ACTION', amount: 1 },
+              range: { id: 'warping-strike-range', rangeKind: 'SELF' },
+              resourceUse: { chargeId: 'astral-tear-charges', cost: 2 }
+            },
+            paths: []
+          }
+        ]
       },
       {
         id: 'astral-tear-void-step',
@@ -732,6 +828,8 @@ describe('character sheet projection', () => {
             triggerCode: 'ACTIVATED',
             activationType: 'ACTION',
             activationValue: 1,
+            resourceChargeId: 'astral-tear-charges',
+            resourceCost: 2,
             rangeCharacteristicId: null,
             shapeCharacteristicId: null,
             savingThrowId: null,
@@ -754,13 +852,13 @@ describe('character sheet projection', () => {
     const actions = sheet.actions.items.filter(({ label }) => label === 'Warping Strike')
     expect(actions).toEqual([
       expect.objectContaining({
-        id: 'FEATURE:astral-tear-warping-strike:astral-tear-one:warping-strike-effect',
+        id: 'EQUIPMENT_INSTANCE:astral-tear:astral-tear-one:FEATURE:astral-tear-warping-strike:ACTION:warping-strike-effect',
         resourceGrantId: 'ITEM_INSTANCE:astral-tear-one:astral-tear-charges',
         resourceCost: 2,
         sourceLabel: 'Vyrre’s Blade #1'
       }),
       expect.objectContaining({
-        id: 'FEATURE:astral-tear-warping-strike:astral-tear-two:warping-strike-effect',
+        id: 'EQUIPMENT_INSTANCE:astral-tear:astral-tear-two:FEATURE:astral-tear-warping-strike:ACTION:warping-strike-effect',
         resourceGrantId: 'ITEM_INSTANCE:astral-tear-two:astral-tear-charges',
         resourceCost: 2,
         sourceLabel: 'Vyrre’s Blade #2'
@@ -924,9 +1022,12 @@ describe('character sheet projection', () => {
 
   it('derives overview combat stats from engine equipment and ability output', async () => {
     const character = createCharacter()
+    character.intent.abilities = {
+      method: 'MANUAL_ROLLED',
+      state: { assignments: [{ ability: 'DEXTERITY', score: 16 }] }
+    }
     character.state.equipment.equipped = ['item-1']
     const resolution = createResolution()
-    resolution.summary.abilities = { DEXTERITY: 16 }
     resolution.registry.equipment = [
       createEquipment({
         armorClass: 2,
@@ -958,12 +1059,25 @@ describe('character sheet projection', () => {
   it('derives resource maximums and recovery from class resource charges', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-1', classLevel: 3 }]
+    selectSubclassResource(character, 3)
 
     const sheet = await buildCharacterSheetResponse({
       character,
       db: createConditionDb(),
       hasBuilderDraft: false,
       resolution: createResolution(),
+      resourceUsage: [
+        {
+          id: 'resource-usage-1',
+          characterId: character.id,
+          owner: { kind: 'AUTHORED_GRANT', resourceGrantId: 'resource-1' },
+          used: 1,
+          createdBy: 'user-1',
+          updatedBy: 'user-1',
+          createdAt: '2026-08-14T00:00:00.000Z',
+          updatedAt: '2026-08-14T00:00:00.000Z'
+        }
+      ],
       streamVersion: 1
     })
 
@@ -985,6 +1099,7 @@ describe('character sheet projection', () => {
   it('uses the current source class level for per-level resource charges', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-1', classLevel: 3 }]
+    selectSubclassResource(character, 3)
     const resolution = createResolution()
     const resource = resolution.registry.classes[0]?.resources
     if (!resource) throw new Error('resource fixture missing')
@@ -1013,6 +1128,7 @@ describe('character sheet projection', () => {
   it('uses engine-resolved resource recovery when charge reset modifiers apply', async () => {
     const character = createCharacter()
     character.intent.classes = [{ classId: 'class-1', subclassId: 'subclass-1', classLevel: 5 }]
+    selectSubclassResource(character, 5)
     character.intent.featureAcquisitions = [
       {
         id: 'font-of-inspiration',
@@ -1107,13 +1223,26 @@ describe('character sheet projection', () => {
         timing: { kind: 'CLASS_LEVEL', classId: 'class-1', classLevel: 1 }
       }
     ]
-    character.state.resources = [{ resourceGrantId: 'resource:subclass-1:resource-1', used: 2 }]
-
     const sheet = await buildCharacterSheetResponse({
       character,
       db: createConditionDb(),
       hasBuilderDraft: false,
       resolution: createResolution(),
+      resourceUsage: [
+        {
+          id: 'resource-usage-1',
+          characterId: character.id,
+          owner: {
+            kind: 'AUTHORED_GRANT',
+            resourceGrantId: 'resource:subclass-1:resource-1'
+          },
+          used: 2,
+          createdBy: 'user-1',
+          updatedBy: 'user-1',
+          createdAt: '2026-08-14T00:00:00.000Z',
+          updatedAt: '2026-08-14T00:00:00.000Z'
+        }
+      ],
       streamVersion: 1
     })
 
@@ -1130,16 +1259,18 @@ describe('character sheet projection', () => {
     ])
   })
 
-  it('resolves subclass resource definitions without requiring the subclass source id to be a class row id', async () => {
+  it('resolves subclass resources when the selected specialization has a distinct id', async () => {
     const character = createCharacter()
     character.intent.classes = [
-      { classId: 'class-1', subclassId: 'subclass-choice-1', classLevel: 3 }
+      {
+        classId: 'class-1',
+        subclassId: 'subclass-1',
+        specializationId: 'subclass-choice-1',
+        classLevel: 3
+      }
     ]
+    selectSubclassResource(character, 3)
     const resolution = createResolution()
-    resolution.grants.resources = resolution.grants.resources.map((resource) => ({
-      ...resource,
-      source: { kind: 'SUBCLASS', subclassId: 'subclass-choice-1', classLevel: 3 }
-    }))
 
     const sheet = await buildCharacterSheetResponse({
       character,
@@ -1321,6 +1452,23 @@ describe('character sheet projection extras', () => {
         spells: []
       },
       registry: {
+        system: {
+          rulesetCode: 'dnd5e',
+          rulesetVersion: '2014',
+          currencies: [{ id: 'currency-1', label: 'Gold' }],
+          speeds: [
+            { id: 'speed-walk', code: 'WALK', label: 'Walking Speed' },
+            { id: 'speed-fly', code: 'FLY', label: 'Flying Speed' },
+            { id: 'speed-climb', code: 'CLIMB', label: 'Climbing Speed' }
+          ]
+        } as CharacterBuilderResolution['registry']['system'],
+        races: [],
+        classes: [],
+        backgrounds: [],
+        equipment: [],
+        features: []
+      },
+      sourceRegistry: {
         system: {
           rulesetCode: 'dnd5e',
           rulesetVersion: '2014',

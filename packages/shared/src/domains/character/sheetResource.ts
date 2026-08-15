@@ -1,4 +1,7 @@
-import type { CharacterMechanicSourceRef } from './sheetCalculation.js'
+import {
+  createCharacterMechanicSourceKey,
+  type CharacterMechanicSourceRef
+} from './sheetCalculation.js'
 import type { DiceExpression } from '../core/dice.js'
 
 export const CHARACTER_RESOURCE_RECOVERY_TRIGGER = {
@@ -122,6 +125,11 @@ export type CharacterResourceOwnerRef =
       source: CharacterMechanicSourceRef
     }
   | {
+      kind: 'AUTHORED_SOURCE'
+      chargeId: string
+      source: CharacterMechanicSourceRef
+    }
+  | {
       kind: 'SPELL_SOURCE'
       resourceGrantId: string
       source: CharacterSpellSourceRef
@@ -147,6 +155,11 @@ export type CharacterResourceOwnerKey =
   | {
       kind: 'AUTHORED_GRANT'
       resourceGrantId: string
+    }
+  | {
+      kind: 'AUTHORED_SOURCE'
+      chargeId: string
+      sourceId: string
     }
   | {
       kind: 'SPELL_SOURCE'
@@ -179,6 +192,12 @@ export function toCharacterResourceOwnerKey(
       return {
         kind: owner.kind,
         resourceGrantId: owner.resourceGrantId
+      }
+    case 'AUTHORED_SOURCE':
+      return {
+        kind: owner.kind,
+        sourceId: createCharacterMechanicSourceKey(owner.source),
+        chargeId: owner.chargeId
       }
     case 'SPELL_SOURCE':
       return {
@@ -213,6 +232,8 @@ export function createCharacterResourceOwnerKey(owner: CharacterResourceOwnerKey
   switch (owner.kind) {
     case 'AUTHORED_GRANT':
       return `${owner.kind}:${encodeURIComponent(owner.resourceGrantId)}`
+    case 'AUTHORED_SOURCE':
+      return `${owner.kind}:${owner.sourceId}:${encodeURIComponent(owner.chargeId)}`
     case 'SPELL_SOURCE':
       return [
         owner.kind,

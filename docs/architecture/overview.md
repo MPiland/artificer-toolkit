@@ -19,7 +19,10 @@ flowchart LR
   API -->|validates DTOs| Schema["packages/schema<br/>Zod contracts"]
   API -->|delegates use cases| Functions["packages/functions<br/>orchestration"]
   API -->|opens request DB/RLS context| DB["packages/db<br/>repositories + Kysely"]
-  Functions -->|uses domain logic| Shared["packages/shared<br/>domain + maps + compilers + engine"]
+  Web <-->|live-session WebSocket| SessionHost["apps/session-host<br/>Colyseus room authority"]
+  SessionHost -->|delegates rules and use cases| Functions
+  SessionHost -->|uses persistence| DB
+  Functions -->|uses domain logic| Shared["packages/shared<br/>domain + maps + compilers + rule facts"]
   Functions -->|uses persistence| DB
   DB -->|uses authored contracts| Shared
   DB -->|uses validation contracts| Schema
@@ -31,9 +34,10 @@ flowchart LR
 
 - `apps/web` owns route composition, query adapters, form state, authoring layout, and presentation. Product data enters through the tRPC client; server-only Supabase helpers and the API handler are infrastructure, not a second product-data path.
 - `apps/apis` owns the tRPC router and request context. It validates input/output with shared schemas, applies authentication/RLS context, and delegates work.
+- `apps/session-host` owns long-lived local and remote live-session rooms, ordered commands, compact synchronized state, and reconnect. It delegates mechanics and persistence through the same backend packages; it is not a second rules implementation.
 - `packages/schema` owns transport DTOs and Zod contracts. It is the API wire shape, not the domain model or database row model.
 - `packages/functions` owns application services and orchestration: authoring use cases, character Builder/Sheet services, and node-runtime execution.
-- `packages/shared` owns domain vocabulary, authored models, maps, compilers, and the pure engine. It should not load from the database during pure assembly/engine work.
+- `packages/shared` owns domain vocabulary, authored models, maps, compilers, and mechanics-neutral rule-fact contracts. It should not load from the database during pure assembly work.
 - `packages/db` owns Kysely access, repositories, row-to-authored hydration, writes/upserts, seed/source data, and generated Supabase database types.
 - `supabase` owns SQL migrations, RLS policies, and database bootstrap. SQL defines relational truth; Kysely maps application behavior onto it.
 
@@ -46,7 +50,8 @@ The intended dependency direction is web → APIs → functions → (shared, db)
 - [Persistence and Kysely](persistence.md) explains transactions, RLS, repositories, and replacement upserts.
 - [Authoring Schema](authoring-schema.md) explains the authoring DSL and renderer contract.
 - [Character workflow](character.md) explains Builder, reconciliation, Sheet, and engine assembly.
-- [Engine](engine.md) explains `CharacterBuildSnapshot`, registries, `RulesSystem`, and deterministic output.
+- [Engine](engine.md) explains normalized Character facts, exact rule-revision pins, the embedded Zen evaluator, and deterministic typed output.
+- [Live-session host](live-sessions.md) explains the separate Colyseus deployment shared by local and managed remote VTT play.
 
 ## Current versus target
 

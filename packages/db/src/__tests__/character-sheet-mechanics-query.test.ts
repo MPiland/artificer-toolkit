@@ -121,6 +121,8 @@ const rowsByTable: Record<string, QueryRows> = {
       triggerCode: 'SAVING_THROW',
       activationType: 'ACTION',
       activationValue: 1,
+      resourceChargeId: 'charge-feature-1',
+      resourceCost: 2,
       rangeCharacteristicId: 'range-1',
       shapeCharacteristicId: 'shape-1',
       savingThrowId: 'save-1',
@@ -138,6 +140,8 @@ const rowsByTable: Record<string, QueryRows> = {
       triggerCode: 'ATTACK_ROLL',
       activationType: 'ACTION',
       activationValue: 1,
+      resourceChargeId: null,
+      resourceCost: null,
       rangeCharacteristicId: 'range-1',
       shapeCharacteristicId: null,
       savingThrowId: null,
@@ -578,6 +582,18 @@ describe('getCharacterSheetMechanicsQuery', () => {
     expect(result.paths).toEqual([
       expect.objectContaining({ pathId: 'path-1', effectId: 'effect-spell-1', order: 2 }),
       expect.objectContaining({ pathId: 'path-feat-1', effectId: 'effect-feat-1', order: 1 })
+    ])
+    expect(result.invocations).toEqual([
+      expect.objectContaining({
+        effectId: 'effect-spell-1',
+        resourceChargeId: 'charge-feature-1',
+        resourceCost: 2
+      }),
+      expect.objectContaining({
+        effectId: 'effect-feat-1',
+        resourceChargeId: null,
+        resourceCost: null
+      })
     ])
     expect(result.choiceOptions).toEqual([
       expect.objectContaining({ optionId: 'choice-1', resultBlockId: 'result-choice', order: 3 })

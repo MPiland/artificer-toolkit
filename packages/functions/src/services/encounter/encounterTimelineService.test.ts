@@ -85,6 +85,9 @@ describe('encounter timeline', () => {
           resolution: {
             rulePackRevisionId: ids.revision,
             checksum: 'a'.repeat(64),
+            evaluatorKind: 'ZEN',
+            evaluatorVersion: '0.54.0',
+            modelContractVersion: 4,
             modelKey: 'attack',
             normalizedFacts: { secret: 'not projected' },
             trace: { secret: 'not projected' },

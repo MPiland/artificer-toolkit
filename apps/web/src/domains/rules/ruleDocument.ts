@@ -1,4 +1,7 @@
 import type { RulePackDocumentDto } from '#app/lib/api'
+import { CHARACTER_ACTION_MODEL_KEY } from '@artificer-toolkit/schema/api/characterActionRules'
+import { CHARACTER_GRANT_FOLD_MODEL_KEY } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import { ENCOUNTER_ACTOR_MODEL_KEY } from '@artificer-toolkit/schema/api/encounterActorRules'
 import {
   ruleModelKeyDtoSchema,
   rulePackDocumentDtoSchema
@@ -19,6 +22,26 @@ function referencesModel(model: RulePackDocumentDto['models'][string], modelKey:
       return node?.type === 'decisionNode' && record(node.content)?.key === modelKey
     })
   )
+}
+
+const RESERVED_RULE_MODEL_KEYS = new Set([
+  CHARACTER_ACTION_MODEL_KEY,
+  CHARACTER_GRANT_FOLD_MODEL_KEY,
+  ENCOUNTER_ACTOR_MODEL_KEY
+])
+
+export function isReservedRuleModelKey(modelKey: string): boolean {
+  return RESERVED_RULE_MODEL_KEYS.has(modelKey)
+}
+
+export function getVisibleRuleModelKeys(document: RulePackDocumentDto): string[] {
+  return Object.keys(document.models).filter((key) => !isReservedRuleModelKey(key))
+}
+
+export function getVisibleRuleFixtures(
+  document: RulePackDocumentDto
+): RulePackDocumentDto['fixtures'] {
+  return document.fixtures.filter((fixture) => !isReservedRuleModelKey(fixture.modelKey))
 }
 
 function rewriteModelReference(
@@ -71,8 +94,31 @@ export function parseRuleDocument(text: string): RulePackDocumentDto {
   return rulePackDocumentDtoSchema.parse(JSON.parse(text))
 }
 
+export function mergeImportedRuleDocument(
+  current: RulePackDocumentDto,
+  imported: RulePackDocumentDto
+): RulePackDocumentDto {
+  const reservedModels = Object.fromEntries(
+    Object.entries(current.models).filter(([key]) => isReservedRuleModelKey(key))
+  )
+  return {
+    ...imported,
+    models: {
+      ...Object.fromEntries(
+        Object.entries(imported.models).filter(([key]) => !isReservedRuleModelKey(key))
+      ),
+      ...reservedModels
+    },
+    fixtures: [
+      ...current.fixtures.filter((fixture) => isReservedRuleModelKey(fixture.modelKey)),
+      ...getVisibleRuleFixtures(imported)
+    ]
+  }
+}
+
 export function addRuleModel(document: RulePackDocumentDto, key: string): RulePackDocumentDto {
   const modelKey = ruleModelKeyDtoSchema.parse(key)
+  if (isReservedRuleModelKey(modelKey)) throw new Error('This model key is reserved.')
   if (document.models[modelKey]) throw new Error('A model already uses that key.')
   return {
     ...document,
@@ -86,6 +132,8 @@ export function renameRuleModel(
   to: string
 ): RulePackDocumentDto {
   const modelKey = ruleModelKeyDtoSchema.parse(to)
+  if (isReservedRuleModelKey(from)) throw new Error('The selected model is reserved.')
+  if (isReservedRuleModelKey(modelKey)) throw new Error('This model key is reserved.')
   if (from !== modelKey && document.models[modelKey])
     throw new Error('A model already uses that key.')
   const { [from]: model, ...models } = document.models
@@ -105,6 +153,8 @@ export function renameRuleModel(
 }
 
 export function removeRuleModel(document: RulePackDocumentDto, key: string): RulePackDocumentDto {
+  if (isReservedRuleModelKey(key))
+    throw new Error('The reserved model cannot be removed from Rule Studio.')
   if (Object.keys(document.models).length === 1)
     throw new Error('A rule document must contain at least one model.')
   const caller = Object.entries(document.models).find(

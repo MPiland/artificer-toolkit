@@ -15,6 +15,10 @@ import {
   addRuleModel,
   createDefaultRuleDocument,
   errorMessage,
+  getVisibleRuleFixtures,
+  getVisibleRuleModelKeys,
+  isReservedRuleModelKey,
+  mergeImportedRuleDocument,
   parseRuleDocument,
   removeRuleModel,
   renameRuleModel
@@ -68,6 +72,8 @@ export function RuleStudioPage() {
     () => packs.find((pack) => pack.id === (selectedRevision?.packId ?? packId)),
     [packId, packs, selectedRevision?.packId]
   )
+  const visibleModelKeys = useMemo(() => getVisibleRuleModelKeys(document), [document])
+  const visibleFixtures = useMemo(() => getVisibleRuleFixtures(document), [document])
   const editable =
     !selectionPending &&
     (!selectedRevision || selectedRevision.lifecycle === 'DRAFT' || copyingRevision)
@@ -88,8 +94,8 @@ export function RuleStudioPage() {
     if (loadedRevisionKey.current === key) return
     loadedRevisionKey.current = key
     setDocument(selectedRevision.document)
-    setModelKey(Object.keys(selectedRevision.document.models)[0] ?? 'main')
-    setFixtureId(selectedRevision.document.fixtures[0]?.id ?? null)
+    setModelKey(getVisibleRuleModelKeys(selectedRevision.document)[0] ?? '')
+    setFixtureId(getVisibleRuleFixtures(selectedRevision.document)[0]?.id ?? null)
     setDirty(false)
     setError(null)
   }, [copyingRevision, selectedRevision])
@@ -100,6 +106,15 @@ export function RuleStudioPage() {
     globalThis.addEventListener('beforeunload', warnBeforeUnload)
     return () => globalThis.removeEventListener('beforeunload', warnBeforeUnload)
   }, [dirty])
+
+  useEffect(() => {
+    if (!visibleModelKeys.includes(modelKey)) setModelKey(visibleModelKeys[0] ?? '')
+  }, [modelKey, visibleModelKeys])
+
+  useEffect(() => {
+    if (fixtureId && !visibleFixtures.some((fixture) => fixture.id === fixtureId))
+      setFixtureId(visibleFixtures[0]?.id ?? null)
+  }, [fixtureId, visibleFixtures])
 
   const refreshRules = () => queryClient.invalidateQueries({ queryKey: queryKeys.rules.all() })
 
@@ -134,7 +149,13 @@ export function RuleStudioPage() {
       revision: RulePackDocumentDto
       fixture: RulePackDocumentDto['fixtures'][number]
     }) =>
-      api.rules.simulate({ document: revision, modelKey: fixture.modelKey, input: fixture.input })
+      api.rules.simulate({
+        rulesetCode,
+        rulesetVersion,
+        document: revision,
+        modelKey: fixture.modelKey,
+        input: fixture.input
+      })
   })
 
   const activateRevision = useMutation({
@@ -256,19 +277,25 @@ export function RuleStudioPage() {
     }
   }
 
+  const selectModel = (nextModelKey: string | null) => {
+    if (!nextModelKey || isReservedRuleModelKey(nextModelKey)) return
+    setModelKey(nextModelKey)
+  }
+
   const removeModel = () => {
     if (!globalThis.confirm(`Remove the ${modelKey} model and its fixtures?`)) return
     try {
       const nextDocument = removeRuleModel(document, modelKey)
       markDocumentChanged(nextDocument)
-      setModelKey(Object.keys(nextDocument.models)[0] ?? 'main')
-      setFixtureId(nextDocument.fixtures[0]?.id ?? null)
+      setModelKey(getVisibleRuleModelKeys(nextDocument)[0] ?? '')
+      setFixtureId(getVisibleRuleFixtures(nextDocument)[0]?.id ?? null)
     } catch (cause) {
       setError(errorMessage(cause, 'Unable to remove the model.'))
     }
   }
 
   const addFixture = () => {
+    if (isReservedRuleModelKey(modelKey)) return
     const nextFixture = {
       id: globalThis.crypto.randomUUID(),
       label: `Fixture ${document.fixtures.length + 1}`,
@@ -298,8 +325,9 @@ export function RuleStudioPage() {
   const removeFixture = () => {
     if (!fixtureId) return
     const nextFixtures = document.fixtures.filter((fixture) => fixture.id !== fixtureId)
-    markDocumentChanged({ ...document, fixtures: nextFixtures })
-    setFixtureId(nextFixtures[0]?.id ?? null)
+    const nextDocument = { ...document, fixtures: nextFixtures }
+    markDocumentChanged(nextDocument)
+    setFixtureId(getVisibleRuleFixtures(nextDocument)[0]?.id ?? null)
   }
 
   const runFixture = () => {
@@ -322,10 +350,10 @@ export function RuleStudioPage() {
       return
     }
     try {
-      const nextDocument = parseRuleDocument(await file.text())
+      const nextDocument = mergeImportedRuleDocument(document, parseRuleDocument(await file.text()))
       markDocumentChanged(nextDocument)
-      setModelKey(Object.keys(nextDocument.models)[0] ?? 'main')
-      setFixtureId(nextDocument.fixtures[0]?.id ?? null)
+      setModelKey(getVisibleRuleModelKeys(nextDocument)[0] ?? '')
+      setFixtureId(getVisibleRuleFixtures(nextDocument)[0]?.id ?? null)
     } catch (cause) {
       setError(errorMessage(cause, 'Import is not a valid rule pack document.'))
     }
@@ -456,17 +484,19 @@ export function RuleStudioPage() {
             model={
               <RuleModelToolbar
                 editable={editable}
-                keys={Object.keys(document.models)}
+                keys={visibleModelKeys}
                 value={modelKey}
                 onAdd={addModel}
                 onRemove={removeModel}
                 onRename={renameModel}
-                onSelect={(value) => value && setModelKey(value)}
+                onSelect={selectModel}
               />
             }
             fixtures={
               <RuleFixturePanel
                 document={document}
+                modelKeys={visibleModelKeys}
+                fixtures={visibleFixtures}
                 editable={editable}
                 error={
                   simulationMatchesSelection && simulateFixture.error

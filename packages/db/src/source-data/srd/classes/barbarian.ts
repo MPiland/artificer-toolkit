@@ -67,7 +67,8 @@ const EXPLORERS_PACK_ID = equipmentId(186)
 function selfClassRuleEffect(
   entry: number,
   ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>
+  activationCode?: Exclude<ActivationCode, 'FREE'>,
+  resourceChargeId?: string
 ): EffectAuthored {
   const range = { id: classRowId(B, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
   return closedRuleEffect({
@@ -77,6 +78,7 @@ function selfClassRuleEffect(
       ? {
           kind: 'ACTION',
           triggerCode: TRIGGER.ACTIVATED,
+          ...(resourceChargeId ? { resourceUse: { chargeId: resourceChargeId, cost: 1 } } : {}),
           activation: { code: activationCode, amount: 1 },
           range,
           targeting: { selectionKind: 'SELF' }
@@ -444,7 +446,12 @@ export const barbarian: ClassAuthored = {
       description:
         "In battle, you fight with primal ferocity. On your turn, you can enter a rage as a bonus action.\n\nWhile raging, you gain the following benefits if you aren't wearing heavy armor:\n\n* You have advantage on Strength checks and Strength saving throws.\n* When you make a melee weapon attack using Strength, you gain a bonus to the damage roll that increases as you gain levels as a barbarian, as shown in the Rage Damage column of the Barbarian table.\n* You have resistance to bludgeoning, piercing, and slashing damage.\n\nIf you are able to cast spells, you can't cast them or concentrate on them while raging.\n\nYour rage lasts for 1 minute. It ends early if you are knocked unconscious or if your turn ends and you haven't attacked a hostile creature since your last turn or taken damage since then. You can also end your rage on your turn as a bonus action.\n\nOnce you have raged the number of times shown for your barbarian level in the Rages column of the Barbarian table, you must finish a long rest before you can rage again.",
       effects: [
-        selfClassRuleEffect(1, CLOSED_RULE_KIND.CLASS_BARBARIAN_RAGE, ACTIVATION_CODE.BONUS_ACTION)
+        selfClassRuleEffect(
+          1,
+          CLOSED_RULE_KIND.CLASS_BARBARIAN_RAGE,
+          ACTIVATION_CODE.BONUS_ACTION,
+          rageCharge.id
+        )
       ],
       availableAtLevel: 1,
       order: 0

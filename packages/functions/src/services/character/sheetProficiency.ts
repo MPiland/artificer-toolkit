@@ -1,10 +1,10 @@
 import {
   EQUIPMENT_CATEGORY_CODE,
-  EQUIPMENT_PROPERTY_CODE,
-  type EngineProficiency
+  EQUIPMENT_PROPERTY_CODE
 } from '@artificer-toolkit/shared/core'
 
 import type { CharacterBuilderResolution } from './builderService.js'
+import type { CharacterRuleProficiency } from './characterSheetRuleProjection.js'
 
 export const CHARACTER_SHEET_PROFICIENCY_KINDS = ['ARMOR', 'LANGUAGE', 'TOOL', 'WEAPON'] as const
 
@@ -31,7 +31,7 @@ const WEAPON_PROFICIENCY_PROPERTIES = new Set<string>([
 ])
 
 export function getProficiencyTargetKind(
-  proficiency: EngineProficiency,
+  proficiency: CharacterRuleProficiency,
   resolution: CharacterBuilderResolution
 ): CharacterSheetProficiencyKind | undefined {
   if (proficiency.kind === 'LANGUAGE') return 'LANGUAGE'

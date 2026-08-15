@@ -262,7 +262,6 @@ export function assertCampaignGmSheetCommandAllowed(command: CharacterSheetComma
     case 'SET_INSPIRATION':
     case 'ADJUST_HIT_POINTS':
     case 'USE_HIT_DIE':
-    case 'APPLY_REST':
       return
     case 'COMPLETE_REST':
       if (command.resetMaximumHitPointModifier) break

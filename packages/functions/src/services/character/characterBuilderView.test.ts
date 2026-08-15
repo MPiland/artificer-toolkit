@@ -23,6 +23,109 @@ function createCharacter(): Character {
 function createResolution(
   overrides: Partial<CharacterBuilderResolution> = {}
 ): CharacterBuilderResolution {
+  const sourceRegistry: CharacterBuilderResolution['registry'] = {
+    system: null,
+    races: [
+      {
+        id: 'race-dragonborn',
+        label: 'Dragonborn',
+        category: RACE_CATEGORY_CODE.BASE,
+        ancestry: {
+          id: 'ancestry-draconic',
+          label: 'Draconic Ancestry',
+          options: [
+            { id: 'ancestry-red', label: 'Red (Fire)' },
+            { id: 'ancestry-blue', label: 'Blue (Lightning)' }
+          ]
+        }
+      } as CharacterBuilderResolution['registry']['races'][number],
+      {
+        id: 'race-half-elf',
+        label: 'Half-Elf',
+        category: RACE_CATEGORY_CODE.BASE,
+        features: [
+          {
+            id: 'feature-half-elf-ability-score-increase',
+            label: 'Ability Score Increase',
+            availableAtLevel: 1,
+            order: 0,
+            optionChoices: [{ level: 1, count: 2 }],
+            options: [
+              { id: 'option-strength', label: 'Strength', order: 0 },
+              { id: 'option-dexterity', label: 'Dexterity', order: 1 },
+              { id: 'option-constitution', label: 'Constitution', order: 2 },
+              { id: 'option-intelligence', label: 'Intelligence', order: 3 },
+              { id: 'option-wisdom', label: 'Wisdom', order: 4 }
+            ]
+          }
+        ]
+      } as CharacterBuilderResolution['registry']['races'][number]
+    ],
+    classes: [
+      {
+        id: 'class-wizard',
+        label: 'Wizard',
+        userId: 'user-1',
+        systemId: 'system-1',
+        category: CLASS_CATEGORY.BASE,
+        subclassSelectionLevel: 2,
+        multiclass: { id: 'wizard-multiclass', requirementGroups: { groups: [] } },
+        startingGold: {
+          currencyId: 'gp',
+          dieConfig: '4d4',
+          multiplier: 10
+        },
+        startingEquipment: {
+          id: 'wizard-starting-equipment',
+          sets: []
+        },
+        hitpoint: {
+          ability: 'CONSTITUTION',
+          dieConfig: '1d6'
+        }
+      },
+      {
+        id: 'subclass-scribe',
+        label: 'Order of Scribes',
+        userId: 'user-1',
+        systemId: 'system-1',
+        category: CLASS_CATEGORY.SUBCLASS,
+        parentClassId: 'class-wizard'
+      }
+    ],
+    backgrounds: [
+      {
+        kind: SUBJECT.BACKGROUND,
+        id: 'background-sage',
+        label: 'Sage',
+        description: 'A scholarly life.',
+        userId: 'user-1',
+        systemId: 'system-1',
+        details: [
+          { id: 'ideal', label: 'Ideal 1', description: 'Knowledge.', order: 2 },
+          { id: 'trait', label: 'Personality Trait 1', description: 'Curious.', order: 1 }
+        ],
+        features: [
+          {
+            id: 'feature-researcher',
+            label: 'Researcher',
+            description: 'You know where to look.',
+            order: 0,
+            details: [
+              { id: 'benefit', label: 'Benefit', description: 'Research access.', order: 1 }
+            ]
+          }
+        ],
+        startingEquipment: {
+          id: 'sage-starting-equipment',
+          sets: []
+        }
+      }
+    ],
+    equipment: [],
+    features: []
+  }
+
   return {
     mode: 'create',
     catalog: {
@@ -60,108 +163,8 @@ function createResolution(
       feats: [],
       spells: []
     },
-    registry: {
-      system: null,
-      races: [
-        {
-          id: 'race-dragonborn',
-          label: 'Dragonborn',
-          category: RACE_CATEGORY_CODE.BASE,
-          ancestry: {
-            id: 'ancestry-draconic',
-            label: 'Draconic Ancestry',
-            options: [
-              { id: 'ancestry-red', label: 'Red (Fire)' },
-              { id: 'ancestry-blue', label: 'Blue (Lightning)' }
-            ]
-          }
-        } as CharacterBuilderResolution['registry']['races'][number],
-        {
-          id: 'race-half-elf',
-          label: 'Half-Elf',
-          category: RACE_CATEGORY_CODE.BASE,
-          features: [
-            {
-              id: 'feature-half-elf-ability-score-increase',
-              label: 'Ability Score Increase',
-              availableAtLevel: 1,
-              order: 0,
-              optionChoices: [{ level: 1, count: 2 }],
-              options: [
-                { id: 'option-strength', label: 'Strength', order: 0 },
-                { id: 'option-dexterity', label: 'Dexterity', order: 1 },
-                { id: 'option-constitution', label: 'Constitution', order: 2 },
-                { id: 'option-intelligence', label: 'Intelligence', order: 3 },
-                { id: 'option-wisdom', label: 'Wisdom', order: 4 }
-              ]
-            }
-          ]
-        } as CharacterBuilderResolution['registry']['races'][number]
-      ],
-      classes: [
-        {
-          id: 'class-wizard',
-          label: 'Wizard',
-          userId: 'user-1',
-          systemId: 'system-1',
-          category: CLASS_CATEGORY.BASE,
-          subclassSelectionLevel: 2,
-          multiclass: { id: 'wizard-multiclass', requirementGroups: { groups: [] } },
-          startingGold: {
-            currencyId: 'gp',
-            dieConfig: '4d4',
-            multiplier: 10
-          },
-          startingEquipment: {
-            id: 'wizard-starting-equipment',
-            sets: []
-          },
-          hitpoint: {
-            ability: 'CONSTITUTION',
-            dieConfig: '1d6'
-          }
-        },
-        {
-          id: 'subclass-scribe',
-          label: 'Order of Scribes',
-          userId: 'user-1',
-          systemId: 'system-1',
-          category: CLASS_CATEGORY.SUBCLASS,
-          parentClassId: 'class-wizard'
-        }
-      ],
-      backgrounds: [
-        {
-          kind: SUBJECT.BACKGROUND,
-          id: 'background-sage',
-          label: 'Sage',
-          description: 'A scholarly life.',
-          userId: 'user-1',
-          systemId: 'system-1',
-          details: [
-            { id: 'ideal', label: 'Ideal 1', description: 'Knowledge.', order: 2 },
-            { id: 'trait', label: 'Personality Trait 1', description: 'Curious.', order: 1 }
-          ],
-          features: [
-            {
-              id: 'feature-researcher',
-              label: 'Researcher',
-              description: 'You know where to look.',
-              order: 0,
-              details: [
-                { id: 'benefit', label: 'Benefit', description: 'Research access.', order: 1 }
-              ]
-            }
-          ],
-          startingEquipment: {
-            id: 'sage-starting-equipment',
-            sets: []
-          }
-        }
-      ],
-      equipment: [],
-      features: []
-    },
+    registry: sourceRegistry,
+    sourceRegistry: sourceRegistry,
     summary: {
       totalLevel: 1,
       abilities: {},

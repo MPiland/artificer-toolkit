@@ -5,7 +5,12 @@ import { describe, expect, it } from 'vitest'
 const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8')
 const canonical = read('packages/db/src/domains/rules/tables/rule_packs.sql')
 const migration = read('supabase/migrations/20260813010000_phase_07_rule_packs.sql')
+const convergenceMigration = read('supabase/migrations/20260813020000_rule_revision_metadata.sql')
 const encounters = read('packages/db/src/domains/encounters/tables/encounters.sql')
+const characters = read('packages/db/src/domains/subjects/tables/characters.sql')
+const crossDomainForeignKeys = read(
+  'packages/db/src/domains/bootstrap/constraints/cross_domain_foreign_keys.sql'
+)
 
 describe('rule pack persistence schema', () => {
   it.each([
@@ -24,6 +29,31 @@ describe('rule pack persistence schema', () => {
     expect(source).toContain(
       'REVOKE ALL ON TABLE public.rule_pack_revisions FROM anon, authenticated'
     )
+  })
+
+  it('requires bounded evaluator metadata on canonical tables', () => {
+    const source = canonical
+    expect(source).toContain("evaluator_kind text NOT NULL DEFAULT 'ZEN'")
+    expect(source).toContain("CHECK (evaluator_kind = 'ZEN')")
+    expect(source).toContain("evaluator_version text NOT NULL DEFAULT '0.54.0'")
+    expect(source).toContain('model_contract_version integer NOT NULL DEFAULT 5')
+    expect(source).toContain('model_contract_version BETWEEN 1 AND 10000')
+  })
+
+  it('upgrades drafts without mutating activated revision metadata', () => {
+    const migration = read('supabase/migrations/20260814060000_rule_model_contract_v5.sql')
+    expect(migration).toContain('ALTER COLUMN model_contract_version SET DEFAULT 5')
+    expect(migration).toContain('SET model_contract_version = 5')
+    expect(migration).toContain('WHERE activated_at IS NULL')
+  })
+
+  it('keeps character revision pins nullable and restricts revision deletion', () => {
+    expect(characters).toContain('rule_pack_revision_id uuid')
+    expect(crossDomainForeignKeys).toContain('characters_rule_pack_revision_id_fkey')
+    expect(crossDomainForeignKeys).toContain('REFERENCES public.rule_pack_revisions (id)')
+    expect(crossDomainForeignKeys).toContain('ON DELETE RESTRICT')
+    expect(convergenceMigration).toContain('ALTER TABLE public.characters')
+    expect(convergenceMigration).toContain('ADD COLUMN IF NOT EXISTS rule_pack_revision_id')
   })
 
   it.each([
