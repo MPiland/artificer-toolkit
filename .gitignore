@@ -33,6 +33,7 @@ tmp/
 apps/*/.impeccable/live/*.json
 apps/web/.tanstack/tmp/
 supabase/.temp/
+/.supabase-seed-source/
 
 # Editor directories and files
 .vscode/*
