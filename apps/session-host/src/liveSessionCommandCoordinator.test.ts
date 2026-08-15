@@ -23,6 +23,7 @@ describe('LiveSessionCommandCoordinator', () => {
         aggregateKind: 'CHARACTER' as const,
         aggregateId: '00000000-0000-4000-8000-000000000001',
         commandId: '00000000-0000-4000-8000-000000000002',
+        replayed: false,
         version: 4
       }
     })
@@ -32,6 +33,7 @@ describe('LiveSessionCommandCoordinator', () => {
         aggregateKind: 'CHARACTER' as const,
         aggregateId: '00000000-0000-4000-8000-000000000001',
         commandId: '00000000-0000-4000-8000-000000000003',
+        replayed: false,
         version: 5
       }
     })
@@ -47,10 +49,12 @@ describe('LiveSessionCommandCoordinator', () => {
 
   it('returns an idempotent replay without publishing another room version', async () => {
     const coordinator = new LiveSessionCommandCoordinator([])
+    let persisted = false
     const execute = async () => ({
       aggregateKind: 'ENCOUNTER' as const,
       aggregateId: '00000000-0000-4000-8000-000000000001',
       commandId: '00000000-0000-4000-8000-000000000002',
+      replayed: persisted,
       version: 7
     })
 
@@ -58,9 +62,62 @@ describe('LiveSessionCommandCoordinator', () => {
       replayed: false,
       roomVersion: 1
     })
+    persisted = true
     await expect(coordinator.enqueue(execute)).resolves.toMatchObject({
       replayed: true,
       roomVersion: 1
     })
+  })
+
+  it('accepts a persisted replay after later commands advanced the aggregate', async () => {
+    const aggregateId = '00000000-0000-4000-8000-000000000001'
+    const coordinator = new LiveSessionCommandCoordinator([
+      { aggregateKind: 'ENCOUNTER', aggregateId, version: 7 }
+    ])
+
+    await coordinator.enqueue(async () => ({
+      aggregateKind: 'ENCOUNTER',
+      aggregateId,
+      commandId: '00000000-0000-4000-8000-000000000002',
+      replayed: false,
+      version: 8
+    }))
+    await coordinator.enqueue(async () => ({
+      aggregateKind: 'ENCOUNTER',
+      aggregateId,
+      commandId: '00000000-0000-4000-8000-000000000003',
+      replayed: false,
+      version: 9
+    }))
+
+    await expect(
+      coordinator.enqueue(async () => ({
+        aggregateKind: 'ENCOUNTER',
+        aggregateId,
+        commandId: '00000000-0000-4000-8000-000000000002',
+        replayed: true,
+        version: 8
+      }))
+    ).resolves.toMatchObject({ replayed: true, roomVersion: 2 })
+    expect(coordinator.aggregateVersions).toEqual([
+      { aggregateKind: 'ENCOUNTER', aggregateId, version: 9 }
+    ])
+  })
+
+  it('still rejects an older version that was not a persisted replay', async () => {
+    const aggregateId = '00000000-0000-4000-8000-000000000001'
+    const coordinator = new LiveSessionCommandCoordinator([
+      { aggregateKind: 'ENCOUNTER', aggregateId, version: 9 }
+    ])
+
+    await expect(
+      coordinator.enqueue(async () => ({
+        aggregateKind: 'ENCOUNTER',
+        aggregateId,
+        commandId: '00000000-0000-4000-8000-000000000004',
+        replayed: false,
+        version: 8
+      }))
+    ).rejects.toThrow('advanced outside room ordering')
   })
 })

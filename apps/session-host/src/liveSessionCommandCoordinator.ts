@@ -4,6 +4,7 @@ export interface LiveSessionVersionedExecution {
   aggregateKind: 'CHARACTER' | 'ENCOUNTER'
   aggregateId: string
   commandId: string
+  replayed: boolean
   version: number
 }
 
@@ -45,22 +46,22 @@ export class LiveSessionCommandCoordinator<T extends LiveSessionVersionedExecuti
       const execution = await execute()
       const key = aggregateKey(execution)
       const current = this.#aggregateVersions.get(key)
-      if (current && execution.version < current.version) {
-        throw new Error('Live-session command returned an older aggregate version.')
-      }
-      const replayed = current?.version === execution.version
-      if (!replayed) {
-        if (current && execution.version !== current.version + 1) {
-          throw new Error('Live-session aggregate version advanced outside room ordering.')
+      if (execution.replayed) {
+        if (!current || execution.version > current.version) {
+          throw new Error('Live-session command returned an invalid persisted replay version.')
         }
-        this.#aggregateVersions.set(key, {
-          aggregateKind: execution.aggregateKind,
-          aggregateId: execution.aggregateId,
-          version: execution.version
-        })
-        this.#roomVersion += 1
+        return { execution, replayed: true, roomVersion: this.#roomVersion }
       }
-      return { execution, replayed, roomVersion: this.#roomVersion }
+      if (current && execution.version !== current.version + 1) {
+        throw new Error('Live-session aggregate version advanced outside room ordering.')
+      }
+      this.#aggregateVersions.set(key, {
+        aggregateKind: execution.aggregateKind,
+        aggregateId: execution.aggregateId,
+        version: execution.version
+      })
+      this.#roomVersion += 1
+      return { execution, replayed: false, roomVersion: this.#roomVersion }
     })
     this.#tail = operation.then(
       () => undefined,

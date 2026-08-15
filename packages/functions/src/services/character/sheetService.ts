@@ -270,6 +270,7 @@ export interface CharacterSheetCommittedRuleSnapshot {
 }
 
 export interface CharacterSheetCommandExecutionResult {
+  replayed: boolean
   response: CharacterSheetCommandResponseDto
   ruleSnapshot: CharacterSheetCommittedRuleSnapshot
 }
@@ -432,6 +433,7 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
       ...(priorEvent.result ? { result: priorEvent.result } : {})
     }
     return {
+      replayed: true,
       response,
       ruleSnapshot: {
         streamVersion: row.stream_version,
@@ -1312,6 +1314,7 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
     ...(commandResult ? { result: commandResult } : {})
   }
   return {
+    replayed: false,
     response,
     ruleSnapshot: {
       streamVersion: nextStreamVersion,

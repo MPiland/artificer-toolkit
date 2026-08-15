@@ -153,13 +153,9 @@ The embedded, versioned Zen runtime that makes production game-system decisions 
 
 The exact activated rule-pack revision, checksum, evaluator kind/version, and model-contract version bound to a Character at first finalization or to an Encounter under its existing lifecycle policy. A Character draft preview uses the current compatible active revision; a finalized Character changes pins only through an explicit transactional upgrade/reconciliation command that increments its stream version. Retirement does not invalidate a pin. This pin does not make current or Campaign-bound authored content historically replayable.
 
-### Rules system (transitional)
-
-The archived D&D-5e-family TypeScript `RulesSystem`/`runEngine` implementation. It is excluded from production builds and package exports, has no production callers, and remains only as deletion-pending migration reference material after the completed parity gates.
-
 ### Derived output
 
-Engine-produced values such as derived statistics, proficiencies, senses, spell state, spell slots, resources, and item contributions. Derived output is not authored intent and should not be persisted as a second source of truth.
+Rules-evaluator-produced values such as derived statistics, proficiencies, senses, spell state, spell slots, resources, and item contributions. Derived output is not authored intent and should not be persisted as a second source of truth.
 
 ### Encounter event
 

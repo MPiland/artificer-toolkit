@@ -214,6 +214,7 @@ export type LiveSessionCommandExecution =
       aggregateKind: 'CHARACTER'
       aggregateId: string
       commandId: string
+      replayed: boolean
       version: number
       response: CharacterSheetCommandExecutionResult['response']
       ruleSnapshot: CharacterSheetCommittedRuleSnapshot
@@ -222,6 +223,7 @@ export type LiveSessionCommandExecution =
       aggregateKind: 'ENCOUNTER'
       aggregateId: string
       commandId: string
+      replayed: boolean
       version: number
       response: Awaited<ReturnType<typeof executeEncounterCommandWithRuleSnapshot>>['response']
       ruleSnapshot?: EncounterActorRuleSnapshot
@@ -260,6 +262,7 @@ export async function executeLiveSessionCommand(
       aggregateKind: 'CHARACTER',
       aggregateId: command.characterId,
       commandId: command.command.commandId,
+      replayed: execution.replayed,
       version: execution.response.streamVersion,
       response: execution.response,
       ruleSnapshot: execution.ruleSnapshot
@@ -283,6 +286,7 @@ export async function executeLiveSessionCommand(
     aggregateKind: 'ENCOUNTER',
     aggregateId: command.command.encounterId,
     commandId: command.command.commandId,
+    replayed: execution.replayed,
     version: execution.response.projection.version,
     response: execution.response,
     ...(execution.ruleSnapshot ? { ruleSnapshot: execution.ruleSnapshot } : {})

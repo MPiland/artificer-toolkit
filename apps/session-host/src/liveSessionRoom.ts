@@ -268,21 +268,21 @@ export function createLiveSessionRoomClass(
           )
         )
         const { execution, replayed, roomVersion } = coordinated
-        if (execution.aggregateKind === 'CHARACTER') {
-          this.#characterRuleSnapshots.set(execution.aggregateId, execution.ruleSnapshot)
-        } else if (execution.ruleSnapshot) {
-          this.#encounterRuleSnapshots.set(execution.aggregateId, execution.ruleSnapshot)
-        }
         this.state.roomVersion = roomVersion
-        this.state.aggregateVersions.set(
-          aggregateKey(execution.aggregateKind, execution.aggregateId),
-          new LiveSessionAggregateVersionState().assign({
-            aggregateKind: execution.aggregateKind,
-            aggregateId: execution.aggregateId,
-            version: execution.version
-          })
-        )
         if (!replayed) {
+          if (execution.aggregateKind === 'CHARACTER') {
+            this.#characterRuleSnapshots.set(execution.aggregateId, execution.ruleSnapshot)
+          } else if (execution.ruleSnapshot) {
+            this.#encounterRuleSnapshots.set(execution.aggregateId, execution.ruleSnapshot)
+          }
+          this.state.aggregateVersions.set(
+            aggregateKey(execution.aggregateKind, execution.aggregateId),
+            new LiveSessionAggregateVersionState().assign({
+              aggregateKind: execution.aggregateKind,
+              aggregateId: execution.aggregateId,
+              version: execution.version
+            })
+          )
           this.broadcast(LIVE_SESSION_COMMITTED_MESSAGE, {
             aggregateKind: execution.aggregateKind,
             aggregateId: execution.aggregateId,

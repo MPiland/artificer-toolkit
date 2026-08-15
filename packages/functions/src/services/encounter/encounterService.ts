@@ -439,6 +439,7 @@ export interface EncounterCommandServiceTiming {
 }
 
 export interface EncounterCommandExecutionResult {
+  replayed: boolean
   response: EncounterCommandResultDto
   ruleSnapshot?: EncounterActorRuleSnapshot
 }
@@ -461,7 +462,7 @@ export async function executeEncounterCommandWithRuleSnapshot(
   let actorZenEvaluationMs = 0
   let actionEvaluationMs = 0
   let actionZenEvaluationMs = 0
-  const { command, tableEntry, ruleSnapshot } = await withTransaction(db, async (trx) => {
+  const { command, replayed, tableEntry, ruleSnapshot } = await withTransaction(db, async (trx) => {
     const repository = createEncounterRepository(trx)
     const locked = await lockEncounter(trx, input.encounterId, userId, options.liveSessionAuthority)
     const matchingCommittedRuleSnapshot =
@@ -481,6 +482,7 @@ export async function executeEncounterCommandWithRuleSnapshot(
       }
       return {
         command: encounterCommandResultDtoSchema.parse(prior.resultPayload),
+        replayed: true,
         tableEntry: null,
         ruleSnapshot: matchingCommittedRuleSnapshot
       }
@@ -854,6 +856,7 @@ export async function executeEncounterCommandWithRuleSnapshot(
     })
     return {
       command,
+      replayed: false,
       tableEntry,
       ruleSnapshot:
         updated.rulePackRevisionId === projectionRuleSnapshot.revisionId
@@ -879,7 +882,7 @@ export async function executeEncounterCommandWithRuleSnapshot(
     actionZenEvaluationMs,
     totalMs: performance.now() - startedAt
   })
-  return { response: command, ruleSnapshot }
+  return { replayed, response: command, ruleSnapshot }
 }
 
 export async function executeEncounterCommand(

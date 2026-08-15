@@ -865,15 +865,16 @@ describe('executeCharacterSheetCommand persistence', () => {
     })
     mocks.findByCommandId.mockResolvedValue(persistedEvent)
 
-    const response = await executeCharacterSheetCommand({
+    const execution = await executeCharacterSheetCommandWithRuleEvaluation({
       db: db as unknown as DBLike,
       characterId: 'character-1',
       userId: 'user-1',
       command
     })
 
-    expect(response.streamVersion).toBe(2)
-    expect(response.historyEntry?.eventId).toBe(persistedEvent.eventId)
+    expect(execution.replayed).toBe(true)
+    expect(execution.response.streamVersion).toBe(2)
+    expect(execution.response.historyEntry?.eventId).toBe(persistedEvent.eventId)
     expect(mocks.patchSheetState).toHaveBeenCalledTimes(1)
     expect(mocks.appendEvent).toHaveBeenCalledTimes(1)
   })
