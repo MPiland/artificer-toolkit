@@ -1,10 +1,21 @@
 import { readFile } from 'node:fs/promises'
+import { dirname, join, relative, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import pg from 'pg'
 
 const { Client } = pg
 
 const CONFIRMATION_VALUE = 'reset-public-schema'
+const DOMAINS_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../domains')
+const BOOTSTRAP_ENTRY_FILE = join(DOMAINS_ROOT, 'utils', 'create_database.sql')
+
+interface BootstrapStage {
+  label: string
+  sql: string
+}
+
+type DatabaseClient = InstanceType<typeof Client>
 
 function requireEnv(name: string): string {
   const value = process.env[name]?.trim()
@@ -23,48 +34,171 @@ function describeDatabase(connectionString: string): string {
   return `${parsed.protocol}//${username}${parsed.host}${parsed.pathname}`
 }
 
+export function assertRemoteDatabaseConnectionString(connectionString: string): void {
+  const hostname = new URL(connectionString).hostname.toLowerCase()
+  const localHostnames = new Set(['0.0.0.0', '127.0.0.1', '::1', '[::1]', 'localhost'])
+
+  if (localHostnames.has(hostname) || hostname.startsWith('127.')) {
+    throw new Error('PROD_DATABASE_CONNECTION_STRING must not point to a local database.')
+  }
+}
+
+async function readBootstrapStages(
+  filePath: string,
+  seen = new Set<string>()
+): Promise<BootstrapStage[]> {
+  const normalizedPath = resolve(filePath)
+  if (seen.has(normalizedPath)) {
+    throw new Error(`Recursive SQL include detected for ${normalizedPath}.`)
+  }
+
+  seen.add(normalizedPath)
+  const lines = (await readFile(normalizedPath, 'utf8')).split(/\r?\n/)
+  const stages: BootstrapStage[] = []
+  let bufferedLines: string[] = []
+  let section = 1
+
+  const flush = () => {
+    const sql = bufferedLines.join('\n').trim()
+    bufferedLines = []
+    if (!sql) return
+
+    stages.push({
+      label: `${relative(DOMAINS_ROOT, normalizedPath)}#${section}`,
+      sql
+    })
+    section += 1
+  }
+
+  for (const line of lines) {
+    const includeMatch = line.match(/^\\i\s+:etl_root'\/(.+)'$/)
+    if (includeMatch) {
+      flush()
+      const includedPath = includeMatch[1]
+      if (!includedPath) throw new Error(`Invalid SQL include in ${normalizedPath}.`)
+      stages.push(...(await readBootstrapStages(join(DOMAINS_ROOT, includedPath), seen)))
+      continue
+    }
+
+    if (line.startsWith('\\set ')) continue
+    bufferedLines.push(line)
+  }
+
+  flush()
+  seen.delete(normalizedPath)
+  return stages
+}
+
+export function readPublicSchemaBootstrapStages(): Promise<BootstrapStage[]> {
+  return readBootstrapStages(BOOTSTRAP_ENTRY_FILE)
+}
+
+async function executeDropStatements(client: DatabaseClient, query: string): Promise<void> {
+  const result = await client.query<{ drop_sql: string }>(query)
+  for (const row of result.rows) {
+    await client.query(row.drop_sql)
+  }
+}
+
+async function clearPublicSchema(client: DatabaseClient): Promise<void> {
+  await executeDropStatements(
+    client,
+    `
+      select case relation.relkind
+        when 'v' then format('drop view if exists %I.%I cascade', namespace.nspname, relation.relname)
+        when 'm' then format('drop materialized view if exists %I.%I cascade', namespace.nspname, relation.relname)
+        when 'S' then format('drop sequence if exists %I.%I cascade', namespace.nspname, relation.relname)
+        when 'f' then format('drop foreign table if exists %I.%I cascade', namespace.nspname, relation.relname)
+        else format('drop table if exists %I.%I cascade', namespace.nspname, relation.relname)
+      end as drop_sql
+      from pg_class relation
+      join pg_namespace namespace on namespace.oid = relation.relnamespace
+      where namespace.nspname = 'public'
+        and relation.relkind in ('r', 'p', 'v', 'm', 'S', 'f')
+      order by case relation.relkind when 'v' then 0 when 'm' then 1 else 2 end, relation.relname
+    `
+  )
+  await executeDropStatements(
+    client,
+    `
+      select format(
+        'drop %s if exists %I.%I(%s) cascade',
+        case routine.prokind when 'p' then 'procedure' when 'a' then 'aggregate' else 'function' end,
+        namespace.nspname,
+        routine.proname,
+        pg_get_function_identity_arguments(routine.oid)
+      ) as drop_sql
+      from pg_proc routine
+      join pg_namespace namespace on namespace.oid = routine.pronamespace
+      where namespace.nspname = 'public'
+      order by routine.proname, routine.oid
+    `
+  )
+  await executeDropStatements(
+    client,
+    `
+      select format('drop type if exists %I.%I cascade', namespace.nspname, type_info.typname) as drop_sql
+      from pg_type type_info
+      join pg_namespace namespace on namespace.oid = type_info.typnamespace
+      where namespace.nspname = 'public'
+        and type_info.typisdefined
+        and type_info.typelem = 0
+        and type_info.typtype in ('b', 'c', 'd', 'e', 'm', 'r')
+      order by type_info.typname
+    `
+  )
+
+  await client.query('DROP SCHEMA IF EXISTS public CASCADE')
+  await client.query('CREATE SCHEMA public')
+  await client.query('ALTER SCHEMA public OWNER TO postgres')
+  await client.query('GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role')
+  await client.query('GRANT ALL ON SCHEMA public TO postgres, service_role')
+}
+
+async function rebuildPublicSchema(client: DatabaseClient): Promise<void> {
+  await clearPublicSchema(client)
+  await client.query('SET search_path = public, pg_catalog')
+
+  const stages = await readPublicSchemaBootstrapStages()
+  console.log(`Applying the canonical schema in ${stages.length} lock-bounded stages.`)
+  for (const stage of stages) {
+    try {
+      await client.query(stage.sql)
+    } catch (error) {
+      throw new Error(`Schema stage ${stage.label} failed.`, { cause: error })
+    }
+  }
+
+  await client.query('GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role')
+  await client.query(
+    'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres, service_role'
+  )
+  await client.query(
+    'GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO postgres, service_role'
+  )
+  await client.query(
+    'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres, service_role'
+  )
+  await client.query(
+    'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, service_role'
+  )
+  await client.query(
+    'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO postgres, service_role'
+  )
+  await client.query(
+    'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO postgres, service_role'
+  )
+}
+
 async function main() {
-  const connectionString = requireEnv('DATABASE_CONNECTION_STRING')
+  const connectionString = requireEnv('PROD_DATABASE_CONNECTION_STRING')
   const confirmation = requireEnv('CONFIRM_REMOTE_PUBLIC_SCHEMA_RESET')
+
+  assertRemoteDatabaseConnectionString(connectionString)
 
   if (confirmation !== CONFIRMATION_VALUE) {
     throw new Error(`CONFIRM_REMOTE_PUBLIC_SCHEMA_RESET must equal "${CONFIRMATION_VALUE}".`)
   }
-
-  const bundleUrl = new URL(
-    '../domains/bootstrap/generated/create_database.bundle.sql',
-    import.meta.url
-  )
-  const bundleSql = await readFile(bundleUrl, 'utf8')
-
-  const resetSql = `
-BEGIN;
-
-DROP SCHEMA IF EXISTS public CASCADE;
-CREATE SCHEMA public;
-ALTER SCHEMA public OWNER TO postgres;
-
-GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
-GRANT ALL ON SCHEMA public TO postgres, service_role;
-
-${bundleSql}
-
-GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres, service_role;
-GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO postgres, service_role;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres, service_role;
-
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT ALL ON TABLES TO postgres, service_role;
-
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT ALL ON FUNCTIONS TO postgres, service_role;
-
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
-  GRANT ALL ON SEQUENCES TO postgres, service_role;
-
-COMMIT;
-`
 
   const client = new Client({ connectionString })
 
@@ -74,7 +208,7 @@ COMMIT;
 
   try {
     await client.query("SET statement_timeout = '10min'")
-    await client.query(resetSql)
+    await rebuildPublicSchema(client)
   } finally {
     await client.end()
   }
@@ -82,7 +216,10 @@ COMMIT;
   console.log('Public schema reset complete.')
 }
 
-main().catch((error: unknown) => {
-  console.error(error)
-  process.exitCode = 1
-})
+const entryPoint = process.argv[1]
+if (entryPoint && import.meta.url === pathToFileURL(resolve(entryPoint)).href) {
+  main().catch((error: unknown) => {
+    console.error(error)
+    process.exitCode = 1
+  })
+}
