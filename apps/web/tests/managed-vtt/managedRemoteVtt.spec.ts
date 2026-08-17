@@ -357,9 +357,16 @@ async function openTabletop(client: ManagedClient): Promise<void> {
     )
   }
   await expect(client.page.getByText(campaignName, { exact: true })).toBeVisible()
-  await expect(client.page.getByText('Scene map ready.', { exact: true })).toBeVisible({
-    timeout: 60_000
-  })
+  try {
+    await expect(client.page.getByText('Scene map ready.', { exact: true })).toBeVisible({
+      timeout: 60_000
+    })
+  } catch (error) {
+    throw new Error(
+      `${client.role} map did not become ready. Browser errors: ${client.browserErrors.slice(-10).join(' | ') || 'none'}. Failed requests: ${client.failedRequests.slice(-10).join(' | ') || 'none'}.`,
+      { cause: error }
+    )
+  }
 }
 
 async function expectManagedSocket(client: ManagedClient): Promise<void> {
@@ -440,8 +447,12 @@ async function delay(milliseconds: number): Promise<void> {
 
 async function signIn(page: Page, email: string, password: string): Promise<void> {
   await gotoManagedPage(page, '/sign-in')
-  await page.getByRole('textbox', { name: 'Email or username' }).fill(email)
-  await page.getByRole('textbox', { name: 'Password' }).fill(password)
+  const emailInput = page.getByRole('textbox', { name: 'Email or username' })
+  const passwordInput = page.getByRole('textbox', { name: 'Password' })
+  await passwordInput.fill(password, { timeout: 15_000 })
+  await emailInput.fill(email, { timeout: 15_000 })
+  await expect(emailInput).toHaveValue(email)
+  await expect(passwordInput).toHaveValue(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
   await page.waitForURL((url) => !url.pathname.startsWith('/sign-in'), { waitUntil: 'commit' })
 }
@@ -449,7 +460,6 @@ async function signIn(page: Page, email: string, password: string): Promise<void
 async function gotoManagedPage(page: Page, path: string): Promise<void> {
   const separator = path.includes('?') ? '&' : '?'
   await page.goto(`${path}${separator}ntl-drawer-state=hidden`, { waitUntil: 'domcontentloaded' })
-  await page.waitForLoadState('networkidle', { timeout: 30_000 })
 }
 
 async function readDoorAction(page: Page, index: number): Promise<string> {

@@ -1,4 +1,4 @@
-import { type SubmitEvent, useState } from 'react'
+import { type SubmitEvent, useEffect, useState } from 'react'
 import { browserAuthClient } from '../authClient'
 import { AuthFormProps } from './authForm.types'
 import {
@@ -27,12 +27,15 @@ export function SignInForm({
   onSuccess,
   publicSignUpEnabled = false
 }: SignInFormProps) {
+  const [hydrated, setHydrated] = useState(false)
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
     null
   )
+
+  useEffect(() => setHydrated(true), [])
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
@@ -70,7 +73,7 @@ export function SignInForm({
         placeholder='you@example.com or morgan_emberfall'
         value={identifier}
         onChange={(event) => setIdentifier(event.currentTarget.value)}
-        disabled={isSubmitting}
+        disabled={!hydrated || isSubmitting}
         required
       />
       <PasswordInput
@@ -84,7 +87,7 @@ export function SignInForm({
         placeholder='********'
         value={password}
         onChange={(event) => setPassword(event.currentTarget.value)}
-        disabled={isSubmitting}
+        disabled={!hydrated || isSubmitting}
         required
       />
       <div className={forgotRow}>
@@ -92,7 +95,7 @@ export function SignInForm({
           Forgot password?
         </Anchor>
       </div>
-      <Button className={authButton} type='submit' loading={isSubmitting}>
+      <Button className={authButton} type='submit' disabled={!hydrated} loading={isSubmitting}>
         Sign in
       </Button>
       {feedback && (
