@@ -112,6 +112,19 @@ test('connects three users through the managed room and recovers a reversible sc
     console.info(`Managed VTT smoke: ${JSON.stringify(timings)}`)
   } catch (error) {
     failure = error
+    await testInfo.attach('managed-vtt-runtime-diagnostics', {
+      body: JSON.stringify(
+        clients.map(({ browserErrors, failedRequests, page, role }) => ({
+          browserErrors,
+          failedRequests,
+          role,
+          url: page.url()
+        })),
+        null,
+        2
+      ),
+      contentType: 'application/json'
+    })
   }
 
   try {
@@ -134,8 +147,10 @@ test('connects three users through the managed room and recovers a reversible sc
 
 interface ManagedClient {
   assetResponses: Response[]
+  browserErrors: string[]
   context: BrowserContext
   deliveryResponses: Response[]
+  failedRequests: string[]
   liveSessionFrames: string[]
   liveSessionUrls: string[]
   page: Page
@@ -269,14 +284,26 @@ async function openManagedClient(
     const page = await context.newPage()
     const client: ManagedClient = {
       assetResponses: [],
+      browserErrors: [],
       context,
       deliveryResponses: [],
+      failedRequests: [],
       liveSessionFrames: [],
       liveSessionUrls: [],
       page,
       role,
       ticketResponses: []
     }
+    page.on('console', (message) => {
+      if (message.type() === 'error')
+        client.browserErrors.push(safeDiagnosticMessage(message.text()))
+    })
+    page.on('pageerror', (error) => client.browserErrors.push(safeDiagnosticMessage(error.message)))
+    page.on('requestfailed', (request) => {
+      client.failedRequests.push(
+        `${request.method()} ${safeRequestUrl(request.url())}: ${request.failure()?.errorText ?? 'failed'}`
+      )
+    })
     page.on('response', (response) => {
       if (isVttMapAsset(response)) client.assetResponses.push(response)
       if (response.url().includes('media.getVttMapDelivery')) {
@@ -299,11 +326,36 @@ async function openManagedClient(
   }
 }
 
+function safeRequestUrl(value: string): string {
+  const url = new URL(value)
+  return `${url.origin}${url.pathname}`
+}
+
+function safeDiagnosticMessage(value: string): string {
+  return value
+    .replace(/https?:\/\/[^\s"'<>]+/g, (candidate) => {
+      try {
+        return safeRequestUrl(candidate)
+      } catch {
+        return '[url]'
+      }
+    })
+    .replace(/\b(?:eyJ[A-Za-z0-9_-]{20,}|[A-Za-z0-9_-]{40,})\b/g, '[redacted]')
+    .slice(0, 1_000)
+}
+
 async function openTabletop(client: ManagedClient): Promise<void> {
   await gotoManagedPage(client.page, tabletopPath)
-  await expect(client.page.getByRole('img', { name: 'Interactive campaign scene' })).toBeVisible({
-    timeout: 60_000
-  })
+  try {
+    await expect(client.page.getByRole('img', { name: 'Interactive campaign scene' })).toBeVisible({
+      timeout: 60_000
+    })
+  } catch (error) {
+    throw new Error(
+      `${client.role} renderer did not start. Browser errors: ${client.browserErrors.slice(-10).join(' | ') || 'none'}. Failed requests: ${client.failedRequests.slice(-10).join(' | ') || 'none'}.`,
+      { cause: error }
+    )
+  }
   await expect(client.page.getByText(campaignName, { exact: true })).toBeVisible()
   await expect(client.page.getByText('Scene map ready.', { exact: true })).toBeVisible({
     timeout: 60_000

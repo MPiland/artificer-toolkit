@@ -160,6 +160,8 @@ export async function createVttSceneRenderer(
   host: HTMLElement,
   callbacks: VttSceneRendererCallbacks
 ): Promise<VttSceneRenderer> {
+  // @ts-expect-error -- Pixi publishes this CSP fallback without a declaration file.
+  await import('pixi.js/unsafe-eval')
   const pixi = await import('pixi.js')
   const app: Application = new pixi.Application()
   await app.init({
