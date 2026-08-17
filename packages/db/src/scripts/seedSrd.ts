@@ -1,0 +1,129 @@
+import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
+
+import type { Transaction } from 'kysely'
+
+import { createDb } from '../client.js'
+import { seedBaselineContent } from '../seed/baseline.js'
+import { assignBaselineContentOwner } from '../source-data/content.js'
+import { SRD_SYSTEM_ID, srdBaselineContent } from '../source-data/srd/index.js'
+import type { Database } from '../types/index.js'
+import { auditSrdData, hasSrdAuditIssues } from './auditSrdData.js'
+import {
+  ensureSeedOwnerUser,
+  findSeedOwnerUserByEmail,
+  readSeedOwnerEnvironment,
+  type SeedOwnerEnvironment,
+  type SeedTarget
+} from './seedOwner.js'
+
+const CONFIRM_FLAG = '--confirm-seed-srd'
+const DRY_RUN_FLAG = '--dry-run'
+const TARGET_FLAGS = {
+  local: '--local',
+  staging: '--staging',
+  production: '--production'
+} as const satisfies Record<SeedTarget, string>
+const ROLLBACK_DRY_RUN = new Error('ROLLBACK_SRD_DRY_RUN')
+
+export interface SeedInvocation {
+  dryRun: boolean
+  target: SeedTarget
+}
+
+export function parseSeedInvocation(args: readonly string[]): SeedInvocation {
+  const targets = (Object.entries(TARGET_FLAGS) as [SeedTarget, string][]).filter(([, flag]) =>
+    args.includes(flag)
+  )
+  if (targets.length !== 1) {
+    throw new Error(`Pass exactly one of ${Object.values(TARGET_FLAGS).join(', ')}.`)
+  }
+
+  const target = targets[0]?.[0]
+  if (!target) throw new Error('Missing SRD seed target.')
+  const dryRun = args.includes(DRY_RUN_FLAG)
+  if (target === 'local' && dryRun) {
+    throw new Error(`${TARGET_FLAGS.local} and ${DRY_RUN_FLAG} cannot be used together.`)
+  }
+  if (target !== 'local' && !dryRun && !args.includes(CONFIRM_FLAG)) {
+    throw new Error(`Hosted SRD seeding requires the explicit ${CONFIRM_FLAG} flag.`)
+  }
+
+  return { dryRun, target }
+}
+
+export function assertDatabaseTarget(target: SeedTarget, connectionString: string) {
+  const hostname = new URL(connectionString).hostname.toLowerCase()
+  const local = hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '::1'
+  if (target === 'local' && !local) {
+    throw new Error('The local SRD seed command requires a local database connection.')
+  }
+  if (target !== 'local' && local) {
+    throw new Error(`The ${target} SRD seed command requires a hosted database connection.`)
+  }
+}
+
+async function resolveSeedOwner(environment: SeedOwnerEnvironment, dryRun: boolean) {
+  if (!dryRun) return ensureSeedOwnerUser(environment)
+
+  const existing = await findSeedOwnerUserByEmail(environment)
+  if (!existing) {
+    throw new Error(
+      `The ${environment.email} seed owner must exist before a dry run. ` +
+        'Run the matching seed-owner command first.'
+    )
+  }
+  return existing
+}
+
+async function seedAndAudit(
+  transaction: Transaction<Database>,
+  ownerUserId: string
+): Promise<{ domainRoots: number; systems: number }> {
+  const result = await seedBaselineContent(
+    { db: transaction, systemId: SRD_SYSTEM_ID },
+    assignBaselineContentOwner(srdBaselineContent, ownerUserId)
+  )
+  const audit = await auditSrdData(transaction)
+  if (hasSrdAuditIssues(audit)) {
+    throw new Error(`SRD parity audit failed:\n${JSON.stringify(audit, null, 2)}`)
+  }
+  return result
+}
+
+async function main() {
+  const invocation = parseSeedInvocation(process.argv.slice(2))
+  const environment = readSeedOwnerEnvironment(invocation.target)
+  assertDatabaseTarget(invocation.target, environment.connectionString)
+  const owner = await resolveSeedOwner(environment, invocation.dryRun)
+  const db = createDb({ connectionString: environment.connectionString })
+  let result: { domainRoots: number; systems: number } | undefined
+
+  try {
+    try {
+      await db.transaction().execute(async (transaction) => {
+        result = await seedAndAudit(transaction, owner.id)
+        if (invocation.dryRun) throw ROLLBACK_DRY_RUN
+      })
+    } catch (error) {
+      if (error !== ROLLBACK_DRY_RUN) throw error
+    }
+  } finally {
+    await db.destroy()
+  }
+
+  console.info(
+    JSON.stringify({
+      ...result,
+      mode: invocation.dryRun ? 'DRY_RUN_ROLLED_BACK' : 'COMMITTED',
+      target: invocation.target
+    })
+  )
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  main().catch((error: unknown) => {
+    console.error(error)
+    process.exitCode = 1
+  })
+}

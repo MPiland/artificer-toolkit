@@ -32,9 +32,11 @@
     "build": "tsc -p tsconfig.build.json",
     "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/functions/src --maxWorkers=1 --no-file-parallelism",
     "measure:encounter-actor-policy": "tsx src/scripts/measureEncounterActorPolicy.ts",
-    "provision:vtt-managed-smoke": "tsx src/scripts/provisionManagedVttSmoke.ts",
+    "provision:vtt-managed-smoke:staging": "tsx src/scripts/provisionManagedVttSmoke.ts --staging",
+    "provision:vtt-managed-smoke:production": "tsx src/scripts/provisionManagedVttSmoke.ts --production",
     "test:vtt-map:integration": "tsx src/scripts/testVttMapMediaIntegration.ts",
     "seed:canonical-rule-packs:local": "tsx src/scripts/seedCanonicalRulePacks.ts --local",
+    "seed:canonical-rule-packs:staging": "tsx src/scripts/seedCanonicalRulePacks.ts --staging",
     "seed:canonical-rule-packs:production": "tsx src/scripts/seedCanonicalRulePacks.ts --production",
     "typecheck": "tsc -p tsconfig.build.json --noEmit"
   },

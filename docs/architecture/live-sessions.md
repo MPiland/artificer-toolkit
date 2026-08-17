@@ -87,15 +87,15 @@ Local hosting avoids the Cloudflare-to-Netlify hop while preserving the protocol
 
 ## Deployment ownership
 
-| Surface                                         | Process                                       | Initial deployment                  |
-| ----------------------------------------------- | --------------------------------------------- | ----------------------------------- |
-| Web, SSR, ordinary tRPC, ticket issue           | `apps/web` + `apps/apis`                      | Netlify                             |
-| Remote WebSocket rooms and transient fanout     | `apps/session-worker`                         | Cloudflare Worker + Durable Objects |
-| Remote durable command execution and native Zen | `netlify/functions/live-session-executor.mts` | Netlify Functions                   |
-| Local WebSocket rooms and native Zen            | `apps/session-host`                           | Headless local Node process         |
-| Identity and canonical gameplay state           | Supabase/Postgres                             | Existing Supabase project           |
+| Surface                                         | Process                                       | Initial deployment                   |
+| ----------------------------------------------- | --------------------------------------------- | ------------------------------------ |
+| Web, SSR, ordinary tRPC, ticket issue           | `apps/web` + `apps/apis`                      | Netlify                              |
+| Remote WebSocket rooms and transient fanout     | `apps/session-worker`                         | Cloudflare Worker + Durable Objects  |
+| Remote durable command execution and native Zen | `netlify/functions/live-session-executor.mts` | Netlify Functions                    |
+| Local WebSocket rooms and native Zen            | `apps/session-host`                           | Headless local Node process          |
+| Identity and canonical gameplay state           | Supabase/Postgres                             | Isolated staging/production projects |
 
-No separate repository is required. Render is not part of the initial managed architecture. A future launcher can start the local host invisibly; a polished self-hosting installer remains out of scope.
+No separate repository is required. Named Wrangler environments isolate the staging and production Workers and Durable Object storage. Netlify Deploy Preview configuration points at the staging Supabase project and staging Worker; the Production context points at production. Render is not part of the initial managed architecture. A future launcher can start the local host invisibly; a polished self-hosting installer remains out of scope.
 
 ## Admission and authority
 

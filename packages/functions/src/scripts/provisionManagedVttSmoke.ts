@@ -93,12 +93,16 @@ async function main(): Promise<void> {
     )
   }
 
-  const connectionString = assertRemoteUrl(
-    'PROD_DATABASE_CONNECTION_STRING',
-    requireEnvironment('PROD_DATABASE_CONNECTION_STRING')
-  )
-  const supabaseUrl = assertRemoteUrl('SUPABASE_URL', requireEnvironment('SUPABASE_URL'))
-  const supabaseSecretKey = requireEnvironment('SUPABASE_SECRET_KEY')
+  const staging = process.argv.includes('--staging')
+  const production = process.argv.includes('--production')
+  if (staging === production) throw new Error('Pass exactly one of --staging or --production.')
+  const prefix = staging ? 'STAGING_' : 'PROD_'
+  const connectionName = `${prefix}DATABASE_CONNECTION_STRING`
+  const supabaseUrlName = `${prefix}SUPABASE_URL`
+  const supabaseSecretKeyName = `${prefix}SUPABASE_SECRET_KEY`
+  const connectionString = assertRemoteUrl(connectionName, requireEnvironment(connectionName))
+  const supabaseUrl = assertRemoteUrl(supabaseUrlName, requireEnvironment(supabaseUrlName))
+  const supabaseSecretKey = requireEnvironment(supabaseSecretKeyName)
   const gmPassword = requireEnvironment('MANAGED_VTT_GM_PASSWORD')
   const playerPassword = requireEnvironment('MANAGED_VTT_PLAYER_PASSWORD')
   const db = createDb({ connectionString })

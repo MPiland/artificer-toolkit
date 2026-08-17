@@ -1,11 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
+import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import pg from 'pg'
 
 export const DEFAULT_SEED_OWNER_EMAIL = 'artificer-toolkit-seed@local.invalid'
 const USERS_PER_PAGE = 1000
 const { Client } = pg
 
-type SeedOwnerUser = {
+export type SeedOwnerUser = {
   id: string
   email?: string
 }
@@ -18,6 +20,13 @@ export interface SeedOwnerEnvironment {
   supabaseUrl: string
 }
 
+export type SeedTarget = 'local' | 'staging' | 'production'
+
+function targetPrefix(target: SeedTarget) {
+  if (target === 'local') return ''
+  return target === 'staging' ? 'STAGING_' : 'PROD_'
+}
+
 function requireEnvironmentVariable(name: string) {
   const value = process.env[name]
 
@@ -27,17 +36,18 @@ function requireEnvironmentVariable(name: string) {
 }
 
 export function readSeedOwnerEnvironment(
-  production = false,
+  target: SeedTarget = 'local',
   connectionStringOverride?: string
 ): SeedOwnerEnvironment {
-  const prefix = production ? 'PROD_' : ''
+  const prefix = targetPrefix(target)
   const read = (name: string) => requireEnvironmentVariable(`${prefix}${name}`)
 
   return {
     connectionString: connectionStringOverride ?? read('DATABASE_CONNECTION_STRING'),
-    email: production
-      ? read('SEED_OWNER_EMAIL')
-      : (process.env.SEED_OWNER_EMAIL ?? DEFAULT_SEED_OWNER_EMAIL),
+    email:
+      target !== 'local'
+        ? read('SEED_OWNER_EMAIL')
+        : (process.env.SEED_OWNER_EMAIL ?? DEFAULT_SEED_OWNER_EMAIL),
     password: process.env[`${prefix}SEED_OWNER_PASSWORD`],
     supabaseSecretKey: read('SUPABASE_SECRET_KEY'),
     supabaseUrl: read('SUPABASE_URL')
@@ -102,6 +112,11 @@ async function findUser(
   return null
 }
 
+export function findSeedOwnerUserByEmail(environment: SeedOwnerEnvironment) {
+  const normalizedEmail = environment.email.toLowerCase()
+  return findUser(environment, (user) => user.email?.toLowerCase() === normalizedEmail)
+}
+
 export async function findSeedOwnerUserById(environment: SeedOwnerEnvironment, userId: string) {
   const supabase = createSupabaseAdminClient(environment)
   const { data, error } = await supabase.auth.admin.getUserById(userId)
@@ -140,11 +155,7 @@ async function promoteSeedOwnerToSuperAdmin(
 }
 
 export async function ensureSeedOwnerUser(environment: SeedOwnerEnvironment) {
-  const normalizedEmail = environment.email.toLowerCase()
-  const existingUser = await findUser(
-    environment,
-    (user) => user.email?.toLowerCase() === normalizedEmail
-  )
+  const existingUser = await findSeedOwnerUserByEmail(environment)
 
   if (existingUser) {
     const user = environment.password
@@ -172,4 +183,20 @@ export async function ensureSeedOwnerUser(environment: SeedOwnerEnvironment) {
   }
 
   return promoteSeedOwnerToSuperAdmin(environment, data.user)
+}
+
+function parseRemoteSeedTarget(): Exclude<SeedTarget, 'local'> {
+  const staging = process.argv.includes('--staging')
+  const production = process.argv.includes('--production')
+  if (staging === production) throw new Error('Pass exactly one of --staging or --production.')
+  return staging ? 'staging' : 'production'
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  ensureSeedOwnerUser(readSeedOwnerEnvironment(parseRemoteSeedTarget()))
+    .then((user) => console.info(`Seed owner ready: ${user.email ?? user.id}`))
+    .catch((error: unknown) => {
+      console.error(error)
+      process.exitCode = 1
+    })
 }

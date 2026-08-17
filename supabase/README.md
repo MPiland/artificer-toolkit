@@ -23,26 +23,27 @@ Migration files establish the schema and RLS policies → local/remote Supabase 
 
 Inspect the relevant migration and run the narrow DB/repository test first. For local schema work, verify with the Supabase CLI reset/diff workflow documented by the repository commands; confirm Docker/Supabase is running before diagnosing application auth or sheet failures.
 
-## Isolated production seed source
+## SRD seeding
 
-Keep ordinary development and test records in the normal `artificer-toolkit` local Supabase project. Production SRD synchronization uses a second persistent local Docker project, `artificer-toolkit-srd-seed-source`. Both use the standard local ports, so the commands run only one at a time; stopping a project preserves its Docker volume.
+The repository's `packages/db/src/source-data/srd` files are the canonical SRD source. Local, staging, and production all pass that same typed `srdBaselineContent` bundle through `seedBaselineContent`; no database is used as a seed source.
 
 ```mermaid
 flowchart LR
-  D["Development volume\ncharacters and test data"] -->|"yarn seed-source:prepare\nstops but preserves"| S["Isolated seed-source volume\nmaster corpus only"]
-  S -->|"dry-run, then explicit production seed"| P["Hosted production Supabase"]
-  S -->|"yarn seed-source:stop"| D
+  S["Repository SRD source files"] --> N["Normalized transactional seeder"]
+  N --> L["Local development Supabase"]
+  N --> T["Hosted staging Supabase"]
+  N --> P["Hosted production Supabase"]
 ```
 
-Use this workflow:
+Hosted dry runs execute the complete normalized seed and parity audit inside a forced rollback. A real hosted seed commits only when that same audit passes in the transaction. Existing user-authored and Character data remains outside the master-record pruning boundary.
 
-1. Run `yarn seed-source:prepare`. It stages the current Supabase config/migrations into the ignored `.supabase-seed-source` worktree, stops the development stack without deleting it, resets only the isolated database, seeds it, and audits it.
-2. Run `yarn seed:srd:production:dry-run` and inspect the report.
-3. Run `yarn seed:srd:production` only when the dry run is correct.
-4. Run `yarn audit:srd:production` for the final hosted audit.
-5. Run `yarn seed-source:stop` to stop the isolated stack and restore the development stack with its original data.
+Use this staging workflow:
 
-`yarn seed-source:start` switches to the isolated stack without resetting or seeding it, which is useful for inspection. Never pass `--no-backup` when stopping either local project. The production commands remain separate and explicit; preparing the local source cannot write to production.
+1. Run `yarn seed-owner:staging` once.
+2. Run `yarn seed:srd:staging:dry-run` and inspect the rollback result.
+3. Run `yarn seed:srd:staging`, followed by `yarn audit:srd:staging`.
+
+After staging validation, the corresponding production promotion is `yarn seed-owner:production`, `yarn seed:srd:production:dry-run`, `yarn seed:srd:production`, and `yarn audit:srd:production`. Each command names its target explicitly. Staging reads only `STAGING_DATABASE_CONNECTION_STRING`, `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_SECRET_KEY`, and `STAGING_SEED_OWNER_EMAIL`; production reads the corresponding `PROD_*` variables. Seed-owner passwords remain optional and are generated when omitted.
 
 ## Closed-alpha authentication
 

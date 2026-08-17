@@ -25,7 +25,7 @@ describe('seed owner configuration', () => {
     vi.stubEnv('SUPABASE_SECRET_KEY', 'secret')
     vi.stubEnv('SUPABASE_URL', 'http://localhost:54321')
 
-    expect(readSeedOwnerEnvironment(false, environment.connectionString).email).toBe(
+    expect(readSeedOwnerEnvironment('local', environment.connectionString).email).toBe(
       DEFAULT_SEED_OWNER_EMAIL
     )
     expect(DEFAULT_SEED_OWNER_EMAIL.endsWith('.invalid')).toBe(true)
@@ -37,7 +37,25 @@ describe('seed owner configuration', () => {
     vi.stubEnv('PROD_SUPABASE_URL', 'https://example.supabase.co')
     vi.stubEnv('PROD_SEED_OWNER_EMAIL', '')
 
-    expect(() => readSeedOwnerEnvironment(true)).toThrow('PROD_SEED_OWNER_EMAIL is required')
+    expect(() => readSeedOwnerEnvironment('production')).toThrow(
+      'PROD_SEED_OWNER_EMAIL is required'
+    )
+  })
+
+  it('uses only staging-prefixed settings for the staging owner', () => {
+    vi.stubEnv('STAGING_DATABASE_CONNECTION_STRING', environment.connectionString)
+    vi.stubEnv('STAGING_SUPABASE_SECRET_KEY', 'staging-secret')
+    vi.stubEnv('STAGING_SUPABASE_URL', 'https://staging.example.supabase.co')
+    vi.stubEnv('STAGING_SEED_OWNER_EMAIL', 'staging-seed@example.test')
+    vi.stubEnv('PROD_SEED_OWNER_EMAIL', 'production-seed@example.test')
+
+    expect(readSeedOwnerEnvironment('staging')).toEqual({
+      connectionString: environment.connectionString,
+      email: 'staging-seed@example.test',
+      password: undefined,
+      supabaseSecretKey: 'staging-secret',
+      supabaseUrl: 'https://staging.example.supabase.co'
+    })
   })
 
   it('looks up a configured owner id directly', async () => {

@@ -25,6 +25,7 @@ import {
 } from '@artificer-toolkit/shared/compilers'
 
 import { createDb } from '../client.js'
+import type { DBLike } from '../types/index.js'
 import {
   createBackgroundRepository,
   createClassRepository,
@@ -37,7 +38,7 @@ import {
 } from '../repositories/index.js'
 import { assignBaselineContentOwner } from '../source-data/content.js'
 import { SRD_SYSTEM_ID, srdBaselineContent } from '../source-data/srd/index.js'
-type Db = ReturnType<typeof createDb>
+type Db = DBLike
 
 interface InactiveMasterRow {
   tableName: string
@@ -778,13 +779,17 @@ export function hasSrdAuditIssues(summary: Awaited<ReturnType<typeof auditSrdDat
 }
 
 async function main() {
+  const staging = process.argv.includes('--staging')
   const production = process.argv.includes('--production')
-  const connectionString =
-    process.env[production ? 'PROD_DATABASE_CONNECTION_STRING' : 'DATABASE_CONNECTION_STRING']
+  if (staging && production) throw new Error('Pass at most one of --staging or --production.')
+  const variableName = staging
+    ? 'STAGING_DATABASE_CONNECTION_STRING'
+    : production
+      ? 'PROD_DATABASE_CONNECTION_STRING'
+      : 'DATABASE_CONNECTION_STRING'
+  const connectionString = process.env[variableName]
   if (!connectionString) {
-    throw new Error(
-      `${production ? 'PROD_DATABASE_CONNECTION_STRING' : 'DATABASE_CONNECTION_STRING'} is required for the SRD data audit.`
-    )
+    throw new Error(`${variableName} is required for the SRD data audit.`)
   }
   const db = createDb({ connectionString })
 

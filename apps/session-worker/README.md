@@ -19,7 +19,7 @@ Run the worker with `yarn dev:session-worker`. The browser uses `VITE_LIVE_SESSI
 
 ## Managed deployment
 
-Set non-secret deployment variables in `wrangler.jsonc` or the Cloudflare Workers configuration:
+Set these non-secret deployment variables in each Worker's Cloudflare **Settings → Variables and Secrets**. `keep_vars` preserves them across Wrangler deployments:
 
 - `LIVE_SESSION_ALLOWED_ORIGINS`: comma-separated exact HTTPS web origins;
 - `LIVE_SESSION_EXECUTOR_URL`: the deployed `/.netlify/functions/live-session-executor` HTTPS URL.
@@ -31,7 +31,22 @@ yarn workspace @artificer-toolkit/session-worker wrangler secret put LIVE_SESSIO
 yarn workspace @artificer-toolkit/session-worker wrangler secret put LIVE_SESSION_EXECUTOR_SECRET
 ```
 
-The committed Worker custom domain is `tabletop.artificertoolkit.app`. Cloudflare creates its DNS record and certificate during deployment; remove any conflicting CNAME before deploying. Deploy the Netlify application first so the private executor exists, then run `yarn workspace @artificer-toolkit/session-worker wrangler deploy`. Set the Netlify browser build variable `VITE_LIVE_SESSION_WEBSOCKET_URL=https://tabletop.artificertoolkit.app` and redeploy Netlify so the browser bundle and CSP use the Worker origin. Netlify also needs the matching two server-only secrets plus the existing Supabase/database settings.
+### Staging
+
+The named `staging` Wrangler environment deploys `artificer-live-session-staging` on `tabletop-staging.artificertoolkit.app`. It has a separate Durable Object namespace and therefore cannot read or mutate production room journals. Its current Netlify preview origin and executor URL live under `env.staging.vars` in `wrangler.jsonc`, making the repository configuration the deployment source of truth. Update both values together when staging moves to another preview or a stable branch-deploy origin.
+
+```shell
+yarn build:session-worker:staging
+yarn deploy:session-worker:staging
+yarn workspace @artificer-toolkit/session-worker wrangler secret put LIVE_SESSION_TICKET_SECRET --env staging
+yarn workspace @artificer-toolkit/session-worker wrangler secret put LIVE_SESSION_EXECUTOR_SECRET --env staging
+```
+
+The deploy scripts pass `--keep-vars` explicitly. If Wrangler still shows either staging URL being removed, cancel the deployment rather than accepting the diff.
+
+Use staging-only ticket and executor secrets; the two values must match the Netlify **Deploy Previews** context. In Netlify, the Deploy Previews context keeps the ordinary runtime names (`DATABASE_CONNECTION_STRING`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and the two `LIVE_SESSION_*_SECRET` names) but assigns staging values to them. Its browser value is `VITE_LIVE_SESSION_WEBSOCKET_URL=wss://tabletop-staging.artificertoolkit.app`. The `STAGING_*` names are for trusted local operator scripts, not browser or Netlify runtime code. When a stable Netlify branch-deploy origin exists, update the two committed staging endpoint values once to that origin instead of changing them for each PR.
+
+The production Worker custom domain is `tabletop.artificertoolkit.app`. Cloudflare creates its DNS record and certificate during deployment; remove any conflicting CNAME before deploying. Its two non-secret values are `LIVE_SESSION_ALLOWED_ORIGINS=https://artificertoolkit.app` and `LIVE_SESSION_EXECUTOR_URL=https://artificertoolkit.app/.netlify/functions/live-session-executor`. Deploy the Netlify application first so the private executor exists, then run `yarn deploy:session-worker:production`. Set the Netlify browser build variable `VITE_LIVE_SESSION_WEBSOCKET_URL=https://tabletop.artificertoolkit.app` and redeploy Netlify so the browser bundle and CSP use the Worker origin. Netlify also needs the matching two server-only secrets plus the existing Supabase/database settings.
 
 Before deployment, run `yarn workspace @artificer-toolkit/session-worker typecheck` and `yarn workspace @artificer-toolkit/session-worker build`. The build is a Wrangler dry run and does not publish anything. After both deployments, set `MANAGED_VTT_BASE_URL=https://artificertoolkit.app` and `MANAGED_LIVE_SESSION_ENDPOINT=https://tabletop.artificertoolkit.app`, then run `yarn preflight:session-worker:managed`. It verifies the public app, private executor presence, Worker health, and production CSP without authenticating or mutating data.
 
@@ -39,7 +54,7 @@ Before deployment, run `yarn workspace @artificer-toolkit/session-worker typeche
 
 The deployed release gate uses one clearly labeled, reusable production smoke Campaign rather than creating a new Durable Object room on every run. Keep two dedicated smoke accounts: one Campaign owner and one active player. The Campaign must have an open Session, active Encounter, attached scene, ready VTT map, one unlocked door visible to both roles, and one uniquely labeled hidden token visible only to the GM. Do not point the gate at customer data.
 
-For an empty managed environment, `yarn provision:vtt-managed-smoke` creates that exact fixture. It requires `PROD_DATABASE_CONNECTION_STRING`, the managed `SUPABASE_URL` and `SUPABASE_SECRET_KEY`, process-only `MANAGED_VTT_GM_PASSWORD` and `MANAGED_VTT_PLAYER_PASSWORD`, and `CONFIRM_MANAGED_VTT_SMOKE_PROVISION=provision-managed-vtt-smoke`. The command updates the two fixed smoke-account passwords, refuses to create a duplicate Campaign named `Artificer managed VTT smoke`, and prints only the non-secret paths and labels needed below. Do not save the generated passwords in the repository.
+For an empty managed environment, `yarn provision:vtt-managed-smoke:staging` creates that exact fixture from the `STAGING_*` database and Supabase values. The production equivalent is `yarn provision:vtt-managed-smoke:production` and reads only `PROD_*`. Both require process-only `MANAGED_VTT_GM_PASSWORD` and `MANAGED_VTT_PLAYER_PASSWORD`, plus `CONFIRM_MANAGED_VTT_SMOKE_PROVISION=provision-managed-vtt-smoke`. The command updates the two fixed smoke-account passwords, refuses to create a duplicate Campaign named `Artificer managed VTT smoke`, and prints only the non-secret paths and labels needed below. Do not save the generated passwords in the repository.
 
 Configure these test-only local variables without committing their values:
 
