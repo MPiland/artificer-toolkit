@@ -201,6 +201,13 @@ async function pruneStaleBaselineSubjects(
   }
 }
 
+export function pruneStaleBaselineContent(
+  context: SeedContext,
+  bundle: BaselineContentBundle
+): Promise<void> {
+  return pruneStaleBaselineSubjects(context, getBaselineSubjectSets(bundle))
+}
+
 async function markBaselineSubjectsMaster(
   context: SeedContext,
   table: BaselineSubjectTable,
@@ -237,7 +244,7 @@ const seedBaselineContentInTransaction: SeedBaselineContent = async (context, bu
     await upsertSystem(context.db, system)
   }
 
-  await pruneStaleBaselineSubjects(context, getBaselineSubjectSets(bundle))
+  await pruneStaleBaselineContent(context, bundle)
 
   for (const detail of bundle.shared.details) {
     await upsertDetail(context.db, detail)

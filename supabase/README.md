@@ -25,17 +25,19 @@ Inspect the relevant migration and run the narrow DB/repository test first. For 
 
 ## SRD seeding
 
-The repository's `packages/db/src/source-data/srd` files are the canonical SRD source. Local, staging, and production all pass that same typed `srdBaselineContent` bundle through `seedBaselineContent`; no database is used as a seed source.
+The repository's `packages/db/src/source-data/srd` files are the canonical SRD source. Local seeding passes that typed `srdBaselineContent` bundle through `seedBaselineContent`. Hosted seeding uses the same normalized path in a rollback-only transaction on the normal local database, captures the resulting relational corpus, then sends it to the hosted target in 500-row batches. Persisted local data is never copied or treated as seed input, and the rollback preserves it without a second local database.
 
 ```mermaid
 flowchart LR
   S["Repository SRD source files"] --> N["Normalized transactional seeder"]
   N --> L["Local development Supabase"]
-  N --> T["Hosted staging Supabase"]
-  N --> P["Hosted production Supabase"]
+  N --> R["Rollback-only clean materialization"]
+  R --> B["FK-ordered 500-row batches"]
+  B --> T["Hosted staging Supabase"]
+  B --> P["Hosted production Supabase"]
 ```
 
-Hosted dry runs execute the complete normalized seed and parity audit inside a forced rollback. A real hosted seed commits only when that same audit passes in the transaction. Existing user-authored and Character data remains outside the master-record pruning boundary.
+Hosted dry runs materialize and validate the complete normalized corpus locally, then batch-write it to the target, force constraints immediate, verify every written relational row, and roll both transactions back. A real hosted seed commits only after the same constraint and row-parity checks pass. Run the explicit target audit afterward for the deeper hydrated-domain verification without holding the write transaction open. Existing user-authored and Character data remains outside the target master-record pruning boundary. Local Supabase must be running for hosted dry runs and commits because it supplies the disposable normalization transaction, not source data.
 
 Use this staging workflow:
 
