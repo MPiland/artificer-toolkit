@@ -169,6 +169,53 @@ describe('live-session browser connection', () => {
     connection.close()
   })
 
+  it('rejects pending commands when connection authorization is revoked', async () => {
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getTicket: async () => ({
+        expiresAt: '2026-08-15T12:01:00.000Z',
+        ticket: 'ticket'
+      }),
+      onError: (error) => {
+        throw error
+      },
+      onMessage: () => undefined,
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+    })
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const socket = FakeSocket.instances[0]!
+    socket.open()
+    socket.receive(readyMessage)
+
+    const first = connection.executeCommand({
+      aggregateKind: 'SCENE',
+      command: { commandId, encounterId, sceneDefinitionId, type: 'ATTACH_SCENE' }
+    })
+    const second = connection.executeCommand({
+      aggregateKind: 'SCENE',
+      command: {
+        commandId: '00000000-0000-4000-8000-000000000007',
+        encounterId,
+        sceneDefinitionId,
+        type: 'ATTACH_SCENE'
+      }
+    })
+    const firstRejection = expect(first).rejects.toThrow('Campaign membership changed.')
+    const secondRejection = expect(second).rejects.toThrow('Campaign membership changed.')
+
+    socket.receive({
+      code: 'UNAUTHORIZED',
+      commandId: null,
+      message: 'Campaign membership changed.',
+      type: 'COMMAND_REJECTED'
+    })
+
+    await Promise.all([firstRejection, secondRejection])
+    connection.close()
+  })
+
   it('rejects unsupported endpoint protocols before connecting', () => {
     expect(() => resolveLiveSessionWebSocketUrl('ftp://live.example.test', sessionId)).toThrow(
       'Live-session URL must use ws, wss, http, or https.'

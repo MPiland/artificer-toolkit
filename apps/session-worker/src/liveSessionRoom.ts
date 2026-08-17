@@ -507,11 +507,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
       ) {
         throw new Error('Live-session executor returned a different command identity.')
       }
-      this.#journal.markCompleted(
-        command.commandId,
-        JSON.stringify(response.execution),
-        Date.now() + LIVE_SESSION_COMMAND_LEASE_RENEWAL_MS
-      )
+      this.#journal.markCompleted(command.commandId, JSON.stringify(response.execution))
     } catch (error) {
       if (authorityId !== this.#authorityId || !this.#snapshot) {
         this.#journal.markPending(command.commandId, 0)

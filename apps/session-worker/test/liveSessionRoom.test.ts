@@ -1765,6 +1765,43 @@ it('releases a same-key fence after terminal rejection and keeps retryable failu
   client.socket.close(1000, 'done')
 }, 45_000)
 
+it('keeps authority renewal anchored to the last actual claim or renewal', async ({ expect }) => {
+  const testSessionId = '00000000-0000-4000-8000-000000000141'
+  const testCommandId = '00000000-0000-4000-8000-000000000142'
+  const renewalAt = Date.now() + 10_000
+  const stub = env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${testSessionId}`)
+  )
+  await stub.fetch(new Request('https://session.test/not-a-websocket'))
+
+  const stored = await runInDurableObject(stub, (_instance, state) => {
+    const journal = new LiveSessionRoomJournal(state.storage)
+    journal.ensureRoomIdentity({
+      authorityId: crypto.randomUUID(),
+      campaignId,
+      sessionId: testSessionId
+    })
+    journal.setAuthorityRenewal(renewalAt)
+    journal.acceptCommand({
+      actorRole: 'OWNER',
+      actorUserId: userId,
+      commandId: testCommandId,
+      conflictKeys: [`scene:${sceneId}:token:${tokenId}`],
+      fingerprint: testCommandId,
+      originSocketId: crypto.randomUUID(),
+      payloadJson: '{}'
+    })
+    journal.markExecuting(testCommandId)
+    journal.markCompleted(testCommandId, '{}')
+    return {
+      authorityRenewalAt: journal.loadMeta()?.authorityRenewalAt,
+      status: journal.findCommand(testCommandId)?.status
+    }
+  })
+
+  expect(stored).toEqual({ authorityRenewalAt: renewalAt, status: 'COMPLETED' })
+}, 45_000)
+
 it('caps terminal command receipts without pruning pending, executing, or completed work', async ({
   expect
 }) => {
@@ -1795,10 +1832,10 @@ it('caps terminal command receipts without pruning pending, executing, or comple
 
     for (const id of ids) accept(id)
     journal.markRejected(ids[0]!, '{}')
-    journal.markCompleted(ids[1]!, '{}', Date.now() + 10_000)
+    journal.markCompleted(ids[1]!, '{}')
     journal.markExecuting(ids[2]!)
     journal.markRejected(ids[4]!, '{}')
-    journal.markCompleted(ids[5]!, '{}', Date.now() + 10_000)
+    journal.markCompleted(ids[5]!, '{}')
     journal.commitDelivery(ids[5]!, 1, '{}')
 
     return ids.map((id) => journal.findCommand(id)?.status ?? null)

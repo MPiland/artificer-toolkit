@@ -350,17 +350,14 @@ export class LiveSessionRoomJournal {
     )
   }
 
-  markCompleted(commandId: string, resultJson: string, authorityRenewalAt: number): void {
-    this.#storage.transactionSync(() => {
-      this.#storage.sql.exec(
-        `UPDATE command_inbox
-         SET status = 'COMPLETED', result_json = ?, rejection_json = NULL
-         WHERE command_id = ?`,
-        resultJson,
-        commandId
-      )
-      this.setAuthorityRenewal(authorityRenewalAt)
-    })
+  markCompleted(commandId: string, resultJson: string): void {
+    this.#storage.sql.exec(
+      `UPDATE command_inbox
+       SET status = 'COMPLETED', result_json = ?, rejection_json = NULL
+       WHERE command_id = ?`,
+      resultJson,
+      commandId
+    )
   }
 
   markPending(commandId: string, nextAttemptAt: number): void {

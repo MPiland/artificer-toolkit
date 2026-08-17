@@ -85,6 +85,12 @@ export function createLiveSessionConnection(
   let socket: LiveSessionSocket | null = null
   let stopped = false
 
+  const rejectPendingExecutions = (error: Error) => {
+    for (const pendingExecution of pendingExecutions.values()) pendingExecution.reject(error)
+    pendingCommandIds.clear()
+    pendingExecutions.clear()
+  }
+
   const send = (message: LiveSessionWebSocketClientMessageDto): boolean => {
     if (socket?.readyState !== webSocketOpenState) return false
     socket.send(JSON.stringify(message))
@@ -156,12 +162,16 @@ export function createLiveSessionConnection(
             pendingExecution.resolve(message)
           }
           lastSeenDeliverySequence = Math.max(lastSeenDeliverySequence, message.deliverySequence)
-        } else if (message.type === 'COMMAND_REJECTED' && message.commandId) {
-          pendingCommandIds.delete(message.commandId)
-          const pendingExecution = pendingExecutions.get(message.commandId)
-          if (pendingExecution) {
-            pendingExecutions.delete(message.commandId)
-            pendingExecution.reject(new Error(message.message))
+        } else if (message.type === 'COMMAND_REJECTED') {
+          if (message.commandId) {
+            pendingCommandIds.delete(message.commandId)
+            const pendingExecution = pendingExecutions.get(message.commandId)
+            if (pendingExecution) {
+              pendingExecutions.delete(message.commandId)
+              pendingExecution.reject(new Error(message.message))
+            }
+          } else if (message.code === 'UNAUTHORIZED') {
+            rejectPendingExecutions(new Error(message.message))
           }
         } else if (message.type === 'READY') {
           if (reconnecting && !resumeSent) {
@@ -208,11 +218,7 @@ export function createLiveSessionConnection(
       const current = socket
       socket = null
       current?.close(1000, 'Live session closed.')
-      for (const pendingExecution of pendingExecutions.values()) {
-        pendingExecution.reject(new Error('The live-session connection closed.'))
-      }
-      pendingCommandIds.clear()
-      pendingExecutions.clear()
+      rejectPendingExecutions(new Error('The live-session connection closed.'))
       options.onStatus('DISCONNECTED')
     },
     executeCommand(command) {
