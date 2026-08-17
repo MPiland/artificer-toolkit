@@ -3,11 +3,11 @@ import { randomUUID } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
 
 import {
-  createBackgroundRepository,
-  createClassRepository,
   createEquipmentRepository,
-  createRaceRepository,
   createSystemRepository,
+  getBackgroundListQuery,
+  getClassListQuery,
+  getRaceListQuery,
   type DBLike
 } from '@artificer-toolkit/db'
 import {
@@ -25,12 +25,7 @@ import {
 } from '@artificer-toolkit/shared/subjects/authored'
 import { createEmptyCharacterAuthored } from '../services/character/builderService.js'
 
-const LOCAL_DATABASE_HOSTS = new Set([
-  '127.0.0.1',
-  '::1',
-  'host.docker.internal',
-  'localhost'
-])
+const LOCAL_DATABASE_HOSTS = new Set(['127.0.0.1', '::1', 'host.docker.internal', 'localhost'])
 
 type CharacterStartingEquipmentView = NonNullable<CharacterBuilderStartingEquipmentViewDto>
 export function requireLocalDatabaseUrl(): string {
@@ -97,20 +92,20 @@ export async function findFixtureCatalog(db: DBLike): Promise<CharacterLifecycle
   assert.ok(system.userId, 'The seeded D&D 5e 2014 system has no owning user.')
 
   const [races, classes, backgrounds] = await Promise.all([
-    createRaceRepository(db).findResolvedAll({ systemId: system.id }),
-    createClassRepository(db).findAll({ systemId: system.id }),
-    createBackgroundRepository(db).findAll({ systemId: system.id })
+    getRaceListQuery(db, { systemId: system.id }),
+    getClassListQuery(db, { systemId: system.id }),
+    getBackgroundListQuery(db, { systemId: system.id })
   ])
 
   return {
-    backgroundId: requireRecordByLabel(backgrounds, 'Acolyte', 'background').id,
-    championId: requireRecordByLabel(classes, 'Champion', 'subclass').id,
-    clericId: requireRecordByLabel(classes, 'Cleric', 'class').id,
-    dragonbornId: requireRecordByLabel(races, 'Dragonborn', 'race').id,
-    fighterId: requireRecordByLabel(classes, 'Fighter', 'class').id,
-    humanId: requireRecordByLabel(races, 'Human', 'race').id,
-    lifeDomainId: requireRecordByLabel(classes, 'Life Domain', 'subclass').id,
-    rogueId: requireRecordByLabel(classes, 'Rogue', 'class').id,
+    backgroundId: requireRecordByLabel(backgrounds.items, 'Acolyte', 'background').id,
+    championId: requireRecordByLabel(classes.items, 'Champion', 'subclass').id,
+    clericId: requireRecordByLabel(classes.items, 'Cleric', 'class').id,
+    dragonbornId: requireRecordByLabel(races.items, 'Dragonborn', 'race').id,
+    fighterId: requireRecordByLabel(classes.items, 'Fighter', 'class').id,
+    humanId: requireRecordByLabel(races.items, 'Human', 'race').id,
+    lifeDomainId: requireRecordByLabel(classes.items, 'Life Domain', 'subclass').id,
+    rogueId: requireRecordByLabel(classes.items, 'Rogue', 'class').id,
     systemId: system.id,
     userId: system.userId
   }

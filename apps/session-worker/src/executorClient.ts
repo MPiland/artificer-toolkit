@@ -8,6 +8,7 @@ import {
 import type { SessionWorkerEnvironment } from './environment.js'
 
 const EXECUTOR_TIMEOUT_MS = 10_000
+const SNAPSHOT_EXECUTOR_TIMEOUT_MS = 55_000
 
 export class LiveSessionExecutorRequestError extends Error {
   constructor(
@@ -33,7 +34,9 @@ export async function callLiveSessionExecutor(
         'content-type': 'application/json'
       },
       method: 'POST',
-      signal: AbortSignal.timeout(EXECUTOR_TIMEOUT_MS)
+      signal: AbortSignal.timeout(
+        request.operation === 'SNAPSHOT' ? SNAPSHOT_EXECUTOR_TIMEOUT_MS : EXECUTOR_TIMEOUT_MS
+      )
     })
   } catch (error) {
     throw new LiveSessionExecutorRequestError(

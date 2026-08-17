@@ -14,6 +14,7 @@ const gmOnlyTokenLabel = requiredValue('MANAGED_VTT_GM_ONLY_TOKEN_LABEL')
 const characterSheetPath = requiredPath('MANAGED_VTT_CHARACTER_SHEET_PATH', '/characters/')
 const liveSessionEndpoint = requiredHttpsOrigin('MANAGED_LIVE_SESSION_ENDPOINT')
 const playerCredentials = credentials('PLAYER')
+const player2Credentials = credentials('PLAYER2')
 const ruleActionLabel = requiredValue('MANAGED_VTT_RULE_ACTION_LABEL')
 const doorIndex = 1
 const authorityReleaseWaitMs = 30_000
@@ -21,9 +22,10 @@ const liveSessionWebSocketOrigin = liveSessionEndpoint.replace(/^https:/, 'wss:'
 const warmupPairs = 2
 const measuredPairs = 10
 
-test('connects two roles through the managed room and recovers a reversible scene commit', async ({
+test('connects three users through the managed room and recovers a reversible scene commit', async ({
   browser
 }, testInfo) => {
+  test.setTimeout(10 * 60_000)
   const clients: ManagedClient[] = []
   let failure: unknown
   let cleanupFailure: unknown
@@ -36,25 +38,34 @@ test('connects two roles through the managed room and recovers a reversible scen
     clients.push(gm)
     let player = await openManagedClient(browser, 'PLAYER', playerCredentials)
     clients.push(player)
+    let player2 = await openManagedClient(browser, 'PLAYER2', player2Credentials)
+    clients.push(player2)
 
     const readyStartedAt = performance.now()
-    await Promise.all([openTabletop(gm), openTabletop(player)])
+    await Promise.all([openTabletop(gm), openTabletop(player), openTabletop(player2)])
     timings.readyMs = performance.now() - readyStartedAt
 
     await expect(gm.page.getByText('Live editing available')).toBeVisible()
     await expect(gm.page.getByRole('radiogroup', { name: 'Tabletop mode' })).toBeVisible()
     await expect(player.page.getByText('Play view')).toBeVisible()
     await expect(player.page.getByRole('radiogroup', { name: 'Tabletop mode' })).toHaveCount(0)
-    await Promise.all([expectManagedSocket(gm), expectManagedSocket(player)])
+    await expect(player2.page.getByText('Play view')).toBeVisible()
+    await expect(player2.page.getByRole('radiogroup', { name: 'Tabletop mode' })).toHaveCount(0)
+    await Promise.all([
+      expectManagedSocket(gm),
+      expectManagedSocket(player),
+      expectManagedSocket(player2)
+    ])
     await expect.poll(() => gm.ticketResponses.some((response) => response.ok())).toBe(true)
     await expect.poll(() => player.ticketResponses.some((response) => response.ok())).toBe(true)
-    await expectPrivateSnapshot(gm, player)
-    await expectExactVttMapDelivery(player)
+    await expect.poll(() => player2.ticketResponses.some((response) => response.ok())).toBe(true)
+    await expectPrivateSnapshot(gm, [player, player2])
+    await Promise.all([expectExactVttMapDelivery(player), expectExactVttMapDelivery(player2)])
 
     originalDoorAction = await readDoorAction(gm.page, doorIndex)
     const currentDoorAction = await collectDoorHostTimings(
       gm,
-      player,
+      [player, player2],
       originalDoorAction,
       hostTimings.sceneOnly,
       timings
@@ -63,11 +74,17 @@ test('connects two roles through the managed room and recovers a reversible scen
     expect(nearestRankP95(hostTimings.sceneOnly)).toBeLessThan(100)
     expect(nearestRankP95(hostTimings.ruleBound)).toBeLessThan(250)
 
-    await Promise.all([gm.context.close(), player.context.close()])
+    await Promise.all([gm.context.close(), player.context.close(), player2.context.close()])
     timings.authorityReleaseWaitMs = authorityReleaseWaitMs
     await delay(authorityReleaseWaitMs)
 
     const recoveryStartedAt = performance.now()
+    player2 = await openManagedClient(browser, 'PLAYER2', player2Credentials)
+    clients.push(player2)
+    await openTabletop(player2)
+    await expectManagedSocket(player2)
+    await expectDoorAction(player2.page, currentDoorAction)
+
     player = await openManagedClient(browser, 'PLAYER', playerCredentials)
     clients.push(player)
     await openTabletop(player)
@@ -122,13 +139,13 @@ interface ManagedClient {
   liveSessionFrames: string[]
   liveSessionUrls: string[]
   page: Page
-  role: 'GM' | 'PLAYER'
+  role: 'GM' | 'PLAYER' | 'PLAYER2'
   ticketResponses: Response[]
 }
 
 async function collectDoorHostTimings(
   gm: ManagedClient,
-  player: ManagedClient,
+  players: readonly ManagedClient[],
   originalAction: string,
   samples: number[],
   diagnostics: Record<string, number>
@@ -139,7 +156,10 @@ async function collectDoorHostTimings(
     const priorFrameCount = gm.liveSessionFrames.length
     await clickDoorAction(gm.page, action)
     action = oppositeDoorAction(action)
-    await Promise.all([expectDoorAction(gm.page, action), expectDoorAction(player.page, action)])
+    await Promise.all([
+      expectDoorAction(gm.page, action),
+      ...players.map((player) => expectDoorAction(player.page, action))
+    ])
     diagnostics[`doorCommit${index + 1}Ms`] = performance.now() - startedAt
     const timing = await waitForOriginHostTiming(gm, priorFrameCount, 'SCENE_ONLY')
     if (index >= 3) samples.push(timing)
@@ -150,7 +170,7 @@ async function collectDoorHostTimings(
 async function collectRuleHostTimings(client: ManagedClient, samples: number[]): Promise<void> {
   const sheet = await client.context.newPage()
   try {
-    await sheet.goto(characterSheetPath)
+    await gotoManagedPage(sheet, characterSheetPath)
     const restoreLabel = oppositeRuleActionLabel(ruleActionLabel)
     for (let index = 0; index < warmupPairs + measuredPairs; index += 1) {
       await clickRuleActionAndCollect(client, sheet, ruleActionLabel, index >= warmupPairs, samples)
@@ -271,7 +291,7 @@ async function openManagedClient(
       client.liveSessionUrls.push(socket.url())
       socket.on('framereceived', ({ payload }) => client.liveSessionFrames.push(payload.toString()))
     })
-    await signIn(page, account.email, account.password)
+    await test.step(`${role} signs in`, () => signIn(page, account.email, account.password))
     return client
   } catch (error) {
     await context.close()
@@ -280,10 +300,14 @@ async function openManagedClient(
 }
 
 async function openTabletop(client: ManagedClient): Promise<void> {
-  await client.page.goto(tabletopPath)
-  await expect(client.page.getByRole('img', { name: 'Interactive campaign scene' })).toBeVisible()
+  await gotoManagedPage(client.page, tabletopPath)
+  await expect(client.page.getByRole('img', { name: 'Interactive campaign scene' })).toBeVisible({
+    timeout: 60_000
+  })
   await expect(client.page.getByText(campaignName, { exact: true })).toBeVisible()
-  await expect(client.page.getByText('Scene map ready.', { exact: true })).toBeVisible()
+  await expect(client.page.getByText('Scene map ready.', { exact: true })).toBeVisible({
+    timeout: 60_000
+  })
 }
 
 async function expectManagedSocket(client: ManagedClient): Promise<void> {
@@ -298,11 +322,16 @@ async function expectManagedSocket(client: ManagedClient): Promise<void> {
   ).toBe(true)
 }
 
-async function expectPrivateSnapshot(gm: ManagedClient, player: ManagedClient): Promise<void> {
+async function expectPrivateSnapshot(
+  gm: ManagedClient,
+  players: readonly ManagedClient[]
+): Promise<void> {
   await expect
     .poll(() => gm.liveSessionFrames.some((frame) => frame.includes(gmOnlyTokenLabel)))
     .toBe(true)
-  expect(player.liveSessionFrames.some((frame) => frame.includes(gmOnlyTokenLabel))).toBe(false)
+  for (const player of players) {
+    expect(player.liveSessionFrames.some((frame) => frame.includes(gmOnlyTokenLabel))).toBe(false)
+  }
 }
 
 async function expectExactVttMapDelivery(client: ManagedClient): Promise<void> {
@@ -358,11 +387,17 @@ async function delay(milliseconds: number): Promise<void> {
 }
 
 async function signIn(page: Page, email: string, password: string): Promise<void> {
-  await page.goto('/sign-in')
+  await gotoManagedPage(page, '/sign-in')
   await page.getByRole('textbox', { name: 'Email or username' }).fill(email)
   await page.getByRole('textbox', { name: 'Password' }).fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
-  await page.waitForURL((url) => !url.pathname.startsWith('/sign-in'))
+  await page.waitForURL((url) => !url.pathname.startsWith('/sign-in'), { waitUntil: 'commit' })
+}
+
+async function gotoManagedPage(page: Page, path: string): Promise<void> {
+  const separator = path.includes('?') ? '&' : '?'
+  await page.goto(`${path}${separator}ntl-drawer-state=hidden`, { waitUntil: 'domcontentloaded' })
+  await page.waitForLoadState('networkidle', { timeout: 30_000 })
 }
 
 async function readDoorAction(page: Page, index: number): Promise<string> {
@@ -412,7 +447,7 @@ function isLiveSessionSocket(value: string): boolean {
   }
 }
 
-function credentials(role: 'GM' | 'PLAYER'): { email: string; password: string } {
+function credentials(role: ManagedClient['role']): { email: string; password: string } {
   const email = process.env[`MANAGED_VTT_${role}_EMAIL`]
   const password = process.env[`MANAGED_VTT_${role}_PASSWORD`]
   if (!email || !password)

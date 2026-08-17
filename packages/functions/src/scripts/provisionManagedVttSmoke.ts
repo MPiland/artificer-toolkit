@@ -3,15 +3,19 @@ import { randomUUID } from 'node:crypto'
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import {
+  createAccountProfileRepository,
   createCampaignRepository,
-  createCreatureRepository,
   createDb,
   createMediaRepository
 } from '@artificer-toolkit/db'
 
 import { assignCampaignCharacter, createCampaign } from '../services/campaign/campaignService.js'
 import { createCampaignSession } from '../services/campaign/campaignSessionService.js'
-import { createEncounter, createEncounterTemplate } from '../services/encounter/encounterService.js'
+import {
+  createEncounter,
+  createEncounterTemplate,
+  executeEncounterCommand
+} from '../services/encounter/encounterService.js'
 import {
   attachEncounterScene,
   createCampaignSceneDefinition
@@ -27,8 +31,6 @@ import {
 
 const CONFIRMATION = 'provision-managed-vtt-smoke'
 const CAMPAIGN_NAME = 'Artificer managed VTT smoke'
-const GM_EMAIL = 'managed-vtt-gm@example.test'
-const PLAYER_EMAIL = 'managed-vtt-player@example.test'
 const HIDDEN_TOKEN_LABEL = 'Managed VTT GM-only sentinel'
 
 interface SmokeUser {
@@ -103,24 +105,37 @@ async function main(): Promise<void> {
   const connectionString = assertRemoteUrl(connectionName, requireEnvironment(connectionName))
   const supabaseUrl = assertRemoteUrl(supabaseUrlName, requireEnvironment(supabaseUrlName))
   const supabaseSecretKey = requireEnvironment(supabaseSecretKeyName)
+  const gmEmail = requireEnvironment('MANAGED_VTT_GM_EMAIL')
   const gmPassword = requireEnvironment('MANAGED_VTT_GM_PASSWORD')
+  const playerEmail = requireEnvironment('MANAGED_VTT_PLAYER_EMAIL')
   const playerPassword = requireEnvironment('MANAGED_VTT_PLAYER_PASSWORD')
-  const db = createDb({ connectionString })
+  const player2Email = requireEnvironment('MANAGED_VTT_PLAYER2_EMAIL')
+  const player2Password = requireEnvironment('MANAGED_VTT_PLAYER2_PASSWORD')
+  const db = createDb({ connectionString, connectionTimeoutMillis: 60_000 })
   const admin = createClient(supabaseUrl, supabaseSecretKey, {
     auth: { autoRefreshToken: false, detectSessionInUrl: false, persistSession: false }
   })
 
   try {
     const gm = await ensureSmokeUser(admin.auth.admin, {
-      email: GM_EMAIL,
+      email: gmEmail,
       password: gmPassword,
       username: 'managedvttgm'
     })
     const player = await ensureSmokeUser(admin.auth.admin, {
-      email: PLAYER_EMAIL,
+      email: playerEmail,
       password: playerPassword,
       username: 'managedvttplayer'
     })
+    const player2 = await ensureSmokeUser(admin.auth.admin, {
+      email: player2Email,
+      password: player2Password,
+      username: 'managedvttplayer2'
+    })
+    const profiles = createAccountProfileRepository(db)
+    await profiles.upsertForUser(gm.id, { bio: null, username: 'managedvttgm' })
+    await profiles.upsertForUser(player.id, { bio: null, username: 'managedvttplayer' })
+    await profiles.upsertForUser(player2.id, { bio: null, username: 'managedvttplayer2' })
     const existingCampaign = (await createCampaignRepository(db).listForActiveMember(gm.id)).find(
       (campaign) => campaign.name === CAMPAIGN_NAME
     )
@@ -191,6 +206,11 @@ async function main(): Promise<void> {
       player.id,
       new Date().toISOString()
     )
+    await createCampaignRepository(db).activatePlayerMembership(
+      campaign.id,
+      player2.id,
+      new Date().toISOString()
+    )
     await assignCampaignCharacter(db, gm.id, campaign.id, characterId)
     const session = await createCampaignSession(
       db,
@@ -198,18 +218,25 @@ async function main(): Promise<void> {
       gm.id
     )
 
-    const encounterCreature = (
-      await createCreatureRepository(db).findAll({ userId: gm.id, includeMaster: true })
-    ).find(
-      (creature) =>
-        creature.status === 'ACTIVE' &&
-        (creature.features ?? []).some(
-          (feature) =>
-            feature.charges?.limitKind === 'FIXED_AMOUNT' &&
-            feature.charges.scalingKind === 'NONE' &&
-            feature.charges.amount > 0
-        )
-    )
+    const encounterCreature = await db
+      .selectFrom('creatures as creature')
+      .innerJoin(
+        'creature_features as creatureFeature',
+        'creatureFeature.creature_id',
+        'creature.id'
+      )
+      .innerJoin('features as feature', 'feature.id', 'creatureFeature.feature_id')
+      .innerJoin('charges as charge', 'charge.id', 'feature.charge_id')
+      .innerJoin('charge_limits as chargeLimit', 'chargeLimit.charge_id', 'charge.id')
+      .select(['creature.id', 'creature.system_id as systemId'])
+      .where('creature.status', '=', 'ACTIVE')
+      .where('creature.is_master', '=', true)
+      .where('creature.system_id', '=', catalog.systemId)
+      .where('charge.scaling_kind', '=', 'NONE')
+      .where('chargeLimit.limit_kind', '=', 'FIXED_AMOUNT')
+      .where('chargeLimit.amount', '>', 0)
+      .orderBy('creature.id')
+      .executeTakeFirst()
     assert.ok(encounterCreature, 'The managed SRD corpus must include a charged creature feature.')
     const encounterTemplate = await createEncounterTemplate(db, gm.id, {
       campaignId: campaign.id,
@@ -224,7 +251,6 @@ async function main(): Promise<void> {
       systemId: encounterCreature.systemId,
       commandId: randomUUID()
     })
-
     const mapAssetId = randomUUID()
     const mapOverviewObjectKey = `managed-smoke/${campaign.id}/map-display.png`
     const mapTileObjectKey = `managed-smoke/${campaign.id}/map-tile-0-0.png`
@@ -341,6 +367,20 @@ async function main(): Promise<void> {
         {
           actorId: null,
           assetId: null,
+          controlledByUserIds: [player2.id],
+          height: 1,
+          hidden: false,
+          id: randomUUID(),
+          label: 'Managed second player token',
+          locked: false,
+          position: { x: 20, y: 80 },
+          rotationDegrees: 0,
+          vision: null,
+          width: 1
+        },
+        {
+          actorId: null,
+          assetId: null,
           controlledByUserIds: [],
           height: 1,
           hidden: true,
@@ -361,6 +401,13 @@ async function main(): Promise<void> {
       sceneDefinitionId: sceneDefinition.id,
       type: 'ATTACH_SCENE'
     })
+    await executeEncounterCommand(db, gm.id, {
+      commandId: randomUUID(),
+      encounterId: encounter.id,
+      expectedVersion: encounter.version,
+      systemId: encounterCreature.systemId,
+      type: 'START'
+    })
 
     console.info(
       JSON.stringify({
@@ -372,6 +419,7 @@ async function main(): Promise<void> {
         gmOnlyTokenLabel: HIDDEN_TOKEN_LABEL,
         mapAssetId,
         playerEmail: player.email,
+        player2Email: player2.email,
         ruleActionLabel: `Use one ${actionLabel} charge`,
         sceneId: attachedScene.scene.id,
         sessionId: session.id,

@@ -52,9 +52,9 @@ Before deployment, run `yarn workspace @artificer-toolkit/session-worker typeche
 
 ## Managed release journey
 
-The deployed release gate uses one clearly labeled, reusable production smoke Campaign rather than creating a new Durable Object room on every run. Keep two dedicated smoke accounts: one Campaign owner and one active player. The Campaign must have an open Session, active Encounter, attached scene, ready VTT map, one unlocked door visible to both roles, and one uniquely labeled hidden token visible only to the GM. Do not point the gate at customer data.
+The deployed release gate uses one clearly labeled, reusable production smoke Campaign rather than creating a new Durable Object room on every run. Keep three dedicated smoke accounts: one Campaign owner and two active players. The Campaign must have an open Session, active Encounter, attached scene, ready VTT map, one unlocked door visible to all three users, and one uniquely labeled hidden token visible only to the GM. Do not point the gate at customer data.
 
-For an empty managed environment, `yarn provision:vtt-managed-smoke:staging` creates that exact fixture from the `STAGING_*` database and Supabase values. The production equivalent is `yarn provision:vtt-managed-smoke:production` and reads only `PROD_*`. Both require process-only `MANAGED_VTT_GM_PASSWORD` and `MANAGED_VTT_PLAYER_PASSWORD`, plus `CONFIRM_MANAGED_VTT_SMOKE_PROVISION=provision-managed-vtt-smoke`. The command updates the two fixed smoke-account passwords, refuses to create a duplicate Campaign named `Artificer managed VTT smoke`, and prints only the non-secret paths and labels needed below. Do not save the generated passwords in the repository.
+For an empty managed environment, `yarn provision:vtt-managed-smoke:staging` creates that exact fixture from the `STAGING_*` database and Supabase values. The production equivalent is `yarn provision:vtt-managed-smoke:production` and reads only `PROD_*`. Both require the three `MANAGED_VTT_*_EMAIL`/`MANAGED_VTT_*_PASSWORD` pairs below plus `CONFIRM_MANAGED_VTT_SMOKE_PROVISION=provision-managed-vtt-smoke`. The command updates those dedicated users, refuses to create a duplicate Campaign named `Artificer managed VTT smoke`, and prints only the non-secret paths and labels needed below. Keep credentials in the ignored root `.env.local` for local operation and in the CI secret store when automated remotely; never commit them.
 
 Configure these test-only local variables without committing their values:
 
@@ -67,13 +67,15 @@ MANAGED_VTT_GM_EMAIL=<dedicated-smoke-owner>
 MANAGED_VTT_GM_PASSWORD=<dedicated-smoke-password>
 MANAGED_VTT_PLAYER_EMAIL=<dedicated-smoke-player>
 MANAGED_VTT_PLAYER_PASSWORD=<dedicated-smoke-password>
+MANAGED_VTT_PLAYER2_EMAIL=<second-dedicated-smoke-player>
+MANAGED_VTT_PLAYER2_PASSWORD=<second-dedicated-smoke-password>
 MANAGED_VTT_GM_ONLY_TOKEN_LABEL=<unique-hidden-token-label>
 MANAGED_VTT_TABLETOP_PATH=/tabletop/campaigns/<public-id>/sessions/<number>
 MANAGED_VTT_CHARACTER_SHEET_PATH=/characters/<public-id>/sheet
 MANAGED_VTT_RULE_ACTION_LABEL=Use <reversible-resource-label>
 ```
 
-Run `yarn test:web:e2e:vtt-managed:release`; it runs the non-mutating preflight first and then the credential-bearing browser journey with tracing and video disabled. The retained journey signs in both roles, proves both browsers use the exact preflighted Worker, verifies the real ticket request, GM-only snapshot sentinel, and exact signed VTT map delivery/readiness, performs three warmups plus twenty scene-door commits, then two warmup Use/Restore pairs plus ten measured pairs from the player's real sheet. The executor measures successful authoritative work and sends each host timing only to the requester; the gate requires nearest-rank p95 below `100 ms` for `SCENE_ONLY` and below `250 ms` for `RULE_BOUND`. Browser click-to-render values are retained as diagnostic evidence only. It disconnects every client through the authority-release grace period, reconnects to prove authoritative reconstruction, and restores the original door/resource state before closing contexts. Timing evidence is attached to the Playwright result. The shared smoke Campaign must not be used by concurrent gate runs.
+Run `yarn test:web:e2e:vtt-managed:release`; it runs the non-mutating preflight first and then the credential-bearing browser journey with tracing and video disabled. The retained journey signs in the GM and both players in isolated browser contexts, proves all three use the exact preflighted Worker, verifies real ticket requests, the GM-only snapshot sentinel, exact signed VTT map delivery/readiness for both players, and shared door commits, then runs two warmup Use/Restore pairs plus ten measured pairs from the first player's real sheet. The executor measures successful authoritative work and sends each host timing only to the requester; the gate requires nearest-rank p95 below `100 ms` for `SCENE_ONLY` and below `250 ms` for `RULE_BOUND`. Browser click-to-render values are retained as diagnostic evidence only. It disconnects every client through the authority-release grace period, reconnects all three to prove authoritative reconstruction, and restores the original door/resource state before closing contexts. Timing evidence is attached to the Playwright result. The shared smoke Campaign must not be used by concurrent gate runs.
 
 The Worker deliberately uses the Durable Object Hibernation WebSocket API. Connected clients remain attached while an idle room leaves memory; SQLite journal state and the private executor recover the room when the object wakes.
 

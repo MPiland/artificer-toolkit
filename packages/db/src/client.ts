@@ -3,6 +3,7 @@ import { Pool } from 'pg'
 import type { Database } from '#types'
 
 interface CreateDbOptions {
+  connectionTimeoutMillis?: number
   connectionString?: string
 }
 
@@ -115,7 +116,7 @@ export function createDb(options: CreateDbOptions = {}) {
       pool: installQueryTrace(
         new Pool({
           connectionString: resolveConnectionString(options),
-          connectionTimeoutMillis: 10_000,
+          connectionTimeoutMillis: options.connectionTimeoutMillis ?? 10_000,
           idleTimeoutMillis: 30_000,
           max: readPoolMax()
         })
