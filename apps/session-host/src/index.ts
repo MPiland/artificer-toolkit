@@ -14,5 +14,11 @@ const server = createSessionHostServer(
   })
 )
 
+const shutdown = async () => {
+  await server.gracefullyShutdown(false)
+}
+process.once('SIGINT', () => void shutdown())
+process.once('SIGTERM', () => void shutdown())
+
 await server.listen(port)
 console.info(`Artificer session host listening on port ${port}.`)

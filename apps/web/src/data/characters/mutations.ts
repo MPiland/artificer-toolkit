@@ -10,6 +10,10 @@ import type {
   CharacterSheetResponseDto,
   CharacterRestPreviewRequestDto
 } from '#app/lib/api'
+import type {
+  LiveSessionCommandDto,
+  LiveSessionWebSocketServerMessageDto
+} from '@artificer-toolkit/schema/api/liveSessions'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import {
@@ -100,15 +104,33 @@ export function useCommitCharacterBuilderMutation() {
   })
 }
 
-export function useCharacterSheetCommandMutation(characterId: string) {
+export function useCharacterSheetCommandMutation(
+  characterId: string,
+  options: {
+    executeLiveCommand?: (
+      command: LiveSessionCommandDto
+    ) => Promise<Extract<LiveSessionWebSocketServerMessageDto, { type: 'COMMAND_COMMITTED' }>>
+    getLiveAggregateVersion?: () => number | null
+  } = {}
+) {
   const queryClient = useQueryClient()
   const sheetKey = queryKeys.characters.sheet(characterId)
   const panelsKey = queryKeys.characters.panels(characterId)
 
   return useMutation({
     mutationKey: ['characters', 'sheet', 'command', characterId],
-    mutationFn: (input: CharacterSheetCommandInputDto) =>
-      api.characters.command(characterId, input),
+    mutationFn: async (input: CharacterSheetCommandInputDto) => {
+      if (!options.executeLiveCommand) return api.characters.command(characterId, input)
+      const committed = await options.executeLiveCommand({
+        aggregateKind: 'CHARACTER',
+        characterId,
+        command: input
+      })
+      if (committed.aggregateKind !== 'CHARACTER' || !committed.response) {
+        throw new Error('The live session did not return the committed Character Sheet.')
+      }
+      return committed.response
+    },
     onMutate: async (input) => {
       await Promise.all([
         queryClient.cancelQueries({ queryKey: sheetKey, exact: true }),
@@ -129,6 +151,16 @@ export function useCharacterSheetCommandMutation(characterId: string) {
       return { previousPanels, previousSheet }
     },
     onSuccess: async (response) => {
+      const cachedVersion =
+        queryClient.getQueryData<CharacterSheetResponseDto>(sheetKey)?.meta.streamVersion ?? 0
+      const liveVersion = options.getLiveAggregateVersion?.() ?? 0
+      if (response.streamVersion < Math.max(cachedVersion, liveVersion)) {
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: sheetKey, exact: true }),
+          queryClient.refetchQueries({ queryKey: panelsKey })
+        ])
+        return
+      }
       queryClient.setQueryData(sheetKey, response.sheet)
       await queryClient.invalidateQueries({
         queryKey: panelsKey,

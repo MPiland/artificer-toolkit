@@ -120,6 +120,7 @@ export const ActionTypes: Story = {
             id: 'action-dash',
             label: 'Dash',
             kind: 'ACTION',
+            availability: { status: 'AVAILABLE' },
             sourceLabel: 'Core action',
             description: '<p>Gain extra movement for the current turn.</p>'
           },
@@ -127,6 +128,7 @@ export const ActionTypes: Story = {
             id: 'action-opportunity-attack',
             label: 'Opportunity Attack',
             kind: 'REACTION',
+            availability: { status: 'AVAILABLE' },
             sourceLabel: 'Core action',
             description:
               '<p>Make one melee attack when a creature leaves your reach without disengaging.</p>'
@@ -135,6 +137,7 @@ export const ActionTypes: Story = {
             id: 'action-force-ballista',
             label: 'Force Ballista',
             kind: 'ACTION',
+            availability: { status: 'AVAILABLE' },
             sourceLabel: 'Artificer',
             description: '<p>Fire a bolt of force at a creature you can see within range.</p>',
             resourceGrantId: 'resource-force-ballista',

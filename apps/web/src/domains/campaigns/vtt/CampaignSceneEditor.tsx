@@ -1,0 +1,372 @@
+import { ActionIcon, Alert, Button, Group, Switch, Text, Tooltip } from '@mantine/core'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Crosshair, Eye, RotateCcw, Save, ZoomIn, ZoomOut } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
+import { api, type CampaignDetailDto } from '#app/lib/api'
+import { queryKeys } from '#app/lib/queryKeys'
+import { createEditorSceneState, updateSceneEditorDraft } from './CampaignSceneEditor.model'
+import {
+  createSceneAnnotation,
+  createSceneBarrier,
+  createSceneDarknessZone,
+  createSceneLight,
+  createSceneToken,
+  editTools,
+  type CampaignVttToolDefinition
+} from './CampaignVttStage.model'
+import { CampaignSceneObjectInspector } from './CampaignSceneObjectInspector'
+import { SceneObjectCreator } from './SceneObjectCreator'
+import * as preparationStyles from './CampaignScenePreparation.css'
+import * as stageStyles from './CampaignVttStage.css'
+import {
+  createVttSceneRenderer,
+  type CampaignVttTool,
+  type VttMapLoadStatus,
+  type VttSceneRenderer,
+  type VttSceneRendererUpdate
+} from './vttSceneRenderer'
+
+export function CampaignSceneEditor({
+  campaignId,
+  currentUserId,
+  memberships,
+  onDirtyChange,
+  scene
+}: {
+  campaignId: string
+  currentUserId: string
+  memberships: CampaignDetailDto['memberships']
+  onDirtyChange: (dirty: boolean) => void
+  scene: SceneDefinitionDto
+}) {
+  const queryClient = useQueryClient()
+  const renderer = useRef<VttSceneRenderer | null>(null)
+  const rendererHost = useRef<HTMLDivElement | null>(null)
+  const rendererUpdateRef = useRef<VttSceneRendererUpdate | null>(null)
+  const savingRef = useRef(false)
+  const previewRef = useRef(false)
+  const [draft, setDraft] = useState(() => structuredClone(scene))
+  const [dirty, setDirty] = useState(false)
+  const [mapLoadStatus, setMapLoadStatus] = useState<VttMapLoadStatus | null>(null)
+  const [playerPreview, setPlayerPreview] = useState(false)
+  const [tool, setTool] = useState<CampaignVttTool>('SELECT')
+  previewRef.current = playerPreview
+
+  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange])
+  useEffect(() => () => onDirtyChange(false), [onDirtyChange])
+
+  useEffect(() => {
+    setDraft(structuredClone(scene))
+    setDirty(false)
+    setPlayerPreview(false)
+    setTool('SELECT')
+  }, [scene.id, scene.version])
+
+  const mapDelivery = useQuery({
+    queryFn: () => api.media.getVttMapDelivery({ assetId: scene.map.assetId }),
+    queryKey: queryKeys.media.vttMap(scene.map.assetId),
+    refetchOnReconnect: 'always',
+    refetchOnWindowFocus: false,
+    staleTime: 4 * 60_000
+  })
+  const mapFailure =
+    mapDelivery.error instanceof Error
+      ? mapDelivery.error.message
+      : mapLoadStatus === 'ERROR'
+        ? 'Map artwork could not be loaded.'
+        : null
+  const previewUserId =
+    draft.tokens.flatMap((token) => token.controlledByUserIds)[0] ?? currentUserId
+  rendererUpdateRef.current = {
+    currentUserId,
+    mapDelivery: mapDelivery.data ?? null,
+    mode: playerPreview ? 'PLAY' : 'EDIT',
+    role: playerPreview ? 'PLAYER' : 'OWNER',
+    scene: createEditorSceneState(draft, playerPreview ? previewUserId : null),
+    tool: playerPreview ? 'PAN' : tool
+  }
+
+  const changeDraft = useCallback((change: (current: SceneDefinitionDto) => SceneDefinitionDto) => {
+    if (savingRef.current) return
+    setDraft((current) => updateSceneEditorDraft(current, change, savingRef.current))
+    setDirty(true)
+  }, [])
+
+  useEffect(() => {
+    const host = rendererHost.current
+    if (!host) return
+    let disposed = false
+    void createVttSceneRenderer(host, {
+      onMapLoadStatus: setMapLoadStatus,
+      onCreateAnnotation: (position) => {
+        if (previewRef.current) return
+        changeDraft((current) => ({
+          ...current,
+          annotations: [
+            ...current.annotations,
+            createSceneAnnotation(current.annotations.length, position)
+          ]
+        }))
+      },
+      onCreateBarrier: (kind, a, b) => {
+        if (previewRef.current || (a.x === b.x && a.y === b.y)) return
+        changeDraft((current) => ({
+          ...current,
+          barriers: [...current.barriers, createSceneBarrier(kind, a, b)]
+        }))
+      },
+      onCreateDarkness: (a, b) => {
+        if (previewRef.current) return
+        const zone = createSceneDarknessZone(a, b)
+        if (!zone) return
+        changeDraft((current) => ({
+          ...current,
+          darknessZones: [...current.darknessZones, zone]
+        }))
+      },
+      onCreateLight: (position) => {
+        if (previewRef.current) return
+        changeDraft((current) => ({
+          ...current,
+          lights: [...current.lights, createSceneLight(position)]
+        }))
+      },
+      onCreateToken: (position) => {
+        if (previewRef.current) return
+        changeDraft((current) => ({
+          ...current,
+          tokens: [
+            ...current.tokens,
+            createSceneToken(current.grid, current.tokens.length, position)
+          ]
+        }))
+      },
+      onDoorState: (barrierId, state) => {
+        if (previewRef.current) return
+        changeDraft((current) => ({
+          ...current,
+          barriers: current.barriers.map((barrier) =>
+            barrier.kind === 'DOOR' && barrier.id === barrierId
+              ? { ...barrier, initialState: state }
+              : barrier
+          )
+        }))
+      },
+      onMeasurementCommit: () => undefined,
+      onMeasurementPreview: () => undefined,
+      onPointerPreview: () => undefined,
+      onTokenCommit: (tokenId, path) => {
+        if (previewRef.current) return
+        const position = path.at(-1)
+        if (!position) return
+        changeDraft((current) => ({
+          ...current,
+          tokens: current.tokens.map((token) =>
+            token.id === tokenId ? { ...token, position } : token
+          )
+        }))
+      },
+      onTokenPreview: () => undefined
+    }).then((nextRenderer) => {
+      if (disposed) {
+        nextRenderer.destroy()
+        return
+      }
+      renderer.current = nextRenderer
+      const latestUpdate = rendererUpdateRef.current
+      if (latestUpdate) nextRenderer.update(latestUpdate)
+    })
+    return () => {
+      disposed = true
+      renderer.current?.destroy()
+      renderer.current = null
+    }
+  }, [changeDraft, currentUserId, scene.id])
+
+  useEffect(() => {
+    const latestUpdate = rendererUpdateRef.current
+    if (latestUpdate) renderer.current?.update(latestUpdate)
+  }, [currentUserId, draft, mapDelivery.data, playerPreview, tool])
+
+  useEffect(() => {
+    setMapLoadStatus(null)
+  }, [scene.id])
+
+  function retryMap(): void {
+    setMapLoadStatus('LOADING')
+    void mapDelivery.refetch().then((result) => {
+      if (result.isSuccess) renderer.current?.retryMap(result.data)
+    })
+  }
+
+  const save = useMutation({
+    mutationFn: (submitted: SceneDefinitionDto) => {
+      const { id, version, ...definition } = submitted
+      return api.campaigns.scenes.update({
+        ...definition,
+        expectedVersion: version,
+        sceneId: id
+      })
+    },
+    onSuccess: async (saved) => {
+      setDraft(structuredClone(saved))
+      setDirty(false)
+      await queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.scenes(campaignId) })
+    },
+    onSettled: () => {
+      savingRef.current = false
+    }
+  })
+
+  return (
+    <section className={preparationStyles.editor} aria-label={`Scene editor: ${draft.name}`}>
+      <div className={preparationStyles.editorHeader}>
+        <div>
+          <Text fw={650}>{draft.name}</Text>
+          <Text c='dimmed' size='xs'>
+            Structural edits stay in Prepare. Players receive the clean live scene.
+          </Text>
+        </div>
+        <Group gap='xs'>
+          <Switch
+            checked={playerPreview}
+            label='Player preview'
+            size='sm'
+            thumbIcon={<Eye aria-hidden size={12} />}
+            onChange={(event) => setPlayerPreview(event.currentTarget.checked)}
+          />
+          <Tooltip label='Zoom out'>
+            <ActionIcon
+              aria-label='Zoom out'
+              variant='default'
+              onClick={() => renderer.current?.zoomOut()}
+            >
+              <ZoomOut aria-hidden size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label='Fit map to view'>
+            <ActionIcon
+              aria-label='Fit map to view'
+              variant='default'
+              onClick={() => renderer.current?.fit()}
+            >
+              <Crosshair aria-hidden size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label='Zoom in'>
+            <ActionIcon
+              aria-label='Zoom in'
+              variant='default'
+              onClick={() => renderer.current?.zoomIn()}
+            >
+              <ZoomIn aria-hidden size={18} />
+            </ActionIcon>
+          </Tooltip>
+          <Button
+            disabled={!dirty || save.isPending}
+            leftSection={<RotateCcw aria-hidden size={16} />}
+            size='xs'
+            variant='default'
+            onClick={() => {
+              setDraft(structuredClone(scene))
+              setDirty(false)
+            }}
+          >
+            Reset
+          </Button>
+          <Button
+            disabled={!dirty || save.isPending}
+            leftSection={<Save aria-hidden size={16} />}
+            loading={save.isPending}
+            size='xs'
+            onClick={() => {
+              savingRef.current = true
+              save.mutate(structuredClone(draft))
+            }}
+          >
+            Save scene
+          </Button>
+        </Group>
+      </div>
+      {save.error ? <Alert color='red'>{save.error.message}</Alert> : null}
+      {mapFailure ? (
+        <Alert color='red'>
+          {mapFailure}
+          <Button loading={mapDelivery.isFetching} size='xs' variant='light' onClick={retryMap}>
+            Retry map
+          </Button>
+        </Alert>
+      ) : null}
+      <div className={preparationStyles.editorLayout}>
+        <div className={stageStyles.toolbar} aria-label='Scene editor tools' role='toolbar'>
+          {editTools
+            .filter(
+              (definition) => definition.value !== 'FOG_REVEAL' && definition.value !== 'FOG_HIDE'
+            )
+            .map((definition) => (
+              <EditorToolButton
+                definition={definition}
+                disabled={playerPreview || save.isPending}
+                key={definition.value}
+                selected={tool === definition.value}
+                onSelect={setTool}
+              />
+            ))}
+        </div>
+        <div className={stageStyles.canvasFrame} ref={rendererHost}>
+          {!playerPreview && tool === 'WALL' ? (
+            <Text className={stageStyles.canvasInstruction} role='status' size='xs'>
+              Click to add wall segments. Enter or right-click finishes; Escape cancels.
+            </Text>
+          ) : null}
+        </div>
+        <CampaignSceneObjectInspector
+          creationSlot={
+            !playerPreview ? (
+              <SceneObjectCreator
+                disabled={save.isPending}
+                scene={draft}
+                onCreate={(next) => changeDraft(() => next)}
+              />
+            ) : null
+          }
+          disabled={playerPreview || save.isPending}
+          memberships={memberships}
+          scene={draft}
+          onChange={(next) => changeDraft(() => next)}
+          onFocus={(point) => renderer.current?.focusPoint(point)}
+        />
+      </div>
+    </section>
+  )
+}
+
+function EditorToolButton({
+  definition,
+  disabled,
+  onSelect,
+  selected
+}: {
+  definition: CampaignVttToolDefinition
+  disabled: boolean
+  onSelect: (tool: CampaignVttTool) => void
+  selected: boolean
+}) {
+  const Icon = definition.icon
+  return (
+    <Tooltip label={definition.label} position='right'>
+      <ActionIcon
+        aria-label={definition.label}
+        aria-pressed={selected}
+        color={selected ? 'brand' : undefined}
+        disabled={disabled}
+        size='lg'
+        variant={selected ? 'filled' : 'subtle'}
+        onClick={() => onSelect(definition.value)}
+      >
+        <Icon aria-hidden size={19} />
+      </ActionIcon>
+    </Tooltip>
+  )
+}

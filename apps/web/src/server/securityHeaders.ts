@@ -70,11 +70,27 @@ function getSentryConnectSource() {
   }
 }
 
+function getLiveSessionConnectSource() {
+  const configured =
+    process.env.VITE_LIVE_SESSION_WEBSOCKET_URL ?? import.meta.env.VITE_LIVE_SESSION_WEBSOCKET_URL
+  if (!configured) return isDevelopment() ? ['ws://127.0.0.1:2567'] : []
+
+  try {
+    const url = new URL(configured)
+    if (url.protocol === 'http:') url.protocol = 'ws:'
+    if (url.protocol === 'https:') url.protocol = 'wss:'
+    return url.protocol === 'ws:' || url.protocol === 'wss:' ? [url.origin] : []
+  } catch {
+    return []
+  }
+}
+
 function getConnectSrc() {
   return [
     "connect-src 'self' blob:",
     ...SUPABASE_CONNECT_SOURCES,
     ...getSentryConnectSource(),
+    ...getLiveSessionConnectSource(),
     ...getDevelopmentConnectSources()
   ].join(' ')
 }

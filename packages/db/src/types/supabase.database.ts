@@ -1434,6 +1434,44 @@ export type Database = {
           },
         ]
       }
+      campaign_scene_definitions: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          definition: Json
+          id: string
+          name: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          definition: Json
+          id?: string
+          name: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          definition?: Json
+          id?: string
+          name?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_scene_definitions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_session_attendance: {
         Row: {
           campaign_id: string
@@ -7799,6 +7837,113 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "encounters"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      encounter_scene_events: {
+        Row: {
+          actor_user_id: string
+          command_fingerprint: string
+          command_id: string
+          command_type: string
+          created_at: string
+          delta: Json
+          encounter_id: string
+          id: string
+          scene_id: string
+          version: number
+        }
+        Insert: {
+          actor_user_id: string
+          command_fingerprint: string
+          command_id: string
+          command_type: string
+          created_at?: string
+          delta: Json
+          encounter_id: string
+          id?: string
+          scene_id: string
+          version: number
+        }
+        Update: {
+          actor_user_id?: string
+          command_fingerprint?: string
+          command_id?: string
+          command_type?: string
+          created_at?: string
+          delta?: Json
+          encounter_id?: string
+          id?: string
+          scene_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_scene_events_scene_id_encounter_id_fkey"
+            columns: ["scene_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_scenes"
+            referencedColumns: ["id", "encounter_id"]
+          },
+        ]
+      }
+      encounter_scenes: {
+        Row: {
+          attach_command_fingerprint: string
+          attach_command_id: string
+          campaign_id: string
+          created_at: string
+          definition_id: string
+          definition_snapshot: Json
+          definition_version: number
+          encounter_id: string
+          id: string
+          projection: Json
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          attach_command_fingerprint: string
+          attach_command_id: string
+          campaign_id: string
+          created_at?: string
+          definition_id: string
+          definition_snapshot: Json
+          definition_version: number
+          encounter_id: string
+          id?: string
+          projection: Json
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          attach_command_fingerprint?: string
+          attach_command_id?: string
+          campaign_id?: string
+          created_at?: string
+          definition_id?: string
+          definition_snapshot?: Json
+          definition_version?: number
+          encounter_id?: string
+          id?: string
+          projection?: Json
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_scenes_definition_id_campaign_id_fkey"
+            columns: ["definition_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_scene_definitions"
+            referencedColumns: ["id", "campaign_id"]
+          },
+          {
+            foreignKeyName: "encounter_scenes_encounter_id_campaign_id_fkey"
+            columns: ["encounter_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "encounters"
+            referencedColumns: ["id", "campaign_id"]
           },
         ]
       }
@@ -14480,6 +14625,47 @@ export type Database = {
             columns: ["system_id"]
             isOneToOne: false
             referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vtt_map_tiles: {
+        Row: {
+          asset_id: string
+          byte_size: number
+          column_index: number
+          created_at: string
+          height: number
+          object_key: string
+          row_index: number
+          width: number
+        }
+        Insert: {
+          asset_id: string
+          byte_size: number
+          column_index: number
+          created_at?: string
+          height: number
+          object_key: string
+          row_index: number
+          width: number
+        }
+        Update: {
+          asset_id?: string
+          byte_size?: number
+          column_index?: number
+          created_at?: string
+          height?: number
+          object_key?: string
+          row_index?: number
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vtt_map_tiles_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "media_assets"
             referencedColumns: ["id"]
           },
         ]

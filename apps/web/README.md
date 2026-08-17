@@ -38,6 +38,8 @@ TanStack Start is deployed with `@netlify/vite-plugin-tanstack-start`, which pac
 
 When creating the Netlify project, set the package directory to `apps/web` and leave the base directory at the repository root. The committed configuration runs `yarn build:web` and publishes `apps/web/dist/client`.
 
+Production releases must be built by Netlify from the connected Git repository on Linux. Do not use a Windows `netlify deploy` artifact for this application: the server and live-session executor depend on GoRules' platform-native binding, and Windows manual packaging also preserves unusable absolute workspace symlinks. A local Windows build remains useful for validation, but pushing the reviewed source and allowing Netlify's Linux build to package all four functions is the release path.
+
 The committed edge function limits `/api/trpc/*` to 60 requests per 60 seconds per IP and domain so mixed tRPC batches cannot bypass it. The application rejects tRPC POST bodies over 1 MiB from their actual streamed bytes before authentication or JSON parsing, and Postgres enforces the durable per-account root-creation windows. Confirm the rate-limit rule appears in each production deploy log; Netlify may accept a deploy even when a rule is invalid.
 
 Set these values in the Netlify UI rather than in `netlify.toml`:

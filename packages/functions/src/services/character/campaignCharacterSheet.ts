@@ -38,6 +38,12 @@ export interface CharacterSheetCampaignContext {
   conditions: CampaignConditionDto[]
 }
 
+export interface CharacterLiveSessionRuleContext {
+  adjustments: CharacterSheetAdjustment[]
+  additionalConditions: Array<{ conditionTypeId: string; notes?: string }>
+  attunementSlotOverride: number | null
+}
+
 function accessError(characterId: string): Error {
   const error = new Error(`Character "${characterId}" cannot be viewed by the current user.`)
   error.name = 'AuthoredContentOwnershipError'
@@ -67,6 +73,31 @@ function toCondition(record: CampaignAdjustment): CampaignConditionDto {
     version: record.version,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt
+  }
+}
+
+export async function resolveCharacterLiveSessionRuleContext(
+  db: DBLike,
+  characterId: string,
+  campaign: { id: string; attunementSlotOverride: number | null }
+): Promise<CharacterLiveSessionRuleContext | null> {
+  const assignment = await createCampaignContentRepository(db).findAssignedCampaign(characterId)
+  if (assignment?.campaignId !== campaign.id) return null
+
+  const records = await createCampaignAdjustmentsRepository(db).listAdjustments(
+    campaign.id,
+    characterId
+  )
+  return {
+    adjustments: records.filter((record) => record.family !== 'CONDITION').map(toSheetAdjustment),
+    additionalConditions: records
+      .filter((record) => record.family === 'CONDITION')
+      .map(toCondition)
+      .map(({ conditionTypeId, notes }) => ({
+        conditionTypeId,
+        ...(notes ? { notes } : {})
+      })),
+    attunementSlotOverride: campaign.attunementSlotOverride
   }
 }
 

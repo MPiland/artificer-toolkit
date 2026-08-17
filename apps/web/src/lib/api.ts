@@ -172,6 +172,21 @@ export type {
   EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 
+export type {
+  LiveSessionCommandDto,
+  LiveSessionTicketDto,
+  LiveSessionWebSocketClientMessageDto,
+  LiveSessionWebSocketServerMessageDto
+} from '@artificer-toolkit/schema/api/liveSessions'
+
+export type {
+  EncounterSceneStateDto,
+  SceneCommandInputDto,
+  SceneDefinitionDto,
+  SceneSnapshotDto,
+  SceneTransientEnvelopeDto
+} from '@artificer-toolkit/schema/api/vttScenes'
+
 export type { BackgroundAuthoringInputDto } from '@artificer-toolkit/schema/subjects/background'
 export type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
 export type { CreatureAuthoringInputDto } from '@artificer-toolkit/schema/subjects/creature'

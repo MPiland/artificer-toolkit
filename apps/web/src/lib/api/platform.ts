@@ -1,11 +1,15 @@
 import * as encounterContracts from '@artificer-toolkit/schema/api/encounters'
 import {
   createImageUploadIntentOutputSchema,
+  createVttMapUploadIntentOutputSchema,
   finalizeImageUploadOutputSchema,
+  finalizeVttMapUploadOutputSchema,
   signedImageDeliveryDtoSchema,
+  signedVttMapDeliveryDtoSchema,
   type AttachImageInput,
   type CreateCampaignFileUploadIntentInput,
   type CreateImageUploadIntentInput,
+  type CreateVttMapUploadIntentInput,
   type FinalizeImageUploadInput,
   type ImageLookupInput,
   type RemoveImageInput
@@ -131,6 +135,18 @@ export function buildPlatformApi(client: TrpcClient) {
       finalizeCampaignFileUpload: (input: FinalizeImageUploadInput) =>
         request('media.finalizeCampaignFileUpload', finalizeImageUploadOutputSchema, () =>
           client.media.finalizeCampaignFileUpload.mutate(input)
+        ),
+      createVttMapUpload: (input: CreateVttMapUploadIntentInput) =>
+        request('media.createVttMapUpload', createVttMapUploadIntentOutputSchema, () =>
+          client.media.createVttMapUpload.mutate(input)
+        ),
+      finalizeVttMapUpload: (input: FinalizeImageUploadInput) =>
+        request('media.finalizeVttMapUpload', finalizeVttMapUploadOutputSchema, () =>
+          client.media.finalizeVttMapUpload.mutate(input)
+        ),
+      getVttMapDelivery: (input: FinalizeImageUploadInput) =>
+        request('media.getVttMapDelivery', signedVttMapDeliveryDtoSchema, () =>
+          client.media.getVttMapDelivery.query(input)
         )
     },
     nodeRuntime: {

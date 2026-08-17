@@ -13,7 +13,7 @@ import { evaluateZenRuleModel } from './zenRuleEngine.js'
 
 const fixtureId = '91488688-a841-4cbc-8a0c-9014efee7b37'
 
-function chargeDecisionGraph(nodeType = 'decisionTableNode') {
+function chargeDecisionGraph(nodeType = 'decisionTableNode', allowEmpty = false) {
   return {
     contentType: 'application/vnd.gorules.decision',
     edges: [
@@ -65,8 +65,8 @@ function chargeDecisionGraph(nodeType = 'decisionTableNode') {
             {
               _id: 'empty',
               remaining: '',
-              allowed: 'false',
-              reason: '"NO_CHARGES"',
+              allowed: allowEmpty ? 'true' : 'false',
+              reason: allowEmpty ? '"ALLOWED"' : '"NO_CHARGES"',
               rolls: '[]',
               outcomes: '[]'
             }
@@ -113,6 +113,37 @@ describe('Zen rule adapter', () => {
       outcomes: []
     })
     expect(result.trace).not.toBeNull()
+  })
+
+  it('isolates warm compiled runtimes by immutable revision checksum', async () => {
+    const alternateDocument = rulePackDocumentDtoSchema.parse({
+      ...document(),
+      models: {
+        'charge-eligibility': chargeDecisionGraph('decisionTableNode', true)
+      }
+    })
+    const first = await evaluateZenRuleModel({
+      cacheKey: 'revision-checksum-a',
+      document: document(),
+      modelKey: 'charge-eligibility',
+      context: { remainingCharges: 1 }
+    })
+    const second = await evaluateZenRuleModel({
+      cacheKey: 'revision-checksum-b',
+      document: alternateDocument,
+      modelKey: 'charge-eligibility',
+      context: { remainingCharges: 0 }
+    })
+    const repeated = await evaluateZenRuleModel({
+      cacheKey: 'revision-checksum-a',
+      document: document(),
+      modelKey: 'charge-eligibility',
+      context: { remainingCharges: 1 }
+    })
+
+    expect(first.result).toMatchObject({ eligibility: { allowed: true } })
+    expect(second.result).toMatchObject({ eligibility: { allowed: true } })
+    expect(repeated.result).toEqual(first.result)
   })
 
   it('rejects executable function nodes before Zen sees them', () => {

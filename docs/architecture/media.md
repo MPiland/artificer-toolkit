@@ -26,6 +26,10 @@ Phase 02 enables `ACCOUNT_AVATAR`, `CHARACTER_PORTRAIT`, and `AUTHORED_IMAGE`. E
 
 Phase 06 adds `CAMPAIGN_FILE` and `CAMPAIGN_HANDOUT_MAP`. Campaign files accept normalized JPEG/PNG/WebP or strict UTF-8 `text/plain`, and handout maps accept normalized images only. Both remain private, limited to 6 MiB, and require fresh Campaign membership before attachment listing or signed delivery. Handout maps are ordinary Campaign assets and have no VTT behavior. PDF, office, archive, executable, SVG/HTML, resumable upload, and external malware-scanning support remain deferred rather than being represented as accepted safe formats.
 
+Phase 08 adds `VTT_MAP` for Campaign owners. Maps are JPEG, PNG, or WebP up to 25 MiB, 8,192 px per side, and 64 MP. They use Supabase's signed TUS endpoint (`/storage/v1/upload/resumable/sign`) with the issued `x-signature` token and an exact 6 MiB chunk size; the sibling endpoint without `/sign` is the user-JWT flow and must not receive a signed-upload token. Finalization verifies the source dimensions, produces immutable display and thumbnail variants, and generates 1,024 px renderer tiles (at most 64). Delivery returns a signed overview plus signed tile URLs only after current Campaign authorization. A scene definition must reference a ready same-Campaign map with its verified dimensions; database triggers prevent deleting or changing an asset while any scene definition or Encounter snapshot references it.
+
+`yarn test:vtt-map:integration` is the local-Supabase proof for this seam. It creates disposable Auth/Campaign fixtures, exercises an interrupted and resumed signed TUS upload, finalization, signed delivery, scene reference protection, and oversized-map rejection, then removes all fixture rows and Storage objects. It refuses non-loopback URLs and is never a production-data operation.
+
 ## Lifecycle
 
 ```mermaid

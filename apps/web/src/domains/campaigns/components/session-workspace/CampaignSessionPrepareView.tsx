@@ -6,6 +6,7 @@ import { CampaignSessionReferences } from '../CampaignSessionReferences'
 import { CampaignSessionSchedulePanel } from '../CampaignSessionSchedulePanel'
 import { CampaignSessionSectionGroup } from '../CampaignSessionSectionGroup'
 import { prepareSessionSectionKinds } from '../campaignSessionSections.model'
+import { CampaignScenePreparation } from '../../vtt/CampaignScenePreparation'
 import * as styles from '../../campaignSessions.css'
 
 export function CampaignSessionPrepareView({
@@ -21,6 +22,11 @@ export function CampaignSessionPrepareView({
 }) {
   return (
     <Stack gap='lg'>
+      <CampaignScenePreparation
+        campaignId={campaign.id}
+        currentUserId={currentUserId}
+        memberships={campaign.memberships}
+      />
       <section className={styles.sessionUtilityPanel} aria-label='Schedule and RSVP'>
         <CampaignSessionSchedulePanel
           campaign={campaign}

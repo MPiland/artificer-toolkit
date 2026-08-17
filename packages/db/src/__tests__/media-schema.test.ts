@@ -13,6 +13,7 @@ describe('media image persistence schema', () => {
   const generated = read('packages/db/src/domains/bootstrap/generated/create_database.bundle.sql')
   const migration = read('supabase/migrations/20260805120000_media_image_foundation.sql')
   const hardening = read('supabase/migrations/20260805130000_media_image_hardening.sql')
+  const vttMigration = read('supabase/migrations/20260815212103_phase_08_vtt_scenes.sql')
 
   it('keeps canonical, bootstrap, and migration media constraints aligned', () => {
     for (const source of [canonical, generated, migration]) {
@@ -84,5 +85,29 @@ describe('media image persistence schema', () => {
       /ALTER TABLE public\.characters\s+ADD COLUMN IF NOT EXISTS portrait_asset_id uuid/
     )
     expect(canonical).not.toContain('ALTER TABLE public.character_profile\n  ADD COLUMN')
+  })
+
+  it('keeps VTT map tiles and scene references protected', () => {
+    const encounterTables = read('packages/db/src/domains/encounters/tables/encounters.sql')
+
+    for (const source of [canonical, generated, vttMigration]) {
+      expect(source).toContain("'VTT_MAP'")
+      expect(source).toContain('vtt_map_tiles')
+      expect(source).toContain('26214400')
+    }
+
+    for (const source of [encounterTables, generated, vttMigration]) {
+      expect(source).toContain('validate_vtt_scene_map_asset')
+      expect(source).toContain('campaign_scene_definitions_validate_vtt_map_trigger')
+      expect(source).toContain('protect_referenced_vtt_map_asset')
+      expect(source).toContain('media_assets_protect_referenced_vtt_map_update_trigger')
+      expect(source).toContain('media_assets_protect_referenced_vtt_map_delete_trigger')
+      expect(source).toContain('sync_vtt_scene_map_reference')
+      expect(source).toContain('campaign_scene_definitions_sync_vtt_map_reference_trigger')
+      expect(source).toContain('sync_encounter_scene_map_reference')
+      expect(source).toContain('encounter_scenes_sync_vtt_map_reference_trigger')
+    }
+
+    expect(canonical).toContain('FROM public.vtt_map_tiles')
   })
 })

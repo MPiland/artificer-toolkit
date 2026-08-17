@@ -32,7 +32,9 @@ export default defineConfig({
       'packages/functions/src/__tests__/**/*.test.ts',
       'packages/functions/src/**/*.test.ts',
       'apps/apis/src/**/*.test.ts',
-      'apps/session-host/src/**/*.test.ts'
+      'apps/session-host/src/**/*.test.ts',
+      'apps/session-worker/src/**/*.test.ts',
+      'netlify/tests/**/*.test.ts'
     ]
   }
 })

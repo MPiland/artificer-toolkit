@@ -12,16 +12,39 @@ import {
   updateCampaignSession,
   createCampaignSessionReferencePin,
   deleteCampaignSessionReferencePin,
+  issueLiveSessionTicket,
   setCampaignSessionRsvp,
   setCampaignSessionAttendance,
   updateCampaignSessionNoteSection
 } from '@artificer-toolkit/functions'
 import * as campaignContracts from '@artificer-toolkit/schema/api/campaigns'
+import {
+  liveSessionJoinOptionsDtoSchema,
+  liveSessionTicketDtoSchema
+} from '@artificer-toolkit/schema/api/liveSessions'
 import { withExplicitAuthorityDb } from './dbContext.js'
 
 import { authenticatedProcedure, createTRPCRouter, okResponseSchema } from './procedures.js'
 
+const runtimeGlobals = globalThis as typeof globalThis & {
+  process?: { env?: Record<string, string | undefined> }
+}
+
+function liveSessionTicketSecret(): string {
+  const secret = runtimeGlobals.process?.env?.LIVE_SESSION_TICKET_SECRET
+  if (!secret) throw new Error('LIVE_SESSION_TICKET_SECRET is not configured.')
+  return secret
+}
+
 export const campaignSessionRouter = createTRPCRouter({
+  ticket: authenticatedProcedure
+    .input(liveSessionJoinOptionsDtoSchema)
+    .output(liveSessionTicketDtoSchema)
+    .mutation(({ ctx, input }) =>
+      withExplicitAuthorityDb(ctx, (db, userId) =>
+        issueLiveSessionTicket(db, userId, input, liveSessionTicketSecret())
+      )
+    ),
   list: authenticatedProcedure
     .input(campaignContracts.listCampaignSessionsInputSchema)
     .output(campaignContracts.campaignSessionsDtoSchema)

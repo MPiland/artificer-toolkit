@@ -2,9 +2,12 @@ import {
   attachImage,
   createCampaignFileUploadIntent,
   createImageUploadIntent,
+  createVttMapUploadIntent,
   finalizeCampaignFileUpload,
   finalizeImageUpload,
+  finalizeVttMapUpload,
   getImage,
+  getVttMapDelivery,
   removeImage
 } from '@artificer-toolkit/functions'
 import {
@@ -12,11 +15,15 @@ import {
   createCampaignFileUploadIntentInputSchema,
   createImageUploadIntentInputSchema,
   createImageUploadIntentOutputSchema,
+  createVttMapUploadIntentInputSchema,
+  createVttMapUploadIntentOutputSchema,
   finalizeImageUploadInputSchema,
   finalizeImageUploadOutputSchema,
+  finalizeVttMapUploadOutputSchema,
   imageLookupInputSchema,
   removeImageInputSchema,
-  signedImageDeliveryDtoSchema
+  signedImageDeliveryDtoSchema,
+  signedVttMapDeliveryDtoSchema
 } from '@artificer-toolkit/schema/api/media'
 import { requireUserId, withAuthenticatedDb, withDb } from './dbContext.js'
 
@@ -37,6 +44,26 @@ export const mediaRouter = createTRPCRouter({
       const userId = requireUserId(ctx)
       return withDb(ctx, (db) => finalizeCampaignFileUpload(db, userId, input.assetId))
     }),
+  createVttMapUpload: authenticatedProcedure
+    .input(createVttMapUploadIntentInputSchema)
+    .output(createVttMapUploadIntentOutputSchema)
+    .mutation(({ ctx, input }) => {
+      const userId = requireUserId(ctx)
+      return withDb(ctx, (db) => createVttMapUploadIntent(db, userId, input))
+    }),
+  finalizeVttMapUpload: authenticatedProcedure
+    .input(finalizeImageUploadInputSchema)
+    .output(finalizeVttMapUploadOutputSchema)
+    .mutation(({ ctx, input }) => {
+      const userId = requireUserId(ctx)
+      return withDb(ctx, (db) => finalizeVttMapUpload(db, userId, input.assetId))
+    }),
+  getVttMapDelivery: authenticatedProcedure
+    .input(finalizeImageUploadInputSchema)
+    .output(signedVttMapDeliveryDtoSchema)
+    .query(({ ctx, input }) =>
+      withAuthenticatedDb(ctx, (db, userId) => getVttMapDelivery(db, userId, input.assetId))
+    ),
   createImageUpload: authenticatedProcedure
     .input(createImageUploadIntentInputSchema)
     .output(createImageUploadIntentOutputSchema)

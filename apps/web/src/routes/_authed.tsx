@@ -34,21 +34,26 @@ function AuthedLayout() {
   const currentHref = useRouterState({
     select: (state) => (state.resolvedLocation ?? state.location).href
   })
+  const isStandaloneTabletop = currentPath.startsWith('/tabletop/')
 
   return (
     <NotificationsProvider>
-      <Shell
-        navigation={platformNavigation}
-        currentHref={currentHref}
-        currentPath={currentPath}
-        isAuthenticated={Boolean(user)}
-        isSuperAdmin={isSuperAdmin}
-        libraryImportEnabled={featureFlags?.libraryImportEnabled}
-        publicSignUpEnabled={featureFlags?.publicSignUpEnabled}
-        userEmail={user?.email}
-      >
+      {isStandaloneTabletop ? (
         <Outlet />
-      </Shell>
+      ) : (
+        <Shell
+          navigation={platformNavigation}
+          currentHref={currentHref}
+          currentPath={currentPath}
+          isAuthenticated={Boolean(user)}
+          isSuperAdmin={isSuperAdmin}
+          libraryImportEnabled={featureFlags?.libraryImportEnabled}
+          publicSignUpEnabled={featureFlags?.publicSignUpEnabled}
+          userEmail={user?.email}
+        >
+          <Outlet />
+        </Shell>
+      )}
     </NotificationsProvider>
   )
 }

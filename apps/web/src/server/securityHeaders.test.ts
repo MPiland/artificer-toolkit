@@ -12,24 +12,51 @@ describe('security headers', () => {
   })
 
   it('enforces the complete browser content policy', () => {
-    const response = withSecurityHeaders(new Response('ok'))
-    const csp = response.headers.get('Content-Security-Policy') ?? ''
+    const originalUrl = process.env.VITE_LIVE_SESSION_WEBSOCKET_URL
+    delete process.env.VITE_LIVE_SESSION_WEBSOCKET_URL
 
-    expect(csp).toContain("default-src 'self'")
-    expect(csp).toContain("frame-ancestors 'none'")
-    expect(csp).toContain("object-src 'none'")
-    expect(csp).toContain("base-uri 'self'")
-    expect(csp).toContain("form-action 'self'")
-    expect(csp).toContain("script-src 'self'")
-    expect(csp).toContain("style-src 'self'")
-    expect(csp).toContain(
-      "img-src 'self' data: blob: https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321"
-    )
-    expect(csp).toContain("connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co")
-    expect(csp).not.toContain('novu.co')
-    expect(csp).toContain('http://127.0.0.1:54321')
-    expect(csp).toContain('ws://127.0.0.1:54321')
-    expect(response.headers.get('Content-Security-Policy-Report-Only')).toBeNull()
+    try {
+      const response = withSecurityHeaders(new Response('ok'))
+      const csp = response.headers.get('Content-Security-Policy') ?? ''
+
+      expect(csp).toContain("default-src 'self'")
+      expect(csp).toContain("frame-ancestors 'none'")
+      expect(csp).toContain("object-src 'none'")
+      expect(csp).toContain("base-uri 'self'")
+      expect(csp).toContain("form-action 'self'")
+      expect(csp).toContain("script-src 'self'")
+      expect(csp).toContain("style-src 'self'")
+      expect(csp).toContain(
+        "img-src 'self' data: blob: https://*.supabase.co http://127.0.0.1:54321 http://localhost:54321"
+      )
+      expect(csp).toContain("connect-src 'self' blob: https://*.supabase.co wss://*.supabase.co")
+      expect(csp).not.toContain('novu.co')
+      expect(csp).toContain('http://127.0.0.1:54321')
+      expect(csp).toContain('ws://127.0.0.1:54321')
+      expect(csp).toContain('ws://127.0.0.1:2567')
+      expect(response.headers.get('Content-Security-Policy-Report-Only')).toBeNull()
+    } finally {
+      if (originalUrl === undefined) {
+        delete process.env.VITE_LIVE_SESSION_WEBSOCKET_URL
+      } else {
+        process.env.VITE_LIVE_SESSION_WEBSOCKET_URL = originalUrl
+      }
+    }
+  })
+
+  it('allows the configured live-session WebSocket origin', () => {
+    const originalUrl = process.env.VITE_LIVE_SESSION_WEBSOCKET_URL
+    process.env.VITE_LIVE_SESSION_WEBSOCKET_URL = 'https://live.example.com/live-session'
+
+    try {
+      expect(createSecurityHeaders()['Content-Security-Policy']).toContain('wss://live.example.com')
+    } finally {
+      if (originalUrl === undefined) {
+        delete process.env.VITE_LIVE_SESSION_WEBSOCKET_URL
+      } else {
+        process.env.VITE_LIVE_SESSION_WEBSOCKET_URL = originalUrl
+      }
+    }
   })
 
   it('keeps local Supabase origins out of production CSP', () => {

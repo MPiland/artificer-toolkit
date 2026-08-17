@@ -16,18 +16,19 @@ When code and prose disagree, use the precedence rules in [docs/README.md](docs/
 
 ## Repository map
 
-| Module               | Owns                                                                                                       | Does not own                                   |
-| -------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `apps/web`           | TanStack Start UI, Authoring Workspace, character Builder and Sheet surfaces, query/mutation adapters      | Product-data access, persistence, domain rules |
-| `apps/apis`          | Thin tRPC transport, authentication-aware procedure composition, request/response mapping                  | Domain logic, persistence, orchestration       |
-| `apps/session-host`  | Long-lived local and managed-remote live-session rooms, ordered commands, reconnect, state synchronization | A second rules implementation, ordinary APIs   |
-| `packages/schema`    | Zod-backed transport contracts and DTOs                                                                    | Database rows, application orchestration       |
-| `packages/shared`    | Authored contracts, vocabulary, node maps, compilers, and normalized Character rule-fact contracts         | Request handling, persistence, UI              |
-| `packages/functions` | Application orchestration, authoring pipelines, node-runtime orchestration, character Builder/Sheet flows  | Transport wiring, UI, SQL schema               |
-| `packages/db`        | Kysely client/types, repositories, queries, upserts, source-data import                                    | Product transport, UI, domain orchestration    |
-| `supabase`           | Migrations and database bootstrap assets                                                                   | Application write policy                       |
+| Module                | Owns                                                                                                      | Does not own                                   |
+| --------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `apps/web`            | TanStack Start UI, Authoring Workspace, character Builder and Sheet surfaces, query/mutation adapters     | Product-data access, persistence, domain rules |
+| `apps/apis`           | Thin tRPC transport, authentication-aware procedure composition, request/response mapping                 | Domain logic, persistence, orchestration       |
+| `apps/session-worker` | Managed remote WebSocket rooms, Durable Object journaling, conflict scheduling, private fanout            | Zen execution, canonical gameplay persistence  |
+| `apps/session-host`   | Local native WebSocket rooms, ordered commands, reconnect, direct shared-service and Zen execution        | A second rules implementation, ordinary APIs   |
+| `packages/schema`     | Zod-backed transport contracts and DTOs                                                                   | Database rows, application orchestration       |
+| `packages/shared`     | Authored contracts, vocabulary, node maps, compilers, and normalized Character rule-fact contracts        | Request handling, persistence, UI              |
+| `packages/functions`  | Application orchestration, authoring pipelines, node-runtime orchestration, character Builder/Sheet flows | Transport wiring, UI, SQL schema               |
+| `packages/db`         | Kysely client/types, repositories, queries, upserts, source-data import                                   | Product transport, UI, domain orchestration    |
+| `supabase`            | Migrations and database bootstrap assets                                                                  | Application write policy                       |
 
-The dependency direction is intentionally one-way: the web crosses the tRPC seam for ordinary requests and the session-host WebSocket seam during live play. Both backend entrypoints delegate to the same application orchestration, shared contracts, persistence adapters, and embedded rules evaluator; shared domain modules remain transport-agnostic.
+The dependency direction is intentionally one-way: the web crosses the tRPC seam for ordinary requests and the native WebSocket seam during live play. Managed rooms use the Cloudflare session worker and private Netlify Node executor; local rooms use the session host directly. Both delegate durable mechanics to the same application orchestration, shared contracts, persistence adapters, and native Zen evaluator; shared domain modules remain transport-agnostic.
 
 ## Two authoring models
 
@@ -58,4 +59,4 @@ Use the focused command documented by the owning workspace before running a broa
 - Need a new product-data procedure? Start with [docs/architecture/transport.md](docs/architecture/transport.md) and `apps/apis/README.md`.
 - Need a character Builder or Sheet behavior? Start with [docs/architecture/character.md](docs/architecture/character.md), then the character module landing page.
 - Need a rules calculation? Start with [docs/architecture/engine.md](docs/architecture/engine.md); assemble typed facts and evaluate the exact pinned Zen rule revision.
-- Need live-session coordination? Start with [docs/architecture/live-sessions.md](docs/architecture/live-sessions.md) and `apps/session-host/README.md`.
+- Need live-session coordination? Start with [docs/architecture/live-sessions.md](docs/architecture/live-sessions.md), `apps/session-worker`, and `apps/session-host/README.md`.

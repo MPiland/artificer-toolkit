@@ -1,0 +1,30 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "artificer-live-session",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-15",
+  "routes": [
+    {
+      "pattern": "tabletop.artificertoolkit.app",
+      "custom_domain": true
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "LIVE_SESSION_ROOMS",
+        "class_name": "LiveSessionRoom"
+      }
+    ]
+  },
+  "exports": {
+    "LiveSessionRoom": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  },
+  "vars": {
+    "LIVE_SESSION_ALLOWED_ORIGINS": "https://artificertoolkit.app",
+    "LIVE_SESSION_EXECUTOR_URL": "https://artificertoolkit.app/.netlify/functions/live-session-executor"
+  }
+}

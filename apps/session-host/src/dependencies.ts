@@ -1,7 +1,5 @@
 import { createDb, withUserContext } from '@artificer-toolkit/db'
 import {
-  authenticateLiveSessionToken,
-  authorizeLiveSessionAdmission,
   claimLiveSessionRoomCommandAuthority,
   executeLiveSessionCommand,
   loadLiveSessionRoomSnapshot,
@@ -11,8 +9,10 @@ import {
   type LiveSessionRoomSnapshot
 } from '@artificer-toolkit/functions/services'
 import type {
+  LiveSessionActiveMembershipDto,
   LiveSessionCommandDto,
-  LiveSessionJoinOptionsDto
+  LiveSessionJoinOptionsDto,
+  LiveSessionSceneVisionContextDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type {
   CharacterSheetCommittedRuleSnapshot,
@@ -24,8 +24,6 @@ import type {
 } from '@artificer-toolkit/functions/services/encounter'
 
 export interface LiveSessionRoomDependencies {
-  authenticate(token: string): Promise<string>
-  authorize(userId: string, options: LiveSessionJoinOptionsDto): Promise<void>
   loadSnapshot(userId: string, options: LiveSessionJoinOptionsDto): Promise<LiveSessionRoomSnapshot>
   claimAuthority(
     userId: string,
@@ -36,7 +34,7 @@ export interface LiveSessionRoomDependencies {
     userId: string,
     options: LiveSessionJoinOptionsDto,
     authorityId: string
-  ): Promise<void>
+  ): Promise<LiveSessionActiveMembershipDto[]>
   releaseAuthority(
     userId: string,
     options: LiveSessionJoinOptionsDto,
@@ -47,6 +45,7 @@ export interface LiveSessionRoomDependencies {
     options: LiveSessionJoinOptionsDto,
     command: LiveSessionCommandDto,
     authorityId: string,
+    sceneVisionContext: LiveSessionSceneVisionContextDto,
     committedRuleSnapshot?: CharacterSheetCommittedRuleSnapshot,
     committedEncounterRuleSnapshot?: EncounterActorRuleSnapshot
   ): Promise<LiveSessionCommandExecution>
@@ -63,9 +62,15 @@ export interface LiveSessionEncounterCommandTiming {
   service: EncounterCommandServiceTiming
 }
 
+export interface LiveSessionSceneCommandTiming {
+  commandId: string
+  totalMs: number
+}
+
 export interface CreateLiveSessionRoomDependenciesOptions {
   onCharacterCommandTiming?: (timing: LiveSessionCharacterCommandTiming) => void
   onEncounterCommandTiming?: (timing: LiveSessionEncounterCommandTiming) => void
+  onSceneCommandTiming?: (timing: LiveSessionSceneCommandTiming) => void
 }
 
 export function createLiveSessionRoomDependencies(
@@ -73,12 +78,6 @@ export function createLiveSessionRoomDependencies(
 ): LiveSessionRoomDependencies {
   const db = createDb()
   return {
-    authenticate: authenticateLiveSessionToken,
-    authorize: async (userId, options) => {
-      await withUserContext(db, userId, async (scopedDb) => {
-        await authorizeLiveSessionAdmission(scopedDb, userId, options)
-      })
-    },
     loadSnapshot: (userId, options) =>
       withUserContext(db, userId, (scopedDb) =>
         loadLiveSessionRoomSnapshot(scopedDb, userId, options)
@@ -89,7 +88,7 @@ export function createLiveSessionRoomDependencies(
       ),
     renewAuthority: (userId, roomOptions, authorityId) =>
       withUserContext(db, userId, (scopedDb) =>
-        renewLiveSessionRoomCommandAuthority(scopedDb, roomOptions, authorityId)
+        renewLiveSessionRoomCommandAuthority(scopedDb, userId, roomOptions, authorityId)
       ),
     releaseAuthority: (userId, roomOptions, authorityId) =>
       withUserContext(db, userId, (scopedDb) =>
@@ -100,16 +99,19 @@ export function createLiveSessionRoomDependencies(
       roomOptions,
       command,
       authorityId,
+      sceneVisionContext,
       committedRuleSnapshot,
       committedEncounterRuleSnapshot
-    ) =>
-      withUserContext(db, userId, (scopedDb) =>
+    ) => {
+      const startedAt = command.aggregateKind === 'SCENE' ? performance.now() : null
+      return withUserContext(db, userId, (scopedDb) =>
         executeLiveSessionCommand(
           scopedDb,
           userId,
           roomOptions,
           command,
           authorityId,
+          sceneVisionContext,
           committedRuleSnapshot,
           (service) =>
             options.onCharacterCommandTiming?.({
@@ -123,7 +125,15 @@ export function createLiveSessionRoomDependencies(
               service
             })
         )
-      ),
+      ).finally(() => {
+        if (startedAt !== null) {
+          options.onSceneCommandTiming?.({
+            commandId: command.command.commandId,
+            totalMs: performance.now() - startedAt
+          })
+        }
+      })
+    },
     dispose: () => db.destroy()
   }
 }

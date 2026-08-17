@@ -38,6 +38,16 @@ export type MediaVariantRow = {
   height: number | null
 }
 
+export type VttMapTileRow = {
+  asset_id: string
+  byte_size: number
+  column_index: number
+  height: number
+  object_key: string
+  row_index: number
+  width: number
+}
+
 export type AuthoredImageSlotRow = {
   subject_kind: string
   subject_id: string
@@ -110,9 +120,12 @@ export function createMediaRepository(db: DBLike) {
 
     async usageBytes(ownerUserId: string): Promise<number> {
       const result = await sql<{ total: string | number }>`
-        select coalesce(sum(case when asset.status in ('PENDING_UPLOAD', 'PROCESSING') then 6291456 else 0 end), 0)
+        select coalesce(sum(case when asset.status in ('PENDING_UPLOAD', 'PROCESSING') then case when asset.profile = 'VTT_MAP' then 26214400 else 6291456 end else 0 end), 0)
           + coalesce((select sum(variant.byte_size) from media_variants variant
               join media_assets owned on owned.id = variant.asset_id
+              where owned.owner_user_id = ${ownerUserId}::uuid and owned.status = 'READY'), 0)
+          + coalesce((select sum(tile.byte_size) from vtt_map_tiles tile
+              join media_assets owned on owned.id = tile.asset_id
               where owned.owner_user_id = ${ownerUserId}::uuid and owned.status = 'READY'), 0) as total
         from media_assets asset where asset.owner_user_id = ${ownerUserId}::uuid
       `.execute(db)
@@ -140,6 +153,7 @@ export function createMediaRepository(db: DBLike) {
       width: number | null
       height: number | null
       variants: readonly Omit<MediaVariantRow, 'asset_id'>[]
+      vttMapTiles?: readonly Omit<VttMapTileRow, 'asset_id'>[]
     }): Promise<boolean> {
       return withTransaction(db, async (trx) => {
         const owner = await sql<{ id: string }>`
@@ -147,15 +161,22 @@ export function createMediaRepository(db: DBLike) {
         `.execute(trx)
         if (!owner.rows[0]) return false
         const usage = await sql<{ total: string | number }>`
-          select coalesce(sum(case when asset.status in ('PENDING_UPLOAD', 'PROCESSING') then 6291456 else 0 end), 0)
+          select coalesce(sum(case when asset.status in ('PENDING_UPLOAD', 'PROCESSING') then case when asset.profile = 'VTT_MAP' then 26214400 else 6291456 end else 0 end), 0)
             + coalesce((select sum(variant.byte_size) from media_variants variant
                 join media_assets owned on owned.id = variant.asset_id
+                where owned.owner_user_id = ${input.ownerUserId}::uuid and owned.status = 'READY'), 0)
+            + coalesce((select sum(tile.byte_size) from vtt_map_tiles tile
+                join media_assets owned on owned.id = tile.asset_id
                 where owned.owner_user_id = ${input.ownerUserId}::uuid and owned.status = 'READY'), 0) as total
           from media_assets asset where asset.owner_user_id = ${input.ownerUserId}::uuid
         `.execute(trx)
         const variantBytes = input.variants.reduce((total, variant) => total + variant.byte_size, 0)
+        const tileBytes = (input.vttMapTiles ?? []).reduce(
+          (total, tile) => total + tile.byte_size,
+          0
+        )
         if (
-          Number(usage.rows[0]?.total ?? 0) - input.reservationBytes + variantBytes >
+          Number(usage.rows[0]?.total ?? 0) - input.reservationBytes + variantBytes + tileBytes >
           input.quotaBytes
         )
           return false
@@ -165,12 +186,27 @@ export function createMediaRepository(db: DBLike) {
           on conflict (object_key) do nothing
         `.execute(trx)
         await sql`delete from media_variants where asset_id = ${input.assetId}::uuid`.execute(trx)
+        await sql`
+          insert into media_object_deletions (object_key)
+          select object_key from vtt_map_tiles where asset_id = ${input.assetId}::uuid
+          on conflict (object_key) do nothing
+        `.execute(trx)
+        await sql`delete from vtt_map_tiles where asset_id = ${input.assetId}::uuid`.execute(trx)
         for (const variant of input.variants)
           await sql`
           insert into media_variants (id, asset_id, kind, object_key, mime_type, byte_size, width, height)
           values (${variant.id}::uuid, ${input.assetId}::uuid, ${variant.kind}, ${variant.object_key},
             ${variant.mime_type}, ${variant.byte_size}, ${variant.width}, ${variant.height})
         `.execute(trx)
+        for (const tile of input.vttMapTiles ?? [])
+          await sql`
+            insert into vtt_map_tiles (
+              asset_id, row_index, column_index, object_key, byte_size, width, height
+            ) values (
+              ${input.assetId}::uuid, ${tile.row_index}, ${tile.column_index},
+              ${tile.object_key}, ${tile.byte_size}, ${tile.width}, ${tile.height}
+            )
+          `.execute(trx)
         for (const variant of input.variants)
           await sql`
             delete from media_object_deletions where object_key = ${variant.object_key}
@@ -188,6 +224,10 @@ export function createMediaRepository(db: DBLike) {
           select raw_object_key from media_assets where id = ${input.assetId}::uuid
           on conflict (object_key) do nothing
         `.execute(trx)
+        for (const tile of input.vttMapTiles ?? [])
+          await sql`
+            delete from media_object_deletions where object_key = ${tile.object_key}
+          `.execute(trx)
         return true
       })
     },
@@ -212,6 +252,15 @@ export function createMediaRepository(db: DBLike) {
         select * from media_variants where asset_id = ${assetId}::uuid and kind = ${kind}
       `.execute(db)
       return result.rows[0] ?? null
+    },
+
+    async listVttMapTiles(assetId: string): Promise<VttMapTileRow[]> {
+      const result = await sql<VttMapTileRow>`
+        select asset_id, row_index, column_index, object_key, byte_size, width, height
+        from vtt_map_tiles where asset_id = ${assetId}::uuid
+        order by row_index asc, column_index asc
+      `.execute(db)
+      return result.rows
     },
 
     async replaceThumbnail(
@@ -352,15 +401,26 @@ export function createMediaRepository(db: DBLike) {
                 and not exists (select 1 from profiles where avatar_asset_id = asset.id)
                 and not exists (select 1 from characters where portrait_asset_id = asset.id)
                 and not exists (select 1 from authored_image_slots where asset_id = asset.id)
+                and not exists (
+                  select 1 from campaign_scene_definitions definition
+                  where definition.definition #>> '{map,assetId}' = asset.id::text
+                )
+                and not exists (
+                  select 1 from encounter_scenes scene
+                  where scene.definition_snapshot #>> '{map,assetId}' = asset.id::text
+                    or scene.projection #>> '{map,assetId}' = asset.id::text
+                )
               )
               or (asset.status = 'REJECTED' and asset.updated_at < now() - interval '7 days')
             )
           returning asset.id, asset.raw_object_key
         )
         select claimed.id as asset_id, claimed.raw_object_key,
-          coalesce(array_agg(variant.object_key) filter (where variant.object_key is not null), '{}') as object_keys
+          coalesce(array_agg(distinct variant.object_key) filter (where variant.object_key is not null), '{}')
+            || coalesce(array_agg(distinct tile.object_key) filter (where tile.object_key is not null), '{}') as object_keys
         from claimed
         left join media_variants variant on variant.asset_id = claimed.id
+        left join vtt_map_tiles tile on tile.asset_id = claimed.id
         group by claimed.id, claimed.raw_object_key
       `.execute(db)
       return result.rows.map((row) => ({

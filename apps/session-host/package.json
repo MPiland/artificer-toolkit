@@ -18,17 +18,14 @@
     "@artificer-toolkit/db": "workspace:^",
     "@artificer-toolkit/functions": "workspace:^",
     "@artificer-toolkit/schema": "workspace:^",
-    "@colyseus/core": "0.17.50",
-    "@colyseus/schema": "4.0.30",
-    "@colyseus/ws-transport": "0.17.13",
-    "express": "5.2.1",
+    "ws": "^8.21.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@colyseus/sdk": "0.17.43",
     "@supabase/supabase-js": "2.108.2",
-    "@types/express": "5.0.6",
     "@types/node": "^25.6.1",
+    "@types/ws": "^8.5.12",
+    "jose": "^6.2.4",
     "tsx": "^4.22.4",
     "typescript": "^7.0.2"
   }

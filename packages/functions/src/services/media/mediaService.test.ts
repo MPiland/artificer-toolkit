@@ -85,4 +85,26 @@ describe('media service safety contracts', () => {
     expect(source).toContain('width: null')
     expect(source).toContain('height: null')
   })
+
+  it('keeps VTT maps full resolution while publishing bounded WebP tiles', () => {
+    const vttMapFinalizer = source.slice(
+      source.indexOf('export async function finalizeVttMapUpload'),
+      source.indexOf('export async function getVttMapDelivery')
+    )
+    expect(source).toContain("found.profile !== 'VTT_MAP'")
+    expect(source).toContain('const vttMapMaxBytes = 25 * 1024 * 1024')
+    expect(source).toContain('const vttMapMaxPixels = 64_000_000')
+    expect(source).toContain('const vttMapTileSize = 1024')
+    expect(source).toContain("protocol: 'TUS' as const")
+    expect(vttMapFinalizer).toContain('if (rows * columns > vttMapTileLimit)')
+    expect(vttMapFinalizer).toContain('vttMapTiles: tiles')
+    expect(vttMapFinalizer).not.toContain('.resize(4096, 4096')
+  })
+
+  it('authorizes VTT delivery before signing every overview and tile URL', () => {
+    expect(source).toContain('assertActiveCampaignMember(authority)')
+    expect(source).toContain("authority.membership.role === 'OWNER'")
+    expect(source).toContain("scene.definition_snapshot #>> '{map,assetId}'")
+    expect(source).toContain('createSignedUrl(tile.object_key, expiresInSeconds)')
+  })
 })

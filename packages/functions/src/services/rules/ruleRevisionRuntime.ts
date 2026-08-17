@@ -119,6 +119,7 @@ export async function evaluateRuleRevision(input: {
   }
   const evaluationStartedAt = performance.now()
   const evaluated = await evaluateZenRuleModel({
+    cacheKey: revision.checksum,
     document,
     modelKey: input.modelKey,
     context: normalizedFacts,

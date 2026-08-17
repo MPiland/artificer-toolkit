@@ -9,6 +9,7 @@ import { CampaignSessionSectionGroup } from '../CampaignSessionSectionGroup'
 import { CampaignSharedSessionNotes } from '../CampaignSessionNotes'
 import { runSessionSectionKinds } from '../campaignSessionSections.model'
 import { CampaignSessionPlayerEncounters } from './CampaignSessionPlayerEncounters'
+import { CampaignTabletopLauncher } from '../../vtt/CampaignTabletopLauncher'
 import * as styles from '../../campaignSessions.css'
 
 export function CampaignSessionRunView({
@@ -23,6 +24,7 @@ export function CampaignSessionRunView({
   if (campaign.role === 'PLAYER') {
     return (
       <Stack gap='lg'>
+        <CampaignTabletopLauncher campaign={campaign} session={session} />
         <CampaignSessionPlayerEncounters campaign={campaign} sessionId={session.id} />
         <CampaignFileList
           campaign={campaign}
@@ -45,6 +47,7 @@ export function CampaignSessionRunView({
 
   return (
     <Stack gap='lg'>
+      <CampaignTabletopLauncher campaign={campaign} session={session} />
       <CampaignSessionEncounters
         campaign={campaign}
         currentUserId={currentUserId}

@@ -31,6 +31,10 @@ export function createMockAuthClient(options: MockAuthClientOptions = {}): AuthC
       await wait(options.delayMs)
       return result
     }),
+    verifyPasswordRecovery: fn(async () => {
+      await wait(options.delayMs)
+      return result
+    }),
     updatePassword: fn(async () => {
       await wait(options.delayMs)
       return result

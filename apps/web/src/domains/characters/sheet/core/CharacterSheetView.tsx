@@ -1,13 +1,17 @@
 import { Alert, Tabs } from '@mantine/core'
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import { getCampaignSessionAttendance, getCampaignSessions } from '#app/data/campaigns/queries'
 import { useCharacterSheetCommandMutation } from '#app/data/characters/mutations'
 import type { CharacterSheetPanelTargetDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { CampaignChatDrawer } from '#domains/campaigns/components/CampaignChatDrawer'
 import { CampaignNotesDrawer } from '#domains/campaigns/components/CampaignNotesDrawer'
 import { CharacterSheetPartyInventory } from '#domains/campaigns/components/CharacterSheetPartyInventory'
+import { CampaignTabletopButton } from '#domains/campaigns/vtt/CampaignTabletopButton'
+import { findCurrentTabletopSession } from '#domains/campaigns/vtt/CampaignTabletopWindow.model'
+import { useCampaignLiveSession } from '#domains/campaigns/vtt/useCampaignLiveSession'
 import { CharacterSheetHero } from '../hero/CharacterSheetHero'
 import { CharacterSheetInspector } from '../inspector/CharacterSheetInspector'
 import { CharacterSheetManualRoll } from '../dice/CharacterSheetManualRoll'
@@ -65,12 +69,56 @@ export function CharacterSheetView({
   const [overlayEpoch, setOverlayEpoch] = useState(0)
   const inspectorTriggerRef = useRef<HTMLElement | null>(null)
   const queryClient = useQueryClient()
-  const commandMutation = useCharacterSheetCommandMutation(sheet.meta.characterId)
+  const campaignId = sheet.meta.campaignId ?? null
+  const sessions = useQuery({
+    ...getCampaignSessions(campaignId ?? sheet.meta.characterId),
+    enabled: campaignId !== null
+  })
+  const currentSession = sessions.data ? findCurrentTabletopSession(sessions.data) : undefined
+  const attendance = useQuery({
+    ...getCampaignSessionAttendance(
+      campaignId ?? sheet.meta.characterId,
+      currentSession?.id ?? sheet.meta.characterId
+    ),
+    enabled: campaignId !== null && currentSession !== undefined
+  })
+  const attendsLiveSession =
+    currentSession !== undefined &&
+    attendance.data?.some(
+      (entry) => entry.characterId === sheet.meta.characterId && entry.present
+    ) === true
+  const live = useCampaignLiveSession({
+    campaignId: campaignId ?? sheet.meta.characterId,
+    enabled: attendsLiveSession,
+    onTransient: () => undefined,
+    sessionId: currentSession?.id ?? sheet.meta.characterId
+  })
+  const commandMutation = useCharacterSheetCommandMutation(sheet.meta.characterId, {
+    ...(attendsLiveSession
+      ? {
+          executeLiveCommand: live.executeCommand,
+          getLiveAggregateVersion: () =>
+            live.getAggregateVersion('CHARACTER', sheet.meta.characterId)
+        }
+      : {})
+  })
   const rollController = useCharacterSheetRollController(
     sheet.meta.characterId,
     sheet.meta.campaignId ?? undefined
   )
-  const pending = commandMutation.isPending
+  const liveContextPending =
+    campaignId !== null &&
+    (sessions.isPending || (currentSession !== undefined && attendance.isPending))
+  const pending =
+    commandMutation.isPending ||
+    liveContextPending ||
+    (attendsLiveSession && live.status !== 'CONNECTED')
+  const liveContextError =
+    sessions.error instanceof Error
+      ? sessions.error.message
+      : attendance.error instanceof Error
+        ? attendance.error.message
+        : live.error
   const campaignInventory =
     sheet.meta.campaignId && currentUserId ? (
       <CharacterSheetPartyInventory
@@ -173,6 +221,7 @@ export function CharacterSheetView({
             campaignActions={
               sheet.meta.campaignId && currentUserId ? (
                 <>
+                  <CampaignTabletopButton campaignId={sheet.meta.campaignId} />
                   <CampaignChatDrawer
                     campaignId={sheet.meta.campaignId}
                     currentUserId={currentUserId}
@@ -217,6 +266,12 @@ export function CharacterSheetView({
           </Alert>
         ) : null}
         {commandMutation.error ? <Alert color='red'>{commandMutation.error.message}</Alert> : null}
+        {!commandMutation.error && liveContextError ? (
+          <Alert color='red'>{liveContextError}</Alert>
+        ) : null}
+        {attendsLiveSession && live.status !== 'CONNECTED' && !liveContextError ? (
+          <Alert color='blue'>Connecting this sheet to the live Session…</Alert>
+        ) : null}
 
         <CharacterSheetMobilePager
           activePage={visibleActiveMobilePage}

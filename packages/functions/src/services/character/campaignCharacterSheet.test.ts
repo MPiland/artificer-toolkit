@@ -50,6 +50,7 @@ const {
   mergeCampaignSheetAdjustments,
   projectCharacterRestForViewer,
   projectCharacterSheetForViewer,
+  resolveCharacterLiveSessionRuleContext,
   resolveCharacterSheetCampaignContext
 } = await import('./campaignCharacterSheet.js')
 const { assertCampaignGmSheetCommandAllowed } = await import('./sheetCommandValidation.js')
@@ -108,6 +109,47 @@ describe('Campaign Character Sheet authority and projection', () => {
         ids.player
       )
     ).resolves.toMatchObject({ attunementSlotOverride: 4 })
+  })
+
+  it('loads authoritative live-session rule context only for the assigned Campaign', async () => {
+    mocks.findAssignedCampaign.mockResolvedValue({ campaignId: ids.campaign })
+    mocks.listAdjustments.mockResolvedValue([
+      {
+        id: ids.secretCondition,
+        campaignId: ids.campaign,
+        characterId: ids.character,
+        family: 'CONDITION',
+        slotKey: ids.secretCondition,
+        payload: {
+          conditionTypeId: ids.conditionType,
+          notes: 'GM-only source'
+        },
+        visibility: 'SECRET',
+        createdBy: ids.owner,
+        version: 0,
+        createdAt: '2026-08-01T00:00:00.000Z',
+        updatedAt: '2026-08-01T00:00:00.000Z'
+      }
+    ])
+
+    await expect(
+      resolveCharacterLiveSessionRuleContext({} as DBLike, ids.character, {
+        id: ids.campaign,
+        attunementSlotOverride: 4
+      })
+    ).resolves.toEqual({
+      adjustments: [],
+      additionalConditions: [{ conditionTypeId: ids.conditionType, notes: 'GM-only source' }],
+      attunementSlotOverride: 4
+    })
+
+    await expect(
+      resolveCharacterLiveSessionRuleContext({} as DBLike, ids.character, {
+        id: ids.owner,
+        attunementSlotOverride: null
+      })
+    ).resolves.toBeNull()
+    expect(mocks.listAdjustments).toHaveBeenCalledTimes(1)
   })
 
   it('lets Campaign slots replace player slots and restores the player value after deletion', () => {

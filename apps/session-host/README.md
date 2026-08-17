@@ -1,28 +1,35 @@
-# Session host
+# Local session host
 
-`@artificer-toolkit/session-host` is the dedicated long-lived Node process for future live VTT sessions. It uses the free, self-hosted Colyseus core and standard WebSocket transport and is intentionally separate from Netlify's request/response SSR and tRPC deployment.
+`@artificer-toolkit/session-host` is the headless Node process for local live VTT play. It exposes the same Zod-validated native WebSocket protocol as the managed Cloudflare Durable Object path, but invokes the shared application services, native GoRules Zen evaluator, and Supabase repositories directly.
 
-The same package is the runtime boundary for:
+The host is not the managed remote deployment. Remote sockets run through `apps/session-worker`, and durable remote commands execute through Netlify's private `live-session-executor` function. Keeping the local process in this monorepo preserves one rules implementation without requiring Cloudflare or an extra network hop during local play.
 
-- local play, where a future Artificer launcher starts the process on loopback;
-- managed remote play, where Artificer deploys the container.
+## Runtime behavior
 
-The host registers one `live-session` room filtered by exact Campaign and session IDs. Static room authentication validates the Supabase access token and active open-session membership before admission. Admission loads durable aggregate versions and materializes the pinned Zen evaluation plus matching structural Builder resolution for every present Character, so active play starts from a committed stream-versioned mechanical snapshot. The room accepts the existing typed Character Sheet and Encounter command envelopes, serializes durable execution, returns the full result only to the caller, and broadcasts only the committed aggregate/version identity to other participants. Reconnect receives the current room and aggregate versions before further commands are accepted.
+- `GET /health` returns the stable local health payload.
+- `/live-session/:sessionId` accepts native WebSocket upgrades only.
+- Admission requires the application subprotocol plus a single-use, 60-second signed ticket from the Campaign-session API.
+- Browser upgrades require an Origin in the explicit `SESSION_HOST_ALLOWED_ORIGINS` allow-list.
+- One hydrated runtime owns each exact Campaign/session pair and holds the existing expiring Postgres command-authority lease.
+- Durable commands use dependency-aware conflict keys, conflict-local FIFO, a maximum of eight concurrent disjoint executions, idempotent replay, private results, and persist-before-broadcast semantics.
+- Transient drag/pointer/measurement previews are sequenced and relayed without persistence or Zen.
+- A 20-second disconnect grace keeps the runtime available for reconnect; the client obtains a fresh single-use ticket and receives an authoritative `READY` snapshot.
 
-This is the Phase 07 command-room foundation, not a demonstration room or VTT scene. Character and Encounter services still own authorization, pinned Zen evaluation, and database transactions. Scene geometry, token interpolation, fog, walls, pointers, and rendering remain Phase 08 work.
+Local hosting is online, not offline-first. It still uses configured Artificer/Supabase identity and persistence. A future launcher may start the process invisibly; Docker is not required on a player's machine. The existing Dockerfile remains a reproducible Linux/integration artifact, not a Render deployment or polished self-hosting product.
 
 ## Commands
 
-- `yarn dev:session-host` starts the local process on `PORT` or `2567`.
-- `yarn build:session-host` builds the production entrypoint.
+- `yarn dev:session-host` starts the process on `PORT` or `2567`.
+- `yarn build:session-host` builds the Node entrypoint.
 - `yarn start:session-host` runs the built entrypoint.
-- `yarn test:session-host:local` runs the disposable authenticated local integration gate against local Supabase.
-- `docker build -f apps/session-host/Dockerfile .` builds Artificer's managed remote image from the repository root.
+- `yarn test:session-host:local` runs the disposable authenticated integration against local Supabase.
 
-`GET /health` is the deployment health check. The session host is a separate deployment from Netlify, but remains in this monorepo so it can share authoritative contracts and the embedded Zen runtime without publishing private packages.
+Required server-only configuration:
 
-The process requires the same `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `DATABASE_CONNECTION_STRING` configuration used by the authoritative application services. Local launch remains a hidden Node process; Docker is managed-remote packaging and is not required on a player's machine.
+- `SUPABASE_URL`
+- `SUPABASE_SECRET_KEY`
+- `DATABASE_CONNECTION_STRING`
+- `LIVE_SESSION_TICKET_SECRET` with at least 32 bytes
+- optional `SESSION_HOST_ALLOWED_ORIGINS`
 
-Advanced user-managed hosting is a later product decision. This workspace does not currently provide a self-hosting installer, Compose stack, configuration UI, or support contract.
-
-The local integration gate creates disposable users, a finalized pinned prepared caster, a pinned Encounter with a charged non-Character actor, a Campaign, and an open session. It verifies two-client synchronization, a strict sub-500 ms first/warm/resource/spell-slot command gate, Encounter persistence and broadcast, exact replay, a buffered command across automatic reconnect, rejection of parallel direct mutations, and command-authority release when the room stops, then removes the fixtures. Setting `SESSION_HOST_INTEGRATION_ENDPOINT` to a loopback HTTP endpoint runs the same gate against an already-running Linux container. The current local Node Character baseline is `211 ms` cold, `250 ms` warm p95, `207 ms` for a resource spend, `239 ms` for a spell-slot spend, and `244 ms` reconnect. The rebuilt Linux image measured `410 ms`, `338 ms`, `365 ms`, `339 ms`, and `412 ms`, respectively. Both mechanics-changing Character commands select the pinned `character-action-resolve` lane. Resource/spell-slot bounded evaluation measured `28.7/9.6 ms` and `34.8/13.2 ms` total/native-Zen locally, and `66.3/17.1 ms` and `50.3/10.0 ms` in Linux. Matching committed snapshots reduced repeated Builder resolution to effectively zero. The committed Encounter actor snapshot reduced a usage-only enemy resource command to `33.8 ms` locally and `58.8 ms` through the Linux container; the Linux service completed in `39.5 ms` with no actor or action evaluation lane. These are local-environment deploy-image measurements rather than production-region SLAs. Managed hosted play still requires deploying the image and configuring its public TLS/WebSocket endpoint and secrets.
+The local integration creates one GM and five disposable players, two distinct present Characters, an Encounter, Campaign, open session, and storage-backed VTT map. It admits Player A first while Player B's Character is present, verifies private Character-response redaction, six-client synchronization, command-authority fencing, native Zen selection, exact replay, private committed Scene snapshots, map-delivery authorization, concurrent disjoint Scene rebase, deterministic Scene replay, buffered command recovery across a new ticket/reconnect, persistence, cleanup, and explicit host-processing gates. The current native WebSocket run measured `153 ms` warm Character round-trip p95, `174 ms` resource use, `176 ms` spell-slot use, `34 ms` Encounter resource use, `196 ms` reconnect recovery, and `20.16 ms` Scene-host p95 on local Supabase. Rule-bound host processing was `159 ms` p95, including at most `10 ms` of native Zen evaluation.

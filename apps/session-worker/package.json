@@ -1,0 +1,29 @@
+{
+  "name": "@artificer-toolkit/session-worker",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "dev": "wrangler dev",
+    "preflight:managed": "node scripts/managedPreflight.mjs",
+    "test": "vitest run --config vitest.config.ts --maxWorkers=1 --no-isolate",
+    "test:unit": "yarn --cwd ../.. vitest run --config vitest.config.ts apps/session-worker/src --maxWorkers=1 --no-file-parallelism",
+    "typecheck": "wrangler types src/worker-configuration.d.ts --check && tsc -p tsconfig.json --noEmit && tsc -p test/tsconfig.json --noEmit",
+    "types": "wrangler types src/worker-configuration.d.ts"
+  },
+  "dependencies": {
+    "@artificer-toolkit/schema": "workspace:^",
+    "@artificer-toolkit/shared": "workspace:^",
+    "jose": "^6.2.4",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.21.3",
+    "@vitest/runner": "^4.1.9",
+    "@vitest/snapshot": "^4.1.9",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.9",
+    "wrangler": "^4.123.0"
+  }
+}

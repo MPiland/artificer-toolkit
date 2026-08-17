@@ -19,6 +19,7 @@ import {
   type CharacterSheetCommandServiceTiming
 } from './sheetService.js'
 import { buildCharacterSheetBundle } from './sheetProjection.js'
+import { assembleCharacterSheetBundleForRuleContext } from './characterSheetBundleAssembly.js'
 import { previewCharacterRest } from './sheetRestService.js'
 import {
   buildCharacterSheetPanel,
@@ -715,48 +716,19 @@ export async function getCharacterSheetBundleForUser(
   }
   const campaignContext = await resolveCharacterSheetCampaignContext(db, character, userId)
 
-  const draft = await createCharacterBuilderDraftRepository(db).findByCharacter({
-    characterId: resolvedCharacterId,
-    userId: character.userId
-  })
   const routeIdentity = await createAuthoredRouteIdRepository(db).ensure({
     subjectKind: 'CHARACTER',
     subjectId: character.id
   })
 
-  const adjustmentRepository = createCharacterSheetAdjustmentRepository(db)
-  const playStateRepository = createCharacterSheetPlayStateRepository(db)
-  const [context, adjustments, movementDisplayPreference, resourceUsage, spellCustomizations] =
-    await Promise.all([
-      loadCharacterBuilderContext(db, character, [], { includeEffects: true }),
-      adjustmentRepository.listByCharacter(character.id),
-      adjustmentRepository.getMovementPreference(character.id),
-      playStateRepository.listResourceUsage(character.id),
-      playStateRepository.listSpellCustomizations(character.id)
-    ])
-
-  const resolution = await resolveCharacterBuilder(
+  const { bundle, resolution } = await assembleCharacterSheetBundleForRuleContext({
     db,
     character,
-    'edit',
-    context,
-    null,
-    row.rule_pack_revision_id
-  )
-  const bundle = await buildCharacterSheetBundle({
-    db,
-    character,
-    resolution,
-    streamVersion: row.stream_version,
-    hasBuilderDraft: Boolean(draft),
-    adjustments: mergeCampaignSheetAdjustments(adjustments, campaignContext.adjustments),
-    movementDisplayPreference,
-    resourceUsage,
-    spellCustomizations,
-    additionalConditions: getVisibleCampaignConditions(campaignContext),
-    ruleEvaluation: {
-      context,
-      revisionId: row.rule_pack_revision_id,
+    row,
+    revisionId: row.rule_pack_revision_id,
+    ruleContext: {
+      adjustments: campaignContext.adjustments,
+      additionalConditions: getVisibleCampaignConditions(campaignContext),
       attunementSlotOverride: campaignContext.attunementSlotOverride
     }
   })

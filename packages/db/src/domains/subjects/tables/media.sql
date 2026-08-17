@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT media_assets_profile_chk
     CHECK (
-      profile IN ('ACCOUNT_AVATAR', 'CHARACTER_PORTRAIT', 'AUTHORED_IMAGE', 'CAMPAIGN_FILE', 'CAMPAIGN_HANDOUT_MAP')
+      profile IN ('ACCOUNT_AVATAR', 'CHARACTER_PORTRAIT', 'AUTHORED_IMAGE', 'CAMPAIGN_FILE', 'CAMPAIGN_HANDOUT_MAP', 'VTT_MAP')
     ),
   CONSTRAINT media_assets_target_key_chk CHECK (length(btrim(target_key)) > 0),
   CONSTRAINT media_assets_status_chk
@@ -43,16 +43,16 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
       status IN ('PENDING_UPLOAD', 'PROCESSING', 'READY', 'REJECTED', 'DELETED')
     ),
   CONSTRAINT media_assets_declared_mime_type_chk
-    CHECK (declared_mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'text/plain') AND (profile <> 'CAMPAIGN_HANDOUT_MAP' OR declared_mime_type <> 'text/plain')),
+    CHECK (declared_mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'text/plain') AND (profile NOT IN ('CAMPAIGN_HANDOUT_MAP', 'VTT_MAP') OR declared_mime_type <> 'text/plain')),
   CONSTRAINT media_assets_verified_mime_type_chk
     CHECK (
       verified_mime_type IS NULL
-      OR (verified_mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'text/plain') AND (profile <> 'CAMPAIGN_HANDOUT_MAP' OR verified_mime_type <> 'text/plain'))
+      OR (verified_mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'text/plain') AND (profile NOT IN ('CAMPAIGN_HANDOUT_MAP', 'VTT_MAP') OR verified_mime_type <> 'text/plain'))
     ),
   CONSTRAINT media_assets_original_file_name_chk
     CHECK (length(btrim(original_file_name)) BETWEEN 1 AND 255),
   CONSTRAINT media_assets_declared_bytes_chk
-    CHECK (declared_bytes BETWEEN 1 AND 6291456),
+    CHECK (declared_bytes BETWEEN 1 AND CASE WHEN profile = 'VTT_MAP' THEN 26214400 ELSE 6291456 END),
   CONSTRAINT media_assets_verified_bytes_chk
     CHECK (verified_bytes IS NULL OR verified_bytes > 0),
   CONSTRAINT media_assets_dimensions_chk
@@ -124,6 +124,12 @@ BEGIN
   WHERE asset_id = OLD.id
   ON CONFLICT (object_key) DO NOTHING;
 
+  INSERT INTO public.media_object_deletions (object_key)
+  SELECT object_key
+  FROM public.vtt_map_tiles
+  WHERE asset_id = OLD.id
+  ON CONFLICT (object_key) DO NOTHING;
+
   RETURN OLD;
 END;
 $$;
@@ -155,6 +161,19 @@ CREATE TABLE IF NOT EXISTS public.media_variants (
 );
 
 ALTER TABLE public.media_variants ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.vtt_map_tiles (
+  asset_id uuid NOT NULL REFERENCES public.media_assets (id) ON DELETE CASCADE,
+  row_index integer NOT NULL CHECK (row_index >= 0),
+  column_index integer NOT NULL CHECK (column_index >= 0),
+  object_key text NOT NULL UNIQUE,
+  byte_size bigint NOT NULL CHECK (byte_size > 0),
+  width integer NOT NULL CHECK (width BETWEEN 1 AND 1024),
+  height integer NOT NULL CHECK (height BETWEEN 1 AND 1024),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (asset_id, row_index, column_index)
+);
+ALTER TABLE public.vtt_map_tiles ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.authored_image_slots (
   subject_kind text NOT NULL,
@@ -299,7 +318,7 @@ VALUES
     'media',
     'media',
     FALSE,
-    6291456,
+    26214400,
     ARRAY['image/jpeg', 'image/png', 'image/webp', 'text/plain']::text[]
   )
 ON CONFLICT (id) DO UPDATE
@@ -311,6 +330,7 @@ ON CONFLICT (id) DO UPDATE
 REVOKE ALL
 ON TABLE public.media_assets,
 public.media_variants,
+public.vtt_map_tiles,
 public.authored_image_slots,
 public.media_object_deletions
 FROM anon, authenticated;

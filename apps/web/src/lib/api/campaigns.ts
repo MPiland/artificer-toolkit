@@ -1,6 +1,11 @@
 import * as campaignContracts from '@artificer-toolkit/schema/api/campaigns'
+import {
+  liveSessionJoinOptionsDtoSchema,
+  liveSessionTicketDtoSchema
+} from '@artificer-toolkit/schema/api/liveSessions'
 import { signedCampaignFileDeliveryDtoSchema } from '@artificer-toolkit/schema/api/media'
 import { rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
+import * as sceneContracts from '@artificer-toolkit/schema/api/vttScenes'
 import { okResponseSchema, request, type SchemaInput, type TrpcClient } from './transport'
 
 export function buildCampaignsApi(client: TrpcClient) {
@@ -197,6 +202,10 @@ export function buildCampaignsApi(client: TrpcClient) {
       }
     },
     sessions: {
+      ticket: (input: SchemaInput<typeof liveSessionJoinOptionsDtoSchema>) =>
+        request('campaigns.sessions.ticket', liveSessionTicketDtoSchema, () =>
+          client.campaigns.sessions.ticket.mutate(input)
+        ),
       list: (campaignId: string) =>
         request('campaigns.sessions.list', campaignContracts.campaignSessionsDtoSchema, () =>
           client.campaigns.sessions.list.query({ campaignId })
@@ -319,6 +328,39 @@ export function buildCampaignsApi(client: TrpcClient) {
           )
         }
       }
+    },
+    scenes: {
+      attach: (input: SchemaInput<typeof sceneContracts.attachEncounterSceneInputDtoSchema>) =>
+        request('campaigns.scenes.attach', sceneContracts.attachEncounterSceneResultDtoSchema, () =>
+          client.campaigns.scenes.attach.mutate(input)
+        ),
+      create: (input: SchemaInput<typeof sceneContracts.createSceneDefinitionInputDtoSchema>) =>
+        request('campaigns.scenes.create', sceneContracts.sceneDefinitionDtoSchema, () =>
+          client.campaigns.scenes.create.mutate(input)
+        ),
+      delete: async (
+        input: SchemaInput<typeof sceneContracts.deleteSceneDefinitionInputDtoSchema>
+      ) => {
+        await request('campaigns.scenes.delete', okResponseSchema, () =>
+          client.campaigns.scenes.delete.mutate(input)
+        )
+      },
+      get: (input: SchemaInput<typeof sceneContracts.getSceneDefinitionInputDtoSchema>) =>
+        request('campaigns.scenes.get', sceneContracts.sceneDefinitionDtoSchema, () =>
+          client.campaigns.scenes.get.query(input)
+        ),
+      list: (campaignId: string) =>
+        request('campaigns.scenes.list', sceneContracts.sceneDefinitionDtoSchema.array(), () =>
+          client.campaigns.scenes.list.query({ campaignId })
+        ),
+      projection: (encounterId: string) =>
+        request('campaigns.scenes.projection', sceneContracts.encounterSceneStateDtoSchema, () =>
+          client.campaigns.scenes.projection.query({ encounterId })
+        ),
+      update: (input: SchemaInput<typeof sceneContracts.updateSceneDefinitionInputDtoSchema>) =>
+        request('campaigns.scenes.update', sceneContracts.sceneDefinitionDtoSchema, () =>
+          client.campaigns.scenes.update.mutate(input)
+        )
     },
     clock: {
       get: (campaignId: string) =>

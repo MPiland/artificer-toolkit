@@ -59,12 +59,29 @@ import type {
   AttachImageInput,
   CreateCampaignFileUploadIntentInput,
   CreateImageUploadIntentInput,
+  CreateVttMapUploadIntentInput,
   FinalizeImageUploadInput,
+  FinalizeVttMapUploadOutput,
   ImageLookupInput,
   RemoveImageInput,
   SignedCampaignFileDeliveryDto,
-  SignedImageDeliveryDto
+  SignedImageDeliveryDto,
+  SignedVttMapDeliveryDto
 } from '@artificer-toolkit/schema/api/media'
+import type {
+  LiveSessionJoinOptionsDto,
+  LiveSessionTicketDto
+} from '@artificer-toolkit/schema/api/liveSessions'
+import type {
+  AttachEncounterSceneInputDto,
+  AttachEncounterSceneResultDto,
+  DeleteSceneDefinitionInputDto,
+  EncounterSceneStateDto,
+  GetEncounterSceneInputDto,
+  GetSceneDefinitionInputDto,
+  SceneDefinitionDto
+} from '@artificer-toolkit/schema/api/vttScenes'
+import type * as vttSceneContracts from '@artificer-toolkit/schema/api/vttScenes'
 import type {
   NodeRuntimeNormalizeValuesRequestDto,
   NodeRuntimeNormalizeValuesResponseDto,
@@ -360,6 +377,7 @@ export interface TrpcClient {
       >
     }
     sessions: {
+      ticket: MutationProcedure<LiveSessionJoinOptionsDto, LiveSessionTicketDto>
       list: QueryProcedure<
         SchemaInput<typeof campaignContracts.listCampaignSessionsInputSchema>,
         campaignContracts.CampaignSessionDto[]
@@ -432,6 +450,21 @@ export interface TrpcClient {
           { ok: true }
         >
       }
+    }
+    scenes: {
+      attach: MutationProcedure<AttachEncounterSceneInputDto, AttachEncounterSceneResultDto>
+      create: MutationProcedure<
+        SchemaInput<typeof vttSceneContracts.createSceneDefinitionInputDtoSchema>,
+        SceneDefinitionDto
+      >
+      delete: MutationProcedure<DeleteSceneDefinitionInputDto, { ok: true }>
+      get: QueryProcedure<GetSceneDefinitionInputDto, SceneDefinitionDto>
+      list: QueryProcedure<{ campaignId: string }, SceneDefinitionDto[]>
+      projection: QueryProcedure<GetEncounterSceneInputDto, EncounterSceneStateDto>
+      update: MutationProcedure<
+        SchemaInput<typeof vttSceneContracts.updateSceneDefinitionInputDtoSchema>,
+        SceneDefinitionDto
+      >
     }
     clock: {
       get: QueryProcedure<
@@ -845,6 +878,14 @@ export interface TrpcClient {
       FinalizeImageUploadInput,
       z.infer<typeof import('@artificer-toolkit/schema/api/media').finalizeImageUploadOutputSchema>
     >
+    createVttMapUpload: MutationProcedure<
+      CreateVttMapUploadIntentInput,
+      z.infer<
+        typeof import('@artificer-toolkit/schema/api/media').createVttMapUploadIntentOutputSchema
+      >
+    >
+    finalizeVttMapUpload: MutationProcedure<FinalizeImageUploadInput, FinalizeVttMapUploadOutput>
+    getVttMapDelivery: QueryProcedure<FinalizeImageUploadInput, SignedVttMapDeliveryDto>
   }
   nodeRuntime: {
     normalizeValues: MutationProcedure<

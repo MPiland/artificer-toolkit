@@ -133,6 +133,7 @@ export const characterSheetMulticlassFixture = {
         id: 'equipment-shortsword:attack',
         label: 'Shortsword',
         kind: 'ACTION',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Equipment',
         description: '<p>A quick finesse weapon suited to close combat.</p>',
         rollable: true,
@@ -157,6 +158,7 @@ export const characterSheetMulticlassFixture = {
         id: 'action-second-wind',
         label: 'Second Wind',
         kind: 'BONUS_ACTION',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Fighter',
         description: '<p>Regain 1d10 + 2 hit points.</p>',
         resourceGrantId: 'resource-second-wind'
@@ -165,6 +167,7 @@ export const characterSheetMulticlassFixture = {
         id: 'action-action-surge',
         label: 'Action Surge',
         kind: 'OTHER',
+        availability: { status: 'AVAILABLE' },
         sourceLabel: 'Fighter',
         description: '<p>Take one additional action on your turn.</p>',
         resourceGrantId: 'resource-action-surge'

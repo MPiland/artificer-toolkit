@@ -1,61 +1,177 @@
-# Live-session host
+# Live-session coordination
 
-> Status: command-room foundation in progress; VTT scene and renderer contracts remain Phase 08 work
+> Status: native remote/local backend and retained production client implemented; deployed remote and three-hour hardware gates remain Phase 08 work
 >
-> Scope: local and remote live-session process, deployment ownership, and synchronization invariants
+> Scope: remote Durable Object coordinator, local Node host, authoritative command execution, synchronization, and deployment ownership
 >
-> Update when: Colyseus room ownership, admission, commands, persistence, prediction, or deployment changes
+> Update when: admission, native WebSocket contracts, conflict scheduling, persistence, prediction, or deployment changes
 >
-> Verification: `apps/session-host`, ADRs 0020–0021, focused host tests, authenticated local integration, and authenticated Linux-container integration
+> Verification: `apps/session-worker`, `apps/session-host`, private Netlify executor tests, authenticated local integration, and ADRs 0020–0021
 
-Live VTT coordination runs in `apps/session-host`, a long-lived Node.js process separate from Netlify's transient web and tRPC handlers. It uses Colyseus core, Schema state synchronization, and the standard WebSocket transport. It remains in the monorepo and consumes the same schema, functions, database, and embedded Zen boundaries rather than duplicating domain logic.
+Managed remote rooms run in `apps/session-worker`: a Cloudflare Worker routes each Campaign session to one hibernatable Durable Object. Local rooms run in `apps/session-host`: a Node process invokes the same application services and native Zen evaluator directly. Both expose the same Zod-validated native WebSocket protocol and use Supabase aggregate versions as canonical gameplay state.
+
+## Browser surface ownership
+
+```mermaid
+flowchart LR
+  Session["Campaign Session workspace"] -->|"Open tabletop"| Tabletop["Dedicated tabletop window"]
+  Sheet["Character Sheet<br/>latest open Session"] -->|"Open tabletop"| Tabletop
+  Tabletop --> Canvas["Imperative PixiJS scene"]
+  Tabletop --> Controls["React play controls"]
+  Owner["GM"] -->|"Play or Edit"| Controls
+  Player["Player"] -->|"Play only"| Controls
+```
+
+The tabletop is a separate authenticated browser surface so the Campaign workspace or Character Sheet can remain open independently. A stable Campaign/session window name reuses the same tabletop window, which may be tiled, moved to another display, or screen-shared. Navigation is one-way: the Session workspace or the latest open Session associated with a Character Sheet launches the tabletop; the tabletop does not become a launcher for workspace or Sheet windows.
+
+One admitted user may keep multiple devices connected to the same Session. Each connection receives its own short-lived ticket and private projection; opening a tablet tabletop does not displace that user's desktop workspace or phone Character Sheet. Camera, zoom, selected tool, mode, and open panels are connection-local, while token positions, doors, fog, Character play state, and other committed gameplay remain shared through room authority. The server derives permissions from Campaign membership rather than trusting a device-selected role. Managed play supports this composition directly. The local host protocol also supports concurrent connections, but the current developer endpoint does not provide secure LAN discovery or browser delivery; a future launcher must supply that trusted local origin before local multi-device play is presented as an end-user workflow.
+
+Tablet landscape is a first-class map surface. Player tablet play is map-first and keeps permanent chrome minimal; GM tablet play uses collapsible drawers for live and editing tools. Phone play is Character-Sheet-first. The phone tabletop remains a focused, usable player surface for locating and moving the controlled token, panning/zooming, measurement, and authorized scene interactions, but it is not treated as a compressed full-map editor. Responsive behavior follows available space and input capability rather than device sniffing or separate client implementations.
+
+When that open Session marks the displayed Character present, Sheet play-state commands use the same live-session WebSocket as the tabletop instead of the ordinary HTTP mutation path. The Sheet may project an existing optimistic UI update locally, but it treats the command as successful only after the coordinator returns the persisted `COMMAND_COMMITTED` result. Character commits from another admitted client carry no private response payload and invalidate the relevant Sheet caches. A Character that is not present in an open Session continues to use the ordinary HTTP path. This keeps the independently open Sheet responsive without allowing HTTP mutations to race the room's command-authority lease.
+
+React owns the window header, mode controls, accessible alternatives, and editor inspectors. PixiJS owns only frame-rate scene rendering. GMs may switch between Play and Edit while live. Players never receive editor chrome and may use only authorized character actions and interactive scene elements. Structural values such as a door's swing angle are stored in the scene definition and controlled by the GM/editor.
+
+## Remote command flow
 
 ```mermaid
 sequenceDiagram
   participant Client
-  participant Room as Colyseus live-session room
-  participant Rules as Pinned embedded Zen runtime
+  participant API as Netlify API
+  participant DO as Session Durable Object
+  participant Exec as Private Netlify executor
   participant DB as Supabase/Postgres
 
-  Client->>Room: Authenticate and join exact Campaign session
-  Room->>DB: Claim expiring command authority
-  Room->>DB: Load durable versions and present Characters
-  Room->>Rules: Materialize each pinned Character snapshot
-  Rules-->>Room: Committed typed mechanical snapshots
-  Client->>Room: Typed command(commandId, expectedVersion)
-  Room->>Room: Serialize and select zero or one rules lane
-  Room->>DB: Persist event and projection transactionally
-  DB-->>Room: Commit
-  Room-->>Client: Committed delta + new version
-  Room->>DB: Release command authority on disposal
+  Client->>API: Authenticated ticket request
+  API->>DB: Authorize Campaign/session membership
+  API-->>Client: Single-use 60-second ticket
+  Client->>DO: Native WebSocket + signed ticket
+  DO->>Exec: Claim authority and load snapshot
+  Exec->>DB: Authorize + load aggregate versions/private state
+  DO-->>Client: Private READY snapshot + delivery high-water
+  Client->>DO: Durable command(commandId, expected versions)
+  DO->>DO: Journal PENDING; atomically claim conflict keys
+  DO->>Exec: Signed private command request
+  Exec->>DB: Reauthorize, evaluate pinned native Zen, commit transaction
+  DB-->>Exec: Persisted result and aggregate version
+  Exec-->>DO: Idempotent command result
+  DO->>DO: Journal terminal result and delivery sequence
+  DO-->>Client: Private caller result + projected committed broadcast
 ```
+
+The DO-to-Netlify hop applies only to durable commands. Pointer movement, drag previews, selection, and measurement previews are bounded transient envelopes handled directly between admitted WebSockets. Token drag segments are checked against the authoritative scene geometry in the room coordinator before relay. When the scene uses on-drag reveal, the coordinator derives recipient-private temporary fog and newly visible scene objects from the accepted path; none of this touches Netlify, Zen, or Postgres.
+
+Netlify remains viable because native Zen runs during an ordinary on-demand Node invocation. It does not require an always-on process. Warm invocations may reuse loaded modules, but correctness never depends on process memory or a warm evaluator cache.
+
+## Local command flow
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant Host as Local Node session host
+  participant Rules as Pinned native Zen runtime
+  participant DB as Supabase/Postgres
+
+  Client->>Host: Native WebSocket + signed ticket
+  Host->>DB: Claim expiring command authority and load snapshot
+  Host-->>Client: Private READY snapshot
+  Client->>Host: Durable command
+  Host->>Host: Atomically claim conflict keys
+  Host->>Rules: Evaluate only the selected rule lane
+  Host->>DB: Persist event/projection transactionally
+  DB-->>Host: Commit
+  Host-->>Client: Private result + projected committed broadcast
+```
+
+Local hosting avoids the Cloudflare-to-Netlify hop while preserving the protocol, rule pins, reducers, command identity, private projection, and persistence semantics. It is online local hosting, not offline-first: Supabase still provides identity and durable state unless a later product decision changes that boundary.
 
 ## Deployment ownership
 
-| Surface                            | Process                  | Deployment                                      |
-| ---------------------------------- | ------------------------ | ----------------------------------------------- |
-| Web, SSR, and ordinary tRPC        | `apps/web` + `apps/apis` | Existing Netlify site                           |
-| Managed live VTT sessions          | `apps/session-host`      | Dedicated Docker service                        |
-| Local live VTT sessions            | `apps/session-host`      | Headless process started by the future launcher |
-| Identity and durable product state | Supabase/Postgres        | Existing Supabase project                       |
+| Surface                                         | Process                                       | Initial deployment                  |
+| ----------------------------------------------- | --------------------------------------------- | ----------------------------------- |
+| Web, SSR, ordinary tRPC, ticket issue           | `apps/web` + `apps/apis`                      | Netlify                             |
+| Remote WebSocket rooms and transient fanout     | `apps/session-worker`                         | Cloudflare Worker + Durable Objects |
+| Remote durable command execution and native Zen | `netlify/functions/live-session-executor.mts` | Netlify Functions                   |
+| Local WebSocket rooms and native Zen            | `apps/session-host`                           | Headless local Node process         |
+| Identity and canonical gameplay state           | Supabase/Postgres                             | Existing Supabase project           |
 
-Local and remote modes differ only in endpoint and process ownership. They share the session protocol, authoritative room code, state versions, rule-pack pins, Zen evaluator, and persistence semantics. Initial local hosting is not offline-first: identity, Campaign authorization, and durable persistence still use the configured Artificer services unless a later offline product decision explicitly changes that boundary.
+No separate repository is required. Render is not part of the initial managed architecture. A future launcher can start the local host invisibly; a polished self-hosting installer remains out of scope.
 
-## Invariants
+## Admission and authority
 
-- One room serializes one active live-session command stream.
-- A participating Character or Encounter has one mutation path while attached to a live room; an expiring Postgres command-authority lease makes a parallel tRPC write fail transactionally before persistence.
-- The room publishes committed deltas only after the durable transaction succeeds.
-- Ephemeral drag/pointer/measurement messages cannot mutate or overwrite committed state.
-- Reconnect restores the committed version before accepting new commands.
-- Zen evaluates mechanics inside the authoritative process through the exact pinned revision; it is not a network dependency.
-- TypeScript owns admission, authorization, facts, transactions, and transport. It does not decide game-system mechanics.
-- The first deployment is one process. Redis and distributed matchmaking require measured need and explicit design work.
+The authenticated Campaign-session API issues a signed ticket containing exact Campaign ID, session ID, user ID, membership role, unique ticket ID, and one-minute expiry. Browsers offer the application protocol and ticket as WebSocket subprotocols. The coordinator returns only the application protocol, consumes the ticket once, and rejects origin or room mismatches before admission.
 
-## Current tracer
+The remote Worker and local host claim the existing expiring Postgres command-authority lease. Character, Encounter, and scene transactions verify that authority under lock so ordinary HTTP mutations cannot race a participating live aggregate. Each 10-second lease renewal also returns the Campaign's current active membership roles. A removed member or a socket whose ticket role no longer matches receives a connection-level `UNAUTHORIZED` rejection and closes with policy code `1008`; unaffected members remain connected, and the revoked client must obtain a fresh ticket. If the member whose identity last renewed the room has left, the coordinator retries through another connected identity before treating authority as lost. The Durable Object persists its renewal deadline and uses one multiplexed alarm to renew through the private executor while sockets, authoritative work, or reconnect grace remain. It never holds an outbound database connection. Retryable renewal failures pause durable command draining and schedule a bounded retry; terminal authority loss closes attached sockets and requires a fresh ticket and canonical hydration.
 
-`apps/session-host` provides the portable Node entrypoint, strict port parsing, `GET /health`, local scripts, and the managed-remote deployment boundary. Its `live-session` room now provides authenticated admission, exact durable Campaign/session identity, eager pinned Character snapshot materialization, typed existing Sheet/Encounter command envelopes, one serialized command coordinator, aggregate-version reconciliation, idempotent replay handling, reconnect readiness, private command results, and committed aggregate-only broadcasts.
+## Conflict-key scheduler
 
-The command room retains the committed Zen-derived Character evaluation and matching structural Builder resolution, plus the committed Encounter actor-policy evaluation, at their aggregate stream versions. Matching snapshots supply current-command validation and projection without rebuilding those representations. HP, presentation, and usage-only Encounter commands select no evaluation lane. Character resource and spell-slot changes apply prospective usage facts and evaluate the pinned `character-action-resolve` model once before persistence; structural Character commands evaluate prospective `character-policy` facts once. An Encounter `RESOLVE_ACTION` command injects the committed actor-policy output and evaluates only its pinned bounded action model, with a second stage only when the typed dice-evidence protocol requests it. The room claims a 30-second session command-authority lease before snapshot hydration, renews it every 10 seconds, and releases it on disposal. Character and Encounter transactions lock and verify that authority; expiration fails the room closed and permits ordinary HTTP commands only after the lease is no longer active. The authenticated Windows/Node integration measured a `211 ms` cold Character command, `250 ms` warm p95, `207 ms` resource spend, `239 ms` spell-slot spend, and `244 ms` reconnect. The same prepared-caster gate against the rebuilt Linux Docker image measured `410 ms`, `338 ms`, `365 ms`, `339 ms`, and `412 ms`, respectively. Both use local Supabase and are validation baselines, not production-region SLAs. The managed image is verified but not yet deployed.
+The scheduler is dependency-aware, not a room-wide queue and not three coarse type lanes.
 
-The action tracer reports its selected lane and both total/native-Zen time. Resource/spell-slot evaluation measured `28.7/9.6 ms` and `34.8/13.2 ms` locally, and `66.3/17.1 ms` and `50.3/10.0 ms` in Linux. Reusing the matching committed resolution reduced both pre- and post-command Builder resolution to effectively zero. A committed Encounter actor snapshot reduced a usage-only enemy resource command to `33.8 ms` locally and `58.8 ms` through the Linux container; the Linux service measured `39.5 ms`, selected `NONE`, and spent `0 ms` in actor/action evaluation. Both integrations proved that direct Character and Encounter mutations fail while the room owns the lease, room commands continue to commit, and disposal removes the lease. Phase 08 extends the proven room with scene state, VTT commands, transient collaboration, and renderer-specific clients.
+```mermaid
+flowchart LR
+  A["Character A command\ncharacter:A"] --> Run1["execute"]
+  B["Character B command\ncharacter:B"] --> Run2["execute concurrently"]
+  Door["Open door 17\nscene:S:barrier:17"] --> Run3["execute concurrently"]
+  Attack["A attacks B\ncharacter:A + character:B + encounter:E"] --> Wait["wait for all claimed keys"]
+```
+
+- The server derives a conservative dependency and mutation set from the validated command; the client does not declare authority.
+- Keys are acquired atomically as a set. A command never accumulates partial claims.
+- `scene:<id>` conflicts with every descendant; resource keys conflict only with the same resource or a broad ancestor.
+- Earlier overlapping work keeps conflict-local FIFO. Unrelated work may pass it.
+- At most eight authoritative commands execute concurrently per room.
+- Encounter actions claim the Encounter plus every bound Character they may read or mutate. If a future rule can affect an unknown participant set, it must claim the broader Encounter key before evaluation.
+- Postgres row locks for multi-aggregate transactions use sorted canonical keys.
+
+Scene events retain every recursively derived changed conflict key, including fog chunks inside batch deltas. A stale scene command rebases only when every change since its base version is disjoint from its requested keys; otherwise it fails as stale. This permits two token/door resources to commit concurrently without treating the scene's monotonic version as a global mutex while preventing derived exploration from being overwritten.
+
+## Delivery, replay, and hibernation
+
+Each durable command has a stable command ID and fingerprint. The DO stores `PENDING`, execution attempts, and terminal result in SQLite. It retains every nonterminal command and the newest 10,000 terminal receipts per room. A result is assigned the next global `deliverySequence` when it becomes journaled delivery truth, not when accepted. Aggregate versions remain independent and canonical in Postgres.
+
+An ambiguous executor timeout remains pending and keeps its conflict-local fence. Retrying the same command ID is safe because the application services return the persisted result. A delayed replay remains valid even when later commands have advanced the aggregate. Browser Character caches apply requester results monotonically against the latest `READY`, committed broadcast, and cached stream versions; an older historical receipt triggers canonical refetch instead of replacing newer Sheet state.
+
+Reconnect receives a full private `READY` snapshot with the global delivery high-water, then statuses only for pending command IDs originally submitted by that authenticated user. The high-water does not imply the client was authorized to see every lower delivery. Hibernation or isolate eviction restores the journal, lease-renewal deadline, and retry schedule from SQLite; a new connection cycle reloads canonical gameplay state through the executor. In-memory locks are never recovery truth.
+
+## Private state
+
+Scene snapshots, deltas, and token-drag previews are projected separately for each admitted viewer. Hidden or unexplored tokens, unrevealed barriers and doors, unrevealed lights and darkness, GM annotations, and other players' fog are withheld server-side. An owner may explicitly request one player's transient projection while using player-preview mode; this affects only that owner socket and does not broaden any player delivery. Character and Encounter response payloads are returned only to command requesters; peers receive committed aggregate/version information. Full reusable scene-definition APIs remain owner-only.
+
+Token movement persists the validated sampled path, final position, and derived exploration as one append-only scene event. `Undo last token move` is owner-only and briefly claims the scene-wide conflict key while the server finds the latest eligible move. It appends a provenance-bearing inverse movement plus exact affected fog-layer replacements; it never rewrites or deletes prior events. Later overlapping token or fog changes make an undo fail closed, while unrelated state such as a door change remains intact.
+
+A primary scene change and its automatically derived exploration chunks commit as one `BATCH` delta under one scene version. Players receive a fresh authoritative private scene snapshot after durable scene commits so newly explored entities appear without leaking the structural delta that revealed them. GMs may receive the compact committed delta. Reconnect and idempotent replay use the same current private snapshot path.
+
+Token vision is resolved from the same-evaluation pinned Character output unless the scene token has an explicit vision override. The resolved overlay is command context, not persisted scene-definition state. Token movement recalculates only that token's exploration. Door and barrier changes recalculate only tokens whose current sight radius intersects the changed segment; this keeps exploration deterministic without turning every structural edit into a full-table visibility pass.
+
+## Current measurements and gates
+
+The authenticated six-client native local integration currently measures approximately:
+
+- warm Character round-trip p95: `153 ms`;
+- rule-bound resource round trip: `174 ms` (`159 ms` host service, including `10 ms` native Zen);
+- rule-bound spell-slot round trip: `176 ms` (`158 ms` host service, including `10 ms` native Zen);
+- Encounter usage round trip with no rules lane: `34 ms` (`19 ms` host service);
+- Scene host processing p95: `20.16 ms`;
+- disconnect, new ticket, reconnect, READY recovery, and buffered command: `196 ms`.
+
+These are local Supabase measurements, not production-region SLAs. The remote Worker is verified under real workerd/Miniflare for six distinct identities, private projections and transients, ticket admission, bounded SQLite journaling, actor-bound replay, concurrent disjoint scene commands, alarm-driven lease renewal, Durable Object eviction, hibernatable socket wake, and snapshot recovery. The real local-Supabase journey admits Player A first while Player B's distinct Character is present, verifies private response redaction, runs one GM plus five distinct players, and enforces scene-only p95 below `100 ms` and rule-bound host p95 below `250 ms`. Protocol-backed browser stories exercise the actual live-session client and scene reducer: the GM receives the editable scene, while the player receives a private READY projection with no editor chrome or unrevealed door. The retained browser fixture mounts an 8192×8192 map, 65 loaded map assets, 100 tokens, 200 barriers, 12 lights, darkness, fog, measurements, 25 Hz transient previews, and 4 Hz durable scene updates. Headless SwiftShader diagnostics stay below the `100 ms` frame-gap/Long Task limit with no retained transient visuals and sampled JS heap growth below `64 MiB`; SwiftShader FPS is recorded but cannot satisfy the hardware FPS gate. A 10-second headed hardware smoke of the full mode on an AMD Radeon 780M measures approximately `165 FPS`, a `6.4 ms` maximum frame gap, no Long Tasks, and about `2 MiB` peak sampled JS heap growth. Remaining production tracer gates are the deployed remote journey and the headed hardware three-hour soak at least `45 FPS`. Transient movement is evaluated separately because it never takes the durable path.
+
+Run the default browser diagnostic with `yarn test:web:e2e:vtt-load`. Run the hardware gate in PowerShell with `$env:VTT_HARDWARE_FPS_GATE='1'; yarn test:web:e2e:vtt-load:hardware`. Add `$env:VTT_SOAK_MINUTES='180'` for the required three-hour soak. The hardware project rejects SwiftShader explicitly rather than misreporting software-rendered CI throughput as product performance.
+
+The deployed managed gate is `yarn test:web:e2e:vtt-managed:release`. It deliberately reuses one dedicated, non-concurrent production smoke Campaign so test runs do not accumulate Durable Object rooms or delayed media cleanup. Two dedicated accounts exercise real authenticated ticket issuance, the exact preflighted Cloudflare Worker, private Netlify executor, Supabase authority, a GM-only private-snapshot sentinel, exact signed VTT map bytes and renderer readiness, three warmup plus twenty measured reversible door commands, and the player's real reversible sheet Use/Restore action (two warmup pairs plus ten measured pairs). The Netlify executor measures the successful authoritative application—including rules and persistence—not Durable Object or browser time. It labels Scene work `SCENE_ONLY`; Character and Encounter work is `RULE_BOUND` only when their service timing proves a rule-evaluation lane ran, otherwise `NON_RULE_BOUND`. The timing receipt is persisted with the command and delivered only to its authenticated origin, including replay/resume. The gate uses nearest-rank p95 limits of `100 ms` scene-only and `250 ms` rule-bound; click-to-render timing is diagnostic only. The test then disconnects every client through the authority-release grace period before reconnecting, forcing a new authoritative snapshot instead of accepting an already-hydrated room cache. It records sanitized timings with trace/video disabled and restores the door/resource state from its current authoritative state. Its required environment names and fixture contract are documented in `apps/session-worker/README.md`; credentials and paths remain uncommitted.
+
+The retained Node geometry kernel benchmark uses an 8192×8192 map, 100 tokens with 60-foot vision, 200 barriers, and a 512×512 canonical fog mask. Full-table exploration currently measures `18.4 ms` p95; a changed barrier affecting 20 tokens measures `3.0 ms` p95. These are kernel measurements, not a substitute for the end-to-end managed host gate.
+
+## Current foundation and remaining work
+
+Implemented backend foundation:
+
+- native WebSocket ticket admission for remote and local play;
+- hibernatable Durable Object room routing, alarm-driven authority renewal, bounded SQLite journal, conflict scheduler, retry/replay, and private fanout;
+- private Netlify executor using existing application services, rule pins, native Zen, and Supabase transactions;
+- local Node host using the same wire protocol and direct application execution;
+- renderer-neutral scene contracts, pure reconstruction, semantic scene rebase, persistence, and VTT map media profile/tiles;
+- atomic scene/exploration batches, Character-derived vision, bounded deterministic exploration, and server-side private scene projection;
+- focused workerd, local multi-client, authority, replay, reconnect, migration, and latency gates.
+
+The standalone tabletop window, Session/Character Sheet launch points, source-window live Sheet command route, live GM Play/Edit boundary, scene-authoring and map-calibration surface, accessible live controls, and player-focused narrow layout are implemented. Pixi progressively loads signed renderer tiles, keeps complete textures independent of delivery expiry, retries incomplete delivery after a network reconnect, displays exploration masks and labeled measurements, relays bounded pointer/drag previews, and expires abandoned transient visuals. Managed workerd and real local-Supabase six-client recovery/privacy gates pass; protocol-backed GM/player browser stories verify role-separated rendering; and the retained headless browser diagnostic covers load correctness, stalls, sampled heap, and transient cleanup. Remaining Phase 08 evidence is the deployed managed journey, authorized remote asset delivery, and the headed hardware three-hour FPS/memory soak. Socket.IO, Colyseus, Redis, and a custom Worker Zen build are not compatibility paths.

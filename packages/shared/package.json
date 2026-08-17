@@ -64,6 +64,10 @@
       "types": "./dist/domains/rolls/index.d.ts",
       "default": "./dist/domains/rolls/index.js"
     },
+    "./vtt": {
+      "types": "./dist/domains/vtt/index.d.ts",
+      "default": "./dist/domains/vtt/index.js"
+    },
     "./account/username": {
       "types": "./dist/domains/account/usernamePolicy.d.ts",
       "default": "./dist/domains/account/usernamePolicy.js"
@@ -97,9 +101,14 @@
   },
   "dependencies": {
     "@2toad/profanity": "^3.3.0",
-    "@artificer-toolkit/design-system": "workspace:^"
+    "@artificer-toolkit/design-system": "workspace:^",
+    "polygon-clipping": "0.15.7",
+    "rbush": "4.0.1",
+    "robust-predicates": "3.0.3"
   },
   "devDependencies": {
+    "@types/rbush": "4.0.0",
+    "fast-check": "4.9.0",
     "type-fest": "^5.6.0",
     "typescript": "^7.0.2",
     "zod": "^4.4.3"

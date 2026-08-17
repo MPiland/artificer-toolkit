@@ -12,21 +12,33 @@ import type {
   AttachImageInput,
   CreateCampaignFileUploadIntentInput,
   CreateImageUploadIntentInput,
+  CreateVttMapUploadIntentInput,
   FinalizeImageUploadOutput,
   ImageLookupInput,
   MediaTarget,
   MediaVariantKind,
   RemoveImageInput,
   SignedCampaignFileDeliveryDto,
-  SignedImageDeliveryDto
+  SignedImageDeliveryDto,
+  SignedVttMapDeliveryDto
 } from '@artificer-toolkit/schema/api/media'
 import { createSupabaseClient } from '../../clients/supabaseClient.js'
 import { withLockedEntitlementLimits } from '../account/entitlementService.js'
+import {
+  assertActiveCampaignMember,
+  assertCampaignOwner,
+  assertCampaignWritable,
+  resolveCampaignAuthority
+} from '../campaign/campaignService.js'
 
 const bucket = 'media' as const
 const maxBytes = 6 * 1024 * 1024
 const maxDimension = 8192
 const maxPixels = 25_000_000
+const vttMapMaxBytes = 25 * 1024 * 1024
+const vttMapMaxPixels = 64_000_000
+const vttMapTileSize = 1024
+const vttMapTileLimit = 64
 const supportedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 async function getStorageQuotaBytes(db: DBLike, userId: string): Promise<number> {
@@ -118,7 +130,11 @@ async function normalizeImage(source: Buffer) {
 function mediaTargetKey(target: MediaTarget): string {
   if (target.type === 'ACCOUNT_AVATAR') return target.type
   if (target.type === 'CHARACTER_PORTRAIT') return `${target.type}:${target.characterId}`
-  if (target.type === 'CAMPAIGN_FILE' || target.type === 'CAMPAIGN_HANDOUT_MAP') {
+  if (
+    target.type === 'CAMPAIGN_FILE' ||
+    target.type === 'CAMPAIGN_HANDOUT_MAP' ||
+    target.type === 'VTT_MAP'
+  ) {
     return `${target.type}:${target.campaignId}`
   }
   return `${target.type}:${target.subjectKind}:${target.subjectId}`
@@ -142,6 +158,19 @@ export async function createCampaignFileUploadIntent(
 ) {
   await requireActiveCampaignMember(db, input.target.campaignId, userId)
   return createImageUploadIntent(db, userId, input)
+}
+
+export async function createVttMapUploadIntent(
+  db: DBLike,
+  userId: string,
+  input: CreateVttMapUploadIntentInput
+) {
+  const authority = await resolveCampaignAuthority(db, input.target.campaignId, userId)
+  assertActiveCampaignMember(authority)
+  assertCampaignOwner(authority)
+  assertCampaignWritable(authority)
+  const upload = await createImageUploadIntent(db, userId, input)
+  return { ...upload, resumable: { chunkBytes: 6 * 1024 * 1024, protocol: 'TUS' as const } }
 }
 
 function assertReadyOwnedAsset(
@@ -219,7 +248,10 @@ async function signedDelivery(
 export async function createImageUploadIntent(
   db: DBLike,
   userId: string,
-  input: CreateImageUploadIntentInput | CreateCampaignFileUploadIntentInput
+  input:
+    | CreateImageUploadIntentInput
+    | CreateCampaignFileUploadIntentInput
+    | CreateVttMapUploadIntentInput
 ) {
   const targetKey = mediaTargetKey(input.target)
   if (input.target.type === 'CHARACTER_PORTRAIT') {
@@ -246,7 +278,9 @@ export async function createImageUploadIntent(
         throw new MediaConflictError('This upload key has already been finalized.')
       return existing
     }
-    if ((await media.usageBytes(userId)) + maxBytes > quotaBytes) throw new MediaQuotaError()
+    const reservationBytes = input.profile === 'VTT_MAP' ? vttMapMaxBytes : maxBytes
+    if ((await media.usageBytes(userId)) + reservationBytes > quotaBytes)
+      throw new MediaQuotaError()
     const assetId = randomUUID()
     return media.createPending({
       ...input,
@@ -423,6 +457,259 @@ export async function finalizeImageUpload(
     await removeMediaObjects(db, newKeys)
     await media.resetPending(assetId)
     throw error
+  }
+}
+
+export async function finalizeVttMapUpload(
+  db: DBLike,
+  userId: string,
+  assetId: string
+): Promise<{ assetId: string; status: 'READY' | 'REJECTED' }> {
+  const media = createMediaRepository(db)
+  const found = await media.findById(assetId)
+  if (!found) throw new MediaNotFoundError()
+  if (found.owner_user_id !== userId || found.profile !== 'VTT_MAP') throw new MediaAccessError()
+  const campaignId = found.target_key.slice(found.target_key.indexOf(':') + 1)
+  const authority = await resolveCampaignAuthority(db, campaignId, userId)
+  assertActiveCampaignMember(authority)
+  assertCampaignOwner(authority)
+  assertCampaignWritable(authority)
+  if (found.status === 'READY') return { assetId, status: 'READY' }
+  const asset = await media.claimForProcessing(assetId, userId)
+  if (!asset) throw new MediaConflictError()
+  const supabase = createSupabaseClient()
+  const newKeys: string[] = []
+  let isReady = false
+  try {
+    const readyPrefix = `ready/${userId}/${assetId}`
+    const stale = await supabase.storage.from(bucket).list(readyPrefix, { limit: 1000 })
+    if (stale.error) throw new Error('Unable to clear interrupted map processing.')
+    const staleKeys = (stale.data ?? []).map((object) => `${readyPrefix}/${object.name}`)
+    if (!(await removeMediaObjects(db, staleKeys))) {
+      throw new Error('Unable to clear interrupted map processing.')
+    }
+    const { data: file, error: downloadError } = await supabase.storage
+      .from(bucket)
+      .download(asset.raw_object_key)
+    if (downloadError) {
+      if (isStorageNotFound(downloadError)) {
+        throw new MediaValidationError('Upload data was not found.')
+      }
+      throw new Error('Unable to load uploaded map.')
+    }
+    if (!file) throw new MediaValidationError('Upload data was not found.')
+    const source = Buffer.from(await file.arrayBuffer())
+    if (source.byteLength > vttMapMaxBytes) {
+      throw new MediaValidationError('Map exceeds the 25 MiB limit.')
+    }
+    const inspection = await inspectImage(source)
+    const mime =
+      inspection.format === 'jpeg'
+        ? 'image/jpeg'
+        : inspection.format === 'png'
+          ? 'image/png'
+          : inspection.format === 'webp'
+            ? 'image/webp'
+            : null
+    if (
+      !mime ||
+      !supportedMimeTypes.has(mime) ||
+      (inspection.pages ?? 1) > 1 ||
+      !inspection.width ||
+      !inspection.height ||
+      inspection.width > maxDimension ||
+      inspection.height > maxDimension ||
+      inspection.width * inspection.height > vttMapMaxPixels
+    ) {
+      throw new MediaValidationError('Map format or dimensions are not supported.')
+    }
+    if (asset.declared_mime_type !== mime) {
+      throw new MediaValidationError('Map type does not match the upload intent.')
+    }
+    const normalized = await sharp(source)
+      .rotate()
+      .webp({ quality: 85 })
+      .toBuffer({ resolveWithObject: true })
+      .catch(() => {
+        throw new MediaValidationError('Map data could not be normalized.')
+      })
+    const width = normalized.info.width
+    const height = normalized.info.height
+    if (!width || !height) throw new MediaValidationError('Map dimensions are unavailable.')
+    const variants: {
+      id: string
+      kind: MediaVariantKind
+      object_key: string
+      mime_type: string
+      byte_size: number
+      width: number
+      height: number
+    }[] = []
+    for (const [kind, limit] of [
+      ['DISPLAY', 1600],
+      ['THUMBNAIL', 320]
+    ] as const) {
+      const size = imageSize(width, height, limit)
+      const body = await sharp(normalized.data)
+        .resize(size.width, size.height, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 85 })
+        .toBuffer()
+      const objectKey = `ready/${userId}/${assetId}/${randomUUID()}.webp`
+      newKeys.push(objectKey)
+      await media.scheduleObjectDeletions([objectKey])
+      const { error } = await supabase.storage
+        .from(bucket)
+        .upload(objectKey, body, { contentType: 'image/webp', upsert: false })
+      if (error) throw new Error('Unable to store processed map.')
+      variants.push({
+        id: randomUUID(),
+        kind,
+        object_key: objectKey,
+        mime_type: 'image/webp',
+        byte_size: body.byteLength,
+        ...size
+      })
+    }
+    const tiles: {
+      byte_size: number
+      column_index: number
+      height: number
+      object_key: string
+      row_index: number
+      width: number
+    }[] = []
+    const rows = Math.ceil(height / vttMapTileSize)
+    const columns = Math.ceil(width / vttMapTileSize)
+    if (rows * columns > vttMapTileLimit) {
+      throw new MediaValidationError('Map requires too many renderer tiles.')
+    }
+    for (let row = 0; row < rows; row += 1) {
+      for (let column = 0; column < columns; column += 1) {
+        const tileWidth = Math.min(vttMapTileSize, width - column * vttMapTileSize)
+        const tileHeight = Math.min(vttMapTileSize, height - row * vttMapTileSize)
+        const body = await sharp(normalized.data)
+          .extract({
+            left: column * vttMapTileSize,
+            top: row * vttMapTileSize,
+            width: tileWidth,
+            height: tileHeight
+          })
+          .webp({ quality: 85 })
+          .toBuffer()
+        const objectKey = `ready/${userId}/${assetId}/tile-${row}-${column}-${randomUUID()}.webp`
+        newKeys.push(objectKey)
+        await media.scheduleObjectDeletions([objectKey])
+        const { error } = await supabase.storage
+          .from(bucket)
+          .upload(objectKey, body, { contentType: 'image/webp', upsert: false })
+        if (error) throw new Error('Unable to store map tile.')
+        tiles.push({
+          byte_size: body.byteLength,
+          column_index: column,
+          height: tileHeight,
+          object_key: objectKey,
+          row_index: row,
+          width: tileWidth
+        })
+      }
+    }
+    const ready = await withTransaction(db, async (trx) => {
+      const repository = createMediaRepository(trx)
+      if (!(await repository.lockOwner(userId))) throw new MediaAccessError()
+      return repository.replaceReady({
+        assetId,
+        ownerUserId: userId,
+        quotaBytes: await getStorageQuotaBytes(trx, userId),
+        reservationBytes: vttMapMaxBytes,
+        verifiedMimeType: mime,
+        verifiedBytes: source.byteLength,
+        width,
+        height,
+        variants,
+        vttMapTiles: tiles
+      })
+    })
+    if (!ready) throw new MediaQuotaError()
+    isReady = true
+    await removeMediaObjects(db, [asset.raw_object_key])
+    return { assetId, status: 'READY' }
+  } catch (error) {
+    if (isReady) throw error
+    if (error instanceof MediaValidationError || error instanceof MediaQuotaError) {
+      await removeMediaObjects(db, [...newKeys, asset.raw_object_key])
+      await media.reject(assetId, error.message)
+      return { assetId, status: 'REJECTED' }
+    }
+    await removeMediaObjects(db, newKeys)
+    await media.resetPending(assetId)
+    throw error
+  }
+}
+
+export async function getVttMapDelivery(
+  db: DBLike,
+  userId: string,
+  assetId: string
+): Promise<SignedVttMapDeliveryDto> {
+  const media = createMediaRepository(db)
+  const asset = await media.findById(assetId)
+  if (!asset || asset.status !== 'READY' || asset.profile !== 'VTT_MAP') {
+    throw new MediaNotFoundError()
+  }
+  const campaignId = asset.target_key.slice(asset.target_key.indexOf(':') + 1)
+  const authority = await resolveCampaignAuthority(db, campaignId, userId)
+  assertActiveCampaignMember(authority)
+  const isOwner = authority.membership.role === 'OWNER'
+  if (!isOwner) {
+    const attachment = await sql<{ attached: boolean }>`
+      select exists(
+        select 1 from encounter_scenes scene
+        join encounters encounter on encounter.id = scene.encounter_id
+        where encounter.campaign_id = ${campaignId}::uuid
+          and (
+            scene.definition_snapshot #>> '{map,assetId}' = ${assetId}
+            or scene.projection #>> '{map,assetId}' = ${assetId}
+          )
+      ) as attached
+    `.execute(db)
+    if (!attachment.rows[0]?.attached) throw new MediaAccessError()
+  }
+  const overview = await media.findVariant(assetId, 'DISPLAY')
+  const tiles = await media.listVttMapTiles(assetId)
+  if (!overview || overview.width === null || overview.height === null || tiles.length === 0) {
+    throw new MediaNotFoundError()
+  }
+  const expiresInSeconds = 5 * 60
+  const expiresAt = isoAfter(expiresInSeconds * 1000)
+  const supabase = createSupabaseClient()
+  const overviewUrl = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(overview.object_key, expiresInSeconds)
+  if (overviewUrl.error || !overviewUrl.data?.signedUrl) {
+    throw new Error('Unable to create map overview URL.')
+  }
+  const signedTiles: SignedVttMapDeliveryDto['tiles'] = []
+  for (const tile of tiles) {
+    const signed = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(tile.object_key, expiresInSeconds)
+    if (signed.error || !signed.data?.signedUrl) throw new Error('Unable to create map tile URL.')
+    signedTiles.push({
+      column: tile.column_index,
+      height: tile.height,
+      row: tile.row_index,
+      url: signed.data.signedUrl,
+      width: tile.width
+    })
+  }
+  if (asset.width === null || asset.height === null) throw new MediaNotFoundError()
+  return {
+    assetId,
+    expiresAt,
+    height: asset.height,
+    overview: { height: overview.height, url: overviewUrl.data.signedUrl, width: overview.width },
+    tiles: signedTiles,
+    width: asset.width
   }
 }
 

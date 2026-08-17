@@ -27,6 +27,11 @@ const campaignMocks = vi.hoisted(() => {
     CampaignValidationError,
     EntitlementLimitError,
     listCampaigns: vi.fn(async () => []),
+    listCampaignSceneDefinitions: vi.fn(async () => []),
+    issueLiveSessionTicket: vi.fn(async () => ({
+      expiresAt: '2026-08-15T12:01:00.000Z',
+      ticket: 'signed-room-ticket'
+    })),
     listSentCampaignInvites: vi.fn(async () => []),
     transferCampaignInventory: vi.fn(async () => ({
       eventId: '00000000-0000-4000-8000-000000000010'
@@ -157,6 +162,39 @@ describe('tRPC campaign router', () => {
         idempotencyKey: '00000000-0000-4000-8000-000000000004'
       })
     ).resolves.toEqual({ eventId: '00000000-0000-4000-8000-000000000010' })
+  })
+
+  it('issues a short-lived live-session ticket through the authenticated session API', async () => {
+    vi.stubEnv('LIVE_SESSION_TICKET_SECRET', 'ticket-secret-that-is-at-least-32-bytes')
+    const caller = appRouter.createCaller(authenticatedContext)
+    const input = {
+      campaignId: '00000000-0000-4000-8000-000000000001',
+      sessionId: '00000000-0000-4000-8000-000000000002'
+    }
+
+    await expect(caller.campaigns.sessions.ticket(input)).resolves.toEqual({
+      expiresAt: '2026-08-15T12:01:00.000Z',
+      ticket: 'signed-room-ticket'
+    })
+    expect(campaignMocks.issueLiveSessionTicket).toHaveBeenCalledWith(
+      {},
+      'user-1',
+      input,
+      'ticket-secret-that-is-at-least-32-bytes'
+    )
+    vi.unstubAllEnvs()
+  })
+
+  it('routes owner scene-definition reads through the scene service', async () => {
+    const caller = appRouter.createCaller(authenticatedContext)
+    const campaignId = '00000000-0000-4000-8000-000000000001'
+
+    await expect(caller.campaigns.scenes.list({ campaignId })).resolves.toEqual([])
+    expect(campaignMocks.listCampaignSceneDefinitions).toHaveBeenCalledWith(
+      {},
+      'user-1',
+      campaignId
+    )
   })
 
   it('forwards Campaign content service arguments and parses content payloads', async () => {

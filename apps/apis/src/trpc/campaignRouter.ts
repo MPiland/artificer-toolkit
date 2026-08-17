@@ -40,6 +40,7 @@ import { campaignPlaySettingsRouter } from './campaignPlaySettingsRouter.js'
 import { campaignVehicleRouter } from './campaignVehicleRouter.js'
 import { campaignAttachmentRouter } from './campaignAttachmentRouter.js'
 import { campaignAnnouncementRouter } from './campaignAnnouncementRouter.js'
+import { campaignSceneRouter } from './campaignSceneRouter.js'
 
 export const campaignRouter = createTRPCRouter({
   list: authenticatedProcedure
@@ -230,6 +231,7 @@ export const campaignRouter = createTRPCRouter({
   chat: campaignChatRouter,
   notebook: campaignNotebookRouter,
   sessions: campaignSessionRouter,
+  scenes: campaignSceneRouter,
   inventory: campaignInventoryRouter,
   clock: campaignClockRouter,
   playSettings: campaignPlaySettingsRouter,

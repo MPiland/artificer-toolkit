@@ -69,9 +69,29 @@ function getScopedWebServers() {
 
   return [
     matchesProjectSelection('app', requestedProjects) ? appWebServer : null,
-    matchesProjectSelection('storybook', requestedProjects) ? storybookWebServer : null
+    matchesProjectSelection('storybook', requestedProjects) ||
+    matchesProjectSelection('storybook-vtt-hardware', requestedProjects)
+      ? storybookWebServer
+      : null
   ].filter((server): server is typeof appWebServer | typeof storybookWebServer => Boolean(server))
 }
+
+const vttHardwareProject =
+  process.env.VTT_HARDWARE_FPS_GATE === '1'
+    ? [
+        {
+          name: 'storybook-vtt-hardware',
+          testMatch: /vttLoad\.spec\.ts/,
+          use: {
+            ...devices['Desktop Chrome'],
+            baseURL: 'http://127.0.0.1:6006',
+            launchOptions: {
+              headless: false
+            }
+          }
+        }
+      ]
+    : []
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -101,7 +121,8 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         baseURL: 'http://127.0.0.1:6006'
       }
-    }
+    },
+    ...vttHardwareProject
   ],
   webServer: getScopedWebServers()
 })

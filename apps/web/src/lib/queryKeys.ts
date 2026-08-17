@@ -49,6 +49,7 @@ export const queryKeys = {
       ['campaigns', campaignId, 'chat', room, directUserId ?? null] as const,
     notebook: (campaignId: string) => ['campaigns', campaignId, 'notebook'] as const,
     sessions: (campaignId: string) => ['campaigns', campaignId, 'sessions'] as const,
+    scenes: (campaignId: string) => ['campaigns', campaignId, 'scenes'] as const,
     session: (campaignId: string, sessionNumber: number) =>
       ['campaigns', campaignId, 'sessions', sessionNumber] as const,
     sessionAttendance: (campaignId: string, sessionId: string) =>
@@ -97,6 +98,10 @@ export const queryKeys = {
     active: (campaignId: string) => ['encounters', 'campaign', campaignId, 'active'] as const,
     list: (campaignId: string) => ['encounters', 'campaign', campaignId, 'list'] as const,
     templates: (campaignId: string) => ['encounters', 'campaign', campaignId, 'templates'] as const
+  },
+
+  media: {
+    vttMap: (assetId: string) => ['media', 'vtt-map', assetId] as const
   },
 
   characters: {

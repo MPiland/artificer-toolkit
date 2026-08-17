@@ -1,0 +1,438 @@
+import polygonClipping, { type MultiPolygon } from 'polygon-clipping'
+import RBush from 'rbush'
+import { orient2d } from 'robust-predicates'
+
+import {
+  VTT_SCENE_LIMITS,
+  type EncounterSceneState,
+  type SceneBarrier,
+  type SceneDoorState,
+  type SceneGrid,
+  type SceneLight,
+  type ScenePoint,
+  type ScenePolygon,
+  type SceneTokenVision
+} from './scene.js'
+
+const EPSILON = 1e-9
+const RAY_ANGLE_OFFSET = 1e-7
+const FULL_CIRCLE_RAY_COUNT = 64
+const CONE_RAY_COUNT = 32
+
+interface IndexedBarrier {
+  barrier: SceneBarrier
+  maxX: number
+  maxY: number
+  minX: number
+  minY: number
+}
+
+function bounds(a: ScenePoint, b: ScenePoint) {
+  return {
+    maxX: Math.max(a.x, b.x),
+    maxY: Math.max(a.y, b.y),
+    minX: Math.min(a.x, b.x),
+    minY: Math.min(a.y, b.y)
+  }
+}
+
+function pointOnSegment(point: ScenePoint, a: ScenePoint, b: ScenePoint): boolean {
+  return (
+    point.x >= Math.min(a.x, b.x) - EPSILON &&
+    point.x <= Math.max(a.x, b.x) + EPSILON &&
+    point.y >= Math.min(a.y, b.y) - EPSILON &&
+    point.y <= Math.max(a.y, b.y) + EPSILON
+  )
+}
+
+export function segmentsIntersect(
+  a: ScenePoint,
+  b: ScenePoint,
+  c: ScenePoint,
+  d: ScenePoint
+): boolean {
+  const abC = orient2d(a.x, a.y, b.x, b.y, c.x, c.y)
+  const abD = orient2d(a.x, a.y, b.x, b.y, d.x, d.y)
+  const cdA = orient2d(c.x, c.y, d.x, d.y, a.x, a.y)
+  const cdB = orient2d(c.x, c.y, d.x, d.y, b.x, b.y)
+  if (abC === 0 && pointOnSegment(c, a, b)) return true
+  if (abD === 0 && pointOnSegment(d, a, b)) return true
+  if (cdA === 0 && pointOnSegment(a, c, d)) return true
+  if (cdB === 0 && pointOnSegment(b, c, d)) return true
+  return Math.sign(abC) !== Math.sign(abD) && Math.sign(cdA) !== Math.sign(cdB)
+}
+
+export class SceneBarrierIndex {
+  readonly #tree = new RBush<IndexedBarrier>()
+
+  constructor(barriers: readonly SceneBarrier[]) {
+    this.#tree.load(barriers.map((barrier) => ({ barrier, ...bounds(barrier.a, barrier.b) })))
+  }
+
+  search(a: ScenePoint, b: ScenePoint): SceneBarrier[] {
+    return this.#tree.search(bounds(a, b)).map((entry) => entry.barrier)
+  }
+}
+
+function closedDoor(
+  barrier: Extract<SceneBarrier, { kind: 'DOOR' }>,
+  doorStates: Readonly<Record<string, SceneDoorState>>
+): boolean {
+  return (doorStates[barrier.id] ?? barrier.initialState) !== 'OPEN'
+}
+
+function crossesBlockedOneWay(
+  from: ScenePoint,
+  to: ScenePoint,
+  barrier: Extract<SceneBarrier, { kind: 'ONE_WAY' }>
+): boolean {
+  const fromSide = orient2d(barrier.a.x, barrier.a.y, barrier.b.x, barrier.b.y, from.x, from.y)
+  const toSide = orient2d(barrier.a.x, barrier.a.y, barrier.b.x, barrier.b.y, to.x, to.y)
+  return barrier.blockedDirection === 'LEFT_TO_RIGHT'
+    ? fromSide > 0 && toSide < 0
+    : fromSide < 0 && toSide > 0
+}
+
+export function movementCrossesBlockingBarrier(
+  from: ScenePoint,
+  to: ScenePoint,
+  barrier: SceneBarrier,
+  doorStates: Readonly<Record<string, SceneDoorState>>
+): boolean {
+  if (!segmentsIntersect(from, to, barrier.a, barrier.b)) return false
+  switch (barrier.kind) {
+    case 'WALL':
+    case 'WINDOW':
+      return barrier.blocksMovement
+    case 'DOOR':
+      return barrier.blocksMovementWhenClosed && closedDoor(barrier, doorStates)
+    case 'ONE_WAY':
+      return barrier.blocksMovement && crossesBlockedOneWay(from, to, barrier)
+    case 'TERRAIN':
+      return false
+  }
+}
+
+export function canMoveBetween(
+  state: Pick<EncounterSceneState, 'barriers' | 'doorStates'>,
+  from: ScenePoint,
+  to: ScenePoint,
+  index = new SceneBarrierIndex(state.barriers)
+): boolean {
+  return !index
+    .search(from, to)
+    .some((barrier) => movementCrossesBlockingBarrier(from, to, barrier, state.doorStates))
+}
+
+/**
+ * Append one accepted drag position while removing redundant straight-line samples. The path
+ * retains every required corner, so the authoritative command can validate the route without
+ * storing pointer-event noise.
+ */
+export function extendSceneMovementPath(
+  state: Pick<EncounterSceneState, 'barriers' | 'doorStates'>,
+  path: readonly ScenePoint[],
+  position: ScenePoint,
+  index = new SceneBarrierIndex(state.barriers)
+): ScenePoint[] {
+  const last = path.at(-1)
+  if (!last) return [position]
+  if (last.x === position.x && last.y === position.y) return [...path]
+  if (!canMoveBetween(state, last, position, index)) return [...path]
+
+  const prior = path.at(-2)
+  if (prior && canMoveBetween(state, prior, position, index)) {
+    return [...path.slice(0, -1), position]
+  }
+  if (path.length >= VTT_SCENE_LIMITS.transientPathPoints) return [...path]
+  return [...path, position]
+}
+
+export function isSceneMovementPathValid(
+  state: Pick<EncounterSceneState, 'barriers' | 'doorStates'>,
+  path: readonly ScenePoint[],
+  index = new SceneBarrierIndex(state.barriers)
+): boolean {
+  return path.every(
+    (point, pathIndex) =>
+      pathIndex === 0 || canMoveBetween(state, path[pathIndex - 1]!, point, index)
+  )
+}
+
+function blocksLight(
+  barrier: SceneBarrier,
+  doorStates: Readonly<Record<string, SceneDoorState>>
+): boolean {
+  switch (barrier.kind) {
+    case 'WALL':
+    case 'WINDOW':
+    case 'ONE_WAY':
+      return barrier.blocksLight
+    case 'DOOR':
+      return barrier.blocksLightWhenClosed && closedDoor(barrier, doorStates)
+    case 'TERRAIN':
+      return false
+  }
+}
+
+function visibleOccludersWithinRange(
+  origin: ScenePoint,
+  maximum: number,
+  index: SceneBarrierIndex,
+  doorStates: Readonly<Record<string, SceneDoorState>>
+): SceneBarrier[] {
+  return index
+    .search(
+      { x: origin.x - maximum, y: origin.y - maximum },
+      { x: origin.x + maximum, y: origin.y + maximum }
+    )
+    .filter((barrier) => blocksLight(barrier, doorStates))
+}
+
+function raySegmentIntersection(
+  origin: ScenePoint,
+  angle: number,
+  a: ScenePoint,
+  b: ScenePoint,
+  maximum: number
+): ScenePoint | null {
+  const dx = Math.cos(angle)
+  const dy = Math.sin(angle)
+  const sx = b.x - a.x
+  const sy = b.y - a.y
+  const denominator = dx * sy - dy * sx
+  if (Math.abs(denominator) < EPSILON) return null
+  const ox = a.x - origin.x
+  const oy = a.y - origin.y
+  const distance = (ox * sy - oy * sx) / denominator
+  const segment = (ox * dy - oy * dx) / denominator
+  if (distance < 0 || distance > maximum || segment < 0 || segment > 1) return null
+  return { x: origin.x + dx * distance, y: origin.y + dy * distance }
+}
+
+export function visibilityPolygon(
+  origin: ScenePoint,
+  maximum: number,
+  barriers: readonly SceneBarrier[],
+  doorStates: Readonly<Record<string, SceneDoorState>>,
+  index = new SceneBarrierIndex(barriers)
+): ScenePolygon {
+  const occluders = visibleOccludersWithinRange(origin, maximum, index, doorStates)
+  const boundaryAngles = Array.from(
+    { length: FULL_CIRCLE_RAY_COUNT },
+    (_, index) => (index / FULL_CIRCLE_RAY_COUNT) * Math.PI * 2
+  )
+  const angles = [
+    ...boundaryAngles,
+    ...occluders.flatMap((barrier) =>
+      [barrier.a, barrier.b].flatMap((point) => {
+        const angle = Math.atan2(point.y - origin.y, point.x - origin.x)
+        return [angle - RAY_ANGLE_OFFSET, angle, angle + RAY_ANGLE_OFFSET]
+      })
+    )
+  ]
+  const points = [...new Set(angles)]
+    .sort((left, right) => left - right)
+    .map((angle) => visibleRayEndpoint(origin, angle, maximum, index, doorStates))
+  return { points }
+}
+
+function visibleRayEndpoint(
+  origin: ScenePoint,
+  angle: number,
+  maximum: number,
+  index: SceneBarrierIndex,
+  doorStates: Readonly<Record<string, SceneDoorState>>
+): ScenePoint {
+  let nearest: ScenePoint = {
+    x: origin.x + Math.cos(angle) * maximum,
+    y: origin.y + Math.sin(angle) * maximum
+  }
+  let nearestDistance = maximum
+  for (const barrier of index
+    .search(origin, nearest)
+    .filter((candidate) => blocksLight(candidate, doorStates))) {
+    const hit = raySegmentIntersection(origin, angle, barrier.a, barrier.b, maximum)
+    if (!hit) continue
+    const distance = Math.hypot(hit.x - origin.x, hit.y - origin.y)
+    if (distance < nearestDistance) {
+      nearest = hit
+      nearestDistance = distance
+    }
+  }
+  return nearest
+}
+
+function normalizeRadians(angle: number): number {
+  const fullCircle = Math.PI * 2
+  return ((angle % fullCircle) + fullCircle) % fullCircle
+}
+
+function signedAngleOffset(angle: number, center: number): number {
+  const fullCircle = Math.PI * 2
+  return ((((angle - center + Math.PI) % fullCircle) + fullCircle) % fullCircle) - Math.PI
+}
+
+/** Resolve the visible area of a point or directional cone light against the same barrier rules. */
+export function visibilityPolygonForLight(
+  light: SceneLight,
+  barriers: readonly SceneBarrier[],
+  doorStates: Readonly<Record<string, SceneDoorState>>,
+  index = new SceneBarrierIndex(barriers)
+): ScenePolygon {
+  const maximum = Math.max(light.brightRadius, light.dimRadius)
+  if (light.kind === 'POINT' || light.angleDegrees >= 360) {
+    return visibilityPolygon(light.position, maximum, barriers, doorStates, index)
+  }
+
+  const direction = (light.directionDegrees * Math.PI) / 180
+  const halfAngle = (light.angleDegrees * Math.PI) / 360
+  const occluders = visibleOccludersWithinRange(light.position, maximum, index, doorStates)
+  const sampledOffsets = Array.from(
+    { length: CONE_RAY_COUNT + 1 },
+    (_, index) => -halfAngle + (index / CONE_RAY_COUNT) * halfAngle * 2
+  )
+  const endpointOffsets = occluders.flatMap((barrier) =>
+    [barrier.a, barrier.b].flatMap((point) => {
+      const offset = signedAngleOffset(
+        Math.atan2(point.y - light.position.y, point.x - light.position.x),
+        direction
+      )
+      if (Math.abs(offset) > halfAngle + RAY_ANGLE_OFFSET) return []
+      return [offset - RAY_ANGLE_OFFSET, offset, offset + RAY_ANGLE_OFFSET].filter(
+        (candidate) => Math.abs(candidate) <= halfAngle
+      )
+    })
+  )
+  const rays = [...new Set([...sampledOffsets, ...endpointOffsets])]
+    .sort((left, right) => left - right)
+    .map((offset) =>
+      visibleRayEndpoint(
+        light.position,
+        normalizeRadians(direction + offset),
+        maximum,
+        index,
+        doorStates
+      )
+    )
+  return { points: [light.position, ...rays] }
+}
+
+/** Resolve a token's full-circle or directional sight polygon against light-blocking barriers. */
+export function visibilityPolygonForToken(
+  position: ScenePoint,
+  vision: SceneTokenVision,
+  barriers: readonly SceneBarrier[],
+  doorStates: Readonly<Record<string, SceneDoorState>>,
+  index = new SceneBarrierIndex(barriers)
+): ScenePolygon | null {
+  if (!vision.enabled) return null
+  const maximum = Math.max(vision.brightRange, vision.dimRange)
+  if (maximum <= 0) return null
+  return visibilityPolygonForLight(
+    vision.angleDegrees >= 360
+      ? {
+          brightRadius: vision.brightRange,
+          color: '#ffffff',
+          dimRadius: vision.dimRange,
+          id: 'TOKEN_VISION',
+          intensity: 1,
+          kind: 'POINT',
+          position
+        }
+      : {
+          angleDegrees: vision.angleDegrees,
+          brightRadius: vision.brightRange,
+          color: '#ffffff',
+          dimRadius: vision.dimRange,
+          directionDegrees: vision.directionDegrees,
+          id: 'TOKEN_VISION',
+          intensity: 1,
+          kind: 'CONE',
+          position
+        },
+    barriers,
+    doorStates,
+    index
+  )
+}
+
+export function measureSceneDistance(grid: SceneGrid, from: ScenePoint, to: ScenePoint): number {
+  const deltaX = Math.abs(to.x - from.x)
+  const deltaY = Math.abs(to.y - from.y)
+  if (grid.kind === 'GRIDLESS') return Math.hypot(deltaX, deltaY) / grid.pixelsPerUnit
+  const horizontal = Math.round(deltaX / grid.cellSize)
+  const vertical = Math.round(deltaY / grid.cellSize)
+  if (grid.diagonalPolicy === 'EUCLIDEAN') {
+    return Math.hypot(horizontal, vertical) * grid.distancePerCell
+  }
+  const diagonals = Math.min(horizontal, vertical)
+  const straight = Math.max(horizontal, vertical) - diagonals
+  const cells =
+    grid.diagonalPolicy === 'EQUAL'
+      ? diagonals + straight
+      : diagonals + Math.floor(diagonals / 2) + straight
+  return cells * grid.distancePerCell
+}
+
+export function measureScenePathDistance(grid: SceneGrid, path: readonly ScenePoint[]): number {
+  if (grid.kind !== 'SQUARE' || grid.diagonalPolicy !== 'ALTERNATING') {
+    let distance = 0
+    for (let index = 1; index < path.length; index += 1) {
+      distance += measureSceneDistance(grid, path[index - 1]!, path[index]!)
+    }
+    return distance
+  }
+
+  let diagonals = 0
+  let straight = 0
+  for (let index = 1; index < path.length; index += 1) {
+    const from = path[index - 1]!
+    const to = path[index]!
+    const horizontal = Math.round(Math.abs(to.x - from.x) / grid.cellSize)
+    const vertical = Math.round(Math.abs(to.y - from.y) / grid.cellSize)
+    const segmentDiagonals = Math.min(horizontal, vertical)
+    diagonals += segmentDiagonals
+    straight += Math.max(horizontal, vertical) - segmentDiagonals
+  }
+  return (diagonals + Math.floor(diagonals / 2) + straight) * grid.distancePerCell
+}
+
+/** Terrain segments do not block movement; the highest crossed multiplier controls its cost. */
+export function terrainMovementMultiplier(
+  state: { readonly barriers: readonly SceneBarrier[] },
+  from: ScenePoint,
+  to: ScenePoint,
+  index = new SceneBarrierIndex(state.barriers)
+): number {
+  return index
+    .search(from, to)
+    .reduce(
+      (multiplier, barrier) =>
+        barrier.kind === 'TERRAIN' && segmentsIntersect(from, to, barrier.a, barrier.b)
+          ? Math.max(multiplier, barrier.movementCostMultiplier)
+          : multiplier,
+      1
+    )
+}
+
+export function measureSceneMovementCost(
+  grid: SceneGrid,
+  state: { readonly barriers: readonly SceneBarrier[] },
+  from: ScenePoint,
+  to: ScenePoint,
+  index = new SceneBarrierIndex(state.barriers)
+): number {
+  return measureSceneDistance(grid, from, to) * terrainMovementMultiplier(state, from, to, index)
+}
+
+function toMultiPolygon(polygon: ScenePolygon): MultiPolygon {
+  return [[polygon.points.map((point) => [point.x, point.y])]]
+}
+
+export function unionScenePolygons(polygons: readonly ScenePolygon[]): MultiPolygon {
+  if (polygons.length === 0) return []
+  const [first, ...rest] = polygons
+  if (!first) return []
+  return polygonClipping.union(toMultiPolygon(first), ...rest.map(toMultiPolygon))
+}

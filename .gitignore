@@ -48,6 +48,9 @@ supabase/.temp/
 
 # misc
 .env*
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
 
 !jest.config.js
 *.d.ts
