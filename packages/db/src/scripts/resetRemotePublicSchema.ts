@@ -1,5 +1,5 @@
-import { readFile } from 'node:fs/promises'
-import { dirname, join, relative, resolve } from 'node:path'
+import { readdir, readFile } from 'node:fs/promises'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import pg from 'pg'
@@ -7,8 +7,8 @@ import pg from 'pg'
 const { Client } = pg
 
 const CONFIRMATION_VALUE = 'reset-public-schema'
-const DOMAINS_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../domains')
-const BOOTSTRAP_ENTRY_FILE = join(DOMAINS_ROOT, 'utils', 'create_database.sql')
+const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
+const MIGRATIONS_ROOT = join(REPOSITORY_ROOT, 'supabase', 'migrations')
 
 export type RemoteSchemaResetTarget = 'staging' | 'production'
 
@@ -73,54 +73,21 @@ export function parseRemoteSchemaResetTarget(
   return target
 }
 
-async function readBootstrapStages(
-  filePath: string,
-  seen = new Set<string>()
-): Promise<BootstrapStage[]> {
-  const normalizedPath = resolve(filePath)
-  if (seen.has(normalizedPath)) {
-    throw new Error(`Recursive SQL include detected for ${normalizedPath}.`)
+export async function readCanonicalMigrationStages(): Promise<BootstrapStage[]> {
+  const migrationNames = (await readdir(MIGRATIONS_ROOT))
+    .filter((name) => name.endsWith('.sql'))
+    .sort()
+  if (migrationNames.length === 0) {
+    throw new Error('Canonical Supabase migrations are unavailable.')
   }
 
-  seen.add(normalizedPath)
-  const lines = (await readFile(normalizedPath, 'utf8')).split(/\r?\n/)
-  const stages: BootstrapStage[] = []
-  let bufferedLines: string[] = []
-  let section = 1
-
-  const flush = () => {
-    const sql = bufferedLines.join('\n').trim()
-    bufferedLines = []
-    if (!sql) return
-
-    stages.push({
-      label: `${relative(DOMAINS_ROOT, normalizedPath)}#${section}`,
-      sql
+  return Promise.all(
+    migrationNames.map(async (name) => {
+      const sql = (await readFile(join(MIGRATIONS_ROOT, name), 'utf8')).trim()
+      if (!sql) throw new Error(`Canonical migration ${name} is empty.`)
+      return { label: `supabase/migrations/${name}`, sql }
     })
-    section += 1
-  }
-
-  for (const line of lines) {
-    const includeMatch = line.match(/^\\i\s+:etl_root'\/(.+)'$/)
-    if (includeMatch) {
-      flush()
-      const includedPath = includeMatch[1]
-      if (!includedPath) throw new Error(`Invalid SQL include in ${normalizedPath}.`)
-      stages.push(...(await readBootstrapStages(join(DOMAINS_ROOT, includedPath), seen)))
-      continue
-    }
-
-    if (line.startsWith('\\set ')) continue
-    bufferedLines.push(line)
-  }
-
-  flush()
-  seen.delete(normalizedPath)
-  return stages
-}
-
-export function readPublicSchemaBootstrapStages(): Promise<BootstrapStage[]> {
-  return readBootstrapStages(BOOTSTRAP_ENTRY_FILE)
+  )
 }
 
 async function executeDropStatements(client: DatabaseClient, query: string): Promise<void> {
@@ -189,7 +156,7 @@ async function rebuildPublicSchema(client: DatabaseClient): Promise<void> {
   await clearPublicSchema(client)
   await client.query('SET search_path = public, pg_catalog')
 
-  const stages = await readPublicSchemaBootstrapStages()
+  const stages = await readCanonicalMigrationStages()
   console.log(`Applying the canonical schema in ${stages.length} lock-bounded stages.`)
   for (const stage of stages) {
     try {

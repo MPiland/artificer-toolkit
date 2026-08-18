@@ -49,7 +49,7 @@ After staging validation, the corresponding production promotion is `yarn seed-o
 
 ## Hosted public-schema reset
 
-Reset only after explicit approval for the named environment. The reset drops and recreates that environment's `public` schema from the canonical bootstrap; it preserves `auth` users. The bootstrap recreates their public profiles and entitlements before the named seed owner, source corpus, and staging fixtures are restored.
+Reset only after explicit approval for the named environment. The reset drops and recreates that environment's `public` schema by replaying the complete canonical `supabase/migrations` chain; it preserves `auth` users. The migration chain recreates their public profiles and entitlements before the named seed owner, source corpus, and staging fixtures are restored.
 
 ```text
 CONFIRM_REMOTE_PUBLIC_SCHEMA_RESET=reset-public-schema yarn db:reset:staging

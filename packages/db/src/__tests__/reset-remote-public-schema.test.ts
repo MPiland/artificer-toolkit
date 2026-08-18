@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   assertRemoteDatabaseConnectionString,
   parseRemoteSchemaResetTarget,
-  readPublicSchemaBootstrapStages
+  readCanonicalMigrationStages
 } from '../scripts/resetRemotePublicSchema.js'
 
 describe('remote public-schema reset target', () => {
@@ -36,12 +36,10 @@ describe('remote public-schema reset target', () => {
     expect(parseRemoteSchemaResetTarget(['--production'])).toBe('production')
   })
 
-  it('loads the canonical schema as lock-bounded SQL stages', async () => {
-    const stages = await readPublicSchemaBootstrapStages()
+  it('loads the full canonical migration chain as lock-bounded SQL stages', async () => {
+    const stages = await readCanonicalMigrationStages()
 
-    expect(stages.length).toBeGreaterThan(40)
-    expect(stages.every((stage) => !stage.sql.includes('\\i '))).toBe(true)
-    expect(stages.every((stage) => !stage.sql.includes('\\set '))).toBe(true)
+    expect(stages.length).toBeGreaterThan(100)
     expect(
       stages.some((stage) => stage.sql.includes('CREATE TABLE IF NOT EXISTS public.systems'))
     ).toBe(true)
@@ -51,6 +49,9 @@ describe('remote public-schema reset target', () => {
           stage.sql.includes('INSERT INTO public.profiles') &&
           stage.sql.includes('FROM auth.users AS auth_user')
       )
+    ).toBe(true)
+    expect(
+      stages.some((stage) => stage.sql.includes('add column command_state jsonb not null'))
     ).toBe(true)
   })
 })
