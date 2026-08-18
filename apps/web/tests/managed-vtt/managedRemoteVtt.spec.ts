@@ -362,11 +362,68 @@ async function openTabletop(client: ManagedClient): Promise<void> {
       timeout: 60_000
     })
   } catch (error) {
+    const diagnostics = await describeMapDelivery(client)
     throw new Error(
-      `${client.role} map did not become ready. Browser errors: ${client.browserErrors.slice(-10).join(' | ') || 'none'}. Failed requests: ${client.failedRequests.slice(-10).join(' | ') || 'none'}.`,
+      `${client.role} map did not become ready. Browser errors: ${client.browserErrors.slice(-10).join(' | ') || 'none'}. Failed requests: ${client.failedRequests.slice(-10).join(' | ') || 'none'}. Map delivery: ${JSON.stringify(diagnostics)}.`,
       { cause: error }
     )
   }
+}
+
+async function describeMapDelivery(client: ManagedClient): Promise<{
+  assets: {
+    contentLength: string | null
+    contentType: string | null
+    path: string
+    resourceType: string
+    status: number
+  }[]
+  deliveries: { metadata: MapDeliveryMetadata[]; status: number }[]
+}> {
+  const deliveries = await Promise.all(
+    client.deliveryResponses.map(async (response) => {
+      const metadata: MapDeliveryMetadata[] = []
+      if (response.ok()) collectMapDeliveryMetadata(await response.json(), metadata)
+      return { metadata, status: response.status() }
+    })
+  )
+  return {
+    assets: client.assetResponses.map((response) => ({
+      contentLength: response.headers()['content-length'] ?? null,
+      contentType: response.headers()['content-type'] ?? null,
+      path: safeRequestUrl(response.url()),
+      resourceType: response.request().resourceType(),
+      status: response.status()
+    })),
+    deliveries
+  }
+}
+
+interface MapDeliveryMetadata {
+  assetId: string
+  hasOverview: boolean
+  height: number | null
+  tileCount: number | null
+  width: number | null
+}
+
+function collectMapDeliveryMetadata(value: unknown, result: MapDeliveryMetadata[]): void {
+  if (Array.isArray(value)) {
+    for (const item of value) collectMapDeliveryMetadata(item, result)
+    return
+  }
+  if (!value || typeof value !== 'object') return
+  const candidate = value as Record<string, unknown>
+  if (typeof candidate.assetId === 'string') {
+    result.push({
+      assetId: candidate.assetId,
+      hasOverview: Boolean(candidate.overview),
+      height: typeof candidate.height === 'number' ? candidate.height : null,
+      tileCount: Array.isArray(candidate.tiles) ? candidate.tiles.length : null,
+      width: typeof candidate.width === 'number' ? candidate.width : null
+    })
+  }
+  for (const item of Object.values(candidate)) collectMapDeliveryMetadata(item, result)
 }
 
 async function expectManagedSocket(client: ManagedClient): Promise<void> {
@@ -495,10 +552,7 @@ function oppositeDoorAction(action: string): string {
 }
 
 function isVttMapAsset(response: Response): boolean {
-  return (
-    response.request().resourceType() === 'image' &&
-    response.url().includes('/storage/v1/object/sign/media/')
-  )
+  return response.url().includes('/storage/v1/object/sign/media/')
 }
 
 function isLiveSessionSocket(value: string): boolean {

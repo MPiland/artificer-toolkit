@@ -799,7 +799,7 @@ function SceneObjectMenu({
         {measurementAnnouncement}
       </span>
       <Menu
-        classNames={{ label: styles.menuLabel }}
+        classNames={{ dropdown: styles.menuDropdown, label: styles.menuLabel }}
         position='bottom-end'
         shadow='md'
         width={260}

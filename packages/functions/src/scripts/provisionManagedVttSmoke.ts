@@ -8,6 +8,7 @@ import {
   createDb,
   createMediaRepository
 } from '@artificer-toolkit/db'
+import sharp from 'sharp'
 
 import { assignCampaignCharacter, createCampaign } from '../services/campaign/campaignService.js'
 import { createCampaignSession } from '../services/campaign/campaignSessionService.js'
@@ -254,9 +255,19 @@ async function main(): Promise<void> {
     const mapAssetId = randomUUID()
     const mapOverviewObjectKey = `managed-smoke/${campaign.id}/map-display.png`
     const mapTileObjectKey = `managed-smoke/${campaign.id}/map-tile-0-0.png`
+    const mapPng = await sharp({
+      create: {
+        background: { alpha: 1, b: 32, g: 28, r: 24 },
+        channels: 4,
+        height: 1_000,
+        width: 1_000
+      }
+    })
+      .png()
+      .toBuffer()
     const media = createMediaRepository(db)
     await media.createPending({
-      declaredBytes: 1_024,
+      declaredBytes: mapPng.length,
       declaredMimeType: 'image/png',
       id: mapAssetId,
       idempotencyKey: randomUUID(),
@@ -276,7 +287,7 @@ async function main(): Promise<void> {
         reservationBytes: 26_214_400,
         variants: [
           {
-            byte_size: 512,
+            byte_size: mapPng.length,
             height: 1_000,
             id: randomUUID(),
             kind: 'DISPLAY',
@@ -285,11 +296,11 @@ async function main(): Promise<void> {
             width: 1_000
           }
         ],
-        verifiedBytes: 1_024,
+        verifiedBytes: mapPng.length,
         verifiedMimeType: 'image/png',
         vttMapTiles: [
           {
-            byte_size: 512,
+            byte_size: mapPng.length,
             column_index: 0,
             height: 1_000,
             object_key: mapTileObjectKey,
@@ -300,10 +311,6 @@ async function main(): Promise<void> {
         width: 1_000
       }),
       true
-    )
-    const mapPng = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+S4uR7wAAAABJRU5ErkJggg==',
-      'base64'
     )
     for (const objectKey of [mapOverviewObjectKey, mapTileObjectKey]) {
       const { error } = await admin.storage.from('media').upload(objectKey, mapPng, {

@@ -19,6 +19,12 @@ export const menuLabel = style({
   fontWeight: 600
 })
 
+export const menuDropdown = style({
+  maxBlockSize: 'calc(100dvh - 2rem)',
+  overscrollBehavior: 'contain',
+  overflowY: 'auto'
+})
+
 export const shell = style({
   '@layer': {
     [app]: {
