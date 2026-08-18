@@ -124,7 +124,9 @@ export const vehicleListFixture = {
     }
   ],
   drafts: [],
-  meta: {}
+  meta: {},
+  page: { nextCursor: null, previousCursor: null, totalCount: 2 },
+  summary: { activeCount: 2, masterCount: 1, ownedCount: 1 }
 } satisfies VehicleListResponseDto
 
 export const vehicleRuntimeFixture = {

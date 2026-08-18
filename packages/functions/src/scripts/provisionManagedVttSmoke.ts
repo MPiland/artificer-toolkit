@@ -8,6 +8,7 @@ import {
   createDb,
   createMediaRepository
 } from '@artificer-toolkit/db'
+import { createUniformSceneFogLayer } from '@artificer-toolkit/shared/vtt'
 import sharp from 'sharp'
 
 import { assignCampaignCharacter, createCampaign } from '../services/campaign/campaignService.js'
@@ -19,7 +20,8 @@ import {
 } from '../services/encounter/encounterService.js'
 import {
   attachEncounterScene,
-  createCampaignSceneDefinition
+  createCampaignSceneDefinition,
+  executeEncounterSceneCommand
 } from '../services/encounter/vttSceneService.js'
 import { proveFixtureLifecycle } from './characterLifecycleIntegrationBuilderProof.js'
 import {
@@ -178,23 +180,6 @@ async function main(): Promise<void> {
       sheetTimings,
       ruleTimings
     )
-    const resourcesById = new Map(sheet.resources.items.map((resource) => [resource.id, resource]))
-    const linkedAction = sheet.actions.items.find(
-      (action) =>
-        action.resourceGrantId &&
-        (action.resourceCost ?? 1) === 1 &&
-        (resourcesById.get(action.resourceGrantId)?.remaining ?? 0) > 0
-    )
-    const linkedResourceIds = new Set(
-      sheet.actions.items.flatMap((action) =>
-        action.resourceGrantId ? [action.resourceGrantId] : []
-      )
-    )
-    const standaloneResource = sheet.resources.items.find(
-      (resource) => resource.remaining > 0 && !linkedResourceIds.has(resource.id)
-    )
-    const actionLabel = linkedAction?.label ?? standaloneResource?.label
-    assert.ok(actionLabel, 'The smoke Character must expose one reversible cost-1 rule action.')
 
     const campaign = await createCampaign(db, gm.id, {
       name: CAMPAIGN_NAME,
@@ -408,6 +393,17 @@ async function main(): Promise<void> {
       sceneDefinitionId: sceneDefinition.id,
       type: 'ATTACH_SCENE'
     })
+    await executeEncounterSceneCommand(db, gm.id, {
+      commandId: randomUUID(),
+      encounterId: attachedScene.scene.encounterId,
+      expectedSceneVersion: attachedScene.scene.version,
+      layer: createUniformSceneFogLayer(attachedScene.scene, {
+        explored: true,
+        ownerUserId: null
+      }),
+      sceneId: attachedScene.scene.id,
+      type: 'PATCH_SCENE_FOG'
+    })
     await executeEncounterCommand(db, gm.id, {
       commandId: randomUUID(),
       encounterId: encounter.id,
@@ -427,7 +423,6 @@ async function main(): Promise<void> {
         mapAssetId,
         playerEmail: player.email,
         player2Email: player2.email,
-        ruleActionLabel: `Use one ${actionLabel} charge`,
         sceneId: attachedScene.scene.id,
         sessionId: session.id,
         tabletopPath: `/tabletop/campaigns/${encodeURIComponent(campaign.publicId)}/sessions/${session.sessionNumber}`

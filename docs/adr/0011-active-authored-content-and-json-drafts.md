@@ -1,6 +1,6 @@
 # ADR 0011: Canonical active authored content with JSON drafts
 
-- **Status:** decision
+- **Status:** historical — superseded by [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md)
 - **Date:** 2026-08-04
 - **Scope:** authored root identity, drafts, activation, imports, and active persistence
 - **Update when:** draft cardinality, activation concurrency, import identity, or root persistence changes

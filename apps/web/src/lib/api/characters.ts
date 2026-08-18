@@ -5,6 +5,7 @@ import {
   characterHistoryResponseDtoSchema,
   characterListResponseDtoSchema,
   characterRestPreviewResponseDtoSchema,
+  characterSheetExtraCatalogResponseDtoSchema,
   characterSheetCommandResponseDtoSchema,
   characterSheetResponseDtoSchema,
   type CharacterBuilderCommitRequestDto,
@@ -13,6 +14,7 @@ import {
   type CharacterBuilderSaveRequestDto,
   type CharacterDraftRequestDto,
   type CharacterRestPreviewRequestDto,
+  type CharacterSheetExtraCatalogInputDto,
   type CharacterSheetCommandInputDto
 } from '@artificer-toolkit/schema/api/characters'
 import {
@@ -80,6 +82,10 @@ export function buildCharactersApi(client: TrpcClient) {
     sheet: (id: string) =>
       request('characters.sheet', characterSheetResponseDtoSchema.nullable(), () =>
         client.characters.sheet.query({ id })
+      ),
+    extraOptions: (id: string, input: CharacterSheetExtraCatalogInputDto) =>
+      request('characters.extraOptions', characterSheetExtraCatalogResponseDtoSchema, () =>
+        client.characters.extraOptions.query({ id, input })
       ),
     upsert: (input: CharacterBuilderCommitRequestDto) =>
       request('characters.upsert', characterBuilderPayloadDtoSchema, () =>

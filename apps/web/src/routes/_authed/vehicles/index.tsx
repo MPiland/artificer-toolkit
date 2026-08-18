@@ -1,8 +1,9 @@
 import { notifications } from '@mantine/notifications'
-import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
+import { useAuthoredCatalogWindow } from '#components/AuthoredList/useAuthoredCatalogWindow'
 import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import {
   buildVehicleListFilters,
@@ -13,18 +14,26 @@ import {
   vehicleListSortOptions
 } from '#app/data/vehicles/vehicleListMapper'
 import { useDuplicateVehicleMutation } from '#app/data/vehicles/mutations'
-import { getVehicle, getVehicleList } from '#app/data/vehicles/queries'
+import { getVehicle, getVehicleList, useGetVehicleList } from '#app/data/vehicles/queries'
 import { createServerApi } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildVehicleRouteParams } from '#app/routing/authoredRouteParams'
+import type { VehicleListRequestDto } from '#app/lib/api'
 
 const vehicleDetailMeta = ['currencies']
+const vehicleCatalogueRequest = {
+  direction: 'FORWARD',
+  limit: 48,
+  sort: 'name'
+} satisfies VehicleListRequestDto
 
 export const Route = createFileRoute('/_authed/vehicles/')({
   loader: async ({ context }): Promise<void> => {
-    await context.queryClient.ensureQueryData(getVehicleList(createServerApi()))
+    await context.queryClient.ensureInfiniteQueryData(
+      getVehicleList(vehicleCatalogueRequest, createServerApi())
+    )
   },
   component: VehiclesRoute
 })
@@ -32,7 +41,28 @@ export const Route = createFileRoute('/_authed/vehicles/')({
 function VehiclesRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data } = useSuspenseQuery(getVehicleList())
+  const listing = useAuthoredCatalogWindow({
+    buildFilters: buildVehicleListFilters,
+    buildRequest: ({ filterValues, query, sort }): VehicleListRequestDto => ({
+      ...vehicleCatalogueRequest,
+      category: filterValues.category ?? undefined,
+      query: query || undefined,
+      sort: sort === 'category' ? 'category' : 'name',
+      source:
+        filterValues.source === 'MASTER' || filterValues.source === 'OWNED'
+          ? filterValues.source
+          : undefined
+    }),
+    initialSort: 'name',
+    mapDrafts: (response) =>
+      mapDraftSummariesToAuthoredItems(response.drafts, {
+        categoryAttributeKey: 'Category',
+        formatCategory: formatVehicleCategory
+      }),
+    mapItems: mapVehicleListToAuthoredItems,
+    summarize: summarizeVehicleList,
+    useList: useGetVehicleList
+  })
   const duplicateMutation = useDuplicateVehicleMutation()
   const deleteAction = useAuthoredDeleteAction({
     deleteActive: api.content.vehicles.deleteActive,
@@ -68,16 +98,16 @@ function VehiclesRoute() {
     <>
       <AuthoredListPage
         title='Vehicles'
-        summary={summarizeVehicleList(data)}
+        summary={listing.summary ?? 'Loading vehicles...'}
         createLabel='Create Vehicle'
-        items={mapVehicleListToAuthoredItems(data)}
-        draftItems={mapDraftSummariesToAuthoredItems(data.drafts, {
-          categoryAttributeKey: 'Category',
-          formatCategory: formatVehicleCategory
-        })}
-        filters={buildVehicleListFilters(data)}
+        items={listing.items}
+        draftItems={listing.draftItems}
+        filters={listing.filters}
         attributeColumns={vehicleListAttributeColumns}
         sortOptions={vehicleListSortOptions}
+        catalog={listing.catalog}
+        error={listing.error}
+        loading={listing.loading}
         onCreate={() => navigate({ to: '/vehicles/new' })}
         onView={(item) =>
           navigate({

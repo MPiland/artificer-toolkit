@@ -78,6 +78,8 @@ function createVehicleListResponse(): VehicleListResponseDto {
       }
     ],
     drafts: [],
-    meta: {}
+    meta: { categories: [{ id: 'AIR' }, { id: 'SPELLJAMMER' }] },
+    page: { nextCursor: null, previousCursor: null, totalCount: 2 },
+    summary: { activeCount: 2, masterCount: 1, ownedCount: 1 }
   }
 }

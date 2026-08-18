@@ -1,7 +1,9 @@
 import { Alert, Button, Drawer, Select, Text } from '@mantine/core'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { IconPlus } from '@tabler/icons-react'
+import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
+import { getCharacterSheetExtraOptions } from '#app/data/characters/queries'
 import type {
   CharacterSheet,
   OpenSheetPanel,
@@ -35,12 +37,22 @@ export function CharacterSheetExtras({
   const [opened, controls] = useDisclosure(false)
   const [kind, setKind] = useState<ExtraKind | null>(null)
   const [sourceId, setSourceId] = useState<string | null>(null)
+  const [sourceQuery, setSourceQuery] = useState('')
   const [originKind, setOriginKind] = useState<OriginKind | null>(null)
   const [shouldOpenAdded, setShouldOpenAdded] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const priorExtraIds = useRef<Set<string> | undefined>(undefined)
   const isCreature = kind !== null && CREATURE_KINDS.has(kind)
-  const sourceOptions = isCreature ? sheet.extras.creatureOptions : sheet.extras.vehicleOptions
+  const sourceKind = isCreature ? 'CREATURE' : 'VEHICLE'
+  const extraOptions = useQuery({
+    ...getCharacterSheetExtraOptions(sheet.meta.characterId, {
+      kind: sourceKind,
+      limit: 25,
+      ...(sourceQuery ? { query: sourceQuery } : {})
+    }),
+    enabled: opened && kind !== null
+  })
+  const sourceOptions = extraOptions.data?.items ?? []
 
   useEffect(() => {
     if (!shouldOpenAdded || !openPanel) return
@@ -53,6 +65,7 @@ export function CharacterSheetExtras({
   function closeDrawer() {
     setKind(null)
     setSourceId(null)
+    setSourceQuery('')
     setOriginKind(null)
     setSubmitError(null)
     controls.close()
@@ -136,6 +149,7 @@ export function CharacterSheetExtras({
             onChange={(value) => {
               setKind(value as ExtraKind | null)
               setSourceId(null)
+              setSourceQuery('')
               setOriginKind(null)
               setSubmitError(null)
             }}
@@ -143,15 +157,24 @@ export function CharacterSheetExtras({
           {kind ? (
             <Select
               data={sourceOptions.map((option) => ({ value: option.id, label: option.label }))}
-              disabled={pending}
+              disabled={pending || extraOptions.isPending}
               label={isCreature ? 'Creature' : 'Vehicle'}
-              placeholder={isCreature ? 'Choose a creature' : 'Choose a vehicle'}
+              nothingFoundMessage={
+                extraOptions.isPending
+                  ? 'Loading options…'
+                  : 'No matching options. Try another search.'
+              }
+              placeholder={
+                isCreature ? 'Search creatures' : 'Search vehicles'
+              }
               searchable
+              searchValue={sourceQuery}
               value={sourceId}
               onChange={(value) => {
                 setSourceId(value)
                 setSubmitError(null)
               }}
+              onSearchChange={setSourceQuery}
             />
           ) : null}
           {isCreature && sourceId ? (

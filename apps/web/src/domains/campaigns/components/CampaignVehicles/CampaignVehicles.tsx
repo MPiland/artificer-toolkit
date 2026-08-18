@@ -114,14 +114,14 @@ function contentLabel(content: CampaignContentBindingDto[] | undefined, id: stri
 }
 
 function bindingLabel(binding: CampaignContentBindingDto) {
-  const snapshot = binding.snapshot
+  const document = binding.document
   if (
-    snapshot &&
-    typeof snapshot === 'object' &&
-    !Array.isArray(snapshot) &&
-    'label' in snapshot &&
-    typeof snapshot.label === 'string'
+    document &&
+    typeof document === 'object' &&
+    !Array.isArray(document) &&
+    'label' in document &&
+    typeof document.label === 'string'
   )
-    return snapshot.label
+    return document.label
   return `Vehicle revision ${binding.version}`
 }

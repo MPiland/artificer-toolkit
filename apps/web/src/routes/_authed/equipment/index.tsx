@@ -1,8 +1,9 @@
 import { notifications } from '@mantine/notifications'
-import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
+import { useAuthoredCatalogWindow } from '#components/AuthoredList/useAuthoredCatalogWindow'
 import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import {
   buildEquipmentListFilters,
@@ -13,18 +14,26 @@ import {
   summarizeEquipmentList
 } from '#app/data/equipment/equipmentListMapper'
 import { useDuplicateEquipmentMutation } from '#app/data/equipment/mutations'
-import { getEquipment, getEquipmentList } from '#app/data/equipment/queries'
+import { getEquipment, getEquipmentList, useGetEquipmentList } from '#app/data/equipment/queries'
 import { createServerApi } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildEquipmentRouteParams } from '#app/routing/authoredRouteParams'
+import type { EquipmentListRequestDto } from '#app/lib/api'
 
 const equipmentDetailMeta = ['equipment', 'rarities']
+const equipmentCatalogueRequest = {
+  direction: 'FORWARD',
+  limit: 48,
+  sort: 'name'
+} satisfies EquipmentListRequestDto
 
 export const Route = createFileRoute('/_authed/equipment/')({
   loader: async ({ context }): Promise<void> => {
-    await context.queryClient.ensureQueryData(getEquipmentList(createServerApi()))
+    await context.queryClient.ensureInfiniteQueryData(
+      getEquipmentList(equipmentCatalogueRequest, createServerApi())
+    )
   },
   component: EquipmentRoute
 })
@@ -32,7 +41,28 @@ export const Route = createFileRoute('/_authed/equipment/')({
 function EquipmentRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data } = useSuspenseQuery(getEquipmentList())
+  const listing = useAuthoredCatalogWindow({
+    buildFilters: buildEquipmentListFilters,
+    buildRequest: ({ filterValues, query, sort }): EquipmentListRequestDto => ({
+      ...equipmentCatalogueRequest,
+      category: filterValues.category ?? undefined,
+      query: query || undefined,
+      sort: sort === 'category' ? 'category' : 'name',
+      source:
+        filterValues.source === 'MASTER' || filterValues.source === 'OWNED'
+          ? filterValues.source
+          : undefined
+    }),
+    initialSort: 'name',
+    mapDrafts: (response) =>
+      mapDraftSummariesToAuthoredItems(response.drafts, {
+        categoryAttributeKey: 'Category',
+        formatCategory: formatEquipmentCategory
+      }),
+    mapItems: mapEquipmentListToAuthoredItems,
+    summarize: summarizeEquipmentList,
+    useList: useGetEquipmentList
+  })
   const duplicateMutation = useDuplicateEquipmentMutation()
   const deleteAction = useAuthoredDeleteAction({
     deleteActive: api.content.equipment.deleteActive,
@@ -68,16 +98,16 @@ function EquipmentRoute() {
     <>
       <AuthoredListPage
         title='Equipment'
-        summary={summarizeEquipmentList(data)}
+        summary={listing.summary ?? 'Loading equipment...'}
         createLabel='Create Equipment'
-        items={mapEquipmentListToAuthoredItems(data)}
-        draftItems={mapDraftSummariesToAuthoredItems(data.drafts, {
-          categoryAttributeKey: 'Category',
-          formatCategory: formatEquipmentCategory
-        })}
-        filters={buildEquipmentListFilters(data)}
+        items={listing.items}
+        draftItems={listing.draftItems}
+        filters={listing.filters}
         attributeColumns={equipmentListAttributeColumns}
         sortOptions={equipmentListSortOptions}
+        catalog={listing.catalog}
+        error={listing.error}
+        loading={listing.loading}
         onCreate={() => navigate({ to: '/equipment/new' })}
         onView={(item) =>
           navigate({

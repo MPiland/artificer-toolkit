@@ -175,6 +175,26 @@ CREATE TABLE IF NOT EXISTS public.campaign_character_assignments (
 CREATE INDEX IF NOT EXISTS campaign_character_assignments_user_idx ON public.campaign_character_assignments (user_id);
 ALTER TABLE public.campaign_character_assignments ENABLE ROW LEVEL SECURITY;
 
+CREATE TABLE IF NOT EXISTS public.campaign_character_mechanics_projections (
+  campaign_id uuid NOT NULL,
+  character_id uuid NOT NULL,
+  stream_version integer NOT NULL CHECK (stream_version >= 0),
+  base_mechanics_projection_checksum text NOT NULL CHECK (base_mechanics_projection_checksum ~ '^[a-f0-9]{64}$'),
+  mechanical_context_checksum text NOT NULL CHECK (mechanical_context_checksum ~ '^[a-f0-9]{64}$'),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  projection_checksum text NOT NULL CHECK (projection_checksum ~ '^[a-f0-9]{64}$'),
+  rule_policy_input jsonb NOT NULL CHECK (jsonb_typeof(rule_policy_input) = 'object'),
+  rule_policy_output jsonb NOT NULL CHECK (jsonb_typeof(rule_policy_output) = 'object'),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (campaign_id, character_id),
+  FOREIGN KEY (campaign_id, character_id)
+    REFERENCES public.campaign_character_assignments (campaign_id, character_id)
+    ON DELETE CASCADE
+);
+
+ALTER TABLE public.campaign_character_mechanics_projections ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.campaign_character_mechanics_projections FROM anon, authenticated;
+
 CREATE TABLE IF NOT EXISTS public.campaign_content_versions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   campaign_id uuid NOT NULL REFERENCES public.campaigns (id) ON DELETE CASCADE,
@@ -183,7 +203,10 @@ CREATE TABLE IF NOT EXISTS public.campaign_content_versions (
   authored_by uuid NOT NULL,
   revision integer NOT NULL CHECK (revision > 0),
   state text NOT NULL DEFAULT 'PENDING' CHECK (state IN ('PENDING', 'APPROVED', 'REJECTED')),
-  snapshot jsonb NOT NULL CHECK (jsonb_typeof(snapshot) = 'object'),
+  authored_version_id uuid NOT NULL,
+  authored_version integer NOT NULL CHECK (authored_version > 0),
+  authored_checksum text NOT NULL CHECK (authored_checksum ~ '^[0-9a-f]{64}$'),
+  compiled_projection_checksum text NOT NULL CHECK (compiled_projection_checksum ~ '^[0-9a-f]{64}$'),
   approved_by uuid REFERENCES auth.users (id) ON DELETE SET NULL,
   approved_at timestamptz,
   rejected_at timestamptz,

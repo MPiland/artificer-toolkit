@@ -25,14 +25,14 @@ export type RawSocialReport = {
   updated_at: string | Date
 }
 
-export const socialReportColumns = sql.raw(`
+export const socialReportColumns = sql`
   report.id, report.reporter_profile_id,
   reporter_account.username as reporter_username,
   report.target_profile_id, report.target_listing_id, report.target_application_id,
   report.reason, report.details, report.evidence_snapshot, report.status,
   report.review_started_at, report.resolved_at, report.version,
   report.created_at, report.updated_at
-`)
+`
 
 function reportTargetKind(row: RawSocialReport): SocialReportTargetKind {
   if (row.target_profile_id) return 'PROFILE'

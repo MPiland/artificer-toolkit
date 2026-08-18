@@ -1,8 +1,6 @@
 import {
   ConcurrencyError,
   createCharacterRepository,
-  createCharacterSheetAdjustmentRepository,
-  createCharacterSheetPlayStateRepository,
   createRollHistoryRepository
 } from '@artificer-toolkit/db'
 import type { DBLike } from '@artificer-toolkit/db'
@@ -27,15 +25,10 @@ import type {
 
 import type { CharacterCompletedRestResultDto } from '@artificer-toolkit/schema/api/characterSheet'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
-import {
-  loadCharacterBuilderContext,
-  resolveCharacterBuilder,
-  type CharacterBuilderResolution
-} from './builderService.js'
+import type { CharacterBuilderResolution } from './builderService.js'
 
 import {
   getVisibleCampaignConditions,
-  mergeCampaignSheetAdjustments,
   projectCharacterRestForViewer,
   resolveCharacterSheetCampaignContext
 } from './campaignCharacterSheet.js'
@@ -46,7 +39,7 @@ import {
   createNamedError,
   getHitPointAdjustment
 } from './sheetCommandReducer.js'
-import { buildCharacterSheetBundle } from './sheetProjection.js'
+import { assembleCharacterSheetBundleForRuleContext } from './characterSheetBundleAssembly.js'
 
 function parseCharacterClassHitDie(dieConfig: string | undefined): number | undefined {
   const match = dieConfig?.trim().match(/^(?:1)?d(\d+)$/i)
@@ -570,49 +563,19 @@ export async function previewCharacterRest(params: {
     userId: params.userId
   })
 
-  const adjustmentRepository = createCharacterSheetAdjustmentRepository(params.db)
-  const playStateRepository = createCharacterSheetPlayStateRepository(params.db)
-  const [
-    context,
-    characterAdjustments,
-    movementDisplayPreference,
-    resourceUsage,
-    spellCustomizations
-  ] = await Promise.all([
-    loadCharacterBuilderContext(params.db, character, [], { includeEffects: true }),
-    adjustmentRepository.listByCharacter(params.characterId),
-    adjustmentRepository.getMovementPreference(params.characterId),
-    playStateRepository.listResourceUsage(params.characterId),
-    playStateRepository.listSpellCustomizations(params.characterId)
-  ])
-  const resolution = await resolveCharacterBuilder(
-    params.db,
-    character,
-    'edit',
-    context,
-    null,
-    row.rule_pack_revision_id
-  )
-  const adjustments = mergeCampaignSheetAdjustments(
-    characterAdjustments,
-    campaignContext.adjustments
-  )
-  const currentBundle = await buildCharacterSheetBundle({
+  const assembled = await assembleCharacterSheetBundleForRuleContext({
     db: params.db,
     character,
-    resolution,
-    streamVersion: row.stream_version,
-    adjustments,
-    movementDisplayPreference,
-    resourceUsage,
-    spellCustomizations,
-    additionalConditions: getVisibleCampaignConditions(campaignContext),
-    ruleEvaluation: {
-      context,
-      revisionId: row.rule_pack_revision_id,
+    campaignId: campaignContext.campaignId,
+    row,
+    revisionId: row.rule_pack_revision_id,
+    ruleContext: {
+      adjustments: campaignContext.adjustments,
+      additionalConditions: getVisibleCampaignConditions(campaignContext),
       attunementSlotOverride: campaignContext.attunementSlotOverride
     }
   })
+  const { bundle: currentBundle, characterAdjustments, resolution } = assembled
   const resetMaximumModifier = params.input.resetMaximumHitPointModifier
     ? characterAdjustments.find(
         (adjustment) =>
@@ -620,22 +583,21 @@ export async function previewCharacterRest(params: {
       )
     : undefined
   const restBundle = resetMaximumModifier
-    ? await buildCharacterSheetBundle({
-        db: params.db,
-        character,
-        resolution,
-        streamVersion: row.stream_version,
-        adjustments: adjustments.filter((adjustment) => adjustment.id !== resetMaximumModifier.id),
-        movementDisplayPreference,
-        resourceUsage,
-        spellCustomizations,
-        additionalConditions: getVisibleCampaignConditions(campaignContext),
-        ruleEvaluation: {
-          context,
+    ? (
+        await assembleCharacterSheetBundleForRuleContext({
+          db: params.db,
+          character,
+          campaignId: campaignContext.campaignId,
+          row,
           revisionId: row.rule_pack_revision_id,
-          attunementSlotOverride: campaignContext.attunementSlotOverride
-        }
-      })
+          excludeCharacterAdjustmentIds: [resetMaximumModifier.id],
+          ruleContext: {
+            adjustments: campaignContext.adjustments,
+            additionalConditions: getVisibleCampaignConditions(campaignContext),
+            attunementSlotOverride: campaignContext.attunementSlotOverride
+          }
+        })
+      ).bundle
     : currentBundle
   if (!restBundle.ruleEvaluation) {
     throw createNamedError(

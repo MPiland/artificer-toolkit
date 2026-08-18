@@ -1,0 +1,104 @@
+import {
+  checksumCampaignCharacterMechanicsProjection,
+  createCharacterSheetAdjustmentRepository,
+  createCharacterSheetPlayStateRepository,
+  type DBLike
+} from '@artificer-toolkit/db'
+import {
+  campaignCharacterMechanicsProjectionSchema,
+  type CampaignCharacterMechanicsProjection
+} from '@artificer-toolkit/schema/projections/campaignCharacterMechanics'
+import type {
+  CharacterRulePolicyInput,
+  CharacterRulePolicyOutput
+} from '@artificer-toolkit/schema/api/characterRules'
+import type { CharacterSheetAdjustment } from '@artificer-toolkit/shared/character'
+import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+
+import {
+  createCharacterCommittedSheetResolution,
+  createCharacterCommittedSheetSpells,
+  loadCharacterCommittedSheetSources
+} from '../character/characterCommittedSheetSources.js'
+import { evaluateCharacterRulePolicy } from '../character/characterRuleEvaluation.js'
+import {
+  checksumCampaignCharacterMechanicalContext,
+  mergeCampaignSheetAdjustments
+} from '../character/campaignCharacterSheet.js'
+import type { CharacterMechanicsProjection } from '@artificer-toolkit/schema/projections/characterMechanics'
+
+export const CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION = 1
+
+export function compileCampaignCharacterMechanicsProjection(input: {
+  baseMechanicsProjectionChecksum: string
+  campaignId: string
+  characterId: string
+  characterStreamVersion: number
+  mechanicalContextChecksum: string
+  rulePolicyInput: CharacterRulePolicyInput
+  rulePolicyOutput: CharacterRulePolicyOutput
+}): CampaignCharacterMechanicsProjection {
+  const candidate = campaignCharacterMechanicsProjectionSchema.parse({
+    ...input,
+    projectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
+    projectionChecksum: '0'.repeat(64)
+  })
+  return {
+    ...candidate,
+    projectionChecksum: checksumCampaignCharacterMechanicsProjection(candidate)
+  }
+}
+
+/**
+ * Compiles the Campaign-owned result from the exact Character mechanics inputs.
+ * Its caller owns the enclosing Campaign mutation transaction and publishes the
+ * returned projection before that transaction commits.
+ */
+export async function prepareCampaignCharacterMechanicsProjection(input: {
+  attunementSlotOverride: number | null
+  campaignAdjustments: readonly CharacterSheetAdjustment[]
+  campaignId: string
+  character: CharacterAuthored
+  characterStreamVersion: number
+  db: DBLike
+  mechanics: CharacterMechanicsProjection
+}): Promise<CampaignCharacterMechanicsProjection> {
+  const [characterAdjustments, movementDisplayPreference, resourceUsage, sources] =
+    await Promise.all([
+      createCharacterSheetAdjustmentRepository(input.db).listByCharacter(input.character.id),
+      createCharacterSheetAdjustmentRepository(input.db).getMovementPreference(input.character.id),
+      createCharacterSheetPlayStateRepository(input.db).listResourceUsage(input.character.id),
+      loadCharacterCommittedSheetSources({ db: input.db, mechanics: input.mechanics })
+    ])
+  const resolution = createCharacterCommittedSheetResolution({
+    character: input.character,
+    sources
+  })
+  const ruleEvaluation = await evaluateCharacterRulePolicy({
+    db: input.db,
+    character: input.character,
+    context: {
+      catalog: resolution.catalog,
+      registry: resolution.sourceRegistry
+    },
+    adjustments: mergeCampaignSheetAdjustments(characterAdjustments, input.campaignAdjustments),
+    movementDisplayPreference,
+    resourceUsage,
+    attunementSlotOverride: input.attunementSlotOverride,
+    existingRevisionId: input.mechanics.ruleRevisionId,
+    expectedRevisionId: input.mechanics.ruleRevisionId,
+    pinnedSpellsById: createCharacterCommittedSheetSpells(sources)
+  })
+  return compileCampaignCharacterMechanicsProjection({
+    campaignId: input.campaignId,
+    characterId: input.character.id,
+    characterStreamVersion: input.characterStreamVersion,
+    baseMechanicsProjectionChecksum: input.mechanics.projectionChecksum,
+    mechanicalContextChecksum: checksumCampaignCharacterMechanicalContext({
+      adjustments: input.campaignAdjustments,
+      attunementSlotOverride: input.attunementSlotOverride
+    }),
+    rulePolicyInput: ruleEvaluation.facts,
+    rulePolicyOutput: ruleEvaluation.output
+  })
+}

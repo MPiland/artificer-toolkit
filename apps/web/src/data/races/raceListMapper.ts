@@ -17,12 +17,10 @@ function isPlayableRaceListItem(item: RaceListResponseDto['items'][number]): boo
 }
 
 export function mapRaceListToAuthoredItems(response: RaceListResponseDto): AuthoredListItem[] {
-  const parentLabels = new Map(response.items.map((item) => [item.id, item.label]))
-
   return response.items.map((item) => {
     const category = item.category ?? 'BASE'
     const parentRaceId = item.parentRaceId ?? undefined
-    const parentLabel = parentRaceId ? parentLabels.get(parentRaceId) : undefined
+    const parentLabel = item.parentRaceLabel ?? undefined
     const playableLabel = isPlayableRaceListItem(item) ? 'Playable' : ''
 
     return {
@@ -56,7 +54,11 @@ export function mapRaceListToAuthoredItems(response: RaceListResponseDto): Autho
 
 export function buildRaceListFilters(response: RaceListResponseDto): AuthoredListFilter[] {
   const categories = Array.from(
-    new Set(response.items.map((item) => item.category ?? 'BASE'))
+    new Set(
+      ((response.meta as { categories?: Array<{ id: string }> }).categories ?? []).map(
+        (category) => category.id
+      )
+    )
   ).sort()
 
   return [
@@ -89,8 +91,5 @@ export const raceListSortOptions = [
 ]
 
 export function summarizeRaceList(response: RaceListResponseDto) {
-  const masterCount = response.items.filter((item) => item.provenance.kind === 'MASTER').length
-  const ownedCount = response.items.length - masterCount
-
-  return `${response.items.length} races / ${masterCount} SRD / ${ownedCount} homebrew`
+  return `${response.summary.activeCount} races / ${response.summary.masterCount} SRD / ${response.summary.ownedCount} homebrew`
 }

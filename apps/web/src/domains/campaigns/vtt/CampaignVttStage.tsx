@@ -801,7 +801,7 @@ function SceneObjectMenu({
       <Menu
         classNames={{ dropdown: styles.menuDropdown, label: styles.menuLabel }}
         position='bottom-end'
-        shadow='md'
+        shadow='none'
         width={260}
         withInitialFocusPlaceholder={false}
       >

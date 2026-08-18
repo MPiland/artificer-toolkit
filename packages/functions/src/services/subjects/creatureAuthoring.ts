@@ -1,5 +1,4 @@
-import type { DBLike, RepositoryFindAllOptions } from '@artificer-toolkit/db'
-import { createCreatureRepository, upsertCreature } from '@artificer-toolkit/db'
+import type { DBLike } from '@artificer-toolkit/db'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
@@ -11,27 +10,15 @@ import { createSubjectAuthoringService } from './pipeline.js'
 export interface CreatureSubjectAuthoringDeps {
   validate?: (input: unknown) => CreatureAuthored
   compile?: (authored: CreatureAuthored) => CompiledCreature
-  persist?: (payload: { authored: CreatureAuthored; compiled: CompiledCreature }) => Promise<void>
-  findById?: (id: string) => Promise<CreatureAuthored | null>
-  findAll?: (filter?: RepositoryFindAllOptions) => Promise<CreatureAuthored[]>
 }
 
 export function createCreatureSubjectAuthoringService(
   db: DBLike,
   deps: CreatureSubjectAuthoringDeps = {}
 ) {
-  const repo = createCreatureRepository(db)
-
-  return createSubjectAuthoringService<unknown, CreatureAuthored, CompiledCreature, void>({
+  return createSubjectAuthoringService<unknown, CreatureAuthored, CompiledCreature>({
     validate:
       deps.validate ?? ((input) => creatureAuthoredDtoSchema.parse(input) as CreatureAuthored),
-    compile: deps.compile ?? compileCreature,
-    persist:
-      deps.persist ??
-      (async ({ authored }) => {
-        await upsertCreature(db, authored, authored.systemId)
-      }),
-    findById: deps.findById ?? ((id) => repo.findById(id)),
-    findAll: deps.findAll ?? ((filter) => repo.findAll(filter))
+    compile: deps.compile ?? compileCreature
   })
 }

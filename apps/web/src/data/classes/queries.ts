@@ -1,4 +1,4 @@
-import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
+import type { Api, AuthoredDetailRequestDto, ClassListRequestDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
@@ -9,12 +9,12 @@ const classQueries = createAuthoredContentQueries(
   queryKeys.content.classes
 )
 
-export function getClassList(client?: Api) {
-  return classQueries.getList(client)
+export function getClassList(input: ClassListRequestDto, client?: Api) {
+  return classQueries.getList(input, client)
 }
 
-export function useGetClassList() {
-  return classQueries.useList()
+export function useGetClassList(input: ClassListRequestDto) {
+  return classQueries.useList(input)
 }
 
 export function getClass(input: DetailInput, client?: Api) {

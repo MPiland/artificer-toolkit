@@ -1,9 +1,10 @@
-import { createSpellRepository, type DBLike } from '@artificer-toolkit/db'
+import { createAuthoredVersionRepository, type DBLike } from '@artificer-toolkit/db'
 import {
   characterRulePolicyOutputSchema,
   type CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
-import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
+import type { CharacterAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { performance } from 'node:perf_hooks'
 
 import { resolveCharacterRuleBinding, type CharacterRuleBinding } from './characterRuleBinding.js'
@@ -24,6 +25,8 @@ export interface CharacterRuleEvaluationInput extends Omit<
   existingRevisionId: string | null
   expectedRevisionId?: string
   referenceSpellIds?: readonly string[]
+  /** Exact spell documents pinned by a committed Character mechanics projection. */
+  pinnedSpellsById?: ReadonlyMap<string, SpellAuthored>
   trace?: boolean
 }
 
@@ -85,15 +88,33 @@ export async function evaluateCharacterRulePolicy(
   const factDiscoveryMs = performance.now() - factDiscoveryStartedAt
   const spellHydrationStartedAt = performance.now()
   let spellHydrationMs = 0
-  const spellsPromise = createSpellRepository(input.db)
-    .findByIds(spellIds)
+  const spellsPromise: Promise<ReadonlyMap<string, SpellAuthored>> = (
+    input.pinnedSpellsById
+      ? Promise.resolve(input.pinnedSpellsById)
+      : createAuthoredVersionRepository(input.db)
+          .findActiveByIds({
+            subjectKind: 'SPELL',
+            subjectIds: spellIds,
+            systemId: input.character.systemId,
+            userId: input.character.userId,
+            includeMaster: true
+          })
+          .then((recordsById) =>
+            new Map(
+              [...recordsById].map(([spellId, record]) => [
+                spellId,
+                spellAuthoredDtoSchema.parse(record.authored.document) as unknown as SpellAuthored
+              ])
+            )
+          )
+  )
     .finally(() => {
       spellHydrationMs = performance.now() - spellHydrationStartedAt
     })
   const [binding, spellsById] = await Promise.all([bindingPromise, spellsPromise])
   const spellsWithEffects = spellIds.flatMap((spellId) => {
     const spell = spellsById.get(spellId)
-    if (!spell) {
+    if (!spell || spell.systemId !== input.character.systemId) {
       throw new Error(`Character rule evaluation could not hydrate spell "${spellId}".`)
     }
     return [spell]

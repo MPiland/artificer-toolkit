@@ -14,7 +14,7 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tansta
 import { IconChevronLeft } from '@tabler/icons-react'
 import { useState } from 'react'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
-import { getCreatureList } from '#app/data/creatures/queries'
+import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
 import { getEncounterTemplates } from '#app/data/encounters/queries'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
@@ -31,7 +31,15 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
     ...getEncounterTemplates(campaign.id),
     enabled: campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
   })
-  const creatures = useQuery(getCreatureList())
+  const creatures = useQuery({
+    queryFn: () =>
+      loadPagedAuthoredCatalogItems(api.content.creatures.list, {
+        direction: 'FORWARD',
+        limit: 48,
+        sort: 'name'
+      }),
+    queryKey: queryKeys.content.creatures.list()
+  })
   const queryClient = useQueryClient()
   const [name, setName] = useState('')
   const [creatureId, setCreatureId] = useState<string | null>(null)
@@ -101,7 +109,7 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
           <Group className={encounterStyles.encounterBuilderSourceRow} align='end' wrap='wrap'>
             <Select
               classNames={{ input: sharedStyles.input }}
-              data={(creatures.data?.items ?? []).map((creature) => ({
+              data={(creatures.data ?? []).map((creature) => ({
                 value: creature.id,
                 label: creature.label
               }))}
@@ -114,7 +122,7 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
               disabled={!creatureId}
               variant='default'
               onClick={() => {
-                const creature = (creatures.data?.items ?? []).find(
+                const creature = (creatures.data ?? []).find(
                   (item) => item.id === creatureId
                 )
                 if (!creature) return

@@ -5,6 +5,10 @@ import {
   sceneDefinitionDtoSchema,
   sceneEventDtoSchema
 } from '@artificer-toolkit/schema/api/vttScenes'
+import {
+  sceneCurrentProjectionSchema,
+  type SceneCurrentProjection
+} from '@artificer-toolkit/schema/projections/scene'
 import type {
   EncounterSceneState,
   SceneDefinition,
@@ -13,6 +17,7 @@ import type {
 } from '@artificer-toolkit/shared/vtt'
 
 import type { DBLike } from '#types'
+import { checksumSceneCurrentProjection } from '../utils/versionedProjectionChecksum.js'
 
 type RuntimeTimestamp = Date | string
 
@@ -27,6 +32,8 @@ export interface EncounterSceneRecord {
   attachCommandId: string
   createdAt: string
   definitionSnapshot: SceneDefinition
+  projectionChecksum: string
+  projectionSchemaVersion: number
   state: EncounterSceneState
   updatedAt: string
 }
@@ -58,12 +65,24 @@ function definitionFromRow(row: Record<string, unknown>): CampaignSceneDefinitio
 }
 
 function encounterSceneFromRow(row: Record<string, unknown>): EncounterSceneRecord {
+  const currentProjection = sceneCurrentProjectionSchema.parse({
+    sceneId: row.id,
+    streamVersion: row.version,
+    projectionSchemaVersion: row.projection_schema_version,
+    projectionChecksum: row.projection_checksum,
+    projection: encounterSceneStateDtoSchema.parse(row.projection)
+  })
+  if (checksumSceneCurrentProjection(currentProjection) !== currentProjection.projectionChecksum) {
+    throw new Error(`Encounter scene "${currentProjection.sceneId}" projection checksum is invalid.`)
+  }
   return {
     attachCommandFingerprint: String(row.attach_command_fingerprint),
     attachCommandId: String(row.attach_command_id),
     createdAt: iso(row.created_at as RuntimeTimestamp),
     definitionSnapshot: sceneDefinitionDtoSchema.parse(row.definition_snapshot),
-    state: encounterSceneStateDtoSchema.parse(row.projection),
+    projectionChecksum: currentProjection.projectionChecksum,
+    projectionSchemaVersion: currentProjection.projectionSchemaVersion,
+    state: currentProjection.projection,
     updatedAt: iso(row.updated_at as RuntimeTimestamp)
   }
 }
@@ -167,17 +186,24 @@ export function createVttSceneRepository(db: DBLike) {
       attachCommandFingerprint: string
       attachCommandId: string
       definitionSnapshot: SceneDefinition
-      state: EncounterSceneState
+      projection: SceneCurrentProjection
     }): Promise<EncounterSceneRecord> {
+      const projection = sceneCurrentProjectionSchema.parse(input.projection)
+      if (checksumSceneCurrentProjection(projection) !== projection.projectionChecksum) {
+        throw new Error(`Encounter scene "${projection.sceneId}" projection checksum is invalid.`)
+      }
       const result = await sql<Record<string, unknown>>`
         INSERT INTO public.encounter_scenes (
           id, campaign_id, encounter_id, definition_id, definition_version, definition_snapshot,
-          projection, version, attach_command_id, attach_command_fingerprint
+          projection, version, projection_schema_version, projection_checksum,
+          attach_command_id, attach_command_fingerprint
         ) VALUES (
-          ${input.state.id}, ${input.state.campaignId}, ${input.state.encounterId},
-          ${input.state.definitionId},
-          ${input.state.definitionVersion}, ${json(input.definitionSnapshot)}::jsonb,
-          ${json(input.state)}::jsonb, ${input.state.version}, ${input.attachCommandId},
+          ${projection.projection.id}, ${projection.projection.campaignId},
+          ${projection.projection.encounterId}, ${projection.projection.definitionId},
+          ${projection.projection.definitionVersion}, ${json(input.definitionSnapshot)}::jsonb,
+          ${json(projection.projection)}::jsonb, ${projection.streamVersion},
+          ${projection.projectionSchemaVersion}, ${projection.projectionChecksum},
+          ${input.attachCommandId},
           ${input.attachCommandFingerprint}
         ) RETURNING *
       `.execute(db)
@@ -186,12 +212,24 @@ export function createVttSceneRepository(db: DBLike) {
       return encounterSceneFromRow(row)
     },
 
-    async updateProjection(state: EncounterSceneState, expectedVersion: number): Promise<boolean> {
+    async updateProjection(input: {
+      expectedVersion: number
+      projection: SceneCurrentProjection
+    }): Promise<boolean> {
+      const projection = sceneCurrentProjectionSchema.parse(input.projection)
+      if (checksumSceneCurrentProjection(projection) !== projection.projectionChecksum) {
+        throw new Error(`Encounter scene "${projection.sceneId}" projection checksum is invalid.`)
+      }
       const result = await sql<{ id: string }>`
         UPDATE public.encounter_scenes
-        SET projection = ${json(state)}::jsonb, version = ${state.version}, updated_at = now()
-        WHERE id = ${state.id} AND encounter_id = ${state.encounterId}
-          AND version = ${expectedVersion}
+        SET projection = ${json(projection.projection)}::jsonb,
+            version = ${projection.streamVersion},
+            projection_schema_version = ${projection.projectionSchemaVersion},
+            projection_checksum = ${projection.projectionChecksum},
+            updated_at = now()
+        WHERE id = ${projection.projection.id}
+          AND encounter_id = ${projection.projection.encounterId}
+          AND version = ${input.expectedVersion}
         RETURNING id
       `.execute(db)
       return result.rows.length === 1

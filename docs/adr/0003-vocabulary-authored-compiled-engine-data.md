@@ -5,6 +5,7 @@
 - **Scope:** domain data lifecycle and cross-package model boundaries
 - **Update when:** a model is reused across vocabulary, authored, compiled, persistence, or engine layers
 - **Verification:** `packages/schema/src/vocabulary`; `packages/shared/src/domains/**/authored`; `packages/shared/src/domains/**/compilers`; `packages/shared/src/domains/engine`; `packages/db/src/repositories/contracts.ts`
+- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaces active normalized authored operational reads and ephemeral-only mechanics assembly with domain-specific versioned projections.
 
 ## Context
 

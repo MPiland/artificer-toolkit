@@ -6,6 +6,7 @@ import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { RACE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
 import { withForm } from '#forms/app-form/AppForm'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
@@ -31,10 +32,15 @@ export const GuidedRaceAuthoring = withForm({
     const categoryLocked = session.mode === 'edit'
     const parentRaces = useQuery({
       enabled: values.category === RACE_CATEGORY_CODE.SUBRACE,
-      queryFn: () => api.content.races.list(),
+      queryFn: () =>
+        loadPagedAuthoredCatalogItems(api.content.races.list, {
+          direction: 'FORWARD',
+          limit: 48,
+          sort: 'name'
+        }),
       queryKey: queryKeys.content.races.list(),
-      select: (response) =>
-        response.items
+      select: (items) =>
+        items
           .filter((item) => item.category === RACE_CATEGORY_CODE.BASE)
           .map((item) => ({ label: item.label, value: item.id }))
     })

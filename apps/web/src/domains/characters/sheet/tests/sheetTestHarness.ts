@@ -226,8 +226,6 @@ export function createSheet(): CharacterSheetResponseDto {
     extras: {
       kindOptions: [],
       originOptions: [],
-      creatureOptions: [],
-      vehicleOptions: [],
       items: []
     }
   }

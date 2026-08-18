@@ -1,11 +1,12 @@
 import { notifications } from '@mantine/notifications'
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
+import { useAuthoredCatalogWindow } from '#components/AuthoredList/useAuthoredCatalogWindow'
 import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import { createServerApi } from '#lib/api'
-import { getSpell, getSpellList } from '#app/data/spells/queries'
+import { getSpell, getSpellList, useGetSpellList } from '#app/data/spells/queries'
 import {
   buildSpellListFilters,
   mapSpellListToAuthoredItems,
@@ -17,12 +18,20 @@ import { queryKeys } from '#app/lib/queryKeys'
 import { api } from '#app/lib/api'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildSpellRouteParams } from '#app/routing/authoredRouteParams'
+import type { SpellListRequestDto } from '#app/lib/api'
 
 const spellDetailMeta = ['classes', 'conditionTypes', 'damageTypes', 'magicSchools']
+const spellCatalogueRequest = {
+  direction: 'FORWARD',
+  limit: 48,
+  sort: 'name'
+} satisfies SpellListRequestDto
 
 export const Route = createFileRoute('/_authed/spells/')({
   loader: async ({ context }): Promise<void> => {
-    await context.queryClient.ensureQueryData(getSpellList(createServerApi()))
+    await context.queryClient.ensureInfiniteQueryData(
+      getSpellList(spellCatalogueRequest, createServerApi())
+    )
   },
   component: SpellsRoute
 })
@@ -30,7 +39,31 @@ export const Route = createFileRoute('/_authed/spells/')({
 function SpellsRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data } = useSuspenseQuery(getSpellList())
+  const listing = useAuthoredCatalogWindow({
+    buildFilters: buildSpellListFilters,
+    buildRequest: ({ filterValues, query, sort }): SpellListRequestDto => ({
+      ...spellCatalogueRequest,
+      classId: filterValues.class ?? undefined,
+      level: filterValues.level == null ? undefined : Number(filterValues.level),
+      magicSchoolId: filterValues.school ?? undefined,
+      query: query || undefined,
+      sort: sort === 'level' || sort === 'school' ? sort : 'name'
+    }),
+    initialSort: 'name',
+    mapDrafts: (response) => {
+      const spellMeta = response.meta as { schools?: Array<{ id: string | number; label?: string }> }
+      return mapDraftSummariesToAuthoredItems(response.drafts, {
+        formatSchool: (schoolId) => {
+          if (!schoolId) return undefined
+          const school = (spellMeta.schools ?? []).find((entry) => String(entry.id) === schoolId)
+          return school?.label ?? schoolId
+        }
+      })
+    },
+    mapItems: mapSpellListToAuthoredItems,
+    summarize: summarizeSpellList,
+    useList: useGetSpellList
+  })
   const duplicateMutation = useMutation({
     mutationFn: (id: string) => api.content.spells.duplicate(id),
     onSuccess: async (response) => {
@@ -61,25 +94,20 @@ function SpellsRoute() {
     domainQueryKey: queryKeys.content.spells.all(),
     draftQueryKey: queryKeys.content.spells.draft
   })
-  const spellMeta = data.meta as { schools?: Array<{ id: string | number; label?: string }> }
-
   return (
     <>
       <AuthoredListPage
         title='Spells'
-        summary={summarizeSpellList(data)}
+        summary={listing.summary ?? 'Loading spells...'}
         createLabel='Create Spell'
-        items={mapSpellListToAuthoredItems(data)}
-        draftItems={mapDraftSummariesToAuthoredItems(data.drafts, {
-          formatSchool: (schoolId) => {
-            if (!schoolId) return undefined
-            const school = (spellMeta.schools ?? []).find((entry) => String(entry.id) === schoolId)
-            return school?.label ?? schoolId
-          }
-        })}
-        filters={buildSpellListFilters(data)}
+        items={listing.items}
+        draftItems={listing.draftItems}
+        filters={listing.filters}
         attributeColumns={spellListAttributeColumns}
         sortOptions={spellListSortOptions}
+        catalog={listing.catalog}
+        error={listing.error}
+        loading={listing.loading}
         onCreate={() => navigate({ to: '/spells/new' })}
         onView={(item) =>
           navigate({

@@ -2,7 +2,11 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
 
-import { createDb, type DBLike } from '@artificer-toolkit/db'
+import {
+  createCharacterMechanicsProjectionRepository,
+  createDb,
+  type DBLike
+} from '@artificer-toolkit/db'
 import {
   type CharacterSheetCommandInputDto,
   type CharacterSheetResponseDto
@@ -93,7 +97,7 @@ export async function assertFixtureWasRolledBack(
   db: ReturnType<typeof createDb>,
   characterId: string
 ): Promise<void> {
-  const [characters, drafts, events, routeIds] = await Promise.all([
+  const [characters, drafts, events, mechanicsProjections, routeIds] = await Promise.all([
     db.selectFrom('characters').select('id').where('id', '=', characterId).execute(),
     db
       .selectFrom('character_builder_drafts')
@@ -103,6 +107,11 @@ export async function assertFixtureWasRolledBack(
     db
       .selectFrom('character_events')
       .select('event_id')
+      .where('character_id', '=', characterId)
+      .execute(),
+    db
+      .selectFrom('character_mechanics_projections')
+      .select('character_id')
       .where('character_id', '=', characterId)
       .execute(),
     db
@@ -119,6 +128,11 @@ export async function assertFixtureWasRolledBack(
     events,
     [],
     'The Character Sheet command events escaped their rollback transaction.'
+  )
+  assert.deepEqual(
+    mechanicsProjections,
+    [],
+    'The Character mechanics projection escaped its command transaction.'
   )
   assert.deepEqual(
     routeIds,
@@ -140,6 +154,33 @@ export async function assertCommandEquipmentWasRolledBack(
     equipment,
     [],
     'The Sheet command equipment fixture escaped its rollback transaction.'
+  )
+}
+
+export async function assertCharacterMechanicsProjectionChecksumFailsClosed(
+  db: DBLike,
+  characterId: string
+): Promise<void> {
+  const projection = await db
+    .selectFrom('character_mechanics_projections')
+    .select('stream_version')
+    .where('character_id', '=', characterId)
+    .executeTakeFirst()
+  assert.ok(projection, 'The finalized Character did not publish a mechanics projection.')
+
+  await db
+    .updateTable('character_mechanics_projections')
+    .set({ command_lane_checksum: '0'.repeat(64) })
+    .where('character_id', '=', characterId)
+    .execute()
+
+  await assert.rejects(
+    () =>
+      createCharacterMechanicsProjectionRepository(db).requireCurrentMetadata({
+        characterId,
+        expectedStreamVersion: projection.stream_version
+      }),
+    /command lane metadata with an invalid checksum/
   )
 }
 

@@ -48,7 +48,11 @@ export function mapCreatureListToAuthoredItems(
 
 export function buildCreatureListFilters(response: CreatureListResponseDto): AuthoredListFilter[] {
   const categories = Array.from(
-    new Set(response.items.map((item) => item.category ?? 'CREATURE'))
+    new Set(
+      ((response.meta as { categories?: Array<{ id: string }> }).categories ?? []).map(
+        (category) => category.id
+      )
+    )
   ).sort()
 
   return [
@@ -83,8 +87,5 @@ export const creatureListSortOptions = [
 ]
 
 export function summarizeCreatureList(response: CreatureListResponseDto) {
-  const masterCount = response.items.filter((item) => item.provenance.kind === 'MASTER').length
-  const ownedCount = response.items.length - masterCount
-
-  return `${response.items.length} creatures / ${masterCount} SRD / ${ownedCount} homebrew`
+  return `${response.summary.activeCount} creatures / ${response.summary.masterCount} SRD / ${response.summary.ownedCount} homebrew`
 }

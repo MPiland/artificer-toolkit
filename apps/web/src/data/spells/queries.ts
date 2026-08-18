@@ -1,4 +1,4 @@
-import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
+import type { Api, AuthoredDetailRequestDto, SpellListRequestDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
@@ -9,12 +9,12 @@ const spellQueries = createAuthoredContentQueries(
   queryKeys.content.spells
 )
 
-export function getSpellList(client?: Api) {
-  return spellQueries.getList(client)
+export function getSpellList(input: SpellListRequestDto, client?: Api) {
+  return spellQueries.getList(input, client)
 }
 
-export function useGetSpellList() {
-  return spellQueries.useList()
+export function useGetSpellList(input: SpellListRequestDto) {
+  return spellQueries.useList(input)
 }
 
 export function getSpell(input: DetailInput, client?: Api) {

@@ -17,14 +17,7 @@ import { cloneAuthoredItem } from '@artificer-toolkit/shared/utils'
 import { createDb } from '../client.js'
 import {
   createAuthoredContentRepository,
-  createBackgroundRepository,
-  createClassRepository,
-  createCreatureRepository,
-  createEquipmentRepository,
-  createFeatRepository,
-  createRaceRepository,
-  createSpellRepository,
-  createVehicleRepository
+  createAuthoredVersionRepository
 } from '../repositories/index.js'
 import { seedBaselineContent } from '../seed/baseline.js'
 import { assignBaselineContentOwner, type BaselineContentBundle } from '../source-data/content.js'
@@ -238,53 +231,6 @@ function assertNoSharedMutableReferences(source: unknown, clone: unknown, path =
   }
 }
 
-function collectStartingEquipmentEligibilityFacetIds(bundle: BaselineContentBundle): string[] {
-  return [
-    ...bundle.subjects.backgrounds,
-    ...bundle.subjects.classes.filter(
-      (record): record is SrdBaseClassRecord => record.category === 'BASE'
-    )
-  ]
-    .flatMap((record) => record.startingEquipment?.sets ?? [])
-    .flatMap((set) => set.groups)
-    .flatMap((group) => group.options)
-    .flatMap((option) => (option.eligibility ? [option.eligibility.id] : []))
-}
-
-async function assertStartingEquipmentEligibilityOwnership(
-  db: SrdTransaction,
-  bundle: BaselineContentBundle
-): Promise<void> {
-  const expectedIds = collectStartingEquipmentEligibilityFacetIds(bundle).sort()
-  if (expectedIds.length === 0) return
-
-  const [facetRows, optionRows] = await Promise.all([
-    db.selectFrom('facets').select('id').where('id', 'in', expectedIds).execute(),
-    db
-      .selectFrom('starting_equipment_options')
-      .select('eligibility_facet_id')
-      .where('eligibility_facet_id', 'in', expectedIds)
-      .execute()
-  ])
-
-  assert.deepStrictEqual(
-    facetRows.map((row) => row.id).sort(),
-    expectedIds,
-    'Every authored starting-equipment eligibility facet must be persisted.'
-  )
-  assert.deepStrictEqual(
-    optionRows
-      .map((row) => row.eligibility_facet_id)
-      .sort((left, right) => {
-        const leftValue = String(left)
-        const rightValue = String(right)
-        return leftValue < rightValue ? -1 : leftValue > rightValue ? 1 : 0
-      }),
-    expectedIds,
-    'Every starting-equipment eligibility facet must be owned by exactly one option.'
-  )
-}
-
 async function findSeedOwnerUserId(db: SrdTransaction): Promise<string> {
   const configuredUserId = process.env.SEED_OWNER_USER_ID
   const result = configuredUserId
@@ -423,62 +369,43 @@ async function readDatabaseFingerprint(db: Db): Promise<DatabaseFingerprint> {
   }
 }
 
-async function assertHydratedRecords<TRecord extends RootRecord>(
+async function assertPublishedRecords<TRecord extends RootRecord>(
+  db: SrdTransaction,
   records: readonly TRecord[],
-  findById: (id: string) => Promise<unknown>,
+  subjectKind: AuthoredSubjectKindDto,
   domain: string
 ): Promise<void> {
+  const versions = await createAuthoredVersionRepository(db).findActiveByIds({
+    subjectIds: records.map((record) => record.id),
+    subjectKind,
+    systemId: SRD_SYSTEM_ID,
+    includeMaster: true
+  })
+
   for (const expected of records) {
-    const actual = await findById(expected.id)
-    assert.ok(actual, `${domain} "${expected.label}" did not hydrate after seeding.`)
+    const actual = versions.get(expected.id)
+    assert.ok(actual, `${domain} "${expected.label}" did not publish after seeding.`)
     assert.deepStrictEqual(
-      canonicalize(actual),
+      canonicalize(actual.authored.document),
       canonicalize(expected),
-      `${domain} "${expected.label}" changed during normalized persistence/hydration.`
+      `${domain} "${expected.label}" changed during immutable document publication.`
     )
   }
 }
 
-async function assertHydratedCorpus(
+async function assertPublishedCorpus(
   db: SrdTransaction,
   bundle: BaselineContentBundle
 ): Promise<void> {
-  const backgroundRepository = createBackgroundRepository(db)
-  const classRepository = createClassRepository(db)
-  const creatureRepository = createCreatureRepository(db)
-  const equipmentRepository = createEquipmentRepository(db)
-  const featRepository = createFeatRepository(db)
-  const raceRepository = createRaceRepository(db)
-  const spellRepository = createSpellRepository(db)
-  const vehicleRepository = createVehicleRepository(db)
-
-  await assertHydratedRecords(
-    bundle.subjects.backgrounds,
-    (id) => backgroundRepository.findById(id),
-    'Background'
-  )
-  await assertHydratedRecords(
-    bundle.subjects.classes,
-    (id) => classRepository.findById(id),
-    'Class'
-  )
-  await assertHydratedRecords(
-    bundle.subjects.creatures,
-    (id) => creatureRepository.findById(id),
-    'Creature'
-  )
-  await assertHydratedRecords(
-    bundle.subjects.equipment,
-    (id) => equipmentRepository.findById(id),
-    'Equipment'
-  )
-  await assertHydratedRecords(bundle.subjects.feats, (id) => featRepository.findById(id), 'Feat')
-  await assertHydratedRecords(bundle.subjects.races, (id) => raceRepository.findById(id), 'Race')
-  await assertHydratedRecords(bundle.subjects.spells, (id) => spellRepository.findById(id), 'Spell')
-  await assertHydratedRecords(
-    bundle.subjects.vehicles,
-    (id) => vehicleRepository.findById(id),
-    'Vehicle'
+  await Promise.all(
+    allRootCloneCases(bundle).map((domainCase) =>
+      assertPublishedRecords(
+        db,
+        domainCase.records,
+        domainCase.subjectKind,
+        domainCase.domain
+      )
+    )
   )
 }
 
@@ -648,8 +575,7 @@ async function runRollbackAudit(db: Db): Promise<{ clones: number; roots: number
 
       await seedBaselineContent({ db: transaction, systemId: SRD_SYSTEM_ID }, bundle)
       await assertRoutes(transaction, bundle)
-      await assertHydratedCorpus(transaction, bundle)
-      await assertStartingEquipmentEligibilityOwnership(transaction, bundle)
+      await assertPublishedCorpus(transaction, bundle)
       const cloneAudit = await assertOwnedClones(transaction, bundle, userId)
       const cloneIsolationSource = bundle.subjects.classes.find(
         (record): record is SrdBaseClassRecord =>
@@ -706,8 +632,7 @@ async function runRollbackAudit(db: Db): Promise<{ clones: number; roots: number
       cloneDraftSnapshot.payload = revisedCloneDraft.payload
 
       await seedBaselineContent({ db: transaction, systemId: SRD_SYSTEM_ID }, bundle)
-      await assertHydratedCorpus(transaction, bundle)
-      await assertStartingEquipmentEligibilityOwnership(transaction, bundle)
+      await assertPublishedCorpus(transaction, bundle)
 
       const deltaBundle = structuredClone(bundle)
       const deltaClass = deltaBundle.subjects.classes.find(
@@ -729,7 +654,6 @@ async function runRollbackAudit(db: Db): Promise<{ clones: number; roots: number
         deltaOption?.eligibility,
         'The controlled delta target must own an eligibility facet.'
       )
-      const priorEligibilityFacetId = deltaOption.eligibility.id
       deltaOption.eligibility = cloneAuthoredItem({
         id: deltaOption.eligibility.id,
         label: 'Starting Equipment Eligibility',
@@ -753,20 +677,11 @@ async function runRollbackAudit(db: Db): Promise<{ clones: number; roots: number
         canonicalize(cloneDraftSnapshot.payload),
         'Updating the source changed the clone draft payload.'
       )
-      await assertHydratedRecords(
+      await assertPublishedRecords(
+        transaction,
         [deltaClass],
-        (id) => createClassRepository(transaction).findById(id),
+        'CLASS',
         'Class eligibility delta'
-      )
-      await assertStartingEquipmentEligibilityOwnership(transaction, deltaBundle)
-      assert.equal(
-        await transaction
-          .selectFrom('facets')
-          .select('id')
-          .where('id', '=', priorEligibilityFacetId)
-          .executeTakeFirst(),
-        undefined,
-        'Replacing option-owned eligibility must delete the orphaned prior facet.'
       )
 
       completed = {

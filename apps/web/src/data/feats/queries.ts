@@ -1,4 +1,4 @@
-import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
+import type { Api, AuthoredDetailRequestDto, FeatListRequestDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
@@ -9,12 +9,12 @@ const featQueries = createAuthoredContentQueries(
   queryKeys.content.feats
 )
 
-export function getFeatList(client?: Api) {
-  return featQueries.getList(client)
+export function getFeatList(input: FeatListRequestDto, client?: Api) {
+  return featQueries.getList(input, client)
 }
 
-export function useGetFeatList() {
-  return featQueries.useList()
+export function useGetFeatList(input: FeatListRequestDto) {
+  return featQueries.useList(input)
 }
 
 export function getFeat(input: DetailInput, client?: Api) {

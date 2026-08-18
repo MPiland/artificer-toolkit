@@ -6,7 +6,7 @@ import type {
   CampaignPartyInventoryMutationInput,
   InventoryDto
 } from '@artificer-toolkit/schema/api/campaigns'
-import { getEquipmentList } from '#app/data/equipment/queries'
+import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import * as sharedStyles from '../campaigns.css'
@@ -20,7 +20,15 @@ export function CampaignPartyInventoryActions({
   inventory: InventoryDto
 }) {
   const queryClient = useQueryClient()
-  const equipment = useQuery(getEquipmentList())
+  const equipment = useQuery({
+    queryFn: () =>
+      loadPagedAuthoredCatalogItems(api.content.equipment.list, {
+        direction: 'FORWARD',
+        limit: 48,
+        sort: 'name'
+      }),
+    queryKey: queryKeys.content.equipment.list()
+  })
   const [equipmentId, setEquipmentId] = useState('')
   const [quantity, setQuantity] = useState(1)
   const mutation = useMutation({
@@ -79,7 +87,7 @@ export function CampaignPartyInventoryActions({
         <Text fw={700}>Add equipment</Text>
         <div className={inventoryStyles.partyInventoryActionGrid}>
           <Select
-            data={(equipment.data?.items ?? [])
+            data={(equipment.data ?? [])
               .filter((item) => item.status === 'ACTIVE')
               .map((item) => ({ label: item.label, value: item.id }))}
             classNames={{ input: sharedStyles.input }}

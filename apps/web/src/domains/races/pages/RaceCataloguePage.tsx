@@ -1,8 +1,9 @@
 import { notifications } from '@mantine/notifications'
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
+import { useAuthoredCatalogWindow } from '#components/AuthoredList/useAuthoredCatalogWindow'
 import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import {
   buildRaceListFilters,
@@ -12,18 +13,45 @@ import {
   raceListSortOptions,
   summarizeRaceList
 } from '#app/data/races/raceListMapper'
-import { getRace, getRaceList } from '#app/data/races/queries'
+import { getRace, useGetRaceList } from '#app/data/races/queries'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildRaceRouteParams } from '#app/routing/authoredRouteParams'
+import type { RaceListRequestDto } from '#app/lib/api'
 
 const raceDetailMeta = ['heritages', 'races', 'speeds']
+const raceCatalogueRequest = {
+  direction: 'FORWARD',
+  limit: 48,
+  sort: 'name'
+} satisfies RaceListRequestDto
 
 export function RaceCataloguePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data } = useSuspenseQuery(getRaceList())
+  const listing = useAuthoredCatalogWindow({
+    buildFilters: buildRaceListFilters,
+    buildRequest: ({ filterValues, query, sort }): RaceListRequestDto => ({
+      ...raceCatalogueRequest,
+      category: filterValues.category ?? undefined,
+      query: query || undefined,
+      sort: sort === 'category' ? 'category' : 'name',
+      source:
+        filterValues.source === 'MASTER' || filterValues.source === 'OWNED'
+          ? filterValues.source
+          : undefined
+    }),
+    initialSort: 'name',
+    mapDrafts: (response) =>
+      mapDraftSummariesToAuthoredItems(response.drafts, {
+        categoryAttributeKey: 'Category',
+        formatCategory: formatRaceCategory
+      }),
+    mapItems: mapRaceListToAuthoredItems,
+    summarize: summarizeRaceList,
+    useList: useGetRaceList
+  })
   const duplicateMutation = useMutation({
     mutationFn: (id: string) => api.content.races.duplicate(id),
     onSuccess: async (response) => {
@@ -59,16 +87,16 @@ export function RaceCataloguePage() {
     <>
       <AuthoredListPage
         title='Races'
-        summary={summarizeRaceList(data)}
+        summary={listing.summary ?? 'Loading races...'}
         createLabel='Create Race'
-        items={mapRaceListToAuthoredItems(data)}
-        draftItems={mapDraftSummariesToAuthoredItems(data.drafts, {
-          categoryAttributeKey: 'Category',
-          formatCategory: formatRaceCategory
-        })}
-        filters={buildRaceListFilters(data)}
+        items={listing.items}
+        draftItems={listing.draftItems}
+        filters={listing.filters}
         attributeColumns={raceListAttributeColumns}
         sortOptions={raceListSortOptions}
+        catalog={listing.catalog}
+        error={listing.error}
+        loading={listing.loading}
         onCreate={() => navigate({ to: '/races/new' })}
         onView={(item) =>
           navigate({

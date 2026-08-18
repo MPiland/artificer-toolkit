@@ -60,6 +60,7 @@ export function AuthoredListPage({
   loading = false,
   initialViewMode,
   cardOnly = false,
+  catalog,
   onCreate,
   onView,
   onViewIntent,
@@ -69,11 +70,11 @@ export function AuthoredListPage({
 }: AuthoredListPageProps) {
   const isMobile = useMediaQuery(mobileQuery, false)
   const isTablet = useMediaQuery(tabletQuery, false)
-  const [query, setQuery] = useState('')
-  const [filterValues, setFilterValues] = useState<AuthoredListFilterValues>(() =>
+  const [uncontrolledQuery, setUncontrolledQuery] = useState('')
+  const [uncontrolledFilterValues, setUncontrolledFilterValues] = useState<AuthoredListFilterValues>(() =>
     buildInitialFilters(filters)
   )
-  const [sort, setSort] = useState(defaultSort)
+  const [uncontrolledSort, setUncontrolledSort] = useState(defaultSort)
   const [contentPanel, setContentPanel] = useState<'active' | 'draft'>('active')
   const [viewMode, setViewMode] = useState<AuthoredListViewMode>(() => {
     if (cardOnly) return 'cards'
@@ -83,6 +84,12 @@ export function AuthoredListPage({
     return window.matchMedia(mobileQuery).matches ? 'cards' : 'table'
   })
   const viewportRef = useRef<HTMLDivElement>(null)
+  const visibleItemIdRef = useRef<string | undefined>(undefined)
+  const previousWindowFirstItemIdRef = useRef<string | undefined>(undefined)
+  const controls = catalog?.controls
+  const query = controls?.query ?? uncontrolledQuery
+  const filterValues = controls?.filterValues ?? uncontrolledFilterValues
+  const sort = controls?.sort ?? uncontrolledSort
   const normalizedQuery = query.trim().toLowerCase()
   const hasActiveFilters =
     normalizedQuery.length > 0 || Object.values(filterValues).some((value) => Boolean(value))
@@ -95,7 +102,7 @@ export function AuthoredListPage({
       />
     ) : null
 
-  const filteredItems = useMemo(() => {
+  const locallyFilteredItems = useMemo(() => {
     const matchingItems = visibleItems.filter((item) => {
       return (
         itemMatchesQuery(item, normalizedQuery) &&
@@ -105,14 +112,24 @@ export function AuthoredListPage({
 
     return sortAuthoredListItems(matchingItems, sort)
   }, [filterValues, filters, normalizedQuery, sort, visibleItems])
+  const filteredItems = catalog && contentPanel === 'active' ? items : locallyFilteredItems
   const facetedFilterOptions = useMemo(() => {
+    if (catalog && contentPanel === 'active') {
+      return filters.reduce<Record<string, AuthoredListFilter['options']>>(
+        (optionsByKey, filter) => {
+          optionsByKey[filter.key] = filter.options
+          return optionsByKey
+        },
+        {}
+      )
+    }
     return getFacetedFilterOptionsByKey({
       filters,
       filterValues,
       items: visibleItems,
       normalizedQuery
     })
-  }, [filterValues, filters, normalizedQuery, visibleItems])
+  }, [catalog, contentPanel, filterValues, filters, normalizedQuery, visibleItems])
   const hasAccentColumn = visibleItems.some(hasAuthoredListAccent)
   const hasStatusColumn = visibleItems.some(hasAuthoredListStatus)
   const hasBadgeColumn = visibleItems.some(hasAuthoredListBadges)
@@ -120,6 +137,8 @@ export function AuthoredListPage({
     sortOptions.find((option) => option.value === defaultSort)?.label ??
     sortOptions[0]?.label ??
     'Default'
+  const activeCount = catalog?.activeCount ?? items.length
+  const resultCount = catalog && contentPanel === 'active' ? catalog.totalCount : filteredItems.length
 
   const cardColumnCount = viewMode === 'cards' ? (isMobile ? 1 : isTablet ? 2 : 3) : 1
   const virtualRowCount =
@@ -148,6 +167,47 @@ export function AuthoredListPage({
   }, [cardColumnCount, contentPanel, filterValues, query, rowVirtualizer, sort, viewMode])
 
   useEffect(() => {
+    const firstRenderedRow = virtualRows[0]
+    if (!firstRenderedRow) return
+    const firstItemIndex = firstRenderedRow.index * cardColumnCount
+    visibleItemIdRef.current = filteredItems[firstItemIndex]?.id
+  }, [cardColumnCount, filteredItems, virtualRows])
+
+  useEffect(() => {
+    if (!catalog || contentPanel !== 'active') return
+    const previousFirstItemId = previousWindowFirstItemIdRef.current
+    const nextFirstItemId = filteredItems[0]?.id
+    previousWindowFirstItemIdRef.current = nextFirstItemId
+    if (!previousFirstItemId || previousFirstItemId === nextFirstItemId) return
+    const anchorItemId = visibleItemIdRef.current
+    if (!anchorItemId) return
+    const anchorIndex = filteredItems.findIndex((item) => item.id === anchorItemId)
+    if (anchorIndex >= 0) {
+      rowVirtualizer.scrollToIndex(Math.floor(anchorIndex / cardColumnCount), { align: 'start' })
+    }
+  }, [cardColumnCount, catalog, contentPanel, filteredItems, rowVirtualizer])
+
+  useEffect(() => {
+    if (!catalog || contentPanel !== 'active' || virtualRows.length === 0) return
+    const firstVisibleRow = virtualRows[0]?.index ?? 0
+    const lastVisibleRow = virtualRows.at(-1)?.index ?? 0
+    if (
+      firstVisibleRow <= 3 &&
+      catalog.hasPreviousPage &&
+      !catalog.isFetchingPreviousPage
+    ) {
+      catalog.fetchPreviousPage()
+    }
+    if (
+      lastVisibleRow >= virtualRowCount - 4 &&
+      catalog.hasNextPage &&
+      !catalog.isFetchingNextPage
+    ) {
+      catalog.fetchNextPage()
+    }
+  }, [catalog, contentPanel, virtualRowCount, virtualRows])
+
+  useEffect(() => {
     if ((cardOnly || isMobile) && viewMode !== 'cards') {
       setViewMode('cards')
     }
@@ -171,7 +231,7 @@ export function AuthoredListPage({
         <SegmentedControl
           aria-label='Choose content state'
           data={[
-            { label: `Active (${items.length})`, value: 'active' },
+            { label: `Active (${activeCount})`, value: 'active' },
             { label: `Drafts (${draftItems.length})`, value: 'draft' }
           ]}
           value={contentPanel}
@@ -190,13 +250,35 @@ export function AuthoredListPage({
           sort={sort}
           defaultSort={defaultSort}
           defaultSortLabel={defaultSortLabel}
-          resultCount={filteredItems.length}
-          onQueryChange={setQuery}
-          onFilterChange={(key, value) => {
-            setFilterValues((current) => ({ ...current, [key]: value }))
+          resultCount={resultCount}
+          onQueryChange={(value) => {
+            if (controls) {
+              controls.onQueryChange(value)
+              return
+            }
+            setUncontrolledQuery(value)
           }}
-          onClearFilters={() => setFilterValues(buildInitialFilters(filters))}
-          onSortChange={setSort}
+          onFilterChange={(key, value) => {
+            if (controls) {
+              controls.onFilterChange(key, value)
+              return
+            }
+            setUncontrolledFilterValues((current) => ({ ...current, [key]: value }))
+          }}
+          onClearFilters={() => {
+            if (controls) {
+              controls.onClearFilters()
+              return
+            }
+            setUncontrolledFilterValues(buildInitialFilters(filters))
+          }}
+          onSortChange={(value) => {
+            if (controls) {
+              controls.onSortChange(value)
+              return
+            }
+            setUncontrolledSort(value)
+          }}
         />
       ) : (
         <div className={styles.toolbar} aria-label={`${title} list tools`}>
@@ -206,7 +288,13 @@ export function AuthoredListPage({
               classNames={{ input: inputStyles.input }}
               placeholder='Search...'
               value={query}
-              onChange={(event) => setQuery(event.currentTarget.value)}
+              onChange={(event) => {
+                if (controls) {
+                  controls.onQueryChange(event.currentTarget.value)
+                  return
+                }
+                setUncontrolledQuery(event.currentTarget.value)
+              }}
             />
             {filters.map((filter) => (
               <AppSelect
@@ -217,7 +305,11 @@ export function AuthoredListPage({
                 value={filterValues[filter.key]}
                 clearable
                 onChange={(value) => {
-                  setFilterValues((current) => ({ ...current, [filter.key]: value }))
+                  if (controls) {
+                    controls.onFilterChange(filter.key, value)
+                    return
+                  }
+                  setUncontrolledFilterValues((current) => ({ ...current, [filter.key]: value }))
                 }}
               />
             ))}
@@ -227,7 +319,13 @@ export function AuthoredListPage({
               placeholder={defaultSortLabel}
               value={sort === defaultSort ? null : sort}
               allowDeselect={false}
-              onChange={(value) => setSort(value ?? defaultSort)}
+              onChange={(value) => {
+                if (controls) {
+                  controls.onSortChange(value ?? defaultSort)
+                  return
+                }
+                setUncontrolledSort(value ?? defaultSort)
+              }}
             />
           </div>
           {!cardOnly ? (
@@ -336,6 +434,13 @@ export function AuthoredListPage({
               actionHandlers={actionHandlers}
             />
           )
+        ) : null}
+        {catalog && contentPanel === 'active' ? (
+          <span aria-live='polite'>
+            {catalog.isFetchingNextPage || catalog.isFetchingPreviousPage
+              ? `Loading more ${title.toLowerCase()}.`
+              : ''}
+          </span>
         ) : null}
       </section>
     </div>

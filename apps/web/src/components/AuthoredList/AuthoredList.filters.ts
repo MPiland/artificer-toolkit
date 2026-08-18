@@ -1,6 +1,10 @@
-import type { AuthoredListFilter, AuthoredListItem } from './AuthoredList.types'
+import type {
+  AuthoredListFilter,
+  AuthoredListFilterValues,
+  AuthoredListItem
+} from './AuthoredList.types'
 
-export type AuthoredListFilterValues = Record<string, string | null>
+export type { AuthoredListFilterValues } from './AuthoredList.types'
 
 export function itemMatchesQuery(item: AuthoredListItem, normalizedQuery: string) {
   if (normalizedQuery.length === 0) return true

@@ -1,8 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DBLike } from '../types/index.js'
+import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
+
+import {
+  checksumCompiledAuthoredProjection,
+  checksumSystemVocabularySnapshot
+} from '../utils/index.js'
 
 const wrapperCalls: string[] = []
 const wrapperDatabases: unknown[] = []
+const versionState = vi.hoisted(() => ({
+  activeBySubject: new Map<string, {
+    authored: {
+      checksum: string
+      document: unknown
+      subjectId: string
+      subjectKind: string
+      version: number
+      versionId: string
+    }
+  }>(),
+  findActiveForPublication: vi.fn(),
+  publish: vi.fn(),
+  syncSpellCatalogClassIndex: vi.fn(),
+  vocabularyFindActiveForPublication: vi.fn(),
+  vocabularyPublish: vi.fn()
+}))
 
 vi.mock('../domains/index.js', () => {
   const track = (name: string) =>
@@ -40,11 +63,25 @@ vi.mock('../domains/index.js', () => {
 vi.mock('../repositories/index.js', () => ({
   createAuthoredRouteIdRepository: vi.fn(() => ({
     seedSrdSubjects: vi.fn()
-  }))
+  })),
+  createAuthoredVersionRepository: vi.fn(() => ({
+    findActive: vi.fn(async (input: { subjectId: string; subjectKind: string }) =>
+      versionState.activeBySubject.get(`${input.subjectKind}:${input.subjectId}`) ?? null
+    ),
+    findActiveForPublication: versionState.findActiveForPublication,
+    publish: versionState.publish
+  })),
+  createSystemVocabularySnapshotRepository: vi.fn(() => ({
+    findActiveForPublication: versionState.vocabularyFindActiveForPublication,
+    publish: versionState.vocabularyPublish
+  })),
+  syncSpellCatalogClassIndex: versionState.syncSpellCatalogClassIndex,
+  upsertAuthoredRootEnvelope: vi.fn()
 }))
 
 import { seedBaselineContent } from '../seed/baseline.js'
 import { defineBaselineContentBundle } from '../source-data/content.js'
+import { srdBaselineContent } from '../source-data/srd/index.js'
 
 type SeedRow = Record<string, unknown>
 type SeedTables = Record<string, SeedRow[]>
@@ -163,6 +200,46 @@ describe('seedBaselineContent', () => {
   beforeEach(() => {
     wrapperCalls.length = 0
     wrapperDatabases.length = 0
+    versionState.activeBySubject.clear()
+    versionState.findActiveForPublication.mockReset()
+    versionState.findActiveForPublication.mockResolvedValue(null)
+    versionState.publish.mockReset()
+    versionState.syncSpellCatalogClassIndex.mockReset()
+    versionState.vocabularyFindActiveForPublication.mockReset()
+    versionState.vocabularyFindActiveForPublication.mockResolvedValue(null)
+    versionState.vocabularyPublish.mockReset()
+    versionState.vocabularyPublish.mockImplementation(async (input: {
+      document: unknown
+      schemaVersion: number
+      snapshotId: string
+      systemId: string
+    }) => ({
+      checksum: 'a'.repeat(64),
+      document: input.document,
+      schemaVersion: input.schemaVersion,
+      snapshotId: input.snapshotId,
+      snapshotVersion: 1,
+      systemId: input.systemId
+    }))
+    versionState.publish.mockImplementation(async (input: {
+      authoredChecksum: string
+      document: unknown
+      subjectId: string
+      subjectKind: string
+      versionId: string
+    }) => {
+      versionState.activeBySubject.set(`${input.subjectKind}:${input.subjectId}`, {
+        authored: {
+          checksum: input.authoredChecksum,
+          document: input.document,
+          subjectId: input.subjectId,
+          subjectKind: input.subjectKind,
+          version: 1,
+          versionId: input.versionId
+        }
+      })
+      return { authored: { versionId: input.versionId } }
+    })
   })
 
   it('seeds systems before system-scoped content and returns counts', async () => {
@@ -242,15 +319,151 @@ describe('seedBaselineContent', () => {
     )
 
     expect(wrapperCalls).toEqual([
-      'upsertSystem',
-      'upsertDetail',
-      'upsertCharge',
-      'upsertSavingThrow',
-      'upsertStartingEquipment'
+      'upsertSystem'
     ])
     expect(result).toEqual({
       systems: 1,
       domainRoots: 0
+    })
+  })
+
+  it('pins an equipment variant to the exact published parent version', async () => {
+    const variant = srdBaselineContent.subjects.equipment.find(
+      (equipment) => equipment.category === 'VARIANT'
+    )
+    if (!variant || variant.category !== 'VARIANT') {
+      throw new Error('SRD fixture is missing an equipment variant.')
+    }
+    const parent = srdBaselineContent.subjects.equipment.find(
+      (equipment) => equipment.id === variant.parentEquipmentId
+    )
+    if (!parent || parent.category === 'VARIANT') {
+      throw new Error('SRD fixture is missing the equipment variant parent.')
+    }
+
+    const bundle = createEmptyBundle(variant.systemId)
+    bundle.subjects.equipment.push(variant, parent)
+
+    const { db } = createSeedTransactionDb()
+    await seedBaselineContent({ db: db as unknown as DBLike, systemId: variant.systemId }, bundle)
+
+    const parentVersion = versionState.activeBySubject.get(`EQUIPMENT:${parent.id}`)
+    const variantPublish = versionState.publish.mock.calls
+      .map(([input]) => input)
+      .find((input) => input.subjectId === variant.id)
+
+    expect(parentVersion).toBeDefined()
+    expect(variantPublish).toEqual(
+      expect.objectContaining({
+        subjectKind: 'EQUIPMENT',
+        subjectId: variant.id,
+        authoredDependencies: [
+          {
+            subjectKind: 'EQUIPMENT',
+            subjectId: parent.id,
+            versionId: parentVersion?.authored.versionId,
+            version: parentVersion?.authored.version,
+            checksum: parentVersion?.authored.checksum
+          }
+        ]
+      })
+    )
+  })
+
+  it('writes the seeded Spell index against the exact published version', async () => {
+    const spell = srdBaselineContent.subjects.spells[0]
+    if (!spell) throw new Error('SRD spell fixture is missing.')
+    const bundle = createEmptyBundle(spell.systemId)
+    bundle.subjects.spells.push(spell)
+    const { db } = createSeedTransactionDb()
+
+    await seedBaselineContent({ db: db as unknown as DBLike, systemId: spell.systemId }, bundle)
+
+    const published = versionState.activeBySubject.get(`SPELL:${spell.id}`)
+    expect(published).toBeDefined()
+    expect(versionState.syncSpellCatalogClassIndex).toHaveBeenCalledWith(db, {
+      authoredVersionId: published?.authored.versionId,
+      classIds: spell.classIds,
+      spellId: spell.id
+    })
+  })
+
+  it('repairs the indexed Spell version without republishing an unchanged seed', async () => {
+    const spell = srdBaselineContent.subjects.spells[0]
+    if (!spell) throw new Error('SRD spell fixture is missing.')
+    const bundle = createEmptyBundle(spell.systemId)
+    bundle.subjects.spells.push(spell)
+    const system = bundle.vocabulary.systems[0]
+    if (!system) throw new Error('Baseline system fixture is missing.')
+    const vocabularyDocument = systemVocabularySnapshotSchema.parse({
+      snapshotId: 'snapshot-1',
+      systemId: system.id,
+      snapshotVersion: 1,
+      schemaVersion: 1,
+      checksum: '0'.repeat(64),
+      document: system
+    }).document
+    const vocabularySnapshot = {
+      checksum: checksumSystemVocabularySnapshot({
+        snapshotId: 'snapshot-1',
+        systemId: system.id,
+        snapshotVersion: 1,
+        schemaVersion: 1,
+        document: vocabularyDocument
+      }),
+      document: vocabularyDocument,
+      schemaVersion: 1,
+      snapshotId: 'snapshot-1',
+      snapshotVersion: 1,
+      systemId: system.id
+    }
+    versionState.vocabularyPublish.mockResolvedValue(vocabularySnapshot)
+    const { db } = createSeedTransactionDb()
+
+    await seedBaselineContent({ db: db as unknown as DBLike, systemId: spell.systemId }, bundle)
+
+    const [[publishInput]] = versionState.publish.mock.calls
+    if (!publishInput) throw new Error('Spell seed did not publish an authored version.')
+    versionState.vocabularyFindActiveForPublication.mockResolvedValue(vocabularySnapshot)
+    const activeVersion = {
+      authored: {
+        checksum: publishInput.authoredChecksum,
+        document: publishInput.document,
+        subjectId: publishInput.subjectId,
+        subjectKind: publishInput.subjectKind,
+        version: 1,
+        versionId: publishInput.versionId
+      },
+      compiled: {
+        compilerVersion: publishInput.compilerVersion,
+        projectionChecksum: checksumCompiledAuthoredProjection({
+          authoredChecksum: publishInput.authoredChecksum,
+          authoredDependencies: publishInput.authoredDependencies,
+          authoredVersion: 1,
+          authoredVersionId: publishInput.versionId,
+          compilerVersion: publishInput.compilerVersion,
+          projection: publishInput.compiledDocument,
+          projectionSchemaVersion: publishInput.projectionSchemaVersion,
+          subjectId: publishInput.subjectId,
+          subjectKind: publishInput.subjectKind,
+          vocabularySnapshotChecksum: publishInput.vocabularySnapshotChecksum,
+          vocabularySnapshotId: publishInput.vocabularySnapshotId,
+          vocabularySnapshotVersion: publishInput.vocabularySnapshotVersion
+        }),
+        vocabularySnapshotId: publishInput.vocabularySnapshotId
+      }
+    }
+    versionState.findActiveForPublication.mockResolvedValue(activeVersion)
+
+    await seedBaselineContent({ db: db as unknown as DBLike, systemId: spell.systemId }, bundle)
+
+    expect(versionState.vocabularyPublish).toHaveBeenCalledOnce()
+    expect(versionState.publish).toHaveBeenCalledOnce()
+    expect(versionState.syncSpellCatalogClassIndex).toHaveBeenCalledTimes(2)
+    expect(versionState.syncSpellCatalogClassIndex).toHaveBeenLastCalledWith(db, {
+      authoredVersionId: publishInput.versionId,
+      classIds: spell.classIds,
+      spellId: spell.id
     })
   })
 
@@ -300,10 +513,13 @@ describe('seedBaselineContent', () => {
   it('removes stale master subjects across every root domain while preserving owned, current, and other-system records', async () => {
     const bundle = createEmptyBundle()
     bundle.subjects.backgrounds.push({
+      kind: 'BACKGROUND',
       id: 'current-background',
       label: 'Current background',
-      systemId: 'system-1'
-    } as unknown as (typeof bundle.subjects.backgrounds)[number])
+      description: 'Current background description',
+      systemId: 'system-1',
+      userId: 'user-1'
+    })
 
     const staleSubjects = [
       ['backgrounds', 'BACKGROUND'],
@@ -358,49 +574,6 @@ describe('seedBaselineContent', () => {
       ])
     )
     expect(tables.authored_route_ids).toHaveLength(2)
-  })
-
-  it('clears stale cross-domain references before deleting master projections', async () => {
-    const bundle = createEmptyBundle()
-    const { db, operations, tables } = createSeedTransactionDb({
-      classes: [{ id: 'stale-class', system_id: 'system-1', is_master: true }],
-      equipment: [{ id: 'stale-equipment', system_id: 'system-1', is_master: true }],
-      feats: [{ id: 'stale-feat', system_id: 'system-1', is_master: true }],
-      spells: [{ id: 'stale-spell', system_id: 'system-1', is_master: true }],
-      equipment_contains: [
-        { equipment_id: 'kept-container', contained_equipment_id: 'stale-equipment' }
-      ],
-      starting_equipment_option_item_equipment: [{ equipment_id: 'stale-equipment' }],
-      proficiency_grant_equipment: [{ equipment_id: 'stale-equipment' }],
-      spell_classes: [{ spell_id: 'kept-spell', class_id: 'stale-class' }],
-      feat_grant_feats: [{ feat_id: 'stale-feat' }],
-      feat_grant_scaling_level_feats: [{ feat_id: 'stale-feat' }],
-      spell_grant_spells: [{ spell_id: 'stale-spell' }],
-      spell_grant_scaling_level_spells: [{ spell_id: 'stale-spell' }]
-    })
-
-    await seedBaselineContent({ db: db as unknown as DBLike, systemId: 'system-1' }, bundle)
-
-    for (const table of [
-      'equipment_contains',
-      'starting_equipment_option_item_equipment',
-      'proficiency_grant_equipment',
-      'spell_classes',
-      'feat_grant_feats',
-      'feat_grant_scaling_level_feats',
-      'spell_grant_spells',
-      'spell_grant_scaling_level_spells'
-    ]) {
-      expect(tables[table]).toEqual([])
-    }
-    expect(operations.findIndex(({ table }) => table === 'equipment_contains')).toBeLessThan(
-      operations.findIndex(
-        ({ operation, table }) => operation === 'delete' && table === 'equipment'
-      )
-    )
-    expect(operations.findIndex(({ table }) => table === 'spell_classes')).toBeLessThan(
-      operations.findIndex(({ operation, table }) => operation === 'delete' && table === 'classes')
-    )
   })
 
   it('runs pruning and all writes through one outer transaction', async () => {

@@ -62,6 +62,30 @@ export interface AuthoredListSortOption {
   label: string
 }
 
+export type AuthoredListFilterValues = Record<string, string | null>
+
+export interface AuthoredListCatalogControls {
+  filterValues: AuthoredListFilterValues
+  onClearFilters: () => void
+  onFilterChange: (key: string, value: string | null) => void
+  onQueryChange: (value: string) => void
+  onSortChange: (value: string) => void
+  query: string
+  sort: string
+}
+
+export interface AuthoredListCatalogWindow {
+  activeCount: number
+  controls: AuthoredListCatalogControls
+  fetchNextPage: () => void
+  fetchPreviousPage: () => void
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+  isFetchingNextPage: boolean
+  isFetchingPreviousPage: boolean
+  totalCount: number
+}
+
 export interface AuthoredListPageProps {
   title: string
   summary: string
@@ -77,6 +101,7 @@ export interface AuthoredListPageProps {
   loading?: boolean
   initialViewMode?: AuthoredListViewMode
   cardOnly?: boolean
+  catalog?: AuthoredListCatalogWindow
   onCreate?: () => void
   onView?: (item: AuthoredListItem) => void
   onViewIntent?: (item: AuthoredListItem) => void

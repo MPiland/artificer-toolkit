@@ -13,6 +13,7 @@ import {
 const campaignNameSchema = z.string().trim().min(1).max(100)
 const campaignDescriptionSchema = authoredRichTextSchema
 const campaignToneDetailsSchema = z.string().trim().min(1).max(1_000)
+const projectionChecksumSchema = z.string().regex(/^[a-f0-9]{64}$/)
 
 export const entitlementTierDtoSchema = z.enum(['FREE', 'PLAYER', 'GM', 'PRO_GM'])
 export const entitlementLimitDtoSchema = z.strictObject({
@@ -214,7 +215,11 @@ export const campaignContentBindingDtoSchema = z.strictObject({
   subjectKind: authoredSubjectKindDtoSchema,
   subjectId: uuidSchema,
   version: versionSchema,
-  snapshot: jsonSchema,
+  authoredVersionId: uuidSchema,
+  authoredVersion: versionSchema,
+  authoredChecksum: projectionChecksumSchema,
+  compiledProjectionChecksum: projectionChecksumSchema,
+  document: jsonSchema,
   status: z.enum(['PENDING', 'APPROVED', 'REJECTED']),
   createdAt: timestampSchema,
   reviewedAt: timestampSchema.nullable()
@@ -231,8 +236,7 @@ export const submitCampaignContentVersionInputSchema = z.strictObject({
   campaignId: uuidSchema,
   subjectKind: authoredSubjectKindDtoSchema,
   subjectId: uuidSchema,
-  version: versionSchema,
-  snapshot: jsonSchema
+  expectedRevision: versionSchema
 })
 export const reviewCampaignContentVersionInputSchema = z.strictObject({
   campaignId: uuidSchema,

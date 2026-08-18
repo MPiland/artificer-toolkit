@@ -49,6 +49,7 @@ SET CONSTRAINTS ALL DEFERRED;
 \i :etl_root'/subjects/tables/spells.sql'
 \i :etl_root'/subjects/tables/vehicles.sql'
 \i :etl_root'/subjects/tables/characters.sql'
+\i :etl_root'/subjects/tables/versioned_projections.sql'
 \i :etl_root'/subjects/tables/authored_route_ids.sql'
 \i :etl_root'/subjects/tables/media.sql'
 \i :etl_root'/subjects/tables/user_roll_history.sql'

@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 
 import { createDb } from '@artificer-toolkit/db'
 import {
+  assertCharacterMechanicsProjectionChecksumFailsClosed,
   assertCommandEquipmentWasRolledBack,
   assertFixtureWasRolledBack,
   sheetCommandTimings
@@ -138,6 +139,7 @@ async function main(): Promise<void> {
               { level: 2, classId: catalog.rogueId, classLevel: 1, value: 7 },
               { level: 3, classId: catalog.fighterId, classLevel: 2, value: 8 }
             ],
+            initialEquipmentIds: [attunementEquipmentId],
             label: 'MVP Multiclass HP Lifecycle Proof',
             raceId: catalog.humanId,
             raceLabel: 'Human'
@@ -189,6 +191,10 @@ async function main(): Promise<void> {
             inventory = await proveCurrencyCommands(trx, fixture, inventory)
             sheet = await proveInventoryRemovalCommands(trx, fixture, inventory)
             await proveNoteCommands(trx, fixture, sheet)
+          }
+          if (!persistLocalFixtures && fixture === selectedFixtures[0]) {
+            await assertCharacterMechanicsProjectionChecksumFailsClosed(trx, fixture.characterId)
+            console.info(JSON.stringify({ characterMechanicsProjectionIntegrity: 'verified' }))
           }
         }
 

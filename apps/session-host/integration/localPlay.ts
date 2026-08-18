@@ -7,11 +7,11 @@ import { createClient } from '@supabase/supabase-js'
 import {
   createCampaignRepository,
   createCharacterRepository,
-  createCreatureRepository,
   createEncounterRepository,
   createMediaRepository,
   createVttSceneRepository,
   createDb,
+  srdBaselineContent,
   withUserContext
 } from '@artificer-toolkit/db'
 import {
@@ -748,11 +748,8 @@ async function main(): Promise<void> {
       { campaignId: campaign.id, title: 'Local integration session' },
       gm.id
     )
-    const encounterCreature = (
-      await createCreatureRepository(db).findAll({ userId: gm.id, includeMaster: true })
-    ).find(
+    const encounterCreature = srdBaselineContent.subjects.creatures.find(
       (creature) =>
-        creature.status === 'ACTIVE' &&
         (creature.features ?? []).some(
           (feature) =>
             feature.charges?.limitKind === 'FIXED_AMOUNT' &&
@@ -847,7 +844,8 @@ async function main(): Promise<void> {
           vision: null,
           width: 1
         }
-      ]
+      ],
+      visionRevealMode: 'ON_DRAG'
     })
     const options = { campaignId: campaign.id, sessionId: session.id }
     const externalEndpoint = externalSessionHostEndpoint()
@@ -890,6 +888,7 @@ async function main(): Promise<void> {
       ).then(({ ticket }) => ticket)
 
     let endpoint: string
+    let externalDurableObject = false
     if (externalEndpoint) {
       endpoint = externalEndpoint
     } else {
@@ -907,10 +906,15 @@ async function main(): Promise<void> {
     }
     const health = await fetch(`${endpoint}/health`)
     assert.equal(health.status, 200)
-    assert.deepEqual(await health.json(), {
-      service: 'artificer-session-host',
-      status: 'ok'
-    })
+    const healthBody = await health.json()
+    if (externalEndpoint && JSON.stringify(healthBody) === JSON.stringify({ ok: true })) {
+      externalDurableObject = true
+    } else {
+      assert.deepEqual(healthBody, {
+        service: 'artificer-session-host',
+        status: 'ok'
+      })
+    }
 
     const playerJoins: Array<Awaited<ReturnType<typeof joinLiveRoom>>> = []
     const firstTicket = playerTickets[0]
@@ -1029,7 +1033,10 @@ async function main(): Promise<void> {
       commandId: randomUUID(),
       encounterId: encounter.id,
       expectedSceneVersion: sceneAttach.streamVersion,
-      position: { x: 25, y: 20 },
+      path: [
+        { x: 20, y: 20 },
+        { x: 25, y: 20 }
+      ],
       sceneId,
       tokenId: sceneTokenId,
       type: 'MOVE_SCENE_TOKEN' as const
@@ -1061,7 +1068,10 @@ async function main(): Promise<void> {
         commandId: randomUUID(),
         encounterId: encounter.id,
         expectedSceneVersion,
-        position: { x: 26 + index, y: 20 },
+        path: [
+          { x: 25 + index, y: 20 },
+          { x: 26 + index, y: 20 }
+        ],
         sceneId,
         tokenId: sceneTokenId,
         type: 'MOVE_SCENE_TOKEN'
@@ -1148,9 +1158,12 @@ async function main(): Promise<void> {
     )
     assert.equal(cold.streamVersion, 2)
     assert.equal(cold.replayed, false)
+    const coldServiceTiming = commandTimings.find(
+      ({ commandId }) => commandId === cold.commandId
+    )?.service
     assert.ok(
       cold.durationMs < WARM_COMMAND_P95_LIMIT_MS,
-      `First local command ${cold.durationMs.toFixed(2)} ms exceeded ${WARM_COMMAND_P95_LIMIT_MS} ms.`
+      `First local command ${cold.durationMs.toFixed(2)} ms exceeded ${WARM_COMMAND_P95_LIMIT_MS} ms. Service timing: ${JSON.stringify(coldServiceTiming ?? null)}.`
     )
 
     const replay = await sendCharacterCommand(
@@ -1429,7 +1442,11 @@ async function main(): Promise<void> {
         directHttpMutationBypass: 'rejected',
         exactReplay: 'verified',
         health: 'verified',
-        hostMode: externalEndpoint ? 'EXTERNAL_LINUX_CONTAINER' : 'LOCAL_NODE_PROCESS',
+        hostMode: externalDurableObject
+          ? 'LOCAL_DURABLE_OBJECT_HTTP_EXECUTOR'
+          : externalEndpoint
+            ? 'EXTERNAL_LINUX_CONTAINER'
+            : 'LOCAL_NODE_PROCESS',
         encounterCommittedSnapshot: 'verified',
         localDatabaseOnly: true,
         multiClientCommittedBroadcast: 'verified',

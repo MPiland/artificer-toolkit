@@ -2,8 +2,8 @@ import type { DBLike } from '../types/index.js'
 import type { BaselineContentBundle } from '../source-data/index.js'
 
 /**
- * Seeders import authored baseline content into normalized persistence.
- * They are allowed to orchestrate wrapper calls, but not to compile content.
+ * Seeders publish canonical System vocabulary and authored root documents.
+ * They only orchestrate validated source publication; compilers are domain-owned.
  */
 export interface SeedContext {
   db: DBLike

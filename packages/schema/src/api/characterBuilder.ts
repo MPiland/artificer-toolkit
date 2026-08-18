@@ -1,4 +1,10 @@
 import { z } from 'zod'
+
+import {
+  authoredVersionVectorEntrySchema,
+  authoredVersionVectorSchema,
+  projectionChecksumSchema
+} from '../projections/identity.js'
 import { CHARACTER_ABILITY_GENERATION_METHOD } from '@artificer-toolkit/shared/core'
 
 import {
@@ -530,7 +536,22 @@ export const characterBuilderChangePreviewDtoSchema = z.object({
 export const characterBuilderPreviewPayloadDtoSchema = z.object({
   character: characterAuthoredDtoSchema,
   resolution: characterBuilderResolutionDtoSchema,
-  preview: characterBuilderChangePreviewDtoSchema
+  preview: characterBuilderChangePreviewDtoSchema,
+  authoredContentUpgrade: z
+    .object({
+      previewChecksum: projectionChecksumSchema,
+      currentVector: authoredVersionVectorSchema,
+      candidateVector: authoredVersionVectorSchema,
+      changes: z.array(
+        z.object({
+          subjectKind: authoredVersionVectorEntrySchema.shape.subjectKind,
+          subjectId: authoredVersionVectorEntrySchema.shape.subjectId,
+          previous: authoredVersionVectorEntrySchema.nullable(),
+          next: authoredVersionVectorEntrySchema.nullable()
+        })
+      )
+    })
+    .optional()
 })
 
 export const characterDraftRequestDtoSchema = z.object({
@@ -560,7 +581,8 @@ export const characterBuilderCommitRequestDtoSchema = z.object({
   character: characterAuthoredDtoSchema,
   mode: characterBuilderModeDtoSchema,
   targetStatus: z.literal('ACTIVE').optional(),
-  baseActiveUpdatedAt: z.string().nullable().optional()
+  baseActiveUpdatedAt: z.string().nullable().optional(),
+  authoredContentUpgradePreviewChecksum: projectionChecksumSchema.optional()
 })
 
 export type CharacterBuilderModeDto = z.infer<typeof characterBuilderModeDtoSchema>

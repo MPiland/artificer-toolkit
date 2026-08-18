@@ -2,8 +2,11 @@ import { randomUUID } from 'node:crypto'
 import {
   createAccountEntitlementsRepository,
   createCampaignAdjustmentsRepository,
+  createCampaignCharacterMechanicsProjectionRepository,
   createCampaignContentRepository,
   createCampaignRepository,
+  createCharacterMechanicsProjectionRepository,
+  createCharacterRepository,
   createSocialRepository,
   withTransaction,
   type CampaignAuthorityRecord,
@@ -26,6 +29,14 @@ import {
 } from '@artificer-toolkit/shared/campaign/textPolicy'
 import { ENTITLEMENT_LIMITS, assertEntitlementLimit } from '../account/entitlementService.js'
 import { reconcileCharacterAfterCampaignContentRemoval } from '../character/campaignCharacterReconciliation.js'
+import {
+  checksumCampaignCharacterMechanicalContext,
+  resolveCharacterLiveSessionRuleContext
+} from '../character/campaignCharacterSheet.js'
+import {
+  CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
+  prepareCampaignCharacterMechanicsProjection
+} from './campaignCharacterMechanicsProjection.js'
 import {
   enqueueApplicationSubmittedCancellations,
   enqueueInvitationDecisionNotifications,
@@ -444,6 +455,53 @@ export async function updateCampaign(
       nextMaturity !== authority.campaign.contentMaturity ||
       nextToneTags.length !== authority.campaign.toneTags.length ||
       nextToneTags.some((tag, index) => tag !== authority.campaign.toneTags[index])
+    const attunementChanged =
+      input.attunementSlotOverride !== undefined &&
+      input.attunementSlotOverride !== authority.campaign.attunementSlotOverride
+    const existingMechanicsOverlays = attunementChanged
+      ? await Promise.all(
+          (await createCampaignRepository(trx).listAssignmentCharacterIds(input.campaignId))
+            .sort((left, right) => left.localeCompare(right))
+            .map(async (characterId) => {
+              const characterRepository = createCharacterRepository(trx)
+              const [character, row] = await Promise.all([
+                characterRepository.findAuthoredById(characterId),
+                characterRepository.findById(characterId)
+              ])
+              if (!character || !row?.rule_pack_revision_id) {
+                throw new CampaignValidationError(
+                  'Assigned Character has no committed mechanics projection.'
+                )
+              }
+              const mechanics = await createCharacterMechanicsProjectionRepository(trx).requireCurrent({
+                characterId,
+                expectedRuleRevisionId: row.rule_pack_revision_id,
+                expectedStreamVersion: row.stream_version
+              })
+              const ruleContext = await resolveCharacterLiveSessionRuleContext(trx, characterId, {
+                id: input.campaignId,
+                attunementSlotOverride: authority.campaign.attunementSlotOverride
+              })
+              if (!ruleContext) {
+                throw new CampaignConflictError('Campaign assignment changed before mechanics could be updated.')
+              }
+              const previousOverlay = await createCampaignCharacterMechanicsProjectionRepository(
+                trx
+              ).requireCurrent({
+                campaignId: input.campaignId,
+                characterId,
+                expectedBaseMechanicsProjectionChecksum: mechanics.projectionChecksum,
+                expectedCharacterStreamVersion: mechanics.characterStreamVersion,
+                expectedMechanicalContextChecksum: checksumCampaignCharacterMechanicalContext({
+                  adjustments: ruleContext.adjustments,
+                  attunementSlotOverride: ruleContext.attunementSlotOverride
+                }),
+                expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION
+              })
+              return { character, mechanics, previousOverlay }
+            })
+        )
+      : []
 
     const updated = await createCampaignRepository(trx).updateCampaign(
       input.campaignId,
@@ -461,6 +519,30 @@ export async function updateCampaign(
       }
     )
     if (!updated) throw new CampaignConflictError()
+    if (attunementChanged) {
+      for (const { character, mechanics, previousOverlay } of existingMechanicsOverlays) {
+        const ruleContext = await resolveCharacterLiveSessionRuleContext(trx, character.id, {
+          id: input.campaignId,
+          attunementSlotOverride: input.attunementSlotOverride ?? null
+        })
+        if (!ruleContext) {
+          throw new CampaignConflictError('Campaign assignment changed before mechanics could be published.')
+        }
+        const nextOverlay = await prepareCampaignCharacterMechanicsProjection({
+          db: trx,
+          campaignId: input.campaignId,
+          character,
+          characterStreamVersion: mechanics.characterStreamVersion,
+          mechanics,
+          campaignAdjustments: ruleContext.adjustments,
+          attunementSlotOverride: ruleContext.attunementSlotOverride
+        })
+        await createCampaignCharacterMechanicsProjectionRepository(trx).publish({
+          projection: nextOverlay,
+          expectedPriorOverlayChecksum: previousOverlay.projectionChecksum
+        })
+      }
+    }
     if (lockedListing && projectionChanged) {
       const now = new Date().toISOString()
       const synced = await socialRepository.syncSocialListingCampaignProjection({
@@ -966,6 +1048,32 @@ export function assignCampaignCharacter(
       }
       throw error
     }
+    const characterRepository = createCharacterRepository(trx)
+    const [authoredCharacter, characterRow] = await Promise.all([
+      characterRepository.findAuthoredById(characterId),
+      characterRepository.findById(characterId)
+    ])
+    if (!authoredCharacter || !characterRow?.rule_pack_revision_id) {
+      throw new CampaignValidationError('Assigned Character has no committed mechanics projection.')
+    }
+    const mechanics = await createCharacterMechanicsProjectionRepository(trx).requireCurrent({
+      characterId,
+      expectedRuleRevisionId: characterRow.rule_pack_revision_id,
+      expectedStreamVersion: characterRow.stream_version
+    })
+    const overlay = await prepareCampaignCharacterMechanicsProjection({
+      db: trx,
+      campaignId,
+      character: authoredCharacter,
+      characterStreamVersion: characterRow.stream_version,
+      mechanics,
+      campaignAdjustments: [],
+      attunementSlotOverride: authority.campaign.attunementSlotOverride
+    })
+    await createCampaignCharacterMechanicsProjectionRepository(trx).publish({
+      projection: overlay,
+      expectedPriorOverlayChecksum: null
+    })
     return { characterId }
   })
 }

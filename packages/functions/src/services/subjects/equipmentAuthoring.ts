@@ -1,5 +1,4 @@
-import type { DBLike, RepositoryFindAllOptions } from '@artificer-toolkit/db'
-import { createEquipmentRepository, upsertEquipment } from '@artificer-toolkit/db'
+import type { DBLike } from '@artificer-toolkit/db'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import type {
   EquipmentAuthored,
@@ -18,30 +17,15 @@ type AnyCompiledEquipment = CompiledEquipment | CompiledEquipmentVariant
 export interface EquipmentSubjectAuthoringDeps {
   validate?: (input: unknown) => AnyEquipmentAuthored
   compile?: (authored: AnyEquipmentAuthored) => AnyCompiledEquipment
-  persist?: (payload: {
-    authored: AnyEquipmentAuthored
-    compiled: AnyCompiledEquipment
-  }) => Promise<void>
-  findById?: (id: string) => Promise<AnyEquipmentAuthored | null>
-  findAll?: (filter?: RepositoryFindAllOptions) => Promise<AnyEquipmentAuthored[]>
 }
 
 export function createEquipmentSubjectAuthoringService(
   db: DBLike,
   deps: EquipmentSubjectAuthoringDeps = {}
 ) {
-  const repo = createEquipmentRepository(db)
-
-  return createSubjectAuthoringService<unknown, AnyEquipmentAuthored, AnyCompiledEquipment, void>({
+  return createSubjectAuthoringService<unknown, AnyEquipmentAuthored, AnyCompiledEquipment>({
     validate:
       deps.validate ?? ((input) => equipmentAuthoredDtoSchema.parse(input) as AnyEquipmentAuthored),
-    compile: deps.compile ?? compileEquipment,
-    persist:
-      deps.persist ??
-      (async ({ authored }) => {
-        await upsertEquipment(db, authored, authored.systemId)
-      }),
-    findById: deps.findById ?? ((id) => repo.findById(id)),
-    findAll: deps.findAll ?? ((filter) => repo.findAll(filter))
+    compile: deps.compile ?? compileEquipment
   })
 }

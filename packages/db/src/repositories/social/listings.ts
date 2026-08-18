@@ -62,7 +62,7 @@ type RawListing = {
   updated_at: string | Date
 }
 
-const listingColumns = sql.raw(`
+const listingColumns = sql`
   listing.id, listing.campaign_id,
   campaign.owner_user_id as campaign_owner_user_id,
   campaign.status as campaign_status,
@@ -80,9 +80,9 @@ const listingColumns = sql.raw(`
   listing.content_boundaries, listing.safety_practices, listing.safety_details,
   listing.is_free, listing.price_amount, listing.price_currency,
   listing.published_at, listing.version, listing.created_at, listing.updated_at
-`)
+`
 
-const listingJoins = sql.raw(`
+const listingJoins = sql`
   join campaigns campaign on campaign.id = listing.campaign_id
   join social_profiles host on host.user_id = campaign.owner_user_id
   join profiles host_account on host_account.id = campaign.owner_user_id
@@ -93,7 +93,7 @@ const listingJoins = sql.raw(`
     where membership.campaign_id = listing.campaign_id
       and membership.role = 'PLAYER' and membership.status = 'ACTIVE'
   ) player_count on true
-`)
+`
 
 function mapListing(row: RawListing): SocialListingRecord {
   return {

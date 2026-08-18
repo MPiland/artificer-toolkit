@@ -65,6 +65,14 @@
     "./vocabulary/*": {
       "types": "./dist/vocabulary/*.d.ts",
       "default": "./dist/vocabulary/*.js"
+    },
+    "./projections": {
+      "types": "./dist/projections/index.d.ts",
+      "default": "./dist/projections/index.js"
+    },
+    "./projections/*": {
+      "types": "./dist/projections/*.d.ts",
+      "default": "./dist/projections/*.js"
     }
   },
   "scripts": {

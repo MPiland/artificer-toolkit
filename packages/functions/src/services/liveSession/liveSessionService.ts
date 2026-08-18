@@ -14,6 +14,7 @@ import {
   type LiveSessionJoinOptionsDto,
   type LiveSessionSceneVisionContextDto
 } from '@artificer-toolkit/schema/api/liveSessions'
+import type { EncounterCurrentProjection } from '@artificer-toolkit/schema/projections/encounter'
 
 import {
   assertCampaignWritable,
@@ -31,15 +32,16 @@ import {
   type CharacterSheetCommandExecutionResult,
   type CharacterSheetCommandServiceTiming
 } from '../character/sheetService.js'
-import { loadCharacterRuleSnapshotForLiveSessionCampaign } from '../character/characterLiveSessionSnapshot.js'
+import {
+  loadCharacterRuleSnapshotForLiveSessionCampaign,
+  loadCharacterSceneVisionForLiveSessionCampaign,
+  resolveCharacterSceneVisionDimRangeFeet
+} from '../character/characterLiveSessionSnapshot.js'
 import {
   executeEncounterCommandWithRuleSnapshot,
   type EncounterCommandServiceTiming
 } from '../encounter/encounterService.js'
-import {
-  evaluateEncounterActorRuleSnapshot,
-  type EncounterActorRuleSnapshot
-} from '../encounter/encounterActorRuleEvaluation.js'
+import type { EncounterActorRuleSnapshot } from '../encounter/encounterActorRuleEvaluation.js'
 import {
   attachEncounterScene,
   executeEncounterSceneCommandWithState
@@ -163,9 +165,11 @@ async function loadLiveSessionAggregateVersionsForOptions(
     })
   )
   const encounterVersions = (
-    await createEncounterRepository(db).listForCampaign(options.campaignId)
+    await createEncounterRepository(db).listVersionMetadataForSession(
+      options.campaignId,
+      options.sessionId
+    )
   )
-    .filter((encounter) => encounter.sessionId === options.sessionId)
     .map((encounter) => ({
       aggregateKind: 'ENCOUNTER' as const,
       aggregateId: encounter.id,
@@ -204,56 +208,44 @@ export interface LiveSessionRoomSnapshot {
   sceneStates: EncounterSceneState[]
 }
 
-function characterVisionRangeInFeet(amount: number, unit: string): number | null {
-  switch (unit) {
-    case 'FEET':
-      return amount
-    case 'INCHES':
-      return amount / 12
-    case 'MILES':
-      return amount * 5_280
-    case 'YARDS':
-      return amount * 3
-    default:
-      return null
-  }
-}
-
 export function deriveLiveSessionCharacterVision(
   characterId: string,
-  snapshot: CharacterSheetCommittedRuleSnapshot
+  snapshot: Pick<CharacterSheetCommittedRuleSnapshot, 'evaluation'>
 ): SceneCharacterVision {
-  const dimRange = snapshot.evaluation.output.senses.reduce<number | null>((maximum, sense) => {
-    if (sense.senseCode.toUpperCase() !== 'DARKVISION' || !sense.range) return maximum
-    const feet = characterVisionRangeInFeet(sense.range.amount, sense.range.unit)
-    if (feet === null) return maximum
-    return maximum === null ? feet : Math.max(maximum, feet)
-  }, null)
+  const dimRange = resolveCharacterSceneVisionDimRangeFeet(snapshot.evaluation.output.senses)
   return {
     characterId,
     dimRange: dimRange !== null && dimRange > 0 ? { amount: dimRange, unit: 'FEET' } : null
   }
 }
 
-export async function loadLiveSessionEncounterCharacterBindings(
+async function loadLiveSessionEncounterCurrentProjections(
   db: DBLike,
   aggregateVersions: readonly LiveSessionAggregateVersionDto[]
-): Promise<LiveSessionCoordinatorSnapshotDto['encounterCharacterBindings']> {
-  const encounters = (
-    await Promise.all(
-      aggregateVersions
-        .filter((version) => version.aggregateKind === 'ENCOUNTER')
-        .map(({ aggregateId }) => createEncounterRepository(db).find(aggregateId))
-    )
-  ).filter((encounter): encounter is NonNullable<typeof encounter> => encounter !== null)
-  return encounters.flatMap((encounter) =>
-    encounter.actors.flatMap((actor) =>
+): Promise<EncounterCurrentProjection[]> {
+  return Promise.all(
+    aggregateVersions
+      .filter((version) => version.aggregateKind === 'ENCOUNTER')
+      .map(({ aggregateId, version }) =>
+        createEncounterRepository(db).requireCurrentProjection({
+          encounterId: aggregateId,
+          expectedStreamVersion: version
+        })
+      )
+  )
+}
+
+function loadLiveSessionEncounterCharacterBindings(
+  projections: readonly EncounterCurrentProjection[]
+): LiveSessionCoordinatorSnapshotDto['encounterCharacterBindings'] {
+  return projections.flatMap((projection) =>
+    projection.projection.actors.flatMap((actor) =>
       actor.kind === 'CHARACTER' && actor.sourceId
         ? [
             {
               actorId: actor.id,
               characterId: actor.sourceId,
-              encounterId: encounter.id
+              encounterId: projection.encounterId
             }
           ]
         : []
@@ -263,31 +255,39 @@ export async function loadLiveSessionEncounterCharacterBindings(
 
 interface LiveSessionCoordinatorState extends LiveSessionCoordinatorSnapshotDto {
   characterRuleSnapshots: LiveSessionRoomSnapshot['characterRuleSnapshots']
+  encounterRuleSnapshots: LiveSessionRoomSnapshot['encounterRuleSnapshots']
 }
 
 async function loadLiveSessionCoordinatorState(
   db: DBLike,
   userId: string,
-  rawOptions: unknown
+  rawOptions: unknown,
+  includeCharacterRuleSnapshots: boolean
 ): Promise<LiveSessionCoordinatorState> {
   const admission = await authorizeLiveSessionAdmission(db, userId, rawOptions)
   const aggregateVersions = await loadLiveSessionAggregateVersionsForOptions(db, admission.options)
-  const [encounterCharacterBindings, characterRuleSnapshots, sceneStates] = await Promise.all([
-    loadLiveSessionEncounterCharacterBindings(db, aggregateVersions),
+  const [encounterCurrentProjections, characterStates, sceneStates] = await Promise.all([
+    loadLiveSessionEncounterCurrentProjections(db, aggregateVersions),
     Promise.all(
       aggregateVersions
         .filter((version) => version.aggregateKind === 'CHARACTER')
         .map(async ({ aggregateId }) => {
-          const snapshot = await loadCharacterRuleSnapshotForLiveSessionCampaign(
+          if (includeCharacterRuleSnapshots) {
+            const snapshot = await loadCharacterRuleSnapshotForLiveSessionCampaign(
+              db,
+              aggregateId,
+              admission.campaign
+            )
+            if (!snapshot) throw new CampaignAccessError()
+            return { characterId: aggregateId, kind: 'RULE_SNAPSHOT' as const, snapshot }
+          }
+          const vision = await loadCharacterSceneVisionForLiveSessionCampaign(
             db,
             aggregateId,
             admission.campaign
           )
-          if (!snapshot) throw new CampaignAccessError()
-          return {
-            characterId: aggregateId,
-            snapshot
-          }
+          if (!vision) throw new CampaignAccessError()
+          return { characterId: aggregateId, kind: 'SCENE_VISION' as const, vision }
         })
     ),
     Promise.all(
@@ -296,8 +296,19 @@ async function loadLiveSessionCoordinatorState(
         .map(async ({ aggregateId }) => createVttSceneRepository(db).findByEncounter(aggregateId))
     ).then((scenes) => scenes.flatMap((scene) => (scene ? [scene.state] : [])))
   ])
+  const encounterCharacterBindings = loadLiveSessionEncounterCharacterBindings(
+    encounterCurrentProjections
+  )
   const versionByCharacterId = new Map(
-    characterRuleSnapshots.map(({ characterId, snapshot }) => [characterId, snapshot.streamVersion])
+    characterStates.map((state) => [
+      state.characterId,
+      state.kind === 'RULE_SNAPSHOT' ? state.snapshot.streamVersion : state.vision.streamVersion
+    ])
+  )
+  const characterRuleSnapshots = characterStates.flatMap((state) =>
+    state.kind === 'RULE_SNAPSHOT'
+      ? [{ characterId: state.characterId, snapshot: state.snapshot }]
+      : []
   )
   return {
     aggregateVersions: aggregateVersions.map((aggregateVersion) =>
@@ -310,10 +321,23 @@ async function loadLiveSessionCoordinatorState(
         : aggregateVersion
     ),
     characterRuleSnapshots,
-    characterVisions: characterRuleSnapshots.map(({ characterId, snapshot }) =>
-      deriveLiveSessionCharacterVision(characterId, snapshot)
-    ),
+    characterVisions: characterStates.map((state) => {
+      if (state.kind === 'RULE_SNAPSHOT') {
+        return deriveLiveSessionCharacterVision(state.characterId, state.snapshot)
+      }
+      return {
+        characterId: state.characterId,
+        dimRange:
+          state.vision.dimRangeFeet !== null && state.vision.dimRangeFeet > 0
+            ? { amount: state.vision.dimRangeFeet, unit: 'FEET' as const }
+            : null
+      }
+    }),
     encounterCharacterBindings,
+    encounterRuleSnapshots: encounterCurrentProjections.map((projection) => ({
+      encounterId: projection.encounterId,
+      snapshot: projection.ruleSnapshot
+    })),
     sceneStates
   }
 }
@@ -323,8 +347,12 @@ export async function loadLiveSessionCoordinatorSnapshot(
   userId: string,
   rawOptions: unknown
 ): Promise<LiveSessionCoordinatorSnapshotDto> {
-  const { characterRuleSnapshots: _characterRuleSnapshots, ...snapshot } =
-    await loadLiveSessionCoordinatorState(db, userId, rawOptions)
+  const {
+    characterRuleSnapshots: _characterRuleSnapshots,
+    encounterRuleSnapshots: _encounterRuleSnapshots,
+    ...snapshot
+  } =
+    await loadLiveSessionCoordinatorState(db, userId, rawOptions, false)
   return snapshot
 }
 
@@ -333,27 +361,7 @@ export async function loadLiveSessionRoomSnapshot(
   userId: string,
   rawOptions: unknown
 ): Promise<LiveSessionRoomSnapshot> {
-  const coordinator = await loadLiveSessionCoordinatorState(db, userId, rawOptions)
-  const encounterRuleSnapshots = (
-    await Promise.all(
-      coordinator.aggregateVersions
-        .filter((version) => version.aggregateKind === 'ENCOUNTER')
-        .map(async ({ aggregateId }) => {
-          const encounter = await createEncounterRepository(db).find(aggregateId)
-          if (!encounter || !encounter.rulePackRevisionId) return null
-          const evaluated = await evaluateEncounterActorRuleSnapshot({
-            db,
-            encounter,
-            revisionId: encounter.rulePackRevisionId
-          })
-          return { encounterId: aggregateId, snapshot: evaluated.snapshot }
-        })
-    )
-  ).filter((entry): entry is NonNullable<typeof entry> => entry !== null)
-  return {
-    ...coordinator,
-    encounterRuleSnapshots
-  }
+  return loadLiveSessionCoordinatorState(db, userId, rawOptions, true)
 }
 
 export type LiveSessionCommandExecution =

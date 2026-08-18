@@ -33,6 +33,7 @@ const response = {
       systemId: 'system-1',
       category: 'SUBRACE',
       parentRaceId: 'race-1',
+      parentRaceLabel: 'Elf',
       provenance: { kind: 'OWNED', ownerUserId: 'user-1' },
       permissions: { canView: true, canEdit: true, canCopy: true, canDelete: true }
     },
@@ -52,7 +53,9 @@ const response = {
     }
   ],
   drafts: [],
-  meta: {}
+  meta: { categories: [{ id: 'BASE' }, { id: 'SUBRACE' }] },
+  page: { nextCursor: null, previousCursor: null, totalCount: 3 },
+  summary: { activeCount: 3, masterCount: 2, ownedCount: 1 }
 } satisfies RaceListResponseDto
 
 describe('race list mapper', () => {

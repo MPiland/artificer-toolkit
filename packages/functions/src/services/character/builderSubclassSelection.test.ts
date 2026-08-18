@@ -9,6 +9,17 @@ const repositoryState = vi.hoisted(() => ({
 
 vi.mock('@artificer-toolkit/db', () => ({
   createCampaignContentRepository: () => ({ findAssignedCampaign: async () => null }),
+  createAuthoredVersionRepository: () => ({
+    findActiveByIds: async ({ subjectIds, subjectKind }: { subjectIds: readonly string[]; subjectKind: string }) => {
+      const records = subjectKind === 'CLASS' ? repositoryState.classes : []
+      return new Map(
+        records
+          .filter((record) => subjectIds.includes(record.id))
+          .map((record) => [record.id, { authored: { document: record }, compiled: { authoredDependencies: [] } }])
+      )
+    },
+    findExactVersions: async () => new Map()
+  }),
   createSystemRepository: () => ({ findById: async () => null }),
   createRaceRepository: () => ({
     findResolvedAll: async () => [],

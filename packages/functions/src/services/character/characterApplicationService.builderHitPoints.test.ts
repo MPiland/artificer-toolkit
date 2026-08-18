@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   deleteDraft: vi.fn(),
   ensureRouteIdentity: vi.fn(),
   evaluatePolicy: vi.fn(),
+  findActiveVocabulary: vi.fn(),
   findBuilderDraft: vi.fn(),
   findAuthoredCharacter: vi.fn(),
   findCharacterRow: vi.fn(),
@@ -15,19 +16,26 @@ const mocks = vi.hoisted(() => ({
   listAdjustments: vi.fn(),
   listResourceUsage: vi.fn(),
   loadBuilderContext: vi.fn(),
+  loadActiveCreatures: vi.fn(),
   reconcileCharacter: vi.fn(),
   resolveBuilder: vi.fn(),
   resolveRuleBinding: vi.fn(),
   lockCampaignContent: vi.fn(),
+  loadCampaignContent: vi.fn(),
+  loadVersionVector: vi.fn(),
+  lockCampaignAssignment: vi.fn(),
+  requireCurrentMechanics: vi.fn(),
+  publishMechanics: vi.fn(),
+  compileMechanics: vi.fn(),
   replaceCampaignBindings: vi.fn(),
   upsertCharacter: vi.fn(),
   withCharacterLimit: vi.fn()
 }))
 
-vi.mock('@artificer-toolkit/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@artificer-toolkit/db')>()
+vi.mock('@artificer-toolkit/db', () => {
   return {
-    ...actual,
+    checksumCanonicalJson: (value: unknown) => JSON.stringify(value) ?? '',
+    ConcurrencyError: class ConcurrencyError extends Error {},
     createAuthoredRouteIdRepository: () => ({
       ensure: mocks.ensureRouteIdentity
     }),
@@ -35,17 +43,31 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       delete: mocks.deleteDraft,
       findByCharacter: mocks.findBuilderDraft
     }),
+    createCharacterMechanicsProjectionRepository: () => ({
+      publish: mocks.publishMechanics,
+      requireCurrent: mocks.requireCurrentMechanics
+    }),
+    createCampaignCharacterMechanicsProjectionRepository: () => ({
+      lockAssignment: mocks.lockCampaignAssignment
+    }),
     createCharacterRepository: () => ({
       findAuthoredById: mocks.findAuthoredCharacter,
       findById: mocks.findCharacterRow,
       findUpdatedAtByIdForUpdate: mocks.findUpdatedAtForUpdate,
       upsertAuthored: mocks.upsertCharacter
     }),
+    createCharacterEventRepository: () => ({}),
     createCharacterSheetAdjustmentRepository: () => ({
       listByCharacter: mocks.listAdjustments
     }),
     createCharacterSheetPlayStateRepository: () => ({
       listResourceUsage: mocks.listResourceUsage
+    }),
+    createCampaignContentRepository: () => ({
+      findAssignedCampaign: async () => null
+    }),
+    createSystemVocabularySnapshotRepository: () => ({
+      findActive: mocks.findActiveVocabulary
     })
   }
 })
@@ -72,6 +94,9 @@ vi.mock('./builderService.js', async (importOriginal) => {
 vi.mock('./builderReconciliation.js', () => ({
   reconcileCharacterBuilderCharacter: mocks.reconcileCharacter
 }))
+vi.mock('./characterActiveAuthoredSources.js', () => ({
+  loadActiveCharacterCreatures: mocks.loadActiveCreatures
+}))
 
 vi.mock('./characterRuleEvaluation.js', () => ({
   evaluateCharacterRulePolicy: mocks.evaluatePolicy
@@ -80,18 +105,26 @@ vi.mock('./characterRuleEvaluation.js', () => ({
 vi.mock('./characterRuleBinding.js', () => ({
   resolveCharacterRuleBinding: mocks.resolveRuleBinding
 }))
+vi.mock('./characterMechanicsCompiler.js', () => ({
+  compileCharacterMechanicsProjection: mocks.compileMechanics,
+  loadCurrentCharacterAuthoredVersionVector: mocks.loadVersionVector
+}))
 
 vi.mock('../account/entitlementService.js', () => ({
   withPersonalCharacterLimit: mocks.withCharacterLimit
 }))
 vi.mock('./campaignCharacterContent.js', () => ({
   lockCampaignCharacterContentForSave: mocks.lockCampaignContent,
+  loadCampaignCharacterContentOverlay: mocks.loadCampaignContent,
   replaceCampaignCharacterContentBindings: mocks.replaceCampaignBindings
 }))
 
 const { createEmptyCharacterAuthored } = await import('./builderService.js')
-const { createCharacterDraftForUser, upsertCharacterBuilderForUser } =
-  await import('./characterApplicationService.js')
+const {
+  createCharacterDraftForUser,
+  previewCharacterSaveForUser,
+  upsertCharacterBuilderForUser
+} = await import('./characterApplicationService.js')
 
 const resolution: CharacterBuilderResolution = {
   mode: 'edit',
@@ -166,8 +199,12 @@ async function finalizeWithMaximum(
     id: existing.id,
     rule_pack_revision_id: 'revision-1'
   })
-  mocks.upsertCharacter.mockImplementation(async (character: CharacterAuthored) => {
+  mocks.upsertCharacter.mockImplementation(async (
+    character: CharacterAuthored,
+    options?: { afterPersist?: (db: DBLike, streamVersion: number) => Promise<void> }
+  ) => {
     persisted = structuredClone(character)
+    await options?.afterPersist?.({} as DBLike, 2)
   })
   mocks.evaluatePolicy.mockResolvedValue({
     binding: {
@@ -178,7 +215,8 @@ async function finalizeWithMaximum(
       modelContractVersion: 4
     },
     output: {
-      derivedStats: { maxHitPoints: { effective: effectiveMaxHitPoints } }
+      derivedStats: { maxHitPoints: { effective: effectiveMaxHitPoints } },
+      senses: []
     }
   })
 
@@ -218,8 +256,33 @@ describe('Builder hit point reconciliation', () => {
       evaluatorVersion: '0.54.0',
       modelContractVersion: 4
     })
+    mocks.evaluatePolicy.mockResolvedValue({
+      binding: {
+        revisionId: 'revision-1',
+        checksum: 'checksum-1',
+        evaluatorKind: 'ZEN',
+        evaluatorVersion: '0.54.0',
+        modelContractVersion: 4
+      },
+      output: { derivedStats: { maxHitPoints: { effective: 9 } }, senses: [] }
+    })
+    mocks.loadActiveCreatures.mockResolvedValue(new Map())
     mocks.lockCampaignContent.mockResolvedValue(undefined)
+    mocks.lockCampaignAssignment.mockReset()
+    mocks.lockCampaignAssignment.mockResolvedValue(undefined)
+    mocks.loadCampaignContent.mockResolvedValue(null)
+    mocks.findActiveVocabulary.mockResolvedValue({ id: 'snapshot-1' })
+    mocks.loadVersionVector.mockResolvedValue([])
+    mocks.requireCurrentMechanics.mockResolvedValue({ authoredVersionVector: [] })
+    mocks.compileMechanics.mockReturnValue({ id: 'projection-1' })
+    mocks.publishMechanics.mockResolvedValue(undefined)
     mocks.replaceCampaignBindings.mockResolvedValue(undefined)
+    mocks.upsertCharacter.mockImplementation(async (
+      _character: CharacterAuthored,
+      options?: { afterPersist?: (db: DBLike, streamVersion: number) => Promise<void> }
+    ) => {
+      await options?.afterPersist?.({} as DBLike, 1)
+    })
     mocks.withCharacterLimit.mockImplementation(
       async (
         _db: DBLike,
@@ -239,6 +302,10 @@ describe('Builder hit point reconciliation', () => {
       'character-1',
       expect.any(Function)
     )
+    expect(mocks.loadBuilderContext.mock.invocationCallOrder[0]).toBeGreaterThan(
+      mocks.withCharacterLimit.mock.invocationCallOrder[0] ?? 0
+    )
+    expect(mocks.publishMechanics).toHaveBeenCalledWith({ id: 'projection-1' })
     expect(persisted.state.hitpoints.current).toBe(5)
     expect(persisted.state.hitpoints.temp).toBe(3)
     expect(mocks.loadBuilderContext).toHaveBeenCalledWith(
@@ -277,11 +344,24 @@ describe('Builder hit point reconciliation', () => {
     expect(persisted.state.hitpoints.current).toBe(0)
   })
 
+  it('locks an assigned Campaign projection before its Character row', async () => {
+    mocks.lockCampaignContent.mockResolvedValue('campaign-1')
+
+    await finalizeWithMaximum(9, 9)
+
+    expect(mocks.lockCampaignAssignment).toHaveBeenCalledWith({
+      campaignId: 'campaign-1',
+      characterId: 'character-1'
+    })
+    expect(mocks.lockCampaignAssignment.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.findUpdatedAtForUpdate.mock.invocationCallOrder[0] as number
+    )
+  })
+
   it('treats a first-finalization candidate as an unpinned draft until its revision is committed', async () => {
     const candidate = createActiveCharacter(9)
     mocks.findAuthoredCharacter.mockResolvedValue(null)
     mocks.findCharacterRow.mockResolvedValue(null)
-    mocks.upsertCharacter.mockResolvedValue(undefined)
     mocks.evaluatePolicy.mockResolvedValue({
       binding: {
         revisionId: 'revision-1',
@@ -290,7 +370,7 @@ describe('Builder hit point reconciliation', () => {
         evaluatorVersion: '0.54.0',
         modelContractVersion: 4
       },
-      output: { derivedStats: { maxHitPoints: { effective: 9 } } }
+      output: { derivedStats: { maxHitPoints: { effective: 9 } }, senses: [] }
     })
 
     await upsertCharacterBuilderForUser(
@@ -317,6 +397,87 @@ describe('Builder hit point reconciliation', () => {
       expect.anything(),
       expect.objectContaining({ rulePackRevisionId: 'revision-1' })
     )
+  })
+
+  it('requires a reviewed authored-content preview before repinning an active Character', async () => {
+    const existing = createActiveCharacter(9)
+    const currentVector = [
+      {
+        subjectKind: 'RACE' as const,
+        subjectId: 'race-elf',
+        versionId: 'race-elf-v1',
+        version: 1,
+        checksum: 'a'.repeat(64)
+      }
+    ]
+    const candidateVector = [
+      {
+        subjectKind: 'RACE' as const,
+        subjectId: 'race-elf',
+        versionId: 'race-elf-v2',
+        version: 2,
+        checksum: 'b'.repeat(64)
+      }
+    ]
+    mocks.findAuthoredCharacter.mockResolvedValue(existing)
+    mocks.findCharacterRow.mockResolvedValue({
+      id: existing.id,
+      status: 'ACTIVE',
+      rule_pack_revision_id: 'revision-1',
+      stream_version: 3
+    })
+    mocks.requireCurrentMechanics.mockResolvedValue({ authoredVersionVector: currentVector })
+    mocks.loadVersionVector.mockResolvedValue(candidateVector)
+
+    const preview = await previewCharacterSaveForUser(
+      {} as DBLike,
+      {
+        character: structuredClone(existing),
+        mode: 'edit',
+        targetStatus: 'ACTIVE'
+      },
+      existing.userId
+    )
+
+    expect(preview.authoredContentUpgrade).toMatchObject({
+      currentVector,
+      candidateVector,
+      changes: [
+        expect.objectContaining({
+          subjectKind: 'RACE',
+          subjectId: 'race-elf',
+          previous: currentVector[0],
+          next: candidateVector[0]
+        })
+      ]
+    })
+
+    await expect(
+      upsertCharacterBuilderForUser(
+        {} as DBLike,
+        {
+          character: structuredClone(existing),
+          mode: 'edit',
+          targetStatus: 'ACTIVE'
+        },
+        existing.userId
+      )
+    ).rejects.toMatchObject({ name: 'CharacterAuthoredContentUpgradeRequiredError' })
+    expect(mocks.upsertCharacter).not.toHaveBeenCalled()
+
+    await expect(
+      upsertCharacterBuilderForUser(
+        {} as DBLike,
+        {
+          character: structuredClone(existing),
+          mode: 'edit',
+          targetStatus: 'ACTIVE',
+          authoredContentUpgradePreviewChecksum:
+            preview.authoredContentUpgrade?.previewChecksum
+        },
+        existing.userId
+      )
+    ).resolves.toMatchObject({ character: { id: existing.id } })
   })
 
   it('rejects a Builder commit before resolving when the Character belongs to another user', async () => {

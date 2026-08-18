@@ -74,7 +74,7 @@ describe('tRPC router core', () => {
     await expect(caller.account.updateProfile({ bio: null })).rejects.toMatchObject({
       code: 'UNAUTHORIZED'
     })
-    await expect(caller.content.spells.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+    await expect(caller.content.spells.list({})).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.characters.list()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(caller.rolls.clearHistory()).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
     await expect(

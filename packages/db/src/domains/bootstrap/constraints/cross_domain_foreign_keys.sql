@@ -20,6 +20,24 @@ $$;
 
 DO $$
 BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'character_mechanics_projections_rule_pack_revision_id_fkey'
+      AND conrelid = 'public.character_mechanics_projections'::regclass
+  ) THEN
+    ALTER TABLE public.character_mechanics_projections
+      ADD CONSTRAINT character_mechanics_projections_rule_pack_revision_id_fkey
+      FOREIGN KEY (rule_pack_revision_id)
+      REFERENCES public.rule_pack_revisions (id)
+      ON DELETE RESTRICT
+      DEFERRABLE INITIALLY DEFERRED;
+  END IF;
+END;
+$$;
+
+DO $$
+BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'damages_class_id_fkey') THEN
     ALTER TABLE public.damages
       ADD CONSTRAINT damages_class_id_fkey

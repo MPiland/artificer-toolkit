@@ -24,7 +24,7 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0008](0008-ruleset-identity-and-content-binding.md)             | Explicit ruleset identity and active content binding                   | decision   |
 | [0009](0009-vtt-encounter-event-boundary.md)                     | VTT encounter events remain separate from character Sheet history      | decision   |
 | [0010](0010-platform-neutral-design-system.md)                   | Portable semantics with platform-owned presentation adapters           | decision   |
-| [0011](0011-active-authored-content-and-json-drafts.md)          | Canonical active authored content with JSON drafts                     | decision   |
+| [0011](0011-active-authored-content-and-json-drafts.md)          | Canonical active authored content with JSON drafts                     | historical |
 | [0012](0012-private-media-assets-and-domain-owned-references.md) | Private media assets with domain-owned references                      | decision   |
 | [0013](0013-campaign-authority-and-collaboration.md)             | Campaign authority, custody, durable history, and private Realtime     | decision   |
 | [0014](0014-social-projection-and-tokenless-admission.md)        | Separate Social projection and tokenless Campaign admission            | decision   |
@@ -35,6 +35,7 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0019](0019-versioned-cross-domain-rules-runtime.md)             | Versioned embedded evaluator for Character and Encounter mechanics     | decision   |
 | [0020](0020-local-and-remote-live-session-host.md)               | Durable Object remote and native Node local live-session coordination  | decision   |
 | [0021](0021-command-scoped-rules-responsibilities.md)            | Command-scoped rules evaluation and live mechanical snapshots          | decision   |
+| [0022](0022-versioned-domain-documents-and-correctness-projections.md) | Versioned documents and synchronously committed correctness projections | transitional |
 
 ## Updating an ADR
 

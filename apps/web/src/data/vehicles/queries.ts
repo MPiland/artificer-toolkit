@@ -1,4 +1,4 @@
-import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
+import type { Api, AuthoredDetailRequestDto, VehicleListRequestDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
@@ -9,12 +9,12 @@ const vehicleQueries = createAuthoredContentQueries(
   queryKeys.content.vehicles
 )
 
-export function getVehicleList(client?: Api) {
-  return vehicleQueries.getList(client)
+export function getVehicleList(input: VehicleListRequestDto, client?: Api) {
+  return vehicleQueries.getList(input, client)
 }
 
-export function useGetVehicleList() {
-  return vehicleQueries.useList()
+export function useGetVehicleList(input: VehicleListRequestDto) {
+  return vehicleQueries.useList(input)
 }
 
 export function getVehicle(input: DetailInput, client?: Api) {

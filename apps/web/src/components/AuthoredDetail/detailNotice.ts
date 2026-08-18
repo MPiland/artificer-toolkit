@@ -38,7 +38,7 @@ export function buildAuthoredDetailNotice({
     body: canViewActive
       ? isViewingActive
         ? `You are viewing the active ${lowerLabel}. A draft is still available to resume.`
-        : `You are previewing the draft. The active ${lowerLabel} will not change until you activate it.`
+        : `You are previewing the draft. The active ${lowerLabel} remains unchanged until you activate it.`
       : `This ${lowerLabel} has not been activated yet.`,
     action: canViewActive
       ? {

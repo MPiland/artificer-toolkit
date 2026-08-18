@@ -229,8 +229,8 @@ ALTER TABLE IF EXISTS public.character_background ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS public.character_ancestry_acquisitions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid (),
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
-  ancestry_id uuid NOT NULL REFERENCES public.race_ancestries (id) ON DELETE CASCADE DEFERRABLE,
-  option_id uuid NOT NULL REFERENCES public.race_ancestry_options (id) ON DELETE CASCADE DEFERRABLE,
+  ancestry_id uuid NOT NULL,
+  option_id uuid NOT NULL,
   source_kind text NOT NULL,
   race_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
   subrace_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
@@ -282,7 +282,7 @@ CREATE TABLE IF NOT EXISTS public.character_classes (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
   class_id uuid NOT NULL REFERENCES public.classes (id) ON DELETE CASCADE DEFERRABLE,
   subclass_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
-  specialization_id uuid REFERENCES public.class_specializations (id) ON DELETE SET NULL DEFERRABLE,
+  specialization_id uuid,
   class_level integer NOT NULL,
   known_spells_overridden boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT NOW(),
@@ -1018,12 +1018,12 @@ CREATE TABLE IF NOT EXISTS public.character_chosen_grant_selections (
   source_class_level integer,
   race_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
   subrace_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
-  ancestry_id uuid REFERENCES public.race_ancestries (id) ON DELETE SET NULL DEFERRABLE,
-  option_id uuid REFERENCES public.options (id) ON DELETE SET NULL DEFERRABLE,
+  ancestry_id uuid,
+  option_id uuid,
   acquired_parent_id uuid,
   background_id uuid REFERENCES public.backgrounds (id) ON DELETE SET NULL DEFERRABLE,
   feat_id uuid REFERENCES public.feats (id) ON DELETE SET NULL DEFERRABLE,
-  feature_id uuid REFERENCES public.features (id) ON DELETE SET NULL DEFERRABLE,
+  feature_id uuid,
   reason text,
   timing_kind text NOT NULL,
   timing_level integer,
@@ -1132,14 +1132,14 @@ ALTER TABLE IF EXISTS public.character_chosen_grant_selection_targets ENABLE ROW
 CREATE TABLE IF NOT EXISTS public.character_feature_acquisitions (
   id uuid PRIMARY KEY,
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
-  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE,
+  feature_id uuid NOT NULL,
   source_kind text NOT NULL,
   class_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
   subclass_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
   race_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
   subrace_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
-  ancestry_id uuid REFERENCES public.race_ancestries (id) ON DELETE SET NULL DEFERRABLE,
-  option_id uuid REFERENCES public.options (id) ON DELETE SET NULL DEFERRABLE,
+  ancestry_id uuid,
+  option_id uuid,
   acquired_parent_id uuid REFERENCES public.character_feature_acquisitions (id) ON DELETE SET NULL DEFERRABLE,
   background_id uuid REFERENCES public.backgrounds (id) ON DELETE SET NULL DEFERRABLE,
   feat_id uuid REFERENCES public.feats (id) ON DELETE SET NULL DEFERRABLE,
@@ -1285,8 +1285,8 @@ CREATE TABLE IF NOT EXISTS public.character_spell_selections (
   source_kind text NOT NULL,
   class_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
   subclass_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
-  feature_id uuid REFERENCES public.features (id) ON DELETE SET NULL DEFERRABLE,
-  option_id uuid REFERENCES public.options (id) ON DELETE SET NULL DEFERRABLE,
+  feature_id uuid,
+  option_id uuid,
   acquired_parent_id uuid REFERENCES public.character_feature_acquisitions (id) ON DELETE SET NULL DEFERRABLE,
   timing_kind text NOT NULL,
   timing_level integer,
@@ -1366,12 +1366,12 @@ ALTER TABLE IF EXISTS public.character_spell_selection_spells ENABLE ROW LEVEL S
 CREATE TABLE IF NOT EXISTS public.character_resource_grants (
   id text NOT NULL,
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
-  resource_id uuid NOT NULL REFERENCES public.class_resources (id) ON DELETE CASCADE DEFERRABLE,
+  resource_id uuid NOT NULL,
   source_kind text NOT NULL,
   class_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
   subclass_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
-  feature_id uuid REFERENCES public.features (id) ON DELETE SET NULL DEFERRABLE,
-  option_id uuid REFERENCES public.options (id) ON DELETE SET NULL DEFERRABLE,
+  feature_id uuid,
+  option_id uuid,
   acquired_parent_id uuid REFERENCES public.character_feature_acquisitions (id) ON DELETE SET NULL DEFERRABLE,
   timing_kind text NOT NULL,
   timing_level integer,
@@ -1678,7 +1678,7 @@ ALTER TABLE IF EXISTS public.character_abilities_standard_array ENABLE ROW LEVEL
 -- Class starting equipment selections per character
 CREATE TABLE IF NOT EXISTS public.character_class_equipment_session (
   character_id uuid PRIMARY KEY REFERENCES public.characters (id) ON DELETE CASCADE,
-  option uuid REFERENCES public.starting_equipment_options (id) ON DELETE SET NULL,
+  option uuid,
   gold_option text,
   total_gold int,
   applied boolean,
@@ -1712,8 +1712,8 @@ ALTER TABLE IF EXISTS public.character_class_equipment_session ENABLE ROW LEVEL 
 
 CREATE TABLE IF NOT EXISTS public.character_class_equipment_groups (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE,
-  group_id uuid NOT NULL REFERENCES public.starting_equipment_groups (id) ON DELETE CASCADE,
-  option_id uuid NOT NULL REFERENCES public.starting_equipment_options (id) ON DELETE CASCADE,
+  group_id uuid NOT NULL,
+  option_id uuid NOT NULL,
   PRIMARY KEY (character_id, group_id)
 );
 
@@ -1741,8 +1741,8 @@ ALTER TABLE IF EXISTS public.character_class_equipment_groups ENABLE ROW LEVEL S
 
 CREATE TABLE IF NOT EXISTS public.character_class_equipment_items (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE,
-  group_id uuid NOT NULL REFERENCES public.starting_equipment_groups (id) ON DELETE CASCADE,
-  selection_item_id uuid REFERENCES public.starting_equipment_option_items (id) ON DELETE SET NULL,
+  group_id uuid NOT NULL,
+  selection_item_id uuid,
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE,
   quantity int NOT NULL DEFAULT 1,
   PRIMARY KEY (character_id, group_id, equipment_id),
@@ -1803,8 +1803,8 @@ ALTER TABLE IF EXISTS public.character_background_equipment_session ENABLE ROW L
 
 CREATE TABLE IF NOT EXISTS public.character_background_equipment_groups (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE,
-  group_id uuid NOT NULL REFERENCES public.starting_equipment_groups (id) ON DELETE CASCADE,
-  option_id uuid NOT NULL REFERENCES public.starting_equipment_options (id) ON DELETE CASCADE,
+  group_id uuid NOT NULL,
+  option_id uuid NOT NULL,
   PRIMARY KEY (character_id, group_id)
 );
 
@@ -1832,8 +1832,8 @@ ALTER TABLE IF EXISTS public.character_background_equipment_groups ENABLE ROW LE
 
 CREATE TABLE IF NOT EXISTS public.character_background_equipment_items (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE,
-  group_id uuid NOT NULL REFERENCES public.starting_equipment_groups (id) ON DELETE CASCADE,
-  selection_item_id uuid REFERENCES public.starting_equipment_option_items (id) ON DELETE SET NULL,
+  group_id uuid NOT NULL,
+  selection_item_id uuid,
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE,
   quantity int NOT NULL DEFAULT 1,
   PRIMARY KEY (character_id, group_id, equipment_id),

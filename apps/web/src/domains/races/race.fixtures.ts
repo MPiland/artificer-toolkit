@@ -138,7 +138,9 @@ export const raceListResponseFixture: RaceListResponseDto = {
     }
   ],
   drafts: [],
-  meta: {}
+  meta: {},
+  page: { nextCursor: null, previousCursor: null, totalCount: 3 },
+  summary: { activeCount: 3, masterCount: 2, ownedCount: 1 }
 }
 
 export const ownedBaseRaceResponseFixture: NonNullable<RaceResponseDto> = {

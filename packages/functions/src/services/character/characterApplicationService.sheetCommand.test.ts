@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   resolveBuilder: vi.fn(),
   resolveRuleBinding: vi.fn(),
   buildSheetBundle: vi.fn(),
+  assembleSheetBundle: vi.fn(),
   resolveContext: vi.fn(),
   buildPanel: vi.fn(),
   resolveByPublicIdForUser: vi.fn()
@@ -72,6 +73,10 @@ vi.mock('./sheetProjection.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./sheetProjection.js')>()
   return { ...actual, buildCharacterSheetBundle: mocks.buildSheetBundle }
 })
+
+vi.mock('./characterSheetBundleAssembly.js', () => ({
+  assembleCharacterSheetBundleForRuleContext: mocks.assembleSheetBundle
+}))
 
 vi.mock('./characterRuleBinding.js', () => ({
   resolveCharacterRuleBinding: mocks.resolveRuleBinding
@@ -126,6 +131,7 @@ describe('dispatchCommandForUser', () => {
     mocks.resolveBuilder.mockReset()
     mocks.resolveRuleBinding.mockReset()
     mocks.buildSheetBundle.mockReset()
+    mocks.assembleSheetBundle.mockReset()
     mocks.resolveContext.mockReset()
     mocks.buildPanel.mockReset()
     mocks.resolveByPublicIdForUser.mockReset()
@@ -157,6 +163,26 @@ describe('dispatchCommandForUser', () => {
       sheet: { meta: {} },
       ruleProjection: { characterId: '00000000-0000-4000-8000-000000000001' },
       ruleEvaluation: { evaluation: { revisionId: 'revision-1' } }
+    })
+    mocks.assembleSheetBundle.mockResolvedValue({
+      bundle: {
+        sheet: { meta: {} },
+        ruleProjection: { characterId: '00000000-0000-4000-8000-000000000001' },
+        ruleEvaluation: {
+          binding: {
+            revisionId: 'revision-1',
+            checksum: 'current-checksum',
+            evaluatorKind: 'ZEN',
+            evaluatorVersion: '0.54.0',
+            modelContractVersion: 4
+          },
+          context: { catalog: {}, registry: {} },
+          snapshot: { characterId: '00000000-0000-4000-8000-000000000001' }
+        }
+      },
+      resolution: {},
+      characterAdjustments: [],
+      movementDisplayPreference: { mode: 'AUTO' }
     })
     mocks.resolveContext.mockResolvedValue({
       viewer: 'CHARACTER_OWNER',
@@ -204,7 +230,8 @@ describe('dispatchCommandForUser', () => {
       characterId: canonicalCharacterId,
       command,
       panelTargets: [],
-      userId: 'user-1'
+      userId: 'user-1',
+      committedRuleSnapshot: expect.objectContaining({ streamVersion: 3 })
     })
     expect(result.sheet).toMatchObject({
       publicId: 'aria-sheet',
@@ -239,6 +266,12 @@ describe('dispatchCommandForUser', () => {
       expectedVersion: 2,
       commandId: '00000000-0000-4000-8000-000000000005'
     } satisfies CharacterSheetCommandInputDto
+    const ruleUpgrade = {
+      type: 'UPGRADE_RULE_PACK',
+      revisionId: '00000000-0000-4000-8000-000000000202',
+      expectedVersion: 2,
+      commandId: '00000000-0000-4000-8000-000000000006'
+    } satisfies CharacterSheetCommandInputDto
 
     const knownResult = await dispatchCommandForUser(db, 'aria-sheet', knownSpells, 'user-1')
     expect(knownResult.panels).toEqual([{ kind: 'SPELLS' }])
@@ -251,37 +284,37 @@ describe('dispatchCommandForUser', () => {
     expect(mocks.executeCharacterSheetCommand).toHaveBeenLastCalledWith(
       expect.objectContaining({ panelTargets: [] })
     )
+
+    await dispatchCommandForUser(db, 'aria-sheet', ruleUpgrade, 'user-1')
+    expect(mocks.executeCharacterSheetCommand).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        committedRuleSnapshot: expect.objectContaining({ streamVersion: 3 })
+      })
+    )
   })
 
-  it('builds Sheet and panel projections from one exact pinned rule evaluation', async () => {
+  it('builds Sheet and panels from the committed exact-source bundle', async () => {
     const db = {} as DBLike
     const characterId = '00000000-0000-4000-8000-000000000001'
 
     await getCharacterSheetForUser(db, characterId, 'user-1')
-    expect(mocks.loadBuilderContext).toHaveBeenCalledWith(db, expect.anything(), [], {
-      includeEffects: true
-    })
-    expect(mocks.resolveBuilder).toHaveBeenCalledWith(
-      db,
-      expect.anything(),
-      'edit',
-      expect.objectContaining({ catalog: {}, registry: {} }),
-      null,
-      'revision-1'
-    )
-    expect(mocks.buildSheetBundle).toHaveBeenLastCalledWith(
+    expect(mocks.assembleSheetBundle).toHaveBeenCalledWith(
       expect.objectContaining({
-        ruleEvaluation: {
-          context: expect.objectContaining({ catalog: {}, registry: {} }),
-          revisionId: 'revision-1',
+        db,
+        revisionId: 'revision-1',
+        ruleContext: {
+          adjustments: [],
+          additionalConditions: [],
           attunementSlotOverride: 4
         }
       })
     )
+    expect(mocks.loadBuilderContext).not.toHaveBeenCalled()
+    expect(mocks.resolveBuilder).not.toHaveBeenCalled()
 
-    mocks.buildSheetBundle.mockClear()
+    mocks.assembleSheetBundle.mockClear()
     await getCharacterSheetPanelForUser(db, characterId, { kind: 'SPELLS' }, 'user-1')
-    expect(mocks.buildSheetBundle).toHaveBeenCalledTimes(1)
+    expect(mocks.assembleSheetBundle).toHaveBeenCalledTimes(1)
     expect(mocks.buildPanel).toHaveBeenLastCalledWith(
       expect.objectContaining({
         ruleProjection: expect.objectContaining({ characterId }),
@@ -308,6 +341,26 @@ describe('dispatchCommandForUser', () => {
       stream_version: 3,
       rule_pack_revision_id: '00000000-0000-4000-8000-000000000201'
     })
+    mocks.assembleSheetBundle.mockResolvedValue({
+      bundle: {
+        sheet: { meta: {} },
+        ruleProjection: { characterId },
+        ruleEvaluation: {
+          binding: {
+            revisionId: '00000000-0000-4000-8000-000000000201',
+            checksum: 'current-checksum',
+            evaluatorKind: 'ZEN',
+            evaluatorVersion: '0.54.0',
+            modelContractVersion: 4
+          },
+          context: { catalog: {}, registry: {} },
+          snapshot: { characterId }
+        }
+      },
+      resolution: {},
+      characterAdjustments: [],
+      movementDisplayPreference: { mode: 'AUTO' }
+    })
 
     const preview = await previewCharacterRuleUpgradeForUser(
       {} as DBLike,
@@ -330,5 +383,7 @@ describe('dispatchCommandForUser', () => {
         })
       })
     )
+    expect(mocks.loadBuilderContext).not.toHaveBeenCalled()
+    expect(mocks.resolveBuilder).not.toHaveBeenCalled()
   })
 })

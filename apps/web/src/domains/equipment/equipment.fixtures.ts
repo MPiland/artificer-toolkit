@@ -131,7 +131,9 @@ export const equipmentListResponseFixture: EquipmentListResponseDto = {
     }
   ],
   drafts: [],
-  meta: {}
+  meta: { categories: [{ id: 'ADVENTURING_GEAR' }, { id: 'VARIANT' }] },
+  page: { nextCursor: null, previousCursor: null, totalCount: 2 },
+  summary: { activeCount: 2, masterCount: 1, ownedCount: 1 }
 }
 
 export const ownedEquipmentResponseFixture: NonNullable<EquipmentResponseDto> = {

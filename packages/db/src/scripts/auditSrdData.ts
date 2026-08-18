@@ -5,6 +5,7 @@ import { isDeepStrictEqual } from 'node:util'
 import { sql } from 'kysely'
 import type { ZodType } from 'zod'
 
+import { type AuthoredSubjectKind } from '@artificer-toolkit/schema/projections/identity'
 import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/background'
 import { classAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/class'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
@@ -21,21 +22,15 @@ import {
   compileFeat,
   compileRace,
   compileSpell,
-  compileVehicle
-} from '@artificer-toolkit/shared/compilers'
+  compileVehicle,
+  resolveEquipmentAuthored,
+  resolveRaceAuthored
+} from '@artificer-toolkit/shared/subjects/compilers'
+import type { EquipmentAuthored, RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import { createDb } from '../client.js'
 import type { DBLike } from '../types/index.js'
-import {
-  createBackgroundRepository,
-  createClassRepository,
-  createCreatureRepository,
-  createEquipmentRepository,
-  createFeatRepository,
-  createRaceRepository,
-  createSpellRepository,
-  createVehicleRepository
-} from '../repositories/index.js'
+import { createAuthoredVersionRepository } from '../repositories/index.js'
 import { assignBaselineContentOwner } from '../source-data/content.js'
 import { SRD_SYSTEM_ID, srdBaselineContent } from '../source-data/srd/index.js'
 type Db = DBLike
@@ -45,34 +40,6 @@ interface InactiveMasterRow {
   id: string
   label: string
   status: string
-}
-
-interface OrphanFeatureLink {
-  bridge: string
-  subjectId: string
-  subjectLabel: string
-  featureId: string
-}
-
-interface FixedDamageSubject {
-  subjectKind: 'creature' | 'equipment'
-  id: string
-  label: string
-}
-
-interface HydrationFailure {
-  subjectKind: FixedDamageSubject['subjectKind']
-  id: string
-  label: string
-  error: string
-}
-
-interface InvalidNumericValue {
-  subjectKind: FixedDamageSubject['subjectKind']
-  id: string
-  label: string
-  path: string
-  value: unknown
 }
 
 interface RootCorpusIssue {
@@ -91,10 +58,11 @@ interface RootAuditRecord {
 interface RootDomainCase {
   domain: string
   table: (typeof subjectTables)[number]
+  subjectKind: AuthoredSubjectKind
   records: readonly RootAuditRecord[]
   schema: ZodType<unknown>
-  findById: (id: string) => Promise<unknown>
   compile: (id: string) => unknown
+  parentSubjectId?: (id: string) => string | null
 }
 
 const subjectTables = [
@@ -108,22 +76,8 @@ const subjectTables = [
   'vehicles'
 ] as const
 
-const subjectFeatureBridges = [
-  { bridge: 'background_features', subjectTable: 'backgrounds', subjectColumn: 'background_id' },
-  { bridge: 'class_features', subjectTable: 'classes', subjectColumn: 'class_id' },
-  { bridge: 'creature_features', subjectTable: 'creatures', subjectColumn: 'creature_id' },
-  { bridge: 'equipment_features', subjectTable: 'equipment', subjectColumn: 'equipment_id' },
-  { bridge: 'feat_features', subjectTable: 'feats', subjectColumn: 'feat_id' },
-  { bridge: 'race_features', subjectTable: 'races', subjectColumn: 'race_id' },
-  { bridge: 'vehicle_features', subjectTable: 'vehicles', subjectColumn: 'vehicle_id' }
-] as const
-
 function tableRef(tableName: string) {
   return sql.raw(`public.${tableName}`)
-}
-
-function columnRef(columnName: string) {
-  return sql.raw(columnName)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -169,64 +123,6 @@ function listDifferencePaths(expected: unknown, actual: unknown): string[] {
   return differences
 }
 
-function collectInvalidNumber(
-  value: Record<string, unknown>,
-  key: string,
-  path: string,
-  invalidValues: InvalidNumericValue[],
-  subject: FixedDamageSubject
-) {
-  const entry = value[key]
-  if (entry !== undefined && typeof entry !== 'number') {
-    invalidValues.push({
-      ...subject,
-      path: `${path}.${key}`,
-      value: entry
-    })
-  }
-}
-
-function collectInvalidHydratedNumerics(
-  value: unknown,
-  path: string,
-  invalidValues: InvalidNumericValue[],
-  subject: FixedDamageSubject
-) {
-  if (Array.isArray(value)) {
-    value.forEach((item, index) => {
-      collectInvalidHydratedNumerics(item, `${path}[${index}]`, invalidValues, subject)
-    })
-
-    return
-  }
-
-  if (!isRecord(value)) {
-    return
-  }
-
-  if (
-    value.effectKind === 'DAMAGE' ||
-    value.bonusKind ||
-    value.rangeKind === 'DISTANCE' ||
-    value.durationKind
-  ) {
-    for (const key of ['amount', 'multiplier', 'min', 'max']) {
-      collectInvalidNumber(value, key, path, invalidValues, subject)
-    }
-  }
-
-  for (const key of ['edgeLength', 'height', 'length', 'radius', 'thickness']) {
-    const dimension = value[key]
-    if (isRecord(dimension)) {
-      collectInvalidNumber(dimension, 'amount', `${path}.${key}`, invalidValues, subject)
-    }
-  }
-
-  for (const [key, entry] of Object.entries(value)) {
-    collectInvalidHydratedNumerics(entry, path ? `${path}.${key}` : key, invalidValues, subject)
-  }
-}
-
 async function listInactiveMasterRows(db: Db): Promise<InactiveMasterRow[]> {
   const rows: InactiveMasterRow[] = []
 
@@ -249,133 +145,6 @@ async function listInactiveMasterRows(db: Db): Promise<InactiveMasterRow[]> {
   return rows
 }
 
-async function listOrphanFeatureLinks(db: Db): Promise<OrphanFeatureLink[]> {
-  const rows: OrphanFeatureLink[] = []
-
-  for (const config of subjectFeatureBridges) {
-    const result = await sql<OrphanFeatureLink>`
-      select
-        ${config.bridge} as bridge,
-        subject.id::text as "subjectId",
-        subject.label as "subjectLabel",
-        link.feature_id::text as "featureId"
-      from ${tableRef(config.bridge)} link
-      join ${tableRef(config.subjectTable)} subject
-        on subject.id = link.${columnRef(config.subjectColumn)}
-      left join public.features feature
-        on feature.id = link.feature_id
-      where feature.id is null
-      order by subject.label, link.feature_id
-    `.execute(db)
-
-    rows.push(...result.rows)
-  }
-
-  const ancestryOptionResult = await sql<OrphanFeatureLink>`
-    select
-      'race_ancestry_option_features' as bridge,
-      option.id::text as "subjectId",
-      race.label || ' / ' || option.label as "subjectLabel",
-      link.feature_id::text as "featureId"
-    from public.race_ancestry_option_features link
-    join public.race_ancestry_options option
-      on option.id = link.ancestry_option_id
-    join public.race_ancestries ancestry
-      on ancestry.id = option.ancestry_id
-    join public.races race
-      on race.id = ancestry.race_id
-    left join public.features feature
-      on feature.id = link.feature_id
-    where feature.id is null
-    order by race.label, option.label, link.feature_id
-  `.execute(db)
-
-  rows.push(...ancestryOptionResult.rows)
-  return rows
-}
-
-async function listFixedDamageSubjects(db: Db): Promise<FixedDamageSubject[]> {
-  const result = await sql<FixedDamageSubject>`
-    select distinct
-      'equipment' as "subjectKind",
-      equipment.id::text as id,
-      equipment.label
-    from public.damages damage
-    join public.damage_values value
-      on value.damage_id = damage.id
-    join public.effect_result_block_outcomes outcome
-      on outcome.outcome_id = damage.id
-    join public.effect_result_blocks result_block
-      on result_block.id = outcome.result_block_id
-    join public.effect_paths path
-      on path.result_block_id = result_block.id
-    join public.equipment_effects equipment_effect
-      on equipment_effect.effect_id = path.effect_id
-    join public.equipment equipment
-      on equipment.id = equipment_effect.equipment_id
-    where damage.value_kind = 'FIXED'
-      and damage.scaling_kind = 'NONE'
-      and value.amount is not null
-
-    union
-
-    select distinct
-      'creature' as "subjectKind",
-      creature.id::text as id,
-      creature.label
-    from public.damages damage
-    join public.damage_values value
-      on value.damage_id = damage.id
-    join public.effect_result_block_outcomes outcome
-      on outcome.outcome_id = damage.id
-    join public.effect_result_blocks result_block
-      on result_block.id = outcome.result_block_id
-    join public.effect_paths path
-      on path.result_block_id = result_block.id
-    join public.feature_effects feature_effect
-      on feature_effect.effect_id = path.effect_id
-    join public.creature_features creature_feature
-      on creature_feature.feature_id = feature_effect.feature_id
-    join public.creatures creature
-      on creature.id = creature_feature.creature_id
-    where damage.value_kind = 'FIXED'
-      and damage.scaling_kind = 'NONE'
-      and value.amount is not null
-
-    order by "subjectKind", label
-  `.execute(db)
-
-  return result.rows
-}
-
-async function auditFixedDamageHydration(db: Db) {
-  const equipmentRepository = createEquipmentRepository(db)
-  const creatureRepository = createCreatureRepository(db)
-  const hydrationFailures: HydrationFailure[] = []
-  const invalidNumericValues: InvalidNumericValue[] = []
-
-  for (const subject of await listFixedDamageSubjects(db)) {
-    try {
-      const record =
-        subject.subjectKind === 'equipment'
-          ? await equipmentRepository.findById(subject.id)
-          : await creatureRepository.findById(subject.id)
-
-      collectInvalidHydratedNumerics(record, subject.subjectKind, invalidNumericValues, subject)
-    } catch (error) {
-      hydrationFailures.push({
-        ...subject,
-        error: error instanceof Error ? error.message : String(error)
-      })
-    }
-  }
-
-  return {
-    hydrationFailures,
-    invalidNumericValues
-  }
-}
-
 async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
   const systemResult = await sql<{ user_id: string | null }>`
     select user_id::text
@@ -396,81 +165,99 @@ async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
   }
 
   const bundle = assignBaselineContentOwner(srdBaselineContent, ownerUserId)
-  const backgroundRepository = createBackgroundRepository(db)
-  const classRepository = createClassRepository(db)
-  const creatureRepository = createCreatureRepository(db)
-  const equipmentRepository = createEquipmentRepository(db)
-  const featRepository = createFeatRepository(db)
-  const raceRepository = createRaceRepository(db)
-  const spellRepository = createSpellRepository(db)
-  const vehicleRepository = createVehicleRepository(db)
+  const authoredVersionRepository = createAuthoredVersionRepository(db)
+  const equipmentById = new Map(
+    bundle.subjects.equipment.map(
+      (record) => [record.id, equipmentAuthoredDtoSchema.parse(record) as EquipmentAuthored] as const
+    )
+  )
+  const raceById = new Map(
+    bundle.subjects.races.map(
+      (record) =>
+        [record.id, raceAuthoredDtoSchema.parse(record) as unknown as RaceAuthored] as const
+    )
+  )
   const cases: RootDomainCase[] = [
     {
       domain: 'backgrounds',
       table: 'backgrounds',
+      subjectKind: 'BACKGROUND',
       records: bundle.subjects.backgrounds,
       schema: backgroundAuthoredDtoSchema,
-      findById: (id) => backgroundRepository.findById(id),
       compile: (id) => compileBackground(requireRootRecord(bundle.subjects.backgrounds, id))
     },
     {
       domain: 'classes',
       table: 'classes',
+      subjectKind: 'CLASS',
       records: bundle.subjects.classes,
       schema: classAuthoredDtoSchema,
-      findById: (id) => classRepository.findById(id),
       compile: (id) => compileClass(requireRootRecord(bundle.subjects.classes, id))
     },
     {
       domain: 'creatures',
       table: 'creatures',
+      subjectKind: 'CREATURE',
       records: bundle.subjects.creatures,
       schema: creatureAuthoredDtoSchema,
-      findById: (id) => creatureRepository.findById(id),
       compile: (id) => compileCreature(requireRootRecord(bundle.subjects.creatures, id))
     },
     {
       domain: 'equipment',
       table: 'equipment',
+      subjectKind: 'EQUIPMENT',
       records: bundle.subjects.equipment,
       schema: equipmentAuthoredDtoSchema,
-      findById: (id) => equipmentRepository.findById(id),
-      compile: (id) => compileEquipment(requireRootRecord(bundle.subjects.equipment, id))
+      compile: (id) => {
+        const equipment = equipmentById.get(id)
+        if (!equipment) throw new Error(`Source equipment "${id}" was not found.`)
+        return compileEquipment(
+          resolveEquipmentAuthored(equipment, (parentId) => equipmentById.get(parentId) ?? null)
+        )
+      },
+      parentSubjectId: (id) => {
+        const equipment = equipmentById.get(id)
+        return equipment?.category === 'VARIANT' ? equipment.parentEquipmentId : null
+      }
     },
     {
       domain: 'feats',
       table: 'feats',
+      subjectKind: 'FEAT',
       records: bundle.subjects.feats,
       schema: featAuthoredDtoSchema,
-      findById: (id) => featRepository.findById(id),
       compile: (id) => compileFeat(requireRootRecord(bundle.subjects.feats, id))
     },
     {
       domain: 'races',
       table: 'races',
+      subjectKind: 'RACE',
       records: bundle.subjects.races,
       schema: raceAuthoredDtoSchema,
-      findById: (id) => raceRepository.findById(id),
-      compile: async (id) => {
-        const resolved = await raceRepository.findResolvedById(id)
-        if (!resolved) throw new Error('resolved race was not found')
-        return compileRace(resolved)
+      compile: (id) => {
+        const race = raceById.get(id)
+        if (!race) throw new Error(`Source race "${id}" was not found.`)
+        return compileRace(resolveRaceAuthored(race, (parentId) => raceById.get(parentId) ?? null))
+      },
+      parentSubjectId: (id) => {
+        const race = raceById.get(id)
+        return race?.category === 'SUBRACE' ? race.parentRaceId : null
       }
     },
     {
       domain: 'spells',
       table: 'spells',
+      subjectKind: 'SPELL',
       records: bundle.subjects.spells,
       schema: spellAuthoredDtoSchema,
-      findById: (id) => spellRepository.findById(id),
       compile: (id) => compileSpell(requireRootRecord(bundle.subjects.spells, id))
     },
     {
       domain: 'vehicles',
       table: 'vehicles',
+      subjectKind: 'VEHICLE',
       records: bundle.subjects.vehicles,
       schema: vehicleAuthoredDtoSchema,
-      findById: (id) => vehicleRepository.findById(id),
       compile: (id) => compileVehicle(requireRootRecord(bundle.subjects.vehicles, id))
     }
   ]
@@ -510,23 +297,23 @@ async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
   const issues: RootCorpusIssue[] = []
 
   for (const domainCase of cases) {
-    const projectionResult = await sql<{ id: string }>`
+    const rootEnvelopeResult = await sql<{ id: string }>`
       select id::text
       from ${tableRef(domainCase.table)}
       where system_id = ${SRD_SYSTEM_ID}::uuid
         and is_master is true
     `.execute(db)
-    const projectionIds = new Set(projectionResult.rows.map((row) => row.id))
+    const rootEnvelopeIds = new Set(rootEnvelopeResult.rows.map((row) => row.id))
     const expectedIds = new Set(domainCase.records.map((record) => record.id))
 
-    for (const unexpectedId of projectionIds) {
+    for (const unexpectedId of rootEnvelopeIds) {
       if (expectedIds.has(unexpectedId)) continue
 
       issues.push({
         domain: domainCase.domain,
         id: unexpectedId,
-        label: '<unexpected master projection>',
-        issue: 'projection is absent from the SRD source corpus'
+        label: '<unexpected master root envelope>',
+        issue: 'root envelope is absent from the SRD source corpus'
       })
     }
 
@@ -534,39 +321,95 @@ async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
       const batch = domainCase.records.slice(offset, offset + 5)
       await Promise.all(
         batch.map(async (record) => {
-          if (!projectionIds.has(record.id)) {
+          if (!rootEnvelopeIds.has(record.id)) {
             issues.push({
               domain: domainCase.domain,
               id: record.id,
               label: record.label,
-              issue: 'missing master projection'
+              issue: 'missing master root envelope'
             })
             return
           }
 
           try {
-            const hydrated = await domainCase.findById(record.id)
-            const parsed = domainCase.schema.safeParse(hydrated)
+            const activeVersions = await authoredVersionRepository.findActiveByIds({
+              subjectIds: [record.id],
+              subjectKind: domainCase.subjectKind,
+              systemId: SRD_SYSTEM_ID,
+              userId: ownerUserId,
+              includeMaster: true
+            })
+            const active = activeVersions.get(record.id)
+            if (!active) {
+              issues.push({
+                domain: domainCase.domain,
+                id: record.id,
+                label: record.label,
+                issue: 'missing active immutable version'
+              })
+              return
+            }
+
+            const parsed = domainCase.schema.safeParse(active.authored.document)
             if (!parsed.success) {
               issues.push({
                 domain: domainCase.domain,
                 id: record.id,
                 label: record.label,
-                issue: `hydrated projection violates schema: ${parsed.error.issues.map((entry) => entry.message).join('; ')}`
+                issue: `active authored document violates schema: ${parsed.error.issues.map((entry) => entry.message).join('; ')}`
               })
             } else {
-              if (!isDeepStrictEqual(canonicalize(hydrated), canonicalize(record))) {
+              if (!isDeepStrictEqual(canonicalize(active.authored.document), canonicalize(record))) {
                 issues.push({
                   domain: domainCase.domain,
                   id: record.id,
                   label: record.label,
-                  issue: 'hydrated projection differs from source payload',
-                  paths: listDifferencePaths(record, hydrated)
+                  issue: 'active authored document differs from source payload',
+                  paths: listDifferencePaths(record, active.authored.document)
                 })
               }
 
+              const parentSubjectId = domainCase.parentSubjectId?.(record.id)
+              if (parentSubjectId) {
+                const parent = await authoredVersionRepository.findActive({
+                  subjectKind: domainCase.subjectKind,
+                  subjectId: parentSubjectId
+                })
+                const [dependency] = active.compiled.authoredDependencies
+                const dependencyMatches =
+                  active.compiled.authoredDependencies.length === 1 &&
+                  parent !== null &&
+                  dependency?.subjectKind === parent.authored.subjectKind &&
+                  dependency.subjectId === parent.authored.subjectId &&
+                  dependency.versionId === parent.authored.versionId &&
+                  dependency.version === parent.authored.version &&
+                  dependency.checksum === parent.authored.checksum
+                if (!dependencyMatches) {
+                  issues.push({
+                    domain: domainCase.domain,
+                    id: record.id,
+                    label: record.label,
+                    issue: 'compiled projection does not pin the active source parent version'
+                  })
+                }
+              }
+
               try {
-                await domainCase.compile(record.id)
+                const rebuiltProjection = await domainCase.compile(record.id)
+                if (
+                  !isDeepStrictEqual(
+                    canonicalize(active.compiled.projection),
+                    canonicalize(rebuiltProjection)
+                  )
+                ) {
+                  issues.push({
+                    domain: domainCase.domain,
+                    id: record.id,
+                    label: record.label,
+                    issue: 'compiled projection differs from deterministic source rebuild',
+                    paths: listDifferencePaths(rebuiltProjection, active.compiled.projection)
+                  })
+                }
               } catch (error) {
                 issues.push({
                   domain: domainCase.domain,
@@ -581,7 +424,7 @@ async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
               domain: domainCase.domain,
               id: record.id,
               label: record.label,
-              issue: `hydration failed: ${error instanceof Error ? error.message : String(error)}`
+              issue: `versioned projection read failed: ${error instanceof Error ? error.message : String(error)}`
             })
           }
 
@@ -744,24 +587,14 @@ function auditSourceSemantics(): RootCorpusIssue[] {
 }
 
 export async function auditSrdData(db: Db) {
-  const [
-    inactiveMasterRows,
-    orphanFeatureLinks,
-    fixedDamageHydration,
-    rootCorpus,
-    sourceSemantics
-  ] = await Promise.all([
+  const [inactiveMasterRows, rootCorpus, sourceSemantics] = await Promise.all([
     listInactiveMasterRows(db),
-    listOrphanFeatureLinks(db),
-    auditFixedDamageHydration(db),
     auditRootCorpus(db),
     Promise.resolve(auditSourceSemantics())
   ])
 
   return {
     inactiveMasterRows,
-    orphanFeatureLinks,
-    fixedDamageHydration,
     rootCorpus,
     sourceSemantics
   }
@@ -770,9 +603,6 @@ export async function auditSrdData(db: Db) {
 export function hasSrdAuditIssues(summary: Awaited<ReturnType<typeof auditSrdData>>): boolean {
   return (
     summary.inactiveMasterRows.length > 0 ||
-    summary.orphanFeatureLinks.length > 0 ||
-    summary.fixedDamageHydration.hydrationFailures.length > 0 ||
-    summary.fixedDamageHydration.invalidNumericValues.length > 0 ||
     summary.rootCorpus.length > 0 ||
     summary.sourceSemantics.length > 0
   )

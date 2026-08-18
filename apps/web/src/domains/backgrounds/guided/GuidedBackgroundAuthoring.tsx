@@ -8,6 +8,7 @@ import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared/star
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
 import { withForm } from '#forms/app-form/AppForm'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
@@ -200,9 +201,14 @@ function StartingGearEditor({
   onChange: (next: StartingEquipmentDto) => void
 }) {
   const equipmentOptions = useQuery({
-    queryFn: () => api.content.equipment.list(),
+    queryFn: () =>
+      loadPagedAuthoredCatalogItems(api.content.equipment.list, {
+        direction: 'FORWARD',
+        limit: 48,
+        sort: 'name'
+      }),
     queryKey: queryKeys.content.equipment.list(),
-    select: (response) => response.items.map((entry) => ({ label: entry.label, value: entry.id }))
+    select: (items) => items.map((entry) => ({ label: entry.label, value: entry.id }))
   })
   const items = getStartingEquipmentItems(equipment)
   const item = items.find(isGuidedStartingEquipmentItem) ?? createGuidedStartingEquipmentItem(1)

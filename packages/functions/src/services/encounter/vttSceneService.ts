@@ -22,7 +22,6 @@ import {
   canMoveBetween,
   deriveSceneExplorationPatch,
   deriveSceneTokenPathExplorationPatch,
-  replaySceneEvents,
   sceneTokenIdsAffectedByBarriers,
   materializeEncounterScene,
   projectSceneForViewer,
@@ -32,6 +31,7 @@ import {
   type EncounterSceneState,
   type SceneAtomicDelta,
   type SceneDelta,
+  type SceneDefinition,
   type SceneEvent
 } from '@artificer-toolkit/shared/vtt'
 
@@ -51,6 +51,10 @@ import {
   EncounterNotFoundError,
   EncounterValidationError
 } from './encounterErrors.js'
+import {
+  compileSceneCurrentProjection,
+  replayEncounterSceneProjection
+} from './sceneProjectionReplay.js'
 
 interface LiveSceneOptions {
   sceneVisionContext?: LiveSessionSceneVisionContextDto
@@ -106,7 +110,7 @@ function atomicDeltas(delta: SceneDelta): readonly SceneAtomicDelta[] {
 
 function createUndoLastMoveDelta(
   state: EncounterSceneState,
-  definition: Parameters<typeof replaySceneEvents>[0],
+  definition: SceneDefinition,
   history: readonly { commandType: string; event: SceneEvent }[]
 ): SceneDelta {
   const undoneCommandIds = new Set(
@@ -145,12 +149,12 @@ function createUndoLastMoveDelta(
   if (laterConflict) {
     throw new EncounterConflictError('The latest token move can no longer be safely undone.')
   }
-  const prior = replaySceneEvents(
+  const prior = replayEncounterSceneProjection({
     definition,
-    state.encounterId,
-    state.id,
-    history.slice(0, targetIndex).map(({ event }) => event)
-  )
+    encounterId: state.encounterId,
+    events: history.slice(0, targetIndex).map(({ event }) => event),
+    sceneId: state.id
+  })
   const priorToken = prior.tokens.find((token) => token.id === movement.tokenId)
   if (!priorToken) {
     throw new EncounterValidationError('The moved token did not exist before that move.')
@@ -497,7 +501,7 @@ export async function attachEncounterScene(
       attachCommandFingerprint: commandFingerprint,
       attachCommandId: input.commandId,
       definitionSnapshot: definition.definition,
-      state
+      projection: compileSceneCurrentProjection(state)
     })
     return { replayed: false, scene: created.state }
   })
@@ -633,7 +637,12 @@ export async function executeEncounterSceneCommandWithState(
       event,
       id: randomUUID()
     })
-    if (!(await repository.updateProjection(nextState, scene.state.version))) {
+    if (
+      !(await repository.updateProjection({
+        expectedVersion: scene.state.version,
+        projection: compileSceneCurrentProjection(nextState)
+      }))
+    ) {
       throw new EncounterConflictError('Scene changed before this command completed.')
     }
     return {

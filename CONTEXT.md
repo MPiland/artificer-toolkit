@@ -68,9 +68,9 @@ The active authored roots are Background, Class, Creature, Equipment, Feat, Race
 
 A complete JSON payload for a new authored root or an edit of an active root. A user may own many new-item drafts, while an active root has at most one edit draft. An edit draft records the active root timestamp on which editing began so activation can reject stale replacements.
 
-### Active authored aggregate
+### Active authored root
 
-The canonical normalized root, feature, grant, effect, and link rows hydrated by repositories. Activation validates a draft, replaces the aggregate, and removes the draft in one transaction.
+A relational envelope for ownership, routing, search, constrained cross-root references, and the active immutable document version. Activation validates a complete authored document, allocates its immutable version, compiles its operational projection, advances the active pointer, and removes the draft in one transaction. During the reset cutover, normalized root/child rows remain a transitional authoring-write implementation; operational and finalized-mechanics reads use the immutable version document and compiled projection rather than child-table hydration.
 
 ### Compiled object
 
@@ -139,7 +139,7 @@ The engine-facing snapshot assembled from authored character intent/state and co
 
 ### Content reference
 
-A stable authored root ID plus a binding policy. Current structural character selections store stable root IDs and resolve them against `ACTIVE` content. Equipment inputs additionally carry an explicit `ContentRef` with system ID and `ACTIVE` binding. Historical authored-content revision pinning is unsupported because authored revision history is not retained. A Character rule-revision pin is separate from content binding.
+A stable authored root ID plus a binding policy. Draft Builder selections resolve the current active immutable version. A finalized Character mechanics projection records the exact complete authored-version vector used by its rule evaluation, including transitive dependencies; activation of newer content cannot change that vector. An explicit preview, reconciliation, and commit operation is required to advance it. Equipment inputs additionally carry an explicit `ContentRef` with system ID and `ACTIVE` binding. A Character rule-revision pin is separate from authored-content binding.
 
 ### Character assembly registry
 
@@ -151,7 +151,7 @@ The embedded, versioned Zen runtime that makes production game-system decisions 
 
 ### Rule revision pin
 
-The exact activated rule-pack revision, checksum, evaluator kind/version, and model-contract version bound to a Character at first finalization or to an Encounter under its existing lifecycle policy. A Character draft preview uses the current compatible active revision; a finalized Character changes pins only through an explicit transactional upgrade/reconciliation command that increments its stream version. Retirement does not invalidate a pin. This pin does not make current or Campaign-bound authored content historically replayable.
+The exact activated rule-pack revision, checksum, evaluator kind/version, and model-contract version bound to a Character mechanics projection or Encounter under its existing lifecycle policy. A Character draft preview uses the current compatible active revision; a finalized Character changes pins only through an explicit transactional upgrade/reconciliation command that increments its stream version. Retirement does not invalidate a pin. The rule pin and exact authored-version vector together make the committed mechanical input replayable.
 
 ### Derived output
 
@@ -168,7 +168,7 @@ An Encounter-scoped immutable fact about an encounter, actor, action, target, ro
 - `packages/functions` owns use-case orchestration; `packages/db` owns persistence adapters.
 - SQL defines schema/bootstrap; Kysely owns application writes.
 - Repositories expose authored-shaped interfaces and enforce persistence invariants behind their seam.
-- Normalized domain aggregates are canonical active authored content; JSON drafts are replaceable staging records.
+- Active authored roots retain relational envelopes and replaceable JSON drafts. Immutable authored document versions and compiled projections are the operational source for mechanics and finalized-content reads; normalized child-table hydration is transitional authoring-write support only.
 - The eight authored root domains own their nested features, options, grants, effects, and outcomes.
 - Node maps define reusable authored-content structure; character Builder and Sheet remain domain-specific modules.
 - Master/seeded records are locked from direct UI editing but copyable into owned drafts.

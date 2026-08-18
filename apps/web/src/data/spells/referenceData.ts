@@ -8,6 +8,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import { api, type Api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildEffectReferenceData } from '#app/data/effects'
+import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
 
 export type SpellReferenceOption = {
   value: string
@@ -104,17 +105,25 @@ export function getSpellReferenceData(client: Api = api) {
       const systemId = systems[0]?.id ?? 'default-system'
       const [system, classes, creatures] = await Promise.all([
         systems[0] ? client.systems.get(systemId) : Promise.resolve(emptySystem()),
-        client.content.classes.list(),
-        client.content.creatures.list()
+        loadPagedAuthoredCatalogItems(client.content.classes.list, {
+          direction: 'FORWARD',
+          limit: 48,
+          sort: 'name'
+        }),
+        loadPagedAuthoredCatalogItems(client.content.creatures.list, {
+          direction: 'FORWARD',
+          limit: 48,
+          sort: 'name'
+        })
       ])
 
       const resolvedSystem = system ?? emptySystem()
-      const effectReferences = buildEffectReferenceData(resolvedSystem, creatures.items)
+      const effectReferences = buildEffectReferenceData(resolvedSystem, creatures)
 
       return {
         systemId: resolvedSystem.id,
         magicSchools: toVocabularyOptions(resolvedSystem.magicSchools),
-        classes: toContentOptions(classes.items),
+        classes: toContentOptions(classes),
         damageTypes: effectReferences.damageTypes,
         conditionTypes: effectReferences.conditionTypes,
         skills: toVocabularyOptions(resolvedSystem.skills),
@@ -133,14 +142,18 @@ export function getSpellDetailReferenceData(client: Api = api) {
       const systemId = systems[0]?.id ?? 'default-system'
       const [system, classes] = await Promise.all([
         systems[0] ? client.systems.get(systemId) : Promise.resolve(emptySystem()),
-        client.content.classes.list()
+        loadPagedAuthoredCatalogItems(client.content.classes.list, {
+          direction: 'FORWARD',
+          limit: 48,
+          sort: 'name'
+        })
       ])
 
       const resolvedSystem = system ?? emptySystem()
 
       return {
         magicSchools: toVocabularyOptions(resolvedSystem.magicSchools),
-        classes: toContentOptions(classes.items),
+        classes: toContentOptions(classes),
         damageTypes: toVocabularyOptions(resolvedSystem.damageTypes),
         conditionTypes: toVocabularyOptions(resolvedSystem.conditionTypes)
       }

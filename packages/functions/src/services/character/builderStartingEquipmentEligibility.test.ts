@@ -16,6 +16,53 @@ const repositoryState = vi.hoisted(() => ({
 
 vi.mock('@artificer-toolkit/db', () => ({
   createCampaignContentRepository: () => ({ findAssignedCampaign: async () => null }),
+  createAuthoredVersionRepository: () => ({
+    findActiveByIds: async ({ subjectIds, subjectKind }: { subjectIds: readonly string[]; subjectKind: string }) => {
+      const records =
+        subjectKind === 'RACE'
+          ? repositoryState.races
+          : subjectKind === 'CLASS'
+            ? repositoryState.classes
+            : subjectKind === 'EQUIPMENT'
+              ? repositoryState.equipment
+              : []
+      return new Map(
+        records
+          .filter((record) => subjectIds.includes(record.id))
+          .map((record) => [
+            record.id,
+            {
+              authored: { document: record },
+              compiled: {
+                authoredDependencies:
+                  'parentRaceId' in record && typeof record.parentRaceId === 'string'
+                    ? [
+                        {
+                          subjectKind: 'RACE',
+                          subjectId: record.parentRaceId,
+                          versionId: `${record.parentRaceId}-version`,
+                          version: 1,
+                          checksum: 'a'.repeat(64)
+                        }
+                      ]
+                    : []
+              }
+            }
+          ])
+      )
+    },
+    findExactVersions: async ({ entries }: { entries: readonly { subjectId: string; subjectKind: string }[] }) => {
+      const records = [...repositoryState.races, ...repositoryState.equipment]
+      return new Map(
+        entries.flatMap((entry) => {
+          const record = records.find((candidate) => candidate.id === entry.subjectId)
+          return record
+            ? [[`${entry.subjectKind}:${entry.subjectId}`, { authored: { document: record }, compiled: { authoredDependencies: [] } }] as const]
+            : []
+        })
+      )
+    }
+  }),
   createSystemRepository: () => ({ findById: async () => createSystem() }),
   createRaceRepository: () => ({
     findResolvedAll: async () => repositoryState.races,

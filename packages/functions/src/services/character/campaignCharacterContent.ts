@@ -1,47 +1,14 @@
 import {
   createCampaignContentRepository,
   createCampaignRepository,
-  createEquipmentRepository,
-  createRaceRepository,
+  createAuthoredVersionRepository,
   type AuthoredSubjectKind,
+  type AuthoredVersionRecord,
   type CampaignCharacterContentBindingInput,
-  type CampaignContentVersion,
   type CharacterAssemblyStructureQueryResult,
-  type DBLike,
-  type Json
+  type DBLike
 } from '@artificer-toolkit/db'
-import {
-  backgroundAuthoredDtoSchema,
-  type BackgroundAuthoredDto
-} from '@artificer-toolkit/schema/subjects/background'
-import {
-  classAuthoredDtoSchema,
-  type ClassAuthoredDto
-} from '@artificer-toolkit/schema/subjects/class'
-import {
-  creatureAuthoredDtoSchema,
-  type CreatureAuthoredDto
-} from '@artificer-toolkit/schema/subjects/creature'
-import {
-  equipmentAuthoredDtoSchema,
-  type EquipmentAuthoredDto
-} from '@artificer-toolkit/schema/subjects/equipment'
-import {
-  featAuthoredDtoSchema,
-  type FeatAuthoredDto
-} from '@artificer-toolkit/schema/subjects/feat'
-import {
-  raceAuthoredDtoSchema,
-  type RaceAuthoredDto
-} from '@artificer-toolkit/schema/subjects/race'
-import {
-  spellAuthoredDtoSchema,
-  type SpellAuthoredDto
-} from '@artificer-toolkit/schema/subjects/spell'
-import {
-  vehicleAuthoredDtoSchema,
-  type VehicleAuthoredDto
-} from '@artificer-toolkit/schema/subjects/vehicle'
+import type { AuthoredVersionVector } from '@artificer-toolkit/schema/projections/identity'
 import {
   resolveEquipmentAuthored,
   resolveRaceAuthored,
@@ -58,26 +25,33 @@ import type {
   SpellAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 
-type CampaignAuthoredRecord =
-  | BackgroundAuthoredDto
-  | ClassAuthoredDto
-  | CreatureAuthoredDto
-  | EquipmentAuthoredDto
-  | FeatAuthoredDto
-  | RaceAuthoredDto
-  | SpellAuthoredDto
-  | VehicleAuthoredDto
-
 export interface CampaignAuthoredSnapshot {
   contentVersionId: string
   subjectKind: AuthoredSubjectKind
   subjectId: string
   revision: number
-  authored: CampaignAuthoredRecord
+  authoredVersionId: string
+  authoredVersion: number
+  authoredChecksum: string
+  compiledProjectionChecksum: string
+  authoredDependencies: readonly AuthoredVersionRecord['compiled']['authoredDependencies'][number][]
+  authored: AuthoredVersionRecord['authored']['document']
+}
+
+interface CampaignContentVersionReference {
+  id: string
+  subjectKind: AuthoredSubjectKind
+  subjectId: string
+  revision: number
+  authoredVersionId: string
+  authoredVersion: number
+  authoredChecksum: string
+  compiledProjectionChecksum: string
 }
 
 export interface CampaignCharacterContentOverlay {
   campaignId: string
+  userId: string
   bindings: ReadonlyMap<string, CampaignAuthoredSnapshot>
   latest: ReadonlyMap<string, CampaignAuthoredSnapshot>
 }
@@ -91,6 +65,11 @@ export interface HydratedCampaignBuilderContent {
   spells: SpellAuthored[]
 }
 
+interface CampaignVersionedSource<T extends { systemId: string }> {
+  authored: T
+  authoredDependencies: readonly AuthoredVersionVector[number][]
+}
+
 export function campaignContentRootKey(
   subjectKind: AuthoredSubjectKind,
   subjectId: string
@@ -98,40 +77,65 @@ export function campaignContentRootKey(
   return `${subjectKind}:${subjectId}`
 }
 
-function parseAuthored(subjectKind: AuthoredSubjectKind, snapshot: Json): CampaignAuthoredRecord {
-  switch (subjectKind) {
-    case 'BACKGROUND':
-      return backgroundAuthoredDtoSchema.parse(snapshot)
-    case 'CLASS':
-      return classAuthoredDtoSchema.parse(snapshot)
-    case 'CREATURE':
-      return creatureAuthoredDtoSchema.parse(snapshot)
-    case 'EQUIPMENT':
-      return equipmentAuthoredDtoSchema.parse(snapshot)
-    case 'FEAT':
-      return featAuthoredDtoSchema.parse(snapshot)
-    case 'RACE':
-      return raceAuthoredDtoSchema.parse(snapshot)
-    case 'SPELL':
-      return spellAuthoredDtoSchema.parse(snapshot)
-    case 'VEHICLE':
-      return vehicleAuthoredDtoSchema.parse(snapshot)
-  }
-}
-
-export function parseCampaignAuthoredSnapshot(
-  version: Pick<
-    CampaignContentVersion,
-    'id' | 'revision' | 'snapshot' | 'subjectId' | 'subjectKind'
-  >
+function toCampaignAuthoredSnapshot(
+  version: CampaignContentVersionReference,
+  authored: AuthoredVersionRecord
 ): CampaignAuthoredSnapshot {
+  if (
+    authored.authored.subjectKind !== version.subjectKind ||
+    authored.authored.subjectId !== version.subjectId ||
+    authored.authored.versionId !== version.authoredVersionId ||
+    authored.authored.version !== version.authoredVersion ||
+    authored.authored.checksum !== version.authoredChecksum ||
+    authored.compiled.projectionChecksum !== version.compiledProjectionChecksum
+  ) {
+    throw new Error(`Campaign content version "${version.id}" has a mismatched authored version.`)
+  }
   return {
     contentVersionId: version.id,
     subjectKind: version.subjectKind,
     subjectId: version.subjectId,
     revision: version.revision,
-    authored: parseAuthored(version.subjectKind, version.snapshot)
+    authoredVersionId: version.authoredVersionId,
+    authoredVersion: version.authoredVersion,
+    authoredChecksum: version.authoredChecksum,
+    compiledProjectionChecksum: version.compiledProjectionChecksum,
+    authoredDependencies: authored.compiled.authoredDependencies,
+    authored: authored.authored.document
   }
+}
+
+async function loadCampaignAuthoredSnapshots(
+  db: DBLike,
+  versions: readonly CampaignContentVersionReference[]
+): Promise<Map<string, CampaignAuthoredSnapshot>> {
+  const versionsByKind = new Map<AuthoredSubjectKind, CampaignContentVersionReference[]>()
+  for (const version of versions) {
+    const entries = versionsByKind.get(version.subjectKind) ?? []
+    entries.push(version)
+    versionsByKind.set(version.subjectKind, entries)
+  }
+
+  const authoredRepository = createAuthoredVersionRepository(db)
+  const snapshots = new Map<string, CampaignAuthoredSnapshot>()
+  await Promise.all(
+    [...versionsByKind.entries()].map(async ([subjectKind, entries]) => {
+      const records = await authoredRepository.findVersionsByIds({
+        subjectKind,
+        versionIds: entries.map((entry) => entry.authoredVersionId)
+      })
+      for (const entry of entries) {
+        const record = records.get(entry.authoredVersionId)
+        if (!record) {
+          throw new Error(
+            `Campaign content version "${entry.id}" references an unavailable authored version.`
+          )
+        }
+        snapshots.set(entry.id, toCampaignAuthoredSnapshot(entry, record))
+      }
+    })
+  )
+  return snapshots
 }
 
 export async function loadCampaignCharacterContentOverlay(
@@ -147,10 +151,24 @@ export async function loadCampaignCharacterContentOverlay(
     repository.listContentVersions(assignment.campaignId),
     repository.listCharacterBindings(assignment.campaignId, character.id)
   ])
+  const snapshots = await loadCampaignAuthoredSnapshots(db, [
+    ...versions,
+    ...bindingRows.map((binding) => ({
+      id: binding.contentVersionId,
+      subjectKind: binding.subjectKind,
+      subjectId: binding.subjectId,
+      revision: binding.revision,
+      authoredVersionId: binding.authoredVersionId,
+      authoredVersion: binding.authoredVersion,
+      authoredChecksum: binding.authoredChecksum,
+      compiledProjectionChecksum: binding.compiledProjectionChecksum
+    }))
+  ])
   const latest = new Map<string, CampaignAuthoredSnapshot>()
   for (const version of versions) {
     if (version.state !== 'APPROVED') continue
-    const parsed = parseCampaignAuthoredSnapshot(version)
+    const parsed = snapshots.get(version.id)
+    if (!parsed) throw new Error(`Campaign content version "${version.id}" is unavailable.`)
     if (parsed.authored.systemId !== character.systemId) continue
     const key = campaignContentRootKey(parsed.subjectKind, parsed.subjectId)
     if ((latest.get(key)?.revision ?? 0) < parsed.revision) latest.set(key, parsed)
@@ -172,20 +190,17 @@ export async function loadCampaignCharacterContentOverlay(
     const key = campaignContentRootKey(binding.subjectKind, binding.subjectId)
     const parsed =
       overrideByRoot.get(key) ??
-      parseCampaignAuthoredSnapshot({
-        id: binding.contentVersionId,
-        revision: binding.revision,
-        snapshot: binding.snapshot,
-        subjectId: binding.subjectId,
-        subjectKind: binding.subjectKind
-      })
+      snapshots.get(binding.contentVersionId)
+    if (!parsed) {
+      throw new Error(`Campaign content binding "${binding.contentVersionId}" is unavailable.`)
+    }
     if (parsed.authored.systemId !== character.systemId) {
       throw new Error(`Campaign content root "${key}" belongs to a different rules system.`)
     }
     bindings.set(key, parsed)
   }
 
-  return { campaignId: assignment.campaignId, bindings, latest }
+  return { campaignId: assignment.campaignId, userId: character.userId, bindings, latest }
 }
 
 export function findCampaignCharacterSnapshot(
@@ -198,68 +213,158 @@ export function findCampaignCharacterSnapshot(
   return overlay.bindings.get(key) ?? overlay.latest.get(key) ?? null
 }
 
+async function loadCampaignTopLevelSource<T extends { systemId: string }>(input: {
+  db: DBLike
+  overlay: CampaignCharacterContentOverlay
+  subjectId: string
+  subjectKind: AuthoredSubjectKind
+  systemId?: string
+  useBindings: boolean
+}): Promise<CampaignVersionedSource<T> | null> {
+  const snapshot = input.useBindings
+    ? findCampaignCharacterSnapshot(input.overlay, input.subjectKind, input.subjectId)
+    : (input.overlay.latest.get(campaignContentRootKey(input.subjectKind, input.subjectId)) ?? null)
+  if (snapshot?.subjectKind === input.subjectKind) {
+    const authored = snapshot.authored as unknown as T
+    return !input.systemId || authored.systemId === input.systemId
+      ? { authored, authoredDependencies: snapshot.authoredDependencies }
+      : null
+  }
+
+  const records = await createAuthoredVersionRepository(input.db).findActiveByIds({
+    subjectKind: input.subjectKind,
+    subjectIds: [input.subjectId],
+    systemId: input.systemId,
+    userId: input.overlay.userId,
+    includeMaster: true
+  })
+  const record = records.get(input.subjectId)
+  if (!record) return null
+  const authored = record.authored.document as unknown as T
+  return !input.systemId || authored.systemId === input.systemId
+    ? { authored, authoredDependencies: record.compiled.authoredDependencies }
+    : null
+}
+
+async function loadCampaignExactDependencySource<T extends { systemId: string }>(input: {
+  db: DBLike
+  owner: CampaignVersionedSource<{ systemId: string }>
+  subjectId: string
+  subjectKind: AuthoredSubjectKind
+  systemId: string
+}): Promise<CampaignVersionedSource<T>> {
+  const dependency = input.owner.authoredDependencies.find(
+    (entry) => entry.subjectKind === input.subjectKind && entry.subjectId === input.subjectId
+  )
+  if (!dependency) {
+    throw new Error(
+      `Campaign content is missing exact ${input.subjectKind} dependency "${input.subjectId}".`
+    )
+  }
+  const records = await createAuthoredVersionRepository(input.db).findExactVersions({
+    entries: [dependency]
+  })
+  const record = records.get(campaignContentRootKey(input.subjectKind, input.subjectId))
+  if (!record) {
+    throw new Error(
+      `Campaign content has an unavailable exact ${input.subjectKind} dependency "${input.subjectId}".`
+    )
+  }
+  const authored = record.authored.document as unknown as T
+  if (authored.systemId !== input.systemId) {
+    throw new Error(
+      `Campaign content dependency ${input.subjectKind} "${input.subjectId}" belongs to another rules system.`
+    )
+  }
+  return { authored, authoredDependencies: record.compiled.authoredDependencies }
+}
+
 async function resolveRaceRecords(
   db: DBLike,
   overlay: CampaignCharacterContentOverlay,
   ids: readonly string[],
-  useBindings: boolean
+  useBindings: boolean,
+  systemId?: string
 ): Promise<ResolvedRace[]> {
-  const records = new Map<string, RaceAuthored>()
-  const repository = createRaceRepository(db)
-  const snapshotFor = (id: string) =>
-    useBindings
-      ? findCampaignCharacterSnapshot(overlay, 'RACE', id)
-      : (overlay.latest.get(campaignContentRootKey('RACE', id)) ?? null)
-  const load = async (id: string): Promise<RaceAuthored | null> => {
-    const existing = records.get(id)
-    if (existing) return existing
-    const campaign = snapshotFor(id)
-    const record =
-      campaign?.subjectKind === 'RACE'
-        ? (campaign.authored as unknown as RaceAuthored)
-        : await repository.findById(id, { includeFeatureEffects: false })
-    if (!record) return null
-    records.set(id, record)
-    if (record.category === 'SUBRACE') await load(record.parentRaceId)
-    return record
-  }
-  await Promise.all(ids.map(load))
-  return ids.flatMap((id) => {
-    const record = records.get(id)
-    return record ? [resolveRaceAuthored(record, (parentId) => records.get(parentId))] : []
-  })
+  const records = await Promise.all(
+    ids.map(async (id) => {
+      const root = await loadCampaignTopLevelSource<RaceAuthored>({
+        db,
+        overlay,
+        subjectKind: 'RACE',
+        subjectId: id,
+        systemId,
+        useBindings
+      })
+      if (!root) return null
+      const parents = new Map<string, RaceAuthored>()
+      const loadParents = async (
+        source: CampaignVersionedSource<RaceAuthored>,
+        lineage: ReadonlySet<string> = new Set()
+      ): Promise<void> => {
+        if (source.authored.category !== 'SUBRACE') return
+        if (lineage.has(source.authored.id)) {
+          throw new Error(`Campaign Subrace "${source.authored.id}" has a parent cycle.`)
+        }
+        const parent = await loadCampaignExactDependencySource<RaceAuthored>({
+          db,
+          owner: source,
+          subjectKind: 'RACE',
+          subjectId: source.authored.parentRaceId,
+          systemId: source.authored.systemId
+        })
+        parents.set(parent.authored.id, parent.authored)
+        await loadParents(parent, new Set([...lineage, source.authored.id]))
+      }
+      await loadParents(root)
+      return resolveRaceAuthored(root.authored, (parentId) => parents.get(parentId))
+    })
+  )
+  return records.filter((record): record is ResolvedRace => record !== null)
 }
 
 async function resolveEquipmentRecords(
   db: DBLike,
   overlay: CampaignCharacterContentOverlay,
   ids: readonly string[],
-  useBindings: boolean
+  useBindings: boolean,
+  systemId?: string
 ): Promise<ResolvedEquipment[]> {
-  const records = new Map<string, EquipmentAuthored>()
-  const repository = createEquipmentRepository(db)
-  const snapshotFor = (id: string) =>
-    useBindings
-      ? findCampaignCharacterSnapshot(overlay, 'EQUIPMENT', id)
-      : (overlay.latest.get(campaignContentRootKey('EQUIPMENT', id)) ?? null)
-  const load = async (id: string): Promise<EquipmentAuthored | null> => {
-    const existing = records.get(id)
-    if (existing) return existing
-    const campaign = snapshotFor(id)
-    const record =
-      campaign?.subjectKind === 'EQUIPMENT'
-        ? (campaign.authored as unknown as EquipmentAuthored)
-        : await repository.findById(id, { includeEffects: false })
-    if (!record) return null
-    records.set(id, record)
-    if (record.category === 'VARIANT') await load(record.parentEquipmentId)
-    return record
-  }
-  await Promise.all(ids.map(load))
-  return ids.flatMap((id) => {
-    const record = records.get(id)
-    return record ? [resolveEquipmentAuthored(record, (parentId) => records.get(parentId))] : []
-  })
+  const records = await Promise.all(
+    ids.map(async (id) => {
+      const root = await loadCampaignTopLevelSource<EquipmentAuthored>({
+        db,
+        overlay,
+        subjectKind: 'EQUIPMENT',
+        subjectId: id,
+        systemId,
+        useBindings
+      })
+      if (!root) return null
+      const parents = new Map<string, EquipmentAuthored>()
+      const loadParents = async (
+        source: CampaignVersionedSource<EquipmentAuthored>,
+        lineage: ReadonlySet<string> = new Set()
+      ): Promise<void> => {
+        if (source.authored.category !== 'VARIANT') return
+        if (lineage.has(source.authored.id)) {
+          throw new Error(`Campaign Equipment variant "${source.authored.id}" has a parent cycle.`)
+        }
+        const parent = await loadCampaignExactDependencySource<EquipmentAuthored>({
+          db,
+          owner: source,
+          subjectKind: 'EQUIPMENT',
+          subjectId: source.authored.parentEquipmentId,
+          systemId: source.authored.systemId
+        })
+        parents.set(parent.authored.id, parent.authored)
+        await loadParents(parent, new Set([...lineage, source.authored.id]))
+      }
+      await loadParents(root)
+      return resolveEquipmentAuthored(root.authored, (parentId) => parents.get(parentId))
+    })
+  )
+  return records.filter((record): record is ResolvedEquipment => record !== null)
 }
 
 function latestRecords<T>(
@@ -302,6 +407,7 @@ export async function hydrateCampaignSelectedContent(
     equipmentIds: readonly string[]
     featIds: readonly string[]
     raceIds: readonly string[]
+    systemId: string
   }
 ): Promise<HydratedCampaignBuilderContent> {
   const select = <T>(kind: AuthoredSubjectKind, ids: readonly string[]) =>
@@ -310,8 +416,8 @@ export async function hydrateCampaignSelectedContent(
       return snapshot ? [snapshot.authored as T] : []
     })
   const [races, equipment] = await Promise.all([
-    resolveRaceRecords(db, overlay, input.raceIds, true),
-    resolveEquipmentRecords(db, overlay, input.equipmentIds, true)
+    resolveRaceRecords(db, overlay, input.raceIds, true, input.systemId),
+    resolveEquipmentRecords(db, overlay, input.equipmentIds, true, input.systemId)
   ])
   return {
     backgrounds: select('BACKGROUND', input.backgroundIds),
@@ -448,10 +554,11 @@ export async function replaceCampaignCharacterContentBindings(
 export async function lockCampaignCharacterContentForSave(
   db: DBLike,
   characterId: string
-): Promise<void> {
+): Promise<string | null> {
   const content = createCampaignContentRepository(db)
   const assignment = await content.findAssignedCampaign(characterId)
-  if (!assignment) return
-  if (!(await createCampaignRepository(db).lockCampaign(assignment.campaignId))) return
+  if (!assignment) return null
+  if (!(await createCampaignRepository(db).lockCampaign(assignment.campaignId))) return null
   await content.lockCharacterBindings(assignment.campaignId, characterId)
+  return assignment.campaignId
 }

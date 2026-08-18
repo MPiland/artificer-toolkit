@@ -227,8 +227,6 @@ describe('character sheet command contracts', () => {
         extras: {
           kindOptions: [],
           originOptions: [],
-          creatureOptions: [],
-          vehicleOptions: [],
           items: []
         },
         reference: {
@@ -329,8 +327,6 @@ describe('character sheet command contracts', () => {
         extras: {
           kindOptions: [],
           originOptions: [],
-          creatureOptions: [],
-          vehicleOptions: [],
           items: []
         },
         reference: {
@@ -376,8 +372,6 @@ describe('character sheet command contracts', () => {
       characterSheetExtrasDtoSchema.safeParse({
         kindOptions: [],
         originOptions: [],
-        creatureOptions: [],
-        vehicleOptions: [],
         items: [
           {
             id: '00000000-0000-4000-8000-000000000002',
@@ -421,8 +415,6 @@ describe('character sheet command contracts', () => {
       characterSheetExtrasDtoSchema.safeParse({
         kindOptions: [],
         originOptions: [],
-        creatureOptions: [],
-        vehicleOptions: [],
         items: [
           {
             id: '00000000-0000-4000-8000-000000000002',

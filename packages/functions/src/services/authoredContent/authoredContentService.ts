@@ -91,7 +91,7 @@ export function normalizeAuthoredListResponse<
   }
 }
 
-function toDraftSummary(draft: AuthoredDraft & { publicId?: string }): AuthoredDraftSummaryDto {
+export function toDraftSummary(draft: AuthoredDraft & { publicId?: string }): AuthoredDraftSummaryDto {
   return {
     subjectKind: draft.subjectKind,
     subjectId: draft.subjectId,
@@ -115,7 +115,7 @@ function getDraftPayloadRecord(draft: AuthoredDraft): Record<string, unknown> {
     : {}
 }
 
-function getDraftListMetadata(draft: AuthoredDraft) {
+export function getDraftListMetadata(draft: AuthoredDraft) {
   const payload = getDraftPayloadRecord(draft)
   const description = typeof payload.description === 'string' ? payload.description : null
   const category = typeof payload.category === 'string' ? payload.category : undefined

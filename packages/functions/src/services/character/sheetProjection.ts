@@ -1,9 +1,4 @@
 import {
-  createCreatureRepository,
-  createVehicleRepository,
-  getCharacterSheetExtraCatalogQuery,
-  getCharacterSheetMechanicsQuery,
-  type CharacterSheetMechanicsQueryResult,
   type CharacterSpellCustomization,
   type DBLike
 } from '@artificer-toolkit/db'
@@ -18,7 +13,6 @@ import {
   EQUIPMENT_PROPERTY_REGISTRY,
   FEATURE_ATTRIBUTE,
   MEASUREMENT_UNIT_REGISTRY,
-  SIZE_OPTIONS,
   VEHICLE_CATEGORY_REGISTRY,
   type CharacterBuildSnapshot,
   type MeasurementUnitCode
@@ -38,6 +32,7 @@ import { SKILL_ABILITY_MAP } from '@artificer-toolkit/shared/character'
 import type {
   CharacterAuthored,
   CreatureAuthored,
+  SpellAuthored,
   VehicleAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
@@ -73,17 +68,24 @@ import type {
   CharacterRuleSense,
   CharacterSheetRuleProjection
 } from './characterSheetRuleProjection.js'
-import { projectCharacterRuleActionMechanic } from './characterRuleActionProjection.js'
+import {
+  projectCharacterRuleActionMechanic,
+  type CharacterRuleActionPresentationReferences
+} from './characterRuleActionProjection.js'
 import {
   evaluateCharacterRulePolicy,
   type CharacterRuleEvaluationResult
 } from './characterRuleEvaluation.js'
+import {
+  loadActiveCharacterCreatures,
+  loadActiveCharacterVehicles
+} from './characterActiveAuthoredSources.js'
+import { createCharacterSheetMechanicPresentationSources } from './characterSheetMechanicPresentation.js'
 import { projectCharacterRulePolicyToSheetProjection } from './characterRulePolicyAdapter.js'
 import { projectCharacterRuleResources } from './characterRuleResourceProjection.js'
 import { createCharacterSpellCastCandidateId } from './characterSpellCastRuleFacts.js'
 
 import { getProficiencyTargetKind } from './sheetProficiency.js'
-import { getConditionOptions } from './sheetCommandValidation.js'
 
 function createVocabularyLabelMap(
   records: ReadonlyArray<{ id: string; code?: string; label: string }> | undefined
@@ -219,22 +221,6 @@ function hasFeatureAttribute(feature: CharacterBuilderGrantFeature, attribute: s
 
 function isSheetVisibleFeature(feature: CharacterBuilderGrantFeature): boolean {
   return !hasFeatureAttribute(feature, FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET)
-}
-
-function getSelectedFeatureOptionIds(character: CharacterAuthored): Set<string> {
-  return new Set(
-    character.intent.featureAcquisitions.flatMap((acquisition) =>
-      (acquisition.selections ?? [])
-        .filter((selection) => selection.selectionKey === 'options')
-        .flatMap((selection) =>
-          selection.values.flatMap((value) => {
-            if (value.kind === 'ID') return [value.id]
-            if (value.kind === 'IDS') return value.ids
-            return []
-          })
-        )
-    )
-  )
 }
 
 function toSheetActionKind(
@@ -691,7 +677,7 @@ function buildActiveSpellGroups(params: {
   slots: readonly SheetSpellSlot[]
   spellCastDecisions: CharacterRuleEvaluationResult['output']['spellCastDecisions']
   spellCastMechanics: CharacterRuleEvaluationResult['output']['spellCastMechanics']
-  mechanicsQuery: CharacterSheetMechanicsQueryResult
+  actionReferences: CharacterRuleActionPresentationReferences
 }): CharacterSheetResponseDto['spells']['activeGroups'] {
   const ownedSlotLevels = new Set(
     params.slots.flatMap((slot) => {
@@ -729,7 +715,7 @@ function buildActiveSpellGroups(params: {
           )
         }
         const projectedMechanics = policyCastMechanics.mechanics.map((mechanic) =>
-          projectCharacterRuleActionMechanic(mechanic, params.mechanicsQuery)
+          projectCharacterRuleActionMechanic(mechanic, params.actionReferences)
         )
         const displayName = source.customName ?? spell.label
         const primaryEffect = getSpellPrimaryEffect(projectedMechanics, castLevel)
@@ -946,6 +932,11 @@ export interface BuildCharacterSheetResponseParams {
   movementDisplayPreference?: CharacterMovementDisplayPreference
   resourceUsage?: readonly CharacterResourceUsage[]
   spellCustomizations?: readonly CharacterSpellCustomization[]
+  committedExtras?: {
+    creaturesById: ReadonlyMap<string, CreatureAuthored>
+    vehiclesById: ReadonlyMap<string, VehicleAuthored>
+  }
+  pinnedSpellsById?: ReadonlyMap<string, SpellAuthored>
   additionalConditions?: ReadonlyArray<{ conditionTypeId: string; notes?: string }>
   ruleEvaluation: {
     context: CharacterBuilderContext
@@ -975,22 +966,25 @@ async function buildCharacterSheetBundleInternal(
   const selectedVehicleIds = [
     ...new Set((character.state.vehicles ?? []).map((instance) => instance.vehicleId))
   ]
-  const extraCatalogFilter = {
-    systemId: character.systemId,
-    userId: character.userId,
-    includeMaster: true
-  }
-  const [extraCatalog, creaturesById, vehiclesById] = await Promise.all([
-    getCharacterSheetExtraCatalogQuery(params.db, {
-      systemId: character.systemId,
-      userId: character.userId
-    }),
-    selectedCreatureIds.length > 0
-      ? createCreatureRepository(params.db).findByIds(selectedCreatureIds, extraCatalogFilter)
-      : Promise.resolve(new Map<string, CreatureAuthored>()),
-    selectedVehicleIds.length > 0
-      ? createVehicleRepository(params.db).findByIds(selectedVehicleIds, extraCatalogFilter)
-      : Promise.resolve(new Map<string, VehicleAuthored>())
+  const [creaturesById, vehiclesById] = await Promise.all([
+    params.committedExtras
+      ? Promise.resolve(params.committedExtras.creaturesById)
+      : loadActiveCharacterCreatures({
+          characterId: character.id,
+          db: params.db,
+          creatureIds: selectedCreatureIds,
+          systemId: character.systemId,
+          userId: character.userId
+        }),
+    params.committedExtras
+      ? Promise.resolve(params.committedExtras.vehiclesById)
+      : loadActiveCharacterVehicles({
+          characterId: character.id,
+          db: params.db,
+          vehicleIds: selectedVehicleIds,
+          systemId: character.systemId,
+          userId: character.userId
+        })
   ])
   const totalLevel = Math.max(resolution.summary.totalLevel, 1)
   const companions = createCompanionInputs(character, creaturesById)
@@ -1006,6 +1000,7 @@ async function buildCharacterSheetBundleInternal(
     movementDisplayPreference: params.movementDisplayPreference,
     companions,
     creaturesById,
+    pinnedSpellsById: params.pinnedSpellsById,
     resourceUsage: params.resourceUsage,
     attunementSlotOverride: params.ruleEvaluation.attunementSlotOverride
   }
@@ -1059,7 +1054,12 @@ async function buildCharacterSheetBundleInternal(
   const maxHitPoints = resolveCharacterEffectiveMaximumHitPoints(
     ruleProjection.derivedStats.maxHitPoints
   )
-  const conditionOptions = await getConditionOptions(params.db, character.systemId)
+  const conditionOptions = (resolution.registry.system?.conditionTypes ?? []).map((condition) => ({
+    id: condition.id,
+    code: condition.code,
+    label: condition.label,
+    ...(condition.description ? { description: condition.description } : {})
+  }))
   const conditionsById = new Map(conditionOptions.map((condition) => [condition.id, condition]))
   const equipmentById = new Map(
     resolution.registry.equipment.map((equipment) => [equipment.id, equipment])
@@ -1107,19 +1107,6 @@ async function buildCharacterSheetBundleInternal(
   )
   const featureLabels = new Map(
     resolution.grants.features.map((feature) => [feature.id, feature.label])
-  )
-  const creatureTypeLabels = new Map(
-    resolution.registry.system?.creatureTypes?.map((creatureType) => [
-      creatureType.id,
-      creatureType.label
-    ]) ?? []
-  )
-  const activeCreatures = extraCatalog.creatures.filter(
-    (creature) =>
-      (creature.status ?? AUTHORED_RECORD_STATUS.ACTIVE) === AUTHORED_RECORD_STATUS.ACTIVE
-  )
-  const activeVehicles = extraCatalog.vehicles.filter(
-    (vehicle) => (vehicle.status ?? AUTHORED_RECORD_STATUS.ACTIVE) === AUTHORED_RECORD_STATUS.ACTIVE
   )
   const companionMechanicsByInstanceId = new Map(
     ruleProjection.companions.map((companion) => [companion.companionInstanceId, companion])
@@ -1239,32 +1226,6 @@ async function buildCharacterSheetBundleInternal(
   const sheetExtras = {
     kindOptions: [...CHARACTER_EXTRA_KIND_OPTIONS],
     originOptions: [...CREATURE_ORIGIN_KIND_OPTIONS],
-    creatureOptions: activeCreatures.map((creature) => ({
-      id: creature.id,
-      label: creature.label,
-      ...(creature.description ? { description: creature.description } : {}),
-      ...(creature.creatureTypeId && creatureTypeLabels.get(creature.creatureTypeId)
-        ? { creatureTypeLabel: creatureTypeLabels.get(creature.creatureTypeId) }
-        : {}),
-      ...(creature.size
-        ? { sizeLabel: SIZE_OPTIONS.find((size) => size.code === creature.size)?.label }
-        : {}),
-      armorClass: creature.armorClass,
-      maximumHitPoints: creature.hitPoints,
-      ...(formatExtraSpeedLabel(creature.speeds, resolution.registry.system?.speeds)
-        ? {
-            speedLabel: formatExtraSpeedLabel(creature.speeds, resolution.registry.system?.speeds)
-          }
-        : {})
-    })),
-    vehicleOptions: activeVehicles.map((vehicle) => ({
-      id: vehicle.id,
-      label: vehicle.label,
-      ...(vehicle.description ? { description: vehicle.description } : {}),
-      categoryLabel: VEHICLE_CATEGORY_REGISTRY[vehicle.category].label,
-      ...(vehicle.hitPoints === undefined ? {} : { maximumHitPoints: vehicle.hitPoints }),
-      ...(vehicle.speed === undefined ? {} : { speedLabel: String(vehicle.speed) })
-    })),
     items: [...creatureExtras, ...vehicleExtras]
   } satisfies CharacterSheetResponseDto['extras']
   for (const access of ruleProjection.spellAccess) displayedSpellIds.add(access.spellId)
@@ -1303,48 +1264,7 @@ async function buildCharacterSheetBundleInternal(
     passiveChecks: ruleProjection.derivedStats.passiveChecks
   })
   const sheetReferenceFeatures = resolution.grants.features.filter(isSheetVisibleFeature)
-  const equipmentActionFeatureIds = ruleProjection.equipmentFeatureChargeUses.flatMap((use) => {
-    const feature = equipmentById
-      .get(use.equipmentId)
-      ?.features?.find((candidate) => candidate.id === use.featureId)
-    return feature && !feature.attributes?.includes(FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET)
-      ? [feature.id]
-      : []
-  })
-  const selectedFeatureOptionIds = getSelectedFeatureOptionIds(character)
-  const ruleActionOwners = ruleEvaluation.output.actionDecisions.map(
-    (decision) => decision.mechanicsOwner
-  )
-  const mechanicsQuery = await getCharacterSheetMechanicsQuery(params.db, {
-    spellIds: [...displayedSpellIds],
-    featureIds: [
-      ...new Set([
-        ...sheetReferenceFeatures.map((feature) => feature.id),
-        ...equipmentActionFeatureIds,
-        ...ruleActionOwners.filter((owner) => owner.kind === 'FEATURE').map((owner) => owner.id)
-      ])
-    ],
-    featureOptionIds: [
-      ...new Set([
-        ...selectedFeatureOptionIds,
-        ...ruleActionOwners
-          .filter((owner) => owner.kind === 'FEATURE_OPTION')
-          .map((owner) => owner.id)
-      ])
-    ],
-    featIds: [
-      ...new Set([
-        ...(resolution.registry.feats ?? []).map((feat) => feat.id),
-        ...ruleActionOwners.filter((owner) => owner.kind === 'FEAT').map((owner) => owner.id)
-      ])
-    ],
-    equipmentIds: [
-      ...new Set([
-        ...character.state.equipment.inventory.map((item) => item.equipmentId),
-        ...ruleActionOwners.filter((owner) => owner.kind === 'EQUIPMENT').map((owner) => owner.id)
-      ])
-    ]
-  })
+  const mechanicPresentation = createCharacterSheetMechanicPresentationSources(resolution)
   const spellReferenceMechanicsBySpellId = new Map(
     ruleEvaluation.output.spellReferenceMechanics.map((spell) => [spell.spellId, spell])
   )
@@ -1353,9 +1273,7 @@ async function buildCharacterSheetBundleInternal(
   ) {
     throw new Error('Character rule evaluation returned duplicate spell reference mechanics.')
   }
-  const mechanicOwnersByKey = new Map(
-    mechanicsQuery.owners.map((owner) => [`${owner.ownerKind}:${owner.ownerId}`, owner])
-  )
+  const mechanicOwnersByKey = mechanicPresentation.ownersByKey
   const featureSourceLabels = new Map<string, string[]>()
   for (const feature of sheetReferenceFeatures) {
     const labels = featureSourceLabels.get(feature.id) ?? []
@@ -1432,11 +1350,7 @@ async function buildCharacterSheetBundleInternal(
     ]
   })
   const actionItems: CharacterSheetResponseDto['actions']['items'] = []
-  const hiddenOwners = new Set(
-    mechanicsQuery.ownerAttributes
-      .filter((attribute) => attribute.attributeCode === FEATURE_ATTRIBUTE.HIDDEN_ON_SHEET)
-      .map((attribute) => `${attribute.ownerKind}:${attribute.ownerId}`)
-  )
+  const hiddenOwners = mechanicPresentation.hiddenOwnerKeys
   for (const decision of ruleEvaluation.output.actionDecisions) {
     const ownerKey = `${decision.mechanicsOwner.kind}:${decision.mechanicsOwner.id}`
     if (hiddenOwners.has(ownerKey)) continue
@@ -1446,7 +1360,10 @@ async function buildCharacterSheetBundleInternal(
         `Character rule action presentation is missing or ambiguous: ${decision.actionId}`
       )
     }
-    const mechanic = projectCharacterRuleActionMechanic(decision.mechanic, mechanicsQuery)
+    const mechanic = projectCharacterRuleActionMechanic(
+      decision.mechanic,
+      mechanicPresentation.actionReferences
+    )
     const sourceFeatureId =
       decision.mechanicsOwner.kind === 'FEATURE_OPTION'
         ? optionParentFeatureIds.get(decision.mechanicsOwner.id)
@@ -1551,7 +1468,7 @@ async function buildCharacterSheetBundleInternal(
     .map((spell) => {
       const policyReferenceMechanics = spellReferenceMechanicsBySpellId.get(spell.id)
       const spellMechanics = (policyReferenceMechanics?.mechanics ?? []).map((mechanic) =>
-        projectCharacterRuleActionMechanic(mechanic, mechanicsQuery)
+        projectCharacterRuleActionMechanic(mechanic, mechanicPresentation.actionReferences)
       )
       const sources = (spellSourcesBySpellId.get(spell.id) ?? []).map((source) => {
         const sourceKey = createCharacterSpellSourceKey(source.source)
@@ -1607,7 +1524,7 @@ async function buildCharacterSheetBundleInternal(
     slots: sheetSpellSlots,
     spellCastDecisions: ruleEvaluation.output.spellCastDecisions,
     spellCastMechanics: ruleEvaluation.output.spellCastMechanics,
-    mechanicsQuery
+    actionReferences: mechanicPresentation.actionReferences
   })
   const displayedProficiencyKeys = new Set<string>()
 

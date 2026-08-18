@@ -277,7 +277,17 @@ export const creatureListResponseFixture: CreatureListResponseDto = {
     }
   ],
   drafts: [],
-  meta: {}
+  meta: {
+    categories: [
+      { id: 'BEAST' },
+      { id: 'COMPANION' },
+      { id: 'MONSTER' },
+      { id: 'NPC' },
+      { id: 'SUMMON' }
+    ]
+  },
+  page: { nextCursor: null, previousCursor: null, totalCount: 6 },
+  summary: { activeCount: 6, masterCount: 1, ownedCount: 5 }
 }
 
 export const creatureRuntimeFixture: NodeRuntimeResolveResponseDto = {

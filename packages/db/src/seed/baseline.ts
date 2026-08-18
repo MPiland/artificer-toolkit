@@ -1,30 +1,48 @@
+import { randomUUID } from 'node:crypto'
+
 import {
-  upsertBackground,
-  upsertCharge,
-  upsertClass,
-  upsertClassRoot,
-  upsertCreature,
-  upsertDetail,
-  upsertEffect,
-  upsertEquipment,
-  upsertFeat,
-  upsertFeatGrant,
-  upsertFeature,
-  upsertModifierGrant,
-  upsertOption,
-  upsertProficiencyGrant,
-  upsertRace,
-  upsertSavingThrow,
-  upsertSenseGrant,
-  upsertSpell,
-  upsertSpellGrant,
-  upsertStartingEquipment,
-  upsertSystem,
-  upsertVehicle
+  authoredDocumentVersionSchema,
+  type CompiledAuthoredProjection
+} from '@artificer-toolkit/schema/projections/authoredContent'
+import { type AuthoredSubjectKind, type JsonValue } from '@artificer-toolkit/schema/projections/identity'
+import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
+import {
+  equipmentAuthoredDtoSchema,
+  raceAuthoredDtoSchema,
+  spellAuthoredDtoSchema
+} from '@artificer-toolkit/schema/subjects'
+import {
+  compileBackground,
+  compileClass,
+  compileCreature,
+  compileEquipment,
+  compileFeat,
+  compileRace,
+  compileSpell,
+  compileVehicle,
+  resolveEquipmentAuthored,
+  resolveRaceAuthored
+} from '@artificer-toolkit/shared/subjects/compilers'
+import type { EquipmentAuthored, RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
+
+import {
+  upsertSystem
 } from '../domains/index.js'
-import { createAuthoredRouteIdRepository } from '../repositories/index.js'
-import type { BaselineContentBundle } from '../source-data/content.js'
-import { withTransaction } from '../utils/index.js'
+import {
+  createAuthoredRouteIdRepository,
+  createAuthoredVersionRepository,
+  createSystemVocabularySnapshotRepository,
+  syncSpellCatalogClassIndex,
+  upsertAuthoredRootEnvelope
+} from '../repositories/index.js'
+import type { BaselineContentBundle, SystemSeedRecord } from '../source-data/content.js'
+import {
+  checksumCanonicalJson,
+  checksumCompiledAuthoredProjection,
+  checksumSystemVocabularySnapshot,
+  normalizeCanonicalJson,
+  withTransaction
+} from '../utils/index.js'
 import type { SeedBaselineContent, SeedContext, SeedResult } from './contracts.js'
 
 type BaselineSubjectTable =
@@ -55,6 +73,223 @@ interface BaselineSubjectSet {
 
 interface StaleBaselineSubjectSet extends BaselineSubjectSet {
   ids: string[]
+}
+
+const BASELINE_DOCUMENT_SCHEMA_VERSION = 1
+const BASELINE_PROJECTION_SCHEMA_VERSION = 1
+const BASELINE_PROJECTION_COMPILER_VERSION = 'subject-compiler-v1'
+
+function requireProjectionRecord(value: unknown): Record<string, JsonValue> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new TypeError('Baseline compilation must produce an object projection.')
+  }
+  return value as Record<string, JsonValue>
+}
+
+async function ensureVocabularySnapshot(
+  context: SeedContext,
+  system: SystemSeedRecord
+) {
+  const repository = createSystemVocabularySnapshotRepository(context.db)
+  const active = await repository.findActiveForPublication(system.id)
+  const document = systemVocabularySnapshotSchema.parse({
+    snapshotId: 'seed-validation',
+    systemId: system.id,
+    snapshotVersion: 1,
+    schemaVersion: BASELINE_DOCUMENT_SCHEMA_VERSION,
+    checksum: '0'.repeat(64),
+    document: system
+  }).document
+  if (active) {
+    const checksum = checksumSystemVocabularySnapshot({
+        snapshotId: active.snapshotId,
+        systemId: system.id,
+        snapshotVersion: active.snapshotVersion,
+        schemaVersion: BASELINE_DOCUMENT_SCHEMA_VERSION,
+        document
+      })
+    if (active.checksum === checksum) return active
+  }
+  return repository.publish({
+    snapshotId: randomUUID(),
+    systemId: system.id,
+    schemaVersion: BASELINE_DOCUMENT_SCHEMA_VERSION,
+    document
+  })
+}
+
+async function publishBaselineSubjectVersion(input: {
+  authored: { id: string; systemId: string }
+  authoredDependencies: CompiledAuthoredProjection['authoredDependencies']
+  compiled: unknown
+  context: SeedContext
+  subjectKind: AuthoredSubjectKind
+  vocabularySnapshot: Awaited<ReturnType<typeof ensureVocabularySnapshot>>
+}): Promise<void> {
+  const authoredDocument = normalizeCanonicalJson(input.authored)
+  const compiledDocument = requireProjectionRecord(normalizeCanonicalJson(input.compiled))
+  const authoredChecksum = checksumCanonicalJson(authoredDocument)
+  const authored = authoredDocumentVersionSchema.parse({
+    subjectKind: input.subjectKind,
+    subjectId: input.authored.id,
+    versionId: randomUUID(),
+    version: 1,
+    documentSchemaVersion: BASELINE_DOCUMENT_SCHEMA_VERSION,
+    checksum: authoredChecksum,
+    document: authoredDocument
+  })
+  await upsertAuthoredRootEnvelope(input.context.db, {
+    document: authored.document,
+    subjectKind: input.subjectKind
+  })
+  const versionRepository = createAuthoredVersionRepository(input.context.db)
+  const active = await versionRepository.findActiveForPublication({
+    subjectKind: input.subjectKind,
+    subjectId: input.authored.id
+  })
+  if (
+    active?.authored.checksum === authoredChecksum &&
+    active.compiled.projectionChecksum ===
+      checksumCompiledAuthoredProjection({
+        subjectKind: input.subjectKind,
+        subjectId: input.authored.id,
+        authoredVersionId: active.authored.versionId,
+        authoredVersion: active.authored.version,
+        authoredChecksum,
+        projectionSchemaVersion: BASELINE_PROJECTION_SCHEMA_VERSION,
+        compilerVersion: BASELINE_PROJECTION_COMPILER_VERSION,
+        vocabularySnapshotId: input.vocabularySnapshot.snapshotId,
+        vocabularySnapshotVersion: input.vocabularySnapshot.snapshotVersion,
+        vocabularySnapshotChecksum: input.vocabularySnapshot.checksum,
+        authoredDependencies: input.authoredDependencies,
+        projection: compiledDocument
+      }) &&
+    active.compiled.compilerVersion === BASELINE_PROJECTION_COMPILER_VERSION &&
+    active.compiled.vocabularySnapshotId === input.vocabularySnapshot.snapshotId
+  ) {
+    if (authored.subjectKind === 'SPELL') {
+      const spell = spellAuthoredDtoSchema.parse(authored.document)
+      await syncSpellCatalogClassIndex(input.context.db, {
+        authoredVersionId: active.authored.versionId,
+        classIds: spell.classIds,
+        spellId: spell.id
+      })
+    }
+    return
+  }
+
+  const published = await versionRepository.publish({
+    subjectKind: authored.subjectKind,
+    subjectId: authored.subjectId,
+    versionId: authored.versionId,
+    documentSchemaVersion: authored.documentSchemaVersion,
+    authoredChecksum: authored.checksum,
+    document: authored.document,
+    projectionSchemaVersion: BASELINE_PROJECTION_SCHEMA_VERSION,
+    compilerVersion: BASELINE_PROJECTION_COMPILER_VERSION,
+    vocabularySnapshotId: input.vocabularySnapshot.snapshotId,
+    vocabularySnapshotVersion: input.vocabularySnapshot.snapshotVersion,
+    vocabularySnapshotChecksum: input.vocabularySnapshot.checksum,
+    authoredDependencies: input.authoredDependencies,
+    compiledDocument
+  })
+  if (authored.subjectKind === 'SPELL') {
+    const spell = spellAuthoredDtoSchema.parse(authored.document)
+    await syncSpellCatalogClassIndex(input.context.db, {
+      authoredVersionId: published.authored.versionId,
+      classIds: spell.classIds,
+      spellId: spell.id
+    })
+  }
+}
+
+async function prepareBaselineRaceProjection(input: {
+  context: SeedContext
+  race: BaselineContentBundle['subjects']['races'][number]
+}): Promise<{
+  authoredDependencies: CompiledAuthoredProjection['authoredDependencies']
+  compiled: ReturnType<typeof compileRace>
+}> {
+  if (input.race.category === 'BASE') {
+    return {
+      authoredDependencies: [],
+      compiled: compileRace(resolveRaceAuthored(input.race, () => null))
+    }
+  }
+
+  const parent = await createAuthoredVersionRepository(input.context.db).findActive({
+    subjectKind: 'RACE',
+    subjectId: input.race.parentRaceId
+  })
+  if (!parent || parent.authored.subjectKind !== 'RACE') {
+    throw new Error(
+      `Cannot seed subrace "${input.race.id}" without an active parent race version.`
+    )
+  }
+  const parentRace = raceAuthoredDtoSchema.parse(parent.authored.document) as unknown as RaceAuthored
+
+  return {
+    authoredDependencies: [
+      {
+        subjectKind: parent.authored.subjectKind,
+        subjectId: parent.authored.subjectId,
+        versionId: parent.authored.versionId,
+        version: parent.authored.version,
+        checksum: parent.authored.checksum
+      }
+    ],
+    compiled: compileRace(
+      resolveRaceAuthored(input.race, (raceId) =>
+        raceId === parent.authored.subjectId ? parentRace : null
+      )
+    )
+  }
+}
+
+async function prepareBaselineEquipmentProjection(input: {
+  context: SeedContext
+  equipment: BaselineContentBundle['subjects']['equipment'][number]
+}): Promise<{
+  authoredDependencies: CompiledAuthoredProjection['authoredDependencies']
+  compiled: ReturnType<typeof compileEquipment>
+}> {
+  const equipment = equipmentAuthoredDtoSchema.parse(input.equipment) as EquipmentAuthored
+  if (equipment.category !== 'VARIANT') {
+    return {
+      authoredDependencies: [],
+      compiled: compileEquipment(equipment)
+    }
+  }
+
+  const parent = await createAuthoredVersionRepository(input.context.db).findActive({
+    subjectKind: 'EQUIPMENT',
+    subjectId: equipment.parentEquipmentId
+  })
+  if (!parent || parent.authored.subjectKind !== 'EQUIPMENT') {
+    throw new Error(
+      `Cannot seed equipment variant "${equipment.id}" without an active parent equipment version.`
+    )
+  }
+  const parentEquipment = equipmentAuthoredDtoSchema.parse(
+    parent.authored.document
+  ) as EquipmentAuthored
+
+  return {
+    authoredDependencies: [
+      {
+        subjectKind: parent.authored.subjectKind,
+        subjectId: parent.authored.subjectId,
+        versionId: parent.authored.versionId,
+        version: parent.authored.version,
+        checksum: parent.authored.checksum
+      }
+    ],
+    compiled: compileEquipment(
+      resolveEquipmentAuthored(equipment, (equipmentId) =>
+        equipmentId === parent.authored.subjectId ? parentEquipment : null
+      )
+    )
+  }
 }
 
 function getBaselineSubjectSets(bundle: BaselineContentBundle): BaselineSubjectSet[] {
@@ -117,55 +352,6 @@ async function findStaleBaselineSubjectIds(
   return (await query.execute()).map((row) => row.id)
 }
 
-async function clearStaleBaselineReferences(
-  context: SeedContext,
-  staleByKind: ReadonlyMap<BaselineSubjectKind, readonly string[]>
-): Promise<void> {
-  // These RESTRICT-style links must not keep removed baseline roots alive.
-  // Later bundle upserts recreate valid links and surface invalid references.
-  const staleEquipmentIds = staleByKind.get('EQUIPMENT') ?? []
-  if (staleEquipmentIds.length > 0) {
-    await context.db
-      .deleteFrom('equipment_contains')
-      .where('contained_equipment_id', 'in', staleEquipmentIds)
-      .execute()
-    await context.db
-      .deleteFrom('starting_equipment_option_item_equipment')
-      .where('equipment_id', 'in', staleEquipmentIds)
-      .execute()
-    await context.db
-      .deleteFrom('proficiency_grant_equipment')
-      .where('equipment_id', 'in', staleEquipmentIds)
-      .execute()
-  }
-
-  const staleClassIds = staleByKind.get('CLASS') ?? []
-  if (staleClassIds.length > 0) {
-    await context.db.deleteFrom('spell_classes').where('class_id', 'in', staleClassIds).execute()
-  }
-
-  const staleFeatIds = staleByKind.get('FEAT') ?? []
-  if (staleFeatIds.length > 0) {
-    await context.db.deleteFrom('feat_grant_feats').where('feat_id', 'in', staleFeatIds).execute()
-    await context.db
-      .deleteFrom('feat_grant_scaling_level_feats')
-      .where('feat_id', 'in', staleFeatIds)
-      .execute()
-  }
-
-  const staleSpellIds = staleByKind.get('SPELL') ?? []
-  if (staleSpellIds.length > 0) {
-    await context.db
-      .deleteFrom('spell_grant_spells')
-      .where('spell_id', 'in', staleSpellIds)
-      .execute()
-    await context.db
-      .deleteFrom('spell_grant_scaling_level_spells')
-      .where('spell_id', 'in', staleSpellIds)
-      .execute()
-  }
-}
-
 async function pruneStaleBaselineSubjects(
   context: SeedContext,
   subjects: readonly BaselineSubjectSet[]
@@ -178,11 +364,6 @@ async function pruneStaleBaselineSubjects(
       ids: await findStaleBaselineSubjectIds(context, subject)
     })
   }
-
-  await clearStaleBaselineReferences(
-    context,
-    new Map(staleSubjects.map((subject) => [subject.subjectKind, subject.ids]))
-  )
 
   for (const subject of staleSubjects) {
     if (subject.ids.length === 0) continue
@@ -231,145 +412,125 @@ async function seedBaselineSubjectRouteIds(
 }
 
 /**
- * Seeds one system-scoped baseline content bundle into normalized persistence.
- * Vocabulary/system root seeding remains a separate concern until the
- * dedicated system/vocabulary wrappers are added.
+ * Seeds one system-scoped baseline bundle as vocabulary plus immutable authored
+ * versions/projections in one transaction.
  */
 const seedBaselineContentInTransaction: SeedBaselineContent = async (context, bundle) => {
   if (!bundle.vocabulary.systems.some((system) => system.id === context.systemId)) {
     throw new Error(`Missing system seed record for systemId "${context.systemId}".`)
   }
 
+  const vocabularySnapshots = new Map<string, Awaited<ReturnType<typeof ensureVocabularySnapshot>>>()
   for (const system of bundle.vocabulary.systems) {
     await upsertSystem(context.db, system)
+    vocabularySnapshots.set(system.id, await ensureVocabularySnapshot(context, system))
   }
 
   await pruneStaleBaselineContent(context, bundle)
 
-  for (const detail of bundle.shared.details) {
-    await upsertDetail(context.db, detail)
-  }
-
-  for (const charge of bundle.shared.charges) {
-    await upsertCharge(context.db, charge)
-  }
-
-  for (const savingThrow of bundle.shared.savingThrows) {
-    await upsertSavingThrow(context.db, savingThrow)
-  }
-
-  for (const equipment of bundle.subjects.equipment) {
-    await upsertEquipment(context.db, equipment, context.systemId)
-  }
-
-  for (const startingEquipment of bundle.shared.startingEquipment) {
-    await upsertStartingEquipment(context.db, startingEquipment)
-  }
-
-  for (const effect of bundle.effects.effects) {
-    await upsertEffect(context.db, effect)
-  }
-
-  for (const feature of bundle.features.features) {
-    await upsertFeature(context.db, feature, context.systemId)
-  }
-
-  for (const option of bundle.features.options) {
-    await upsertOption(context.db, option, context.systemId)
-  }
-
-  for (const featGrant of bundle.grants.feats) {
-    await upsertFeatGrant(context.db, featGrant)
-  }
-
-  for (const modifierGrant of bundle.grants.modifiers) {
-    await upsertModifierGrant(context.db, modifierGrant, context.systemId)
-  }
-
-  for (const proficiencyGrant of bundle.grants.proficiencies) {
-    await upsertProficiencyGrant(context.db, proficiencyGrant)
-  }
-
-  for (const senseGrant of bundle.grants.senses) {
-    await upsertSenseGrant(context.db, senseGrant)
-  }
-
-  for (const spellGrant of bundle.grants.spells) {
-    await upsertSpellGrant(context.db, spellGrant)
+  const vocabularySnapshotFor = (systemId: string) => {
+    const snapshot = vocabularySnapshots.get(systemId)
+    if (!snapshot) {
+      throw new Error(`Missing vocabulary snapshot for baseline system "${systemId}".`)
+    }
+    return snapshot
   }
 
   for (const background of bundle.subjects.backgrounds) {
-    await upsertBackground(context.db, background, context.systemId)
+    await publishBaselineSubjectVersion({
+      context,
+      subjectKind: 'BACKGROUND',
+      authored: background,
+      compiled: compileBackground(background),
+      authoredDependencies: [],
+      vocabularySnapshot: vocabularySnapshotFor(background.systemId)
+    })
   }
-
-  for (const characterClass of bundle.subjects.classes) {
-    await upsertClassRoot(context.db, characterClass, context.systemId)
+  const classesByDependencyOrder = [...bundle.subjects.classes].sort((left, right) =>
+    left.category === right.category ? 0 : left.category === 'BASE' ? -1 : 1
+  )
+  for (const characterClass of classesByDependencyOrder) {
+    await publishBaselineSubjectVersion({
+      context,
+      subjectKind: 'CLASS',
+      authored: characterClass,
+      compiled: compileClass(characterClass),
+      authoredDependencies: [],
+      vocabularySnapshot: vocabularySnapshotFor(characterClass.systemId)
+    })
   }
-
-  for (const spell of bundle.subjects.spells) {
-    await upsertSpell(context.db, spell, context.systemId)
-  }
-
-  for (const characterClass of bundle.subjects.classes) {
-    await upsertClass(context.db, characterClass, context.systemId)
-  }
-
   for (const creature of bundle.subjects.creatures) {
-    await upsertCreature(context.db, creature, context.systemId)
+    await publishBaselineSubjectVersion({
+      context,
+      subjectKind: 'CREATURE',
+      authored: creature,
+      compiled: compileCreature(creature),
+      authoredDependencies: [],
+      vocabularySnapshot: vocabularySnapshotFor(creature.systemId)
+    })
   }
-
+  const equipmentByDependencyOrder = [...bundle.subjects.equipment].sort((left, right) =>
+    left.category === right.category ? 0 : left.category === 'VARIANT' ? 1 : -1
+  )
+  for (const equipment of equipmentByDependencyOrder) {
+    const prepared = await prepareBaselineEquipmentProjection({ context, equipment })
+    await publishBaselineSubjectVersion({
+      context,
+      subjectKind: 'EQUIPMENT',
+      authored: equipment,
+      compiled: prepared.compiled,
+      authoredDependencies: prepared.authoredDependencies,
+      vocabularySnapshot: vocabularySnapshotFor(equipment.systemId)
+    })
+  }
   for (const feat of bundle.subjects.feats) {
-    await upsertFeat(context.db, feat, context.systemId)
+    await publishBaselineSubjectVersion({
+      context,
+      subjectKind: 'FEAT',
+      authored: feat,
+      compiled: compileFeat(feat),
+      authoredDependencies: [],
+      vocabularySnapshot: vocabularySnapshotFor(feat.systemId)
+    })
   }
-
-  for (const race of bundle.subjects.races) {
-    await upsertRace(context.db, race, context.systemId)
+  const racesByDependencyOrder = [...bundle.subjects.races].sort((left, right) =>
+    left.category === right.category ? 0 : left.category === 'BASE' ? -1 : 1
+  )
+  for (const race of racesByDependencyOrder) {
+    const prepared = await prepareBaselineRaceProjection({ context, race })
+    await publishBaselineSubjectVersion({
+      context,
+      subjectKind: 'RACE',
+      authored: race,
+      compiled: prepared.compiled,
+      authoredDependencies: prepared.authoredDependencies,
+      vocabularySnapshot: vocabularySnapshotFor(race.systemId)
+    })
   }
-
+  for (const spell of bundle.subjects.spells) {
+    await publishBaselineSubjectVersion({
+      context,
+      subjectKind: 'SPELL',
+      authored: spell,
+      compiled: compileSpell(spell),
+      authoredDependencies: [],
+      vocabularySnapshot: vocabularySnapshotFor(spell.systemId)
+    })
+  }
   for (const vehicle of bundle.subjects.vehicles) {
-    await upsertVehicle(context.db, vehicle, context.systemId)
+    await publishBaselineSubjectVersion({
+      context,
+      subjectKind: 'VEHICLE',
+      authored: vehicle,
+      compiled: compileVehicle(vehicle),
+      authoredDependencies: [],
+      vocabularySnapshot: vocabularySnapshotFor(vehicle.systemId)
+    })
   }
 
-  await markBaselineSubjectsMaster(
-    context,
-    'backgrounds',
-    bundle.subjects.backgrounds.map((record) => record.id)
-  )
-  await markBaselineSubjectsMaster(
-    context,
-    'classes',
-    bundle.subjects.classes.map((record) => record.id)
-  )
-  await markBaselineSubjectsMaster(
-    context,
-    'creatures',
-    bundle.subjects.creatures.map((record) => record.id)
-  )
-  await markBaselineSubjectsMaster(
-    context,
-    'equipment',
-    bundle.subjects.equipment.map((record) => record.id)
-  )
-  await markBaselineSubjectsMaster(
-    context,
-    'feats',
-    bundle.subjects.feats.map((record) => record.id)
-  )
-  await markBaselineSubjectsMaster(
-    context,
-    'races',
-    bundle.subjects.races.map((record) => record.id)
-  )
-  await markBaselineSubjectsMaster(
-    context,
-    'spells',
-    bundle.subjects.spells.map((record) => record.id)
-  )
-  await markBaselineSubjectsMaster(
-    context,
-    'vehicles',
-    bundle.subjects.vehicles.map((record) => record.id)
-  )
+  for (const subject of getBaselineSubjectSets(bundle)) {
+    await markBaselineSubjectsMaster(context, subject.table, subject.ids)
+  }
 
   await seedBaselineSubjectRouteIds(context, getBaselineRouteSubjects(bundle))
 

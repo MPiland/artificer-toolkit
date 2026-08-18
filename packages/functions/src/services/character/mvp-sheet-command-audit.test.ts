@@ -5,15 +5,24 @@ import type { CharacterBuilderResolution } from './builderService.js'
 
 const mocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
+  assembleSheetBundleForRuleContext: vi.fn(),
+  assertCommandAuthority: vi.fn(),
+  compileMechanicsProjection: vi.fn(),
+  createCommittedExtras: vi.fn(),
+  createCommittedResolution: vi.fn(),
+  createCommittedSpells: vi.fn(),
   findByCommandId: vi.fn(),
   findById: vi.fn(),
   findAuthoredById: vi.fn(),
+  findMechanics: vi.fn(),
   getMovementPreference: vi.fn(),
   listAdjustments: vi.fn(),
   listResourceUsage: vi.fn(),
   listSpellCustomizations: vi.fn(),
+  loadCommittedSources: vi.fn(),
   loadCharacterBuilderContext: vi.fn(),
   patchSheetState: vi.fn(),
+  publishMechanics: vi.fn(),
   buildSheetBundle: vi.fn(),
   setResourceUsage: vi.fn(),
   setSpellCustomization: vi.fn(),
@@ -41,6 +50,10 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       findAuthoredById: mocks.findAuthoredById,
       patchSheetState: mocks.patchSheetState
     }),
+    createCharacterMechanicsProjectionRepository: () => ({
+      publish: mocks.publishMechanics,
+      requireCurrent: mocks.findMechanics
+    }),
     createCampaignContentRepository: () => ({
       findAssignedCampaign: async () => null
     }),
@@ -54,7 +67,6 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       setResourceUsage: mocks.setResourceUsage,
       setSpellCustomization: mocks.setSpellCustomization
     }),
-    getCharacterSheetExtraCatalogQuery: async () => ({ creatures: [], vehicles: [] })
   }
 })
 
@@ -71,6 +83,25 @@ vi.mock('./sheetProjection.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./sheetProjection.js')>()
   return { ...actual, buildCharacterSheetBundle: mocks.buildSheetBundle }
 })
+
+vi.mock('./characterCommittedSheetSources.js', () => ({
+  createCharacterCommittedSheetExtras: mocks.createCommittedExtras,
+  createCharacterCommittedSheetResolution: mocks.createCommittedResolution,
+  createCharacterCommittedSheetSpells: mocks.createCommittedSpells,
+  loadCharacterCommittedSheetSources: mocks.loadCommittedSources
+}))
+
+vi.mock('./characterMechanicsCompiler.js', () => ({
+  compileCharacterMechanicsProjection: mocks.compileMechanicsProjection
+}))
+
+vi.mock('./characterSheetBundleAssembly.js', () => ({
+  assembleCharacterSheetBundleForRuleContext: mocks.assembleSheetBundleForRuleContext
+}))
+
+vi.mock('../campaign/liveSessionCommandAuthority.js', () => ({
+  assertCharacterLiveSessionCommandAuthority: mocks.assertCommandAuthority
+}))
 
 const { applyCharacterSheetCommand } = await import('./sheetCommandReducer.js')
 const { executeCharacterSheetCommand } = await import('./sheetService.js')
@@ -244,8 +275,6 @@ function createAuditSheet(character: CharacterAuthored, streamVersion: number) {
     extras: {
       kindOptions: [],
       originOptions: [],
-      creatureOptions: [],
-      vehicleOptions: [],
       items: []
     },
     resources: { items: [], hitDice: [] },
@@ -282,9 +311,17 @@ function createAuditSheet(character: CharacterAuthored, streamVersion: number) {
 describe('MVP character Sheet command audit', () => {
   beforeEach(() => {
     mocks.appendEvent.mockReset()
+    mocks.assembleSheetBundleForRuleContext.mockReset()
+    mocks.assertCommandAuthority.mockReset()
+    mocks.assertCommandAuthority.mockResolvedValue(undefined)
+    mocks.compileMechanicsProjection.mockReset()
+    mocks.createCommittedExtras.mockReset()
+    mocks.createCommittedResolution.mockReset()
+    mocks.createCommittedSpells.mockReset()
     mocks.findByCommandId.mockReset()
     mocks.findById.mockReset()
     mocks.findAuthoredById.mockReset()
+    mocks.findMechanics.mockReset()
     mocks.getMovementPreference.mockReset()
     mocks.getMovementPreference.mockResolvedValue({ mode: 'AUTO' })
     mocks.listAdjustments.mockReset()
@@ -297,10 +334,37 @@ describe('MVP character Sheet command audit', () => {
     mocks.resolveCharacterBuilder.mockReset()
     mocks.buildSheetBundle.mockReset()
     mocks.patchSheetState.mockReset()
+    mocks.publishMechanics.mockReset()
     mocks.setResourceUsage.mockReset()
     mocks.setSpellCustomization.mockReset()
     mocks.findByCommandId.mockResolvedValue(null)
     const resolution = createResolution()
+    const mechanics = {
+      characterId: 'character-1',
+      authoredVersionVector: [],
+      ruleRevisionId: 'revision-1',
+      ruleRevisionChecksum: 'a'.repeat(64),
+      evaluatorVersion: '0.54.0',
+      modelContractVersion: 5,
+      rulePolicyInput: {},
+      rulePolicyOutput: {},
+      ruleRegistry: {},
+      ruleSnapshot: { characterId: 'character-1' }
+    }
+    mocks.findMechanics.mockResolvedValue(mechanics)
+    mocks.loadCommittedSources.mockResolvedValue({
+      mechanics,
+      recordsByRoot: new Map(),
+      vocabularySnapshot: { snapshotId: 'snapshot-1' }
+    })
+    mocks.createCommittedResolution.mockReturnValue(resolution)
+    mocks.createCommittedExtras.mockReturnValue({
+      creaturesById: new Map(),
+      vehiclesById: new Map()
+    })
+    mocks.createCommittedSpells.mockReturnValue(new Map())
+    mocks.compileMechanicsProjection.mockReturnValue({})
+    mocks.publishMechanics.mockResolvedValue(undefined)
     mocks.loadCharacterBuilderContext.mockResolvedValue({
       catalog: resolution.catalog,
       registry: resolution.sourceRegistry
@@ -321,6 +385,17 @@ describe('MVP character Sheet command audit', () => {
           }
         },
         ruleEvaluation: { output: { rest: { attunementSlotLimit: 3 } } }
+      })
+    )
+    mocks.assembleSheetBundleForRuleContext.mockImplementation(
+      async (params: { character: CharacterAuthored; row: { stream_version: number } }) => ({
+        bundle: {
+          sheet: createAuditSheet(params.character, params.row.stream_version),
+          ruleEvaluation: { output: { rest: { attunementSlotLimit: 3 } } }
+        },
+        resolution,
+        characterAdjustments: [],
+        movementDisplayPreference: { mode: 'AUTO' }
       })
     )
   })
@@ -474,8 +549,6 @@ describe('MVP character Sheet command audit', () => {
       extras: {
         kindOptions: [],
         originOptions: [],
-        creatureOptions: [],
-        vehicleOptions: [],
         items: []
       },
       resources: { items: [], hitDice: [] },

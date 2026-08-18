@@ -1,37 +1,18 @@
 import { describe, expect, it } from 'vitest'
 
-import type { CharacterSheetMechanicsQueryResult } from '@artificer-toolkit/db'
 import type { CharacterActionDecision } from '@artificer-toolkit/schema/api/characterActionRules'
 
-import { projectCharacterRuleActionMechanic } from './characterRuleActionProjection.js'
+import {
+  projectCharacterRuleActionMechanic,
+  type CharacterRuleActionPresentationReferences
+} from './characterRuleActionProjection.js'
 
-function query(
-  overrides: Partial<CharacterSheetMechanicsQueryResult> = {}
-): CharacterSheetMechanicsQueryResult {
+function references(
+  overrides: Partial<CharacterRuleActionPresentationReferences> = {}
+): CharacterRuleActionPresentationReferences {
   return {
-    owners: [],
-    ownerAttributes: [],
-    ownerEffects: [],
-    ownerCharges: [],
-    invocations: [],
-    paths: [],
-    choiceOptions: [],
-    rollTableRows: [],
-    resultBlocks: [],
-    outcomes: [],
-    characteristics: [],
-    shapeDimensions: [],
-    savingThrows: [],
-    savingThrowBonuses: [],
-    damages: [],
-    damageScaling: [],
-    damageBonusKinds: [],
-    damageBonuses: [],
-    conditions: [],
-    genericOutcomes: [],
-    charges: [],
-    chargeScaling: [],
-    chargeBonuses: [],
+    damageLabels: new Map(),
+    conditionLabels: new Map(),
     ...overrides
   }
 }
@@ -77,36 +58,9 @@ describe('projectCharacterRuleActionMechanic', () => {
   it('keeps Zen mechanics authoritative and joins presentation labels only', () => {
     const projected = projectCharacterRuleActionMechanic(
       mechanic,
-      query({
-        damages: [
-          {
-            damageId: 'damage-1',
-            damageTypeId: 'fire',
-            damageTypeCode: 'FIRE',
-            damageTypeLabel: 'Fire',
-            valueKind: 'DICE',
-            scalingKind: 'NONE',
-            amountKind: null,
-            amountMultiplier: null,
-            scalingSource: null,
-            classId: null,
-            order: 0,
-            valueId: null,
-            amount: null,
-            dice: '2d6',
-            valueMultiplier: null,
-            valueMin: null,
-            valueMax: null
-          }
-        ],
-        conditions: [
-          {
-            conditionId: 'condition-1',
-            conditionTypeId: 'prone',
-            conditionTypeCode: 'PRONE',
-            conditionTypeLabel: 'Prone'
-          }
-        ]
+      references({
+        damageLabels: new Map([['fire', 'Fire']]),
+        conditionLabels: new Map([['prone', 'Prone']])
       })
     )
 
@@ -146,7 +100,7 @@ describe('projectCharacterRuleActionMechanic', () => {
   })
 
   it('fails closed when required presentation vocabulary is unavailable', () => {
-    expect(() => projectCharacterRuleActionMechanic(mechanic, query())).toThrow(
+    expect(() => projectCharacterRuleActionMechanic(mechanic, references())).toThrow(
       'damage type is missing'
     )
   })

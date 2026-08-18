@@ -1,5 +1,6 @@
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
 
 export type GuidedCopySource = {
@@ -73,23 +74,32 @@ export async function getGuidedCopySources(
 ): Promise<GuidedCopySourceList> {
   switch (domain) {
     case 'background':
-      return api.content.backgrounds.list()
+      return { items: await loadPagedAuthoredCatalogItems(api.content.backgrounds.list, backgroundRequest) }
     case 'class':
-      return api.content.classes.list()
+      return { items: await loadPagedAuthoredCatalogItems(api.content.classes.list, classRequest) }
     case 'creature':
-      return api.content.creatures.list()
+      return { items: await loadPagedAuthoredCatalogItems(api.content.creatures.list, creatureRequest) }
     case 'equipment':
-      return api.content.equipment.list()
+      return { items: await loadPagedAuthoredCatalogItems(api.content.equipment.list, equipmentRequest) }
     case 'feat':
-      return api.content.feats.list()
+      return { items: await loadPagedAuthoredCatalogItems(api.content.feats.list, featRequest) }
     case 'race':
-      return api.content.races.list()
+      return { items: await loadPagedAuthoredCatalogItems(api.content.races.list, raceRequest) }
     case 'spell':
-      return api.content.spells.list()
+      return { items: await loadPagedAuthoredCatalogItems(api.content.spells.list, spellRequest) }
     case 'vehicle':
-      return api.content.vehicles.list()
+      return { items: await loadPagedAuthoredCatalogItems(api.content.vehicles.list, vehicleRequest) }
   }
 }
+
+const backgroundRequest = { direction: 'FORWARD', limit: 48, sort: 'name' } as const
+const classRequest = { direction: 'FORWARD', limit: 48, sort: 'name' } as const
+const creatureRequest = { direction: 'FORWARD', limit: 48, sort: 'name' } as const
+const equipmentRequest = { direction: 'FORWARD', limit: 48, sort: 'name' } as const
+const featRequest = { direction: 'FORWARD', limit: 48, sort: 'name' } as const
+const raceRequest = { direction: 'FORWARD', limit: 48, sort: 'name' } as const
+const spellRequest = { direction: 'FORWARD', limit: 48, sort: 'name' } as const
+const vehicleRequest = { direction: 'FORWARD', limit: 48, sort: 'name' } as const
 
 export function toGuidedCopySources(response: GuidedCopySourceList): GuidedCopySource[] {
   return copyableItems(response)

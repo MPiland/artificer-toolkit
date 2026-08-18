@@ -31,6 +31,7 @@ vi.mock('./characterRuleEvaluation.js', async () => {
 })
 
 const repositoryState = vi.hoisted(() => ({
+  backgrounds: [] as BackgroundAuthored[],
   classes: [] as ClassAuthored[],
   equipment: [] as CharacterBuilderRegistry['equipment'],
   features: [] as FeatureAuthored[],
@@ -40,6 +41,8 @@ const repositoryState = vi.hoisted(() => ({
 }))
 
 const repositoryCalls = vi.hoisted(() => ({
+  authoredVersionFindActiveByIds: vi.fn(),
+  authoredVersionFindExactVersions: vi.fn(),
   backgroundFindByIds: vi.fn(),
   backgroundListQuery: vi.fn(),
   classFindByIds: vi.fn(),
@@ -58,6 +61,10 @@ const repositoryCalls = vi.hoisted(() => ({
 
 vi.mock('@artificer-toolkit/db', () => ({
   createCampaignContentRepository: () => ({ findAssignedCampaign: async () => null }),
+  createAuthoredVersionRepository: () => ({
+    findActiveByIds: repositoryCalls.authoredVersionFindActiveByIds,
+    findExactVersions: repositoryCalls.authoredVersionFindExactVersions
+  }),
   createSystemRepository: () => ({
     findById: async () => ({
       id: 'system-1',
@@ -253,6 +260,16 @@ function createCharacter(raceId: string, classId: string) {
   return character
 }
 
+function activeVersionInput(subjectKind: string, subjectIds: readonly string[]) {
+  return {
+    subjectKind,
+    subjectIds,
+    systemId: 'system-1',
+    userId: 'user-1',
+    includeMaster: true
+  }
+}
+
 function createFireBolt(): CharacterBuilderSpellCatalogRecord {
   return {
     id: 'fire-bolt',
@@ -269,11 +286,76 @@ describe('character Builder conditional spell registry loading', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     repositoryState.classes = []
+    repositoryState.backgrounds = []
     repositoryState.equipment = []
     repositoryState.features = []
     repositoryState.feats = []
     repositoryState.races = []
     repositoryState.spells = [createFireBolt()]
+    repositoryCalls.authoredVersionFindActiveByIds.mockImplementation(
+      async ({ subjectIds, subjectKind }: { subjectIds: readonly string[]; subjectKind: string }) => {
+        const records =
+          subjectKind === 'RACE'
+            ? repositoryState.races
+            : subjectKind === 'CLASS'
+              ? repositoryState.classes
+              : subjectKind === 'BACKGROUND'
+                ? repositoryState.backgrounds
+                : subjectKind === 'EQUIPMENT'
+                  ? repositoryState.equipment
+                : subjectKind === 'FEAT'
+                  ? repositoryState.feats
+                  : subjectKind === 'SPELL'
+                    ? repositoryState.spells.map((spell) => ({
+                        ...spell,
+                        systemId: 'system-1',
+                        userId: 'user-1'
+                      }))
+                  : []
+        return new Map(
+          records
+            .filter((record) => subjectIds.includes(record.id))
+            .map((record) => [
+              record.id,
+              {
+              authored: { document: record },
+              compiled: {
+                authoredDependencies:
+                    'parentRaceId' in record && typeof record.parentRaceId === 'string'
+                      ? [
+                        {
+                          subjectKind: 'RACE',
+                            subjectId: record.parentRaceId,
+                            versionId: `${record.parentRaceId}-version`,
+                            version: 1,
+                          checksum: 'a'.repeat(64)
+                        }
+                      ]
+                      : []
+                }
+              }
+            ])
+        )
+      }
+    )
+    repositoryCalls.authoredVersionFindExactVersions.mockImplementation(
+      async ({ entries }: { entries: readonly { subjectId: string; subjectKind: string }[] }) => {
+        const records = [...repositoryState.races, ...repositoryState.equipment]
+        return new Map(
+          entries.flatMap((entry) => {
+            const record = records.find((candidate) => candidate.id === entry.subjectId)
+            return record
+              ? [
+                  [
+                    `${entry.subjectKind}:${entry.subjectId}`,
+                    { authored: { document: record }, compiled: { authoredDependencies: [] } }
+                  ] as const
+                ]
+              : []
+          })
+        )
+      }
+    )
     repositoryCalls.structureQuery.mockResolvedValue({
       rootFeatureLinks: [],
       ancestryOptions: [],
@@ -531,9 +613,7 @@ describe('character Builder conditional spell registry loading', () => {
       items: [{ id: unselectedBackground.id, label: unselectedBackground.label }],
       meta: {}
     })
-    repositoryCalls.backgroundFindByIds.mockResolvedValue(
-      new Map([[unselectedBackground.id, unselectedBackground]])
-    )
+    repositoryState.backgrounds = [unselectedBackground]
 
     const resolution = await resolveCharacterBuilder(
       {} as never,
@@ -541,22 +621,18 @@ describe('character Builder conditional spell registry loading', () => {
       'create'
     )
 
-    expect(repositoryCalls.raceFindResolvedAll).toHaveBeenCalledWith({
-      systemId: 'system-1',
-      includeFeatureEffects: false
-    })
-    expect(repositoryCalls.classFindByIds).toHaveBeenCalledWith(
-      [selectedClass.id, unselectedClass.id],
-      {
-        systemId: 'system-1',
-        allowedFeatureIds: new Set(),
-        includeFeatureEffects: false
-      }
+    expect(repositoryCalls.raceFindResolvedAll).not.toHaveBeenCalled()
+    expect(repositoryCalls.classFindByIds).not.toHaveBeenCalled()
+    expect(repositoryCalls.backgroundFindByIds).not.toHaveBeenCalled()
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('RACE', [selectedRace.id, unselectedRace.id])
     )
-    expect(repositoryCalls.backgroundFindByIds).toHaveBeenCalledWith([unselectedBackground.id], {
-      systemId: 'system-1',
-      includeFeatureEffects: false
-    })
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('CLASS', [selectedClass.id, unselectedClass.id])
+    )
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('BACKGROUND', [unselectedBackground.id])
+    )
     expect(resolution.registry.races.map((race) => race.id)).toEqual([selectedRace.id])
     expect(resolution.catalog.races.find((race) => race.id === unselectedRace.id)).toMatchObject({
       description: 'Draconic heritage.',
@@ -588,7 +664,7 @@ describe('character Builder conditional spell registry loading', () => {
     ])
   })
 
-  it('passes only current-level feature ids to selected-root repositories', async () => {
+  it('loads selected Builder roots through active immutable versions', async () => {
     repositoryState.races = [createRace('human')]
     repositoryState.classes = [createFighter()]
     repositoryCalls.structureQuery.mockResolvedValue({
@@ -615,11 +691,9 @@ describe('character Builder conditional spell registry loading', () => {
 
     await resolveCharacterBuilder({} as never, createCharacter('human', 'fighter'), 'create')
 
-    expect(repositoryCalls.classFindByIds).toHaveBeenCalledWith(['fighter'], {
-      systemId: 'system-1',
-      allowedFeatureIds: new Set(['feature-level-1']),
-      includeFeatureEffects: false
-    })
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('CLASS', ['fighter'])
+    )
   })
 
   it('reconciles a Human Fighter without loading the full spell registry', async () => {
@@ -791,11 +865,9 @@ describe('character Builder conditional spell registry loading', () => {
 
     await resolveCharacterBuilder({} as never, character, 'create')
 
-    expect(repositoryCalls.equipmentFindResolvedById).toHaveBeenCalledWith('wand-of-sparks', {
-      systemId: 'system-1',
-      allowedFeatureIds: new Set(['wand-spell']),
-      includeEffects: false
-    })
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('EQUIPMENT', ['wand-of-sparks'])
+    )
     expect(repositoryCalls.spellListQuery).toHaveBeenCalledOnce()
   })
 
@@ -837,6 +909,7 @@ describe('character Builder conditional spell registry loading', () => {
       systemId: 'system-1'
     }
     repositoryCalls.backgroundFindByIds.mockResolvedValue(new Map([[background.id, background]]))
+    repositoryState.backgrounds = [background]
 
     const character = createCharacter('human', 'fighter')
     character.intent.background = { backgroundId: background.id }
@@ -860,31 +933,22 @@ describe('character Builder conditional spell registry loading', () => {
 
     await loadCharacterBuilderContext({} as never, character)
 
-    expect(repositoryCalls.raceFindResolvedById).toHaveBeenLastCalledWith('human', {
-      systemId: 'system-1',
-      includeFeatureEffects: false
-    })
-    expect(repositoryCalls.classFindByIds).toHaveBeenLastCalledWith(['fighter'], {
-      systemId: 'system-1',
-      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
-      includeFeatureEffects: false
-    })
-    expect(repositoryCalls.backgroundFindByIds).toHaveBeenLastCalledWith(['acolyte'], {
-      systemId: 'system-1',
-      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
-      includeFeatureEffects: false
-    })
-    expect(repositoryCalls.featFindByIds).toHaveBeenLastCalledWith(['magic-initiate'], {
-      systemId: 'system-1',
-      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
-      includeEffects: false
-    })
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('RACE', ['human'])
+    )
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('CLASS', ['fighter'])
+    )
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('BACKGROUND', ['acolyte'])
+    )
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('FEAT', ['magic-initiate'])
+    )
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('EQUIPMENT', ['wand-of-sparks'])
+    )
     expect(repositoryCalls.featureFindByIds).toHaveBeenLastCalledWith(['direct-feature'], {
-      includeEffects: false
-    })
-    expect(repositoryCalls.equipmentFindResolvedById).toHaveBeenLastCalledWith('wand-of-sparks', {
-      systemId: 'system-1',
-      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
       includeEffects: false
     })
 
@@ -892,31 +956,22 @@ describe('character Builder conditional spell registry loading', () => {
 
     await loadCharacterBuilderContext({} as never, character, [], { includeEffects: true })
 
-    expect(repositoryCalls.raceFindResolvedById).toHaveBeenLastCalledWith('human', {
-      systemId: 'system-1',
-      includeFeatureEffects: true
-    })
-    expect(repositoryCalls.classFindByIds).toHaveBeenLastCalledWith(['fighter'], {
-      systemId: 'system-1',
-      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
-      includeFeatureEffects: true
-    })
-    expect(repositoryCalls.backgroundFindByIds).toHaveBeenLastCalledWith(['acolyte'], {
-      systemId: 'system-1',
-      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
-      includeFeatureEffects: true
-    })
-    expect(repositoryCalls.featFindByIds).toHaveBeenLastCalledWith(['magic-initiate'], {
-      systemId: 'system-1',
-      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
-      includeEffects: true
-    })
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('RACE', ['human'])
+    )
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('CLASS', ['fighter'])
+    )
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('BACKGROUND', ['acolyte'])
+    )
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('FEAT', ['magic-initiate'])
+    )
+    expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
+      activeVersionInput('EQUIPMENT', ['wand-of-sparks'])
+    )
     expect(repositoryCalls.featureFindByIds).toHaveBeenLastCalledWith(['direct-feature'], {
-      includeEffects: true
-    })
-    expect(repositoryCalls.equipmentFindResolvedById).toHaveBeenLastCalledWith('wand-of-sparks', {
-      systemId: 'system-1',
-      allowedFeatureIds: new Set(['direct-feature', 'magic-initiate']),
       includeEffects: true
     })
   })

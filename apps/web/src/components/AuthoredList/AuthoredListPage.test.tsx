@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { AuthoredListPage } from './AuthoredListPage'
-import type { AuthoredListItem } from './AuthoredList.types'
+import type { AuthoredListCatalogWindow, AuthoredListItem } from './AuthoredList.types'
 import { spellListFilters, spellListItems } from './spellList.fixtures'
 
 const originalScrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
@@ -55,6 +55,47 @@ function renderSpellList() {
 }
 
 describe('AuthoredListPage', () => {
+  it('delegates active catalogue search to the cursor feed without locally filtering its page window', async () => {
+    const user = userEvent.setup()
+    const onQueryChange = vi.fn()
+    const catalog: AuthoredListCatalogWindow = {
+      activeCount: 312,
+      controls: {
+        filterValues: {},
+        onClearFilters: vi.fn(),
+        onFilterChange: vi.fn(),
+        onQueryChange,
+        onSortChange: vi.fn(),
+        query: '',
+        sort: 'name'
+      },
+      fetchNextPage: vi.fn(),
+      fetchPreviousPage: vi.fn(),
+      hasNextPage: true,
+      hasPreviousPage: false,
+      isFetchingNextPage: false,
+      isFetchingPreviousPage: false,
+      totalCount: 312
+    }
+
+    renderWithAppProviders(
+      <AuthoredListPage
+        title='Spells'
+        summary='312 spells / 312 SRD / 0 homebrew'
+        createLabel='Create Spell'
+        items={spellListItems}
+        filters={spellListFilters}
+        catalog={catalog}
+      />
+    )
+
+    expect(screen.getByText('Active (312)')).toBeInTheDocument()
+    await user.type(screen.getByRole('textbox', { name: /search spells/i }), 'e')
+
+    expect(onQueryChange).toHaveBeenCalledWith('e')
+    expect(screen.getByText('Magic Missile')).toBeInTheDocument()
+  })
+
   it('always exposes active and draft panels with a clear empty draft state', async () => {
     const user = userEvent.setup()
 

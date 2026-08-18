@@ -29,7 +29,7 @@ type RawApplication = {
   updated_at: string | Date
 }
 
-const applicationColumns = sql.raw(`
+const applicationColumns = sql`
   application.id, application.listing_id, listing.title as listing_title,
   listing.content_maturity,
   listing.campaign_id, campaign.owner_user_id as host_user_id,
@@ -40,14 +40,14 @@ const applicationColumns = sql.raw(`
   application.withdrawn_at, application.responded_at, application.expired_at,
   application.blocked_at, application.version,
   application.created_at, application.updated_at
-`)
+`
 
-const applicationJoins = sql.raw(`
+const applicationJoins = sql`
   join social_listings listing on listing.id = application.listing_id
   join campaigns campaign on campaign.id = listing.campaign_id
   join social_profiles applicant on applicant.id = application.applicant_profile_id
   join profiles applicant_account on applicant_account.id = applicant.user_id
-`)
+`
 
 function mapApplication(row: RawApplication): SocialApplicationRecord {
   return {

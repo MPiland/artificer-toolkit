@@ -3,6 +3,7 @@ import type { CreatureListItemDto } from '@artificer-toolkit/schema/api/content'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { api, type Api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
 
 export type EffectReferenceOption = {
   value: string
@@ -79,9 +80,13 @@ export async function loadEffectReferenceData(
 
   const [system, creatures] = await Promise.all([
     client.systems.get(targetSystemId),
-    client.content.creatures.list()
+    loadPagedAuthoredCatalogItems(client.content.creatures.list, {
+      direction: 'FORWARD',
+      limit: 48,
+      sort: 'name'
+    })
   ])
-  const systemCreatureItems = creatures.items.filter(
+  const systemCreatureItems = creatures.filter(
     (creature) => creature.systemId === targetSystemId
   )
 

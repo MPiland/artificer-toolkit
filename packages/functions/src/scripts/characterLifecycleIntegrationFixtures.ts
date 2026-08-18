@@ -3,11 +3,8 @@ import { randomUUID } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
 
 import {
-  createEquipmentRepository,
   createSystemRepository,
-  getBackgroundListQuery,
-  getClassListQuery,
-  getRaceListQuery,
+  srdBaselineContent,
   type DBLike
 } from '@artificer-toolkit/db'
 import {
@@ -23,7 +20,9 @@ import {
   type CharacterAuthored,
   type CharacterStartingEquipmentDecision
 } from '@artificer-toolkit/shared/subjects/authored'
+import { publishVersionedAuthoredAggregate } from '../services/authoredContent/versionedAuthoring.js'
 import { createEmptyCharacterAuthored } from '../services/character/builderService.js'
+import { createEquipmentSubjectAuthoringService } from '../services/subjects/equipmentAuthoring.js'
 
 const LOCAL_DATABASE_HOSTS = new Set(['127.0.0.1', '::1', 'host.docker.internal', 'localhost'])
 
@@ -91,21 +90,17 @@ export async function findFixtureCatalog(db: DBLike): Promise<CharacterLifecycle
   assert.ok(system, 'The seeded D&D 5e 2014 system is missing.')
   assert.ok(system.userId, 'The seeded D&D 5e 2014 system has no owning user.')
 
-  const [races, classes, backgrounds] = await Promise.all([
-    getRaceListQuery(db, { systemId: system.id }),
-    getClassListQuery(db, { systemId: system.id }),
-    getBackgroundListQuery(db, { systemId: system.id })
-  ])
+  const { backgrounds, classes, races } = srdBaselineContent.subjects
 
   return {
-    backgroundId: requireRecordByLabel(backgrounds.items, 'Acolyte', 'background').id,
-    championId: requireRecordByLabel(classes.items, 'Champion', 'subclass').id,
-    clericId: requireRecordByLabel(classes.items, 'Cleric', 'class').id,
-    dragonbornId: requireRecordByLabel(races.items, 'Dragonborn', 'race').id,
-    fighterId: requireRecordByLabel(classes.items, 'Fighter', 'class').id,
-    humanId: requireRecordByLabel(races.items, 'Human', 'race').id,
-    lifeDomainId: requireRecordByLabel(classes.items, 'Life Domain', 'subclass').id,
-    rogueId: requireRecordByLabel(classes.items, 'Rogue', 'class').id,
+    backgroundId: requireRecordByLabel(backgrounds, 'Acolyte', 'background').id,
+    championId: requireRecordByLabel(classes, 'Champion', 'subclass').id,
+    clericId: requireRecordByLabel(classes, 'Cleric', 'class').id,
+    dragonbornId: requireRecordByLabel(races, 'Dragonborn', 'race').id,
+    fighterId: requireRecordByLabel(classes, 'Fighter', 'class').id,
+    humanId: requireRecordByLabel(races, 'Human', 'race').id,
+    lifeDomainId: requireRecordByLabel(classes, 'Life Domain', 'subclass').id,
+    rogueId: requireRecordByLabel(classes, 'Rogue', 'class').id,
     systemId: system.id,
     userId: system.userId
   }
@@ -116,12 +111,7 @@ export async function createAttunementEquipmentFixture(
   catalog: CharacterLifecycleFixtureCatalog,
   equipmentId: string
 ): Promise<void> {
-  const repository = createEquipmentRepository(db)
-  const equipment = await repository.findAll({
-    systemId: catalog.systemId,
-    userId: catalog.userId
-  })
-  const source = requireRecordByLabel(equipment, 'Club', 'equipment')
+  const source = requireRecordByLabel(srdBaselineContent.subjects.equipment, 'Club', 'equipment')
   if (source.category === 'VARIANT') {
     throw new Error('The seeded Club must be base equipment for the Sheet command fixture.')
   }
@@ -129,7 +119,7 @@ export async function createAttunementEquipmentFixture(
     throw new Error('The seeded Club must have weight for the Sheet command fixture.')
   }
 
-  await repository.upsert({
+  const result = await createEquipmentSubjectAuthoringService(db).prepare({
     kind: source.kind,
     id: equipmentId,
     label: 'ZZZ Lifecycle Attunement Club',
@@ -142,6 +132,12 @@ export async function createAttunementEquipmentFixture(
     requiresAttunement: true,
     userId: catalog.userId,
     systemId: catalog.systemId
+  })
+  await publishVersionedAuthoredAggregate({
+    authored: result.authored,
+    compiled: result.compiled,
+    db,
+    subjectKind: 'EQUIPMENT'
   })
 }
 
@@ -173,6 +169,7 @@ export interface CharacterLifecycleFixture {
   expectedMaxHitPoints: number
   hitDice?: CharacterLifecycleHitDieFixture[]
   hitpointLevels: CharacterLifecycleHitpointLevelFixture[]
+  initialEquipmentIds?: string[]
   label: string
   preparedCasterClassId?: string
   raceId: string
@@ -329,6 +326,11 @@ export function createFixtureCharacter(params: CharacterLifecycleFixture): Chara
     systemId: params.systemId,
     userId: params.userId
   })
+  const backpack = requireRecordByLabel(
+    srdBaselineContent.subjects.equipment,
+    'Backpack',
+    'equipment'
+  )
   assert.equal(
     params.hitpointLevels.length,
     expectedTotalLevel(params),
@@ -366,6 +368,21 @@ export function createFixtureCharacter(params: CharacterLifecycleFixture): Chara
     },
     state: {
       ...character.state,
+      equipment: {
+        ...character.state.equipment,
+        inventory: [
+          {
+            id: randomUUID(),
+            equipmentId: backpack.id,
+            quantity: 1
+          },
+          ...(params.initialEquipmentIds ?? []).map((equipmentId) => ({
+            id: randomUUID(),
+            equipmentId,
+            quantity: 1
+          }))
+        ]
+      },
       hitpoints: {
         current: params.expectedMaxHitPoints,
         hitDice: params.hitDice ?? []

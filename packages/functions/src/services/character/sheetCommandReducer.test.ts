@@ -1567,15 +1567,6 @@ describe('character sheet command reducer', () => {
       extras: {
         kindOptions: [],
         originOptions: [],
-        creatureOptions: [
-          {
-            id: 'creature-1',
-            label: 'Owl',
-            armorClass: 11,
-            maximumHitPoints: 3
-          }
-        ],
-        vehicleOptions: [],
         items: []
       }
     })

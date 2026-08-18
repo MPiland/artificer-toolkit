@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { canonicalizeJson } from '@artificer-toolkit/db'
 import type { SceneCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   applySceneEvent,
@@ -11,6 +12,11 @@ import {
 } from '@artificer-toolkit/shared/vtt'
 
 import { EncounterValidationError } from './encounterErrors.js'
+import {
+  assertEncounterSceneProjectionReplay,
+  compileSceneCurrentProjection,
+  replayEncounterSceneProjection
+} from './sceneProjectionReplay.js'
 import { vttSceneServiceInternals } from './vttSceneService.js'
 
 const ids = {
@@ -334,5 +340,57 @@ describe('VTT scene command helpers', () => {
     expect(
       materializeEncounterScene(sceneDefinition, ids.encounter, ids.scene).tokens[0]?.position
     ).toEqual(restored.tokens[0]?.position)
+  })
+
+  it('rebuilds the current scene projection byte-equivalently from its event stream', () => {
+    const sceneDefinition = definition()
+    const events: SceneEvent[] = [
+      {
+        actorUserId: ids.user,
+        commandId: ids.command,
+        delta: { kind: 'TOKEN_MOVED', position: { x: 25, y: 20 }, tokenId: ids.token },
+        sceneId: ids.scene,
+        version: 1
+      },
+      {
+        actorUserId: ids.user,
+        commandId: ids.barrier,
+        delta: { barrierId: ids.barrier, kind: 'DOOR_STATE_SET', state: 'OPEN' },
+        sceneId: ids.scene,
+        version: 2
+      }
+    ]
+    const projection = replaySceneEvents(sceneDefinition, ids.encounter, ids.scene, events)
+    const rebuilt = assertEncounterSceneProjectionReplay({
+      definition: sceneDefinition,
+      encounterId: ids.encounter,
+      events,
+      projection,
+      sceneId: ids.scene
+    })
+
+    expect(canonicalizeJson(rebuilt)).toBe(canonicalizeJson(projection))
+    expect(
+      canonicalizeJson(
+        replayEncounterSceneProjection({
+          definition: sceneDefinition,
+          encounterId: ids.encounter,
+          events,
+          sceneId: ids.scene
+        })
+      )
+    ).toBe(canonicalizeJson(projection))
+
+    const committedProjection = compileSceneCurrentProjection(projection)
+    expect(committedProjection).toMatchObject({
+      projectionSchemaVersion: 1,
+      sceneId: ids.scene,
+      streamVersion: projection.version
+    })
+    expect(committedProjection.projectionChecksum).toMatch(/^[a-f0-9]{64}$/)
+    expect(
+      compileSceneCurrentProjection({ ...projection, version: projection.version + 1 })
+        .projectionChecksum
+    ).not.toBe(committedProjection.projectionChecksum)
   })
 })

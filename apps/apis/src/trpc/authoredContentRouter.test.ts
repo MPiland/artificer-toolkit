@@ -7,10 +7,18 @@ import { handleTrpcFetchRequest } from './handler.js'
 
 const listAuthoredDomain = vi.hoisted(() =>
   vi.fn(
-    async (): Promise<{ drafts: unknown; items: unknown[]; meta: unknown }> => ({
+    async (): Promise<{
+      drafts: unknown
+      items: unknown[]
+      meta: unknown
+      page: unknown
+      summary: unknown
+    }> => ({
       drafts: [],
       items: [],
-      meta: {}
+      meta: {},
+      page: { nextCursor: null, previousCursor: null, totalCount: 0 },
+      summary: { activeCount: 0, masterCount: 0, ownedCount: 0 }
     })
   )
 )
@@ -77,10 +85,12 @@ describe('tRPC authored content router', () => {
     ] as const
 
     for (const domain of domains) {
-      await expect(caller.content[domain].list()).resolves.toEqual({
+      await expect(caller.content[domain].list({})).resolves.toEqual({
         drafts: [],
         items: [],
-        meta: {}
+        meta: {},
+        page: { nextCursor: null, previousCursor: null, totalCount: 0 },
+        summary: { activeCount: 0, masterCount: 0, ownedCount: 0 }
       })
     }
 
@@ -92,11 +102,13 @@ describe('tRPC authored content router', () => {
     listAuthoredDomain.mockResolvedValueOnce({
       drafts: 'invalid',
       items: [],
-      meta: {}
+      meta: {},
+      page: { nextCursor: null, previousCursor: null, totalCount: 0 },
+      summary: { activeCount: 0, masterCount: 0, ownedCount: 0 }
     })
     const caller = appRouter.createCaller(authenticatedContext)
 
-    await expect(caller.content.backgrounds.list()).rejects.toMatchObject({
+    await expect(caller.content.backgrounds.list({})).rejects.toMatchObject({
       code: 'INTERNAL_SERVER_ERROR'
     })
   })

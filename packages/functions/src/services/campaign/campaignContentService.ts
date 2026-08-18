@@ -1,8 +1,7 @@
-import { isDeepStrictEqual } from 'node:util'
 import {
   createCampaignContentRepository,
   createCampaignRepository,
-  createCharacterRepository,
+  createAuthoredVersionRepository,
   withTransaction,
   type CampaignContentVersion,
   type DBLike,
@@ -25,12 +24,6 @@ import {
   type NodeMap
 } from '@artificer-toolkit/shared/maps'
 import { presentAuthoredSnapshotText } from '@artificer-toolkit/shared/campaign/textPolicy'
-import {
-  loadCharacterBuilderContext,
-  resolveCharacterBuilder
-} from '../character/builderService.js'
-import { reconcileCharacterBuilderCharacter } from '../character/builderReconciliation.js'
-import { parseCampaignAuthoredSnapshot } from '../character/campaignCharacterContent.js'
 import {
   CampaignConflictError,
   CampaignNotFoundError,
@@ -58,23 +51,41 @@ function authoredNodeMap(
   return nodeMap as unknown as NodeMap<Record<string, unknown>>
 }
 
-function toDto(
+async function toDto(
+  db: DBLike,
   version: CampaignContentVersion,
   maturity: 'STANDARD' | 'MATURE',
   privateAuthoring = false
-): CampaignContentBindingDto {
+): Promise<CampaignContentBindingDto> {
+  const authored = await createAuthoredVersionRepository(db).findVersion({
+    subjectKind: version.subjectKind,
+    subjectId: version.subjectId,
+    versionId: version.authoredVersionId
+  })
+  if (
+    !authored ||
+    authored.authored.version !== version.authoredVersion ||
+    authored.authored.checksum !== version.authoredChecksum ||
+    authored.compiled.projectionChecksum !== version.compiledProjectionChecksum
+  ) {
+    throw new CampaignConflictError('Campaign content references an unavailable authored version.')
+  }
   return {
     id: version.id,
     subjectKind: version.subjectKind,
     subjectId: version.subjectId,
     version: version.revision,
-    snapshot: (privateAuthoring
-      ? version.snapshot
+    authoredVersionId: version.authoredVersionId,
+    authoredVersion: version.authoredVersion,
+    authoredChecksum: version.authoredChecksum,
+    compiledProjectionChecksum: version.compiledProjectionChecksum,
+    document: (privateAuthoring
+      ? authored.authored.document
       : presentAuthoredSnapshotText(
-          version.snapshot,
+          authored.authored.document as unknown as Json,
           authoredNodeMap(version.subjectKind),
           maturity
-        )) as CampaignContentBindingDto['snapshot'],
+        )) as CampaignContentBindingDto['document'],
     status: version.state,
     createdAt: version.createdAt,
     reviewedAt: version.approvedAt ?? version.rejectedAt
@@ -87,24 +98,11 @@ async function lockCampaign(db: DBLike, campaignId: string): Promise<void> {
   }
 }
 
-async function validateOwnedSnapshot(
+async function resolveOwnedActiveVersion(
   db: DBLike,
   input: SubmitCampaignContentVersionInput,
   userId: string
 ) {
-  let parsed
-  try {
-    parsed = parseCampaignAuthoredSnapshot({
-      id: input.subjectId,
-      revision: input.version,
-      snapshot: input.snapshot as Json,
-      subjectId: input.subjectId,
-      subjectKind: input.subjectKind
-    })
-  } catch {
-    throw new CampaignValidationError('Campaign content snapshot is invalid.')
-  }
-
   const repository = createCampaignContentRepository(db)
   const active = await repository.findActiveRootOwner({
     subjectKind: input.subjectKind,
@@ -113,72 +111,21 @@ async function validateOwnedSnapshot(
   if (!active || active.ownerUserId !== userId || active.isMaster) {
     throw new CampaignValidationError('Only owned homebrew can be submitted to a Campaign.')
   }
+  const version = await createAuthoredVersionRepository(db).findActive({
+    subjectKind: input.subjectKind,
+    subjectId: input.subjectId
+  })
+  if (!version) {
+    throw new CampaignValidationError('Owned homebrew has no active immutable version.')
+  }
   if (
-    parsed.authored.id !== input.subjectId ||
-    parsed.authored.userId !== userId ||
-    parsed.authored.systemId !== active.systemId
+    version.authored.document.id !== input.subjectId ||
+    version.authored.document.userId !== userId ||
+    version.authored.document.systemId !== active.systemId
   ) {
-    throw new CampaignValidationError('Campaign content snapshot metadata does not match its root.')
+    throw new CampaignValidationError('Authored version metadata does not match its root.')
   }
-  return parsed
-}
-
-async function propagateApprovedVersion(
-  db: DBLike,
-  version: CampaignContentVersion
-): Promise<void> {
-  const repository = createCampaignContentRepository(db)
-  const bindings = await repository.lockRootBindings({
-    campaignId: version.campaignId,
-    subjectKind: version.subjectKind,
-    subjectId: version.subjectId
-  })
-  if (bindings.length === 0) return
-
-  const snapshot = parseCampaignAuthoredSnapshot(version)
-  const characters = createCharacterRepository(db)
-  for (const binding of bindings) {
-    await characters.findUpdatedAtByIdForUpdate(binding.characterId)
-    const [character, row] = await Promise.all([
-      characters.findAuthoredById(binding.characterId),
-      characters.findById(binding.characterId)
-    ])
-    if (!character || !row) {
-      throw new CampaignConflictError('An affected Character no longer exists.')
-    }
-    if (!row.rule_pack_revision_id) {
-      throw new CampaignConflictError('An affected Character has no pinned rule revision.')
-    }
-    const context = await loadCharacterBuilderContext(db, character, [snapshot])
-    const reconciled = await reconcileCharacterBuilderCharacter(
-      db,
-      character,
-      character,
-      context,
-      row.rule_pack_revision_id
-    )
-    const resolution = await resolveCharacterBuilder(
-      db,
-      reconciled,
-      'edit',
-      context,
-      null,
-      row.rule_pack_revision_id
-    )
-    if (!resolution.readiness.ready || !isDeepStrictEqual(reconciled, character)) {
-      throw new CampaignConflictError(
-        `Campaign content update conflicts with Character "${character.label}".`
-      )
-    }
-  }
-
-  await repository.replaceLockedRootBindings({
-    campaignId: version.campaignId,
-    subjectKind: version.subjectKind,
-    subjectId: version.subjectId,
-    contentVersionId: version.id,
-    updatedAt: new Date().toISOString()
-  })
+  return version
 }
 
 async function broadcastContent(
@@ -207,14 +154,16 @@ export async function listCampaignContentVersions(
   const authority = await resolveCampaignAuthority(db, campaignId, userId)
   assertActiveCampaignMember(authority)
   const versions = await createCampaignContentRepository(db).listContentVersions(campaignId)
-  return versions
-    .filter(
-      (version) =>
-        authority.membership.role === 'OWNER' ||
-        version.state === 'APPROVED' ||
-        version.authoredBy === userId
-    )
-    .map((version) => toDto(version, authority.campaign.contentMaturity))
+  return Promise.all(
+    versions
+      .filter(
+        (version) =>
+          authority.membership.role === 'OWNER' ||
+          version.state === 'APPROVED' ||
+          version.authoredBy === userId
+      )
+      .map((version) => toDto(db, version, authority.campaign.contentMaturity))
+  )
 }
 
 export async function submitCampaignContentVersion(
@@ -226,7 +175,7 @@ export async function submitCampaignContentVersion(
     await lockCampaign(trx, input.campaignId)
     const authority = await resolveCampaignAuthority(trx, input.campaignId, userId)
     assertCampaignWritable(authority)
-    const parsed = await validateOwnedSnapshot(trx, input, userId)
+    const authoredVersion = await resolveOwnedActiveVersion(trx, input, userId)
     const repository = createCampaignContentRepository(trx)
     const nextRevision = await repository.lockNextRevision({
       campaignId: input.campaignId,
@@ -234,7 +183,7 @@ export async function submitCampaignContentVersion(
       subjectId: input.subjectId
     })
     if (nextRevision === null) throw new CampaignNotFoundError()
-    if (input.version !== nextRevision) {
+    if (input.expectedRevision !== nextRevision) {
       throw new CampaignConflictError('Campaign content version changed before submission.')
     }
 
@@ -245,19 +194,21 @@ export async function submitCampaignContentVersion(
       subjectId: input.subjectId,
       authoredBy: userId,
       revision: nextRevision,
-      snapshot: parsed.authored as unknown as Json,
+      authoredVersionId: authoredVersion.authored.versionId,
+      authoredVersion: authoredVersion.authored.version,
+      authoredChecksum: authoredVersion.authored.checksum,
+      compiledProjectionChecksum: authoredVersion.compiled.projectionChecksum,
       ...(approved
         ? { state: 'APPROVED' as const, approvedBy: userId, approvedAt: new Date().toISOString() }
         : { state: 'PENDING' as const })
     })
-    if (approved) await propagateApprovedVersion(trx, inserted)
     return inserted
   })
 
   await broadcastContent(db, input.campaignId, version.id, 'CREATED', version.updatedAt, {
     scope: version.state === 'APPROVED' ? 'TABLE' : 'OWNER'
   })
-  return toDto(version, 'MATURE', true)
+  return toDto(db, version, 'MATURE', true)
 }
 
 export async function reviewCampaignContentVersion(
@@ -294,7 +245,6 @@ export async function reviewCampaignContentVersion(
             reviewedAt
           })
     if (!reviewed) throw new CampaignConflictError()
-    if (reviewed.state === 'APPROVED') await propagateApprovedVersion(trx, reviewed)
     return reviewed
   })
 
@@ -314,6 +264,7 @@ export async function reviewCampaignContentVersion(
     ])
   }
   return toDto(
+    db,
     version,
     (await resolveCampaignAuthority(db, input.campaignId, userId)).campaign.contentMaturity
   )

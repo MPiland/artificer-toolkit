@@ -31,6 +31,72 @@ export const authoredSubjectKindDtoSchema = z.enum([
   'VEHICLE'
 ])
 
+const authoredCatalogCursorValueDtoSchema = z.union([
+  z.string().min(1).max(256),
+  z.number().int().safe()
+])
+
+export const authoredCatalogCursorDtoSchema = z.object({
+  id: z.string().min(1),
+  values: z.array(authoredCatalogCursorValueDtoSchema).min(1).max(4)
+})
+
+const authoredCatalogPageInputBaseDtoSchema = z.object({
+  cursor: authoredCatalogCursorDtoSchema.optional(),
+  direction: z.enum(['FORWARD', 'BACKWARD']).default('FORWARD'),
+  limit: z.number().int().min(1).max(48).default(48),
+  query: z.string().trim().min(1).max(160).optional()
+})
+
+const authoredCatalogSourceFilterDtoSchema = z.enum(['MASTER', 'OWNED'])
+
+export const backgroundListRequestDtoSchema = authoredCatalogPageInputBaseDtoSchema.extend({
+  sort: z.literal('name').default('name'),
+  source: authoredCatalogSourceFilterDtoSchema.optional()
+})
+
+export const classListRequestDtoSchema = authoredCatalogPageInputBaseDtoSchema.extend({
+  category: z.string().min(1).max(64).optional(),
+  sort: z.enum(['name', 'category']).default('name'),
+  source: authoredCatalogSourceFilterDtoSchema.optional()
+})
+
+export const creatureListRequestDtoSchema = authoredCatalogPageInputBaseDtoSchema.extend({
+  category: z.string().min(1).max(64).optional(),
+  sort: z.enum(['name', 'category']).default('name'),
+  source: authoredCatalogSourceFilterDtoSchema.optional()
+})
+
+export const equipmentListRequestDtoSchema = authoredCatalogPageInputBaseDtoSchema.extend({
+  category: z.string().min(1).max(64).optional(),
+  sort: z.enum(['name', 'category']).default('name'),
+  source: authoredCatalogSourceFilterDtoSchema.optional()
+})
+
+export const featListRequestDtoSchema = authoredCatalogPageInputBaseDtoSchema.extend({
+  sort: z.literal('name').default('name'),
+  source: authoredCatalogSourceFilterDtoSchema.optional()
+})
+
+export const raceListRequestDtoSchema = authoredCatalogPageInputBaseDtoSchema.extend({
+  category: z.string().min(1).max(64).optional(),
+  sort: z.enum(['name', 'category']).default('name'),
+  source: authoredCatalogSourceFilterDtoSchema.optional()
+})
+
+export const spellListRequestDtoSchema = authoredCatalogPageInputBaseDtoSchema.extend({
+  classId: z.string().min(1).optional(),
+  level: z.number().int().min(0).max(9).optional(),
+  magicSchoolId: z.string().min(1).optional(),
+  sort: z.enum(['name', 'level', 'school']).default('name')
+})
+
+export const vehicleListRequestDtoSchema = authoredCatalogPageInputBaseDtoSchema.extend({
+  category: z.string().min(1).max(64).optional(),
+  sort: z.enum(['name', 'category']).default('name'),
+  source: authoredCatalogSourceFilterDtoSchema.optional()
+})
+
 export const authoredDraftStateDtoSchema = z.enum(['DRAFT_ONLY', 'ACTIVE_WITH_DRAFT'])
 
 export const authoredDraftSummaryDtoSchema = z.object({
@@ -101,7 +167,8 @@ const authoredContentListItemBaseDtoSchema = z
 export const backgroundListItemDtoSchema = authoredContentListItemBaseDtoSchema
 export const classListItemDtoSchema = authoredContentListItemBaseDtoSchema.extend({
   category: z.string().optional(),
-  parentClassId: z.string().nullable().optional()
+  parentClassId: z.string().nullable().optional(),
+  parentClassLabel: z.string().nullable().optional()
 })
 export const equipmentListItemDtoSchema = authoredContentListItemBaseDtoSchema.extend({
   category: z.string().optional()
@@ -110,11 +177,15 @@ export const featListItemDtoSchema = authoredContentListItemBaseDtoSchema
 export const raceListItemDtoSchema = authoredContentListItemBaseDtoSchema.extend({
   category: z.string().optional(),
   parentRaceId: z.string().nullable().optional(),
+  parentRaceLabel: z.string().nullable().optional(),
   selectionMode: z.string().nullable().optional()
 })
 export const spellListItemDtoSchema = authoredContentListItemBaseDtoSchema.extend({
+  classIds: z.array(z.string()).optional(),
+  classLabels: z.array(z.string()).optional(),
   level: z.number().int().optional(),
   magicSchoolId: z.string().nullable().optional(),
+  magicSchoolLabel: z.string().nullable().optional(),
   castingTimeUnit: z.string().optional(),
   castingTimeAmount: z.number().int().optional()
 })
@@ -125,9 +196,23 @@ export const vehicleListItemDtoSchema = authoredContentListItemBaseDtoSchema.ext
   category: z.string().optional()
 })
 
+const authoredCatalogSummaryDtoSchema = z.object({
+  activeCount: z.number().int().nonnegative(),
+  masterCount: z.number().int().nonnegative(),
+  ownedCount: z.number().int().nonnegative()
+})
+
+const authoredCatalogPageDtoSchema = z.object({
+  nextCursor: authoredCatalogCursorDtoSchema.nullable(),
+  previousCursor: authoredCatalogCursorDtoSchema.nullable(),
+  totalCount: z.number().int().nonnegative()
+})
+
 function authoredContentListResponseDtoSchema<TSchema extends z.ZodTypeAny>(itemSchema: TSchema) {
   return listResponseDtoSchema(itemSchema).extend({
-    drafts: z.array(authoredDraftSummaryDtoSchema)
+    drafts: z.array(authoredDraftSummaryDtoSchema),
+    page: authoredCatalogPageDtoSchema,
+    summary: authoredCatalogSummaryDtoSchema
   })
 }
 
@@ -293,6 +378,15 @@ export type SpellListItemDto = z.infer<typeof spellListItemDtoSchema>
 export type CreatureListItemDto = z.infer<typeof creatureListItemDtoSchema>
 export type VehicleListItemDto = z.infer<typeof vehicleListItemDtoSchema>
 export type AuthoredSubjectKindDto = z.infer<typeof authoredSubjectKindDtoSchema>
+export type AuthoredCatalogCursorDto = z.infer<typeof authoredCatalogCursorDtoSchema>
+export type BackgroundListRequestDto = z.infer<typeof backgroundListRequestDtoSchema>
+export type ClassListRequestDto = z.infer<typeof classListRequestDtoSchema>
+export type CreatureListRequestDto = z.infer<typeof creatureListRequestDtoSchema>
+export type EquipmentListRequestDto = z.infer<typeof equipmentListRequestDtoSchema>
+export type FeatListRequestDto = z.infer<typeof featListRequestDtoSchema>
+export type RaceListRequestDto = z.infer<typeof raceListRequestDtoSchema>
+export type SpellListRequestDto = z.infer<typeof spellListRequestDtoSchema>
+export type VehicleListRequestDto = z.infer<typeof vehicleListRequestDtoSchema>
 export type AuthoredDraftStateDto = z.infer<typeof authoredDraftStateDtoSchema>
 export type AuthoredDraftSummaryDto = z.infer<typeof authoredDraftSummaryDtoSchema>
 export type AuthoredDraftDto = z.infer<typeof authoredDraftDtoSchema>

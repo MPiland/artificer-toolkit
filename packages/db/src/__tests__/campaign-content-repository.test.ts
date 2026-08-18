@@ -255,21 +255,27 @@ describe('campaign content repository', () => {
     expect(inserted.map((binding) => binding.subject_id)).toEqual(['spell-a', 'spell-b'])
   })
 
-  it('deletes assignment bindings while returning structural roots and version snapshots', async () => {
+  it('deletes assignment bindings while returning structural roots and version metadata', async () => {
     sqlState.rows = [
       {
         subject_kind: 'RACE',
         subject_id: 'race-1',
         content_version_id: 'version-race',
         revision: 2,
-        snapshot: { label: 'Campaign Race' }
+        authored_version_id: 'authored-race',
+        authored_version: 3,
+        authored_checksum: 'a'.repeat(64),
+        compiled_projection_checksum: 'b'.repeat(64)
       },
       {
         subject_kind: 'CLASS',
         subject_id: 'class-1',
         content_version_id: 'version-class',
         revision: 4,
-        snapshot: { label: 'Campaign Class' }
+        authored_version_id: 'authored-class',
+        authored_version: 5,
+        authored_checksum: 'c'.repeat(64),
+        compiled_projection_checksum: 'd'.repeat(64)
       }
     ]
 
@@ -284,19 +290,25 @@ describe('campaign content repository', () => {
         subjectId: 'class-1',
         contentVersionId: 'version-class',
         revision: 4,
-        snapshot: { label: 'Campaign Class' }
+        authoredVersionId: 'authored-class',
+        authoredVersion: 5,
+        authoredChecksum: 'c'.repeat(64),
+        compiledProjectionChecksum: 'd'.repeat(64)
       },
       {
         subjectKind: 'RACE',
         subjectId: 'race-1',
         contentVersionId: 'version-race',
         revision: 2,
-        snapshot: { label: 'Campaign Race' }
+        authoredVersionId: 'authored-race',
+        authoredVersion: 3,
+        authoredChecksum: 'a'.repeat(64),
+        compiledProjectionChecksum: 'b'.repeat(64)
       }
     ])
     expect(sqlState.statements[0]).toContain(
       'delete from campaign_character_content_bindings binding'
     )
-    expect(sqlState.statements[0]).toContain('version.snapshot')
+    expect(sqlState.statements[0]).toContain('version.authored_version_id')
   })
 })

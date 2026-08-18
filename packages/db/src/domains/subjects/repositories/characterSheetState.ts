@@ -396,10 +396,12 @@ export async function patchCharacterSheetState(
   patches: CharacterSheetStatePatch[],
   options: {
     expectedStreamVersion: number
+    beforeCharacterLock?: (trx: DBLike) => Promise<void>
     afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
   }
 ): Promise<number> {
   return withTransaction(db, async (trx) => {
+    await options.beforeCharacterLock?.(trx)
     const row = (await trx
       .selectFrom('characters')
       .selectAll()

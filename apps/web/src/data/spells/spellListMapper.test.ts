@@ -21,6 +21,9 @@ const response: SpellListResponseDto = {
       systemId: 'dnd5e-2014',
       level: 1,
       magicSchoolId: 'school-evocation',
+      magicSchoolLabel: 'Evocation',
+      classIds: ['class-wizard'],
+      classLabels: ['Wizard'],
       castingTimeUnit: 'ACTION',
       castingTimeAmount: 1,
       provenance: { kind: 'MASTER', ownerUserId: null },
@@ -37,6 +40,9 @@ const response: SpellListResponseDto = {
       systemId: 'dnd5e-2014',
       level: 3,
       magicSchoolId: 'school-evocation',
+      magicSchoolLabel: 'Evocation',
+      classIds: ['class-wizard'],
+      classLabels: ['Wizard'],
       castingTimeUnit: 'ACTION',
       castingTimeAmount: 1,
       provenance: { kind: 'OWNED', ownerUserId: 'user-1' },
@@ -45,15 +51,15 @@ const response: SpellListResponseDto = {
   ],
   drafts: [],
   meta: {
-    classes: [{ id: 'class-wizard', label: 'Wizard', spellIds: ['magic-missile', 'ember-lace'] }],
-    schools: [
-      { id: 'school-evocation', label: 'Evocation', spellIds: ['magic-missile', 'ember-lace'] }
-    ],
+    classes: [{ id: 'class-wizard', label: 'Wizard' }],
+    schools: [{ id: 'school-evocation', label: 'Evocation' }],
     levels: [
-      { id: 1, spellIds: ['magic-missile'] },
-      { id: 3, spellIds: ['ember-lace'] }
+      { id: 1 },
+      { id: 3 }
     ]
-  }
+  },
+  page: { nextCursor: null, previousCursor: null, totalCount: 2 },
+  summary: { activeCount: 2, masterCount: 1, ownedCount: 1 }
 }
 
 describe('spell list mapper', () => {

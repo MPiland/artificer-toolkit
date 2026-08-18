@@ -5,16 +5,19 @@ import { CHARACTER_ABILITY_GENERATION_METHOD } from '@artificer-toolkit/shared/c
 
 import { createEmptyCharacterAuthored, type CharacterBuilderContext } from './builderService.js'
 
-const { resolveBinding, evaluateRevision, findSpells } = vi.hoisted(() => ({
+const { resolveBinding, evaluateRevision, findActiveSpells } = vi.hoisted(() => ({
   resolveBinding: vi.fn(),
   evaluateRevision: vi.fn(),
-  findSpells: vi.fn()
+  findActiveSpells: vi.fn()
 }))
 
 vi.mock('@artificer-toolkit/db', async () => {
   const actual =
     await vi.importActual<typeof import('@artificer-toolkit/db')>('@artificer-toolkit/db')
-  return { ...actual, createSpellRepository: () => ({ findByIds: findSpells }) }
+  return {
+    ...actual,
+    createAuthoredVersionRepository: () => ({ findActiveByIds: findActiveSpells })
+  }
 })
 vi.mock('./characterRuleBinding.js', () => ({
   resolveCharacterRuleBinding: resolveBinding
@@ -53,8 +56,8 @@ describe('evaluateCharacterRulePolicy', () => {
   beforeEach(() => {
     resolveBinding.mockReset()
     evaluateRevision.mockReset()
-    findSpells.mockReset()
-    findSpells.mockResolvedValue(new Map())
+    findActiveSpells.mockReset()
+    findActiveSpells.mockResolvedValue(new Map())
     resolveBinding.mockResolvedValue({
       revisionId: 'revision-1',
       checksum: 'checksum-1',
@@ -109,7 +112,13 @@ describe('evaluateCharacterRulePolicy', () => {
       expectedRevisionId: undefined
     })
     expect(evaluateRevision).toHaveBeenCalledTimes(1)
-    expect(findSpells).toHaveBeenCalledWith([])
+    expect(findActiveSpells).toHaveBeenCalledWith({
+      subjectKind: 'SPELL',
+      subjectIds: [],
+      systemId: 'dnd5e2014',
+      userId: 'user-1',
+      includeMaster: true
+    })
     expect(evaluateRevision).toHaveBeenCalledWith(
       expect.objectContaining({
         db: {},
@@ -170,10 +179,10 @@ describe('evaluateCharacterRulePolicy', () => {
       systemId: 'dnd5e2014'
     }
     const referenceSpell = { ...spell, id: 'spell-2', label: 'Reference spell' }
-    findSpells.mockResolvedValueOnce(
+    findActiveSpells.mockResolvedValueOnce(
       new Map([
-        ['spell-1', spell],
-        ['spell-2', referenceSpell]
+        ['spell-1', { authored: { document: spell } }],
+        ['spell-2', { authored: { document: referenceSpell } }]
       ])
     )
     const builderContext = context()
@@ -187,7 +196,13 @@ describe('evaluateCharacterRulePolicy', () => {
       referenceSpellIds: ['spell-2']
     })
 
-    expect(findSpells).toHaveBeenCalledWith(['spell-1', 'spell-2'])
+    expect(findActiveSpells).toHaveBeenCalledWith({
+      subjectKind: 'SPELL',
+      subjectIds: ['spell-1', 'spell-2'],
+      systemId: 'dnd5e2014',
+      userId: 'user-1',
+      includeMaster: true
+    })
     expect(evaluateRevision).toHaveBeenCalledTimes(1)
     expect(evaluateRevision).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -199,6 +214,100 @@ describe('evaluateCharacterRulePolicy', () => {
         })
       })
     )
+  })
+
+  it('uses a committed Character spell pin without querying active authored versions', async () => {
+    const character = createEmptyCharacterAuthored({
+      id: 'character-1',
+      systemId: 'dnd5e2014',
+      userId: 'user-1'
+    })
+    character.intent.spellSelections = [
+      {
+        id: 'wizard-spells',
+        source: { kind: 'CLASS', classId: 'wizard' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-1']
+      }
+    ]
+    const spell = {
+      kind: 'SPELL' as const,
+      id: 'spell-1',
+      label: 'Pinned spell',
+      description: '',
+      castingTime: { unit: 'ROUND' as const, amount: 1 },
+      level: 1,
+      classIds: ['wizard'],
+      magicSchoolId: 'evocation',
+      userId: 'user-1',
+      systemId: 'dnd5e2014'
+    }
+
+    await evaluateCharacterRulePolicy({
+      db: {} as unknown as DBLike,
+      character,
+      context: context(),
+      existingRevisionId: 'revision-1',
+      pinnedSpellsById: new Map([[spell.id, spell]])
+    })
+
+    expect(findActiveSpells).not.toHaveBeenCalled()
+    expect(evaluateRevision).toHaveBeenCalledWith(
+      expect.objectContaining({
+        normalizedFacts: expect.objectContaining({
+          spellActionFacts: [{ spellId: 'spell-1', effects: [] }]
+        })
+      })
+    )
+  })
+
+  it('fails closed when an active Spell version belongs to another System', async () => {
+    const character = createEmptyCharacterAuthored({
+      id: 'character-1',
+      systemId: 'dnd5e2014',
+      userId: 'user-1'
+    })
+    character.intent.spellSelections = [
+      {
+        id: 'wizard-spells',
+        source: { kind: 'CLASS', classId: 'wizard' },
+        timing: { kind: 'IMMEDIATE' },
+        spells: ['spell-1']
+      }
+    ]
+    findActiveSpells.mockResolvedValueOnce(
+      new Map([
+        [
+          'spell-1',
+          {
+            authored: {
+              document: {
+                kind: 'SPELL',
+                id: 'spell-1',
+                label: 'Foreign spell',
+                description: '',
+                castingTime: { unit: 'ROUND', amount: 1 },
+                level: 1,
+                classIds: ['wizard'],
+                magicSchoolId: 'evocation',
+                userId: 'user-1',
+                systemId: 'other-system'
+              }
+            }
+          }
+        ]
+      ])
+    )
+
+    await expect(
+      evaluateCharacterRulePolicy({
+        db: {} as unknown as DBLike,
+        character,
+        context: context(),
+        existingRevisionId: 'revision-1'
+      })
+    ).rejects.toThrow('could not hydrate spell "spell-1"')
+    expect(evaluateRevision).not.toHaveBeenCalled()
   })
 
   it('propagates binding failures without invoking Zen', async () => {

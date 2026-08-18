@@ -1,5 +1,6 @@
 import {
   createCampaignAdjustmentsRepository,
+  checksumCanonicalJson,
   createCampaignContentRepository,
   type CampaignAdjustment,
   type DBLike
@@ -16,7 +17,10 @@ import type {
   CharacterRestPreviewResponseDto,
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characters'
-import type { CharacterSheetAdjustment } from '@artificer-toolkit/shared/character'
+import {
+  toCharacterMechanicalAdjustment,
+  type CharacterSheetAdjustment
+} from '@artificer-toolkit/shared/character'
 import type { CharacterEvent } from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
@@ -42,6 +46,19 @@ export interface CharacterLiveSessionRuleContext {
   adjustments: CharacterSheetAdjustment[]
   additionalConditions: Array<{ conditionTypeId: string; notes?: string }>
   attunementSlotOverride: number | null
+}
+
+export function checksumCampaignCharacterMechanicalContext(input: {
+  adjustments: readonly CharacterSheetAdjustment[]
+  attunementSlotOverride: number | null
+}): string {
+  const adjustments = input.adjustments
+    .map(toCharacterMechanicalAdjustment)
+    .sort((left, right) => left.id.localeCompare(right.id))
+  return checksumCanonicalJson({
+    adjustments,
+    attunementSlotOverride: input.attunementSlotOverride
+  })
 }
 
 function accessError(characterId: string): Error {
@@ -103,7 +120,7 @@ export async function resolveCharacterLiveSessionRuleContext(
 
 export async function resolveCharacterSheetCampaignContext(
   db: DBLike,
-  character: CharacterAuthored,
+  character: Pick<CharacterAuthored, 'id' | 'userId'>,
   userId: string
 ): Promise<CharacterSheetCampaignContext> {
   const assignment = await createCampaignContentRepository(db).findAssignedCampaign(character.id)

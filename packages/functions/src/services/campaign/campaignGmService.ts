@@ -1,6 +1,8 @@
 import {
   createCampaignAdjustmentsRepository,
+  createCampaignCharacterMechanicsProjectionRepository,
   createCampaignRepository,
+  createCharacterMechanicsProjectionRepository,
   createCharacterRepository,
   withTransaction,
   type CampaignAdjustment,
@@ -27,13 +29,25 @@ import {
   type SaveCampaignConditionInput
 } from '@artificer-toolkit/schema/api/campaigns'
 import { characterSheetAdjustmentCommandDtoSchema } from '@artificer-toolkit/schema/api/characterSheet'
+import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { z } from 'zod'
-import { resolveCharacterBuilder } from '../character/builderService.js'
 import {
-  validateCharacterConditionType,
+  createCharacterCommittedSheetResolution,
+  type CharacterCommittedSheetSources,
+  loadCharacterCommittedSheetSources
+} from '../character/characterCommittedSheetSources.js'
+import {
   validateSheetAdjustmentTarget
 } from '../character/sheetCommandValidation.js'
-import { getCharacterSheetAdjustmentSlotKey } from '../character/campaignCharacterSheet.js'
+import {
+  checksumCampaignCharacterMechanicalContext,
+  getCharacterSheetAdjustmentSlotKey,
+  resolveCharacterLiveSessionRuleContext
+} from '../character/campaignCharacterSheet.js'
+import {
+  CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
+  prepareCampaignCharacterMechanicsProjection
+} from './campaignCharacterMechanicsProjection.js'
 import {
   CampaignAccessError,
   CampaignConflictError,
@@ -114,6 +128,72 @@ async function lockCampaign(db: DBLike, campaignId: string): Promise<void> {
     throw new CampaignNotFoundError()
 }
 
+async function loadCampaignCharacterCommittedSources(
+  db: DBLike,
+  characterId: string
+): Promise<{
+  character: CharacterAuthored
+  mechanics: Awaited<
+    ReturnType<ReturnType<typeof createCharacterMechanicsProjectionRepository>['requireCurrent']>
+  >
+  sources: CharacterCommittedSheetSources
+}> {
+  const repository = createCharacterRepository(db)
+  const [character, row] = await Promise.all([
+    repository.findAuthoredById(characterId),
+    repository.findById(characterId)
+  ])
+  if (!character || !row) {
+    throw new CampaignValidationError('Assigned character is unavailable.')
+  }
+  if (!row.rule_pack_revision_id) {
+    throw new CampaignValidationError('Assigned character has no pinned rule revision.')
+  }
+  const mechanics = await createCharacterMechanicsProjectionRepository(db).requireCurrent({
+    characterId,
+    expectedRuleRevisionId: row.rule_pack_revision_id,
+    expectedStreamVersion: row.stream_version
+  })
+  return {
+    character,
+    mechanics,
+    sources: await loadCharacterCommittedSheetSources({ db, mechanics })
+  }
+}
+
+async function requireCurrentCampaignCharacterMechanicsOverlay(input: {
+  attunementSlotOverride: number | null
+  campaignId: string
+  characterId: string
+  db: DBLike
+  mechanics: Awaited<
+    ReturnType<ReturnType<typeof createCharacterMechanicsProjectionRepository>['requireCurrent']>
+  >
+}) {
+  const ruleContext = await resolveCharacterLiveSessionRuleContext(input.db, input.characterId, {
+    id: input.campaignId,
+    attunementSlotOverride: input.attunementSlotOverride
+  })
+  if (!ruleContext) {
+    throw new CampaignConflictError('Campaign assignment changed before mechanics could be compiled.')
+  }
+  const mechanicalContextChecksum = checksumCampaignCharacterMechanicalContext({
+    adjustments: ruleContext.adjustments,
+    attunementSlotOverride: ruleContext.attunementSlotOverride
+  })
+  const projection = await createCampaignCharacterMechanicsProjectionRepository(
+    input.db
+  ).requireCurrent({
+    campaignId: input.campaignId,
+    characterId: input.characterId,
+    expectedBaseMechanicsProjectionChecksum: input.mechanics.projectionChecksum,
+    expectedCharacterStreamVersion: input.mechanics.characterStreamVersion,
+    expectedMechanicalContextChecksum: mechanicalContextChecksum,
+    expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION
+  })
+  return { projection, ruleContext }
+}
+
 async function broadcastAdjustment(
   db: DBLike,
   campaignId: string,
@@ -169,30 +249,23 @@ export async function saveCampaignAdjustment(
     assertCampaignWritable(authority)
     await assertAssignedCharacter(trx, authority, input.characterId)
 
-    const characterRepository = createCharacterRepository(trx)
-    const [character, row] = await Promise.all([
-      characterRepository.findAuthoredById(input.characterId),
-      characterRepository.findById(input.characterId)
-    ])
-    if (!character || !row) {
-      throw new CampaignValidationError('Assigned character is unavailable.')
-    }
-    if (!row.rule_pack_revision_id) {
-      throw new CampaignValidationError('Assigned character has no pinned rule revision.')
-    }
-    const adjustment = characterSheetAdjustmentCommandDtoSchema.parse(input.adjustment)
-    validateSheetAdjustmentTarget(
-      adjustment,
-      await resolveCharacterBuilder(
-        trx,
-        character,
-        'edit',
-        undefined,
-        null,
-        row.rule_pack_revision_id
-      ),
-      character
+    const { character, mechanics, sources } = await loadCampaignCharacterCommittedSources(
+      trx,
+      input.characterId
     )
+    const currentOverlay = await requireCurrentCampaignCharacterMechanicsOverlay({
+      db: trx,
+      campaignId: input.campaignId,
+      characterId: input.characterId,
+      mechanics,
+      attunementSlotOverride: authority.campaign.attunementSlotOverride
+    })
+    const adjustment = characterSheetAdjustmentCommandDtoSchema.parse(input.adjustment)
+    const resolution = createCharacterCommittedSheetResolution({
+      character,
+      sources
+    })
+    validateSheetAdjustmentTarget(adjustment, resolution, character)
     const { id: _commandId, ...payload } = adjustment
     const saved = await createCampaignAdjustmentsRepository(trx).saveAdjustment({
       campaignId: input.campaignId,
@@ -207,6 +280,26 @@ export async function saveCampaignAdjustment(
     })
     if (!saved)
       throw new CampaignConflictError('Campaign adjustment changed before this save completed.')
+    const nextRuleContext = await resolveCharacterLiveSessionRuleContext(trx, input.characterId, {
+      id: input.campaignId,
+      attunementSlotOverride: authority.campaign.attunementSlotOverride
+    })
+    if (!nextRuleContext) {
+      throw new CampaignConflictError('Campaign assignment changed before mechanics could be published.')
+    }
+    const nextOverlay = await prepareCampaignCharacterMechanicsProjection({
+      db: trx,
+      campaignId: input.campaignId,
+      character,
+      characterStreamVersion: mechanics.characterStreamVersion,
+      mechanics,
+      campaignAdjustments: nextRuleContext.adjustments,
+      attunementSlotOverride: nextRuleContext.attunementSlotOverride
+    })
+    await createCampaignCharacterMechanicsProjectionRepository(trx).publish({
+      projection: nextOverlay,
+      expectedPriorOverlayChecksum: currentOverlay.projection.projectionChecksum
+    })
     const event = await createCampaignAdjustmentsRepository(trx).insertCampaignEvent({
       campaignId: input.campaignId,
       actorUserId: userId,
@@ -246,6 +339,17 @@ export async function deleteCampaignAdjustment(
     assertCampaignOwner(authority)
     assertCampaignWritable(authority)
     await assertAssignedCharacter(trx, authority, input.characterId)
+    const { character, mechanics } = await loadCampaignCharacterCommittedSources(
+      trx,
+      input.characterId
+    )
+    const currentOverlay = await requireCurrentCampaignCharacterMechanicsOverlay({
+      db: trx,
+      campaignId: input.campaignId,
+      characterId: input.characterId,
+      mechanics,
+      attunementSlotOverride: authority.campaign.attunementSlotOverride
+    })
     const adjustments = await createCampaignAdjustmentsRepository(trx).listAdjustments(
       input.campaignId,
       input.characterId
@@ -263,6 +367,26 @@ export async function deleteCampaignAdjustment(
     ) {
       throw new CampaignConflictError('Campaign adjustment changed before this delete completed.')
     }
+    const nextRuleContext = await resolveCharacterLiveSessionRuleContext(trx, input.characterId, {
+      id: input.campaignId,
+      attunementSlotOverride: authority.campaign.attunementSlotOverride
+    })
+    if (!nextRuleContext) {
+      throw new CampaignConflictError('Campaign assignment changed before mechanics could be published.')
+    }
+    const nextOverlay = await prepareCampaignCharacterMechanicsProjection({
+      db: trx,
+      campaignId: input.campaignId,
+      character,
+      characterStreamVersion: mechanics.characterStreamVersion,
+      mechanics,
+      campaignAdjustments: nextRuleContext.adjustments,
+      attunementSlotOverride: nextRuleContext.attunementSlotOverride
+    })
+    await createCampaignCharacterMechanicsProjectionRepository(trx).publish({
+      projection: nextOverlay,
+      expectedPriorOverlayChecksum: currentOverlay.projection.projectionChecksum
+    })
     const event = await createCampaignAdjustmentsRepository(trx).insertCampaignEvent({
       campaignId: input.campaignId,
       actorUserId: userId,
@@ -323,9 +447,16 @@ export async function saveCampaignCondition(
     assertCampaignOwner(authority)
     assertCampaignWritable(authority)
     await assertAssignedCharacter(trx, authority, input.characterId)
-    const character = await createCharacterRepository(trx).findAuthoredById(input.characterId)
-    if (!character) throw new CampaignValidationError('Assigned character is unavailable.')
-    await validateCharacterConditionType(trx, character.systemId, input.conditionTypeId)
+    const { sources } = await loadCampaignCharacterCommittedSources(trx, input.characterId)
+    if (
+      !sources.vocabularySnapshot.document.conditionTypes.some(
+        (condition) => condition.id === input.conditionTypeId
+      )
+    ) {
+      throw new CampaignValidationError(
+        `Condition "${input.conditionTypeId}" is not available in this rules system.`
+      )
+    }
 
     const saved = await createCampaignAdjustmentsRepository(trx).saveAdjustment({
       campaignId: input.campaignId,

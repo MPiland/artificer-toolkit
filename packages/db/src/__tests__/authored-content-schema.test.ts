@@ -12,6 +12,9 @@ const raceSchema = read('packages/db/src/domains/subjects/tables/races.sql')
 const classSchema = read('packages/db/src/domains/subjects/tables/classes.sql')
 const equipmentSchema = read('packages/db/src/domains/subjects/tables/equipment.sql')
 const spellSchema = read('packages/db/src/domains/subjects/tables/spells.sql')
+const versionedProjectionsSchema = read(
+  'packages/db/src/domains/subjects/tables/versioned_projections.sql'
+)
 const routeSchema = read('packages/db/src/domains/subjects/tables/authored_route_ids.sql')
 const campaignSchema = read('packages/db/src/domains/campaigns/tables/campaigns.sql')
 
@@ -104,6 +107,19 @@ describe('authored draft and import persistence', () => {
 })
 
 describe('authored root reference integrity', () => {
+  it('keeps Class root envelopes independent of legacy starting-equipment rows', () => {
+    const generatedBundle = read(
+      'packages/db/src/domains/bootstrap/generated/create_database.bundle.sql'
+    )
+    const migration = read(
+      'supabase/migrations/20260818010000_authored_root_envelope_constraints.sql'
+    )
+
+    expect(classSchema).not.toContain('classes_category_parent_chk')
+    expect(generatedBundle).not.toContain('classes_category_parent_chk')
+    expect(migration).toContain('DROP CONSTRAINT IF EXISTS classes_category_parent_chk')
+  })
+
   it('enforces same-system parent relationships for inherited roots', () => {
     expect(raceSchema).toContain(
       'CONSTRAINT races_parent_system_fk FOREIGN KEY (parent_race_id, system_id)'
@@ -118,5 +134,25 @@ describe('authored root reference integrity', () => {
 
   it('keeps spell class references backed by a database foreign key', () => {
     expect(spellSchema).toMatch(/class_id uuid NOT NULL\s+REFERENCES public\.classes\(id\)/)
+  })
+
+  it('keeps the Spell catalogue class index bound to its exact authored version', () => {
+    const generatedBundle = read(
+      'packages/db/src/domains/bootstrap/generated/create_database.bundle.sql'
+    )
+    const migration = read(
+      'supabase/migrations/20260818020000_spell_catalog_class_index.sql'
+    )
+
+    for (const source of [versionedProjectionsSchema, generatedBundle, migration]) {
+      expect(source).toContain('CREATE TABLE IF NOT EXISTS public.spell_catalog_classes')
+      expect(source).toContain('CREATE TABLE IF NOT EXISTS public.spell_catalog_index_versions')
+      expect(source).toContain('FOREIGN KEY (spell_id, authored_version_id)')
+      expect(source).toContain('REFERENCES public.spell_versions (spell_id, id)')
+      expect(source).toContain('idx_spell_catalog_classes_class')
+      expect(source).toContain('ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED')
+      expect(source).toContain('ALTER TABLE public.spell_catalog_classes ENABLE ROW LEVEL SECURITY')
+      expect(source).toContain('ALTER TABLE public.spell_catalog_index_versions ENABLE ROW LEVEL SECURITY')
+    }
   })
 })

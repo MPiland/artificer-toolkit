@@ -7,20 +7,28 @@ import {
   type AuthoredDetailRequestDto,
   type AuthoredDraftDto,
   type AuthoredValidationIssueDto,
+  type BackgroundListRequestDto,
   type BackgroundListResponseDto,
   type BackgroundResponseDto,
+  type ClassListRequestDto,
   type ClassListResponseDto,
   type ClassResponseDto,
+  type CreatureListRequestDto,
   type CreatureListResponseDto,
   type CreatureResponseDto,
+  type EquipmentListRequestDto,
   type EquipmentListResponseDto,
   type EquipmentResponseDto,
+  type FeatListRequestDto,
   type FeatListResponseDto,
   type FeatResponseDto,
+  type RaceListRequestDto,
   type RaceListResponseDto,
   type RaceResponseDto,
+  type SpellListRequestDto,
   type SpellListResponseDto,
   type SpellResponseDto,
+  type VehicleListRequestDto,
   type VehicleListResponseDto,
   type VehicleResponseDto
 } from '@artificer-toolkit/schema/api/content'
@@ -47,6 +55,8 @@ import type {
   CharacterHistoryResponseDto,
   CharacterListResponseDto,
   CharacterRestPreviewResponseDto,
+  CharacterSheetExtraCatalogInputDto,
+  CharacterSheetExtraCatalogResponseDto,
   CharacterSheetCommandInputDto,
   CharacterSheetCommandResponseDto,
   CharacterSheetResponseDto
@@ -200,7 +210,12 @@ export function normalizeAuthoredDetailInput(input: AuthoredDetailInput): Author
   return typeof input === 'string' ? { id: input } : input
 }
 
-export interface AuthoredDomainTransport<TList, TResponse, TInput extends AuthoredContentInput> {
+export interface AuthoredDomainTransport<
+  TList,
+  TResponse,
+  TInput extends AuthoredContentInput,
+  TListInput
+> {
   activate: (input: TInput) => Promise<TResponse>
   activateDraft: (id: string) => Promise<TResponse>
   deleteActive: (id: string) => Promise<unknown>
@@ -208,11 +223,16 @@ export interface AuthoredDomainTransport<TList, TResponse, TInput extends Author
   duplicate: (id: string) => Promise<AuthoredDraftDto | null>
   get: (input: AuthoredDetailRequestDto) => Promise<TResponse>
   getDraft: (id: string) => Promise<AuthoredDraftDto | null>
-  list: () => Promise<TList>
+  list: (input: TListInput) => Promise<TList>
   saveDraft: (input: TInput) => Promise<AuthoredDraftDto>
 }
 
-export interface AuthoredDomainProcedures<TList, TResponse, TInput extends AuthoredContentInput> {
+export interface AuthoredDomainProcedures<
+  TList,
+  TResponse,
+  TInput extends AuthoredContentInput,
+  TListInput
+> {
   activate: MutationProcedure<TInput, TResponse>
   activateDraft: MutationProcedure<IdProcedureInput, TResponse>
   deleteActive: MutationProcedure<IdProcedureInput, { ok: true }>
@@ -220,7 +240,7 @@ export interface AuthoredDomainProcedures<TList, TResponse, TInput extends Autho
   duplicate: MutationProcedure<IdProcedureInput, AuthoredDraftDto | null>
   get: QueryProcedure<AuthoredDetailRequestDto, TResponse>
   getDraft: QueryProcedure<IdProcedureInput, AuthoredDraftDto | null>
-  list: EmptyQueryProcedure<TList>
+  list: QueryProcedure<TListInput, TList>
   saveDraft: MutationProcedure<TInput, AuthoredDraftDto>
 }
 
@@ -801,6 +821,10 @@ export interface TrpcClient {
     getDraft: QueryProcedure<IdProcedureInput, CharacterBuilderDraftDto | null>
     history: QueryProcedure<IdProcedureInput, CharacterHistoryResponseDto>
     list: EmptyQueryProcedure<CharacterListResponseDto>
+    extraOptions: QueryProcedure<
+      { id: string; input: CharacterSheetExtraCatalogInputDto },
+      CharacterSheetExtraCatalogResponseDto
+    >
     panel: QueryProcedure<
       { id: string; target: CharacterSheetPanelTargetDto },
       CharacterSheetPanelDto
@@ -828,30 +852,50 @@ export interface TrpcClient {
     backgrounds: AuthoredDomainProcedures<
       BackgroundListResponseDto,
       BackgroundResponseDto,
-      BackgroundAuthoringInputDto
+      BackgroundAuthoringInputDto,
+      BackgroundListRequestDto
     >
     classes: AuthoredDomainProcedures<
       ClassListResponseDto,
       ClassResponseDto,
-      ClassAuthoringInputDto
+      ClassAuthoringInputDto,
+      ClassListRequestDto
     >
     creatures: AuthoredDomainProcedures<
       CreatureListResponseDto,
       CreatureResponseDto,
-      CreatureAuthoringInputDto
+      CreatureAuthoringInputDto,
+      CreatureListRequestDto
     >
     equipment: AuthoredDomainProcedures<
       EquipmentListResponseDto,
       EquipmentResponseDto,
-      EquipmentAuthoringInputDto
+      EquipmentAuthoringInputDto,
+      EquipmentListRequestDto
     >
-    feats: AuthoredDomainProcedures<FeatListResponseDto, FeatResponseDto, FeatAuthoringInputDto>
-    races: AuthoredDomainProcedures<RaceListResponseDto, RaceResponseDto, RaceAuthoringInputDto>
-    spells: AuthoredDomainProcedures<SpellListResponseDto, SpellResponseDto, SpellAuthoringInputDto>
+    feats: AuthoredDomainProcedures<
+      FeatListResponseDto,
+      FeatResponseDto,
+      FeatAuthoringInputDto,
+      FeatListRequestDto
+    >
+    races: AuthoredDomainProcedures<
+      RaceListResponseDto,
+      RaceResponseDto,
+      RaceAuthoringInputDto,
+      RaceListRequestDto
+    >
+    spells: AuthoredDomainProcedures<
+      SpellListResponseDto,
+      SpellResponseDto,
+      SpellAuthoringInputDto,
+      SpellListRequestDto
+    >
     vehicles: AuthoredDomainProcedures<
       VehicleListResponseDto,
       VehicleResponseDto,
-      VehicleAuthoringInputDto
+      VehicleAuthoringInputDto,
+      VehicleListRequestDto
     >
   }
   media: {

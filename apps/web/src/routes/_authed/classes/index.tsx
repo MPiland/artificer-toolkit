@@ -1,8 +1,9 @@
 import { notifications } from '@mantine/notifications'
-import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
+import { useAuthoredCatalogWindow } from '#components/AuthoredList/useAuthoredCatalogWindow'
 import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import {
   buildClassListFilters,
@@ -13,18 +14,26 @@ import {
   summarizeClassList
 } from '#app/data/classes/classListMapper'
 import { useDuplicateClassMutation } from '#app/data/classes/mutations'
-import { getClass, getClassList } from '#app/data/classes/queries'
+import { getClass, getClassList, useGetClassList } from '#app/data/classes/queries'
 import { createServerApi } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildClassRouteParams } from '#app/routing/authoredRouteParams'
+import type { ClassListRequestDto } from '#app/lib/api'
 
 const classDetailMeta = ['classes', 'currencies', 'equipment', 'languages', 'skills']
+const classCatalogueRequest = {
+  direction: 'FORWARD',
+  limit: 48,
+  sort: 'name'
+} satisfies ClassListRequestDto
 
 export const Route = createFileRoute('/_authed/classes/')({
   loader: async ({ context }): Promise<void> => {
-    await context.queryClient.ensureQueryData(getClassList(createServerApi()))
+    await context.queryClient.ensureInfiniteQueryData(
+      getClassList(classCatalogueRequest, createServerApi())
+    )
   },
   component: ClassesRoute
 })
@@ -32,7 +41,28 @@ export const Route = createFileRoute('/_authed/classes/')({
 function ClassesRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data } = useSuspenseQuery(getClassList())
+  const listing = useAuthoredCatalogWindow({
+    buildFilters: buildClassListFilters,
+    buildRequest: ({ filterValues, query, sort }): ClassListRequestDto => ({
+      ...classCatalogueRequest,
+      category: filterValues.category ?? undefined,
+      query: query || undefined,
+      sort: sort === 'category' ? 'category' : 'name',
+      source:
+        filterValues.source === 'MASTER' || filterValues.source === 'OWNED'
+          ? filterValues.source
+          : undefined
+    }),
+    initialSort: 'name',
+    mapDrafts: (response) =>
+      mapDraftSummariesToAuthoredItems(response.drafts, {
+        categoryAttributeKey: 'Category',
+        formatCategory: formatClassCategory
+      }),
+    mapItems: mapClassListToAuthoredItems,
+    summarize: summarizeClassList,
+    useList: useGetClassList
+  })
   const duplicateMutation = useDuplicateClassMutation()
   const deleteAction = useAuthoredDeleteAction({
     deleteActive: api.content.classes.deleteActive,
@@ -68,16 +98,16 @@ function ClassesRoute() {
     <>
       <AuthoredListPage
         title='Classes'
-        summary={summarizeClassList(data)}
+        summary={listing.summary ?? 'Loading classes...'}
         createLabel='Create Class'
-        items={mapClassListToAuthoredItems(data)}
-        draftItems={mapDraftSummariesToAuthoredItems(data.drafts, {
-          categoryAttributeKey: 'Category',
-          formatCategory: formatClassCategory
-        })}
-        filters={buildClassListFilters(data)}
+        items={listing.items}
+        draftItems={listing.draftItems}
+        filters={listing.filters}
         attributeColumns={classListAttributeColumns}
         sortOptions={classListSortOptions}
+        catalog={listing.catalog}
+        error={listing.error}
+        loading={listing.loading}
         onCreate={() => navigate({ to: '/classes/new' })}
         onView={(item) =>
           navigate({

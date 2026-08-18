@@ -2,9 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DBLike } from '@artificer-toolkit/db'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderResolution } from './builderService.js'
+import type { CharacterSheetRuleContext } from './characterSheetBundleAssembly.js'
 
 const mocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
+  assembleSheetBundleForRuleContext: vi.fn(),
+  createCommittedSheetExtras: vi.fn(),
+  createCommittedSheetResolution: vi.fn(),
+  createCommittedSheetSpells: vi.fn(),
   findAllCreatures: vi.fn(),
   findAllVehicles: vi.fn(),
   findByCommandId: vi.fn(),
@@ -14,13 +19,17 @@ const mocks = vi.hoisted(() => ({
   listAdjustments: vi.fn(),
   listResourceUsage: vi.fn(),
   listSpellCustomizations: vi.fn(),
+  loadCommittedSheetSources: vi.fn(),
   patchSheetState: vi.fn(),
+  publishMechanics: vi.fn(),
+  requireCurrentMechanics: vi.fn(),
   removeAdjustment: vi.fn(),
   consumeRollForUser: vi.fn(),
   findRollByIdForUser: vi.fn(),
   loadCharacterBuilderContext: vi.fn(),
   resolveCharacterBuilder: vi.fn(),
   buildSheetBundle: vi.fn(),
+  compileMechanicsProjection: vi.fn(),
   setMovementPreference: vi.fn(),
   setResourceUsage: vi.fn(),
   setSpellCustomization: vi.fn(),
@@ -48,6 +57,13 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       findAuthoredById: mocks.findAuthoredById,
       patchSheetState: mocks.patchSheetState
     }),
+    createCharacterMechanicsProjectionRepository: () => ({
+      publish: mocks.publishMechanics,
+      requireCurrent: mocks.requireCurrentMechanics
+    }),
+    createLiveSessionCommandLeaseRepository: () => ({
+      lockForCharacter: async () => []
+    }),
     createCampaignContentRepository: () => ({
       findAssignedCampaign: async () => null
     }),
@@ -69,10 +85,6 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
         const vehicles = (await mocks.findAllVehicles()) as Array<{ id: string }>
         return new Map(vehicles.map((vehicle) => [vehicle.id, vehicle]))
       }
-    }),
-    getCharacterSheetExtraCatalogQuery: async () => ({
-      creatures: await mocks.findAllCreatures(),
-      vehicles: await mocks.findAllVehicles()
     }),
     createCharacterSheetAdjustmentRepository: () => ({
       getMovementPreference: mocks.getMovementPreference,
@@ -106,6 +118,25 @@ vi.mock('./sheetProjection.js', async (importOriginal) => {
     buildCharacterSheetBundle: mocks.buildSheetBundle
   }
 })
+
+vi.mock('./characterSheetBundleAssembly.js', () => ({
+  assembleCharacterSheetBundleForRuleContext: mocks.assembleSheetBundleForRuleContext
+}))
+
+vi.mock('./characterCommittedSheetSources.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./characterCommittedSheetSources.js')>()
+  return {
+    ...actual,
+    createCharacterCommittedSheetExtras: mocks.createCommittedSheetExtras,
+    createCharacterCommittedSheetResolution: mocks.createCommittedSheetResolution,
+    createCharacterCommittedSheetSpells: mocks.createCommittedSheetSpells,
+    loadCharacterCommittedSheetSources: mocks.loadCommittedSheetSources
+  }
+})
+
+vi.mock('./characterMechanicsCompiler.js', () => ({
+  compileCharacterMechanicsProjection: mocks.compileMechanicsProjection
+}))
 
 vi.mock('./characterRuleEvaluation.js', async (importOriginal) => {
   const original = await importOriginal<typeof import('./characterRuleEvaluation.js')>()
@@ -266,6 +297,7 @@ async function buildPolicyTestSheetBundle(
 describe('character sheet rest policy', () => {
   beforeEach(() => {
     mocks.appendEvent.mockReset()
+    mocks.assembleSheetBundleForRuleContext.mockReset()
     mocks.findAllCreatures.mockReset()
     mocks.findAllCreatures.mockResolvedValue([])
     mocks.findAllVehicles.mockReset()
@@ -277,6 +309,7 @@ describe('character sheet rest policy', () => {
     mocks.consumeRollForUser.mockResolvedValue(true)
     mocks.findRollByIdForUser.mockReset()
     mocks.loadCharacterBuilderContext.mockReset()
+    mocks.loadCommittedSheetSources.mockReset()
     mocks.getMovementPreference.mockReset()
     mocks.getMovementPreference.mockResolvedValue({ mode: 'AUTO' })
     mocks.listAdjustments.mockReset()
@@ -289,24 +322,124 @@ describe('character sheet rest policy', () => {
     mocks.upsertAdjustment.mockReset()
     mocks.resolveCharacterBuilder.mockReset()
     mocks.buildSheetBundle.mockReset()
+    mocks.compileMechanicsProjection.mockReset()
     mocks.setMovementPreference.mockReset()
     mocks.setResourceUsage.mockReset()
     mocks.setSpellCustomization.mockReset()
     mocks.patchSheetState.mockReset()
+    mocks.publishMechanics.mockReset()
+    mocks.requireCurrentMechanics.mockReset()
     mocks.findById.mockResolvedValue({
       id: 'character-1',
+      status: 'ACTIVE',
       stream_version: 1,
-      rule_pack_revision_id: 'revision-1'
+      rule_pack_revision_id: 'revision-1',
+      user_id: 'user-1'
     })
     mocks.findByCommandId.mockResolvedValue(null)
     mocks.findAuthoredById.mockResolvedValue(createCharacter())
     const resolution = createResolution()
+    mocks.createCommittedSheetExtras.mockReturnValue({
+      creaturesById: new Map(),
+      vehiclesById: new Map()
+    })
+    mocks.createCommittedSheetResolution.mockReturnValue(resolution)
+    mocks.createCommittedSheetSpells.mockReturnValue(new Map())
+    mocks.loadCommittedSheetSources.mockResolvedValue({
+      mechanics: { authoredVersionVector: [] },
+      vocabularySnapshot: {
+        checksum: 'a'.repeat(64),
+        snapshotId: 'vocabulary-snapshot-1',
+        snapshotVersion: 1
+      }
+    })
+    mocks.requireCurrentMechanics.mockImplementation(async () => ({
+      authoredVersionVector: [],
+      characterId: 'character-1',
+      characterStreamVersion: 1,
+      commandLaneChecksum: 'b'.repeat(64),
+      commandState: await mocks.findAuthoredById(),
+      evaluatorVersion: 'test-evaluator',
+      modelContractVersion: 1,
+      projectionChecksum: 'c'.repeat(64),
+      rulePolicyInput: {},
+      rulePolicyOutput: {},
+      ruleRegistry: {},
+      ruleRevisionChecksum: 'd'.repeat(64),
+      ruleRevisionId: 'revision-1',
+      ruleSnapshot: {},
+      systemVocabularySnapshotChecksum: 'a'.repeat(64),
+      systemVocabularySnapshotId: 'vocabulary-snapshot-1',
+      systemVocabularySnapshotVersion: 1
+    }))
+    mocks.compileMechanicsProjection.mockImplementation((input: {
+      characterId: string
+      characterCommandState: CharacterAuthored
+      characterStreamVersion: number
+    }) => ({
+      characterId: input.characterId,
+      characterStreamVersion: input.characterStreamVersion,
+      commandLaneChecksum: 'b'.repeat(64),
+      commandState: input.characterCommandState,
+      projectionChecksum: 'c'.repeat(64)
+    }))
     mocks.loadCharacterBuilderContext.mockResolvedValue({
       catalog: resolution.catalog,
       registry: resolution.sourceRegistry
     })
     mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
     mocks.buildSheetBundle.mockImplementation(buildPolicyTestSheetBundle)
+    mocks.assembleSheetBundleForRuleContext.mockImplementation(async (params: {
+      db: DBLike
+      character: CharacterAuthored
+      row: { stream_version: number }
+      revisionId: string
+      ruleContext: CharacterSheetRuleContext
+      excludeCharacterAdjustmentIds?: readonly string[]
+    }) => {
+      const context = await mocks.loadCharacterBuilderContext(params.db, params.character, [], {
+        includeEffects: true
+      })
+      const resolution = await mocks.resolveCharacterBuilder(
+        params.db,
+        params.character,
+        'edit',
+        context,
+        null,
+        params.revisionId
+      )
+      const characterAdjustments = (await mocks.listAdjustments(params.character.id)).filter(
+        (adjustment: { id: string }) =>
+          !new Set(params.excludeCharacterAdjustmentIds).has(adjustment.id)
+      )
+      const movementDisplayPreference = await mocks.getMovementPreference(params.character.id)
+      const bundle = await mocks.buildSheetBundle({
+        db: params.db,
+        character: params.character,
+        resolution,
+        streamVersion: params.row.stream_version,
+        adjustments: characterAdjustments,
+        movementDisplayPreference,
+        resourceUsage: await mocks.listResourceUsage(params.character.id),
+        spellCustomizations: await mocks.listSpellCustomizations(params.character.id),
+        additionalConditions: params.ruleContext.additionalConditions,
+        ruleEvaluation: {
+          context,
+          revisionId: params.revisionId,
+          attunementSlotOverride: params.ruleContext.attunementSlotOverride
+        }
+      })
+      return {
+        bundle,
+        mechanics: {
+          commandLaneChecksum: 'b'.repeat(64),
+          projectionChecksum: 'c'.repeat(64)
+        },
+        resolution,
+        characterAdjustments,
+        movementDisplayPreference
+      }
+    })
     mocks.patchSheetState.mockImplementation(async (_characterId, _patches, options) => {
       await options.afterPersist?.(db, 2)
       return 2
@@ -424,6 +557,36 @@ describe('character sheet rest policy', () => {
       expect.objectContaining({
         type: 'COMPLETE_REST',
         rest: expect.objectContaining({ rollEvidence: preview.rollEvidence })
+      })
+    )
+  })
+
+  it('routes an ordinary rest preview through the committed Sheet assembly', async () => {
+    const character = createCharacter()
+
+    await expect(
+      previewCharacterRest({
+        db: db as unknown as DBLike,
+        characterId: character.id,
+        userId: character.userId,
+        input: {
+          restKind: 'LONG',
+          expectedVersion: 1,
+          selectedHitDice: [],
+          resetMaximumHitPointModifier: false,
+          healingMode: 'AUTOMATIC',
+          manualHealingAccepted: false,
+          selectedCompanionInstanceIds: [],
+          requestRoll: false
+        }
+      })
+    ).resolves.toMatchObject({ streamVersion: 1 })
+
+    expect(mocks.assembleSheetBundleForRuleContext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        character: expect.objectContaining({ id: character.id }),
+        row: expect.objectContaining({ stream_version: 1 }),
+        revisionId: 'revision-1'
       })
     )
   })

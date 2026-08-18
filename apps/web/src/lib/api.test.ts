@@ -123,11 +123,21 @@ describe('tRPC api adapter', () => {
       http.get('*/api/trpc/content.spells.list', ({ request }) => {
         expect(new URL(request.url).pathname).toBe('/api/trpc/content.spells.list')
         expectNoSerializedAuth(request)
-        return trpcJson({ items: [spellItem], meta: {}, drafts: [] })
+        return trpcJson({
+          drafts: [],
+          items: [spellItem],
+          meta: {},
+          page: { nextCursor: null, previousCursor: null, totalCount: 1 },
+          summary: { activeCount: 1, masterCount: 1, ownedCount: 0 }
+        })
       })
     )
 
-    const response = await createServerApi().content.spells.list()
+    const response = await createServerApi().content.spells.list({
+      direction: 'FORWARD',
+      limit: 48,
+      sort: 'name'
+    })
 
     expect(response.items[0]?.permissions.canCopy).toBe(true)
   })

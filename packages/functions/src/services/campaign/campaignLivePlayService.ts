@@ -5,8 +5,6 @@ import {
   createCampaignLivePlayRepository,
   createCampaignRepository,
   createCharacterRepository,
-  createCharacterSheetAdjustmentRepository,
-  createCharacterSheetPlayStateRepository,
   withTransaction,
   type CampaignClock,
   type DBLike
@@ -38,15 +36,11 @@ import {
 } from '@artificer-toolkit/shared/character'
 import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characters'
 import { executeCharacterSheetCommand } from '../character/sheetService.js'
-import { buildCharacterSheetBundle } from '../character/sheetProjection.js'
 import {
-  loadCharacterBuilderContext,
-  resolveCharacterBuilder
-} from '../character/builderService.js'
-import {
-  mergeCampaignSheetAdjustments,
+  getVisibleCampaignConditions,
   resolveCharacterSheetCampaignContext
 } from '../character/campaignCharacterSheet.js'
+import { assembleCharacterSheetBundleForRuleContext } from '../character/characterSheetBundleAssembly.js'
 import {
   assertActiveCampaignMember,
   assertCampaignOwner,
@@ -193,34 +187,20 @@ async function recoverBoundary(
         `Active Character "${assignment.characterId}" does not have a pinned rule revision.`
       )
     }
-    const [context, characterAdjustments, playState, campaignContext] = await Promise.all([
-      loadCharacterBuilderContext(db, authored, [], { includeEffects: true }),
-      // Campaign recovery only needs authoritative resource usage and does not expose the sheet.
-      createCharacterSheetAdjustmentRepository(db).listByCharacter(assignment.characterId),
-      createCharacterSheetPlayStateRepository(db).listResourceUsage(assignment.characterId),
-      resolveCharacterSheetCampaignContext(db, authored, actorUserId)
-    ])
-    const resolution = await resolveCharacterBuilder(
-      db,
-      authored,
-      'edit',
-      context,
-      null,
-      row.rule_pack_revision_id
-    )
-    const { sheet } = await buildCharacterSheetBundle({
+    const campaignContext = await resolveCharacterSheetCampaignContext(db, authored, actorUserId)
+    const { bundle } = await assembleCharacterSheetBundleForRuleContext({
       db,
       character: authored,
-      resolution,
-      streamVersion: row.stream_version,
-      adjustments: mergeCampaignSheetAdjustments(characterAdjustments, campaignContext.adjustments),
-      resourceUsage: playState,
-      ruleEvaluation: {
-        context,
-        revisionId: row.rule_pack_revision_id,
+      campaignId,
+      row,
+      revisionId: row.rule_pack_revision_id,
+      ruleContext: {
+        adjustments: campaignContext.adjustments,
+        additionalConditions: getVisibleCampaignConditions(campaignContext),
         attunementSlotOverride: campaignContext.attunementSlotOverride
       }
     })
+    const { sheet } = bundle
     const trigger = kind
     for (const resource of sheet.resources.items) {
       if (resource.used <= 0 || !resource.recoveries.some((entry) => entry.trigger === trigger)) {

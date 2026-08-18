@@ -1,17 +1,24 @@
 import { notifications } from '@mantine/notifications'
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
+import { useAuthoredCatalogWindow } from '#components/AuthoredList/useAuthoredCatalogWindow'
 import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import { createServerApi } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
-import { getBackground, getBackgroundList } from '#app/data/backgrounds/queries'
+import { getBackground, getBackgroundList, useGetBackgroundList } from '#app/data/backgrounds/queries'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildBackgroundRouteParams } from '#app/routing/authoredRouteParams'
+import type { BackgroundListRequestDto } from '#app/lib/api'
 
 const backgroundDetailMeta = ['currencies', 'equipment', 'languages', 'skills']
+const backgroundCatalogueRequest = {
+  direction: 'FORWARD',
+  limit: 48,
+  sort: 'name'
+} satisfies BackgroundListRequestDto
 import {
   backgroundListAttributeColumns,
   backgroundListSortOptions,
@@ -22,7 +29,9 @@ import {
 
 export const Route = createFileRoute('/_authed/backgrounds/')({
   loader: async ({ context }): Promise<void> => {
-    await context.queryClient.ensureQueryData(getBackgroundList(createServerApi()))
+    await context.queryClient.ensureInfiniteQueryData(
+      getBackgroundList(backgroundCatalogueRequest, createServerApi())
+    )
   },
   component: BackgroundsRoute
 })
@@ -30,7 +39,22 @@ export const Route = createFileRoute('/_authed/backgrounds/')({
 function BackgroundsRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data } = useSuspenseQuery(getBackgroundList())
+  const listing = useAuthoredCatalogWindow({
+    buildFilters: buildBackgroundListFilters,
+    buildRequest: ({ filterValues, query }): BackgroundListRequestDto => ({
+      ...backgroundCatalogueRequest,
+      query: query || undefined,
+      source:
+        filterValues.source === 'MASTER' || filterValues.source === 'OWNED'
+          ? filterValues.source
+          : undefined
+    }),
+    initialSort: 'name',
+    mapDrafts: (response) => mapDraftSummariesToAuthoredItems(response.drafts),
+    mapItems: mapBackgroundListToAuthoredItems,
+    summarize: summarizeBackgroundList,
+    useList: useGetBackgroundList
+  })
   const duplicateMutation = useMutation({
     mutationFn: (id: string) => api.content.backgrounds.duplicate(id),
     onSuccess: async (response) => {
@@ -66,13 +90,16 @@ function BackgroundsRoute() {
     <>
       <AuthoredListPage
         title='Backgrounds'
-        summary={summarizeBackgroundList(data)}
+        summary={listing.summary ?? 'Loading backgrounds...'}
         createLabel='Create Background'
-        items={mapBackgroundListToAuthoredItems(data)}
-        draftItems={mapDraftSummariesToAuthoredItems(data.drafts)}
-        filters={buildBackgroundListFilters(data)}
+        items={listing.items}
+        draftItems={listing.draftItems}
+        filters={listing.filters}
         attributeColumns={backgroundListAttributeColumns}
         sortOptions={backgroundListSortOptions}
+        catalog={listing.catalog}
+        error={listing.error}
+        loading={listing.loading}
         onCreate={() => navigate({ to: '/backgrounds/new' })}
         onView={(item) =>
           navigate({

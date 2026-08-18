@@ -88,7 +88,9 @@ function createEffectReferenceApi(): EffectReferenceApi {
             }
           ],
           drafts: [],
-          meta: {}
+          meta: {},
+          page: { nextCursor: null, previousCursor: null, totalCount: 2 },
+          summary: { activeCount: 2, masterCount: 0, ownedCount: 2 }
         })
       }
     }

@@ -1,6 +1,6 @@
 import type { AuthoredSubjectKindDto } from '@artificer-toolkit/schema/api/content'
-import type { SubmitCampaignContentVersionInput } from '@artificer-toolkit/schema/api/campaigns'
 import { api } from '#app/lib/api'
+import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
 
 export const campaignContentTypeOptions: Array<{
   value: AuthoredSubjectKindDto
@@ -18,7 +18,6 @@ export const campaignContentTypeOptions: Array<{
 
 export interface CampaignContentCandidate {
   subjectId: string
-  publicId: string
   label: string
 }
 
@@ -33,20 +32,8 @@ function toCandidates(
 ): CampaignContentCandidate[] {
   return items
     .filter((item) => item.provenance.kind === 'OWNED' && item.permissions.canEdit)
-    .map((item) => ({ subjectId: item.id, publicId: item.publicId, label: item.label }))
+    .map((item) => ({ subjectId: item.id, label: item.label }))
     .sort((left, right) => left.label.localeCompare(right.label))
-}
-
-function requireOwnedSnapshot(
-  response: {
-    item: unknown
-    provenance: { kind: 'MASTER' | 'OWNED' }
-  } | null
-): SubmitCampaignContentVersionInput['snapshot'] {
-  if (!response?.item || response.provenance.kind !== 'OWNED') {
-    throw new Error('That owned homebrew record is no longer available.')
-  }
-  return response.item as SubmitCampaignContentVersionInput['snapshot']
 }
 
 export async function listOwnedCampaignContent(
@@ -54,44 +41,68 @@ export async function listOwnedCampaignContent(
 ): Promise<CampaignContentCandidate[]> {
   switch (subjectKind) {
     case 'BACKGROUND':
-      return toCandidates((await api.content.backgrounds.list()).items)
+      return toCandidates(
+        await loadPagedAuthoredCatalogItems(api.content.backgrounds.list, {
+          direction: 'FORWARD',
+          limit: 48,
+          sort: 'name'
+        })
+      )
     case 'CLASS':
-      return toCandidates((await api.content.classes.list()).items)
+      return toCandidates(
+        await loadPagedAuthoredCatalogItems(api.content.classes.list, {
+          direction: 'FORWARD',
+          limit: 48,
+          sort: 'name'
+        })
+      )
     case 'CREATURE':
-      return toCandidates((await api.content.creatures.list()).items)
+      return toCandidates(
+        await loadPagedAuthoredCatalogItems(api.content.creatures.list, {
+          direction: 'FORWARD',
+          limit: 48,
+          sort: 'name'
+        })
+      )
     case 'EQUIPMENT':
-      return toCandidates((await api.content.equipment.list()).items)
+      return toCandidates(
+        await loadPagedAuthoredCatalogItems(api.content.equipment.list, {
+          direction: 'FORWARD',
+          limit: 48,
+          sort: 'name'
+        })
+      )
     case 'FEAT':
-      return toCandidates((await api.content.feats.list()).items)
+      return toCandidates(
+        await loadPagedAuthoredCatalogItems(api.content.feats.list, {
+          direction: 'FORWARD',
+          limit: 48,
+          sort: 'name'
+        })
+      )
     case 'RACE':
-      return toCandidates((await api.content.races.list()).items)
+      return toCandidates(
+        await loadPagedAuthoredCatalogItems(api.content.races.list, {
+          direction: 'FORWARD',
+          limit: 48,
+          sort: 'name'
+        })
+      )
     case 'SPELL':
-      return toCandidates((await api.content.spells.list()).items)
+      return toCandidates(
+        await loadPagedAuthoredCatalogItems(api.content.spells.list, {
+          direction: 'FORWARD',
+          limit: 48,
+          sort: 'name'
+        })
+      )
     case 'VEHICLE':
-      return toCandidates((await api.content.vehicles.list()).items)
-  }
-}
-
-export async function loadCampaignContentSnapshot(
-  subjectKind: AuthoredSubjectKindDto,
-  publicId: string
-): Promise<SubmitCampaignContentVersionInput['snapshot']> {
-  switch (subjectKind) {
-    case 'BACKGROUND':
-      return requireOwnedSnapshot(await api.content.backgrounds.get(publicId))
-    case 'CLASS':
-      return requireOwnedSnapshot(await api.content.classes.get(publicId))
-    case 'CREATURE':
-      return requireOwnedSnapshot(await api.content.creatures.get(publicId))
-    case 'EQUIPMENT':
-      return requireOwnedSnapshot(await api.content.equipment.get(publicId))
-    case 'FEAT':
-      return requireOwnedSnapshot(await api.content.feats.get(publicId))
-    case 'RACE':
-      return requireOwnedSnapshot(await api.content.races.get(publicId))
-    case 'SPELL':
-      return requireOwnedSnapshot(await api.content.spells.get(publicId))
-    case 'VEHICLE':
-      return requireOwnedSnapshot(await api.content.vehicles.get(publicId))
+      return toCandidates(
+        await loadPagedAuthoredCatalogItems(api.content.vehicles.list, {
+          direction: 'FORWARD',
+          limit: 48,
+          sort: 'name'
+        })
+      )
   }
 }

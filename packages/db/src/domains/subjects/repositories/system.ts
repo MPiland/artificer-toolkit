@@ -1,127 +1,44 @@
+import { randomUUID } from 'node:crypto'
+
 import type { DBLike } from '#types'
-import type { SystemSeedRecord, VocabularySeedRecord } from '../../../source-data/index.js'
+import type { SystemSeedRecord } from '../../../source-data/index.js'
 import { upsertSystem } from '../upserts/system.js'
 import type { SystemRepository } from '../../../repositories/contracts.js'
 import { hydrateByIds, orderedHydratedRecords } from '../../../repositories/batch.js'
+import { checksumSystemVocabularySnapshot, withTransaction } from '../../../utils/index.js'
+import { createSystemVocabularySnapshotRepository } from './systemVocabularySnapshot.js'
 
-type VocabularyTableName =
-  | 'alignments'
-  | 'challenge_ratings'
-  | 'condition_types'
-  | 'creature_types'
-  | 'currencies'
-  | 'damage_types'
-  | 'heritages'
-  | 'languages'
-  | 'lifestyles'
-  | 'magic_schools'
-  | 'passives'
-  | 'rarities'
-  | 'senses'
-  | 'skills'
-  | 'speeds'
-  | 'terrains'
-
-async function readVocabularyRows(
-  db: DBLike,
-  table: VocabularyTableName,
-  systemId: string
-): Promise<VocabularySeedRecord[]> {
-  const rows = await db
-    .selectFrom(table)
-    .select(['id', 'code', 'label', 'description', 'tooltip', 'short'])
-    .where('system_id', '=', systemId)
-    .orderBy('label')
-    .execute()
-
-  return rows.map((row) => ({
-    id: row.id,
-    code: row.code,
-    label: row.label,
-    description: row.description,
-    tooltip: row.tooltip,
-    short: row.short
-  }))
-}
+const SYSTEM_VOCABULARY_SNAPSHOT_SCHEMA_VERSION = 1
 
 async function hydrateSystemById(db: DBLike, id: string): Promise<SystemSeedRecord | null> {
-  const row = await db
-    .selectFrom('systems')
-    .select(['id', 'label', 'description', 'ruleset_code', 'ruleset_version', 'user_id'])
-    .where('id', '=', id)
-    .executeTakeFirst()
-
-  if (!row) return null
-  if (!row.user_id) {
-    throw new Error(`System "${id}" is missing user_id and cannot be hydrated.`)
-  }
-
-  const [
-    alignments,
-    challengeRatings,
-    conditionTypes,
-    creatureTypes,
-    currencies,
-    damageTypes,
-    heritages,
-    languages,
-    lifestyles,
-    magicSchools,
-    passives,
-    rarities,
-    senses,
-    skills,
-    speeds,
-    terrains
-  ] = await Promise.all([
-    readVocabularyRows(db, 'alignments', row.id),
-    readVocabularyRows(db, 'challenge_ratings', row.id),
-    readVocabularyRows(db, 'condition_types', row.id),
-    readVocabularyRows(db, 'creature_types', row.id),
-    readVocabularyRows(db, 'currencies', row.id),
-    readVocabularyRows(db, 'damage_types', row.id),
-    readVocabularyRows(db, 'heritages', row.id),
-    readVocabularyRows(db, 'languages', row.id),
-    readVocabularyRows(db, 'lifestyles', row.id),
-    readVocabularyRows(db, 'magic_schools', row.id),
-    readVocabularyRows(db, 'passives', row.id),
-    readVocabularyRows(db, 'rarities', row.id),
-    readVocabularyRows(db, 'senses', row.id),
-    readVocabularyRows(db, 'skills', row.id),
-    readVocabularyRows(db, 'speeds', row.id),
-    readVocabularyRows(db, 'terrains', row.id)
-  ])
-
-  return {
-    id: row.id,
-    label: row.label,
-    description: row.description,
-    rulesetCode: row.ruleset_code,
-    rulesetVersion: row.ruleset_version,
-    userId: row.user_id,
-    alignments,
-    challengeRatings,
-    conditionTypes,
-    creatureTypes,
-    currencies,
-    damageTypes,
-    heritages,
-    languages,
-    lifestyles,
-    magicSchools,
-    passives,
-    rarities,
-    senses,
-    skills,
-    speeds,
-    terrains
-  }
+  const snapshot = await createSystemVocabularySnapshotRepository(db).findActive(id)
+  return snapshot?.document ?? null
 }
 
 export function createSystemRepository(db: DBLike): SystemRepository {
   return {
     async upsert(entity) {
-      await upsertSystem(db, entity)
+      await withTransaction(db, async (trx) => {
+        await upsertSystem(trx, entity)
+        const snapshots = createSystemVocabularySnapshotRepository(trx)
+        const active = await snapshots.findActiveForPublication(entity.id)
+        if (active) {
+          const checksum = checksumSystemVocabularySnapshot({
+            snapshotId: active.snapshotId,
+            systemId: entity.id,
+            snapshotVersion: active.snapshotVersion,
+            schemaVersion: SYSTEM_VOCABULARY_SNAPSHOT_SCHEMA_VERSION,
+            document: entity
+          })
+          if (active.checksum === checksum) return
+        }
+        await snapshots.publish({
+          snapshotId: randomUUID(),
+          systemId: entity.id,
+          schemaVersion: SYSTEM_VOCABULARY_SNAPSHOT_SCHEMA_VERSION,
+          document: entity
+        })
+      })
     },
 
     async findById(id) {

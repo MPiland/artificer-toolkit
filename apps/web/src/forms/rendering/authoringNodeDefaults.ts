@@ -465,6 +465,8 @@ export function createDefaultAuthoringNodeValue(
       }
     case 'range':
       return createRange('DISTANCE')
+    case 'resourceUse':
+      return { chargeId: '', cost: 1 }
     case 'scaling':
       return {
         scalingKind: 'BREAKPOINTS',

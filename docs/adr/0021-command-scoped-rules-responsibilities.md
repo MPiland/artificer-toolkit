@@ -6,6 +6,7 @@
 - **Scope:** Character derivation, Sheet play commands, Encounter actions, live-session ordering, and future VTT mechanical commands
 - **Update when:** a command changes policy ownership, the invalidation boundary changes, or a new live mechanical lane is added
 - **Verification:** model-contract tests, Sheet and Encounter command parity, live-session conflict/replay/reconnect tests, and command-latency gates
+- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaces room-only snapshots with synchronously committed, version-matched Character mechanics projections.
 
 ## Context
 

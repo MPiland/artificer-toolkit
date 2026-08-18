@@ -1,6 +1,6 @@
 import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
 import { api, type Api } from '#app/lib/api'
-import type { CharacterSheetPanelTargetDto } from '#app/lib/api'
+import type { CharacterSheetExtraCatalogInputDto, CharacterSheetPanelTargetDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 
 export function getCharacterList(client: Api = api) {
@@ -32,6 +32,17 @@ export function getCharacterSheet(id: string, client: Api = api) {
   return queryOptions({
     queryKey: queryKeys.characters.sheet(id),
     queryFn: async () => await client.characters.sheet(id)
+  })
+}
+
+export function getCharacterSheetExtraOptions(
+  id: string,
+  input: CharacterSheetExtraCatalogInputDto,
+  client: Api = api
+) {
+  return queryOptions({
+    queryKey: queryKeys.characters.extraOptions(id, input),
+    queryFn: async () => await client.characters.extraOptions(id, input)
   })
 }
 

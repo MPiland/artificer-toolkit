@@ -42,7 +42,11 @@ const campaignMocks = vi.hoisted(() => {
       subjectKind: 'SPELL',
       subjectId: '00000000-0000-4000-8000-000000000021',
       version: 0,
-      snapshot: { id: 'snapshot-spell', kind: 'SPELL', revision: 1 },
+      authoredVersionId: '00000000-0000-4000-8000-000000000022',
+      authoredVersion: 1,
+      authoredChecksum: 'a'.repeat(64),
+      compiledProjectionChecksum: 'b'.repeat(64),
+      document: { id: 'snapshot-spell', kind: 'SPELL', revision: 1 },
       status: 'PENDING',
       createdAt: '2026-08-01T12:00:00.000Z',
       reviewedAt: null
@@ -212,8 +216,7 @@ describe('tRPC campaign router', () => {
       campaignId: listInput.campaignId,
       subjectKind: 'SPELL' as const,
       subjectId: '00000000-0000-4000-8000-000000000021',
-      version: 0,
-      snapshot: { id: 'snapshot-spell', kind: 'SPELL', revision: 1 }
+      expectedRevision: 1
     }
     await expect(caller.campaigns.content.submit(submitInput)).resolves.toMatchObject({
       status: 'PENDING'

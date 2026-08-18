@@ -74,9 +74,18 @@ describe('character builder contracts', () => {
     expect(
       characterBuilderCommitRequestDtoSchema.parse({
         ...baseRequest,
-        targetStatus: 'ACTIVE'
+        targetStatus: 'ACTIVE',
+        authoredContentUpgradePreviewChecksum: 'a'.repeat(64)
       }).targetStatus
     ).toBe('ACTIVE')
+
+    expect(() =>
+      characterBuilderCommitRequestDtoSchema.parse({
+        ...baseRequest,
+        targetStatus: 'ACTIVE',
+        authoredContentUpgradePreviewChecksum: 'not-a-checksum'
+      })
+    ).toThrow()
   })
 
   it('requires explicit class identity for each hit point level', () => {

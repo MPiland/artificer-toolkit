@@ -1174,8 +1174,6 @@ export const characterSheetFixture = {
   extras: {
     kindOptions: [],
     originOptions: [],
-    creatureOptions: [],
-    vehicleOptions: [],
     items: []
   }
 } satisfies CharacterSheetResponseDto

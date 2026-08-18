@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import { getClassList } from '#app/data/classes/queries'
+import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
 import { getEquipment } from '#app/data/equipment/queries'
 import { ensureOptionalActiveContent } from '#app/data/optionalActiveContent'
 import { createServerApi } from '#app/lib/api'
@@ -44,9 +44,13 @@ export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equ
     )
     const draft = response?.draft ?? null
     const systemId = response?.item?.systemId
-    const [classResponse, system] = systemId
+    const [classes, system] = systemId
       ? await Promise.all([
-          context.queryClient.ensureQueryData(getClassList(client)),
+          loadPagedAuthoredCatalogItems(client.content.classes.list, {
+            direction: 'FORWARD',
+            limit: 48,
+            sort: 'name'
+          }),
           loadAuthoredRouteSystem(context.queryClient, client, systemId)
         ])
       : [null, null]
@@ -54,7 +58,7 @@ export const Route = createFileRoute('/_authed/equipment/$equipmentPublicId/$equ
       AuthoredContentReferenceData,
       'classes' | 'currencies' | 'equipment' | 'heritages' | 'rarities'
     > = {
-      classes: (classResponse?.items ?? [])
+      classes: (classes ?? [])
         .filter((classRecord) => classRecord.systemId === systemId)
         .map((classRecord) => ({ label: classRecord.label, value: classRecord.id })),
       currencies: (system?.currencies ?? []).map((currency) => ({

@@ -36,6 +36,7 @@ Keep intent at the interface it explains. Cross-module flows belong in architect
 - [Media lifecycle and delivery](architecture/media.md)
 - [Engine](architecture/engine.md)
 - [Live-session host](architecture/live-sessions.md)
+- [Versioned documents and correctness projections](architecture/versioned-projections.md) — transitional reset target and cutover map
 
 ## Audits
 

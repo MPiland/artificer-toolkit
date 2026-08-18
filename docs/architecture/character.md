@@ -23,11 +23,11 @@ sequenceDiagram
   B-->>API: resolution, choices, readiness, preview
   UI->>API: previewSave / upsert
   API->>B: validate readiness + conflict check
-  B->>DB: atomic character upsert + delete draft
+   B->>DB: atomic character upsert + exact mechanics projection + delete draft
   S->>API: sheet / command
   API->>B: sheet read/command use case
-  B->>DB: hydrate authored + state/history
-   B->>E: normalize facts + evaluate exact revision
+   B->>DB: load exact mechanics projection + source vector + state/history
+    B->>E: consume persisted result or evaluate exact overlay/revision
   E-->>S: derived stats and play output
   B->>DB: persist Sheet command state/event
 ```
@@ -62,15 +62,15 @@ Character Builder step navigation is URL-backed UI state through the shared opti
 
 Proficiency eligibility is a mechanical Builder rule, not an authored facet. Fixed and chosen grants from every active source contribute to the effective level for each target. Half proficiency requires a target below half, full proficiency requires a target below full, and Expertise requires existing full proficiency while rejecting an already doubled target. Ineligible options remain present and disabled with a repair reason, and the resolver emits blocking `REDUNDANT_PROFICIENCY_SELECTION` or `EXPERTISE_REQUIRES_PROFICIENCY` validation for stale or crafted selections. Selected-class DTOs group granted labels, player-facing choice instructions, and top-level choice IDs into proficiency categories; feature-owned choices remain attached to their owning feature. These presentation groups are derived and are not persisted character intent.
 
-Builder registry catalog reads must scale with relation shape, not the number of authored roots. Spell, background, feat, race, and class repositories therefore hydrate `findAll`/`findByIds` root rows and owned link rows in sets, while single-record reads delegate to the same canonical batch assembly path. Nested aggregate repositories retain their own loading contracts; measure those separately before broadening the batch boundary. Race resolved-list hydration batch-loads missing parent lineage by depth. Do not reintroduce per-record root hydration loops or process-wide registry caches; homebrew ownership and publication changes require request-current data unless a separately designed invalidation contract exists.
+Draft Builder registry catalog reads must scale with relation shape, not the number of authored roots. Spell, background, feat, race, and class repositories therefore hydrate `findAll`/`findByIds` root rows and owned link rows in sets, while single-record reads delegate to the same canonical batch assembly path. Finalized Sheet and live-session lanes do not use this registry hydration: they load the committed exact source vector and vocabulary snapshot. Nested aggregate repositories retain their own loading contracts; measure those separately before broadening the batch boundary. Race resolved-list hydration batch-loads missing parent lineage by depth. Do not reintroduce per-record root hydration loops or process-wide registry caches; homebrew ownership and publication changes require request-current data unless a separately designed invalidation contract exists.
 
 ## Preview, commit, and conflicts
 
-`previewSave` reconciles and resolves a proposed authored character against the current compatible active rule revision, predicts status changes and destructive removals, and returns a change preview. It is safe to display before commit.
+`previewSave` reconciles and resolves a proposed authored character against current active immutable content and the current compatible active rule revision, predicts status changes and destructive removals, and returns a change preview. For an active Character, it also returns a deterministic authored-version-vector delta and review checksum whenever the commit would change pinned content. It is safe to display before commit.
 
-First finalization rechecks the active compatible revision inside the locked commit transaction and records its exact revision/checksum plus evaluator and model-contract versions with the Character. An explicit upgrade preview/reconciliation command is the only later path to change that pin, and it advances the Character stream version.
+First finalization rechecks active immutable authored versions and the compatible rule revision inside the locked commit transaction, then records their exact authored-version vector, vocabulary snapshot, revision/checksum, evaluator version, and model-contract version in the Character mechanics projection. An explicit reviewed upgrade preview/reconciliation command is the only later path to change those pins, and it advances the Character stream version.
 
-`upsert` requires readiness, locks the active row, checks the draft’s `baseActiveUpdatedAt` (and stream version where supplied), then calls the repository aggregate upsert. On success it ensures route identity, deletes the builder draft, and returns the persisted character/resolution. A stale active row becomes `CharacterBuilderDraftConflictError`/tRPC `CONFLICT`.
+`upsert` requires readiness, locks the active row, checks the draft’s `baseActiveUpdatedAt` (and stream version where supplied), then writes canonical Character structure, exact mechanics projection, route identity, and draft deletion in one transaction. An active Character whose candidate vector differs must echo the reviewed upgrade checksum; otherwise the transaction fails closed. A stale active row becomes `CharacterBuilderDraftConflictError`/tRPC `CONFLICT`.
 
 The repository upsert is replacement-based and transactional; omitted child state is removed. See [persistence](persistence.md).
 
@@ -78,7 +78,7 @@ The repository upsert is replacement-based and transactional; omitted child stat
 
 Sheet roll controls call the authenticated roll service with structured source context. The service owns randomness and returns immutable evidence; the web only presents that result. Non-manual requests must match a roll surface derived from the current Sheet projection. Ability checks, saves, skills, initiative, attacks, damage, healing, manual dice, and short-rest hit dice use this path; applying hit-die healing also references the persisted roll by ID. Canceling an unsettled presentation discards that caller-owned, unconsumed record so it never becomes visible roll history. The engine projects resolved initiative, saving-throw, and attack advantage/disadvantage modes; paired advantage and disadvantage cancel. Manual one-d20 rolls may choose a situational mode in the dice popover. Manual mixed-dice rows retain one modifier per dice term in evidence while preserving the aggregate modifier used by existing verification. Numeric modifiers apply once after the kept d20 is selected. Device-local presentation settings never affect roll authority.
 
-The Sheet path only serves active characters. It hydrates authored character/state plus separately persisted typed adjustments/preferences, resolves Builder content for labels/choices, normalizes facts containing both automatic structural features and explicit acquisitions, and evaluates the Character's exact pinned Zen revision before projecting the `CharacterSheetResponseDto`. Optional manual source notes, actors, and timestamps remain Sheet metadata; only typed mechanical value intent is eligible for rules evaluation. Authored provenance retains its authoritative source labels independently of those notes.
+The Sheet path only serves active characters. It loads the matching exact mechanics projection, its immutable authored-version documents, pinned vocabulary snapshot, canonical Character state, and separately persisted typed adjustments/preferences. It derives presentation from those bounded sources without Builder catalog hydration. An unchanged Sheet consumes the committed result; an overlay or mechanics-bearing command evaluates the exact pinned Zen revision only when its command lane requires it. Optional manual source notes, actors, and timestamps remain Sheet metadata; only typed mechanical value intent is eligible for rules evaluation. Authored provenance retains its authoritative source labels independently of those notes.
 
 One Campaign-aware authority resolver gates Sheet reads, panels, rests, rolls, history, and commands. The Character owner retains ordinary Sheet access; the active Campaign owner may access an assigned Character and issue only the explicit GM command allowlist. Archived Campaigns are readable but reject mutations. Builder reads and structural mutations remain Character-owner-only.
 

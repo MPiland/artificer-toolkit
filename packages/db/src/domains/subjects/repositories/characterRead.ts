@@ -44,6 +44,7 @@ export interface CharacterRepository {
     patches: CharacterSheetStatePatch[],
     options: {
       expectedStreamVersion: number
+      beforeCharacterLock?: (trx: DBLike) => Promise<void>
       afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
     }
   ): Promise<number>

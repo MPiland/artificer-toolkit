@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DBLike } from '@artificer-toolkit/db'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits'
+import { createCreature } from '../character/sheetTestFixtures.js'
 
 const ids = {
   campaign: '00000000-0000-4000-8000-000000000001',
@@ -14,11 +15,14 @@ const ids = {
 const mocks = vi.hoisted(() => ({
   db: {} as DBLike,
   entitlements: { lockTier: vi.fn() },
-  creature: { findByIds: vi.fn() },
+  authoredVersions: { findActiveByIds: vi.fn() },
   encounter: {
     countTemplatesForOwner: vi.fn(),
     createTemplate: vi.fn(),
-    findTemplateByCampaignCommand: vi.fn()
+    find: vi.fn(),
+    findTemplateByCampaignCommand: vi.fn(),
+    findVersionMetadata: vi.fn(),
+    requireCurrentProjection: vi.fn()
   }
 }))
 
@@ -27,7 +31,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   return {
     ...actual,
     createAccountEntitlementsRepository: () => mocks.entitlements,
-    createCreatureRepository: () => mocks.creature,
+    createAuthoredVersionRepository: () => mocks.authoredVersions,
     createEncounterRepository: () => mocks.encounter,
     withTransaction: (_db: DBLike, callback: (trx: DBLike) => Promise<unknown>) =>
       callback(mocks.db)
@@ -49,23 +53,41 @@ vi.mock('../campaign/campaignService.js', () => ({
   assertActiveCampaignMember: vi.fn()
 }))
 
-import { createEncounterTemplate } from './encounterService.js'
+import { createEncounterTemplate, getEncounterProjection } from './encounterService.js'
 
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.entitlements.lockTier.mockResolvedValue('FREE')
   mocks.encounter.countTemplatesForOwner.mockResolvedValue(0)
   mocks.encounter.findTemplateByCampaignCommand.mockResolvedValue(null)
-  mocks.creature.findByIds.mockResolvedValue(
+  mocks.encounter.findVersionMetadata.mockResolvedValue({
+    campaignId: ids.campaign,
+    id: ids.command,
+    sessionId: ids.template,
+    status: 'ACTIVE',
+    version: 7
+  })
+  mocks.encounter.requireCurrentProjection.mockResolvedValue({
+    projection: { id: ids.command, version: 7 }
+  })
+  const creature = createCreature({
+    id: ids.creature,
+    systemId: ids.system,
+    userId: ids.owner,
+    status: 'ACTIVE',
+    hitPoints: 8
+  })
+  mocks.authoredVersions.findActiveByIds.mockResolvedValue(
     new Map([
       [
         ids.creature,
         {
-          id: ids.creature,
-          label: 'Server creature',
-          systemId: ids.system,
-          status: 'ACTIVE',
-          hitPoints: 8
+          authored: {
+            document: creature,
+            versionId: 'creature-version-1',
+            version: 1,
+            checksum: 'a'.repeat(64)
+          }
         }
       ]
     ])
@@ -82,7 +104,7 @@ beforeEach(() => {
 })
 
 describe('encounter template authority', () => {
-  it('resolves Creature labels and stats from the authored repository', async () => {
+  it('pins Creature labels and stats from the active immutable version', async () => {
     await createEncounterTemplate({} as DBLike, ids.owner, {
       campaignId: ids.campaign,
       name: 'Goblin ambush',
@@ -90,7 +112,9 @@ describe('encounter template authority', () => {
       commandId: ids.command
     })
 
-    expect(mocks.creature.findByIds).toHaveBeenCalledWith([ids.creature], {
+    expect(mocks.authoredVersions.findActiveByIds).toHaveBeenCalledWith({
+      subjectKind: 'CREATURE',
+      subjectIds: [ids.creature],
       userId: ids.owner,
       includeMaster: true
     })
@@ -100,12 +124,14 @@ describe('encounter template authority', () => {
           expect.objectContaining({
             kind: 'CREATURE',
             sourceId: ids.creature,
-            sourceRevision: null,
-            label: 'Server creature',
+            sourceRevision: 1,
+            label: 'Owl',
             systemId: ids.system,
             maxHitPoints: 8,
             snapshot: expect.objectContaining({
-              payload: expect.objectContaining({ label: 'Server creature', hitPoints: 8 })
+              sourceVersionId: 'creature-version-1',
+              sourceChecksum: 'a'.repeat(64),
+              payload: expect.objectContaining({ label: 'Owl', hitPoints: 8 })
             })
           })
         ]
@@ -128,13 +154,13 @@ describe('encounter template authority', () => {
     })
     mocks.encounter.createTemplate.mockClear()
     mocks.entitlements.lockTier.mockClear()
-    mocks.creature.findByIds.mockClear()
+    mocks.authoredVersions.findActiveByIds.mockClear()
 
     await expect(createEncounterTemplate({} as DBLike, ids.owner, input)).resolves.toMatchObject({
       id: ids.template
     })
     expect(mocks.entitlements.lockTier).not.toHaveBeenCalled()
-    expect(mocks.creature.findByIds).not.toHaveBeenCalled()
+    expect(mocks.authoredVersions.findActiveByIds).not.toHaveBeenCalled()
     expect(mocks.encounter.createTemplate).not.toHaveBeenCalled()
   })
 
@@ -165,17 +191,25 @@ describe('encounter template authority', () => {
   })
 
   it('rejects oversized resolved creature snapshots before persistence', async () => {
-    mocks.creature.findByIds.mockResolvedValue(
+    const creature = createCreature({
+      id: ids.creature,
+      systemId: ids.system,
+      userId: ids.owner,
+      status: 'ACTIVE',
+      hitPoints: 8,
+      description: 'x'.repeat(AUTHORED_LIMITS.mutationPayloadBytes)
+    })
+    mocks.authoredVersions.findActiveByIds.mockResolvedValue(
       new Map([
         [
           ids.creature,
           {
-            id: ids.creature,
-            label: 'Server creature',
-            systemId: ids.system,
-            status: 'ACTIVE',
-            hitPoints: 8,
-            description: 'x'.repeat(AUTHORED_LIMITS.mutationPayloadBytes)
+            authored: {
+              document: creature,
+              versionId: 'creature-version-1',
+              version: 1,
+              checksum: 'a'.repeat(64)
+            }
           }
         ]
       ])
@@ -190,5 +224,21 @@ describe('encounter template authority', () => {
       })
     ).rejects.toMatchObject({ name: 'EncounterValidationError' })
     expect(mocks.encounter.createTemplate).not.toHaveBeenCalled()
+  })
+})
+
+describe('Encounter projection reads', () => {
+  it('locates the current projection through its small relational envelope', async () => {
+    await expect(getEncounterProjection({} as DBLike, ids.owner, ids.command)).resolves.toEqual({
+      id: ids.command,
+      version: 7
+    })
+
+    expect(mocks.encounter.findVersionMetadata).toHaveBeenCalledWith(ids.command)
+    expect(mocks.encounter.requireCurrentProjection).toHaveBeenCalledWith({
+      encounterId: ids.command,
+      expectedStreamVersion: 7
+    })
+    expect(mocks.encounter.find).not.toHaveBeenCalled()
   })
 })

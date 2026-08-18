@@ -45,8 +45,5 @@ export const featListAttributeColumns = [] satisfies AuthoredListAttributeColumn
 export const featListSortOptions = [{ value: 'name', label: 'Name A-Z' }]
 
 export function summarizeFeatList(response: FeatListResponseDto) {
-  const masterCount = response.items.filter((item) => item.provenance.kind === 'MASTER').length
-  const ownedCount = response.items.length - masterCount
-
-  return `${response.items.length} feats / ${masterCount} SRD / ${ownedCount} homebrew`
+  return `${response.summary.activeCount} feats / ${response.summary.masterCount} SRD / ${response.summary.ownedCount} homebrew`
 }

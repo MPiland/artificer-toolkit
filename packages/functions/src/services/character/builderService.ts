@@ -1,4 +1,4 @@
-import type { DBLike } from '@artificer-toolkit/db'
+import { createAuthoredVersionRepository, type DBLike } from '@artificer-toolkit/db'
 import {
   ADVANCEMENT_METHOD_CODE,
   AUTHORED_RECORD_STATUS,
@@ -273,7 +273,7 @@ export async function loadCharacterBuilderContext(
   options: CharacterBuilderContextLoadOptions = {}
 ): Promise<CharacterBuilderContext> {
   const [baseCatalog, campaignContent] = await Promise.all([
-    loadCharacterBuilderCatalog(db, character.systemId, { includeSpells: false }),
+    loadCharacterBuilderCatalog(db, character.systemId, character.userId, { includeSpells: false }),
     loadCampaignCharacterContentOverlay(db, character, campaignContentOverrides)
   ])
   const campaignCatalogContent = campaignContent
@@ -326,10 +326,13 @@ export async function loadCharacterBuilderContext(
   const spells = needsSpells
     ? campaignCatalogContent
       ? mergeCampaignContentIntoCharacterBuilderCatalog(
-          { ...catalog, spells: await loadCharacterBuilderSpellCatalog(db, character.systemId) },
+          {
+            ...catalog,
+            spells: await loadCharacterBuilderSpellCatalog(db, character.systemId, character.userId)
+          },
           campaignCatalogContent
         ).spells
-      : await loadCharacterBuilderSpellCatalog(db, character.systemId)
+      : await loadCharacterBuilderSpellCatalog(db, character.systemId, character.userId)
     : []
 
   return {
@@ -339,6 +342,108 @@ export async function loadCharacterBuilderContext(
     },
     registry: lightRegistry
   }
+}
+
+export async function loadCharacterRuleContext(
+  db: DBLike,
+  character: CharacterAuthored,
+  campaignContentOverrides: readonly CampaignAuthoredSnapshot[] = [],
+  options: CharacterBuilderContextLoadOptions = {}
+): Promise<CharacterBuilderContext> {
+  const campaignContent = await loadCampaignCharacterContentOverlay(
+    db,
+    character,
+    campaignContentOverrides
+  )
+  const candidateFeatIds = [
+    ...new Set([
+      ...character.intent.featureAcquisitions.flatMap((acquisition) =>
+        acquisition.source.kind === 'FEAT' ? [acquisition.source.featId] : []
+      ),
+      ...(character.intent.chosenGrantSelections ?? []).flatMap((selection) => selection.targetIds)
+    ])
+  ]
+  const canonicalFeatIds =
+    candidateFeatIds.length > 0
+      ? new Set(
+          [...(
+            await createAuthoredVersionRepository(db).findActiveByIds({
+              subjectKind: 'FEAT',
+              subjectIds: candidateFeatIds,
+              systemId: character.systemId,
+              userId: character.userId,
+              includeMaster: true
+            })
+          )].flatMap(([id, record]) =>
+            record.authored.document.systemId === character.systemId ? [id] : []
+          )
+        )
+      : new Set<string>()
+  const campaignFeatIds = new Set(
+    [...(campaignContent?.latest.values() ?? [])]
+      .filter((snapshot) => snapshot.subjectKind === 'FEAT')
+      .map((snapshot) => snapshot.subjectId)
+  )
+  const knownFeatIds = new Set([...canonicalFeatIds, ...campaignFeatIds])
+  const emptyCatalog: CharacterBuilderCatalog = {
+    races: [],
+    classes: [],
+    backgrounds: [],
+    equipment: [],
+    feats: [],
+    spells: []
+  }
+  const { registry } = await loadCharacterAssemblyRegistry({
+    db,
+    character,
+    catalog: emptyCatalog,
+    campaignContent,
+    includeEffects: options.includeEffects,
+    knownFeatIds
+  })
+  const feats = registry.feats ?? []
+  const equipment = registry.equipment
+  const featsById = new Map(feats.map((feat) => [feat.id, feat]))
+  const selectedFeaturesById = new Map(registry.features.map((feature) => [feature.id, feature]))
+  const { classSelections, grantedFeatures } = collectGrantedFeaturesForCharacter(
+    character,
+    registry
+  )
+  const needsSpells = Boolean(
+    character.intent.spellSelections?.length ||
+    classSelections.some((selection) => selection.spellcasting.length > 0) ||
+    grantedFeatures.some((granted) =>
+      featureContributesSpellGrant(granted.feature, character, granted.source)
+    ) ||
+    character.intent.featureAcquisitions.some((acquisition) => {
+      const feature = selectedFeaturesById.get(acquisition.featureId)
+      if (feature && featureContributesSpellGrant(feature, character, acquisition.source)) {
+        return true
+      }
+      if (acquisition.source.kind !== 'FEAT') return false
+      const feat = featsById.get(acquisition.source.featId)
+      return Boolean(
+        feat?.grants?.spells?.length ||
+        feat?.features?.some((feature) => featureContributesSpellGrant(feature, character))
+      )
+    }) ||
+    equipment.some((record) =>
+      record.features?.some((feature) => featureContributesSpellGrant(feature, character))
+    )
+  )
+  const campaignCatalogContent =
+    needsSpells && campaignContent ? await hydrateCampaignCatalogContent(db, campaignContent) : null
+  const baseSpells = needsSpells
+    ? await loadCharacterBuilderSpellCatalog(db, character.systemId, character.userId)
+    : []
+  const spells = campaignCatalogContent
+    ? mergeCampaignContentIntoCharacterBuilderCatalog(
+        { ...emptyCatalog, spells: baseSpells },
+        campaignCatalogContent
+      ).spells
+    : baseSpells
+
+  return { catalog: { ...emptyCatalog, spells }, registry }
 }
 
 function appendChosenGrantChoiceIssues(

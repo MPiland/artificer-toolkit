@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => ({
   },
   character: { findAuthoredById: vi.fn(), findById: vi.fn() },
   adjustments: { listByCharacter: vi.fn() },
+  assembleSheetBundle: vi.fn(),
   playState: { listResourceUsage: vi.fn() },
   events: { insertCampaignEvent: vi.fn() },
   loadBuilderContext: vi.fn(),
@@ -59,6 +60,9 @@ vi.mock('../character/sheetService.js', () => ({
 }))
 vi.mock('../character/sheetProjection.js', () => ({
   buildCharacterSheetBundle: mocks.buildSheetBundle
+}))
+vi.mock('../character/characterSheetBundleAssembly.js', () => ({
+  assembleCharacterSheetBundleForRuleContext: mocks.assembleSheetBundle
 }))
 vi.mock('../character/campaignCharacterSheet.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../character/campaignCharacterSheet.js')>()),
@@ -130,9 +134,20 @@ beforeEach(() => {
   })
   mocks.live.hasRecovery.mockResolvedValue(false)
   mocks.live.insertRecovery.mockResolvedValue(undefined)
+  mocks.assembleSheetBundle.mockImplementation(async (params) => ({
+    bundle: await mocks.buildSheetBundle(params),
+    resolution: {},
+    characterAdjustments: [],
+    movementDisplayPreference: null
+  }))
   mocks.resolveBuilder.mockResolvedValue({})
   mocks.loadBuilderContext.mockResolvedValue({})
-  mocks.resolveCampaignContext.mockResolvedValue({ adjustments: [], attunementSlotOverride: null })
+  mocks.resolveCampaignContext.mockResolvedValue({
+    viewer: 'CAMPAIGN_OWNER',
+    adjustments: [],
+    attunementSlotOverride: null,
+    conditions: []
+  })
   mocks.adjustments.listByCharacter.mockResolvedValue([])
   mocks.playState.listResourceUsage.mockResolvedValue([])
   mocks.broadcast.mockResolvedValue(true)

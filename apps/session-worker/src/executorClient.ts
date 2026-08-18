@@ -8,7 +8,7 @@ import {
 import type { SessionWorkerEnvironment } from './environment.js'
 
 const EXECUTOR_TIMEOUT_MS = 10_000
-const SNAPSHOT_EXECUTOR_TIMEOUT_MS = 55_000
+const AUTHORITATIVE_EXECUTOR_TIMEOUT_MS = 55_000
 
 export class LiveSessionExecutorRequestError extends Error {
   constructor(
@@ -22,9 +22,18 @@ export class LiveSessionExecutorRequestError extends Error {
 }
 
 export async function callLiveSessionExecutor(
-  environment: SessionWorkerEnvironment,
+  environment: Pick<
+    SessionWorkerEnvironment,
+    'LIVE_SESSION_EXECUTOR_SECRET' | 'LIVE_SESSION_EXECUTOR_URL'
+  >,
   request: LiveSessionExecutorRequestDto
 ): Promise<LiveSessionExecutorResponseDto> {
+  const timeoutMs =
+    request.operation === 'SNAPSHOT' || request.operation === 'COMMAND'
+      ? AUTHORITATIVE_EXECUTOR_TIMEOUT_MS
+      : EXECUTOR_TIMEOUT_MS
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
   let response: Response
   try {
     response = await fetch(environment.LIVE_SESSION_EXECUTOR_URL, {
@@ -34,9 +43,7 @@ export async function callLiveSessionExecutor(
         'content-type': 'application/json'
       },
       method: 'POST',
-      signal: AbortSignal.timeout(
-        request.operation === 'SNAPSHOT' ? SNAPSHOT_EXECUTOR_TIMEOUT_MS : EXECUTOR_TIMEOUT_MS
-      )
+      signal: controller.signal
     })
   } catch (error) {
     throw new LiveSessionExecutorRequestError(
@@ -44,6 +51,8 @@ export async function callLiveSessionExecutor(
       error instanceof Error ? error.message : 'Live-session executor request failed.',
       true
     )
+  } finally {
+    clearTimeout(timeout)
   }
 
   const body: unknown = await response.json().catch(() => null)

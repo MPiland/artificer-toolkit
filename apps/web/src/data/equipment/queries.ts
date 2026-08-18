@@ -1,4 +1,4 @@
-import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
+import type { Api, AuthoredDetailRequestDto, EquipmentListRequestDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
@@ -9,12 +9,12 @@ const equipmentQueries = createAuthoredContentQueries(
   queryKeys.content.equipment
 )
 
-export function getEquipmentList(client?: Api) {
-  return equipmentQueries.getList(client)
+export function getEquipmentList(input: EquipmentListRequestDto, client?: Api) {
+  return equipmentQueries.getList(input, client)
 }
 
-export function useGetEquipmentList() {
-  return equipmentQueries.useList()
+export function useGetEquipmentList(input: EquipmentListRequestDto) {
+  return equipmentQueries.useList(input)
 }
 
 export function getEquipment(input: DetailInput, client?: Api) {

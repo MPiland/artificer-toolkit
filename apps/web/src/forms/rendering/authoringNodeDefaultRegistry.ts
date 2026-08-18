@@ -76,6 +76,7 @@ export type AuthoringDefaultKind =
   | 'raceAncestry'
   | 'raceAncestryOption'
   | 'range'
+  | 'resourceUse'
   | 'scaling'
   | 'resultBlock'
   | 'rollTableRepeat'
@@ -188,6 +189,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   raceAncestry: ['raceAncestry'],
   raceAncestryOption: ['raceAncestryOption'],
   range: ['range'],
+  resourceUse: ['resourceUse'],
   scaling: ['durationScaling', 'rangeScaling', 'shapeMeasurementScaling', 'targetCountScaling'],
   resultBlock: ['nonManifestResultBlock', 'resultBlock'],
   rollTableRepeat: ['rollTableRepeat'],

@@ -159,6 +159,8 @@ CREATE TABLE IF NOT EXISTS public.encounter_scenes (
   definition_snapshot jsonb NOT NULL CHECK (jsonb_typeof(definition_snapshot) = 'object'),
   projection jsonb NOT NULL CHECK (jsonb_typeof(projection) = 'object'),
   version integer NOT NULL DEFAULT 0 CHECK (version >= 0),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  projection_checksum text NOT NULL CHECK (projection_checksum ~ '^[0-9a-f]{64}$'),
   attach_command_id uuid NOT NULL,
   attach_command_fingerprint text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -194,6 +196,17 @@ CREATE INDEX IF NOT EXISTS encounter_scene_events_replay_idx
   ON public.encounter_scene_events (scene_id, version ASC);
 ALTER TABLE public.encounter_scene_events ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.encounter_scene_events FROM anon, authenticated;
+
+CREATE TABLE IF NOT EXISTS public.encounter_current_projections (
+  encounter_id uuid PRIMARY KEY REFERENCES public.encounters (id) ON DELETE CASCADE,
+  stream_version integer NOT NULL CHECK (stream_version >= 0),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  projection_checksum text NOT NULL CHECK (projection_checksum ~ '^[0-9a-f]{64}$'),
+  projection jsonb NOT NULL CHECK (jsonb_typeof(projection) = 'object'),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.encounter_current_projections ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.encounter_current_projections FROM anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.validate_vtt_scene_map_asset()
 RETURNS trigger

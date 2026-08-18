@@ -7,6 +7,31 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       account_entitlements: {
@@ -346,8 +371,72 @@ export type Database = {
           },
         ]
       }
+      background_versions: {
+        Row: {
+          authored_checksum: string
+          authored_dependency_vector: Json
+          authored_document: Json
+          background_id: string
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at: string
+          document_schema_version: number
+          id: string
+          projection_schema_version: number
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Insert: {
+          authored_checksum: string
+          authored_dependency_vector?: Json
+          authored_document: Json
+          background_id: string
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at?: string
+          document_schema_version: number
+          id: string
+          projection_schema_version: number
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Update: {
+          authored_checksum?: string
+          authored_dependency_vector?: Json
+          authored_document?: Json
+          background_id?: string
+          compiled_checksum?: string
+          compiled_document?: Json
+          compiler_version?: string
+          created_at?: string
+          document_schema_version?: number
+          id?: string
+          projection_schema_version?: number
+          version?: number
+          vocabulary_snapshot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "background_versions_background_id_fkey"
+            columns: ["background_id"]
+            isOneToOne: false
+            referencedRelation: "backgrounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "background_versions_vocabulary_snapshot_id_fkey"
+            columns: ["vocabulary_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "system_vocabulary_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backgrounds: {
         Row: {
+          active_version_id: string | null
           created_at: string
           description: string | null
           id: string
@@ -360,6 +449,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          active_version_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -372,6 +462,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          active_version_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -384,6 +475,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "backgrounds_active_version_fk"
+            columns: ["id", "active_version_id"]
+            isOneToOne: false
+            referencedRelation: "background_versions"
+            referencedColumns: ["background_id", "id"]
+          },
           {
             foreignKeyName: "backgrounds_starting_equipment_id_fkey"
             columns: ["starting_equipment_id"]
@@ -677,6 +775,53 @@ export type Database = {
           },
         ]
       }
+      campaign_character_mechanics_projections: {
+        Row: {
+          base_mechanics_projection_checksum: string
+          campaign_id: string
+          character_id: string
+          mechanical_context_checksum: string
+          projection_checksum: string
+          projection_schema_version: number
+          rule_policy_input: Json
+          rule_policy_output: Json
+          stream_version: number
+          updated_at: string
+        }
+        Insert: {
+          base_mechanics_projection_checksum: string
+          campaign_id: string
+          character_id: string
+          mechanical_context_checksum: string
+          projection_checksum: string
+          projection_schema_version: number
+          rule_policy_input: Json
+          rule_policy_output: Json
+          stream_version: number
+          updated_at?: string
+        }
+        Update: {
+          base_mechanics_projection_checksum?: string
+          campaign_id?: string
+          character_id?: string
+          mechanical_context_checksum?: string
+          projection_checksum?: string
+          projection_schema_version?: number
+          rule_policy_input?: Json
+          rule_policy_output?: Json
+          stream_version?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_character_mechanics_proj_campaign_id_character_id_fkey"
+            columns: ["campaign_id", "character_id"]
+            isOneToOne: true
+            referencedRelation: "campaign_character_assignments"
+            referencedColumns: ["campaign_id", "character_id"]
+          },
+        ]
+      }
       campaign_clock_recoveries: {
         Row: {
           boundary_absolute_minute: number
@@ -819,12 +964,15 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           authored_by: string
+          authored_checksum: string
+          authored_version: number
+          authored_version_id: string
           campaign_id: string
+          compiled_projection_checksum: string
           created_at: string
           id: string
           rejected_at: string | null
           revision: number
-          snapshot: Json
           state: string
           subject_id: string
           subject_kind: string
@@ -834,12 +982,15 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           authored_by: string
+          authored_checksum: string
+          authored_version: number
+          authored_version_id: string
           campaign_id: string
+          compiled_projection_checksum: string
           created_at?: string
           id?: string
           rejected_at?: string | null
           revision: number
-          snapshot: Json
           state?: string
           subject_id: string
           subject_kind: string
@@ -849,12 +1000,15 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           authored_by?: string
+          authored_checksum?: string
+          authored_version?: number
+          authored_version_id?: string
           campaign_id?: string
+          compiled_projection_checksum?: string
           created_at?: string
           id?: string
           rejected_at?: string | null
           revision?: number
-          snapshot?: Json
           state?: string
           subject_id?: string
           subject_kind?: string
@@ -2258,13 +2412,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "character_ancestry_acquisitions_ancestry_id_fkey"
-            columns: ["ancestry_id"]
-            isOneToOne: false
-            referencedRelation: "race_ancestries"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "character_ancestry_acquisitions_character_id_fkey"
             columns: ["character_id"]
             isOneToOne: false
@@ -2276,13 +2423,6 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_ancestry_acquisitions_option_id_fkey"
-            columns: ["option_id"]
-            isOneToOne: false
-            referencedRelation: "race_ancestry_options"
             referencedColumns: ["id"]
           },
           {
@@ -2403,20 +2543,6 @@ export type Database = {
             referencedRelation: "characters"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "character_background_equipment_groups_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "starting_equipment_groups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_background_equipment_groups_option_id_fkey"
-            columns: ["option_id"]
-            isOneToOne: false
-            referencedRelation: "starting_equipment_options"
-            referencedColumns: ["id"]
-          },
         ]
       }
       character_background_equipment_items: {
@@ -2460,20 +2586,6 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipment"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_background_equipment_items_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "starting_equipment_groups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_background_equipment_items_selection_item_id_fkey"
-            columns: ["selection_item_id"]
-            isOneToOne: false
-            referencedRelation: "starting_equipment_option_items"
             referencedColumns: ["id"]
           },
         ]
@@ -2674,13 +2786,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "character_chosen_grant_selections_ancestry_id_fkey"
-            columns: ["ancestry_id"]
-            isOneToOne: false
-            referencedRelation: "race_ancestries"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "character_chosen_grant_selections_background_id_fkey"
             columns: ["background_id"]
             isOneToOne: false
@@ -2706,20 +2811,6 @@ export type Database = {
             columns: ["feat_id"]
             isOneToOne: false
             referencedRelation: "feats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_chosen_grant_selections_feature_id_fkey"
-            columns: ["feature_id"]
-            isOneToOne: false
-            referencedRelation: "features"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_chosen_grant_selections_option_id_fkey"
-            columns: ["option_id"]
-            isOneToOne: false
-            referencedRelation: "options"
             referencedColumns: ["id"]
           },
           {
@@ -2782,20 +2873,6 @@ export type Database = {
             referencedRelation: "characters"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "character_class_equipment_groups_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "starting_equipment_groups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_class_equipment_groups_option_id_fkey"
-            columns: ["option_id"]
-            isOneToOne: false
-            referencedRelation: "starting_equipment_options"
-            referencedColumns: ["id"]
-          },
         ]
       }
       character_class_equipment_items: {
@@ -2841,20 +2918,6 @@ export type Database = {
             referencedRelation: "equipment"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "character_class_equipment_items_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "starting_equipment_groups"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_class_equipment_items_selection_item_id_fkey"
-            columns: ["selection_item_id"]
-            isOneToOne: false
-            referencedRelation: "starting_equipment_option_items"
-            referencedColumns: ["id"]
-          },
         ]
       }
       character_class_equipment_session: {
@@ -2891,13 +2954,6 @@ export type Database = {
             columns: ["character_id"]
             isOneToOne: true
             referencedRelation: "characters"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_class_equipment_session_option_fkey"
-            columns: ["option"]
-            isOneToOne: false
-            referencedRelation: "starting_equipment_options"
             referencedColumns: ["id"]
           },
         ]
@@ -2995,13 +3051,6 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_classes_specialization_id_fkey"
-            columns: ["specialization_id"]
-            isOneToOne: false
-            referencedRelation: "class_specializations"
             referencedColumns: ["id"]
           },
           {
@@ -3648,13 +3697,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "character_feature_acquisitions_ancestry_id_fkey"
-            columns: ["ancestry_id"]
-            isOneToOne: false
-            referencedRelation: "race_ancestries"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "character_feature_acquisitions_background_id_fkey"
             columns: ["background_id"]
             isOneToOne: false
@@ -3680,20 +3722,6 @@ export type Database = {
             columns: ["feat_id"]
             isOneToOne: false
             referencedRelation: "feats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_feature_acquisitions_feature_id_fkey"
-            columns: ["feature_id"]
-            isOneToOne: false
-            referencedRelation: "features"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_feature_acquisitions_option_id_fkey"
-            columns: ["option_id"]
-            isOneToOne: false
-            referencedRelation: "options"
             referencedColumns: ["id"]
           },
           {
@@ -4081,6 +4109,91 @@ export type Database = {
             columns: ["item_instance_id"]
             isOneToOne: false
             referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_mechanics_projections: {
+        Row: {
+          authored_version_vector: Json
+          bounded_registry: Json
+          character_id: string
+          command_lane_checksum: string
+          command_state: Json
+          command_state_checksum: string
+          evaluator_version: string
+          model_contract_version: number
+          normalized_facts: Json
+          projection_checksum: string
+          projection_schema_version: number
+          rule_pack_checksum: string
+          rule_pack_revision_id: string
+          rule_result: Json
+          rule_snapshot: Json
+          stream_version: number
+          updated_at: string
+          vocabulary_snapshot_id: string
+        }
+        Insert: {
+          authored_version_vector: Json
+          bounded_registry: Json
+          character_id: string
+          command_lane_checksum: string
+          command_state: Json
+          command_state_checksum: string
+          evaluator_version: string
+          model_contract_version: number
+          normalized_facts: Json
+          projection_checksum: string
+          projection_schema_version: number
+          rule_pack_checksum: string
+          rule_pack_revision_id: string
+          rule_result: Json
+          rule_snapshot: Json
+          stream_version: number
+          updated_at?: string
+          vocabulary_snapshot_id: string
+        }
+        Update: {
+          authored_version_vector?: Json
+          bounded_registry?: Json
+          character_id?: string
+          command_lane_checksum?: string
+          command_state?: Json
+          command_state_checksum?: string
+          evaluator_version?: string
+          model_contract_version?: number
+          normalized_facts?: Json
+          projection_checksum?: string
+          projection_schema_version?: number
+          rule_pack_checksum?: string
+          rule_pack_revision_id?: string
+          rule_result?: Json
+          rule_snapshot?: Json
+          stream_version?: number
+          updated_at?: string
+          vocabulary_snapshot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_mechanics_projections_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_mechanics_projections_rule_pack_revision_id_fkey"
+            columns: ["rule_pack_revision_id"]
+            isOneToOne: false
+            referencedRelation: "rule_pack_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_mechanics_projections_vocabulary_snapshot_id_fkey"
+            columns: ["vocabulary_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "system_vocabulary_snapshots"
             referencedColumns: ["id"]
           },
         ]
@@ -4544,27 +4657,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "character_resource_grants_feature_id_fkey"
-            columns: ["feature_id"]
-            isOneToOne: false
-            referencedRelation: "features"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_resource_grants_option_id_fkey"
-            columns: ["option_id"]
-            isOneToOne: false
-            referencedRelation: "options"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_resource_grants_resource_id_fkey"
-            columns: ["resource_id"]
-            isOneToOne: false
-            referencedRelation: "class_resources"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "character_resource_grants_subclass_id_fkey"
             columns: ["subclass_id"]
             isOneToOne: false
@@ -4835,25 +4927,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "character_sheet_resource_usage_charge_id_fkey"
-            columns: ["charge_id"]
-            isOneToOne: false
-            referencedRelation: "charges"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "character_sheet_resource_usage_companion_fkey"
             columns: ["character_id", "companion_instance_id"]
             isOneToOne: false
             referencedRelation: "character_creatures"
             referencedColumns: ["character_id", "id"]
-          },
-          {
-            foreignKeyName: "character_sheet_resource_usage_feature_id_fkey"
-            columns: ["feature_id"]
-            isOneToOne: false
-            referencedRelation: "features"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "character_sheet_resource_usage_item_fkey"
@@ -5159,20 +5237,6 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_spell_selections_feature_id_fkey"
-            columns: ["feature_id"]
-            isOneToOne: false
-            referencedRelation: "features"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "character_spell_selections_option_id_fkey"
-            columns: ["option_id"]
-            isOneToOne: false
-            referencedRelation: "options"
             referencedColumns: ["id"]
           },
           {
@@ -6321,8 +6385,72 @@ export type Database = {
           },
         ]
       }
+      class_versions: {
+        Row: {
+          authored_checksum: string
+          authored_dependency_vector: Json
+          authored_document: Json
+          class_id: string
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at: string
+          document_schema_version: number
+          id: string
+          projection_schema_version: number
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Insert: {
+          authored_checksum: string
+          authored_dependency_vector?: Json
+          authored_document: Json
+          class_id: string
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at?: string
+          document_schema_version: number
+          id: string
+          projection_schema_version: number
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Update: {
+          authored_checksum?: string
+          authored_dependency_vector?: Json
+          authored_document?: Json
+          class_id?: string
+          compiled_checksum?: string
+          compiled_document?: Json
+          compiler_version?: string
+          created_at?: string
+          document_schema_version?: number
+          id?: string
+          projection_schema_version?: number
+          version?: number
+          vocabulary_snapshot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_versions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_versions_vocabulary_snapshot_id_fkey"
+            columns: ["vocabulary_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "system_vocabulary_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
+          active_version_id: string | null
           category: string
           created_at: string
           description: string | null
@@ -6338,6 +6466,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          active_version_id?: string | null
           category: string
           created_at?: string
           description?: string | null
@@ -6353,6 +6482,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          active_version_id?: string | null
           category?: string
           created_at?: string
           description?: string | null
@@ -6368,6 +6498,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "classes_active_version_fk"
+            columns: ["id", "active_version_id"]
+            isOneToOne: false
+            referencedRelation: "class_versions"
+            referencedColumns: ["class_id", "id"]
+          },
           {
             foreignKeyName: "classes_parent_system_fk"
             columns: ["parent_class_id", "system_id"]
@@ -6768,9 +6905,73 @@ export type Database = {
           },
         ]
       }
+      creature_versions: {
+        Row: {
+          authored_checksum: string
+          authored_dependency_vector: Json
+          authored_document: Json
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at: string
+          creature_id: string
+          document_schema_version: number
+          id: string
+          projection_schema_version: number
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Insert: {
+          authored_checksum: string
+          authored_dependency_vector?: Json
+          authored_document: Json
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at?: string
+          creature_id: string
+          document_schema_version: number
+          id: string
+          projection_schema_version: number
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Update: {
+          authored_checksum?: string
+          authored_dependency_vector?: Json
+          authored_document?: Json
+          compiled_checksum?: string
+          compiled_document?: Json
+          compiler_version?: string
+          created_at?: string
+          creature_id?: string
+          document_schema_version?: number
+          id?: string
+          projection_schema_version?: number
+          version?: number
+          vocabulary_snapshot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creature_versions_creature_id_fkey"
+            columns: ["creature_id"]
+            isOneToOne: false
+            referencedRelation: "creatures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creature_versions_vocabulary_snapshot_id_fkey"
+            columns: ["vocabulary_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "system_vocabulary_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creatures: {
         Row: {
           ability_scores: Json | null
+          active_version_id: string | null
           alignment_id: string | null
           armor_class: number | null
           armor_class_note: string | null
@@ -6807,6 +7008,7 @@ export type Database = {
         }
         Insert: {
           ability_scores?: Json | null
+          active_version_id?: string | null
           alignment_id?: string | null
           armor_class?: number | null
           armor_class_note?: string | null
@@ -6843,6 +7045,7 @@ export type Database = {
         }
         Update: {
           ability_scores?: Json | null
+          active_version_id?: string | null
           alignment_id?: string | null
           armor_class?: number | null
           armor_class_note?: string | null
@@ -6878,6 +7081,13 @@ export type Database = {
           xp?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "creatures_active_version_fk"
+            columns: ["id", "active_version_id"]
+            isOneToOne: false
+            referencedRelation: "creature_versions"
+            referencedColumns: ["creature_id", "id"]
+          },
           {
             foreignKeyName: "creatures_alignment_id_fkey"
             columns: ["alignment_id"]
@@ -7729,6 +7939,41 @@ export type Database = {
           },
         ]
       }
+      encounter_current_projections: {
+        Row: {
+          encounter_id: string
+          projection: Json
+          projection_checksum: string
+          projection_schema_version: number
+          stream_version: number
+          updated_at: string
+        }
+        Insert: {
+          encounter_id: string
+          projection: Json
+          projection_checksum: string
+          projection_schema_version: number
+          stream_version: number
+          updated_at?: string
+        }
+        Update: {
+          encounter_id?: string
+          projection?: Json
+          projection_checksum?: string
+          projection_schema_version?: number
+          stream_version?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_current_projections_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: true
+            referencedRelation: "encounters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       encounter_events: {
         Row: {
           actor_user_id: string
@@ -7899,6 +8144,8 @@ export type Database = {
           encounter_id: string
           id: string
           projection: Json
+          projection_checksum: string
+          projection_schema_version: number
           updated_at: string
           version: number
         }
@@ -7913,6 +8160,8 @@ export type Database = {
           encounter_id: string
           id?: string
           projection: Json
+          projection_checksum: string
+          projection_schema_version: number
           updated_at?: string
           version?: number
         }
@@ -7927,6 +8176,8 @@ export type Database = {
           encounter_id?: string
           id?: string
           projection?: Json
+          projection_checksum?: string
+          projection_schema_version?: number
           updated_at?: string
           version?: number
         }
@@ -8077,6 +8328,7 @@ export type Database = {
       }
       equipment: {
         Row: {
+          active_version_id: string | null
           armor_class: number | null
           capacity_amount: number | null
           capacity_unit: string | null
@@ -8104,6 +8356,7 @@ export type Database = {
           weight_unit: string | null
         }
         Insert: {
+          active_version_id?: string | null
           armor_class?: number | null
           capacity_amount?: number | null
           capacity_unit?: string | null
@@ -8131,6 +8384,7 @@ export type Database = {
           weight_unit?: string | null
         }
         Update: {
+          active_version_id?: string | null
           armor_class?: number | null
           capacity_amount?: number | null
           capacity_unit?: string | null
@@ -8158,6 +8412,13 @@ export type Database = {
           weight_unit?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "equipment_active_version_fk"
+            columns: ["id", "active_version_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_versions"
+            referencedColumns: ["equipment_id", "id"]
+          },
           {
             foreignKeyName: "equipment_charge_id_fkey"
             columns: ["charge_id"]
@@ -8385,6 +8646,69 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_versions: {
+        Row: {
+          authored_checksum: string
+          authored_dependency_vector: Json
+          authored_document: Json
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at: string
+          document_schema_version: number
+          equipment_id: string
+          id: string
+          projection_schema_version: number
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Insert: {
+          authored_checksum: string
+          authored_dependency_vector?: Json
+          authored_document: Json
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at?: string
+          document_schema_version: number
+          equipment_id: string
+          id: string
+          projection_schema_version: number
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Update: {
+          authored_checksum?: string
+          authored_dependency_vector?: Json
+          authored_document?: Json
+          compiled_checksum?: string
+          compiled_document?: Json
+          compiler_version?: string
+          created_at?: string
+          document_schema_version?: number
+          equipment_id?: string
+          id?: string
+          projection_schema_version?: number
+          version?: number
+          vocabulary_snapshot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_versions_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_versions_vocabulary_snapshot_id_fkey"
+            columns: ["vocabulary_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "system_vocabulary_snapshots"
             referencedColumns: ["id"]
           },
         ]
@@ -10291,8 +10615,72 @@ export type Database = {
           },
         ]
       }
+      feat_versions: {
+        Row: {
+          authored_checksum: string
+          authored_dependency_vector: Json
+          authored_document: Json
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at: string
+          document_schema_version: number
+          feat_id: string
+          id: string
+          projection_schema_version: number
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Insert: {
+          authored_checksum: string
+          authored_dependency_vector?: Json
+          authored_document: Json
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at?: string
+          document_schema_version: number
+          feat_id: string
+          id: string
+          projection_schema_version: number
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Update: {
+          authored_checksum?: string
+          authored_dependency_vector?: Json
+          authored_document?: Json
+          compiled_checksum?: string
+          compiled_document?: Json
+          compiler_version?: string
+          created_at?: string
+          document_schema_version?: number
+          feat_id?: string
+          id?: string
+          projection_schema_version?: number
+          version?: number
+          vocabulary_snapshot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feat_versions_feat_id_fkey"
+            columns: ["feat_id"]
+            isOneToOne: false
+            referencedRelation: "feats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feat_versions_vocabulary_snapshot_id_fkey"
+            columns: ["vocabulary_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "system_vocabulary_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feats: {
         Row: {
+          active_version_id: string | null
           charge_id: string | null
           created_at: string
           description: string
@@ -10306,6 +10694,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          active_version_id?: string | null
           charge_id?: string | null
           created_at?: string
           description: string
@@ -10319,6 +10708,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          active_version_id?: string | null
           charge_id?: string | null
           created_at?: string
           description?: string
@@ -10332,6 +10722,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "feats_active_version_fk"
+            columns: ["id", "active_version_id"]
+            isOneToOne: false
+            referencedRelation: "feat_versions"
+            referencedColumns: ["feat_id", "id"]
+          },
           {
             foreignKeyName: "feats_charge_id_fkey"
             columns: ["charge_id"]
@@ -12669,8 +13066,72 @@ export type Database = {
           },
         ]
       }
+      race_versions: {
+        Row: {
+          authored_checksum: string
+          authored_dependency_vector: Json
+          authored_document: Json
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at: string
+          document_schema_version: number
+          id: string
+          projection_schema_version: number
+          race_id: string
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Insert: {
+          authored_checksum: string
+          authored_dependency_vector?: Json
+          authored_document: Json
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at?: string
+          document_schema_version: number
+          id: string
+          projection_schema_version: number
+          race_id: string
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Update: {
+          authored_checksum?: string
+          authored_dependency_vector?: Json
+          authored_document?: Json
+          compiled_checksum?: string
+          compiled_document?: Json
+          compiler_version?: string
+          created_at?: string
+          document_schema_version?: number
+          id?: string
+          projection_schema_version?: number
+          race_id?: string
+          version?: number
+          vocabulary_snapshot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_versions_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "race_versions_vocabulary_snapshot_id_fkey"
+            columns: ["vocabulary_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "system_vocabulary_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       races: {
         Row: {
+          active_version_id: string | null
           category: string
           created_at: string
           description: string | null
@@ -12687,6 +13148,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          active_version_id?: string | null
           category: string
           created_at?: string
           description?: string | null
@@ -12703,6 +13165,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          active_version_id?: string | null
           category?: string
           created_at?: string
           description?: string | null
@@ -12719,6 +13182,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "races_active_version_fk"
+            columns: ["id", "active_version_id"]
+            isOneToOne: false
+            referencedRelation: "race_versions"
+            referencedColumns: ["race_id", "id"]
+          },
           {
             foreignKeyName: "races_parent_system_fk"
             columns: ["parent_race_id", "system_id"]
@@ -13729,6 +14199,76 @@ export type Database = {
           },
         ]
       }
+      spell_catalog_classes: {
+        Row: {
+          authored_version_id: string
+          class_id: string
+          spell_id: string
+        }
+        Insert: {
+          authored_version_id: string
+          class_id: string
+          spell_id: string
+        }
+        Update: {
+          authored_version_id?: string
+          class_id?: string
+          spell_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spell_catalog_classes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spell_catalog_classes_spell_id_authored_version_id_fkey"
+            columns: ["spell_id", "authored_version_id"]
+            isOneToOne: false
+            referencedRelation: "spell_versions"
+            referencedColumns: ["spell_id", "id"]
+          },
+          {
+            foreignKeyName: "spell_catalog_classes_spell_id_fkey"
+            columns: ["spell_id"]
+            isOneToOne: false
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spell_catalog_index_versions: {
+        Row: {
+          authored_version_id: string
+          spell_id: string
+        }
+        Insert: {
+          authored_version_id: string
+          spell_id: string
+        }
+        Update: {
+          authored_version_id?: string
+          spell_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spell_catalog_index_versions_spell_id_authored_version_id_fkey"
+            columns: ["spell_id", "authored_version_id"]
+            isOneToOne: false
+            referencedRelation: "spell_versions"
+            referencedColumns: ["spell_id", "id"]
+          },
+          {
+            foreignKeyName: "spell_catalog_index_versions_spell_id_fkey"
+            columns: ["spell_id"]
+            isOneToOne: true
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spell_classes: {
         Row: {
           class_id: string
@@ -14014,8 +14554,72 @@ export type Database = {
           },
         ]
       }
+      spell_versions: {
+        Row: {
+          authored_checksum: string
+          authored_dependency_vector: Json
+          authored_document: Json
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at: string
+          document_schema_version: number
+          id: string
+          projection_schema_version: number
+          spell_id: string
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Insert: {
+          authored_checksum: string
+          authored_dependency_vector?: Json
+          authored_document: Json
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at?: string
+          document_schema_version: number
+          id: string
+          projection_schema_version: number
+          spell_id: string
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Update: {
+          authored_checksum?: string
+          authored_dependency_vector?: Json
+          authored_document?: Json
+          compiled_checksum?: string
+          compiled_document?: Json
+          compiler_version?: string
+          created_at?: string
+          document_schema_version?: number
+          id?: string
+          projection_schema_version?: number
+          spell_id?: string
+          version?: number
+          vocabulary_snapshot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spell_versions_spell_id_fkey"
+            columns: ["spell_id"]
+            isOneToOne: false
+            referencedRelation: "spells"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spell_versions_vocabulary_snapshot_id_fkey"
+            columns: ["vocabulary_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "system_vocabulary_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spells: {
         Row: {
+          active_version_id: string | null
           casting_time_amount: number
           casting_time_unit: string
           created_at: string
@@ -14032,6 +14636,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          active_version_id?: string | null
           casting_time_amount: number
           casting_time_unit: string
           created_at?: string
@@ -14048,6 +14653,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          active_version_id?: string | null
           casting_time_amount?: number
           casting_time_unit?: string
           created_at?: string
@@ -14064,6 +14670,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "spells_active_version_fk"
+            columns: ["id", "active_version_id"]
+            isOneToOne: false
+            referencedRelation: "spell_versions"
+            referencedColumns: ["spell_id", "id"]
+          },
           {
             foreignKeyName: "spells_magic_school_id_fkey"
             columns: ["magic_school_id"]
@@ -14340,8 +14953,47 @@ export type Database = {
           },
         ]
       }
+      system_vocabulary_snapshots: {
+        Row: {
+          checksum: string
+          created_at: string
+          document: Json
+          id: string
+          schema_version: number
+          system_id: string
+          vocabulary_version: number
+        }
+        Insert: {
+          checksum: string
+          created_at?: string
+          document: Json
+          id: string
+          schema_version: number
+          system_id: string
+          vocabulary_version: number
+        }
+        Update: {
+          checksum?: string
+          created_at?: string
+          document?: Json
+          id?: string
+          schema_version?: number
+          system_id?: string
+          vocabulary_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_vocabulary_snapshots_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       systems: {
         Row: {
+          active_vocabulary_snapshot_id: string | null
           created_at: string
           description: string | null
           id: string
@@ -14352,6 +15004,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          active_vocabulary_snapshot_id?: string | null
           created_at?: string
           description?: string | null
           id: string
@@ -14362,6 +15015,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          active_vocabulary_snapshot_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -14371,7 +15025,15 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "systems_active_vocabulary_snapshot_fk"
+            columns: ["id", "active_vocabulary_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "system_vocabulary_snapshots"
+            referencedColumns: ["system_id", "id"]
+          },
+        ]
       }
       terrains: {
         Row: {
@@ -14543,8 +15205,72 @@ export type Database = {
           },
         ]
       }
+      vehicle_versions: {
+        Row: {
+          authored_checksum: string
+          authored_dependency_vector: Json
+          authored_document: Json
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at: string
+          document_schema_version: number
+          id: string
+          projection_schema_version: number
+          vehicle_id: string
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Insert: {
+          authored_checksum: string
+          authored_dependency_vector?: Json
+          authored_document: Json
+          compiled_checksum: string
+          compiled_document: Json
+          compiler_version: string
+          created_at?: string
+          document_schema_version: number
+          id: string
+          projection_schema_version: number
+          vehicle_id: string
+          version: number
+          vocabulary_snapshot_id: string
+        }
+        Update: {
+          authored_checksum?: string
+          authored_dependency_vector?: Json
+          authored_document?: Json
+          compiled_checksum?: string
+          compiled_document?: Json
+          compiler_version?: string
+          created_at?: string
+          document_schema_version?: number
+          id?: string
+          projection_schema_version?: number
+          vehicle_id?: string
+          version?: number
+          vocabulary_snapshot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_versions_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_versions_vocabulary_snapshot_id_fkey"
+            columns: ["vocabulary_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "system_vocabulary_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
+          active_version_id: string | null
           armor_class: number | null
           cargo_capacity: string | null
           category: string
@@ -14570,6 +15296,7 @@ export type Database = {
           weight_unit: string | null
         }
         Insert: {
+          active_version_id?: string | null
           armor_class?: number | null
           cargo_capacity?: string | null
           category: string
@@ -14595,6 +15322,7 @@ export type Database = {
           weight_unit?: string | null
         }
         Update: {
+          active_version_id?: string | null
           armor_class?: number | null
           cargo_capacity?: string | null
           category?: string
@@ -14620,6 +15348,13 @@ export type Database = {
           weight_unit?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "vehicles_active_version_fk"
+            columns: ["id", "active_version_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_versions"
+            referencedColumns: ["vehicle_id", "id"]
+          },
           {
             foreignKeyName: "vehicles_system_id_fkey"
             columns: ["system_id"]
@@ -14753,551 +15488,6 @@ export type Database = {
       [_ in never]: never
     }
   }
-  storage: {
-    Tables: {
-      buckets: {
-        Row: {
-          allowed_mime_types: string[] | null
-          avif_autodetection: boolean | null
-          created_at: string | null
-          file_size_limit: number | null
-          id: string
-          name: string
-          owner: string | null
-          owner_id: string | null
-          public: boolean | null
-          type: Database["storage"]["Enums"]["buckettype"]
-          updated_at: string | null
-        }
-        Insert: {
-          allowed_mime_types?: string[] | null
-          avif_autodetection?: boolean | null
-          created_at?: string | null
-          file_size_limit?: number | null
-          id: string
-          name: string
-          owner?: string | null
-          owner_id?: string | null
-          public?: boolean | null
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string | null
-        }
-        Update: {
-          allowed_mime_types?: string[] | null
-          avif_autodetection?: boolean | null
-          created_at?: string | null
-          file_size_limit?: number | null
-          id?: string
-          name?: string
-          owner?: string | null
-          owner_id?: string | null
-          public?: boolean | null
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      buckets_analytics: {
-        Row: {
-          created_at: string
-          deleted_at: string | null
-          format: string
-          id: string
-          name: string
-          type: Database["storage"]["Enums"]["buckettype"]
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          deleted_at?: string | null
-          format?: string
-          id?: string
-          name: string
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          deleted_at?: string | null
-          format?: string
-          id?: string
-          name?: string
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      buckets_vectors: {
-        Row: {
-          created_at: string
-          id: string
-          type: Database["storage"]["Enums"]["buckettype"]
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      iceberg_namespaces: {
-        Row: {
-          bucket_name: string
-          catalog_id: string
-          created_at: string
-          id: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          bucket_name: string
-          catalog_id: string
-          created_at?: string
-          id?: string
-          metadata?: Json
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          bucket_name?: string
-          catalog_id?: string
-          created_at?: string
-          id?: string
-          metadata?: Json
-          name?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "iceberg_namespaces_catalog_id_fkey"
-            columns: ["catalog_id"]
-            isOneToOne: false
-            referencedRelation: "buckets_analytics"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      iceberg_tables: {
-        Row: {
-          bucket_name: string
-          catalog_id: string
-          created_at: string
-          id: string
-          location: string
-          name: string
-          namespace_id: string
-          remote_table_id: string | null
-          shard_id: string | null
-          shard_key: string | null
-          updated_at: string
-        }
-        Insert: {
-          bucket_name: string
-          catalog_id: string
-          created_at?: string
-          id?: string
-          location: string
-          name: string
-          namespace_id: string
-          remote_table_id?: string | null
-          shard_id?: string | null
-          shard_key?: string | null
-          updated_at?: string
-        }
-        Update: {
-          bucket_name?: string
-          catalog_id?: string
-          created_at?: string
-          id?: string
-          location?: string
-          name?: string
-          namespace_id?: string
-          remote_table_id?: string | null
-          shard_id?: string | null
-          shard_key?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "iceberg_tables_catalog_id_fkey"
-            columns: ["catalog_id"]
-            isOneToOne: false
-            referencedRelation: "buckets_analytics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "iceberg_tables_namespace_id_fkey"
-            columns: ["namespace_id"]
-            isOneToOne: false
-            referencedRelation: "iceberg_namespaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      migrations: {
-        Row: {
-          executed_at: string | null
-          hash: string
-          id: number
-          name: string
-        }
-        Insert: {
-          executed_at?: string | null
-          hash: string
-          id: number
-          name: string
-        }
-        Update: {
-          executed_at?: string | null
-          hash?: string
-          id?: number
-          name?: string
-        }
-        Relationships: []
-      }
-      objects: {
-        Row: {
-          bucket_id: string | null
-          created_at: string | null
-          id: string
-          last_accessed_at: string | null
-          metadata: Json | null
-          name: string | null
-          owner: string | null
-          owner_id: string | null
-          path_tokens: string[] | null
-          updated_at: string | null
-          user_metadata: Json | null
-          version: string | null
-        }
-        Insert: {
-          bucket_id?: string | null
-          created_at?: string | null
-          id?: string
-          last_accessed_at?: string | null
-          metadata?: Json | null
-          name?: string | null
-          owner?: string | null
-          owner_id?: string | null
-          path_tokens?: string[] | null
-          updated_at?: string | null
-          user_metadata?: Json | null
-          version?: string | null
-        }
-        Update: {
-          bucket_id?: string | null
-          created_at?: string | null
-          id?: string
-          last_accessed_at?: string | null
-          metadata?: Json | null
-          name?: string | null
-          owner?: string | null
-          owner_id?: string | null
-          path_tokens?: string[] | null
-          updated_at?: string | null
-          user_metadata?: Json | null
-          version?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "objects_bucketId_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      s3_multipart_uploads: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          id: string
-          in_progress_size: number
-          key: string
-          metadata: Json | null
-          owner_id: string | null
-          upload_signature: string
-          user_metadata: Json | null
-          version: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          id: string
-          in_progress_size?: number
-          key: string
-          metadata?: Json | null
-          owner_id?: string | null
-          upload_signature: string
-          user_metadata?: Json | null
-          version: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          id?: string
-          in_progress_size?: number
-          key?: string
-          metadata?: Json | null
-          owner_id?: string | null
-          upload_signature?: string
-          user_metadata?: Json | null
-          version?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "s3_multipart_uploads_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      s3_multipart_uploads_parts: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          etag: string
-          id: string
-          key: string
-          owner_id: string | null
-          part_number: number
-          size: number
-          upload_id: string
-          version: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          etag: string
-          id?: string
-          key: string
-          owner_id?: string | null
-          part_number: number
-          size?: number
-          upload_id: string
-          version: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          etag?: string
-          id?: string
-          key?: string
-          owner_id?: string | null
-          part_number?: number
-          size?: number
-          upload_id?: string
-          version?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "s3_multipart_uploads_parts_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "s3_multipart_uploads_parts_upload_id_fkey"
-            columns: ["upload_id"]
-            isOneToOne: false
-            referencedRelation: "s3_multipart_uploads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vector_indexes: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          data_type: string
-          dimension: number
-          distance_metric: string
-          id: string
-          metadata_configuration: Json | null
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          data_type: string
-          dimension: number
-          distance_metric: string
-          id?: string
-          metadata_configuration?: Json | null
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          data_type?: string
-          dimension?: number
-          distance_metric?: string
-          id?: string
-          metadata_configuration?: Json | null
-          name?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vector_indexes_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets_vectors"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      allow_any_operation: {
-        Args: { expected_operations: string[] }
-        Returns: boolean
-      }
-      allow_only_operation: {
-        Args: { expected_operation: string }
-        Returns: boolean
-      }
-      can_insert_object: {
-        Args: { bucketid: string; metadata: Json; name: string; owner: string }
-        Returns: undefined
-      }
-      extension: { Args: { name: string }; Returns: string }
-      filename: { Args: { name: string }; Returns: string }
-      foldername: { Args: { name: string }; Returns: string[] }
-      get_common_prefix: {
-        Args: { p_delimiter: string; p_key: string; p_prefix: string }
-        Returns: string
-      }
-      get_size_by_bucket: {
-        Args: never
-        Returns: {
-          bucket_id: string
-          size: number
-        }[]
-      }
-      list_multipart_uploads_with_delimiter: {
-        Args: {
-          bucket_id: string
-          delimiter_param: string
-          max_keys?: number
-          next_key_token?: string
-          next_upload_token?: string
-          prefix_param: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          key: string
-        }[]
-      }
-      list_objects_with_delimiter: {
-        Args: {
-          _bucket_id: string
-          delimiter_param: string
-          max_keys?: number
-          next_token?: string
-          prefix_param: string
-          sort_order?: string
-          start_after?: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-      operation: { Args: never; Returns: string }
-      search: {
-        Args: {
-          bucketname: string
-          levels?: number
-          limits?: number
-          offsets?: number
-          prefix: string
-          search?: string
-          sortcolumn?: string
-          sortorder?: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-      search_by_timestamp: {
-        Args: {
-          p_bucket_id: string
-          p_level: number
-          p_limit: number
-          p_prefix: string
-          p_sort_column: string
-          p_sort_column_after: string
-          p_sort_order: string
-          p_start_after: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          key: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-      search_v2: {
-        Args: {
-          bucket_name: string
-          levels?: number
-          limits?: number
-          prefix: string
-          sort_column?: string
-          sort_column_after?: string
-          sort_order?: string
-          start_after?: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          key: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-    }
-    Enums: {
-      buckettype: "STANDARD" | "ANALYTICS" | "VECTOR"
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
@@ -15401,7 +15591,9 @@ export type Enums<
     : never
 
 export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals },
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
@@ -15416,14 +15608,12 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       spell_state: ["PREPARED", "KNOWN"],
-    },
-  },
-  storage: {
-    Enums: {
-      buckettype: ["STANDARD", "ANALYTICS", "VECTOR"],
     },
   },
 } as const

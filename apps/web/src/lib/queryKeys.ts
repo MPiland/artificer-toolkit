@@ -110,6 +110,8 @@ export const queryKeys = {
     detail: (id: string) => ['characters', 'detail', id] as const,
     draft: (id: string) => ['characters', 'draft', id] as const,
     sheet: (id: string) => ['characters', 'sheet', id] as const,
+    extraOptions: (id: string, input: object) =>
+      ['characters', 'sheet', id, 'extra-options', input] as const,
     panels: (id: string) => ['characters', 'sheet', id, 'panel'] as const,
     panel: (id: string, target: object) => ['characters', 'sheet', id, 'panel', target] as const
   },
@@ -128,6 +130,7 @@ export const queryKeys = {
     backgrounds: {
       all: () => ['content', 'backgrounds'] as const,
       list: () => ['content', 'backgrounds', 'list'] as const,
+      listPage: (input: object) => ['content', 'backgrounds', 'list', input] as const,
       detailRoot: (id: string) => authoredDetailSubjectKey('backgrounds', id),
       detail: (id: string, options?: AuthoredDetailQueryOptions) =>
         [...authoredDetailKey('backgrounds', id, options)] as const,
@@ -136,6 +139,7 @@ export const queryKeys = {
     classes: {
       all: () => ['content', 'classes'] as const,
       list: () => ['content', 'classes', 'list'] as const,
+      listPage: (input: object) => ['content', 'classes', 'list', input] as const,
       detailRoot: (id: string) => authoredDetailSubjectKey('classes', id),
       detail: (id: string, options?: AuthoredDetailQueryOptions) =>
         [...authoredDetailKey('classes', id, options)] as const,
@@ -144,6 +148,7 @@ export const queryKeys = {
     equipment: {
       all: () => ['content', 'equipment'] as const,
       list: () => ['content', 'equipment', 'list'] as const,
+      listPage: (input: object) => ['content', 'equipment', 'list', input] as const,
       detailRoot: (id: string) => authoredDetailSubjectKey('equipment', id),
       detail: (id: string, options?: AuthoredDetailQueryOptions) =>
         [...authoredDetailKey('equipment', id, options)] as const,
@@ -152,6 +157,7 @@ export const queryKeys = {
     feats: {
       all: () => ['content', 'feats'] as const,
       list: () => ['content', 'feats', 'list'] as const,
+      listPage: (input: object) => ['content', 'feats', 'list', input] as const,
       detailRoot: (id: string) => authoredDetailSubjectKey('feats', id),
       detail: (id: string, options?: AuthoredDetailQueryOptions) =>
         [...authoredDetailKey('feats', id, options)] as const,
@@ -160,6 +166,7 @@ export const queryKeys = {
     races: {
       all: () => ['content', 'races'] as const,
       list: () => ['content', 'races', 'list'] as const,
+      listPage: (input: object) => ['content', 'races', 'list', input] as const,
       detailRoot: (id: string) => authoredDetailSubjectKey('races', id),
       detail: (id: string, options?: AuthoredDetailQueryOptions) =>
         [...authoredDetailKey('races', id, options)] as const,
@@ -168,6 +175,7 @@ export const queryKeys = {
     spells: {
       all: () => ['content', 'spells'] as const,
       list: () => ['content', 'spells', 'list'] as const,
+      listPage: (input: object) => ['content', 'spells', 'list', input] as const,
       detailRoot: (id: string) => authoredDetailSubjectKey('spells', id),
       detail: (id: string, options?: AuthoredDetailQueryOptions) =>
         [...authoredDetailKey('spells', id, options)] as const,
@@ -187,6 +195,7 @@ export const queryKeys = {
     creatures: {
       all: () => ['content', 'creatures'] as const,
       list: () => ['content', 'creatures', 'list'] as const,
+      listPage: (input: object) => ['content', 'creatures', 'list', input] as const,
       detailRoot: (id: string) => authoredDetailSubjectKey('creatures', id),
       detail: (id: string, options?: AuthoredDetailQueryOptions) =>
         [...authoredDetailKey('creatures', id, options)] as const,
@@ -195,6 +204,7 @@ export const queryKeys = {
     vehicles: {
       all: () => ['content', 'vehicles'] as const,
       list: () => ['content', 'vehicles', 'list'] as const,
+      listPage: (input: object) => ['content', 'vehicles', 'list', input] as const,
       detailRoot: (id: string) => authoredDetailSubjectKey('vehicles', id),
       detail: (id: string, options?: AuthoredDetailQueryOptions) =>
         [...authoredDetailKey('vehicles', id, options)] as const,

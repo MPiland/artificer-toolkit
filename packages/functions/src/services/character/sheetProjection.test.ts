@@ -25,12 +25,22 @@ import {
   createEquipment
 } from './sheetTestFixtures.js'
 
+const activeSourceMocks = vi.hoisted(() => ({
+  loadActiveCreatures: vi.fn(),
+  loadActiveVehicles: vi.fn()
+}))
+
 vi.mock('./characterRuleEvaluation.js', async (importOriginal) => {
   const original = await importOriginal<typeof import('./characterRuleEvaluation.js')>()
   const { evaluateCharacterBuilderTestPolicy } =
     await import('./characterBuilderRuleEvaluation.testUtils.js')
   return { ...original, evaluateCharacterRulePolicy: evaluateCharacterBuilderTestPolicy }
 })
+
+vi.mock('./characterActiveAuthoredSources.js', () => ({
+  loadActiveCharacterCreatures: activeSourceMocks.loadActiveCreatures,
+  loadActiveCharacterVehicles: activeSourceMocks.loadActiveVehicles
+}))
 
 function buildCharacterSheetResponse(
   params: Omit<BuildCharacterSheetResponseParams, 'ruleEvaluation'>
@@ -63,6 +73,11 @@ function selectSubclassResource(
 }
 
 describe('character sheet projection', () => {
+  beforeEach(() => {
+    activeSourceMocks.loadActiveCreatures.mockResolvedValue(new Map())
+    activeSourceMocks.loadActiveVehicles.mockResolvedValue(new Map())
+  })
+
   it('hydrates exhaustion notes into the sheet overview', async () => {
     const character = createCharacter()
     character.state.exhaustion = {
@@ -90,6 +105,19 @@ describe('character sheet projection', () => {
         notes: 'Spider venom'
       }
     ]
+    const resolution = createResolution()
+    const system = createSystem({
+      conditionTypes: [
+        {
+          id: 'condition-1',
+          code: 'POISONED',
+          label: 'Poisoned',
+          description: 'A poisoned creature suffers from toxins affecting its body.'
+        }
+      ]
+    })
+    resolution.registry.system = system
+    resolution.sourceRegistry.system = system
 
     const sheet = await buildCharacterSheetResponse({
       character,
@@ -102,7 +130,7 @@ describe('character sheet projection', () => {
         }
       ]),
       hasBuilderDraft: false,
-      resolution: createResolution(),
+      resolution,
       streamVersion: 1
     })
 
@@ -1360,10 +1388,6 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
         return new Map(vehicles.map((vehicle) => [vehicle.id, vehicle]))
       }
     }),
-    getCharacterSheetExtraCatalogQuery: async () => ({
-      creatures: await mocks.findAllCreatures(),
-      vehicles: await mocks.findAllVehicles()
-    }),
     createCharacterSheetAdjustmentRepository: () => ({
       getMovementPreference: mocks.getMovementPreference,
       listByCharacter: mocks.listAdjustments,
@@ -1566,13 +1590,37 @@ describe('character sheet projection extras', () => {
     mocks.findByCommandId.mockResolvedValue(null)
     mocks.findAuthoredById.mockResolvedValue(createCharacter())
     mocks.resolveCharacterBuilder.mockResolvedValue(createResolution())
+    activeSourceMocks.loadActiveCreatures.mockImplementation(async ({
+      creatureIds
+    }: {
+      creatureIds: readonly string[]
+    }) => {
+      const creatures = (await mocks.findAllCreatures()) as CreatureAuthored[]
+      return new Map(
+        creatures
+          .filter((creature) => creatureIds.includes(creature.id))
+          .map((creature) => [creature.id, creature])
+      )
+    })
+    activeSourceMocks.loadActiveVehicles.mockImplementation(async ({
+      vehicleIds
+    }: {
+      vehicleIds: readonly string[]
+    }) => {
+      const vehicles = (await mocks.findAllVehicles()) as Array<{ id: string }>
+      return new Map(
+        vehicles
+          .filter((vehicle) => vehicleIds.includes(vehicle.id))
+          .map((vehicle) => [vehicle.id, vehicle])
+      )
+    })
     mocks.patchSheetState.mockImplementation(async (_characterId, _patches, options) => {
       await options.afterPersist?.(db, 2)
       return 2
     })
   })
 
-  it('hydrates inactive attached extras without offering them as add sources', async () => {
+  it('hydrates inactive attached extras from their selected identities', async () => {
     const character = createCharacter()
     character.state.creatures = [
       {
@@ -1613,8 +1661,6 @@ describe('character sheet projection extras', () => {
       streamVersion: 1
     })
     expect(sheet.extras.items).toHaveLength(2)
-    expect(sheet.extras.creatureOptions).toEqual([])
-    expect(sheet.extras.vehicleOptions).toEqual([])
   })
 
   it('projects one non-walking creature speed and falls back to walking', async () => {
@@ -1646,7 +1692,6 @@ describe('character sheet projection extras', () => {
       streamVersion: 1
     })
     expect(sheet.extras.items[0]?.speedLabel).toBe('Flying 60 feet')
-    expect(sheet.extras.creatureOptions[0]?.speedLabel).toBe('Flying 60 feet')
 
     mocks.findAllCreatures.mockResolvedValue([
       createCreature({
@@ -1660,7 +1705,6 @@ describe('character sheet projection extras', () => {
       streamVersion: 1
     })
     expect(walkingSheet.extras.items[0]?.speedLabel).toBe('5 feet')
-    expect(walkingSheet.extras.creatureOptions[0]?.speedLabel).toBe('5 feet')
   })
 
   it('projects every companion override into the effective sheet values', async () => {

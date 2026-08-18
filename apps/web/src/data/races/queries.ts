@@ -1,4 +1,4 @@
-import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
+import type { Api, AuthoredDetailRequestDto, RaceListRequestDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
@@ -9,12 +9,12 @@ const raceQueries = createAuthoredContentQueries(
   queryKeys.content.races
 )
 
-export function getRaceList(client?: Api) {
-  return raceQueries.getList(client)
+export function getRaceList(input: RaceListRequestDto, client?: Api) {
+  return raceQueries.getList(input, client)
 }
 
-export function useGetRaceList() {
-  return raceQueries.useList()
+export function useGetRaceList(input: RaceListRequestDto) {
+  return raceQueries.useList(input)
 }
 
 export function getRace(input: DetailInput, client?: Api) {

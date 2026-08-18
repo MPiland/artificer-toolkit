@@ -5,6 +5,7 @@
 - **Scope:** database writes, repositories, upserts, and read-model boundaries
 - **Update when:** write ownership, transaction/RLS behavior, upsert replacement semantics, or repository return shapes change
 - **Verification:** `packages/db/src/client.ts`; `packages/db/src/repositories/contracts.ts`; `packages/db/src/domains/**/repositories`; `packages/db/src/domains/**/upserts`; round-trip repository tests
+- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaces active normalized hydration as the operational read model while retaining SQL/Kysely ownership.
 
 ## Context
 

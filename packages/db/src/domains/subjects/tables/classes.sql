@@ -72,10 +72,6 @@ CREATE TABLE IF NOT EXISTS public.classes (
     REFERENCES public.classes(id, system_id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-  CONSTRAINT classes_category_parent_chk CHECK (
-    (category = 'BASE' AND parent_class_id IS NULL AND starting_equipment_id IS NOT NULL)
-    OR (category = 'SUBCLASS' AND parent_class_id IS NOT NULL AND starting_equipment_id IS NULL)
-  ),
   CONSTRAINT classes_status_chk CHECK (
     status IN ('DRAFT', 'ACTIVE')
   )

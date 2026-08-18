@@ -8,6 +8,7 @@ import type {
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { api, type Api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { loadPagedAuthoredCatalogItems } from './authoredCatalogPages'
 
 export type ReferenceOption = {
   value: string
@@ -125,19 +126,35 @@ export async function loadAuthoredContentReferenceData(
 
   const [system, classes, creatures, equipment, races] = await Promise.all([
     client.systems.get(targetSystemId),
-    client.content.classes.list(),
-    client.content.creatures.list(),
-    client.content.equipment.list(),
-    client.content.races.list()
+    loadPagedAuthoredCatalogItems(client.content.classes.list, {
+      direction: 'FORWARD',
+      limit: 48,
+      sort: 'name'
+    }),
+    loadPagedAuthoredCatalogItems(client.content.creatures.list, {
+      direction: 'FORWARD',
+      limit: 48,
+      sort: 'name'
+    }),
+    loadPagedAuthoredCatalogItems(client.content.equipment.list, {
+      direction: 'FORWARD',
+      limit: 48,
+      sort: 'name'
+    }),
+    loadPagedAuthoredCatalogItems(client.content.races.list, {
+      direction: 'FORWARD',
+      limit: 48,
+      sort: 'name'
+    })
   ])
 
   const belongsToSystem = (item: { systemId: string }) => item.systemId === targetSystemId
 
   return buildReferenceData(system ?? emptySystem(targetSystemId), {
-    classes: classes.items.filter(belongsToSystem),
-    creatures: creatures.items.filter(belongsToSystem),
-    equipment: equipment.items.filter(belongsToSystem),
-    races: races.items.filter(belongsToSystem)
+    classes: classes.filter(belongsToSystem),
+    creatures: creatures.filter(belongsToSystem),
+    equipment: equipment.filter(belongsToSystem),
+    races: races.filter(belongsToSystem)
   })
 }
 

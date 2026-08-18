@@ -49,8 +49,5 @@ export const backgroundListAttributeColumns = [] satisfies AuthoredListAttribute
 export const backgroundListSortOptions = [{ value: 'name', label: 'Name A-Z' }]
 
 export function summarizeBackgroundList(response: BackgroundListResponseDto) {
-  const masterCount = response.items.filter((item) => item.provenance.kind === 'MASTER').length
-  const ownedCount = response.items.length - masterCount
-
-  return `${response.items.length} backgrounds / ${masterCount} SRD / ${ownedCount} homebrew`
+  return `${response.summary.activeCount} backgrounds / ${response.summary.masterCount} SRD / ${response.summary.ownedCount} homebrew`
 }

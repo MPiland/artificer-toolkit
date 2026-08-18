@@ -21,9 +21,15 @@ const mocks = vi.hoisted(() => ({
     listVisibleEvents: vi.fn()
   },
   character: { findAuthoredById: vi.fn(), findById: vi.fn(), upsertAuthored: vi.fn() },
+  committedResolution: vi.fn(),
+  committedSources: vi.fn(),
+  requireMechanics: vi.fn(),
+  campaignMechanics: { lockAssignment: vi.fn(), requireCurrent: vi.fn(), publish: vi.fn() },
+  prepareOverlay: vi.fn(),
+  liveRuleContext: vi.fn(),
+  checksumMechanicalContext: vi.fn(),
   resolveBuilder: vi.fn(),
   validateTarget: vi.fn(),
-  validateCondition: vi.fn(),
   broadcast: vi.fn(),
   transaction: { transaction: true }
 }))
@@ -35,6 +41,8 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createCampaignRepository: () => mocks.campaign,
     createCampaignAdjustmentsRepository: () => mocks.adjustments,
     createCharacterRepository: () => mocks.character,
+    createCharacterMechanicsProjectionRepository: () => ({ requireCurrent: mocks.requireMechanics }),
+    createCampaignCharacterMechanicsProjectionRepository: () => mocks.campaignMechanics,
     withTransaction: (_db: DBLike, callback: (trx: DBLike) => Promise<unknown>) =>
       callback(mocks.transaction as unknown as DBLike)
   }
@@ -51,9 +59,24 @@ vi.mock('./campaignService.js', () => ({
   resolveCampaignAuthority: mocks.authority
 }))
 vi.mock('../character/builderService.js', () => ({ resolveCharacterBuilder: mocks.resolveBuilder }))
+vi.mock('../character/characterCommittedSheetSources.js', () => ({
+  createCharacterCommittedSheetResolution: mocks.committedResolution,
+  loadCharacterCommittedSheetSources: mocks.committedSources
+}))
 vi.mock('../character/sheetCommandValidation.js', () => ({
-  validateSheetAdjustmentTarget: mocks.validateTarget,
-  validateCharacterConditionType: mocks.validateCondition
+  validateSheetAdjustmentTarget: mocks.validateTarget
+}))
+vi.mock('../character/campaignCharacterSheet.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../character/campaignCharacterSheet.js')>()
+  return {
+    ...actual,
+    checksumCampaignCharacterMechanicalContext: mocks.checksumMechanicalContext,
+    resolveCharacterLiveSessionRuleContext: mocks.liveRuleContext
+  }
+})
+vi.mock('./campaignCharacterMechanicsProjection.js', () => ({
+  CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION: 1,
+  prepareCampaignCharacterMechanicsProjection: mocks.prepareOverlay
 }))
 vi.mock('./realtimeService.js', () => ({ broadcastCampaignInvalidation: mocks.broadcast }))
 
@@ -80,10 +103,30 @@ describe('Campaign GM adjustment service', () => {
     mocks.campaign.lockCampaign.mockResolvedValue({ id: ids.campaign })
     mocks.campaign.findAssignmentByCharacter.mockResolvedValue({ userId: ids.player })
     mocks.character.findAuthoredById.mockResolvedValue({
+      id: ids.character,
       systemId: ids.campaign,
       state: { equipment: { inventory: [] } }
     })
-    mocks.character.findById.mockResolvedValue({ rule_pack_revision_id: 'revision-1' })
+    mocks.character.findById.mockResolvedValue({
+      rule_pack_revision_id: 'revision-1',
+      stream_version: 3
+    })
+    mocks.requireMechanics.mockResolvedValue({
+      characterId: ids.character,
+      characterStreamVersion: 3,
+      projectionChecksum: 'a'.repeat(64)
+    })
+    mocks.checksumMechanicalContext.mockReturnValue('b'.repeat(64))
+    mocks.liveRuleContext.mockResolvedValue({ adjustments: [], attunementSlotOverride: null })
+    mocks.campaignMechanics.requireCurrent.mockResolvedValue({ projectionChecksum: 'c'.repeat(64) })
+    mocks.prepareOverlay.mockResolvedValue({ projectionChecksum: 'd'.repeat(64) })
+    mocks.committedSources.mockResolvedValue({
+      vocabularySnapshot: { document: { conditionTypes: [{ id: ids.adjustment }] } }
+    })
+    mocks.committedResolution.mockReturnValue({
+      registry: { system: null },
+      catalog: { equipment: [] }
+    })
     mocks.resolveBuilder.mockResolvedValue({
       registry: { system: null },
       catalog: { equipment: [] }
@@ -170,6 +213,12 @@ describe('Campaign GM adjustment service', () => {
     })
 
     expect(mocks.validateTarget).toHaveBeenCalledOnce()
+    expect(mocks.requireMechanics).toHaveBeenCalledWith({
+      characterId: ids.character,
+      expectedRuleRevisionId: 'revision-1',
+      expectedStreamVersion: 3
+    })
+    expect(mocks.resolveBuilder).not.toHaveBeenCalled()
     expect(mocks.adjustments.saveAdjustment).toHaveBeenCalledWith(
       expect.objectContaining({
         slotKey: '["HIT_POINTS","MAXIMUM_MODIFIER"]',
@@ -288,10 +337,23 @@ describe('Campaign GM adjustment service', () => {
       visibility: 'VISIBLE',
       expectedVersion: 0
     })
-    expect(mocks.validateCondition).toHaveBeenCalledWith(
-      mocks.transaction,
-      ids.campaign,
-      ids.adjustment
-    )
+    expect(mocks.committedSources).toHaveBeenCalled()
+  })
+
+  it('fails closed when a condition is absent from the Character pinned vocabulary', async () => {
+    mocks.committedSources.mockResolvedValueOnce({
+      vocabularySnapshot: { document: { conditionTypes: [] } }
+    })
+
+    await expect(
+      saveCampaignCondition({} as DBLike, ids.owner, {
+        campaignId: ids.campaign,
+        characterId: ids.character,
+        conditionTypeId: ids.adjustment,
+        visibility: 'VISIBLE',
+        expectedVersion: 0
+      })
+    ).rejects.toThrow('is not available in this rules system')
+    expect(mocks.adjustments.saveAdjustment).not.toHaveBeenCalled()
   })
 })

@@ -1,347 +1,184 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
+
+import type { DBLike } from '#types'
+
+const mocks = vi.hoisted(() => ({
+  findActive: vi.fn<(systemId: string) => Promise<SystemVocabularySnapshot | null>>(),
+  findActiveForPublication: vi.fn<
+    (systemId: string) => Promise<SystemVocabularySnapshot | null>
+  >(),
+  publish: vi.fn<
+    (db: DBLike, input: { snapshotId: string; systemId: string }) => Promise<void>
+  >(),
+  upsertSystem: vi.fn<(db: DBLike, entity: unknown) => Promise<void>>()
+}))
 
 vi.mock('../domains/subjects/upserts/system.js', () => ({
-  upsertSystem: vi.fn(async () => {})
+  upsertSystem: mocks.upsertSystem
+}))
+
+vi.mock('../domains/subjects/repositories/systemVocabularySnapshot.js', () => ({
+  createSystemVocabularySnapshotRepository: vi.fn((db: DBLike) => ({
+    findActive: mocks.findActive,
+    findActiveForPublication: mocks.findActiveForPublication,
+    publish: (input: { snapshotId: string; systemId: string }) => mocks.publish(db, input)
+  }))
 }))
 
 import { createSystemRepository } from '../repositories/index.js'
+import { srdBaselineContent } from '../source-data/srd/index.js'
+import { checksumSystemVocabularySnapshot } from '../utils/index.js'
+import { InMemoryDb } from './helpers/in-memory-db.js'
 
-type RowMap = Record<string, unknown[]>
+const system = srdBaselineContent.vocabulary.systems[0]
 
-function createFakeDb(rowsByTable: RowMap) {
+function snapshot(document = system): SystemVocabularySnapshot {
   return {
-    selectFrom(table: string) {
-      const rows = [...(rowsByTable[table] ?? [])]
-      const state = {
-        filtered: rows
-      }
+    snapshotId: 'snapshot-1',
+    systemId: document.id,
+    snapshotVersion: 1,
+    schemaVersion: 1,
+    checksum: 'a'.repeat(64),
+    document
+  }
+}
 
+function createFakeDb(systemRows: Array<{ id: string; user_id: string | null }>): DBLike {
+  const db = {
+    selectFrom() {
+      const state = { rows: systemRows }
       const builder = {
         select() {
           return builder
         },
-        where(column: string, _op: string, value: string) {
-          state.filtered = state.filtered.filter((row) => {
-            const record = row as Record<string, unknown>
-            return record[column] === value
-          })
+        where(column: string, _operator: string, value: string) {
+          if (column === 'user_id') {
+            state.rows = state.rows.filter((row) => row.user_id === value)
+          }
           return builder
         },
         orderBy() {
           return builder
         },
         async execute() {
-          return state.filtered
-        },
-        async executeTakeFirst() {
-          return state.filtered[0] ?? undefined
+          return state.rows
         }
       }
-
       return builder
     }
   }
+  return db as unknown as DBLike
+}
+
+interface InMemoryTableDb {
+  insertInto(table: string): {
+    values(row: Record<string, unknown>): { execute(): Promise<void> }
+  }
+  selectFrom(table: string): {
+    selectAll(): { execute(): Promise<Record<string, unknown>[]> }
+  }
+}
+
+function asInMemoryTableDb(db: DBLike | InMemoryDb): InMemoryTableDb {
+  return db as unknown as InMemoryTableDb
 }
 
 describe('createSystemRepository', () => {
-  it('hydrates one system with all vocabulary surfaces', async () => {
-    const db = createFakeDb({
-      systems: [
-        {
-          id: 'system-1',
-          label: 'SRD',
-          description: 'System description',
-          ruleset_code: 'dnd5e',
-          ruleset_version: '2014',
-          user_id: 'user-1'
-        }
-      ],
-      alignments: [
-        {
-          id: 'a-1',
-          system_id: 'system-1',
-          code: 'LG',
-          label: 'Lawful Good',
-          description: null,
-          tooltip: null,
-          short: 'LG'
-        }
-      ],
-      condition_types: [
-        {
-          id: 'c-1',
-          system_id: 'system-1',
-          code: 'BLINDED',
-          label: 'Blinded',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      currencies: [
-        {
-          id: 'cur-1',
-          system_id: 'system-1',
-          code: 'GP',
-          label: 'Gold Piece',
-          description: null,
-          tooltip: null,
-          short: 'gp'
-        }
-      ],
-      damage_types: [
-        {
-          id: 'd-1',
-          system_id: 'system-1',
-          code: 'FIRE',
-          label: 'Fire',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      heritages: [
-        {
-          id: 'h-1',
-          system_id: 'system-1',
-          code: 'ELVEN',
-          label: 'Elven',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      languages: [
-        {
-          id: 'l-1',
-          system_id: 'system-1',
-          code: 'COMMON',
-          label: 'Common',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      magic_schools: [
-        {
-          id: 'm-1',
-          system_id: 'system-1',
-          code: 'EVOCATION',
-          label: 'Evocation',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      passives: [
-        {
-          id: 'p-1',
-          system_id: 'system-1',
-          code: 'PASSIVE_PERCEPTION',
-          label: 'Passive Perception',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      rarities: [
-        {
-          id: 'r-1',
-          system_id: 'system-1',
-          code: 'COMMON',
-          label: 'Common',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      senses: [
-        {
-          id: 's-1',
-          system_id: 'system-1',
-          code: 'DARKVISION',
-          label: 'Darkvision',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      skills: [
-        {
-          id: 'sk-1',
-          system_id: 'system-1',
-          code: 'ARCANA',
-          label: 'Arcana',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      speeds: [
-        {
-          id: 'sp-1',
-          system_id: 'system-1',
-          code: 'WALK',
-          label: 'Walk',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      terrains: [
-        {
-          id: 't-1',
-          system_id: 'system-1',
-          code: 'FOREST',
-          label: 'Forest',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ]
-    })
-
-    const repository = createSystemRepository(db as never)
-    const system = await repository.findById('system-1')
-
-    expect(system).toEqual({
-      id: 'system-1',
-      label: 'SRD',
-      description: 'System description',
-      rulesetCode: 'dnd5e',
-      rulesetVersion: '2014',
-      userId: 'user-1',
-      alignments: [
-        {
-          id: 'a-1',
-          code: 'LG',
-          label: 'Lawful Good',
-          description: null,
-          tooltip: null,
-          short: 'LG'
-        }
-      ],
-      challengeRatings: [],
-      conditionTypes: [
-        {
-          id: 'c-1',
-          code: 'BLINDED',
-          label: 'Blinded',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      creatureTypes: [],
-      currencies: [
-        {
-          id: 'cur-1',
-          code: 'GP',
-          label: 'Gold Piece',
-          description: null,
-          tooltip: null,
-          short: 'gp'
-        }
-      ],
-      damageTypes: [
-        { id: 'd-1', code: 'FIRE', label: 'Fire', description: null, tooltip: null, short: null }
-      ],
-      heritages: [
-        { id: 'h-1', code: 'ELVEN', label: 'Elven', description: null, tooltip: null, short: null }
-      ],
-      languages: [
-        {
-          id: 'l-1',
-          code: 'COMMON',
-          label: 'Common',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      lifestyles: [],
-      magicSchools: [
-        {
-          id: 'm-1',
-          code: 'EVOCATION',
-          label: 'Evocation',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      passives: [
-        {
-          id: 'p-1',
-          code: 'PASSIVE_PERCEPTION',
-          label: 'Passive Perception',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      rarities: [
-        {
-          id: 'r-1',
-          code: 'COMMON',
-          label: 'Common',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      senses: [
-        {
-          id: 's-1',
-          code: 'DARKVISION',
-          label: 'Darkvision',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      skills: [
-        {
-          id: 'sk-1',
-          code: 'ARCANA',
-          label: 'Arcana',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ],
-      speeds: [
-        { id: 'sp-1', code: 'WALK', label: 'Walk', description: null, tooltip: null, short: null }
-      ],
-      terrains: [
-        {
-          id: 't-1',
-          code: 'FOREST',
-          label: 'Forest',
-          description: null,
-          tooltip: null,
-          short: null
-        }
-      ]
-    })
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
-  it('throws when a hydrated system is missing user ownership', async () => {
-    const db = createFakeDb({
-      systems: [
-        {
-          id: 'system-1',
-          label: 'SRD',
-          description: null,
-          ruleset_code: 'dnd5e',
-          ruleset_version: '2014',
-          user_id: null
-        }
-      ]
+  it('reads the active vocabulary snapshot instead of rehydrating relational vocabulary', async () => {
+    mocks.findActive.mockResolvedValue(snapshot())
+    const repository = createSystemRepository(createFakeDb([]))
+
+    await expect(repository.findById(system.id)).resolves.toEqual(system)
+    expect(mocks.findActive).toHaveBeenCalledWith(system.id)
+  })
+
+  it('propagates a missing or mismatched active snapshot failure', async () => {
+    mocks.findActive.mockRejectedValue(new Error('System has no active vocabulary snapshot.'))
+    const repository = createSystemRepository(createFakeDb([]))
+
+    await expect(repository.findById(system.id)).rejects.toThrow('no active vocabulary snapshot')
+  })
+
+  it('uses relational roots only to enumerate systems before loading snapshots', async () => {
+    mocks.findActive.mockImplementation(async (systemId: string) =>
+      systemId === system.id ? snapshot() : null
+    )
+    const repository = createSystemRepository(
+      createFakeDb([
+        { id: system.id, user_id: system.userId },
+        { id: 'other-system', user_id: 'other-user' }
+      ])
+    )
+
+    await expect(repository.findAll({ userId: system.userId })).resolves.toEqual([system])
+    expect(mocks.findActive).toHaveBeenCalledWith(system.id)
+  })
+
+  it('publishes a vocabulary snapshot in the same transaction as a System write', async () => {
+    mocks.findActiveForPublication.mockResolvedValue(null)
+    const repository = createSystemRepository(new InMemoryDb() as unknown as DBLike)
+
+    await repository.upsert(system)
+
+    expect(mocks.upsertSystem).toHaveBeenCalledWith(expect.anything(), system)
+    expect(mocks.publish).toHaveBeenCalledWith(
+      mocks.upsertSystem.mock.calls[0]?.[0],
+      expect.objectContaining({
+        document: system,
+        schemaVersion: 1,
+        systemId: system.id
+      })
+    )
+    expect(mocks.upsertSystem.mock.calls[0]?.[0]).toMatchObject({ isTransaction: true })
+  })
+
+  it('does not publish another vocabulary snapshot when the document is unchanged', async () => {
+    const current = snapshot()
+    current.checksum = checksumSystemVocabularySnapshot({
+      snapshotId: current.snapshotId,
+      systemId: current.systemId,
+      snapshotVersion: current.snapshotVersion,
+      schemaVersion: current.schemaVersion,
+      document: system
     })
+    mocks.findActiveForPublication.mockResolvedValue(current)
+    const repository = createSystemRepository(new InMemoryDb() as unknown as DBLike)
 
-    const repository = createSystemRepository(db as never)
+    await repository.upsert(system)
 
-    await expect(repository.findById('system-1')).rejects.toThrow('missing user_id')
+    expect(mocks.publish).not.toHaveBeenCalled()
+  })
+
+  it('rolls back the System write when vocabulary snapshot publication fails', async () => {
+    const db = new InMemoryDb()
+    mocks.findActiveForPublication.mockResolvedValue(null)
+    mocks.upsertSystem.mockImplementation(async (trx: DBLike) => {
+      await asInMemoryTableDb(trx)
+        .insertInto('systems')
+        .values({ id: system.id, label: system.label })
+        .execute()
+    })
+    mocks.publish.mockImplementation(async (trx: DBLike, input: { snapshotId: string }) => {
+      await asInMemoryTableDb(trx)
+        .insertInto('system_vocabulary_snapshots')
+        .values({ id: input.snapshotId, system_id: system.id })
+        .execute()
+      throw new Error('vocabulary snapshot publication failed')
+    })
+    const repository = createSystemRepository(db as unknown as DBLike)
+
+    await expect(repository.upsert(system)).rejects.toThrow('vocabulary snapshot publication failed')
+    await expect(asInMemoryTableDb(db).selectFrom('systems').selectAll().execute()).resolves.toEqual(
+      []
+    )
+    await expect(
+      asInMemoryTableDb(db).selectFrom('system_vocabulary_snapshots').selectAll().execute()
+    ).resolves.toEqual([])
   })
 })

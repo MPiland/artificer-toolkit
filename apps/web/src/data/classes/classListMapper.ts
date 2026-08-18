@@ -19,13 +19,11 @@ export function formatClassCategory(category: string | undefined): string {
 }
 
 export function mapClassListToAuthoredItems(response: ClassListResponseDto): AuthoredListItem[] {
-  const parentLabels = new Map(response.items.map((item) => [item.id, item.label]))
-
   return response.items.map((item) => {
     const category = item.category ?? UNCATEGORIZED_CLASS_CATEGORY
     const categoryLabel = formatClassCategory(category)
     const parentClassId = item.parentClassId ?? undefined
-    const parentLabel = parentClassId ? parentLabels.get(parentClassId) : undefined
+    const parentLabel = item.parentClassLabel ?? undefined
 
     return {
       id: item.id,
@@ -60,7 +58,11 @@ export function mapClassListToAuthoredItems(response: ClassListResponseDto): Aut
 
 export function buildClassListFilters(response: ClassListResponseDto): AuthoredListFilter[] {
   const categories = Array.from(
-    new Set(response.items.map((item) => item.category ?? UNCATEGORIZED_CLASS_CATEGORY))
+    new Set(
+      ((response.meta as { categories?: Array<{ id: string }> }).categories ?? []).map(
+        (category) => category.id
+      )
+    )
   ).sort()
 
   return [
@@ -95,8 +97,5 @@ export const classListSortOptions = [
 ]
 
 export function summarizeClassList(response: ClassListResponseDto) {
-  const masterCount = response.items.filter((item) => item.provenance.kind === 'MASTER').length
-  const ownedCount = response.items.length - masterCount
-
-  return `${response.items.length} classes / ${masterCount} SRD / ${ownedCount} homebrew`
+  return `${response.summary.activeCount} classes / ${response.summary.masterCount} SRD / ${response.summary.ownedCount} homebrew`
 }

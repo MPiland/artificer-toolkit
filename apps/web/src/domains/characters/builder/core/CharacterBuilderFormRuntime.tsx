@@ -131,7 +131,9 @@ export function CharacterBuilderFormRuntime({
         character: normalizeCharacterForCommit(form.state.values),
         mode: session.mode,
         targetStatus: AUTHORED_RECORD_STATUS.ACTIVE,
-        baseActiveUpdatedAt: session.mode === 'edit' ? session.baseActiveUpdatedAt : undefined
+        baseActiveUpdatedAt: session.mode === 'edit' ? session.baseActiveUpdatedAt : undefined,
+        authoredContentUpgradePreviewChecksum:
+          preview?.authoredContentUpgrade?.previewChecksum
       })
       notifications.show({ color: 'green', message: 'Character finalized.' })
       await navigate({
@@ -147,7 +149,15 @@ export function CharacterBuilderFormRuntime({
         message: 'Could not finalize the character. Try again, or save the draft and reload.'
       })
     }
-  }, [commitMutation, draftMutation, form, navigate, session.baseActiveUpdatedAt, session.mode])
+  }, [
+    commitMutation,
+    draftMutation,
+    form,
+    navigate,
+    preview?.authoredContentUpgrade?.previewChecksum,
+    session.baseActiveUpdatedAt,
+    session.mode
+  ])
 
   const handleActivate = useCallback(async () => {
     if (!payload.view.review.ready) {

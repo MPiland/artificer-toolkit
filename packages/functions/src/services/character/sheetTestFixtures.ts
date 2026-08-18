@@ -310,8 +310,6 @@ export function createSheet(
     extras: overrides.extras ?? {
       kindOptions: [],
       originOptions: [],
-      creatureOptions: [],
-      vehicleOptions: [],
       items: []
     }
   }

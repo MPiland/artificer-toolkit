@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { AuthoredCatalogPageInput } from '@artificer-toolkit/db'
 import {
   activateAuthoredDomainDraft,
   activateAuthoredDomainInput,
@@ -48,20 +49,28 @@ import {
 import {
   authoredDetailRequestDtoSchema,
   authoredDraftDtoSchema,
+  backgroundListRequestDtoSchema,
   backgroundListResponseDtoSchema,
   backgroundResponseDtoSchema,
+  classListRequestDtoSchema,
   classListResponseDtoSchema,
   classResponseDtoSchema,
+  creatureListRequestDtoSchema,
   creatureListResponseDtoSchema,
   creatureResponseDtoSchema,
+  equipmentListRequestDtoSchema,
   equipmentListResponseDtoSchema,
   equipmentResponseDtoSchema,
+  featListRequestDtoSchema,
   featListResponseDtoSchema,
   featResponseDtoSchema,
+  raceListRequestDtoSchema,
   raceListResponseDtoSchema,
   raceResponseDtoSchema,
+  spellListRequestDtoSchema,
   spellListResponseDtoSchema,
   spellResponseDtoSchema,
+  vehicleListRequestDtoSchema,
   vehicleListResponseDtoSchema,
   vehicleResponseDtoSchema
 } from '@artificer-toolkit/schema/api/content'
@@ -77,6 +86,7 @@ import {
 
 interface AuthoredDomainConfig<TInput extends AuthoredContentInput> {
   inputSchema: z.ZodType<TInput>
+  listInputSchema: z.ZodType<AuthoredCatalogPageInput>
   listSchema: z.ZodType<unknown>
   responseSchema: z.ZodType<unknown>
   runtime: DirectAuthoredDomainConfig
@@ -94,9 +104,12 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(
 
   return createTRPCRouter({
     list: authenticatedProcedure
+      .input(config.listInputSchema)
       .output(config.listSchema)
-      .query(({ ctx }) =>
-        withAuthenticatedDb(ctx, (db, userId) => listAuthoredDomain(db, config.runtime, userId))
+      .query(({ ctx, input }) =>
+        withAuthenticatedDb(ctx, (db, userId) =>
+          listAuthoredDomain(db, config.runtime, input, userId)
+        )
       ),
 
     get: authenticatedProcedure
@@ -176,6 +189,7 @@ function authoredDomainRouter<TInput extends AuthoredContentInput>(
 export const authoredContentRouter = createTRPCRouter({
   backgrounds: authoredDomainRouter<BackgroundAuthoringInputDto>({
     inputSchema: backgroundAuthoringInputDtoSchema,
+    listInputSchema: backgroundListRequestDtoSchema,
     listSchema: backgroundListResponseDtoSchema,
     responseSchema: backgroundResponseDtoSchema,
     runtime: authoredDomainConfigs.backgrounds
@@ -183,6 +197,7 @@ export const authoredContentRouter = createTRPCRouter({
 
   classes: authoredDomainRouter<ClassAuthoringInputDto>({
     inputSchema: classAuthoringInputDtoSchema,
+    listInputSchema: classListRequestDtoSchema,
     listSchema: classListResponseDtoSchema,
     responseSchema: classResponseDtoSchema,
     runtime: authoredDomainConfigs.classes
@@ -190,6 +205,7 @@ export const authoredContentRouter = createTRPCRouter({
 
   creatures: authoredDomainRouter<CreatureAuthoringInputDto>({
     inputSchema: creatureAuthoringInputDtoSchema,
+    listInputSchema: creatureListRequestDtoSchema,
     listSchema: creatureListResponseDtoSchema,
     responseSchema: creatureResponseDtoSchema,
     runtime: authoredDomainConfigs.creatures
@@ -197,6 +213,7 @@ export const authoredContentRouter = createTRPCRouter({
 
   equipment: authoredDomainRouter<EquipmentAuthoringInputDto>({
     inputSchema: equipmentAuthoringInputDtoSchema,
+    listInputSchema: equipmentListRequestDtoSchema,
     listSchema: equipmentListResponseDtoSchema,
     responseSchema: equipmentResponseDtoSchema,
     runtime: authoredDomainConfigs.equipment
@@ -204,6 +221,7 @@ export const authoredContentRouter = createTRPCRouter({
 
   feats: authoredDomainRouter<FeatAuthoringInputDto>({
     inputSchema: featAuthoringInputDtoSchema,
+    listInputSchema: featListRequestDtoSchema,
     listSchema: featListResponseDtoSchema,
     responseSchema: featResponseDtoSchema,
     runtime: authoredDomainConfigs.feats
@@ -211,6 +229,7 @@ export const authoredContentRouter = createTRPCRouter({
 
   races: authoredDomainRouter<RaceAuthoringInputDto>({
     inputSchema: raceAuthoringInputDtoSchema,
+    listInputSchema: raceListRequestDtoSchema,
     listSchema: raceListResponseDtoSchema,
     responseSchema: raceResponseDtoSchema,
     runtime: authoredDomainConfigs.races
@@ -218,6 +237,7 @@ export const authoredContentRouter = createTRPCRouter({
 
   spells: authoredDomainRouter<SpellAuthoringInputDto>({
     inputSchema: spellAuthoringInputDtoSchema,
+    listInputSchema: spellListRequestDtoSchema,
     listSchema: spellListResponseDtoSchema,
     responseSchema: spellResponseDtoSchema,
     runtime: authoredDomainConfigs.spells
@@ -225,6 +245,7 @@ export const authoredContentRouter = createTRPCRouter({
 
   vehicles: authoredDomainRouter<VehicleAuthoringInputDto>({
     inputSchema: vehicleAuthoringInputDtoSchema,
+    listInputSchema: vehicleListRequestDtoSchema,
     listSchema: vehicleListResponseDtoSchema,
     responseSchema: vehicleResponseDtoSchema,
     runtime: authoredDomainConfigs.vehicles

@@ -32,6 +32,9 @@ describe('character play-state persistence schema', () => {
   const startingGoldFormulaMigration = read(
     'supabase/migrations/20260806010000_character_starting_gold_formula.sql'
   )
+  const authoredDocumentReferenceCutoverMigration = read(
+    'supabase/migrations/20260818030000_character_authored_document_reference_cutover.sql'
+  )
 
   it.each([
     ['canonical character tables', characterTables],
@@ -162,6 +165,30 @@ describe('character play-state persistence schema', () => {
     expect(characterAdjustmentTables).toContain('AND source_instance_id IS NOT NULL')
     expect(characterAdjustmentTables).toContain(
       'character_id,\n    resource_grant_id,\n    spell_id,\n    source_kind,\n    source_instance_id'
+    )
+  })
+
+  it('stores nested authored identifiers without foreign keys to retired detail tables', () => {
+    for (const reference of [
+      'REFERENCES public.race_ancestries',
+      'REFERENCES public.race_ancestry_options',
+      'REFERENCES public.class_specializations',
+      'REFERENCES public.class_resources',
+      'REFERENCES public.starting_equipment_groups',
+      'REFERENCES public.starting_equipment_options',
+      'REFERENCES public.starting_equipment_option_items',
+      'REFERENCES public.features',
+      'REFERENCES public.options'
+    ]) {
+      expect(characterTables).not.toContain(reference)
+    }
+    expect(characterAdjustmentTables).not.toContain('REFERENCES public.charges')
+    expect(characterAdjustmentTables).not.toContain('REFERENCES public.features')
+    expect(authoredDocumentReferenceCutoverMigration).toContain(
+      'character_ancestry_acquisitions_ancestry_id_fkey'
+    )
+    expect(authoredDocumentReferenceCutoverMigration).toContain(
+      'character_sheet_resource_usage_charge_id_fkey'
     )
   })
 })

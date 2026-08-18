@@ -8,6 +8,7 @@ import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared/star
 import { CLASS_CATEGORY } from '@artificer-toolkit/shared/core'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
+import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
 import { withForm } from '#forms/app-form/AppForm'
 import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
@@ -44,18 +45,28 @@ export const GuidedClassAuthoring = withForm({
     const categoryLocked = session.mode === 'edit'
     const classes = useQuery({
       enabled: isSubclass,
-      queryFn: () => api.content.classes.list(),
+      queryFn: () =>
+        loadPagedAuthoredCatalogItems(api.content.classes.list, {
+          direction: 'FORWARD',
+          limit: 48,
+          sort: 'name'
+        }),
       queryKey: queryKeys.content.classes.list(),
-      select: (response) =>
-        response.items
+      select: (items) =>
+        items
           .filter((item) => item.category === CLASS_CATEGORY.BASE)
           .map((item) => ({ label: item.label, value: item.id }))
     })
     const equipment = useQuery({
       enabled: !isSubclass && step === 2,
-      queryFn: () => api.content.equipment.list(),
+      queryFn: () =>
+        loadPagedAuthoredCatalogItems(api.content.equipment.list, {
+          direction: 'FORWARD',
+          limit: 48,
+          sort: 'name'
+        }),
       queryKey: queryKeys.content.equipment.list(),
-      select: (response) => response.items.map((item) => ({ label: item.label, value: item.id }))
+      select: (items) => items.map((item) => ({ label: item.label, value: item.id }))
     })
 
     useEffect(() => {

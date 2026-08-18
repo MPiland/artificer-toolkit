@@ -1,7 +1,5 @@
 import {
-  createClassRepository,
-  createBackgroundRepository,
-  createRaceRepository,
+  createAuthoredVersionRepository,
   createSystemRepository,
   getBackgroundListQuery,
   getClassListQuery,
@@ -13,28 +11,28 @@ import {
 } from '@artificer-toolkit/db'
 import {
   ABILITY_OPTIONS,
-  CASTING_TIME_UNIT_CODE,
   CLASS_CATEGORY,
-  EQUIPMENT_CATEGORY_CODE,
-  EQUIPMENT_PROPERTY_CODE,
   EQUIPMENT_PROPERTY_REGISTRY,
   MEASUREMENT_UNIT_REGISTRY,
   PROFICIENCY_KIND,
   RACE_CATEGORY_CODE,
   SIZE_OPTIONS,
-  SPELL_ATTRIBUTE,
-  SPELL_COMPONENT,
   type EquipmentCategoryCode,
   type EquipmentPropertyCode
 } from '@artificer-toolkit/shared/core'
 import type {
   ClassAuthored,
   BackgroundAuthored,
-  SpellAuthored
+  SpellAuthored,
+  FeatAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { ModifierGrantAuthored } from '@artificer-toolkit/shared/authored'
 import type { ResolvedRace } from '@artificer-toolkit/shared/subjects/compilers'
 import type { HydratedCampaignBuilderContent } from './campaignCharacterContent.js'
+import {
+  resolveActiveCharacterEquipment,
+  resolveActiveCharacterRaces
+} from './versionedCharacterContent.js'
 
 export type CharacterBuilderRaceCatalogRecord = {
   id: string
@@ -206,117 +204,32 @@ type CharacterBuilderCatalogLoadOptions = {
   includeSpells: boolean
 }
 
-function requireRaceCategory(id: string, value: string): ResolvedRace['category'] {
-  if (!(value in RACE_CATEGORY_CODE)) {
-    throw new Error(`Race "${id}" has unsupported category "${value}".`)
-  }
-
-  return value as ResolvedRace['category']
-}
-
-function requireClassCategory(id: string, value: string | null): ClassAuthored['category'] {
-  if (!value || !(value in CLASS_CATEGORY)) {
-    throw new Error(`Class "${id}" has unsupported category "${value ?? 'null'}".`)
-  }
-
-  return value as ClassAuthored['category']
-}
-
-function requireEquipmentCategory(
-  id: string,
-  value: string | null
-): EquipmentCategoryCode | undefined {
-  if (value === null) return undefined
-  if (!(value in EQUIPMENT_CATEGORY_CODE)) {
-    throw new Error(`Equipment "${id}" has unsupported category "${value}".`)
-  }
-
-  return value as EquipmentCategoryCode
-}
-
-function requireEquipmentProperty(id: string, value: string): EquipmentPropertyCode {
-  if (!(value in EQUIPMENT_PROPERTY_CODE)) {
-    throw new Error(`Equipment "${id}" has unsupported property "${value}".`)
-  }
-
-  return value as EquipmentPropertyCode
-}
-
-function requireSpellCastingTimeUnit(
-  spellId: string,
-  value: string
-): SpellAuthored['castingTime']['unit'] {
-  if (!(value in CASTING_TIME_UNIT_CODE)) {
-    throw new Error(`Spell "${spellId}" has unsupported casting time unit "${value}".`)
-  }
-
-  return value as SpellAuthored['castingTime']['unit']
-}
-
-function requireSpellMagicSchool(
-  spellId: string,
-  value: string | null
-): SpellAuthored['magicSchoolId'] {
-  if (!value) {
-    throw new Error(`Spell "${spellId}" is missing its magic school.`)
-  }
-
-  return value
-}
-
 export async function loadCharacterBuilderSpellCatalog(
   db: DBLike,
-  systemId: string
+  systemId: string,
+  userId: string
 ): Promise<CharacterBuilderSpellCatalogRecord[]> {
-  const { items, meta } = await getSpellListQuery(db, { systemId })
-  const attributeCodesBySpellId = new Map<string, string[]>()
-  const classIdsBySpellId = new Map<string, string[]>()
+  const { items } = await getSpellListQuery(db, { systemId })
+  const versions = await createAuthoredVersionRepository(db).findActiveByIds({
+    subjectKind: 'SPELL',
+    subjectIds: items.map((item) => item.id),
+    systemId,
+    userId,
+    includeMaster: true
+  })
 
-  for (const group of meta.attributes) {
-    for (const spellId of group.spellIds) {
-      const codes = attributeCodesBySpellId.get(spellId) ?? []
-      codes.push(group.id)
-      attributeCodesBySpellId.set(spellId, codes)
-    }
-  }
-  for (const group of meta.classes) {
-    for (const spellId of group.spellIds) {
-      const classIds = classIdsBySpellId.get(spellId) ?? []
-      classIds.push(group.id)
-      classIdsBySpellId.set(spellId, classIds)
-    }
-  }
-
-  return items.map((item) => {
-    const codes = attributeCodesBySpellId.get(item.id) ?? []
-    const attributes = codes.filter(
-      (code): code is NonNullable<SpellAuthored['attributes']>[number] => code in SPELL_ATTRIBUTE
-    )
-    const components = codes.filter(
-      (code): code is NonNullable<SpellAuthored['components']>[number] => code in SPELL_COMPONENT
-    )
-
-    return {
-      id: item.id,
-      label: item.label,
-      description: item.description ?? '',
-      level: item.level,
-      magicSchoolId: requireSpellMagicSchool(item.id, item.magicSchoolId),
-      castingTime: {
-        unit: requireSpellCastingTimeUnit(item.id, item.castingTimeUnit),
-        amount: item.castingTimeAmount
-      },
-      classIds: classIdsBySpellId.get(item.id) ?? [],
-      attributes: attributes.length > 0 ? attributes : undefined,
-      components: components.length > 0 ? components : undefined,
-      materialDescription: item.materialDescription ?? undefined
-    }
+  return items.flatMap((item) => {
+    const version = versions.get(item.id)
+    if (!version) return []
+    const spell = version.authored.document as SpellAuthored
+    return spell.systemId === systemId ? [spell] : []
   })
 }
 
 export async function loadCharacterBuilderCatalog(
   db: DBLike,
   systemId: string,
+  userId: string,
   options: CharacterBuilderCatalogLoadOptions
 ): Promise<CharacterBuilderCatalog> {
   const [raceResult, classResult, backgroundResult, equipmentResult, featResult, spells] =
@@ -326,141 +239,179 @@ export async function loadCharacterBuilderCatalog(
       getBackgroundListQuery(db, { systemId }),
       getEquipmentListQuery(db, { systemId }),
       getFeatListQuery(db, { systemId }),
-      options.includeSpells ? loadCharacterBuilderSpellCatalog(db, systemId) : Promise.resolve([])
+      options.includeSpells
+        ? loadCharacterBuilderSpellCatalog(db, systemId, userId)
+        : Promise.resolve([])
     ])
 
-  const [resolvedRaces, classesById, backgroundsById, system] = await Promise.all([
-    createRaceRepository(db).findResolvedAll({ systemId, includeFeatureEffects: false }),
-    createClassRepository(db).findByIds(
-      classResult.items.map((record) => record.id),
-      { systemId, allowedFeatureIds: new Set(), includeFeatureEffects: false }
-    ),
-    createBackgroundRepository(db).findByIds(
-      backgroundResult.items.map((record) => record.id),
-      { systemId, includeFeatureEffects: false }
-    ),
-    createSystemRepository(db).findById(systemId)
-  ])
+  const versions = createAuthoredVersionRepository(db)
+  const [resolvedRaces, resolvedEquipment, classVersions, backgroundVersions, featVersions, system] =
+    await Promise.all([
+      resolveActiveCharacterRaces(
+        db,
+        raceResult.items.map((record) => record.id),
+        systemId,
+        userId
+      ),
+      resolveActiveCharacterEquipment(
+        db,
+        equipmentResult.items.map((record) => record.id),
+        systemId,
+        userId
+      ),
+      versions.findActiveByIds({
+        subjectKind: 'CLASS',
+        subjectIds: classResult.items.map((record) => record.id),
+        systemId,
+        userId,
+        includeMaster: true
+      }),
+      versions.findActiveByIds({
+        subjectKind: 'BACKGROUND',
+        subjectIds: backgroundResult.items.map((record) => record.id),
+        systemId,
+        userId,
+        includeMaster: true
+      }),
+      versions.findActiveByIds({
+        subjectKind: 'FEAT',
+        subjectIds: featResult.items.map((record) => record.id),
+        systemId,
+        userId,
+        includeMaster: true
+      }),
+      createSystemRepository(db).findById(systemId)
+    ])
+  const classesById = new Map(
+    [...classVersions.entries()].map(([id, version]) => [
+      id,
+      version.authored.document as ClassAuthored
+    ])
+  )
+  const backgroundsById = new Map(
+    [...backgroundVersions.entries()].map(([id, version]) => [
+      id,
+      version.authored.document as BackgroundAuthored
+    ])
+  )
+  const featsById = new Map(
+    [...featVersions.entries()].map(([id, version]) => [
+      id,
+      version.authored.document as FeatAuthored
+    ])
+  )
   const racesById = new Map(resolvedRaces.map((race) => [race.id, race]))
-  const equipmentById = new Map(equipmentResult.items.map((item) => [item.id, item]))
-  const effectiveMaxStackByEquipmentId = new Map<string, number | undefined>()
-  const resolveEffectiveMaxStack = (
-    equipmentId: string,
-    lineage: ReadonlySet<string> = new Set()
-  ): number | undefined => {
-    if (effectiveMaxStackByEquipmentId.has(equipmentId)) {
-      return effectiveMaxStackByEquipmentId.get(equipmentId)
-    }
-    if (lineage.has(equipmentId)) return undefined
-
-    const equipment = equipmentById.get(equipmentId)
-    if (!equipment) return undefined
-
-    const authoredMaxStack =
-      equipment.maxStack != null && equipment.maxStack > 0 ? equipment.maxStack : undefined
-    const maxStack = equipment.chargeId
-      ? 1
-      : (authoredMaxStack ??
-        (equipment.parentEquipmentId
-          ? resolveEffectiveMaxStack(
-              equipment.parentEquipmentId,
-              new Set([...lineage, equipmentId])
-            )
-          : undefined))
-    effectiveMaxStackByEquipmentId.set(equipmentId, maxStack)
-    return maxStack
-  }
+  const equipmentById = new Map(resolvedEquipment.map((equipment) => [equipment.id, equipment]))
 
   return {
-    races: raceResult.items.map((record) => {
+    races: raceResult.items.flatMap((record) => {
       const race = racesById.get(record.id)
-      return {
-        id: record.id,
-        label: record.label,
-        category: requireRaceCategory(record.id, record.category),
-        parentRaceId: record.parentRaceId ?? undefined,
-        description: race?.description,
-        selectionMode: race?.category === RACE_CATEGORY_CODE.BASE ? race.selectionMode : undefined,
-        sizeLabel: race ? SIZE_OPTIONS.find((size) => size.code === race.size)?.label : undefined,
-        speedLabels: (race?.speeds ?? []).map((speed) => {
-          const speedLabel = system?.speeds.find(
-            (candidate) => candidate.id === speed.speedId
-          )?.label
-          return `${speedLabel ?? 'Speed'} ${speed.amount} ${MEASUREMENT_UNIT_REGISTRY[speed.unit].short}`
-        }),
-        abilityScoreIncreaseFacts: getRaceAbilityScoreIncreaseFacts(race)
-      }
+      if (!race) return []
+      return [
+        {
+          id: race.id,
+          label: race.label,
+          category: race.category,
+          parentRaceId:
+            race.category === RACE_CATEGORY_CODE.SUBRACE ? race.parentRaceId : undefined,
+          description: race.description,
+          selectionMode: race.category === RACE_CATEGORY_CODE.BASE ? race.selectionMode : undefined,
+          sizeLabel: SIZE_OPTIONS.find((size) => size.code === race.size)?.label,
+          speedLabels: (race.speeds ?? []).map((speed) => {
+            const speedLabel = system?.speeds.find((candidate) => candidate.id === speed.speedId)?.label
+            return `${speedLabel ?? 'Speed'} ${speed.amount} ${MEASUREMENT_UNIT_REGISTRY[speed.unit].short}`
+          }),
+          abilityScoreIncreaseFacts: getRaceAbilityScoreIncreaseFacts(race)
+        }
+      ]
     }),
-    classes: classResult.items.map((record) => {
+    classes: classResult.items.flatMap((record) => {
       const classRecord = classesById.get(record.id)
+      if (!classRecord) return []
       const proficiencies =
-        classRecord && 'proficiencies' in classRecord ? (classRecord.proficiencies ?? []) : []
-      return {
-        id: record.id,
-        label: record.label,
-        category: requireClassCategory(record.id, record.category),
-        parentClassId: record.parentClassId ?? undefined,
-        subclassSelectionLevel: record.subclassSelectionLevel ?? undefined,
-        description: classRecord?.description,
-        hitpoint: classRecord && 'hitpoint' in classRecord ? classRecord.hitpoint : undefined,
-        requirementGroups:
-          classRecord && classRecord.category === CLASS_CATEGORY.BASE
-            ? classRecord.multiclass.requirementGroups
-            : undefined,
-        savingThrowLabels: proficiencies
-          .flatMap((proficiency) =>
-            proficiency.proficiencyKind === PROFICIENCY_KIND.SAVE_ABILITY &&
-            'abilities' in proficiency
-              ? (proficiency.abilities ?? [])
-              : []
+        'proficiencies' in classRecord ? (classRecord.proficiencies ?? []) : []
+      return [
+        {
+          id: classRecord.id,
+          label: classRecord.label,
+          category: classRecord.category,
+          parentClassId:
+            classRecord.category === CLASS_CATEGORY.SUBCLASS
+              ? classRecord.parentClassId
+              : undefined,
+          subclassSelectionLevel:
+            classRecord.category === CLASS_CATEGORY.BASE
+              ? classRecord.subclassSelectionLevel
+              : undefined,
+          description: classRecord.description,
+          hitpoint: classRecord.category === CLASS_CATEGORY.BASE ? classRecord.hitpoint : undefined,
+          requirementGroups:
+            classRecord.category === CLASS_CATEGORY.BASE
+              ? classRecord.multiclass.requirementGroups
+              : undefined,
+          savingThrowLabels: proficiencies
+            .flatMap((proficiency) =>
+              proficiency.proficiencyKind === PROFICIENCY_KIND.SAVE_ABILITY &&
+              'abilities' in proficiency
+                ? (proficiency.abilities ?? [])
+                : []
+            )
+            .map(
+              (ability) =>
+                ABILITY_OPTIONS.find((candidate) => candidate.code === ability)?.label ?? ability
+            ),
+          proficiencyGroups: getClassProficiencyGroups(
+            proficiencies,
+            system?.skills ?? [],
+            system?.languages ?? [],
+            equipmentById
           )
-          .map(
-            (ability) =>
-              ABILITY_OPTIONS.find((candidate) => candidate.code === ability)?.label ?? ability
-          ),
-        proficiencyGroups: getClassProficiencyGroups(
-          proficiencies,
-          system?.skills ?? [],
-          system?.languages ?? [],
-          equipmentById
-        )
-      }
+        }
+      ]
     }),
-    backgrounds: backgroundResult.items.map((record) => {
+    backgrounds: backgroundResult.items.flatMap((record) => {
       const background = backgroundsById.get(record.id)
+      if (!background) return []
       const grantFacts = getBackgroundGrantFacts(
         background,
         system?.skills ?? [],
         system?.languages ?? [],
         equipmentById
       )
-      const featureLabels = (background?.features ?? []).map((feature) => feature.label)
-      return {
-        id: record.id,
-        label: record.label,
-        description: background?.description,
-        summary: toPlainText(background?.description ?? ''),
-        grantFacts: grantFacts.slice(0, 4),
-        featureLabels: featureLabels.slice(0, 2),
-        hiddenGrantFactCount: Math.max(0, grantFacts.length - 4),
-        hiddenFeatureCount: Math.max(0, featureLabels.length - 2)
-      }
+      const featureLabels = (background.features ?? []).map((feature) => feature.label)
+      return [
+        {
+          id: background.id,
+          label: background.label,
+          description: background.description,
+          summary: toPlainText(background.description ?? ''),
+          grantFacts: grantFacts.slice(0, 4),
+          featureLabels: featureLabels.slice(0, 2),
+          hiddenGrantFactCount: Math.max(0, grantFacts.length - 4),
+          hiddenFeatureCount: Math.max(0, featureLabels.length - 2)
+        }
+      ]
     }),
-    equipment: equipmentResult.items.map((record) => ({
-      id: record.id,
-      label: record.label,
-      category: requireEquipmentCategory(record.id, record.category),
-      isContainer: record.capacityAmount !== null,
-      maxStack: resolveEffectiveMaxStack(record.id),
-      properties: record.properties.map((property) =>
-        requireEquipmentProperty(record.id, property)
-      ),
-      requiresAttunement: record.requiresAttunement
-    })),
-    feats: featResult.items.map((record) => ({
-      id: record.id,
-      label: record.label
-    })),
+    equipment: equipmentResult.items.flatMap((record) => {
+      const equipment = equipmentById.get(record.id)
+      if (!equipment) return []
+      const maxStack = equipment.maxStack != null && equipment.maxStack > 0 ? equipment.maxStack : undefined
+      return [
+        {
+          id: equipment.id,
+          label: equipment.label,
+          category: equipment.category,
+          isContainer: Boolean(equipment.capacity),
+          maxStack: equipment.charges ? 1 : maxStack,
+          properties: [...equipment.properties],
+          requiresAttunement: equipment.requiresAttunement ?? false
+        }
+      ]
+    }),
+    feats: featResult.items.flatMap((record) => {
+      const feat = featsById.get(record.id)
+      return feat ? [{ id: feat.id, label: feat.label }] : []
+    }),
     spells
   }
 }

@@ -42,6 +42,10 @@ const mocks = vi.hoisted(() => ({
     deleteOwnershipTransfer: vi.fn()
   },
   content: { deleteAssignmentBindings: vi.fn() },
+  character: { findAuthoredById: vi.fn(), findById: vi.fn() },
+  mechanics: { requireCurrent: vi.fn() },
+  campaignMechanics: { publish: vi.fn(), requireCurrent: vi.fn(), lockAssignment: vi.fn() },
+  prepareCampaignMechanics: vi.fn(),
   events: { insertCampaignEvent: vi.fn() },
   reconcileCharacter: vi.fn(),
   reconcileCurrency: vi.fn(),
@@ -77,6 +81,9 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createCampaignRepository: () => mocks.repository,
     createCampaignContentRepository: () => mocks.content,
     createCampaignAdjustmentsRepository: () => mocks.events,
+    createCharacterRepository: () => mocks.character,
+    createCharacterMechanicsProjectionRepository: () => mocks.mechanics,
+    createCampaignCharacterMechanicsProjectionRepository: () => mocks.campaignMechanics,
     createAccountEntitlementsRepository: () => ({ lockTier: mocks.lockTier }),
     createSocialRepository: () => mocks.social,
     withTransaction: (_db: DBLike, callback: (trx: DBLike) => Promise<unknown>) =>
@@ -86,6 +93,19 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
 
 vi.mock('../character/campaignCharacterReconciliation.js', () => ({
   reconcileCharacterAfterCampaignContentRemoval: mocks.reconcileCharacter
+}))
+
+vi.mock('../character/campaignCharacterSheet.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../character/campaignCharacterSheet.js')>()
+  return {
+    ...actual,
+    checksumCampaignCharacterMechanicalContext: vi.fn(() => 'a'.repeat(64)),
+    resolveCharacterLiveSessionRuleContext: vi.fn()
+  }
+})
+vi.mock('./campaignCharacterMechanicsProjection.js', () => ({
+  CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION: 1,
+  prepareCampaignCharacterMechanicsProjection: mocks.prepareCampaignMechanics
 }))
 
 vi.mock('../notifications/notificationService.js', () => ({
@@ -180,6 +200,20 @@ describe('Campaign lifecycle service', () => {
     })
     mocks.lockTier.mockResolvedValue('FREE')
     mocks.repository.countActiveOwned.mockResolvedValue(0)
+    mocks.repository.listAssignmentCharacterIds.mockResolvedValue([])
+    mocks.character.findAuthoredById.mockResolvedValue({
+      id: '00000000-0000-4000-8000-000000000004',
+      userId: '00000000-0000-4000-8000-000000000020'
+    })
+    mocks.character.findById.mockResolvedValue({
+      rule_pack_revision_id: 'revision-1',
+      stream_version: 1
+    })
+    mocks.mechanics.requireCurrent.mockResolvedValue({
+      projectionChecksum: 'a'.repeat(64),
+      characterStreamVersion: 1
+    })
+    mocks.prepareCampaignMechanics.mockResolvedValue({ projectionChecksum: 'b'.repeat(64) })
     mocks.repository.expireDueReceivedInvites.mockResolvedValue([])
     mocks.repository.expirePendingInvites.mockResolvedValue([])
     mocks.social.expireSubmittedSocialApplications.mockResolvedValue([])

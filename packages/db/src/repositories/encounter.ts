@@ -1,6 +1,12 @@
 import { sql } from 'kysely'
 
+import {
+  encounterCurrentProjectionSchema,
+  type EncounterCurrentProjection
+} from '@artificer-toolkit/schema/projections/encounter'
+
 import type { DBLike, Json } from '#types'
+import { checksumEncounterCurrentProjection } from '../utils/versionedProjectionChecksum.js'
 
 type RuntimeTimestamp = Date | string
 
@@ -80,6 +86,19 @@ export interface EncounterRecord {
   reminders: EncounterReminderRecord[]
 }
 
+/**
+ * Relational envelope used to locate a committed Encounter projection. It
+ * deliberately excludes actor and reminder rows so gameplay reads do not
+ * rehydrate the normalized aggregate before reading that projection.
+ */
+export interface EncounterVersionMetadata {
+  campaignId: string
+  id: string
+  sessionId: string
+  status: EncounterStatus
+  version: number
+}
+
 export interface EncounterEventRecord {
   id: string
   encounterId: string
@@ -99,6 +118,12 @@ export interface EncounterRulesetRecord {
   systemId: string
   code: string
   version: string
+}
+
+export class EncounterCurrentProjectionMismatchError extends Error {
+  constructor(message: string) {
+    super(message)
+  }
 }
 
 function iso(value: RuntimeTimestamp): string {
@@ -300,6 +325,30 @@ export function createEncounterRepository(db: DBLike) {
       return readEncounter(db, encounterId)
     },
 
+    async findVersionMetadata(encounterId: string): Promise<EncounterVersionMetadata | null> {
+      const result = await sql<{
+        campaign_id: string
+        id: string
+        session_id: string
+        status: EncounterStatus
+        version: number
+      }>`
+        SELECT id, campaign_id, session_id, status, version
+        FROM public.encounters
+        WHERE id = ${encounterId}
+      `.execute(db)
+      const row = result.rows[0]
+      return row
+        ? {
+            campaignId: row.campaign_id,
+            id: row.id,
+            sessionId: row.session_id,
+            status: row.status,
+            version: Number(row.version)
+          }
+        : null
+    },
+
     async findActiveForCampaign(campaignId: string): Promise<EncounterRecord | null> {
       const result = await sql<Record<string, unknown>>`
         SELECT * FROM public.encounters
@@ -309,6 +358,34 @@ export function createEncounterRepository(db: DBLike) {
       `.execute(db)
       const row = result.rows[0]
       return row ? readEncounter(db, String(row.id)) : null
+    },
+
+    async findActiveVersionMetadataForCampaign(
+      campaignId: string
+    ): Promise<EncounterVersionMetadata | null> {
+      const result = await sql<{
+        campaign_id: string
+        id: string
+        session_id: string
+        status: EncounterStatus
+        version: number
+      }>`
+        SELECT id, campaign_id, session_id, status, version
+        FROM public.encounters
+        WHERE campaign_id = ${campaignId} AND status = 'ACTIVE'
+        ORDER BY updated_at DESC, id DESC
+        LIMIT 1
+      `.execute(db)
+      const row = result.rows[0]
+      return row
+        ? {
+            campaignId: row.campaign_id,
+            id: row.id,
+            sessionId: row.session_id,
+            status: row.status,
+            version: Number(row.version)
+          }
+        : null
     },
 
     async listForCampaign(campaignId: string): Promise<EncounterRecord[]> {
@@ -324,6 +401,46 @@ export function createEncounterRepository(db: DBLike) {
         (encounters) =>
           encounters.filter((encounter): encounter is EncounterRecord => encounter !== null)
       )
+    },
+
+    async listVersionMetadataForCampaign(
+      campaignId: string
+    ): Promise<EncounterVersionMetadata[]> {
+      const result = await sql<{
+        campaign_id: string
+        id: string
+        session_id: string
+        status: EncounterStatus
+        version: number
+      }>`
+        SELECT id, campaign_id, session_id, status, version
+        FROM public.encounters
+        WHERE campaign_id = ${campaignId}
+        ORDER BY
+          CASE status WHEN 'ACTIVE' THEN 0 WHEN 'PREPARED' THEN 1 ELSE 2 END,
+          updated_at DESC,
+          id DESC
+      `.execute(db)
+      return result.rows.map((row) => ({
+        campaignId: row.campaign_id,
+        id: row.id,
+        sessionId: row.session_id,
+        status: row.status,
+        version: Number(row.version)
+      }))
+    },
+
+    async listVersionMetadataForSession(
+      campaignId: string,
+      sessionId: string
+    ): Promise<Array<{ id: string; version: number }>> {
+      const result = await sql<{ id: string; version: number }>`
+        SELECT id, version
+        FROM public.encounters
+        WHERE campaign_id = ${campaignId} AND session_id = ${sessionId}
+        ORDER BY id ASC
+      `.execute(db)
+      return result.rows.map((row) => ({ id: row.id, version: Number(row.version) }))
     },
 
     async countSavedForOwner(userId: string): Promise<number> {
@@ -528,6 +645,100 @@ export function createEncounterRepository(db: DBLike) {
       return row
         ? { systemId: row.system_id, code: row.ruleset_code, version: row.ruleset_version }
         : null
+    },
+
+    async publishCurrentProjection(
+      input: EncounterCurrentProjection
+    ): Promise<EncounterCurrentProjection> {
+      const projection = encounterCurrentProjectionSchema.parse(input)
+      if (checksumEncounterCurrentProjection(projection) !== projection.projectionChecksum) {
+        throw new EncounterCurrentProjectionMismatchError(
+          `Encounter "${projection.encounterId}" projection checksum does not match its contents.`
+        )
+      }
+      const encounter = await sql<{ version: number }>`
+        SELECT version FROM public.encounters
+        WHERE id = ${projection.encounterId}
+        FOR UPDATE
+      `.execute(db)
+      if (encounter.rows[0]?.version !== projection.streamVersion) {
+        throw new EncounterCurrentProjectionMismatchError(
+          `Encounter "${projection.encounterId}" changed before its projection was published.`
+        )
+      }
+      const existing = await sql<{ projection_checksum: string; stream_version: number }>`
+        SELECT stream_version, projection_checksum
+        FROM public.encounter_current_projections
+        WHERE encounter_id = ${projection.encounterId}
+        FOR UPDATE
+      `.execute(db)
+      const current = existing.rows[0]
+      if (
+        current &&
+        (current.stream_version > projection.streamVersion ||
+          (current.stream_version === projection.streamVersion &&
+            current.projection_checksum !== projection.projectionChecksum))
+      ) {
+        throw new EncounterCurrentProjectionMismatchError(
+          `Encounter "${projection.encounterId}" already has a conflicting newer projection.`
+        )
+      }
+      if (current?.projection_checksum === projection.projectionChecksum) return projection
+
+      await sql`
+        INSERT INTO public.encounter_current_projections (
+          encounter_id, stream_version, projection_schema_version, projection_checksum, projection
+        ) VALUES (
+          ${projection.encounterId}, ${projection.streamVersion},
+          ${projection.projectionSchemaVersion}, ${projection.projectionChecksum},
+          ${json(projection as unknown as Json)}::jsonb
+        )
+        ON CONFLICT (encounter_id) DO UPDATE SET
+          stream_version = EXCLUDED.stream_version,
+          projection_schema_version = EXCLUDED.projection_schema_version,
+          projection_checksum = EXCLUDED.projection_checksum,
+          projection = EXCLUDED.projection,
+          updated_at = now()
+      `.execute(db)
+      return projection
+    },
+
+    async requireCurrentProjection(input: {
+      encounterId: string
+      expectedStreamVersion: number
+    }): Promise<EncounterCurrentProjection> {
+      const result = await sql<Record<string, unknown>>`
+        SELECT
+          projection.encounter_id,
+          projection.stream_version,
+          projection.projection_schema_version,
+          projection.projection_checksum,
+          projection.projection,
+          encounter.version AS encounter_version
+        FROM public.encounter_current_projections projection
+        JOIN public.encounters encounter ON encounter.id = projection.encounter_id
+        WHERE projection.encounter_id = ${input.encounterId}
+      `.execute(db)
+      const row = result.rows[0]
+      if (!row || Number(row.encounter_version) !== input.expectedStreamVersion) {
+        throw new EncounterCurrentProjectionMismatchError(
+          `Encounter "${input.encounterId}" has no current projection for the requested stream version.`
+        )
+      }
+      const projection = encounterCurrentProjectionSchema.parse(row.projection)
+      if (
+        projection.encounterId !== row.encounter_id ||
+        projection.streamVersion !== Number(row.stream_version) ||
+        projection.projectionSchemaVersion !== Number(row.projection_schema_version) ||
+        projection.projectionChecksum !== row.projection_checksum ||
+        projection.streamVersion !== input.expectedStreamVersion ||
+        checksumEncounterCurrentProjection(projection) !== projection.projectionChecksum
+      ) {
+        throw new EncounterCurrentProjectionMismatchError(
+          `Encounter "${input.encounterId}" projection is stale or invalid.`
+        )
+      }
+      return projection
     },
 
     async appendEvent(input: {

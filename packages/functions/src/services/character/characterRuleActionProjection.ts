@@ -1,4 +1,3 @@
-import type { CharacterSheetMechanicsQueryResult } from '@artificer-toolkit/db'
 import type { CharacterResolvedActionMechanic } from '@artificer-toolkit/schema/api/characterActionRules'
 
 import type {
@@ -6,14 +5,18 @@ import type {
   CharacterSheetProjectedOutcome
 } from './characterSheetMechanic.js'
 
+export interface CharacterRuleActionPresentationReferences {
+  conditionLabels: ReadonlyMap<string, string>
+  damageLabels: ReadonlyMap<string, string>
+}
+
 function projectOutcome(
   outcome: CharacterResolvedActionMechanic['outcomes'][number],
-  damageLabels: ReadonlyMap<string, string>,
-  conditionLabels: ReadonlyMap<string, string>
+  references: CharacterRuleActionPresentationReferences
 ): CharacterSheetProjectedOutcome {
   switch (outcome.kind) {
     case 'DAMAGE': {
-      const damageTypeLabel = damageLabels.get(outcome.damageTypeId)
+      const damageTypeLabel = references.damageLabels.get(outcome.damageTypeId)
       if (!damageTypeLabel) {
         throw new Error(`Character rule action damage type is missing: ${outcome.damageTypeId}`)
       }
@@ -35,7 +38,7 @@ function projectOutcome(
         ...(outcome.scaling.length > 0 ? { scaling: outcome.scaling } : {})
       }
     case 'CONDITION': {
-      const label = conditionLabels.get(outcome.conditionId)
+      const label = references.conditionLabels.get(outcome.conditionId)
       if (!label) {
         throw new Error(`Character rule action condition is missing: ${outcome.conditionId}`)
       }
@@ -58,17 +61,8 @@ function projectOutcome(
 
 export function projectCharacterRuleActionMechanic(
   mechanic: CharacterResolvedActionMechanic,
-  query: CharacterSheetMechanicsQueryResult
+  references: CharacterRuleActionPresentationReferences
 ): CharacterSheetProjectedMechanic {
-  const damageLabels = new Map(
-    query.damages.map((damage) => [damage.damageTypeId, damage.damageTypeLabel] as const)
-  )
-  const conditionLabels = new Map(
-    query.conditions.map(
-      (condition) => [condition.conditionTypeId, condition.conditionTypeLabel] as const
-    )
-  )
-
   return {
     effectId: mechanic.effectId,
     trigger: mechanic.trigger,
@@ -85,7 +79,7 @@ export function projectCharacterRuleActionMechanic(
           }
         }),
     outcomes: mechanic.outcomes.map((outcome) =>
-      projectOutcome(outcome, damageLabels, conditionLabels)
+      projectOutcome(outcome, references)
     )
   }
 }

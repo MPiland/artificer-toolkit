@@ -1,8 +1,9 @@
 import { notifications } from '@mantine/notifications'
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
+import { useAuthoredCatalogWindow } from '#components/AuthoredList/useAuthoredCatalogWindow'
 import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import {
   featListAttributeColumns,
@@ -11,16 +12,25 @@ import {
   mapFeatListToAuthoredItems,
   summarizeFeatList
 } from '#app/data/feats/featListMapper'
-import { getFeat, getFeatList } from '#app/data/feats/queries'
+import { getFeat, getFeatList, useGetFeatList } from '#app/data/feats/queries'
 import { createServerApi } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildFeatRouteParams } from '#app/routing/authoredRouteParams'
+import type { FeatListRequestDto } from '#app/lib/api'
+
+const featCatalogueRequest = {
+  direction: 'FORWARD',
+  limit: 48,
+  sort: 'name'
+} satisfies FeatListRequestDto
 
 export const Route = createFileRoute('/_authed/feats/')({
   loader: async ({ context }): Promise<void> => {
-    await context.queryClient.ensureQueryData(getFeatList(createServerApi()))
+    await context.queryClient.ensureInfiniteQueryData(
+      getFeatList(featCatalogueRequest, createServerApi())
+    )
   },
   component: FeatsRoute
 })
@@ -28,7 +38,22 @@ export const Route = createFileRoute('/_authed/feats/')({
 function FeatsRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data } = useSuspenseQuery(getFeatList())
+  const listing = useAuthoredCatalogWindow({
+    buildFilters: buildFeatListFilters,
+    buildRequest: ({ filterValues, query }): FeatListRequestDto => ({
+      ...featCatalogueRequest,
+      query: query || undefined,
+      source:
+        filterValues.source === 'MASTER' || filterValues.source === 'OWNED'
+          ? filterValues.source
+          : undefined
+    }),
+    initialSort: 'name',
+    mapDrafts: (response) => mapDraftSummariesToAuthoredItems(response.drafts),
+    mapItems: mapFeatListToAuthoredItems,
+    summarize: summarizeFeatList,
+    useList: useGetFeatList
+  })
   const duplicateMutation = useMutation({
     mutationFn: (id: string) => api.content.feats.duplicate(id),
     onSuccess: async (response) => {
@@ -64,13 +89,16 @@ function FeatsRoute() {
     <>
       <AuthoredListPage
         title='Feats'
-        summary={summarizeFeatList(data)}
+        summary={listing.summary ?? 'Loading feats...'}
         createLabel='Create Feat'
-        items={mapFeatListToAuthoredItems(data)}
-        draftItems={mapDraftSummariesToAuthoredItems(data.drafts)}
-        filters={buildFeatListFilters(data)}
+        items={listing.items}
+        draftItems={listing.draftItems}
+        filters={listing.filters}
         attributeColumns={featListAttributeColumns}
         sortOptions={featListSortOptions}
+        catalog={listing.catalog}
+        error={listing.error}
+        loading={listing.loading}
         onCreate={() => navigate({ to: '/feats/new' })}
         onView={(item) =>
           navigate({

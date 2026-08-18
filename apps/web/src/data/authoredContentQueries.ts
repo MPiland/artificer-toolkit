@@ -1,16 +1,41 @@
-import { queryOptions, useSuspenseQuery } from '@tanstack/react-query'
-import { api, type Api, type AuthoredDetailRequestDto, type AuthoredDraftDto } from '#app/lib/api'
+import {
+  type InfiniteData,
+  infiniteQueryOptions,
+  queryOptions,
+  useInfiniteQuery,
+  useSuspenseQuery
+} from '@tanstack/react-query'
+import {
+  api,
+  type Api,
+  type AuthoredCatalogCursorDto,
+  type AuthoredDetailRequestDto,
+  type AuthoredDraftDto
+} from '#app/lib/api'
 
 type AuthoredDetailInput = string | AuthoredDetailRequestDto
 
-type AuthoredContentApi<TList, TResponse> = {
-  get: (input: AuthoredDetailInput) => Promise<TResponse>
-  getDraft: (id: string) => Promise<AuthoredDraftDto | null>
-  list: () => Promise<TList>
+interface AuthoredCatalogPage {
+  page: {
+    nextCursor: AuthoredCatalogCursorDto | null
+    previousCursor: AuthoredCatalogCursorDto | null
+  }
 }
 
-type AuthoredContentQueryKeys = {
+type AuthoredCatalogPageParam = {
+  cursor?: AuthoredCatalogCursorDto
+  direction: 'BACKWARD' | 'FORWARD'
+}
+
+type AuthoredContentApi<TList extends AuthoredCatalogPage, TResponse, TListInput> = {
+  get: (input: AuthoredDetailInput) => Promise<TResponse>
+  getDraft: (id: string) => Promise<AuthoredDraftDto | null>
+  list: (input: TListInput) => Promise<TList>
+}
+
+type AuthoredContentQueryKeys<TListInput> = {
   list: () => readonly unknown[]
+  listPage: (input: TListInput) => readonly unknown[]
   detail: (id: string, options?: Omit<AuthoredDetailRequestDto, 'id'>) => readonly unknown[]
   draft: (id: string) => readonly unknown[]
 }
@@ -19,14 +44,35 @@ function normalizeDetailRequest(input: AuthoredDetailInput): AuthoredDetailReque
   return typeof input === 'string' ? { id: input } : input
 }
 
-export function createAuthoredContentQueries<TList, TResponse>(
-  getDomain: (client: Api) => AuthoredContentApi<TList, TResponse>,
-  keys: AuthoredContentQueryKeys
+export function createAuthoredContentQueries<
+  TList extends AuthoredCatalogPage,
+  TResponse,
+  TListInput extends { direction?: 'BACKWARD' | 'FORWARD'; limit?: number }
+>(
+  getDomain: (client: Api) => AuthoredContentApi<TList, TResponse, TListInput>,
+  keys: AuthoredContentQueryKeys<TListInput>
 ) {
-  const getList = (client: Api = api) =>
-    queryOptions({
-      queryKey: keys.list(),
-      queryFn: async () => await getDomain(client).list()
+  const getList = (input: TListInput, client: Api = api) =>
+    infiniteQueryOptions<
+      TList,
+      Error,
+      InfiniteData<TList, AuthoredCatalogPageParam>,
+      readonly unknown[],
+      AuthoredCatalogPageParam
+    >({
+      queryKey: keys.listPage(input),
+      queryFn: async ({ pageParam }) =>
+        await getDomain(client).list({ ...input, ...pageParam }),
+      initialPageParam: { direction: 'FORWARD' } satisfies AuthoredCatalogPageParam,
+      getNextPageParam: (page) =>
+        page.page.nextCursor
+          ? ({ cursor: page.page.nextCursor, direction: 'FORWARD' } satisfies AuthoredCatalogPageParam)
+          : undefined,
+      getPreviousPageParam: (page) =>
+        page.page.previousCursor
+          ? ({ cursor: page.page.previousCursor, direction: 'BACKWARD' } satisfies AuthoredCatalogPageParam)
+          : undefined,
+      maxPages: 5
     })
   const getDetail = (input: AuthoredDetailInput, client: Api = api) => {
     const request = normalizeDetailRequest(input)
@@ -48,8 +94,8 @@ export function createAuthoredContentQueries<TList, TResponse>(
   return {
     getList,
 
-    useList() {
-      return useSuspenseQuery(getList())
+    useList(input: TListInput) {
+      return useInfiniteQuery(getList(input))
     },
 
     getDetail,

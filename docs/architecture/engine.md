@@ -2,7 +2,7 @@
 
 > Status: canonical current production Character authority
 >
-> Scope: normalized Character facts, versioned rules evaluation, and derived output
+> Scope: normalized Character facts, exact versioned mechanics inputs, rules evaluation, and derived output
 >
 > Update when: engine input/output, rule ordering, resolver stages, or a system implementation changes
 >
@@ -12,9 +12,9 @@ The rules boundary turns normalized Character facts plus an exact pinned rule re
 
 ```mermaid
 flowchart LR
-  Authored[Character intent/state + bound content] --> Facts[Normalized Character facts]
+  Authored[Character intent/state + exact authored-version vector] --> Facts[Normalized Character facts]
   Adjustments[Typed Sheet adjustments] --> Facts
-  Content[Current/Campaign-bound compiled content] --> Facts
+  Content[Exact compiled content + pinned vocabulary snapshot] --> Facts
   Pin[Exact Character rule revision] --> Zen[Embedded Zen evaluation]
   Facts --> Zen
   Zen --> Output[Typed mechanics, explanations, source IDs]
@@ -26,7 +26,7 @@ flowchart LR
 
 Chosen grants are addressed by grant ID, progression level, and stable provenance identity. Reusing one authored grant under multiple classes, features, or options must never let one owner's selection satisfy another owner. A selected feature option uses the character feature-acquisition ID plus option ID as its grant provenance.
 
-Current structural selections use stable authored root IDs and resolve against active content. Equipment snapshot entries additionally carry an explicit `ContentRef` with system ID and `ACTIVE` binding plus the compiled item. Other exact compiled inputs are supplied through the assembly registry. Historical authored-content revision pinning is unsupported. Immutable Encounter rule-pack revisions are a separate application-owned binding described below; they do not revise the Character assembly model.
+Draft structural selections use stable authored root IDs and resolve against active immutable content. A finalized Character mechanics projection stores the complete exact authored-version vector, including transitive dependencies, alongside its exact rule revision and vocabulary snapshot. Equipment snapshot entries additionally carry an explicit `ContentRef` with system ID and `ACTIVE` binding plus the compiled item. An explicit preview, reconciliation, and commit operation is required to replace a finalized vector. Immutable Encounter rule-pack revisions are a separate application-owned binding described below; they do not revise the Character assembly model.
 
 `CharacterAssemblyRegistry` contains compiled classes, races, backgrounds, features, feats, equipment, spell and grant material, and optional system references. The caller loads it (normally through DB repositories/functions); engine and assembly functions are pure readers. Ordered active spell groups are backend Sheet projection output, not registry contents. For each projected active spell group, authored `SPELL_CAST_LEVEL` scaling is the explicit intersection of the spell's legal cast levels and the source's available slot levels. Contextual `TO_HIT` and `SAVE_DC` targets are mutually exclusive; `DAMAGE` targets are bonus-only.
 
@@ -52,7 +52,7 @@ Application orchestration projects persisted adjustments through `toCharacterMec
 
 Each calculation returns its effective value and breakdown from the same pure resolver. Authored, equipment, and feature contributions retain stable mechanical provenance in the breakdown; repeated accepted grants are distinguished by their ordered fold index plus typed source identity rather than grant ID alone. Manual additions participate in normal calculation; an absolute target override is applied last and marks retained contributions as suppressed. Removing the override restores the current authored and additive result without restoring a cached total. Adjusted abilities feed saves, skills, passives, spell values, Constitution-derived maximum HP, and ability-based resource maxima. Repeated spells are keyed by source identity, while items and companions are keyed by owned-instance UUID.
 
-Calculation output is never persisted. The evaluator receives application-owned dice evidence as normalized facts and has no random access.
+Derived output is never canonical Character state or a generic presentation cache. A validated, bounded evaluator result is persisted only inside an exact Character mechanics or Encounter projection, with its complete input identity and checksum. The evaluator receives application-owned dice evidence as normalized facts and has no random access.
 
 ## Rules-system and encounter boundaries
 

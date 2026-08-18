@@ -50,7 +50,8 @@ describe('class list mapper', () => {
         id: 'champion',
         category: 'SUBCLASS',
         label: 'Champion',
-        parentClassId: 'fighter'
+        parentClassId: 'fighter',
+        parentClassLabel: 'Fighter'
       })
     ])
 
@@ -70,7 +71,9 @@ function createClassListResponse(items: ClassListResponseDto['items']): ClassLis
   return {
     items,
     drafts: [],
-    meta: {}
+    meta: { categories: [{ id: 'BASE' }, { id: 'UNCATEGORIZED' }] },
+    page: { nextCursor: null, previousCursor: null, totalCount: items.length },
+    summary: { activeCount: items.length, masterCount: 0, ownedCount: items.length }
   }
 }
 

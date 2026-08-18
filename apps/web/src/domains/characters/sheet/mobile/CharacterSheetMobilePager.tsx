@@ -1,5 +1,5 @@
 import { ActionIcon, Button, Drawer, Text } from '@mantine/core'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type TouchEvent } from 'react'
 import {
   BookOpen,
   BadgeCheck,
@@ -42,6 +42,7 @@ export function CharacterSheetMobilePager({
   onPageChange: (page: CharacterSheetMobilePageId) => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const touchOriginRef = useRef<{ x: number; y: number } | null>(null)
   const viewportRef = useRef<HTMLDivElement>(null)
   const pageIndex = pages.findIndex((page) => page.id === activePage)
   const activeIndex = pageIndex >= 0 ? pageIndex : 0
@@ -56,12 +57,37 @@ export function CharacterSheetMobilePager({
     onPageChange(page)
   }
 
+  function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
+    const touch = event.touches[0]
+    touchOriginRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null
+  }
+
+  function handleTouchEnd(event: TouchEvent<HTMLDivElement>) {
+    const origin = touchOriginRef.current
+    const touch = event.changedTouches[0]
+    touchOriginRef.current = null
+    if (!origin || !touch) return
+
+    const deltaX = touch.clientX - origin.x
+    const deltaY = touch.clientY - origin.y
+    if (Math.abs(deltaX) < 40 || Math.abs(deltaX) <= Math.abs(deltaY)) return
+
+    const nextIndex = deltaX < 0 ? activeIndex + 1 : activeIndex - 1
+    const nextPage = pages[nextIndex]
+    if (nextPage) goToPage(nextPage.id)
+  }
+
   return (
     <section className={mobileStyles.mobilePager} aria-label='Character sheet mobile pages'>
       <Text component='h2' className={mobileStyles.mobilePageLabel} aria-live='polite'>
         {activePageLabel}
       </Text>
-      <div className={mobileStyles.mobilePageViewport} ref={viewportRef}>
+      <div
+        className={mobileStyles.mobilePageViewport}
+        ref={viewportRef}
+        onTouchEnd={handleTouchEnd}
+        onTouchStart={handleTouchStart}
+      >
         {children}
       </div>
 

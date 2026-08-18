@@ -1,7 +1,7 @@
 import type { AuthoredSubjectKind } from '../domains/subjects/repositories/authoredContent.js'
 import { createAuthoredContentRepository } from '../domains/subjects/repositories/authoredContent.js'
 import { sql } from 'kysely'
-import type { DbTables, DBLike, Json } from '#types'
+import type { DbTables, DBLike } from '#types'
 
 export type CampaignContentState = 'PENDING' | 'APPROVED' | 'REJECTED'
 
@@ -28,7 +28,10 @@ type CharacterBindingRow = Omit<GeneratedCharacterBindingRow, 'created_at' | 'up
 
 type CharacterBindingProjectionRow = CharacterBindingRow & {
   revision: number
-  snapshot: Json
+  authored_version_id: string
+  authored_version: number
+  authored_checksum: string
+  compiled_projection_checksum: string
   state: string
 }
 
@@ -40,7 +43,10 @@ export interface CampaignContentVersion {
   authoredBy: string
   revision: number
   state: CampaignContentState
-  snapshot: Json
+  authoredVersionId: string
+  authoredVersion: number
+  authoredChecksum: string
+  compiledProjectionChecksum: string
   approvedBy: string | null
   approvedAt: string | null
   rejectedAt: string | null
@@ -58,7 +64,10 @@ interface InsertContentVersionBase {
   subjectId: string
   authoredBy: string
   revision: number
-  snapshot: Json
+  authoredVersionId: string
+  authoredVersion: number
+  authoredChecksum: string
+  compiledProjectionChecksum: string
 }
 
 export type InsertCampaignContentVersionInput = InsertContentVersionBase &
@@ -77,7 +86,10 @@ export interface CampaignCharacterContentBinding {
 export interface CampaignCharacterContentBindingProjection extends CampaignCharacterContentBinding {
   revision: number
   state: CampaignContentState
-  snapshot: Json
+  authoredVersionId: string
+  authoredVersion: number
+  authoredChecksum: string
+  compiledProjectionChecksum: string
 }
 
 export interface RemovedCampaignCharacterContentBinding {
@@ -85,7 +97,10 @@ export interface RemovedCampaignCharacterContentBinding {
   subjectId: string
   contentVersionId: string
   revision: number
-  snapshot: Json
+  authoredVersionId: string
+  authoredVersion: number
+  authoredChecksum: string
+  compiledProjectionChecksum: string
 }
 
 export interface CampaignCharacterContentBindingInput {
@@ -131,7 +146,10 @@ function toContentVersion(row: ContentVersionRow): CampaignContentVersion {
     authoredBy: row.authored_by,
     revision: row.revision,
     state: row.state as CampaignContentState,
-    snapshot: row.snapshot,
+    authoredVersionId: row.authored_version_id,
+    authoredVersion: row.authored_version,
+    authoredChecksum: row.authored_checksum,
+    compiledProjectionChecksum: row.compiled_projection_checksum,
     approvedBy: row.approved_by,
     approvedAt: toOptionalIsoString(row.approved_at),
     rejectedAt: toOptionalIsoString(row.rejected_at),
@@ -159,7 +177,10 @@ function toCharacterBindingProjection(
     ...toCharacterBinding(row),
     revision: row.revision,
     state: row.state as CampaignContentState,
-    snapshot: row.snapshot
+    authoredVersionId: row.authored_version_id,
+    authoredVersion: row.authored_version,
+    authoredChecksum: row.authored_checksum,
+    compiledProjectionChecksum: row.compiled_projection_checksum
   }
 }
 
@@ -201,7 +222,10 @@ const characterBindingProjectionColumns = [
   'binding.updated_at',
   'version.revision',
   'version.state',
-  'version.snapshot'
+  'version.authored_version_id',
+  'version.authored_version',
+  'version.authored_checksum',
+  'version.compiled_projection_checksum'
 ] as const
 
 export function createCampaignContentRepository(db: DBLike) {
@@ -216,10 +240,12 @@ export function createCampaignContentRepository(db: DBLike) {
       await sql`
         insert into campaign_content_versions (
           campaign_id, subject_kind, subject_id, authored_by, revision, state,
-          snapshot, approved_by, approved_at
+          authored_version_id, authored_version, authored_checksum,
+          compiled_projection_checksum, approved_by, approved_at
         )
         select ${targetCampaignId}::uuid, subject_kind, subject_id, authored_by, revision,
-          'APPROVED', snapshot, ${ownerUserId}::uuid, now()
+          'APPROVED', authored_version_id, authored_version, authored_checksum,
+          compiled_projection_checksum, ${ownerUserId}::uuid, now()
         from campaign_content_versions
         where campaign_id = ${sourceCampaignId}::uuid and state = 'APPROVED'
       `.execute(db)
@@ -237,7 +263,10 @@ export function createCampaignContentRepository(db: DBLike) {
           'version.authored_by',
           'version.revision',
           'version.state',
-          'version.snapshot',
+          'version.authored_version_id',
+          'version.authored_version',
+          'version.authored_checksum',
+          'version.compiled_projection_checksum',
           'version.approved_by',
           'version.approved_at',
           'version.rejected_at',
@@ -269,7 +298,10 @@ export function createCampaignContentRepository(db: DBLike) {
           'version.authored_by',
           'version.revision',
           'version.state',
-          'version.snapshot',
+          'version.authored_version_id',
+          'version.authored_version',
+          'version.authored_checksum',
+          'version.compiled_projection_checksum',
           'version.approved_by',
           'version.approved_at',
           'version.rejected_at',
@@ -323,7 +355,10 @@ export function createCampaignContentRepository(db: DBLike) {
           authored_by: input.authoredBy,
           revision: input.revision,
           state: input.state,
-          snapshot: input.snapshot,
+          authored_version_id: input.authoredVersionId,
+          authored_version: input.authoredVersion,
+          authored_checksum: input.authoredChecksum,
+          compiled_projection_checksum: input.compiledProjectionChecksum,
           approved_by: input.state === 'APPROVED' ? input.approvedBy : null,
           approved_at: input.state === 'APPROVED' ? input.approvedAt : null,
           rejected_at: null
@@ -548,7 +583,10 @@ export function createCampaignContentRepository(db: DBLike) {
       const result = await sql<{
         content_version_id: string
         revision: number
-        snapshot: Json
+        authored_version_id: string
+        authored_version: number
+        authored_checksum: string
+        compiled_projection_checksum: string
         subject_id: string
         subject_kind: AuthoredSubjectKind
       }>`
@@ -562,7 +600,10 @@ export function createCampaignContentRepository(db: DBLike) {
           binding.subject_id,
           binding.content_version_id,
           version.revision,
-          version.snapshot
+          version.authored_version_id,
+          version.authored_version,
+          version.authored_checksum,
+          version.compiled_projection_checksum
       `.execute(db)
 
       return result.rows
@@ -571,7 +612,10 @@ export function createCampaignContentRepository(db: DBLike) {
           subjectId: row.subject_id,
           contentVersionId: row.content_version_id,
           revision: row.revision,
-          snapshot: row.snapshot
+          authoredVersionId: row.authored_version_id,
+          authoredVersion: row.authored_version,
+          authoredChecksum: row.authored_checksum,
+          compiledProjectionChecksum: row.compiled_projection_checksum
         }))
         .sort((left, right) =>
           `${left.subjectKind}:${left.subjectId}`.localeCompare(

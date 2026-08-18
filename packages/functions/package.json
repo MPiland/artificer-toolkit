@@ -32,6 +32,12 @@
     "build": "tsc -p tsconfig.build.json",
     "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/functions/src --maxWorkers=1 --no-file-parallelism",
     "measure:encounter-actor-policy": "tsx src/scripts/measureEncounterActorPolicy.ts",
+    "projections:verify:authored:local": "tsx src/scripts/verifyAuthoredProjections.ts --local",
+    "projections:verify:authored:staging": "tsx src/scripts/verifyAuthoredProjections.ts --staging",
+    "projections:verify:authored:production": "tsx src/scripts/verifyAuthoredProjections.ts --production",
+    "projections:verify:characters:local": "tsx src/scripts/verifyCharacterMechanicsProjections.ts --local",
+    "projections:verify:characters:staging": "tsx src/scripts/verifyCharacterMechanicsProjections.ts --staging",
+    "projections:verify:characters:production": "tsx src/scripts/verifyCharacterMechanicsProjections.ts --production",
     "provision:vtt-managed-smoke:staging": "tsx src/scripts/provisionManagedVttSmoke.ts --staging",
     "provision:vtt-managed-smoke:production": "tsx src/scripts/provisionManagedVttSmoke.ts --production",
     "test:vtt-map:integration": "tsx src/scripts/testVttMapMediaIntegration.ts",
@@ -53,6 +59,7 @@
     "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
+    "tsx": "^4.22.4",
     "tus-js-client": "4.3.1",
     "typescript": "^7.0.2"
   }

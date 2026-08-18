@@ -1,4 +1,8 @@
-import type { EncounterActorRecord, EncounterRecord } from '@artificer-toolkit/db'
+import {
+  checksumEncounterCurrentProjection,
+  type EncounterActorRecord,
+  type EncounterRecord
+} from '@artificer-toolkit/db'
 import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
 import {
   encounterGmProjectionDtoSchema,
@@ -6,9 +10,35 @@ import {
   type EncounterGmProjectionDto,
   type EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
+import {
+  ENCOUNTER_CURRENT_PROJECTION_SCHEMA_VERSION,
+  encounterCurrentProjectionSchema,
+  type EncounterCurrentProjection
+} from '@artificer-toolkit/schema/projections/encounter'
 
 import { snapshotFeatures, stableActors } from './encounterActorState.js'
-import { requireEncounterActorRuleResult } from './encounterActorRuleEvaluation.js'
+import {
+  requireEncounterActorRuleResult,
+  type EncounterActorRuleSnapshot
+} from './encounterActorRuleEvaluation.js'
+
+export function compileEncounterCurrentProjection(
+  projection: EncounterGmProjectionDto,
+  ruleSnapshot: EncounterActorRuleSnapshot
+): EncounterCurrentProjection {
+  const candidate = encounterCurrentProjectionSchema.parse({
+    encounterId: projection.id,
+    streamVersion: projection.version,
+    projectionSchemaVersion: ENCOUNTER_CURRENT_PROJECTION_SCHEMA_VERSION,
+    projectionChecksum: '0'.repeat(64),
+    projection,
+    ruleSnapshot
+  })
+  return encounterCurrentProjectionSchema.parse({
+    ...candidate,
+    projectionChecksum: checksumEncounterCurrentProjection(candidate)
+  })
+}
 
 export function healthBand(current: number, maximum: number) {
   if (current <= 0) return 'DEFEATED' as const
@@ -117,7 +147,14 @@ export function projectGm(
   })
 }
 
-export function projectPlayer(encounter: EncounterRecord): EncounterPlayerProjectionDto {
+/**
+ * Derive the player-safe view from a validated committed projection. This
+ * keeps gameplay reads on the same projection for GMs and players while
+ * retaining the intentionally smaller player contract.
+ */
+export function projectPlayerEncounterProjection(
+  encounter: EncounterGmProjectionDto
+): EncounterPlayerProjectionDto {
   return encounterPlayerProjectionDtoSchema.parse({
     id: encounter.id,
     campaignId: encounter.campaignId,
@@ -134,7 +171,7 @@ export function projectPlayer(encounter: EncounterRecord): EncounterPlayerProjec
       encounter.actors.find((actor) => actor.id === encounter.currentActorId)?.public
         ? encounter.currentActorId
         : null,
-    actors: stableActors(encounter)
+    actors: encounter.actors
       .filter((actor) => actor.public)
       .map((actor) => ({
         id: actor.id,

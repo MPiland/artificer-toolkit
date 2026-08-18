@@ -89,7 +89,9 @@ export const featListResponseFixture: FeatListResponseDto = {
     }
   ],
   drafts: [],
-  meta: {}
+  meta: {},
+  page: { nextCursor: null, previousCursor: null, totalCount: 2 },
+  summary: { activeCount: 2, masterCount: 1, ownedCount: 1 }
 }
 
 export const ownedFeatResponseFixture: NonNullable<FeatResponseDto> = {

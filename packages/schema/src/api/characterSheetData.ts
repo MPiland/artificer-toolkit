@@ -324,34 +324,37 @@ const characterSheetVehicleExtraDtoSchema = characterSheetExtraCommonDtoSchema.e
   hitPoints: characterSheetExtraHitPointsDtoSchema
 })
 
-const characterSheetCreatureExtraOptionDtoSchema = z.object({
-  id: z.guid(),
-  label: z.string().min(1),
-  description: z.string().optional(),
-  creatureTypeLabel: z.string().min(1).optional(),
-  sizeLabel: z.string().min(1).optional(),
-  armorClass: z.number().int().nonnegative().optional(),
-  maximumHitPoints: z.number().int().nonnegative().optional(),
-  speedLabel: z.string().min(1).optional()
-})
-
-const characterSheetVehicleExtraOptionDtoSchema = z.object({
-  id: z.guid(),
-  label: z.string().min(1),
-  description: z.string().optional(),
-  categoryLabel: z.string().min(1).optional(),
-  maximumHitPoints: z.number().int().nonnegative().optional(),
-  speedLabel: z.string().min(1).optional()
-})
-
 export const characterSheetExtrasDtoSchema = z.object({
   kindOptions: z.array(characterSheetExtraKindOptionDtoSchema),
   originOptions: z.array(characterSheetCreatureOriginOptionDtoSchema),
-  creatureOptions: z.array(characterSheetCreatureExtraOptionDtoSchema),
-  vehicleOptions: z.array(characterSheetVehicleExtraOptionDtoSchema),
   items: z.array(
     z.union([characterSheetCreatureExtraDtoSchema, characterSheetVehicleExtraDtoSchema])
   )
+})
+
+export const characterSheetExtraCatalogKindDtoSchema = z.enum(['CREATURE', 'VEHICLE'])
+
+export const characterSheetExtraCatalogCursorDtoSchema = z.strictObject({
+  id: z.guid(),
+  label: z.string().min(1)
+})
+
+export const characterSheetExtraCatalogInputDtoSchema = z.strictObject({
+  kind: characterSheetExtraCatalogKindDtoSchema,
+  query: z.string().trim().max(120).optional(),
+  cursor: characterSheetExtraCatalogCursorDtoSchema.optional(),
+  limit: z.number().int().min(1).max(50).default(25)
+})
+
+export const characterSheetExtraCatalogOptionDtoSchema = z.strictObject({
+  id: z.guid(),
+  label: z.string().min(1),
+  description: z.string().optional()
+})
+
+export const characterSheetExtraCatalogResponseDtoSchema = z.strictObject({
+  items: z.array(characterSheetExtraCatalogOptionDtoSchema),
+  nextCursor: characterSheetExtraCatalogCursorDtoSchema.nullable()
 })
 
 export const characterSheetResourceDtoSchema = z.object({
@@ -605,3 +608,5 @@ export const characterSheetResponseDtoSchema = z.object({
 
 export type CharacterSheetResponseDto = z.infer<typeof characterSheetResponseDtoSchema>
 export type CharacterSheetExtrasDto = z.infer<typeof characterSheetExtrasDtoSchema>
+export type CharacterSheetExtraCatalogInputDto = z.infer<typeof characterSheetExtraCatalogInputDtoSchema>
+export type CharacterSheetExtraCatalogResponseDto = z.infer<typeof characterSheetExtraCatalogResponseDtoSchema>

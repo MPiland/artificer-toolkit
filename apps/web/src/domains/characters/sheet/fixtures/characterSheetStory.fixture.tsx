@@ -38,8 +38,6 @@ export function extrasCommandHandler() {
               extras: {
                 kindOptions: [{ code: 'COMPANION', label: 'Companion' }],
                 originOptions: [{ code: 'SUMMONED', label: 'Summoned' }],
-                creatureOptions: [{ id: companionPanelFixture.creatureId, label: 'Owl' }],
-                vehicleOptions: [{ id: vehiclePanelFixture.vehicleId, label: 'Sailing Ship' }],
                 items: [
                   {
                     id: companionPanelFixture.companionInstanceId,

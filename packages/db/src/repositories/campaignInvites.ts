@@ -36,12 +36,12 @@ type RawInviteProjection = RawInvite & {
   host_username: string
 }
 
-const inviteColumns = sql.raw(`
+const inviteColumns = sql`
   invite.id, invite.listing_id, listing.campaign_id, invite.created_by,
   invite.recipient_user_id, invite.recipient_username, invite.listing_version,
   invite.status, invite.expires_at, invite.responded_at, invite.revoked_at,
   invite.expired_at, invite.version, invite.created_at, invite.updated_at
-`)
+`
 
 function mapInvite(row: RawInvite): CampaignInviteRecord {
   return {

@@ -478,8 +478,6 @@ describe('Character Sheet inspector', () => {
     sheet.extras = {
       kindOptions: [{ code: 'COMPANION', label: 'Companion' }],
       originOptions: [{ code: 'WORLD', label: 'World' }],
-      creatureOptions: [{ id: companionPanelFixture.creatureId, label: 'Owl' }],
-      vehicleOptions: [],
       items: [
         {
           id: companionPanelFixture.companionInstanceId,

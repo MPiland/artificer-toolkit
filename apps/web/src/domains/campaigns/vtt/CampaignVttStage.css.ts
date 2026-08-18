@@ -20,6 +20,7 @@ export const menuLabel = style({
 })
 
 export const menuDropdown = style({
+  boxShadow: foundationVars.shadow.card,
   maxBlockSize: 'calc(100dvh - 2rem)',
   overscrollBehavior: 'contain',
   overflowY: 'auto'

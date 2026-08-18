@@ -6047,10 +6047,6 @@ CREATE TABLE IF NOT EXISTS public.classes (
     REFERENCES public.classes(id, system_id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-  CONSTRAINT classes_category_parent_chk CHECK (
-    (category = 'BASE' AND parent_class_id IS NULL AND starting_equipment_id IS NOT NULL)
-    OR (category = 'SUBCLASS' AND parent_class_id IS NOT NULL AND starting_equipment_id IS NULL)
-  ),
   CONSTRAINT classes_status_chk CHECK (
     status IN ('DRAFT', 'ACTIVE')
   )
@@ -8540,8 +8536,8 @@ ALTER TABLE IF EXISTS public.character_background ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS public.character_ancestry_acquisitions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid (),
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
-  ancestry_id uuid NOT NULL REFERENCES public.race_ancestries (id) ON DELETE CASCADE DEFERRABLE,
-  option_id uuid NOT NULL REFERENCES public.race_ancestry_options (id) ON DELETE CASCADE DEFERRABLE,
+  ancestry_id uuid NOT NULL,
+  option_id uuid NOT NULL,
   source_kind text NOT NULL,
   race_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
   subrace_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
@@ -8593,7 +8589,7 @@ CREATE TABLE IF NOT EXISTS public.character_classes (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
   class_id uuid NOT NULL REFERENCES public.classes (id) ON DELETE CASCADE DEFERRABLE,
   subclass_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
-  specialization_id uuid REFERENCES public.class_specializations (id) ON DELETE SET NULL DEFERRABLE,
+  specialization_id uuid,
   class_level integer NOT NULL,
   known_spells_overridden boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT NOW(),
@@ -9329,12 +9325,12 @@ CREATE TABLE IF NOT EXISTS public.character_chosen_grant_selections (
   source_class_level integer,
   race_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
   subrace_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
-  ancestry_id uuid REFERENCES public.race_ancestries (id) ON DELETE SET NULL DEFERRABLE,
-  option_id uuid REFERENCES public.options (id) ON DELETE SET NULL DEFERRABLE,
+  ancestry_id uuid,
+  option_id uuid,
   acquired_parent_id uuid,
   background_id uuid REFERENCES public.backgrounds (id) ON DELETE SET NULL DEFERRABLE,
   feat_id uuid REFERENCES public.feats (id) ON DELETE SET NULL DEFERRABLE,
-  feature_id uuid REFERENCES public.features (id) ON DELETE SET NULL DEFERRABLE,
+  feature_id uuid,
   reason text,
   timing_kind text NOT NULL,
   timing_level integer,
@@ -9443,14 +9439,14 @@ ALTER TABLE IF EXISTS public.character_chosen_grant_selection_targets ENABLE ROW
 CREATE TABLE IF NOT EXISTS public.character_feature_acquisitions (
   id uuid PRIMARY KEY,
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
-  feature_id uuid NOT NULL REFERENCES public.features (id) ON DELETE CASCADE DEFERRABLE,
+  feature_id uuid NOT NULL,
   source_kind text NOT NULL,
   class_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
   subclass_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
   race_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
   subrace_id uuid REFERENCES public.races (id) ON DELETE SET NULL DEFERRABLE,
-  ancestry_id uuid REFERENCES public.race_ancestries (id) ON DELETE SET NULL DEFERRABLE,
-  option_id uuid REFERENCES public.options (id) ON DELETE SET NULL DEFERRABLE,
+  ancestry_id uuid,
+  option_id uuid,
   acquired_parent_id uuid REFERENCES public.character_feature_acquisitions (id) ON DELETE SET NULL DEFERRABLE,
   background_id uuid REFERENCES public.backgrounds (id) ON DELETE SET NULL DEFERRABLE,
   feat_id uuid REFERENCES public.feats (id) ON DELETE SET NULL DEFERRABLE,
@@ -9596,8 +9592,8 @@ CREATE TABLE IF NOT EXISTS public.character_spell_selections (
   source_kind text NOT NULL,
   class_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
   subclass_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
-  feature_id uuid REFERENCES public.features (id) ON DELETE SET NULL DEFERRABLE,
-  option_id uuid REFERENCES public.options (id) ON DELETE SET NULL DEFERRABLE,
+  feature_id uuid,
+  option_id uuid,
   acquired_parent_id uuid REFERENCES public.character_feature_acquisitions (id) ON DELETE SET NULL DEFERRABLE,
   timing_kind text NOT NULL,
   timing_level integer,
@@ -9677,12 +9673,12 @@ ALTER TABLE IF EXISTS public.character_spell_selection_spells ENABLE ROW LEVEL S
 CREATE TABLE IF NOT EXISTS public.character_resource_grants (
   id text NOT NULL,
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE,
-  resource_id uuid NOT NULL REFERENCES public.class_resources (id) ON DELETE CASCADE DEFERRABLE,
+  resource_id uuid NOT NULL,
   source_kind text NOT NULL,
   class_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
   subclass_id uuid REFERENCES public.classes (id) ON DELETE SET NULL DEFERRABLE,
-  feature_id uuid REFERENCES public.features (id) ON DELETE SET NULL DEFERRABLE,
-  option_id uuid REFERENCES public.options (id) ON DELETE SET NULL DEFERRABLE,
+  feature_id uuid,
+  option_id uuid,
   acquired_parent_id uuid REFERENCES public.character_feature_acquisitions (id) ON DELETE SET NULL DEFERRABLE,
   timing_kind text NOT NULL,
   timing_level integer,
@@ -9989,7 +9985,7 @@ ALTER TABLE IF EXISTS public.character_abilities_standard_array ENABLE ROW LEVEL
 -- Class starting equipment selections per character
 CREATE TABLE IF NOT EXISTS public.character_class_equipment_session (
   character_id uuid PRIMARY KEY REFERENCES public.characters (id) ON DELETE CASCADE,
-  option uuid REFERENCES public.starting_equipment_options (id) ON DELETE SET NULL,
+  option uuid,
   gold_option text,
   total_gold int,
   applied boolean,
@@ -10023,8 +10019,8 @@ ALTER TABLE IF EXISTS public.character_class_equipment_session ENABLE ROW LEVEL 
 
 CREATE TABLE IF NOT EXISTS public.character_class_equipment_groups (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE,
-  group_id uuid NOT NULL REFERENCES public.starting_equipment_groups (id) ON DELETE CASCADE,
-  option_id uuid NOT NULL REFERENCES public.starting_equipment_options (id) ON DELETE CASCADE,
+  group_id uuid NOT NULL,
+  option_id uuid NOT NULL,
   PRIMARY KEY (character_id, group_id)
 );
 
@@ -10052,8 +10048,8 @@ ALTER TABLE IF EXISTS public.character_class_equipment_groups ENABLE ROW LEVEL S
 
 CREATE TABLE IF NOT EXISTS public.character_class_equipment_items (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE,
-  group_id uuid NOT NULL REFERENCES public.starting_equipment_groups (id) ON DELETE CASCADE,
-  selection_item_id uuid REFERENCES public.starting_equipment_option_items (id) ON DELETE SET NULL,
+  group_id uuid NOT NULL,
+  selection_item_id uuid,
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE,
   quantity int NOT NULL DEFAULT 1,
   PRIMARY KEY (character_id, group_id, equipment_id),
@@ -10114,8 +10110,8 @@ ALTER TABLE IF EXISTS public.character_background_equipment_session ENABLE ROW L
 
 CREATE TABLE IF NOT EXISTS public.character_background_equipment_groups (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE,
-  group_id uuid NOT NULL REFERENCES public.starting_equipment_groups (id) ON DELETE CASCADE,
-  option_id uuid NOT NULL REFERENCES public.starting_equipment_options (id) ON DELETE CASCADE,
+  group_id uuid NOT NULL,
+  option_id uuid NOT NULL,
   PRIMARY KEY (character_id, group_id)
 );
 
@@ -10143,8 +10139,8 @@ ALTER TABLE IF EXISTS public.character_background_equipment_groups ENABLE ROW LE
 
 CREATE TABLE IF NOT EXISTS public.character_background_equipment_items (
   character_id uuid NOT NULL REFERENCES public.characters (id) ON DELETE CASCADE,
-  group_id uuid NOT NULL REFERENCES public.starting_equipment_groups (id) ON DELETE CASCADE,
-  selection_item_id uuid REFERENCES public.starting_equipment_option_items (id) ON DELETE SET NULL,
+  group_id uuid NOT NULL,
+  selection_item_id uuid,
   equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE,
   quantity int NOT NULL DEFAULT 1,
   PRIMARY KEY (character_id, group_id, equipment_id),
@@ -10178,6 +10174,263 @@ END;$$;
 
 ALTER TABLE IF EXISTS public.character_background_equipment_items ENABLE ROW LEVEL SECURITY;
 -- END INCLUDE: src\domains\subjects\tables\characters.sql
+-- BEGIN INCLUDE: src\domains\subjects\tables\versioned_projections.sql
+/*
+ * VERSIONED DOMAIN DOCUMENTS AND CORRECTNESS PROJECTIONS
+ *
+ * Active root rows remain relational envelopes for ownership, routes, search,
+ * and constrained references. Each domain owns an immutable document version
+ * table; no polymorphic entity/projection table is used.
+ */
+
+CREATE TABLE IF NOT EXISTS public.system_vocabulary_snapshots (
+  id uuid PRIMARY KEY,
+  system_id uuid NOT NULL REFERENCES public.systems (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  vocabulary_version integer NOT NULL CHECK (vocabulary_version > 0),
+  schema_version integer NOT NULL CHECK (schema_version > 0),
+  checksum text NOT NULL CHECK (checksum ~ '^[a-f0-9]{64}$'),
+  document jsonb NOT NULL CHECK (jsonb_typeof(document) = 'object'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (system_id, vocabulary_version),
+  UNIQUE (system_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS public.background_versions (
+  id uuid PRIMARY KEY,
+  background_id uuid NOT NULL REFERENCES public.backgrounds (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  version integer NOT NULL CHECK (version > 0),
+  vocabulary_snapshot_id uuid NOT NULL REFERENCES public.system_vocabulary_snapshots (id) DEFERRABLE INITIALLY DEFERRED,
+  document_schema_version integer NOT NULL CHECK (document_schema_version > 0),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  compiler_version text NOT NULL CHECK (length(btrim(compiler_version)) > 0),
+  authored_checksum text NOT NULL CHECK (authored_checksum ~ '^[a-f0-9]{64}$'),
+  compiled_checksum text NOT NULL CHECK (compiled_checksum ~ '^[a-f0-9]{64}$'),
+  authored_dependency_vector jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(authored_dependency_vector) = 'array'),
+  authored_document jsonb NOT NULL CHECK (jsonb_typeof(authored_document) = 'object'),
+  compiled_document jsonb NOT NULL CHECK (jsonb_typeof(compiled_document) = 'object'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (background_id, version),
+  UNIQUE (background_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS public.class_versions (
+  id uuid PRIMARY KEY,
+  class_id uuid NOT NULL REFERENCES public.classes (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  version integer NOT NULL CHECK (version > 0),
+  vocabulary_snapshot_id uuid NOT NULL REFERENCES public.system_vocabulary_snapshots (id) DEFERRABLE INITIALLY DEFERRED,
+  document_schema_version integer NOT NULL CHECK (document_schema_version > 0),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  compiler_version text NOT NULL CHECK (length(btrim(compiler_version)) > 0),
+  authored_checksum text NOT NULL CHECK (authored_checksum ~ '^[a-f0-9]{64}$'),
+  compiled_checksum text NOT NULL CHECK (compiled_checksum ~ '^[a-f0-9]{64}$'),
+  authored_dependency_vector jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(authored_dependency_vector) = 'array'),
+  authored_document jsonb NOT NULL CHECK (jsonb_typeof(authored_document) = 'object'),
+  compiled_document jsonb NOT NULL CHECK (jsonb_typeof(compiled_document) = 'object'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (class_id, version),
+  UNIQUE (class_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS public.creature_versions (
+  id uuid PRIMARY KEY,
+  creature_id uuid NOT NULL REFERENCES public.creatures (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  version integer NOT NULL CHECK (version > 0),
+  vocabulary_snapshot_id uuid NOT NULL REFERENCES public.system_vocabulary_snapshots (id) DEFERRABLE INITIALLY DEFERRED,
+  document_schema_version integer NOT NULL CHECK (document_schema_version > 0),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  compiler_version text NOT NULL CHECK (length(btrim(compiler_version)) > 0),
+  authored_checksum text NOT NULL CHECK (authored_checksum ~ '^[a-f0-9]{64}$'),
+  compiled_checksum text NOT NULL CHECK (compiled_checksum ~ '^[a-f0-9]{64}$'),
+  authored_dependency_vector jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(authored_dependency_vector) = 'array'),
+  authored_document jsonb NOT NULL CHECK (jsonb_typeof(authored_document) = 'object'),
+  compiled_document jsonb NOT NULL CHECK (jsonb_typeof(compiled_document) = 'object'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (creature_id, version),
+  UNIQUE (creature_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS public.equipment_versions (
+  id uuid PRIMARY KEY,
+  equipment_id uuid NOT NULL REFERENCES public.equipment (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  version integer NOT NULL CHECK (version > 0),
+  vocabulary_snapshot_id uuid NOT NULL REFERENCES public.system_vocabulary_snapshots (id) DEFERRABLE INITIALLY DEFERRED,
+  document_schema_version integer NOT NULL CHECK (document_schema_version > 0),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  compiler_version text NOT NULL CHECK (length(btrim(compiler_version)) > 0),
+  authored_checksum text NOT NULL CHECK (authored_checksum ~ '^[a-f0-9]{64}$'),
+  compiled_checksum text NOT NULL CHECK (compiled_checksum ~ '^[a-f0-9]{64}$'),
+  authored_dependency_vector jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(authored_dependency_vector) = 'array'),
+  authored_document jsonb NOT NULL CHECK (jsonb_typeof(authored_document) = 'object'),
+  compiled_document jsonb NOT NULL CHECK (jsonb_typeof(compiled_document) = 'object'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (equipment_id, version),
+  UNIQUE (equipment_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS public.feat_versions (
+  id uuid PRIMARY KEY,
+  feat_id uuid NOT NULL REFERENCES public.feats (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  version integer NOT NULL CHECK (version > 0),
+  vocabulary_snapshot_id uuid NOT NULL REFERENCES public.system_vocabulary_snapshots (id) DEFERRABLE INITIALLY DEFERRED,
+  document_schema_version integer NOT NULL CHECK (document_schema_version > 0),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  compiler_version text NOT NULL CHECK (length(btrim(compiler_version)) > 0),
+  authored_checksum text NOT NULL CHECK (authored_checksum ~ '^[a-f0-9]{64}$'),
+  compiled_checksum text NOT NULL CHECK (compiled_checksum ~ '^[a-f0-9]{64}$'),
+  authored_dependency_vector jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(authored_dependency_vector) = 'array'),
+  authored_document jsonb NOT NULL CHECK (jsonb_typeof(authored_document) = 'object'),
+  compiled_document jsonb NOT NULL CHECK (jsonb_typeof(compiled_document) = 'object'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (feat_id, version),
+  UNIQUE (feat_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS public.race_versions (
+  id uuid PRIMARY KEY,
+  race_id uuid NOT NULL REFERENCES public.races (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  version integer NOT NULL CHECK (version > 0),
+  vocabulary_snapshot_id uuid NOT NULL REFERENCES public.system_vocabulary_snapshots (id) DEFERRABLE INITIALLY DEFERRED,
+  document_schema_version integer NOT NULL CHECK (document_schema_version > 0),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  compiler_version text NOT NULL CHECK (length(btrim(compiler_version)) > 0),
+  authored_checksum text NOT NULL CHECK (authored_checksum ~ '^[a-f0-9]{64}$'),
+  compiled_checksum text NOT NULL CHECK (compiled_checksum ~ '^[a-f0-9]{64}$'),
+  authored_dependency_vector jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(authored_dependency_vector) = 'array'),
+  authored_document jsonb NOT NULL CHECK (jsonb_typeof(authored_document) = 'object'),
+  compiled_document jsonb NOT NULL CHECK (jsonb_typeof(compiled_document) = 'object'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (race_id, version),
+  UNIQUE (race_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS public.spell_versions (
+  id uuid PRIMARY KEY,
+  spell_id uuid NOT NULL REFERENCES public.spells (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  version integer NOT NULL CHECK (version > 0),
+  vocabulary_snapshot_id uuid NOT NULL REFERENCES public.system_vocabulary_snapshots (id) DEFERRABLE INITIALLY DEFERRED,
+  document_schema_version integer NOT NULL CHECK (document_schema_version > 0),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  compiler_version text NOT NULL CHECK (length(btrim(compiler_version)) > 0),
+  authored_checksum text NOT NULL CHECK (authored_checksum ~ '^[a-f0-9]{64}$'),
+  compiled_checksum text NOT NULL CHECK (compiled_checksum ~ '^[a-f0-9]{64}$'),
+  authored_dependency_vector jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(authored_dependency_vector) = 'array'),
+  authored_document jsonb NOT NULL CHECK (jsonb_typeof(authored_document) = 'object'),
+  compiled_document jsonb NOT NULL CHECK (jsonb_typeof(compiled_document) = 'object'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (spell_id, version),
+  UNIQUE (spell_id, id)
+);
+
+CREATE TABLE IF NOT EXISTS public.vehicle_versions (
+  id uuid PRIMARY KEY,
+  vehicle_id uuid NOT NULL REFERENCES public.vehicles (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  version integer NOT NULL CHECK (version > 0),
+  vocabulary_snapshot_id uuid NOT NULL REFERENCES public.system_vocabulary_snapshots (id) DEFERRABLE INITIALLY DEFERRED,
+  document_schema_version integer NOT NULL CHECK (document_schema_version > 0),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  compiler_version text NOT NULL CHECK (length(btrim(compiler_version)) > 0),
+  authored_checksum text NOT NULL CHECK (authored_checksum ~ '^[a-f0-9]{64}$'),
+  compiled_checksum text NOT NULL CHECK (compiled_checksum ~ '^[a-f0-9]{64}$'),
+  authored_dependency_vector jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(authored_dependency_vector) = 'array'),
+  authored_document jsonb NOT NULL CHECK (jsonb_typeof(authored_document) = 'object'),
+  compiled_document jsonb NOT NULL CHECK (jsonb_typeof(compiled_document) = 'object'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (vehicle_id, version),
+  UNIQUE (vehicle_id, id)
+);
+
+-- A spell's complete authored document remains in spell_versions. This is the
+-- bounded relational index required by the catalog's Class filter; it is
+-- rewritten with the exact authored version in the same transaction.
+CREATE TABLE IF NOT EXISTS public.spell_catalog_classes (
+  spell_id uuid NOT NULL REFERENCES public.spells (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  authored_version_id uuid NOT NULL,
+  class_id uuid NOT NULL REFERENCES public.classes (id) ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED,
+  PRIMARY KEY (spell_id, class_id),
+  FOREIGN KEY (spell_id, authored_version_id)
+    REFERENCES public.spell_versions (spell_id, id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED
+);
+
+CREATE INDEX IF NOT EXISTS idx_spell_catalog_classes_class
+  ON public.spell_catalog_classes (class_id, spell_id);
+
+CREATE INDEX IF NOT EXISTS idx_spell_catalog_classes_version
+  ON public.spell_catalog_classes (authored_version_id);
+
+-- A marker exists even when the Spell has no Classes. Readers use it to reject
+-- a missing or stale membership index instead of treating that state as empty.
+CREATE TABLE IF NOT EXISTS public.spell_catalog_index_versions (
+  spell_id uuid PRIMARY KEY REFERENCES public.spells (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  authored_version_id uuid NOT NULL,
+  FOREIGN KEY (spell_id, authored_version_id)
+    REFERENCES public.spell_versions (spell_id, id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED
+);
+
+CREATE INDEX IF NOT EXISTS idx_spell_catalog_index_versions_version
+  ON public.spell_catalog_index_versions (authored_version_id);
+
+ALTER TABLE public.systems ADD COLUMN IF NOT EXISTS active_vocabulary_snapshot_id uuid;
+ALTER TABLE public.backgrounds ADD COLUMN IF NOT EXISTS active_version_id uuid;
+ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS active_version_id uuid;
+ALTER TABLE public.creatures ADD COLUMN IF NOT EXISTS active_version_id uuid;
+ALTER TABLE public.equipment ADD COLUMN IF NOT EXISTS active_version_id uuid;
+ALTER TABLE public.feats ADD COLUMN IF NOT EXISTS active_version_id uuid;
+ALTER TABLE public.races ADD COLUMN IF NOT EXISTS active_version_id uuid;
+ALTER TABLE public.spells ADD COLUMN IF NOT EXISTS active_version_id uuid;
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS active_version_id uuid;
+
+ALTER TABLE public.systems
+  ADD CONSTRAINT systems_active_vocabulary_snapshot_fk
+  FOREIGN KEY (id, active_vocabulary_snapshot_id)
+  REFERENCES public.system_vocabulary_snapshots (system_id, id)
+  DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE public.backgrounds ADD CONSTRAINT backgrounds_active_version_fk FOREIGN KEY (id, active_version_id) REFERENCES public.background_versions (background_id, id) DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE public.classes ADD CONSTRAINT classes_active_version_fk FOREIGN KEY (id, active_version_id) REFERENCES public.class_versions (class_id, id) DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE public.creatures ADD CONSTRAINT creatures_active_version_fk FOREIGN KEY (id, active_version_id) REFERENCES public.creature_versions (creature_id, id) DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE public.equipment ADD CONSTRAINT equipment_active_version_fk FOREIGN KEY (id, active_version_id) REFERENCES public.equipment_versions (equipment_id, id) DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE public.feats ADD CONSTRAINT feats_active_version_fk FOREIGN KEY (id, active_version_id) REFERENCES public.feat_versions (feat_id, id) DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE public.races ADD CONSTRAINT races_active_version_fk FOREIGN KEY (id, active_version_id) REFERENCES public.race_versions (race_id, id) DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE public.spells ADD CONSTRAINT spells_active_version_fk FOREIGN KEY (id, active_version_id) REFERENCES public.spell_versions (spell_id, id) DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE public.vehicles ADD CONSTRAINT vehicles_active_version_fk FOREIGN KEY (id, active_version_id) REFERENCES public.vehicle_versions (vehicle_id, id) DEFERRABLE INITIALLY DEFERRED;
+
+CREATE TABLE IF NOT EXISTS public.character_mechanics_projections (
+  character_id uuid PRIMARY KEY REFERENCES public.characters (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+  stream_version integer NOT NULL CHECK (stream_version >= 0),
+  authored_version_vector jsonb NOT NULL CHECK (jsonb_typeof(authored_version_vector) = 'array'),
+  vocabulary_snapshot_id uuid NOT NULL REFERENCES public.system_vocabulary_snapshots (id) DEFERRABLE INITIALLY DEFERRED,
+  rule_pack_revision_id uuid NOT NULL,
+  rule_pack_checksum text NOT NULL CHECK (rule_pack_checksum ~ '^[a-f0-9]{64}$'),
+  evaluator_version text NOT NULL CHECK (length(btrim(evaluator_version)) > 0),
+  model_contract_version integer NOT NULL CHECK (model_contract_version > 0),
+  campaign_context_checksum text CHECK (campaign_context_checksum IS NULL OR campaign_context_checksum ~ '^[a-f0-9]{64}$'),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  projection_checksum text NOT NULL CHECK (projection_checksum ~ '^[a-f0-9]{64}$'),
+  rule_snapshot jsonb NOT NULL CHECK (jsonb_typeof(rule_snapshot) = 'object'),
+  normalized_facts jsonb NOT NULL CHECK (jsonb_typeof(normalized_facts) = 'object'),
+  bounded_registry jsonb NOT NULL CHECK (jsonb_typeof(bounded_registry) = 'object'),
+  rule_result jsonb NOT NULL CHECK (jsonb_typeof(rule_result) = 'object'),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.system_vocabulary_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.background_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.class_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.creature_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.equipment_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.feat_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.race_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.spell_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.vehicle_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.spell_catalog_classes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.spell_catalog_index_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.character_mechanics_projections ENABLE ROW LEVEL SECURITY;
+
+REVOKE ALL ON TABLE public.system_vocabulary_snapshots, public.background_versions, public.class_versions, public.creature_versions, public.equipment_versions, public.feat_versions, public.race_versions, public.spell_versions, public.vehicle_versions, public.spell_catalog_classes, public.spell_catalog_index_versions, public.character_mechanics_projections FROM anon, authenticated;
+-- END INCLUDE: src\domains\subjects\tables\versioned_projections.sql
 -- BEGIN INCLUDE: src\domains\subjects\tables\authored_route_ids.sql
 /* --------------------------------------------------
 * AUTHORED ROUTE IDENTITIES
@@ -11020,7 +11273,10 @@ CREATE TABLE IF NOT EXISTS public.campaign_content_versions (
   authored_by uuid NOT NULL,
   revision integer NOT NULL CHECK (revision > 0),
   state text NOT NULL DEFAULT 'PENDING' CHECK (state IN ('PENDING', 'APPROVED', 'REJECTED')),
-  snapshot jsonb NOT NULL CHECK (jsonb_typeof(snapshot) = 'object'),
+  authored_version_id uuid NOT NULL,
+  authored_version integer NOT NULL CHECK (authored_version > 0),
+  authored_checksum text NOT NULL CHECK (authored_checksum ~ '^[0-9a-f]{64}$'),
+  compiled_projection_checksum text NOT NULL CHECK (compiled_projection_checksum ~ '^[0-9a-f]{64}$'),
   approved_by uuid REFERENCES auth.users (id) ON DELETE SET NULL,
   approved_at timestamptz,
   rejected_at timestamptz,
@@ -12420,11 +12676,11 @@ CREATE TABLE IF NOT EXISTS public.character_sheet_resource_usage (
   spell_id uuid REFERENCES public.spells (id) ON DELETE RESTRICT,
   source_kind text,
   source_instance_id text,
-  charge_id uuid REFERENCES public.charges (id) ON DELETE RESTRICT,
+  charge_id uuid,
   item_instance_id uuid,
   sense_grant_id uuid,
   companion_instance_id uuid,
-  feature_id uuid REFERENCES public.features (id) ON DELETE RESTRICT,
+  feature_id uuid,
   used integer NOT NULL DEFAULT 0,
   created_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   updated_by uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
@@ -12915,6 +13171,8 @@ CREATE TABLE IF NOT EXISTS public.encounter_scenes (
   definition_snapshot jsonb NOT NULL CHECK (jsonb_typeof(definition_snapshot) = 'object'),
   projection jsonb NOT NULL CHECK (jsonb_typeof(projection) = 'object'),
   version integer NOT NULL DEFAULT 0 CHECK (version >= 0),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  projection_checksum text NOT NULL CHECK (projection_checksum ~ '^[0-9a-f]{64}$'),
   attach_command_id uuid NOT NULL,
   attach_command_fingerprint text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -12950,6 +13208,17 @@ CREATE INDEX IF NOT EXISTS encounter_scene_events_replay_idx
   ON public.encounter_scene_events (scene_id, version ASC);
 ALTER TABLE public.encounter_scene_events ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.encounter_scene_events FROM anon, authenticated;
+
+CREATE TABLE IF NOT EXISTS public.encounter_current_projections (
+  encounter_id uuid PRIMARY KEY REFERENCES public.encounters (id) ON DELETE CASCADE,
+  stream_version integer NOT NULL CHECK (stream_version >= 0),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  projection_checksum text NOT NULL CHECK (projection_checksum ~ '^[0-9a-f]{64}$'),
+  projection jsonb NOT NULL CHECK (jsonb_typeof(projection) = 'object'),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.encounter_current_projections ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.encounter_current_projections FROM anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.validate_vtt_scene_map_asset()
 RETURNS trigger
@@ -13082,6 +13351,24 @@ BEGIN
     ALTER TABLE public.starting_equipment_option_item_equipment
       ADD CONSTRAINT starting_equipment_option_item_equipment_equipment_id_fkey
       FOREIGN KEY (equipment_id) REFERENCES public.equipment(id)
+      ON DELETE RESTRICT
+      DEFERRABLE INITIALLY DEFERRED;
+  END IF;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'character_mechanics_projections_rule_pack_revision_id_fkey'
+      AND conrelid = 'public.character_mechanics_projections'::regclass
+  ) THEN
+    ALTER TABLE public.character_mechanics_projections
+      ADD CONSTRAINT character_mechanics_projections_rule_pack_revision_id_fkey
+      FOREIGN KEY (rule_pack_revision_id)
+      REFERENCES public.rule_pack_revisions (id)
       ON DELETE RESTRICT
       DEFERRABLE INITIALLY DEFERRED;
   END IF;

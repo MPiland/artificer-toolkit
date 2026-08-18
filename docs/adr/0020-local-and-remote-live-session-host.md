@@ -6,6 +6,7 @@
 - **Scope:** live VTT coordination, local hosting, remote hosting, and the deployment boundary around Zen
 - **Update when:** session authority, native WebSocket protocol, command scheduling, local packaging, remote deployment, or VTT synchronization changes
 - **Verification:** Worker workerd tests; session-host build and authenticated local join, replay, reconnect, persistence, broadcast, and latency gates
+- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaces command-time Character reconstruction at the authoritative executor seam; transport and journal ownership remain unchanged.
 
 ## Context
 

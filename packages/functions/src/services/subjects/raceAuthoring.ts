@@ -1,5 +1,4 @@
-import type { DBLike, RepositoryFindAllOptions } from '@artificer-toolkit/db'
-import { createRaceRepository, upsertRace } from '@artificer-toolkit/db'
+import { createAuthoredVersionRepository, type DBLike } from '@artificer-toolkit/db'
 import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
 import { RACE_CATEGORY_CODE } from '@artificer-toolkit/shared/subjects/core'
 import type { RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
@@ -13,14 +12,9 @@ import { createSubjectAuthoringService } from './pipeline.js'
 export interface RaceSubjectAuthoringDeps {
   validate?: (input: unknown) => RaceAuthored
   compile?: (authored: RaceAuthored) => Promise<CompiledRace> | CompiledRace
-  persist?: (payload: { authored: RaceAuthored; compiled: CompiledRace }) => Promise<void>
-  findById?: (id: string) => Promise<RaceAuthored | null>
-  findAll?: (filter?: RepositoryFindAllOptions) => Promise<RaceAuthored[]>
 }
 
 export function createRaceSubjectAuthoringService(db: DBLike, deps: RaceSubjectAuthoringDeps = {}) {
-  const repo = createRaceRepository(db)
-
   async function compileResolvedRace(authored: RaceAuthored): Promise<CompiledRace> {
     if (authored.category === RACE_CATEGORY_CODE.BASE) {
       return compileRace(resolveRaceAuthored(authored, () => null))
@@ -33,13 +27,15 @@ export function createRaceSubjectAuthoringService(db: DBLike, deps: RaceSubjectA
         return cache.get(id) ?? null
       }
 
-      const parent = await repo.findById(id)
-
-      if (parent) {
-        cache.set(id, parent)
-      }
-
-      return parent
+      const parent = await createAuthoredVersionRepository(db).findActive({
+        subjectKind: 'RACE',
+        subjectId: id
+      })
+      if (!parent) return null
+      const parentRace = raceAuthoredDtoSchema.parse(parent.authored.document) as unknown as RaceAuthored
+      if (parentRace.systemId !== authored.systemId) return null
+      cache.set(id, parentRace)
+      return parentRace
     }
 
     const parent = await loadParent(authored.parentRaceId)
@@ -53,15 +49,8 @@ export function createRaceSubjectAuthoringService(db: DBLike, deps: RaceSubjectA
     return compileRace(resolveRaceAuthored(authored, (parentId) => cache.get(parentId) ?? null))
   }
 
-  return createSubjectAuthoringService<unknown, RaceAuthored, CompiledRace, void>({
+  return createSubjectAuthoringService<unknown, RaceAuthored, CompiledRace>({
     validate: deps.validate ?? ((input) => raceAuthoredDtoSchema.parse(input) as RaceAuthored),
-    compile: deps.compile ?? compileResolvedRace,
-    persist:
-      deps.persist ??
-      (async ({ authored }) => {
-        await upsertRace(db, authored, authored.systemId)
-      }),
-    findById: deps.findById ?? ((id) => repo.findById(id)),
-    findAll: deps.findAll ?? ((filter) => repo.findAll(filter))
+    compile: deps.compile ?? compileResolvedRace
   })
 }

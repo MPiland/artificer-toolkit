@@ -8,8 +8,7 @@ import { getCampaignContent } from '#app/data/campaigns/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import {
   campaignContentTypeOptions,
-  listOwnedCampaignContent,
-  loadCampaignContentSnapshot
+  listOwnedCampaignContent
 } from '../campaignContentSubmission'
 import * as sharedStyles from '../campaigns.css'
 import * as contentStyles from './campaignContent.css'
@@ -42,8 +41,7 @@ export function CampaignContent({ campaign }: { campaign: CampaignDetailDto }) {
         campaignId: campaign.id,
         subjectKind,
         subjectId: candidate.subjectId,
-        version: latestVersion + 1,
-        snapshot: await loadCampaignContentSnapshot(subjectKind, candidate.publicId)
+        expectedRevision: latestVersion + 1
       })
     },
     onSuccess: async () => {
@@ -77,7 +75,7 @@ export function CampaignContent({ campaign }: { campaign: CampaignDetailDto }) {
           Campaign content
         </Title>
         <Text c='dimmed' size='sm'>
-          Immutable snapshots submitted to this Campaign.
+          Immutable authored versions submitted to this Campaign.
         </Text>
       </div>
       {content.error ? <Alert color='red'>{content.error.message}</Alert> : null}

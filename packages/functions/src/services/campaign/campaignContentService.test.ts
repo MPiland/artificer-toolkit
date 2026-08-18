@@ -11,24 +11,19 @@ const systemId = '00000000-0000-4000-8000-000000000005'
 const mocks = vi.hoisted(() => ({
   content: {
     findActiveRootOwner: vi.fn(),
-    findOwnedDraftPayload: vi.fn(),
     lockNextRevision: vi.fn(),
     insertContentVersion: vi.fn(),
-    lockRootBindings: vi.fn(),
-    replaceLockedRootBindings: vi.fn(),
     listContentVersions: vi.fn(),
     findContentVersion: vi.fn(),
     approvePendingContentVersion: vi.fn(),
     rejectPendingContentVersion: vi.fn()
   },
+  authoredVersion: {
+    findActive: vi.fn(),
+    findVersion: vi.fn()
+  },
   campaignLock: vi.fn(),
-  characterLock: vi.fn(),
-  findCharacter: vi.fn(),
-  findCharacterRow: vi.fn(),
   authority: vi.fn(),
-  reconcile: vi.fn(),
-  resolveBuilder: vi.fn(),
-  loadContext: vi.fn(),
   broadcast: vi.fn(),
   steps: [] as string[]
 }))
@@ -39,11 +34,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     ...actual,
     createCampaignContentRepository: () => mocks.content,
     createCampaignRepository: () => ({ lockCampaign: mocks.campaignLock }),
-    createCharacterRepository: () => ({
-      findUpdatedAtByIdForUpdate: mocks.characterLock,
-      findAuthoredById: mocks.findCharacter,
-      findById: mocks.findCharacterRow
-    }),
+    createAuthoredVersionRepository: () => mocks.authoredVersion,
     withTransaction: async (_db: DBLike, callback: (trx: DBLike) => Promise<unknown>) => {
       const result = await callback({} as DBLike)
       mocks.steps.push('commit')
@@ -62,13 +53,6 @@ vi.mock('./campaignService.js', () => ({
   resolveCampaignAuthority: mocks.authority
 }))
 
-vi.mock('../character/builderService.js', () => ({
-  loadCharacterBuilderContext: mocks.loadContext,
-  resolveCharacterBuilder: mocks.resolveBuilder
-}))
-vi.mock('../character/builderReconciliation.js', () => ({
-  reconcileCharacterBuilderCharacter: mocks.reconcile
-}))
 vi.mock('./realtimeService.js', () => ({
   broadcastCampaignInvalidation: async (...args: unknown[]) => {
     mocks.steps.push('broadcast')
@@ -79,13 +63,28 @@ vi.mock('./realtimeService.js', () => ({
 const { listCampaignContentVersions, reviewCampaignContentVersion, submitCampaignContentVersion } =
   await import('./campaignContentService.js')
 
-function snapshot(userId: string) {
+function authoredDocument(userId: string) {
   return {
     kind: 'BACKGROUND' as const,
     id: subjectId,
     label: 'Campaign Background',
     userId,
     systemId
+  }
+}
+
+function authoredVersion(userId: string) {
+  return {
+    authored: {
+      subjectKind: 'BACKGROUND' as const,
+      subjectId,
+      versionId: '00000000-0000-4000-8000-000000000008',
+      version: 1,
+      documentSchemaVersion: 1,
+      checksum: 'a'.repeat(64),
+      document: authoredDocument(userId)
+    },
+    compiled: { projectionChecksum: 'b'.repeat(64) }
   }
 }
 
@@ -98,7 +97,10 @@ function version(state: 'PENDING' | 'APPROVED' | 'REJECTED', authoredBy = player
     authoredBy,
     revision: 1,
     state,
-    snapshot: snapshot(authoredBy),
+    authoredVersionId: '00000000-0000-4000-8000-000000000008',
+    authoredVersion: 1,
+    authoredChecksum: 'a'.repeat(64),
+    compiledProjectionChecksum: 'b'.repeat(64),
     approvedBy: state === 'APPROVED' ? ownerId : null,
     approvedAt: state === 'APPROVED' ? '2026-08-06T12:00:00.000Z' : null,
     rejectedAt: state === 'REJECTED' ? '2026-08-06T12:00:00.000Z' : null,
@@ -127,10 +129,9 @@ describe('Campaign content service', () => {
       systemId,
       isMaster: false
     })
-    mocks.content.findOwnedDraftPayload.mockResolvedValue(null)
     mocks.content.lockNextRevision.mockResolvedValue(1)
-    mocks.content.lockRootBindings.mockResolvedValue([])
-    mocks.findCharacterRow.mockResolvedValue({ rule_pack_revision_id: 'revision-1' })
+    mocks.authoredVersion.findActive.mockResolvedValue(authoredVersion(playerId))
+    mocks.authoredVersion.findVersion.mockImplementation(async () => authoredVersion(playerId))
     mocks.content.insertContentVersion.mockImplementation(async (input: { state: string }) =>
       version(input.state as 'PENDING' | 'APPROVED')
     )
@@ -144,8 +145,7 @@ describe('Campaign content service', () => {
       campaignId,
       subjectKind: 'BACKGROUND',
       subjectId,
-      version: 1,
-      snapshot: snapshot(playerId)
+      expectedRevision: 1
     })
 
     expect(mocks.content.insertContentVersion).toHaveBeenCalledWith(
@@ -168,13 +168,13 @@ describe('Campaign content service', () => {
       systemId,
       isMaster: false
     })
+    mocks.authoredVersion.findActive.mockResolvedValue(authoredVersion(ownerId))
 
     await submitCampaignContentVersion({} as DBLike, ownerId, {
       campaignId,
       subjectKind: 'BACKGROUND',
       subjectId,
-      version: 1,
-      snapshot: snapshot(ownerId)
+      expectedRevision: 1
     })
 
     expect(mocks.broadcast).toHaveBeenCalledWith(
@@ -219,16 +219,16 @@ describe('Campaign content service', () => {
     ).resolves.toHaveLength(3)
   })
 
-  it('rejects snapshot metadata that does not match the owned root', async () => {
+  it('rejects authored version metadata that does not match the owned root', async () => {
     mocks.authority.mockResolvedValue(authority(playerId, 'PLAYER'))
+    mocks.authoredVersion.findActive.mockResolvedValue(authoredVersion(ownerId))
 
     await expect(
       submitCampaignContentVersion({} as DBLike, playerId, {
         campaignId,
         subjectKind: 'BACKGROUND',
         subjectId,
-        version: 1,
-        snapshot: snapshot(ownerId)
+        expectedRevision: 1
       })
     ).rejects.toThrow('metadata')
     expect(mocks.content.insertContentVersion).not.toHaveBeenCalled()
@@ -237,56 +237,32 @@ describe('Campaign content service', () => {
   it('requires an active owned root so its creator retains it after Campaign departure', async () => {
     mocks.authority.mockResolvedValue(authority(playerId, 'PLAYER'))
     mocks.content.findActiveRootOwner.mockResolvedValue(null)
-    mocks.content.findOwnedDraftPayload.mockResolvedValue({ systemId })
 
     await expect(
       submitCampaignContentVersion({} as DBLike, playerId, {
         campaignId,
         subjectKind: 'BACKGROUND',
         subjectId,
-        version: 1,
-        snapshot: snapshot(playerId)
+        expectedRevision: 1
       })
     ).rejects.toThrow('owned homebrew')
     expect(mocks.content.insertContentVersion).not.toHaveBeenCalled()
   })
 
-  it('validates every affected Character before replacing approval bindings', async () => {
+  it('does not replace existing Character bindings when a newer approval is accepted', async () => {
     const pending = version('PENDING')
     const approved = version('APPROVED')
-    const character = {
-      id: '00000000-0000-4000-8000-000000000007',
-      label: 'Rook',
-      userId: playerId,
-      systemId,
-      intent: {},
-      state: {}
-    }
     mocks.authority.mockResolvedValue(authority(ownerId, 'OWNER'))
     mocks.content.findContentVersion.mockResolvedValue(pending)
     mocks.content.approvePendingContentVersion.mockResolvedValue(approved)
-    mocks.content.lockRootBindings.mockResolvedValue([
-      { characterId: character.id },
-      { characterId: '00000000-0000-4000-8000-000000000008' }
-    ])
-    mocks.findCharacter.mockResolvedValue(character)
-    mocks.loadContext.mockResolvedValue({})
-    mocks.reconcile.mockImplementation(async (_db: DBLike, value: unknown) => value)
-    mocks.resolveBuilder
-      .mockResolvedValueOnce({ readiness: { ready: true } })
-      .mockResolvedValueOnce({ readiness: { ready: false } })
 
-    await expect(
-      reviewCampaignContentVersion({} as DBLike, ownerId, {
-        campaignId,
-        contentVersionId: pending.id,
-        decision: 'APPROVE'
-      })
-    ).rejects.toThrow('conflicts')
+    await reviewCampaignContentVersion({} as DBLike, ownerId, {
+      campaignId,
+      contentVersionId: pending.id,
+      decision: 'APPROVE'
+    })
 
-    expect(mocks.characterLock).toHaveBeenCalledTimes(2)
-    expect(mocks.content.replaceLockedRootBindings).not.toHaveBeenCalled()
-    expect(mocks.broadcast).not.toHaveBeenCalled()
+    expect(mocks.content.approvePendingContentVersion).toHaveBeenCalledOnce()
   })
 
   it('broadcasts approved reviews to the table and rejected reviews to owners and the author', async () => {

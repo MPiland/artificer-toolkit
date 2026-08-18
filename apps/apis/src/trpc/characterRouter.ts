@@ -5,6 +5,7 @@ import {
   getCharacterBuilderDraftForUser,
   getCharacterForUser,
   getCharacterHistoryForUser,
+  getCharacterSheetExtraOptionsForUser,
   getCharacterSheetPanelForUser,
   getCharacterSheetForUser,
   listCharactersForUser,
@@ -31,6 +32,8 @@ import {
   characterRestPreviewResponseDtoSchema,
   characterRuleUpgradePreviewRequestDtoSchema,
   characterRuleUpgradePreviewResponseDtoSchema,
+  characterSheetExtraCatalogInputDtoSchema,
+  characterSheetExtraCatalogResponseDtoSchema,
   characterSheetCommandInputDtoSchema,
   characterSheetCommandResponseDtoSchema,
   characterSheetResponseDtoSchema
@@ -71,6 +74,11 @@ const characterRuleUpgradePreviewProcedureInputSchema = z.object({
 const characterSheetPanelProcedureInputSchema = z.object({
   id: z.string().min(1),
   target: characterSheetPanelTargetDtoSchema
+})
+
+const characterSheetExtraOptionsProcedureInputSchema = z.object({
+  id: z.string().min(1),
+  input: characterSheetExtraCatalogInputDtoSchema
 })
 
 export const characterRouter = createTRPCRouter({
@@ -126,6 +134,15 @@ export const characterRouter = createTRPCRouter({
     .output(characterSheetResponseDtoSchema.nullable())
     .query(({ ctx, input }) =>
       withAuthenticatedDb(ctx, async (db, userId) => getCharacterSheetForUser(db, input.id, userId))
+    ),
+
+  extraOptions: authenticatedProcedure
+    .input(characterSheetExtraOptionsProcedureInputSchema)
+    .output(characterSheetExtraCatalogResponseDtoSchema)
+    .query(({ ctx, input }) =>
+      withAuthenticatedDb(ctx, async (db, userId) =>
+        getCharacterSheetExtraOptionsForUser(db, input.id, input.input, userId)
+      )
     ),
 
   restPreview: authenticatedProcedure

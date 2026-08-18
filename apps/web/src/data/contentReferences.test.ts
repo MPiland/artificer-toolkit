@@ -54,28 +54,36 @@ function createReferenceApi(): NonNullable<Parameters<typeof loadAuthoredContent
         list: async () => ({
           items: [listItem('class-wizard', 'Wizard', 'system-1')],
           drafts: [],
-          meta: {}
+          meta: {},
+          page: { nextCursor: null, previousCursor: null, totalCount: 1 },
+          summary: { activeCount: 1, masterCount: 1, ownedCount: 0 }
         })
       },
       creatures: {
         list: async () => ({
           items: [listItem('creature-dragon', 'Dragon', 'system-1')],
           drafts: [],
-          meta: {}
+          meta: {},
+          page: { nextCursor: null, previousCursor: null, totalCount: 1 },
+          summary: { activeCount: 1, masterCount: 1, ownedCount: 0 }
         })
       },
       equipment: {
         list: async () => ({
           items: [listItem('equipment-backpack', 'Backpack', 'system-1')],
           drafts: [],
-          meta: {}
+          meta: {},
+          page: { nextCursor: null, previousCursor: null, totalCount: 1 },
+          summary: { activeCount: 1, masterCount: 1, ownedCount: 0 }
         })
       },
       races: {
         list: async () => ({
           items: [listItem('race-elf', 'Elf', 'system-1')],
           drafts: [],
-          meta: {}
+          meta: {},
+          page: { nextCursor: null, previousCursor: null, totalCount: 1 },
+          summary: { activeCount: 1, masterCount: 1, ownedCount: 0 }
         })
       }
     }

@@ -48,7 +48,11 @@ export function buildEquipmentListFilters(
   response: EquipmentListResponseDto
 ): AuthoredListFilter[] {
   const categories = Array.from(
-    new Set(response.items.map((item) => item.category ?? 'EQUIPMENT'))
+    new Set(
+      ((response.meta as { categories?: Array<{ id: string }> }).categories ?? []).map(
+        (category) => category.id
+      )
+    )
   ).sort()
 
   return [
@@ -83,8 +87,5 @@ export const equipmentListSortOptions = [
 ]
 
 export function summarizeEquipmentList(response: EquipmentListResponseDto) {
-  const masterCount = response.items.filter((item) => item.provenance.kind === 'MASTER').length
-  const ownedCount = response.items.length - masterCount
-
-  return `${response.items.length} items / ${masterCount} SRD / ${ownedCount} homebrew`
+  return `${response.summary.activeCount} items / ${response.summary.masterCount} SRD / ${response.summary.ownedCount} homebrew`
 }

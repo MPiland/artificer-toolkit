@@ -1,8 +1,9 @@
 import { notifications } from '@mantine/notifications'
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AuthoredListPage } from '#components/AuthoredList'
 import { useAuthoredDeleteAction } from '#components/AuthoredDelete'
+import { useAuthoredCatalogWindow } from '#components/AuthoredList/useAuthoredCatalogWindow'
 import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import {
   buildCreatureListFilters,
@@ -12,12 +13,13 @@ import {
   mapCreatureListToAuthoredItems,
   summarizeCreatureList
 } from '#app/data/creatures/creatureListMapper'
-import { getCreature, getCreatureList } from '#app/data/creatures/queries'
+import { getCreature, getCreatureList, useGetCreatureList } from '#app/data/creatures/queries'
 import { createServerApi } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildCreatureRouteParams } from '#app/routing/authoredRouteParams'
+import type { CreatureListRequestDto } from '#app/lib/api'
 
 const creatureDetailMeta = [
   'challengeRatings',
@@ -26,10 +28,17 @@ const creatureDetailMeta = [
   'damageTypes',
   'speeds'
 ]
+const creatureCatalogueRequest = {
+  direction: 'FORWARD',
+  limit: 48,
+  sort: 'name'
+} satisfies CreatureListRequestDto
 
 export const Route = createFileRoute('/_authed/creatures/')({
   loader: async ({ context }): Promise<void> => {
-    await context.queryClient.ensureQueryData(getCreatureList(createServerApi()))
+    await context.queryClient.ensureInfiniteQueryData(
+      getCreatureList(creatureCatalogueRequest, createServerApi())
+    )
   },
   component: CreaturesRoute
 })
@@ -37,7 +46,28 @@ export const Route = createFileRoute('/_authed/creatures/')({
 function CreaturesRoute() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { data } = useSuspenseQuery(getCreatureList())
+  const listing = useAuthoredCatalogWindow({
+    buildFilters: buildCreatureListFilters,
+    buildRequest: ({ filterValues, query, sort }): CreatureListRequestDto => ({
+      ...creatureCatalogueRequest,
+      category: filterValues.category ?? undefined,
+      query: query || undefined,
+      sort: sort === 'category' ? 'category' : 'name',
+      source:
+        filterValues.source === 'MASTER' || filterValues.source === 'OWNED'
+          ? filterValues.source
+          : undefined
+    }),
+    initialSort: 'name',
+    mapDrafts: (response) =>
+      mapDraftSummariesToAuthoredItems(response.drafts, {
+        categoryAttributeKey: 'Category',
+        formatCategory: formatCreatureCategory
+      }),
+    mapItems: mapCreatureListToAuthoredItems,
+    summarize: summarizeCreatureList,
+    useList: useGetCreatureList
+  })
   const duplicateMutation = useMutation({
     mutationFn: (id: string) => api.content.creatures.duplicate(id),
     onSuccess: async (response) => {
@@ -73,16 +103,16 @@ function CreaturesRoute() {
     <>
       <AuthoredListPage
         title='Creatures'
-        summary={summarizeCreatureList(data)}
+        summary={listing.summary ?? 'Loading creatures...'}
         createLabel='Create Creature'
-        items={mapCreatureListToAuthoredItems(data)}
-        draftItems={mapDraftSummariesToAuthoredItems(data.drafts, {
-          categoryAttributeKey: 'Category',
-          formatCategory: formatCreatureCategory
-        })}
-        filters={buildCreatureListFilters(data)}
+        items={listing.items}
+        draftItems={listing.draftItems}
+        filters={listing.filters}
         attributeColumns={creatureListAttributeColumns}
         sortOptions={creatureListSortOptions}
+        catalog={listing.catalog}
+        error={listing.error}
+        loading={listing.loading}
         onCreate={() => navigate({ to: '/creatures/new' })}
         onView={(item) =>
           navigate({

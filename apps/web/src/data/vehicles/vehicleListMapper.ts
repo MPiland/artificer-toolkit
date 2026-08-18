@@ -46,7 +46,11 @@ export function mapVehicleListToAuthoredItems(
 
 export function buildVehicleListFilters(response: VehicleListResponseDto): AuthoredListFilter[] {
   const categories = Array.from(
-    new Set(response.items.map((item) => item.category ?? 'VEHICLE'))
+    new Set(
+      ((response.meta as { categories?: Array<{ id: string }> }).categories ?? []).map(
+        (category) => category.id
+      )
+    )
   ).sort()
 
   return [
@@ -81,8 +85,5 @@ export const vehicleListSortOptions = [
 ]
 
 export function summarizeVehicleList(response: VehicleListResponseDto) {
-  const masterCount = response.items.filter((item) => item.provenance.kind === 'MASTER').length
-  const ownedCount = response.items.length - masterCount
-
-  return `${response.items.length} vehicles / ${masterCount} SRD / ${ownedCount} homebrew`
+  return `${response.summary.activeCount} vehicles / ${response.summary.masterCount} SRD / ${response.summary.ownedCount} homebrew`
 }

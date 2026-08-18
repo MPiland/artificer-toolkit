@@ -1,46 +1,21 @@
-import type { RepositoryFindAllOptions } from '@artificer-toolkit/db'
-
-export interface SubjectAuthoringPipelineDeps<TInput, TAuthored, TCompiled, TPersisted> {
+export interface SubjectAuthoringPipelineDeps<TInput, TAuthored, TCompiled> {
   validate: (input: TInput) => TAuthored
   compile: (authored: TAuthored) => Promise<TCompiled> | TCompiled
-  persist: (payload: {
-    authored: TAuthored
-    compiled: TCompiled
-  }) => Promise<TPersisted> | TPersisted
-  findById: (id: string) => Promise<TAuthored | null>
-  findAll: (filter?: RepositoryFindAllOptions) => Promise<TAuthored[]>
 }
 
-export interface SubjectAuthoringPipelineResult<TAuthored, TCompiled, TPersisted> {
+export interface PreparedSubjectAuthoring<TAuthored, TCompiled> {
   authored: TAuthored
   compiled: TCompiled
-  persisted: TPersisted
 }
 
-export function createSubjectAuthoringService<TInput, TAuthored, TCompiled, TPersisted>(
-  deps: SubjectAuthoringPipelineDeps<TInput, TAuthored, TCompiled, TPersisted>
+export function createSubjectAuthoringService<TInput, TAuthored, TCompiled>(
+  deps: SubjectAuthoringPipelineDeps<TInput, TAuthored, TCompiled>
 ) {
-  return {
-    async execute(
-      input: TInput
-    ): Promise<SubjectAuthoringPipelineResult<TAuthored, TCompiled, TPersisted>> {
-      const authored = deps.validate(input)
-      const compiled = await deps.compile(authored)
-      const persisted = await deps.persist({ authored, compiled })
-
-      return {
-        authored,
-        compiled,
-        persisted
-      }
-    },
-
-    findById(id: string): Promise<TAuthored | null> {
-      return deps.findById(id)
-    },
-
-    findAll(filter?: RepositoryFindAllOptions): Promise<TAuthored[]> {
-      return deps.findAll(filter)
-    }
+  async function prepare(input: TInput): Promise<PreparedSubjectAuthoring<TAuthored, TCompiled>> {
+    const authored = deps.validate(input)
+    const compiled = await deps.compile(authored)
+    return { authored, compiled }
   }
+
+  return { prepare }
 }

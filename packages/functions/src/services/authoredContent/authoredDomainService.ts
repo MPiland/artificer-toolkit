@@ -1,17 +1,16 @@
 import type { z } from 'zod'
-import type { AuthoredActiveMetadata, AuthoredDraft, DBLike } from '@artificer-toolkit/db'
+import type {
+  AuthoredActiveMetadata,
+  AuthoredCatalogPageInput,
+  AuthoredDraft,
+  DBLike
+} from '@artificer-toolkit/db'
 import {
   createAuthoredContentRepository,
+  createAuthoredVersionRepository,
   createMediaRepository,
   createAuthoredRouteIdRepository,
-  getBackgroundListQuery,
-  getClassListQuery,
-  getCreatureListQuery,
-  getEquipmentListQuery,
-  getFeatListQuery,
-  getRaceListQuery,
-  getSpellListQuery,
-  getVehicleListQuery,
+  getAuthoredCatalogPage,
   withTransaction
 } from '@artificer-toolkit/db'
 import {
@@ -49,15 +48,16 @@ import {
   getAuthoredDraft,
   getAuthoredPermissions,
   getAuthoredProvenance,
+  getDraftListMetadata,
   normalizeActivatedAuthoringInput,
-  normalizeAuthoredListResponseWithDrafts,
   normalizeAuthoringResult,
   normalizeStoredDraftPayloadForActivation,
   saveAuthoredDraft,
+  toDraftSummary,
   AuthoredContentNotFoundError,
-  type AuthoredListRow,
   type AuthoredRecord
 } from './authoredContentService.js'
+import { publishVersionedAuthoredAggregate } from './versionedAuthoring.js'
 
 type AuthoredContentTable =
   | 'backgrounds'
@@ -81,13 +81,13 @@ type NodeRuntimeMapId =
 
 type AuthoringResult = {
   authored: AuthoredRecord
+  compiled: unknown
 }
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 type AuthoringService = {
-  execute(input: AuthoredRecord): Promise<AuthoringResult>
-  findById(id: string): Promise<AuthoredRecord | null>
+  prepare(input: AuthoredRecord): Promise<AuthoringResult>
 }
 
 type DetailReferenceOption = {
@@ -105,18 +105,6 @@ type DetailMetaResolver = (
 
 export interface AuthoredDomainRuntimeConfig {
   createService: (db: DBLike) => AuthoringService
-  listQuery: (db: DBLike) => Promise<{
-    items: Array<
-      AuthoredListRow & {
-        id: string
-        label: string
-        status: string
-        systemId: string
-        description?: string | null
-      }
-    >
-    meta: unknown
-  }>
   mapId: NodeRuntimeMapId
   meta?: DetailMetaResolver
   schema: z.ZodType<AuthoredRecord>
@@ -158,14 +146,52 @@ export function getDetailItem<TInput extends AuthoredContentInput>(detail: unkno
 export async function listAuthoredDomain(
   db: DBLike,
   config: AuthoredDomainRuntimeConfig,
+  request: AuthoredCatalogPageInput,
   userId: string
 ) {
-  return normalizeAuthoredListResponseWithDrafts(
-    db,
-    await config.listQuery(db),
+  const page = await getAuthoredCatalogPage(db, {
+    request,
+    subjectKind: config.subjectKind,
+    userId
+  })
+  const contentRepository = createAuthoredContentRepository(db)
+  const drafts = await contentRepository.listDraftsByUser({
     userId,
-    config.subjectKind
-  )
+    subjectKind: config.subjectKind
+  })
+  const routeIds = await createAuthoredRouteIdRepository(db).ensureMany(config.subjectKind, [
+    ...drafts.map((draft) => draft.subjectId)
+  ])
+  const draftBySubjectId = new Map(drafts.map((draft) => [draft.subjectId, draft]))
+
+  return {
+    ...page,
+    drafts: drafts.map((draft) => {
+      const route = routeIds.get(draft.subjectId)
+      if (!route) {
+        throw new Error(`Missing route identity for ${config.subjectKind} draft "${draft.subjectId}".`)
+      }
+      return {
+        ...toDraftSummary({ ...draft, publicId: route.publicId }),
+        ...getDraftListMetadata(draft)
+      }
+    }),
+    items: page.items.map((item) => {
+      const ownership = { isMaster: item.isMaster, ownerUserId: item.ownerUserId }
+      const draft = draftBySubjectId.get(item.id)
+      return {
+        ...item,
+        provenance: getAuthoredProvenance(ownership),
+        permissions: getAuthoredPermissions(ownership, userId),
+        draft: draft
+          ? {
+              ...toDraftSummary({ ...draft, publicId: item.publicId }),
+              ...getDraftListMetadata(draft)
+            }
+          : undefined
+      }
+    })
+  }
 }
 
 export async function getAuthoredDomain(
@@ -194,11 +220,21 @@ export async function getAuthoredDomain(
     userId
   })
   if (!selectedActive) return draftDetail
-  const item = await config.createService(db).findById(selectedActive.subjectId)
-  if (!item) {
-    throw new Error(`${config.subjectKind} "${selectedActive.subjectId}" could not be hydrated.`)
+  const version = await createAuthoredVersionRepository(db).findActive({
+    subjectKind: config.subjectKind,
+    subjectId: selectedActive.subjectId
+  })
+  if (!version) {
+    throw new Error(`${config.subjectKind} "${selectedActive.subjectId}" has no active version.`)
   }
-  const response = await buildActiveDetail(db, config, selectedActive, item, userId, input.meta)
+  const response = await buildActiveDetail(
+    db,
+    config,
+    selectedActive,
+    version.authored.document,
+    userId,
+    input.meta
+  )
 
   return {
     ...response,
@@ -476,7 +512,13 @@ export async function activateAuthoredDomainDraft(
     const normalizedBody = config.schema.parse(normalized.values)
     const result = await config
       .createService(trx)
-      .execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+      .prepare(normalizeActivatedAuthoringInput(normalizedBody, userId))
+    await publishVersionedAuthoredAggregate({
+      authored: result.authored,
+      compiled: result.compiled,
+      db: trx,
+      subjectKind: config.subjectKind
+    })
     const media = createMediaRepository(trx)
     const image = await media.getAuthoredSlot(config.subjectKind, subjectId, 'DRAFT')
     if (image) {
@@ -519,7 +561,13 @@ export async function activateAuthoredDomainInput<TInput extends AuthoredContent
     })
     const result = await config
       .createService(trx)
-      .execute(normalizeActivatedAuthoringInput(normalizedBody, userId))
+      .prepare(normalizeActivatedAuthoringInput(normalizedBody, userId))
+    await publishVersionedAuthoredAggregate({
+      authored: result.authored,
+      compiled: result.compiled,
+      db: trx,
+      subjectKind: config.subjectKind
+    })
     const media = createMediaRepository(trx)
     const image = await media.getAuthoredSlot(config.subjectKind, normalizedBody.id, 'DRAFT')
     if (image) {
@@ -975,7 +1023,6 @@ type AuthoredDomainConfigKey =
 export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthoredDomainConfig> = {
   backgrounds: {
     createService: createBackgroundSubjectAuthoringService,
-    listQuery: getBackgroundListQuery,
     mapId: 'background',
     meta: backgroundDetailMeta,
     schema: backgroundAuthoredDtoSchema,
@@ -984,7 +1031,6 @@ export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthor
   } satisfies DirectAuthoredDomainConfig,
   classes: {
     createService: createClassSubjectAuthoringService,
-    listQuery: getClassListQuery,
     mapId: 'class',
     meta: classDetailMeta,
     schema: classAuthoredDtoSchema,
@@ -993,7 +1039,6 @@ export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthor
   } satisfies DirectAuthoredDomainConfig,
   creatures: {
     createService: createCreatureSubjectAuthoringService,
-    listQuery: getCreatureListQuery,
     mapId: 'creature',
     meta: creatureDetailMeta,
     schema: creatureAuthoredDtoSchema,
@@ -1002,7 +1047,6 @@ export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthor
   } satisfies DirectAuthoredDomainConfig,
   equipment: {
     createService: createEquipmentSubjectAuthoringService,
-    listQuery: getEquipmentListQuery,
     mapId: 'equipment',
     meta: equipmentDetailMeta,
     schema: equipmentAuthoredDtoSchema,
@@ -1011,7 +1055,6 @@ export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthor
   } satisfies DirectAuthoredDomainConfig,
   feats: {
     createService: createFeatSubjectAuthoringService,
-    listQuery: getFeatListQuery,
     mapId: 'feat',
     schema: featAuthoredDtoSchema,
     subjectKind: 'FEAT',
@@ -1019,7 +1062,6 @@ export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthor
   } satisfies DirectAuthoredDomainConfig,
   races: {
     createService: createRaceSubjectAuthoringService,
-    listQuery: getRaceListQuery,
     mapId: 'race',
     meta: raceDetailMeta,
     schema: raceAuthoredDtoSchema,
@@ -1028,7 +1070,6 @@ export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthor
   } satisfies DirectAuthoredDomainConfig,
   spells: {
     createService: createSpellSubjectAuthoringService,
-    listQuery: getSpellListQuery,
     mapId: 'spell',
     meta: spellDetailMeta,
     schema: spellAuthoredDtoSchema,
@@ -1037,7 +1078,6 @@ export const authoredDomainConfigs: Record<AuthoredDomainConfigKey, DirectAuthor
   } satisfies DirectAuthoredDomainConfig,
   vehicles: {
     createService: createVehicleSubjectAuthoringService,
-    listQuery: getVehicleListQuery,
     mapId: 'vehicle',
     meta: vehicleDetailMeta,
     schema: vehicleAuthoredDtoSchema,

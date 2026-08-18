@@ -1,4 +1,4 @@
-import type { Api, AuthoredDetailRequestDto } from '#app/lib/api'
+import type { Api, AuthoredDetailRequestDto, BackgroundListRequestDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { createAuthoredContentQueries } from '#app/data/authoredContentQueries'
 
@@ -9,12 +9,12 @@ const backgroundQueries = createAuthoredContentQueries(
   queryKeys.content.backgrounds
 )
 
-export function getBackgroundList(client?: Api) {
-  return backgroundQueries.getList(client)
+export function getBackgroundList(input: BackgroundListRequestDto, client?: Api) {
+  return backgroundQueries.getList(input, client)
 }
 
-export function useGetBackgroundList() {
-  return backgroundQueries.useList()
+export function useGetBackgroundList(input: BackgroundListRequestDto) {
+  return backgroundQueries.useList(input)
 }
 
 export function getBackground(input: DetailInput, client?: Api) {

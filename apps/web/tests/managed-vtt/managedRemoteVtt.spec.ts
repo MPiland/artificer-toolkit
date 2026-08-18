@@ -15,7 +15,6 @@ const characterSheetPath = requiredPath('MANAGED_VTT_CHARACTER_SHEET_PATH', '/ch
 const liveSessionEndpoint = requiredHttpsOrigin('MANAGED_LIVE_SESSION_ENDPOINT')
 const playerCredentials = credentials('PLAYER')
 const player2Credentials = credentials('PLAYER2')
-const ruleActionLabel = requiredValue('MANAGED_VTT_RULE_ACTION_LABEL')
 const doorIndex = 1
 const authorityReleaseWaitMs = 30_000
 const liveSessionWebSocketOrigin = liveSessionEndpoint.replace(/^https:/, 'wss:')
@@ -44,6 +43,7 @@ test('connects three users through the managed room and recovers a reversible sc
     const readyStartedAt = performance.now()
     await Promise.all([openTabletop(gm), openTabletop(player), openTabletop(player2)])
     timings.readyMs = performance.now() - readyStartedAt
+    console.info(`Managed VTT ready: ${timings.readyMs.toFixed(1)}ms`)
 
     await expect(gm.page.getByText('Live editing available')).toBeVisible()
     await expect(gm.page.getByRole('radiogroup', { name: 'Tabletop mode' })).toBeVisible()
@@ -83,19 +83,19 @@ test('connects three users through the managed room and recovers a reversible sc
     clients.push(player2)
     await openTabletop(player2)
     await expectManagedSocket(player2)
-    await expectDoorAction(player2.page, currentDoorAction)
+    await expectDoorAction(player2, currentDoorAction)
 
     player = await openManagedClient(browser, 'PLAYER', playerCredentials)
     clients.push(player)
     await openTabletop(player)
     await expectManagedSocket(player)
-    await expectDoorAction(player.page, currentDoorAction)
+    await expectDoorAction(player, currentDoorAction)
 
     gm = await openManagedClient(browser, 'GM', gmCredentials)
     clients.push(gm)
     await openTabletop(gm)
     await expectManagedSocket(gm)
-    await expectDoorAction(gm.page, currentDoorAction)
+    await expectDoorAction(gm, currentDoorAction)
     timings.recoveryMs = performance.now() - recoveryStartedAt
 
     await testInfo.attach('managed-vtt-timings', {
@@ -171,12 +171,12 @@ async function collectDoorHostTimings(
     const priorFrameCount = gm.liveSessionFrames.length
     await clickDoorAction(gm.page, action)
     action = oppositeDoorAction(action)
+    const timing = await waitForOriginHostTiming(gm, priorFrameCount, 'SCENE_ONLY')
     await Promise.all([
-      expectDoorAction(gm.page, action),
-      ...players.map((player) => expectDoorAction(player.page, action))
+      expectDoorAction(gm, action),
+      ...players.map((player) => expectDoorAction(player, action))
     ])
     diagnostics[`doorCommit${index + 1}Ms`] = performance.now() - startedAt
-    const timing = await waitForOriginHostTiming(gm, priorFrameCount, 'SCENE_ONLY')
     if (index >= 3) samples.push(timing)
   }
   return action
@@ -185,26 +185,48 @@ async function collectDoorHostTimings(
 async function collectRuleHostTimings(client: ManagedClient, samples: number[]): Promise<void> {
   const sheet = await client.context.newPage()
   try {
+    observeLiveSessionSockets(sheet, client)
     await gotoManagedPage(sheet, characterSheetPath)
-    const restoreLabel = oppositeRuleActionLabel(ruleActionLabel)
+    await sheet.getByRole('button', { name: 'Manage hit points' }).click()
+    const modifierInput = sheet.getByLabel('Max HP adjustment', { exact: true })
+    await expect(modifierInput).toBeVisible()
+    const originalModifier = Number(await modifierInput.inputValue())
+    if (!Number.isFinite(originalModifier)) {
+      throw new Error('The managed smoke Character has an invalid Max HP adjustment.')
+    }
+    const alternateModifier = originalModifier === 0 ? 1 : 0
     for (let index = 0; index < warmupPairs + measuredPairs; index += 1) {
-      await clickRuleActionAndCollect(client, sheet, ruleActionLabel, index >= warmupPairs, samples)
-      await clickRuleActionAndCollect(client, sheet, restoreLabel, index >= warmupPairs, samples)
+      await setMaxHpModifierAndCollect(
+        client,
+        sheet,
+        alternateModifier,
+        index >= warmupPairs,
+        samples
+      )
+      await setMaxHpModifierAndCollect(
+        client,
+        sheet,
+        originalModifier,
+        index >= warmupPairs,
+        samples
+      )
     }
   } finally {
     await sheet.close()
   }
 }
 
-async function clickRuleActionAndCollect(
+async function setMaxHpModifierAndCollect(
   client: ManagedClient,
   sheet: Page,
-  action: string,
+  value: number,
   collect: boolean,
   samples: number[]
 ): Promise<void> {
   const priorFrameCount = client.liveSessionFrames.length
-  await sheet.getByRole('button', { name: action, exact: true }).click()
+  const input = sheet.getByLabel('Max HP adjustment', { exact: true })
+  await input.fill(String(value))
+  await input.press('Enter')
   const timing = await waitForOriginHostTiming(client, priorFrameCount, 'RULE_BOUND')
   if (collect) samples.push(timing)
 }
@@ -214,43 +236,57 @@ async function waitForOriginHostTiming(
   priorFrameCount: number,
   category: 'RULE_BOUND' | 'SCENE_ONLY'
 ): Promise<number> {
-  await expect
-    .poll(() => {
-      const frame = client.liveSessionFrames.slice(priorFrameCount).find((value) => {
-        const parsed = parseHostTiming(value)
-        return parsed?.category === category
-      })
-      return frame ?? null
-    })
-    .not.toBeNull()
-  const frame = client.liveSessionFrames.slice(priorFrameCount).find((value) => {
-    const parsed = parseHostTiming(value)
-    return parsed?.category === category
-  })
-  const timing = frame ? parseHostTiming(frame) : null
-  if (!timing) throw new Error(`Missing ${category} host timing.`)
-  return timing.durationMs
+  const readOutcome = () =>
+    client.liveSessionFrames
+      .slice(priorFrameCount)
+      .map((value) => parseCommandOutcome(value, category))
+      .find((outcome) => outcome !== null) ?? null
+  try {
+    await expect.poll(readOutcome).not.toBeNull()
+  } catch (error) {
+    throw new Error(
+      `${client.role} did not receive a ${category} timing receipt. Recent frames: ${JSON.stringify(summarizeFrames(client.liveSessionFrames.slice(-10)))}.`,
+      { cause: error }
+    )
+  }
+  const outcome = readOutcome()
+  if (!outcome) throw new Error(`Missing ${category} command outcome.`)
+  if (outcome.kind === 'REJECTED') {
+    throw new Error(`${category} command rejected (${outcome.code}): ${outcome.message}`)
+  }
+  return outcome.durationMs
 }
 
-function parseHostTiming(value: string): { category: string; durationMs: number } | null {
+function parseCommandOutcome(
+  value: string,
+  category: 'RULE_BOUND' | 'SCENE_ONLY'
+):
+  | { code: string; kind: 'REJECTED'; message: string }
+  | { durationMs: number; kind: 'TIMING' }
+  | null {
   try {
     const parsed: unknown = JSON.parse(value)
     if (!parsed || typeof parsed !== 'object') return null
-    const hostTiming = (parsed as { hostTiming?: unknown }).hostTiming
+    const message = parsed as Record<string, unknown>
+    if (message.type === 'COMMAND_REJECTED') {
+      return {
+        code: typeof message.code === 'string' ? message.code : 'UNKNOWN',
+        kind: 'REJECTED',
+        message: typeof message.message === 'string' ? message.message : 'No rejection message.'
+      }
+    }
+    const hostTiming = message.hostTiming
     if (!hostTiming || typeof hostTiming !== 'object') return null
-    const { category, durationMs } = hostTiming as { category?: unknown; durationMs?: unknown }
-    return typeof category === 'string' && typeof durationMs === 'number'
-      ? { category, durationMs }
+    const { category: timingCategory, durationMs } = hostTiming as {
+      category?: unknown
+      durationMs?: unknown
+    }
+    return timingCategory === category && typeof durationMs === 'number'
+      ? { durationMs, kind: 'TIMING' }
       : null
   } catch {
     return null
   }
-}
-
-function oppositeRuleActionLabel(action: string): string {
-  if (action.startsWith('Use ')) return action.replace(/^Use /, 'Restore ')
-  if (action.startsWith('Restore ')) return action.replace(/^Restore /, 'Use ')
-  throw new Error('MANAGED_VTT_RULE_ACTION_LABEL must begin with "Use " or "Restore ".')
 }
 
 function nearestRankP95(samples: readonly number[]): number {
@@ -313,17 +349,21 @@ async function openManagedClient(
         client.ticketResponses.push(response)
       }
     })
-    page.on('websocket', (socket) => {
-      if (!isLiveSessionSocket(socket.url())) return
-      client.liveSessionUrls.push(socket.url())
-      socket.on('framereceived', ({ payload }) => client.liveSessionFrames.push(payload.toString()))
-    })
+    observeLiveSessionSockets(page, client)
     await test.step(`${role} signs in`, () => signIn(page, account.email, account.password))
     return client
   } catch (error) {
     await context.close()
     throw error
   }
+}
+
+function observeLiveSessionSockets(page: Page, client: ManagedClient): void {
+  page.on('websocket', (socket) => {
+    if (!isLiveSessionSocket(socket.url())) return
+    client.liveSessionUrls.push(socket.url())
+    socket.on('framereceived', ({ payload }) => client.liveSessionFrames.push(payload.toString()))
+  })
 }
 
 function safeRequestUrl(value: string): string {
@@ -495,7 +535,7 @@ async function restoreDoorFromAuthoritativeState(
   const currentDoorAction = await readDoorAction(gm.page, doorIndex)
   if (currentDoorAction === originalDoorAction) return
   await clickDoorAction(gm.page, currentDoorAction)
-  await expectDoorAction(gm.page, originalDoorAction)
+  await expectDoorAction(gm, originalDoorAction)
 }
 
 async function delay(milliseconds: number): Promise<void> {
@@ -534,15 +574,52 @@ async function clickDoorAction(page: Page, action: string): Promise<void> {
   await page.getByRole('menuitem', { name: action, exact: true }).click()
 }
 
-async function expectDoorAction(page: Page, action: string): Promise<void> {
-  await expect
-    .poll(async () => {
-      await page.getByRole('button', { name: 'Scene controls' }).click()
-      const visible = await page.getByRole('menuitem', { name: action, exact: true }).isVisible()
-      await page.keyboard.press('Escape')
-      return visible
-    })
-    .toBe(true)
+async function expectDoorAction(client: ManagedClient, action: string): Promise<void> {
+  await client.page.getByRole('button', { name: 'Scene controls' }).click()
+  try {
+    await expect(client.page.getByRole('menuitem', { name: action, exact: true })).toHaveCount(1)
+  } catch (error) {
+    const alerts = await client.page.getByRole('alert').allTextContents()
+    throw new Error(
+      `${client.role} did not project ${action}. Alerts: ${alerts.join(' | ') || 'none'}. Recent frames: ${JSON.stringify(summarizeFrames(client.liveSessionFrames.slice(-10)))}.`,
+      { cause: error }
+    )
+  } finally {
+    await client.page.keyboard.press('Escape')
+  }
+}
+
+function summarizeFrames(frames: readonly string[]): unknown[] {
+  return frames.flatMap((value) => {
+    try {
+      const parsed: unknown = JSON.parse(value)
+      if (!parsed || typeof parsed !== 'object') return []
+      const message = parsed as Record<string, unknown>
+      const delta =
+        message.delta && typeof message.delta === 'object'
+          ? (message.delta as Record<string, unknown>)
+          : null
+      const hostTiming =
+        message.hostTiming && typeof message.hostTiming === 'object'
+          ? (message.hostTiming as Record<string, unknown>)
+          : null
+      return [
+        {
+          aggregateId: typeof message.aggregateId === 'string' ? message.aggregateId : null,
+          aggregateKind: typeof message.aggregateKind === 'string' ? message.aggregateKind : null,
+          code: typeof message.code === 'string' ? message.code : null,
+          deltaKind: typeof delta?.kind === 'string' ? delta.kind : null,
+          hasSnapshot: Boolean(message.snapshot),
+          hostTimingCategory: typeof hostTiming?.category === 'string' ? hostTiming.category : null,
+          replayed: message.replayed === true,
+          type: typeof message.type === 'string' ? message.type : null,
+          version: typeof message.version === 'number' ? message.version : null
+        }
+      ]
+    } catch {
+      return []
+    }
+  })
 }
 
 function oppositeDoorAction(action: string): string {

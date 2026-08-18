@@ -5,7 +5,7 @@ import {
   createCampaignRepository,
   createCharacterRepository,
   createAccountEntitlementsRepository,
-  createCreatureRepository,
+  createAuthoredVersionRepository,
   createEncounterRepository,
   createRulePackRepository,
   withTransaction,
@@ -17,6 +17,8 @@ import {
   type EncounterTemplateEnemy,
   type Json
 } from '@artificer-toolkit/db'
+import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   encounterCommandResultDtoSchema,
   createEncounterTemplateInputDtoSchema,
@@ -31,6 +33,7 @@ import {
   type UpdateEncounterActorInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
+import { encounterProjectionEventSchema } from '@artificer-toolkit/schema/projections/encounter'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import type { RuleResolutionEvidenceDto } from '@artificer-toolkit/schema/api/rules'
@@ -60,7 +63,6 @@ import {
 } from './encounterActorState.js'
 import {
   evaluateEncounterActorRuleSnapshot,
-  evaluateEncounterActorRules,
   findEncounterFeatureResource,
   refreshEncounterActorRuleSnapshot,
   type EncounterActorRuleSnapshot,
@@ -71,7 +73,11 @@ import {
   EncounterNotFoundError,
   EncounterValidationError
 } from './encounterErrors.js'
-import { projectGm, projectPlayer } from './encounterProjection.js'
+import {
+  compileEncounterCurrentProjection,
+  projectGm,
+  projectPlayerEncounterProjection
+} from './encounterProjection.js'
 import { resolveEncounterAction } from './encounterActionResolution.js'
 import {
   encounterSystemIds,
@@ -81,6 +87,46 @@ import {
 
 function fingerprint(input: unknown): string {
   return createHash('sha256').update(JSON.stringify(input)).digest('hex')
+}
+
+interface EncounterCreatureSource {
+  authored: CreatureAuthored
+  checksum: string
+  version: number
+  versionId: string
+}
+
+async function loadActiveEncounterCreatures(
+  db: DBLike,
+  userId: string,
+  creatureIds: readonly string[]
+): Promise<Map<string, EncounterCreatureSource>> {
+  if (creatureIds.length === 0) return new Map()
+  const records = await createAuthoredVersionRepository(db).findActiveByIds({
+    subjectKind: 'CREATURE',
+    subjectIds: creatureIds,
+    userId,
+    includeMaster: true
+  })
+  return new Map(
+    [...records.entries()].map(([creatureId, record]) => [
+      creatureId,
+      {
+        authored: parseEncounterCreatureDocument(record.authored.document),
+        checksum: record.authored.checksum,
+        version: record.authored.version,
+        versionId: record.authored.versionId
+      }
+    ])
+  )
+}
+
+function parseEncounterCreatureDocument(document: unknown): CreatureAuthored {
+  try {
+    return creatureAuthoredDtoSchema.parse(document) as unknown as CreatureAuthored
+  } catch {
+    throw new EncounterValidationError('Creature is unavailable.')
+  }
 }
 
 function isUniqueViolation(error: unknown): boolean {
@@ -163,12 +209,12 @@ function commandResult(
   encounter: EncounterRecord,
   actorRules: EncounterActorRuleOutput,
   roll: RollRecordDto | null = null
-): Json {
+): EncounterCommandResultDto {
   return encounterCommandResultDtoSchema.parse({
     projection: projectGm(encounter, actorRules),
     roll,
     resolution: null
-  }) as unknown as Json
+  })
 }
 
 export async function createEncounter(
@@ -204,10 +250,12 @@ export async function createEncounter(
       }
       const existing = await encounterRepository.find(prior.encounterId)
       if (!existing) throw new EncounterNotFoundError()
-      return projectGm(
-        existing,
-        await evaluateEncounterActorRules({ db: trx, encounter: existing })
-      )
+      return (
+        await encounterRepository.requireCurrentProjection({
+          encounterId: existing.id,
+          expectedStreamVersion: existing.version
+        })
+      ).projection
     }
     const attendance = await sql<{ character_id: string }>`
       SELECT character_id FROM public.campaign_session_attendance
@@ -301,7 +349,16 @@ export async function createEncounter(
     const hydrated = await encounterRepository.find(created.id)
     if (!hydrated) throw new EncounterNotFoundError()
     created = hydrated
-    const actorRules = await evaluateEncounterActorRules({ db: trx, encounter: created })
+    const actorRuleSnapshot = await evaluateEncounterActorRuleSnapshot({
+      db: trx,
+      encounter: created
+    })
+    const projection = projectGm(created, actorRuleSnapshot.snapshot.output)
+    const currentProjection = compileEncounterCurrentProjection(
+      projection,
+      actorRuleSnapshot.snapshot
+    )
+    await encounterRepository.publishCurrentProjection(currentProjection)
     await encounterRepository.appendEvent({
       id: randomUUID(),
       encounterId: created.id,
@@ -311,11 +368,14 @@ export async function createEncounter(
       commandType: 'CREATE',
       commandFingerprint,
       commandPayload: input as unknown as Json,
-      resultPayload: commandResult(created, actorRules),
+      resultPayload: encounterProjectionEventSchema.parse({
+        command: commandResult(created, actorRuleSnapshot.snapshot.output),
+        currentProjection
+      }) as unknown as Json,
       actorUserId: userId,
       correlationId: null
     })
-    return projectGm(created, actorRules)
+    return projection
   })
 }
 
@@ -343,16 +403,12 @@ export async function createEncounterTemplate(
       await repository.countTemplatesForOwner(userId),
       ENTITLEMENT_LIMITS[tier].savedEncounters
     )
-    const creatureRepository = createCreatureRepository(trx)
     const creatureIds = [
       ...new Set(
         input.enemies.flatMap((enemy) => (enemy.kind === 'CREATURE' ? [enemy.sourceId] : []))
       )
     ]
-    const creatures = await creatureRepository.findByIds(creatureIds, {
-      userId,
-      includeMaster: true
-    })
+    const creatures = await loadActiveEncounterCreatures(trx, userId, creatureIds)
     const enemies: EncounterTemplateEnemy[] = input.enemies.map((enemy) => {
       if (enemy.kind === 'CUSTOM') {
         return {
@@ -370,12 +426,13 @@ export async function createEncounterTemplate(
         }
       }
 
-      const creature = creatures.get(enemy.sourceId)
-      if (!creature || creature.status !== 'ACTIVE') {
+      const source = creatures.get(enemy.sourceId)
+      if (!source) {
         throw new EncounterValidationError('Creature is unavailable.')
       }
+      const creature = source.authored
       const maxHitPoints = Math.max(creature.hitPoints, 0)
-      const sourceRevision = null
+      const sourceRevision = source.version
       return {
         kind: 'CREATURE' as const,
         sourceId: creature.id,
@@ -389,6 +446,8 @@ export async function createEncounterTemplate(
           label: creature.label,
           systemId: creature.systemId,
           sourceRevision,
+          sourceVersionId: source.versionId,
+          sourceChecksum: source.checksum,
           maxHitPoints,
           payload: creature as unknown as Json
         } as unknown as Json
@@ -480,11 +539,12 @@ export async function executeEncounterCommandWithRuleSnapshot(
       ) {
         throw new EncounterConflictError('Command ID was already used with different input.')
       }
+      const priorResult = encounterProjectionEventSchema.parse(prior.resultPayload)
       return {
-        command: encounterCommandResultDtoSchema.parse(prior.resultPayload),
+        command: priorResult.command,
         replayed: true,
         tableEntry: null,
-        ruleSnapshot: matchingCommittedRuleSnapshot
+        ruleSnapshot: priorResult.currentProjection.ruleSnapshot
       }
     }
     if (locked.version !== input.expectedVersion) {
@@ -841,6 +901,11 @@ export async function executeEncounterCommandWithRuleSnapshot(
       roll: rolled,
       resolution
     })
+    const currentProjection = compileEncounterCurrentProjection(
+      command.projection,
+      projectionRuleSnapshot
+    )
+    await repository.publishCurrentProjection(currentProjection)
     await repository.appendEvent({
       id: randomUUID(),
       encounterId: updated.id,
@@ -850,7 +915,10 @@ export async function executeEncounterCommandWithRuleSnapshot(
       commandType: input.type,
       commandFingerprint,
       commandPayload: input as unknown as Json,
-      resultPayload: command as unknown as Json,
+      resultPayload: encounterProjectionEventSchema.parse({
+        command,
+        currentProjection
+      }) as unknown as Json,
       actorUserId: userId,
       correlationId
     })
@@ -898,13 +966,18 @@ export async function getEncounterProjection(
   userId: string,
   encounterId: string
 ): Promise<EncounterGmProjectionDto | EncounterPlayerProjectionDto> {
-  const encounter = await createEncounterRepository(db).find(encounterId)
+  const repository = createEncounterRepository(db)
+  const encounter = await repository.findVersionMetadata(encounterId)
   if (!encounter) throw new EncounterNotFoundError()
   const authority = await resolveCampaignAuthority(db, encounter.campaignId, userId)
   assertActiveCampaignMember(authority)
+  const current = await repository.requireCurrentProjection({
+    encounterId: encounter.id,
+    expectedStreamVersion: encounter.version
+  })
   return authority.membership.role === 'OWNER'
-    ? projectGm(encounter, await evaluateEncounterActorRules({ db, encounter }))
-    : projectPlayer(encounter)
+    ? current.projection
+    : projectPlayerEncounterProjection(current.projection)
 }
 
 export async function getActiveEncounterProjection(
@@ -914,11 +987,16 @@ export async function getActiveEncounterProjection(
 ): Promise<EncounterGmProjectionDto | EncounterPlayerProjectionDto | null> {
   const authority = await resolveCampaignAuthority(db, campaignId, userId)
   assertActiveCampaignMember(authority)
-  const encounter = await createEncounterRepository(db).findActiveForCampaign(campaignId)
+  const repository = createEncounterRepository(db)
+  const encounter = await repository.findActiveVersionMetadataForCampaign(campaignId)
   if (!encounter) return null
+  const current = await repository.requireCurrentProjection({
+    encounterId: encounter.id,
+    expectedStreamVersion: encounter.version
+  })
   return authority.membership.role === 'OWNER'
-    ? projectGm(encounter, await evaluateEncounterActorRules({ db, encounter }))
-    : projectPlayer(encounter)
+    ? current.projection
+    : projectPlayerEncounterProjection(current.projection)
 }
 
 export async function listCampaignEncounterProjections(
@@ -928,13 +1006,21 @@ export async function listCampaignEncounterProjections(
 ): Promise<Array<EncounterGmProjectionDto | EncounterPlayerProjectionDto>> {
   const authority = await resolveCampaignAuthority(db, campaignId, userId)
   assertActiveCampaignMember(authority)
-  const encounters = await createEncounterRepository(db).listForCampaign(campaignId)
-  if (authority.membership.role !== 'OWNER') {
-    return encounters.filter((encounter) => encounter.status === 'ACTIVE').map(projectPlayer)
-  }
+  const repository = createEncounterRepository(db)
+  const encounters = await repository.listVersionMetadataForCampaign(campaignId)
+  const visible =
+    authority.membership.role === 'OWNER'
+      ? encounters
+      : encounters.filter((encounter) => encounter.status === 'ACTIVE')
   return Promise.all(
-    encounters.map(async (encounter) =>
-      projectGm(encounter, await evaluateEncounterActorRules({ db, encounter }))
-    )
+    visible.map(async (encounter) => {
+      const current = await repository.requireCurrentProjection({
+          encounterId: encounter.id,
+          expectedStreamVersion: encounter.version
+      })
+      return authority.membership.role === 'OWNER'
+        ? current.projection
+        : projectPlayerEncounterProjection(current.projection)
+    })
   )
 }

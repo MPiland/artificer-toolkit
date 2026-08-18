@@ -35,6 +35,22 @@ export function CharacterSavePreviewModal({
             ))}
           </List>
         ) : null}
+        {preview?.authoredContentUpgrade ? (
+          <>
+            <Text>
+              Finalizing will explicitly update this character to the reviewed authored-content
+              versions.
+            </Text>
+            <List spacing='xs'>
+              {preview.authoredContentUpgrade.changes.map((change) => (
+                <List.Item key={`${change.subjectKind}:${change.subjectId}`}>
+                  {change.subjectKind}: {change.subjectId} — v{change.previous?.version ?? 'none'}
+                  {' → '}v{change.next?.version ?? 'removed'}
+                </List.Item>
+              ))}
+            </List>
+          </>
+        ) : null}
         <Group justify='flex-end'>
           <Button
             className={styles.modalActionButton}
@@ -50,7 +66,7 @@ export function CharacterSavePreviewModal({
             loading={isCommitting}
             onClick={onConfirm}
           >
-            Finalize
+            {preview?.authoredContentUpgrade ? 'Finalize and apply updates' : 'Finalize'}
           </Button>
         </Group>
       </Stack>

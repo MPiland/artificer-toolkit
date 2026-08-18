@@ -18,6 +18,7 @@ import {
   createAuthoredSpell,
   createConditionDb,
   createResolution,
+  createSystem,
   createSpellcastingClass,
   createSpellcastingSubclass,
   createSpell,
@@ -783,6 +784,11 @@ describe('character sheet spell projection', () => {
       }
     ]
     const resolution = createResolution()
+    const system = createSystem({
+      damageTypes: [{ id: 'force', code: 'FORCE', label: 'Force' }]
+    })
+    resolution.registry.system = system
+    resolution.sourceRegistry.system = system
     resolution.registry.classes = [
       createSpellcastingClass({
         attributes: [SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT],

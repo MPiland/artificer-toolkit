@@ -5,6 +5,7 @@
 - **Scope:** Character, Encounter, and future VTT mechanical evaluation; rule-pack revisions and migration from the TypeScript engine
 - **Update when:** evaluator boundary, revision identity, model contract, Character pin policy, command responsibility, or migration gate changes
 - **Verification:** rule-pack revision and Character finalization/upgrade contracts; Character and Encounter evaluator conformance fixtures
+- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) makes version-matched Character mechanics projections durable correctness read models; Zen remains the single rules authority.
 
 ## Context
 

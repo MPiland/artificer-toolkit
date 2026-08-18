@@ -120,7 +120,7 @@ export const calibrationMarker = style({
       border: '2px solid #ffffff',
       borderRadius: foundationVars.radius.pill,
       background: foundationVars.color.accent.focus,
-      boxShadow: '0 0 0 2px rgba(7, 9, 11, 0.7)',
+      boxShadow: foundationVars.shadow.focus,
       pointerEvents: 'none'
     }
   }
