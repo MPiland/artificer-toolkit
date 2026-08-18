@@ -10,6 +10,19 @@ const CONFIRMATION_VALUE = 'reset-public-schema'
 const DOMAINS_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../domains')
 const BOOTSTRAP_ENTRY_FILE = join(DOMAINS_ROOT, 'utils', 'create_database.sql')
 
+export type RemoteSchemaResetTarget = 'staging' | 'production'
+
+const REMOTE_RESET_TARGETS = {
+  staging: {
+    connectionVariable: 'STAGING_DATABASE_CONNECTION_STRING',
+    flag: '--staging'
+  },
+  production: {
+    connectionVariable: 'PROD_DATABASE_CONNECTION_STRING',
+    flag: '--production'
+  }
+} as const satisfies Record<RemoteSchemaResetTarget, { connectionVariable: string; flag: string }>
+
 interface BootstrapStage {
   label: string
   sql: string
@@ -39,8 +52,25 @@ export function assertRemoteDatabaseConnectionString(connectionString: string): 
   const localHostnames = new Set(['0.0.0.0', '127.0.0.1', '::1', '[::1]', 'localhost'])
 
   if (localHostnames.has(hostname) || hostname.startsWith('127.')) {
-    throw new Error('PROD_DATABASE_CONNECTION_STRING must not point to a local database.')
+    throw new Error('A hosted public-schema reset must not point to a local database.')
   }
+}
+
+export function parseRemoteSchemaResetTarget(
+  args: readonly string[]
+): RemoteSchemaResetTarget {
+  const targets = (Object.entries(REMOTE_RESET_TARGETS) as [
+    RemoteSchemaResetTarget,
+    (typeof REMOTE_RESET_TARGETS)[RemoteSchemaResetTarget]
+  ][]).filter(([, configuration]) => args.includes(configuration.flag))
+
+  if (targets.length !== 1) {
+    throw new Error('Pass exactly one of --staging or --production.')
+  }
+
+  const target = targets[0]?.[0]
+  if (!target) throw new Error('A hosted public-schema reset target is required.')
+  return target
 }
 
 async function readBootstrapStages(
@@ -191,7 +221,8 @@ async function rebuildPublicSchema(client: DatabaseClient): Promise<void> {
 }
 
 async function main() {
-  const connectionString = requireEnv('PROD_DATABASE_CONNECTION_STRING')
+  const target = parseRemoteSchemaResetTarget(process.argv.slice(2))
+  const connectionString = requireEnv(REMOTE_RESET_TARGETS[target].connectionVariable)
   const confirmation = requireEnv('CONFIRM_REMOTE_PUBLIC_SCHEMA_RESET')
 
   assertRemoteDatabaseConnectionString(connectionString)
@@ -202,7 +233,7 @@ async function main() {
 
   const client = new Client({ connectionString })
 
-  console.log(`Resetting public schema on ${describeDatabase(connectionString)}.`)
+  console.log(`Resetting ${target} public schema on ${describeDatabase(connectionString)}.`)
 
   await client.connect()
 

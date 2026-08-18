@@ -47,6 +47,17 @@ Use this staging workflow:
 
 After staging validation, the corresponding production promotion is `yarn seed-owner:production`, `yarn seed:srd:production:dry-run`, `yarn seed:srd:production`, and `yarn audit:srd:production`. Each command names its target explicitly. Staging reads only `STAGING_DATABASE_CONNECTION_STRING`, `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_SECRET_KEY`, and `STAGING_SEED_OWNER_EMAIL`; production reads the corresponding `PROD_*` variables. Seed-owner passwords remain optional and are generated when omitted.
 
+## Hosted public-schema reset
+
+Reset only after explicit approval for the named environment. The reset drops and recreates that environment's `public` schema from the canonical bootstrap; it preserves `auth` users. The bootstrap recreates their public profiles and entitlements before the named seed owner, source corpus, and staging fixtures are restored.
+
+```text
+CONFIRM_REMOTE_PUBLIC_SCHEMA_RESET=reset-public-schema yarn db:reset:staging
+CONFIRM_REMOTE_PUBLIC_SCHEMA_RESET=reset-public-schema yarn db:reset:production
+```
+
+There is intentionally no targetless remote-reset command. Reset staging, run its seed owner/dry run/seed/audit, then recreate the dedicated VTT test profiles and fixture with `yarn provision:vtt-managed-smoke:staging`. Promote production through the corresponding named workflow only after the staging gates pass.
+
 ## Closed-alpha authentication
 
 `PUBLIC_SIGN_UP_ENABLED` controls application presentation and the application-initiated sign-up action. It defaults to disabled unless its server-only environment value is exactly `true`. Change the value in the root `.env.local` for local work or in the hosted application environment for deployment, then restart or redeploy the application.

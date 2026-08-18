@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   assertRemoteDatabaseConnectionString,
+  parseRemoteSchemaResetTarget,
   readPublicSchemaBootstrapStages
 } from '../scripts/resetRemotePublicSchema.js'
 
@@ -24,6 +25,17 @@ describe('remote public-schema reset target', () => {
     ).not.toThrow()
   })
 
+  it('requires an explicit remote target', () => {
+    expect(() => parseRemoteSchemaResetTarget([])).toThrow(
+      'Pass exactly one of --staging or --production.'
+    )
+    expect(() => parseRemoteSchemaResetTarget(['--staging', '--production'])).toThrow(
+      'Pass exactly one of --staging or --production.'
+    )
+    expect(parseRemoteSchemaResetTarget(['--staging'])).toBe('staging')
+    expect(parseRemoteSchemaResetTarget(['--production'])).toBe('production')
+  })
+
   it('loads the canonical schema as lock-bounded SQL stages', async () => {
     const stages = await readPublicSchemaBootstrapStages()
 
@@ -32,6 +44,13 @@ describe('remote public-schema reset target', () => {
     expect(stages.every((stage) => !stage.sql.includes('\\set '))).toBe(true)
     expect(
       stages.some((stage) => stage.sql.includes('CREATE TABLE IF NOT EXISTS public.systems'))
+    ).toBe(true)
+    expect(
+      stages.some(
+        (stage) =>
+          stage.sql.includes('INSERT INTO public.profiles') &&
+          stage.sql.includes('FROM auth.users AS auth_user')
+      )
     ).toBe(true)
   })
 })
