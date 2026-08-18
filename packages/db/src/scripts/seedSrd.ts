@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url'
 import type { Transaction } from 'kysely'
 
 import { createDb } from '../client.js'
-import { pruneStaleBaselineContent, seedBaselineContent } from '../seed/baseline.js'
+import { seedBaselineContent } from '../seed/baseline.js'
 import { assignBaselineContentOwner } from '../source-data/content.js'
 import { SRD_SYSTEM_ID, srdBaselineContent } from '../source-data/srd/index.js'
 import type { Database } from '../types/index.js'
@@ -16,19 +16,6 @@ import {
   type SeedOwnerEnvironment,
   type SeedTarget
 } from './seedOwner.js'
-import {
-  applyCorpusSync,
-  assertMatchingShapes,
-  corpusTableNames,
-  createQueryClient,
-  listPublicTableNames,
-  loadSnapshots,
-  orderTables,
-  readForeignKeyEdges,
-  readTableShapes,
-  truncatePublicTables,
-  type TableSnapshot
-} from './srdBatchSync.js'
 
 const CONFIRM_FLAG = '--confirm-seed-srd'
 const DRY_RUN_FLAG = '--dry-run'
@@ -38,7 +25,6 @@ const TARGET_FLAGS = {
   production: '--production'
 } as const satisfies Record<SeedTarget, string>
 const ROLLBACK_DRY_RUN = new Error('ROLLBACK_SRD_DRY_RUN')
-const ROLLBACK_LOCAL_MATERIALIZATION = new Error('ROLLBACK_LOCAL_SRD_MATERIALIZATION')
 
 export interface SeedInvocation {
   dryRun: boolean
@@ -105,104 +91,19 @@ async function seedAndAudit(
   return result
 }
 
-interface MaterializedCorpus {
-  sourceShapes: Awaited<ReturnType<typeof readTableShapes>>
-  snapshots: TableSnapshot[]
-}
-
-async function materializeCorpus(
-  sourceOwnerId: string,
-  targetOwnerId: string
-): Promise<MaterializedCorpus> {
-  const localEnvironment = readSeedOwnerEnvironment('local')
-  assertDatabaseTarget('local', localEnvironment.connectionString)
-  const localDb = createDb({ connectionString: localEnvironment.connectionString })
-  let materialized: MaterializedCorpus | undefined
-
-  try {
-    console.info('Materializing the repository SRD corpus in a rollback-only local transaction...')
-    try {
-      await localDb.transaction().execute(async (transaction) => {
-        const client = createQueryClient(transaction)
-        const publicTables = await listPublicTableNames(client)
-
-        // Build a pristine relational corpus from repository source without preserving a second
-        // local database. PostgreSQL rolls the truncate and every normalized seed write back.
-        await truncatePublicTables(client, publicTables)
-        await seedAndAudit(transaction, sourceOwnerId)
-
-        const tableNames = corpusTableNames(publicTables)
-        const sourceShapes = await readTableShapes(client, tableNames)
-        const orderedTables = orderTables(tableNames, await readForeignKeyEdges(client))
-        materialized = {
-          sourceShapes,
-          snapshots: await loadSnapshots(
-            client,
-            orderedTables,
-            sourceShapes,
-            sourceOwnerId,
-            targetOwnerId
-          )
-        }
-        throw ROLLBACK_LOCAL_MATERIALIZATION
-      })
-    } catch (error) {
-      if (error !== ROLLBACK_LOCAL_MATERIALIZATION) throw error
-    }
-  } finally {
-    await localDb.destroy()
-  }
-
-  if (!materialized) throw new Error('Failed to materialize the local SRD corpus.')
-  return materialized
-}
-
 async function seedHostedTarget(
   invocation: SeedInvocation,
   targetOwnerId: string,
   targetConnectionString: string
-): Promise<{ relationalRows: number; tables: number }> {
-  const localEnvironment = readSeedOwnerEnvironment('local')
-  const localOwner = await ensureSeedOwnerUser(localEnvironment)
-  const materialized = await materializeCorpus(localOwner.id, targetOwnerId)
+): Promise<{ domainRoots: number; systems: number }> {
   const targetDb = createDb({ connectionString: targetConnectionString })
-  const result = {
-    relationalRows: materialized.snapshots.reduce(
-      (total, snapshot) => total + snapshot.rows.length,
-      0
-    ),
-    tables: materialized.snapshots.length
-  }
-  console.info(
-    `Materialized ${result.relationalRows} relational rows across ${result.tables} tables.`
-  )
+  let result: { domainRoots: number; systems: number } | undefined
 
   try {
-    console.info('Validating the target schema and synchronizing FK-ordered 500-row batches...')
+    console.info('Compiling the repository SRD corpus directly into the selected target transaction...')
     try {
       await targetDb.transaction().execute(async (transaction) => {
-        const client = createQueryClient(transaction)
-        const targetTables = new Set(await listPublicTableNames(client))
-        const missingTables = materialized.snapshots
-          .map(({ name }) => name)
-          .filter((tableName) => !targetTables.has(tableName))
-        if (missingTables.length > 0) {
-          throw new Error(`Target database is missing corpus tables: ${missingTables.join(', ')}.`)
-        }
-
-        const snapshotTableNames = materialized.snapshots.map(({ name }) => name)
-        assertMatchingShapes(
-          materialized.sourceShapes,
-          await readTableShapes(client, snapshotTableNames),
-          snapshotTableNames
-        )
-
-        await client.query('set constraints all deferred')
-        await pruneStaleBaselineContent(
-          { db: transaction, systemId: SRD_SYSTEM_ID },
-          assignBaselineContentOwner(srdBaselineContent, targetOwnerId)
-        )
-        await applyCorpusSync(client, materialized.snapshots, await readForeignKeyEdges(client))
+        result = await seedAndAudit(transaction, targetOwnerId)
         if (invocation.dryRun) throw ROLLBACK_DRY_RUN
       })
     } catch (error) {
@@ -212,6 +113,7 @@ async function seedHostedTarget(
     await targetDb.destroy()
   }
 
+  if (!result) throw new Error('Hosted SRD seed did not produce a result.')
   return result
 }
 

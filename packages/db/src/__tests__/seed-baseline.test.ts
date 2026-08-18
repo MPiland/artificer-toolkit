@@ -3,6 +3,7 @@ import type { DBLike } from '../types/index.js'
 import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
 
 import {
+  checksumCanonicalJson,
   checksumCompiledAuthoredProjection,
   checksumSystemVocabularySnapshot
 } from '../utils/index.js'
@@ -80,7 +81,7 @@ vi.mock('../repositories/index.js', () => ({
 }))
 
 import { seedBaselineContent } from '../seed/baseline.js'
-import { defineBaselineContentBundle } from '../source-data/content.js'
+import { assignBaselineContentOwner, defineBaselineContentBundle } from '../source-data/content.js'
 import { srdBaselineContent } from '../source-data/srd/index.js'
 
 type SeedRow = Record<string, unknown>
@@ -325,6 +326,25 @@ describe('seedBaselineContent', () => {
       systems: 1,
       domainRoots: 0
     })
+  })
+
+  it('compiles the immutable document with the selected seed owner', async () => {
+    const background = srdBaselineContent.subjects.backgrounds[0]
+    if (!background) throw new Error('SRD background fixture is missing.')
+    const targetOwnerId = 'target-owner-1'
+    const bundle = createEmptyBundle(background.systemId)
+    bundle.subjects.backgrounds.push(background)
+    const { db } = createSeedTransactionDb()
+
+    await seedBaselineContent(
+      { db: db as unknown as DBLike, systemId: background.systemId },
+      assignBaselineContentOwner(bundle, targetOwnerId)
+    )
+
+    const published = versionState.activeBySubject.get(`BACKGROUND:${background.id}`)?.authored
+    if (!published) throw new Error('Baseline seed did not publish the background.')
+    expect(published.document).toEqual(expect.objectContaining({ userId: targetOwnerId }))
+    expect(published.checksum).toBe(checksumCanonicalJson(published.document))
   })
 
   it('pins an equipment variant to the exact published parent version', async () => {
