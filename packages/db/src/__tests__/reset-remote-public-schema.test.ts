@@ -46,7 +46,7 @@ describe('remote public-schema reset target', () => {
     expect(
       stages.some(
         (stage) =>
-          stage.sql.includes('INSERT INTO public.profiles') &&
+          stage.sql.includes("'user_' || left(md5(auth_user.id::text), 24)") &&
           stage.sql.includes('FROM auth.users AS auth_user')
       )
     ).toBe(true)

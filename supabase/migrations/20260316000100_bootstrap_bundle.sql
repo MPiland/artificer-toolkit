@@ -268,6 +268,20 @@ BEGIN
 END;
 $$;
 
+-- A public-schema reset preserves auth.users. Give each preserved account a
+-- valid deterministic profile before later migrations make usernames required.
+INSERT INTO public.profiles (id, username, full_name, avatar_url)
+SELECT
+  auth_user.id,
+  'user_' || left(md5(auth_user.id::text), 24),
+  auth_user.raw_user_meta_data ->> 'full_name',
+  auth_user.raw_user_meta_data ->> 'avatar_url'
+FROM auth.users AS auth_user
+ON CONFLICT (id) DO UPDATE SET
+  username = EXCLUDED.username,
+  full_name = EXCLUDED.full_name,
+  avatar_url = EXCLUDED.avatar_url;
+
 
 /* ──────────────────────────────────────────────
  * AUTH HOOK: inject is_super_admin into JWT
