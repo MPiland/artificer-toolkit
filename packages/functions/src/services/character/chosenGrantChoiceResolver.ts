@@ -471,7 +471,9 @@ function getTargetIds(
   selectedIds: string[] | undefined,
   allIds: string[]
 ): string[] {
-  return authoringModeKind === AUTHORING_MODE_KIND.ALL ? allIds : (selectedIds ?? [])
+  if (authoringModeKind === AUTHORING_MODE_KIND.ALL) return allIds
+  const availableIds = new Set(allIds)
+  return (selectedIds ?? []).filter((id) => availableIds.has(id))
 }
 
 function labelVocabularyIds(

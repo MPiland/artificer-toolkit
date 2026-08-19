@@ -93,9 +93,11 @@ export function useCommitCharacterBuilderMutation() {
     mutationFn: (input: CharacterBuilderCommitRequestDto) => api.characters.upsert(input),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.characters.all() })
-      queryClient.setQueryData(queryKeys.characters.detail(response.character.id), response)
       await queryClient.invalidateQueries({
         queryKey: queryKeys.characters.draft(response.character.id)
+      })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.characters.detail(response.character.id)
       })
       await queryClient.invalidateQueries({
         queryKey: queryKeys.characters.sheet(response.character.id)

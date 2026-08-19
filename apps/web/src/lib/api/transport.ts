@@ -45,6 +45,7 @@ import type {
 } from '@artificer-toolkit/schema/api/auth'
 import type {
   CharacterBuilderCommitRequestDto,
+  CharacterBuilderCommitReceiptDto,
   CharacterBuilderDraftDto,
   CharacterBuilderDraftSaveRequestDto,
   CharacterBuilderPayloadDto,
@@ -846,7 +847,7 @@ export interface TrpcClient {
       CharacterBuilderDraftDto
     >
     sheet: QueryProcedure<IdProcedureInput, CharacterSheetResponseDto | null>
-    upsert: MutationProcedure<CharacterBuilderCommitRequestDto, CharacterBuilderPayloadDto>
+    upsert: MutationProcedure<CharacterBuilderCommitRequestDto, CharacterBuilderCommitReceiptDto>
   }
   content: {
     backgrounds: AuthoredDomainProcedures<

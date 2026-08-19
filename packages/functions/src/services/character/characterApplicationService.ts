@@ -1,6 +1,7 @@
 import {
   createEmptyCharacterAuthored,
   loadCharacterBuilderContext,
+  loadCharacterStructuralRuleContext,
   resolveCharacterBuilder,
   type CharacterBuilderResolution
 } from './builderService.js'
@@ -64,6 +65,7 @@ import {
   characterBuilderSaveRequestDtoSchema,
   characterDraftRequestDtoSchema,
   type CharacterBuilderPayloadDto,
+  type CharacterBuilderCommitReceiptDto,
   type CharacterBuilderDraftPayloadDto,
   type CharacterBuilderDraftDto,
   type CharacterBuilderDraftSummaryDto,
@@ -305,7 +307,7 @@ async function buildCharacterBuilderSavePayload(params: {
     status: params.existing?.status ?? AUTHORED_RECORD_STATUS.DRAFT,
     userId: params.userId
   }
-  let context = await loadCharacterBuilderContext(params.db, authored, [], {
+  let context = await loadCharacterStructuralRuleContext(params.db, authored, [], {
     includeEffects: true
   })
   const reconciled = await reconcileCharacterBuilderCharacter(
@@ -351,7 +353,7 @@ async function buildCharacterBuilderSavePayload(params: {
     })
     character = materialized.character
     if (materialized.changed) {
-      context = await loadCharacterBuilderContext(params.db, character, [], {
+      context = await loadCharacterStructuralRuleContext(params.db, character, [], {
         includeEffects: true
       })
       draftResolution = await resolveCharacterBuilder(
@@ -1106,7 +1108,7 @@ export async function upsertCharacterBuilderForUser(
   db: Parameters<typeof createCharacterRepository>[0],
   body: ReturnType<typeof characterBuilderCommitRequestDtoSchema.parse>,
   userId: string
-): Promise<CharacterBuilderPayloadDto> {
+): Promise<CharacterBuilderCommitReceiptDto> {
   const repository = createCharacterRepository(db)
   const existing = await repository.findAuthoredById(body.character.id)
   if (existing && existing.userId !== userId) {
@@ -1301,19 +1303,23 @@ export async function upsertCharacterBuilderForUser(
         characterId: payload.character.id,
         userId
       })
-      return { identity, payload }
+      return {
+        identity,
+        payload,
+        mechanicsProjectionChecksum: publishedMechanics.projectionChecksum,
+        streamVersion: nextStreamVersion
+      }
     }
   )
 
   const persisted = await repository.findAuthoredById(committed.payload.character.id)
   const nextCharacter = persisted ?? committed.payload.character
-  return toCharacterBuilderPayload(
-    nextCharacter,
-    committed.payload.resolution,
-    undefined,
-    undefined,
-    committed.identity.publicId
-  )
+  return {
+    character: nextCharacter,
+    publicId: committed.identity.publicId,
+    streamVersion: committed.streamVersion,
+    mechanicsProjectionChecksum: committed.mechanicsProjectionChecksum
+  }
 }
 
 export async function dispatchCommandForUser(

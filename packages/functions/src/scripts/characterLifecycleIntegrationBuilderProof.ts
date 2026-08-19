@@ -201,10 +201,13 @@ export async function proveFixtureLifecycle(
     fixture.userId
   )
   assert.equal(finalized.character.status, AUTHORED_RECORD_STATUS.ACTIVE)
-  assert.equal(finalized.resolution.readiness.ready, true)
   assert.ok(finalized.publicId, `${fixture.label} finalization did not create a public route id.`)
+  assert.ok(finalized.streamVersion > 0, `${fixture.label} finalization did not publish a stream.`)
+  assert.ok(
+    finalized.mechanicsProjectionChecksum,
+    `${fixture.label} finalization did not publish mechanics.`
+  )
   assertCharacterProgression(finalized.character, fixture, 'finalized character')
-  assertResolvedClassLevels(finalized.resolution, fixture, 'finalized resolution')
 
   const persisted = await createCharacterRepository(db).findAuthoredById(fixture.characterId)
   assert.ok(persisted, `${fixture.label} finalization did not persist the aggregate.`)

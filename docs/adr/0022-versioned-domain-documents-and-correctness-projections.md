@@ -1,6 +1,6 @@
 # ADR 0022: Versioned domain documents and correctness projections
 
-- **Status:** transitional
+- **Status:** accepted — implementation and staging release validation in progress
 - **Date:** 2026-08-17
 - **Scope:** authored versions, System vocabulary snapshots, Character mechanics projections, replayable Encounter/Scene projections, and live-command reads
 - **Update when:** projection inputs/checksums, synchronous publication, domain ownership, or command-read contracts change
@@ -29,4 +29,4 @@ This decision amends ADRs 0002 and 0003: Kysely/SQL ownership and explicit model
 
 ADRs 0006, 0009, 0012, 0013, and 0014 remain in force: Builder/Sheet ownership, Encounter separation, media ownership, Campaign authorization, and Social privacy are preserved.
 
-The unfinished `character_committed_rule_snapshots` work is removed rather than extended because it does not satisfy this contract. Environments may be reset/reseeded from canonical migrations and TypeScript source data only after the exact operator deletion map and release gates are verified.
+The unfinished `character_committed_rule_snapshots` work is removed rather than extended because it does not satisfy this contract. Staging has reset/reseeded from canonical migrations and TypeScript source data after source, rebuild, and reset contracts passed. Production remains gated on final staging audit and managed/hardware release evidence, and requires fresh explicit approval immediately before its destructive reset.

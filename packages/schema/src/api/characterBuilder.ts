@@ -505,6 +505,13 @@ export const characterBuilderPayloadDtoSchema: z.ZodType<CharacterBuilderPayload
   baseActiveUpdatedAt: z.string().nullable().optional()
 })
 
+export const characterBuilderCommitReceiptDtoSchema = z.object({
+  character: characterAuthoredDtoSchema,
+  publicId: z.string(),
+  streamVersion: z.number().int().nonnegative(),
+  mechanicsProjectionChecksum: projectionChecksumSchema
+})
+
 export const characterBuilderDraftPayloadDtoSchema = z.strictObject({
   character: characterAuthoredDtoSchema,
   builderIntent: characterBuilderIntentCacheDtoSchema.optional()
@@ -667,6 +674,7 @@ export type CharacterBuilderPayloadDto = {
   builderIntent?: CharacterBuilderIntentCacheDto
   baseActiveUpdatedAt?: string | null
 }
+export type CharacterBuilderCommitReceiptDto = z.infer<typeof characterBuilderCommitReceiptDtoSchema>
 export type CharacterBuilderAbilitiesIntentCacheDto = z.infer<
   typeof characterBuilderAbilitiesIntentCacheDtoSchema
 >

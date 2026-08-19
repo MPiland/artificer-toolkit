@@ -203,6 +203,7 @@ export async function loadCharacterAssemblyRegistry(params: {
   campaignContent?: CampaignCharacterContentOverlay | null
   includeEffects?: boolean
   knownFeatIds?: ReadonlySet<string>
+  system?: CharacterBuilderRegistry['system']
 }): Promise<CharacterAssemblyLoadResult> {
   const { db, character, catalog, campaignContent, includeEffects = false } = params
   const selectedRaceIds = [
@@ -223,7 +224,16 @@ export async function loadCharacterAssemblyRegistry(params: {
     ? [character.intent.background.backgroundId]
     : []
   const ownedEquipmentIds = [
-    ...new Set(character.state.equipment.inventory.map((item) => item.equipmentId))
+    ...new Set([
+      ...character.state.equipment.inventory.map((item) => item.equipmentId),
+      ...(character.intent.startingEquipment
+        ? [character.intent.startingEquipment.class, character.intent.startingEquipment.background]
+            .flatMap((decision) => decision?.groups ?? [])
+            .flatMap((group) => group.selections ?? [])
+            .map((selection) => selection.equipmentId)
+        : []),
+      ...(character.intent.chosenGrantSelections ?? []).flatMap((selection) => selection.targetIds)
+    ])
   ]
   const catalogFeatIds = params.knownFeatIds ?? new Set(catalog.feats.map((feat) => feat.id))
   const selectedFeatIds = new Set([
@@ -313,7 +323,9 @@ export async function loadCharacterAssemblyRegistry(params: {
 
   const [system, races, classesById, backgroundsById, featsById, featuresById, equipment] =
     await Promise.all([
-      createSystemRepository(db).findById(character.systemId),
+      params.system === undefined
+        ? createSystemRepository(db).findById(character.systemId)
+        : Promise.resolve(params.system),
       resolveActiveCharacterRaces(
         db,
         selectedRaceIds,

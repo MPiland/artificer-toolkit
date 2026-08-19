@@ -17,11 +17,12 @@ import {
   type CharacterAuthored,
   type CharacterProvenance,
   type FeatAuthored,
-  type ClassAuthored
+  type ClassAuthored,
+  type SpellAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { ResolvedEquipment, ResolvedRace } from '@artificer-toolkit/shared/subjects/compilers'
-import type { SystemSeedRecord } from '@artificer-toolkit/db'
+import { createSystemVocabularySnapshotRepository, type SystemSeedRecord } from '@artificer-toolkit/db'
 import {
   getSelectedFeatureOptionIds,
   resolveCharacterChosenGrantChoices,
@@ -31,6 +32,8 @@ import {
 import {
   loadCharacterBuilderCatalog,
   loadCharacterBuilderSpellCatalog,
+  loadCharacterStructuralSpellCatalog,
+  loadCharacterStructuralSubclassCatalog,
   mergeCampaignContentIntoCharacterBuilderCatalog,
   type CharacterBuilderCatalog
 } from './builderCatalog.js'
@@ -344,7 +347,7 @@ export async function loadCharacterBuilderContext(
   }
 }
 
-export async function loadCharacterRuleContext(
+export async function loadCharacterStructuralRuleContext(
   db: DBLike,
   character: CharacterAuthored,
   campaignContentOverrides: readonly CampaignAuthoredSnapshot[] = [],
@@ -355,6 +358,16 @@ export async function loadCharacterRuleContext(
     character,
     campaignContentOverrides
   )
+  const vocabularySnapshot = await createSystemVocabularySnapshotRepository(db).findActive(
+    character.systemId
+  )
+  if (!vocabularySnapshot) {
+    throw new Error(`Character "${character.id}" has no active System vocabulary snapshot.`)
+  }
+  const campaignSnapshots = new Map([
+    ...(campaignContent?.latest ?? []),
+    ...(campaignContent?.bindings ?? [])
+  ])
   const candidateFeatIds = [
     ...new Set([
       ...character.intent.featureAcquisitions.flatMap((acquisition) =>
@@ -380,7 +393,7 @@ export async function loadCharacterRuleContext(
         )
       : new Set<string>()
   const campaignFeatIds = new Set(
-    [...(campaignContent?.latest.values() ?? [])]
+    [...campaignSnapshots.values()]
       .filter((snapshot) => snapshot.subjectKind === 'FEAT')
       .map((snapshot) => snapshot.subjectId)
   )
@@ -399,7 +412,8 @@ export async function loadCharacterRuleContext(
     catalog: emptyCatalog,
     campaignContent,
     includeEffects: options.includeEffects,
-    knownFeatIds
+    knownFeatIds,
+    system: vocabularySnapshot.document as SystemSeedRecord
   })
   const feats = registry.feats ?? []
   const equipment = registry.equipment
@@ -431,19 +445,61 @@ export async function loadCharacterRuleContext(
       record.features?.some((feature) => featureContributesSpellGrant(feature, character))
     )
   )
-  const campaignCatalogContent =
-    needsSpells && campaignContent ? await hydrateCampaignCatalogContent(db, campaignContent) : null
-  const baseSpells = needsSpells
-    ? await loadCharacterBuilderSpellCatalog(db, character.systemId, character.userId)
-    : []
-  const spells = campaignCatalogContent
-    ? mergeCampaignContentIntoCharacterBuilderCatalog(
-        { ...emptyCatalog, spells: baseSpells },
-        campaignCatalogContent
-      ).spells
-    : baseSpells
+  const baseClassIds = character.intent.classes.map((selection) => selection.classId)
+  const campaignSubclasses = [...campaignSnapshots.values()].flatMap((snapshot) => {
+    const document = snapshot.subjectKind === 'CLASS' ? (snapshot.authored as ClassAuthored) : null
+    return document?.category === CLASS_CATEGORY.SUBCLASS ? [document] : []
+  })
+  const campaignSpells = [...campaignSnapshots.values()].flatMap((snapshot) =>
+    snapshot.subjectKind === 'SPELL' ? [snapshot.authored as SpellAuthored] : []
+  )
+  const selectedSpellIds = [
+    ...(character.intent.spellSelections ?? []).flatMap((selection) => selection.spells),
+    ...(character.intent.chosenGrantSelections ?? []).flatMap((selection) => selection.targetIds)
+  ]
+  const [subclasses, spells] = await Promise.all([
+    loadCharacterStructuralSubclassCatalog({
+      db,
+      systemId: character.systemId,
+      userId: character.userId,
+      baseClassIds,
+      campaignSubclasses
+    }),
+    needsSpells
+      ? loadCharacterStructuralSpellCatalog({
+          db,
+          systemId: character.systemId,
+          userId: character.userId,
+          classIds: [
+            ...baseClassIds,
+            ...character.intent.classes.flatMap((selection) =>
+              selection.subclassId ? [selection.subclassId] : []
+            )
+          ],
+          selectedSpellIds,
+          campaignSpells
+        })
+      : Promise.resolve([])
+  ])
 
-  return { catalog: { ...emptyCatalog, spells }, registry }
+  return {
+    catalog: {
+      ...emptyCatalog,
+      classes: subclasses,
+      equipment: registry.equipment.map((record) => ({
+        id: record.id,
+        label: record.label,
+        category: record.category,
+        isContainer: Boolean(record.capacity),
+        maxStack: record.maxStack,
+        properties: [...record.properties],
+        requiresAttunement: record.requiresAttunement ?? false
+      })),
+      feats: (registry.feats ?? []).map((record) => ({ id: record.id, label: record.label })),
+      spells
+    },
+    registry
+  }
 }
 
 function appendChosenGrantChoiceIssues(

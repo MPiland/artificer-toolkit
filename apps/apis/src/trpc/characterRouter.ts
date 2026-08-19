@@ -19,6 +19,7 @@ import {
 import { z } from 'zod'
 import {
   characterBuilderCommitRequestDtoSchema,
+  characterBuilderCommitReceiptDtoSchema,
   characterBuilderDraftDtoSchema,
   characterBuilderDraftSaveRequestDtoSchema,
   characterBuilderPayloadDtoSchema,
@@ -188,7 +189,7 @@ export const characterRouter = createTRPCRouter({
 
   upsert: authenticatedProcedure
     .input(characterBuilderCommitRequestDtoSchema)
-    .output(characterBuilderPayloadDtoSchema)
+    .output(characterBuilderCommitReceiptDtoSchema)
     .mutation(({ ctx, input }) =>
       withAuthenticatedDb(ctx, async (db, userId) =>
         upsertCharacterBuilderForUser(db, input, userId)

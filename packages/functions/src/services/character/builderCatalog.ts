@@ -226,6 +226,128 @@ export async function loadCharacterBuilderSpellCatalog(
   })
 }
 
+/**
+ * Loads only the spell documents relevant to a structural Character command.
+ * The spell catalogue projection supplies the bounded candidate ids; immutable
+ * authored versions remain the source of the rule facts.
+ */
+export async function loadCharacterStructuralSpellCatalog(input: {
+  db: DBLike
+  systemId: string
+  userId: string
+  classIds: readonly string[]
+  campaignSpells?: readonly SpellAuthored[]
+  selectedSpellIds: readonly string[]
+}): Promise<CharacterBuilderSpellCatalogRecord[]> {
+  const classIds = [...new Set(input.classIds)]
+  const rows = classIds.length
+    ? await input.db
+        .selectFrom('spell_catalog_classes as spell_class')
+        .innerJoin('spells as spell', 'spell.id', 'spell_class.spell_id')
+        .select('spell_class.spell_id')
+        .where('spell_class.class_id', 'in', classIds)
+        .whereRef('spell_class.authored_version_id', '=', 'spell.active_version_id')
+        .where('spell.system_id', '=', input.systemId)
+        .where((expression) =>
+          expression.or([
+            expression('spell.is_master', '=', true),
+            expression('spell.user_id', '=', input.userId)
+          ])
+        )
+        .limit(501)
+        .execute()
+    : []
+  const campaign = (input.campaignSpells ?? []).filter(
+    (spell) =>
+      spell.systemId === input.systemId &&
+      (spell.classIds.some((classId) => classIds.includes(classId)) ||
+        input.selectedSpellIds.includes(spell.id))
+  )
+  const canonicalSpellIds = [
+    ...new Set([...rows.map((row) => row.spell_id), ...input.selectedSpellIds])
+  ]
+  const candidateIds = new Set([...canonicalSpellIds, ...campaign.map((spell) => spell.id)])
+  if (candidateIds.size > 500) {
+    throw new Error('Character structural spell candidates exceed the bounded catalogue limit.')
+  }
+  if (canonicalSpellIds.length === 0 && campaign.length === 0) return []
+  const versions = await createAuthoredVersionRepository(input.db).findActiveByIds({
+    subjectKind: 'SPELL',
+    subjectIds: canonicalSpellIds,
+    systemId: input.systemId,
+    userId: input.userId,
+    includeMaster: true
+  })
+  const canonical = canonicalSpellIds.flatMap((spellId) => {
+    const version = versions.get(spellId)
+    if (!version) return []
+    const spell = version.authored.document as SpellAuthored
+    return spell.systemId === input.systemId ? [spell] : []
+  })
+  return replaceCatalogRecords(canonical, campaign)
+}
+
+/** The selected base classes' active subclasses are the only class chooser facts a save needs. */
+export async function loadCharacterStructuralSubclassCatalog(input: {
+  db: DBLike
+  systemId: string
+  userId: string
+  baseClassIds: readonly string[]
+  campaignSubclasses?: readonly Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.SUBCLASS }>[]
+}): Promise<CharacterBuilderClassCatalogRecord[]> {
+  const baseClassIds = [...new Set(input.baseClassIds)]
+  if (baseClassIds.length === 0) return []
+  const rows = await input.db
+    .selectFrom('classes')
+    .select(['id', 'active_version_id'])
+    .where('system_id', '=', input.systemId)
+    .where('category', '=', CLASS_CATEGORY.SUBCLASS)
+    .where('parent_class_id', 'in', baseClassIds)
+    .where((expression) =>
+      expression.or([
+        expression('is_master', '=', true),
+        expression('user_id', '=', input.userId)
+      ])
+    )
+    .limit(501)
+    .execute()
+  const ids = rows.flatMap((row) => (row.active_version_id ? [row.id] : []))
+  const campaign = (input.campaignSubclasses ?? []).filter(
+    (record) => baseClassIds.includes(record.parentClassId)
+  )
+  if (new Set([...ids, ...campaign.map((record) => record.id)]).size > 500) {
+    throw new Error('Character structural subclass candidates exceed the bounded catalogue limit.')
+  }
+  if (ids.length === 0 && campaign.length === 0) return []
+  const versions = await createAuthoredVersionRepository(input.db).findActiveByIds({
+    subjectKind: 'CLASS',
+    subjectIds: ids,
+    systemId: input.systemId,
+    userId: input.userId,
+    includeMaster: true
+  })
+  const canonical = ids.flatMap((id) => {
+    const record = versions.get(id)?.authored.document as ClassAuthored | undefined
+    return record?.category === CLASS_CATEGORY.SUBCLASS
+      ? [{
+          id: record.id,
+          label: record.label,
+          category: record.category,
+          parentClassId: record.parentClassId,
+          description: record.description
+        }]
+      : []
+  })
+  const campaignCatalog = campaign.map((record) => ({
+      id: record.id,
+      label: record.label,
+      category: record.category,
+      parentClassId: record.parentClassId,
+      description: record.description
+    }))
+  return replaceCatalogRecords(canonical, campaignCatalog)
+}
+
 export async function loadCharacterBuilderCatalog(
   db: DBLike,
   systemId: string,

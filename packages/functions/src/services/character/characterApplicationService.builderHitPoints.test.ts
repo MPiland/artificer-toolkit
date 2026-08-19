@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   listAdjustments: vi.fn(),
   listResourceUsage: vi.fn(),
   loadBuilderContext: vi.fn(),
+  loadStructuralRuleContext: vi.fn(),
   loadActiveCreatures: vi.fn(),
   reconcileCharacter: vi.fn(),
   resolveBuilder: vi.fn(),
@@ -88,6 +89,7 @@ vi.mock('./builderService.js', async (importOriginal) => {
       destructive: false
     }),
     loadCharacterBuilderContext: mocks.loadBuilderContext,
+    loadCharacterStructuralRuleContext: mocks.loadStructuralRuleContext,
     resolveCharacterBuilder: mocks.resolveBuilder
   }
 })
@@ -245,6 +247,7 @@ describe('Builder hit point reconciliation', () => {
     mocks.listAdjustments.mockResolvedValue([])
     mocks.listResourceUsage.mockResolvedValue([])
     mocks.loadBuilderContext.mockResolvedValue({})
+    mocks.loadStructuralRuleContext.mockResolvedValue({})
     mocks.reconcileCharacter.mockImplementation(async (_db: DBLike, character: CharacterAuthored) =>
       structuredClone(character)
     )
@@ -275,7 +278,7 @@ describe('Builder hit point reconciliation', () => {
     mocks.loadVersionVector.mockResolvedValue([])
     mocks.requireCurrentMechanics.mockResolvedValue({ authoredVersionVector: [] })
     mocks.compileMechanics.mockReturnValue({ id: 'projection-1' })
-    mocks.publishMechanics.mockResolvedValue(undefined)
+    mocks.publishMechanics.mockResolvedValue({ projectionChecksum: 'projection-checksum-1' })
     mocks.replaceCampaignBindings.mockResolvedValue(undefined)
     mocks.upsertCharacter.mockImplementation(async (
       _character: CharacterAuthored,
@@ -302,13 +305,13 @@ describe('Builder hit point reconciliation', () => {
       'character-1',
       expect.any(Function)
     )
-    expect(mocks.loadBuilderContext.mock.invocationCallOrder[0]).toBeGreaterThan(
+    expect(mocks.loadStructuralRuleContext.mock.invocationCallOrder[0]).toBeGreaterThan(
       mocks.withCharacterLimit.mock.invocationCallOrder[0] ?? 0
     )
     expect(mocks.publishMechanics).toHaveBeenCalledWith({ id: 'projection-1' })
     expect(persisted.state.hitpoints.current).toBe(5)
     expect(persisted.state.hitpoints.temp).toBe(3)
-    expect(mocks.loadBuilderContext).toHaveBeenCalledWith(
+    expect(mocks.loadStructuralRuleContext).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ id: 'character-1' }),
       [],
@@ -327,6 +330,23 @@ describe('Builder hit point reconciliation', () => {
       expect.anything(),
       expect.objectContaining({ rulePackRevisionId: 'revision-1' })
     )
+  })
+
+  it('uses the bounded structural context for preview and commit, never the Builder catalogue', async () => {
+    const character = createActiveCharacter(9)
+    await previewCharacterSaveForUser(
+      {} as DBLike,
+      { character, mode: 'edit', targetStatus: 'ACTIVE' },
+      character.userId
+    )
+    await upsertCharacterBuilderForUser(
+      {} as DBLike,
+      { character, mode: 'edit', targetStatus: 'ACTIVE' },
+      character.userId
+    )
+
+    expect(mocks.loadStructuralRuleContext).toHaveBeenCalled()
+    expect(mocks.loadBuilderContext).not.toHaveBeenCalled()
   })
 
   it('preserves live current hit points when the effective maximum is unchanged or higher', async () => {

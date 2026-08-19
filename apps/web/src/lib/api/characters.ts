@@ -1,5 +1,6 @@
 import {
   characterBuilderDraftDtoSchema,
+  characterBuilderCommitReceiptDtoSchema,
   characterBuilderPreviewPayloadDtoSchema,
   characterBuilderPayloadDtoSchema,
   characterHistoryResponseDtoSchema,
@@ -88,7 +89,7 @@ export function buildCharactersApi(client: TrpcClient) {
         client.characters.extraOptions.query({ id, input })
       ),
     upsert: (input: CharacterBuilderCommitRequestDto) =>
-      request('characters.upsert', characterBuilderPayloadDtoSchema, () =>
+      request('characters.upsert', characterBuilderCommitReceiptDtoSchema, () =>
         client.characters.upsert.mutate(input)
       )
   }

@@ -17,12 +17,17 @@ import {
 import type {
   BackgroundAuthored,
   ClassAuthored,
-  FeatAuthored
+  FeatAuthored,
+  SpellAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 
 import type { CharacterBuilderContext, CharacterBuilderRegistry } from './builderService.js'
-import type { CharacterBuilderSpellCatalogRecord } from './builderCatalog.js'
+import {
+  loadCharacterStructuralSpellCatalog,
+  type CharacterBuilderSpellCatalogRecord
+} from './builderCatalog.js'
+import type { CampaignAuthoredSnapshot } from './campaignCharacterContent.js'
 
 vi.mock('./characterRuleEvaluation.js', async () => {
   const { evaluateCharacterBuilderTestPolicy } =
@@ -37,12 +42,14 @@ const repositoryState = vi.hoisted(() => ({
   features: [] as FeatureAuthored[],
   feats: [] as FeatAuthored[],
   races: [] as CharacterBuilderRegistry['races'],
-  spells: [] as CharacterBuilderSpellCatalogRecord[]
+  spells: [] as CharacterBuilderSpellCatalogRecord[],
+  campaignAssignment: null as { campaignId: string; userId: string } | null
 }))
 
 const repositoryCalls = vi.hoisted(() => ({
   authoredVersionFindActiveByIds: vi.fn(),
   authoredVersionFindExactVersions: vi.fn(),
+  authoredVersionFindVersionsByIds: vi.fn(),
   backgroundFindByIds: vi.fn(),
   backgroundListQuery: vi.fn(),
   classFindByIds: vi.fn(),
@@ -55,15 +62,23 @@ const repositoryCalls = vi.hoisted(() => ({
   raceFindResolvedAll: vi.fn(),
   raceFindResolvedById: vi.fn(),
   raceListQuery: vi.fn(),
+  snapshotFindActive: vi.fn(),
   spellListQuery: vi.fn(),
-  structureQuery: vi.fn()
+  structureQuery: vi.fn(),
+  campaignContentListVersions: vi.fn(),
+  campaignContentListCharacterBindings: vi.fn()
 }))
 
 vi.mock('@artificer-toolkit/db', () => ({
-  createCampaignContentRepository: () => ({ findAssignedCampaign: async () => null }),
+  createCampaignContentRepository: () => ({
+    findAssignedCampaign: async () => repositoryState.campaignAssignment,
+    listContentVersions: repositoryCalls.campaignContentListVersions,
+    listCharacterBindings: repositoryCalls.campaignContentListCharacterBindings
+  }),
   createAuthoredVersionRepository: () => ({
     findActiveByIds: repositoryCalls.authoredVersionFindActiveByIds,
-    findExactVersions: repositoryCalls.authoredVersionFindExactVersions
+    findExactVersions: repositoryCalls.authoredVersionFindExactVersions,
+    findVersionsByIds: repositoryCalls.authoredVersionFindVersionsByIds
   }),
   createSystemRepository: () => ({
     findById: async () => ({
@@ -94,6 +109,9 @@ vi.mock('@artificer-toolkit/db', () => ({
       speeds: []
     })
   }),
+  createSystemVocabularySnapshotRepository: () => ({
+    findActive: repositoryCalls.snapshotFindActive
+  }),
   createRaceRepository: () => ({
     findResolvedAll: repositoryCalls.raceFindResolvedAll,
     findResolvedById: repositoryCalls.raceFindResolvedById
@@ -117,6 +135,7 @@ vi.mock('@artificer-toolkit/db', () => ({
 import {
   createEmptyCharacterAuthored,
   loadCharacterBuilderContext,
+  loadCharacterStructuralRuleContext,
   resolveCharacterBuilder
 } from './builderService.js'
 import { reconcileCharacterBuilderCharacter } from './builderReconciliation.js'
@@ -282,6 +301,92 @@ function createFireBolt(): CharacterBuilderSpellCatalogRecord {
   }
 }
 
+function createChosenFeatFeature(featId = 'chosen-feat'): FeatureAuthored {
+  return {
+    id: 'chosen-feat-feature',
+    label: 'Chosen Feat Feature',
+    description: '',
+    order: 0,
+    grants: {
+      feats: [
+        {
+          id: 'chosen-feat-grant',
+          grantKind: GRANT_KIND.FEAT_GRANT,
+          selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+          selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+          scalingKind: SCALING.NONE,
+          authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+          featIds: [featId],
+          count: 1,
+          order: 0
+        }
+      ]
+    }
+  }
+}
+
+function createChosenEquipmentFeature(equipmentId = 'chosen-equipment'): FeatureAuthored {
+  return {
+    id: 'chosen-equipment-feature',
+    label: 'Chosen Equipment Feature',
+    description: '',
+    order: 0,
+    grants: {
+      proficiencies: [
+        {
+          id: 'chosen-equipment-grant',
+          grantKind: GRANT_KIND.PROFICIENCY_GRANT,
+          proficiencyKind: PROFICIENCY_KIND.EQUIPMENT,
+          level: SCALING_AMOUNT_KIND.FULL,
+          selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+          selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+          scalingKind: SCALING.NONE,
+          authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+          equipmentIds: [equipmentId],
+          count: 1,
+          order: 0
+        }
+      ]
+    }
+  }
+}
+
+function createCampaignSnapshot(
+  subjectKind: CampaignAuthoredSnapshot['subjectKind'],
+  subjectId: string,
+  authored: unknown
+): CampaignAuthoredSnapshot {
+  return {
+    contentVersionId: `campaign-${subjectId}-version`,
+    subjectKind,
+    subjectId,
+    revision: 1,
+    authoredVersionId: `${subjectId}-authored-version`,
+    authoredVersion: 1,
+    authoredChecksum: 'a'.repeat(64),
+    compiledProjectionChecksum: 'b'.repeat(64),
+    authoredDependencies: [],
+    authored: authored as CampaignAuthoredSnapshot['authored']
+  }
+}
+
+function createCampaignVersionRecord(snapshot: CampaignAuthoredSnapshot) {
+  return {
+    authored: {
+      subjectKind: snapshot.subjectKind,
+      subjectId: snapshot.subjectId,
+      versionId: snapshot.authoredVersionId,
+      version: snapshot.authoredVersion,
+      checksum: snapshot.authoredChecksum,
+      document: snapshot.authored
+    },
+    compiled: {
+      projectionChecksum: snapshot.compiledProjectionChecksum,
+      authoredDependencies: []
+    }
+  }
+}
+
 describe('character Builder conditional spell registry loading', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -292,6 +397,7 @@ describe('character Builder conditional spell registry loading', () => {
     repositoryState.feats = []
     repositoryState.races = []
     repositoryState.spells = [createFireBolt()]
+    repositoryState.campaignAssignment = null
     repositoryCalls.authoredVersionFindActiveByIds.mockImplementation(
       async ({ subjectIds, subjectKind }: { subjectIds: readonly string[]; subjectKind: string }) => {
         const records =
@@ -361,6 +467,21 @@ describe('character Builder conditional spell registry loading', () => {
       ancestryOptions: [],
       featureOptions: [],
       featureOptionChoices: []
+    })
+    repositoryCalls.campaignContentListVersions.mockResolvedValue([])
+    repositoryCalls.campaignContentListCharacterBindings.mockResolvedValue([])
+    repositoryCalls.authoredVersionFindVersionsByIds.mockResolvedValue(new Map())
+    repositoryCalls.snapshotFindActive.mockResolvedValue({
+      document: {
+        id: 'system-1',
+        label: 'D&D 5e 2014',
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '2014',
+        userId: 'user-1',
+        alignments: [], challengeRatings: [], conditionTypes: [], creatureTypes: [], currencies: [],
+        damageTypes: [], heritages: [], lifestyles: [], magicSchools: [], passives: [], rarities: [],
+        senses: [], terrains: [], skills: [], languages: [], speeds: []
+      }
     })
     repositoryCalls.backgroundFindByIds.mockResolvedValue(new Map())
     repositoryCalls.backgroundListQuery.mockResolvedValue({ items: [], meta: {} })
@@ -1003,5 +1124,381 @@ describe('character Builder conditional spell registry loading', () => {
       options: expect.arrayContaining([expect.objectContaining({ id: 'rookie' })])
     })
     expect(filteredFeature?.options?.map((option) => option.id)).not.toContain('veteran')
+  })
+
+  it('loads structural facts from the vocabulary snapshot without presentation catalog queries', async () => {
+    const race = createRace('human')
+    const fighter = createFighter()
+    repositoryState.races = [race]
+    repositoryState.classes = [fighter]
+    const chain = {
+      limit: () => chain,
+      select: () => chain,
+      where: () => chain,
+      execute: async () => []
+    }
+    const db = { selectFrom: () => chain }
+
+    const context = await loadCharacterStructuralRuleContext(
+      db as never,
+      createCharacter(race.id, fighter.id)
+    )
+
+    expect(context.registry.system).toMatchObject({ id: 'system-1', label: 'D&D 5e 2014' })
+    expect(repositoryCalls.snapshotFindActive).toHaveBeenCalledWith('system-1')
+    expect(repositoryCalls.backgroundListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.classListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.equipmentListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.featListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.raceListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.spellListQuery).not.toHaveBeenCalled()
+  })
+
+  it('keeps selected Feat and Equipment grant targets in the bounded structural registry', async () => {
+    const race = createRace('human')
+    const fighter = createFighter()
+    const featFeature = createChosenFeatFeature()
+    const equipmentFeature = createChosenEquipmentFeature()
+    const feat: FeatAuthored = {
+      id: 'chosen-feat',
+      label: 'Chosen Feat',
+      description: '',
+      userId: 'user-1',
+      systemId: 'system-1'
+    }
+    const equipment: CharacterBuilderRegistry['equipment'][number] = {
+      kind: 'EQUIPMENT' as const,
+      id: 'chosen-equipment',
+      label: 'Chosen Equipment',
+      description: null,
+      category: 'ADVENTURING_GEAR',
+      properties: [],
+      weight: { amount: 1, unit: 'POUNDS' as const },
+      rarityId: 'COMMON',
+      userId: 'user-1',
+      systemId: 'system-1'
+    }
+    repositoryState.races = [race]
+    repositoryState.classes = [{ ...fighter, features: [featFeature, equipmentFeature] }]
+    repositoryState.feats = [feat]
+    repositoryState.equipment = [equipment]
+    const character = createCharacter(race.id, fighter.id)
+    repositoryCalls.structureQuery.mockResolvedValue({
+      rootFeatureLinks: [
+        { ownerKind: 'CLASS', ownerId: fighter.id, featureId: featFeature.id, order: 0, availableAtLevel: 1 },
+        { ownerKind: 'CLASS', ownerId: fighter.id, featureId: equipmentFeature.id, order: 1, availableAtLevel: 1 }
+      ],
+      ancestryOptions: [],
+      featureOptions: [],
+      featureOptionChoices: []
+    })
+    character.intent.chosenGrantSelections = [
+      {
+        id: 'chosen-feat-selection',
+        grantId: 'chosen-feat-grant',
+        source: { kind: 'CLASS', classId: fighter.id, classLevel: 1 },
+        timing: { kind: 'IMMEDIATE' },
+        targetIds: [feat.id]
+      },
+      {
+        id: 'chosen-equipment-selection',
+        grantId: 'chosen-equipment-grant',
+        source: { kind: 'CLASS', classId: fighter.id, classLevel: 1 },
+        timing: { kind: 'IMMEDIATE' },
+        targetIds: [equipment.id]
+      }
+    ]
+    const expression = Object.assign((...args: unknown[]) => args, { or: (terms: unknown[]) => terms })
+    const chain = {
+      innerJoin: () => chain,
+      limit: () => chain,
+      select: () => chain,
+      where: (condition?: unknown) => {
+        if (typeof condition === 'function') condition(expression)
+        return chain
+      },
+      whereRef: () => chain,
+      execute: async () => []
+    }
+    const context = await loadCharacterStructuralRuleContext(
+      { selectFrom: () => chain } as never,
+      character
+    )
+    const resolution = await resolveCharacterBuilder({} as never, character, 'create', context)
+
+    expect(context.registry.feats?.map((record) => record.id)).toEqual([feat.id])
+    expect(context.registry.equipment.map((record) => record.id)).toEqual([equipment.id])
+    expect(resolution.chosenGrantChoices).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ grantId: 'chosen-feat-grant', options: [{ id: feat.id, label: feat.label }] }),
+        expect.objectContaining({
+          grantId: 'chosen-equipment-grant',
+          options: [{ id: equipment.id, label: equipment.label }]
+        })
+      ])
+    )
+    expect(repositoryCalls.backgroundListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.classListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.equipmentListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.featListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.raceListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.spellListQuery).not.toHaveBeenCalled()
+  })
+
+  it('rejects selected Feat and Equipment targets that are absent from bounded structural records', async () => {
+    const race = createRace('human')
+    const fighter = createFighter()
+    const featFeature = createChosenFeatFeature('unavailable-feat')
+    const equipmentFeature = createChosenEquipmentFeature('unavailable-equipment')
+    repositoryState.races = [race]
+    repositoryState.classes = [{ ...fighter, features: [featFeature, equipmentFeature] }]
+    const character = createCharacter(race.id, fighter.id)
+    repositoryCalls.structureQuery.mockResolvedValue({
+      rootFeatureLinks: [
+        { ownerKind: 'CLASS', ownerId: fighter.id, featureId: featFeature.id, order: 0, availableAtLevel: 1 },
+        { ownerKind: 'CLASS', ownerId: fighter.id, featureId: equipmentFeature.id, order: 1, availableAtLevel: 1 }
+      ],
+      ancestryOptions: [],
+      featureOptions: [],
+      featureOptionChoices: []
+    })
+    character.intent.chosenGrantSelections = [
+      {
+        id: 'chosen-feat-selection',
+        grantId: 'chosen-feat-grant',
+        source: { kind: 'CLASS', classId: fighter.id, classLevel: 1 },
+        timing: { kind: 'IMMEDIATE' },
+        targetIds: ['unavailable-feat']
+      },
+      {
+        id: 'chosen-equipment-selection',
+        grantId: 'chosen-equipment-grant',
+        source: { kind: 'CLASS', classId: fighter.id, classLevel: 1 },
+        timing: { kind: 'IMMEDIATE' },
+        targetIds: ['unavailable-equipment']
+      }
+    ]
+    const chain = {
+      innerJoin: () => chain,
+      limit: () => chain,
+      select: () => chain,
+      where: () => chain,
+      execute: async () => []
+    }
+    const context = await loadCharacterStructuralRuleContext(
+      { selectFrom: () => chain } as never,
+      character
+    )
+    const resolution = await resolveCharacterBuilder({} as never, character, 'create', context)
+
+    expect(resolution.chosenGrantChoices.map((choice) => choice.options)).toEqual([[], []])
+    expect(resolution.validations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'CHOSEN_GRANT_OPTIONS_UNAVAILABLE' })
+      ])
+    )
+    expect(repositoryCalls.backgroundListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.classListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.equipmentListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.featListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.raceListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.spellListQuery).not.toHaveBeenCalled()
+  })
+
+  it('uses Campaign-only subclasses and spells in structural validation without presentation catalog reads', async () => {
+    const race = createRace('human')
+    const baseClass = {
+      ...createCleric(),
+      id: 'campaign-cleric',
+      label: 'Campaign Cleric',
+      subclassSelectionLevel: 1
+    }
+    const subclass: Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.SUBCLASS }> = {
+      id: 'campaign-domain',
+      label: 'Campaign Domain',
+      category: CLASS_CATEGORY.SUBCLASS,
+      parentClassId: baseClass.id,
+      userId: 'user-1',
+      systemId: 'system-1'
+    }
+    const spell = {
+      ...createFireBolt(),
+      kind: 'SPELL' as const,
+      classIds: [baseClass.id],
+      userId: 'user-1',
+      systemId: 'system-1'
+    } satisfies SpellAuthored
+    const unrelatedSpell = {
+      ...spell,
+      id: 'unrelated-campaign-spell',
+      classIds: ['other-class']
+    } satisfies SpellAuthored
+    repositoryState.races = [race]
+    repositoryState.campaignAssignment = { campaignId: 'campaign-1', userId: 'user-1' }
+    const character = createCharacter(race.id, baseClass.id)
+    const overrides = [
+      createCampaignSnapshot('CLASS', baseClass.id, baseClass),
+      createCampaignSnapshot('CLASS', subclass.id, subclass),
+      createCampaignSnapshot('SPELL', spell.id, spell),
+      createCampaignSnapshot('SPELL', unrelatedSpell.id, unrelatedSpell)
+    ]
+    const expression = Object.assign((...args: unknown[]) => args, { or: (terms: unknown[]) => terms })
+    const chain = {
+      innerJoin: () => chain,
+      limit: () => chain,
+      select: () => chain,
+      where: (condition?: unknown) => {
+        if (typeof condition === 'function') condition(expression)
+        return chain
+      },
+      whereRef: () => chain,
+      execute: async () => []
+    }
+    const context = await loadCharacterStructuralRuleContext(
+      { selectFrom: () => chain } as never,
+      character,
+      overrides
+    )
+    const resolution = await resolveCharacterBuilder({} as never, character, 'create', context)
+
+    expect(context.catalog.classes).toContainEqual(
+      expect.objectContaining({ id: subclass.id, parentClassId: baseClass.id })
+    )
+    expect(context.catalog.spells).toContainEqual(expect.objectContaining({ id: spell.id }))
+    expect(context.catalog.spells).not.toContainEqual(
+      expect.objectContaining({ id: unrelatedSpell.id })
+    )
+    expect(resolution.outstandingChoices).toContainEqual(
+      expect.objectContaining({ code: 'SUBCLASS_SELECTION_REQUIRED' })
+    )
+    expect(repositoryCalls.backgroundListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.classListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.equipmentListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.featListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.raceListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.spellListQuery).not.toHaveBeenCalled()
+  })
+
+  it('uses a pinned Campaign Feat binding instead of the newer active Campaign revision', async () => {
+    const race = createRace('human')
+    const fighter = createFighter()
+    const pinnedFeat: FeatAuthored = {
+      id: 'campaign-feat',
+      label: 'Pinned Campaign Feat',
+      description: '',
+      userId: 'user-1',
+      systemId: 'system-1'
+    }
+    const newerFeat: FeatAuthored = { ...pinnedFeat, label: 'Newer Campaign Feat' }
+    const pinnedSnapshot = createCampaignSnapshot('FEAT', pinnedFeat.id, pinnedFeat)
+    const newerSnapshot = {
+      ...createCampaignSnapshot('FEAT', newerFeat.id, newerFeat),
+      contentVersionId: 'campaign-feat-newer-version',
+      authoredVersionId: 'campaign-feat-newer-authored-version',
+      revision: 2
+    }
+    repositoryState.races = [race]
+    repositoryState.classes = [fighter]
+    repositoryState.campaignAssignment = { campaignId: 'campaign-1', userId: 'user-1' }
+    repositoryCalls.campaignContentListVersions.mockResolvedValue([
+      {
+        id: pinnedSnapshot.contentVersionId,
+        state: 'APPROVED',
+        subjectKind: pinnedSnapshot.subjectKind,
+        subjectId: pinnedSnapshot.subjectId,
+        revision: pinnedSnapshot.revision,
+        authoredVersionId: pinnedSnapshot.authoredVersionId,
+        authoredVersion: pinnedSnapshot.authoredVersion,
+        authoredChecksum: pinnedSnapshot.authoredChecksum,
+        compiledProjectionChecksum: pinnedSnapshot.compiledProjectionChecksum
+      },
+      {
+        id: newerSnapshot.contentVersionId,
+        state: 'APPROVED',
+        subjectKind: newerSnapshot.subjectKind,
+        subjectId: newerSnapshot.subjectId,
+        revision: newerSnapshot.revision,
+        authoredVersionId: newerSnapshot.authoredVersionId,
+        authoredVersion: newerSnapshot.authoredVersion,
+        authoredChecksum: newerSnapshot.authoredChecksum,
+        compiledProjectionChecksum: newerSnapshot.compiledProjectionChecksum
+      }
+    ])
+    repositoryCalls.campaignContentListCharacterBindings.mockResolvedValue([
+      {
+        contentVersionId: pinnedSnapshot.contentVersionId,
+        subjectKind: pinnedSnapshot.subjectKind,
+        subjectId: pinnedSnapshot.subjectId,
+        revision: pinnedSnapshot.revision,
+        authoredVersionId: pinnedSnapshot.authoredVersionId,
+        authoredVersion: pinnedSnapshot.authoredVersion,
+        authoredChecksum: pinnedSnapshot.authoredChecksum,
+        compiledProjectionChecksum: pinnedSnapshot.compiledProjectionChecksum
+      }
+    ])
+    repositoryCalls.authoredVersionFindVersionsByIds.mockResolvedValue(
+      new Map([
+        [pinnedSnapshot.authoredVersionId, createCampaignVersionRecord(pinnedSnapshot)],
+        [newerSnapshot.authoredVersionId, createCampaignVersionRecord(newerSnapshot)]
+      ])
+    )
+    const character = createCharacter(race.id, fighter.id)
+    character.intent.featureAcquisitions = [
+      {
+        id: 'campaign-feat-acquisition',
+        featureId: pinnedFeat.id,
+        source: { kind: 'FEAT', featId: pinnedFeat.id },
+        timing: { kind: 'IMMEDIATE' }
+      }
+    ]
+    const chain = {
+      limit: () => chain,
+      select: () => chain,
+      where: () => chain,
+      execute: async () => []
+    }
+    const context = await loadCharacterStructuralRuleContext(
+      { selectFrom: () => chain } as never,
+      character
+    )
+
+    expect(context.registry.feats).toEqual([expect.objectContaining({ label: pinnedFeat.label })])
+    expect(repositoryCalls.backgroundListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.classListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.equipmentListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.featListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.raceListQuery).not.toHaveBeenCalled()
+    expect(repositoryCalls.spellListQuery).not.toHaveBeenCalled()
+  })
+
+  it('fails closed when Campaign spell candidates exceed the structural bound before hydration', async () => {
+    const campaignSpells = Array.from({ length: 499 }, (_, index) => ({
+      ...createFireBolt(),
+      kind: 'SPELL' as const,
+      id: `campaign-spell-${index}`,
+      userId: 'user-1',
+      systemId: 'system-1'
+    })) satisfies SpellAuthored[]
+    const chain = {
+      innerJoin: () => chain,
+      limit: () => chain,
+      select: () => chain,
+      where: () => chain,
+      whereRef: () => chain,
+      execute: async () => []
+    }
+
+    await expect(
+      loadCharacterStructuralSpellCatalog({
+        db: { selectFrom: () => chain } as never,
+        systemId: 'system-1',
+        userId: 'user-1',
+        classIds: ['cleric'],
+        selectedSpellIds: ['selected-spell-a', 'selected-spell-b'],
+        campaignSpells
+      })
+    ).rejects.toThrow('Character structural spell candidates exceed the bounded catalogue limit.')
+    expect(repositoryCalls.authoredVersionFindActiveByIds).not.toHaveBeenCalled()
+    expect(repositoryCalls.spellListQuery).not.toHaveBeenCalled()
   })
 })
