@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
-  execute: vi.fn(async () => ({ ok: true, operation: 'CLAIM' as const })),
+  execute: vi.fn<() => Promise<unknown>>(),
   withUserContext: vi.fn(async (_db, _userId, callback) => callback({}))
 }))
 
@@ -30,9 +30,9 @@ function namedError(name: string): Error {
   return error
 }
 
-function authorizedRequest(): Request {
+function authorizedRequest(body: unknown = input): Request {
   return new Request('https://app.test/.netlify/functions/live-session-executor', {
-    body: JSON.stringify(input),
+    body: JSON.stringify(body),
     headers: {
       authorization: `Bearer ${secret}`,
       'content-type': 'application/json'
@@ -44,7 +44,10 @@ function authorizedRequest(): Request {
 beforeEach(() => {
   vi.clearAllMocks()
   vi.stubEnv('LIVE_SESSION_EXECUTOR_SECRET', secret)
+  mocks.execute.mockResolvedValue({ ok: true, operation: 'CLAIM' })
 })
+
+afterEach(() => vi.restoreAllMocks())
 
 describe('live-session Netlify executor', () => {
   it('rejects requests that do not carry the provider secret', async () => {
@@ -67,6 +70,63 @@ describe('live-session Netlify executor', () => {
     await expect(response.json()).resolves.toEqual({ ok: true, operation: 'CLAIM' })
     expect(mocks.withUserContext).toHaveBeenCalledWith({}, input.userId, expect.any(Function))
     expect(mocks.execute).toHaveBeenCalledWith({}, input)
+  })
+
+  it('measures a successful command through transaction completion', async () => {
+    const commandInput = {
+      ...input,
+      command: {
+        aggregateKind: 'SCENE',
+        command: {
+          commandId: '00000000-0000-4000-8000-000000000010',
+          encounterId: '00000000-0000-4000-8000-000000000011',
+          expectedSceneVersion: 0,
+          path: [
+            { x: 20, y: 20 },
+            { x: 25, y: 20 }
+          ],
+          sceneId: '00000000-0000-4000-8000-000000000012',
+          tokenId: '00000000-0000-4000-8000-000000000013',
+          type: 'MOVE_SCENE_TOKEN'
+        }
+      },
+      operation: 'COMMAND',
+      sceneVisionContext: { characterVisions: [], encounterCharacterBindings: [] }
+    }
+    const commandResponse = {
+      execution: {
+        aggregateId: commandInput.command.command.sceneId,
+        aggregateKind: 'SCENE',
+        commandId: commandInput.command.command.commandId,
+        hostTiming: { category: 'SCENE_ONLY', durationMs: 1 },
+        replayed: false,
+        response: null,
+        version: 1
+      },
+      operation: 'COMMAND'
+    }
+    let releaseTransaction!: () => void
+    const transactionReleased = new Promise<void>((resolve) => {
+      releaseTransaction = resolve
+    })
+    mocks.execute.mockResolvedValueOnce(commandResponse)
+    mocks.withUserContext.mockImplementationOnce(async (_db, _userId, callback) => {
+      const result = await callback({})
+      await transactionReleased
+      return result
+    })
+    vi.spyOn(performance, 'now').mockReturnValueOnce(100).mockReturnValueOnce(170)
+
+    const responsePromise = liveSessionExecutor(authorizedRequest(commandInput))
+    await Promise.resolve()
+    releaseTransaction()
+    const response = await responsePromise
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({
+      execution: { hostTiming: { category: 'SCENE_ONLY', durationMs: 70 } },
+      operation: 'COMMAND'
+    })
   })
 
   it.each(['CharacterSheetCommandError', 'EncounterNotFoundError', 'EncounterValidationError'])(

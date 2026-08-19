@@ -458,6 +458,11 @@ export async function executeLiveSessionCommand(
       }
     }
     const execution = await executeEncounterSceneCommandWithState(db, userId, command.command, {
+      liveEncounter: {
+        campaignId: encounter.campaignId,
+        id: encounter.id,
+        sessionId: encounter.sessionId
+      },
       sceneVisionContext,
       liveSessionAuthority: commandAuthority
     })

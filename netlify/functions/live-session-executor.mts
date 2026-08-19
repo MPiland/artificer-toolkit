@@ -121,10 +121,24 @@ export default async function liveSessionExecutor(request: Request): Promise<Res
 
   try {
     const input = liveSessionExecutorRequestDtoSchema.parse(rawRequest)
+    const commandStartedAt = input.operation === 'COMMAND' ? performance.now() : null
     const result = await withUserContext(getDatabase(), input.userId, (db) =>
       executeLiveSessionExecutorRequest(db, input)
     )
-    return jsonResponse(result)
+    return jsonResponse(
+      commandStartedAt !== null && result.operation === 'COMMAND'
+        ? {
+            ...result,
+            execution: {
+              ...result.execution,
+              hostTiming: {
+                ...result.execution.hostTiming,
+                durationMs: performance.now() - commandStartedAt
+              }
+            }
+          }
+        : result
+    )
   } catch (error) {
     return domainError(error)
   }

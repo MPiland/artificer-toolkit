@@ -56,7 +56,14 @@ import {
   replayEncounterSceneProjection
 } from './sceneProjectionReplay.js'
 
+interface LiveSceneEncounterBinding {
+  campaignId: string
+  id: string
+  sessionId: string
+}
+
 interface LiveSceneOptions {
+  liveEncounter?: LiveSceneEncounterBinding
   sceneVisionContext?: LiveSessionSceneVisionContextDto
   liveSessionAuthority?: LiveSessionCommandAuthority
 }
@@ -356,7 +363,10 @@ async function requireEncounter(
   options: LiveSceneOptions,
   write: boolean
 ) {
-  const encounter = await createEncounterRepository(db).find(encounterId)
+  const encounter =
+    options.liveEncounter?.id === encounterId
+      ? options.liveEncounter
+      : await createEncounterRepository(db).find(encounterId)
   if (!encounter) throw new EncounterNotFoundError()
   const authority = await resolveCampaignAuthority(db, encounter.campaignId, userId)
   assertActiveCampaignMember(authority)

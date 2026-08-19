@@ -7,11 +7,9 @@ import {
   type Response
 } from '@playwright/test'
 
-const tabletopPath = requiredPath('MANAGED_VTT_TABLETOP_PATH', '/tabletop/')
 const campaignName = requiredValue('MANAGED_VTT_CAMPAIGN_NAME')
 const gmCredentials = credentials('GM')
 const gmOnlyTokenLabel = requiredValue('MANAGED_VTT_GM_ONLY_TOKEN_LABEL')
-const characterSheetPath = requiredPath('MANAGED_VTT_CHARACTER_SHEET_PATH', '/characters/')
 const liveSessionEndpoint = requiredHttpsOrigin('MANAGED_LIVE_SESSION_ENDPOINT')
 const playerCredentials = credentials('PLAYER')
 const player2Credentials = credentials('PLAYER2')
@@ -28,6 +26,7 @@ test('connects three users through the managed room and recovers a reversible sc
   const clients: ManagedClient[] = []
   let failure: unknown
   let cleanupFailure: unknown
+  let managedPaths: ManagedPaths | null = null
   let originalDoorAction: string | null = null
   const timings: Record<string, number> = {}
   const hostTimings = { ruleBound: [] as number[], sceneOnly: [] as number[] }
@@ -39,9 +38,14 @@ test('connects three users through the managed room and recovers a reversible sc
     clients.push(player)
     let player2 = await openManagedClient(browser, 'PLAYER2', player2Credentials)
     clients.push(player2)
+    managedPaths = await resolveManagedPaths(player.page)
 
     const readyStartedAt = performance.now()
-    await Promise.all([openTabletop(gm), openTabletop(player), openTabletop(player2)])
+    await Promise.all([
+      openTabletop(gm, managedPaths),
+      openTabletop(player, managedPaths),
+      openTabletop(player2, managedPaths)
+    ])
     timings.readyMs = performance.now() - readyStartedAt
     console.info(`Managed VTT ready: ${timings.readyMs.toFixed(1)}ms`)
 
@@ -70,7 +74,7 @@ test('connects three users through the managed room and recovers a reversible sc
       hostTimings.sceneOnly,
       timings
     )
-    await collectRuleHostTimings(player, hostTimings.ruleBound)
+    await collectRuleHostTimings(player, managedPaths, hostTimings.ruleBound)
     expect(nearestRankP95(hostTimings.sceneOnly)).toBeLessThan(100)
     expect(nearestRankP95(hostTimings.ruleBound)).toBeLessThan(250)
 
@@ -81,19 +85,19 @@ test('connects three users through the managed room and recovers a reversible sc
     const recoveryStartedAt = performance.now()
     player2 = await openManagedClient(browser, 'PLAYER2', player2Credentials)
     clients.push(player2)
-    await openTabletop(player2)
+    await openTabletop(player2, managedPaths)
     await expectManagedSocket(player2)
     await expectDoorAction(player2, currentDoorAction)
 
     player = await openManagedClient(browser, 'PLAYER', playerCredentials)
     clients.push(player)
-    await openTabletop(player)
+    await openTabletop(player, managedPaths)
     await expectManagedSocket(player)
     await expectDoorAction(player, currentDoorAction)
 
     gm = await openManagedClient(browser, 'GM', gmCredentials)
     clients.push(gm)
-    await openTabletop(gm)
+    await openTabletop(gm, managedPaths)
     await expectManagedSocket(gm)
     await expectDoorAction(gm, currentDoorAction)
     timings.recoveryMs = performance.now() - recoveryStartedAt
@@ -129,7 +133,8 @@ test('connects three users through the managed room and recovers a reversible sc
 
   try {
     if (originalDoorAction) {
-      await restoreDoorFromAuthoritativeState(browser, clients, originalDoorAction)
+      if (!managedPaths) throw new Error('Managed route paths were not resolved before cleanup.')
+      await restoreDoorFromAuthoritativeState(browser, clients, originalDoorAction, managedPaths)
     }
   } catch (error) {
     cleanupFailure = error
@@ -158,6 +163,121 @@ interface ManagedClient {
   ticketResponses: Response[]
 }
 
+interface ManagedPaths {
+  characterSheet: string
+  tabletop: string
+}
+
+interface ManagedCampaignSummary {
+  assignedCharacter: { publicId: string } | null
+  name: string
+  publicId: string
+}
+
+interface ManagedCharacterListItem {
+  publicId: string
+}
+
+async function resolveManagedPaths(page: Page): Promise<ManagedPaths> {
+  const campaigns = parseCampaignSummaries(await queryManagedTrpc(page, 'campaigns.list'))
+  const matches = campaigns.filter((campaign) => campaign.name === campaignName)
+  if (matches.length !== 1) {
+    throw new Error(
+      `Expected exactly one managed smoke Campaign named ${JSON.stringify(campaignName)}, found ${matches.length}.`
+    )
+  }
+  const campaign = matches[0]!
+  const assignedCharacter = campaign.assignedCharacter
+  if (!assignedCharacter) {
+    throw new Error(
+      `Managed smoke Campaign ${JSON.stringify(campaignName)} has no Character assigned to the signed-in player.`
+    )
+  }
+
+  const characters = parseCharacterList(await queryManagedTrpc(page, 'characters.list'))
+  if (!characters.some((character) => character.publicId === assignedCharacter.publicId)) {
+    throw new Error(
+      `Assigned managed smoke Character ${JSON.stringify(assignedCharacter.publicId)} is not available to the signed-in player.`
+    )
+  }
+
+  return {
+    characterSheet: `/characters/${encodeURIComponent(assignedCharacter.publicId)}/sheet`,
+    tabletop: `/tabletop/campaigns/${encodeURIComponent(campaign.publicId)}/sessions/1`
+  }
+}
+
+async function queryManagedTrpc(page: Page, procedure: string): Promise<unknown> {
+  const response = await page.evaluate(async (procedureName) => {
+    const input = encodeURIComponent(JSON.stringify({ 0: null }))
+    const result = await fetch(`/api/trpc/${procedureName}?batch=1&input=${input}`, {
+      credentials: 'same-origin'
+    })
+    return { body: await result.text(), status: result.status }
+  }, procedure)
+  if (response.status !== 200) {
+    throw new Error(`Managed ${procedure} query failed with HTTP ${response.status}.`)
+  }
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(response.body) as unknown
+  } catch (error) {
+    throw new Error(`Managed ${procedure} query returned invalid JSON.`, { cause: error })
+  }
+  const envelope = Array.isArray(parsed) ? parsed[0] : parsed
+  const envelopeRecord = record(envelope)
+  const result = record(envelopeRecord?.result)
+  const data = result?.data
+  const dataRecord = record(data)
+  if (dataRecord && Object.hasOwn(dataRecord, 'json')) return dataRecord.json
+  if (data !== undefined) return data
+  throw new Error(`Managed ${procedure} query returned no result data.`)
+}
+
+function parseCampaignSummaries(value: unknown): ManagedCampaignSummary[] {
+  if (!Array.isArray(value)) throw new Error('Managed campaigns.list returned a non-list response.')
+  return value.map((item, index) => {
+    const candidate = record(item)
+    const name = candidate?.name
+    const publicId = candidate?.publicId
+    const assigned = candidate?.assignedCharacter
+    const assignedRecord = assigned === null ? null : record(assigned)
+    if (
+      !candidate ||
+      typeof name !== 'string' ||
+      typeof publicId !== 'string' ||
+      (assigned !== null && assignedRecord === null) ||
+      (assignedRecord !== null && typeof assignedRecord.publicId !== 'string')
+    ) {
+      throw new Error(`Managed campaigns.list item ${index} has an invalid shape.`)
+    }
+    return {
+      assignedCharacter: assignedRecord === null ? null : { publicId: assignedRecord.publicId },
+      name,
+      publicId
+    }
+  })
+}
+
+function parseCharacterList(value: unknown): ManagedCharacterListItem[] {
+  const response = record(value)
+  const items = response?.items
+  if (!Array.isArray(items)) throw new Error('Managed characters.list returned an invalid response.')
+  return items.map((item, index) => {
+    const candidate = record(item)
+    if (!candidate || typeof candidate.publicId !== 'string') {
+      throw new Error(`Managed characters.list item ${index} has an invalid shape.`)
+    }
+    return { publicId: candidate.publicId }
+  })
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+}
+
 async function collectDoorHostTimings(
   gm: ManagedClient,
   players: readonly ManagedClient[],
@@ -182,11 +302,15 @@ async function collectDoorHostTimings(
   return action
 }
 
-async function collectRuleHostTimings(client: ManagedClient, samples: number[]): Promise<void> {
+async function collectRuleHostTimings(
+  client: ManagedClient,
+  paths: ManagedPaths,
+  samples: number[]
+): Promise<void> {
   const sheet = await client.context.newPage()
   try {
     observeLiveSessionSockets(sheet, client)
-    await gotoManagedPage(sheet, characterSheetPath)
+    await gotoManagedPage(sheet, paths.characterSheet)
     await sheet.getByRole('button', { name: 'Manage hit points' }).click()
     const modifierInput = sheet.getByLabel('Max HP adjustment', { exact: true })
     await expect(modifierInput).toBeVisible()
@@ -384,8 +508,8 @@ function safeDiagnosticMessage(value: string): string {
     .slice(0, 1_000)
 }
 
-async function openTabletop(client: ManagedClient): Promise<void> {
-  await gotoManagedPage(client.page, tabletopPath)
+async function openTabletop(client: ManagedClient, paths: ManagedPaths): Promise<void> {
+  await gotoManagedPage(client.page, paths.tabletop)
   try {
     await expect(client.page.getByRole('img', { name: 'Interactive campaign scene' })).toBeVisible({
       timeout: 60_000
@@ -523,13 +647,14 @@ function collectSignedMediaUrls(value: unknown, urls: Set<string>): void {
 async function restoreDoorFromAuthoritativeState(
   browser: Browser,
   clients: ManagedClient[],
-  originalDoorAction: string
+  originalDoorAction: string,
+  paths: ManagedPaths
 ): Promise<void> {
   let gm = [...clients].reverse().find((client) => client.role === 'GM' && !client.page.isClosed())
   if (!gm) {
     gm = await openManagedClient(browser, 'GM', gmCredentials)
     clients.push(gm)
-    await openTabletop(gm)
+    await openTabletop(gm, paths)
     await expectManagedSocket(gm)
   }
   const currentDoorAction = await readDoorAction(gm.page, doorIndex)
@@ -646,14 +771,6 @@ function credentials(role: ManagedClient['role']): { email: string; password: st
   if (!email || !password)
     throw new Error(`Managed VTT ${role.toLowerCase()} credentials are required.`)
   return { email, password }
-}
-
-function requiredPath(name: string, prefix: string): string {
-  const value = requiredValue(name)
-  if (!value.startsWith(prefix) || value.includes('://')) {
-    throw new Error(`${name} must be an application path beginning with ${prefix}.`)
-  }
-  return value
 }
 
 function requiredHttpsOrigin(name: string): string {
