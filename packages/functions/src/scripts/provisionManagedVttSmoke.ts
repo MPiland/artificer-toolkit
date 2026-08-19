@@ -6,7 +6,8 @@ import {
   createAccountProfileRepository,
   createCampaignRepository,
   createDb,
-  createMediaRepository
+  createMediaRepository,
+  srdBaselineContent
 } from '@artificer-toolkit/db'
 import { createUniformSceneFogLayer } from '@artificer-toolkit/shared/vtt'
 import sharp from 'sharp'
@@ -204,26 +205,27 @@ async function main(): Promise<void> {
       gm.id
     )
 
-    const encounterCreature = await db
-      .selectFrom('creatures as creature')
-      .innerJoin(
-        'creature_features as creatureFeature',
-        'creatureFeature.creature_id',
-        'creature.id'
-      )
-      .innerJoin('features as feature', 'feature.id', 'creatureFeature.feature_id')
-      .innerJoin('charges as charge', 'charge.id', 'feature.charge_id')
-      .innerJoin('charge_limits as chargeLimit', 'chargeLimit.charge_id', 'charge.id')
-      .select(['creature.id', 'creature.system_id as systemId'])
-      .where('creature.status', '=', 'ACTIVE')
-      .where('creature.is_master', '=', true)
-      .where('creature.system_id', '=', catalog.systemId)
-      .where('charge.scaling_kind', '=', 'NONE')
-      .where('chargeLimit.limit_kind', '=', 'FIXED_AMOUNT')
-      .where('chargeLimit.amount', '>', 0)
-      .orderBy('creature.id')
-      .executeTakeFirst()
+    const encounterCreatures = srdBaselineContent.subjects.creatures.filter(
+      (creature) => creature.label === 'Acolyte' && creature.systemId === catalog.systemId
+    )
+    assert.equal(
+      encounterCreatures.length,
+      1,
+      'The managed SRD corpus must include exactly one canonical Acolyte for the seeded system.'
+    )
+    const encounterCreature = encounterCreatures[0]
     assert.ok(encounterCreature, 'The managed SRD corpus must include a charged creature feature.')
+    const hasChargedFeature =
+      encounterCreature.features?.some((feature) =>
+        feature.grants?.spells?.some(
+          (spell) =>
+            'charges' in spell &&
+            spell.charges?.scalingKind === 'NONE' &&
+            spell.charges.limitKind === 'FIXED_AMOUNT' &&
+            spell.charges.amount > 0
+        )
+      ) ?? false
+    assert.ok(hasChargedFeature, 'The canonical Acolyte must include a charged creature feature.')
     const encounterTemplate = await createEncounterTemplate(db, gm.id, {
       campaignId: campaign.id,
       name: 'Managed VTT smoke encounter',
