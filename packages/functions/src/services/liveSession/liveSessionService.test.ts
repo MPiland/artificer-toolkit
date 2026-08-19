@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   listEncounters: vi.fn(),
   requireCurrentProjection: vi.fn(),
   findSceneByEncounter: vi.fn(),
+  executeSceneCommand: vi.fn(),
   loadCharacterSceneVision: vi.fn(),
   loadCharacterRuleSnapshot: vi.fn()
 }))
@@ -61,7 +62,12 @@ vi.mock('../character/characterLiveSessionSnapshot.js', () => ({
   loadCharacterRuleSnapshotForLiveSessionCampaign: mocks.loadCharacterRuleSnapshot
 }))
 
-const { loadLiveSessionCoordinatorSnapshot, loadLiveSessionRoomSnapshot } =
+vi.mock('../encounter/vttSceneService.js', () => ({
+  attachEncounterScene: vi.fn(),
+  executeEncounterSceneCommandWithState: mocks.executeSceneCommand
+}))
+
+const { executeLiveSessionCommand, loadLiveSessionCoordinatorSnapshot, loadLiveSessionRoomSnapshot } =
   await import('./liveSessionService.js')
 
 function ruleSnapshot(streamVersion: number) {
@@ -207,5 +213,54 @@ describe('live-session room snapshot authorization', () => {
         sessionId: ids.session
       })
     ).rejects.toMatchObject({ name: 'CampaignAccessError' })
+  })
+
+  it('uses the locked Scene command lane without pre-hydrating Campaign or Encounter state', async () => {
+    const commandId = '00000000-0000-4000-8000-000000000007'
+    mocks.executeSceneCommand.mockResolvedValue({
+      result: {
+        commandId,
+        delta: { barrierId: ids.encounter, kind: 'DOOR_STATE_SET', state: 'OPEN' },
+        replayed: false,
+        sceneId: ids.encounter,
+        version: 1
+      },
+      state: { id: ids.encounter, version: 1 }
+    })
+
+    await executeLiveSessionCommand(
+      {} as DBLike,
+      ids.playerA,
+      { campaignId: ids.campaign, sessionId: ids.session },
+      {
+        aggregateKind: 'SCENE',
+        command: {
+          barrierId: ids.encounter,
+          commandId,
+          encounterId: ids.encounter,
+          expectedSceneVersion: 0,
+          sceneId: ids.encounter,
+          state: 'OPEN',
+          type: 'SET_SCENE_DOOR_STATE'
+        }
+      },
+      'room-authority',
+      { characterVisions: [], encounterCharacterBindings: [] }
+    )
+
+    expect(mocks.resolveCampaignAuthority).not.toHaveBeenCalled()
+    expect(mocks.executeSceneCommand).toHaveBeenCalledWith(
+      expect.anything(),
+      ids.playerA,
+      expect.objectContaining({ type: 'SET_SCENE_DOOR_STATE' }),
+      {
+        liveSceneContext: {
+          authorityId: 'room-authority',
+          campaignId: ids.campaign,
+          sessionId: ids.session
+        },
+        sceneVisionContext: { characterVisions: [], encounterCharacterBindings: [] }
+      }
+    )
   })
 })

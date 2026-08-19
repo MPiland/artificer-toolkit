@@ -36,6 +36,7 @@ import {
 } from '@artificer-toolkit/shared/vtt'
 
 import {
+  CampaignAccessError,
   assertActiveCampaignMember,
   assertCampaignOwner,
   assertCampaignWritable,
@@ -44,6 +45,7 @@ import {
 } from '../campaign/campaignService.js'
 import {
   assertSessionLiveSessionCommandAuthority,
+  LiveSessionCommandAuthorityError,
   type LiveSessionCommandAuthority
 } from '../campaign/liveSessionCommandAuthority.js'
 import {
@@ -56,14 +58,14 @@ import {
   replayEncounterSceneProjection
 } from './sceneProjectionReplay.js'
 
-interface LiveSceneEncounterBinding {
+export interface LiveSceneCommandContext {
+  authorityId: string
   campaignId: string
-  id: string
   sessionId: string
 }
 
 interface LiveSceneOptions {
-  liveEncounter?: LiveSceneEncounterBinding
+  liveSceneContext?: LiveSceneCommandContext
   sceneVisionContext?: LiveSessionSceneVisionContextDto
   liveSessionAuthority?: LiveSessionCommandAuthority
 }
@@ -360,13 +362,9 @@ async function requireEncounter(
   db: DBLike,
   encounterId: string,
   userId: string,
-  options: LiveSceneOptions,
   write: boolean
 ) {
-  const encounter =
-    options.liveEncounter?.id === encounterId
-      ? options.liveEncounter
-      : await createEncounterRepository(db).find(encounterId)
+  const encounter = await createEncounterRepository(db).find(encounterId)
   if (!encounter) throw new EncounterNotFoundError()
   const authority = await resolveCampaignAuthority(db, encounter.campaignId, userId)
   assertActiveCampaignMember(authority)
@@ -476,13 +474,7 @@ export async function attachEncounterScene(
   options: LiveSceneOptions = {}
 ): Promise<AttachEncounterSceneResultDto> {
   return withTransaction(db, async (trx) => {
-    const { authority, encounter } = await requireEncounter(
-      trx,
-      input.encounterId,
-      userId,
-      options,
-      true
-    )
+    const { authority, encounter } = await requireEncounter(trx, input.encounterId, userId, true)
     assertCampaignOwner(authority)
     await assertSessionLiveSessionCommandAuthority(
       trx,
@@ -522,7 +514,7 @@ export async function getEncounterSceneProjection(
   userId: string,
   input: { encounterId: string }
 ): Promise<EncounterSceneState> {
-  const { authority, encounter } = await requireEncounter(db, input.encounterId, userId, {}, false)
+  const { authority, encounter } = await requireEncounter(db, input.encounterId, userId, false)
   const scene = await createVttSceneRepository(db).findByEncounter(encounter.id)
   if (!scene) throw new EncounterValidationError('Encounter scene was not found.')
   return projectSceneForViewer(scene.state, {
@@ -538,25 +530,50 @@ export async function executeEncounterSceneCommandWithState(
   options: LiveSceneOptions = {}
 ): Promise<{ result: SceneCommandResultDto; state: EncounterSceneState }> {
   return withTransaction(db, async (trx) => {
-    const { authority, encounter } = await requireEncounter(
-      trx,
-      input.encounterId,
-      userId,
-      options,
-      true
-    )
-    await assertSessionLiveSessionCommandAuthority(
-      trx,
-      encounter.sessionId,
-      options.liveSessionAuthority
-    )
     const repository = createVttSceneRepository(trx)
     const commandFingerprint = fingerprint(input)
-    const scene = await repository.lockByEncounter(encounter.id)
+    const liveContext = options.liveSceneContext
+    const lockedLiveContext = liveContext
+      ? await repository.lockLiveCommandContext({
+          actorUserId: userId,
+          authorityId: liveContext.authorityId,
+          campaignId: liveContext.campaignId,
+          commandId: input.commandId,
+          encounterId: input.encounterId,
+          sessionId: liveContext.sessionId
+        })
+      : null
+    if (liveContext && !lockedLiveContext) throw new CampaignAccessError()
+    if (lockedLiveContext?.campaignStatus === 'ARCHIVED') {
+      throw new CampaignConflictError('Archived Campaigns are read-only.')
+    }
+    if (
+      liveContext &&
+      lockedLiveContext?.leaseAuthorityId !== liveContext.authorityId
+    ) {
+      throw new LiveSessionCommandAuthorityError('The live-session command authority is unavailable.')
+    }
+
+    const directContext = liveContext
+      ? null
+      : await requireEncounter(trx, input.encounterId, userId, true)
+    if (directContext) {
+      await assertSessionLiveSessionCommandAuthority(
+        trx,
+        directContext.encounter.sessionId,
+        options.liveSessionAuthority
+      )
+    }
+
+    const scene = lockedLiveContext?.scene ?? (await repository.lockByEncounter(input.encounterId))
     if (!scene || scene.state.id !== input.sceneId) {
       throw new EncounterValidationError('Encounter scene was not found.')
     }
-    const prior = await repository.findEventByCommand(encounter.id, input.commandId)
+    const membershipRole = lockedLiveContext?.membershipRole ?? directContext!.authority.membership.role
+    const encounterId = input.encounterId
+    const prior =
+      lockedLiveContext?.priorEvent ??
+      (await repository.findEventByCommand(encounterId, input.commandId))
     if (prior) {
       if (prior.commandFingerprint !== commandFingerprint || prior.commandType !== input.type) {
         throw new EncounterConflictError('Command ID was already used with different input.')
@@ -574,7 +591,7 @@ export async function executeEncounterSceneCommandWithState(
     }
     let delta: SceneDelta
     if (input.type === 'UNDO_LAST_SCENE_MOVE') {
-      if (authority.membership.role !== 'OWNER') {
+      if (membershipRole !== 'OWNER') {
         throw new EncounterValidationError('Only the Campaign owner can undo a token move.')
       }
       if (input.expectedSceneVersion !== scene.state.version) {
@@ -587,7 +604,7 @@ export async function executeEncounterSceneCommandWithState(
       )
     } else {
       const primaryDelta = commandToDelta(input)
-      if (authority.membership.role !== 'OWNER') {
+      if (membershipRole !== 'OWNER') {
         assertPlayerCommand(
           scene.state,
           userId,
@@ -640,19 +657,32 @@ export async function executeEncounterSceneCommandWithState(
       version: scene.state.version + 1
     }
     const nextState = applySceneEvent(scene.state, event)
-    await repository.appendEvent({
-      commandFingerprint,
-      commandType: input.type,
-      encounterId: encounter.id,
-      event,
-      id: randomUUID()
-    })
-    if (
-      !(await repository.updateProjection({
+    const projection = compileSceneCurrentProjection(nextState)
+    let published: boolean
+    if (liveContext) {
+      published = await repository.publishLiveCommand({
+        commandFingerprint,
+        commandType: input.type,
+        encounterId,
+        event,
+        eventId: randomUUID(),
         expectedVersion: scene.state.version,
-        projection: compileSceneCurrentProjection(nextState)
-      }))
-    ) {
+        projection
+      })
+    } else {
+      await repository.appendEvent({
+        commandFingerprint,
+        commandType: input.type,
+        encounterId,
+        event,
+        id: randomUUID()
+      })
+      published = await repository.updateProjection({
+        expectedVersion: scene.state.version,
+        projection
+      })
+    }
+    if (!published) {
       throw new EncounterConflictError('Scene changed before this command completed.')
     }
     return {

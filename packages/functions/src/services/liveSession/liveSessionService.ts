@@ -74,12 +74,11 @@ async function requireOpenSession(db: DBLike, options: LiveSessionJoinOptionsDto
   return session
 }
 
-export async function authorizeLiveSessionAdmission(
+async function authorizeLiveSessionAdmissionForOptions(
   db: DBLike,
   userId: string,
-  rawOptions: unknown
+  options: LiveSessionJoinOptionsDto
 ): Promise<LiveSessionAdmission> {
-  const options = liveSessionJoinOptionsDtoSchema.parse(rawOptions)
   const authority = await resolveCampaignAuthority(db, options.campaignId, userId)
   assertCampaignWritable(authority)
   await requireOpenSession(db, options)
@@ -91,6 +90,15 @@ export async function authorizeLiveSessionAdmission(
       attunementSlotOverride: authority.campaign.attunementSlotOverride
     }
   }
+}
+
+export async function authorizeLiveSessionAdmission(
+  db: DBLike,
+  userId: string,
+  rawOptions: unknown
+): Promise<LiveSessionAdmission> {
+  const options = liveSessionJoinOptionsDtoSchema.parse(rawOptions)
+  return authorizeLiveSessionAdmissionForOptions(db, userId, options)
 }
 
 function liveSessionAuthority(options: LiveSessionJoinOptionsDto, authorityId: string) {
@@ -405,9 +413,10 @@ export async function executeLiveSessionCommand(
   committedEncounterRuleSnapshot?: EncounterActorRuleSnapshot,
   onEncounterTiming?: (timing: EncounterCommandServiceTiming) => void
 ): Promise<LiveSessionCommandExecution> {
-  const { options } = await authorizeLiveSessionAdmission(db, userId, rawOptions)
+  const options = liveSessionJoinOptionsDtoSchema.parse(rawOptions)
   const commandAuthority = liveSessionAuthority(options, authorityId)
   if (command.aggregateKind === 'CHARACTER') {
+    await authorizeLiveSessionAdmissionForOptions(db, userId, options)
     const attendance = await createCampaignCollaborationRepository(db).listSessionAttendance(
       options.sessionId
     )
@@ -434,16 +443,17 @@ export async function executeLiveSessionCommand(
     }
   }
 
-  const encounter = await createEncounterRepository(db).find(command.command.encounterId)
-  if (
-    !encounter ||
-    encounter.campaignId !== options.campaignId ||
-    encounter.sessionId !== options.sessionId
-  ) {
-    throw new CampaignAccessError()
-  }
   if (command.aggregateKind === 'SCENE') {
     if (command.command.type === 'ATTACH_SCENE') {
+      await authorizeLiveSessionAdmissionForOptions(db, userId, options)
+      const encounter = await createEncounterRepository(db).find(command.command.encounterId)
+      if (
+        !encounter ||
+        encounter.campaignId !== options.campaignId ||
+        encounter.sessionId !== options.sessionId
+      ) {
+        throw new CampaignAccessError()
+      }
       const execution = await attachEncounterScene(db, userId, command.command, {
         liveSessionAuthority: commandAuthority
       })
@@ -458,13 +468,12 @@ export async function executeLiveSessionCommand(
       }
     }
     const execution = await executeEncounterSceneCommandWithState(db, userId, command.command, {
-      liveEncounter: {
-        campaignId: encounter.campaignId,
-        id: encounter.id,
-        sessionId: encounter.sessionId
+      liveSceneContext: {
+        authorityId: commandAuthority.authorityId,
+        campaignId: options.campaignId,
+        sessionId: options.sessionId
       },
-      sceneVisionContext,
-      liveSessionAuthority: commandAuthority
+      sceneVisionContext
     })
     return {
       aggregateKind: 'SCENE',
@@ -477,6 +486,15 @@ export async function executeLiveSessionCommand(
     }
   }
 
+  await authorizeLiveSessionAdmissionForOptions(db, userId, options)
+  const encounter = await createEncounterRepository(db).find(command.command.encounterId)
+  if (
+    !encounter ||
+    encounter.campaignId !== options.campaignId ||
+    encounter.sessionId !== options.sessionId
+  ) {
+    throw new CampaignAccessError()
+  }
   const execution = await executeEncounterCommandWithRuleSnapshot(db, userId, command.command, {
     committedRuleSnapshot: committedEncounterRuleSnapshot,
     onTiming: onEncounterTiming,

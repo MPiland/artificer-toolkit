@@ -63,6 +63,8 @@ The DO-to-Netlify hop applies only to durable commands. Pointer movement, drag p
 
 Netlify remains viable because native Zen runs during an ordinary on-demand Node invocation. It does not require an always-on process. Warm invocations may reuse loaded modules, but correctness never depends on process memory or a warm evaluator cache.
 
+Managed Scene commands use a dedicated bounded lane: one locked Postgres read verifies active membership, exact Campaign/session/Encounter identity, the open Session, the current room lease, the checksum-verified Scene projection, and any prior command receipt. TypeScript reduces the validated projection, then one dependent CTE appends the immutable Scene event and compare-and-swap publishes the next checksum-verified projection. Missing context, a lost lease, or a checksum/version mismatch fails closed; ordinary non-live Scene service calls retain their direct authorization path.
+
 ## Local command flow
 
 ```mermaid
