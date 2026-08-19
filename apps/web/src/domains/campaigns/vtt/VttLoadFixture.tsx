@@ -33,6 +33,24 @@ const emptyJourney: VttLoadJourney = {
   tokenDragCommit: false
 }
 
+const maxTimingTelemetryRecords = 50
+
+interface VttForegroundTransition {
+  focusState: boolean
+  source: 'FOCUS' | 'INITIAL' | 'VISIBILITY'
+  timestampMs: number
+  visibilityState: DocumentVisibilityState
+}
+
+interface VttFrameGapRecord {
+  durationMs: number
+  focusState: boolean
+  maxLongTaskMs: number
+  timestampMs: number
+  updateCount: number
+  visibilityState: DocumentVisibilityState
+}
+
 export function VttLoadFixture() {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const rendererRef = useRef<VttSceneRenderer | null>(null)
@@ -54,12 +72,41 @@ export function VttLoadFixture() {
     let frameCount = 0
     let lastFrameAt = performance.now()
     let maxFrameGapMs = 0
+    let maxForegroundFrameGapMs = 0
     let maxLongTaskMs = 0
     let updateCount = 0
     let nextCommitAt = lastFrameAt
     let nextTransientAt = lastFrameAt
     let scene = sceneRef.current
     const startedAt = lastFrameAt + vttLoadFixtureExercise.warmupMs
+    const frameGapRecords: VttFrameGapRecord[] = []
+    const foregroundTransitions: VttForegroundTransition[] = []
+    const isForeground = () => document.visibilityState === 'visible' && document.hasFocus()
+    let foregroundInterrupted = !isForeground()
+    let foregroundInterruptedSinceLastFrame = !isForeground()
+    let previousFrameWasForeground = isForeground()
+    const recordForegroundTransition = (source: VttForegroundTransition['source']) => {
+      if (foregroundTransitions.length >= maxTimingTelemetryRecords) return
+      foregroundTransitions.push({
+        focusState: document.hasFocus(),
+        source,
+        timestampMs: performance.now() - startedAt,
+        visibilityState: document.visibilityState
+      })
+    }
+    const observeForegroundTransition = (source: VttForegroundTransition['source']) => {
+      if (!isForeground()) {
+        foregroundInterrupted = true
+        foregroundInterruptedSinceLastFrame = true
+      }
+      recordForegroundTransition(source)
+    }
+    const onFocus = () => observeForegroundTransition('FOCUS')
+    const onVisibilityChange = () => observeForegroundTransition('VISIBILITY')
+    recordForegroundTransition('INITIAL')
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('blur', onFocus)
+    document.addEventListener('visibilitychange', onVisibilityChange)
     const observer = new PerformanceObserver((entries) => {
       for (const entry of entries.getEntries())
         maxLongTaskMs = Math.max(maxLongTaskMs, entry.duration)
@@ -77,11 +124,18 @@ export function VttLoadFixture() {
 
     const finish = () => {
       observer.disconnect()
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('blur', onFocus)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
       const elapsedMs = performance.now() - startedAt
       const exerciseReport = {
         averageFps: (frameCount * 1_000) / elapsedMs,
         elapsedMs,
+        foregroundInterrupted,
+        foregroundTransitions,
+        frameGapRecords,
         maxFrameGapMs,
+        maxForegroundFrameGapMs,
         maxLongTaskMs,
         mode,
         updateCount
@@ -111,7 +165,24 @@ export function VttLoadFixture() {
         return
       }
       frameCount += 1
-      maxFrameGapMs = Math.max(maxFrameGapMs, now - lastFrameAt)
+      const frameGapMs = now - lastFrameAt
+      const foreground = isForeground()
+      maxFrameGapMs = Math.max(maxFrameGapMs, frameGapMs)
+      if (foreground && previousFrameWasForeground && !foregroundInterruptedSinceLastFrame)
+        maxForegroundFrameGapMs = Math.max(maxForegroundFrameGapMs, frameGapMs)
+      if (frameGapMs >= 100 && frameGapRecords.length < maxTimingTelemetryRecords) {
+        frameGapRecords.push({
+          durationMs: frameGapMs,
+          focusState: document.hasFocus(),
+          maxLongTaskMs,
+          timestampMs: now - startedAt,
+          updateCount,
+          visibilityState: document.visibilityState
+        })
+      }
+      if (!foreground) foregroundInterrupted = true
+      previousFrameWasForeground = foreground
+      foregroundInterruptedSinceLastFrame = !foreground
       lastFrameAt = now
       if (mode !== 'RAF_ONLY' && now >= nextTransientAt) {
         renderer.applyTransient({
@@ -176,6 +247,9 @@ export function VttLoadFixture() {
     cancelExerciseRef.current = () => {
       cancelled = true
       observer.disconnect()
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('blur', onFocus)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [journey, running])
 
