@@ -133,6 +133,8 @@ An ambiguous executor timeout remains pending and keeps its conflict-local fence
 
 Reconnect receives a full private `READY` snapshot with the global delivery high-water, then statuses only for pending command IDs originally submitted by that authenticated user. The high-water does not imply the client was authorized to see every lower delivery. Hibernation or isolate eviction restores the journal, lease-renewal deadline, and retry schedule from SQLite; a new connection cycle reloads canonical gameplay state through the executor. In-memory locks are never recovery truth.
 
+The room may retain an exact Character mechanics payload only after the executor has loaded and checksum-verified its durable projection. On each eligible host command it rechecks the compact durable projection identity (stream, rule revision, whole-projection checksum, and command-lane checksum); a missing or mismatched identity falls back to the full verified read. This server-only payload is stripped at the executor boundary and never enters a browser `READY`, receipt, transient, or Durable Object journal.
+
 ## Private state
 
 Scene snapshots, deltas, and token-drag previews are projected separately for each admitted viewer. Hidden or unexplored tokens, unrevealed barriers and doors, unrevealed lights and darkness, GM annotations, and other players' fog are withheld server-side. An owner may explicitly request one player's transient projection while using player-preview mode; this affects only that owner socket and does not broaden any player delivery. Character and Encounter response payloads are returned only to command requesters; peers receive committed aggregate/version information. Full reusable scene-definition APIs remain owner-only.

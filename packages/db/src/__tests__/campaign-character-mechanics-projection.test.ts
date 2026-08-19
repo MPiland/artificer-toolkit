@@ -11,15 +11,14 @@ const checksum = (value: string) => value.repeat(64)
 
 function projectionCandidate() {
   return {
+    kind: 'BASE_REFERENCE' as const,
     campaignId: 'campaign-1',
     characterId: 'character-1',
     characterStreamVersion: 4,
     baseMechanicsProjectionChecksum: checksum('a'),
     mechanicalContextChecksum: checksum('b'),
-    projectionSchemaVersion: 1,
+    projectionSchemaVersion: 2,
     projectionChecksum: checksum('c'),
-    rulePolicyInput: { contractVersion: 4, derived: { value: 2 } },
-    rulePolicyOutput: { armorClass: 14 }
   }
 }
 
@@ -98,8 +97,9 @@ describe('Campaign Character mechanics projection checksum', () => {
     expect(() =>
       assertCurrentCampaignCharacterMechanicsProjection({
         ...currentInput,
-        expectedProjectionSchemaVersion: 2
+        expectedProjectionSchemaVersion: 3
       })
     ).toThrow(CampaignCharacterMechanicsProjectionMismatchError)
   })
+
 })

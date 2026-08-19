@@ -496,7 +496,8 @@ export async function updateCampaign(
                   adjustments: ruleContext.adjustments,
                   attunementSlotOverride: ruleContext.attunementSlotOverride
                 }),
-                expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION
+                expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
+                baseMechanicsProjection: mechanics
               })
               return { character, mechanics, previousOverlay }
             })

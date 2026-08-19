@@ -83,7 +83,8 @@ export async function assembleCharacterSheetBundleForRuleContext(params: {
           adjustments: params.ruleContext.adjustments,
           attunementSlotOverride: params.ruleContext.attunementSlotOverride
         }),
-        expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION
+        expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
+        baseMechanicsProjection: mechanics
       })
     : null
   const committedSources = await loadCharacterCommittedSheetSources({ db: params.db, mechanics })

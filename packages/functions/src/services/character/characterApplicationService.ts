@@ -844,6 +844,12 @@ export async function getCharacterSheetBundleForUser(
     ruleSnapshot: {
       mechanicsProjectionChecksum: mechanics.projectionChecksum,
       mechanicsCommandLaneChecksum: mechanics.commandLaneChecksum,
+      mechanicsPayload: {
+        ruleSnapshot: mechanics.ruleSnapshot,
+        rulePolicyInput: mechanics.rulePolicyInput,
+        rulePolicyOutput: mechanics.rulePolicyOutput,
+        ruleRegistry: mechanics.ruleRegistry
+      },
       campaignMechanicalContextChecksum: campaignContext.campaignId
         ? checksumCampaignCharacterMechanicalContext({
             adjustments: campaignContext.adjustments,
@@ -1181,7 +1187,8 @@ export async function upsertCharacterBuilderForUser(
               adjustments: campaignContext.adjustments,
               attunementSlotOverride: campaignContext.attunementSlotOverride
             }),
-            expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION
+            expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
+            baseMechanicsProjection: currentMechanics
           })
           priorCampaignOverlayChecksum = overlay.projectionChecksum
         }

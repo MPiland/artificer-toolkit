@@ -48,11 +48,9 @@ export function checksumCharacterMechanicsProjection(
 
 type CampaignCharacterMechanicsProjectionChecksumInput = Omit<
   CampaignCharacterMechanicsProjection,
-  'projectionChecksum' | 'rulePolicyInput' | 'rulePolicyOutput'
+  'projectionChecksum'
 > & {
   projectionChecksum?: string
-  rulePolicyInput: unknown
-  rulePolicyOutput: unknown
 }
 
 export function checksumCampaignCharacterMechanicsProjection(

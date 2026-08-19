@@ -183,13 +183,24 @@ CREATE TABLE IF NOT EXISTS public.campaign_character_mechanics_projections (
   mechanical_context_checksum text NOT NULL CHECK (mechanical_context_checksum ~ '^[a-f0-9]{64}$'),
   projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
   projection_checksum text NOT NULL CHECK (projection_checksum ~ '^[a-f0-9]{64}$'),
-  rule_policy_input jsonb NOT NULL CHECK (jsonb_typeof(rule_policy_input) = 'object'),
-  rule_policy_output jsonb NOT NULL CHECK (jsonb_typeof(rule_policy_output) = 'object'),
+  projection_kind text NOT NULL CHECK (projection_kind IN ('BASE_REFERENCE', 'MATERIALIZED')),
+  rule_policy_input jsonb,
+  rule_policy_output jsonb,
   updated_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (campaign_id, character_id),
   FOREIGN KEY (campaign_id, character_id)
     REFERENCES public.campaign_character_assignments (campaign_id, character_id)
-    ON DELETE CASCADE
+    ON DELETE CASCADE,
+  CHECK (
+    (projection_kind = 'BASE_REFERENCE' AND rule_policy_input IS NULL AND rule_policy_output IS NULL)
+    OR (
+      projection_kind = 'MATERIALIZED'
+      AND rule_policy_input IS NOT NULL
+      AND rule_policy_output IS NOT NULL
+      AND jsonb_typeof(rule_policy_input) = 'object'
+      AND jsonb_typeof(rule_policy_output) = 'object'
+    )
+  )
 );
 
 ALTER TABLE public.campaign_character_mechanics_projections ENABLE ROW LEVEL SECURITY;

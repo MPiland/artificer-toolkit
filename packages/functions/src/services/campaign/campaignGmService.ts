@@ -189,7 +189,8 @@ async function requireCurrentCampaignCharacterMechanicsOverlay(input: {
     expectedBaseMechanicsProjectionChecksum: input.mechanics.projectionChecksum,
     expectedCharacterStreamVersion: input.mechanics.characterStreamVersion,
     expectedMechanicalContextChecksum: mechanicalContextChecksum,
-    expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION
+    expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
+    baseMechanicsProjection: input.mechanics
   })
   return { projection, ruleContext }
 }

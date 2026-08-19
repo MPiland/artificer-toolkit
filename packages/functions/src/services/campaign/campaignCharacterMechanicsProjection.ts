@@ -27,7 +27,7 @@ import {
 } from '../character/campaignCharacterSheet.js'
 import type { CharacterMechanicsProjection } from '@artificer-toolkit/schema/projections/characterMechanics'
 
-export const CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION = 1
+export const CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION = 2
 
 export function compileCampaignCharacterMechanicsProjection(input: {
   baseMechanicsProjectionChecksum: string
@@ -35,11 +35,18 @@ export function compileCampaignCharacterMechanicsProjection(input: {
   characterId: string
   characterStreamVersion: number
   mechanicalContextChecksum: string
-  rulePolicyInput: CharacterRulePolicyInput
-  rulePolicyOutput: CharacterRulePolicyOutput
+  rulePolicyInput?: CharacterRulePolicyInput
+  rulePolicyOutput?: CharacterRulePolicyOutput
 }): CampaignCharacterMechanicsProjection {
+  if ((input.rulePolicyInput == null) !== (input.rulePolicyOutput == null)) {
+    throw new Error(
+      'Campaign Character mechanics projections require both rule-policy documents or neither.'
+    )
+  }
+  const materialized = input.rulePolicyInput != null && input.rulePolicyOutput != null
   const candidate = campaignCharacterMechanicsProjectionSchema.parse({
     ...input,
+    kind: materialized ? 'MATERIALIZED' : 'BASE_REFERENCE',
     projectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
     projectionChecksum: '0'.repeat(64)
   })
@@ -63,6 +70,19 @@ export async function prepareCampaignCharacterMechanicsProjection(input: {
   db: DBLike
   mechanics: CharacterMechanicsProjection
 }): Promise<CampaignCharacterMechanicsProjection> {
+  const mechanicalContextChecksum = checksumCampaignCharacterMechanicalContext({
+    adjustments: input.campaignAdjustments,
+    attunementSlotOverride: input.attunementSlotOverride
+  })
+  if (input.campaignAdjustments.length === 0 && input.attunementSlotOverride === null) {
+    return compileCampaignCharacterMechanicsProjection({
+      campaignId: input.campaignId,
+      characterId: input.character.id,
+      characterStreamVersion: input.characterStreamVersion,
+      baseMechanicsProjectionChecksum: input.mechanics.projectionChecksum,
+      mechanicalContextChecksum
+    })
+  }
   const [characterAdjustments, movementDisplayPreference, resourceUsage, sources] =
     await Promise.all([
       createCharacterSheetAdjustmentRepository(input.db).listByCharacter(input.character.id),
@@ -94,10 +114,7 @@ export async function prepareCampaignCharacterMechanicsProjection(input: {
     characterId: input.character.id,
     characterStreamVersion: input.characterStreamVersion,
     baseMechanicsProjectionChecksum: input.mechanics.projectionChecksum,
-    mechanicalContextChecksum: checksumCampaignCharacterMechanicalContext({
-      adjustments: input.campaignAdjustments,
-      attunementSlotOverride: input.attunementSlotOverride
-    }),
+    mechanicalContextChecksum,
     rulePolicyInput: ruleEvaluation.facts,
     rulePolicyOutput: ruleEvaluation.output
   })

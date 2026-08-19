@@ -86,7 +86,8 @@ export async function loadCharacterSceneVisionForLiveSessionCampaign(
       adjustments: ruleContext.adjustments,
       attunementSlotOverride: ruleContext.attunementSlotOverride
     }),
-    expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION
+    expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
+    baseMechanicsProjection: mechanics
   })
   const dimRangeFeet = resolveCharacterSceneVisionDimRangeFeet(campaignMechanics.rulePolicyOutput.senses)
   return { streamVersion: row.stream_version, dimRangeFeet }
@@ -130,6 +131,12 @@ export async function loadCharacterRuleSnapshotForLiveSessionCampaign(
   return {
     mechanicsProjectionChecksum: mechanics.projectionChecksum,
     mechanicsCommandLaneChecksum: mechanics.commandLaneChecksum,
+    mechanicsPayload: {
+      ruleSnapshot: mechanics.ruleSnapshot,
+      rulePolicyInput: mechanics.rulePolicyInput,
+      rulePolicyOutput: mechanics.rulePolicyOutput,
+      ruleRegistry: mechanics.ruleRegistry
+    },
     campaignMechanicalContextChecksum: checksumCampaignCharacterMechanicalContext({
       adjustments: ruleContext.adjustments,
       attunementSlotOverride: ruleContext.attunementSlotOverride
