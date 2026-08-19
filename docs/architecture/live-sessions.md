@@ -97,6 +97,8 @@ Local hosting avoids the Cloudflare-to-Netlify hop while preserving the protocol
 
 No separate repository is required. Named Wrangler environments isolate the staging and production Workers and Durable Object storage. Netlify Deploy Preview configuration points at the staging Supabase project and staging Worker; the Production context points at production. Render is not part of the initial managed architecture. A future launcher can start the local host invisibly; a polished self-hosting installer remains out of scope.
 
+The private `live-session-executor` is pinned to Netlify's `cmh` region in `netlify.toml`, colocated with the current US East (Ohio) Supabase environments. A database-region move must update that deployment setting in the same cutover.
+
 ## Admission and authority
 
 The authenticated Campaign-session API issues a signed ticket containing exact Campaign ID, session ID, user ID, membership role, unique ticket ID, and one-minute expiry. Browsers offer the application protocol and ticket as WebSocket subprotocols. The coordinator returns only the application protocol, consumes the ticket once, and rejects origin or room mismatches before admission.
