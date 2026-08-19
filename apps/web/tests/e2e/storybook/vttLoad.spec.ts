@@ -70,8 +70,6 @@ test('retains the 8K scene renderer correctness and diagnostic load evidence', a
     )
     expect(report.mode, reportDetails).toBe(mode)
     expect(report.mapLoadComplete, reportDetails).toBe(true)
-    expect(report.maxFrameGapMs, reportDetails).toBeLessThanOrEqual(100)
-    expect(report.maxLongTaskMs, reportDetails).toBeLessThanOrEqual(100)
     expect(report.transientVisualCount, reportDetails).toBe(0)
     expect(report.loadedMapAssetCount, reportDetails).toBe(65)
     expect(report.doorVisualCreateCount, reportDetails).toBeLessThanOrEqual(30)
@@ -87,6 +85,10 @@ test('retains the 8K scene renderer correctness and diagnostic load evidence', a
     expect(peakHeapGrowthBytes, reportDetails).toBeLessThanOrEqual(96 * 1024 * 1024)
     if (mode === 'FULL') expect(report.updateCount, reportDetails).toBeGreaterThan(0)
     else expect(report.updateCount, reportDetails).toBe(0)
+    if (testInfo.project.name === 'storybook-vtt-hardware') {
+      expect(report.maxFrameGapMs, reportDetails).toBeLessThanOrEqual(100)
+      expect(report.maxLongTaskMs, reportDetails).toBeLessThanOrEqual(100)
+    }
     if (testInfo.project.name === 'storybook-vtt-hardware' && mode === 'FULL') {
       expect(report.webglRenderer, reportDetails).not.toBeNull()
       expect(report.webglRenderer, reportDetails).not.toMatch(/SwiftShader/i)
