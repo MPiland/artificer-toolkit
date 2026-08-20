@@ -1523,6 +1523,12 @@ it('renews authority through the persisted alarm after hibernation and releases 
     for (const socket of state.getWebSockets()) socket.close(1000, 'done')
   })
   await waitForNoServerSockets(stub)
+  const scheduledReleaseAt = await runInDurableObject(stub, (_instance, state) =>
+    state.storage.sql
+      .exec<{ release_at: number | null }>('SELECT release_at FROM room_meta WHERE id = 1')
+      .one().release_at
+  )
+  expect(scheduledReleaseAt).toBeGreaterThan(Date.now())
   await runInDurableObject(stub, async (_instance, state) => {
     state.storage.sql.exec('UPDATE room_meta SET release_at = ? WHERE id = 1', Date.now() - 1)
     await state.storage.setAlarm(Date.now() + 60_000)

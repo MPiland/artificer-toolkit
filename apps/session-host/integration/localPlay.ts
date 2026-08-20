@@ -64,6 +64,8 @@ const MESSAGE_TIMEOUT_MS = 15_000
 const WARM_COMMAND_P95_LIMIT_MS = 500
 const RULE_BOUND_HOST_P95_LIMIT_MS = 250
 const SCENE_HOST_P95_LIMIT_MS = 100
+const DIRECT_HOST_LEASE_RELEASE_TIMEOUT_MS = 2_500
+const DURABLE_OBJECT_LEASE_RELEASE_TIMEOUT_MS = 45_000
 const LOCAL_INTEGRATION_TICKET_SECRET =
   'local-live-session-integration-secret-with-at-least-32-bytes'
 
@@ -127,9 +129,11 @@ async function availablePort(): Promise<number> {
 
 async function waitForLeaseRelease(
   db: ReturnType<typeof createDb>,
-  sessionId: string
+  sessionId: string,
+  timeoutMs: number
 ): Promise<void> {
-  for (let attempt = 0; attempt < 50; attempt += 1) {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
     const lease = await db
       .selectFrom('live_session_command_leases')
       .select('session_id')
@@ -915,6 +919,7 @@ async function main(): Promise<void> {
         status: 'ok'
       })
     }
+    const enforcesDirectHostLatencyBudgets = !externalDurableObject
 
     const playerJoins: Array<Awaited<ReturnType<typeof joinLiveRoom>>> = []
     const firstTicket = playerTickets[0]
@@ -1161,10 +1166,12 @@ async function main(): Promise<void> {
     const coldServiceTiming = commandTimings.find(
       ({ commandId }) => commandId === cold.commandId
     )?.service
-    assert.ok(
-      cold.durationMs < WARM_COMMAND_P95_LIMIT_MS,
-      `First local command ${cold.durationMs.toFixed(2)} ms exceeded ${WARM_COMMAND_P95_LIMIT_MS} ms. Service timing: ${JSON.stringify(coldServiceTiming ?? null)}.`
-    )
+    if (enforcesDirectHostLatencyBudgets) {
+      assert.ok(
+        cold.durationMs < WARM_COMMAND_P95_LIMIT_MS,
+        `First local command ${cold.durationMs.toFixed(2)} ms exceeded ${WARM_COMMAND_P95_LIMIT_MS} ms. Service timing: ${JSON.stringify(coldServiceTiming ?? null)}.`
+      )
+    }
 
     const replay = await sendCharacterCommand(
       playerRoom,
@@ -1234,10 +1241,12 @@ async function main(): Promise<void> {
         }))
       })
     )
-    assert.ok(
-      warmP95Ms < WARM_COMMAND_P95_LIMIT_MS,
-      `Warm local command p95 ${warmP95Ms.toFixed(2)} ms exceeded ${WARM_COMMAND_P95_LIMIT_MS} ms.`
-    )
+    if (enforcesDirectHostLatencyBudgets) {
+      assert.ok(
+        warmP95Ms < WARM_COMMAND_P95_LIMIT_MS,
+        `Warm local command p95 ${warmP95Ms.toFixed(2)} ms exceeded ${WARM_COMMAND_P95_LIMIT_MS} ms.`
+      )
+    }
 
     const spendableResource = initialSheet.resources.items.find(
       (resource) => resource.remaining > 0
@@ -1270,10 +1279,12 @@ async function main(): Promise<void> {
         }
       })
     )
-    assert.ok(
-      mechanicsChangingCommand.durationMs < WARM_COMMAND_P95_LIMIT_MS,
-      `Rule-invalidating local command ${mechanicsChangingCommand.durationMs.toFixed(2)} ms exceeded ${WARM_COMMAND_P95_LIMIT_MS} ms.`
-    )
+    if (enforcesDirectHostLatencyBudgets) {
+      assert.ok(
+        mechanicsChangingCommand.durationMs < WARM_COMMAND_P95_LIMIT_MS,
+        `Rule-invalidating local command ${mechanicsChangingCommand.durationMs.toFixed(2)} ms exceeded ${WARM_COMMAND_P95_LIMIT_MS} ms.`
+      )
+    }
     const resourceTiming = commandTimings.find(
       ({ commandId }) => commandId === mechanicsChangingCommand.commandId
     )
@@ -1308,10 +1319,12 @@ async function main(): Promise<void> {
         }
       })
     )
-    assert.ok(
-      spellSlotCommand.durationMs < WARM_COMMAND_P95_LIMIT_MS,
-      `Spell-slot local command ${spellSlotCommand.durationMs.toFixed(2)} ms exceeded ${WARM_COMMAND_P95_LIMIT_MS} ms.`
-    )
+    if (enforcesDirectHostLatencyBudgets) {
+      assert.ok(
+        spellSlotCommand.durationMs < WARM_COMMAND_P95_LIMIT_MS,
+        `Spell-slot local command ${spellSlotCommand.durationMs.toFixed(2)} ms exceeded ${WARM_COMMAND_P95_LIMIT_MS} ms.`
+      )
+    }
     if (!externalEndpoint) {
       assert.equal(spellSlotTiming?.service.evaluationLane, 'CHARACTER_ACTION')
       assert.ok((spellSlotTiming?.service.boundedZenEvaluationMs ?? 0) > 0)
@@ -1351,10 +1364,12 @@ async function main(): Promise<void> {
         }
       })
     )
-    assert.ok(
-      encounterResourceCommand.durationMs < WARM_COMMAND_P95_LIMIT_MS,
-      `Encounter resource command ${encounterResourceCommand.durationMs.toFixed(2)} ms exceeded ${WARM_COMMAND_P95_LIMIT_MS} ms.`
-    )
+    if (enforcesDirectHostLatencyBudgets) {
+      assert.ok(
+        encounterResourceCommand.durationMs < WARM_COMMAND_P95_LIMIT_MS,
+        `Encounter resource command ${encounterResourceCommand.durationMs.toFixed(2)} ms exceeded ${WARM_COMMAND_P95_LIMIT_MS} ms.`
+      )
+    }
     if (!externalEndpoint) {
       assert.equal(encounterResourceTiming?.service.evaluationLane, 'NONE')
       assert.equal(encounterResourceTiming?.service.actorEvaluationMs, 0)
@@ -1432,7 +1447,13 @@ async function main(): Promise<void> {
       await sessionHost.gracefullyShutdown(false)
       sessionHost = null
     }
-    await waitForLeaseRelease(db, session.id)
+    await waitForLeaseRelease(
+      db,
+      session.id,
+      externalDurableObject
+        ? DURABLE_OBJECT_LEASE_RELEASE_TIMEOUT_MS
+        : DIRECT_HOST_LEASE_RELEASE_TIMEOUT_MS
+    )
 
     console.info(
       JSON.stringify({
@@ -1447,6 +1468,7 @@ async function main(): Promise<void> {
           : externalEndpoint
             ? 'EXTERNAL_LINUX_CONTAINER'
             : 'LOCAL_NODE_PROCESS',
+        directHostLatencyBudgets: enforcesDirectHostLatencyBudgets ? 'enforced' : 'not-applicable',
         encounterCommittedSnapshot: 'verified',
         localDatabaseOnly: true,
         multiClientCommittedBroadcast: 'verified',

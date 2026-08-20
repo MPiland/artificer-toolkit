@@ -179,7 +179,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     this.#snapshot = meta?.snapshotJson
       ? liveSessionCoordinatorSnapshotDtoSchema.parse(JSON.parse(meta.snapshotJson))
       : null
-    this.#hydratedForConnectionCycle = ctx.getWebSockets().length > 0 && this.#snapshot !== null
+    this.#hydratedForConnectionCycle = this.#hasOpenSockets() && this.#snapshot !== null
     ctx.blockConcurrencyWhile(async () => {
       if ((await ctx.storage.getAlarm()) !== null) return
       if (this.#journal.activeWorkCount() > 0) {
@@ -288,7 +288,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
   }
 
   async webSocketClose(): Promise<void> {
-    if (this.ctx.getWebSockets().length > 0) return
+    if (this.#hasOpenSockets()) return
     if (this.#journal.loadMeta()?.authorityRenewalAt === null) return
     const releaseAt = Date.now() + RECONNECT_GRACE_MS
     this.#journal.setReleaseAt(releaseAt)
@@ -301,7 +301,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
       meta?.releaseAt !== null &&
       meta?.releaseAt !== undefined &&
       meta.releaseAt <= Date.now() &&
-      this.ctx.getWebSockets().length === 0 &&
+      !this.#hasOpenSockets() &&
       this.#journal.activeWorkCount() === 0
     ) {
       await this.#releaseAuthority(meta)
@@ -925,10 +925,14 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
 
   #shouldMaintainAuthority(meta: { releaseAt: number | null }): boolean {
     return (
-      this.ctx.getWebSockets().length > 0 ||
+      this.#hasOpenSockets() ||
       this.#journal.activeWorkCount() > 0 ||
       (meta.releaseAt !== null && meta.releaseAt > Date.now())
     )
+  }
+
+  #hasOpenSockets(): boolean {
+    return this.ctx.getWebSockets().some((socket) => socket.readyState === WebSocket.OPEN)
   }
 
   #movementIndex(scene: EncounterSceneState): SceneBarrierIndex {
