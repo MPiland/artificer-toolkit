@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto'
+import { randomUUID, timingSafeEqual } from 'node:crypto'
 
 import { createDb, withUserContext, type KyselyDatabase } from '@artificer-toolkit/db'
 import { executeLiveSessionExecutorRequest } from '@artificer-toolkit/functions/services'
@@ -98,7 +98,30 @@ function domainError(error: unknown): Response {
       'Live-session state changed before the command committed.'
     )
   }
-  return errorResponse(500, 'COMMAND_FAILED', 'Live-session command failed.')
+  const errorId = randomUUID()
+  const databaseCode =
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof (error as { code?: unknown }).code === 'string'
+      ? (error as { code: string }).code.slice(0, 64)
+      : null
+  const errorName = error instanceof Error ? error.name : typeof error
+  const errorMessage = error instanceof Error ? error.message : String(error)
+  const stack = error instanceof Error ? error.stack : undefined
+
+  console.error('[live-session-executor-unexpected]', {
+    databaseCode,
+    errorId,
+    errorMessage: errorMessage.slice(0, 2_000),
+    errorName,
+    stack: stack?.slice(0, 8_000)
+  })
+  return errorResponse(
+    500,
+    'COMMAND_FAILED',
+    `Live-session command failed. Reference ${errorId}.`
+  )
 }
 
 export default async function liveSessionExecutor(request: Request): Promise<Response> {

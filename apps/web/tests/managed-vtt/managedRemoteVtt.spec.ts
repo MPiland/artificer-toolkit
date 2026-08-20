@@ -398,7 +398,9 @@ async function waitForCorrelatedHostTiming(
   const outcome = readOutcome()
   if (!outcome) throw new Error(`Missing ${category} command outcome for ${commandId}.`)
   if (outcome.kind === 'REJECTED') {
-    throw new Error(`${category} command ${commandId} rejected (${outcome.code}).`)
+    throw new Error(
+      `${category} command ${commandId} rejected (${outcome.code}): ${outcome.message}`
+    )
   }
   return outcome.durationMs
 }
@@ -425,7 +427,7 @@ function parseCommandOutcome(
   category: 'RULE_BOUND' | 'SCENE_ONLY',
   commandId: string
 ):
-  | { code: string; kind: 'REJECTED'; commandId: string }
+  | { code: string; kind: 'REJECTED'; commandId: string; message: string }
   | { commandId: string; durationMs: number; kind: 'TIMING' }
   | null {
   try {
@@ -437,7 +439,8 @@ function parseCommandOutcome(
       return {
         code: typeof message.code === 'string' ? message.code : 'UNKNOWN',
         kind: 'REJECTED',
-        commandId
+        commandId,
+        message: typeof message.message === 'string' ? message.message : 'No rejection detail.'
       }
     }
     if (message.type !== 'COMMAND_COMMITTED' || message.originCommandId !== commandId) {

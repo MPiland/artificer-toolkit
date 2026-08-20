@@ -143,14 +143,37 @@ describe('live-session Netlify executor', () => {
     }
   )
 
-  it('keeps unknown executor failures retryable', async () => {
-    mocks.execute.mockRejectedValueOnce(new Error('Unexpected database outage.'))
+  it('keeps unknown executor failures retryable and correlates server-only detail', async () => {
+    const error = Object.assign(new Error('Unexpected database outage.'), {
+      code: 'EMAXCONNSESSION'
+    })
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mocks.execute.mockRejectedValueOnce(error)
 
     const response = await liveSessionExecutor(authorizedRequest())
 
     expect(response.status).toBe(500)
-    await expect(response.json()).resolves.toEqual({
-      error: { code: 'COMMAND_FAILED', message: 'Live-session command failed.' }
+    const body = (await response.json()) as { error: { code: string; message: string } }
+    expect(body).toEqual({
+      error: {
+        code: 'COMMAND_FAILED',
+        message: expect.stringMatching(
+          /^Live-session command failed\. Reference [0-9a-f-]{36}\.$/
+        )
+      }
     })
+    expect(body.error.message).not.toContain(error.message)
+    const errorId = body.error.message.match(/Reference ([0-9a-f-]{36})\./)?.[1]
+    expect(errorId).toBeDefined()
+    expect(errorLog).toHaveBeenCalledWith(
+      '[live-session-executor-unexpected]',
+      expect.objectContaining({
+        databaseCode: error.code,
+        errorId,
+        errorMessage: error.message,
+        errorName: error.name,
+        stack: expect.stringContaining('Unexpected database outage.')
+      })
+    )
   })
 })
