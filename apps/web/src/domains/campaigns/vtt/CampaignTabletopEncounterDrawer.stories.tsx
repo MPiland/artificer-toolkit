@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, userEvent, within } from 'storybook/test'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
 import { tabletopGmEncounter, tabletopPlayerEncounter } from './CampaignTabletop.stories.fixtures'
 
@@ -29,10 +29,10 @@ export const GmOpen: Story = {
   args: Gm.args,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body)
-    const encounterButton = page.getByRole('button', { name: 'Open turn order' })
-    encounterButton.focus()
-    await userEvent.keyboard('{Enter}')
-    await expect(page.getByRole('dialog', { name: 'Turn order' })).toBeVisible()
+    await userEvent.click(await page.findByRole('button', { name: 'Open turn order' }))
+    await waitFor(async () => {
+      await expect(await page.findByRole('dialog', { name: 'Turn order' })).toBeVisible()
+    })
   }
 }
 

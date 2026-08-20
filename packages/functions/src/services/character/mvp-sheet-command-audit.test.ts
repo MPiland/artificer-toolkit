@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
   assembleSheetBundleForRuleContext: vi.fn(),
   assertCommandAuthority: vi.fn(),
+  resolveCampaignContext: vi.fn(),
   compileMechanicsProjection: vi.fn(),
   createCommittedExtras: vi.fn(),
   createCommittedResolution: vi.fn(),
@@ -102,6 +103,14 @@ vi.mock('./characterSheetBundleAssembly.js', () => ({
 vi.mock('../campaign/liveSessionCommandAuthority.js', () => ({
   assertCharacterLiveSessionCommandAuthority: mocks.assertCommandAuthority
 }))
+
+vi.mock('./campaignCharacterSheet.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./campaignCharacterSheet.js')>()
+  return {
+    ...actual,
+    resolveCharacterSheetCampaignContext: mocks.resolveCampaignContext
+  }
+})
 
 const { applyCharacterSheetCommand } = await import('./sheetCommandReducer.js')
 const { executeCharacterSheetCommand } = await import('./sheetService.js')
@@ -314,6 +323,17 @@ describe('MVP character Sheet command audit', () => {
     mocks.assembleSheetBundleForRuleContext.mockReset()
     mocks.assertCommandAuthority.mockReset()
     mocks.assertCommandAuthority.mockResolvedValue(undefined)
+    mocks.resolveCampaignContext.mockReset()
+    mocks.resolveCampaignContext.mockResolvedValue({
+      viewer: 'CHARACTER_OWNER',
+      campaignId: null,
+      campaignStatus: null,
+      contentMaturity: null,
+      attunementSlotOverride: null,
+      adjustments: [],
+      secretAdjustmentIds: new Set(),
+      conditions: []
+    })
     mocks.compileMechanicsProjection.mockReset()
     mocks.createCommittedExtras.mockReset()
     mocks.createCommittedResolution.mockReset()
@@ -393,6 +413,14 @@ describe('MVP character Sheet command audit', () => {
           sheet: createAuditSheet(params.character, params.row.stream_version),
           ruleEvaluation: { output: { rest: { attunementSlotLimit: 3 } } }
         },
+        mechanics: {
+          projectionChecksum: 'mechanics-checksum',
+          commandLaneChecksum: 'mechanics-lane-checksum',
+          ruleSnapshot: { characterId: params.character.id },
+          rulePolicyInput: {},
+          rulePolicyOutput: {},
+          ruleRegistry: {}
+        },
         resolution,
         characterAdjustments: [],
         movementDisplayPreference: { mode: 'AUTO' }
@@ -404,6 +432,7 @@ describe('MVP character Sheet command audit', () => {
     let streamVersion = 1
     mocks.findById.mockImplementation(async () => ({
       id: 'character-1',
+      status: 'ACTIVE',
       stream_version: streamVersion,
       rule_pack_revision_id: 'revision-1'
     }))
@@ -418,9 +447,8 @@ describe('MVP character Sheet command audit', () => {
     })
 
     const command = {
-      type: 'ADJUST_HIT_POINTS' as const,
-      mode: 'DAMAGE' as const,
-      amount: 1,
+      type: 'SET_INSPIRATION' as const,
+      inspired: true,
       expectedVersion: 1,
       commandId: '00000000-0000-4000-8000-000000000002'
     }
@@ -450,6 +478,7 @@ describe('MVP character Sheet command audit', () => {
     let appliedEvent: object | null = null
     mocks.findById.mockImplementation(async () => ({
       id: 'character-1',
+      status: 'ACTIVE',
       stream_version: streamVersion,
       rule_pack_revision_id: 'revision-1'
     }))
@@ -458,13 +487,13 @@ describe('MVP character Sheet command audit', () => {
       if (options.expectedStreamVersion !== streamVersion) {
         throw new MockConcurrencyError('character-1', options.expectedStreamVersion)
       }
-      const hitpointPatch = patches.find(
-        (patch: { kind: string }) => patch.kind === 'HITPOINTS'
-      ) as { kind: 'HITPOINTS'; value: CharacterAuthored['state']['hitpoints'] } | undefined
-      if (hitpointPatch) {
+      const inspirationPatch = patches.find(
+        (patch: { kind: string }) => patch.kind === 'INSPIRATION'
+      ) as { kind: 'INSPIRATION'; value: boolean } | undefined
+      if (inspirationPatch) {
         persisted = {
           ...persisted,
-          state: { ...persisted.state, hitpoints: hitpointPatch.value }
+          state: { ...persisted.state, inspiration: inspirationPatch.value }
         }
       }
       streamVersion += 1
@@ -477,9 +506,8 @@ describe('MVP character Sheet command audit', () => {
     mocks.findByCommandId.mockImplementation(async () => appliedEvent)
 
     const first = {
-      type: 'ADJUST_HIT_POINTS' as const,
-      mode: 'DAMAGE' as const,
-      amount: 1,
+      type: 'SET_INSPIRATION' as const,
+      inspired: true,
       expectedVersion: 1,
       commandId: '00000000-0000-4000-8000-000000000003'
     }
@@ -497,7 +525,7 @@ describe('MVP character Sheet command audit', () => {
     })
 
     expect(mocks.appendEvent).toHaveBeenCalledTimes(1)
-    expect(persisted.state.hitpoints.current).toBe(9)
+    expect(persisted.state.inspiration).toBe(true)
   })
 
   it('keeps Builder-owned profile notes out of Sheet play-state commands', async () => {

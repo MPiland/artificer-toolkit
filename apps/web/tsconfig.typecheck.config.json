@@ -16,7 +16,7 @@
     "vite.config.ts",
     "vitest.config.ts",
     "vitest.browser.config.ts",
-    "playwright.config.ts",
+    "playwright*.config.ts",
     "tests/**/*.ts",
     "vite-env.d.ts"
   ]

@@ -76,7 +76,7 @@ export function CampaignSceneObjectInspector({
     }))
 
   return (
-    <aside className={styles.inspector} aria-label='Scene object properties'>
+    <div aria-label='Scene object properties' className={styles.inspector} role='group'>
       {showSummary ? (
         <div>
           <Text fw={650}>Scene objects</Text>
@@ -526,6 +526,7 @@ export function CampaignSceneObjectInspector({
                 }
               />
               <ColorInput
+                eyeDropperButtonProps={{ 'aria-label': 'Pick light color from screen' }}
                 format='hex'
                 label='Color'
                 value={light.color}
@@ -1094,7 +1095,7 @@ export function CampaignSceneObjectInspector({
           ) : null}
         </>
       ) : null}
-    </aside>
+    </div>
   )
 }
 

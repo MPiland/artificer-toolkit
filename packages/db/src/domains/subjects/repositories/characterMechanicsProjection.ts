@@ -495,6 +495,17 @@ async function readProjectionMetadata(
 }
 
 export interface CharacterMechanicsProjectionRepository {
+  /**
+   * Advances an already validated live command projection. The caller holds
+   * the Character lock and supplies the prior exact projection identity, so
+   * this path deliberately does not re-read immutable authored, vocabulary,
+   * or rule-revision dependencies.
+   */
+  advanceLiveCommandState(input: {
+    expectedPriorProjectionChecksum: string
+    expectedPriorStreamVersion: number
+    projection: CharacterMechanicsProjection
+  }): Promise<CharacterMechanicsProjection>
   publish(
     projection: CharacterMechanicsProjection,
     options?: CharacterMechanicsProjectionPublishOptions
@@ -517,6 +528,54 @@ export function createCharacterMechanicsProjectionRepository(
   db: DBLike
 ): CharacterMechanicsProjectionRepository {
   return {
+    async advanceLiveCommandState(input) {
+      const projection = characterMechanicsProjectionSchema.parse(input.projection)
+      if (projection.characterStreamVersion !== input.expectedPriorStreamVersion + 1) {
+        throw new CharacterMechanicsProjectionMismatchError(
+          `Character "${projection.characterId}" live projection stream does not advance exactly once.`
+        )
+      }
+      if (
+        checksumCharacterMechanicsCommandState(projection.commandState) !==
+          projection.commandStateChecksum ||
+        checksumCharacterMechanicsCommandLane(projection) !== projection.commandLaneChecksum ||
+        checksumCharacterMechanicsProjection(projection) !== projection.projectionChecksum
+      ) {
+        throw new CharacterMechanicsProjectionMismatchError(
+          `Character "${projection.characterId}" live projection checksum does not match its contents.`
+        )
+      }
+      const result = await sql<{ character_id: string }>`
+        update public.character_mechanics_projections set
+          command_state = ${JSON.stringify(projection.commandState)}::jsonb,
+          command_state_checksum = ${projection.commandStateChecksum},
+          command_lane_checksum = ${projection.commandLaneChecksum},
+          stream_version = ${projection.characterStreamVersion},
+          projection_checksum = ${projection.projectionChecksum},
+          normalized_facts = ${JSON.stringify(projection.rulePolicyInput)}::jsonb,
+          rule_result = ${JSON.stringify(projection.rulePolicyOutput)}::jsonb,
+          updated_at = now()
+        where character_id = ${projection.characterId}
+          and stream_version = ${input.expectedPriorStreamVersion}
+          and public.character_mechanics_projections.projection_checksum = ${input.expectedPriorProjectionChecksum}
+          and authored_version_vector = ${JSON.stringify(projection.authoredVersionVector)}::jsonb
+          and vocabulary_snapshot_id = ${projection.systemVocabularySnapshotId}
+          and rule_pack_revision_id = ${projection.ruleRevisionId}
+          and rule_pack_checksum = ${projection.ruleRevisionChecksum}
+          and evaluator_version = ${projection.evaluatorVersion}
+          and model_contract_version = ${projection.modelContractVersion}
+          and projection_schema_version = ${projection.projectionSchemaVersion}
+          and rule_snapshot = ${JSON.stringify(projection.ruleSnapshot)}::jsonb
+          and bounded_registry = ${JSON.stringify(projection.ruleRegistry)}::jsonb
+        returning character_id
+      `.execute(db)
+      if (!result.rows[0]) {
+        throw new CharacterMechanicsProjectionMismatchError(
+          `Character "${projection.characterId}" live projection compare-and-swap failed.`
+        )
+      }
+      return projection
+    },
     async publish(input, options) {
       const onTiming = options?.onTiming
       const publicationStartedAt = performance.now()

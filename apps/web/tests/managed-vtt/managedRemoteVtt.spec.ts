@@ -10,16 +10,24 @@ import {
 const campaignName = requiredValue('MANAGED_VTT_CAMPAIGN_NAME')
 const gmCredentials = credentials('GM')
 const gmOnlyTokenLabel = requiredValue('MANAGED_VTT_GM_ONLY_TOKEN_LABEL')
-const liveSessionEndpoint = requiredHttpsOrigin('MANAGED_LIVE_SESSION_ENDPOINT')
+const topology = requiredTopology()
+const liveSessionEndpoint = requiredLiveSessionOrigin('MANAGED_LIVE_SESSION_ENDPOINT', topology)
 const playerCredentials = credentials('PLAYER')
 const player2Credentials = credentials('PLAYER2')
 const doorIndex = 1
 const authorityReleaseWaitMs = 30_000
-const liveSessionWebSocketOrigin = liveSessionEndpoint.replace(/^https:/, 'wss:')
-const warmupPairs = 2
-const measuredPairs = 10
+const liveSessionWebSocketOrigin = liveSessionEndpoint.replace(/^http/, (protocol) =>
+  protocol === 'https' ? 'wss' : 'ws'
+)
+const warmupPairs = boundedSampleCount('VTT_USAGE_WARMUP_PAIRS', 2, 0)
+const measuredPairs = boundedSampleCount('VTT_USAGE_MEASURED_PAIRS', 10, 1)
+const hostTimingP95Limits =
+  topology === 'MANAGED'
+    ? { ruleBound: 250, sceneOnly: 100 }
+    : { ruleBound: 500, sceneOnly: 500 }
+const signInReadyTimeoutMs = topology === 'LOCAL' ? 60_000 : 15_000
 
-test('connects three users through the managed room and recovers a reversible scene commit', async ({
+test('connects three users through the live room and recovers a reversible scene commit', async ({
   browser
 }, testInfo) => {
   test.setTimeout(10 * 60_000)
@@ -38,6 +46,11 @@ test('connects three users through the managed room and recovers a reversible sc
     clients.push(player)
     let player2 = await openManagedClient(browser, 'PLAYER2', player2Credentials)
     clients.push(player2)
+    await Promise.all([
+      expectCampaignMembershipRole(gm.page, 'GM', 'OWNER'),
+      expectCampaignMembershipRole(player.page, 'PLAYER', 'PLAYER'),
+      expectCampaignMembershipRole(player2.page, 'PLAYER2', 'PLAYER')
+    ])
     managedPaths = await resolveManagedPaths(player.page)
 
     const readyStartedAt = performance.now()
@@ -81,8 +94,8 @@ test('connects three users through the managed room and recovers a reversible sc
       contentType: 'application/json'
     })
     console.info(`Managed VTT host timings: ${JSON.stringify(hostTimingSummary)}`)
-    expect(hostTimingSummary.sceneOnly.p95).toBeLessThan(100)
-    expect(hostTimingSummary.ruleBound.p95).toBeLessThan(250)
+    expect(hostTimingSummary.sceneOnly.p95).toBeLessThan(hostTimingP95Limits.sceneOnly)
+    expect(hostTimingSummary.ruleBound.p95).toBeLessThan(hostTimingP95Limits.ruleBound)
 
     await Promise.all([gm.context.close(), player.context.close(), player2.context.close()])
     timings.authorityReleaseWaitMs = authorityReleaseWaitMs
@@ -178,6 +191,7 @@ interface ManagedCampaignSummary {
   assignedCharacter: { publicId: string } | null
   name: string
   publicId: string
+  role: 'OWNER' | 'PLAYER'
 }
 
 interface ManagedCharacterListItem {
@@ -210,6 +224,25 @@ async function resolveManagedPaths(page: Page): Promise<ManagedPaths> {
   return {
     characterSheet: `/characters/${encodeURIComponent(assignedCharacter.publicId)}/sheet`,
     tabletop: `/tabletop/campaigns/${encodeURIComponent(campaign.publicId)}/sessions/1`
+  }
+}
+
+async function expectCampaignMembershipRole(
+  page: Page,
+  clientRole: ManagedClient['role'],
+  expectedCampaignRole: ManagedCampaignSummary['role']
+): Promise<void> {
+  const campaigns = parseCampaignSummaries(await queryManagedTrpc(page, 'campaigns.list'))
+  const matches = campaigns.filter((campaign) => campaign.name === campaignName)
+  if (matches.length !== 1) {
+    throw new Error(
+      `${clientRole} campaigns.list expected exactly one smoke Campaign named ${JSON.stringify(campaignName)}, found ${matches.length}.`
+    )
+  }
+  if (matches[0]?.role !== expectedCampaignRole) {
+    throw new Error(
+      `${clientRole} campaigns.list expected ${expectedCampaignRole} for ${JSON.stringify(campaignName)}, received ${matches[0]?.role ?? 'none'}.`
+    )
   }
 }
 
@@ -246,21 +279,26 @@ function parseCampaignSummaries(value: unknown): ManagedCampaignSummary[] {
     const candidate = record(item)
     const name = candidate?.name
     const publicId = candidate?.publicId
+    const role = candidate?.role
     const assigned = candidate?.assignedCharacter
-    const assignedRecord = assigned === null ? null : record(assigned)
     if (
       !candidate ||
       typeof name !== 'string' ||
       typeof publicId !== 'string' ||
-      (assigned !== null && assignedRecord === null) ||
-      (assignedRecord !== null && typeof assignedRecord.publicId !== 'string')
+      (role !== 'OWNER' && role !== 'PLAYER')
     ) {
       throw new Error(`Managed campaigns.list item ${index} has an invalid shape.`)
     }
+    if (assigned === null) return { assignedCharacter: null, name, publicId, role }
+    const assignedRecord = record(assigned)
+    if (!assignedRecord || typeof assignedRecord.publicId !== 'string') {
+      throw new Error(`Managed campaigns.list item ${index} has an invalid shape.`)
+    }
     return {
-      assignedCharacter: assignedRecord === null ? null : { publicId: assignedRecord.publicId },
+      assignedCharacter: { publicId: assignedRecord.publicId },
       name,
-      publicId
+      publicId,
+      role
     }
   })
 }
@@ -292,7 +330,7 @@ async function collectDoorHostTimings(
   diagnostics: Record<string, number>
 ): Promise<string> {
   let action = originalAction
-  for (let index = 0; index < 3 + 20; index += 1) {
+  for (let index = 0; index < warmupPairs + measuredPairs; index += 1) {
     const startedAt = performance.now()
     const priorFrameCount = gm.liveSessionFrames.length
     await clickDoorAction(gm.page, action)
@@ -303,7 +341,7 @@ async function collectDoorHostTimings(
       ...players.map((player) => expectDoorAction(player, action))
     ])
     diagnostics[`doorCommit${index + 1}Ms`] = performance.now() - startedAt
-    if (index >= 3) samples.push(timing)
+    if (index >= warmupPairs) samples.push(timing)
   }
   return action
 }
@@ -487,14 +525,16 @@ async function openManagedClient(
   account: { email: string; password: string }
 ): Promise<ManagedClient> {
   const context = await browser.newContext()
+  const browserErrors: string[] = []
+  const failedRequests: string[] = []
   try {
     const page = await context.newPage()
     const client: ManagedClient = {
       assetResponses: [],
-      browserErrors: [],
+      browserErrors,
       context,
       deliveryResponses: [],
-      failedRequests: [],
+      failedRequests,
       liveSessionFrames: [],
       liveSessionUrls: [],
       page,
@@ -524,8 +564,9 @@ async function openManagedClient(
     await test.step(`${role} signs in`, () => signIn(page, account.email, account.password))
     return client
   } catch (error) {
+    const diagnostics = ` Browser errors: ${JSON.stringify(browserErrors)}. Failed requests: ${JSON.stringify(failedRequests)}.`
     await context.close()
-    throw error
+    throw new Error(`${role} sign-in failed.${diagnostics}`, { cause: error })
   }
 }
 
@@ -718,6 +759,8 @@ async function signIn(page: Page, email: string, password: string): Promise<void
   await gotoManagedPage(page, '/sign-in')
   const emailInput = page.getByRole('textbox', { name: 'Email or username' })
   const passwordInput = page.getByRole('textbox', { name: 'Password' })
+  await expect(emailInput).toBeEnabled({ timeout: signInReadyTimeoutMs })
+  await expect(passwordInput).toBeEnabled({ timeout: signInReadyTimeoutMs })
   await passwordInput.fill(password, { timeout: 15_000 })
   await emailInput.fill(email, { timeout: 15_000 })
   await expect(emailInput).toHaveValue(email)
@@ -820,11 +863,29 @@ function credentials(role: ManagedClient['role']): { email: string; password: st
   return { email, password }
 }
 
-function requiredHttpsOrigin(name: string): string {
+function requiredTopology(): 'LOCAL' | 'MANAGED' {
+  const value = requiredValue('MANAGED_VTT_TOPOLOGY')
+  if (value !== 'LOCAL' && value !== 'MANAGED') {
+    throw new Error('MANAGED_VTT_TOPOLOGY must be LOCAL or MANAGED.')
+  }
+  return value
+}
+
+function requiredLiveSessionOrigin(name: string, expectedTopology: 'LOCAL' | 'MANAGED'): string {
   const value = requiredValue(name)
   const url = new URL(value)
-  if (url.protocol !== 'https:' || url.origin !== value.replace(/\/$/, '')) {
-    throw new Error(`${name} must be an exact HTTPS origin.`)
+  const expectedProtocol = expectedTopology === 'MANAGED' ? 'https:' : 'http:'
+  const allowedHost = expectedTopology === 'MANAGED' ? null : new Set(['127.0.0.1', 'localhost', '::1'])
+  if (
+    url.protocol !== expectedProtocol ||
+    url.origin !== value.replace(/\/$/, '') ||
+    (allowedHost !== null && !allowedHost.has(url.hostname.toLowerCase()))
+  ) {
+    throw new Error(
+      expectedTopology === 'MANAGED'
+        ? `${name} must be an exact HTTPS origin.`
+        : `${name} must be an exact loopback HTTP origin.`
+    )
   }
   return url.origin
 }
@@ -832,5 +893,15 @@ function requiredHttpsOrigin(name: string): string {
 function requiredValue(name: string): string {
   const value = process.env[name]?.trim()
   if (!value) throw new Error(`${name} is required.`)
+  return value
+}
+
+function boundedSampleCount(name: string, fallback: number, minimum: number): number {
+  const rawValue = process.env[name]?.trim()
+  if (!rawValue) return fallback
+  const value = Number(rawValue)
+  if (!Number.isInteger(value) || value < minimum || value > 20) {
+    throw new Error(`${name} must be an integer between ${minimum} and 20.`)
+  }
   return value
 }

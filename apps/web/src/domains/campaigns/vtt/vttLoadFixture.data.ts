@@ -146,6 +146,7 @@ export const vttLoadFixtureScene = {
     vision: null,
     width: 52
   })),
+  visionRevealMode: 'ON_DROP',
   version: 1
 } satisfies EncounterSceneStateDto
 

@@ -20,6 +20,16 @@ interface LeaseMutationInput extends LiveSessionCommandLeaseIdentity {
 
 export function createLiveSessionCommandLeaseRepository(db: DBLike) {
   return {
+    async lockCampaignForCommand(campaignId: string): Promise<boolean> {
+      const campaign = await sql<{ id: string }>`
+        SELECT id
+        FROM public.campaigns
+        WHERE id = ${campaignId}
+          AND status = 'ACTIVE'
+        FOR SHARE
+      `.execute(db)
+      return campaign.rows.length === 1
+    },
     claim(input: LeaseMutationInput): Promise<boolean> {
       return withTransaction(db, async (trx) => {
         const session = await sql<{ status: string }>`

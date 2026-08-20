@@ -6,11 +6,13 @@ import {
 } from '@gorules/zen-engine'
 import { z } from 'zod'
 
-import type {
-  RulePackDocumentDto,
-  SimulateRulePackResultDto
+import {
+  rulePackDocumentDtoSchema,
+  type RulePackDocumentDto,
+  type SimulateRulePackResultDto
 } from '@artificer-toolkit/schema/api/rules'
 
+import { checksumRuleDocument } from './ruleChecksum.js'
 import { validateRulePackDocument } from './ruleDocumentValidation.js'
 
 overrideConfig({ functionTimeoutMillis: 50 })
@@ -21,6 +23,7 @@ interface ZenRuntime {
   activeEvaluations: number
   contentByModelKey: Map<string, ZenDecisionContent>
   engine: ZenEngine
+  modelKeys: ReadonlySet<string>
 }
 
 const cachedRuntimes = new Map<string, ZenRuntime>()
@@ -30,6 +33,7 @@ function createZenRuntime(document: RulePackDocumentDto): ZenRuntime {
   const runtime: ZenRuntime = {
     activeEvaluations: 0,
     contentByModelKey,
+    modelKeys: new Set(Object.keys(document.models)),
     engine: new ZenEngine({
       loader: async (modelKey) => {
         const cached = contentByModelKey.get(modelKey)
@@ -57,31 +61,33 @@ function evictIdleZenRuntimes(): void {
   }
 }
 
-function acquireZenRuntime(document: RulePackDocumentDto, cacheKey?: string): ZenRuntime {
-  if (!cacheKey) {
-    const runtime = createZenRuntime(document)
-    runtime.activeEvaluations = 1
-    return runtime
-  }
-
-  const cached = cachedRuntimes.get(cacheKey)
+function acquirePinnedZenRuntime(input: {
+  checksum: string
+  document: unknown
+}): ZenRuntime {
+  const cached = cachedRuntimes.get(input.checksum)
   if (cached) {
-    cachedRuntimes.delete(cacheKey)
-    cachedRuntimes.set(cacheKey, cached)
+    cachedRuntimes.delete(input.checksum)
+    cachedRuntimes.set(input.checksum, cached)
     cached.activeEvaluations += 1
     return cached
   }
 
+  const document = rulePackDocumentDtoSchema.parse(input.document)
+  validateRulePackDocument(document)
+  if (checksumRuleDocument(document) !== input.checksum) {
+    throw new Error('The pinned rule-pack checksum does not match its document.')
+  }
   const runtime = createZenRuntime(document)
   runtime.activeEvaluations = 1
-  cachedRuntimes.set(cacheKey, runtime)
+  cachedRuntimes.set(input.checksum, runtime)
   evictIdleZenRuntimes()
   return runtime
 }
 
-function releaseZenRuntime(runtime: ZenRuntime, cacheKey?: string): void {
+function releaseZenRuntime(runtime: ZenRuntime, pinned = false): void {
   runtime.activeEvaluations -= 1
-  if (!cacheKey) {
+  if (!pinned) {
     runtime.engine.dispose()
     return
   }
@@ -96,7 +102,6 @@ function jsonValue(value: unknown): z.infer<ReturnType<typeof z.json>> {
 }
 
 export async function evaluateZenRuleModel(input: {
-  cacheKey?: string
   document: RulePackDocumentDto
   modelKey: string
   context: z.infer<ReturnType<typeof z.json>>
@@ -107,7 +112,8 @@ export async function evaluateZenRuleModel(input: {
     throw new Error(`Rule model "${input.modelKey}" was not found.`)
   }
 
-  const runtime = acquireZenRuntime(input.document, input.cacheKey)
+  const runtime = createZenRuntime(input.document)
+  runtime.activeEvaluations = 1
   try {
     const response: ZenEngineResponse = await runtime.engine.evaluate(
       input.modelKey,
@@ -122,6 +128,40 @@ export async function evaluateZenRuleModel(input: {
       trace: response.trace ? jsonValue(response.trace) : null
     }
   } finally {
-    releaseZenRuntime(runtime, input.cacheKey)
+    releaseZenRuntime(runtime)
+  }
+}
+
+/**
+ * Evaluates a persisted immutable revision after its caller has verified its identity.
+ * This is intentionally the only checksum-keyed runtime namespace: callers cannot supply
+ * an arbitrary cache key to ordinary rule simulation or conformance evaluation.
+ */
+export async function evaluatePinnedZenRuleModel(input: {
+  checksum: string
+  document: unknown
+  modelKey: string
+  context: z.infer<ReturnType<typeof z.json>>
+  trace?: boolean
+}): Promise<SimulateRulePackResultDto> {
+  const runtime = acquirePinnedZenRuntime({ checksum: input.checksum, document: input.document })
+  try {
+    if (!runtime.modelKeys.has(input.modelKey)) {
+      throw new Error(`Rule model "${input.modelKey}" was not found.`)
+    }
+    const response: ZenEngineResponse = await runtime.engine.evaluate(
+      input.modelKey,
+      input.context,
+      {
+        maxDepth: 32,
+        trace: input.trace === true
+      }
+    )
+    return {
+      result: jsonValue(response.result),
+      trace: response.trace ? jsonValue(response.trace) : null
+    }
+  } finally {
+    releaseZenRuntime(runtime, true)
   }
 }

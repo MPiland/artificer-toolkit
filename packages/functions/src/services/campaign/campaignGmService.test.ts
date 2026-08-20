@@ -75,7 +75,7 @@ vi.mock('../character/campaignCharacterSheet.js', async (importOriginal) => {
   }
 })
 vi.mock('./campaignCharacterMechanicsProjection.js', () => ({
-  CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION: 2,
+  CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION: 3,
   prepareCampaignCharacterMechanicsProjection: mocks.prepareOverlay
 }))
 vi.mock('./realtimeService.js', () => ({ broadcastCampaignInvalidation: mocks.broadcast }))

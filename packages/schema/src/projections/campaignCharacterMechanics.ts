@@ -11,6 +11,7 @@ import {
 } from './identity.js'
 
 const characterStreamVersionSchema = z.number().int().min(0)
+const manualMaximumModifierOwnerSchema = z.enum(['CHARACTER', 'CAMPAIGN']).nullable()
 
 /**
  * Server-only Campaign mechanics overlay for one assigned Character. It binds
@@ -23,6 +24,7 @@ const campaignCharacterMechanicsProjectionIdentitySchema = z.strictObject({
   characterStreamVersion: characterStreamVersionSchema,
   baseMechanicsProjectionChecksum: projectionChecksumSchema,
   mechanicalContextChecksum: projectionChecksumSchema,
+  manualMaximumModifierOwner: manualMaximumModifierOwnerSchema,
   projectionSchemaVersion: projectionSchemaVersionSchema,
   projectionChecksum: projectionChecksumSchema
 })

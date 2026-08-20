@@ -47,8 +47,7 @@ export const ConfiguredScene: Story = {
     const page = within(canvasElement.ownerDocument.body)
     await expect(await page.findByRole('toolbar', { name: 'Scene editor tools' })).toBeVisible()
     const wallTool = page.getByRole('button', { name: 'Draw wall' })
-    wallTool.focus()
-    await userEvent.keyboard('{Space}')
+    await userEvent.click(wallTool)
     await expect(wallTool).toHaveAttribute('aria-pressed', 'true')
   }
 }

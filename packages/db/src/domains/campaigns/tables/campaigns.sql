@@ -181,6 +181,7 @@ CREATE TABLE IF NOT EXISTS public.campaign_character_mechanics_projections (
   stream_version integer NOT NULL CHECK (stream_version >= 0),
   base_mechanics_projection_checksum text NOT NULL CHECK (base_mechanics_projection_checksum ~ '^[a-f0-9]{64}$'),
   mechanical_context_checksum text NOT NULL CHECK (mechanical_context_checksum ~ '^[a-f0-9]{64}$'),
+  manual_maximum_modifier_owner text CHECK (manual_maximum_modifier_owner IN ('CHARACTER', 'CAMPAIGN')),
   projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
   projection_checksum text NOT NULL CHECK (projection_checksum ~ '^[a-f0-9]{64}$'),
   projection_kind text NOT NULL CHECK (projection_kind IN ('BASE_REFERENCE', 'MATERIALIZED')),

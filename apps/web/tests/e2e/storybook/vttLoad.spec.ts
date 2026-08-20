@@ -168,7 +168,9 @@ async function probeCanvasGesture(page: Page, wheelDeltaY: number): Promise<VttG
   const startedAt = Date.now()
   await page.mouse.wheel(0, wheelDeltaY)
   const foregroundState = await page.evaluate(async () => {
-    await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    )
     return {
       focusState: document.hasFocus(),
       visibilityState: document.visibilityState

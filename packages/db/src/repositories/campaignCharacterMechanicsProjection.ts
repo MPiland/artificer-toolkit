@@ -20,6 +20,7 @@ interface CampaignCharacterMechanicsProjectionRow {
   campaign_id: string
   character_id: string
   mechanical_context_checksum: string
+  manual_maximum_modifier_owner: 'CHARACTER' | 'CAMPAIGN' | null
   projection_checksum: string
   projection_schema_version: number
   projection_kind: 'BASE_REFERENCE' | 'MATERIALIZED'
@@ -38,6 +39,7 @@ interface CurrentCampaignCharacterMechanicsProjectionRow
 export interface CampaignCharacterMechanicsProjectionMetadata
   extends CampaignCharacterMechanicsProjectionIdentity {
   kind: CampaignCharacterMechanicsProjection['kind']
+  manualMaximumModifierOwner: CampaignCharacterMechanicsProjection['manualMaximumModifierOwner']
   projectionChecksum: string
 }
 
@@ -143,6 +145,7 @@ function mapProjection(
     characterStreamVersion: row.stream_version,
     baseMechanicsProjectionChecksum: row.base_mechanics_projection_checksum,
     mechanicalContextChecksum: row.mechanical_context_checksum,
+    manualMaximumModifierOwner: row.manual_maximum_modifier_owner,
     projectionSchemaVersion: row.projection_schema_version,
     projectionChecksum: row.projection_checksum,
     kind: row.projection_kind,
@@ -192,6 +195,7 @@ async function readCurrentProjection(
       overlay.stream_version,
       overlay.base_mechanics_projection_checksum,
       overlay.mechanical_context_checksum,
+      overlay.manual_maximum_modifier_owner,
       overlay.projection_schema_version,
       overlay.projection_checksum,
       overlay.projection_kind,
@@ -246,6 +250,7 @@ async function readCurrentProjectionMetadata(
       | 'character_id'
       | 'character_stream_version'
       | 'mechanical_context_checksum'
+      | 'manual_maximum_modifier_owner'
       | 'projection_checksum'
       | 'projection_kind'
       | 'projection_schema_version'
@@ -256,6 +261,7 @@ async function readCurrentProjectionMetadata(
       overlay.stream_version,
       overlay.base_mechanics_projection_checksum,
       overlay.mechanical_context_checksum,
+      overlay.manual_maximum_modifier_owner,
       overlay.projection_schema_version,
       overlay.projection_checksum,
       overlay.projection_kind,
@@ -282,6 +288,7 @@ async function readCurrentProjectionMetadata(
           characterStreamVersion: row.stream_version,
           baseMechanicsProjectionChecksum: row.base_mechanics_projection_checksum,
           mechanicalContextChecksum: row.mechanical_context_checksum,
+          manualMaximumModifierOwner: row.manual_maximum_modifier_owner,
           projectionSchemaVersion: row.projection_schema_version,
           projectionChecksum: row.projection_checksum,
           kind: row.projection_kind
@@ -346,6 +353,7 @@ export function createCampaignCharacterMechanicsProjectionRepository(
             stream_version,
             base_mechanics_projection_checksum,
             mechanical_context_checksum,
+            manual_maximum_modifier_owner,
             projection_schema_version,
             projection_checksum,
             projection_kind,
@@ -359,6 +367,7 @@ export function createCampaignCharacterMechanicsProjectionRepository(
             ${projection.characterStreamVersion},
             ${projection.baseMechanicsProjectionChecksum},
             ${projection.mechanicalContextChecksum},
+            ${projection.manualMaximumModifierOwner},
             ${projection.projectionSchemaVersion},
             ${projection.projectionChecksum},
             ${projection.kind},
@@ -387,6 +396,7 @@ export function createCampaignCharacterMechanicsProjectionRepository(
             stream_version = excluded.stream_version,
             base_mechanics_projection_checksum = excluded.base_mechanics_projection_checksum,
             mechanical_context_checksum = excluded.mechanical_context_checksum,
+            manual_maximum_modifier_owner = excluded.manual_maximum_modifier_owner,
             projection_schema_version = excluded.projection_schema_version,
             projection_checksum = excluded.projection_checksum,
             projection_kind = excluded.projection_kind,
@@ -407,6 +417,7 @@ export function createCampaignCharacterMechanicsProjectionRepository(
             stream_version,
             base_mechanics_projection_checksum,
             mechanical_context_checksum,
+            manual_maximum_modifier_owner,
             projection_schema_version,
             projection_checksum,
             projection_kind,

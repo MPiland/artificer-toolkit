@@ -98,7 +98,7 @@ export function CampaignTabletopEncounterDrawer({
                     <Text fw={current ? 700 : 600} lineClamp={1}>
                       {actor.label}
                     </Text>
-                    <Text c='dimmed' size='xs'>
+                    <Text className={current ? styles.currentTurn : undefined} c={current ? undefined : 'dimmed'} size='xs'>
                       {current ? 'Current turn' : actor.kind.toLowerCase()}
                     </Text>
                   </div>

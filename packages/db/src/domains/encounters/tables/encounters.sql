@@ -307,7 +307,7 @@ DECLARE
 BEGIN
   IF TG_OP <> 'INSERT' THEN old_asset_id := (OLD.definition_snapshot #>> '{map,assetId}')::uuid; END IF;
   IF TG_OP <> 'DELETE' THEN new_asset_id := (NEW.definition_snapshot #>> '{map,assetId}')::uuid; END IF;
-  IF new_asset_id IS NOT NULL THEN
+  IF new_asset_id IS NOT NULL AND (TG_OP = 'INSERT' OR old_asset_id IS DISTINCT FROM new_asset_id) THEN
     UPDATE public.media_assets SET unreferenced_at = NULL WHERE id = new_asset_id;
   END IF;
   IF old_asset_id IS NOT NULL AND old_asset_id IS DISTINCT FROM new_asset_id THEN

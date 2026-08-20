@@ -755,6 +755,7 @@ export type Database = {
           base_mechanics_projection_checksum: string
           campaign_id: string
           character_id: string
+          manual_maximum_modifier_owner: string | null
           mechanical_context_checksum: string
           projection_checksum: string
           projection_kind: string
@@ -768,6 +769,7 @@ export type Database = {
           base_mechanics_projection_checksum: string
           campaign_id: string
           character_id: string
+          manual_maximum_modifier_owner?: string | null
           mechanical_context_checksum: string
           projection_checksum: string
           projection_kind: string
@@ -781,6 +783,7 @@ export type Database = {
           base_mechanics_projection_checksum?: string
           campaign_id?: string
           character_id?: string
+          manual_maximum_modifier_owner?: string | null
           mechanical_context_checksum?: string
           projection_checksum?: string
           projection_kind?: string

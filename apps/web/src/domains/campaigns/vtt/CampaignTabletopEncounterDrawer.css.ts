@@ -53,6 +53,14 @@ export const initiative = style({
   }
 })
 
+export const currentTurn = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.primary
+    }
+  }
+})
+
 export const controls = style({
   '@layer': {
     [app]: {

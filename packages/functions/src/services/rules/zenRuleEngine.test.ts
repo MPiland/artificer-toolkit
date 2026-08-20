@@ -6,10 +6,10 @@ import {
   type RulePackDocumentDto
 } from '@artificer-toolkit/schema/api/rules'
 
-import { checksumRuleDocument } from './ruleChecksum.js'
+import * as checksum from './ruleChecksum.js'
 import { assertRulePackConformance, RuleConformanceError } from './ruleConformance.js'
 import { RuleDocumentValidationError, validateRulePackDocument } from './ruleDocumentValidation.js'
-import { evaluateZenRuleModel } from './zenRuleEngine.js'
+import { evaluatePinnedZenRuleModel, evaluateZenRuleModel } from './zenRuleEngine.js'
 
 const fixtureId = '91488688-a841-4cbc-8a0c-9014efee7b37'
 
@@ -115,27 +115,27 @@ describe('Zen rule adapter', () => {
     expect(result.trace).not.toBeNull()
   })
 
-  it('isolates warm compiled runtimes by immutable revision checksum', async () => {
+  it('isolates warm pinned runtimes by immutable revision checksum', async () => {
     const alternateDocument = rulePackDocumentDtoSchema.parse({
       ...document(),
       models: {
         'charge-eligibility': chargeDecisionGraph('decisionTableNode', true)
       }
     })
-    const first = await evaluateZenRuleModel({
-      cacheKey: 'revision-checksum-a',
+    const first = await evaluatePinnedZenRuleModel({
+      checksum: checksum.checksumRuleDocument(document()),
       document: document(),
       modelKey: 'charge-eligibility',
       context: { remainingCharges: 1 }
     })
-    const second = await evaluateZenRuleModel({
-      cacheKey: 'revision-checksum-b',
+    const second = await evaluatePinnedZenRuleModel({
+      checksum: checksum.checksumRuleDocument(alternateDocument),
       document: alternateDocument,
       modelKey: 'charge-eligibility',
       context: { remainingCharges: 0 }
     })
-    const repeated = await evaluateZenRuleModel({
-      cacheKey: 'revision-checksum-a',
+    const repeated = await evaluatePinnedZenRuleModel({
+      checksum: checksum.checksumRuleDocument(document()),
       document: document(),
       modelKey: 'charge-eligibility',
       context: { remainingCharges: 1 }
@@ -157,15 +157,65 @@ describe('Zen rule adapter', () => {
   })
 
   it('hashes equivalent JSON independently of object key order', () => {
-    expect(checksumRuleDocument({ a: 1, b: { c: 2 } })).toBe(
-      checksumRuleDocument({ b: { c: 2 }, a: 1 })
+    expect(checksum.checksumRuleDocument({ a: 1, b: { c: 2 } })).toBe(
+      checksum.checksumRuleDocument({ b: { c: 2 }, a: 1 })
     )
   })
 
   it('uses locale-independent code-point order for immutable checksums', () => {
-    expect(checksumRuleDocument({ Z: 1, a: 2, _: 3 })).toBe(
+    expect(checksum.checksumRuleDocument({ Z: 1, a: 2, _: 3 })).toBe(
       '14f90836f639d14343eb8b8995a382f642bf53e53483c439cc6693aa573cab32'
     )
+  })
+
+  it('reuses a verified pinned runtime without revisiting its document', async () => {
+    const pinnedDocument = document()
+    const pinnedChecksum = checksum.checksumRuleDocument(pinnedDocument)
+    await evaluatePinnedZenRuleModel({
+      checksum: pinnedChecksum,
+      document: pinnedDocument,
+      modelKey: 'charge-eligibility',
+      context: { remainingCharges: 1 }
+    })
+    // A malformed document would fail both the strict parser and checksum path.
+    // Successful reuse proves a cache hit never revisits either operation.
+    await expect(
+      evaluatePinnedZenRuleModel({
+        checksum: pinnedChecksum,
+        document: { not: 'the persisted document' },
+        modelKey: 'charge-eligibility',
+        context: { remainingCharges: 1 }
+      })
+    ).resolves.toMatchObject({ result: { eligibility: { allowed: true } } })
+  })
+
+  it('does not cache an invalid or checksum-mismatched pinned document', async () => {
+    const valid = document(true)
+    const checksumValue = checksum.checksumRuleDocument(valid)
+    await expect(
+      evaluatePinnedZenRuleModel({
+        checksum: checksumValue,
+        document: { schemaVersion: 1, models: {}, fixtures: [] },
+        modelKey: 'charge-eligibility',
+        context: { remainingCharges: 1 }
+      })
+    ).rejects.toThrow()
+    await expect(
+      evaluatePinnedZenRuleModel({
+        checksum: '0'.repeat(64),
+        document: valid,
+        modelKey: 'charge-eligibility',
+        context: { remainingCharges: 1 }
+      })
+    ).rejects.toThrow('checksum')
+    await expect(
+      evaluatePinnedZenRuleModel({
+        checksum: checksumValue,
+        document: valid,
+        modelKey: 'charge-eligibility',
+        context: { remainingCharges: 1 }
+      })
+    ).resolves.toMatchObject({ result: { eligibility: { allowed: true } } })
   })
 
   it('rejects decision nodes that reference a missing model', () => {

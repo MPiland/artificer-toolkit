@@ -510,6 +510,16 @@ describe('subject schema parsing', () => {
       drafts: [],
       meta: {
         total: 1
+      },
+      page: {
+        nextCursor: null,
+        previousCursor: null,
+        totalCount: 1
+      },
+      summary: {
+        activeCount: 1,
+        masterCount: 1,
+        ownedCount: 0
       }
     }) as { items: { id?: string }[] }
 

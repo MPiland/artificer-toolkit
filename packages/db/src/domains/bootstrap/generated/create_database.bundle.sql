@@ -10406,7 +10406,6 @@ CREATE TABLE IF NOT EXISTS public.character_mechanics_projections (
   rule_pack_checksum text NOT NULL CHECK (rule_pack_checksum ~ '^[a-f0-9]{64}$'),
   evaluator_version text NOT NULL CHECK (length(btrim(evaluator_version)) > 0),
   model_contract_version integer NOT NULL CHECK (model_contract_version > 0),
-  campaign_context_checksum text CHECK (campaign_context_checksum IS NULL OR campaign_context_checksum ~ '^[a-f0-9]{64}$'),
   projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
   projection_checksum text NOT NULL CHECK (projection_checksum ~ '^[a-f0-9]{64}$'),
   rule_snapshot jsonb NOT NULL CHECK (jsonb_typeof(rule_snapshot) = 'object'),
@@ -11264,6 +11263,38 @@ CREATE TABLE IF NOT EXISTS public.campaign_character_assignments (
 
 CREATE INDEX IF NOT EXISTS campaign_character_assignments_user_idx ON public.campaign_character_assignments (user_id);
 ALTER TABLE public.campaign_character_assignments ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.campaign_character_mechanics_projections (
+  campaign_id uuid NOT NULL,
+  character_id uuid NOT NULL,
+  stream_version integer NOT NULL CHECK (stream_version >= 0),
+  base_mechanics_projection_checksum text NOT NULL CHECK (base_mechanics_projection_checksum ~ '^[a-f0-9]{64}$'),
+  mechanical_context_checksum text NOT NULL CHECK (mechanical_context_checksum ~ '^[a-f0-9]{64}$'),
+  manual_maximum_modifier_owner text CHECK (manual_maximum_modifier_owner IN ('CHARACTER', 'CAMPAIGN')),
+  projection_schema_version integer NOT NULL CHECK (projection_schema_version > 0),
+  projection_checksum text NOT NULL CHECK (projection_checksum ~ '^[a-f0-9]{64}$'),
+  projection_kind text NOT NULL CHECK (projection_kind IN ('BASE_REFERENCE', 'MATERIALIZED')),
+  rule_policy_input jsonb,
+  rule_policy_output jsonb,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (campaign_id, character_id),
+  FOREIGN KEY (campaign_id, character_id)
+    REFERENCES public.campaign_character_assignments (campaign_id, character_id)
+    ON DELETE CASCADE,
+  CHECK (
+    (projection_kind = 'BASE_REFERENCE' AND rule_policy_input IS NULL AND rule_policy_output IS NULL)
+    OR (
+      projection_kind = 'MATERIALIZED'
+      AND rule_policy_input IS NOT NULL
+      AND rule_policy_output IS NOT NULL
+      AND jsonb_typeof(rule_policy_input) = 'object'
+      AND jsonb_typeof(rule_policy_output) = 'object'
+    )
+  )
+);
+
+ALTER TABLE public.campaign_character_mechanics_projections ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.campaign_character_mechanics_projections FROM anon, authenticated;
 
 CREATE TABLE IF NOT EXISTS public.campaign_content_versions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -13319,7 +13350,7 @@ DECLARE
 BEGIN
   IF TG_OP <> 'INSERT' THEN old_asset_id := (OLD.definition_snapshot #>> '{map,assetId}')::uuid; END IF;
   IF TG_OP <> 'DELETE' THEN new_asset_id := (NEW.definition_snapshot #>> '{map,assetId}')::uuid; END IF;
-  IF new_asset_id IS NOT NULL THEN
+  IF new_asset_id IS NOT NULL AND (TG_OP = 'INSERT' OR old_asset_id IS DISTINCT FROM new_asset_id) THEN
     UPDATE public.media_assets SET unreferenced_at = NULL WHERE id = new_asset_id;
   END IF;
   IF old_asset_id IS NOT NULL AND old_asset_id IS DISTINCT FROM new_asset_id THEN

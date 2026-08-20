@@ -13,7 +13,7 @@ import {
   RULE_EVALUATOR_KIND,
   RULE_EVALUATOR_VERSION
 } from './ruleModelContracts.js'
-import { evaluateZenRuleModel } from './zenRuleEngine.js'
+import { evaluatePinnedZenRuleModel, evaluateZenRuleModel } from './zenRuleEngine.js'
 
 const MAX_RUNTIME_JSON_BYTES = 256 * 1024
 const MAX_RUNTIME_JSON_DEPTH = 32
@@ -25,6 +25,14 @@ export class RuleRevisionEvaluationError extends Error {
     super(message)
     this.name = 'RuleRevisionEvaluationError'
   }
+}
+
+export interface PinnedRuleRevisionIdentity {
+  revisionId: string
+  checksum: string
+  evaluatorKind: string
+  evaluatorVersion: string
+  modelContractVersion: number
 }
 
 function assertJsonDepth(value: unknown, label: string, depth = 0): void {
@@ -76,6 +84,21 @@ function assertCompatibleRuntime(
   return contract
 }
 
+function assertExpectedIdentity(
+  revision: RulePackRevisionRecord,
+  expected: PinnedRuleRevisionIdentity
+): void {
+  if (
+    revision.id !== expected.revisionId ||
+    revision.checksum !== expected.checksum ||
+    revision.evaluatorKind !== expected.evaluatorKind ||
+    revision.evaluatorVersion !== expected.evaluatorVersion ||
+    revision.modelContractVersion !== expected.modelContractVersion
+  ) {
+    throw new RuleRevisionEvaluationError('The pinned rule revision identity does not match.')
+  }
+}
+
 export async function evaluateRuleRevision(input: {
   db: DBLike
   revisionId: string
@@ -119,7 +142,6 @@ export async function evaluateRuleRevision(input: {
   }
   const evaluationStartedAt = performance.now()
   const evaluated = await evaluateZenRuleModel({
-    cacheKey: revision.checksum,
     document,
     modelKey: input.modelKey,
     context: normalizedFacts,
@@ -144,6 +166,59 @@ export async function evaluateRuleRevision(input: {
     trace: evaluated.trace,
     evaluationDurationMs,
     documentBytes: Buffer.byteLength(JSON.stringify(document), 'utf8'),
+    normalizedFactsBytes: Buffer.byteLength(JSON.stringify(normalizedFacts), 'utf8'),
+    resultBytes: Buffer.byteLength(JSON.stringify(result), 'utf8')
+  }
+}
+
+export async function evaluatePinnedRuleRevision(input: {
+  db: DBLike
+  expected: PinnedRuleRevisionIdentity
+  modelKey: string
+  contractKey?: string
+  normalizedFacts: JsonValue
+  trace?: boolean
+}): ReturnType<typeof evaluateRuleRevision> {
+  const revision = await createRulePackRepository(input.db).getRevision(input.expected.revisionId)
+  if (!revision) throw new RuleRevisionEvaluationError('Rule pack revision was not found.')
+  if (revision.state === 'DRAFT') {
+    throw new RuleRevisionEvaluationError('Draft rule pack revisions cannot be evaluated.')
+  }
+  assertExpectedIdentity(revision, input.expected)
+  const contractKey = input.contractKey ?? input.modelKey
+  const contract = assertCompatibleRuntime(revision, contractKey)
+  const modelContractVersion = contract.version
+  assertBoundedJson(input.normalizedFacts, 'Normalized rule facts')
+  const normalizedFacts = z.json().parse(contract.input.parse(input.normalizedFacts))
+  assertBoundedJson(normalizedFacts, 'Normalized rule facts')
+
+  const evaluationStartedAt = performance.now()
+  const evaluated = await evaluatePinnedZenRuleModel({
+    checksum: revision.checksum,
+    document: revision.document,
+    modelKey: input.modelKey,
+    context: normalizedFacts,
+    trace: input.trace
+  })
+  const evaluationDurationMs = performance.now() - evaluationStartedAt
+  assertBoundedJson(evaluated.result, 'Rule model result')
+  const result = z.json().parse(contract.output.parse(evaluated.result))
+  assertBoundedJson(result, 'Rule model result')
+  if (evaluated.trace !== null) assertBoundedJson(evaluated.trace, 'Rule model trace')
+
+  return {
+    revisionId: revision.id,
+    checksum: revision.checksum,
+    evaluatorKind: revision.evaluatorKind,
+    evaluatorVersion: revision.evaluatorVersion,
+    modelContractVersion,
+    modelKey: input.modelKey,
+    contractKey,
+    normalizedFacts,
+    result,
+    trace: evaluated.trace,
+    evaluationDurationMs,
+    documentBytes: Buffer.byteLength(JSON.stringify(revision.document), 'utf8'),
     normalizedFactsBytes: Buffer.byteLength(JSON.stringify(normalizedFacts), 'utf8'),
     resultBytes: Buffer.byteLength(JSON.stringify(result), 'utf8')
   }

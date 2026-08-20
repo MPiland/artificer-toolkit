@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
-import { expect, userEvent, within } from 'storybook/test'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { http, HttpResponse } from 'msw'
 import { Shell } from '#app/shell/Shell'
 import { storybookNavigation } from '#app/shell/navigation'
@@ -59,7 +59,9 @@ export const DesktopDrawer: Story = {
     const page = within(canvasElement.ownerDocument.body)
     const bell = await page.findByRole('button', { name: 'Notifications, 1 new' })
     await userEvent.click(bell)
-    await expect(page.getByRole('dialog', { name: 'Notifications' })).toBeVisible()
+    await waitFor(async () => {
+      await expect(await page.findByRole('dialog', { name: 'Notifications' })).toBeVisible()
+    })
   }
 }
 

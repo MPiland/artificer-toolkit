@@ -24,6 +24,7 @@ import type { CharacterSheetCommittedRuleSnapshot } from './sheetService.js'
 const mocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
   advanceMechanicsProjection: vi.fn(),
+  advanceLiveMechanicsProjection: vi.fn(),
   assembleSheetBundleForRuleContext: vi.fn(),
   compileMechanicsProjection: vi.fn(),
   createCommittedExtras: vi.fn(),
@@ -54,7 +55,7 @@ const mocks = vi.hoisted(() => ({
   removeAdjustment: vi.fn(),
   consumeRollForUser: vi.fn(),
   evaluateActionStateChange: vi.fn(),
-  evaluateRuleRevision: vi.fn(),
+  evaluatePinnedRuleRevision: vi.fn(),
   findRollByIdForUser: vi.fn(),
   loadCharacterBuilderContext: vi.fn(),
   resolveCharacterBuilder: vi.fn(),
@@ -63,6 +64,8 @@ const mocks = vi.hoisted(() => ({
   loadActiveCreatures: vi.fn(),
   loadActiveVehicles: vi.fn(),
   loadCommittedSources: vi.fn(),
+  lockMaximumHitPointContext: vi.fn(),
+  commitMaximumHitPointPolicy: vi.fn(),
   buildSheetBundle: vi.fn(),
   setMovementPreference: vi.fn(),
   setRulePackRevision: vi.fn(),
@@ -83,6 +86,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   return {
     ...actual,
     ConcurrencyError: MockConcurrencyError,
+    withTransaction: async (db: DBLike, fn: (trx: DBLike) => Promise<unknown>) => fn(db),
     createCharacterEventRepository: () => ({
       append: mocks.appendEvent,
       findByCommandId: mocks.findByCommandId
@@ -95,9 +99,14 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       setRulePackRevision: mocks.setRulePackRevision
     }),
     createCharacterMechanicsProjectionRepository: () => ({
+      advanceLiveCommandState: mocks.advanceLiveMechanicsProjection,
       publish: mocks.publishMechanics,
       requireCurrent: mocks.findMechanics,
       requireCurrentMetadata: mocks.findMechanicsMetadata
+    }),
+    createLiveMaximumHitPointPolicyRepository: () => ({
+      lockContext: mocks.lockMaximumHitPointContext,
+      prepareAndCommit: mocks.commitMaximumHitPointPolicy
     }),
     createCampaignCharacterMechanicsProjectionRepository: () => ({
       publish: mocks.publishCampaignMechanics,
@@ -213,7 +222,7 @@ vi.mock('../campaign/liveSessionCommandAuthority.js', () => ({
 }))
 
 vi.mock('../rules/ruleRevisionRuntime.js', () => ({
-  evaluateRuleRevision: mocks.evaluateRuleRevision
+  evaluatePinnedRuleRevision: mocks.evaluatePinnedRuleRevision
 }))
 
 vi.mock('./characterRuleEvaluation.js', async (importOriginal) => {
@@ -477,7 +486,7 @@ describe('executeCharacterSheetCommand persistence', () => {
         zenEvaluationMs: 0
       })
     )
-    mocks.evaluateRuleRevision.mockReset()
+    mocks.evaluatePinnedRuleRevision.mockReset()
     mocks.findRollByIdForUser.mockReset()
     mocks.loadCharacterBuilderContext.mockReset()
     mocks.getMovementPreference.mockReset()
@@ -499,6 +508,8 @@ describe('executeCharacterSheetCommand persistence', () => {
     mocks.setSpellCustomization.mockReset()
     mocks.patchSheetState.mockReset()
     mocks.patchLiveHitPoints.mockReset()
+    mocks.lockMaximumHitPointContext.mockReset()
+    mocks.commitMaximumHitPointPolicy.mockReset()
     mocks.publishMechanics.mockReset()
     mocks.compileMechanicsProjection.mockReset()
     mocks.advanceMechanicsProjection.mockReset()
@@ -2731,6 +2742,7 @@ describe('executeCharacterSheetCommand persistence', () => {
       characterId: 'character-1',
       characterStreamVersion: 1,
       kind: 'BASE_REFERENCE',
+      manualMaximumModifierOwner: null,
       mechanicalContextChecksum: campaignMechanicalContextChecksum,
       projectionChecksum: 'f'.repeat(64),
       rulePolicyInput: currentMechanics.rulePolicyInput,
@@ -2881,7 +2893,7 @@ describe('executeCharacterSheetCommand persistence', () => {
     } as CharacterMechanicsProjection
     mocks.findMechanics.mockResolvedValue(currentMechanics)
     mocks.compileMechanicsProjection.mockReturnValue(nextMechanics)
-    mocks.evaluateRuleRevision.mockResolvedValue({
+    mocks.evaluatePinnedRuleRevision.mockResolvedValue({
       checksum: currentMechanics.ruleRevisionChecksum,
       evaluatorKind: 'ZEN',
       evaluatorVersion: currentMechanics.evaluatorVersion,
@@ -2889,13 +2901,39 @@ describe('executeCharacterSheetCommand persistence', () => {
       result: evaluation.output,
       revisionId: currentMechanics.ruleRevisionId
     })
-    mocks.patchLiveHitPoints.mockImplementation(async (_characterId, input) => {
-      await input.afterPersist?.(db as unknown as DBLike, 2)
-      return 2
+    const campaignId = '00000000-0000-4000-8000-000000000311'
+    mocks.lockMaximumHitPointContext.mockResolvedValue({
+      campaignId,
+      character: {
+        id: character.id,
+        ruleRevisionId: currentMechanics.ruleRevisionId,
+        streamVersion: 1,
+        userId: character.userId
+      },
+      existingAdjustment: null,
+      hitPoints: {
+        current: currentMechanics.commandState.state.hitpoints.current,
+        temp: currentMechanics.commandState.state.hitpoints.temp ?? null
+      },
+      mechanics: currentMechanics,
+      overlay: {
+        campaignId,
+        characterId: character.id,
+        characterStreamVersion: 1,
+        baseMechanicsProjectionChecksum: currentMechanics.projectionChecksum,
+        mechanicalContextChecksum: 'f'.repeat(64),
+        manualMaximumModifierOwner: null,
+        projectionChecksum: '9'.repeat(64),
+        projectionSchemaVersion: 3,
+        kind: 'BASE_REFERENCE'
+      },
+      priorEvent: null
     })
+    mocks.commitMaximumHitPointPolicy.mockResolvedValue(2)
 
     const execution = await executeCompactLiveMaximumHitPointModifierCommand({
       db: db as unknown as DBLike,
+      campaignId,
       characterId: character.id,
       userId: character.userId,
       command: {
@@ -2910,32 +2948,31 @@ describe('executeCharacterSheetCommand persistence', () => {
       }
     })
 
-    expect(mocks.evaluateRuleRevision).toHaveBeenCalledWith(
+    expect(mocks.evaluatePinnedRuleRevision).toHaveBeenCalledWith(
       expect.objectContaining({
         normalizedFacts: expect.objectContaining({
           hitPointFacts: expect.objectContaining({
             manualMaximumModifier: expect.objectContaining({ value: 3 })
           })
         }),
-        revisionId: 'revision-1'
+        expected: expect.objectContaining({ revisionId: 'revision-1' })
       })
     )
-    expect(mocks.patchLiveHitPoints).toHaveBeenCalledWith(
-      character.id,
-      expect.objectContaining({ expectedStreamVersion: 1 })
-    )
-    expect(mocks.upsertAdjustment).toHaveBeenCalledWith(
-      expect.objectContaining({ family: 'HIT_POINTS', field: 'MAXIMUM_MODIFIER', value: 3 })
-    )
-    expect(mocks.publishMechanics).toHaveBeenCalledWith(nextMechanics, {
-      requireActiveAuthoredVersions: false
-    })
-    expect(mocks.appendEvent).toHaveBeenCalledWith(
+    expect(mocks.commitMaximumHitPointPolicy).toHaveBeenCalledWith(
       expect.objectContaining({
-        commandType: 'UPSERT_SHEET_ADJUSTMENT',
-        committedStreamVersion: 2
+        nextAdjustment: expect.objectContaining({ value: 3 }),
+        nextBasePolicy: expect.objectContaining({
+          rulePolicyInput: expect.objectContaining({
+            hitPointFacts: expect.objectContaining({
+              manualMaximumModifier: expect.objectContaining({ value: 3 })
+            })
+          })
+        }),
+        nextCampaignPolicy: null,
+        nextManualMaximumModifierOwner: 'CHARACTER'
       })
     )
+    expect(mocks.publishMechanics).not.toHaveBeenCalled()
     expect(mocks.buildSheetBundle).not.toHaveBeenCalled()
     expect(mocks.assembleSheetBundleForRuleContext).not.toHaveBeenCalled()
     expect(execution).toMatchObject({ replayed: false, version: 2 })

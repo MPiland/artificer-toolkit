@@ -165,6 +165,7 @@ describe('reserved Character Function-model security', () => {
     const actionInput = {
       candidates: [],
       spellCandidates: [],
+      spellSlots: [],
       spellEffects: [],
       spellMechanics: [],
       activeSourceIds: [],
@@ -187,7 +188,8 @@ describe('reserved Character Function-model security', () => {
     const actionOutput = {
       actionDecisions: [],
       spellCastMechanics: [],
-      spellReferenceMechanics: []
+      spellReferenceMechanics: [],
+      spellCastDecisions: []
     }
     expect(actionContract?.output.parse(actionOutput)).toEqual(actionOutput)
   })

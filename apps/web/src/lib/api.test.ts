@@ -29,6 +29,14 @@ const spellItem = {
   }
 }
 
+const spellListResponse = {
+  drafts: [],
+  items: [spellItem],
+  meta: {},
+  page: { nextCursor: null, previousCursor: null, totalCount: 1 },
+  summary: { activeCount: 1, masterCount: 1, ownedCount: 0 }
+}
+
 const spellDetail = {
   publicId: '2',
   activeUpdatedAt: '2026-01-01T00:00:00.000Z',
@@ -123,13 +131,7 @@ describe('tRPC api adapter', () => {
       http.get('*/api/trpc/content.spells.list', ({ request }) => {
         expect(new URL(request.url).pathname).toBe('/api/trpc/content.spells.list')
         expectNoSerializedAuth(request)
-        return trpcJson({
-          drafts: [],
-          items: [spellItem],
-          meta: {},
-          page: { nextCursor: null, previousCursor: null, totalCount: 1 },
-          summary: { activeCount: 1, masterCount: 1, ownedCount: 0 }
-        })
+        return trpcJson(spellListResponse)
       })
     )
 
@@ -140,6 +142,23 @@ describe('tRPC api adapter', () => {
     })
 
     expect(response.items[0]?.permissions.canCopy).toBe(true)
+  })
+
+  it('keeps concurrent server API calls on request-isolated batch clients', async () => {
+    let requestCount = 0
+    server.use(
+      http.get('*/api/trpc/content.spells.list', () => {
+        requestCount += 1
+        return trpcJson(spellListResponse)
+      })
+    )
+
+    await Promise.all([
+      createServerApi().content.spells.list({ direction: 'FORWARD', limit: 48, sort: 'name' }),
+      createServerApi().content.spells.list({ direction: 'FORWARD', limit: 48, sort: 'name' })
+    ])
+
+    expect(requestCount).toBe(2)
   })
 
   it('routes authored duplication through the tRPC procedure', async () => {

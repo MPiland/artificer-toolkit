@@ -3,7 +3,6 @@ import { performance } from 'node:perf_hooks'
 import { encounterActorRuleInputSchema } from '@artificer-toolkit/schema/api/encounterActorRules'
 import { rulePackDocumentDtoSchema } from '@artificer-toolkit/schema/api/rules'
 
-import { checksumRuleDocument } from '../services/rules/ruleChecksum.js'
 import { evaluateZenRuleModel } from '../services/rules/zenRuleEngine.js'
 import { dnd5e2014CanonicalRulePackDocument } from '../services/rules/systems/dnd5e/2014/canonicalRulePack.js'
 
@@ -54,11 +53,8 @@ const facts = encounterActorRuleInputSchema.parse({
   }))
 })
 const document = rulePackDocumentDtoSchema.parse(dnd5e2014CanonicalRulePackDocument)
-const cacheKey = checksumRuleDocument(document)
-
 const coldStartedAt = performance.now()
 await evaluateZenRuleModel({
-  cacheKey,
   document,
   modelKey: 'encounter-actor-policy',
   context: facts
@@ -67,7 +63,6 @@ const coldStartMs = performance.now() - coldStartedAt
 
 for (let index = 0; index < warmupSamples; index += 1) {
   await evaluateZenRuleModel({
-    cacheKey,
     document,
     modelKey: 'encounter-actor-policy',
     context: facts
@@ -80,7 +75,6 @@ for (let index = 0; index < measuredSamples; index += 1) {
   const startedAt = performance.now()
   result = (
     await evaluateZenRuleModel({
-      cacheKey,
       document,
       modelKey: 'encounter-actor-policy',
       context: facts

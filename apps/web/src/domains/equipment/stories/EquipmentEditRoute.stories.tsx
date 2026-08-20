@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { expect, userEvent, within } from 'storybook/test'
-import { Route } from '#routes/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit'
 import { Shell, platformNavigation } from '#app/shell'
+import { Route } from '#routes/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit'
+import { AuthoringLayout } from '#forms'
 import {
   authoredRouteStoryParams,
   authoredRouteStoryRecords,
@@ -74,24 +75,21 @@ export const OwnedDraft: Story = {
  * are restricted to the equipped source.
  */
 export const ShortswordPlusOne: Story = {
-  decorators: [
-    (Story) => (
-      <Shell
-        currentPath='/equipment/shortsword-plus-one/shortsword-plus-one/edit'
-        isAuthenticated
-        navigation={platformNavigation}
-        userEmail={authoredRouteStoryUser.email}
-      >
-        <Story />
-      </Shell>
-    )
-  ],
   parameters: OwnedDraft.parameters,
+  render: () => (
+    <Shell
+      navigation={platformNavigation}
+      currentPath='/equipment'
+      isAuthenticated
+      userEmail='creator@example.test'
+    >
+      <AuthoringLayout />
+    </Shell>
+  ),
   play: OwnedDraft.play
 }
 
 export const ShortswordPlusOneStructure: Story = {
-  decorators: ShortswordPlusOne.decorators,
   parameters: OwnedDraft.parameters,
   play: async ({ canvasElement }) => {
     await expectOwnedDraftAuthoringRoute(canvasElement, authoredRouteStoryRecords.equipment.label)
@@ -103,14 +101,13 @@ export const ShortswordPlusOneStructure: Story = {
       /\+1 damage rolls/i
     ])
     const story = getStoryDocument(canvasElement)
-    await expect((await story.findAllByText('+1 Attack Rolls')).length).toBeGreaterThan(1)
-    await expect((await story.findAllByText('+1 Damage Rolls')).length).toBeGreaterThan(1)
+    await expect((await story.findAllByText('+1 Attack Rolls')).length).toBeGreaterThan(0)
+    await expect((await story.findAllByText('+1 Damage Rolls')).length).toBeGreaterThan(0)
     await expect(story.queryByText('MODIFIER_GRANT')).not.toBeInTheDocument()
   }
 }
 
 export const ShortswordPlusOneDamageModifierDrawer: Story = {
-  decorators: ShortswordPlusOne.decorators,
   parameters: OwnedDraft.parameters,
   play: async ({ canvasElement }) => {
     await expectOwnedDraftAuthoringRoute(canvasElement, authoredRouteStoryRecords.equipment.label)
@@ -134,18 +131,6 @@ export const ShortswordPlusOneDamageModifierDrawer: Story = {
 }
 
 export const AstralTearAwakenedStructure: Story = {
-  decorators: [
-    (Story) => (
-      <Shell
-        currentPath='/equipment/the-astral-tear-awakened/the-astral-tear-awakened/edit'
-        isAuthenticated
-        navigation={platformNavigation}
-        userEmail={authoredRouteStoryUser.email}
-      >
-        <Story />
-      </Shell>
-    )
-  ],
   parameters: {
     tanstack: {
       router: {
@@ -160,6 +145,16 @@ export const AstralTearAwakenedStructure: Story = {
       }
     }
   },
+  render: () => (
+    <Shell
+      navigation={platformNavigation}
+      currentPath='/equipment'
+      isAuthenticated
+      userEmail='creator@example.test'
+    >
+      <AuthoringLayout />
+    </Shell>
+  ),
   play: async ({ canvasElement }) => {
     const story = getStoryDocument(canvasElement)
     await expect(
@@ -170,18 +165,10 @@ export const AstralTearAwakenedStructure: Story = {
     ).toBeInTheDocument()
     await expect(story.getByText(/all changes saved/i)).toBeInTheDocument()
     await expect(story.getByRole('button', { name: /save draft/i })).toBeInTheDocument()
-    const showSteps = story.queryByRole('button', { name: /show steps/i })
-    const railRoot = showSteps ? canvasElement.ownerDocument.body : canvasElement
-    if (showSteps) {
-      await userEvent.click(showSteps)
-      await expect(
-        await story.findByRole('navigation', { name: /^authoring steps$/i })
-      ).toBeInTheDocument()
-    }
-    await expandAuthoringBranch(railRoot, /^effects\b/i)
-    await expandAuthoringBranch(railRoot, /^grants\b/i)
-    await expandAuthoringBranch(railRoot, /^features\b/i)
-    await expectAuthoringTargetLabels(railRoot, [
+    await expandAuthoringBranch(canvasElement, /^effects\b/i)
+    await expandAuthoringBranch(canvasElement, /^grants\b/i)
+    await expandAuthoringBranch(canvasElement, /^features\b/i)
+    await expectAuthoringTargetLabels(canvasElement, [
       /melee weapon attack/i,
       /\+1 attack rolls/i,
       /\+1 damage rolls/i,

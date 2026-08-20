@@ -6,7 +6,9 @@ import {
   createCharacterRepository,
   createCharacterSheetAdjustmentRepository,
   createCharacterSheetPlayStateRepository,
+  createLiveMaximumHitPointPolicyRepository,
   createRollHistoryRepository,
+  withTransaction,
   type CharacterMechanicsProjectionPublicationTiming,
   type DBLike
 } from '@artificer-toolkit/db'
@@ -177,7 +179,7 @@ import {
   classifyCharacterSheetCommandRuleResponsibility,
   type CharacterSheetCommandRuleResponsibility
 } from './characterSheetCommandResponsibility.js'
-import { evaluateRuleRevision } from '../rules/ruleRevisionRuntime.js'
+import { evaluatePinnedRuleRevision } from '../rules/ruleRevisionRuntime.js'
 
 function toProspectiveSheetAdjustment(
   write: CharacterSheetAdjustmentWrite,
@@ -563,6 +565,7 @@ export async function executeCompactLiveCharacterHitPointCommand(
           characterStreamVersion: command.expectedVersion + 1,
           baseMechanicsProjectionChecksum: nextMechanics.projectionChecksum,
           mechanicalContextChecksum: campaignMechanics.mechanicalContextChecksum,
+          manualMaximumModifierOwner: campaignMechanics.manualMaximumModifierOwner,
           ...(campaignMechanics.kind === 'MATERIALIZED'
             ? {
                 rulePolicyInput: campaignMechanics.rulePolicyInput,
@@ -682,15 +685,25 @@ export async function executeCompactLiveCharacterHitPointCommand(
  * sources; a policy change still runs the pinned evaluator and republishes
  * both correctness projections in the owning transaction.
  */
-export async function executeCompactLiveMaximumHitPointModifierCommand(
-  params: Pick<
+type CompactLiveMaximumHitPointModifierCommandParams = Pick<
     ExecuteCharacterSheetCommandParams,
     | 'characterId'
     | 'command'
     | 'db'
     | 'liveSessionAuthority'
     | 'userId'
-  >
+  > & { campaignId: string }
+
+export async function executeCompactLiveMaximumHitPointModifierCommand(
+  params: CompactLiveMaximumHitPointModifierCommandParams
+): Promise<CompactLiveCharacterHitPointCommandExecution | null> {
+  return withTransaction(params.db, (db) =>
+    executeCompactLiveMaximumHitPointModifierCommandInTransaction({ ...params, db })
+  )
+}
+
+async function executeCompactLiveMaximumHitPointModifierCommandInTransaction(
+  params: CompactLiveMaximumHitPointModifierCommandParams
 ): Promise<CompactLiveCharacterHitPointCommandExecution | null> {
   const { command } = params
   const isUpsert =
@@ -701,11 +714,20 @@ export async function executeCompactLiveMaximumHitPointModifierCommand(
   const isRemoval = command.type === 'REMOVE_SHEET_ADJUSTMENT'
   if (!isUpsert && !isRemoval) return null
 
-  const adjustmentRepository = createCharacterSheetAdjustmentRepository(params.db)
-  const existing = await adjustmentRepository.findHitPointAdjustment({
+  if (!params.liveSessionAuthority) {
+    throw new CharacterSheetCommandError('The live-session command authority is unavailable.')
+  }
+  const policyRepository = createLiveMaximumHitPointPolicyRepository(params.db)
+  const context = await policyRepository.lockContext({
+    authorityId: params.liveSessionAuthority.authorityId,
     characterId: params.characterId,
-    field: 'MAXIMUM_MODIFIER'
+    commandId: command.commandId,
+    expectedCampaignId: params.campaignId,
+    expectedStreamVersion: command.expectedVersion,
+    sessionId: params.liveSessionAuthority.sessionId,
+    userId: params.userId
   })
+  const existing = context.existingAdjustment
   if (
     isRemoval &&
     (!existing ||
@@ -716,36 +738,8 @@ export async function executeCompactLiveMaximumHitPointModifierCommand(
     return null
   }
 
-  const repository = createCharacterRepository(params.db)
-  const row = await repository.findById(params.characterId)
-  if (!row) {
-    throw createNamedError('NotFoundError', `Character "${params.characterId}" was not found.`)
-  }
-  if (row.status !== AUTHORED_RECORD_STATUS.ACTIVE || !row.rule_pack_revision_id) {
-    throw new CharacterSheetCommandError(
-      `Character "${params.characterId}" is not finalized with a pinned rule revision.`
-    )
-  }
-  const campaignContext = await resolveCharacterSheetCampaignContext(
-    params.db,
-    { id: row.id, userId: row.user_id },
-    params.userId
-  )
-  if (campaignContext.viewer === 'CAMPAIGN_OWNER') {
-    if (campaignContext.campaignStatus !== 'ACTIVE') {
-      throw new CharacterSheetCommandError('Archived Campaigns are read-only.')
-    }
-    assertCampaignGmSheetCommandAllowed(command)
-  }
-  await assertCharacterLiveSessionCommandAuthority(
-    params.db,
-    params.characterId,
-    params.liveSessionAuthority
-  )
-
   const commandFingerprint = fingerprintCharacterSheetCommand(command)
-  const eventRepository = createCharacterEventRepository(params.db)
-  const priorEvent = await eventRepository.findByCommandId(params.characterId, command.commandId)
+  const priorEvent = context.priorEvent
   if (priorEvent) {
     if (
       priorEvent.type !== 'CHARACTER_SHEET_COMMAND_APPLIED' ||
@@ -757,30 +751,20 @@ export async function executeCompactLiveMaximumHitPointModifierCommand(
         `Command "${command.commandId}" was already used for different or unverifiable input.`
       )
     }
-    const mechanics = await createCharacterMechanicsProjectionRepository(params.db).requireCurrent({
-      characterId: params.characterId,
-      expectedRuleRevisionId: row.rule_pack_revision_id,
-      expectedStreamVersion: row.stream_version
-    })
     return {
       characterVision: deriveCharacterSceneVision(
         params.characterId,
-        mechanics.rulePolicyOutput.senses
+        context.mechanics.rulePolicyOutput.senses
       ),
       replayed: true,
       version: priorEvent.committedStreamVersion
     }
   }
-  if (row.stream_version !== command.expectedVersion) {
+  if (context.character.streamVersion !== command.expectedVersion) {
     throw new ConcurrencyError(params.characterId, command.expectedVersion)
   }
 
-  const mechanicsRepository = createCharacterMechanicsProjectionRepository(params.db)
-  const mechanics = await mechanicsRepository.requireCurrent({
-    characterId: params.characterId,
-    expectedRuleRevisionId: row.rule_pack_revision_id,
-    expectedStreamVersion: command.expectedVersion
-  })
+  const mechanics = context.mechanics
   const hitPointFacts = mechanics.rulePolicyInput.hitPointFacts
   if (!hitPointFacts) {
     throw new CharacterSheetCommandError('The committed mechanics projection has no hit-point facts.')
@@ -822,9 +806,15 @@ export async function executeCompactLiveMaximumHitPointModifierCommand(
       manualMaximumModifier: nextManualMaximumModifier
     }
   })
-  const evaluatedBase = await evaluateRuleRevision({
+  const evaluatedBase = await evaluatePinnedRuleRevision({
     db: params.db,
-    revisionId: mechanics.ruleRevisionId,
+    expected: {
+      revisionId: mechanics.ruleRevisionId,
+      checksum: mechanics.ruleRevisionChecksum,
+      evaluatorKind: 'ZEN',
+      evaluatorVersion: mechanics.evaluatorVersion,
+      modelContractVersion: mechanics.modelContractVersion
+    },
     modelKey: 'character-policy',
     normalizedFacts: nextBaseInput
   })
@@ -838,145 +828,112 @@ export async function executeCompactLiveMaximumHitPointModifierCommand(
     throw new CharacterSheetCommandError('The pinned Character rule identity changed before evaluation.')
   }
   const nextBaseOutput = characterRulePolicyOutputSchema.parse(evaluatedBase.result)
-  const campaignMechanicalContextChecksum = campaignContext.campaignId
-    ? checksumCampaignCharacterMechanicalContext({
-        adjustments: campaignContext.adjustments,
-        attunementSlotOverride: campaignContext.attunementSlotOverride
-      })
-    : null
-  const campaignMechanics = campaignContext.campaignId
-    ? await createCampaignCharacterMechanicsProjectionRepository(params.db).requireCurrent({
-        campaignId: campaignContext.campaignId,
-        characterId: params.characterId,
-        expectedBaseMechanicsProjectionChecksum: mechanics.projectionChecksum,
-        expectedCharacterStreamVersion: command.expectedVersion,
-        expectedMechanicalContextChecksum: campaignMechanicalContextChecksum as string,
-        expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
-        baseMechanicsProjection: mechanics
-      })
-    : null
+  const campaignMechanics = context.overlay
+  if (!campaignMechanics) {
+    throw new CharacterSheetCommandError('The Campaign mechanics projection is unavailable.')
+  }
   let nextCampaignPolicy: {
     rulePolicyInput: CharacterRulePolicyInput
     rulePolicyOutput: CharacterRulePolicyOutput
   } | null = null
   let effectiveOutput = nextBaseOutput
-  if (campaignMechanics) {
-    if (campaignMechanics.kind === 'MATERIALIZED') {
-      const overlayFact = campaignMechanics.rulePolicyInput.hitPointFacts?.manualMaximumModifier
-      const campaignModifier = campaignContext.adjustments.find(
-        (adjustment) =>
-          adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_MODIFIER'
-      )
-      if (campaignModifier) {
-        if (
-          !overlayFact ||
-          overlayFact.source.kind !== 'MANUAL_ADJUSTMENT' ||
-          overlayFact.source.adjustmentId !== campaignModifier.id ||
-          overlayFact.sourceId !== campaignModifier.id ||
-          overlayFact.value !== campaignModifier.value
-        ) {
-          throw new CharacterSheetCommandError(
-            'The committed Campaign maximum-hit-point modifier does not match canonical state.'
-          )
-        }
-        nextCampaignPolicy = {
-          rulePolicyInput: campaignMechanics.rulePolicyInput,
-          rulePolicyOutput: campaignMechanics.rulePolicyOutput
-        }
-        effectiveOutput = campaignMechanics.rulePolicyOutput
-      } else {
-        if (
-          (existing === null && overlayFact !== null) ||
-          (existing !== null &&
-            (!overlayFact ||
-              overlayFact.source.kind !== 'MANUAL_ADJUSTMENT' ||
-              overlayFact.source.adjustmentId !== existing.id ||
-              overlayFact.sourceId !== existing.id ||
-              overlayFact.value !== existing.value))
-        ) {
-          throw new CharacterSheetCommandError(
-            'The committed Campaign maximum-hit-point modifier does not match canonical state.'
-          )
-        }
-        if (!campaignMechanics.rulePolicyInput.hitPointFacts) {
-          throw new CharacterSheetCommandError('The Campaign mechanics projection has no hit-point facts.')
-        }
-        const nextOverlayInput = characterRulePolicyInputSchema.parse({
-          ...campaignMechanics.rulePolicyInput,
-          hitPointFacts: {
-            ...campaignMechanics.rulePolicyInput.hitPointFacts,
-            manualMaximumModifier: nextManualMaximumModifier
-          }
-        })
-        const evaluatedOverlay = await evaluateRuleRevision({
-          db: params.db,
-          revisionId: mechanics.ruleRevisionId,
-          modelKey: 'character-policy',
-          normalizedFacts: nextOverlayInput
-        })
-        if (
-          evaluatedOverlay.checksum !== mechanics.ruleRevisionChecksum ||
-          evaluatedOverlay.evaluatorKind !== 'ZEN' ||
-          evaluatedOverlay.evaluatorVersion !== mechanics.evaluatorVersion ||
-          evaluatedOverlay.modelContractVersion !== mechanics.modelContractVersion
-        ) {
-          throw new CharacterSheetCommandError('The pinned Campaign rule identity changed before evaluation.')
-        }
-        const nextOverlayOutput = characterRulePolicyOutputSchema.parse(evaluatedOverlay.result)
-        nextCampaignPolicy = {
-          rulePolicyInput: nextOverlayInput,
-          rulePolicyOutput: nextOverlayOutput
-        }
-        effectiveOutput = nextOverlayOutput
+  if (campaignMechanics.kind === 'MATERIALIZED') {
+    const overlayFact = campaignMechanics.rulePolicyInput.hitPointFacts?.manualMaximumModifier
+    if (campaignMechanics.manualMaximumModifierOwner === 'CAMPAIGN') {
+      if (!overlayFact || overlayFact.source.kind !== 'MANUAL_ADJUSTMENT') {
+        throw new CharacterSheetCommandError(
+          'The committed Campaign maximum-hit-point modifier has invalid provenance.'
+        )
       }
+      nextCampaignPolicy = {
+        rulePolicyInput: campaignMechanics.rulePolicyInput,
+        rulePolicyOutput: campaignMechanics.rulePolicyOutput
+      }
+      effectiveOutput = campaignMechanics.rulePolicyOutput
+    } else {
+      if (
+        campaignMechanics.manualMaximumModifierOwner !== (existing ? 'CHARACTER' : null) ||
+        (existing === null && overlayFact != null) ||
+        (existing !== null &&
+          (!overlayFact ||
+            overlayFact.source.kind !== 'MANUAL_ADJUSTMENT' ||
+            overlayFact.source.adjustmentId !== existing.id ||
+            overlayFact.sourceId !== existing.id ||
+            overlayFact.value !== existing.value))
+      ) {
+        throw new CharacterSheetCommandError(
+          'The committed Campaign maximum-hit-point modifier does not match canonical state.'
+        )
+      }
+      if (!campaignMechanics.rulePolicyInput.hitPointFacts) {
+        throw new CharacterSheetCommandError('The Campaign mechanics projection has no hit-point facts.')
+      }
+      const nextOverlayInput = characterRulePolicyInputSchema.parse({
+        ...campaignMechanics.rulePolicyInput,
+        hitPointFacts: {
+          ...campaignMechanics.rulePolicyInput.hitPointFacts,
+          manualMaximumModifier: nextManualMaximumModifier
+        }
+      })
+      const evaluatedOverlay = await evaluatePinnedRuleRevision({
+        db: params.db,
+        expected: {
+          revisionId: mechanics.ruleRevisionId,
+          checksum: mechanics.ruleRevisionChecksum,
+          evaluatorKind: 'ZEN',
+          evaluatorVersion: mechanics.evaluatorVersion,
+          modelContractVersion: mechanics.modelContractVersion
+        },
+        modelKey: 'character-policy',
+        normalizedFacts: nextOverlayInput
+      })
+      if (
+        evaluatedOverlay.checksum !== mechanics.ruleRevisionChecksum ||
+        evaluatedOverlay.evaluatorKind !== 'ZEN' ||
+        evaluatedOverlay.evaluatorVersion !== mechanics.evaluatorVersion ||
+        evaluatedOverlay.modelContractVersion !== mechanics.modelContractVersion
+      ) {
+        throw new CharacterSheetCommandError('The pinned Campaign rule identity changed before evaluation.')
+      }
+      const nextOverlayOutput = characterRulePolicyOutputSchema.parse(evaluatedOverlay.result)
+      nextCampaignPolicy = {
+        rulePolicyInput: nextOverlayInput,
+        rulePolicyOutput: nextOverlayOutput
+      }
+      effectiveOutput = nextOverlayOutput
     }
+  } else if (campaignMechanics.manualMaximumModifierOwner !== (existing ? 'CHARACTER' : null)) {
+    throw new CharacterSheetCommandError(
+      'The base-reference Campaign maximum-hit-point provenance is stale.'
+    )
   }
   const projectedHitPoints = mechanics.commandState.state.hitpoints
+  if (
+    projectedHitPoints.current !== context.hitPoints.current ||
+    (projectedHitPoints.temp ?? null) !== context.hitPoints.temp
+  ) {
+    throw new CharacterSheetCommandError(
+      'The committed hit-point command state does not match canonical state.'
+    )
+  }
   const nextHitPoints = {
     current: clampCharacterCurrentHitPoints(
       projectedHitPoints.current,
       resolveCharacterEffectiveMaximumHitPoints(effectiveOutput.derivedStats.maxHitPoints.effective)
     ),
-    temp: projectedHitPoints.temp
+    temp: projectedHitPoints.temp ?? null
   }
-  const nextBaseMechanics = compileCharacterMechanicsProjection({
-    characterId: params.characterId,
-    characterCommandState: {
-      ...mechanics.commandState,
-      state: {
-        ...mechanics.commandState.state,
-        hitpoints: { ...mechanics.commandState.state.hitpoints, ...nextHitPoints }
+  const nextCharacterCommandState = {
+    ...mechanics.commandState,
+    state: {
+      ...mechanics.commandState.state,
+      hitpoints: {
+        ...mechanics.commandState.state.hitpoints,
+        current: nextHitPoints.current,
+        temp: nextHitPoints.temp ?? undefined
       }
-    },
-    characterStreamVersion: command.expectedVersion + 1,
-    vocabularySnapshot: {
-      snapshotId: mechanics.systemVocabularySnapshotId,
-      snapshotVersion: mechanics.systemVocabularySnapshotVersion,
-      checksum: mechanics.systemVocabularySnapshotChecksum
-    },
-    ruleBinding: {
-      revisionId: mechanics.ruleRevisionId,
-      checksum: mechanics.ruleRevisionChecksum,
-      evaluatorKind: 'ZEN',
-      evaluatorVersion: mechanics.evaluatorVersion,
-      modelContractVersion: mechanics.modelContractVersion
-    },
-    authoredVersionVector: mechanics.authoredVersionVector,
-    rulePolicyInput: nextBaseInput,
-    rulePolicyOutput: nextBaseOutput,
-    ruleRegistry: mechanics.ruleRegistry,
-    ruleSnapshot: mechanics.ruleSnapshot
-  })
-  const nextCampaignMechanics = campaignMechanics
-    ? compileCampaignCharacterMechanicsProjection({
-        campaignId: campaignMechanics.campaignId,
-        characterId: params.characterId,
-        characterStreamVersion: command.expectedVersion + 1,
-        baseMechanicsProjectionChecksum: nextBaseMechanics.projectionChecksum,
-        mechanicalContextChecksum: campaignMechanics.mechanicalContextChecksum,
-        ...(nextCampaignPolicy ?? {})
-      })
-    : null
+    }
+  }
   const event = {
     type: 'CHARACTER_SHEET_COMMAND_APPLIED',
     eventId: crypto.randomUUID(),
@@ -992,77 +949,29 @@ export async function executeCompactLiveMaximumHitPointModifierCommand(
       ? 'Updated maximum hit point modifier.'
       : 'Removed maximum hit point modifier.'
   } satisfies CharacterEvent
-  let version: number
-  try {
-    version = await repository.patchLiveHitPoints(params.characterId, {
-      expected: { current: projectedHitPoints.current, temp: projectedHitPoints.temp },
-      next: nextHitPoints,
-      expectedStreamVersion: command.expectedVersion,
-      ...(campaignContext.campaignId
-        ? {
-            beforeCharacterLock: (trx) =>
-              createCampaignCharacterMechanicsProjectionRepository(trx).lockAssignment({
-                campaignId: campaignContext.campaignId as string,
-                characterId: params.characterId
-              })
-          }
-        : {}),
-      afterPersist: async (trx, persistedStreamVersion) => {
-        if (persistedStreamVersion !== nextBaseMechanics.characterStreamVersion) {
-          throw new ConcurrencyError(params.characterId, command.expectedVersion)
-        }
-        await assertCharacterLiveSessionCommandAuthority(
-          trx,
-          params.characterId,
-          params.liveSessionAuthority
-        )
-        if (campaignContext.campaignId) {
-          const lockedCampaignContext = await resolveCharacterSheetCampaignContext(
-            trx,
-            { id: row.id, userId: row.user_id },
-            params.userId
-          )
-          if (
-            lockedCampaignContext.campaignId !== campaignContext.campaignId ||
-            checksumCampaignCharacterMechanicalContext({
-              adjustments: lockedCampaignContext.adjustments,
-              attunementSlotOverride: lockedCampaignContext.attunementSlotOverride
-            }) !== campaignMechanicalContextChecksum
-          ) {
-            throw new CharacterSheetCommandError(
-              'Campaign mechanics context changed before the maximum-hit-point modifier could be published.'
-            )
-          }
-        }
-        const adjustments = createCharacterSheetAdjustmentRepository(trx)
-        if (nextAdjustment) await adjustments.upsert(nextAdjustment)
-        else await adjustments.remove({
-          characterId: params.characterId,
-          adjustmentId: existing!.id,
-          family: 'HIT_POINTS'
-        })
-        await createCharacterMechanicsProjectionRepository(trx).publish(nextBaseMechanics, {
-          requireActiveAuthoredVersions: false
-        })
-        if (nextCampaignMechanics && campaignMechanics) {
-          await createCampaignCharacterMechanicsProjectionRepository(trx).publish({
-            projection: nextCampaignMechanics,
-            expectedPriorOverlayChecksum: campaignMechanics.projectionChecksum
-          })
-        }
-        await createCharacterEventRepository(trx).append(event)
-      }
-    })
-  } catch (error) {
-    if (error instanceof ConcurrencyError) {
-      const concurrentEvent = await eventRepository.findByCommandId(
-        params.characterId,
-        command.commandId
-      )
-      if (concurrentEvent) return executeCompactLiveMaximumHitPointModifierCommand(params)
-    }
-    throw error
+  if (nextAdjustment && typeof nextAdjustment.value !== 'number') {
+    throw new CharacterSheetCommandError('The maximum-hit-point modifier value is invalid.')
   }
+  const version = await policyRepository.prepareAndCommit({
+    context,
+    event,
+    nextAdjustment: nextAdjustment
+      ? { actorId: nextAdjustment.actorId, id: nextAdjustment.id, value: nextAdjustment.value }
+      : null,
+    nextHitPoints,
+    nextCharacterCommandState,
+    nextBasePolicy: {
+      rulePolicyInput: nextBaseInput,
+      rulePolicyOutput: nextBaseOutput
+    },
+    nextCampaignPolicy,
+    nextManualMaximumModifierOwner:
+      campaignMechanics.manualMaximumModifierOwner === 'CAMPAIGN'
+        ? 'CAMPAIGN'
+        : nextManualMaximumModifier
+          ? 'CHARACTER'
+          : null
+  })
   return {
     characterVision: deriveCharacterSceneVision(params.characterId, effectiveOutput.senses),
     replayed: false,
@@ -2504,6 +2413,7 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
                     adjustments: ruleContext.adjustments,
                     attunementSlotOverride: ruleContext.attunementSlotOverride
                   }),
+                  manualMaximumModifierOwner: campaignMechanics.manualMaximumModifierOwner,
                   ...(campaignMechanics.kind === 'MATERIALIZED'
                     ? {
                         rulePolicyInput:

@@ -40,6 +40,7 @@
     "projections:verify:characters:production": "tsx src/scripts/verifyCharacterMechanicsProjections.ts --production",
     "provision:vtt-managed-smoke:staging": "tsx src/scripts/provisionManagedVttSmoke.ts --staging",
     "provision:vtt-managed-smoke:production": "tsx src/scripts/provisionManagedVttSmoke.ts --production",
+    "provision:vtt-managed-smoke:local": "tsx src/scripts/provisionManagedVttSmoke.ts --local",
     "test:vtt-map:integration": "tsx src/scripts/testVttMapMediaIntegration.ts",
     "seed:canonical-rule-packs:local": "tsx src/scripts/seedCanonicalRulePacks.ts --local",
     "seed:canonical-rule-packs:staging": "tsx src/scripts/seedCanonicalRulePacks.ts --staging",

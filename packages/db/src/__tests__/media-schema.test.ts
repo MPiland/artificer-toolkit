@@ -14,6 +14,9 @@ describe('media image persistence schema', () => {
   const migration = read('supabase/migrations/20260805120000_media_image_foundation.sql')
   const hardening = read('supabase/migrations/20260805130000_media_image_hardening.sql')
   const vttMigration = read('supabase/migrations/20260815212103_phase_08_vtt_scenes.sql')
+  const sceneReferenceOptimization = read(
+    'supabase/migrations/20260820010000_avoid_unchanged_encounter_scene_map_writes.sql'
+  )
 
   it('keeps canonical, bootstrap, and migration media constraints aligned', () => {
     for (const source of [canonical, generated, migration]) {
@@ -106,6 +109,12 @@ describe('media image persistence schema', () => {
       expect(source).toContain('campaign_scene_definitions_sync_vtt_map_reference_trigger')
       expect(source).toContain('sync_encounter_scene_map_reference')
       expect(source).toContain('encounter_scenes_sync_vtt_map_reference_trigger')
+    }
+
+    for (const source of [encounterTables, sceneReferenceOptimization]) {
+      expect(source).toContain(
+        "new_asset_id IS NOT NULL AND (TG_OP = 'INSERT' OR old_asset_id IS DISTINCT FROM new_asset_id)"
+      )
     }
 
     expect(canonical).toContain('FROM public.vtt_map_tiles')

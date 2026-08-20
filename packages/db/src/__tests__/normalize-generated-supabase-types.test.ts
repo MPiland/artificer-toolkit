@@ -39,6 +39,12 @@ describe('normalizeGeneratedSupabaseTypes', () => {
     expect(normalizeGeneratedSupabaseTypes(source)).toBe(source)
   })
 
+  it('normalizes trailing blank lines to one final newline', () => {
+    const source = `${generatedTypes('Record<never, never>', normalizedConstraint)}\n\n`
+
+    expect(normalizeGeneratedSupabaseTypes(source)).toBe(source.trimEnd() + '\n')
+  })
+
   it('preserves the default-schema branch when public composite types exist', () => {
     const source = generatedTypes('{ address: { street: string } }')
 

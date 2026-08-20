@@ -33,7 +33,7 @@ export function normalizeGeneratedSupabaseTypes(source: string): string {
     throw new Error('Supabase type generation did not produce a Database type.')
   }
 
-  if (!publicSchemaHasNoCompositeTypes(source)) return source
+  if (!publicSchemaHasNoCompositeTypes(source)) return withFinalNewline(source)
 
   for (const constraint of compositeConstraints) {
     const occurrences = source.split(constraint.redundant).length - 1
@@ -41,12 +41,16 @@ export function normalizeGeneratedSupabaseTypes(source: string): string {
       throw new Error('Supabase generated more than one default CompositeTypes constraint.')
     }
     if (occurrences === 1) {
-      return source.replace(constraint.redundant, constraint.normalized)
+      return withFinalNewline(source.replace(constraint.redundant, constraint.normalized))
     }
-    if (source.includes(constraint.normalized)) return source
+    if (source.includes(constraint.normalized)) return withFinalNewline(source)
   }
 
   throw new Error('Supabase changed its empty CompositeTypes output; update the normalizer.')
+}
+
+function withFinalNewline(source: string): string {
+  return `${source.trimEnd()}\n`
 }
 
 function publicSchemaHasNoCompositeTypes(source: string): boolean {

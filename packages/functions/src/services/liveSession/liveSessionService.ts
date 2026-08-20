@@ -3,7 +3,10 @@ import {
   createCampaignCollaborationRepository,
   createCharacterRepository,
   createEncounterRepository,
+  LiveMaximumHitPointPolicyContextError,
+  createLiveSessionCommandLeaseRepository,
   createVttSceneRepository,
+  withTransaction,
   type DBLike
 } from '@artificer-toolkit/db'
 import {
@@ -117,8 +120,18 @@ export async function claimLiveSessionRoomCommandAuthority(
   rawOptions: unknown,
   authorityId: string
 ): Promise<void> {
-  const admission = await authorizeLiveSessionAdmission(db, userId, rawOptions)
-  await claimLiveSessionCommandAuthority(db, liveSessionAuthority(admission.options, authorityId))
+  const options = liveSessionJoinOptionsDtoSchema.parse(rawOptions)
+  await withTransaction(db, async (trx) => {
+    if (
+      !(await createLiveSessionCommandLeaseRepository(trx).lockCampaignForCommand(
+        options.campaignId
+      ))
+    ) {
+      throw new CampaignAccessError()
+    }
+    const admission = await authorizeLiveSessionAdmissionForOptions(trx, userId, options)
+    await claimLiveSessionCommandAuthority(trx, liveSessionAuthority(admission.options, authorityId))
+  })
 }
 
 export async function renewLiveSessionRoomCommandAuthority(
@@ -420,6 +433,45 @@ export async function executeLiveSessionCommand(
   const options = liveSessionJoinOptionsDtoSchema.parse(rawOptions)
   const commandAuthority = liveSessionAuthority(options, authorityId)
   if (command.aggregateKind === 'CHARACTER') {
+    if (
+      (command.command.type === 'UPSERT_SHEET_ADJUSTMENT' &&
+        command.command.adjustment.family === 'HIT_POINTS' &&
+        command.command.adjustment.field === 'MAXIMUM_MODIFIER' &&
+        typeof command.command.adjustment.value === 'number') ||
+      command.command.type === 'REMOVE_SHEET_ADJUSTMENT'
+    ) {
+      let execution: Awaited<ReturnType<typeof executeCompactLiveMaximumHitPointModifierCommand>>
+      try {
+        execution = await executeCompactLiveMaximumHitPointModifierCommand({
+          db,
+          campaignId: options.campaignId,
+          characterId: command.characterId,
+          command: command.command,
+          userId,
+          liveSessionAuthority: commandAuthority
+        })
+      } catch (error) {
+        if (
+          error instanceof LiveMaximumHitPointPolicyContextError &&
+          error.reason === 'ACCESS'
+        ) {
+          throw new CampaignAccessError()
+        }
+        throw error
+      }
+      if (execution) {
+        return {
+          aggregateKind: 'CHARACTER',
+          aggregateId: command.characterId,
+          commandId: command.command.commandId,
+          replayed: execution.replayed,
+          version: execution.version,
+          response: null,
+          characterVision: execution.characterVision,
+          ...(execution.replayed ? {} : { ruleEvaluationLane: 'CHARACTER_POLICY' as const })
+        }
+      }
+    }
     await authorizeLiveSessionAdmissionForOptions(db, userId, options)
     const attendance = await createCampaignCollaborationRepository(db).listSessionAttendance(
       options.sessionId
@@ -445,33 +497,6 @@ export async function executeLiveSessionCommand(
         response: null,
         characterVision: execution.characterVision,
         ruleSnapshot: execution.ruleSnapshot
-      }
-    }
-    if (
-      (command.command.type === 'UPSERT_SHEET_ADJUSTMENT' &&
-        command.command.adjustment.family === 'HIT_POINTS' &&
-        command.command.adjustment.field === 'MAXIMUM_MODIFIER' &&
-        typeof command.command.adjustment.value === 'number') ||
-      command.command.type === 'REMOVE_SHEET_ADJUSTMENT'
-    ) {
-      const execution = await executeCompactLiveMaximumHitPointModifierCommand({
-        db,
-        characterId: command.characterId,
-        command: command.command,
-        userId,
-        liveSessionAuthority: commandAuthority
-      })
-      if (execution) {
-        return {
-          aggregateKind: 'CHARACTER',
-          aggregateId: command.characterId,
-          commandId: command.command.commandId,
-          replayed: execution.replayed,
-          version: execution.version,
-          response: null,
-          characterVision: execution.characterVision,
-          ...(execution.replayed ? {} : { ruleEvaluationLane: 'CHARACTER_POLICY' as const })
-        }
       }
     }
     const execution = await executeCharacterSheetCommandWithRuleEvaluation({

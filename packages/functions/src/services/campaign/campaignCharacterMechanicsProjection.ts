@@ -27,13 +27,14 @@ import {
 } from '../character/campaignCharacterSheet.js'
 import type { CharacterMechanicsProjection } from '@artificer-toolkit/schema/projections/characterMechanics'
 
-export const CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION = 2
+export const CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION = 3
 
 export function compileCampaignCharacterMechanicsProjection(input: {
   baseMechanicsProjectionChecksum: string
   campaignId: string
   characterId: string
   characterStreamVersion: number
+  manualMaximumModifierOwner: 'CHARACTER' | 'CAMPAIGN' | null
   mechanicalContextChecksum: string
   rulePolicyInput?: CharacterRulePolicyInput
   rulePolicyOutput?: CharacterRulePolicyOutput
@@ -46,6 +47,7 @@ export function compileCampaignCharacterMechanicsProjection(input: {
   const materialized = input.rulePolicyInput != null && input.rulePolicyOutput != null
   const candidate = campaignCharacterMechanicsProjectionSchema.parse({
     ...input,
+    manualMaximumModifierOwner: input.manualMaximumModifierOwner,
     kind: materialized ? 'MATERIALIZED' : 'BASE_REFERENCE',
     projectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
     projectionChecksum: '0'.repeat(64)
@@ -80,7 +82,11 @@ export async function prepareCampaignCharacterMechanicsProjection(input: {
       characterId: input.character.id,
       characterStreamVersion: input.characterStreamVersion,
       baseMechanicsProjectionChecksum: input.mechanics.projectionChecksum,
-      mechanicalContextChecksum
+      mechanicalContextChecksum,
+      manualMaximumModifierOwner:
+        input.mechanics.rulePolicyInput.hitPointFacts?.manualMaximumModifier == null
+          ? null
+          : 'CHARACTER'
     })
   }
   const [characterAdjustments, movementDisplayPreference, resourceUsage, sources] =
@@ -115,6 +121,15 @@ export async function prepareCampaignCharacterMechanicsProjection(input: {
     characterStreamVersion: input.characterStreamVersion,
     baseMechanicsProjectionChecksum: input.mechanics.projectionChecksum,
     mechanicalContextChecksum,
+    manualMaximumModifierOwner:
+      ruleEvaluation.facts.hitPointFacts?.manualMaximumModifier == null
+        ? null
+        : input.campaignAdjustments.some(
+              (adjustment) =>
+                adjustment.family === 'HIT_POINTS' && adjustment.field === 'MAXIMUM_MODIFIER'
+            )
+          ? 'CAMPAIGN'
+          : 'CHARACTER',
     rulePolicyInput: ruleEvaluation.facts,
     rulePolicyOutput: ruleEvaluation.output
   })

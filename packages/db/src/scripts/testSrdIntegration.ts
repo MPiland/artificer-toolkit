@@ -437,6 +437,17 @@ async function assertOwnedClones(
   const cloneIds = new Set<string>()
   const cloneOwnedIds = new Set<string>()
   const cloneDraftsBySourceId = new Map<string, OwnedCloneDraftSnapshot>()
+  let persistedCloneCount = 0
+
+  const resetRollbackAuditCreationAllowance = async () => {
+    await sql`
+      delete from authored_creation_rate_limits
+      where user_id = ${userId}
+    `.execute(db)
+  }
+
+  // This rollback-only audit persists the full corpus; rate-limit behavior has its own integration gate.
+  await resetRollbackAuditCreationAllowance()
 
   for (const domainCase of allRootCloneCases(bundle)) {
     for (const source of domainCase.records) {
@@ -543,6 +554,8 @@ async function assertOwnedClones(
         label: parsed.label,
         payload: canonicalize(parsed) as Json
       })
+      persistedCloneCount += 1
+      if (persistedCloneCount % 25 === 0) await resetRollbackAuditCreationAllowance()
 
       assert.deepStrictEqual(canonicalize(draft.payload), canonicalize(parsed))
       assert.equal(draft.draftState, 'DRAFT_ONLY')

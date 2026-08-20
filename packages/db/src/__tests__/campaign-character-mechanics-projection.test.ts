@@ -17,7 +17,8 @@ function projectionCandidate() {
     characterStreamVersion: 4,
     baseMechanicsProjectionChecksum: checksum('a'),
     mechanicalContextChecksum: checksum('b'),
-    projectionSchemaVersion: 2,
+    manualMaximumModifierOwner: null,
+    projectionSchemaVersion: 3,
     projectionChecksum: checksum('c'),
   }
 }
@@ -34,6 +35,12 @@ describe('Campaign Character mechanics projection checksum', () => {
       checksumCampaignCharacterMechanicsProjection({
         ...candidate,
         mechanicalContextChecksum: checksum('d')
+      })
+    ).not.toBe(projectionChecksum)
+    expect(
+      checksumCampaignCharacterMechanicsProjection({
+        ...candidate,
+        manualMaximumModifierOwner: 'CAMPAIGN'
       })
     ).not.toBe(projectionChecksum)
     expect(
@@ -97,7 +104,7 @@ describe('Campaign Character mechanics projection checksum', () => {
     expect(() =>
       assertCurrentCampaignCharacterMechanicsProjection({
         ...currentInput,
-        expectedProjectionSchemaVersion: 3
+        expectedProjectionSchemaVersion: 4
       })
     ).toThrow(CampaignCharacterMechanicsProjectionMismatchError)
   })

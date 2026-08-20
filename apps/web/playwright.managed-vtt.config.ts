@@ -20,6 +20,7 @@ if (
 ) {
   throw new Error('MANAGED_LIVE_SESSION_ENDPOINT must be an exact HTTPS origin.')
 }
+process.env.MANAGED_VTT_TOPOLOGY = 'MANAGED'
 
 export default defineConfig({
   expect: { timeout: 15_000 },

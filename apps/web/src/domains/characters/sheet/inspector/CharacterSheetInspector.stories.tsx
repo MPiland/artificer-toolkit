@@ -23,7 +23,6 @@ import {
   spellPanelSaveDamageFixture,
   spellsPanelFixture
 } from './inspector.fixtures'
-import { CharacterSheetInspector } from './CharacterSheetInspector'
 import {
   characterSheetStoryMeta,
   characterSheetTabletViewports,
@@ -179,20 +178,6 @@ export const SpellInspector: Story = {
   parameters: {
     msw: { handlers: [panelHandler(spellPanelFixture)] }
   },
-  render: (args) => (
-    <>
-      <CharacterSheetView {...args} />
-      <CharacterSheetInspector
-        characterId={characterSheetFixture.meta.characterId}
-        expectedVersion={characterSheetFixture.meta.streamVersion}
-        pending={false}
-        submitCommand={async () => false}
-        target={spellPanelFixture.target}
-        onClose={() => undefined}
-        onTargetChange={() => undefined}
-      />
-    </>
-  ),
   play: openSpellInspector
 }
 
@@ -211,21 +196,8 @@ export const ItemInspector: Story = {
   parameters: {
     msw: { handlers: [panelHandler(itemPanelFixture)] }
   },
-  render: (args) => (
-    <>
-      <CharacterSheetView {...args} />
-      <CharacterSheetInspector
-        characterId={characterSheetFixture.meta.characterId}
-        expectedVersion={characterSheetFixture.meta.streamVersion}
-        pending={false}
-        submitCommand={async () => false}
-        target={itemPanelFixture.target}
-        onClose={() => undefined}
-        onTargetChange={() => undefined}
-      />
-    </>
-  ),
-  play: async ({ canvasElement }) => {
+  play: async ({ canvas, canvasElement }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Open Wand of Magic Missiles details' }))
     await expectInspectorReady(canvasElement, 'Moon-Touched Longsword', 'Owned item')
   }
 }
@@ -268,7 +240,9 @@ export const AstralTearItemInspector: Story = {
   }
 }
 
-const expandSpellCustomize: Story['play'] = async ({ canvasElement }) => {
+const expandSpellCustomize: Story['play'] = async (context) => {
+  await openSpellInspector?.(context)
+  const { canvasElement } = context
   await expectInspectorReady(canvasElement, 'Magic Missile', 'Spell source')
   const inspector = within(canvasElement.ownerDocument.body).getByRole('dialog', {
     name: 'Magic Missile'
@@ -303,42 +277,14 @@ export const SpellInspectorAttackDamage: Story = {
   ...SpellInspector,
   parameters: {
     msw: { handlers: [panelHandler(spellPanelAttackDamageFixture)] }
-  },
-  render: (args) => (
-    <>
-      <CharacterSheetView {...args} />
-      <CharacterSheetInspector
-        characterId={characterSheetFixture.meta.characterId}
-        expectedVersion={characterSheetFixture.meta.streamVersion}
-        pending={false}
-        submitCommand={async () => false}
-        target={spellPanelAttackDamageFixture.target}
-        onClose={() => undefined}
-        onTargetChange={() => undefined}
-      />
-    </>
-  )
+  }
 }
 
 export const SpellInspectorSaveDamage: Story = {
   ...SpellInspectorAttackDamage,
   parameters: {
     msw: { handlers: [panelHandler(spellPanelSaveDamageFixture)] }
-  },
-  render: (args) => (
-    <>
-      <CharacterSheetView {...args} />
-      <CharacterSheetInspector
-        characterId={characterSheetFixture.meta.characterId}
-        expectedVersion={characterSheetFixture.meta.streamVersion}
-        pending={false}
-        submitCommand={async () => false}
-        target={spellPanelSaveDamageFixture.target}
-        onClose={() => undefined}
-        onTargetChange={() => undefined}
-      />
-    </>
-  )
+  }
 }
 
 export const SpellInspectorEmptyCustomizations: Story = {
@@ -346,20 +292,6 @@ export const SpellInspectorEmptyCustomizations: Story = {
   parameters: {
     msw: { handlers: [panelHandler(spellPanelEmptyCustomizationsFixture)] }
   },
-  render: (args) => (
-    <>
-      <CharacterSheetView {...args} />
-      <CharacterSheetInspector
-        characterId={characterSheetFixture.meta.characterId}
-        expectedVersion={characterSheetFixture.meta.streamVersion}
-        pending={false}
-        submitCommand={async () => false}
-        target={spellPanelEmptyCustomizationsFixture.target}
-        onClose={() => undefined}
-        onTargetChange={() => undefined}
-      />
-    </>
-  ),
   play: expandSpellCustomize
 }
 
@@ -368,20 +300,6 @@ export const SpellInspectorConfiguredCustomizations: Story = {
   parameters: {
     msw: { handlers: [panelHandler(spellPanelConfiguredCustomizationsFixture)] }
   },
-  render: (args) => (
-    <>
-      <CharacterSheetView {...args} />
-      <CharacterSheetInspector
-        characterId={characterSheetFixture.meta.characterId}
-        expectedVersion={characterSheetFixture.meta.streamVersion}
-        pending={false}
-        submitCommand={async () => false}
-        target={spellPanelConfiguredCustomizationsFixture.target}
-        onClose={() => undefined}
-        onTargetChange={() => undefined}
-      />
-    </>
-  ),
   play: showConfiguredSpellCustomizations
 }
 
@@ -392,20 +310,6 @@ export const SpellsInspector: Story = {
   parameters: {
     msw: { handlers: [panelHandler(spellsPanelFixture)] }
   },
-  render: (args) => (
-    <>
-      <CharacterSheetView {...args} />
-      <CharacterSheetInspector
-        characterId={characterSheetFixture.meta.characterId}
-        expectedVersion={characterSheetFixture.meta.streamVersion}
-        pending={false}
-        submitCommand={async () => false}
-        target={spellsPanelFixture.target}
-        onClose={() => undefined}
-        onTargetChange={() => undefined}
-      />
-    </>
-  ),
   play: openSpellsInspector
 }
 

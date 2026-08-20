@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { parseEnv } from 'node:util'
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import {
@@ -36,6 +39,8 @@ import {
 const CONFIRMATION = 'provision-managed-vtt-smoke'
 const CAMPAIGN_NAME = 'Artificer managed VTT smoke'
 const HIDDEN_TOKEN_LABEL = 'Managed VTT GM-only sentinel'
+const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])
+const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url))
 
 interface SmokeUser {
   id: string
@@ -52,6 +57,22 @@ function assertRemoteUrl(name: string, rawValue: string): string {
   const value = new URL(rawValue)
   if (value.hostname === '127.0.0.1' || value.hostname === 'localhost') {
     throw new Error(`${name} must target the managed Supabase project.`)
+  }
+  return value.toString().replace(/\/$/u, '')
+}
+
+function loadLocalEnvironment(): void {
+  const environmentPath = `${repoRoot}/.env.local`
+  if (!existsSync(environmentPath)) {
+    throw new Error('Root .env.local is required to provision the local VTT smoke fixture.')
+  }
+  Object.assign(process.env, parseEnv(readFileSync(environmentPath, 'utf8')))
+}
+
+function assertLoopbackUrl(name: string, rawValue: string): string {
+  const value = new URL(rawValue)
+  if (!LOCAL_HOSTS.has(value.hostname.toLowerCase())) {
+    throw new Error(`${name} must target local Supabase for the local VTT smoke fixture.`)
   }
   return value.toString().replace(/\/$/u, '')
 }
@@ -93,21 +114,31 @@ async function ensureSmokeUser(
 }
 
 async function main(): Promise<void> {
-  if (process.env.CONFIRM_MANAGED_VTT_SMOKE_PROVISION !== CONFIRMATION) {
+  const local = process.argv.includes('--local')
+  const staging = process.argv.includes('--staging')
+  const production = process.argv.includes('--production')
+  if ([local, staging, production].filter(Boolean).length !== 1) {
+    throw new Error('Pass exactly one of --local, --staging, or --production.')
+  }
+  if (local) loadLocalEnvironment()
+  if (!local && process.env.CONFIRM_MANAGED_VTT_SMOKE_PROVISION !== CONFIRMATION) {
     throw new Error(
       `Set CONFIRM_MANAGED_VTT_SMOKE_PROVISION=${CONFIRMATION} to provision the managed fixture.`
     )
   }
 
-  const staging = process.argv.includes('--staging')
-  const production = process.argv.includes('--production')
-  if (staging === production) throw new Error('Pass exactly one of --staging or --production.')
-  const prefix = staging ? 'STAGING_' : 'PROD_'
+  const prefix = staging ? 'STAGING_' : production ? 'PROD_' : ''
   const connectionName = `${prefix}DATABASE_CONNECTION_STRING`
   const supabaseUrlName = `${prefix}SUPABASE_URL`
   const supabaseSecretKeyName = `${prefix}SUPABASE_SECRET_KEY`
-  const connectionString = assertRemoteUrl(connectionName, requireEnvironment(connectionName))
-  const supabaseUrl = assertRemoteUrl(supabaseUrlName, requireEnvironment(supabaseUrlName))
+  const connectionString = (local ? assertLoopbackUrl : assertRemoteUrl)(
+    connectionName,
+    requireEnvironment(connectionName)
+  )
+  const supabaseUrl = (local ? assertLoopbackUrl : assertRemoteUrl)(
+    supabaseUrlName,
+    requireEnvironment(supabaseUrlName)
+  )
   const supabaseSecretKey = requireEnvironment(supabaseSecretKeyName)
   const gmEmail = requireEnvironment('MANAGED_VTT_GM_EMAIL')
   const gmPassword = requireEnvironment('MANAGED_VTT_GM_PASSWORD')
@@ -144,6 +175,18 @@ async function main(): Promise<void> {
       (campaign) => campaign.name === CAMPAIGN_NAME
     )
     if (existingCampaign) {
+      if (local) {
+        console.info(
+          JSON.stringify({
+            localVttSmokeFixture: {
+              campaignId: existingCampaign.id,
+              campaignName: CAMPAIGN_NAME,
+              reused: true
+            }
+          })
+        )
+        return
+      }
       throw new Error(
         `The dedicated Campaign already exists (${existingCampaign.id}); refusing to create a duplicate.`
       )

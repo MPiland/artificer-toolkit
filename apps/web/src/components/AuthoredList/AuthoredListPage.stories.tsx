@@ -65,18 +65,16 @@ export const MobileInAppShell: Story = {
   args: {
     initialViewMode: 'cards'
   },
-  decorators: [
-    (Story) => (
-      <Shell
-        navigation={platformNavigation}
-        currentPath='/spells'
-        isAuthenticated
-        userEmail='creator@example.test'
-      >
-        <Story />
-      </Shell>
-    )
-  ],
+  render: (args) => (
+    <Shell
+      navigation={platformNavigation}
+      currentPath='/spells'
+      isAuthenticated
+      userEmail='creator@example.test'
+    >
+      <AuthoredListPage {...args} />
+    </Shell>
+  ),
   parameters: {
     layout: 'fullscreen',
     viewport: {
@@ -122,18 +120,16 @@ export const MobileEmpty: Story = {
 
 export const MobileEmptyInAppShell: Story = {
   args: MobileEmpty.args,
-  decorators: [
-    (Story) => (
-      <Shell
-        navigation={platformNavigation}
-        currentPath='/characters'
-        isAuthenticated
-        userEmail='creator@example.test'
-      >
-        <Story />
-      </Shell>
-    )
-  ],
+  render: (args) => (
+    <Shell
+      navigation={platformNavigation}
+      currentPath='/characters'
+      isAuthenticated
+      userEmail='creator@example.test'
+    >
+      <AuthoredListPage {...args} />
+    </Shell>
+  ),
   parameters: {
     layout: 'fullscreen',
     viewport: {

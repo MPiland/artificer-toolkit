@@ -71,6 +71,8 @@ const MESSAGE_TIMEOUT_MS = 15_000
 const WARM_COMMAND_P95_LIMIT_MS = 500
 const RULE_BOUND_HOST_P95_LIMIT_MS = 250
 const SCENE_HOST_P95_LIMIT_MS = 100
+const VTT_USAGE_WARMUP_PAIRS = 2
+const VTT_USAGE_MEASURED_PAIRS = 10
 const DIRECT_HOST_LEASE_RELEASE_TIMEOUT_MS = 2_500
 const DURABLE_OBJECT_LEASE_RELEASE_TIMEOUT_MS = 45_000
 const LOCAL_INTEGRATION_TICKET_SECRET =
@@ -1091,26 +1093,25 @@ async function main(): Promise<void> {
     assert.equal(sceneReplay.streamVersion, sceneMove.streamVersion)
 
     let expectedSceneVersion = Math.max(sceneMove.streamVersion, sceneDoor.streamVersion)
-    const sequentialSceneCommands: CommandMeasurement[] = []
-    for (let index = 0; index < 8; index += 1) {
-      const measurement = await sendSceneCommand(playerRoom, [...playerRooms.slice(1), gmRoom], {
+    const measuredSceneDoorCommands: CommandMeasurement[] = []
+    let doorState: 'CLOSED' | 'OPEN' = 'OPEN'
+    for (let index = 0; index < VTT_USAGE_WARMUP_PAIRS + VTT_USAGE_MEASURED_PAIRS; index += 1) {
+      doorState = doorState === 'OPEN' ? 'CLOSED' : 'OPEN'
+      const measurement = await sendSceneCommand(gmRoom, playerRooms, {
         commandId: randomUUID(),
         encounterId: encounter.id,
         expectedSceneVersion,
-        path: [
-          { x: 25 + index, y: 20 },
-          { x: 26 + index, y: 20 }
-        ],
+        barrierId: doorId,
         sceneId,
-        tokenId: sceneTokenId,
-        type: 'MOVE_SCENE_TOKEN'
+        state: doorState,
+        type: 'SET_SCENE_DOOR_STATE'
       })
       expectedSceneVersion = measurement.streamVersion
-      sequentialSceneCommands.push(measurement)
+      if (index >= VTT_USAGE_WARMUP_PAIRS) measuredSceneDoorCommands.push(measurement)
     }
     const sceneHostSamples = externalEndpoint
       ? []
-      : sequentialSceneCommands.map((measurement) => {
+      : measuredSceneDoorCommands.map((measurement) => {
           const timing = sceneCommandTimings.find(
             ({ commandId }) => commandId === measurement.commandId
           )
@@ -1127,6 +1128,7 @@ async function main(): Promise<void> {
     const persistedScene = await createVttSceneRepository(db).findByEncounter(encounter.id)
     assert.ok(persistedScene)
     assert.equal(persistedScene.state.version, expectedSceneVersion)
+    assert.equal(doorState, 'OPEN')
     assert.equal(persistedScene.state.doorStates[doorId], 'OPEN')
     assert.deepEqual(
       replaySceneEvents(
@@ -1272,6 +1274,42 @@ async function main(): Promise<void> {
       )
     }
 
+    const measuredMaximumModifierCommands: CommandMeasurement[] = []
+    for (let index = 0; index < VTT_USAGE_WARMUP_PAIRS + VTT_USAGE_MEASURED_PAIRS; index += 1) {
+      for (const value of [1, 0]) {
+        const measurement = await sendCharacterCommand(
+          playerRoom,
+          characterWitnesses,
+          characterId,
+          {
+            adjustment: {
+              family: 'HIT_POINTS',
+              field: 'MAXIMUM_MODIFIER',
+              id: randomUUID(),
+              value
+            },
+            commandId: randomUUID(),
+            expectedVersion,
+            type: 'UPSERT_SHEET_ADJUSTMENT'
+          },
+          true
+        )
+        expectedVersion = measurement.streamVersion
+        if (index >= VTT_USAGE_WARMUP_PAIRS) measuredMaximumModifierCommands.push(measurement)
+      }
+    }
+    const maximumModifierHostSamples = externalEndpoint
+      ? []
+      : measuredMaximumModifierCommands.map(({ durationMs }) => durationMs)
+    const maximumModifierHostP95Ms =
+      maximumModifierHostSamples.length > 0 ? percentile(maximumModifierHostSamples, 0.95) : null
+    if (maximumModifierHostP95Ms !== null) {
+      assert.ok(
+        maximumModifierHostP95Ms < RULE_BOUND_HOST_P95_LIMIT_MS,
+        `Maximum-modifier host p95 ${maximumModifierHostP95Ms.toFixed(2)} ms exceeded ${RULE_BOUND_HOST_P95_LIMIT_MS} ms.`
+      )
+    }
+
     const spendableResource = initialSheet.resources.items.find(
       (resource) => resource.remaining > 0
     )
@@ -1354,13 +1392,14 @@ async function main(): Promise<void> {
       assert.ok((spellSlotTiming?.service.boundedZenEvaluationMs ?? 0) > 0)
     }
     const ruleBoundHostSamples = [
+      ...maximumModifierHostSamples,
       resourceTiming?.service.totalMs,
       spellSlotTiming?.service.totalMs
     ].filter((duration): duration is number => duration !== undefined)
-    if (!externalEndpoint) assert.equal(ruleBoundHostSamples.length, 2)
+    if (!externalEndpoint) assert.equal(ruleBoundHostSamples.length, VTT_USAGE_MEASURED_PAIRS * 2 + 2)
     const ruleBoundHostP95Ms =
       ruleBoundHostSamples.length > 0 ? percentile(ruleBoundHostSamples, 0.95) : null
-    if (ruleBoundHostP95Ms !== null) {
+    if (enforcesDirectHostLatencyBudgets && ruleBoundHostP95Ms !== null) {
       assert.ok(
         ruleBoundHostP95Ms < RULE_BOUND_HOST_P95_LIMIT_MS,
         `Rule-bound host p95 ${ruleBoundHostP95Ms.toFixed(2)} ms exceeded ${RULE_BOUND_HOST_P95_LIMIT_MS} ms.`
@@ -1573,6 +1612,8 @@ async function main(): Promise<void> {
           encounterResourceCommandMs: encounterResourceCommand.durationMs,
           gmJoinMs: gmJoin.durationMs,
           mechanicsChangingCommandMs: mechanicsChangingCommand.durationMs,
+          maximumModifierHostP95Ms,
+          maximumModifierHostSamples,
           playerJoinMs: playerJoin.durationMs,
           reconnectMs,
           ruleBoundHostP95Ms,

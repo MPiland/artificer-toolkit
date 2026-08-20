@@ -86,7 +86,7 @@ function revision(doc = document()): RulePackRevisionRecord {
     revision: 1,
     evaluatorKind: 'ZEN',
     evaluatorVersion: '0.54.0',
-    modelContractVersion: 4,
+    modelContractVersion: 5,
     document: doc,
     checksum: checksumRuleDocument(doc),
     createdBy: ids.user,
@@ -119,6 +119,7 @@ function storedRevision(
 describe('rule pack service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.evaluator.mockReset()
   })
 
   it('denies non-superadmins before repository or evaluator access', async () => {
@@ -160,7 +161,7 @@ describe('rule pack service', () => {
         rulePackId: ids.pack,
         evaluatorKind: 'ZEN',
         evaluatorVersion: '0.54.0',
-        modelContractVersion: 4
+        modelContractVersion: 5
       })
     )
   })

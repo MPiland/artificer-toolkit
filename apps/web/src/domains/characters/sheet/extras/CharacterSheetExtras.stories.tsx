@@ -7,6 +7,7 @@ import {
   characterSheetStoryMeta,
   extrasCommandErrorHandler,
   extrasCommandHandler,
+  extrasOptionsHandler,
   extrasPanelHandler
 } from '../fixtures/characterSheetStory.fixture'
 
@@ -20,7 +21,9 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Extras: Story = {
-  parameters: { msw: { handlers: [extrasPanelHandler(), extrasCommandHandler()] } },
+  parameters: {
+    msw: { handlers: [extrasPanelHandler(), extrasOptionsHandler(), extrasCommandHandler()] }
+  },
   args: {
     initialTab: 'extras',
     sheet: {
@@ -117,7 +120,7 @@ export const Extras: Story = {
 
 export const ExtrasCommandError: Story = {
   parameters: {
-    msw: { handlers: [extrasPanelHandler(), extrasCommandErrorHandler()] }
+    msw: { handlers: [extrasPanelHandler(), extrasOptionsHandler(), extrasCommandErrorHandler()] }
   },
   args: Extras.args
 }

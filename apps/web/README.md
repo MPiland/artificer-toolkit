@@ -18,6 +18,7 @@ For authoring, the flow is route → node-runtime DTO → `AuthoringFormLayout`/
 ## Invariants
 
 - `apps/apis` is the only product-data boundary; do not add direct database or Supabase data writes to browser features.
+- SSR loaders must create and pass a request-scoped API with `createServerApi()`. Never use the browser module singleton during SSR: its tRPC batch queue would combine operations from different authenticated requests under one cookie context.
 - The `packages/db/types` dependency is type-only Supabase client metadata, not a product-data read/write path.
 - Use focused exports from `packages/schema` and `packages/shared`; do not invent local DTO shapes.
 - Keep detail/read routes separate from `/edit` authoring routes and keep Builder state separate from Sheet play-state commands.

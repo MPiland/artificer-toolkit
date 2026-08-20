@@ -61,7 +61,10 @@ describe('live-session contracts', () => {
           commandId: ids.command,
           encounterId: ids.encounter,
           expectedSceneVersion: 4,
-          position: { x: 10, y: 10 },
+          path: [
+            { x: 10, y: 10 },
+            { x: 11, y: 11 }
+          ],
           sceneId: ids.scene,
           tokenId: ids.token,
           type: 'MOVE_SCENE_TOKEN'

@@ -24,17 +24,18 @@ const mocks = vi.hoisted(() => ({
   executeCompactMaximumHitPointModifier: vi.fn(),
   executeCharacterSheetCommand: vi.fn(),
   loadCharacterSceneVision: vi.fn(),
-  loadCharacterRuleSnapshot: vi.fn()
+  loadCharacterRuleSnapshot: vi.fn(),
+  lockCampaignForCommand: vi.fn(),
+  claimLiveSessionCommandAuthority: vi.fn(),
+  createCampaignCollaborationRepository: vi.fn(),
+  createLiveSessionCommandLeaseRepository: vi.fn()
 }))
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@artificer-toolkit/db')>()
   return {
     ...actual,
-    createCampaignCollaborationRepository: () => ({
-      listCampaignSessions: mocks.listCampaignSessions,
-      listSessionAttendance: mocks.listSessionAttendance
-    }),
+    createCampaignCollaborationRepository: mocks.createCampaignCollaborationRepository,
     createCharacterRepository: () => ({ findById: mocks.findCharacter }),
     createEncounterRepository: () => ({
       listVersionMetadataForSession: mocks.listEncounters,
@@ -42,7 +43,8 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     }),
     createVttSceneRepository: () => ({
       findByEncounter: mocks.findSceneByEncounter
-    })
+    }),
+    createLiveSessionCommandLeaseRepository: mocks.createLiveSessionCommandLeaseRepository
   }
 })
 
@@ -66,6 +68,12 @@ vi.mock('../character/characterLiveSessionSnapshot.js', () => ({
   loadCharacterRuleSnapshotForLiveSessionCampaign: mocks.loadCharacterRuleSnapshot
 }))
 
+vi.mock('../campaign/liveSessionCommandAuthority.js', () => ({
+  claimLiveSessionCommandAuthority: mocks.claimLiveSessionCommandAuthority,
+  releaseLiveSessionCommandAuthority: vi.fn(),
+  renewLiveSessionCommandAuthority: vi.fn()
+}))
+
 vi.mock('../character/sheetService.js', () => ({
   executeCompactLiveCharacterHitPointCommand: mocks.executeCompactLiveHitPoints,
   executeCompactLiveMaximumHitPointModifierCommand: mocks.executeCompactMaximumHitPointModifier,
@@ -77,8 +85,12 @@ vi.mock('../encounter/vttSceneService.js', () => ({
   executeEncounterSceneCommandWithState: mocks.executeSceneCommand
 }))
 
-const { executeLiveSessionCommand, loadLiveSessionCoordinatorSnapshot, loadLiveSessionRoomSnapshot } =
-  await import('./liveSessionService.js')
+const {
+  claimLiveSessionRoomCommandAuthority,
+  executeLiveSessionCommand,
+  loadLiveSessionCoordinatorSnapshot,
+  loadLiveSessionRoomSnapshot
+} = await import('./liveSessionService.js')
 
 function ruleSnapshot(streamVersion: number) {
   return {
@@ -94,6 +106,14 @@ describe('live-session room snapshot authorization', () => {
     mocks.executeCompactLiveHitPoints.mockReset()
     mocks.executeCompactMaximumHitPointModifier.mockReset()
     mocks.executeCharacterSheetCommand.mockReset()
+    mocks.lockCampaignForCommand.mockResolvedValue(true)
+    mocks.createCampaignCollaborationRepository.mockReturnValue({
+      listCampaignSessions: mocks.listCampaignSessions,
+      listSessionAttendance: mocks.listSessionAttendance
+    })
+    mocks.createLiveSessionCommandLeaseRepository.mockReturnValue({
+      lockCampaignForCommand: mocks.lockCampaignForCommand
+    })
     mocks.resolveCampaignAuthority.mockResolvedValue({
       campaign: {
         id: ids.campaign,
@@ -119,6 +139,30 @@ describe('live-session room snapshot authorization', () => {
       streamVersion: characterId === ids.characterA ? 7 : 11,
       dimRangeFeet: null
     }))
+  })
+
+  it('keeps the Campaign lock, admission, and lease claim in the transaction it opens for a direct caller', async () => {
+    const trx = { isTransaction: true } as unknown as DBLike
+    const db = {
+      transaction: () => ({
+        execute: async (callback: (transaction: DBLike) => Promise<void>) => callback(trx)
+      })
+    } as unknown as DBLike
+
+    await claimLiveSessionRoomCommandAuthority(db, ids.playerA, {
+      campaignId: ids.campaign,
+      sessionId: ids.session
+    }, 'room-authority')
+
+    expect(mocks.lockCampaignForCommand).toHaveBeenCalledWith(ids.campaign)
+    expect(mocks.createLiveSessionCommandLeaseRepository).toHaveBeenCalledWith(trx)
+    expect(mocks.resolveCampaignAuthority).toHaveBeenCalledWith(trx, ids.campaign, ids.playerA)
+    expect(mocks.createCampaignCollaborationRepository).toHaveBeenCalledWith(trx)
+    expect(mocks.listCampaignSessions).toHaveBeenCalledWith(ids.campaign)
+    expect(mocks.claimLiveSessionCommandAuthority).toHaveBeenCalledWith(trx, {
+      authorityId: 'room-authority',
+      sessionId: ids.session
+    })
   })
 
   it('hydrates the transport coordinator without assembling full Character Sheet snapshots', async () => {
@@ -362,6 +406,9 @@ describe('live-session room snapshot authorization', () => {
       })
     )
     expect(mocks.executeCharacterSheetCommand).not.toHaveBeenCalled()
+    expect(mocks.resolveCampaignAuthority).not.toHaveBeenCalled()
+    expect(mocks.listCampaignSessions).not.toHaveBeenCalled()
+    expect(mocks.listSessionAttendance).not.toHaveBeenCalled()
     expect(execution).toMatchObject({
       response: null,
       ruleEvaluationLane: 'CHARACTER_POLICY',

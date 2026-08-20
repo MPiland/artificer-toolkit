@@ -4,6 +4,7 @@ import { characterSheetMulticlassFixture } from '../fixtures/characterRest.fixtu
 import { CharacterSheetView } from '../core/CharacterSheetView'
 import {
   characterSheetStoryMeta,
+  hitDieRollHandler,
   restPreviewHandler
 } from '../fixtures/characterSheetStory.fixture'
 
@@ -42,6 +43,9 @@ export const ShortRestPreview: Story = {
 
 export const ShortRestRolled: Story = {
   ...ShortRestPreview,
+  parameters: {
+    msw: { handlers: [restPreviewHandler(), hitDieRollHandler()] }
+  },
   play: async (context) => {
     await ShortRestPreview.play?.(context)
     const dialog = await within(context.canvasElement.ownerDocument.body).findByRole('dialog', {

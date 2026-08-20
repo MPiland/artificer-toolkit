@@ -25,8 +25,10 @@ describe('media repository cleanup contracts', () => {
     expect(source).toContain("set status = 'DELETED'")
   })
 
-  it('reserves the full upload limit for every unfinished upload', () => {
-    expect(source).toContain("asset.status in ('PENDING_UPLOAD', 'PROCESSING') then 6291456")
+  it('reserves the profile upload limit for every unfinished upload', () => {
+    expect(source).toContain(
+      "asset.status in ('PENDING_UPLOAD', 'PROCESSING') then case when asset.profile = 'VTT_MAP' then 26214400 else 6291456 end"
+    )
   })
 
   it('enforces actual processed bytes under the owner lock', () => {

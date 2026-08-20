@@ -6,7 +6,7 @@ import { buildPlatformApi } from './api/platform'
 import { buildNotificationsApi } from './api/notifications'
 import { buildSocialHubApi } from './api/socialHub'
 import { buildRulesApi } from './api/rules'
-import { ApiError, ApiParseError, createTrpcClient } from './api/transport'
+import { ApiError, ApiParseError, createTrpcClient, type TrpcClient } from './api/transport'
 
 export type {
   AuthoredDetailRequestDto,
@@ -208,27 +208,29 @@ export type { VehicleAuthoringInputDto } from '@artificer-toolkit/schema/subject
 
 export { ApiError, ApiParseError }
 
-const client = createTrpcClient()
-const platformApi = buildPlatformApi(client)
-
-export const api = {
-  account: buildAccountApi(client),
-  campaigns: buildCampaignsApi(client),
-  characters: buildCharactersApi(client),
-  rolls: platformApi.rolls,
-  content: buildContentApi(client),
-  encounters: platformApi.encounters,
-  systems: platformApi.systems,
-  media: platformApi.media,
-  nodeRuntime: platformApi.nodeRuntime,
-  notifications: buildNotificationsApi(client),
-  routeIds: platformApi.routeIds,
-  socialHub: buildSocialHubApi(client),
-  rules: buildRulesApi(client)
+function buildApi(client: TrpcClient) {
+  const platformApi = buildPlatformApi(client)
+  return {
+    account: buildAccountApi(client),
+    campaigns: buildCampaignsApi(client),
+    characters: buildCharactersApi(client),
+    rolls: platformApi.rolls,
+    content: buildContentApi(client),
+    encounters: platformApi.encounters,
+    systems: platformApi.systems,
+    media: platformApi.media,
+    nodeRuntime: platformApi.nodeRuntime,
+    notifications: buildNotificationsApi(client),
+    routeIds: platformApi.routeIds,
+    socialHub: buildSocialHubApi(client),
+    rules: buildRulesApi(client)
+  }
 }
 
-export function createServerApi(_userId?: string | null) {
-  return api
+export const api = buildApi(createTrpcClient())
+
+export function createServerApi() {
+  return buildApi(createTrpcClient())
 }
 
 export type Api = typeof api

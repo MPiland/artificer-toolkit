@@ -8,7 +8,7 @@ test.describe('mobile shell and catalogue layout', () => {
   test('keeps home within the viewport through catalogue focus and browser history', async ({
     page
   }) => {
-    await openStory(page, 'home-homepage--mobile', /what are you building today/i)
+    await openStory(page, 'home-homepage--mobile', /start with library or create/i)
     await expectNoHorizontalOverflow(page)
 
     await openStory(
@@ -25,7 +25,7 @@ test.describe('mobile shell and catalogue layout', () => {
     ).toBeGreaterThanOrEqual(16)
 
     await page.goBack()
-    await expect(page.getByRole('heading', { name: /what are you building today/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /start with library or create/i })).toBeVisible()
     await expectNoHorizontalOverflow(page)
 
     await page.goForward()
@@ -57,7 +57,7 @@ test.describe('mobile shell and catalogue layout', () => {
       'platform-authored-list-authoredlistpage--mobile-empty-in-app-shell',
       /^characters$/i
     )
-    await expect(page.getByText('No characters found.')).toBeVisible()
+    await expect(page.getByText('No characters yet.')).toBeVisible()
     await expectVisibleHeight(page.getByRole('region', { name: 'Characters results' }), 240)
     await expectNoHorizontalOverflow(page)
 

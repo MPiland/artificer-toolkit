@@ -1,4 +1,6 @@
-import type { LiveSessionCommandDto } from '@artificer-toolkit/schema/api/liveSessions'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import { liveSessionExecutorInternals } from './liveSessionExecutor.js'
@@ -17,55 +19,25 @@ const ids = {
   token: '00000000-0000-4000-8000-000000000030'
 } as const
 
-const commands = {
-  attach: {
-    aggregateKind: 'SCENE',
-    command: {
-      commandId: ids.sceneCommand,
-      encounterId: ids.encounter,
-      sceneDefinitionId: ids.sceneDefinition,
-      type: 'ATTACH_SCENE'
-    }
-  },
-  character: {
-    aggregateKind: 'CHARACTER',
-    characterId: ids.character,
-    command: {
-      commandId: ids.characterCommand,
-      expectedVersion: 0,
-      preference: { mode: 'AUTO' },
-      type: 'SET_MOVEMENT_DISPLAY_PREFERENCE'
-    }
-  },
-  encounter: {
-    aggregateKind: 'ENCOUNTER',
-    command: {
-      commandId: ids.encounterCommand,
-      encounterId: ids.encounter,
-      expectedVersion: 0,
-      type: 'ADVANCE_TURN'
-    }
-  },
-  scene: {
-    aggregateKind: 'SCENE',
-    command: {
-      barrierId: ids.barrier,
-      commandId: ids.sceneCommand,
-      encounterId: ids.encounter,
-      expectedSceneVersion: 0,
-      sceneId: ids.scene,
-      state: 'OPEN',
-      type: 'SET_SCENE_DOOR_STATE'
-    }
-  }
-} satisfies Record<string, LiveSessionCommandDto>
+const executorSource = readFileSync(
+  join(process.cwd(), 'packages/functions/src/services/liveSession/liveSessionExecutor.ts'),
+  'utf8'
+)
 
 describe('live-session executor command authority', () => {
-  it('claims Character, Encounter, and attach commands while non-attach Scene commands use the locked lane', () => {
-    expect(liveSessionExecutorInternals.requiresLiveSessionCommandAuthorityClaim(commands.character)).toBe(true)
-    expect(liveSessionExecutorInternals.requiresLiveSessionCommandAuthorityClaim(commands.encounter)).toBe(true)
-    expect(liveSessionExecutorInternals.requiresLiveSessionCommandAuthorityClaim(commands.attach)).toBe(true)
-    expect(liveSessionExecutorInternals.requiresLiveSessionCommandAuthorityClaim(commands.scene)).toBe(false)
+  it('claims only through explicit CLAIM; COMMAND never reclaims authority', () => {
+    const claimCase = executorSource.slice(
+      executorSource.indexOf("case 'CLAIM':"),
+      executorSource.indexOf("case 'SNAPSHOT':")
+    )
+    const commandCase = executorSource.slice(
+      executorSource.indexOf("case 'COMMAND':"),
+      executorSource.indexOf('\n  }\n\n  return liveSessionExecutorResponseDtoSchema')
+    )
+
+    expect(claimCase).toContain('claimLiveSessionRoomCommandAuthority')
+    expect(commandCase).not.toContain('claimLiveSessionRoomCommandAuthority')
+    expect(executorSource).not.toContain('requiresLiveSessionCommandAuthorityClaim')
   })
 
   it('never serializes a Character rule snapshot into the executor response', () => {

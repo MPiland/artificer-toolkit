@@ -3,6 +3,7 @@ import { Box } from '@mantine/core'
 import { HttpResponse, delay, http } from 'msw'
 import { expect, userEvent, within } from 'storybook/test'
 import type { CharacterRestPreviewRequestDto, CharacterSheetPanelDto } from '#app/lib/api'
+import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { createCharacterRestPreviewFixture } from './characterRest.fixtures'
 import { characterSheetFixture } from './characterSheet.fixtures'
 import { CharacterSheetView } from '../core/CharacterSheetView'
@@ -19,6 +20,51 @@ export function extrasPanelHandler() {
     const panel = request.url.includes('VEHICLE') ? vehiclePanelFixture : companionPanelFixture
     return HttpResponse.json([{ result: { data: panel } }])
   })
+}
+
+export function extrasOptionsHandler() {
+  return http.get('*/api/trpc/characters.extraOptions', () =>
+    HttpResponse.json([
+      {
+        result: {
+          data: {
+            items: [
+              { id: companionPanelFixture.creatureId, label: 'Owl' },
+              { id: '00000000-0000-4000-8000-000000000504', label: 'Sailing Ship' }
+            ],
+            nextCursor: null
+          }
+        }
+      }
+    ])
+  )
+}
+
+export function hitDieRollHandler() {
+  const roll = {
+    id: '00000000-0000-4000-8000-000000000701',
+    characterId: characterSheetFixture.meta.characterId,
+    characterLabel: characterSheetFixture.identity.label,
+    source: { kind: 'HIT_DIE', label: 'Short rest hit dice' },
+    ruleset: { systemId: 'system-1', code: 'DND5E_2014', version: '1' },
+    normalizedExpression: '1d10 + 1d8 + 4',
+    evidence: {
+      terms: [
+        { count: 1, die: 10, rolls: [6], subtotal: 6 },
+        { count: 1, die: 8, rolls: [5], subtotal: 5 }
+      ],
+      modifier: 4,
+      mode: 'NORMAL',
+      subtotal: 11,
+      transform: { kind: 'NONE' },
+      total: 15
+    },
+    createdAt: '2026-08-20T12:00:00.000Z'
+  } satisfies RollRecordDto
+
+  return http.post('*/api/trpc/rolls.execute', () =>
+    HttpResponse.json([{ result: { data: roll } }])
+  )
 }
 
 export function extrasCommandHandler() {
@@ -209,7 +255,7 @@ export const openArcanaInspector: CharacterSheetStory['play'] = async ({
   canvas,
   canvasElement
 }) => {
-  await userEvent.click(canvas.getByRole('button', { name: /Arcana/ }))
+  await userEvent.click(canvas.getByRole('button', { name: 'Arcana' }))
   await expectInspectorReady(canvasElement, 'Arcana', 'Effective total')
 }
 
@@ -225,7 +271,7 @@ export const openSensesInspector: CharacterSheetStory['play'] = async ({
   canvas,
   canvasElement
 }) => {
-  await userEvent.click(canvas.getByRole('button', { name: 'Senses' }))
+  await userEvent.click(canvas.getByRole('button', { name: 'Inspect Passive Perception' }))
   await expectInspectorReady(canvasElement, 'Senses', 'Available senses')
 }
 
@@ -241,7 +287,7 @@ export const openDefensesInspector: CharacterSheetStory['play'] = async ({
   canvas,
   canvasElement
 }) => {
-  await userEvent.click(canvas.getByRole('button', { name: 'Defenses' }))
+  await userEvent.click(canvas.getByRole('button', { name: 'Manage Resistances: None' }))
   await expectInspectorReady(canvasElement, 'Defenses', 'Active defenses')
 }
 
@@ -253,10 +299,12 @@ export const openProficienciesInspector: CharacterSheetStory['play'] = async ({
   await expectInspectorReady(canvasElement, 'Proficiencies', 'Training entries')
 }
 
-export const openSpellInspector: CharacterSheetStory['play'] = async ({ canvasElement }) => {
+export const openSpellInspector: CharacterSheetStory['play'] = async ({ canvas, canvasElement }) => {
+  await userEvent.click(canvas.getByRole('button', { name: /^Open details for Magic Missile/ }))
   await expectInspectorReady(canvasElement, 'Magic Missile', 'Spell source')
 }
 
-export const openSpellsInspector: CharacterSheetStory['play'] = async ({ canvasElement }) => {
+export const openSpellsInspector: CharacterSheetStory['play'] = async ({ canvas, canvasElement }) => {
+  await userEvent.click(canvas.getByRole('button', { name: 'Manage Spells' }))
   await expectInspectorReady(canvasElement, 'Manage Spells', 'Spell slots')
 }

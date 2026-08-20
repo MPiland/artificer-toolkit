@@ -32,6 +32,7 @@ const ids = {
 
 const mocks = vi.hoisted(() => ({
   evaluate: vi.fn(),
+  evaluatePinned: vi.fn(),
   getRevision: vi.fn()
 }))
 
@@ -40,9 +41,12 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => ({
   createRulePackRepository: () => ({ getRevision: mocks.getRevision })
 }))
 
-vi.mock('./zenRuleEngine.js', () => ({ evaluateZenRuleModel: mocks.evaluate }))
+vi.mock('./zenRuleEngine.js', () => ({
+  evaluateZenRuleModel: mocks.evaluate,
+  evaluatePinnedZenRuleModel: mocks.evaluatePinned
+}))
 
-const { evaluateRuleRevision, RuleRevisionEvaluationError } =
+const { evaluatePinnedRuleRevision, evaluateRuleRevision, RuleRevisionEvaluationError } =
   await import('./ruleRevisionRuntime.js')
 
 function document(): RulePackDocumentDto {
@@ -150,6 +154,14 @@ describe('exact rule revision evaluator', () => {
         outcomes: []
       },
       trace: { nodes: [] }
+    })
+    mocks.evaluatePinned.mockResolvedValue({
+      result: {
+        eligibility: { allowed: true, reasonCode: 'ALLOWED' },
+        rollRequests: [],
+        outcomes: []
+      },
+      trace: null
     })
   })
 
@@ -296,6 +308,45 @@ describe('exact rule revision evaluator', () => {
     expect(result.documentBytes).toBeGreaterThan(0)
     expect(result.normalizedFactsBytes).toBeGreaterThan(0)
     expect(result.resultBytes).toBeGreaterThan(0)
+  })
+
+  it('fails closed on a mismatched pinned identity before evaluation', async () => {
+    await expect(
+      evaluatePinnedRuleRevision({
+        db: {} as DBLike,
+        expected: {
+          revisionId: ids.revision,
+          checksum: '0'.repeat(64),
+          evaluatorKind: RULE_EVALUATOR_KIND,
+          evaluatorVersion: RULE_EVALUATOR_VERSION,
+          modelContractVersion: RULE_MODEL_CONTRACT_VERSION
+        },
+        modelKey: 'encounter-resolve',
+        normalizedFacts: facts()
+      })
+    ).rejects.toThrow('identity does not match')
+    expect(mocks.evaluatePinned).not.toHaveBeenCalled()
+  })
+
+  it('keeps raw bounds ahead of contract traversal on the pinned path', async () => {
+    await expect(
+      evaluatePinnedRuleRevision({
+        db: {} as DBLike,
+        expected: {
+          revisionId: ids.revision,
+          checksum: revision().checksum,
+          evaluatorKind: RULE_EVALUATOR_KIND,
+          evaluatorVersion: RULE_EVALUATOR_VERSION,
+          modelContractVersion: RULE_MODEL_CONTRACT_VERSION
+        },
+        modelKey: 'encounter-resolve',
+        normalizedFacts: {
+          ...facts(),
+          action: { ...facts().action, choices: { note: 'x'.repeat(256 * 1024) } }
+        }
+      })
+    ).rejects.toThrow('cannot exceed 262144 bytes')
+    expect(mocks.evaluatePinned).not.toHaveBeenCalled()
   })
 
   it('evaluates the reserved grant-fold model under the current global contract', async () => {

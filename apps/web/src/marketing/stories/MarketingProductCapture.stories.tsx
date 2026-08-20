@@ -12,6 +12,7 @@ import {
 import { characterSheetFixture } from '#domains/characters/sheet/fixtures/characterSheet.fixtures'
 import type { CharacterSheetTabId } from '#domains/characters/sheet/core/CharacterSheet.types'
 import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterSheetView'
+import { hitDieRollHandler } from '#domains/characters/sheet/fixtures/characterSheetStory.fixture'
 import { Shell, platformNavigation } from '#app/shell'
 
 const meta = {
@@ -125,6 +126,9 @@ export const CharacterSheetShortRestMobile: Story = {
 
 export const CharacterSheetShortRestRolled: Story = {
   ...CharacterSheetShortRest,
+  parameters: {
+    msw: { handlers: [restPreviewHandler(), hitDieRollHandler()] }
+  },
   play: async (context) => {
     await CharacterSheetShortRest.play?.(context)
     const dialog = await within(context.canvasElement.ownerDocument.body).findByRole('dialog', {

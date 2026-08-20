@@ -1,4 +1,4 @@
-LIVE_SESSION_ALLOWED_ORIGINS=http://localhost:3000
+LIVE_SESSION_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 LIVE_SESSION_EXECUTOR_URL=http://localhost:8888/.netlify/functions/live-session-executor
 LIVE_SESSION_TICKET_SECRET=<local-ticket-secret-with-at-least-32-bytes>
 LIVE_SESSION_EXECUTOR_SECRET=<different-local-executor-secret-with-at-least-32-bytes>

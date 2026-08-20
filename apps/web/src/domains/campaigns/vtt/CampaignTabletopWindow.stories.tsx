@@ -90,7 +90,7 @@ export const GmWindow: Story = {
       await page.findByText('Scene map ready.', undefined, { timeout: 30_000 })
     ).toBeInTheDocument()
     await expect(page.getByLabelText('Tabletop mode')).toBeVisible()
-    await userEvent.click(page.getByRole('radio', { name: 'Edit', exact: true }))
+    await userEvent.click(page.getByRole('radio', { name: /^Edit$/ }))
     await expect(page.getByRole('button', { name: 'Edit objects' })).toBeVisible()
     await expect(page.getByRole('toolbar', { name: 'Edit tools' })).toBeVisible()
     const drawWallButton = page.getByRole('button', { name: 'Draw wall' })

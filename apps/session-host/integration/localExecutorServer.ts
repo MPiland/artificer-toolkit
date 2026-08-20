@@ -10,6 +10,11 @@ if (!Number.isInteger(port) || port < 1 || port > 65_535) {
 }
 
 const server = createServer(async (incoming, outgoing) => {
+  if (incoming.method === 'GET' && incoming.url === '/health') {
+    outgoing.writeHead(200, { 'cache-control': 'no-store', 'content-type': 'application/json' })
+    outgoing.end('{"ok":true}')
+    return
+  }
   const startedAt = performance.now()
   let operation = 'UNKNOWN'
   try {

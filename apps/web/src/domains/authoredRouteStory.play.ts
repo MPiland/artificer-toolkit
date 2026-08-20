@@ -14,6 +14,18 @@ async function findAuthoringRailItem(container: HTMLElement, name: RegExp) {
   })
 }
 
+async function getAuthoringStepsNavigation(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body)
+  const existing = page.queryByRole('navigation', { name: /^authoring steps$/i })
+  if (existing) return existing
+
+  const showSteps = page.queryByRole('button', { name: /^show steps$/i })
+  if (!showSteps) throw new Error('Unable to find the Authoring steps navigation or its reveal control.')
+
+  await userEvent.click(showSteps)
+  return await page.findByRole('navigation', { name: /^authoring steps$/i })
+}
+
 function getAuthoringRailExpander(target: HTMLElement) {
   const expander = target.parentElement?.querySelector<HTMLButtonElement>('button[aria-expanded]')
   if (!expander) {
@@ -93,8 +105,7 @@ export async function expectMasterLockedAuthoringRoute(canvasElement: HTMLElemen
 }
 
 export async function selectAuthoringTarget(canvasElement: HTMLElement, name: RegExp) {
-  const canvas = within(canvasElement)
-  const steps = await canvas.findByRole('navigation', { name: /^authoring steps$/i })
+  const steps = await getAuthoringStepsNavigation(canvasElement)
   const target = await findAuthoringRailItem(steps, name)
 
   await userEvent.click(target)
@@ -102,8 +113,7 @@ export async function selectAuthoringTarget(canvasElement: HTMLElement, name: Re
 }
 
 export async function expandAuthoringBranch(canvasElement: HTMLElement, name: RegExp) {
-  const canvas = within(canvasElement)
-  const steps = await canvas.findByRole('navigation', { name: /^authoring steps$/i })
+  const steps = await getAuthoringStepsNavigation(canvasElement)
   const target = await findAuthoringRailItem(steps, name)
   const expander = getAuthoringRailExpander(target)
 
@@ -129,8 +139,7 @@ export async function selectAuthoringChildTarget(
 ) {
   await expandAuthoringBranch(canvasElement, parentName)
 
-  const canvas = within(canvasElement)
-  const steps = await canvas.findByRole('navigation', { name: /^authoring steps$/i })
+  const steps = await getAuthoringStepsNavigation(canvasElement)
   const parent = await findAuthoringRailItem(steps, parentName)
   const controlledId = getAuthoringRailExpander(parent).getAttribute('aria-controls')
   const controlledRegion = canvasElement.ownerDocument.getElementById(controlledId ?? '')
@@ -148,8 +157,7 @@ export async function expandAuthoringChildBranch(
 ) {
   await expandAuthoringBranch(canvasElement, parentName)
 
-  const canvas = within(canvasElement)
-  const steps = await canvas.findByRole('navigation', { name: /^authoring steps$/i })
+  const steps = await getAuthoringStepsNavigation(canvasElement)
   const parent = await findAuthoringRailItem(steps, parentName)
   const controlledId = getAuthoringRailExpander(parent).getAttribute('aria-controls')
   const controlledRegion = canvasElement.ownerDocument.getElementById(controlledId ?? '')
@@ -175,8 +183,7 @@ export async function expectAuthoringTargetLabels(
   canvasElement: HTMLElement,
   labels: readonly RegExp[]
 ) {
-  const canvas = within(canvasElement)
-  const steps = await canvas.findByRole('navigation', { name: /^authoring steps$/i })
+  const steps = await getAuthoringStepsNavigation(canvasElement)
 
   for (const label of labels) {
     await expect(await findAuthoringRailItem(steps, label)).toBeInTheDocument()

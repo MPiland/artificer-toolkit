@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   executeCharacterSheetCommand: vi.fn(),
   findBuilderDraft: vi.fn(),
   findCharacterById: vi.fn(),
+  findMechanics: vi.fn(),
   findAuthoredById: vi.fn(),
   listAdjustments: vi.fn(),
   getMovementPreference: vi.fn(),
@@ -37,6 +38,9 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createCharacterRepository: () => ({
       findById: mocks.findCharacterById,
       findAuthoredById: mocks.findAuthoredById
+    }),
+    createCharacterMechanicsProjectionRepository: () => ({
+      requireCurrent: mocks.findMechanics
     }),
     createCharacterBuilderDraftRepository: () => ({
       findByCharacter: mocks.findBuilderDraft
@@ -122,6 +126,7 @@ describe('dispatchCommandForUser', () => {
     mocks.executeCharacterSheetCommand.mockReset()
     mocks.findBuilderDraft.mockReset()
     mocks.findCharacterById.mockReset()
+    mocks.findMechanics.mockReset()
     mocks.findAuthoredById.mockReset()
     mocks.listAdjustments.mockReset()
     mocks.getMovementPreference.mockReset()
@@ -145,6 +150,14 @@ describe('dispatchCommandForUser', () => {
       id: '00000000-0000-4000-8000-000000000001',
       userId: 'user-1',
       status: 'ACTIVE'
+    })
+    mocks.findMechanics.mockResolvedValue({
+      projectionChecksum: 'mechanics-checksum',
+      commandLaneChecksum: 'mechanics-lane-checksum',
+      ruleSnapshot: { characterId: '00000000-0000-4000-8000-000000000001' },
+      rulePolicyInput: {},
+      rulePolicyOutput: {},
+      ruleRegistry: {}
     })
     mocks.listAdjustments.mockResolvedValue([])
     mocks.getMovementPreference.mockResolvedValue({ mode: 'AUTO' })
@@ -180,6 +193,15 @@ describe('dispatchCommandForUser', () => {
           snapshot: { characterId: '00000000-0000-4000-8000-000000000001' }
         }
       },
+      mechanics: {
+        projectionChecksum: 'mechanics-checksum',
+        commandLaneChecksum: 'mechanics-lane-checksum',
+        ruleSnapshot: { characterId: '00000000-0000-4000-8000-000000000001' },
+        rulePolicyInput: {},
+        rulePolicyOutput: {},
+        ruleRegistry: {}
+      },
+      campaignMechanics: null,
       resolution: {},
       characterAdjustments: [],
       movementDisplayPreference: { mode: 'AUTO' }
@@ -357,6 +379,15 @@ describe('dispatchCommandForUser', () => {
           snapshot: { characterId }
         }
       },
+      mechanics: {
+        projectionChecksum: 'mechanics-checksum',
+        commandLaneChecksum: 'mechanics-lane-checksum',
+        ruleSnapshot: { characterId },
+        rulePolicyInput: {},
+        rulePolicyOutput: {},
+        ruleRegistry: {}
+      },
+      campaignMechanics: null,
       resolution: {},
       characterAdjustments: [],
       movementDisplayPreference: { mode: 'AUTO' }
