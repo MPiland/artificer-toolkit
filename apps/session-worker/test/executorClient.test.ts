@@ -89,3 +89,28 @@ it('clears a completed executor timeout so the room can hibernate immediately', 
 
   expect(vi.getTimerCount()).toBe(0)
 })
+
+it('accepts a compact Character command result without a presentation response', async () => {
+  const characterId = '00000000-0000-4000-8000-000000000104'
+  const commandId = '00000000-0000-4000-8000-000000000110'
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    Response.json({
+      execution: {
+        aggregateId: characterId,
+        aggregateKind: 'CHARACTER',
+        characterVision: { characterId, dimRange: null },
+        commandId,
+        hostTiming: { category: 'RULE_BOUND', durationMs: 12 },
+        replayed: false,
+        response: null,
+        version: 1
+      },
+      operation: 'COMMAND'
+    })
+  )
+
+  await expect(callLiveSessionExecutor(environment, commandRequest)).resolves.toMatchObject({
+    execution: { aggregateKind: 'CHARACTER', response: null },
+    operation: 'COMMAND'
+  })
+})
