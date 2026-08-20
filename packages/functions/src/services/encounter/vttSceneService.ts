@@ -37,15 +37,14 @@ import {
 
 import {
   CampaignAccessError,
+  CampaignConflictError,
   assertActiveCampaignMember,
   assertCampaignOwner,
   assertCampaignWritable,
-  resolveCampaignAuthority,
-  CampaignConflictError
+  resolveCampaignAuthority
 } from '../campaign/campaignService.js'
 import {
   assertSessionLiveSessionCommandAuthority,
-  LiveSessionCommandAuthorityError,
   type LiveSessionCommandAuthority
 } from '../campaign/liveSessionCommandAuthority.js'
 import {
@@ -540,19 +539,11 @@ export async function executeEncounterSceneCommandWithState(
           campaignId: liveContext.campaignId,
           commandId: input.commandId,
           encounterId: input.encounterId,
+          sceneId: input.sceneId,
           sessionId: liveContext.sessionId
         })
       : null
     if (liveContext && !lockedLiveContext) throw new CampaignAccessError()
-    if (lockedLiveContext?.campaignStatus === 'ARCHIVED') {
-      throw new CampaignConflictError('Archived Campaigns are read-only.')
-    }
-    if (
-      liveContext &&
-      lockedLiveContext?.leaseAuthorityId !== liveContext.authorityId
-    ) {
-      throw new LiveSessionCommandAuthorityError('The live-session command authority is unavailable.')
-    }
 
     const directContext = liveContext
       ? null

@@ -46,6 +46,8 @@ const reauthorizationSessionId = '00000000-0000-4000-8000-000000000141'
 const staleOwnerUserId = '00000000-0000-4000-8000-000000000142'
 const removedPlayerUserId = '00000000-0000-4000-8000-000000000143'
 const retainedPlayerUserId = '00000000-0000-4000-8000-000000000144'
+const overdueLeaseSessionId = '00000000-0000-4000-8000-000000000145'
+const overdueLeaseCommandId = '00000000-0000-4000-8000-000000000146'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -1361,6 +1363,122 @@ it('rotates away from a removed first connector and revokes stale-role sockets',
   })
   owner.socket.close(1000, 'done')
   retainedPlayer.socket.close(1000, 'done')
+}, 45_000)
+
+it('keeps an accepted Scene command pending across hibernation until overdue authority renews', async ({
+  expect
+}) => {
+  const operations: LiveSessionExecutorRequestDto['operation'][] = []
+  let beginRenewal!: () => void
+  let completeRenewal!: () => void
+  const renewalBegan = new Promise<void>((resolve) => {
+    beginRenewal = resolve
+  })
+  const renewalReleased = new Promise<void>((resolve) => {
+    completeRenewal = resolve
+  })
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const body = JSON.parse(await new Request(input, init).text()) as LiveSessionExecutorRequestDto
+    if (body.sessionId !== overdueLeaseSessionId) {
+      throw new Error(`Unexpected executor request for session ${body.sessionId}.`)
+    }
+    operations.push(body.operation)
+    if (body.operation === 'CLAIM') return Response.json({ ok: true, operation: 'CLAIM' })
+    if (body.operation === 'SNAPSHOT') {
+      return Response.json({
+        operation: 'SNAPSHOT',
+        snapshot: {
+          aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }],
+          characterVisions: [],
+          encounterCharacterBindings: [],
+          sceneStates: [sceneState(0, 20)]
+        }
+      })
+    }
+    if (body.operation === 'RENEW') {
+      beginRenewal()
+      await renewalReleased
+      return Response.json({
+        memberships: [{ role: 'OWNER', userId }],
+        ok: true,
+        operation: 'RENEW'
+      })
+    }
+    if (body.operation === 'COMMAND') {
+      return Response.json({
+        execution: {
+          aggregateId: sceneId,
+          aggregateKind: 'SCENE',
+          commandId: overdueLeaseCommandId,
+          hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
+          replayed: false,
+          response: {
+            commandId: overdueLeaseCommandId,
+            delta: { kind: 'TOKEN_MOVED', position: { x: 25, y: 20 }, tokenId },
+            replayed: false,
+            sceneId,
+            version: 1
+          },
+          state: sceneState(1, 25),
+          version: 1
+        },
+        operation: 'COMMAND'
+      })
+    }
+    throw new Error(`Unexpected executor operation: ${body.operation}`)
+  })
+
+  const stub = env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${overdueLeaseSessionId}`)
+  )
+  const client = await connect(
+    stub,
+    await issueTicket('00000000-0000-4000-8000-000000000147', overdueLeaseSessionId),
+    overdueLeaseSessionId
+  )
+  await client.ready
+  await runInDurableObject(stub, async (_instance, state) => {
+    state.storage.sql.exec(
+      'UPDATE room_meta SET authority_renewal_at = ? WHERE id = 1',
+      Date.now() - 1
+    )
+    await state.storage.deleteAlarm()
+  })
+  await evictDurableObject(stub)
+
+  const accepted = waitForMessage(client.socket)
+  client.socket.send(
+    JSON.stringify({
+      command: sceneMoveCommand(overdueLeaseCommandId, 0, 25),
+      type: 'COMMAND'
+    })
+  )
+  await expect(accepted).resolves.toEqual({
+    acceptedSequence: 1,
+    commandId: overdueLeaseCommandId,
+    type: 'COMMAND_ACCEPTED'
+  })
+  await renewalBegan
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW'])
+
+  const committed = waitForMessage(client.socket)
+  completeRenewal()
+  await expect(committed).resolves.toMatchObject({
+    originCommandId: overdueLeaseCommandId,
+    type: 'COMMAND_COMMITTED'
+  })
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'COMMAND'])
+  expect(
+    await runInDurableObject(stub, (_instance, state) =>
+      state.storage.sql
+        .exec<{ status: string }>(
+          'SELECT status FROM command_inbox WHERE command_id = ?',
+          overdueLeaseCommandId
+        )
+        .one().status
+    )
+  ).toBe('COMMITTED')
+  client.socket.close(1000, 'done')
 }, 45_000)
 
 it('renews authority through the persisted alarm after hibernation and releases after grace', async ({

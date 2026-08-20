@@ -47,8 +47,6 @@ export interface EncounterSceneEventRecord {
 }
 
 export interface LockedLiveSceneCommandContext {
-  campaignStatus: 'ACTIVE' | 'ARCHIVED'
-  leaseAuthorityId: string | null
   membershipRole: 'OWNER' | 'PLAYER'
   priorEvent: EncounterSceneEventRecord | null
   scene: EncounterSceneRecord
@@ -213,13 +211,12 @@ export function createVttSceneRepository(db: DBLike) {
       campaignId: string
       commandId: string
       encounterId: string
+      sceneId: string
       sessionId: string
     }): Promise<LockedLiveSceneCommandContext | null> {
       const result = await sql<Record<string, unknown>>`
         SELECT
           scene.*,
-          campaign.status AS campaign_status,
-          lease.authority_id AS lease_authority_id,
           membership.role AS membership_role,
           prior.id AS prior_event_id,
           prior.actor_user_id AS prior_actor_user_id,
@@ -244,18 +241,21 @@ export function createVttSceneRepository(db: DBLike) {
           ON session.id = encounter.session_id
           AND session.campaign_id = campaign.id
           AND session.status = 'OPEN'
-        LEFT JOIN public.live_session_command_leases AS lease
+        INNER JOIN public.live_session_command_leases AS lease
           ON lease.session_id = session.id
+          AND lease.authority_id = ${input.authorityId}
           AND lease.expires_at > now()
         LEFT JOIN public.encounter_scene_events AS prior
           ON prior.encounter_id = encounter.id
           AND prior.command_id = ${input.commandId}
-        WHERE scene.encounter_id = ${input.encounterId}
+        WHERE scene.id = ${input.sceneId}
+          AND scene.encounter_id = ${input.encounterId}
           AND campaign.id = ${input.campaignId}
           AND session.id = ${input.sessionId}
           AND encounter.campaign_id = ${input.campaignId}
           AND encounter.session_id = ${input.sessionId}
-        FOR UPDATE OF scene, session
+          AND campaign.status = 'ACTIVE'
+        FOR UPDATE OF scene, session, lease
         FOR SHARE OF campaign, membership
       `.execute(db)
       const row = result.rows[0]
@@ -264,17 +264,7 @@ export function createVttSceneRepository(db: DBLike) {
       if (membershipRole !== 'OWNER' && membershipRole !== 'PLAYER') {
         throw new Error('Live Scene command membership role is invalid.')
       }
-      const campaignStatus = row.campaign_status
-      if (campaignStatus !== 'ACTIVE' && campaignStatus !== 'ARCHIVED') {
-        throw new Error('Live Scene command Campaign status is invalid.')
-      }
-      const leaseAuthorityId = row.lease_authority_id
-      if (leaseAuthorityId !== null && typeof leaseAuthorityId !== 'string') {
-        throw new Error('Live Scene command lease authority is invalid.')
-      }
       return {
-        campaignStatus,
-        leaseAuthorityId,
         membershipRole,
         priorEvent: priorEventFromLiveContextRow(row),
         scene: encounterSceneFromRow(row)
@@ -347,31 +337,33 @@ export function createVttSceneRepository(db: DBLike) {
       if (checksumSceneCurrentProjection(projection) !== projection.projectionChecksum) {
         throw new Error(`Encounter scene "${projection.sceneId}" projection checksum is invalid.`)
       }
-      const result = await sql<{ scene_id: string }>`
-        WITH appended_event AS (
-          INSERT INTO public.encounter_scene_events (
-            id, scene_id, encounter_id, version, command_id, command_type,
-            command_fingerprint, delta, actor_user_id
-          ) VALUES (
-            ${input.eventId}, ${input.event.sceneId}, ${input.encounterId}, ${input.event.version},
-            ${input.event.commandId}, ${input.commandType}, ${input.commandFingerprint},
-            ${json(input.event.delta as SceneDelta)}::jsonb, ${input.event.actorUserId}
-          ) RETURNING id
-        ), updated_scene AS (
-          UPDATE public.encounter_scenes AS scene
+      const result = await sql<{ event_id: string }>`
+        WITH updated_scene AS (
+          UPDATE public.encounter_scenes
           SET projection = ${json(projection.projection)}::jsonb,
               version = ${projection.streamVersion},
               projection_schema_version = ${projection.projectionSchemaVersion},
               projection_checksum = ${projection.projectionChecksum},
               updated_at = now()
-          FROM appended_event
-          WHERE scene.id = ${projection.projection.id}
-            AND scene.encounter_id = ${projection.projection.encounterId}
-            AND scene.version = ${input.expectedVersion}
-          RETURNING scene.id
+          WHERE id = ${projection.projection.id}
+            AND encounter_id = ${projection.projection.encounterId}
+            AND version = ${input.expectedVersion}
+          RETURNING id
+        ), appended_event AS (
+          INSERT INTO public.encounter_scene_events (
+            id, scene_id, encounter_id, version, command_id, command_type,
+            command_fingerprint, delta, actor_user_id
+          )
+          SELECT
+            ${input.eventId}, ${input.event.sceneId}, ${input.encounterId}, ${input.event.version},
+            ${input.event.commandId}, ${input.commandType}, ${input.commandFingerprint},
+            ${json(input.event.delta as SceneDelta)}::jsonb, ${input.event.actorUserId}
+          FROM updated_scene
+          RETURNING id
         )
-        SELECT updated_scene.id AS scene_id
-        FROM updated_scene
+        SELECT appended_event.id AS event_id
+        FROM appended_event
+        INNER JOIN updated_scene ON true
       `.execute(db)
       return result.rows.length === 1
     },

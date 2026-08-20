@@ -164,6 +164,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     { barriers: EncounterSceneState['barriers']; index: SceneBarrierIndex }
   >()
   #authorityId: string
+  #authorityRenewal: Promise<boolean> | null = null
   #deliveryInProgress = false
   #drainInProgress = false
   #hydration: Promise<void> | null = null
@@ -447,7 +448,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     if (this.#drainInProgress) return
     this.#drainInProgress = true
     try {
-      const meta = this.#journal.loadMeta()
+      let meta = this.#journal.loadMeta()
       if (
         !this.#snapshot ||
         !meta ||
@@ -455,6 +456,19 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
         meta.authorityRenewalBlocked
       ) {
         return
+      }
+      if (meta.authorityRenewalAt <= Date.now()) {
+        const authorityAvailable = await this.#renewAuthority(meta)
+        if (!authorityAvailable) return
+        meta = this.#journal.loadMeta()
+        if (
+          !meta ||
+          meta.authorityRenewalAt === null ||
+          meta.authorityRenewalBlocked ||
+          meta.authorityRenewalAt <= Date.now()
+        ) {
+          return
+        }
       }
       const pending = this.#journal.listPending()
       const runnable = selectRunnableCommands(pending, this.#activeKeys, {
@@ -944,6 +958,19 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
   }
 
   async #renewAuthority(meta: NonNullable<ReturnType<LiveSessionRoomJournal['loadMeta']>>) {
+    if (this.#authorityRenewal) return this.#authorityRenewal
+    const renewal = this.#renewAuthorityInternal(meta)
+    this.#authorityRenewal = renewal
+    try {
+      return await renewal
+    } finally {
+      if (this.#authorityRenewal === renewal) this.#authorityRenewal = null
+    }
+  }
+
+  async #renewAuthorityInternal(
+    meta: NonNullable<ReturnType<LiveSessionRoomJournal['loadMeta']>>
+  ) {
     if (!meta.authorityUserId) {
       this.#failAuthorityClosed()
       return false

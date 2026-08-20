@@ -46,18 +46,9 @@ vi.mock('../campaign/campaignService.js', () => {
   }
 })
 
-vi.mock('../campaign/liveSessionCommandAuthority.js', () => {
-  class LiveSessionCommandAuthorityError extends Error {
-    constructor(message: string) {
-      super(message)
-      this.name = 'LiveSessionCommandAuthorityError'
-    }
-  }
-  return {
-    assertSessionLiveSessionCommandAuthority: vi.fn(),
-    LiveSessionCommandAuthorityError
-  }
-})
+vi.mock('../campaign/liveSessionCommandAuthority.js', () => ({
+  assertSessionLiveSessionCommandAuthority: vi.fn()
+}))
 
 const { executeEncounterSceneCommandWithState } = await import('./vttSceneService.js')
 
@@ -96,8 +87,6 @@ describe('live Scene command lane', () => {
 
   it('returns an idempotent replay from the locked context without another write', async () => {
     mocks.lockLiveCommandContext.mockResolvedValueOnce({
-      campaignStatus: 'ACTIVE',
-      leaseAuthorityId: liveContext.authorityId,
       membershipRole: 'PLAYER',
       priorEvent: {
         commandFingerprint: commandFingerprint(),
@@ -126,27 +115,6 @@ describe('live Scene command lane', () => {
     )
 
     expect(execution.result).toMatchObject({ replayed: true, version: 1 })
-    expect(mocks.appendEvent).not.toHaveBeenCalled()
-    expect(mocks.publishLiveCommand).not.toHaveBeenCalled()
-  })
-
-  it('fails closed when the locked lease belongs to another room', async () => {
-    mocks.lockLiveCommandContext.mockResolvedValueOnce({
-      campaignStatus: 'ACTIVE',
-      leaseAuthorityId: 'other-room-authority',
-      membershipRole: 'PLAYER',
-      priorEvent: null,
-      scene: {
-        definitionSnapshot: {},
-        state: { id: ids.scene, version: 0 }
-      }
-    })
-
-    await expect(
-      executeEncounterSceneCommandWithState({} as DBLike, ids.user, input, {
-        liveSceneContext: liveContext
-      })
-    ).rejects.toMatchObject({ name: 'LiveSessionCommandAuthorityError' })
     expect(mocks.appendEvent).not.toHaveBeenCalled()
     expect(mocks.publishLiveCommand).not.toHaveBeenCalled()
   })
