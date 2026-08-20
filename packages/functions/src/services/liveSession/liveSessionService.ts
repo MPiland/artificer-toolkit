@@ -384,6 +384,7 @@ export type LiveSessionCommandExecution =
       characterVision: SceneCharacterVision
       response: CharacterSheetCommandExecutionResult['response'] | null
       ruleSnapshot?: CharacterSheetCommittedRuleSnapshot
+      ruleEvaluationLane?: 'CHARACTER_POLICY'
     }
   | {
       aggregateKind: 'ENCOUNTER'
@@ -468,7 +469,8 @@ export async function executeLiveSessionCommand(
           replayed: execution.replayed,
           version: execution.version,
           response: null,
-          characterVision: execution.characterVision
+          characterVision: execution.characterVision,
+          ...(execution.replayed ? {} : { ruleEvaluationLane: 'CHARACTER_POLICY' as const })
         }
       }
     }

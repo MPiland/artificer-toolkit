@@ -22,7 +22,12 @@ function wireExecution(
 ): LiveSessionExecutorCommandResultDto {
   if (execution.aggregateKind === 'SCENE') return { ...execution, hostTiming }
   if (execution.aggregateKind === 'CHARACTER') {
-    const { characterVision, ruleSnapshot: _ruleSnapshot, ...wire } = execution
+    const {
+      characterVision,
+      ruleEvaluationLane: _ruleEvaluationLane,
+      ruleSnapshot: _ruleSnapshot,
+      ...wire
+    } = execution
     return {
       ...wire,
       characterVision,
@@ -77,7 +82,8 @@ function hostTiming(
   if (execution.aggregateKind === 'CHARACTER') {
     return {
       category:
-        characterTiming && characterTiming.evaluationLane !== 'NONE'
+        execution.ruleEvaluationLane !== undefined ||
+        (characterTiming && characterTiming.evaluationLane !== 'NONE')
           ? 'RULE_BOUND'
           : 'NON_RULE_BOUND',
       durationMs
@@ -173,6 +179,7 @@ export async function executeLiveSessionExecutorRequest(
 }
 
 export const liveSessionExecutorInternals = {
+  hostTiming,
   requiresLiveSessionCommandAuthorityClaim,
   wireExecution
 }

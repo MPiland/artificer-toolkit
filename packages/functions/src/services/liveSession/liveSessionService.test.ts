@@ -326,6 +326,7 @@ describe('live-session room snapshot authorization', () => {
       ruleSnapshot: refreshedRuleSnapshot,
       version: 8
     })
+    expect(execution).not.toHaveProperty('ruleEvaluationLane')
   })
 
   it('routes a live maximum-hit-point modifier through the compact rule lane', async () => {
@@ -361,7 +362,36 @@ describe('live-session room snapshot authorization', () => {
       })
     )
     expect(mocks.executeCharacterSheetCommand).not.toHaveBeenCalled()
-    expect(execution).toMatchObject({ response: null, version: 8 })
+    expect(execution).toMatchObject({
+      response: null,
+      ruleEvaluationLane: 'CHARACTER_POLICY',
+      version: 8
+    })
+
+    mocks.executeCompactMaximumHitPointModifier.mockResolvedValue({
+      characterVision: { characterId: ids.characterA, dimRange: null },
+      replayed: true,
+      version: 8
+    })
+    const replay = await executeLiveSessionCommand(
+      {} as DBLike,
+      ids.playerA,
+      { campaignId: ids.campaign, sessionId: ids.session },
+      {
+        aggregateKind: 'CHARACTER',
+        characterId: ids.characterA,
+        command: {
+          adjustment: { family: 'HIT_POINTS', field: 'MAXIMUM_MODIFIER', value: 3 },
+          commandId,
+          expectedVersion: 7,
+          type: 'UPSERT_SHEET_ADJUSTMENT'
+        }
+      },
+      'room-authority',
+      { characterVisions: [], encounterCharacterBindings: [] }
+    )
+
+    expect(replay).not.toHaveProperty('ruleEvaluationLane')
   })
 
   it('falls back to the regular lane when the compact modifier lane declines a removal', async () => {

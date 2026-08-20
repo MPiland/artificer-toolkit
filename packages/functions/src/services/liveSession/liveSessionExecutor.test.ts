@@ -90,4 +90,23 @@ describe('live-session executor command authority', () => {
       hostTiming: { category: 'NON_RULE_BOUND', durationMs: 1 }
     })
   })
+
+  it('classifies and strips the compact Character rule-evaluation marker', () => {
+    const execution = {
+      aggregateKind: 'CHARACTER',
+      aggregateId: ids.character,
+      characterVision: { characterId: ids.character, dimRange: null },
+      commandId: ids.characterCommand,
+      replayed: false,
+      response: null,
+      ruleEvaluationLane: 'CHARACTER_POLICY',
+      version: 1
+    } satisfies LiveSessionCommandExecution
+    const timing = liveSessionExecutorInternals.hostTiming(execution, 12, null, null)
+
+    expect(timing).toEqual({ category: 'RULE_BOUND', durationMs: 12 })
+    expect(liveSessionExecutorInternals.wireExecution(execution, timing)).not.toHaveProperty(
+      'ruleEvaluationLane'
+    )
+  })
 })
