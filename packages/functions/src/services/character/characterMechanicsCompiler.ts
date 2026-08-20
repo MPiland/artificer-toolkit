@@ -41,8 +41,8 @@ export interface CharacterMechanicsCompilerInput {
   ruleBinding: CharacterRuleBinding
   rulePolicyInput: CharacterRulePolicyInput
   rulePolicyOutput: CharacterRulePolicyOutput
-  ruleRegistry: CharacterAssemblyRegistry
-  ruleSnapshot: CharacterBuildSnapshot
+  ruleRegistry: CharacterAssemblyRegistry | CharacterMechanicsProjection['ruleRegistry']
+  ruleSnapshot: CharacterBuildSnapshot | CharacterMechanicsProjection['ruleSnapshot']
   vocabularySnapshot: Pick<
     SystemVocabularySnapshot,
     'checksum' | 'snapshotId' | 'snapshotVersion'
@@ -50,8 +50,9 @@ export interface CharacterMechanicsCompilerInput {
 }
 
 function toCharacterMechanicsRuleSnapshot(
-  snapshot: CharacterBuildSnapshot
+  snapshot: CharacterBuildSnapshot | CharacterMechanicsProjection['ruleSnapshot']
 ): CharacterMechanicsRuleSnapshot {
+  if (!('totalLevel' in snapshot)) return characterMechanicsRuleSnapshotSchema.parse(snapshot)
   return characterMechanicsRuleSnapshotSchema.parse({
     characterId: snapshot.characterId,
     systemId: snapshot.systemId,

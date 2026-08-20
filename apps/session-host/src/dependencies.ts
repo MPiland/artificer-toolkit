@@ -16,7 +16,7 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type {
   CharacterSheetCommittedRuleSnapshot,
-  CharacterSheetCommandServiceTiming
+  CharacterSheetCommandTimingClassification
 } from '@artificer-toolkit/functions/services/character'
 import type {
   EncounterActorRuleSnapshot,
@@ -54,7 +54,7 @@ export interface LiveSessionRoomDependencies {
 
 export interface LiveSessionCharacterCommandTiming {
   commandId: string
-  service: CharacterSheetCommandServiceTiming
+  service: CharacterSheetCommandTimingClassification
 }
 
 export interface LiveSessionEncounterCommandTiming {

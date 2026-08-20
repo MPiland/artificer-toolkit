@@ -48,7 +48,8 @@ export { executeCharacterSheetCommand } from './sheetService.js'
 export { executeCharacterSheetCommandWithRuleEvaluation } from './sheetService.js'
 export type {
   CharacterSheetCommittedRuleSnapshot,
-  CharacterSheetCommandServiceTiming
+  CharacterSheetCommandServiceTiming,
+  CharacterSheetCommandTimingClassification
 } from './sheetService.js'
 export {
   applyCharacterSheetCommand,

@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   findSceneByEncounter: vi.fn(),
   executeSceneCommand: vi.fn(),
   executeCompactLiveHitPoints: vi.fn(),
+  executeCompactMaximumHitPointModifier: vi.fn(),
   executeCharacterSheetCommand: vi.fn(),
   loadCharacterSceneVision: vi.fn(),
   loadCharacterRuleSnapshot: vi.fn()
@@ -67,6 +68,7 @@ vi.mock('../character/characterLiveSessionSnapshot.js', () => ({
 
 vi.mock('../character/sheetService.js', () => ({
   executeCompactLiveCharacterHitPointCommand: mocks.executeCompactLiveHitPoints,
+  executeCompactLiveMaximumHitPointModifierCommand: mocks.executeCompactMaximumHitPointModifier,
   executeCharacterSheetCommandWithRuleEvaluation: mocks.executeCharacterSheetCommand
 }))
 
@@ -90,6 +92,7 @@ describe('live-session room snapshot authorization', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     mocks.executeCompactLiveHitPoints.mockReset()
+    mocks.executeCompactMaximumHitPointModifier.mockReset()
     mocks.executeCharacterSheetCommand.mockReset()
     mocks.resolveCampaignAuthority.mockResolvedValue({
       campaign: {
@@ -323,5 +326,76 @@ describe('live-session room snapshot authorization', () => {
       ruleSnapshot: refreshedRuleSnapshot,
       version: 8
     })
+  })
+
+  it('routes a live maximum-hit-point modifier through the compact rule lane', async () => {
+    const commandId = '00000000-0000-4000-8000-000000000009'
+    mocks.executeCompactMaximumHitPointModifier.mockResolvedValue({
+      characterVision: { characterId: ids.characterA, dimRange: null },
+      replayed: false,
+      version: 8
+    })
+    const timing = vi.fn()
+
+    const execution = await executeLiveSessionCommand(
+      {} as DBLike,
+      ids.playerA,
+      { campaignId: ids.campaign, sessionId: ids.session },
+      {
+        aggregateKind: 'CHARACTER',
+        characterId: ids.characterA,
+        command: {
+          adjustment: { family: 'HIT_POINTS', field: 'MAXIMUM_MODIFIER', value: 3 },
+          commandId,
+          expectedVersion: 7,
+          type: 'UPSERT_SHEET_ADJUSTMENT'
+        }
+      },
+      'room-authority',
+      { characterVisions: [], encounterCharacterBindings: [] },
+      undefined,
+      timing
+    )
+
+    expect(mocks.executeCompactMaximumHitPointModifier).toHaveBeenCalledWith(
+      expect.objectContaining({
+        characterId: ids.characterA,
+        command: expect.objectContaining({ commandId, type: 'UPSERT_SHEET_ADJUSTMENT' })
+      })
+    )
+    expect(timing).toHaveBeenCalledWith({ evaluationLane: 'CHARACTER_POLICY' })
+    expect(mocks.executeCharacterSheetCommand).not.toHaveBeenCalled()
+    expect(execution).toMatchObject({ response: null, version: 8 })
+  })
+
+  it('falls back to the regular lane when the compact modifier lane declines a removal', async () => {
+    mocks.executeCompactMaximumHitPointModifier.mockResolvedValue(null)
+    mocks.executeCharacterSheetCommand.mockResolvedValue({
+      replayed: false,
+      response: { streamVersion: 8 },
+      ruleSnapshot: { evaluation: { output: { senses: [] } } }
+    })
+
+    await executeLiveSessionCommand(
+      {} as DBLike,
+      ids.playerA,
+      { campaignId: ids.campaign, sessionId: ids.session },
+      {
+        aggregateKind: 'CHARACTER',
+        characterId: ids.characterA,
+        command: {
+          adjustmentId: '00000000-0000-4000-8000-000000000010',
+          commandId: '00000000-0000-4000-8000-000000000011',
+          expectedVersion: 7,
+          family: 'HIT_POINTS',
+          target: { kind: 'HIT_POINTS' },
+          type: 'REMOVE_SHEET_ADJUSTMENT'
+        }
+      },
+      'room-authority',
+      { characterVisions: [], encounterCharacterBindings: [] }
+    )
+
+    expect(mocks.executeCharacterSheetCommand).toHaveBeenCalledOnce()
   })
 })

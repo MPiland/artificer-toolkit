@@ -12,6 +12,10 @@ type AdjustmentFamily = CharacterSheetAdjustment['family']
 
 export interface CharacterSheetAdjustmentRepository {
   listByCharacter(characterId: string): Promise<CharacterSheetAdjustment[]>
+  findHitPointAdjustment(input: {
+    characterId: string
+    field: 'MAXIMUM_MODIFIER' | 'MAXIMUM_OVERRIDE'
+  }): Promise<Extract<CharacterSheetAdjustment, { family: 'HIT_POINTS' }> | null>
   upsert(adjustment: CharacterSheetAdjustmentWrite): Promise<CharacterSheetAdjustment>
   remove(input: {
     characterId: string
@@ -316,6 +320,21 @@ export function createCharacterSheetAdjustmentRepository(
         (left, right) =>
           left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id)
       )
+    },
+
+    async findHitPointAdjustment({ characterId, field }) {
+      const row = await db
+        .selectFrom('character_hitpoint_adjustments')
+        .selectAll()
+        .where('character_id', '=', characterId)
+        .where('field_kind', '=', field)
+        .executeTakeFirst()
+      if (!row) return null
+      return parseAdjustment(row, {
+        family: 'HIT_POINTS',
+        field: row.field_kind,
+        value: row.integer_value
+      }) as Extract<CharacterSheetAdjustment, { family: 'HIT_POINTS' }>
     },
 
     async upsert(adjustment) {

@@ -17,6 +17,7 @@ import {
   SceneBarrierIndex,
   type EncounterSceneState,
   type ScenePoint,
+  type SceneCharacterVision,
   type SceneViewer
 } from '@artificer-toolkit/shared/vtt'
 import {
@@ -124,6 +125,7 @@ class LiveSessionRuntime {
   readonly #acceptedUserIds = new Map<string, string>()
   readonly #authorityId = randomUUID()
   readonly #characterRuleSnapshots = new Map<string, CharacterSheetCommittedRuleSnapshot>()
+  readonly #characterVisions = new Map<string, SceneCharacterVision>()
   readonly #clients = new Map<string, LiveSessionClient>()
   readonly #commandFingerprints = new Map<string, string>()
   readonly #commandRequesters = new Map<string, Set<string>>()
@@ -189,6 +191,10 @@ class LiveSessionRuntime {
         this.#coordinator = new LiveSessionCommandCoordinator(aggregateVersions)
         for (const { characterId, snapshot } of characterRuleSnapshots) {
           this.#characterRuleSnapshots.set(characterId, snapshot)
+          this.#characterVisions.set(
+            characterId,
+            deriveLiveSessionCharacterVision(characterId, snapshot)
+          )
         }
         for (const { encounterId, snapshot } of encounterRuleSnapshots) {
           this.#encounterRuleSnapshots.set(encounterId, snapshot)
@@ -277,9 +283,7 @@ class LiveSessionRuntime {
     return resolveSceneCharacterVision(
       scene,
       this.#encounterCharacterBindings,
-      [...this.#characterRuleSnapshots].map(([characterId, snapshot]) =>
-        deriveLiveSessionCharacterVision(characterId, snapshot)
-      )
+      [...this.#characterVisions.values()]
     )
   }
 
@@ -550,9 +554,7 @@ class LiveSessionRuntime {
                 aggregateId: command.command.encounterId
               }
       const liveSnapshot = {
-        characterVisions: [...this.#characterRuleSnapshots].map(([characterId, snapshot]) =>
-          deriveLiveSessionCharacterVision(characterId, snapshot)
-        ),
+        characterVisions: [...this.#characterVisions.values()],
         encounterCharacterBindings: this.#encounterCharacterBindings,
         sceneStates: [...this.#sceneStates.values()]
       }
@@ -586,6 +588,13 @@ class LiveSessionRuntime {
         if (execution.aggregateKind === 'CHARACTER') {
           if (execution.ruleSnapshot) {
             this.#characterRuleSnapshots.set(execution.aggregateId, execution.ruleSnapshot)
+            this.#characterVisions.set(
+              execution.aggregateId,
+              deriveLiveSessionCharacterVision(execution.aggregateId, execution.ruleSnapshot)
+            )
+          } else {
+            this.#characterRuleSnapshots.delete(execution.aggregateId)
+            this.#characterVisions.set(execution.aggregateId, execution.characterVision)
           }
         } else if (execution.aggregateKind === 'ENCOUNTER' && execution.ruleSnapshot) {
           this.#encounterRuleSnapshots.set(execution.aggregateId, execution.ruleSnapshot)

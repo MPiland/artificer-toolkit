@@ -28,10 +28,11 @@ import {
 } from '../campaign/liveSessionCommandAuthority.js'
 import {
   executeCompactLiveCharacterHitPointCommand,
+  executeCompactLiveMaximumHitPointModifierCommand,
   executeCharacterSheetCommandWithRuleEvaluation,
   type CharacterSheetCommittedRuleSnapshot,
   type CharacterSheetCommandExecutionResult,
-  type CharacterSheetCommandServiceTiming
+  type CharacterSheetCommandTimingClassification
 } from '../character/sheetService.js'
 import {
   loadCharacterRuleSnapshotForLiveSessionCampaign,
@@ -411,7 +412,7 @@ export async function executeLiveSessionCommand(
   authorityId: string,
   sceneVisionContext: LiveSessionSceneVisionContextDto,
   committedRuleSnapshot?: CharacterSheetCommittedRuleSnapshot,
-  onCharacterTiming?: (timing: CharacterSheetCommandServiceTiming) => void,
+  onCharacterTiming?: (timing: CharacterSheetCommandTimingClassification) => void,
   committedEncounterRuleSnapshot?: EncounterActorRuleSnapshot,
   onEncounterTiming?: (timing: EncounterCommandServiceTiming) => void
 ): Promise<LiveSessionCommandExecution> {
@@ -443,6 +444,33 @@ export async function executeLiveSessionCommand(
         response: null,
         characterVision: execution.characterVision,
         ruleSnapshot: execution.ruleSnapshot
+      }
+    }
+    if (
+      (command.command.type === 'UPSERT_SHEET_ADJUSTMENT' &&
+        command.command.adjustment.family === 'HIT_POINTS' &&
+        command.command.adjustment.field === 'MAXIMUM_MODIFIER' &&
+        typeof command.command.adjustment.value === 'number') ||
+      command.command.type === 'REMOVE_SHEET_ADJUSTMENT'
+    ) {
+      const execution = await executeCompactLiveMaximumHitPointModifierCommand({
+        db,
+        characterId: command.characterId,
+        command: command.command,
+        userId,
+        liveSessionAuthority: commandAuthority
+      })
+      if (execution) {
+        onCharacterTiming?.({ evaluationLane: 'CHARACTER_POLICY' })
+        return {
+          aggregateKind: 'CHARACTER',
+          aggregateId: command.characterId,
+          commandId: command.command.commandId,
+          replayed: execution.replayed,
+          version: execution.version,
+          response: null,
+          characterVision: execution.characterVision
+        }
       }
     }
     const execution = await executeCharacterSheetCommandWithRuleEvaluation({
