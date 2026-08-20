@@ -430,6 +430,7 @@ export async function executeLiveSessionCommand(
         db,
         characterId: command.characterId,
         command: command.command,
+        committedRuleSnapshot,
         userId,
         liveSessionAuthority: commandAuthority
       })
@@ -440,7 +441,8 @@ export async function executeLiveSessionCommand(
         replayed: execution.replayed,
         version: execution.version,
         response: null,
-        characterVision: execution.characterVision
+        characterVision: execution.characterVision,
+        ruleSnapshot: execution.ruleSnapshot
       }
     }
     const execution = await executeCharacterSheetCommandWithRuleEvaluation({

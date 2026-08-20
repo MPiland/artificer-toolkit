@@ -19,6 +19,7 @@ import type { CharacterBuilderResolution } from './builderService.js'
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 import type { CharacterSheetRuleContext } from './characterSheetBundleAssembly.js'
 import type { CharacterMechanicsProjection } from '@artificer-toolkit/schema/projections/characterMechanics'
+import type { CharacterSheetCommittedRuleSnapshot } from './sheetService.js'
 
 const mocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
@@ -39,6 +40,7 @@ const mocks = vi.hoisted(() => ({
   findMechanicsMetadata: vi.fn(),
   findCampaignMechanics: vi.fn(),
   findCampaignMechanicsMetadata: vi.fn(),
+  publishCampaignMechanics: vi.fn(),
   findAuthoredById: vi.fn(),
   getMovementPreference: vi.fn(),
   listAdjustments: vi.fn(),
@@ -96,6 +98,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       requireCurrentMetadata: mocks.findMechanicsMetadata
     }),
     createCampaignCharacterMechanicsProjectionRepository: () => ({
+      publish: mocks.publishCampaignMechanics,
       requireCurrent: mocks.findCampaignMechanics,
       requireCurrentMetadata: mocks.findCampaignMechanicsMetadata
     }),
@@ -226,6 +229,7 @@ const { evaluateCharacterBuilderTestPolicy } =
   await import('./characterBuilderRuleEvaluation.testUtils.js')
 const { projectCharacterRulePolicyToSheetProjection } =
   await import('./characterRulePolicyAdapter.js')
+const { checksumCampaignCharacterMechanicalContext } = await import('./campaignCharacterSheet.js')
 
 const emptyQuery = {
   select: () => emptyQuery,
@@ -451,6 +455,7 @@ describe('executeCharacterSheetCommand persistence', () => {
     mocks.findMechanicsMetadata.mockReset()
     mocks.findCampaignMechanics.mockReset()
     mocks.findCampaignMechanicsMetadata.mockReset()
+    mocks.publishCampaignMechanics.mockReset()
     mocks.findByCommandId.mockReset()
     mocks.findAuthoredById.mockReset()
     mocks.consumeRollForUser.mockReset()
@@ -2657,9 +2662,41 @@ describe('executeCharacterSheetCommand persistence', () => {
         senses: []
       }
     } as unknown as CharacterMechanicsProjection
+    const currentRuleSnapshot = {
+      characterId: 'character-1',
+      revision: 'current'
+    } as unknown as CharacterMechanicsProjection['ruleSnapshot']
+    const nextRuleSnapshot = {
+      characterId: 'character-1',
+      revision: 'next'
+    } as unknown as CharacterMechanicsProjection['ruleSnapshot']
+    const currentRulePolicyInput = {
+      current: 'facts'
+    } as unknown as CharacterMechanicsProjection['rulePolicyInput']
+    const nextRulePolicyInput = {
+      next: 'facts'
+    } as unknown as CharacterMechanicsProjection['rulePolicyInput']
+    const currentRuleRegistry = {
+      current: 'registry'
+    } as unknown as CharacterMechanicsProjection['ruleRegistry']
+    const nextRuleRegistry = {
+      next: 'registry'
+    } as unknown as CharacterMechanicsProjection['ruleRegistry']
+    currentMechanics.commandLaneChecksum = 'd'.repeat(64)
+    currentMechanics.ruleSnapshot = currentRuleSnapshot
+    currentMechanics.rulePolicyInput = currentRulePolicyInput
+    currentMechanics.ruleRegistry = currentRuleRegistry
     const nextMechanics = {
       ...currentMechanics,
       characterStreamVersion: 2,
+      commandLaneChecksum: 'e'.repeat(64),
+      ruleSnapshot: nextRuleSnapshot,
+      rulePolicyInput: nextRulePolicyInput,
+      rulePolicyOutput: {
+        derivedStats: { maxHitPoints: { effective: 12 } },
+        senses: []
+      },
+      ruleRegistry: nextRuleRegistry,
       commandState: {
         ...commandState,
         state: {
@@ -2668,7 +2705,52 @@ describe('executeCharacterSheetCommand persistence', () => {
         }
       },
       projectionChecksum: 'b'.repeat(64)
-    } as CharacterMechanicsProjection
+    } as unknown as CharacterMechanicsProjection
+    const priorEvaluation = {
+      binding: { revisionId: 'revision-1' },
+      snapshot: { characterId: 'character-1' }
+    } as unknown as CharacterRuleEvaluationResult
+    const priorResolution = createResolution()
+    const campaignMechanicalContextChecksum = checksumCampaignCharacterMechanicalContext({
+      adjustments: [],
+      attunementSlotOverride: 2
+    })
+    const currentCampaignMechanics = {
+      campaignId: 'campaign-1',
+      characterId: 'character-1',
+      characterStreamVersion: 1,
+      kind: 'BASE_REFERENCE',
+      mechanicalContextChecksum: campaignMechanicalContextChecksum,
+      projectionChecksum: 'f'.repeat(64),
+      rulePolicyInput: currentMechanics.rulePolicyInput,
+      rulePolicyOutput: currentMechanics.rulePolicyOutput
+    }
+    mocks.resolveCampaignContext.mockResolvedValue({
+      viewer: 'CHARACTER_OWNER',
+      campaignId: 'campaign-1',
+      campaignStatus: 'ACTIVE',
+      contentMaturity: null,
+      attunementSlotOverride: 2,
+      adjustments: [],
+      secretAdjustmentIds: new Set(),
+      conditions: []
+    })
+    mocks.findCampaignMechanics.mockResolvedValue(currentCampaignMechanics)
+    const committedRuleSnapshot = {
+      campaignMechanicalContextChecksum,
+      campaignMechanicsProjectionChecksum: currentCampaignMechanics.projectionChecksum,
+      mechanicsCommandLaneChecksum: 'd'.repeat(64),
+      mechanicsPayload: {
+        ruleSnapshot: currentMechanics.ruleSnapshot,
+        rulePolicyInput: currentMechanics.rulePolicyInput,
+        rulePolicyOutput: currentMechanics.rulePolicyOutput,
+        ruleRegistry: currentMechanics.ruleRegistry
+      },
+      mechanicsProjectionChecksum: currentMechanics.projectionChecksum,
+      streamVersion: 1,
+      evaluation: priorEvaluation,
+      resolution: priorResolution
+    } as CharacterSheetCommittedRuleSnapshot
     mocks.findMechanics.mockResolvedValue(currentMechanics)
     mocks.advanceMechanicsProjection.mockReturnValue(nextMechanics)
     mocks.patchLiveHitPoints.mockImplementation(async (_characterId, input) => {
@@ -2690,7 +2772,8 @@ describe('executeCharacterSheetCommand persistence', () => {
       liveSessionAuthority: {
         authorityId: 'room-authority',
         sessionId: '00000000-0000-4000-8000-000000000302'
-      }
+      },
+      committedRuleSnapshot
     })
 
     expect(mocks.patchLiveHitPoints).toHaveBeenCalledWith(
@@ -2715,10 +2798,92 @@ describe('executeCharacterSheetCommand persistence', () => {
     )
     expect(mocks.buildSheetBundle).not.toHaveBeenCalled()
     expect(mocks.assembleSheetBundleForRuleContext).not.toHaveBeenCalled()
-    expect(execution).toEqual({
+    expect(execution).toMatchObject({
       characterVision: { characterId: 'character-1', dimRange: null },
       replayed: false,
-      version: 2
+      version: 2,
+      ruleSnapshot: {
+        mechanicsProjectionChecksum: nextMechanics.projectionChecksum,
+        mechanicsCommandLaneChecksum: nextMechanics.commandLaneChecksum,
+        campaignMechanicalContextChecksum,
+        campaignMechanicsProjectionChecksum: expect.any(String),
+        streamVersion: 2,
+        evaluation: priorEvaluation,
+        resolution: priorResolution
+      }
     })
+    expect(execution.ruleSnapshot?.mechanicsPayload).toEqual({
+      ruleSnapshot: nextMechanics.ruleSnapshot,
+      rulePolicyInput: nextMechanics.rulePolicyInput,
+      rulePolicyOutput: nextMechanics.rulePolicyOutput,
+      ruleRegistry: nextMechanics.ruleRegistry
+    })
+    expect(execution.ruleSnapshot?.campaignMechanicsProjectionChecksum).toBe(
+      mocks.publishCampaignMechanics.mock.calls[0]?.[0].projection.projectionChecksum
+    )
+  })
+
+  it('does not refresh a compact hit-point snapshot with a mismatched durable identity', async () => {
+    const currentMechanics = {
+      characterId: 'character-1',
+      characterStreamVersion: 1,
+      commandLaneChecksum: 'd'.repeat(64),
+      commandState: createCharacter({
+        state: {
+          equipment: { inventory: [], equipped: [], attuned: [] },
+          currency: [],
+          hitpoints: { current: 10, hitDice: [] }
+        }
+      }),
+      projectionChecksum: 'a'.repeat(64),
+      rulePolicyOutput: { derivedStats: { maxHitPoints: { effective: 12 } }, senses: [] }
+    } as unknown as CharacterMechanicsProjection
+    const nextMechanics = {
+      ...currentMechanics,
+      characterStreamVersion: 2,
+      projectionChecksum: 'b'.repeat(64)
+    } as CharacterMechanicsProjection
+    mocks.findMechanics.mockResolvedValue(currentMechanics)
+    mocks.advanceMechanicsProjection.mockReturnValue(nextMechanics)
+    mocks.patchLiveHitPoints.mockImplementation(async (_characterId, input) => {
+      await input.afterPersist?.(db as unknown as DBLike, 2)
+      return 2
+    })
+
+    const execution = await executeCompactLiveCharacterHitPointCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        amount: 1,
+        commandId: '00000000-0000-4000-8000-000000000307',
+        expectedVersion: 1,
+        mode: 'HEAL',
+        type: 'ADJUST_HIT_POINTS'
+      },
+      committedRuleSnapshot: {
+        campaignMechanicalContextChecksum: null,
+        campaignMechanicsProjectionChecksum: null,
+        mechanicsCommandLaneChecksum: currentMechanics.commandLaneChecksum,
+        mechanicsPayload: {} as CharacterSheetCommittedRuleSnapshot['mechanicsPayload'],
+        mechanicsProjectionChecksum: 'f'.repeat(64),
+        streamVersion: 1,
+        evaluation: {
+          binding: { revisionId: 'revision-1' },
+          snapshot: { characterId: 'character-1' }
+        } as unknown as CharacterRuleEvaluationResult,
+        resolution: createResolution()
+      },
+      liveSessionAuthority: {
+        authorityId: 'room-authority',
+        sessionId: '00000000-0000-4000-8000-000000000308'
+      }
+    })
+
+    expect(execution.ruleSnapshot).toBeUndefined()
+    expect(mocks.findMechanics).toHaveBeenCalledWith(
+      expect.objectContaining({ expectedStreamVersion: 1 })
+    )
+    expect(mocks.buildSheetBundle).not.toHaveBeenCalled()
   })
 })

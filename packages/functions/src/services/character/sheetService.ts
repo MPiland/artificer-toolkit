@@ -399,6 +399,7 @@ export interface CharacterSheetCommandExecutionResult {
 export interface CompactLiveCharacterHitPointCommandExecution {
   characterVision: import('@artificer-toolkit/shared/vtt').SceneCharacterVision
   replayed: boolean
+  ruleSnapshot?: CharacterSheetCommittedRuleSnapshot
   version: number
 }
 
@@ -410,7 +411,12 @@ export interface CompactLiveCharacterHitPointCommandExecution {
 export async function executeCompactLiveCharacterHitPointCommand(
   params: Pick<
     ExecuteCharacterSheetCommandParams,
-    'characterId' | 'command' | 'db' | 'liveSessionAuthority' | 'userId'
+    | 'characterId'
+    | 'command'
+    | 'committedRuleSnapshot'
+    | 'db'
+    | 'liveSessionAuthority'
+    | 'userId'
   >
 ): Promise<CompactLiveCharacterHitPointCommandExecution> {
   const { command } = params
@@ -558,6 +564,18 @@ export async function executeCompactLiveCharacterHitPointCommand(
             : {})
         })
       : null
+  const matchingCommittedRuleSnapshot =
+    params.committedRuleSnapshot?.streamVersion === command.expectedVersion &&
+    params.committedRuleSnapshot.evaluation.snapshot.characterId === row.id &&
+    params.committedRuleSnapshot.evaluation.binding.revisionId === row.rule_pack_revision_id &&
+    params.committedRuleSnapshot.mechanicsProjectionChecksum === mechanics.projectionChecksum &&
+    params.committedRuleSnapshot.mechanicsCommandLaneChecksum === mechanics.commandLaneChecksum &&
+    params.committedRuleSnapshot.campaignMechanicalContextChecksum ===
+      campaignMechanicalContextChecksum &&
+    params.committedRuleSnapshot.campaignMechanicsProjectionChecksum ===
+      (campaignMechanics?.projectionChecksum ?? null)
+      ? params.committedRuleSnapshot
+      : undefined
   const event = {
     type: 'CHARACTER_SHEET_COMMAND_APPLIED',
     eventId: crypto.randomUUID(),
@@ -627,6 +645,25 @@ export async function executeCompactLiveCharacterHitPointCommand(
       effectiveRulePolicyOutput.senses
     ),
     replayed: false,
+    ...(matchingCommittedRuleSnapshot
+      ? {
+          ruleSnapshot: {
+            mechanicsProjectionChecksum: nextMechanics.projectionChecksum,
+            mechanicsCommandLaneChecksum: nextMechanics.commandLaneChecksum,
+            mechanicsPayload: {
+              ruleSnapshot: nextMechanics.ruleSnapshot,
+              rulePolicyInput: nextMechanics.rulePolicyInput,
+              rulePolicyOutput: nextMechanics.rulePolicyOutput,
+              ruleRegistry: nextMechanics.ruleRegistry
+            },
+            campaignMechanicalContextChecksum,
+            campaignMechanicsProjectionChecksum: nextCampaignMechanics?.projectionChecksum ?? null,
+            streamVersion: version,
+            evaluation: matchingCommittedRuleSnapshot.evaluation,
+            resolution: matchingCommittedRuleSnapshot.resolution
+          }
+        }
+      : {}),
     version
   }
 }

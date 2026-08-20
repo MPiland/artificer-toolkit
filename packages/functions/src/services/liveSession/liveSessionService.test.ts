@@ -1,5 +1,6 @@
 import type { DBLike } from '@artificer-toolkit/db'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CharacterSheetCommittedRuleSnapshot } from '../character/sheetService.js'
 
 const ids = {
   campaign: '00000000-0000-4000-8000-000000000001',
@@ -275,9 +276,12 @@ describe('live-session room snapshot authorization', () => {
 
   it('routes live hit-point adjustments through the compact receipt lane', async () => {
     const commandId = '00000000-0000-4000-8000-000000000008'
+    const committedRuleSnapshot = ruleSnapshot(7)
+    const refreshedRuleSnapshot = ruleSnapshot(8)
     mocks.executeCompactLiveHitPoints.mockResolvedValue({
       characterVision: { characterId: ids.characterA, dimRange: null },
       replayed: false,
+      ruleSnapshot: refreshedRuleSnapshot,
       version: 8
     })
 
@@ -297,14 +301,16 @@ describe('live-session room snapshot authorization', () => {
         }
       },
       'room-authority',
-      { characterVisions: [], encounterCharacterBindings: [] }
+      { characterVisions: [], encounterCharacterBindings: [] },
+      committedRuleSnapshot as unknown as CharacterSheetCommittedRuleSnapshot
     )
 
     expect(mocks.executeCompactLiveHitPoints).toHaveBeenCalledWith({
       db: expect.anything(),
-      characterId: ids.characterA,
-      command: expect.objectContaining({ commandId, type: 'ADJUST_HIT_POINTS' }),
-      liveSessionAuthority: { authorityId: 'room-authority', sessionId: ids.session },
+        characterId: ids.characterA,
+        command: expect.objectContaining({ commandId, type: 'ADJUST_HIT_POINTS' }),
+        committedRuleSnapshot,
+        liveSessionAuthority: { authorityId: 'room-authority', sessionId: ids.session },
       userId: ids.playerA
     })
     expect(mocks.executeCharacterSheetCommand).not.toHaveBeenCalled()
@@ -314,6 +320,7 @@ describe('live-session room snapshot authorization', () => {
       characterVision: { characterId: ids.characterA, dimRange: null },
       commandId,
       response: null,
+      ruleSnapshot: refreshedRuleSnapshot,
       version: 8
     })
   })

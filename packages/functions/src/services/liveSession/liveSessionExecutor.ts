@@ -173,5 +173,6 @@ export async function executeLiveSessionExecutorRequest(
 }
 
 export const liveSessionExecutorInternals = {
-  requiresLiveSessionCommandAuthorityClaim
+  requiresLiveSessionCommandAuthorityClaim,
+  wireExecution
 }

@@ -2,6 +2,7 @@ import type { LiveSessionCommandDto } from '@artificer-toolkit/schema/api/liveSe
 import { describe, expect, it } from 'vitest'
 
 import { liveSessionExecutorInternals } from './liveSessionExecutor.js'
+import type { LiveSessionCommandExecution } from './liveSessionService.js'
 
 const ids = {
   barrier: '00000000-0000-4000-8000-000000000021',
@@ -65,5 +66,28 @@ describe('live-session executor command authority', () => {
     expect(liveSessionExecutorInternals.requiresLiveSessionCommandAuthorityClaim(commands.encounter)).toBe(true)
     expect(liveSessionExecutorInternals.requiresLiveSessionCommandAuthorityClaim(commands.attach)).toBe(true)
     expect(liveSessionExecutorInternals.requiresLiveSessionCommandAuthorityClaim(commands.scene)).toBe(false)
+  })
+
+  it('never serializes a Character rule snapshot into the executor response', () => {
+    const execution = liveSessionExecutorInternals.wireExecution(
+      {
+        aggregateKind: 'CHARACTER',
+        aggregateId: ids.character,
+        characterVision: { characterId: ids.character, dimRange: null },
+        commandId: ids.characterCommand,
+        replayed: false,
+        response: null,
+        ruleSnapshot: { private: 'server-only' },
+        version: 1
+      } as unknown as LiveSessionCommandExecution,
+      { category: 'NON_RULE_BOUND', durationMs: 1 }
+    )
+
+    expect(execution).not.toHaveProperty('ruleSnapshot')
+    expect(execution).toMatchObject({
+      aggregateId: ids.character,
+      characterVision: { characterId: ids.character, dimRange: null },
+      hostTiming: { category: 'NON_RULE_BOUND', durationMs: 1 }
+    })
   })
 })
