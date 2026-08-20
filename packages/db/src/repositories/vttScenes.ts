@@ -109,23 +109,6 @@ function eventFromRow(row: Record<string, unknown>): EncounterSceneEventRecord {
   }
 }
 
-function priorEventFromLiveContextRow(
-  row: Record<string, unknown>
-): EncounterSceneEventRecord | null {
-  if (row.prior_event_id === null || row.prior_event_id === undefined) return null
-  return eventFromRow({
-    actor_user_id: row.prior_actor_user_id,
-    command_fingerprint: row.prior_command_fingerprint,
-    command_id: row.prior_command_id,
-    command_type: row.prior_command_type,
-    created_at: row.prior_created_at,
-    delta: row.prior_delta,
-    id: row.prior_event_id,
-    scene_id: row.prior_scene_id,
-    version: row.prior_version
-  })
-}
-
 export function createVttSceneRepository(db: DBLike) {
   return {
     async listDefinitions(campaignId: string): Promise<CampaignSceneDefinitionRecord[]> {
@@ -214,19 +197,29 @@ export function createVttSceneRepository(db: DBLike) {
       sceneId: string
       sessionId: string
     }): Promise<LockedLiveSceneCommandContext | null> {
+      const session = await sql<{ id: string }>`
+        SELECT id
+        FROM public.campaign_sessions
+        WHERE id = ${input.sessionId}
+        FOR UPDATE
+      `.execute(db)
+      if (!session.rows[0]) return null
+
+      const lease = await sql<{ session_id: string }>`
+        SELECT session_id
+        FROM public.live_session_command_leases
+        WHERE session_id = ${input.sessionId}
+          AND authority_id = ${input.authorityId}
+          AND expires_at > now()
+        FOR UPDATE
+      `.execute(db)
+      if (!lease.rows[0]) return null
+
       const result = await sql<Record<string, unknown>>`
         SELECT
           scene.*,
           membership.role AS membership_role,
-          prior.id AS prior_event_id,
-          prior.actor_user_id AS prior_actor_user_id,
-          prior.command_fingerprint AS prior_command_fingerprint,
-          prior.command_id AS prior_command_id,
-          prior.command_type AS prior_command_type,
-          prior.created_at AS prior_created_at,
-          prior.delta AS prior_delta,
-          prior.scene_id AS prior_scene_id,
-          prior.version AS prior_version
+          campaign.id AS campaign_id
         FROM public.encounter_scenes AS scene
         INNER JOIN public.encounters AS encounter
           ON encounter.id = scene.encounter_id
@@ -245,9 +238,6 @@ export function createVttSceneRepository(db: DBLike) {
           ON lease.session_id = session.id
           AND lease.authority_id = ${input.authorityId}
           AND lease.expires_at > now()
-        LEFT JOIN public.encounter_scene_events AS prior
-          ON prior.encounter_id = encounter.id
-          AND prior.command_id = ${input.commandId}
         WHERE scene.id = ${input.sceneId}
           AND scene.encounter_id = ${input.encounterId}
           AND campaign.id = ${input.campaignId}
@@ -255,8 +245,7 @@ export function createVttSceneRepository(db: DBLike) {
           AND encounter.campaign_id = ${input.campaignId}
           AND encounter.session_id = ${input.sessionId}
           AND campaign.status = 'ACTIVE'
-        FOR UPDATE OF scene, session, lease
-        FOR SHARE OF campaign, membership
+        FOR UPDATE OF scene
       `.execute(db)
       const row = result.rows[0]
       if (!row) return null
@@ -264,9 +253,15 @@ export function createVttSceneRepository(db: DBLike) {
       if (membershipRole !== 'OWNER' && membershipRole !== 'PLAYER') {
         throw new Error('Live Scene command membership role is invalid.')
       }
+      const prior = await sql<Record<string, unknown>>`
+        SELECT *
+        FROM public.encounter_scene_events
+        WHERE encounter_id = ${input.encounterId}
+          AND command_id = ${input.commandId}
+      `.execute(db)
       return {
         membershipRole,
-        priorEvent: priorEventFromLiveContextRow(row),
+        priorEvent: prior.rows[0] ? eventFromRow(prior.rows[0]) : null,
         scene: encounterSceneFromRow(row)
       }
     },

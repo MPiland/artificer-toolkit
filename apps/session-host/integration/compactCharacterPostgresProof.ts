@@ -289,7 +289,9 @@ export async function proveCompactCharacterPostgresSemantics(
       assignmentLockAcquired?.()
       await assignmentLockReleased
     })
-    let executionsPromise: ReturnType<typeof Promise.allSettled> | undefined
+    let executionsPromise:
+      | Promise<PromiseSettledResult<Awaited<ReturnType<typeof executeLiveSessionCommand>>>[]>
+      | undefined
     try {
       await assignmentLockReady
       executionsPromise = Promise.allSettled([
@@ -313,10 +315,12 @@ export async function proveCompactCharacterPostgresSemantics(
       await waitForAssignmentContention(lockObserver)
       releaseAssignmentLock?.()
       await heldLock
+      if (!executionsPromise) throw new Error('Character contention executions did not start.')
       const executions = await executionsPromise
-      assert.equal(executions.every((execution) => execution.status === 'fulfilled'), true)
       const results = executions.map((execution) => {
-        assert.equal(execution.status, 'fulfilled')
+        if (execution.status !== 'fulfilled') {
+          throw execution.reason
+        }
         return execution.value
       })
       assert.equal(results.filter((result) => result.replayed).length, 1)
@@ -329,8 +333,7 @@ export async function proveCompactCharacterPostgresSemantics(
         assert.equal(result.version, contentionBaseline.character.streamVersion + 1)
       }
       const characterResults = results.filter(
-        (result): result is Extract<(typeof results)[number], { aggregateKind: 'CHARACTER' }> =>
-          result.aggregateKind === 'CHARACTER'
+        (result) => result.aggregateKind === 'CHARACTER'
       )
       assert.equal(characterResults.length, 2)
       assert.deepEqual(characterResults[0]?.characterVision, characterResults[1]?.characterVision)

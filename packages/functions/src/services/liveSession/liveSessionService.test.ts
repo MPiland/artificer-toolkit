@@ -335,8 +335,6 @@ describe('live-session room snapshot authorization', () => {
       replayed: false,
       version: 8
     })
-    const timing = vi.fn()
-
     const execution = await executeLiveSessionCommand(
       {} as DBLike,
       ids.playerA,
@@ -353,8 +351,7 @@ describe('live-session room snapshot authorization', () => {
       },
       'room-authority',
       { characterVisions: [], encounterCharacterBindings: [] },
-      undefined,
-      timing
+      undefined
     )
 
     expect(mocks.executeCompactMaximumHitPointModifier).toHaveBeenCalledWith(
@@ -363,7 +360,6 @@ describe('live-session room snapshot authorization', () => {
         command: expect.objectContaining({ commandId, type: 'UPSERT_SHEET_ADJUSTMENT' })
       })
     )
-    expect(timing).toHaveBeenCalledWith({ evaluationLane: 'CHARACTER_POLICY' })
     expect(mocks.executeCharacterSheetCommand).not.toHaveBeenCalled()
     expect(execution).toMatchObject({ response: null, version: 8 })
   })

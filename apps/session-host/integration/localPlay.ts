@@ -8,13 +8,16 @@ import {
   createCampaignRepository,
   createCharacterRepository,
   createEncounterRepository,
+  createLiveSessionCommandLeaseRepository,
   createMediaRepository,
   createVttSceneRepository,
   createDb,
   srdBaselineContent,
+  withTransaction,
   withUserContext
 } from '@artificer-toolkit/db'
 import {
+  attachEncounterScene,
   assignCampaignCharacter,
   createCampaign,
   createCampaignSceneDefinition,
@@ -24,11 +27,13 @@ import {
   createEncounterTemplate,
   dispatchCommandForUser,
   executeEncounterCommand,
+  executeEncounterSceneCommandWithState,
   deleteCampaign,
   getCampaign,
   getVttMapDelivery,
   issueLiveSessionTicket
 } from '@artificer-toolkit/functions/services'
+import { sql } from 'kysely'
 import { MediaAccessError, MediaNotFoundError } from '@artificer-toolkit/functions/services/media'
 import {
   LIVE_SESSION_PATH_PREFIX,
@@ -113,6 +118,10 @@ function percentile(values: readonly number[], quantile: number): number {
   assert.ok(values.length > 0)
   const sorted = [...values].sort((left, right) => left - right)
   return sorted[Math.ceil(sorted.length * quantile) - 1] as number
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds))
 }
 
 async function availablePort(): Promise<number> {
@@ -488,9 +497,14 @@ async function sendCharacterCommand(
   command: Extract<LiveSessionCommandDto, { aggregateKind: 'CHARACTER' }>['command'],
   expectCommit: boolean
 ): Promise<CommandMeasurement> {
-  const isCompactHitPointCommand = command.type === 'ADJUST_HIT_POINTS'
+  const isCompactCharacterCommand =
+    command.type === 'ADJUST_HIT_POINTS' ||
+    (command.type === 'UPSERT_SHEET_ADJUSTMENT' &&
+      command.adjustment.family === 'HIT_POINTS' &&
+      command.adjustment.field === 'MAXIMUM_MODIFIER' &&
+      typeof command.adjustment.value === 'number')
   const outcome = waitForCommandOutcome(room, command.commandId, {
-    allowNullResponse: isCompactHitPointCommand
+    allowNullResponse: isCompactCharacterCommand
   })
   const committed = expectCommit
     ? Promise.all(
@@ -512,7 +526,7 @@ async function sendCharacterCommand(
   const result = await outcome
   if (committed) await committed
   assert.equal(result.aggregateKind, 'CHARACTER')
-  if (isCompactHitPointCommand) {
+  if (isCompactCharacterCommand) {
     assert.equal(result.response, null)
   } else {
     assert.ok(result.response)
@@ -521,7 +535,7 @@ async function sendCharacterCommand(
     commandId: command.commandId,
     durationMs: performance.now() - startedAt,
     replayed: result.replayed,
-    streamVersion: isCompactHitPointCommand ? result.version : result.response.streamVersion
+    streamVersion: result.response === null ? result.version : result.response.streamVersion
   }
 }
 
@@ -1471,6 +1485,70 @@ async function main(): Promise<void> {
       sessionId: session.id,
       userId: player.id
     })
+
+    const currentCampaignId = campaignId
+    assert.ok(currentCampaignId)
+    const authorityId = `scene-lock-proof-${randomUUID()}`
+    const leaseNow = new Date()
+    const claimed = await createLiveSessionCommandLeaseRepository(db).claim({
+      authorityId,
+      expiresAt: new Date(leaseNow.getTime() + 30_000).toISOString(),
+      now: leaseNow.toISOString(),
+      sessionId: session.id
+    })
+    assert.equal(claimed, true)
+    const sceneEventsBeforeLockProof = await createVttSceneRepository(db).listEvents(sceneId)
+    const attachProofDb = createDb({ connectionString })
+    const liveCommandProofDb = createDb({ connectionString })
+    try {
+      let attachFinished = false
+      let liveCommandFinished = false
+      const proof = await withTransaction(db, async (trx) => {
+        await sql`
+          SELECT id
+          FROM public.encounter_scenes
+          WHERE id = ${sceneId}
+          FOR UPDATE
+        `.execute(trx)
+
+        const attachReplay = attachEncounterScene(attachProofDb, gmUser.id, sceneAttachCommand, {
+          liveSessionAuthority: { authorityId, sessionId: session.id }
+        }).finally(() => {
+          attachFinished = true
+        })
+        const liveCommand = executeEncounterSceneCommandWithState(liveCommandProofDb, gmUser.id, {
+          barrierId: doorId,
+          commandId: randomUUID(),
+          encounterId: encounter.id,
+          expectedSceneVersion,
+          sceneId,
+          state: 'CLOSED' as const,
+          type: 'SET_SCENE_DOOR_STATE' as const
+        }, {
+          liveSceneContext: { authorityId, campaignId: currentCampaignId, sessionId: session.id }
+        }).finally(() => {
+          liveCommandFinished = true
+        })
+
+        await delay(75)
+        assert.equal(attachFinished, false, 'Attach/replay bypassed the held Scene lock.')
+        assert.equal(liveCommandFinished, false, 'Live Scene command bypassed the held Scene lock.')
+        return { attachReplay, liveCommand }
+      })
+      const [attachReplay, liveCommand] = await Promise.all([proof.attachReplay, proof.liveCommand])
+      assert.equal(attachReplay.replayed, true)
+      assert.equal(liveCommand.result.replayed, false)
+      const sceneEventsAfterLockProof = await createVttSceneRepository(db).listEvents(sceneId)
+      assert.equal(sceneEventsAfterLockProof.length, sceneEventsBeforeLockProof.length + 1)
+      assert.equal(liveCommand.state.version, expectedSceneVersion + 1)
+      assert.equal(liveCommand.state.doorStates[doorId], 'CLOSED')
+    } finally {
+      await Promise.all([
+        attachProofDb.destroy(),
+        liveCommandProofDb.destroy(),
+        createLiveSessionCommandLeaseRepository(db).release({ authorityId, sessionId: session.id })
+      ])
+    }
 
     console.info(
       JSON.stringify({

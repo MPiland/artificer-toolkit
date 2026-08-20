@@ -137,11 +137,6 @@ export interface CharacterSheetCommandServiceTiming {
   totalMs: number
 }
 
-export type CharacterSheetCommandTimingClassification = Pick<
-  CharacterSheetCommandServiceTiming,
-  'evaluationLane'
->
-
 import {
   checksumCampaignCharacterMechanicalContext,
   getCharacterSheetDisplayAdjustments,

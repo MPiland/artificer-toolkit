@@ -32,7 +32,7 @@ import {
   executeCharacterSheetCommandWithRuleEvaluation,
   type CharacterSheetCommittedRuleSnapshot,
   type CharacterSheetCommandExecutionResult,
-  type CharacterSheetCommandTimingClassification
+  type CharacterSheetCommandServiceTiming
 } from '../character/sheetService.js'
 import {
   loadCharacterRuleSnapshotForLiveSessionCampaign,
@@ -412,7 +412,7 @@ export async function executeLiveSessionCommand(
   authorityId: string,
   sceneVisionContext: LiveSessionSceneVisionContextDto,
   committedRuleSnapshot?: CharacterSheetCommittedRuleSnapshot,
-  onCharacterTiming?: (timing: CharacterSheetCommandTimingClassification) => void,
+  onCharacterTiming?: (timing: CharacterSheetCommandServiceTiming) => void,
   committedEncounterRuleSnapshot?: EncounterActorRuleSnapshot,
   onEncounterTiming?: (timing: EncounterCommandServiceTiming) => void
 ): Promise<LiveSessionCommandExecution> {
@@ -461,7 +461,6 @@ export async function executeLiveSessionCommand(
         liveSessionAuthority: commandAuthority
       })
       if (execution) {
-        onCharacterTiming?.({ evaluationLane: 'CHARACTER_POLICY' })
         return {
           aggregateKind: 'CHARACTER',
           aggregateId: command.characterId,

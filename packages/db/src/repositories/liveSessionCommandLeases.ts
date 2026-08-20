@@ -102,19 +102,22 @@ export function createLiveSessionCommandLeaseRepository(db: DBLike) {
       sessionId: string,
       now: string
     ): Promise<LockedLiveSessionCommandLease | null> {
-      const result = await sql<{ session_id: string; authority_id: string | null }>`
-        SELECT
-          sessions.id AS session_id,
-          leases.authority_id
-        FROM public.campaign_sessions AS sessions
-        LEFT JOIN public.live_session_command_leases AS leases
-          ON leases.session_id = sessions.id
-          AND leases.expires_at > ${now}::timestamptz
-        WHERE sessions.id = ${sessionId}
-        FOR SHARE OF sessions
+      const session = await sql<{ id: string }>`
+        SELECT id
+        FROM public.campaign_sessions
+        WHERE id = ${sessionId}
+        FOR UPDATE
       `.execute(db)
-      const row = result.rows[0]
-      return row ? { sessionId: row.session_id, authorityId: row.authority_id } : null
+      if (!session.rows[0]) return null
+
+      const lease = await sql<{ authority_id: string }>`
+        SELECT authority_id
+        FROM public.live_session_command_leases
+        WHERE session_id = ${sessionId}
+          AND expires_at > ${now}::timestamptz
+        FOR UPDATE
+      `.execute(db)
+      return { sessionId, authorityId: lease.rows[0]?.authority_id ?? null }
     },
 
     async lockForCharacter(
