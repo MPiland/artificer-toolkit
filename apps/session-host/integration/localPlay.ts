@@ -60,6 +60,8 @@ import {
 } from '../src/dependencies.js'
 import { replaySceneEvents } from '@artificer-toolkit/shared/vtt'
 
+import { proveCompactCharacterPostgresSemantics } from './compactCharacterPostgresProof.js'
+
 const MESSAGE_TIMEOUT_MS = 15_000
 const WARM_COMMAND_P95_LIMIT_MS = 500
 const RULE_BOUND_HOST_P95_LIMIT_MS = 250
@@ -1462,6 +1464,13 @@ async function main(): Promise<void> {
         ? DURABLE_OBJECT_LEASE_RELEASE_TIMEOUT_MS
         : DIRECT_HOST_LEASE_RELEASE_TIMEOUT_MS
     )
+    await proveCompactCharacterPostgresSemantics({
+      campaignId: campaign.id,
+      characterId,
+      connectionString,
+      sessionId: session.id,
+      userId: player.id
+    })
 
     console.info(
       JSON.stringify({
