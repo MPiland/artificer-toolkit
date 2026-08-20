@@ -378,7 +378,8 @@ function waitForMessage<TType extends LiveSessionWebSocketServerMessageDto['type
 
 function waitForCommandOutcome(
   room: LocalLiveRoom,
-  commandId: string
+  commandId: string,
+  options: { allowNullResponse?: boolean } = {}
 ): Promise<LiveSessionCommandOutcome> {
   return new Promise((resolve, reject) => {
     let unsubscribeResult: () => void = () => undefined
@@ -402,7 +403,7 @@ function waitForCommandOutcome(
       if (
         parsed.data.aggregateKind === 'SCENE' ||
         parsed.data.originCommandId !== commandId ||
-        parsed.data.response === null
+        (parsed.data.response === null && !options.allowNullResponse)
       ) {
         return
       }
@@ -485,7 +486,10 @@ async function sendCharacterCommand(
   command: Extract<LiveSessionCommandDto, { aggregateKind: 'CHARACTER' }>['command'],
   expectCommit: boolean
 ): Promise<CommandMeasurement> {
-  const outcome = waitForCommandOutcome(room, command.commandId)
+  const isCompactHitPointCommand = command.type === 'ADJUST_HIT_POINTS'
+  const outcome = waitForCommandOutcome(room, command.commandId, {
+    allowNullResponse: isCompactHitPointCommand
+  })
   const committed = expectCommit
     ? Promise.all(
         [room, ...witnesses].map((target) =>
@@ -506,12 +510,16 @@ async function sendCharacterCommand(
   const result = await outcome
   if (committed) await committed
   assert.equal(result.aggregateKind, 'CHARACTER')
-  assert.ok(result.response)
+  if (isCompactHitPointCommand) {
+    assert.equal(result.response, null)
+  } else {
+    assert.ok(result.response)
+  }
   return {
     commandId: command.commandId,
     durationMs: performance.now() - startedAt,
     replayed: result.replayed,
-    streamVersion: result.response.streamVersion
+    streamVersion: isCompactHitPointCommand ? result.version : result.response.streamVersion
   }
 }
 
