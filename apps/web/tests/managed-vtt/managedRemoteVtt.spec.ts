@@ -75,8 +75,14 @@ test('connects three users through the managed room and recovers a reversible sc
       timings
     )
     await collectRuleHostTimings(player, managedPaths, hostTimings.ruleBound)
-    expect(nearestRankP95(hostTimings.sceneOnly)).toBeLessThan(100)
-    expect(nearestRankP95(hostTimings.ruleBound)).toBeLessThan(250)
+    const hostTimingSummary = summarizeHostTimings(hostTimings)
+    await testInfo.attach('managed-vtt-host-timings', {
+      body: JSON.stringify(hostTimingSummary, null, 2),
+      contentType: 'application/json'
+    })
+    console.info(`Managed VTT host timings: ${JSON.stringify(hostTimingSummary)}`)
+    expect(hostTimingSummary.sceneOnly.p95).toBeLessThan(100)
+    expect(hostTimingSummary.ruleBound.p95).toBeLessThan(250)
 
     await Promise.all([gm.context.close(), player.context.close(), player2.context.close()])
     timings.authorityReleaseWaitMs = authorityReleaseWaitMs
@@ -291,7 +297,7 @@ async function collectDoorHostTimings(
     const priorFrameCount = gm.liveSessionFrames.length
     await clickDoorAction(gm.page, action)
     action = oppositeDoorAction(action)
-    const timing = await waitForOriginHostTiming(gm, priorFrameCount, 'SCENE_ONLY')
+    const timing = await waitForCorrelatedHostTiming(gm, priorFrameCount, 'SCENE_ONLY')
     await Promise.all([
       expectDoorAction(gm, action),
       ...players.map((player) => expectDoorAction(player, action))
@@ -351,53 +357,91 @@ async function setMaxHpModifierAndCollect(
   const input = sheet.getByLabel('Max HP adjustment', { exact: true })
   await input.fill(String(value))
   await input.press('Enter')
-  const timing = await waitForOriginHostTiming(client, priorFrameCount, 'RULE_BOUND')
+  const timing = await waitForCorrelatedHostTiming(client, priorFrameCount, 'RULE_BOUND')
   if (collect) samples.push(timing)
 }
 
-async function waitForOriginHostTiming(
+async function waitForCorrelatedHostTiming(
   client: ManagedClient,
   priorFrameCount: number,
   category: 'RULE_BOUND' | 'SCENE_ONLY'
 ): Promise<number> {
+  const readAccepted = () =>
+    client.liveSessionFrames
+      .slice(priorFrameCount)
+      .map(parseAcceptedCommand)
+      .find((value): value is { acceptedSequence: number; commandId: string } => value !== null) ?? null
+  try {
+    await expect.poll(readAccepted).not.toBeNull()
+  } catch (error) {
+    throw new Error(
+      `${client.role} did not receive a ${category} command acknowledgement. Recent frames: ${JSON.stringify(summarizeFrames(client.liveSessionFrames.slice(-10)))}.`,
+      { cause: error }
+    )
+  }
+  const accepted = readAccepted()
+  if (!accepted) throw new Error(`Missing ${category} command acknowledgement.`)
+  const commandId = accepted.commandId
   const readOutcome = () =>
     client.liveSessionFrames
       .slice(priorFrameCount)
-      .map((value) => parseCommandOutcome(value, category))
+      .map((value) => parseCommandOutcome(value, category, commandId))
       .find((outcome) => outcome !== null) ?? null
   try {
     await expect.poll(readOutcome).not.toBeNull()
   } catch (error) {
     throw new Error(
-      `${client.role} did not receive a ${category} timing receipt. Recent frames: ${JSON.stringify(summarizeFrames(client.liveSessionFrames.slice(-10)))}.`,
+      `${client.role} command ${commandId} acceptedSequence=${accepted.acceptedSequence} did not receive a terminal ${category} outcome. Last frames: ${JSON.stringify(summarizeFrames(client.liveSessionFrames.slice(-10)))}.`,
       { cause: error }
     )
   }
   const outcome = readOutcome()
-  if (!outcome) throw new Error(`Missing ${category} command outcome.`)
+  if (!outcome) throw new Error(`Missing ${category} command outcome for ${commandId}.`)
   if (outcome.kind === 'REJECTED') {
-    throw new Error(`${category} command rejected (${outcome.code}): ${outcome.message}`)
+    throw new Error(`${category} command ${commandId} rejected (${outcome.code}).`)
   }
   return outcome.durationMs
 }
 
+function parseAcceptedCommand(value: string):
+  | { acceptedSequence: number; commandId: string }
+  | null {
+  try {
+    const parsed: unknown = JSON.parse(value)
+    if (!parsed || typeof parsed !== 'object') return null
+    const message = parsed as Record<string, unknown>
+    return message.type === 'COMMAND_ACCEPTED' &&
+      typeof message.commandId === 'string' &&
+      typeof message.acceptedSequence === 'number'
+      ? { acceptedSequence: message.acceptedSequence, commandId: message.commandId }
+      : null
+  } catch {
+    return null
+  }
+}
+
 function parseCommandOutcome(
   value: string,
-  category: 'RULE_BOUND' | 'SCENE_ONLY'
+  category: 'RULE_BOUND' | 'SCENE_ONLY',
+  commandId: string
 ):
-  | { code: string; kind: 'REJECTED'; message: string }
-  | { durationMs: number; kind: 'TIMING' }
+  | { code: string; kind: 'REJECTED'; commandId: string }
+  | { commandId: string; durationMs: number; kind: 'TIMING' }
   | null {
   try {
     const parsed: unknown = JSON.parse(value)
     if (!parsed || typeof parsed !== 'object') return null
     const message = parsed as Record<string, unknown>
     if (message.type === 'COMMAND_REJECTED') {
+      if (message.commandId !== commandId) return null
       return {
         code: typeof message.code === 'string' ? message.code : 'UNKNOWN',
         kind: 'REJECTED',
-        message: typeof message.message === 'string' ? message.message : 'No rejection message.'
+        commandId
       }
+    }
+    if (message.type !== 'COMMAND_COMMITTED' || message.originCommandId !== commandId) {
+      return null
     }
     const hostTiming = message.hostTiming
     if (!hostTiming || typeof hostTiming !== 'object') return null
@@ -406,7 +450,7 @@ function parseCommandOutcome(
       durationMs?: unknown
     }
     return timingCategory === category && typeof durationMs === 'number'
-      ? { durationMs, kind: 'TIMING' }
+      ? { commandId, durationMs, kind: 'TIMING' }
       : null
   } catch {
     return null
