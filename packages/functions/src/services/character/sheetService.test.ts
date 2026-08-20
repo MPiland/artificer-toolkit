@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DBLike } from '@artificer-toolkit/db'
 import {
@@ -17,9 +18,11 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/author
 import type { CharacterBuilderResolution } from './builderService.js'
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 import type { CharacterSheetRuleContext } from './characterSheetBundleAssembly.js'
+import type { CharacterMechanicsProjection } from '@artificer-toolkit/schema/projections/characterMechanics'
 
 const mocks = vi.hoisted(() => ({
   appendEvent: vi.fn(),
+  advanceMechanicsProjection: vi.fn(),
   assembleSheetBundleForRuleContext: vi.fn(),
   compileMechanicsProjection: vi.fn(),
   createCommittedExtras: vi.fn(),
@@ -42,6 +45,7 @@ const mocks = vi.hoisted(() => ({
   listResourceUsage: vi.fn(),
   listSpellCustomizations: vi.fn(),
   patchSheetState: vi.fn(),
+  patchLiveHitPoints: vi.fn(),
   publishMechanics: vi.fn(),
   resolveRuleBinding: vi.fn(),
   removeAdjustment: vi.fn(),
@@ -82,6 +86,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createCharacterRepository: () => ({
       findById: mocks.findById,
       findAuthoredById: mocks.findAuthoredById,
+      patchLiveHitPoints: mocks.patchLiveHitPoints,
       patchSheetState: mocks.patchSheetState,
       setRulePackRevision: mocks.setRulePackRevision
     }),
@@ -168,6 +173,7 @@ vi.mock('./characterCommittedSheetSources.js', () => ({
 }))
 
 vi.mock('./characterMechanicsCompiler.js', () => ({
+  advanceCharacterMechanicsProjectionCommandState: mocks.advanceMechanicsProjection,
   compileCharacterMechanicsProjection: mocks.compileMechanicsProjection
 }))
 
@@ -207,10 +213,14 @@ vi.mock('./characterRuleEvaluation.js', async (importOriginal) => {
   return { ...original, evaluateCharacterRulePolicy: evaluateCharacterBuilderTestPolicy }
 })
 
-const { executeCharacterSheetCommand, executeCharacterSheetCommandWithRuleEvaluation } =
-  await import('./sheetService.js')
+const {
+  executeCharacterSheetCommand,
+  executeCharacterSheetCommandWithRuleEvaluation,
+  executeCompactLiveCharacterHitPointCommand
+} = await import('./sheetService.js')
 const { checksumCharacterMechanicsProjection } = await import('@artificer-toolkit/db')
 const { previewCharacterRest } = await import('./sheetRestService.js')
+const { sortFingerprintValue } = await import('./sheetRestService.js')
 const sheetProjection = await import('./sheetProjection.js')
 const { evaluateCharacterBuilderTestPolicy } =
   await import('./characterBuilderRuleEvaluation.testUtils.js')
@@ -287,6 +297,12 @@ function createCharacterRow(
     user_id: 'user-1',
     ...overrides
   }
+}
+
+function fingerprintSheetCommand(command: unknown): string {
+  return createHash('sha256')
+    .update(JSON.stringify(sortFingerprintValue(command)))
+    .digest('hex')
 }
 
 function createResolution(): CharacterBuilderResolution {
@@ -466,8 +482,10 @@ describe('executeCharacterSheetCommand persistence', () => {
     mocks.setResourceUsage.mockReset()
     mocks.setSpellCustomization.mockReset()
     mocks.patchSheetState.mockReset()
+    mocks.patchLiveHitPoints.mockReset()
     mocks.publishMechanics.mockReset()
     mocks.compileMechanicsProjection.mockReset()
+    mocks.advanceMechanicsProjection.mockReset()
     mocks.createCommittedExtras.mockReset()
     mocks.createCommittedResolution.mockReset()
     mocks.createCommittedSpells.mockReset()
@@ -2507,5 +2525,200 @@ describe('executeCharacterSheetCommand persistence', () => {
       expect.arrayContaining([expect.objectContaining({ kind: 'EXTRAS', creatureEquipment: {} })]),
       expect.any(Object)
     )
+  })
+
+  it('requires current room authority before returning a compact hit-point replay', async () => {
+    const command = {
+      amount: 3,
+      commandId: '00000000-0000-4000-8000-000000000303',
+      expectedVersion: 1,
+      mode: 'DAMAGE' as const,
+      type: 'ADJUST_HIT_POINTS' as const
+    }
+    const replayMechanics = {
+      characterId: 'character-1',
+      characterStreamVersion: 2,
+      commandState: createCharacter(),
+      projectionChecksum: 'c'.repeat(64),
+      rulePolicyOutput: { senses: [] }
+    } as unknown as CharacterMechanicsProjection
+    mocks.findById.mockResolvedValue(createCharacterRow({ stream_version: 2 }))
+    mocks.findMechanics.mockResolvedValue(replayMechanics)
+    mocks.findByCommandId.mockResolvedValue({
+      type: 'CHARACTER_SHEET_COMMAND_APPLIED',
+      commandType: command.type,
+      commandFingerprint: fingerprintSheetCommand(command),
+      committedStreamVersion: 2
+    })
+    const liveSessionAuthority = {
+      authorityId: 'room-authority',
+      sessionId: '00000000-0000-4000-8000-000000000304'
+    }
+
+    await expect(
+      executeCompactLiveCharacterHitPointCommand({
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command,
+        liveSessionAuthority
+      })
+    ).resolves.toEqual({
+      characterVision: { characterId: 'character-1', dimRange: null },
+      replayed: true,
+      version: 2
+    })
+
+    expect(mocks.assertCommandAuthority).toHaveBeenCalledWith(
+      db,
+      'character-1',
+      liveSessionAuthority
+    )
+    expect(mocks.patchLiveHitPoints).not.toHaveBeenCalled()
+  })
+
+  it('converges a concurrent compact hit-point duplicate on its durable receipt', async () => {
+    const command = {
+      amount: 3,
+      commandId: '00000000-0000-4000-8000-000000000305',
+      expectedVersion: 1,
+      mode: 'DAMAGE' as const,
+      type: 'ADJUST_HIT_POINTS' as const
+    }
+    const currentMechanics = {
+      characterId: 'character-1',
+      characterStreamVersion: 1,
+      commandState: createCharacter({
+        state: {
+          equipment: { inventory: [], equipped: [], attuned: [] },
+          currency: [],
+          hitpoints: { current: 10, hitDice: [] }
+        }
+      }),
+      projectionChecksum: 'd'.repeat(64),
+      rulePolicyOutput: {
+        derivedStats: { maxHitPoints: { effective: 12 } },
+        senses: []
+      }
+    } as unknown as CharacterMechanicsProjection
+    const replayMechanics = {
+      ...currentMechanics,
+      characterStreamVersion: 2,
+      projectionChecksum: 'e'.repeat(64)
+    } as CharacterMechanicsProjection
+    mocks.findById
+      .mockResolvedValueOnce(createCharacterRow({ stream_version: 1 }))
+      .mockResolvedValue(createCharacterRow({ stream_version: 2 }))
+    mocks.findMechanics.mockImplementation(
+      async ({ expectedStreamVersion }: { expectedStreamVersion?: number }) =>
+        expectedStreamVersion === 1 ? currentMechanics : replayMechanics
+    )
+    mocks.advanceMechanicsProjection.mockReturnValue(replayMechanics)
+    mocks.findByCommandId
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue({
+        type: 'CHARACTER_SHEET_COMMAND_APPLIED',
+        commandType: command.type,
+        commandFingerprint: fingerprintSheetCommand(command),
+        committedStreamVersion: 2
+      })
+    mocks.patchLiveHitPoints.mockRejectedValueOnce(new MockConcurrencyError('character-1', 1))
+
+    await expect(
+      executeCompactLiveCharacterHitPointCommand({
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command,
+        liveSessionAuthority: {
+          authorityId: 'room-authority',
+          sessionId: '00000000-0000-4000-8000-000000000306'
+        }
+      })
+    ).resolves.toEqual({
+      characterVision: { characterId: 'character-1', dimRange: null },
+      replayed: true,
+      version: 2
+    })
+
+    expect(mocks.patchLiveHitPoints).toHaveBeenCalledTimes(1)
+  })
+
+  it('commits a compact hit-point adjustment without Sheet reconstruction', async () => {
+    const commandState = createCharacter()
+    commandState.state.hitpoints = { current: 10, temp: 2, hitDice: [] }
+    const currentMechanics = {
+      characterId: 'character-1',
+      characterStreamVersion: 1,
+      commandState,
+      projectionChecksum: 'a'.repeat(64),
+      rulePolicyOutput: {
+        derivedStats: { maxHitPoints: { effective: 12 } },
+        senses: []
+      }
+    } as unknown as CharacterMechanicsProjection
+    const nextMechanics = {
+      ...currentMechanics,
+      characterStreamVersion: 2,
+      commandState: {
+        ...commandState,
+        state: {
+          ...commandState.state,
+          hitpoints: { ...commandState.state.hitpoints, current: 9, temp: 0 }
+        }
+      },
+      projectionChecksum: 'b'.repeat(64)
+    } as CharacterMechanicsProjection
+    mocks.findMechanics.mockResolvedValue(currentMechanics)
+    mocks.advanceMechanicsProjection.mockReturnValue(nextMechanics)
+    mocks.patchLiveHitPoints.mockImplementation(async (_characterId, input) => {
+      await input.afterPersist?.(db as unknown as DBLike, 2)
+      return 2
+    })
+
+    const execution = await executeCompactLiveCharacterHitPointCommand({
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      command: {
+        amount: 3,
+        commandId: '00000000-0000-4000-8000-000000000301',
+        expectedVersion: 1,
+        mode: 'DAMAGE',
+        type: 'ADJUST_HIT_POINTS'
+      },
+      liveSessionAuthority: {
+        authorityId: 'room-authority',
+        sessionId: '00000000-0000-4000-8000-000000000302'
+      }
+    })
+
+    expect(mocks.patchLiveHitPoints).toHaveBeenCalledWith(
+      'character-1',
+      expect.objectContaining({
+        expected: { current: 10, temp: 2 },
+        expectedStreamVersion: 1,
+        next: { current: 9, temp: 0 }
+      })
+    )
+    expect(mocks.advanceMechanicsProjection).toHaveBeenCalledWith(
+      expect.objectContaining({ characterStreamVersion: 2, current: currentMechanics })
+    )
+    expect(mocks.publishMechanics).toHaveBeenCalledWith(nextMechanics, {
+      requireActiveAuthoredVersions: false
+    })
+    expect(mocks.appendEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        commandType: 'ADJUST_HIT_POINTS',
+        committedStreamVersion: 2
+      })
+    )
+    expect(mocks.buildSheetBundle).not.toHaveBeenCalled()
+    expect(mocks.assembleSheetBundleForRuleContext).not.toHaveBeenCalled()
+    expect(execution).toEqual({
+      characterVision: { characterId: 'character-1', dimRange: null },
+      replayed: false,
+      version: 2
+    })
   })
 })

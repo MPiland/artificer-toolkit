@@ -8,7 +8,10 @@ import type { CharacterAssemblyRegistry } from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import { dnd5e2014CharacterPolicyDocument } from '../rules/systems/dnd5e/2014/characterPolicy.js'
-import { compileCharacterMechanicsProjection } from './characterMechanicsCompiler.js'
+import {
+  advanceCharacterMechanicsProjectionCommandState,
+  compileCharacterMechanicsProjection
+} from './characterMechanicsCompiler.js'
 
 const checksum = (value: string) => value.repeat(64)
 
@@ -172,5 +175,34 @@ describe('compileCharacterMechanicsProjection', () => {
         }
       }).projectionChecksum
     ).not.toBe(first.projectionChecksum)
+
+    const nextState = {
+      ...characterCommandState,
+      state: {
+        ...characterCommandState.state,
+        hitpoints: { ...characterCommandState.state.hitpoints, current: 9, temp: 2 }
+      }
+    }
+    const advanced = advanceCharacterMechanicsProjectionCommandState({
+      current: first,
+      characterCommandState: nextState,
+      characterStreamVersion: 4
+    })
+    expect(
+      advanceCharacterMechanicsProjectionCommandState({
+        current: first,
+        characterCommandState: nextState,
+        characterStreamVersion: 4
+      })
+    ).toEqual(advanced)
+    expect(advanced).toMatchObject({
+      characterStreamVersion: 4,
+      commandState: { state: { hitpoints: { current: 9, temp: 2 } } },
+      authoredVersionVector: first.authoredVersionVector,
+      rulePolicyInput: first.rulePolicyInput,
+      rulePolicyOutput: first.rulePolicyOutput
+    })
+    expect(advanced.commandLaneChecksum).not.toBe(first.commandLaneChecksum)
+    expect(advanced.projectionChecksum).not.toBe(first.projectionChecksum)
   })
 })

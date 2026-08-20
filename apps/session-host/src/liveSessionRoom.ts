@@ -584,7 +584,9 @@ class LiveSessionRuntime {
 
       if (!coordinated.replayed) {
         if (execution.aggregateKind === 'CHARACTER') {
-          this.#characterRuleSnapshots.set(execution.aggregateId, execution.ruleSnapshot)
+          if (execution.ruleSnapshot) {
+            this.#characterRuleSnapshots.set(execution.aggregateId, execution.ruleSnapshot)
+          }
         } else if (execution.aggregateKind === 'ENCOUNTER' && execution.ruleSnapshot) {
           this.#encounterRuleSnapshots.set(execution.aggregateId, execution.ruleSnapshot)
         }

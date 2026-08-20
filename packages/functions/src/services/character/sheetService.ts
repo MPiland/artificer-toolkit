@@ -75,7 +75,11 @@ import {
   pruneCharacterCommittedSheetSourcesRoots
 } from './characterCommittedSheetSources.js'
 import { createCommittedCharacterRuleEvaluation } from './characterCommittedRuleEvaluation.js'
-import { compileCharacterMechanicsProjection } from './characterMechanicsCompiler.js'
+import {
+  advanceCharacterMechanicsProjectionCommandState,
+  compileCharacterMechanicsProjection
+} from './characterMechanicsCompiler.js'
+import { deriveCharacterSceneVision } from './characterSceneVision.js'
 import {
   applyCompletedCharacterRest,
   buildCharacterRestPreview,
@@ -390,6 +394,241 @@ export interface CharacterSheetCommandExecutionResult {
   replayed: boolean
   response: CharacterSheetCommandResponseDto
   ruleSnapshot: CharacterSheetCommittedRuleSnapshot
+}
+
+export interface CompactLiveCharacterHitPointCommandExecution {
+  characterVision: import('@artificer-toolkit/shared/vtt').SceneCharacterVision
+  replayed: boolean
+  version: number
+}
+
+/**
+ * Executes the one high-frequency live play-state lane without rebuilding a
+ * Sheet. It still publishes both correctness projections and the command
+ * receipt in the same transaction.
+ */
+export async function executeCompactLiveCharacterHitPointCommand(
+  params: Pick<
+    ExecuteCharacterSheetCommandParams,
+    'characterId' | 'command' | 'db' | 'liveSessionAuthority' | 'userId'
+  >
+): Promise<CompactLiveCharacterHitPointCommandExecution> {
+  const { command } = params
+  if (command.type !== 'ADJUST_HIT_POINTS') {
+    throw new Error('The compact live Character lane only accepts ADJUST_HIT_POINTS commands.')
+  }
+
+  const repository = createCharacterRepository(params.db)
+  const row = await repository.findById(params.characterId)
+  if (!row) {
+    throw createNamedError('NotFoundError', `Character "${params.characterId}" was not found.`)
+  }
+  if (row.status !== AUTHORED_RECORD_STATUS.ACTIVE || !row.rule_pack_revision_id) {
+    throw new CharacterSheetCommandError(
+      `Character "${params.characterId}" is not finalized with a pinned rule revision.`
+    )
+  }
+
+  const campaignContext = await resolveCharacterSheetCampaignContext(
+    params.db,
+    { id: row.id, userId: row.user_id },
+    params.userId
+  )
+  if (campaignContext.viewer === 'CAMPAIGN_OWNER') {
+    if (campaignContext.campaignStatus !== 'ACTIVE') {
+      throw new CharacterSheetCommandError('Archived Campaigns are read-only.')
+    }
+    assertCampaignGmSheetCommandAllowed(command)
+  }
+
+  await assertCharacterLiveSessionCommandAuthority(
+    params.db,
+    params.characterId,
+    params.liveSessionAuthority
+  )
+
+  const commandFingerprint = fingerprintCharacterSheetCommand(command)
+  const eventRepository = createCharacterEventRepository(params.db)
+  const priorEvent = await eventRepository.findByCommandId(params.characterId, command.commandId)
+  if (priorEvent) {
+    if (
+      priorEvent.type !== 'CHARACTER_SHEET_COMMAND_APPLIED' ||
+      priorEvent.commandType !== command.type ||
+      priorEvent.commandFingerprint !== commandFingerprint ||
+      priorEvent.committedStreamVersion === undefined
+    ) {
+      throw new CharacterSheetCommandError(
+        `Command "${command.commandId}" was already used for different or unverifiable input.`
+      )
+    }
+    const mechanics = await createCharacterMechanicsProjectionRepository(params.db).requireCurrent({
+      characterId: params.characterId,
+      expectedRuleRevisionId: row.rule_pack_revision_id,
+      expectedStreamVersion: row.stream_version
+    })
+    return {
+      characterVision: deriveCharacterSceneVision(
+        params.characterId,
+        mechanics.rulePolicyOutput.senses
+      ),
+      replayed: true,
+      version: priorEvent.committedStreamVersion
+    }
+  }
+
+  if (row.stream_version !== command.expectedVersion) {
+    throw new ConcurrencyError(params.characterId, command.expectedVersion)
+  }
+  const mechanicsRepository = createCharacterMechanicsProjectionRepository(params.db)
+  const mechanics = await mechanicsRepository.requireCurrent({
+    characterId: params.characterId,
+    expectedRuleRevisionId: row.rule_pack_revision_id,
+    expectedStreamVersion: command.expectedVersion
+  })
+  const projectedHitPoints = mechanics.commandState.state.hitpoints
+  const campaignMechanicalContextChecksum = campaignContext.campaignId
+    ? checksumCampaignCharacterMechanicalContext({
+        adjustments: campaignContext.adjustments,
+        attunementSlotOverride: campaignContext.attunementSlotOverride
+      })
+    : null
+  const campaignMechanics = campaignContext.campaignId
+    ? await createCampaignCharacterMechanicsProjectionRepository(params.db).requireCurrent({
+        campaignId: campaignContext.campaignId,
+        characterId: params.characterId,
+        expectedBaseMechanicsProjectionChecksum: mechanics.projectionChecksum,
+        expectedCharacterStreamVersion: command.expectedVersion,
+        expectedMechanicalContextChecksum: campaignMechanicalContextChecksum as string,
+        expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
+        baseMechanicsProjection: mechanics
+      })
+    : null
+  const effectiveRulePolicyOutput = campaignMechanics?.rulePolicyOutput ?? mechanics.rulePolicyOutput
+  const effectiveMaximum = resolveCharacterEffectiveMaximumHitPoints(
+    effectiveRulePolicyOutput.derivedStats.maxHitPoints.effective
+  )
+  const nextHitPoints =
+    command.mode === 'HEAL'
+      ? {
+          current: clampCharacterCurrentHitPoints(
+            projectedHitPoints.current + command.amount,
+            effectiveMaximum
+          ),
+          temp: projectedHitPoints.temp
+        }
+      : (() => {
+          const currentTemp = projectedHitPoints.temp ?? 0
+          const absorbed = Math.min(currentTemp, command.amount)
+          return {
+            current: clampCharacterCurrentHitPoints(
+              projectedHitPoints.current - (command.amount - absorbed),
+              effectiveMaximum
+            ),
+            temp: Math.max(currentTemp - absorbed, 0)
+          }
+        })()
+  const nextCommandState = {
+    ...mechanics.commandState,
+    state: {
+      ...mechanics.commandState.state,
+      hitpoints: {
+        ...mechanics.commandState.state.hitpoints,
+        ...nextHitPoints
+      }
+    }
+  }
+  const nextMechanics = advanceCharacterMechanicsProjectionCommandState({
+    current: mechanics,
+    characterCommandState: nextCommandState,
+    characterStreamVersion: command.expectedVersion + 1
+  })
+  const nextCampaignMechanics =
+    campaignContext.campaignId && campaignMechanics
+      ? compileCampaignCharacterMechanicsProjection({
+          campaignId: campaignContext.campaignId,
+          characterId: params.characterId,
+          characterStreamVersion: command.expectedVersion + 1,
+          baseMechanicsProjectionChecksum: nextMechanics.projectionChecksum,
+          mechanicalContextChecksum: campaignMechanics.mechanicalContextChecksum,
+          ...(campaignMechanics.kind === 'MATERIALIZED'
+            ? {
+                rulePolicyInput: campaignMechanics.rulePolicyInput,
+                rulePolicyOutput: campaignMechanics.rulePolicyOutput
+              }
+            : {})
+        })
+      : null
+  const event = {
+    type: 'CHARACTER_SHEET_COMMAND_APPLIED',
+    eventId: crypto.randomUUID(),
+    characterId: params.characterId,
+    occurredAt: new Date().toISOString(),
+    actorId: params.userId,
+    commandId: command.commandId,
+    schemaVersion: 1,
+    commandType: command.type,
+    commandFingerprint,
+    committedStreamVersion: command.expectedVersion + 1,
+    summary:
+      command.mode === 'HEAL'
+        ? `Healed ${command.amount} hit point${command.amount === 1 ? '' : 's'}.`
+        : `Took ${command.amount} damage.`
+  } satisfies CharacterEvent
+
+  let version: number
+  try {
+    version = await repository.patchLiveHitPoints(params.characterId, {
+      expected: { current: projectedHitPoints.current, temp: projectedHitPoints.temp },
+      next: nextHitPoints,
+      expectedStreamVersion: command.expectedVersion,
+      ...(campaignContext.campaignId
+        ? {
+            beforeCharacterLock: (trx) =>
+              createCampaignCharacterMechanicsProjectionRepository(trx).lockAssignment({
+                campaignId: campaignContext.campaignId as string,
+                characterId: params.characterId
+              })
+          }
+        : {}),
+      afterPersist: async (trx, persistedStreamVersion) => {
+        if (persistedStreamVersion !== nextMechanics.characterStreamVersion) {
+          throw new ConcurrencyError(params.characterId, command.expectedVersion)
+        }
+        await assertCharacterLiveSessionCommandAuthority(
+          trx,
+          params.characterId,
+          params.liveSessionAuthority
+        )
+        await createCharacterMechanicsProjectionRepository(trx).publish(nextMechanics, {
+          requireActiveAuthoredVersions: false
+        })
+        if (nextCampaignMechanics && campaignMechanics) {
+          await createCampaignCharacterMechanicsProjectionRepository(trx).publish({
+            projection: nextCampaignMechanics,
+            expectedPriorOverlayChecksum: campaignMechanics.projectionChecksum
+          })
+        }
+        await createCharacterEventRepository(trx).append(event)
+      }
+    })
+  } catch (error) {
+    if (error instanceof ConcurrencyError) {
+      const concurrentEvent = await eventRepository.findByCommandId(
+        params.characterId,
+        command.commandId
+      )
+      if (concurrentEvent) return executeCompactLiveCharacterHitPointCommand(params)
+    }
+    throw error
+  }
+  return {
+    characterVision: deriveCharacterSceneVision(
+      params.characterId,
+      effectiveRulePolicyOutput.senses
+    ),
+    replayed: false,
+    version
+  }
 }
 
 function preservesCommittedCharacterMechanics(

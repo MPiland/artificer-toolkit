@@ -10,7 +10,6 @@ import {
 
 import {
   claimLiveSessionRoomCommandAuthority,
-  deriveLiveSessionCharacterVision,
   executeLiveSessionCommand,
   loadLiveSessionCoordinatorSnapshot,
   releaseLiveSessionRoomCommandAuthority,
@@ -23,10 +22,10 @@ function wireExecution(
 ): LiveSessionExecutorCommandResultDto {
   if (execution.aggregateKind === 'SCENE') return { ...execution, hostTiming }
   if (execution.aggregateKind === 'CHARACTER') {
-    const { ruleSnapshot, ...wire } = execution
+    const { characterVision, ruleSnapshot: _ruleSnapshot, ...wire } = execution
     return {
       ...wire,
-      characterVision: deriveLiveSessionCharacterVision(execution.aggregateId, ruleSnapshot),
+      characterVision,
       hostTiming
     }
   }

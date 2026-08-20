@@ -152,6 +152,8 @@ export interface CharacterSheetCommandAppliedEvent extends CharacterEventEnvelop
   type: 'CHARACTER_SHEET_COMMAND_APPLIED'
   commandType: string
   commandFingerprint: string
+  /** Exact stream version committed by compact idempotent command lanes. */
+  committedStreamVersion?: number
   summary: string
   result?: CharacterSheetCommandResult
 }

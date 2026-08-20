@@ -27,6 +27,7 @@ import {
   renewLiveSessionCommandAuthority
 } from '../campaign/liveSessionCommandAuthority.js'
 import {
+  executeCompactLiveCharacterHitPointCommand,
   executeCharacterSheetCommandWithRuleEvaluation,
   type CharacterSheetCommittedRuleSnapshot,
   type CharacterSheetCommandExecutionResult,
@@ -379,8 +380,9 @@ export type LiveSessionCommandExecution =
       commandId: string
       replayed: boolean
       version: number
-      response: CharacterSheetCommandExecutionResult['response']
-      ruleSnapshot: CharacterSheetCommittedRuleSnapshot
+      characterVision: SceneCharacterVision
+      response: CharacterSheetCommandExecutionResult['response'] | null
+      ruleSnapshot?: CharacterSheetCommittedRuleSnapshot
     }
   | {
       aggregateKind: 'ENCOUNTER'
@@ -423,6 +425,24 @@ export async function executeLiveSessionCommand(
     if (!attendance.some((entry) => entry.characterId === command.characterId && entry.present)) {
       throw new CampaignAccessError()
     }
+    if (command.command.type === 'ADJUST_HIT_POINTS') {
+      const execution = await executeCompactLiveCharacterHitPointCommand({
+        db,
+        characterId: command.characterId,
+        command: command.command,
+        userId,
+        liveSessionAuthority: commandAuthority
+      })
+      return {
+        aggregateKind: 'CHARACTER',
+        aggregateId: command.characterId,
+        commandId: command.command.commandId,
+        replayed: execution.replayed,
+        version: execution.version,
+        response: null,
+        characterVision: execution.characterVision
+      }
+    }
     const execution = await executeCharacterSheetCommandWithRuleEvaluation({
       db,
       characterId: command.characterId,
@@ -439,6 +459,7 @@ export async function executeLiveSessionCommand(
       replayed: execution.replayed,
       version: execution.response.streamVersion,
       response: execution.response,
+      characterVision: deriveLiveSessionCharacterVision(command.characterId, execution.ruleSnapshot),
       ruleSnapshot: execution.ruleSnapshot
     }
   }

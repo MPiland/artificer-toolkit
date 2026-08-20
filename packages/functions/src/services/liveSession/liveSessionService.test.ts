@@ -19,6 +19,8 @@ const mocks = vi.hoisted(() => ({
   requireCurrentProjection: vi.fn(),
   findSceneByEncounter: vi.fn(),
   executeSceneCommand: vi.fn(),
+  executeCompactLiveHitPoints: vi.fn(),
+  executeCharacterSheetCommand: vi.fn(),
   loadCharacterSceneVision: vi.fn(),
   loadCharacterRuleSnapshot: vi.fn()
 }))
@@ -62,6 +64,11 @@ vi.mock('../character/characterLiveSessionSnapshot.js', () => ({
   loadCharacterRuleSnapshotForLiveSessionCampaign: mocks.loadCharacterRuleSnapshot
 }))
 
+vi.mock('../character/sheetService.js', () => ({
+  executeCompactLiveCharacterHitPointCommand: mocks.executeCompactLiveHitPoints,
+  executeCharacterSheetCommandWithRuleEvaluation: mocks.executeCharacterSheetCommand
+}))
+
 vi.mock('../encounter/vttSceneService.js', () => ({
   attachEncounterScene: vi.fn(),
   executeEncounterSceneCommandWithState: mocks.executeSceneCommand
@@ -81,6 +88,8 @@ function ruleSnapshot(streamVersion: number) {
 describe('live-session room snapshot authorization', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    mocks.executeCompactLiveHitPoints.mockReset()
+    mocks.executeCharacterSheetCommand.mockReset()
     mocks.resolveCampaignAuthority.mockResolvedValue({
       campaign: {
         id: ids.campaign,
@@ -262,5 +271,50 @@ describe('live-session room snapshot authorization', () => {
         sceneVisionContext: { characterVisions: [], encounterCharacterBindings: [] }
       }
     )
+  })
+
+  it('routes live hit-point adjustments through the compact receipt lane', async () => {
+    const commandId = '00000000-0000-4000-8000-000000000008'
+    mocks.executeCompactLiveHitPoints.mockResolvedValue({
+      characterVision: { characterId: ids.characterA, dimRange: null },
+      replayed: false,
+      version: 8
+    })
+
+    const execution = await executeLiveSessionCommand(
+      {} as DBLike,
+      ids.playerA,
+      { campaignId: ids.campaign, sessionId: ids.session },
+      {
+        aggregateKind: 'CHARACTER',
+        characterId: ids.characterA,
+        command: {
+          amount: 3,
+          commandId,
+          expectedVersion: 7,
+          mode: 'DAMAGE',
+          type: 'ADJUST_HIT_POINTS'
+        }
+      },
+      'room-authority',
+      { characterVisions: [], encounterCharacterBindings: [] }
+    )
+
+    expect(mocks.executeCompactLiveHitPoints).toHaveBeenCalledWith({
+      db: expect.anything(),
+      characterId: ids.characterA,
+      command: expect.objectContaining({ commandId, type: 'ADJUST_HIT_POINTS' }),
+      liveSessionAuthority: { authorityId: 'room-authority', sessionId: ids.session },
+      userId: ids.playerA
+    })
+    expect(mocks.executeCharacterSheetCommand).not.toHaveBeenCalled()
+    expect(execution).toMatchObject({
+      aggregateKind: 'CHARACTER',
+      aggregateId: ids.characterA,
+      characterVision: { characterId: ids.characterA, dimRange: null },
+      commandId,
+      response: null,
+      version: 8
+    })
   })
 })

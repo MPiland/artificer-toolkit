@@ -276,6 +276,7 @@ describe('Character Sheet shell', () => {
     sheet.meta.campaignId = tabletopCampaignId
     sheet.meta.characterId = liveCharacterId
     let httpCommandCalled = false
+    let refetchQueries: ReturnType<typeof vi.spyOn> | undefined
 
     server.use(
       http.all('*/api/trpc/campaigns.sessions.list', () => trpcJson([tabletopSession])),
@@ -286,8 +287,6 @@ describe('Character Sheet shell', () => {
       })
     )
     liveSessionMocks.executeCommand.mockImplementation(async (command) => {
-      const committedSheet = structuredClone(sheet)
-      committedSheet.meta.streamVersion = 5
       return {
         acceptedSequence: 1,
         aggregateId: sheet.meta.characterId,
@@ -295,17 +294,20 @@ describe('Character Sheet shell', () => {
         deliverySequence: 1,
         originCommandId: command.command.commandId,
         replayed: false,
-        response: {
-          characterId: sheet.meta.characterId,
-          sheet: committedSheet,
-          streamVersion: 5
-        },
+        response: null,
         type: 'COMMAND_COMMITTED' as const,
         version: 5
       }
     })
 
-    renderWithAppProviders(<LiveCharacterSheetHarness sheet={sheet} />)
+    renderWithAppProviders(
+      <LiveCharacterSheetHarness
+        onClient={(client) => {
+          refetchQueries ??= vi.spyOn(client, 'refetchQueries')
+        }}
+        sheet={sheet}
+      />
+    )
 
     await waitFor(
       () => expect(screen.getByRole('button', { name: /manage (?:hp|hit points)/i })).toBeEnabled(),
@@ -323,6 +325,12 @@ describe('Character Sheet shell', () => {
       command: expect.objectContaining({ expectedVersion: 4, type: 'ADJUST_HIT_POINTS' })
     })
     expect(httpCommandCalled).toBe(false)
+    await waitFor(() =>
+      expect(refetchQueries).toHaveBeenCalledWith({
+        queryKey: queryKeys.characters.sheet(sheet.meta.characterId),
+        exact: true
+      })
+    )
   })
 
   it('does not apply a delayed live command response older than the room version', async () => {

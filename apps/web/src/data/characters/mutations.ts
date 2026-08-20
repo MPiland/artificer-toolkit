@@ -128,8 +128,8 @@ export function useCharacterSheetCommandMutation(
         characterId,
         command: input
       })
-      if (committed.aggregateKind !== 'CHARACTER' || !committed.response) {
-        throw new Error('The live session did not return the committed Character Sheet.')
+      if (committed.aggregateKind !== 'CHARACTER') {
+        throw new Error('The live session committed a different aggregate.')
       }
       return committed.response
     },
@@ -153,6 +153,20 @@ export function useCharacterSheetCommandMutation(
       return { previousPanels, previousSheet }
     },
     onSuccess: async (response) => {
+      if (response === null) {
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: sheetKey, exact: true }),
+          queryClient.refetchQueries({ queryKey: panelsKey })
+        ])
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.characters.detail(characterId),
+            exact: true
+          }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.characters.list() })
+        ])
+        return
+      }
       const cachedVersion =
         queryClient.getQueryData<CharacterSheetResponseDto>(sheetKey)?.meta.streamVersion ?? 0
       const liveVersion = options.getLiveAggregateVersion?.() ?? 0

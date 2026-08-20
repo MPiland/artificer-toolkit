@@ -224,7 +224,7 @@ export const liveSessionExecutorCommandResultDtoSchema = z.discriminatedUnion('a
     characterVision: liveSessionCharacterVisionDtoSchema,
     replayed: z.boolean(),
     hostTiming: liveSessionHostTimingDtoSchema,
-    response: characterSheetCommandResponseDtoSchema,
+    response: characterSheetCommandResponseDtoSchema.nullable(),
     version: versionSchema
   }),
   z.strictObject({

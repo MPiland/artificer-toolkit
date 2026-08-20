@@ -304,3 +304,32 @@ export function compileCharacterMechanicsProjection(
     projectionChecksum: checksumCharacterMechanicsProjection(candidate)
   }
 }
+
+/**
+ * Advances only canonical Sheet command state from an already verified
+ * committed projection. The immutable authored, vocabulary, rule, and
+ * evaluator inputs remain byte-identical while both checksums are rebuilt.
+ */
+export function advanceCharacterMechanicsProjectionCommandState(input: {
+  characterCommandState: CharacterAuthored
+  characterStreamVersion: number
+  current: CharacterMechanicsProjection
+}): CharacterMechanicsProjection {
+  const commandStateChecksum = checksumCharacterMechanicsCommandState(input.characterCommandState)
+  const laneCandidate = {
+    ...input.current,
+    characterStreamVersion: input.characterStreamVersion,
+    commandState: input.characterCommandState,
+    commandStateChecksum,
+    commandLaneChecksum: '0'.repeat(64),
+    projectionChecksum: '0'.repeat(64)
+  }
+  const candidate = characterMechanicsProjectionSchema.parse({
+    ...laneCandidate,
+    commandLaneChecksum: checksumCharacterMechanicsCommandLane(laneCandidate)
+  })
+  return {
+    ...candidate,
+    projectionChecksum: checksumCharacterMechanicsProjection(candidate)
+  }
+}

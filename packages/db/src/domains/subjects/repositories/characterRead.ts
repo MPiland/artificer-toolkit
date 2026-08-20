@@ -48,6 +48,10 @@ export interface CharacterRepository {
       afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
     }
   ): Promise<number>
+  patchLiveHitPoints(
+    characterId: string,
+    input: CharacterLiveHitPointsPatch
+  ): Promise<number>
   setRulePackRevision(
     characterId: string,
     expectedRevisionId: string,
@@ -91,6 +95,19 @@ export type CharacterSheetStatePatch =
       groups: CharacterState['noteGroups']
       notes: CharacterState['notes']
     }
+
+/**
+ * Narrow Sheet-owned write for the authoritative live HP command lane. It
+ * preserves hit-die state and makes the caller prove canonical/projection
+ * parity while the row is locked.
+ */
+export interface CharacterLiveHitPointsPatch {
+  expected: { current: number; temp: number | undefined }
+  next: { current: number; temp: number | undefined }
+  expectedStreamVersion: number
+  beforeCharacterLock?: (trx: DBLike) => Promise<void>
+  afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
+}
 
 export class ConcurrencyError extends Error {
   constructor(characterId: string, expected: number) {

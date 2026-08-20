@@ -4,9 +4,7 @@ import {
   createCharacterRepository,
   type DBLike
 } from '@artificer-toolkit/db'
-import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import { AUTHORED_RECORD_STATUS } from '@artificer-toolkit/shared/core'
-import type { CharacterSheetAdjustment } from '@artificer-toolkit/shared/character'
 
 import type { CharacterSheetCommittedRuleSnapshot } from './sheetService.js'
 import { assembleCharacterSheetBundleForRuleContext } from './characterSheetBundleAssembly.js'
@@ -14,45 +12,9 @@ import {
   checksumCampaignCharacterMechanicalContext,
   resolveCharacterLiveSessionRuleContext
 } from './campaignCharacterSheet.js'
+import { resolveCharacterSceneVisionDimRangeFeet } from './characterSceneVision.js'
 import { CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION } from '../campaign/campaignCharacterMechanicsProjection.js'
-
-function toFeet(range: { amount: number; unit: string }): number | null {
-  switch (range.unit) {
-    case 'FEET':
-      return range.amount
-    case 'INCHES':
-      return range.amount / 12
-    case 'MILES':
-      return range.amount * 5_280
-    case 'YARDS':
-      return range.amount * 3
-    default:
-      return null
-  }
-}
-
-export function resolveCharacterSceneVisionDimRangeFeet(
-  senses: CharacterRulePolicyOutput['senses'],
-  adjustments: readonly CharacterSheetAdjustment[] = []
-): number | null {
-  const baseRange = senses.reduce<number | null>((maximum, sense) => {
-    if (sense.senseCode.toUpperCase() !== 'DARKVISION' || !sense.range) return maximum
-    const feet = toFeet(sense.range)
-    if (feet === null) return maximum
-    return maximum === null ? feet : Math.max(maximum, feet)
-  }, null)
-  const override = adjustments.find(
-    (adjustment) =>
-      adjustment.family === 'SENSE' &&
-      adjustment.field === 'RANGE_OVERRIDE' &&
-      adjustment.senseId.toUpperCase() === 'DARKVISION'
-  )
-  if (!override || typeof override.value !== 'number') return baseRange
-  const baseDarkvisionRange = senses.find(
-    (sense) => sense.senseCode.toUpperCase() === 'DARKVISION'
-  )?.range
-  return toFeet({ amount: override.value, unit: baseDarkvisionRange?.unit ?? 'FEET' })
-}
+export { resolveCharacterSceneVisionDimRangeFeet } from './characterSceneVision.js'
 
 export async function loadCharacterSceneVisionForLiveSessionCampaign(
   db: DBLike,

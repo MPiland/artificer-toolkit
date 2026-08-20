@@ -7,6 +7,7 @@ import { insertRows } from '../upserts/characterRows.js'
 import { withTransaction } from '../../../utils/index.js'
 import {
   ConcurrencyError,
+  type CharacterLiveHitPointsPatch,
   type CharacterRow,
   type CharacterSheetStatePatch
 } from './characterRead.js'
@@ -442,6 +443,56 @@ export async function patchCharacterSheetState(
       await applyCharacterSheetStatePatch(trx, characterId, patch)
     }
     await options.afterPersist?.(trx, nextStreamVersion)
+    return nextStreamVersion
+  })
+}
+
+export async function patchCharacterLiveHitPoints(
+  db: DBLike,
+  characterId: string,
+  input: CharacterLiveHitPointsPatch
+): Promise<number> {
+  return withTransaction(db, async (trx) => {
+    await input.beforeCharacterLock?.(trx)
+    const row = (await trx
+      .selectFrom('characters')
+      .selectAll()
+      .where('id', '=', characterId)
+      .forUpdate()
+      .executeTakeFirst()) as CharacterRow | undefined
+    if (!row) throw new Error(`Character "${characterId}" was not found.`)
+    if (row.stream_version !== input.expectedStreamVersion) {
+      throw new ConcurrencyError(characterId, input.expectedStreamVersion)
+    }
+
+    const hitPoints = await trx
+      .selectFrom('character_hitpoint_state')
+      .select(['current', 'temp'])
+      .where('character_id', '=', characterId)
+      .forUpdate()
+      .executeTakeFirst()
+    if (
+      !hitPoints ||
+      hitPoints.current !== input.expected.current ||
+      (hitPoints.temp ?? undefined) !== input.expected.temp
+    ) {
+      throw new Error(
+        `Character "${characterId}" canonical hit points do not match its committed mechanics projection.`
+      )
+    }
+
+    const nextStreamVersion = row.stream_version + 1
+    await trx
+      .updateTable('character_hitpoint_state')
+      .set({ current: input.next.current, temp: input.next.temp ?? null })
+      .where('character_id', '=', characterId)
+      .execute()
+    await trx
+      .updateTable('characters')
+      .set({ stream_version: nextStreamVersion })
+      .where('id', '=', characterId)
+      .execute()
+    await input.afterPersist?.(trx, nextStreamVersion)
     return nextStreamVersion
   })
 }
