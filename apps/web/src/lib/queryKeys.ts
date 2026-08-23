@@ -112,6 +112,7 @@ export const queryKeys = {
     sheet: (id: string) => ['characters', 'sheet', id] as const,
     extraOptions: (id: string, input: object) =>
       ['characters', 'sheet', id, 'extra-options', input] as const,
+    preparationOptions: (id: string) => ['characters', 'sheet', id, 'preparation-options'] as const,
     panels: (id: string) => ['characters', 'sheet', id, 'panel'] as const,
     panel: (id: string, target: object) => ['characters', 'sheet', id, 'panel', target] as const
   },

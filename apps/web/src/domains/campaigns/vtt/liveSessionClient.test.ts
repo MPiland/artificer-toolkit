@@ -82,12 +82,10 @@ describe('live-session browser connection', () => {
     expect(first?.protocols).toEqual(['artificer.live-session.v1', 'artificer.ticket.ticket-1'])
     first?.open()
     first?.receive(readyMessage)
-    expect(
-      connection.sendCommand({
-        aggregateKind: 'SCENE',
-        command: { commandId, encounterId, sceneDefinitionId, type: 'ATTACH_SCENE' }
-      })
-    ).toBe(true)
+    const pending = connection.executeCommand({
+      aggregateKind: 'SCENE',
+      command: { commandId, encounterId, sceneDefinitionId, type: 'ATTACH_SCENE' }
+    })
 
     first?.close(1012, 'restart')
     await vi.advanceTimersByTimeAsync(250)
@@ -97,12 +95,34 @@ describe('live-session browser connection', () => {
     second?.open()
     second?.receive(readyMessage)
 
-    expect(second?.sent.map((message) => JSON.parse(message) as unknown)).toContainEqual({
-      lastSeenDeliverySequence: 0,
-      pendingCommandIds: [commandId],
-      type: 'RESUME'
+    expect(second?.sent.map((message) => JSON.parse(message) as unknown)).toEqual([
+      {
+        lastSeenDeliverySequence: 0,
+        pendingCommandIds: [commandId],
+        type: 'RESUME'
+      },
+      {
+        command: {
+          aggregateKind: 'SCENE',
+          command: { commandId, encounterId, sceneDefinitionId, type: 'ATTACH_SCENE' }
+        },
+        type: 'COMMAND'
+      }
+    ])
+    second?.receive({
+      acceptedSequence: 1,
+      aggregateId: encounterId,
+      aggregateKind: 'SCENE',
+      deliverySequence: 1,
+      delta: null,
+      originCommandId: commandId,
+      replayed: true,
+      snapshot: null,
+      type: 'COMMAND_COMMITTED',
+      version: 1
     })
-    expect(messages).toEqual([readyMessage, readyMessage])
+    await expect(pending).resolves.toMatchObject({ originCommandId: commandId, replayed: true })
+    expect(messages.map(({ type }) => type)).toEqual(['READY', 'READY', 'COMMAND_COMMITTED'])
     expect(statuses).toContain('RECONNECTING')
     connection.close()
   })

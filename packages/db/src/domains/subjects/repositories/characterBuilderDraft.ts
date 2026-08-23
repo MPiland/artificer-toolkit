@@ -150,6 +150,36 @@ export function createCharacterBuilderDraftRepository(db: DBLike) {
       return result.rows.map((row) => mapDraft(row))
     },
 
+    async lockByIds(params: {
+      draftIds: readonly string[]
+      userId: string
+    }): Promise<CharacterBuilderDraft[]> {
+      const draftIds = [...new Set(params.draftIds)].sort()
+      if (draftIds.length === 0) return []
+      const result = await sql<CharacterBuilderDraftRow>`
+        select
+          id,
+          character_id,
+          user_id,
+          system_id,
+          label,
+          status,
+          mode,
+          payload,
+          base_active_updated_at::text as base_active_updated_at,
+          created_at::text as created_at,
+          updated_at::text as updated_at,
+          ${activeExistsProjection()} as active_exists
+        from character_builder_drafts
+        where user_id = ${params.userId}
+          and id in (${sql.join(draftIds.map((draftId) => sql`${draftId}::uuid`))})
+        order by id
+        for update
+      `.execute(db)
+
+      return result.rows.map((row) => mapDraft(row))
+    },
+
     async save(input: SaveCharacterBuilderDraftInput): Promise<CharacterBuilderDraft> {
       const payloadJson = JSON.stringify(input.payload)
       const result = await sql<CharacterBuilderDraftRow>`

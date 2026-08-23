@@ -11,15 +11,21 @@ import {
 } from '@artificer-toolkit/db'
 import {
   ABILITY_OPTIONS,
+  AUTHORED_RECORD_STATUS,
+  CASTING_TIME_UNIT_REGISTRY,
   CLASS_CATEGORY,
   EQUIPMENT_PROPERTY_REGISTRY,
   MEASUREMENT_UNIT_REGISTRY,
   PROFICIENCY_KIND,
   RACE_CATEGORY_CODE,
   SIZE_OPTIONS,
+  SPELL_ATTRIBUTE_REGISTRY,
+  type CastingTimeUnitCode,
   type EquipmentCategoryCode,
-  type EquipmentPropertyCode
+  type EquipmentPropertyCode,
+  type SpellAttribute
 } from '@artificer-toolkit/shared/core'
+import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
 import type {
   ClassAuthored,
   BackgroundAuthored,
@@ -101,6 +107,23 @@ export type CharacterBuilderSpellCatalogRecord = Pick<
   | 'magicSchoolId'
   | 'materialDescription'
 >
+
+export function toCharacterBuilderSpellCatalogRecord(
+  spell: SpellAuthored
+): CharacterBuilderSpellCatalogRecord {
+  return {
+    id: spell.id,
+    label: spell.label,
+    attributes: spell.attributes,
+    castingTime: spell.castingTime,
+    classIds: spell.classIds,
+    components: spell.components,
+    description: spell.description,
+    level: spell.level,
+    magicSchoolId: spell.magicSchoolId,
+    materialDescription: spell.materialDescription
+  }
+}
 
 export interface CharacterBuilderCatalog {
   races: CharacterBuilderRaceCatalogRecord[]
@@ -184,18 +207,7 @@ export function mergeCampaignContentIntoCharacterBuilderCatalog(
     ),
     spells: replaceCatalogRecords(
       catalog.spells,
-      content.spells.map((record) => ({
-        id: record.id,
-        label: record.label,
-        attributes: record.attributes,
-        castingTime: record.castingTime,
-        classIds: record.classIds,
-        components: record.components,
-        description: record.description,
-        level: record.level,
-        magicSchoolId: record.magicSchoolId,
-        materialDescription: record.materialDescription
-      }))
+      content.spells.map(toCharacterBuilderSpellCatalogRecord)
     )
   }
 }
@@ -209,80 +221,85 @@ export async function loadCharacterBuilderSpellCatalog(
   systemId: string,
   userId: string
 ): Promise<CharacterBuilderSpellCatalogRecord[]> {
-  const { items } = await getSpellListQuery(db, { systemId })
-  const versions = await createAuthoredVersionRepository(db).findActiveByIds({
-    subjectKind: 'SPELL',
-    subjectIds: items.map((item) => item.id),
-    systemId,
-    userId,
-    includeMaster: true
-  })
-
+  const { items, meta } = await getSpellListQuery(db, { systemId })
   return items.flatMap((item) => {
-    const version = versions.get(item.id)
-    if (!version) return []
-    const spell = version.authored.document as SpellAuthored
-    return spell.systemId === systemId ? [spell] : []
+    if (
+      item.status !== AUTHORED_RECORD_STATUS.ACTIVE ||
+      item.systemId !== systemId ||
+      (!item.isMaster && item.ownerUserId !== userId) ||
+      !item.magicSchoolId ||
+      !(item.castingTimeUnit in CASTING_TIME_UNIT_REGISTRY)
+    ) {
+      return []
+    }
+    const attributes = meta.attributes.flatMap((attribute) =>
+      attribute.spellIds.includes(item.id) && attribute.id in SPELL_ATTRIBUTE_REGISTRY
+        ? [attribute.id as SpellAttribute]
+        : []
+    )
+    const classIds = meta.classes.flatMap((classRecord) =>
+      classRecord.spellIds.includes(item.id) ? [classRecord.id] : []
+    )
+    return [
+      {
+        id: item.id,
+        label: item.label,
+        attributes,
+        castingTime: {
+          unit: item.castingTimeUnit as CastingTimeUnitCode,
+          amount: item.castingTimeAmount
+        },
+        classIds,
+        description: item.description ?? '',
+        level: item.level,
+        magicSchoolId: item.magicSchoolId,
+        ...(item.materialDescription ? { materialDescription: item.materialDescription } : {})
+      }
+    ]
   })
 }
 
 /**
  * Loads only the spell documents relevant to a structural Character command.
- * The spell catalogue projection supplies the bounded candidate ids; immutable
- * authored versions remain the source of the rule facts.
+ * The caller supplies the bounded active action/source ids; current authored
+ * versions remain the exact source of the rule facts.
  */
 export async function loadCharacterStructuralSpellCatalog(input: {
   db: DBLike
   systemId: string
   userId: string
-  classIds: readonly string[]
   campaignSpells?: readonly SpellAuthored[]
-  selectedSpellIds: readonly string[]
-}): Promise<CharacterBuilderSpellCatalogRecord[]> {
-  const classIds = [...new Set(input.classIds)]
-  const rows = classIds.length
-    ? await input.db
-        .selectFrom('spell_catalog_classes as spell_class')
-        .innerJoin('spells as spell', 'spell.id', 'spell_class.spell_id')
-        .select('spell_class.spell_id')
-        .where('spell_class.class_id', 'in', classIds)
-        .whereRef('spell_class.authored_version_id', '=', 'spell.active_version_id')
-        .where('spell.system_id', '=', input.systemId)
-        .where((expression) =>
-          expression.or([
-            expression('spell.is_master', '=', true),
-            expression('spell.user_id', '=', input.userId)
-          ])
-        )
-        .limit(501)
-        .execute()
-    : []
-  const campaign = (input.campaignSpells ?? []).filter(
-    (spell) =>
-      spell.systemId === input.systemId &&
-      (spell.classIds.some((classId) => classIds.includes(classId)) ||
-        input.selectedSpellIds.includes(spell.id))
-  )
-  const canonicalSpellIds = [
-    ...new Set([...rows.map((row) => row.spell_id), ...input.selectedSpellIds])
-  ]
-  const candidateIds = new Set([...canonicalSpellIds, ...campaign.map((spell) => spell.id)])
-  if (candidateIds.size > 500) {
+  spellIds: readonly string[]
+}): Promise<SpellAuthored[]> {
+  const spellIds = [...new Set(input.spellIds)]
+  if (spellIds.length > 500) {
     throw new Error('Character structural spell candidates exceed the bounded catalogue limit.')
   }
-  if (canonicalSpellIds.length === 0 && campaign.length === 0) return []
+  if (spellIds.length === 0) return []
+  const requestedIds = new Set(spellIds)
+  const campaign = (input.campaignSpells ?? []).flatMap((candidate) => {
+    if (!requestedIds.has(candidate.id)) return []
+    const parsed = spellAuthoredDtoSchema.safeParse(candidate)
+    return parsed.success &&
+      parsed.data.id === candidate.id &&
+      parsed.data.systemId === input.systemId
+      ? [parsed.data as unknown as SpellAuthored]
+      : []
+  })
   const versions = await createAuthoredVersionRepository(input.db).findActiveByIds({
     subjectKind: 'SPELL',
-    subjectIds: canonicalSpellIds,
+    subjectIds: spellIds,
     systemId: input.systemId,
     userId: input.userId,
     includeMaster: true
   })
-  const canonical = canonicalSpellIds.flatMap((spellId) => {
+  const canonical = spellIds.flatMap((spellId) => {
     const version = versions.get(spellId)
     if (!version) return []
-    const spell = version.authored.document as SpellAuthored
-    return spell.systemId === input.systemId ? [spell] : []
+    const parsed = spellAuthoredDtoSchema.safeParse(version.authored.document)
+    return parsed.success && parsed.data.id === spellId && parsed.data.systemId === input.systemId
+      ? [parsed.data as unknown as SpellAuthored]
+      : []
   })
   return replaceCatalogRecords(canonical, campaign)
 }
@@ -293,7 +310,10 @@ export async function loadCharacterStructuralSubclassCatalog(input: {
   systemId: string
   userId: string
   baseClassIds: readonly string[]
-  campaignSubclasses?: readonly Extract<ClassAuthored, { category: typeof CLASS_CATEGORY.SUBCLASS }>[]
+  campaignSubclasses?: readonly Extract<
+    ClassAuthored,
+    { category: typeof CLASS_CATEGORY.SUBCLASS }
+  >[]
 }): Promise<CharacterBuilderClassCatalogRecord[]> {
   const baseClassIds = [...new Set(input.baseClassIds)]
   if (baseClassIds.length === 0) return []
@@ -304,16 +324,13 @@ export async function loadCharacterStructuralSubclassCatalog(input: {
     .where('category', '=', CLASS_CATEGORY.SUBCLASS)
     .where('parent_class_id', 'in', baseClassIds)
     .where((expression) =>
-      expression.or([
-        expression('is_master', '=', true),
-        expression('user_id', '=', input.userId)
-      ])
+      expression.or([expression('is_master', '=', true), expression('user_id', '=', input.userId)])
     )
     .limit(501)
     .execute()
   const ids = rows.flatMap((row) => (row.active_version_id ? [row.id] : []))
-  const campaign = (input.campaignSubclasses ?? []).filter(
-    (record) => baseClassIds.includes(record.parentClassId)
+  const campaign = (input.campaignSubclasses ?? []).filter((record) =>
+    baseClassIds.includes(record.parentClassId)
   )
   if (new Set([...ids, ...campaign.map((record) => record.id)]).size > 500) {
     throw new Error('Character structural subclass candidates exceed the bounded catalogue limit.')
@@ -329,22 +346,24 @@ export async function loadCharacterStructuralSubclassCatalog(input: {
   const canonical = ids.flatMap((id) => {
     const record = versions.get(id)?.authored.document as ClassAuthored | undefined
     return record?.category === CLASS_CATEGORY.SUBCLASS
-      ? [{
-          id: record.id,
-          label: record.label,
-          category: record.category,
-          parentClassId: record.parentClassId,
-          description: record.description
-        }]
+      ? [
+          {
+            id: record.id,
+            label: record.label,
+            category: record.category,
+            parentClassId: record.parentClassId,
+            description: record.description
+          }
+        ]
       : []
   })
   const campaignCatalog = campaign.map((record) => ({
-      id: record.id,
-      label: record.label,
-      category: record.category,
-      parentClassId: record.parentClassId,
-      description: record.description
-    }))
+    id: record.id,
+    label: record.label,
+    category: record.category,
+    parentClassId: record.parentClassId,
+    description: record.description
+  }))
   return replaceCatalogRecords(canonical, campaignCatalog)
 }
 
@@ -367,43 +386,49 @@ export async function loadCharacterBuilderCatalog(
     ])
 
   const versions = createAuthoredVersionRepository(db)
-  const [resolvedRaces, resolvedEquipment, classVersions, backgroundVersions, featVersions, system] =
-    await Promise.all([
-      resolveActiveCharacterRaces(
-        db,
-        raceResult.items.map((record) => record.id),
-        systemId,
-        userId
-      ),
-      resolveActiveCharacterEquipment(
-        db,
-        equipmentResult.items.map((record) => record.id),
-        systemId,
-        userId
-      ),
-      versions.findActiveByIds({
-        subjectKind: 'CLASS',
-        subjectIds: classResult.items.map((record) => record.id),
-        systemId,
-        userId,
-        includeMaster: true
-      }),
-      versions.findActiveByIds({
-        subjectKind: 'BACKGROUND',
-        subjectIds: backgroundResult.items.map((record) => record.id),
-        systemId,
-        userId,
-        includeMaster: true
-      }),
-      versions.findActiveByIds({
-        subjectKind: 'FEAT',
-        subjectIds: featResult.items.map((record) => record.id),
-        systemId,
-        userId,
-        includeMaster: true
-      }),
-      createSystemRepository(db).findById(systemId)
-    ])
+  const [
+    resolvedRaces,
+    resolvedEquipment,
+    classVersions,
+    backgroundVersions,
+    featVersions,
+    system
+  ] = await Promise.all([
+    resolveActiveCharacterRaces(
+      db,
+      raceResult.items.map((record) => record.id),
+      systemId,
+      userId
+    ),
+    resolveActiveCharacterEquipment(
+      db,
+      equipmentResult.items.map((record) => record.id),
+      systemId,
+      userId
+    ),
+    versions.findActiveByIds({
+      subjectKind: 'CLASS',
+      subjectIds: classResult.items.map((record) => record.id),
+      systemId,
+      userId,
+      includeMaster: true
+    }),
+    versions.findActiveByIds({
+      subjectKind: 'BACKGROUND',
+      subjectIds: backgroundResult.items.map((record) => record.id),
+      systemId,
+      userId,
+      includeMaster: true
+    }),
+    versions.findActiveByIds({
+      subjectKind: 'FEAT',
+      subjectIds: featResult.items.map((record) => record.id),
+      systemId,
+      userId,
+      includeMaster: true
+    }),
+    createSystemRepository(db).findById(systemId)
+  ])
   const classesById = new Map(
     [...classVersions.entries()].map(([id, version]) => [
       id,
@@ -440,7 +465,9 @@ export async function loadCharacterBuilderCatalog(
           selectionMode: race.category === RACE_CATEGORY_CODE.BASE ? race.selectionMode : undefined,
           sizeLabel: SIZE_OPTIONS.find((size) => size.code === race.size)?.label,
           speedLabels: (race.speeds ?? []).map((speed) => {
-            const speedLabel = system?.speeds.find((candidate) => candidate.id === speed.speedId)?.label
+            const speedLabel = system?.speeds.find(
+              (candidate) => candidate.id === speed.speedId
+            )?.label
             return `${speedLabel ?? 'Speed'} ${speed.amount} ${MEASUREMENT_UNIT_REGISTRY[speed.unit].short}`
           }),
           abilityScoreIncreaseFacts: getRaceAbilityScoreIncreaseFacts(race)
@@ -450,8 +477,7 @@ export async function loadCharacterBuilderCatalog(
     classes: classResult.items.flatMap((record) => {
       const classRecord = classesById.get(record.id)
       if (!classRecord) return []
-      const proficiencies =
-        'proficiencies' in classRecord ? (classRecord.proficiencies ?? []) : []
+      const proficiencies = 'proficiencies' in classRecord ? (classRecord.proficiencies ?? []) : []
       return [
         {
           id: classRecord.id,
@@ -517,7 +543,8 @@ export async function loadCharacterBuilderCatalog(
     equipment: equipmentResult.items.flatMap((record) => {
       const equipment = equipmentById.get(record.id)
       if (!equipment) return []
-      const maxStack = equipment.maxStack != null && equipment.maxStack > 0 ? equipment.maxStack : undefined
+      const maxStack =
+        equipment.maxStack != null && equipment.maxStack > 0 ? equipment.maxStack : undefined
       return [
         {
           id: equipment.id,

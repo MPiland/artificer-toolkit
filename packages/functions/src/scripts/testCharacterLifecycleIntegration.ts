@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 
-import { createDb } from '@artificer-toolkit/db'
+import { createDb, srdBaselineContent } from '@artificer-toolkit/db'
 import {
   assertCharacterMechanicsProjectionChecksumFailsClosed,
   assertCommandEquipmentWasRolledBack,
@@ -12,6 +12,7 @@ import {
   createAttunementEquipmentFixture,
   findFixtureCatalog,
   percentileDuration,
+  requireRecordByLabel,
   requireLocalDatabaseUrl,
   type BuilderResolutionTiming,
   type CharacterRuleEvaluationTiming,
@@ -44,7 +45,7 @@ function summarizeLatency<T>(samples: readonly T[], select: (sample: T) => numbe
 async function main(): Promise<void> {
   const connectionString = requireLocalDatabaseUrl()
   const db = createDb({ connectionString })
-  const characterIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID()]
+  const characterIds = Array.from({ length: 13 }, () => randomUUID())
   const attunementEquipmentId = randomUUID()
   const rollback = new Error('ROLLBACK_CHARACTER_LIFECYCLE_INTEGRATION_PROOF')
   const resolutionOnly = process.env.CHARACTER_LIFECYCLE_RESOLUTION_ONLY === '1'
@@ -70,6 +71,26 @@ async function main(): Promise<void> {
         const catalog = await findFixtureCatalog(trx)
         await createAttunementEquipmentFixture(trx, catalog, attunementEquipmentId)
         const fixtureCatalog = targetUserId ? { ...catalog, userId: targetUserId } : catalog
+        if (!targetUserId) {
+          await trx
+            .updateTable('account_entitlements')
+            .set({ tier: 'PLAYER' })
+            .where('user_id', '=', fixtureCatalog.userId)
+            .executeTakeFirstOrThrow()
+        }
+        const classRecord = (label: string, kind = 'class') =>
+          requireRecordByLabel(srdBaselineContent.subjects.classes, label, kind)
+        const barbarian = classRecord('Barbarian')
+        const bard = classRecord('Bard')
+        const druid = classRecord('Druid')
+        const monk = classRecord('Monk')
+        const paladin = classRecord('Paladin')
+        const ranger = classRecord('Ranger')
+        const sorcerer = classRecord('Sorcerer')
+        const draconicBloodline = classRecord('Draconic Bloodline', 'subclass')
+        const warlock = classRecord('Warlock')
+        const fiend = classRecord('The Fiend', 'subclass')
+        const wizard = classRecord('Wizard')
         const fixtures: CharacterLifecycleFixture[] = [
           {
             ...fixtureCatalog,
@@ -143,8 +164,139 @@ async function main(): Promise<void> {
             label: 'MVP Multiclass HP Lifecycle Proof',
             raceId: catalog.humanId,
             raceLabel: 'Human'
+          },
+          {
+            ...fixtureCatalog,
+            characterId: characterIds[4] as string,
+            classes: [{ classId: barbarian.id, classLabel: 'Barbarian', classLevel: 1 }],
+            expectedMaxHitPoints: 14,
+            hitpointLevels: [{ level: 1, classId: barbarian.id, classLevel: 1, value: 14 }],
+            label: 'MVP Barbarian Lifecycle Proof',
+            raceId: catalog.humanId,
+            raceLabel: 'Human'
+          },
+          {
+            ...fixtureCatalog,
+            characterId: characterIds[5] as string,
+            classes: [{ classId: bard.id, classLabel: 'Bard', classLevel: 1 }],
+            expectedMaxHitPoints: 10,
+            hitpointLevels: [{ level: 1, classId: bard.id, classLevel: 1, value: 10 }],
+            label: 'MVP Bard Lifecycle Proof',
+            raceId: catalog.humanId,
+            raceLabel: 'Human'
+          },
+          {
+            ...fixtureCatalog,
+            characterId: characterIds[6] as string,
+            classes: [{ classId: druid.id, classLabel: 'Druid', classLevel: 1 }],
+            expectedMaxHitPoints: 10,
+            hitpointLevels: [{ level: 1, classId: druid.id, classLevel: 1, value: 10 }],
+            label: 'MVP Druid Lifecycle Proof',
+            raceId: catalog.humanId,
+            raceLabel: 'Human'
+          },
+          {
+            ...fixtureCatalog,
+            characterId: characterIds[7] as string,
+            classes: [{ classId: monk.id, classLabel: 'Monk', classLevel: 1 }],
+            expectedMaxHitPoints: 10,
+            hitpointLevels: [{ level: 1, classId: monk.id, classLevel: 1, value: 10 }],
+            label: 'MVP Monk Lifecycle Proof',
+            raceId: catalog.humanId,
+            raceLabel: 'Human'
+          },
+          {
+            ...fixtureCatalog,
+            characterId: characterIds[8] as string,
+            classes: [{ classId: paladin.id, classLabel: 'Paladin', classLevel: 1 }],
+            expectedMaxHitPoints: 12,
+            hitpointLevels: [{ level: 1, classId: paladin.id, classLevel: 1, value: 12 }],
+            label: 'MVP Paladin Lifecycle Proof',
+            raceId: catalog.humanId,
+            raceLabel: 'Human'
+          },
+          {
+            ...fixtureCatalog,
+            characterId: characterIds[9] as string,
+            classes: [{ classId: ranger.id, classLabel: 'Ranger', classLevel: 1 }],
+            expectedMaxHitPoints: 12,
+            hitpointLevels: [{ level: 1, classId: ranger.id, classLevel: 1, value: 12 }],
+            label: 'MVP Ranger Lifecycle Proof',
+            raceId: catalog.humanId,
+            raceLabel: 'Human'
+          },
+          {
+            ...fixtureCatalog,
+            characterId: characterIds[10] as string,
+            classes: [
+              {
+                classId: sorcerer.id,
+                classLabel: 'Sorcerer',
+                classLevel: 1,
+                specializationLabel: 'Black Dragon',
+                subclassId: draconicBloodline.id,
+                subclassLabel: 'Draconic Bloodline'
+              }
+            ],
+            expectedMaxHitPointBonus: 1,
+            expectedMaxHitPoints: 9,
+            hitpointLevels: [{ level: 1, classId: sorcerer.id, classLevel: 1, value: 8 }],
+            label: 'MVP Sorcerer Lifecycle Proof',
+            raceId: catalog.humanId,
+            raceLabel: 'Human'
+          },
+          {
+            ...fixtureCatalog,
+            characterId: characterIds[11] as string,
+            classes: [
+              {
+                classId: warlock.id,
+                classLabel: 'Warlock',
+                classLevel: 1,
+                subclassId: fiend.id,
+                subclassLabel: 'The Fiend'
+              }
+            ],
+            expectedMaxHitPoints: 10,
+            hitpointLevels: [{ level: 1, classId: warlock.id, classLevel: 1, value: 10 }],
+            label: 'MVP Warlock Lifecycle Proof',
+            raceId: catalog.humanId,
+            raceLabel: 'Human'
+          },
+          {
+            ...fixtureCatalog,
+            characterId: characterIds[12] as string,
+            classes: [{ classId: wizard.id, classLabel: 'Wizard', classLevel: 1 }],
+            expectedMaxHitPoints: 8,
+            hitpointLevels: [{ level: 1, classId: wizard.id, classLevel: 1, value: 8 }],
+            label: 'MVP Wizard Lifecycle Proof',
+            raceId: catalog.humanId,
+            raceLabel: 'Human'
           }
         ]
+        if (!requestedFixture) {
+          assert.deepEqual(
+            [
+              ...new Set(
+                fixtures.flatMap(({ classes }) => classes.map(({ classLabel }) => classLabel))
+              )
+            ].sort(),
+            [
+              'Barbarian',
+              'Bard',
+              'Cleric',
+              'Druid',
+              'Fighter',
+              'Monk',
+              'Paladin',
+              'Ranger',
+              'Rogue',
+              'Sorcerer',
+              'Warlock',
+              'Wizard'
+            ]
+          )
+        }
         const selectedFixtures = (
           requestedFixture
             ? fixtures.filter(({ label }) => label.includes(requestedFixture))
@@ -224,6 +376,7 @@ async function main(): Promise<void> {
         durationMs: Date.now() - startedAt,
         finalization: 'verified',
         fixtures: executedFixtureLabels,
+        supportedClassCoverage: '12/12',
         localDatabaseOnly: true,
         multiclassHitPointOrder: 'verified',
         preparedSpellPersistence: 'verified',

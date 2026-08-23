@@ -40,7 +40,7 @@ interface CompletedCommand<T extends LiveSessionVersionedExecution> {
 }
 
 function aggregateKey(
-  execution: Pick<LiveSessionVersionedExecution, 'aggregateKind' | 'aggregateId'>
+  execution: Pick<LiveSessionAggregateVersionDto, 'aggregateKind' | 'aggregateId'>
 ) {
   return `${execution.aggregateKind}:${execution.aggregateId}`
 }

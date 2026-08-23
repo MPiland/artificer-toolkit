@@ -6,8 +6,11 @@ import {
 import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
 
 import type { CharacterBuilderSpellCatalogRecord } from './builderCatalog.js'
+import {
+  isCharacterSpellActionAccessCandidate,
+  type CharacterSpellAccessCandidate
+} from './characterSpellRuleFacts.js'
 
-type SpellAccessCandidate = CharacterRulePolicyInput['spellAccessCandidates'][number]
 type ResourcePoolCandidate = CharacterRulePolicyInput['resourcePoolCandidates'][number]
 type SpellCastCandidate = CharacterRulePolicyInput['spellCastCandidates'][number]
 
@@ -18,7 +21,7 @@ export function createCharacterSpellCastCandidateId(
   return `${createCharacterSpellSourceKey(source)}:level:${castLevel}`
 }
 
-function castMode(candidate: SpellAccessCandidate): SpellCastCandidate['castMode'] {
+function castMode(candidate: CharacterSpellAccessCandidate): SpellCastCandidate['castMode'] {
   const attributes = new Set(candidate.attributes)
   if (attributes.has('LIMITED_USE')) return 'LIMITED_USE'
   if (attributes.has('CAST_AT_WILL')) return 'AT_WILL'
@@ -36,7 +39,7 @@ function castLevels(spellLevel: number, mode: SpellCastCandidate['castMode'], fi
 export function buildCharacterSpellCastRuleFacts(params: {
   snapshot: CharacterBuildSnapshot
   spellCatalog: readonly CharacterBuilderSpellCatalogRecord[]
-  spellAccessCandidates: readonly SpellAccessCandidate[]
+  spellAccessCandidates: readonly CharacterSpellAccessCandidate[]
   resourcePoolCandidates: readonly ResourcePoolCandidate[]
 }): Pick<
   CharacterRulePolicyInput,
@@ -84,6 +87,7 @@ export function buildCharacterSpellCastRuleFacts(params: {
   }
 
   for (const access of params.spellAccessCandidates) {
+    if (!isCharacterSpellActionAccessCandidate(access)) continue
     const spell = spellById.get(access.spellId)
     if (!spell) continue
     const source: CharacterSpellSourceRef = {

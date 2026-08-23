@@ -45,7 +45,8 @@ const calculatedSource = `{
 }`.replace(/\s+/g, ' ')
 
 const capableSources = 'filter(classState.sources as source, source.preparationCapable)'
-const preparedLimits = 'filter(classState.sources as source, source.preparedSpellLimit != null)'
+const preparedLimits =
+  'filter(classState.sources as source, source.preparationCapable and source.preparedSpellLimit != null)'
 const maximumClassSpellLevel = `len(${capableSources}) == 0 ? 0 : max(map(${capableSources}, #.maxPreparableSpellLevel))`
 const classSourceIds = 'map(classState.sources, #.sourceId)'
 const capableSourceIds = `map(${capableSources}, #.sourceId)`
@@ -91,13 +92,13 @@ export const dnd5e2014CharacterSpellPreparationPolicyNodes = [
         {
           id: 'candidates',
           key: 'spellPreparationCandidates',
-          value: `map(resolvedSpellPreparationClasses as classState, { classId: classState.classId, sourceIds: ${capableSourceIds}, preparedSpellLimit: len(${preparedLimits}) == 0 ? null : max(map(${preparedLimits}, #.preparedSpellLimit)), maxPreparableSpellLevel: ${maximumClassSpellLevel}, availableSpellIds: ${availableSpellIds}, learnedSpellIds: ${learnedSpellIds}, preparedStateSpellIds: classState.preparedStateSpellIds })`
+          value: `map(resolvedSpellPreparationClasses as classState, { classId: classState.classId, sourceIds: ${classSourceIds}, preparedSpellLimit: len(${preparedLimits}) == 0 ? null : max(map(${preparedLimits}, #.preparedSpellLimit)), maxPreparableSpellLevel: ${maximumClassSpellLevel}, availableSpellIds: ${availableSpellIds}, learnedSpellIds: ${learnedSpellIds}, preparedStateSpellIds: classState.preparedStateSpellIds })`
         },
         {
           id: 'sources',
           key: 'spellPreparationSources',
           value:
-            'map(filter($.spellPreparationCandidates as candidate, len(candidate.sourceIds) > 0) as candidate, { classId: candidate.classId, sourceIds: candidate.sourceIds, preparedSpellLimit: candidate.preparedSpellLimit, maxPreparableSpellLevel: candidate.maxPreparableSpellLevel, availableSpellIds: candidate.availableSpellIds, learnedSpellIds: candidate.learnedSpellIds, preparedSpellIds: filter(candidate.preparedStateSpellIds as spellId, some(candidate.availableSpellIds, # == spellId)) })'
+            'map(filter($.spellPreparationCandidates as candidate, len(candidate.sourceIds) > 0 and (candidate.preparedSpellLimit != null or len(candidate.learnedSpellIds) > 0 or len(candidate.preparedStateSpellIds) > 0)) as candidate, { classId: candidate.classId, sourceIds: candidate.sourceIds, preparedSpellLimit: candidate.preparedSpellLimit, maxPreparableSpellLevel: candidate.maxPreparableSpellLevel, availableSpellIds: candidate.availableSpellIds, learnedSpellIds: candidate.learnedSpellIds, preparedSpellIds: filter(candidate.preparedStateSpellIds as spellId, some(candidate.availableSpellIds, # == spellId)) })'
         }
       ]
     }
@@ -135,7 +136,7 @@ export const dnd5e2014CharacterSpellPreparationPolicyNodes = [
           id: 'decision',
           key: 'spellPreparationRequestDecision',
           value:
-            'spellPreparationRequest == null ? null : { classId: spellPreparationRequest.classId, requestedSpellIds: spellPreparationRequest.spellIds, status: !$.preparationRequestClassActive or ($.preparationRequestSource == null and len(spellPreparationRequest.spellIds) > 0) or ($.preparationRequestSource != null and $.preparationRequestSource.preparedSpellLimit != null and len(spellPreparationRequest.spellIds) > $.preparationRequestSource.preparedSpellLimit) or $.preparationRequestUnavailableSpellId != null ? "REJECTED" : "ALLOWED", reasonCode: !$.preparationRequestClassActive ? "CLASS_NOT_ACTIVE" : $.preparationRequestSource == null and len(spellPreparationRequest.spellIds) > 0 ? "CLASS_DOES_NOT_PREPARE_SPELLS" : $.preparationRequestSource != null and $.preparationRequestSource.preparedSpellLimit != null and len(spellPreparationRequest.spellIds) > $.preparationRequestSource.preparedSpellLimit ? "PREPARATION_LIMIT_EXCEEDED" : $.preparationRequestUnavailableSpellId != null ? "SPELL_NOT_AVAILABLE" : "REQUEST_ALLOWED", unavailableSpellId: $.preparationRequestUnavailableSpellId }'
+            'spellPreparationRequest == null ? null : { classId: spellPreparationRequest.classId, requestedSpellIds: spellPreparationRequest.spellIds, status: !$.preparationRequestClassActive or (($.preparationRequestSource == null or $.preparationRequestSource.preparedSpellLimit == null) and len(spellPreparationRequest.spellIds) > 0) or ($.preparationRequestSource != null and $.preparationRequestSource.preparedSpellLimit != null and len(spellPreparationRequest.spellIds) > $.preparationRequestSource.preparedSpellLimit) or $.preparationRequestUnavailableSpellId != null ? "REJECTED" : "ALLOWED", reasonCode: !$.preparationRequestClassActive ? "CLASS_NOT_ACTIVE" : ($.preparationRequestSource == null or $.preparationRequestSource.preparedSpellLimit == null) and len(spellPreparationRequest.spellIds) > 0 ? "CLASS_DOES_NOT_PREPARE_SPELLS" : $.preparationRequestSource != null and $.preparationRequestSource.preparedSpellLimit != null and len(spellPreparationRequest.spellIds) > $.preparationRequestSource.preparedSpellLimit ? "PREPARATION_LIMIT_EXCEEDED" : $.preparationRequestUnavailableSpellId != null ? "SPELL_NOT_AVAILABLE" : "REQUEST_ALLOWED", unavailableSpellId: $.preparationRequestSource == null or $.preparationRequestSource.preparedSpellLimit == null ? null : $.preparationRequestUnavailableSpellId }'
         }
       ]
     }

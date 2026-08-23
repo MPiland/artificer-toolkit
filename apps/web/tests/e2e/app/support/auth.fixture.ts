@@ -1,10 +1,23 @@
 import { expect, test as base, type Page } from '@playwright/test'
+import { createE2ECharacterCleanup, type E2ECharacterCleanup } from './characterCleanup'
 import { installDevtoolLauncherHiding } from './devtools'
 
 const storageState = process.env.MVP_AUDIT_STORAGE_STATE
 
-export const test = base.extend<{ authenticatedPage: Page }>({
-  authenticatedPage: async ({ page }, use, testInfo) => {
+export const test = base.extend<{
+  authenticatedPage: Page
+  characterCleanup: E2ECharacterCleanup
+}>({
+  characterCleanup: async ({ baseURL }, use) => {
+    assertLocalApplication(baseURL)
+    const cleanup = createE2ECharacterCleanup()
+    try {
+      await use(cleanup.tracker)
+    } finally {
+      await cleanup.cleanup()
+    }
+  },
+  authenticatedPage: async ({ characterCleanup: _characterCleanup, page }, use, testInfo) => {
     assertLocalApplication(testInfo.project.use.baseURL)
     await installDevtoolLauncherHiding(page)
     await page.goto('/characters', { waitUntil: 'networkidle' })
@@ -14,7 +27,11 @@ export const test = base.extend<{ authenticatedPage: Page }>({
     }
 
     await expect(page).not.toHaveURL(/\/(?:auth|sign-in|sign-up|reset-password)(?:\/|$)/)
-    await use(page)
+    try {
+      await use(page)
+    } finally {
+      await page.close()
+    }
   }
 })
 
@@ -31,7 +48,7 @@ async function signIn(page: Page): Promise<void> {
     )
   }
 
-  await page.getByLabel('Email address').fill(email)
+  await page.getByLabel('Email or username').fill(email)
   await page.getByRole('textbox', { name: 'Password' }).fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
   await page.waitForURL((url) => !url.pathname.startsWith('/sign-in'), { timeout: 30_000 })

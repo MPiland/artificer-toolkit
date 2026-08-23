@@ -64,8 +64,8 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createLiveSessionCommandLeaseRepository: () => ({
       lockForCharacter: async () => []
     }),
-    createCampaignContentRepository: () => ({
-      findAssignedCampaign: async () => null
+    createCampaignRepository: () => ({
+      findCampaignByCharacter: async () => null
     }),
     createRollHistoryRepository: () => ({
       consumeForUser: mocks.consumeRollForUser,
@@ -150,7 +150,8 @@ const { previewCharacterRest } = await import('./sheetRestService.js')
 const sheetProjection = await import('./sheetProjection.js')
 const { evaluateCharacterBuilderTestPolicy } =
   await import('./characterBuilderRuleEvaluation.testUtils.js')
-const { projectCharacterRulePolicyToSheetProjection } = await import('./characterRulePolicyAdapter.js')
+const { projectCharacterRulePolicyToSheetProjection } =
+  await import('./characterRulePolicyAdapter.js')
 
 const emptyQuery = {
   select: () => emptyQuery,
@@ -372,74 +373,78 @@ describe('character sheet rest policy', () => {
       systemVocabularySnapshotId: 'vocabulary-snapshot-1',
       systemVocabularySnapshotVersion: 1
     }))
-    mocks.compileMechanicsProjection.mockImplementation((input: {
-      characterId: string
-      characterCommandState: CharacterAuthored
-      characterStreamVersion: number
-    }) => ({
-      characterId: input.characterId,
-      characterStreamVersion: input.characterStreamVersion,
-      commandLaneChecksum: 'b'.repeat(64),
-      commandState: input.characterCommandState,
-      projectionChecksum: 'c'.repeat(64)
-    }))
+    mocks.compileMechanicsProjection.mockImplementation(
+      (input: {
+        characterId: string
+        characterCommandState: CharacterAuthored
+        characterStreamVersion: number
+      }) => ({
+        characterId: input.characterId,
+        characterStreamVersion: input.characterStreamVersion,
+        commandLaneChecksum: 'b'.repeat(64),
+        commandState: input.characterCommandState,
+        projectionChecksum: 'c'.repeat(64)
+      })
+    )
     mocks.loadCharacterBuilderContext.mockResolvedValue({
       catalog: resolution.catalog,
       registry: resolution.sourceRegistry
     })
     mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
     mocks.buildSheetBundle.mockImplementation(buildPolicyTestSheetBundle)
-    mocks.assembleSheetBundleForRuleContext.mockImplementation(async (params: {
-      db: DBLike
-      character: CharacterAuthored
-      row: { stream_version: number }
-      revisionId: string
-      ruleContext: CharacterSheetRuleContext
-      excludeCharacterAdjustmentIds?: readonly string[]
-    }) => {
-      const context = await mocks.loadCharacterBuilderContext(params.db, params.character, [], {
-        includeEffects: true
-      })
-      const resolution = await mocks.resolveCharacterBuilder(
-        params.db,
-        params.character,
-        'edit',
-        context,
-        null,
-        params.revisionId
-      )
-      const characterAdjustments = (await mocks.listAdjustments(params.character.id)).filter(
-        (adjustment: { id: string }) =>
-          !new Set(params.excludeCharacterAdjustmentIds).has(adjustment.id)
-      )
-      const movementDisplayPreference = await mocks.getMovementPreference(params.character.id)
-      const bundle = await mocks.buildSheetBundle({
-        db: params.db,
-        character: params.character,
-        resolution,
-        streamVersion: params.row.stream_version,
-        adjustments: characterAdjustments,
-        movementDisplayPreference,
-        resourceUsage: await mocks.listResourceUsage(params.character.id),
-        spellCustomizations: await mocks.listSpellCustomizations(params.character.id),
-        additionalConditions: params.ruleContext.additionalConditions,
-        ruleEvaluation: {
+    mocks.assembleSheetBundleForRuleContext.mockImplementation(
+      async (params: {
+        db: DBLike
+        character: CharacterAuthored
+        row: { stream_version: number }
+        revisionId: string
+        ruleContext: CharacterSheetRuleContext
+        excludeCharacterAdjustmentIds?: readonly string[]
+      }) => {
+        const context = await mocks.loadCharacterBuilderContext(params.db, params.character, [], {
+          includeEffects: true
+        })
+        const resolution = await mocks.resolveCharacterBuilder(
+          params.db,
+          params.character,
+          'edit',
           context,
-          revisionId: params.revisionId,
-          attunementSlotOverride: params.ruleContext.attunementSlotOverride
+          null,
+          params.revisionId
+        )
+        const characterAdjustments = (await mocks.listAdjustments(params.character.id)).filter(
+          (adjustment: { id: string }) =>
+            !new Set(params.excludeCharacterAdjustmentIds).has(adjustment.id)
+        )
+        const movementDisplayPreference = await mocks.getMovementPreference(params.character.id)
+        const bundle = await mocks.buildSheetBundle({
+          db: params.db,
+          character: params.character,
+          resolution,
+          streamVersion: params.row.stream_version,
+          adjustments: characterAdjustments,
+          movementDisplayPreference,
+          resourceUsage: await mocks.listResourceUsage(params.character.id),
+          spellCustomizations: await mocks.listSpellCustomizations(params.character.id),
+          additionalConditions: params.ruleContext.additionalConditions,
+          ruleEvaluation: {
+            context,
+            revisionId: params.revisionId,
+            attunementSlotOverride: params.ruleContext.attunementSlotOverride
+          }
+        })
+        return {
+          bundle,
+          mechanics: {
+            commandLaneChecksum: 'b'.repeat(64),
+            projectionChecksum: 'c'.repeat(64)
+          },
+          resolution,
+          characterAdjustments,
+          movementDisplayPreference
         }
-      })
-      return {
-        bundle,
-        mechanics: {
-          commandLaneChecksum: 'b'.repeat(64),
-          projectionChecksum: 'c'.repeat(64)
-        },
-        resolution,
-        characterAdjustments,
-        movementDisplayPreference
       }
-    })
+    )
     mocks.patchSheetState.mockImplementation(async (_characterId, _patches, options) => {
       await options.afterPersist?.(db, 2)
       return 2

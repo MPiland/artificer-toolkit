@@ -15,7 +15,7 @@ type Story = StoryObj<typeof meta>
 export const StatusEditorDesktop: Story = {
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('button', { name: /poisoned/i }))
-    await expect(canvas.getByText('Effects by level')).toBeVisible()
+    await waitFor(() => expect(canvas.getByText('Effects by level')).toBeVisible())
   }
 }
 

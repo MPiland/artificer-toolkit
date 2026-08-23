@@ -5,10 +5,7 @@ import {
   characterRulePolicyOutputSchema
 } from '@artificer-toolkit/schema/api/characterRules'
 import { characterGrantFoldInputSchema } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
-import {
-  type CharacterAssemblyRegistry,
-  type CharacterBuildSnapshot
-} from '@artificer-toolkit/shared/core'
+import { type CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
 
 import { buildCharacterProficiencyRuleFacts } from '../../../../character/characterProficiencyRuleFacts.js'
 import { dnd5e2014CharacterPolicyDocument } from './characterPolicy.js'
@@ -111,14 +108,6 @@ describe('D&D 5e 2014 Character proficiency provenance', () => {
           value: true
         }
       ]
-    }
-    const registry: CharacterAssemblyRegistry = {
-      classes: {},
-      features: {},
-      feats: {},
-      races: {},
-      equipment: {},
-      spells: {}
     }
     const base = canonicalInput()
     const input = characterRulePolicyInputSchema.parse({

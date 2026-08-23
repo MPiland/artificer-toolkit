@@ -7,8 +7,10 @@ import {
   liveSessionWebSocketServerMessageDtoSchema,
   type LiveSessionCommandDto,
   type LiveSessionActiveMembershipDto,
+  type LiveSessionAggregateVersionDto,
   type LiveSessionCoordinatorSnapshotDto,
   type LiveSessionExecutorCommandResultDto,
+  type LiveSessionExecutorResponseDto,
   type LiveSessionRejectedDto,
   type LiveSessionTicketClaimsDto,
   type LiveSessionWebSocketServerMessageDto
@@ -46,6 +48,37 @@ const RETRY_MAX_DELAY_MS = 30_000
 const LIVE_SESSION_COMMAND_LEASE_RENEWAL_MS = 10_000
 const AUTHORITY_RENEWAL_RETRY_MS = 2_000
 const AUTHORITY_LOST_CLOSE_CODE = 1012
+
+interface AuthorityRenewalResult {
+  available: boolean
+  refreshed: boolean
+}
+
+function aggregateVersionsEqual(
+  left: readonly LiveSessionAggregateVersionDto[],
+  right: readonly LiveSessionAggregateVersionDto[]
+): boolean {
+  if (left.length !== right.length) return false
+  const canonical = (versions: readonly LiveSessionAggregateVersionDto[]) =>
+    [...versions].sort((first, second) => {
+      const identity = `${first.aggregateKind}:${first.aggregateId}`.localeCompare(
+        `${second.aggregateKind}:${second.aggregateId}`
+      )
+      return identity || first.version - second.version
+    })
+  const canonicalLeft = canonical(left)
+  const canonicalRight = canonical(right)
+  return canonicalLeft.every((version, index) => {
+    const candidate = canonicalRight[index]
+    return (
+      candidate?.aggregateKind === version.aggregateKind &&
+      candidate.aggregateId === version.aggregateId &&
+      candidate.version === version.version
+    )
+  })
+}
+
+class LiveSessionJoinAuthorityError extends Error {}
 
 const socketAttachmentSchema = z.strictObject({
   campaignId: z.string().uuid(),
@@ -97,12 +130,20 @@ function rejection(error: unknown, id: string): LiveSessionRejectedDto {
           : error.code === 'INVALID_REQUEST'
             ? 'INVALID_COMMAND'
             : 'COMMAND_FAILED'
-    return { code, commandId: id, message: error.message.slice(0, 300) }
+    const message =
+      code === 'UNAUTHORIZED'
+        ? 'This live-session command is not authorized.'
+        : code === 'STALE_VERSION'
+          ? 'The aggregate changed before this command was applied.'
+          : code === 'INVALID_COMMAND'
+            ? 'The live-session command is invalid.'
+            : 'The live-session command failed.'
+    return { code, commandId: id, message }
   }
   return {
     code: 'COMMAND_FAILED',
     commandId: id,
-    message: (error instanceof Error ? error.message : 'Live-session command failed.').slice(0, 300)
+    message: 'The live-session command failed.'
   }
 }
 
@@ -164,7 +205,8 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     { barriers: EncounterSceneState['barriers']; index: SceneBarrierIndex }
   >()
   #authorityId: string
-  #authorityRenewal: Promise<boolean> | null = null
+  #authorityRenewal: Promise<AuthorityRenewalResult> | null = null
+  #authorityTransition: Promise<void> = Promise.resolve()
   #deliveryInProgress = false
   #drainInProgress = false
   #hydration: Promise<void> | null = null
@@ -219,8 +261,15 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     try {
       if (this.#release) await this.#release
       await this.#ensureHydrated(claims)
-    } catch {
+      await this.#authorizeJoiningClaims(claims)
+    } catch (error) {
       this.#journal.removeTicket(claims.jti)
+      if (
+        error instanceof LiveSessionJoinAuthorityError ||
+        (error instanceof LiveSessionExecutorRequestError && error.code === 'UNAUTHORIZED')
+      ) {
+        return new Response('Live-session ticket authority is no longer current.', { status: 403 })
+      }
       return new Response('The live session could not be loaded.', { status: 503 })
     }
 
@@ -280,11 +329,25 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
         this.#broadcastTransient(socket, attachment, parsed.data.envelope)
         break
       case 'RESUME':
-        this.#sendReady(socket, attachment)
-        for (const command of this.#journal.listByIds(parsed.data.pendingCommandIds)) {
-          if (command.actorUserId === attachment.userId) this.#sendJournalStatus(socket, command)
-        }
+        await this.#resume(socket, attachment, parsed.data.pendingCommandIds)
         break
+    }
+  }
+
+  async #resume(
+    socket: WebSocket,
+    attachment: SocketAttachment,
+    pendingCommandIds: readonly string[]
+  ): Promise<void> {
+    const meta = this.#journal.loadMeta()
+    const renewal = meta ? await this.#renewAuthority(meta) : { available: false, refreshed: false }
+    if (!renewal.available) {
+      await this.#scheduleAlarm()
+      return
+    }
+    if (!renewal.refreshed) this.#sendReady(socket, attachment)
+    for (const command of this.#journal.listByIds(pendingCommandIds)) {
+      if (command.actorUserId === attachment.userId) this.#sendJournalStatus(socket, command)
     }
   }
 
@@ -316,7 +379,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
       this.#shouldMaintainAuthority(meta)
     ) {
       const authorityAvailable = await this.#renewAuthority(meta)
-      if (!authorityAvailable) {
+      if (!authorityAvailable.available) {
         await this.#scheduleAlarm()
         return
       }
@@ -368,6 +431,13 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
       sessionId: attachment.sessionId,
       type: 'READY'
     })
+  }
+
+  #broadcastReady(): void {
+    for (const socket of this.ctx.getWebSockets()) {
+      const attachment = parseAttachment(socket)
+      if (attachment) this.#sendReady(socket, attachment)
+    }
   }
 
   #resolvedScene(scene: EncounterSceneState): EncounterSceneState {
@@ -448,6 +518,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     if (this.#drainInProgress) return
     this.#drainInProgress = true
     try {
+      await this.#awaitAuthorityTransitions()
       let meta = this.#journal.loadMeta()
       if (
         !this.#snapshot ||
@@ -459,7 +530,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
       }
       if (meta.authorityRenewalAt <= Date.now()) {
         const authorityAvailable = await this.#renewAuthority(meta)
-        if (!authorityAvailable) return
+        if (!authorityAvailable.available) return
         meta = this.#journal.loadMeta()
         if (
           !meta ||
@@ -530,7 +601,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
       } else {
         const message = rejection(error, command.commandId)
         this.#journal.markRejected(command.commandId, JSON.stringify(message))
-        this.#sendRejectedToOrigin(command, message)
+        this.#sendRejectedToActor(command, message)
       }
     } finally {
       this.#activeCommandIds.delete(command.commandId)
@@ -651,8 +722,8 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     for (const socket of this.ctx.getWebSockets()) {
       const attachment = parseAttachment(socket)
       if (!attachment) continue
-      const isOrigin = attachment.socketId === command.originSocketId
-      if (alreadyApplied && !isOrigin) continue
+      const isRequester = attachment.userId === command.actorUserId
+      if (alreadyApplied && !isRequester) continue
       const base = {
         acceptedSequence: command.acceptedSequence,
         aggregateId: execution.aggregateId,
@@ -661,13 +732,13 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
         replayed: execution.replayed || alreadyApplied,
         version: execution.version
       }
-      const hostTiming = isOrigin ? { hostTiming: execution.hostTiming } : {}
+      const hostTiming = isRequester ? { hostTiming: execution.hostTiming } : {}
       if (execution.aggregateKind === 'CHARACTER') {
         send(socket, {
           ...base,
           ...hostTiming,
           aggregateKind: 'CHARACTER',
-          response: isOrigin ? execution.response : null,
+          response: isRequester ? execution.response : null,
           sceneSnapshots: this.#sceneSnapshotsForCharacter(attachment, execution.aggregateId),
           type: 'COMMAND_COMMITTED'
         })
@@ -676,7 +747,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
           ...base,
           ...hostTiming,
           aggregateKind: 'ENCOUNTER',
-          response: isOrigin && attachment.role === 'OWNER' ? execution.response : null,
+          response: isRequester && attachment.role === 'OWNER' ? execution.response : null,
           sceneSnapshots: this.#sceneSnapshots(
             attachment,
             (scene) => scene.encounterId === execution.aggregateId
@@ -790,10 +861,10 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     }
   }
 
-  #sendRejectedToOrigin(command: LiveSessionJournalCommand, message: LiveSessionRejectedDto): void {
+  #sendRejectedToActor(command: LiveSessionJournalCommand, message: LiveSessionRejectedDto): void {
     for (const socket of this.ctx.getWebSockets()) {
       const attachment = parseAttachment(socket)
-      if (attachment?.socketId === command.originSocketId) {
+      if (attachment?.userId === command.actorUserId) {
         send(socket, { ...message, type: 'COMMAND_REJECTED' })
       }
     }
@@ -959,7 +1030,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
 
   async #renewAuthority(meta: NonNullable<ReturnType<LiveSessionRoomJournal['loadMeta']>>) {
     if (this.#authorityRenewal) return this.#authorityRenewal
-    const renewal = this.#renewAuthorityInternal(meta)
+    const renewal = this.#withAuthorityTransition(() => this.#renewAuthorityInternal(meta))
     this.#authorityRenewal = renewal
     try {
       return await renewal
@@ -968,12 +1039,33 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     }
   }
 
-  async #renewAuthorityInternal(
-    meta: NonNullable<ReturnType<LiveSessionRoomJournal['loadMeta']>>
-  ) {
+  async #withAuthorityTransition<T>(operation: () => Promise<T>): Promise<T> {
+    const preceding = this.#authorityTransition
+    let release!: () => void
+    const transition = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    this.#authorityTransition = transition
+    await preceding
+    try {
+      return await operation()
+    } finally {
+      release()
+    }
+  }
+
+  async #awaitAuthorityTransitions(): Promise<void> {
+    for (;;) {
+      const transition = this.#authorityTransition
+      await transition
+      if (transition === this.#authorityTransition) return
+    }
+  }
+
+  async #renewAuthorityInternal(meta: NonNullable<ReturnType<LiveSessionRoomJournal['loadMeta']>>) {
     if (!meta.authorityUserId) {
       this.#failAuthorityClosed()
-      return false
+      return { available: false, refreshed: false }
     }
     const candidateUserIds = [
       meta.authorityUserId,
@@ -994,26 +1086,73 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
         if (response.operation !== 'RENEW') {
           throw new Error('Live-session executor returned the wrong renewal response.')
         }
-        const connectedAuthorityUserId = this.#reauthorizeSockets(response.memberships)
-        this.#journal.setRenewedAuthority(
-          connectedAuthorityUserId ?? candidateUserId,
-          Date.now() + LIVE_SESSION_COMMAND_LEASE_RENEWAL_MS
-        )
-        return true
+        return await this.#applyAuthorityRenewal(meta, candidateUserId, response)
       } catch (error) {
         if (error instanceof LiveSessionExecutorRequestError && error.retryable) {
           this.#journal.setAuthorityRenewal(Date.now() + AUTHORITY_RENEWAL_RETRY_MS, true)
-          return false
+          return { available: false, refreshed: false }
         }
         if (error instanceof LiveSessionExecutorRequestError && error.code === 'UNAUTHORIZED') {
           continue
         }
         this.#failAuthorityClosed()
-        return false
+        return { available: false, refreshed: false }
       }
     }
     this.#failAuthorityClosed()
-    return false
+    return { available: false, refreshed: false }
+  }
+
+  async #authorizeJoiningClaims(claims: LiveSessionTicketClaimsDto): Promise<void> {
+    await this.#withAuthorityTransition(async () => {
+      const meta = this.#journal.loadMeta()
+      if (!meta) throw new LiveSessionJoinAuthorityError()
+      const response = await callLiveSessionExecutor(this.env, {
+        authorityId: this.#authorityId,
+        campaignId: meta.campaignId,
+        operation: 'RENEW',
+        sessionId: meta.sessionId,
+        userId: claims.sub
+      })
+      if (response.operation !== 'RENEW') {
+        throw new Error('Live-session executor returned the wrong renewal response.')
+      }
+      const membership = response.memberships.find(({ userId }) => userId === claims.sub)
+      if (membership?.role !== claims.role) throw new LiveSessionJoinAuthorityError()
+      await this.#applyAuthorityRenewal(meta, claims.sub, response)
+    })
+  }
+
+  async #applyAuthorityRenewal(
+    meta: NonNullable<ReturnType<LiveSessionRoomJournal['loadMeta']>>,
+    candidateUserId: string,
+    response: Extract<LiveSessionExecutorResponseDto, { operation: 'RENEW' }>
+  ): Promise<AuthorityRenewalResult> {
+    const connectedAuthorityUserId = this.#reauthorizeSockets(response.memberships)
+    const authorityUserId = connectedAuthorityUserId ?? candidateUserId
+    const renewalAt = Date.now() + LIVE_SESSION_COMMAND_LEASE_RENEWAL_MS
+    if (
+      aggregateVersionsEqual(this.#snapshot?.aggregateVersions ?? [], response.aggregateVersions)
+    ) {
+      this.#journal.setRenewedAuthority(authorityUserId, renewalAt)
+      return { available: true, refreshed: false }
+    }
+    const snapshotResponse = await callLiveSessionExecutor(this.env, {
+      authorityId: this.#authorityId,
+      campaignId: meta.campaignId,
+      operation: 'SNAPSHOT',
+      sessionId: meta.sessionId,
+      userId: authorityUserId
+    })
+    if (snapshotResponse.operation !== 'SNAPSHOT') {
+      throw new Error('Live-session executor returned the wrong refresh response.')
+    }
+    const snapshotJson = JSON.stringify(snapshotResponse.snapshot)
+    this.#journal.hydrateAuthority({ renewalAt, snapshotJson, userId: authorityUserId })
+    this.#snapshot = snapshotResponse.snapshot
+    this.#movementIndexes.clear()
+    this.#broadcastReady()
+    return { available: true, refreshed: true }
   }
 
   #reauthorizeSockets(memberships: readonly LiveSessionActiveMembershipDto[]): string | null {

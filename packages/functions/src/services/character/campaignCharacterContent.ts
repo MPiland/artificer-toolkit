@@ -1,10 +1,10 @@
 import {
-  createCampaignContentRepository,
+  createCampaignContentShareRepository,
   createCampaignRepository,
   createAuthoredVersionRepository,
   type AuthoredSubjectKind,
   type AuthoredVersionRecord,
-  type CampaignCharacterContentBindingInput,
+  type CampaignContentShare,
   type CharacterAssemblyStructureQueryResult,
   type DBLike
 } from '@artificer-toolkit/db'
@@ -25,11 +25,9 @@ import type {
   SpellAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 
-export interface CampaignAuthoredSnapshot {
-  contentVersionId: string
+export interface CampaignAuthoredSource {
   subjectKind: AuthoredSubjectKind
   subjectId: string
-  revision: number
   authoredVersionId: string
   authoredVersion: number
   authoredChecksum: string
@@ -38,22 +36,12 @@ export interface CampaignAuthoredSnapshot {
   authored: AuthoredVersionRecord['authored']['document']
 }
 
-interface CampaignContentVersionReference {
-  id: string
-  subjectKind: AuthoredSubjectKind
-  subjectId: string
-  revision: number
-  authoredVersionId: string
-  authoredVersion: number
-  authoredChecksum: string
-  compiledProjectionChecksum: string
-}
-
 export interface CampaignCharacterContentOverlay {
   campaignId: string
   userId: string
-  bindings: ReadonlyMap<string, CampaignAuthoredSnapshot>
-  latest: ReadonlyMap<string, CampaignAuthoredSnapshot>
+  latest: ReadonlyMap<string, CampaignAuthoredSource>
+  /** Real Campaign shares only. Synthetic Builder overrides never authorize committed use. */
+  sharesByRoot: ReadonlyMap<string, CampaignContentShare>
 }
 
 export interface HydratedCampaignBuilderContent {
@@ -77,140 +65,57 @@ export function campaignContentRootKey(
   return `${subjectKind}:${subjectId}`
 }
 
-function toCampaignAuthoredSnapshot(
-  version: CampaignContentVersionReference,
-  authored: AuthoredVersionRecord
-): CampaignAuthoredSnapshot {
-  if (
-    authored.authored.subjectKind !== version.subjectKind ||
-    authored.authored.subjectId !== version.subjectId ||
-    authored.authored.versionId !== version.authoredVersionId ||
-    authored.authored.version !== version.authoredVersion ||
-    authored.authored.checksum !== version.authoredChecksum ||
-    authored.compiled.projectionChecksum !== version.compiledProjectionChecksum
-  ) {
-    throw new Error(`Campaign content version "${version.id}" has a mismatched authored version.`)
-  }
+function toCampaignAuthoredSource(authored: AuthoredVersionRecord): CampaignAuthoredSource {
   return {
-    contentVersionId: version.id,
-    subjectKind: version.subjectKind,
-    subjectId: version.subjectId,
-    revision: version.revision,
-    authoredVersionId: version.authoredVersionId,
-    authoredVersion: version.authoredVersion,
-    authoredChecksum: version.authoredChecksum,
-    compiledProjectionChecksum: version.compiledProjectionChecksum,
+    subjectKind: authored.authored.subjectKind,
+    subjectId: authored.authored.subjectId,
+    authoredVersionId: authored.authored.versionId,
+    authoredVersion: authored.authored.version,
+    authoredChecksum: authored.authored.checksum,
+    compiledProjectionChecksum: authored.compiled.projectionChecksum,
     authoredDependencies: authored.compiled.authoredDependencies,
     authored: authored.authored.document
   }
 }
 
-async function loadCampaignAuthoredSnapshots(
-  db: DBLike,
-  versions: readonly CampaignContentVersionReference[]
-): Promise<Map<string, CampaignAuthoredSnapshot>> {
-  const versionsByKind = new Map<AuthoredSubjectKind, CampaignContentVersionReference[]>()
-  for (const version of versions) {
-    const entries = versionsByKind.get(version.subjectKind) ?? []
-    entries.push(version)
-    versionsByKind.set(version.subjectKind, entries)
-  }
-
-  const authoredRepository = createAuthoredVersionRepository(db)
-  const snapshots = new Map<string, CampaignAuthoredSnapshot>()
-  await Promise.all(
-    [...versionsByKind.entries()].map(async ([subjectKind, entries]) => {
-      const records = await authoredRepository.findVersionsByIds({
-        subjectKind,
-        versionIds: entries.map((entry) => entry.authoredVersionId)
-      })
-      for (const entry of entries) {
-        const record = records.get(entry.authoredVersionId)
-        if (!record) {
-          throw new Error(
-            `Campaign content version "${entry.id}" references an unavailable authored version.`
-          )
-        }
-        snapshots.set(entry.id, toCampaignAuthoredSnapshot(entry, record))
-      }
-    })
-  )
-  return snapshots
-}
-
 export async function loadCampaignCharacterContentOverlay(
   db: DBLike,
   character: Pick<CharacterAuthored, 'id' | 'systemId' | 'userId'>,
-  overrides: readonly CampaignAuthoredSnapshot[] = []
+  overrides: readonly CampaignAuthoredSource[] = []
 ): Promise<CampaignCharacterContentOverlay | null> {
-  const repository = createCampaignContentRepository(db)
-  const assignment = await repository.findAssignedCampaign(character.id)
+  const assignment = await createCampaignRepository(db).findCampaignByCharacter(character.id)
   if (!assignment || assignment.userId !== character.userId) return null
 
-  const [versions, bindingRows] = await Promise.all([
-    repository.listContentVersions(assignment.campaignId),
-    repository.listCharacterBindings(assignment.campaignId, character.id)
-  ])
-  const snapshots = await loadCampaignAuthoredSnapshots(db, [
-    ...versions,
-    ...bindingRows.map((binding) => ({
-      id: binding.contentVersionId,
-      subjectKind: binding.subjectKind,
-      subjectId: binding.subjectId,
-      revision: binding.revision,
-      authoredVersionId: binding.authoredVersionId,
-      authoredVersion: binding.authoredVersion,
-      authoredChecksum: binding.authoredChecksum,
-      compiledProjectionChecksum: binding.compiledProjectionChecksum
-    }))
-  ])
-  const latest = new Map<string, CampaignAuthoredSnapshot>()
-  for (const version of versions) {
-    if (version.state !== 'APPROVED') continue
-    const parsed = snapshots.get(version.id)
-    if (!parsed) throw new Error(`Campaign content version "${version.id}" is unavailable.`)
+  const latest = new Map<string, CampaignAuthoredSource>()
+  const sharesByRoot = new Map<string, CampaignContentShare>()
+  const current = await createCampaignContentShareRepository(db).listCurrentSources(
+    assignment.campaignId
+  )
+  for (const { share, source } of current) {
+    const parsed = toCampaignAuthoredSource(source)
     if (parsed.authored.systemId !== character.systemId) continue
     const key = campaignContentRootKey(parsed.subjectKind, parsed.subjectId)
-    if ((latest.get(key)?.revision ?? 0) < parsed.revision) latest.set(key, parsed)
+    latest.set(key, parsed)
+    sharesByRoot.set(key, share)
   }
   for (const override of overrides) {
     if (override.authored.systemId === character.systemId) {
-      latest.set(campaignContentRootKey(override.subjectKind, override.subjectId), override)
+      const key = campaignContentRootKey(override.subjectKind, override.subjectId)
+      latest.set(key, override)
+      sharesByRoot.delete(key)
     }
   }
-
-  const overrideByRoot = new Map(
-    overrides.map((snapshot) => [
-      campaignContentRootKey(snapshot.subjectKind, snapshot.subjectId),
-      snapshot
-    ])
-  )
-  const bindings = new Map<string, CampaignAuthoredSnapshot>()
-  for (const binding of bindingRows) {
-    const key = campaignContentRootKey(binding.subjectKind, binding.subjectId)
-    const parsed =
-      overrideByRoot.get(key) ??
-      snapshots.get(binding.contentVersionId)
-    if (!parsed) {
-      throw new Error(`Campaign content binding "${binding.contentVersionId}" is unavailable.`)
-    }
-    if (parsed.authored.systemId !== character.systemId) {
-      throw new Error(`Campaign content root "${key}" belongs to a different rules system.`)
-    }
-    bindings.set(key, parsed)
-  }
-
-  return { campaignId: assignment.campaignId, userId: character.userId, bindings, latest }
+  return { campaignId: assignment.campaignId, userId: character.userId, latest, sharesByRoot }
 }
 
-export function findCampaignCharacterSnapshot(
+export function findCampaignCharacterSource(
   overlay: CampaignCharacterContentOverlay | null,
   subjectKind: AuthoredSubjectKind,
   subjectId: string
-): CampaignAuthoredSnapshot | null {
+): CampaignAuthoredSource | null {
   if (!overlay) return null
   const key = campaignContentRootKey(subjectKind, subjectId)
-  return overlay.bindings.get(key) ?? overlay.latest.get(key) ?? null
+  return overlay.latest.get(key) ?? null
 }
 
 async function loadCampaignTopLevelSource<T extends { systemId: string }>(input: {
@@ -219,11 +124,8 @@ async function loadCampaignTopLevelSource<T extends { systemId: string }>(input:
   subjectId: string
   subjectKind: AuthoredSubjectKind
   systemId?: string
-  useBindings: boolean
 }): Promise<CampaignVersionedSource<T> | null> {
-  const snapshot = input.useBindings
-    ? findCampaignCharacterSnapshot(input.overlay, input.subjectKind, input.subjectId)
-    : (input.overlay.latest.get(campaignContentRootKey(input.subjectKind, input.subjectId)) ?? null)
+  const snapshot = findCampaignCharacterSource(input.overlay, input.subjectKind, input.subjectId)
   if (snapshot?.subjectKind === input.subjectKind) {
     const authored = snapshot.authored as unknown as T
     return !input.systemId || authored.systemId === input.systemId
@@ -283,7 +185,6 @@ async function resolveRaceRecords(
   db: DBLike,
   overlay: CampaignCharacterContentOverlay,
   ids: readonly string[],
-  useBindings: boolean,
   systemId?: string
 ): Promise<ResolvedRace[]> {
   const records = await Promise.all(
@@ -293,8 +194,7 @@ async function resolveRaceRecords(
         overlay,
         subjectKind: 'RACE',
         subjectId: id,
-        systemId,
-        useBindings
+        systemId
       })
       if (!root) return null
       const parents = new Map<string, RaceAuthored>()
@@ -327,7 +227,6 @@ async function resolveEquipmentRecords(
   db: DBLike,
   overlay: CampaignCharacterContentOverlay,
   ids: readonly string[],
-  useBindings: boolean,
   systemId?: string
 ): Promise<ResolvedEquipment[]> {
   const records = await Promise.all(
@@ -337,8 +236,7 @@ async function resolveEquipmentRecords(
         overlay,
         subjectKind: 'EQUIPMENT',
         subjectId: id,
-        systemId,
-        useBindings
+        systemId
       })
       if (!root) return null
       const parents = new Map<string, EquipmentAuthored>()
@@ -385,8 +283,8 @@ export async function hydrateCampaignCatalogContent(
     (record) => record.id
   )
   const [races, equipment] = await Promise.all([
-    resolveRaceRecords(db, overlay, raceIds, false),
-    resolveEquipmentRecords(db, overlay, equipmentIds, false)
+    resolveRaceRecords(db, overlay, raceIds),
+    resolveEquipmentRecords(db, overlay, equipmentIds)
   ])
   return {
     backgrounds: latestRecords(overlay, 'BACKGROUND'),
@@ -412,12 +310,12 @@ export async function hydrateCampaignSelectedContent(
 ): Promise<HydratedCampaignBuilderContent> {
   const select = <T>(kind: AuthoredSubjectKind, ids: readonly string[]) =>
     ids.flatMap((id) => {
-      const snapshot = findCampaignCharacterSnapshot(overlay, kind, id)
-      return snapshot ? [snapshot.authored as T] : []
+      const source = findCampaignCharacterSource(overlay, kind, id)
+      return source ? [source.authored as T] : []
     })
   const [races, equipment] = await Promise.all([
-    resolveRaceRecords(db, overlay, input.raceIds, true, input.systemId),
-    resolveEquipmentRecords(db, overlay, input.equipmentIds, true, input.systemId)
+    resolveRaceRecords(db, overlay, input.raceIds, input.systemId),
+    resolveEquipmentRecords(db, overlay, input.equipmentIds, input.systemId)
   ])
   return {
     backgrounds: select('BACKGROUND', input.backgroundIds),
@@ -500,65 +398,13 @@ export function buildCampaignAssemblyStructure(
   }
 }
 
-function collectSelectedIds(character: CharacterAuthored): Set<string> {
-  return new Set(
-    [
-      character.intent.race.raceId,
-      character.intent.race.subraceId,
-      character.intent.background.backgroundId,
-      ...character.intent.classes.flatMap((record) => [record.classId, record.subclassId]),
-      ...character.intent.featureAcquisitions.flatMap((record) =>
-        record.source.kind === 'FEAT' ? [record.source.featId] : []
-      ),
-      ...(character.intent.chosenGrantSelections ?? []).flatMap((record) => record.targetIds),
-      ...(character.intent.spellSelections ?? []).flatMap((record) => record.spells),
-      ...(character.state.classes ?? []).flatMap((record) => [
-        ...(record.spells?.learned ?? []),
-        ...(record.spells?.prepared ?? [])
-      ]),
-      ...character.state.equipment.inventory.map((record) => record.equipmentId),
-      ...Object.values(character.intent.startingEquipment ?? {}).flatMap(
-        (decision) =>
-          decision?.groups?.flatMap(
-            (group) => group.selections?.map((selection) => selection.equipmentId) ?? []
-          ) ?? []
-      )
-    ].filter((id): id is string => Boolean(id))
-  )
-}
-
-export async function replaceCampaignCharacterContentBindings(
-  db: DBLike,
-  character: CharacterAuthored
-): Promise<void> {
-  const overlay = await loadCampaignCharacterContentOverlay(db, character)
-  if (!overlay) return
-  const selectedIds = collectSelectedIds(character)
-  const bindings: CampaignCharacterContentBindingInput[] = []
-  for (const [key, latest] of overlay.latest) {
-    if (!selectedIds.has(latest.subjectId)) continue
-    const selected = overlay.bindings.get(key) ?? latest
-    bindings.push({
-      subjectKind: selected.subjectKind,
-      subjectId: selected.subjectId,
-      contentVersionId: selected.contentVersionId
-    })
-  }
-  await createCampaignContentRepository(db).replaceCharacterBindings({
-    campaignId: overlay.campaignId,
-    characterId: character.id,
-    bindings
-  })
-}
-
 export async function lockCampaignCharacterContentForSave(
   db: DBLike,
   characterId: string
 ): Promise<string | null> {
-  const content = createCampaignContentRepository(db)
-  const assignment = await content.findAssignedCampaign(characterId)
+  const campaign = createCampaignRepository(db)
+  const assignment = await campaign.findCampaignByCharacter(characterId)
   if (!assignment) return null
-  if (!(await createCampaignRepository(db).lockCampaign(assignment.campaignId))) return null
-  await content.lockCharacterBindings(assignment.campaignId, characterId)
+  if (!(await campaign.lockCampaign(assignment.campaignId))) return null
   return assignment.campaignId
 }

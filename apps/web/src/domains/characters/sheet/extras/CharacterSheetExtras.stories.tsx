@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 import { characterSheetFixture } from '../fixtures/characterSheet.fixtures'
 import { CharacterSheetView } from '../core/CharacterSheetView'
-import { companionPanelFixture, vehiclePanelFixture } from '../inspector/inspector.fixtures'
 import {
   characterSheetStoryMeta,
   extrasCommandErrorHandler,
@@ -97,7 +96,9 @@ export const Extras: Story = {
         .find((element) => element instanceof HTMLInputElement)
       if (!input) throw new Error(`${label} input is unavailable`)
       await userEvent.click(input)
-      await userEvent.click(await body.findByRole('option', { name: option }))
+      await userEvent.click(
+        await body.findByRole('option', { hidden: true, name: option }, { timeout: 5_000 })
+      )
     }
     const drawer = body.getByRole('dialog', { name: 'Add Extra' })
     await userEvent.click(within(drawer).getByRole('button', { name: /^add extra$/i }))

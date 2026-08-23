@@ -4,6 +4,7 @@ import {
   characterBuilderPreviewPayloadDtoSchema,
   characterBuilderPayloadDtoSchema,
   characterHistoryResponseDtoSchema,
+  characterPreparationOptionsResponseDtoSchema,
   characterListResponseDtoSchema,
   characterRestPreviewResponseDtoSchema,
   characterSheetExtraCatalogResponseDtoSchema,
@@ -63,6 +64,10 @@ export function buildCharactersApi(client: TrpcClient) {
     panel: (id: string, target: CharacterSheetPanelTargetDto) =>
       request('characters.panel', characterSheetPanelDtoSchema, () =>
         client.characters.panel.query({ id, target })
+      ),
+    preparationOptions: (id: string) =>
+      request('characters.preparationOptions', characterPreparationOptionsResponseDtoSchema, () =>
+        client.characters.preparationOptions.query({ id })
       ),
     previewSave: (input: CharacterBuilderSaveRequestDto) =>
       request('characters.previewSave', characterBuilderPreviewPayloadDtoSchema, () =>

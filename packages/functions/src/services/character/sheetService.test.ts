@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DBLike } from '@artificer-toolkit/db'
 import {
@@ -6,6 +6,7 @@ import {
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
   SCALING,
+  SPELLCASTING_ATTRIBUTE,
   SPELL_GRANT_ATTRIBUTE
 } from '@artificer-toolkit/shared/core'
 import {
@@ -13,9 +14,13 @@ import {
   toCharacterResourceOwnerKey,
   type CharacterResourceOwnerKey
 } from '@artificer-toolkit/shared/character'
-import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
-import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type {
+  CharacterAuthored,
+  CreatureAuthored,
+  SpellAuthored
+} from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderResolution } from './builderService.js'
+import type { CharacterMechanicsCompilerInput } from './characterMechanicsCompiler.js'
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 import type { CharacterSheetRuleContext } from './characterSheetBundleAssembly.js'
 import type { CharacterMechanicsProjection } from '@artificer-toolkit/schema/projections/characterMechanics'
@@ -27,10 +32,16 @@ const mocks = vi.hoisted(() => ({
   advanceLiveMechanicsProjection: vi.fn(),
   assembleSheetBundleForRuleContext: vi.fn(),
   compileMechanicsProjection: vi.fn(),
+  collectEvaluationSpellIds: vi.fn(),
   createCommittedExtras: vi.fn(),
   createCommittedResolution: vi.fn(),
   createCommittedSpells: vi.fn(),
   extendCommittedSources: vi.fn(),
+  reduceCommittedSources: vi.fn(),
+  lockCampaignShareUses: vi.fn(),
+  lockCurrentSourceUses: vi.fn(),
+  lockCampaignMemberForContentRead: vi.fn(),
+  lockCampaignAssignment: vi.fn(),
   pruneCommittedSources: vi.fn(),
   assertCommandAuthority: vi.fn(),
   findAllCreatures: vi.fn(),
@@ -63,6 +74,7 @@ const mocks = vi.hoisted(() => ({
   resolveActiveCharacterEquipment: vi.fn(),
   loadActiveCreatures: vi.fn(),
   loadActiveVehicles: vi.fn(),
+  loadCampaignContentOverlay: vi.fn(),
   loadCommittedSources: vi.fn(),
   lockMaximumHitPointContext: vi.fn(),
   commitMaximumHitPointPolicy: vi.fn(),
@@ -109,12 +121,16 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       prepareAndCommit: mocks.commitMaximumHitPointPolicy
     }),
     createCampaignCharacterMechanicsProjectionRepository: () => ({
+      lockAssignment: mocks.lockCampaignAssignment,
       publish: mocks.publishCampaignMechanics,
       requireCurrent: mocks.findCampaignMechanics,
       requireCurrentMetadata: mocks.findCampaignMechanicsMetadata
     }),
-    createCampaignContentRepository: () => ({
-      findAssignedCampaign: async () => null
+    createCampaignRepository: () => ({
+      findCampaignByCharacter: async () => null
+    }),
+    createCampaignContentShareRepository: () => ({
+      lockCampaignMemberForContentRead: mocks.lockCampaignMemberForContentRead
     }),
     createRollHistoryRepository: () => ({
       consumeForUser: mocks.consumeRollForUser,
@@ -122,8 +138,9 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     }),
     createCreatureRepository: () => ({
       findById: async (id: string) =>
-        ((await mocks.findAllCreatures()) as CreatureAuthored[]).find((creature) => creature.id === id) ??
-        null,
+        ((await mocks.findAllCreatures()) as CreatureAuthored[]).find(
+          (creature) => creature.id === id
+        ) ?? null,
       findByIds: async () =>
         new Map(
           ((await mocks.findAllCreatures()) as CreatureAuthored[]).map((creature) => [
@@ -134,8 +151,9 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     }),
     createVehicleRepository: () => ({
       findById: async (id: string) =>
-        ((await mocks.findAllVehicles()) as Array<{ id: string }>).find((vehicle) => vehicle.id === id) ??
-        null,
+        ((await mocks.findAllVehicles()) as Array<{ id: string }>).find(
+          (vehicle) => vehicle.id === id
+        ) ?? null,
       findByIds: async () => {
         const vehicles = (await mocks.findAllVehicles()) as Array<{ id: string }>
         return new Map(vehicles.map((vehicle) => [vehicle.id, vehicle]))
@@ -168,8 +186,7 @@ vi.mock('./builderService.js', async (importOriginal) => {
 })
 
 vi.mock('./characterAssemblyOrchestrator.js', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('./characterAssemblyOrchestrator.js')>()
+  const actual = await importOriginal<typeof import('./characterAssemblyOrchestrator.js')>()
   return { ...actual, resolveActiveCharacterEquipment: mocks.resolveActiveCharacterEquipment }
 })
 
@@ -184,7 +201,14 @@ vi.mock('./characterCommittedSheetSources.js', () => ({
   createCharacterCommittedSheetSpells: mocks.createCommittedSpells,
   extendCharacterCommittedSheetSourcesWithActiveRoots: mocks.extendCommittedSources,
   loadCharacterCommittedSheetSources: mocks.loadCommittedSources,
-  pruneCharacterCommittedSheetSourcesRoots: mocks.pruneCommittedSources
+  lockCharacterCommittedSheetCampaignShareUses: mocks.lockCampaignShareUses,
+  lockCharacterCommittedSheetCurrentSourceUses: mocks.lockCurrentSourceUses,
+  pruneCharacterCommittedSheetSourcesRoots: mocks.pruneCommittedSources,
+  reduceCharacterCommittedSheetSourcesToRuleOutputSpells: mocks.reduceCommittedSources
+}))
+
+vi.mock('./campaignCharacterContent.js', () => ({
+  loadCampaignCharacterContentOverlay: mocks.loadCampaignContentOverlay
 }))
 
 vi.mock('./characterMechanicsCompiler.js', () => ({
@@ -229,7 +253,11 @@ vi.mock('./characterRuleEvaluation.js', async (importOriginal) => {
   const original = await importOriginal<typeof import('./characterRuleEvaluation.js')>()
   const { evaluateCharacterBuilderTestPolicy } =
     await import('./characterBuilderRuleEvaluation.testUtils.js')
-  return { ...original, evaluateCharacterRulePolicy: evaluateCharacterBuilderTestPolicy }
+  return {
+    ...original,
+    collectCharacterRuleEvaluationSpellIds: mocks.collectEvaluationSpellIds,
+    evaluateCharacterRulePolicy: evaluateCharacterBuilderTestPolicy
+  }
 })
 
 const {
@@ -458,6 +486,72 @@ async function buildPolicyTestSheetBundle(
   }
 }
 
+function configureCommittedSpellEligibility(input: {
+  classId: string
+  spellIds: string[]
+  mode: 'KNOWN' | 'PREPARED'
+}) {
+  const previous = mocks.findMechanics.getMockImplementation()
+  if (!previous) throw new Error('Committed mechanics mock is unavailable.')
+  mocks.findMechanics.mockImplementation(async (...args) => {
+    const mechanics = await previous(...args)
+    return {
+      ...mechanics,
+      rulePolicyInput: {
+        ...mechanics.rulePolicyInput,
+        spellPreparationClasses: [
+          {
+            classId: input.classId,
+            classLevel: 1,
+            sources: [
+              {
+                sourceKind: 'CLASS',
+                sourceId: input.classId,
+                attributes:
+                  input.mode === 'PREPARED'
+                    ? [SPELLCASTING_ATTRIBUTE.PREPARES_SPELLS]
+                    : [SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT],
+                abilityIndex: 0,
+                spellLimits: [{ classLevel: 1, preparedSpellsLimit: null, spellLevels: [1] }],
+                prepareLimit:
+                  input.mode === 'PREPARED'
+                    ? {
+                        methodKinds: ['CLASS_LEVEL'],
+                        scaling: 'FULL',
+                        rounding: null,
+                        perLevel: []
+                      }
+                    : null
+              }
+            ],
+            learnedStatePresent: input.mode === 'KNOWN',
+            learnedStateSpellIds: [],
+            intentSpellIds: [],
+            preparedStateSpellIds: []
+          }
+        ]
+      },
+      rulePolicyOutput: {
+        ...mechanics.rulePolicyOutput,
+        spellPreparation: {
+          sources: [
+            {
+              classId: input.classId,
+              sourceIds: [input.classId],
+              preparedSpellLimit: input.mode === 'PREPARED' ? 10 : null,
+              maxPreparableSpellLevel: input.mode === 'PREPARED' ? 1 : 0,
+              availableSpellIds: input.spellIds,
+              learnedSpellIds: [],
+              preparedSpellIds: []
+            }
+          ],
+          requestDecision: null
+        }
+      }
+    }
+  })
+}
+
 describe('executeCharacterSheetCommand persistence', () => {
   beforeEach(() => {
     mocks.assertCommandAuthority.mockResolvedValue(undefined)
@@ -512,13 +606,29 @@ describe('executeCharacterSheetCommand persistence', () => {
     mocks.commitMaximumHitPointPolicy.mockReset()
     mocks.publishMechanics.mockReset()
     mocks.compileMechanicsProjection.mockReset()
+    mocks.collectEvaluationSpellIds.mockReset()
+    mocks.collectEvaluationSpellIds.mockReturnValue(new Set())
     mocks.advanceMechanicsProjection.mockReset()
     mocks.createCommittedExtras.mockReset()
     mocks.createCommittedResolution.mockReset()
     mocks.createCommittedSpells.mockReset()
     mocks.extendCommittedSources.mockReset()
+    mocks.reduceCommittedSources.mockReset()
+    mocks.lockCampaignShareUses.mockReset()
+    mocks.lockCampaignShareUses.mockResolvedValue(undefined)
+    mocks.lockCurrentSourceUses.mockReset()
+    mocks.lockCurrentSourceUses.mockResolvedValue(undefined)
+    mocks.lockCampaignMemberForContentRead.mockReset()
+    mocks.lockCampaignMemberForContentRead.mockResolvedValue({
+      campaignExists: true,
+      memberActive: true
+    })
+    mocks.lockCampaignAssignment.mockReset()
+    mocks.lockCampaignAssignment.mockResolvedValue(undefined)
     mocks.pruneCommittedSources.mockReset()
     mocks.loadCommittedSources.mockReset()
+    mocks.loadCampaignContentOverlay.mockReset()
+    mocks.loadCampaignContentOverlay.mockResolvedValue(null)
     mocks.findById.mockResolvedValue({
       id: 'character-1',
       status: 'ACTIVE',
@@ -556,8 +666,8 @@ describe('executeCharacterSheetCommand persistence', () => {
       ruleRevisionChecksum: 'a'.repeat(64),
       evaluatorVersion: '0.54.0',
       modelContractVersion: 5,
-      rulePolicyInput: {},
-      rulePolicyOutput: {},
+      rulePolicyInput: { spellPreparationClasses: [] },
+      rulePolicyOutput: { spellPreparation: { sources: [] } },
       ruleRegistry: {},
       ruleSnapshot: { characterId: 'character-1' }
     }
@@ -586,8 +696,13 @@ describe('executeCharacterSheetCommand persistence', () => {
       vehiclesById: new Map()
     })
     mocks.createCommittedSpells.mockReturnValue(new Map())
-    mocks.extendCommittedSources.mockImplementation(
-      async (params: { sources: unknown }) => params.sources
+    mocks.extendCommittedSources.mockImplementation(async (params: { sources: unknown }) => ({
+      sources: params.sources,
+      campaignShareUses: [],
+      currentSourceUses: []
+    }))
+    mocks.reduceCommittedSources.mockImplementation(
+      (params: { sources: unknown }) => params.sources
     )
     mocks.pruneCommittedSources.mockImplementation((params: { sources: unknown }) => params.sources)
     mocks.compileMechanicsProjection.mockReturnValue({})
@@ -598,67 +713,65 @@ describe('executeCharacterSheetCommand persistence', () => {
     })
     mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
     mocks.resolveActiveCharacterEquipment.mockResolvedValue([])
-    mocks.loadActiveCreatures.mockImplementation(async ({
-      creatureIds
-    }: {
-      creatureIds: readonly string[]
-    }) => {
-      const creatures = (await mocks.findAllCreatures()) as CreatureAuthored[]
-      return new Map(
-        creatures
-          .filter((creature) => creatureIds.includes(creature.id))
-          .map((creature) => [creature.id, creature])
-      )
-    })
-    mocks.loadActiveVehicles.mockImplementation(async ({
-      vehicleIds
-    }: {
-      vehicleIds: readonly string[]
-    }) => {
-      const vehicles = (await mocks.findAllVehicles()) as Array<{ id: string }>
-      return new Map(
-        vehicles
-          .filter((vehicle) => vehicleIds.includes(vehicle.id))
-          .map((vehicle) => [vehicle.id, vehicle])
-      )
-    })
+    mocks.loadActiveCreatures.mockImplementation(
+      async ({ creatureIds }: { creatureIds: readonly string[] }) => {
+        const creatures = (await mocks.findAllCreatures()) as CreatureAuthored[]
+        return new Map(
+          creatures
+            .filter((creature) => creatureIds.includes(creature.id))
+            .map((creature) => [creature.id, creature])
+        )
+      }
+    )
+    mocks.loadActiveVehicles.mockImplementation(
+      async ({ vehicleIds }: { vehicleIds: readonly string[] }) => {
+        const vehicles = (await mocks.findAllVehicles()) as Array<{ id: string }>
+        return new Map(
+          vehicles
+            .filter((vehicle) => vehicleIds.includes(vehicle.id))
+            .map((vehicle) => [vehicle.id, vehicle])
+        )
+      }
+    )
     mocks.buildSheetBundle.mockImplementation(buildPolicyTestSheetBundle)
-    mocks.assembleSheetBundleForRuleContext.mockImplementation(async (params: {
-      character: CharacterAuthored
-      row: { stream_version: number }
-      revisionId: string
-      ruleContext: CharacterSheetRuleContext
-    }) => {
-      const resolution = mocks.createCommittedResolution()
-      const context = {
-        catalog: resolution.catalog,
-        registry: resolution.sourceRegistry
-      }
-      const bundle = await mocks.buildSheetBundle({
-        db,
-        character: params.character,
-        resolution,
-        streamVersion: params.row.stream_version,
-        adjustments: params.ruleContext.adjustments,
-        movementDisplayPreference: await mocks.getMovementPreference(params.character.id),
-        resourceUsage: await mocks.listResourceUsage(params.character.id),
-        spellCustomizations: await mocks.listSpellCustomizations(params.character.id),
-        additionalConditions: params.ruleContext.additionalConditions,
-        ruleEvaluation: {
-          context,
-          revisionId: params.revisionId,
-          attunementSlotOverride: params.ruleContext.attunementSlotOverride
+    mocks.assembleSheetBundleForRuleContext.mockImplementation(
+      async (params: {
+        character: CharacterAuthored
+        row: { stream_version: number }
+        revisionId: string
+        ruleContext: CharacterSheetRuleContext
+      }) => {
+        const resolution = mocks.createCommittedResolution()
+        const context = {
+          catalog: resolution.catalog,
+          registry: resolution.sourceRegistry
         }
-      })
-      return {
-        bundle,
-        mechanics: { projectionChecksum: 'b'.repeat(64) },
-        campaignMechanics: null,
-        resolution,
-        characterAdjustments: await mocks.listAdjustments(params.character.id),
-        movementDisplayPreference: await mocks.getMovementPreference(params.character.id)
+        const bundle = await mocks.buildSheetBundle({
+          db,
+          character: params.character,
+          resolution,
+          streamVersion: params.row.stream_version,
+          adjustments: params.ruleContext.adjustments,
+          movementDisplayPreference: await mocks.getMovementPreference(params.character.id),
+          resourceUsage: await mocks.listResourceUsage(params.character.id),
+          spellCustomizations: await mocks.listSpellCustomizations(params.character.id),
+          additionalConditions: params.ruleContext.additionalConditions,
+          ruleEvaluation: {
+            context,
+            revisionId: params.revisionId,
+            attunementSlotOverride: params.ruleContext.attunementSlotOverride
+          }
+        })
+        return {
+          bundle,
+          mechanics: { projectionChecksum: 'b'.repeat(64) },
+          campaignMechanics: null,
+          resolution,
+          characterAdjustments: await mocks.listAdjustments(params.character.id),
+          movementDisplayPreference: await mocks.getMovementPreference(params.character.id)
+        }
       }
-    })
+    )
     mocks.patchSheetState.mockImplementation(async (_characterId, _patches, options) => {
       await options.afterPersist?.(db, 2)
       return 2
@@ -794,14 +907,12 @@ describe('executeCharacterSheetCommand persistence', () => {
 
     expect(mocks.evaluateActionStateChange).not.toHaveBeenCalled()
     expect(mocks.buildSheetBundle).toHaveBeenCalledTimes(2)
-    expect(mocks.buildSheetBundle.mock.calls[1]?.[0]).not.toHaveProperty(
-      'committedRuleEvaluation'
-    )
+    expect(mocks.buildSheetBundle.mock.calls[1]?.[0]).not.toHaveProperty('committedRuleEvaluation')
     expect(mocks.buildSheetBundle).toHaveBeenCalled()
     expect(mocks.compileMechanicsProjection).toHaveBeenCalledWith(
       expect.objectContaining({ characterStreamVersion: 2 })
     )
-    expect(mocks.publishMechanics).toHaveBeenCalledWith({}, { requireActiveAuthoredVersions: false })
+    expect(mocks.publishMechanics).toHaveBeenCalledWith({})
   })
 
   it('rejects spending through an unavailable action before persisting usage', async () => {
@@ -1020,7 +1131,7 @@ describe('executeCharacterSheetCommand persistence', () => {
     expect(mocks.compileMechanicsProjection).toHaveBeenCalledWith(
       expect.objectContaining({ characterStreamVersion: 2 })
     )
-    expect(mocks.publishMechanics).toHaveBeenCalledWith({}, { requireActiveAuthoredVersions: false })
+    expect(mocks.publishMechanics).toHaveBeenCalledWith({})
     expect(mocks.buildSheetBundle).toHaveBeenLastCalledWith(expect.any(Object))
   })
 
@@ -1176,6 +1287,9 @@ describe('executeCharacterSheetCommand persistence', () => {
       expectedStreamVersion: 1
     })
     expect(mocks.findMechanics).not.toHaveBeenCalled()
+    expect(mocks.publishMechanics).toHaveBeenCalledWith(expect.any(Object), {
+      onTiming: expect.any(Function)
+    })
     expect(timing).toMatchObject({ committedSnapshotCacheHit: true })
   })
 
@@ -1202,27 +1316,27 @@ describe('executeCharacterSheetCommand persistence', () => {
     })
     mocks.findMechanicsMetadata.mockRejectedValueOnce(new Error('stale room snapshot'))
     await executeCharacterSheetCommandWithRuleEvaluation({
-        db: db as unknown as DBLike,
-        characterId: 'character-1',
-        userId: 'user-1',
-        liveSessionAuthority: { sessionId: 'session-1', authorityId: 'room-1' },
-        committedRuleSnapshot: {
-          mechanicsProjectionChecksum: 'b'.repeat(64),
-          mechanicsCommandLaneChecksum: 'c'.repeat(64),
-          mechanicsPayload: createCommittedMechanicsPayload(evaluation),
-          campaignMechanicalContextChecksum: null,
-          campaignMechanicsProjectionChecksum: null,
-          streamVersion: 1,
-          evaluation,
-          resolution
-        },
-        command: {
-          type: 'ADJUST_HIT_POINTS',
-          mode: 'DAMAGE',
-          amount: 1,
-          expectedVersion: 1,
-          commandId: '00000000-0000-4000-8000-000000000108'
-        }
+      db: db as unknown as DBLike,
+      characterId: 'character-1',
+      userId: 'user-1',
+      liveSessionAuthority: { sessionId: 'session-1', authorityId: 'room-1' },
+      committedRuleSnapshot: {
+        mechanicsProjectionChecksum: 'b'.repeat(64),
+        mechanicsCommandLaneChecksum: 'c'.repeat(64),
+        mechanicsPayload: createCommittedMechanicsPayload(evaluation),
+        campaignMechanicalContextChecksum: null,
+        campaignMechanicsProjectionChecksum: null,
+        streamVersion: 1,
+        evaluation,
+        resolution
+      },
+      command: {
+        type: 'ADJUST_HIT_POINTS',
+        mode: 'DAMAGE',
+        amount: 1,
+        expectedVersion: 1,
+        commandId: '00000000-0000-4000-8000-000000000108'
+      }
     })
     expect(mocks.findMechanics).toHaveBeenCalled()
   })
@@ -1553,7 +1667,7 @@ describe('executeCharacterSheetCommand persistence', () => {
     expect(mocks.compileMechanicsProjection).toHaveBeenCalledWith(
       expect.objectContaining({ characterStreamVersion: 2 })
     )
-    expect(mocks.publishMechanics).toHaveBeenCalledWith({}, { requireActiveAuthoredVersions: false })
+    expect(mocks.publishMechanics).toHaveBeenCalledWith({})
   })
 
   it('resets only adjustments owned by the requested panel target', async () => {
@@ -1811,7 +1925,11 @@ describe('executeCharacterSheetCommand persistence', () => {
       }
     }
     mocks.loadCommittedSources.mockResolvedValue(sources)
-    mocks.extendCommittedSources.mockResolvedValue(extendedSources)
+    mocks.extendCommittedSources.mockResolvedValue({
+      sources: extendedSources,
+      campaignShareUses: [],
+      currentSourceUses: []
+    })
     mocks.createCommittedExtras.mockReturnValue({
       creaturesById: new Map([[creature.id, creature]]),
       vehiclesById: new Map()
@@ -1840,8 +1958,651 @@ describe('executeCharacterSheetCommand persistence', () => {
         characterStreamVersion: 2
       })
     )
-    expect(mocks.publishMechanics).toHaveBeenCalledWith({}, { requireActiveAuthoredVersions: false })
+    expect(mocks.publishMechanics).toHaveBeenCalledWith({})
   })
+
+  it('admits exact SET_* Spell sources, locks Campaign authority first, and reduces the next vector', async () => {
+    const spellId = 'campaign-spell-1'
+    const fixedSpellId = 'fixed-spell-1'
+    const availableOnlySpellId = 'available-only-spell-1'
+    const spellDocumentsById = new Map<string, SpellAuthored>([
+      [
+        spellId,
+        {
+          kind: 'SPELL',
+          id: spellId,
+          label: 'Campaign spell',
+          description: '',
+          castingTime: { unit: 'ROUND', amount: 1 },
+          level: 1,
+          classIds: ['class-1'],
+          magicSchoolId: 'evocation',
+          systemId: 'system-1',
+          userId: 'campaign-owner'
+        }
+      ],
+      [
+        fixedSpellId,
+        {
+          kind: 'SPELL',
+          id: fixedSpellId,
+          label: 'Fixed spell',
+          description: '',
+          castingTime: { unit: 'ROUND', amount: 1 },
+          level: 1,
+          classIds: ['class-1'],
+          magicSchoolId: 'evocation',
+          systemId: 'system-1',
+          userId: 'user-1'
+        }
+      ],
+      [
+        availableOnlySpellId,
+        {
+          kind: 'SPELL',
+          id: availableOnlySpellId,
+          label: 'Available only spell',
+          description: '',
+          castingTime: { unit: 'ROUND', amount: 1 },
+          level: 1,
+          classIds: ['class-1'],
+          magicSchoolId: 'evocation',
+          systemId: 'system-1',
+          userId: 'user-1'
+        }
+      ]
+    ])
+    const backgroundVectorEntry = {
+      subjectKind: 'BACKGROUND' as const,
+      subjectId: 'background-1',
+      versionId: 'background-version-1',
+      version: 1,
+      checksum: 'd'.repeat(64)
+    }
+    const mechanics = {
+      characterId: 'character-1',
+      authoredVersionVector: [backgroundVectorEntry],
+      ruleRevisionId: 'revision-1',
+      ruleRevisionChecksum: 'a'.repeat(64),
+      evaluatorVersion: '0.54.0',
+      modelContractVersion: 5,
+      rulePolicyInput: {},
+      rulePolicyOutput: {},
+      ruleRegistry: {},
+      ruleSnapshot: { characterId: 'character-1' }
+    }
+    const sources = {
+      mechanics,
+      recordsByRoot: new Map(),
+      vocabularySnapshot: { snapshotId: 'snapshot-1' }
+    }
+    const extendedSources = {
+      ...sources,
+      mechanics: {
+        ...mechanics,
+        authoredVersionVector: [
+          backgroundVectorEntry,
+          {
+            subjectKind: 'SPELL' as const,
+            subjectId: spellId,
+            versionId: 'campaign-spell-version-1',
+            version: 1,
+            checksum: 'b'.repeat(64)
+          }
+        ]
+      }
+    }
+    const campaignShareUse = {
+      campaignId: 'campaign-1',
+      subjectKind: 'SPELL' as const,
+      subjectId: spellId,
+      sharedBy: 'campaign-owner',
+      expectedAuthoredVersionId: 'campaign-spell-version-1',
+      expectedAuthoredVersion: 1,
+      expectedAuthoredChecksum: 'b'.repeat(64)
+    }
+    const exactEvaluationSources = {
+      ...extendedSources,
+      mechanics: {
+        ...extendedSources.mechanics,
+        authoredVersionVector: [
+          ...extendedSources.mechanics.authoredVersionVector,
+          {
+            subjectKind: 'SPELL' as const,
+            subjectId: fixedSpellId,
+            versionId: 'fixed-spell-version-1',
+            version: 1,
+            checksum: 'c'.repeat(64)
+          }
+        ]
+      }
+    }
+    const reducedSources = {
+      ...exactEvaluationSources,
+      mechanics: {
+        ...exactEvaluationSources.mechanics,
+        authoredVersionVector: [
+          backgroundVectorEntry,
+          extendedSources.mechanics.authoredVersionVector[1]!,
+          exactEvaluationSources.mechanics.authoredVersionVector[2]!
+        ]
+      }
+    }
+    const reducedSpellDocumentsById = new Map(
+      [...spellDocumentsById].filter(([id]) => id !== availableOnlySpellId)
+    )
+    const extendedResolution = createResolution()
+    extendedResolution.catalog.spells = [
+      {
+        id: spellId,
+        label: 'Campaign spell',
+        description: '',
+        castingTime: { unit: 'ROUND', amount: 1 },
+        level: 1,
+        classIds: ['class-1'],
+        magicSchoolId: 'evocation'
+      }
+    ]
+    mocks.loadCommittedSources.mockResolvedValue(sources)
+    mocks.collectEvaluationSpellIds.mockReturnValue(new Set([fixedSpellId]))
+    mocks.extendCommittedSources.mockImplementation(
+      async (params: { roots: readonly { subjectId: string }[] }) => ({
+        sources: params.roots.some((root) => root.subjectId === fixedSpellId)
+          ? exactEvaluationSources
+          : extendedSources,
+        campaignShareUses: params.roots.some((root) => root.subjectId === spellId)
+          ? [campaignShareUse]
+          : [],
+        currentSourceUses: params.roots.flatMap((root) =>
+          exactEvaluationSources.mechanics.authoredVersionVector.filter(
+            (entry) => entry.subjectKind === 'SPELL' && entry.subjectId === root.subjectId
+          )
+        )
+      })
+    )
+    mocks.reduceCommittedSources.mockImplementation(() => reducedSources)
+    mocks.loadCampaignContentOverlay.mockResolvedValue({
+      campaignId: 'campaign-1',
+      latest: new Map(),
+      sharesByRoot: new Map(),
+      userId: 'user-1'
+    })
+    mocks.createCommittedResolution.mockReturnValue(extendedResolution)
+    mocks.createCommittedSpells.mockImplementation((sources) =>
+      sources === reducedSources ? reducedSpellDocumentsById : spellDocumentsById
+    )
+    mocks.compileMechanicsProjection.mockImplementation(
+      (input: CharacterMechanicsCompilerInput) => ({
+        ...mechanics,
+        authoredVersionVector: input.authoredVersionVector,
+        evaluatorVersion: input.ruleBinding.evaluatorVersion,
+        modelContractVersion: input.ruleBinding.modelContractVersion,
+        rulePolicyInput: input.rulePolicyInput,
+        rulePolicyOutput: input.rulePolicyOutput,
+        ruleRegistry: input.ruleRegistry,
+        ruleRevisionChecksum: input.ruleBinding.checksum,
+        ruleRevisionId: input.ruleBinding.revisionId,
+        ruleSnapshot: input.ruleSnapshot
+      })
+    )
+    mocks.buildSheetBundle.mockImplementation(
+      async (params: Parameters<typeof sheetProjection.buildCharacterSheetResponse>[0]) => {
+        const bundle = await buildPolicyTestSheetBundle(params)
+        const classSpells = params.character.state.classes?.find(
+          (entry) => entry.classId === 'class-1'
+        )?.spells
+        return {
+          ...bundle,
+          ruleEvaluation: {
+            ...bundle.ruleEvaluation,
+            facts: {
+              ...bundle.ruleEvaluation.facts,
+              spellPreparationClasses: [
+                {
+                  classId: 'class-1',
+                  sources: [
+                    {
+                      sourceId: 'class-1',
+                      attributes: ['PREPARES_SPELLS'],
+                      prepareLimit: {},
+                      spellLimits: []
+                    }
+                  ]
+                }
+              ]
+            },
+            output: {
+              ...bundle.ruleEvaluation.output,
+              spellPreparation: {
+                ...bundle.ruleEvaluation.output.spellPreparation,
+                sources: [
+                  {
+                    classId: 'class-1',
+                    availableSpellIds: [spellId],
+                    learnedSpellIds: classSpells?.learned ?? [],
+                    maxPreparableSpellLevel: 1,
+                    preparedSpellIds: classSpells?.prepared ?? [],
+                    preparedSpellLimit: 1,
+                    sourceIds: ['class-1']
+                  }
+                ]
+              }
+            }
+          },
+          sheet: {
+            ...bundle.sheet,
+            spells: {
+              ...bundle.sheet.spells,
+              spells: [...(params.pinnedSpellsById?.values() ?? [])].map((spell) => ({
+                id: spell.id,
+                label: spell.label,
+                level: 1,
+                prepared: false,
+                known: false,
+                sources: [
+                  {
+                    source: {
+                      spellId: spell.id,
+                      sourceKind: 'CLASS',
+                      sourceInstanceId: 'CLASS:class-1'
+                    },
+                    classId: 'class-1',
+                    label: 'Class',
+                    canPrepare: true,
+                    prepared: false
+                  }
+                ]
+              })),
+              preparationSources: [{ classId: 'class-1', label: 'Class', preparedSpellIds: [] }]
+            }
+          }
+        }
+      }
+    )
+    mocks.resolveCampaignContext.mockResolvedValue({
+      viewer: 'CHARACTER_OWNER',
+      campaignId: 'campaign-1',
+      campaignStatus: 'ACTIVE',
+      contentMaturity: null,
+      attunementSlotOverride: null,
+      adjustments: [],
+      secretAdjustmentIds: new Set(),
+      conditions: []
+    })
+    mocks.patchSheetState.mockImplementation(async (_characterId, _patches, options) => {
+      await options.beforeCharacterLock?.(db)
+      await options.afterCharacterLock?.(db)
+      return 2
+    })
+
+    for (const command of [
+      {
+        type: 'SET_PREPARED_SPELLS' as const,
+        spellIds: [spellId],
+        commandId: '00000000-0000-4000-8000-000000000196'
+      },
+      {
+        type: 'SET_KNOWN_SPELLS' as const,
+        spellIds: [spellId],
+        commandId: '00000000-0000-4000-8000-000000000197'
+      },
+      {
+        type: 'SET_PREPARED_SPELLS' as const,
+        spellIds: [],
+        commandId: '00000000-0000-4000-8000-000000000198'
+      }
+    ]) {
+      configureCommittedSpellEligibility({
+        classId: 'class-1',
+        spellIds: [spellId],
+        mode: command.type === 'SET_PREPARED_SPELLS' ? 'PREPARED' : 'KNOWN'
+      })
+      await executeCharacterSheetCommand({
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command: { ...command, classId: 'class-1', expectedVersion: 1 }
+      })
+    }
+
+    expect(mocks.extendCommittedSources).toHaveBeenCalledTimes(5)
+    expect(mocks.extendCommittedSources).toHaveBeenCalledWith(
+      expect.objectContaining({
+        roots: [{ subjectKind: 'SPELL', subjectId: fixedSpellId }]
+      })
+    )
+    expect(mocks.lockCampaignShareUses).toHaveBeenCalledTimes(2)
+    expect(mocks.lockCampaignShareUses.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.lockCampaignMemberForContentRead.mock.invocationCallOrder[0] ?? 0
+    )
+    expect(mocks.lockCampaignMemberForContentRead.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.lockCampaignAssignment.mock.invocationCallOrder[0] ?? 0
+    )
+    expect(mocks.lockCampaignAssignment.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.lockCurrentSourceUses.mock.invocationCallOrder[0] ?? 0
+    )
+    expect(mocks.reduceCommittedSources).toHaveBeenCalledTimes(3)
+    expect(mocks.compileMechanicsProjection).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authoredVersionVector: reducedSources.mechanics.authoredVersionVector,
+        characterStreamVersion: 2
+      })
+    )
+    expect(reducedSources.mechanics.authoredVersionVector).toContainEqual(backgroundVectorEntry)
+
+    mocks.lockCampaignShareUses.mockRejectedValueOnce(new Error('Campaign share revoked.'))
+    mocks.publishMechanics.mockClear()
+    mocks.appendEvent.mockClear()
+    await expect(
+      executeCharacterSheetCommand({
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command: {
+          type: 'SET_PREPARED_SPELLS',
+          classId: 'class-1',
+          spellIds: [spellId],
+          expectedVersion: 1,
+          commandId: '00000000-0000-4000-8000-000000000199'
+        }
+      })
+    ).rejects.toThrow('Campaign share revoked')
+    expect(mocks.publishMechanics).not.toHaveBeenCalled()
+    expect(mocks.appendEvent).not.toHaveBeenCalled()
+
+    mocks.lockCampaignShareUses.mockResolvedValue(undefined)
+    mocks.extendCommittedSources.mockResolvedValue({
+      sources: extendedSources,
+      campaignShareUses: [],
+      currentSourceUses: []
+    })
+    mocks.resolveCampaignContext.mockResolvedValue({
+      viewer: 'CHARACTER_OWNER',
+      campaignId: null,
+      campaignStatus: null,
+      contentMaturity: null,
+      attunementSlotOverride: null,
+      adjustments: [],
+      secretAdjustmentIds: new Set(),
+      conditions: []
+    })
+    mocks.appendEvent.mockRejectedValueOnce(new Error('late Character event failure'))
+    mocks.patchSheetState.mockImplementationOnce(async (_characterId, _patches, options) => {
+      await options.afterPersist?.(db, 2)
+      return 2
+    })
+    await expect(
+      executeCharacterSheetCommand({
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command: {
+          type: 'SET_PREPARED_SPELLS',
+          classId: 'class-1',
+          spellIds: [spellId],
+          expectedVersion: 1,
+          commandId: '00000000-0000-4000-8000-000000000200'
+        }
+      })
+    ).rejects.toThrow('late Character event failure')
+    expect(mocks.publishMechanics).toHaveBeenCalled()
+    expect(mocks.appendEvent).toHaveBeenCalled()
+  })
+
+  it('rejects a preparation-ineligible Spell before exact source hydration', async () => {
+    configureCommittedSpellEligibility({
+      classId: 'class-1',
+      spellIds: ['eligible-spell'],
+      mode: 'PREPARED'
+    })
+
+    await expect(
+      executeCharacterSheetCommand({
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command: {
+          type: 'SET_PREPARED_SPELLS',
+          classId: 'class-1',
+          spellIds: ['ineligible-spell'],
+          expectedVersion: 1,
+          commandId: '00000000-0000-4000-8000-000000000201'
+        }
+      })
+    ).rejects.toThrow('Spell "ineligible-spell" is not available')
+
+    expect(mocks.extendCommittedSources).not.toHaveBeenCalled()
+    expect(mocks.patchSheetState).not.toHaveBeenCalled()
+  })
+
+  it.each(['SET_KNOWN_SPELLS', 'SET_PREPARED_SPELLS'] as const)(
+    'returns the post-reduction committed Sheet for %s',
+    async (commandType) => {
+      const selectedSpellId = `${commandType.toLowerCase()}-selected`
+      const availableOnlySpellId = `${commandType.toLowerCase()}-available-only`
+      configureCommittedSpellEligibility({
+        classId: 'class-1',
+        spellIds: [selectedSpellId, availableOnlySpellId],
+        mode: commandType === 'SET_PREPARED_SPELLS' ? 'PREPARED' : 'KNOWN'
+      })
+      const backgroundVectorEntry = {
+        subjectKind: 'BACKGROUND' as const,
+        subjectId: 'background-1',
+        versionId: 'background-version-1',
+        version: 1,
+        checksum: 'd'.repeat(64)
+      }
+      const selectedSpellVectorEntry = {
+        subjectKind: 'SPELL' as const,
+        subjectId: selectedSpellId,
+        versionId: `${selectedSpellId}-version-1`,
+        version: 1,
+        checksum: 'e'.repeat(64)
+      }
+      const availableOnlyVectorEntry = {
+        subjectKind: 'SPELL' as const,
+        subjectId: availableOnlySpellId,
+        versionId: `${availableOnlySpellId}-version-1`,
+        version: 1,
+        checksum: 'f'.repeat(64)
+      }
+      const spell = (id: string, label: string): SpellAuthored => ({
+        kind: 'SPELL',
+        id,
+        label,
+        description: '',
+        castingTime: { unit: 'ROUND', amount: 1 },
+        level: 1,
+        classIds: ['class-1'],
+        magicSchoolId: 'evocation',
+        systemId: 'system-1',
+        userId: 'user-1'
+      })
+      const fullSpellDocuments = new Map<string, SpellAuthored>([
+        [selectedSpellId, spell(selectedSpellId, 'Selected spell')],
+        [availableOnlySpellId, spell(availableOnlySpellId, 'Available-only spell')]
+      ])
+      const reducedSpellDocuments = new Map<string, SpellAuthored>([
+        [selectedSpellId, fullSpellDocuments.get(selectedSpellId)!]
+      ])
+      const mechanics = {
+        characterId: 'character-1',
+        authoredVersionVector: [backgroundVectorEntry],
+        ruleRevisionId: 'revision-1',
+        ruleRevisionChecksum: 'a'.repeat(64),
+        evaluatorVersion: '0.54.0',
+        modelContractVersion: 5,
+        rulePolicyInput: {},
+        rulePolicyOutput: {},
+        ruleRegistry: {},
+        ruleSnapshot: { characterId: 'character-1' }
+      }
+      const baseSources = {
+        mechanics,
+        recordsByRoot: new Map(),
+        vocabularySnapshot: { snapshotId: 'snapshot-1' }
+      }
+      const fullSources = {
+        ...baseSources,
+        mechanics: {
+          ...mechanics,
+          authoredVersionVector: [
+            backgroundVectorEntry,
+            selectedSpellVectorEntry,
+            availableOnlyVectorEntry
+          ]
+        }
+      }
+      const reducedSources = {
+        ...fullSources,
+        mechanics: {
+          ...fullSources.mechanics,
+          authoredVersionVector: [backgroundVectorEntry, selectedSpellVectorEntry]
+        }
+      }
+      const resolution = createResolution()
+      resolution.catalog.spells = [...fullSpellDocuments.values()].map((document) => ({
+        id: document.id,
+        label: document.label,
+        description: document.description,
+        castingTime: document.castingTime,
+        level: document.level,
+        classIds: document.classIds,
+        magicSchoolId: document.magicSchoolId
+      }))
+
+      mocks.loadCommittedSources.mockResolvedValue(baseSources)
+      mocks.extendCommittedSources.mockResolvedValue({
+        sources: fullSources,
+        campaignShareUses: [],
+        currentSourceUses: []
+      })
+      mocks.reduceCommittedSources.mockReturnValue(reducedSources)
+      mocks.createCommittedResolution.mockReturnValue(resolution)
+      mocks.createCommittedSpells.mockImplementation((sources) =>
+        sources === reducedSources ? reducedSpellDocuments : fullSpellDocuments
+      )
+      mocks.compileMechanicsProjection.mockImplementation(
+        (input: CharacterMechanicsCompilerInput) => ({
+          ...mechanics,
+          authoredVersionVector: input.authoredVersionVector,
+          evaluatorVersion: input.ruleBinding.evaluatorVersion,
+          modelContractVersion: input.ruleBinding.modelContractVersion,
+          rulePolicyInput: input.rulePolicyInput,
+          rulePolicyOutput: input.rulePolicyOutput,
+          ruleRegistry: input.ruleRegistry,
+          ruleRevisionChecksum: input.ruleBinding.checksum,
+          ruleRevisionId: input.ruleBinding.revisionId,
+          ruleSnapshot: input.ruleSnapshot
+        })
+      )
+      let persistedReloadSheet:
+        | Awaited<ReturnType<typeof buildPolicyTestSheetBundle>>['sheet']
+        | undefined
+      mocks.buildSheetBundle.mockImplementation(
+        async (params: Parameters<typeof sheetProjection.buildCharacterSheetResponse>[0]) => {
+          const bundle = await buildPolicyTestSheetBundle(params)
+          const sheet = {
+            ...bundle.sheet,
+            spells: {
+              ...bundle.sheet.spells,
+              spells: [...(params.pinnedSpellsById?.values() ?? [])].map((document) => ({
+                id: document.id,
+                label: document.label,
+                level: document.level,
+                known: document.id === selectedSpellId,
+                prepared: commandType === 'SET_PREPARED_SPELLS',
+                sources: [
+                  {
+                    source: {
+                      spellId: document.id,
+                      sourceKind: 'CLASS' as const,
+                      sourceInstanceId: 'CLASS:class-1'
+                    },
+                    classId: 'class-1',
+                    label: 'Class',
+                    canPrepare: true,
+                    prepared: commandType === 'SET_PREPARED_SPELLS'
+                  }
+                ]
+              })),
+              preparationSources: [{ classId: 'class-1', label: 'Class', preparedSpellIds: [] }]
+            }
+          }
+          if (params.pinnedSpellsById === reducedSpellDocuments) {
+            persistedReloadSheet = { ...sheet, meta: { ...sheet.meta, campaignId: null } }
+          }
+          return {
+            ...bundle,
+            ruleEvaluation: {
+              ...bundle.ruleEvaluation,
+              facts: {
+                ...bundle.ruleEvaluation.facts,
+                spellPreparationClasses: [
+                  {
+                    classId: 'class-1',
+                    sources: [
+                      {
+                        sourceId: 'class-1',
+                        attributes: ['PREPARES_SPELLS'],
+                        prepareLimit: {},
+                        spellLimits: []
+                      }
+                    ]
+                  }
+                ]
+              },
+              output: {
+                ...bundle.ruleEvaluation.output,
+                spellPreparation: {
+                  ...bundle.ruleEvaluation.output.spellPreparation,
+                  sources: [
+                    {
+                      classId: 'class-1',
+                      availableSpellIds: [selectedSpellId, availableOnlySpellId],
+                      learnedSpellIds: [],
+                      maxPreparableSpellLevel: 1,
+                      preparedSpellIds: [],
+                      preparedSpellLimit: 1,
+                      sourceIds: ['class-1']
+                    }
+                  ]
+                }
+              }
+            },
+            sheet
+          }
+        }
+      )
+
+      const response = await executeCharacterSheetCommand({
+        db: db as unknown as DBLike,
+        characterId: 'character-1',
+        userId: 'user-1',
+        command: {
+          type: commandType,
+          classId: 'class-1',
+          spellIds: [selectedSpellId],
+          expectedVersion: 1,
+          commandId: randomUUID()
+        }
+      })
+
+      expect(response.streamVersion).toBe(2)
+      if (!persistedReloadSheet) throw new Error('The reduced persisted Sheet was not rebuilt.')
+      expect(response.sheet).toEqual(persistedReloadSheet)
+      expect(response.sheet.spells.spells.map(({ id }) => id)).toEqual([selectedSpellId])
+      expect(response.sheet.spells.spells.map(({ id }) => id)).not.toContain(availableOnlySpellId)
+      expect(mocks.compileMechanicsProjection).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authoredVersionVector: reducedSources.mechanics.authoredVersionVector,
+          characterStreamVersion: 2,
+          ruleBinding: expect.objectContaining({ revisionId: 'revision-1' })
+        })
+      )
+      expect(reducedSources.mechanics.authoredVersionVector).toContainEqual(backgroundVectorEntry)
+    }
+  )
 
   it('accepts owned companion adjustments and rejects invalid targets and registry values', async () => {
     const character = createCharacter()
@@ -2469,7 +3230,7 @@ describe('executeCharacterSheetCommand persistence', () => {
     expect(mocks.compileMechanicsProjection).toHaveBeenCalledWith(
       expect.objectContaining({ characterStreamVersion: 2 })
     )
-    expect(mocks.publishMechanics).toHaveBeenCalledWith({}, { requireActiveAuthoredVersions: false })
+    expect(mocks.publishMechanics).toHaveBeenCalledWith({})
     expect(response.result).toMatchObject({
       type: 'COMPLETE_REST',
       rest: {
@@ -2641,14 +3402,12 @@ describe('executeCharacterSheetCommand persistence', () => {
         expectedStreamVersion === 1 ? currentMechanics : replayMechanics
     )
     mocks.advanceMechanicsProjection.mockReturnValue(replayMechanics)
-    mocks.findByCommandId
-      .mockResolvedValueOnce(null)
-      .mockResolvedValue({
-        type: 'CHARACTER_SHEET_COMMAND_APPLIED',
-        commandType: command.type,
-        commandFingerprint: fingerprintSheetCommand(command),
-        committedStreamVersion: 2
-      })
+    mocks.findByCommandId.mockResolvedValueOnce(null).mockResolvedValue({
+      type: 'CHARACTER_SHEET_COMMAND_APPLIED',
+      commandType: command.type,
+      commandFingerprint: fingerprintSheetCommand(command),
+      committedStreamVersion: 2
+    })
     mocks.patchLiveHitPoints.mockRejectedValueOnce(new MockConcurrencyError('character-1', 1))
 
     await expect(
@@ -2810,9 +3569,7 @@ describe('executeCharacterSheetCommand persistence', () => {
     expect(mocks.advanceMechanicsProjection).toHaveBeenCalledWith(
       expect.objectContaining({ characterStreamVersion: 2, current: currentMechanics })
     )
-    expect(mocks.publishMechanics).toHaveBeenCalledWith(nextMechanics, {
-      requireActiveAuthoredVersions: false
-    })
+    expect(mocks.publishMechanics).toHaveBeenCalledWith(nextMechanics)
     expect(mocks.appendEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         commandType: 'ADJUST_HIT_POINTS',

@@ -60,6 +60,32 @@ describe('createCharacterBuilderAuthoringSession', () => {
     expect(session.initialAuthoringState?.progressSummary.stepCount).toBe(9)
   })
 
+  it('keeps the ready create form owner stable across transient Character identities', () => {
+    const firstSession = createCharacterBuilderAuthoringSession({
+      data: {
+        payload: characterBuilderDraftPayloadFixture,
+        systems: []
+      },
+      mode: 'create'
+    })
+    const nextSession = createCharacterBuilderAuthoringSession({
+      data: {
+        payload: {
+          ...characterBuilderDraftPayloadFixture,
+          character: {
+            ...characterBuilderDraftPayloadFixture.character,
+            id: 'authenticated-transient-character'
+          }
+        },
+        systems: []
+      },
+      mode: 'create'
+    })
+
+    expect(firstSession.formKey).toBe('character:create:ready')
+    expect(nextSession.formKey).toBe(firstSession.formKey)
+  })
+
   it('creates a system-required create session when no payload is available', () => {
     const session = createCharacterBuilderAuthoringSession({
       data: {

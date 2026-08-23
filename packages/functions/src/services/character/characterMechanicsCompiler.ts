@@ -18,7 +18,10 @@ import type {
   AuthoredVersionVector
 } from '@artificer-toolkit/schema/projections/identity'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
-import type { CharacterAssemblyRegistry, CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
+import type {
+  CharacterAssemblyRegistry,
+  CharacterBuildSnapshot
+} from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type {
   CharacterRulePolicyInput,
@@ -26,8 +29,9 @@ import type {
 } from '@artificer-toolkit/schema/api/characterRules'
 
 import type { CharacterRuleBinding } from './characterRuleBinding.js'
+import { collectCharacterRuleOutputSpellIds } from './characterSpellRuleFacts.js'
 import {
-  findCampaignCharacterSnapshot,
+  findCampaignCharacterSource,
   type CampaignCharacterContentOverlay
 } from './campaignCharacterContent.js'
 
@@ -43,10 +47,7 @@ export interface CharacterMechanicsCompilerInput {
   rulePolicyOutput: CharacterRulePolicyOutput
   ruleRegistry: CharacterAssemblyRegistry | CharacterMechanicsProjection['ruleRegistry']
   ruleSnapshot: CharacterBuildSnapshot | CharacterMechanicsProjection['ruleSnapshot']
-  vocabularySnapshot: Pick<
-    SystemVocabularySnapshot,
-    'checksum' | 'snapshotId' | 'snapshotVersion'
-  >
+  vocabularySnapshot: Pick<SystemVocabularySnapshot, 'checksum' | 'snapshotId' | 'snapshotVersion'>
 }
 
 function toCharacterMechanicsRuleSnapshot(
@@ -88,9 +89,9 @@ function addSubjectId(
   requirements.get(subjectKind)?.add(subjectId)
 }
 
-function collectAuthoredVersionRequirements(input: {
+export function collectCharacterAuthoredVersionRequirements(input: {
   character: CharacterAuthored
-  rulePolicyInput: CharacterRulePolicyInput
+  rulePolicyOutput: CharacterRulePolicyOutput
   ruleRegistry: CharacterAssemblyRegistry
 }): Map<AuthoredSubjectKind, Set<string>> {
   const requirements = new Map<AuthoredSubjectKind, Set<string>>()
@@ -130,14 +131,8 @@ function collectAuthoredVersionRequirements(input: {
   for (const equipmentId of Object.keys(input.ruleRegistry.equipment)) {
     addSubjectId(requirements, 'EQUIPMENT', equipmentId)
   }
-  for (const spell of input.rulePolicyInput.spellAccessCandidates) {
-    addSubjectId(requirements, 'SPELL', spell.spellId)
-  }
-  for (const spell of input.rulePolicyInput.spellPreparationCatalog) {
-    addSubjectId(requirements, 'SPELL', spell.spellId)
-  }
-  for (const spell of input.rulePolicyInput.spellActionFacts) {
-    addSubjectId(requirements, 'SPELL', spell.spellId)
+  for (const spellId of collectCharacterRuleOutputSpellIds(input.rulePolicyOutput)) {
+    addSubjectId(requirements, 'SPELL', spellId)
   }
 
   return requirements
@@ -147,10 +142,10 @@ export async function loadCurrentCharacterAuthoredVersionVector(input: {
   campaignContent?: CampaignCharacterContentOverlay | null
   character: CharacterAuthored
   db: DBLike
-  rulePolicyInput: CharacterRulePolicyInput
+  rulePolicyOutput: CharacterRulePolicyOutput
   ruleRegistry: CharacterAssemblyRegistry
 }): Promise<CharacterMechanicsProjection['authoredVersionVector']> {
-  const requirements = collectAuthoredVersionRequirements(input)
+  const requirements = collectCharacterAuthoredVersionRequirements(input)
   const repository = createAuthoredVersionRepository(input.db)
   const subjectKinds: AuthoredSubjectKind[] = [
     'BACKGROUND',
@@ -168,21 +163,24 @@ export async function loadCurrentCharacterAuthoredVersionVector(input: {
       subjectKind,
       [...(requirements.get(subjectKind) ?? [])].filter(
         (subjectId) =>
-          !findCampaignCharacterSnapshot(input.campaignContent ?? null, subjectKind, subjectId)
+          !findCampaignCharacterSource(input.campaignContent ?? null, subjectKind, subjectId)
       )
     )
   }
   const recordsByKind = await Promise.all(
-    subjectKinds.map(async (subjectKind) => [
-      subjectKind,
-      await repository.findActiveByIds({
-        subjectKind,
-        subjectIds: activeRequirements.get(subjectKind) ?? [],
-        systemId: input.character.systemId,
-        userId: input.character.userId,
-        includeMaster: true
-      })
-    ] as const)
+    subjectKinds.map(
+      async (subjectKind) =>
+        [
+          subjectKind,
+          await repository.findActiveByIds({
+            subjectKind,
+            subjectIds: activeRequirements.get(subjectKind) ?? [],
+            systemId: input.character.systemId,
+            userId: input.character.userId,
+            includeMaster: true
+          })
+        ] as const
+    )
   )
 
   const vectorByRoot = new Map<string, AuthoredVersionVector[number]>()
@@ -219,7 +217,7 @@ export async function loadCurrentCharacterAuthoredVersionVector(input: {
 
   for (const [subjectKind, records] of recordsByKind) {
     for (const subjectId of requirements.get(subjectKind) ?? []) {
-      const campaign = findCampaignCharacterSnapshot(
+      const campaign = findCampaignCharacterSource(
         input.campaignContent ?? null,
         subjectKind,
         subjectId

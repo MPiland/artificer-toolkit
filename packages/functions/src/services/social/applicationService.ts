@@ -45,14 +45,33 @@ export async function acceptSocialAdmission(
   const sourceLookup =
     source.kind === 'APPLICATION'
       ? await createSocialRepository(db).findSocialApplicationById(source.publicId)
-      : await createCampaignRepository(db).lockInvite(source.publicId)
+      : await createCampaignRepository(db).findInviteById(source.publicId)
   if (!sourceLookup) socialUnavailable()
+  const preliminaryListing = await createSocialRepository(db).findSocialListingById(
+    sourceLookup.listingId
+  )
+  if (!preliminaryListing) socialUnavailable()
 
   return withTransaction(db, async (trx) => {
     const socialRepository = createSocialRepository(trx)
     const campaignRepository = createCampaignRepository(trx)
+    const admissionTier =
+      sourceLookup.status === 'ACCEPTED'
+        ? null
+        : await createAccountEntitlementsRepository(trx).lockTier(
+            preliminaryListing.campaignOwnerUserId
+          )
     const listing = await socialRepository.lockSocialListing(sourceLookup.listingId)
-    if (!listing) socialUnavailable()
+    if (
+      !listing ||
+      listing.id !== preliminaryListing.id ||
+      listing.version !== preliminaryListing.version ||
+      listing.status !== preliminaryListing.status ||
+      listing.campaignId !== preliminaryListing.campaignId ||
+      listing.campaignOwnerUserId !== preliminaryListing.campaignOwnerUserId
+    ) {
+      socialUnavailable()
+    }
     const campaign = await campaignRepository.lockCampaign(listing.campaignId)
     if (!campaign) socialUnavailable()
 
@@ -131,7 +150,7 @@ export async function acceptSocialAdmission(
     }
 
     if (existingMembership?.status !== 'ACTIVE') {
-      const tier = await createAccountEntitlementsRepository(trx).lockTier(campaign.ownerUserId)
+      if (!admissionTier) throw new SocialConflictError()
       const counts = await campaignRepository.countActiveMembers(campaign.id)
       if (counts.players >= listing.capacity) {
         throw new SocialConflictError('This table no longer has an available seat.')
@@ -139,7 +158,7 @@ export async function acceptSocialAdmission(
       assertEntitlementLimit(
         'playerSeatsPerCampaign',
         counts.players,
-        ENTITLEMENT_LIMITS[tier].playerSeatsPerCampaign
+        ENTITLEMENT_LIMITS[admissionTier].playerSeatsPerCampaign
       )
       await campaignRepository.activatePlayerMembership(
         campaign.id,

@@ -20,7 +20,7 @@ const ids = {
 }
 
 const mocks = vi.hoisted(() => ({
-  findAssignedCampaign: vi.fn(),
+  findCampaignByCharacter: vi.fn(),
   listAdjustments: vi.fn(),
   resolveAuthority: vi.fn()
 }))
@@ -29,8 +29,8 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@artificer-toolkit/db')>()
   return {
     ...actual,
-    createCampaignContentRepository: () => ({
-      findAssignedCampaign: mocks.findAssignedCampaign
+    createCampaignRepository: () => ({
+      findCampaignByCharacter: mocks.findCampaignByCharacter
     }),
     createCampaignAdjustmentsRepository: () => ({
       listAdjustments: mocks.listAdjustments
@@ -83,7 +83,7 @@ describe('Campaign Character Sheet authority and projection', () => {
   beforeEach(() => vi.resetAllMocks())
 
   it('denies a user who neither owns the Character nor its Campaign', async () => {
-    mocks.findAssignedCampaign.mockResolvedValue(null)
+    mocks.findCampaignByCharacter.mockResolvedValue(null)
 
     await expect(
       resolveCharacterSheetCampaignContext(
@@ -95,7 +95,7 @@ describe('Campaign Character Sheet authority and projection', () => {
   })
 
   it('propagates the Campaign attunement slot override', async () => {
-    mocks.findAssignedCampaign.mockResolvedValue({ campaignId: ids.campaign })
+    mocks.findCampaignByCharacter.mockResolvedValue({ campaignId: ids.campaign })
     mocks.resolveAuthority.mockResolvedValue({
       campaign: { status: 'ACTIVE', contentMaturity: 'STANDARD', attunementSlotOverride: 4 },
       membership: { role: 'PLAYER' }
@@ -112,7 +112,7 @@ describe('Campaign Character Sheet authority and projection', () => {
   })
 
   it('loads authoritative live-session rule context only for the assigned Campaign', async () => {
-    mocks.findAssignedCampaign.mockResolvedValue({ campaignId: ids.campaign })
+    mocks.findCampaignByCharacter.mockResolvedValue({ campaignId: ids.campaign })
     mocks.listAdjustments.mockResolvedValue([
       {
         id: ids.secretCondition,

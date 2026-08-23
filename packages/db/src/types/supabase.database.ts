@@ -695,61 +695,6 @@ export type Database = {
           },
         ]
       }
-      campaign_character_content_bindings: {
-        Row: {
-          campaign_id: string
-          character_id: string
-          content_version_id: string
-          created_at: string
-          subject_id: string
-          subject_kind: string
-          updated_at: string
-        }
-        Insert: {
-          campaign_id: string
-          character_id: string
-          content_version_id: string
-          created_at?: string
-          subject_id: string
-          subject_kind: string
-          updated_at?: string
-        }
-        Update: {
-          campaign_id?: string
-          character_id?: string
-          content_version_id?: string
-          created_at?: string
-          subject_id?: string
-          subject_kind?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "campaign_character_content_bi_content_version_id_campaign__fkey"
-            columns: [
-              "content_version_id",
-              "campaign_id",
-              "subject_kind",
-              "subject_id",
-            ]
-            isOneToOne: false
-            referencedRelation: "campaign_content_versions"
-            referencedColumns: [
-              "id",
-              "campaign_id",
-              "subject_kind",
-              "subject_id",
-            ]
-          },
-          {
-            foreignKeyName: "campaign_character_content_bindin_campaign_id_character_id_fkey"
-            columns: ["campaign_id", "character_id"]
-            isOneToOne: false
-            referencedRelation: "campaign_character_assignments"
-            referencedColumns: ["campaign_id", "character_id"]
-          },
-        ]
-      }
       campaign_character_mechanics_projections: {
         Row: {
           base_mechanics_projection_checksum: string
@@ -940,64 +885,34 @@ export type Database = {
           },
         ]
       }
-      campaign_content_versions: {
+      campaign_content_shares: {
         Row: {
-          approved_at: string | null
-          approved_by: string | null
-          authored_by: string
-          authored_checksum: string
-          authored_version: number
-          authored_version_id: string
           campaign_id: string
-          compiled_projection_checksum: string
           created_at: string
-          id: string
-          rejected_at: string | null
-          revision: number
-          state: string
+          shared_by: string
           subject_id: string
           subject_kind: string
           updated_at: string
         }
         Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          authored_by: string
-          authored_checksum: string
-          authored_version: number
-          authored_version_id: string
           campaign_id: string
-          compiled_projection_checksum: string
           created_at?: string
-          id?: string
-          rejected_at?: string | null
-          revision: number
-          state?: string
+          shared_by: string
           subject_id: string
           subject_kind: string
           updated_at?: string
         }
         Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          authored_by?: string
-          authored_checksum?: string
-          authored_version?: number
-          authored_version_id?: string
           campaign_id?: string
-          compiled_projection_checksum?: string
           created_at?: string
-          id?: string
-          rejected_at?: string | null
-          revision?: number
-          state?: string
+          shared_by?: string
           subject_id?: string
           subject_kind?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "campaign_content_versions_campaign_id_fkey"
+            foreignKeyName: "campaign_content_shares_campaign_id_fkey"
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "campaigns"
@@ -1870,29 +1785,29 @@ export type Database = {
       campaign_vehicles: {
         Row: {
           campaign_id: string
-          content_version_id: string
           created_at: string
           id: string
           label: string | null
           updated_at: string
+          vehicle_definition_id: string
           version: number
         }
         Insert: {
           campaign_id: string
-          content_version_id: string
           created_at?: string
           id?: string
           label?: string | null
           updated_at?: string
+          vehicle_definition_id: string
           version?: number
         }
         Update: {
           campaign_id?: string
-          content_version_id?: string
           created_at?: string
           id?: string
           label?: string | null
           updated_at?: string
+          vehicle_definition_id?: string
           version?: number
         }
         Relationships: [
@@ -1904,10 +1819,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "campaign_vehicles_content_version_id_fkey"
-            columns: ["content_version_id"]
+            foreignKeyName: "campaign_vehicles_vehicle_definition_id_fkey"
+            columns: ["vehicle_definition_id"]
             isOneToOne: false
-            referencedRelation: "campaign_content_versions"
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]

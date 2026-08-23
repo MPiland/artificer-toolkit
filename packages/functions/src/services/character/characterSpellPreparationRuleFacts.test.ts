@@ -176,4 +176,55 @@ describe('Character spell preparation rule facts', () => {
       }
     })
   })
+
+  it('omits a class spellcasting source until its configured availability level', () => {
+    const character = createEmptyCharacterAuthored({
+      id: 'character-1',
+      systemId: 'dnd5e2014',
+      userId: 'user-1'
+    })
+    character.intent.classes = [{ classId: 'paladin', classLevel: 1 }]
+    const registry = {
+      system: null,
+      races: [],
+      backgrounds: [],
+      equipment: [],
+      feats: [],
+      features: [],
+      classes: [
+        {
+          id: 'paladin',
+          label: 'Paladin',
+          category: CLASS_CATEGORY.BASE,
+          spellcasting: {
+            availableAtLevel: 2,
+            ability: 'CHARISMA',
+            attributes: ['PREPARES_SPELLS'],
+            maxSpellLevel: 5,
+            spellLimits: [{ classLevel: 2, slots: [{ spellLevel: 1, slotCount: 2 }] }],
+            prepareLimit: {
+              methodKinds: ['SPELLCASTING_ABILITY', 'CLASS_LEVEL'],
+              scaling: 'HALF',
+              rounding: 'DOWN'
+            }
+          }
+        }
+      ]
+    } as unknown as CharacterBuilderRegistry
+    const catalog = { spells: [] } as unknown as CharacterBuilderCatalog
+    const snapshot = {
+      abilities: { CHARISMA: 16 }
+    } as unknown as CharacterBuildSnapshot
+
+    expect(
+      buildCharacterSpellPreparationRuleFacts(character, registry, catalog, snapshot)
+        .spellPreparationClasses[0]?.sources
+    ).toEqual([])
+
+    character.intent.classes[0] = { classId: 'paladin', classLevel: 2 }
+    expect(
+      buildCharacterSpellPreparationRuleFacts(character, registry, catalog, snapshot)
+        .spellPreparationClasses[0]?.sources
+    ).toHaveLength(1)
+  })
 })

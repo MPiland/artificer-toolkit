@@ -15,6 +15,9 @@ const mocks = vi.hoisted(() => ({
   findAuthoredById: vi.fn(),
   listAdjustments: vi.fn(),
   getMovementPreference: vi.fn(),
+  getPreparationOptions: vi.fn(),
+  findCampaignByCharacter: vi.fn(),
+  lockCampaignMemberForContentRead: vi.fn(),
   listResourceUsage: vi.fn(),
   listSpellCustomizations: vi.fn(),
   loadBuilderContext: vi.fn(),
@@ -39,6 +42,12 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       findById: mocks.findCharacterById,
       findAuthoredById: mocks.findAuthoredById
     }),
+    createCampaignRepository: () => ({
+      findCampaignByCharacter: mocks.findCampaignByCharacter
+    }),
+    createCampaignContentShareRepository: () => ({
+      lockCampaignMemberForContentRead: mocks.lockCampaignMemberForContentRead
+    }),
     createCharacterMechanicsProjectionRepository: () => ({
       requireCurrent: mocks.findMechanics
     }),
@@ -52,7 +61,10 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createCharacterSheetPlayStateRepository: () => ({
       listResourceUsage: mocks.listResourceUsage,
       listSpellCustomizations: mocks.listSpellCustomizations
-    })
+    }),
+    getCharacterPreparationOptionsQuery: mocks.getPreparationOptions,
+    withTransaction: async (_db: DBLike, callback: (trx: DBLike) => Promise<unknown>) =>
+      await callback(_db)
   }
 })
 
@@ -108,6 +120,7 @@ vi.mock('./sheetPanelService.js', async (importOriginal) => {
 
 const {
   dispatchCommandForUser,
+  getCharacterPreparationOptionsForUser,
   getCharacterSheetForUser,
   getCharacterSheetPanelForUser,
   previewCharacterRuleUpgradeForUser
@@ -130,6 +143,9 @@ describe('dispatchCommandForUser', () => {
     mocks.findAuthoredById.mockReset()
     mocks.listAdjustments.mockReset()
     mocks.getMovementPreference.mockReset()
+    mocks.getPreparationOptions.mockReset()
+    mocks.findCampaignByCharacter.mockReset()
+    mocks.lockCampaignMemberForContentRead.mockReset()
     mocks.listResourceUsage.mockReset()
     mocks.listSpellCustomizations.mockReset()
     mocks.loadBuilderContext.mockReset()
@@ -149,6 +165,7 @@ describe('dispatchCommandForUser', () => {
     mocks.findAuthoredById.mockResolvedValue({
       id: '00000000-0000-4000-8000-000000000001',
       userId: 'user-1',
+      systemId: '00000000-0000-0000-0000-000000000100',
       status: 'ACTIVE'
     })
     mocks.findMechanics.mockResolvedValue({
@@ -161,6 +178,12 @@ describe('dispatchCommandForUser', () => {
     })
     mocks.listAdjustments.mockResolvedValue([])
     mocks.getMovementPreference.mockResolvedValue({ mode: 'AUTO' })
+    mocks.getPreparationOptions.mockResolvedValue([])
+    mocks.findCampaignByCharacter.mockResolvedValue(null)
+    mocks.lockCampaignMemberForContentRead.mockResolvedValue({
+      campaignExists: true,
+      memberActive: true
+    })
     mocks.listResourceUsage.mockResolvedValue([])
     mocks.listSpellCustomizations.mockResolvedValue([])
     mocks.loadBuilderContext.mockResolvedValue({ catalog: {}, registry: {} })
@@ -343,6 +366,167 @@ describe('dispatchCommandForUser', () => {
         target: { kind: 'SPELLS' }
       })
     )
+  })
+
+  it('returns only accessible lightweight preparation options from capability output', async () => {
+    const characterId = '00000000-0000-4000-8000-000000000001'
+    const classId = '00000000-0000-0000-0000-000000000002'
+    const spellId = '00000000-0000-0000-0000-000000000003'
+    mocks.assembleSheetBundle.mockResolvedValue({
+      bundle: {
+        sheet: {
+          meta: { streamVersion: 3 },
+          spells: {
+            spells: [],
+            slots: [],
+            activeGroups: [],
+            saveDc: null,
+            attackBonus: null
+          }
+        },
+        ruleProjection: { characterId },
+        ruleEvaluation: {
+          facts: {
+            spellPreparationClasses: [
+              {
+                classId,
+                sources: [
+                  {
+                    sourceId: classId,
+                    attributes: ['PREPARES_SPELLS'],
+                    prepareLimit: { kind: 'FULL', value: 1 },
+                    spellLimits: []
+                  }
+                ]
+              }
+            ]
+          },
+          output: {
+            spellPreparation: {
+              sources: [
+                {
+                  classId,
+                  sourceIds: [classId],
+                  availableSpellIds: [spellId],
+                  learnedSpellIds: [],
+                  preparedSpellIds: [],
+                  preparedSpellLimit: 1,
+                  maxPreparableSpellLevel: 1
+                }
+              ]
+            }
+          }
+        }
+      },
+      mechanics: {
+        projectionChecksum: 'mechanics-checksum',
+        commandLaneChecksum: 'mechanics-lane-checksum',
+        ruleSnapshot: { characterId },
+        rulePolicyInput: {},
+        rulePolicyOutput: {},
+        ruleRegistry: {}
+      },
+      campaignMechanics: null,
+      resolution: { registry: { classes: [{ id: classId, label: 'Cleric' }] } },
+      characterAdjustments: [],
+      movementDisplayPreference: { mode: 'AUTO' }
+    })
+    mocks.getPreparationOptions.mockResolvedValue([
+      { id: spellId, label: 'Healing Word', level: 1 }
+    ])
+
+    await expect(
+      getCharacterPreparationOptionsForUser({} as DBLike, characterId, 'user-1')
+    ).resolves.toEqual({
+      characterId,
+      streamVersion: 3,
+      classes: [
+        {
+          classId,
+          label: 'Cleric',
+          preparedSpellLimit: 1,
+          options: [
+            {
+              spellId,
+              label: 'Healing Word',
+              level: 1,
+              prepared: false,
+              committed: false
+            }
+          ]
+        }
+      ]
+    })
+    expect(mocks.getPreparationOptions).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ spellIds: [spellId], campaignId: null })
+    )
+  })
+
+  it('locks assigned Campaign access before loading preparation options', async () => {
+    const characterId = '00000000-0000-4000-8000-000000000001'
+    mocks.findCampaignByCharacter.mockResolvedValue({ campaignId: 'campaign-1' })
+    mocks.assembleSheetBundle.mockResolvedValue({
+      bundle: {
+        sheet: {
+          meta: { streamVersion: 3 },
+          spells: { spells: [], slots: [], activeGroups: [], saveDc: null, attackBonus: null }
+        },
+        ruleProjection: { characterId },
+        ruleEvaluation: {
+          facts: { spellPreparationClasses: [] },
+          output: { spellPreparation: { sources: [] } }
+        }
+      },
+      mechanics: {
+        projectionChecksum: 'mechanics-checksum',
+        commandLaneChecksum: 'mechanics-lane-checksum',
+        ruleSnapshot: { characterId },
+        rulePolicyInput: {},
+        rulePolicyOutput: {},
+        ruleRegistry: {}
+      },
+      campaignMechanics: null,
+      resolution: { registry: { classes: [] } },
+      characterAdjustments: [],
+      movementDisplayPreference: { mode: 'AUTO' }
+    })
+
+    await getCharacterPreparationOptionsForUser({} as DBLike, characterId, 'member-1')
+
+    expect(mocks.lockCampaignMemberForContentRead).toHaveBeenCalledWith({
+      campaignId: 'campaign-1',
+      userId: 'member-1'
+    })
+    expect(mocks.lockCampaignMemberForContentRead.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.assembleSheetBundle.mock.invocationCallOrder[0] ?? 0
+    )
+    expect(mocks.getPreparationOptions).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({
+        campaignId: 'campaign-1',
+        ownerUserId: 'user-1',
+        viewerUserId: 'member-1'
+      })
+    )
+  })
+
+  it('fails closed before rule loading when assigned Campaign membership is inactive', async () => {
+    mocks.findCampaignByCharacter.mockResolvedValue({ campaignId: 'campaign-1' })
+    mocks.lockCampaignMemberForContentRead.mockResolvedValue({
+      campaignExists: true,
+      memberActive: false
+    })
+
+    await expect(
+      getCharacterPreparationOptionsForUser(
+        {} as DBLike,
+        '00000000-0000-4000-8000-000000000001',
+        'former-member'
+      )
+    ).rejects.toMatchObject({ name: 'NotFoundError' })
+    expect(mocks.assembleSheetBundle).not.toHaveBeenCalled()
+    expect(mocks.getPreparationOptions).not.toHaveBeenCalled()
   })
 
   it('fails closed when an active Character has no pinned rule revision', async () => {

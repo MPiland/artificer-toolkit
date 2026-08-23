@@ -147,13 +147,15 @@ export async function upsertCharacter(
       })
       .execute()
 
-    await trx
-      .insertInto('character_background')
-      .values({
-        character_id: json_data.id,
-        background_id: json_data.intent.background.backgroundId
-      })
-      .execute()
+    if (json_data.intent.background.backgroundId) {
+      await trx
+        .insertInto('character_background')
+        .values({
+          character_id: json_data.id,
+          background_id: json_data.intent.background.backgroundId
+        })
+        .execute()
+    }
 
     await insertRows(
       trx,

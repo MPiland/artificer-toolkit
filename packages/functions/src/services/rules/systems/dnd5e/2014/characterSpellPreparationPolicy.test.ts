@@ -359,6 +359,68 @@ describe('D&D 5e 2014 Character spell preparation policy', () => {
     ])
   })
 
+  it('retains only selected learned spells for a known-only class source', async () => {
+    const knownOnlyFacts = policyFacts({
+      spellPreparationClasses: [
+        preparationClass(
+          'warlock',
+          1,
+          [
+            source('warlock', {
+              attributes: ['LIMIT_KNOWN_SPELL_AMOUNT'],
+              spellLimits: [{ classLevel: 1, preparedSpellsLimit: null, spellLevels: [1] }]
+            })
+          ],
+          {
+            intentSpellIds: ['known-cantrip', 'known-spell']
+          }
+        )
+      ],
+      spellPreparationCatalog: [
+        { spellId: 'known-cantrip', spellLevel: 0, classIds: ['warlock'] },
+        { spellId: 'known-spell', spellLevel: 1, classIds: ['warlock'] },
+        { spellId: 'unselected-spell', spellLevel: 1, classIds: ['warlock'] }
+      ]
+    })
+    const result = await evaluatePreparation(knownOnlyFacts)
+
+    expect(result.spellPreparation.sources).toEqual([
+      {
+        classId: 'warlock',
+        sourceIds: ['warlock'],
+        preparedSpellLimit: null,
+        maxPreparableSpellLevel: 0,
+        availableSpellIds: ['known-cantrip', 'known-spell'],
+        learnedSpellIds: ['known-cantrip', 'known-spell'],
+        preparedSpellIds: []
+      }
+    ])
+
+    const rejected = await evaluatePreparation({
+      ...knownOnlyFacts,
+      spellPreparationRequest: { classId: 'warlock', spellIds: ['known-spell'] }
+    })
+    expect(rejected.spellPreparation.requestDecision).toEqual({
+      classId: 'warlock',
+      requestedSpellIds: ['known-spell'],
+      status: 'REJECTED',
+      reasonCode: 'CLASS_DOES_NOT_PREPARE_SPELLS',
+      unavailableSpellId: null
+    })
+
+    const cleared = await evaluatePreparation({
+      ...knownOnlyFacts,
+      spellPreparationRequest: { classId: 'warlock', spellIds: [] }
+    })
+    expect(cleared.spellPreparation.requestDecision).toEqual({
+      classId: 'warlock',
+      requestedSpellIds: [],
+      status: 'ALLOWED',
+      reasonCode: 'REQUEST_ALLOWED',
+      unavailableSpellId: null
+    })
+  })
+
   it.each([
     {
       request: { classId: 'missing', spellIds: [] },

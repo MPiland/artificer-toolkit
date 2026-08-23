@@ -1,17 +1,17 @@
 import {
   createAuthoredVersionRepository,
+  createCampaignContentShareRepository,
   createSystemVocabularySnapshotRepository,
   type AuthoredVersionRecord,
   type DBLike
 } from '@artificer-toolkit/db'
 import type {
   AuthoredSubjectKind,
-  AuthoredVersionVector,
+  AuthoredVersionVector
 } from '@artificer-toolkit/schema/projections/identity'
-import type {
-  CharacterMechanicsProjectionMetadata
-} from '@artificer-toolkit/schema/projections/characterMechanics'
+import type { CharacterMechanicsProjectionMetadata } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
+import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
 import { RACE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import {
@@ -32,17 +32,32 @@ import type {
   VehicleAuthored
 } from '@artificer-toolkit/shared/subjects/authored'
 
-import type {
-  CharacterBuilderCatalog,
-  CharacterBuilderEquipmentCatalogRecord
+import {
+  loadCharacterStructuralSpellCatalog,
+  type CharacterBuilderCatalog,
+  type CharacterBuilderEquipmentCatalogRecord
 } from './builderCatalog.js'
-import type {
-  CharacterBuilderGrantedContent,
-  CharacterBuilderRegistry,
-  CharacterBuilderResolution,
-  CharacterBuilderSummary
+import {
+  collectContextSpellIds,
+  type CharacterBuilderContext,
+  type CharacterBuilderGrantedContent,
+  type CharacterBuilderRegistry,
+  type CharacterBuilderResolution,
+  type CharacterBuilderSummary
 } from './builderService.js'
-import { collectGrantedFeaturesForCharacter, deriveAbilityScores } from './characterBuilderSelections.js'
+import {
+  loadCampaignCharacterContentOverlay,
+  type CampaignCharacterContentOverlay
+} from './campaignCharacterContent.js'
+import {
+  collectGrantedFeaturesForCharacter,
+  deriveAbilityScores
+} from './characterBuilderSelections.js'
+import { collectCharacterAuthoredVersionRequirements } from './characterMechanicsCompiler.js'
+import {
+  collectCharacterRuleOutputSpellIds,
+  type CharacterRuleOutputSpellSources
+} from './characterSpellRuleFacts.js'
 
 export class CharacterCommittedSheetSourcesError extends Error {
   constructor(message: string) {
@@ -149,6 +164,75 @@ export interface CharacterCommittedSheetSources {
   vocabularySnapshot: SystemVocabularySnapshot
 }
 
+export interface CharacterCommittedSheetCampaignShareUse {
+  campaignId: string
+  subjectKind: AuthoredSubjectKind
+  subjectId: string
+  sharedBy: string
+  expectedAuthoredVersionId: string
+  expectedAuthoredVersion: number
+  expectedAuthoredChecksum: string
+}
+
+export interface CharacterCommittedSheetSourceExtension {
+  sources: CharacterCommittedSheetSources
+  campaignShareUses: readonly CharacterCommittedSheetCampaignShareUse[]
+  currentSourceUses: AuthoredVersionVector
+}
+
+export async function lockCharacterCommittedSheetCurrentSourceUses(input: {
+  currentSourceUses: AuthoredVersionVector
+  characterId: string
+  db: DBLike
+}): Promise<void> {
+  if (input.currentSourceUses.length === 0) return
+  const records = await createAuthoredVersionRepository(input.db).findCurrentVersions({
+    entries: input.currentSourceUses,
+    verifyCompiledDependencies: false
+  })
+  if (records.size !== input.currentSourceUses.length) {
+    throw new CharacterCommittedSheetSourcesError(
+      `Character "${input.characterId}" requires every newly selected authored source to remain current.`
+    )
+  }
+}
+
+export async function lockCharacterCommittedSheetCampaignShareUses(input: {
+  campaignId: string
+  campaignShareUses: readonly CharacterCommittedSheetCampaignShareUse[]
+  characterId: string
+  db: DBLike
+}): Promise<void> {
+  if (input.campaignShareUses.length === 0) return
+  const mismatchedCampaign = input.campaignShareUses.find(
+    (shareUse) => shareUse.campaignId !== input.campaignId
+  )
+  if (mismatchedCampaign) {
+    throw new CharacterCommittedSheetSourcesError(
+      `Character "${input.characterId}" has Campaign share evidence from another Campaign.`
+    )
+  }
+  const locked = await createCampaignContentShareRepository(input.db).lockShareAuthorizationsForUse(
+    {
+      campaignId: input.campaignId,
+      shares: input.campaignShareUses.map((shareUse) => ({
+        subjectKind: shareUse.subjectKind,
+        subjectId: shareUse.subjectId,
+        sharedBy: shareUse.sharedBy,
+        versionId: shareUse.expectedAuthoredVersionId,
+        version: shareUse.expectedAuthoredVersion,
+        checksum: shareUse.expectedAuthoredChecksum
+      }))
+    }
+  )
+  if (locked.missing.length > 0 || locked.locked.length !== input.campaignShareUses.length) {
+    const missing = locked.missing[0] ?? input.campaignShareUses[0]
+    throw new CharacterCommittedSheetSourcesError(
+      `Character "${input.characterId}" requires an active Campaign ${missing?.subjectKind ?? 'content'} "${missing?.subjectId ?? 'unknown'}" share.`
+    )
+  }
+}
+
 function toAuthoredVersionVectorEntry(
   record: AuthoredVersionRecord
 ): AuthoredVersionVector[number] {
@@ -172,19 +256,23 @@ function sortAuthoredVersionVector(
 }
 
 export async function extendCharacterCommittedSheetSourcesWithActiveRoots(input: {
+  campaignContentOverlay?: CampaignCharacterContentOverlay | null
   db: DBLike
   roots: readonly { subjectId: string; subjectKind: AuthoredSubjectKind }[]
   sources: CharacterCommittedSheetSources
   systemId: string
   userId: string
-}): Promise<CharacterCommittedSheetSources> {
+}): Promise<CharacterCommittedSheetSourceExtension> {
   const rootsByKind = new Map<AuthoredSubjectKind, Set<string>>()
   for (const root of input.roots) {
+    if (input.sources.recordsByRoot.has(authoredRootKey(root))) continue
     const ids = rootsByKind.get(root.subjectKind) ?? new Set<string>()
     ids.add(root.subjectId)
     rootsByKind.set(root.subjectKind, ids)
   }
-  if (rootsByKind.size === 0) return input.sources
+  if (rootsByKind.size === 0) {
+    return { sources: input.sources, campaignShareUses: [], currentSourceUses: [] }
+  }
 
   const repository = createAuthoredVersionRepository(input.db)
   const recordsByRoot = new Map(input.sources.recordsByRoot)
@@ -192,6 +280,8 @@ export async function extendCharacterCommittedSheetSourcesWithActiveRoots(input:
     input.sources.mechanics.authoredVersionVector.map((entry) => [authoredRootKey(entry), entry])
   )
   const pendingDependencies = new Map<string, AuthoredVersionVector[number]>()
+  const campaignShareUses: CharacterCommittedSheetCampaignShareUse[] = []
+  const currentSourceUses = new Map<string, AuthoredVersionVector[number]>()
   const addVectorEntry = (entry: AuthoredVersionVector[number]) => {
     const key = authoredRootKey(entry)
     const existing = vectorByRoot.get(key)
@@ -203,32 +293,89 @@ export async function extendCharacterCommittedSheetSourcesWithActiveRoots(input:
     vectorByRoot.set(key, entry)
   }
   const addRecord = (record: AuthoredVersionRecord) => {
+    if (record.authored.subjectKind === 'SPELL') {
+      const spell = spellAuthoredDtoSchema.safeParse(record.authored.document)
+      if (!spell.success || spell.data.systemId !== input.systemId) {
+        throw new CharacterCommittedSheetSourcesError(
+          `Character "${input.sources.mechanics.characterId}" cannot use Spell "${record.authored.subjectId}" from this rules system.`
+        )
+      }
+    }
     const entry = toAuthoredVersionVectorEntry(record)
     addVectorEntry(entry)
     recordsByRoot.set(authoredRootKey(entry), record)
   }
 
   const activeRecordGroups = await Promise.all(
-    [...rootsByKind.entries()].map(async ([subjectKind, subjectIds]) => [
-      subjectKind,
-      await repository.findActiveByIds({
-        subjectKind,
-        subjectIds: [...subjectIds],
-        systemId: input.systemId,
-        userId: input.userId,
-        includeMaster: true
-      })
-    ] as const)
+    [...rootsByKind.entries()].map(
+      async ([subjectKind, subjectIds]) =>
+        [
+          subjectKind,
+          await repository.findActiveByIds({
+            subjectKind,
+            subjectIds: [...subjectIds],
+            systemId: input.systemId,
+            userId: input.userId,
+            includeMaster: true
+          })
+        ] as const
+    )
   )
   for (const [subjectKind, records] of activeRecordGroups) {
     for (const subjectId of rootsByKind.get(subjectKind) ?? []) {
       const record = records.get(subjectId)
-      if (!record) {
+      if (record) {
+        addRecord(record)
+        const entry = toAuthoredVersionVectorEntry(record)
+        currentSourceUses.set(authoredRootKey(entry), entry)
+        continue
+      }
+      const rootKey = authoredRootKey({ subjectKind, subjectId })
+      const campaignSource = input.campaignContentOverlay?.latest.get(rootKey)
+      if (!campaignSource || campaignSource.subjectKind !== subjectKind) {
         throw new CharacterCommittedSheetSourcesError(
           `Character "${input.sources.mechanics.characterId}" requires an active ${subjectKind} "${subjectId}" version.`
         )
       }
-      addRecord(record)
+      const campaignShare = input.campaignContentOverlay?.sharesByRoot.get(rootKey)
+      if (
+        !campaignShare ||
+        campaignShare.campaignId !== input.campaignContentOverlay?.campaignId ||
+        campaignShare.subjectKind !== subjectKind ||
+        campaignShare.subjectId !== subjectId
+      ) {
+        throw new CharacterCommittedSheetSourcesError(
+          `Character "${input.sources.mechanics.characterId}" requires an active Campaign ${subjectKind} "${subjectId}" share.`
+        )
+      }
+      const expected = {
+        subjectKind: campaignSource.subjectKind,
+        subjectId: campaignSource.subjectId,
+        versionId: campaignSource.authoredVersionId,
+        version: campaignSource.authoredVersion,
+        checksum: campaignSource.authoredChecksum
+      } satisfies AuthoredVersionVector[number]
+      const recordsByCurrentVersion = await repository.findCurrentVersions({ entries: [expected] })
+      const campaignRecord = recordsByCurrentVersion.get(authoredRootKey(expected))
+      if (
+        !campaignRecord ||
+        !hasExactVersion(toAuthoredVersionVectorEntry(campaignRecord), expected)
+      ) {
+        throw new CharacterCommittedSheetSourcesError(
+          `Character "${input.sources.mechanics.characterId}" requires the current Campaign ${subjectKind} "${subjectId}" version.`
+        )
+      }
+      addRecord(campaignRecord)
+      currentSourceUses.set(authoredRootKey(expected), expected)
+      campaignShareUses.push({
+        campaignId: campaignShare.campaignId,
+        subjectKind,
+        subjectId,
+        sharedBy: campaignShare.sharedBy,
+        expectedAuthoredVersionId: expected.versionId,
+        expectedAuthoredVersion: expected.version,
+        expectedAuthoredChecksum: expected.checksum
+      })
     }
   }
 
@@ -249,7 +396,7 @@ export async function extendCharacterCommittedSheetSourcesWithActiveRoots(input:
     )
     if (pending.length === 0) break
     pendingDependencies.clear()
-    const dependencyRecords = await repository.findExactVersions({ entries: pending })
+    const dependencyRecords = await repository.findCurrentVersions({ entries: pending })
     if (dependencyRecords.size !== pending.length) {
       throw new CharacterCommittedSheetSourcesError(
         `Character "${input.sources.mechanics.characterId}" could not load every authored dependency for a new source.`
@@ -262,13 +409,66 @@ export async function extendCharacterCommittedSheetSourcesWithActiveRoots(input:
     ...input.sources.mechanics,
     authoredVersionVector: sortAuthoredVersionVector(vectorByRoot.values())
   }
-  const extended = {
+  const sources = {
     mechanics,
     recordsByRoot,
     vocabularySnapshot: input.sources.vocabularySnapshot
   }
-  assertCharacterCommittedSheetSourceIdentity(extended)
-  return extended
+  assertCharacterCommittedSheetSourceIdentity(sources)
+  return {
+    sources,
+    campaignShareUses,
+    currentSourceUses: sortAuthoredVersionVector(currentSourceUses.values())
+  }
+}
+
+export function reduceCharacterCommittedSheetSourcesToRuleOutputSpells(input: {
+  rulePolicyOutput: CharacterRuleOutputSpellSources
+  sources: CharacterCommittedSheetSources
+}): CharacterCommittedSheetSources {
+  const requiredSpellIds = collectCharacterRuleOutputSpellIds(input.rulePolicyOutput)
+  const vectorByRoot = new Map(
+    input.sources.mechanics.authoredVersionVector.map((entry) => [authoredRootKey(entry), entry])
+  )
+
+  for (const subjectId of requiredSpellIds) {
+    const key = authoredRootKey({ subjectKind: 'SPELL', subjectId })
+    const record = input.sources.recordsByRoot.get(key)
+    const vectorEntry = vectorByRoot.get(key)
+    if (
+      !record ||
+      record.authored.subjectKind !== 'SPELL' ||
+      record.authored.subjectId !== subjectId ||
+      !vectorEntry ||
+      vectorEntry.subjectKind !== 'SPELL' ||
+      vectorEntry.subjectId !== subjectId ||
+      !hasExactVersion(vectorEntry, toAuthoredVersionVectorEntry(record))
+    ) {
+      throw new CharacterCommittedSheetSourcesError(
+        `Character "${input.sources.mechanics.characterId}" is missing exact required Spell source "${subjectId}".`
+      )
+    }
+  }
+
+  const recordsByRoot = new Map(
+    [...input.sources.recordsByRoot].filter(
+      ([, record]) =>
+        record.authored.subjectKind !== 'SPELL' || requiredSpellIds.has(record.authored.subjectId)
+    )
+  )
+  const mechanics = {
+    ...input.sources.mechanics,
+    authoredVersionVector: input.sources.mechanics.authoredVersionVector.filter(
+      (entry) => entry.subjectKind !== 'SPELL' || requiredSpellIds.has(entry.subjectId)
+    )
+  }
+  const reduced = {
+    mechanics,
+    recordsByRoot,
+    vocabularySnapshot: input.sources.vocabularySnapshot
+  }
+  assertCharacterCommittedSheetSourceIdentity(reduced)
+  return reduced
 }
 
 export function pruneCharacterCommittedSheetSourcesRoots(input: {
@@ -307,6 +507,104 @@ export function pruneCharacterCommittedSheetSourcesRoots(input: {
   }
   assertCharacterCommittedSheetSourceIdentity(pruned)
   return pruned
+}
+
+export type CharacterCommittedSheetSourceLoss =
+  | { kind: 'EXACT'; sources: CharacterCommittedSheetSources }
+  | {
+      kind: 'TRANSITIVE_DEPENDENCY_LOST'
+      dependency: AuthoredVersionVector[number]
+      requiredBy: AuthoredVersionVector[number]
+    }
+
+export function removeCharacterCommittedSheetSourceLoss(input: {
+  roots: readonly Pick<AuthoredVersionVector[number], 'subjectId' | 'subjectKind'>[]
+  sources: CharacterCommittedSheetSources
+}): CharacterCommittedSheetSourceLoss {
+  const removedKeys = new Set(input.roots.map(authoredRootKey))
+  if (removedKeys.size === 0) return { kind: 'EXACT', sources: input.sources }
+
+  for (const [key, record] of input.sources.recordsByRoot) {
+    if (removedKeys.has(key)) continue
+    const lostDependency = record.compiled.authoredDependencies.find((dependency) =>
+      removedKeys.has(authoredRootKey(dependency))
+    )
+    if (lostDependency) {
+      const requiredBy = input.sources.mechanics.authoredVersionVector.find(
+        (entry) => authoredRootKey(entry) === key
+      )
+      if (!requiredBy) {
+        throw new CharacterCommittedSheetSourcesError(
+          `Character "${input.sources.mechanics.characterId}" has an authored source without a pinned vector entry.`
+        )
+      }
+      return { kind: 'TRANSITIVE_DEPENDENCY_LOST', dependency: lostDependency, requiredBy }
+    }
+  }
+
+  const recordsByRoot = new Map(
+    [...input.sources.recordsByRoot].filter(([key]) => !removedKeys.has(key))
+  )
+  const mechanics = {
+    ...input.sources.mechanics,
+    authoredVersionVector: input.sources.mechanics.authoredVersionVector.filter(
+      (entry) => !removedKeys.has(authoredRootKey(entry))
+    )
+  }
+  const sources = {
+    mechanics,
+    recordsByRoot,
+    vocabularySnapshot: input.sources.vocabularySnapshot
+  }
+  assertCharacterCommittedSheetSourceIdentity(sources)
+  return { kind: 'EXACT', sources }
+}
+
+export function retainCharacterCommittedSheetRuleSources(input: {
+  character: CharacterAuthored
+  rulePolicyOutput: Parameters<
+    typeof collectCharacterAuthoredVersionRequirements
+  >[0]['rulePolicyOutput']
+  ruleRegistry: Parameters<typeof collectCharacterAuthoredVersionRequirements>[0]['ruleRegistry']
+  sources: CharacterCommittedSheetSources
+}): CharacterCommittedSheetSources {
+  const requirements = collectCharacterAuthoredVersionRequirements(input)
+  const retainedKeys = new Set<string>()
+  const retain = (key: string): void => {
+    if (retainedKeys.has(key)) return
+    const record = input.sources.recordsByRoot.get(key)
+    if (!record) {
+      throw new CharacterCommittedSheetSourcesError(
+        `Character "${input.sources.mechanics.characterId}" is missing exact required source ${key}.`
+      )
+    }
+    retainedKeys.add(key)
+    for (const dependency of record.compiled.authoredDependencies) {
+      retain(authoredRootKey(dependency))
+    }
+  }
+  for (const [subjectKind, subjectIds] of requirements) {
+    for (const subjectId of subjectIds) retain(authoredRootKey({ subjectKind, subjectId }))
+  }
+
+  const recordsByRoot = new Map(
+    [...input.sources.recordsByRoot].filter(([key]) => retainedKeys.has(key))
+  )
+  const mechanics = {
+    ...input.sources.mechanics,
+    authoredVersionVector: sortAuthoredVersionVector(
+      input.sources.mechanics.authoredVersionVector.filter((entry) =>
+        retainedKeys.has(authoredRootKey(entry))
+      )
+    )
+  }
+  const retained = {
+    mechanics,
+    recordsByRoot,
+    vocabularySnapshot: input.sources.vocabularySnapshot
+  }
+  assertCharacterCommittedSheetSourceIdentity(retained)
+  return retained
 }
 
 function documentsFromRecords(recordsByRoot: ReadonlyMap<string, AuthoredVersionRecord>): {
@@ -415,7 +713,9 @@ function createExactBuilderRegistry(input: {
   }
 }
 
-function createExactCatalog(input: CharacterBuilderRegistry & { spells: readonly SpellAuthored[] }): CharacterBuilderCatalog {
+function createExactCatalog(
+  input: CharacterBuilderRegistry & { spells: readonly SpellAuthored[] }
+): CharacterBuilderCatalog {
   return {
     races: input.races.map((race) => ({
       id: race.id,
@@ -602,7 +902,8 @@ function createExactPresentation(input: {
       ? {
           raceId: baseRace?.id ?? selectedRace.id,
           raceLabel: baseRace?.label ?? selectedRace.label,
-          subraceId: selectedRace.category === RACE_CATEGORY_CODE.SUBRACE ? selectedRace.id : undefined,
+          subraceId:
+            selectedRace.category === RACE_CATEGORY_CODE.SUBRACE ? selectedRace.id : undefined,
           subraceLabel:
             selectedRace.category === RACE_CATEGORY_CODE.SUBRACE ? selectedRace.label : undefined,
           ancestryId: selectedRace.ancestry?.id,
@@ -634,13 +935,52 @@ function createExactPresentation(input: {
   return { grants, summary }
 }
 
+export function createCharacterCommittedSheetContext(
+  sources: CharacterCommittedSheetSources
+): CharacterBuilderContext {
+  const registry = createExactBuilderRegistry(sources)
+  const documents = documentsFromRecords(sources.recordsByRoot)
+  return {
+    catalog: createExactCatalog({ ...registry, spells: documents.spells }),
+    registry,
+    spellDocumentsById: new Map(documents.spells.map((spell) => [spell.id, spell]))
+  }
+}
+
+export async function createCharacterCommittedSheetReconciliationContext(input: {
+  character: CharacterAuthored
+  db: DBLike
+  sources: CharacterCommittedSheetSources
+}): Promise<CharacterBuilderContext> {
+  const context = createCharacterCommittedSheetContext(input.sources)
+  const spellIds = collectContextSpellIds(input.character, context, undefined)
+  const campaignContent = await loadCampaignCharacterContentOverlay(input.db, input.character)
+  const campaignSpells = campaignContent
+    ? [...campaignContent.latest].flatMap(([key, source]) =>
+        source.subjectKind === 'SPELL' && campaignContent.sharesByRoot.has(key)
+          ? [source.authored as SpellAuthored]
+          : []
+      )
+    : []
+  const currentDocuments = await loadCharacterStructuralSpellCatalog({
+    db: input.db,
+    systemId: input.character.systemId,
+    userId: input.character.userId,
+    campaignSpells,
+    spellIds
+  })
+  const exactDocuments = new Map(context.spellDocumentsById ?? [])
+  for (const spell of currentDocuments) {
+    if (!exactDocuments.has(spell.id)) exactDocuments.set(spell.id, spell)
+  }
+  return { ...context, spellDocumentsById: exactDocuments }
+}
+
 export function createCharacterCommittedSheetResolution(input: {
   character: CharacterAuthored
   sources: CharacterCommittedSheetSources
 }): CharacterBuilderResolution {
-  const registry = createExactBuilderRegistry(input.sources)
-  const documents = documentsFromRecords(input.sources.recordsByRoot)
-  const catalog = createExactCatalog({ ...registry, spells: documents.spells })
+  const { catalog, registry } = createCharacterCommittedSheetContext(input.sources)
   const presentation = createExactPresentation({ character: input.character, registry })
   return {
     mode: 'edit',
@@ -686,7 +1026,9 @@ export function createCharacterCommittedSheetExtras(input: {
 export function createCharacterCommittedSheetSpells(
   sources: CharacterCommittedSheetSources
 ): ReadonlyMap<string, SpellAuthored> {
-  return new Map(documentsFromRecords(sources.recordsByRoot).spells.map((spell) => [spell.id, spell]))
+  return new Map(
+    documentsFromRecords(sources.recordsByRoot).spells.map((spell) => [spell.id, spell])
+  )
 }
 
 export async function loadCharacterCommittedSheetSources(input: {

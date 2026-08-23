@@ -1,9 +1,11 @@
 import {
   createAccountEntitlementsRepository,
+  createCampaignAdjustmentsRepository,
   createCampaignCollaborationRepository,
-  createCampaignContentRepository,
+  createInventoryRepository,
   createCampaignRepository,
   withTransaction,
+  type CampaignHistoryEvent,
   type DBLike
 } from '@artificer-toolkit/db'
 import type { CampaignDetailDto, CopyCampaignInput } from '@artificer-toolkit/schema/api/campaigns'
@@ -16,6 +18,26 @@ import {
   resolveCampaignAuthority
 } from './campaignService.js'
 
+function copiedCampaignIdFromReceipt(
+  event: CampaignHistoryEvent | null,
+  input: CopyCampaignInput,
+  userId: string
+): string | null {
+  if (!event) return null
+  if (
+    event.actorUserId !== userId ||
+    event.kind !== 'CAMPAIGN_COPIED' ||
+    typeof event.payload !== 'object' ||
+    event.payload === null ||
+    Array.isArray(event.payload) ||
+    event.payload.expectedVersion !== input.expectedVersion ||
+    typeof event.payload.copiedCampaignId !== 'string'
+  ) {
+    throw new CampaignConflictError('Command ID was already used.')
+  }
+  return event.payload.copiedCampaignId
+}
+
 export async function copyCampaign(
   db: DBLike,
   userId: string,
@@ -23,13 +45,29 @@ export async function copyCampaign(
 ): Promise<CampaignDetailDto> {
   const copiedCampaignId = await withTransaction(db, async (trx) => {
     const repository = createCampaignRepository(trx)
+    const events = createInventoryRepository(trx)
+    const preliminaryReceipt = copiedCampaignIdFromReceipt(
+      await events.findCampaignEventByIdempotency(input.campaignId, input.commandId),
+      input,
+      userId
+    )
+    if (preliminaryReceipt) return preliminaryReceipt
+
+    const preliminaryAuthority = await resolveCampaignAuthority(trx, input.campaignId, userId)
+    assertCampaignOwner(preliminaryAuthority)
+    const tier = await createAccountEntitlementsRepository(trx).lockTier(userId)
     const source = await repository.lockCampaign(input.campaignId)
     if (!source) throw new CampaignNotFoundError()
     const authority = await resolveCampaignAuthority(trx, input.campaignId, userId)
     assertCampaignOwner(authority)
+    const lockedReceipt = copiedCampaignIdFromReceipt(
+      await events.findCampaignEventByIdempotency(input.campaignId, input.commandId),
+      input,
+      userId
+    )
+    if (lockedReceipt) return lockedReceipt
     if (source.version !== input.expectedVersion) throw new CampaignConflictError()
 
-    const tier = await createAccountEntitlementsRepository(trx).lockTier(userId)
     assertEntitlementLimit(
       'activeHostedCampaigns',
       await repository.countActiveOwned(userId),
@@ -51,11 +89,17 @@ export async function copyCampaign(
       copied.id,
       userId
     )
-    await createCampaignContentRepository(trx).copyApprovedContentVersions(
-      source.id,
-      copied.id,
-      userId
-    )
+    await createCampaignAdjustmentsRepository(trx).insertCampaignEvent({
+      campaignId: source.id,
+      actorUserId: userId,
+      kind: 'CAMPAIGN_COPIED',
+      visibility: 'OWNER',
+      payload: {
+        copiedCampaignId: copied.id,
+        expectedVersion: input.expectedVersion
+      },
+      idempotencyKey: input.commandId
+    })
     return copied.id
   })
 

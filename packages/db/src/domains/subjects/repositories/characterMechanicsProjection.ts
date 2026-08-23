@@ -80,9 +80,7 @@ interface ExistingProjectionRow {
 interface AuthoredVersionValidationRow {
   authored_checksum: string
   id: string
-  root_active_version_id: string | null
   root_system_id: string
-  root_status: string
   subject_id: string
   subject_kind: AuthoredSubjectKind
   version: number
@@ -152,7 +150,6 @@ export interface CharacterMechanicsProjectionPublicationTiming {
 }
 
 export interface CharacterMechanicsProjectionPublishOptions {
-  requireActiveAuthoredVersions?: boolean
   onTiming?: (timing: CharacterMechanicsProjectionPublicationTiming) => void
 }
 
@@ -178,7 +175,10 @@ function mapProjection(row: CharacterMechanicsProjectionRow): CharacterMechanics
     rulePolicyOutput: row.rule_result,
     ruleRegistry: row.bounded_registry
   })
-  if (checksumCharacterMechanicsCommandState(projection.commandState) !== projection.commandStateChecksum) {
+  if (
+    checksumCharacterMechanicsCommandState(projection.commandState) !==
+    projection.commandStateChecksum
+  ) {
     throw new CharacterMechanicsProjectionMismatchError(
       `Character "${projection.characterId}" has command state with an invalid checksum.`
     )
@@ -224,7 +224,10 @@ function mapProjectionMetadata(
     evaluatorVersion: row.evaluator_version,
     modelContractVersion: row.model_contract_version
   })
-  if (checksumCharacterMechanicsCommandState(projection.commandState) !== projection.commandStateChecksum) {
+  if (
+    checksumCharacterMechanicsCommandState(projection.commandState) !==
+    projection.commandStateChecksum
+  ) {
     throw new CharacterMechanicsProjectionMismatchError(
       `Character "${projection.characterId}" has command state with an invalid checksum.`
     )
@@ -263,7 +266,7 @@ async function lockVocabularySnapshot(
     select id, system_id, vocabulary_version, checksum
     from public.system_vocabulary_snapshots
     where id = ${snapshotId}
-    for update
+    for share
   `.execute(db)
   return result.rows[0] ?? null
 }
@@ -314,8 +317,7 @@ function authoredVersionDependencyKey(entry: {
 
 function createAuthoredVersionValidationQuery(
   subjectKind: AuthoredSubjectKind,
-  entries: AuthoredVersionVector,
-  requireActiveVersions: boolean
+  entries: AuthoredVersionVector
 ) {
   const table = tableBySubjectKind[subjectKind]
   return sql<AuthoredVersionValidationRow>`
@@ -325,24 +327,26 @@ function createAuthoredVersionValidationQuery(
       ${sql.ref(table.rootIdColumn)} as subject_id,
       version.version,
       version.authored_checksum,
-      root.system_id as root_system_id,
-      root.status as root_status,
-      root.active_version_id as root_active_version_id
+      root.system_id as root_system_id
     from ${sql.table(table.versionTable)} version
     join ${sql.table(table.rootTable)} root
       on root.id = ${sql.ref(table.rootIdColumn)}
     where (version.id, ${sql.ref(table.rootIdColumn)}) in (
       ${sql.join(entries.map((entry) => sql`(${entry.versionId}, ${entry.subjectId})`))}
     )
-    ${requireActiveVersions ? sql`for share` : sql``}
+    order by root.id, version.id
+    for key share of root
+    for share of version
   `
 }
 
-async function validateAuthoredVersionVector(
+async function validateExactAuthoredVersionVector(
   db: DBLike,
   systemId: string,
-  projection: CharacterMechanicsProjection,
-  requireActiveVersions: boolean
+  projection: {
+    authoredVersionVector: AuthoredVersionVector
+    characterId: string
+  }
 ): Promise<void> {
   const entriesBySubjectKind = new Map<AuthoredSubjectKind, AuthoredVersionVectorEntry[]>()
   for (const entry of projection.authoredVersionVector) {
@@ -352,25 +356,16 @@ async function validateAuthoredVersionVector(
   }
   if (entriesBySubjectKind.size === 0) return
 
-  const queries = [...entriesBySubjectKind.entries()].map(([subjectKind, entries]) =>
-    createAuthoredVersionValidationQuery(subjectKind, entries, requireActiveVersions)
-  )
   const rows: AuthoredVersionValidationRow[] = []
-  if (requireActiveVersions) {
-    for (const entry of projection.authoredVersionVector) {
-      const result = await createAuthoredVersionValidationQuery(entry.subjectKind, [entry], true).execute(
-        db
-      )
-      rows.push(...result.rows)
-    }
-  } else {
-    rows.push(
-      ...(
-        await sql<AuthoredVersionValidationRow>`
-          ${sql.join(queries, sql` union all `)}
-        `.execute(db)
-      ).rows
+  const subjectKinds = [...entriesBySubjectKind.keys()].sort()
+  for (const subjectKind of subjectKinds) {
+    const entries = [...(entriesBySubjectKind.get(subjectKind) ?? [])].sort(
+      (left, right) =>
+        left.subjectId.localeCompare(right.subjectId) ||
+        left.versionId.localeCompare(right.versionId)
     )
+    const result = await createAuthoredVersionValidationQuery(subjectKind, entries).execute(db)
+    rows.push(...result.rows)
   }
   const rowsByDependency = new Map(
     rows.map((row) => [
@@ -387,9 +382,7 @@ async function validateAuthoredVersionVector(
       version.id !== entry.versionId ||
       version.root_system_id !== systemId ||
       version.version !== entry.version ||
-      version.authored_checksum !== entry.checksum ||
-      (requireActiveVersions &&
-        (version.root_status !== 'ACTIVE' || version.root_active_version_id !== entry.versionId))
+      version.authored_checksum !== entry.checksum
     ) {
       throw new CharacterMechanicsProjectionMismatchError(
         `Character "${projection.characterId}" has an unavailable ${entry.subjectKind} version dependency.`
@@ -414,7 +407,11 @@ async function lockExistingProjection(
 async function readProjection(
   db: DBLike,
   characterId: string
-): Promise<{ characterStreamVersion: number; projection: CharacterMechanicsProjection } | null> {
+): Promise<{
+  characterStreamVersion: number
+  characterSystemId: string
+  projection: CharacterMechanicsProjection
+} | null> {
   const result = await sql<CharacterMechanicsProjectionRow>`
     select
       projection.character_id,
@@ -449,7 +446,11 @@ async function readProjection(
   `.execute(db)
   const row = result.rows[0]
   return row
-    ? { characterStreamVersion: row.character_stream_version, projection: mapProjection(row) }
+    ? {
+        characterStreamVersion: row.character_stream_version,
+        characterSystemId: row.character_system_id,
+        projection: mapProjection(row)
+      }
     : null
 }
 
@@ -458,6 +459,7 @@ async function readProjectionMetadata(
   characterId: string
 ): Promise<{
   characterStreamVersion: number
+  characterSystemId: string
   projection: CharacterMechanicsProjectionMetadata
 } | null> {
   const result = await sql<CharacterMechanicsProjectionMetadataRow>`
@@ -490,16 +492,22 @@ async function readProjectionMetadata(
   `.execute(db)
   const row = result.rows[0]
   return row
-    ? { characterStreamVersion: row.character_stream_version, projection: mapProjectionMetadata(row) }
+    ? {
+        characterStreamVersion: row.character_stream_version,
+        characterSystemId: row.character_system_id,
+        projection: mapProjectionMetadata(row)
+      }
     : null
 }
 
 export interface CharacterMechanicsProjectionRepository {
+  deleteForDraft(input: {
+    characterId: string
+    expectedCharacterStreamVersion: number
+  }): Promise<void>
   /**
-   * Advances an already validated live command projection. The caller holds
-   * the Character lock and supplies the prior exact projection identity, so
-   * this path deliberately does not re-read immutable authored, vocabulary,
-   * or rule-revision dependencies.
+   * Advances a live command projection after revalidating its current
+   * Character and authored-source identity in the same transaction as the CAS.
    */
   advanceLiveCommandState(input: {
     expectedPriorProjectionChecksum: string
@@ -510,6 +518,11 @@ export interface CharacterMechanicsProjectionRepository {
     projection: CharacterMechanicsProjection,
     options?: CharacterMechanicsProjectionPublishOptions
   ): Promise<CharacterMechanicsProjection>
+  listCharacterIdsByAuthoredRoot(input: {
+    candidateCharacterIds: readonly string[]
+    subjectKind: AuthoredSubjectKind
+    subjectId: string
+  }): Promise<string[]>
   requireCurrent(input: {
     characterId: string
     expectedRuleRevisionId?: string
@@ -528,6 +541,32 @@ export function createCharacterMechanicsProjectionRepository(
   db: DBLike
 ): CharacterMechanicsProjectionRepository {
   return {
+    async deleteForDraft(input) {
+      await sql`
+        delete from public.character_mechanics_projections projection
+        using public.characters character
+        where projection.character_id = ${input.characterId}
+          and character.id = projection.character_id
+          and character.status = 'DRAFT'
+          and character.stream_version = ${input.expectedCharacterStreamVersion}
+      `.execute(db)
+    },
+    async listCharacterIdsByAuthoredRoot(input) {
+      const characterIds = [...new Set(input.candidateCharacterIds)].sort()
+      if (characterIds.length === 0) return []
+      const result = await sql<{ character_id: string }>`
+        select projection.character_id
+        from public.character_mechanics_projections projection
+        where projection.character_id in (${sql.join(
+          characterIds.map((characterId) => sql`${characterId}::uuid`)
+        )})
+          and projection.authored_version_vector @> ${JSON.stringify([
+            { subjectKind: input.subjectKind, subjectId: input.subjectId }
+          ])}::jsonb
+        order by projection.character_id
+      `.execute(db)
+      return result.rows.map((row) => row.character_id)
+    },
     async advanceLiveCommandState(input) {
       const projection = characterMechanicsProjectionSchema.parse(input.projection)
       if (projection.characterStreamVersion !== input.expectedPriorStreamVersion + 1) {
@@ -545,36 +584,50 @@ export function createCharacterMechanicsProjectionRepository(
           `Character "${projection.characterId}" live projection checksum does not match its contents.`
         )
       }
-      const result = await sql<{ character_id: string }>`
-        update public.character_mechanics_projections set
-          command_state = ${JSON.stringify(projection.commandState)}::jsonb,
-          command_state_checksum = ${projection.commandStateChecksum},
-          command_lane_checksum = ${projection.commandLaneChecksum},
-          stream_version = ${projection.characterStreamVersion},
-          projection_checksum = ${projection.projectionChecksum},
-          normalized_facts = ${JSON.stringify(projection.rulePolicyInput)}::jsonb,
-          rule_result = ${JSON.stringify(projection.rulePolicyOutput)}::jsonb,
-          updated_at = now()
-        where character_id = ${projection.characterId}
-          and stream_version = ${input.expectedPriorStreamVersion}
-          and public.character_mechanics_projections.projection_checksum = ${input.expectedPriorProjectionChecksum}
-          and authored_version_vector = ${JSON.stringify(projection.authoredVersionVector)}::jsonb
-          and vocabulary_snapshot_id = ${projection.systemVocabularySnapshotId}
-          and rule_pack_revision_id = ${projection.ruleRevisionId}
-          and rule_pack_checksum = ${projection.ruleRevisionChecksum}
-          and evaluator_version = ${projection.evaluatorVersion}
-          and model_contract_version = ${projection.modelContractVersion}
-          and projection_schema_version = ${projection.projectionSchemaVersion}
-          and rule_snapshot = ${JSON.stringify(projection.ruleSnapshot)}::jsonb
-          and bounded_registry = ${JSON.stringify(projection.ruleRegistry)}::jsonb
-        returning character_id
-      `.execute(db)
-      if (!result.rows[0]) {
-        throw new CharacterMechanicsProjectionMismatchError(
-          `Character "${projection.characterId}" live projection compare-and-swap failed.`
-        )
-      }
-      return projection
+      return withTransaction(db, async (trx) => {
+        const character = await lockCharacter(trx, projection.characterId)
+        if (
+          !character ||
+          character.stream_version !== projection.characterStreamVersion ||
+          character.system_id !== projection.commandState.systemId
+        ) {
+          throw new CharacterMechanicsProjectionMismatchError(
+            `Character "${projection.characterId}" changed before its live mechanics projection advanced.`
+          )
+        }
+        await validateExactAuthoredVersionVector(trx, character.system_id, projection)
+
+        const result = await sql<{ character_id: string }>`
+          update public.character_mechanics_projections set
+            command_state = ${JSON.stringify(projection.commandState)}::jsonb,
+            command_state_checksum = ${projection.commandStateChecksum},
+            command_lane_checksum = ${projection.commandLaneChecksum},
+            stream_version = ${projection.characterStreamVersion},
+            projection_checksum = ${projection.projectionChecksum},
+            normalized_facts = ${JSON.stringify(projection.rulePolicyInput)}::jsonb,
+            rule_result = ${JSON.stringify(projection.rulePolicyOutput)}::jsonb,
+            updated_at = now()
+          where character_id = ${projection.characterId}
+            and stream_version = ${input.expectedPriorStreamVersion}
+            and public.character_mechanics_projections.projection_checksum = ${input.expectedPriorProjectionChecksum}
+            and authored_version_vector = ${JSON.stringify(projection.authoredVersionVector)}::jsonb
+            and vocabulary_snapshot_id = ${projection.systemVocabularySnapshotId}
+            and rule_pack_revision_id = ${projection.ruleRevisionId}
+            and rule_pack_checksum = ${projection.ruleRevisionChecksum}
+            and evaluator_version = ${projection.evaluatorVersion}
+            and model_contract_version = ${projection.modelContractVersion}
+            and projection_schema_version = ${projection.projectionSchemaVersion}
+            and rule_snapshot = ${JSON.stringify(projection.ruleSnapshot)}::jsonb
+            and bounded_registry = ${JSON.stringify(projection.ruleRegistry)}::jsonb
+          returning character_id
+        `.execute(trx)
+        if (!result.rows[0]) {
+          throw new CharacterMechanicsProjectionMismatchError(
+            `Character "${projection.characterId}" live projection compare-and-swap failed.`
+          )
+        }
+        return projection
+      })
     },
     async publish(input, options) {
       const onTiming = options?.onTiming
@@ -586,12 +639,18 @@ export function createCharacterMechanicsProjectionRepository(
       let existingProjectionLockMs = 0
       let writeMs = 0
       const projection = characterMechanicsProjectionSchema.parse(input)
-      if (projection.commandState.id !== projection.characterId || projection.commandState.systemId === '') {
+      if (
+        projection.commandState.id !== projection.characterId ||
+        projection.commandState.systemId === ''
+      ) {
         throw new CharacterMechanicsProjectionMismatchError(
           `Character "${projection.characterId}" mechanics command state has an incompatible identity.`
         )
       }
-      if (checksumCharacterMechanicsCommandState(projection.commandState) !== projection.commandStateChecksum) {
+      if (
+        checksumCharacterMechanicsCommandState(projection.commandState) !==
+        projection.commandStateChecksum
+      ) {
         throw new CharacterMechanicsProjectionMismatchError(
           `Character "${projection.characterId}" mechanics command state checksum does not match its contents.`
         )
@@ -643,12 +702,7 @@ export function createCharacterMechanicsProjectionRepository(
         ruleRevisionValidationMs = performance.now() - startedAt
 
         startedAt = performance.now()
-        await validateAuthoredVersionVector(
-          trx,
-          character.system_id,
-          projection,
-          options?.requireActiveAuthoredVersions ?? true
-        )
+        await validateExactAuthoredVersionVector(trx, character.system_id, projection)
         authoredVersionValidationMs = performance.now() - startedAt
 
         startedAt = performance.now()
@@ -755,75 +809,81 @@ export function createCharacterMechanicsProjectionRepository(
     },
 
     async requireCurrent(input) {
-      const current = await readProjection(db, input.characterId)
-      if (!current) {
-        throw new CharacterMechanicsProjectionMismatchError(
-          `Character "${input.characterId}" has no committed mechanics projection.`
-        )
-      }
-      if (current.projection.characterStreamVersion !== current.characterStreamVersion) {
-        throw new CharacterMechanicsProjectionMismatchError(
-          `Character "${input.characterId}" has a stale mechanics projection.`
-        )
-      }
-      if (current.projection.characterStreamVersion !== input.expectedStreamVersion) {
-        throw new CharacterMechanicsProjectionMismatchError(
-          `Character "${input.characterId}" stream version does not match the command expectation.`
-        )
-      }
-      if (
-        input.expectedRuleRevisionId &&
-        current.projection.ruleRevisionId !== input.expectedRuleRevisionId
-      ) {
-        throw new CharacterMechanicsProjectionMismatchError(
-          `Character "${input.characterId}" rule revision does not match the command expectation.`
-        )
-      }
-      return current.projection
+      return withTransaction(db, async (trx) => {
+        const current = await readProjection(trx, input.characterId)
+        if (!current) {
+          throw new CharacterMechanicsProjectionMismatchError(
+            `Character "${input.characterId}" has no committed mechanics projection.`
+          )
+        }
+        if (current.projection.characterStreamVersion !== current.characterStreamVersion) {
+          throw new CharacterMechanicsProjectionMismatchError(
+            `Character "${input.characterId}" has a stale mechanics projection.`
+          )
+        }
+        if (current.projection.characterStreamVersion !== input.expectedStreamVersion) {
+          throw new CharacterMechanicsProjectionMismatchError(
+            `Character "${input.characterId}" stream version does not match the command expectation.`
+          )
+        }
+        if (
+          input.expectedRuleRevisionId &&
+          current.projection.ruleRevisionId !== input.expectedRuleRevisionId
+        ) {
+          throw new CharacterMechanicsProjectionMismatchError(
+            `Character "${input.characterId}" rule revision does not match the command expectation.`
+          )
+        }
+        await validateExactAuthoredVersionVector(trx, current.characterSystemId, current.projection)
+        return current.projection
+      })
     },
 
     async requireCurrentMetadata(input) {
-      const current = await readProjectionMetadata(db, input.characterId)
-      if (!current) {
-        throw new CharacterMechanicsProjectionMismatchError(
-          `Character "${input.characterId}" has no committed mechanics projection.`
-        )
-      }
-      if (current.projection.characterStreamVersion !== current.characterStreamVersion) {
-        throw new CharacterMechanicsProjectionMismatchError(
-          `Character "${input.characterId}" has a stale mechanics projection.`
-        )
-      }
-      if (current.projection.characterStreamVersion !== input.expectedStreamVersion) {
-        throw new CharacterMechanicsProjectionMismatchError(
-          `Character "${input.characterId}" stream version does not match the command expectation.`
-        )
-      }
-      if (
-        input.expectedRuleRevisionId &&
-        current.projection.ruleRevisionId !== input.expectedRuleRevisionId
-      ) {
-        throw new CharacterMechanicsProjectionMismatchError(
-          `Character "${input.characterId}" rule revision does not match the command expectation.`
-        )
-      }
-      if (
-        input.expectedProjectionChecksum &&
-        current.projection.projectionChecksum !== input.expectedProjectionChecksum
-      ) {
-        throw new CharacterMechanicsProjectionMismatchError(
-          `Character "${input.characterId}" mechanics projection does not match the room snapshot.`
-        )
-      }
-      if (
-        input.expectedCommandLaneChecksum &&
-        current.projection.commandLaneChecksum !== input.expectedCommandLaneChecksum
-      ) {
-        throw new CharacterMechanicsProjectionMismatchError(
-          `Character "${input.characterId}" mechanics command lane does not match the room snapshot.`
-        )
-      }
-      return current.projection
+      return withTransaction(db, async (trx) => {
+        const current = await readProjectionMetadata(trx, input.characterId)
+        if (!current) {
+          throw new CharacterMechanicsProjectionMismatchError(
+            `Character "${input.characterId}" has no committed mechanics projection.`
+          )
+        }
+        if (current.projection.characterStreamVersion !== current.characterStreamVersion) {
+          throw new CharacterMechanicsProjectionMismatchError(
+            `Character "${input.characterId}" has a stale mechanics projection.`
+          )
+        }
+        if (current.projection.characterStreamVersion !== input.expectedStreamVersion) {
+          throw new CharacterMechanicsProjectionMismatchError(
+            `Character "${input.characterId}" stream version does not match the command expectation.`
+          )
+        }
+        if (
+          input.expectedRuleRevisionId &&
+          current.projection.ruleRevisionId !== input.expectedRuleRevisionId
+        ) {
+          throw new CharacterMechanicsProjectionMismatchError(
+            `Character "${input.characterId}" rule revision does not match the command expectation.`
+          )
+        }
+        if (
+          input.expectedProjectionChecksum &&
+          current.projection.projectionChecksum !== input.expectedProjectionChecksum
+        ) {
+          throw new CharacterMechanicsProjectionMismatchError(
+            `Character "${input.characterId}" mechanics projection does not match the room snapshot.`
+          )
+        }
+        if (
+          input.expectedCommandLaneChecksum &&
+          current.projection.commandLaneChecksum !== input.expectedCommandLaneChecksum
+        ) {
+          throw new CharacterMechanicsProjectionMismatchError(
+            `Character "${input.characterId}" mechanics command lane does not match the room snapshot.`
+          )
+        }
+        await validateExactAuthoredVersionVector(trx, current.characterSystemId, current.projection)
+        return current.projection
+      })
     }
   }
 }

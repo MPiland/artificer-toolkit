@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 
+import { createClient } from '@supabase/supabase-js'
 import {
   createDb,
   createNotificationRepository,
@@ -24,6 +25,8 @@ const HOST_EMAIL = 'social-host@local.test'
 const PLAYER_EMAIL = 'social-player-one@local.test'
 const OLD_DUE_AT = '2000-01-01T00:00:00.000Z'
 
+type AuthAdmin = ReturnType<typeof createClient>['auth']['admin']
+
 function requireLocalDatabaseUrl(): string {
   const connectionString = process.env.DATABASE_CONNECTION_STRING
   if (!connectionString) throw new Error('DATABASE_CONNECTION_STRING is required.')
@@ -34,7 +37,26 @@ function requireLocalDatabaseUrl(): string {
   return connectionString
 }
 
-async function fixtureUsers(db: DBLike): Promise<{
+function requireLocalSupabaseAdmin(): AuthAdmin {
+  const rawUrl = process.env.SUPABASE_URL
+  const secretKey = process.env.SUPABASE_SECRET_KEY
+  if (!rawUrl || !secretKey) {
+    throw new Error('SUPABASE_URL and SUPABASE_SECRET_KEY are required.')
+  }
+  const url = new URL(rawUrl)
+  if (!LOCAL_DATABASE_HOSTS.has(url.hostname.toLowerCase())) {
+    throw new Error('Notification Auth fixtures must target loopback Supabase.')
+  }
+  return createClient(rawUrl, secretKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  }).auth.admin
+}
+
+async function fixtureUsers(
+  db: DBLike,
+  admin: AuthAdmin,
+  createdUserIds: string[]
+): Promise<{
   host: { id: string; username: string }
   player: { id: string; username: string }
 }> {
@@ -42,15 +64,41 @@ async function fixtureUsers(db: DBLike): Promise<{
     select email, id::text as id from auth.users where email in (${HOST_EMAIL}, ${PLAYER_EMAIL})
   `.execute(db)
   const byEmail = new Map(result.rows.map((row) => [row.email.toLowerCase(), row.id]))
-  const hostId = byEmail.get(HOST_EMAIL)
-  const playerId = byEmail.get(PLAYER_EMAIL)
-  if (!hostId || !playerId) {
-    throw new Error('Seed the local Social Hub auth users before running the notification proof.')
+
+  const ensure = async (email: string, username: string): Promise<string> => {
+    const existingId = byEmail.get(email)
+    if (existingId) return existingId
+    const { data, error } = await admin.createUser({
+      email,
+      email_confirm: true,
+      password: `Local-${randomUUID()}-Aa1!`,
+      user_metadata: { username }
+    })
+    if (error) throw error
+    if (!data.user) throw new Error(`Supabase did not create the disposable user ${email}.`)
+    createdUserIds.push(data.user.id)
+    return data.user.id
   }
+
+  const hostId = await ensure(HOST_EMAIL, 'notification_host')
+  const playerId = await ensure(PLAYER_EMAIL, 'notification_player')
   return {
     host: { id: hostId, username: 'social_host' },
     player: { id: playerId, username: 'social_player_one' }
   }
+}
+
+function isRetryableAdmin500(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'status' in error && error.status === 500
+}
+
+async function deleteDisposableUser(admin: AuthAdmin, userId: string): Promise<boolean> {
+  const first = await admin.deleteUser(userId)
+  if (!first.error) return false
+  if (!isRetryableAdmin500(first.error)) throw first.error
+  const second = await admin.deleteUser(userId)
+  if (second.error) throw second.error
+  return true
 }
 
 async function prepareUser(db: DBLike, user: { id: string; username: string }): Promise<void> {
@@ -96,14 +144,16 @@ function listingFields(systemId: string): Omit<CreateSocialListingInput, 'campai
 
 async function main(): Promise<void> {
   const db = createDb({ connectionString: requireLocalDatabaseUrl() })
+  const admin = requireLocalSupabaseAdmin()
   const createdSourceIds = new Set<string>()
+  const createdUserIds: string[] = []
   let campaignId: string | undefined
   let hostId: string | undefined
   let playerId: string | undefined
   let originalTier = 'FREE'
 
   try {
-    const users = await fixtureUsers(db)
+    const users = await fixtureUsers(db, admin, createdUserIds)
     hostId = users.host.id
     playerId = users.player.id
     await prepareUser(db, users.host)
@@ -386,25 +436,49 @@ async function main(): Promise<void> {
     console.info('Notification local proof passed: concurrent claiming, lease recovery, exhaustion')
     console.info('Notification local proof passed: cancellation suppresses trigger retry')
   } finally {
-    if (createdSourceIds.size > 0) {
-      await sql`
-        delete from notification_delivery_intents
-        where source_public_id = any(${sql.val([...createdSourceIds])}::uuid[])
-      `.execute(db)
+    try {
+      if (createdSourceIds.size > 0) {
+        await sql`
+          delete from notification_delivery_intents
+          where source_public_id = any(${sql.val([...createdSourceIds])}::uuid[])
+        `.execute(db)
+      }
+      if (campaignId) await sql`delete from campaigns where id = ${campaignId}::uuid`.execute(db)
+      if (hostId) {
+        await sql`
+          update account_entitlements set tier = ${originalTier} where user_id = ${hostId}::uuid
+        `.execute(db)
+      }
+      if (hostId && playerId) {
+        await sql`
+          delete from social_action_rate_limits
+          where user_id in (${hostId}::uuid, ${playerId}::uuid)
+        `.execute(db)
+      }
+      let authDeleteRetryCount = 0
+      for (const userId of createdUserIds.reverse()) {
+        if (await deleteDisposableUser(admin, userId)) authDeleteRetryCount += 1
+      }
+      if (createdUserIds.length > 0) {
+        const residual = await sql<{ auth_users: number; profiles: number }>`
+          select
+            (select count(*)::int from auth.users where id = any(${sql.val(createdUserIds)}::uuid[]))
+              as auth_users,
+            (select count(*)::int from profiles where id = any(${sql.val(createdUserIds)}::uuid[]))
+              as profiles
+        `.execute(db)
+        assert.deepStrictEqual(residual.rows[0], { auth_users: 0, profiles: 0 })
+        console.info(
+          JSON.stringify({
+            authFixtureCleanup: 'verified',
+            authDeleteRetryCount,
+            createdUserCount: createdUserIds.length
+          })
+        )
+      }
+    } finally {
+      await db.destroy()
     }
-    if (campaignId) await sql`delete from campaigns where id = ${campaignId}::uuid`.execute(db)
-    if (hostId) {
-      await sql`
-        update account_entitlements set tier = ${originalTier} where user_id = ${hostId}::uuid
-      `.execute(db)
-    }
-    if (hostId && playerId) {
-      await sql`
-        delete from social_action_rate_limits
-        where user_id in (${hostId}::uuid, ${playerId}::uuid)
-      `.execute(db)
-    }
-    await db.destroy()
   }
 }
 

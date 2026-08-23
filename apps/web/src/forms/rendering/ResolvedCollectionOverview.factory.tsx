@@ -1,5 +1,5 @@
 import { Group, Text } from '@mantine/core'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Box,
   CircleHelp,
@@ -76,6 +76,7 @@ export function createResolvedCollectionOverview<TValues extends object>(default
       const { groupEditor, setGroupEditor } = useAuthoringRendererInteractions()
       const node = target.collectionNode
       const collectionFieldName = target.collectionFieldName
+      const dismissedDrawerTargetId = useRef<string | undefined>(undefined)
       const [pendingNavigationRowIndex, setPendingNavigationRowIndex] = useState<number>()
 
       useEffect(() => {
@@ -103,9 +104,17 @@ export function createResolvedCollectionOverview<TValues extends object>(default
       useEffect(() => {
         if (
           !drawerTarget ||
+          (dismissedDrawerTargetId.current && dismissedDrawerTargetId.current !== drawerTarget.id)
+        ) {
+          dismissedDrawerTargetId.current = undefined
+        }
+
+        if (
+          !drawerTarget ||
           !node ||
           !collectionFieldName ||
           drawerTarget.drawerRowIndex === undefined ||
+          dismissedDrawerTargetId.current === drawerTarget.id ||
           groupEditor
         ) {
           return
@@ -185,6 +194,7 @@ export function createResolvedCollectionOverview<TValues extends object>(default
             const closeEditor = (restore: boolean) => {
               if (!editorForField) return
               if (restore) {
+                if (drawerTarget) dismissedDrawerTargetId.current = drawerTarget.id
                 restoreGroupEditorTransaction({
                   currentFieldMeta: form.state.fieldMeta,
                   editor: editorForField,

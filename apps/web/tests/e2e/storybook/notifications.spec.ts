@@ -14,7 +14,7 @@ test.describe('notifications and delivery UI', () => {
     await expect(drawer.getByText('Notifications', { exact: true })).toHaveCount(1)
 
     await drawer.getByRole('button', { name: /close/i }).click()
-    await expect(page.getByRole('button', { name: 'Notifications, 0 new' })).toBeFocused()
+    await expect(newBell).toBeFocused()
   })
 
   test('uses the mobile header route and preserves the five-item footer', async ({ page }) => {

@@ -7,7 +7,11 @@ const canonical = read('packages/db/src/domains/campaigns/tables/campaigns.sql')
 const media = read('packages/db/src/domains/subjects/tables/media.sql')
 const notifications = read('packages/db/src/domains/notifications/tables/notifications.sql')
 const migration = read('supabase/migrations/20260812170022_phase_06_live_campaign_play.sql')
+const directSharesMigration = read('supabase/migrations/20260822020730_campaign_content_shares.sql')
 const bundle = read('packages/db/src/domains/bootstrap/generated/create_database.bundle.sql')
+
+const normalizeSql = (source: string) =>
+  source.replace(/\s+/gu, ' ').replace(/\(\s+/gu, '(').replace(/\s+\)/gu, ')').trim().toLowerCase()
 
 describe('Phase 06 Campaign play persistence', () => {
   it('keeps server-owned tables protected', () => {
@@ -18,28 +22,35 @@ describe('Phase 06 Campaign play persistence', () => {
       'campaign_clock_segments',
       'campaign_announcements'
     ]) {
-      for (const source of [canonical, migration, bundle]) {
+      for (const source of [canonical, migration, bundle].map(normalizeSql)) {
         expect(source).toContain(`public.${table}`)
-        expect(source).toContain(`ALTER TABLE public.${table} ENABLE ROW LEVEL SECURITY`)
-        expect(source).toContain(`ALTER TABLE public.${table} FORCE ROW LEVEL SECURITY`)
-        expect(source).toContain(`REVOKE ALL ON TABLE public.${table} FROM anon, authenticated`)
+        expect(source).toContain(`alter table public.${table} enable row level security`)
+        expect(source).toContain(`alter table public.${table} force row level security`)
+        expect(source).toContain(`revoke all on table public.${table} from anon, authenticated`)
       }
     }
   })
 
-  it('pins approved Vehicle revisions and generates one Vehicle inventory owner', () => {
-    for (const source of [canonical, migration, bundle]) {
-      expect(source).toContain("version.subject_kind = 'VEHICLE'")
-      expect(source).toContain("version.state = 'APPROVED'")
+  it('references current Vehicle roots and generates one Vehicle inventory owner', () => {
+    for (const source of [canonical, bundle].map(normalizeSql)) {
+      expect(source).toContain(
+        'vehicle_definition_id uuid not null references public.vehicles (id) on delete restrict'
+      )
+      expect(source).not.toContain('content_version_id')
       expect(source).toContain('inventory_owners_vehicle_idx')
       expect(source).toContain('campaign_vehicles_create_inventory_owner')
     }
+    const normalizedMigration = normalizeSql(directSharesMigration)
+    expect(normalizedMigration).toContain('drop column if exists content_version_id')
+    expect(normalizedMigration).toContain(
+      'add column vehicle_definition_id uuid not null references public.vehicles (id) on delete restrict'
+    )
   })
 
   it('keeps attachments Campaign-scoped and protects ready asset references', () => {
-    for (const source of [canonical, migration, bundle]) {
-      expect(source).toContain('FOREIGN KEY (session_id, campaign_id)')
-      expect(source).toContain('FOREIGN KEY (note_section_id, campaign_id)')
+    for (const source of [canonical, migration, bundle].map(normalizeSql)) {
+      expect(source).toContain('foreign key (session_id, campaign_id)')
+      expect(source).toContain('foreign key (note_section_id, campaign_id)')
       expect(source).toContain('campaign_attachments_validate_ready')
       expect(source).toContain('media_assets_protect_campaign_reference')
     }
@@ -48,19 +59,19 @@ describe('Phase 06 Campaign play persistence', () => {
   })
 
   it('persists correction audit, monotonic segments, and announcement delivery vocabulary', () => {
-    for (const source of [canonical, migration, bundle]) {
+    for (const source of [canonical, migration, bundle].map(normalizeSql)) {
       expect(source).toContain('correction_reason text')
       expect(source).toContain('campaign_clock_segments_one_open_idx')
-      expect(source).toContain("command_type IN ('REWIND_CLOCK', 'RESET_CLOCK')")
+      expect(source).toContain("command_type in ('rewind_clock', 'reset_clock')")
       expect(source).toContain(
-        "command_type IN ('REWIND_CLOCK', 'RESET_CLOCK') AND correction_reason IS NOT NULL"
+        "command_type in ('rewind_clock', 'reset_clock') and correction_reason is not null"
       )
       expect(source).toContain('campaign_announcements_immutable')
-      expect(source).toContain('UNIQUE (campaign_id, command_id)')
+      expect(source).toContain('unique (campaign_id, command_id)')
     }
-    for (const source of [notifications, migration, bundle]) {
+    for (const source of [notifications, migration, bundle].map(normalizeSql)) {
       expect(source).toContain("'campaign-announcement'")
-      expect(source).toContain("'CAMPAIGN_ANNOUNCEMENT'")
+      expect(source).toContain("'campaign_announcement'")
     }
   })
 })

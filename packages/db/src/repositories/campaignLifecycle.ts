@@ -214,6 +214,30 @@ export function createCampaignLifecycleRepository(db: DBLike) {
           })
         : null
     },
+    async advanceCampaignVersion(
+      campaignId: string,
+      expectedVersion: number
+    ): Promise<CampaignRecord | null> {
+      const row = await db
+        .updateTable('campaigns')
+        .set({
+          version: sql<number>`version + 1`,
+          updated_at: new Date().toISOString()
+        })
+        .where('id', '=', campaignId)
+        .where('version', '=', expectedVersion)
+        .returningAll()
+        .executeTakeFirst()
+      const route = row
+        ? await createAuthoredRouteIdRepository(db).findBySubject({
+            subjectKind: 'CAMPAIGN',
+            subjectId: campaignId
+          })
+        : null
+      return row && route
+        ? mapCampaign({ ...row, public_id: route.publicId, status: row.status as CampaignStatus })
+        : null
+    },
     async archiveCampaign(
       campaignId: string,
       expectedVersion: number
@@ -245,7 +269,7 @@ export function createCampaignLifecycleRepository(db: DBLike) {
         await sql`
           update social_applications application
           set status = 'EXPIRED', expired_at = ${now}::timestamptz,
-            version = version + 1, updated_at = ${now}::timestamptz
+            version = application.version + 1, updated_at = ${now}::timestamptz
           from social_listings listing
           where listing.campaign_id = ${campaignId}::uuid
             and application.listing_id = listing.id and application.status = 'SUBMITTED'
@@ -253,7 +277,7 @@ export function createCampaignLifecycleRepository(db: DBLike) {
         await sql`
           update campaign_invites invite
           set status = 'EXPIRED', expired_at = ${now}::timestamptz,
-            version = version + 1, updated_at = ${now}::timestamptz
+            version = invite.version + 1, updated_at = ${now}::timestamptz
           from social_listings listing
           where listing.campaign_id = ${campaignId}::uuid
             and invite.listing_id = listing.id and invite.status = 'PENDING'

@@ -313,6 +313,22 @@ describe('SRD source data', () => {
     )
   })
 
+  it('structures every SRD prepared-caster limit declared by its canonical prose', () => {
+    const fullPreparationLimit = {
+      methodKinds: ['SPELLCASTING_ABILITY', 'CLASS_LEVEL'],
+      scaling: 'FULL'
+    }
+
+    expect(getSrdClass('Cleric').spellcasting?.prepareLimit).toEqual(fullPreparationLimit)
+    expect(getSrdClass('Druid').spellcasting?.prepareLimit).toEqual(fullPreparationLimit)
+    expect(getSrdClass('Wizard').spellcasting?.prepareLimit).toEqual(fullPreparationLimit)
+    expect(getSrdClass('Paladin').spellcasting?.prepareLimit).toEqual({
+      methodKinds: ['SPELLCASTING_ABILITY', 'CLASS_LEVEL'],
+      scaling: 'HALF',
+      rounding: 'DOWN'
+    })
+  })
+
   it('requires the complete SRD Wizard spellbook progression', () => {
     const wizard = getSrdClass('Wizard')
 

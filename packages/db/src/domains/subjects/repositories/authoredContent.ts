@@ -395,6 +395,15 @@ async function saveDraft(db: DBLike, input: SaveAuthoredDraftInput): Promise<Aut
 
 export function createAuthoredContentRepository(db: DBLike) {
   return {
+    async lockActiveBySubject(params: {
+      subjectKind: AuthoredSubjectKind
+      subjectId: string
+    }): Promise<AuthoredActiveMetadata | null> {
+      const result = await activeRowForUpdate(db, params.subjectKind, params.subjectId)
+      const row = result.rows[0]
+      return row ? mapActive(row) : null
+    },
+
     async findActiveBySubject(params: {
       subjectKind: AuthoredSubjectKind
       subjectId: string

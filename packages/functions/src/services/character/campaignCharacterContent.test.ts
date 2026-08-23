@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { CampaignCharacterContentOverlay } from './campaignCharacterContent.js'
 import {
   buildCampaignAssemblyStructure,
-  findCampaignCharacterSnapshot
+  findCampaignCharacterSource
 } from './campaignCharacterContent.js'
 
 const id = '00000000-0000-4000-8000-000000000001'
@@ -10,42 +10,28 @@ const systemId = '00000000-0000-4000-8000-000000000002'
 const userId = '00000000-0000-4000-8000-000000000003'
 
 describe('Campaign Character content', () => {
-  it('keeps an existing binding pinned instead of selecting the latest approval', () => {
-    const pinned = {
-      contentVersionId: '00000000-0000-4000-8000-000000000004',
+  it('resolves the current shared source without a Character lifecycle pin', () => {
+    const current = {
       subjectKind: 'FEAT',
       subjectId: id,
-      revision: 1,
-      authoredVersionId: '00000000-0000-4000-8000-000000000011',
-      authoredVersion: 1,
-      authoredChecksum: 'a'.repeat(64),
-      compiledProjectionChecksum: 'b'.repeat(64),
-      authoredDependencies: [],
-      authored: { id, label: 'Pinned', description: '', userId, systemId }
-    } as const
-    const latest = {
-      contentVersionId: '00000000-0000-4000-8000-000000000005',
-      subjectKind: 'FEAT',
-      subjectId: id,
-      revision: 2,
       authoredVersionId: '00000000-0000-4000-8000-000000000012',
       authoredVersion: 2,
       authoredChecksum: 'c'.repeat(64),
       compiledProjectionChecksum: 'd'.repeat(64),
       authoredDependencies: [],
-      authored: { id, label: 'Latest', description: '', userId, systemId }
+      authored: { id, label: 'Current', description: '', userId, systemId }
     } as const
     const overlay: CampaignCharacterContentOverlay = {
       campaignId: id,
       userId,
-      bindings: new Map([[`FEAT:${id}`, pinned]]),
-      latest: new Map([[`FEAT:${id}`, latest]])
+      latest: new Map([[`FEAT:${id}`, current]]),
+      sharesByRoot: new Map()
     }
 
-    expect(findCampaignCharacterSnapshot(overlay, 'FEAT', id)?.revision).toBe(1)
+    expect(findCampaignCharacterSource(overlay, 'FEAT', id)?.authoredVersion).toBe(2)
   })
 
-  it('derives root, ancestry, option, and choice links from hydrated snapshots', () => {
+  it('derives root, ancestry, option, and choice links from hydrated sources', () => {
     const structure = buildCampaignAssemblyStructure({
       backgrounds: [],
       classes: [],

@@ -13,6 +13,7 @@ const ids = {
 
 const mocks = vi.hoisted(() => ({
   resolveCampaignAuthority: vi.fn(),
+  listActiveMemberships: vi.fn(),
   listCampaignSessions: vi.fn(),
   listSessionAttendance: vi.fn(),
   findCharacter: vi.fn(),
@@ -27,6 +28,7 @@ const mocks = vi.hoisted(() => ({
   loadCharacterRuleSnapshot: vi.fn(),
   lockCampaignForCommand: vi.fn(),
   claimLiveSessionCommandAuthority: vi.fn(),
+  renewLiveSessionCommandAuthority: vi.fn(),
   createCampaignCollaborationRepository: vi.fn(),
   createLiveSessionCommandLeaseRepository: vi.fn()
 }))
@@ -36,6 +38,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   return {
     ...actual,
     createCampaignCollaborationRepository: mocks.createCampaignCollaborationRepository,
+    createCampaignRepository: () => ({ listActiveMemberships: mocks.listActiveMemberships }),
     createCharacterRepository: () => ({ findById: mocks.findCharacter }),
     createEncounterRepository: () => ({
       listVersionMetadataForSession: mocks.listEncounters,
@@ -71,7 +74,7 @@ vi.mock('../character/characterLiveSessionSnapshot.js', () => ({
 vi.mock('../campaign/liveSessionCommandAuthority.js', () => ({
   claimLiveSessionCommandAuthority: mocks.claimLiveSessionCommandAuthority,
   releaseLiveSessionCommandAuthority: vi.fn(),
-  renewLiveSessionCommandAuthority: vi.fn()
+  renewLiveSessionCommandAuthority: mocks.renewLiveSessionCommandAuthority
 }))
 
 vi.mock('../character/sheetService.js', () => ({
@@ -89,8 +92,12 @@ const {
   claimLiveSessionRoomCommandAuthority,
   executeLiveSessionCommand,
   loadLiveSessionCoordinatorSnapshot,
-  loadLiveSessionRoomSnapshot
+  loadLiveSessionRoomSnapshot,
+  renewLiveSessionRoomCommandAuthority,
+  classifyLiveSessionCommandError
 } = await import('./liveSessionService.js')
+
+const transactionDb = { isTransaction: true } as unknown as DBLike
 
 function ruleSnapshot(streamVersion: number) {
   return {
@@ -106,6 +113,8 @@ describe('live-session room snapshot authorization', () => {
     mocks.executeCompactLiveHitPoints.mockReset()
     mocks.executeCompactMaximumHitPointModifier.mockReset()
     mocks.executeCharacterSheetCommand.mockReset()
+    mocks.listActiveMemberships.mockResolvedValue([{ role: 'PLAYER', userId: ids.playerA }])
+    mocks.renewLiveSessionCommandAuthority.mockResolvedValue(undefined)
     mocks.lockCampaignForCommand.mockResolvedValue(true)
     mocks.createCampaignCollaborationRepository.mockReturnValue({
       listCampaignSessions: mocks.listCampaignSessions,
@@ -118,7 +127,8 @@ describe('live-session room snapshot authorization', () => {
       campaign: {
         id: ids.campaign,
         attunementSlotOverride: 4,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        version: 3
       },
       membership: { role: 'PLAYER', status: 'ACTIVE' }
     })
@@ -149,10 +159,15 @@ describe('live-session room snapshot authorization', () => {
       })
     } as unknown as DBLike
 
-    await claimLiveSessionRoomCommandAuthority(db, ids.playerA, {
-      campaignId: ids.campaign,
-      sessionId: ids.session
-    }, 'room-authority')
+    await claimLiveSessionRoomCommandAuthority(
+      db,
+      ids.playerA,
+      {
+        campaignId: ids.campaign,
+        sessionId: ids.session
+      },
+      'room-authority'
+    )
 
     expect(mocks.lockCampaignForCommand).toHaveBeenCalledWith(ids.campaign)
     expect(mocks.createLiveSessionCommandLeaseRepository).toHaveBeenCalledWith(trx)
@@ -165,8 +180,31 @@ describe('live-session room snapshot authorization', () => {
     })
   })
 
+  it('renews membership and authoritative aggregate versions under the Campaign lock', async () => {
+    const renewal = await renewLiveSessionRoomCommandAuthority(
+      transactionDb,
+      ids.playerA,
+      { campaignId: ids.campaign, sessionId: ids.session },
+      'room-authority'
+    )
+
+    expect(mocks.lockCampaignForCommand).toHaveBeenCalledWith(ids.campaign)
+    expect(mocks.renewLiveSessionCommandAuthority).toHaveBeenCalledWith(transactionDb, {
+      authorityId: 'room-authority',
+      sessionId: ids.session
+    })
+    expect(renewal).toEqual({
+      aggregateVersions: [
+        { aggregateId: ids.campaign, aggregateKind: 'CAMPAIGN', version: 3 },
+        { aggregateId: ids.characterA, aggregateKind: 'CHARACTER', version: 7 },
+        { aggregateId: ids.characterB, aggregateKind: 'CHARACTER', version: 11 }
+      ],
+      memberships: [{ role: 'PLAYER', userId: ids.playerA }]
+    })
+  })
+
   it('hydrates the transport coordinator without assembling full Character Sheet snapshots', async () => {
-    const snapshot = await loadLiveSessionCoordinatorSnapshot({} as DBLike, ids.playerA, {
+    const snapshot = await loadLiveSessionCoordinatorSnapshot(transactionDb, ids.playerA, {
       campaignId: ids.campaign,
       sessionId: ids.session
     })
@@ -180,7 +218,7 @@ describe('live-session room snapshot authorization', () => {
   })
 
   it('lets Player A hydrate Player B through the assigned-Campaign rule snapshot seam', async () => {
-    const snapshot = await loadLiveSessionRoomSnapshot({} as DBLike, ids.playerA, {
+    const snapshot = await loadLiveSessionRoomSnapshot(transactionDb, ids.playerA, {
       campaignId: ids.campaign,
       sessionId: ids.session
     })
@@ -193,7 +231,7 @@ describe('live-session room snapshot authorization', () => {
     expect(mocks.loadCharacterRuleSnapshot).toHaveBeenCalledWith(
       expect.anything(),
       ids.characterB,
-      { id: ids.campaign, attunementSlotOverride: 4 }
+      { id: ids.campaign, attunementSlotOverride: 4, version: 3 }
     )
   })
 
@@ -218,7 +256,7 @@ describe('live-session room snapshot authorization', () => {
       }
     })
 
-    const snapshot = await loadLiveSessionRoomSnapshot({} as DBLike, ids.playerA, {
+    const snapshot = await loadLiveSessionRoomSnapshot(transactionDb, ids.playerA, {
       campaignId: ids.campaign,
       sessionId: ids.session
     })
@@ -251,7 +289,7 @@ describe('live-session room snapshot authorization', () => {
     )
 
     await expect(
-      loadLiveSessionRoomSnapshot({} as DBLike, ids.playerA, {
+      loadLiveSessionRoomSnapshot(transactionDb, ids.playerA, {
         campaignId: ids.campaign,
         sessionId: ids.session
       })
@@ -265,7 +303,7 @@ describe('live-session room snapshot authorization', () => {
     )
 
     await expect(
-      loadLiveSessionRoomSnapshot({} as DBLike, ids.playerA, {
+      loadLiveSessionRoomSnapshot(transactionDb, ids.playerA, {
         campaignId: ids.campaign,
         sessionId: ids.session
       })
@@ -354,10 +392,10 @@ describe('live-session room snapshot authorization', () => {
 
     expect(mocks.executeCompactLiveHitPoints).toHaveBeenCalledWith({
       db: expect.anything(),
-        characterId: ids.characterA,
-        command: expect.objectContaining({ commandId, type: 'ADJUST_HIT_POINTS' }),
-        committedRuleSnapshot,
-        liveSessionAuthority: { authorityId: 'room-authority', sessionId: ids.session },
+      characterId: ids.characterA,
+      command: expect.objectContaining({ commandId, type: 'ADJUST_HIT_POINTS' }),
+      committedRuleSnapshot,
+      liveSessionAuthority: { authorityId: 'room-authority', sessionId: ids.session },
       userId: ids.playerA
     })
     expect(mocks.executeCharacterSheetCommand).not.toHaveBeenCalled()
@@ -470,5 +508,23 @@ describe('live-session room snapshot authorization', () => {
     )
 
     expect(mocks.executeCharacterSheetCommand).toHaveBeenCalledOnce()
+  })
+})
+
+describe('live-session adapter error parity', () => {
+  it.each([
+    ['CharacterSheetCommandError', 'INVALID_COMMAND'],
+    ['EncounterValidationError', 'INVALID_COMMAND'],
+    ['CampaignAccessError', 'UNAUTHORIZED'],
+    ['CampaignNotFoundError', 'UNAUTHORIZED'],
+    ['LiveSessionAuthorityError', 'UNAUTHORIZED'],
+    ['ConcurrencyError', 'STALE_VERSION'],
+    ['EncounterConflictError', 'STALE_VERSION'],
+    ['LiveSessionCommandAuthorityError', 'STALE_VERSION'],
+    ['UnexpectedError', 'COMMAND_FAILED']
+  ] as const)('classifies %s identically for every transport adapter', (name, expected) => {
+    const error = new Error('adapter failure')
+    error.name = name
+    expect(classifyLiveSessionCommandError(error)).toBe(expected)
   })
 })

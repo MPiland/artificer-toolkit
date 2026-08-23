@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
     findActiveBySubject: vi.fn(),
     findDraftByRoute: vi.fn(),
     findDraftBySubject: vi.fn(),
+    lockActiveBySubject: vi.fn(),
     lockDraftForActivation: vi.fn(),
     listDraftsByUser: vi.fn(),
     saveDraft: vi.fn()
@@ -48,6 +49,10 @@ const mocks = vi.hoisted(() => ({
     findActive: vi.fn()
   },
   publishVersionedAuthoredAggregate: vi.fn(),
+  prepareAuthoredCampaignMutation: vi.fn(),
+  assertAuthoredCampaignMutationPlanCurrent: vi.fn(),
+  reconcileAuthoredActivationInTransaction: vi.fn(),
+  reconcileAuthoredDeletionInTransaction: vi.fn(),
   prepare: vi.fn(),
   findById: vi.fn(),
   getAuthoredCatalogPage: vi.fn()
@@ -83,6 +88,13 @@ vi.mock('../nodeRuntime/index.js', async (importOriginal) => ({
 
 vi.mock('./versionedAuthoring.js', () => ({
   publishVersionedAuthoredAggregate: mocks.publishVersionedAuthoredAggregate
+}))
+
+vi.mock('./authoredCampaignReconciliation.js', () => ({
+  prepareAuthoredCampaignMutation: mocks.prepareAuthoredCampaignMutation,
+  assertAuthoredCampaignMutationPlanCurrent: mocks.assertAuthoredCampaignMutationPlanCurrent,
+  reconcileAuthoredActivationInTransaction: mocks.reconcileAuthoredActivationInTransaction,
+  reconcileAuthoredDeletionInTransaction: mocks.reconcileAuthoredDeletionInTransaction
 }))
 
 const db = { isTransaction: true } as unknown as DBLike
@@ -176,6 +188,7 @@ beforeEach(() => {
     publicId: 'spell-public'
   })
   mocks.contentRepository.findActiveBySubject.mockResolvedValue(createActive())
+  mocks.contentRepository.lockActiveBySubject.mockResolvedValue(createActive())
   mocks.authoredVersionRepository.findActive.mockResolvedValue({
     authored: {
       document: {
@@ -203,6 +216,10 @@ beforeEach(() => {
     status: 'ACTIVE'
   })
   mocks.prepare.mockImplementation(async (input: unknown) => ({ authored: input, compiled: {} }))
+  mocks.prepareAuthoredCampaignMutation.mockResolvedValue({ kind: 'ACTIVATED' })
+  mocks.publishVersionedAuthoredAggregate.mockResolvedValue({
+    authored: { versionId: 'version-1' }
+  })
 })
 
 describe('getAuthoredDomain', () => {
@@ -332,12 +349,12 @@ describe('authored domain lifecycle', () => {
     mocks.authoredVersionRepository.findActive.mockResolvedValue({
       authored: {
         document: {
-        id: 'spell-1',
-        label: 'Original Spell',
-        requiredText: 'Valid',
-      systemId: 'system-1',
-      userId: 'user-1',
-      status: 'ACTIVE',
+          id: 'spell-1',
+          label: 'Original Spell',
+          requiredText: 'Valid',
+          systemId: 'system-1',
+          userId: 'user-1',
+          status: 'ACTIVE',
           features: [
             { id: 'feature-1', options: [{ id: 'option-1' }], selectedOptionId: 'option-1' }
           ]
@@ -432,6 +449,19 @@ describe('authored domain lifecycle', () => {
         authored: expect.objectContaining({ id: 'spell-1' })
       })
     )
+    expect(mocks.prepareAuthoredCampaignMutation).toHaveBeenCalledWith(
+      db,
+      expect.objectContaining({ kind: 'ACTIVATED', subjectId: 'spell-1' })
+    )
+    expect(mocks.prepareAuthoredCampaignMutation.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.contentRepository.saveDraft.mock.invocationCallOrder[0] ?? 0
+    )
+    expect(mocks.contentRepository.saveDraft.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.contentRepository.lockDraftForActivation.mock.invocationCallOrder[0] ?? 0
+    )
+    expect(mocks.reconcileAuthoredActivationInTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({ versionId: 'version-1' })
+    )
     expect(mocks.contentRepository.deleteDraft).toHaveBeenCalledWith({
       subjectKind: 'SPELL',
       subjectId: 'spell-1',
@@ -506,6 +536,7 @@ describe('authored domain lifecycle', () => {
     await deleteAuthoredDomainActive(deleteDb, createConfig(), 'spell-public', 'user-1')
 
     expect(deleted).toEqual(['spell-1'])
+    expect(mocks.reconcileAuthoredDeletionInTransaction).toHaveBeenCalledOnce()
     expect(mocks.contentRepository.clearDraftBaseAfterActiveDelete).toHaveBeenCalledWith({
       subjectKind: 'SPELL',
       subjectId: 'spell-1',

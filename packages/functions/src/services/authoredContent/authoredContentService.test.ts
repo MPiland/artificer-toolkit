@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuthoredActiveMetadata, AuthoredDraft, DBLike } from '@artificer-toolkit/db'
 import {
   assertWritableAuthoredSubject,
+  assertDeletableActiveAuthoredSubject,
   normalizeActivatedAuthoringInput,
   normalizeAuthoredListResponse,
   normalizeAuthoredListResponseWithDrafts,
@@ -14,6 +15,7 @@ const contentRepositoryMock = vi.hoisted(() => ({
   forDb: vi.fn(),
   findActiveBySubject: vi.fn(),
   findActiveBySubjects: vi.fn(),
+  lockActiveBySubject: vi.fn(),
   findDraftBySubject: vi.fn(),
   listDraftsByUser: vi.fn(),
   saveDraft: vi.fn()
@@ -29,7 +31,6 @@ const entitlementMocks = vi.hoisted(() => ({
   withLockedLimits: vi.fn(),
   transaction: { isTransaction: true } as DBLike
 }))
-
 vi.mock('@artificer-toolkit/db', () => ({
   createAuthoredContentRepository: (database: DBLike) => {
     contentRepositoryMock.forDb(database)
@@ -93,6 +94,7 @@ describe('authored content draft helpers', () => {
       async ({ subjectIds }: { subjectIds: string[] }) =>
         subjectIds.map((subjectId) => createActive({ subjectId, label: subjectId }))
     )
+    contentRepositoryMock.lockActiveBySubject.mockResolvedValue(createActive())
     routeIdRepositoryMock.ensure.mockImplementation(
       async ({ subjectId }: { subjectId: string }) => ({
         subjectKind: 'SPELL',
@@ -107,6 +109,22 @@ describe('authored content draft helpers', () => {
       async (_kind: string, subjectIds: string[]) =>
         new Map(subjectIds.map((subjectId) => [subjectId, { publicId: `${subjectId}-public` }]))
     )
+  })
+
+  it('leaves Campaign share cleanup to the Campaign-first authored deletion transaction', async () => {
+    await expect(
+      assertDeletableActiveAuthoredSubject(db, 'spells', 'SPELL', 'spell-1', 'user-1')
+    ).resolves.toBeUndefined()
+    expect(contentRepositoryMock.lockActiveBySubject).toHaveBeenCalledWith({
+      subjectKind: 'SPELL',
+      subjectId: 'spell-1'
+    })
+  })
+
+  it('keeps unshared owned roots deletable through the existing dependency checks', async () => {
+    await expect(
+      assertDeletableActiveAuthoredSubject(db, 'spells', 'SPELL', 'spell-1', 'user-1')
+    ).resolves.toBeUndefined()
   })
 
   it('keeps active rows active and exposes owned drafts separately', async () => {

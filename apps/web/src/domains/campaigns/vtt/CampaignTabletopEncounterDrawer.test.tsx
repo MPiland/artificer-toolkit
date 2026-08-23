@@ -41,7 +41,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'Open turn order' }))
-    await user.click(screen.getByRole('button', { name: 'Next turn' }))
+    await user.click(await screen.findByRole('button', { name: 'Next turn' }))
 
     expect(onCommand).toHaveBeenCalledWith({
       commandId: expect.any(String),

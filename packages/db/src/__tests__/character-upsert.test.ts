@@ -56,6 +56,42 @@ vi.mock('kysely', () => ({
 import { buildCharacter } from './character-upsert.test-helpers.js'
 
 describe('upsertCharacter', () => {
+  it('round-trips an incomplete DRAFT without a character_background row', async () => {
+    const db = new InMemoryDb()
+    const character = buildCharacter()
+    character.status = 'DRAFT'
+    character.intent.background.backgroundId = ''
+    delete character.intent.startingEquipment?.background
+
+    await upsertCharacter(db as unknown as DBLike, character)
+
+    expect(db.snapshot('character_background')).toEqual([])
+    await expect(
+      createCharacterRepository(db as unknown as DBLike).findAuthoredById(character.id)
+    ).resolves.toMatchObject({
+      status: 'DRAFT',
+      intent: { background: { backgroundId: '' } }
+    })
+  })
+
+  it('continues to persist and hydrate an ACTIVE Character Background', async () => {
+    const db = new InMemoryDb()
+    const character = buildCharacter()
+    character.status = 'ACTIVE'
+
+    await upsertCharacter(db as unknown as DBLike, character)
+
+    expect(db.snapshot('character_background')).toEqual([
+      { character_id: character.id, background_id: character.intent.background.backgroundId }
+    ])
+    await expect(
+      createCharacterRepository(db as unknown as DBLike).findAuthoredById(character.id)
+    ).resolves.toMatchObject({
+      status: 'ACTIVE',
+      intent: { background: { backgroundId: character.intent.background.backgroundId } }
+    })
+  })
+
   it('serializes IDS selection values and removes stale character child rows on rewrite', async () => {
     const db = new InMemoryDb()
     const initial = buildCharacter()

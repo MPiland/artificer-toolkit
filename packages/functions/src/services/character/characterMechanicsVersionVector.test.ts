@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { AuthoredVersionRecord, DBLike } from '@artificer-toolkit/db'
 import {
-  characterRulePolicyInputSchema,
-  type CharacterRulePolicyInput
+  characterRulePolicyOutputSchema,
+  type CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterAssemblyRegistry } from '@artificer-toolkit/shared/core'
 
@@ -34,7 +34,8 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => ({
 }))
 
 const { createEmptyCharacterAuthored } = await import('./builderService.js')
-const { loadCurrentCharacterAuthoredVersionVector } = await import('./characterMechanicsCompiler.js')
+const { loadCurrentCharacterAuthoredVersionVector } =
+  await import('./characterMechanicsCompiler.js')
 
 const checksum = (value: string) => value.repeat(64)
 
@@ -48,22 +49,88 @@ const emptyRegistry: CharacterAssemblyRegistry = {
   spells: {}
 }
 
-function rulePolicyInput(): CharacterRulePolicyInput {
+function rulePolicyOutput(): CharacterRulePolicyOutput {
   const fixture = dnd5e2014CharacterPolicyDocument.fixtures.find(
     (candidate) => candidate.modelKey === 'character-policy'
   )
   if (!fixture) throw new Error('Character policy fixture is missing.')
-  return characterRulePolicyInputSchema.parse(fixture.input)
+  return characterRulePolicyOutputSchema.parse(fixture.expected)
+}
+
+function rulePolicyOutputWithSpellDependencies(): {
+  acceptedSpellIds: string[]
+  output: CharacterRulePolicyOutput
+} {
+  const acceptedSpellIds = [
+    'spell-access',
+    'spell-class-learned',
+    'spell-class-prepared',
+    'spell-preparation-learned',
+    'spell-preparation-prepared'
+  ]
+  const base = rulePolicyOutput()
+  return {
+    acceptedSpellIds,
+    output: characterRulePolicyOutputSchema.parse({
+      ...base,
+      spellAccess: [
+        {
+          sequence: 0,
+          accessId: 'accepted-access',
+          sourceInstanceId: 'source-instance',
+          spellId: acceptedSpellIds[0],
+          sourceFeatureId: 'spellcasting',
+          grantId: 'spell-grant',
+          sourceKind: 'CLASS',
+          sourceId: 'class-1',
+          owningClassId: 'class-1',
+          timingKind: 'CLASS_LEVEL',
+          timingLevel: 1,
+          attributes: ['KNOWN'],
+          acquisition: 'KNOWN',
+          castMode: 'SPELL_SLOT',
+          castAtLevel: null,
+          castingAbility: 'INTELLIGENCE',
+          charge: null,
+          learned: true,
+          prepared: false
+        }
+      ],
+      classSpellStates: [
+        {
+          classId: 'class-1',
+          learnedSpellIds: [acceptedSpellIds[1]],
+          preparedSpellIds: [acceptedSpellIds[2]]
+        }
+      ],
+      spellPreparation: {
+        sources: [
+          {
+            classId: 'class-1',
+            sourceIds: ['class-1'],
+            preparedSpellLimit: 5,
+            maxPreparableSpellLevel: 1,
+            learnedSpellIds: [acceptedSpellIds[3], acceptedSpellIds[0]],
+            preparedSpellIds: [acceptedSpellIds[4]],
+            availableSpellIds: ['available-only']
+          }
+        ],
+        requestDecision: null
+      }
+    })
+  }
 }
 
 function versionRecord(input: {
   dependencies?: AuthoredVersionRecord['compiled']['authoredDependencies']
+  subjectKind?: AuthoredVersionRecord['authored']['subjectKind']
   subjectId: string
   versionId: string
 }): AuthoredVersionRecord {
+  const subjectKind = input.subjectKind ?? 'RACE'
   return {
     authored: {
-      subjectKind: 'RACE',
+      subjectKind,
       subjectId: input.subjectId,
       versionId: input.versionId,
       version: 1,
@@ -72,7 +139,7 @@ function versionRecord(input: {
       document: {}
     },
     compiled: {
-      subjectKind: 'RACE',
+      subjectKind,
       subjectId: input.subjectId,
       authoredVersionId: input.versionId,
       authoredVersion: 1,
@@ -128,7 +195,7 @@ describe('Character mechanics authored version vector', () => {
       loadCurrentCharacterAuthoredVersionVector({
         db: {} as DBLike,
         character,
-        rulePolicyInput: rulePolicyInput(),
+        rulePolicyOutput: rulePolicyOutput(),
         ruleRegistry: emptyRegistry
       })
     ).resolves.toEqual([
@@ -172,35 +239,39 @@ describe('Character mechanics authored version vector', () => {
       subjectId: identifiers.parentRace,
       versionId: identifiers.parentVersion
     })
+    const subrace = versionRecord({
+      subjectId: identifiers.subrace,
+      versionId: identifiers.subraceVersion,
+      dependencies: [
+        {
+          subjectKind: 'RACE',
+          subjectId: identifiers.parentRace,
+          versionId: identifiers.parentVersion,
+          version: 1,
+          checksum: checksum(identifiers.parentRace)
+        }
+      ]
+    })
     const overlay = {
       campaignId: 'campaign-1',
-      bindings: new Map([
+      userId: identifiers.user,
+      latest: new Map([
         [
           `RACE:${identifiers.subrace}`,
           {
-            contentVersionId: 'campaign-content-version-1',
             subjectKind: 'RACE',
             subjectId: identifiers.subrace,
-            revision: 1,
             authoredVersionId: identifiers.subraceVersion,
             authoredVersion: 1,
             authoredChecksum: checksum(identifiers.subrace),
             compiledProjectionChecksum: checksum('compiled-subrace'),
-            authoredDependencies: [
-              {
-                subjectKind: 'RACE',
-                subjectId: identifiers.parentRace,
-                versionId: identifiers.parentVersion,
-                version: 1,
-                checksum: checksum(identifiers.parentRace)
-              }
-            ],
-            authored: {}
+            authoredDependencies: subrace.compiled.authoredDependencies,
+            authored: subrace.authored.document
           }
         ]
       ]),
-      latest: new Map()
-    } as unknown as CampaignCharacterContentOverlay
+      sharesByRoot: new Map()
+    } satisfies CampaignCharacterContentOverlay
     mocks.findExactVersions.mockResolvedValue(new Map([[`RACE:${identifiers.parentRace}`, parent]]))
     const character = createEmptyCharacterAuthored({
       id: identifiers.character,
@@ -214,7 +285,7 @@ describe('Character mechanics authored version vector', () => {
         db: {} as DBLike,
         character,
         campaignContent: overlay,
-        rulePolicyInput: rulePolicyInput(),
+        rulePolicyOutput: rulePolicyOutput(),
         ruleRegistry: emptyRegistry
       })
     ).resolves.toEqual([
@@ -235,4 +306,60 @@ describe('Character mechanics authored version vector', () => {
     ])
   })
 
+  it('persists only authoritative output Spell sources', async () => {
+    const { acceptedSpellIds, output } = rulePolicyOutputWithSpellDependencies()
+    const spellRecords = new Map(
+      acceptedSpellIds.map((spellId) => [
+        spellId,
+        versionRecord({
+          subjectKind: 'SPELL',
+          subjectId: spellId,
+          versionId: `${spellId}-version`
+        })
+      ])
+    )
+    mocks.findActiveByIds.mockImplementation(async ({ subjectKind }: { subjectKind: string }) =>
+      subjectKind === 'SPELL' ? spellRecords : new Map()
+    )
+    const character = createEmptyCharacterAuthored({
+      id: identifiers.character,
+      systemId: identifiers.system,
+      userId: identifiers.user
+    })
+
+    const vector = await loadCurrentCharacterAuthoredVersionVector({
+      db: {} as DBLike,
+      character,
+      rulePolicyOutput: output,
+      ruleRegistry: emptyRegistry
+    })
+
+    expect(vector.map(({ subjectId }) => subjectId)).toEqual([...acceptedSpellIds].sort())
+    expect(vector.some(({ subjectId }) => subjectId === 'available-only')).toBe(false)
+    expect(mocks.findActiveByIds).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subjectKind: 'SPELL',
+        subjectIds: acceptedSpellIds
+      })
+    )
+  })
+
+  it('fails closed when an authoritative output Spell has no exact active source', async () => {
+    const { output } = rulePolicyOutputWithSpellDependencies()
+    output.spellAccess[0]!.spellId = 'missing-spell'
+    const character = createEmptyCharacterAuthored({
+      id: identifiers.character,
+      systemId: identifiers.system,
+      userId: identifiers.user
+    })
+
+    await expect(
+      loadCurrentCharacterAuthoredVersionVector({
+        db: {} as DBLike,
+        character,
+        rulePolicyOutput: output,
+        ruleRegistry: emptyRegistry
+      })
+    ).rejects.toThrow('requires an active SPELL "missing-spell"')
+  })
 })

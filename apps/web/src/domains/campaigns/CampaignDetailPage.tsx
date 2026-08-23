@@ -158,7 +158,7 @@ export function CampaignDetailPage({
         </Tabs.Panel>
         {tabs.includes('content') ? (
           <Tabs.Panel value='content' pt='md'>
-            <CampaignContent campaign={campaign} />
+            <CampaignContent campaign={campaign} currentUserId={currentUserId} />
           </Tabs.Panel>
         ) : null}
         {tabs.includes('settings') ? (

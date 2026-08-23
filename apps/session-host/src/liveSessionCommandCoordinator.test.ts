@@ -6,6 +6,11 @@ describe('LiveSessionCommandCoordinator', () => {
   it('serializes durable commands and advances room versions only after execution succeeds', async () => {
     const coordinator = new LiveSessionCommandCoordinator([
       {
+        aggregateKind: 'CAMPAIGN',
+        aggregateId: '00000000-0000-4000-8000-000000000010',
+        version: 2
+      },
+      {
         aggregateKind: 'CHARACTER',
         aggregateId: '00000000-0000-4000-8000-000000000001',
         version: 3
@@ -50,6 +55,11 @@ describe('LiveSessionCommandCoordinator', () => {
     await expect(first).resolves.toMatchObject({ replayed: false, roomVersion: 1 })
     await expect(second).resolves.toMatchObject({ replayed: false, roomVersion: 2 })
     expect(started).toEqual(['first', 'second'])
+    expect(coordinator.aggregateVersions).toContainEqual({
+      aggregateKind: 'CAMPAIGN',
+      aggregateId: '00000000-0000-4000-8000-000000000010',
+      version: 2
+    })
   })
 
   it('executes different aggregates concurrently without sacrificing per-aggregate order', async () => {

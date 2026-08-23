@@ -1,4 +1,7 @@
-import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
+import type {
+  CharacterRulePolicyInput,
+  CharacterRulePolicyOutput
+} from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledFeature, CompiledSpellGrant } from '@artificer-toolkit/shared/compilers'
 import {
   getChosenGrantTargetIds,
@@ -7,7 +10,21 @@ import {
 } from '@artificer-toolkit/shared/core'
 import type { CharacterProvenance } from '@artificer-toolkit/shared/subjects/authored'
 
-type SpellAccessCandidate = CharacterRulePolicyInput['spellAccessCandidates'][number]
+export type CharacterSpellAccessCandidate =
+  CharacterRulePolicyInput['spellAccessCandidates'][number]
+export interface CharacterRuleOutputSpellSources {
+  classSpellStates: readonly Pick<
+    CharacterRulePolicyOutput['classSpellStates'][number],
+    'learnedSpellIds' | 'preparedSpellIds'
+  >[]
+  spellPreparation: {
+    sources: readonly Pick<
+      CharacterRulePolicyOutput['spellPreparation']['sources'][number],
+      'learnedSpellIds' | 'preparedSpellIds'
+    >[]
+  }
+  spellAccess: readonly Pick<CharacterRulePolicyOutput['spellAccess'][number], 'spellId'>[]
+}
 type SupportedSpellSource = Extract<
   CharacterProvenance,
   { kind: 'CLASS' | 'SUBCLASS' | 'RACE' | 'SUBRACE' }
@@ -47,7 +64,42 @@ function collectSpecializationRestrictionIds(restrictions: unknown): string[] | 
   return found ? [...new Set(ids)] : null
 }
 
-function chargeDescriptor(grant: CompiledSpellGrant): SpellAccessCandidate['charge'] {
+export function isCharacterSpellActionAccessCandidate(
+  candidate: CharacterSpellAccessCandidate
+): boolean {
+  return candidate.selectionKind !== 'CHOSEN' || candidate.selectedByCharacter
+}
+
+export function collectCharacterRuleInputSpellIds(input: {
+  referenceSpellIds?: readonly string[]
+  spellAccessCandidates: readonly CharacterSpellAccessCandidate[]
+  spellSources?: readonly { spellId: string }[]
+}): ReadonlySet<string> {
+  return new Set([
+    ...(input.spellSources ?? []).map((source) => source.spellId),
+    ...input.spellAccessCandidates
+      .filter(isCharacterSpellActionAccessCandidate)
+      .map((candidate) => candidate.spellId),
+    ...(input.referenceSpellIds ?? [])
+  ])
+}
+
+export function collectCharacterRuleOutputSpellIds(
+  output: CharacterRuleOutputSpellSources
+): ReadonlySet<string> {
+  const spellIds = new Set(output.spellAccess.map((spell) => spell.spellId))
+  for (const classSpellState of output.classSpellStates) {
+    for (const spellId of classSpellState.learnedSpellIds) spellIds.add(spellId)
+    for (const spellId of classSpellState.preparedSpellIds) spellIds.add(spellId)
+  }
+  for (const source of output.spellPreparation.sources) {
+    for (const spellId of source.learnedSpellIds) spellIds.add(spellId)
+    for (const spellId of source.preparedSpellIds) spellIds.add(spellId)
+  }
+  return spellIds
+}
+
+function chargeDescriptor(grant: CompiledSpellGrant): CharacterSpellAccessCandidate['charge'] {
   const charge = grant.charges
   if (!charge) return null
   return {
@@ -99,7 +151,7 @@ function candidateTargets(
 }
 
 function appendGrantCandidates(params: {
-  candidates: SpellAccessCandidate[]
+  candidates: CharacterSpellAccessCandidate[]
   feature: CompiledFeature
   grant: CompiledSpellGrant
   snapshot: CharacterBuildSnapshot
@@ -173,7 +225,7 @@ function appendGrantCandidates(params: {
 }
 
 function appendFeatureCandidates(params: {
-  candidates: SpellAccessCandidate[]
+  candidates: CharacterSpellAccessCandidate[]
   features: readonly CompiledFeature[] | undefined
   snapshot: CharacterBuildSnapshot
   source: CandidateSource
@@ -189,7 +241,7 @@ export function buildCharacterSpellRuleFacts(
   snapshot: CharacterBuildSnapshot,
   registry: CharacterAssemblyRegistry
 ): Pick<CharacterRulePolicyInput, 'spellAccessCandidates' | 'spellClasses'> {
-  const spellAccessCandidates: SpellAccessCandidate[] = []
+  const spellAccessCandidates: CharacterSpellAccessCandidate[] = []
 
   for (const classEntry of snapshot.classes) {
     const compiledClass = registry.classes[classEntry.classId]

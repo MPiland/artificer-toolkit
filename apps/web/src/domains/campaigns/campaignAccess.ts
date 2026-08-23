@@ -24,7 +24,7 @@ export function getCampaignTabs(campaign: CampaignDetailDto): CampaignTab[] {
       ? (['inventory'] as const)
       : []),
     'table',
-    ...(campaign.capabilities.manageContent || campaign.capabilities.submitContent
+    ...(campaign.capabilities.manageSharedContent || campaign.capabilities.shareOwnedContent
       ? (['content'] as const)
       : []),
     ...(campaign.role === 'OWNER' ? (['settings'] as const) : [])

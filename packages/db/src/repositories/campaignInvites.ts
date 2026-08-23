@@ -129,6 +129,17 @@ export function createCampaignInviteRepository(db: DBLike) {
       return mapInvite(row)
     },
 
+    async findInviteById(inviteId: string): Promise<CampaignInviteRecord | null> {
+      const result = await sql<RawInvite>`
+        select ${inviteColumns}
+        from campaign_invites invite
+        join social_listings listing on listing.id = invite.listing_id
+        where invite.id = ${inviteId}::uuid
+      `.execute(db)
+      const row = result.rows[0]
+      return row ? mapInvite(row) : null
+    },
+
     async lockInvite(inviteId: string): Promise<CampaignInviteRecord | null> {
       const result = await sql<RawInvite>`
         select ${inviteColumns}

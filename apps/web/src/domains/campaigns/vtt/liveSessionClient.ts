@@ -70,7 +70,7 @@ export function createLiveSessionConnection(
   options: LiveSessionConnectionOptions
 ): LiveSessionConnection {
   const createSocket = options.createSocket ?? ((url, protocols) => new WebSocket(url, protocols))
-  const pendingCommandIds = new Set<string>()
+  const pendingCommands = new Map<string, LiveSessionCommandDto>()
   const pendingExecutions = new Map<
     string,
     {
@@ -87,7 +87,7 @@ export function createLiveSessionConnection(
 
   const rejectPendingExecutions = (error: Error) => {
     for (const pendingExecution of pendingExecutions.values()) pendingExecution.reject(error)
-    pendingCommandIds.clear()
+    pendingCommands.clear()
     pendingExecutions.clear()
   }
 
@@ -155,7 +155,7 @@ export function createLiveSessionConnection(
           return
         }
         if (message.type === 'COMMAND_COMMITTED') {
-          pendingCommandIds.delete(message.originCommandId)
+          pendingCommands.delete(message.originCommandId)
           const pendingExecution = pendingExecutions.get(message.originCommandId)
           if (pendingExecution) {
             pendingExecutions.delete(message.originCommandId)
@@ -164,7 +164,7 @@ export function createLiveSessionConnection(
           lastSeenDeliverySequence = Math.max(lastSeenDeliverySequence, message.deliverySequence)
         } else if (message.type === 'COMMAND_REJECTED') {
           if (message.commandId) {
-            pendingCommandIds.delete(message.commandId)
+            pendingCommands.delete(message.commandId)
             const pendingExecution = pendingExecutions.get(message.commandId)
             if (pendingExecution) {
               pendingExecutions.delete(message.commandId)
@@ -178,9 +178,12 @@ export function createLiveSessionConnection(
             resumeSent = true
             send({
               lastSeenDeliverySequence: resumeFromSequence,
-              pendingCommandIds: [...pendingCommandIds],
+              pendingCommandIds: [...pendingCommands.keys()],
               type: 'RESUME'
             })
+            for (const command of pendingCommands.values()) {
+              send({ command, type: 'COMMAND' })
+            }
           }
           lastSeenDeliverySequence = Math.max(lastSeenDeliverySequence, message.deliverySequence)
         }
@@ -223,22 +226,22 @@ export function createLiveSessionConnection(
     },
     executeCommand(command) {
       const id = commandId(command)
-      if (pendingCommandIds.has(id)) {
+      if (pendingCommands.has(id)) {
         return Promise.reject(new Error('This live-session command is already pending.'))
       }
       return new Promise<LiveSessionCommittedMessage>((resolve, reject) => {
-        pendingCommandIds.add(id)
+        pendingCommands.set(id, command)
         pendingExecutions.set(id, { reject, resolve })
         if (send({ command, type: 'COMMAND' })) return
-        pendingCommandIds.delete(id)
+        pendingCommands.delete(id)
         pendingExecutions.delete(id)
         reject(new Error('Live play is reconnecting. Try that action again in a moment.'))
       })
     },
     sendCommand(command) {
       const id = commandId(command)
-      if (pendingCommandIds.has(id) || !send({ command, type: 'COMMAND' })) return false
-      pendingCommandIds.add(id)
+      if (pendingCommands.has(id) || !send({ command, type: 'COMMAND' })) return false
+      pendingCommands.set(id, command)
       return true
     },
     sendTransient(envelope) {

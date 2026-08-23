@@ -203,6 +203,7 @@ export function createSocialListing(
 ): Promise<SocialListingDto> {
   return withTransaction(db, async (trx) => {
     await requireActiveSocialProfile(trx, userId)
+    await assertCapacityWithinTier(trx, userId, input.capacity, 0)
     const campaign = await createCampaignRepository(trx).lockCampaign(input.campaignId)
     if (!campaign) throw new SocialNotFoundError()
     if (campaign.ownerUserId !== userId) throw new SocialAccessError()
@@ -210,7 +211,6 @@ export function createSocialListing(
       throw new SocialConflictError('Archived Campaigns cannot have Social listings.')
     }
     assertScheduleAllowedForCampaign(campaign, input.schedule.kind)
-    await assertCapacityWithinTier(trx, userId, input.capacity, 0)
     try {
       return mapSocialListing(
         await createSocialRepository(trx).createSocialListing(
@@ -232,7 +232,7 @@ export function createSocialListing(
   })
 }
 
-export function updateSocialListing(
+export async function updateSocialListing(
   db: DBLike,
   userId: string,
   input: UpdateSocialListingInput
@@ -240,15 +240,22 @@ export function updateSocialListing(
   return withTransaction(db, async (trx) => {
     await requireActiveSocialProfile(trx, userId)
     const repository = createSocialRepository(trx)
+    const preliminary = await repository.findSocialListingById(input.listingPublicId)
+    if (!preliminary || preliminary.campaignOwnerUserId !== userId) {
+      throw new SocialNotFoundError()
+    }
+    await assertCapacityWithinTier(trx, userId, input.capacity, preliminary.activePlayerCount)
     const current = await repository.lockSocialListing(input.listingPublicId)
     if (!current || current.campaignOwnerUserId !== userId) throw new SocialNotFoundError()
+    if (input.capacity < current.activePlayerCount) {
+      throw new SocialValidationError('Capacity cannot be lower than the active player count.')
+    }
     const campaign = await createCampaignRepository(trx).lockCampaign(current.campaignId)
     if (!campaign || campaign.ownerUserId !== userId) throw new SocialNotFoundError()
     if (campaign.status !== 'ACTIVE') {
       throw new SocialConflictError('Archived Campaigns cannot be edited in Social Hub.')
     }
     if (current.version !== input.expectedVersion) throw new SocialConflictError()
-    await assertCapacityWithinTier(trx, userId, input.capacity, current.activePlayerCount)
     const next = toListingWrite(input, campaign)
     assertScheduleAllowedForCampaign(campaign, next.scheduleKind)
     const updated = await repository.updateSocialListing(
@@ -287,7 +294,7 @@ export function updateSocialListing(
   })
 }
 
-export function openSocialListing(
+export async function openSocialListing(
   db: DBLike,
   userId: string,
   listingPublicId: string,
@@ -296,6 +303,16 @@ export function openSocialListing(
   return withTransaction(db, async (trx) => {
     await requireActiveSocialProfile(trx, userId)
     const repository = createSocialRepository(trx)
+    const preliminary = await repository.findSocialListingById(listingPublicId)
+    if (!preliminary || preliminary.campaignOwnerUserId !== userId) {
+      throw new SocialNotFoundError()
+    }
+    const tier = await assertCapacityWithinTier(
+      trx,
+      userId,
+      preliminary.capacity,
+      preliminary.activePlayerCount
+    )
     const listing = await repository.lockSocialListing(listingPublicId)
     if (!listing || listing.campaignOwnerUserId !== userId) throw new SocialNotFoundError()
     const campaign = await createCampaignRepository(trx).lockCampaign(listing.campaignId)
@@ -312,12 +329,6 @@ export function openSocialListing(
       throw new SocialAccessError('A hidden Social listing cannot be opened.')
     }
     assertFreeListing(listing)
-    const tier = await assertCapacityWithinTier(
-      trx,
-      userId,
-      listing.capacity,
-      listing.activePlayerCount
-    )
     if (listing.audience === 'PUBLIC') {
       const usage = await createAccountEntitlementsRepository(trx).countUsage(userId)
       assertEntitlementLimit(

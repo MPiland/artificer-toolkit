@@ -475,6 +475,11 @@ export const paladin: ClassAuthored = {
     ability: ABILITY_CODE.CHARISMA,
     maxSpellLevel: 5,
     attributes: [SPELLCASTING_ATTRIBUTE.PREPARES_SPELLS],
+    prepareLimit: {
+      methodKinds: ['SPELLCASTING_ABILITY', 'CLASS_LEVEL'],
+      scaling: SCALING_AMOUNT_KIND.HALF,
+      rounding: 'DOWN'
+    },
     details: classSpellcastingDetails(P, [
       {
         label: 'Spellcasting',

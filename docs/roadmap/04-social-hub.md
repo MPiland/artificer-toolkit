@@ -23,7 +23,7 @@ Launch a moderated table-formation service for authenticated users 13 and older 
 - Listings derive title, Campaign format, one to three tone tags, optional tone details, and maturity from their Campaign. They own system/ruleset, play mode, schedule, coarse location, seat capacity, content guidance, expectations, safety practices, free/paid state, and nullable price metadata.
 - English is the only supported launch language. Social DTOs and discovery filters do not expose a language field.
 - One-shot listings permit flexible or one-time schedules, not recurring schedules. Converting an open recurring listing to One-shot is rejected until it is closed or rescheduled.
-- Owner-only Campaign copying carries reusable metadata, approved rules/content, attunement overrides, and Campaign-level notebook preparation into a fresh Campaign. It does not carry members, Sessions, run state, chat, inventory, invitations, applications, or a Social listing.
+- Owner-only Campaign copying carries reusable metadata, attunement overrides, and Campaign-level notebook note sections into a fresh Campaign. Direct content shares and third-party authored authority never transfer. It does not carry members, Characters or assignments, Vehicles or inventory, Sessions, run state, chat, invitations, applications, or a Social listing.
 - Phase 04 permits publishing free listings only. Paid state and price exist only where needed to avoid a destructive Phase 10 migration; paid activation remains server-disabled.
 - Search supports indexed filters and deterministic pagination using PostgreSQL.
 - Applications have explicit lifecycle: submitted, withdrawn, accepted, declined, expired, or blocked.

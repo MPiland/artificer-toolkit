@@ -59,9 +59,7 @@ function createCharacterCreateSession(data: unknown): CharacterBuilderAuthoringS
     baseActiveUpdatedAt: null,
     draft: null,
     fallbackLabel: 'Untitled Character',
-    formKey: payload
-      ? `character:create:${payload.character.id}`
-      : 'character:create:system-required',
+    formKey: payload ? 'character:create:ready' : 'character:create:system-required',
     hasActiveDraft: false,
     hasInvalidDraft: false,
     initialAuthoringState:

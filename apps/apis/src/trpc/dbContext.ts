@@ -66,7 +66,12 @@ function mapErrorToCode(error: Error): TRPCError['code'] {
     return 'FORBIDDEN'
   }
   if (error.name === 'CampaignNotFoundError') return 'NOT_FOUND'
-  if (error.name === 'CampaignConflictError') return 'CONFLICT'
+  if (
+    error.name === 'CampaignConflictError' ||
+    error.name === 'CampaignContentShareRemovalConflictError'
+  ) {
+    return 'CONFLICT'
+  }
   if (error.name === 'LiveSessionCommandAuthorityError') return 'CONFLICT'
   if (error.name === 'CampaignValidationError' || error.name === 'RangeError') {
     return 'BAD_REQUEST'

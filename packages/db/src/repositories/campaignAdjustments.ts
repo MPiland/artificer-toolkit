@@ -228,6 +228,7 @@ export function createCampaignAdjustmentsRepository(db: DBLike) {
           .selectFrom('campaign_events')
           .select(['created_at', 'id'])
           .where('campaign_id', '=', input.campaignId)
+          .where('kind', '!=', 'CAMPAIGN_COPIED')
           .where('id', '=', input.cursorId)
         if (viewer.kind === 'OWNER') {
           cursorQuery = cursorQuery.where('visibility', 'in', ['TABLE', 'OWNER'])
@@ -251,6 +252,7 @@ export function createCampaignAdjustmentsRepository(db: DBLike) {
         .selectFrom('campaign_events')
         .selectAll()
         .where('campaign_id', '=', input.campaignId)
+        .where('kind', '!=', 'CAMPAIGN_COPIED')
       if (viewer.kind === 'OWNER') {
         query = query.where('visibility', 'in', ['TABLE', 'OWNER'])
       } else {

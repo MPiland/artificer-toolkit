@@ -6,6 +6,11 @@ import {
 } from './inventoryCurrency.js'
 import { createInventoryCustodyRepository } from './inventoryCustody.js'
 import { createInventoryOwnerItemRepository } from './inventoryOwnerItems.js'
+export {
+  createCampaignVehicleEvacuationRepository,
+  type CampaignVehicleCurrencyTransfer,
+  type CampaignVehicleEvacuationResult
+} from './campaignVehicleEvacuation.js'
 
 export {
   campaignInventoryEventKinds,

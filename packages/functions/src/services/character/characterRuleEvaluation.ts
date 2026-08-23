@@ -1,4 +1,4 @@
-import { createAuthoredVersionRepository, type DBLike } from '@artificer-toolkit/db'
+import type { DBLike } from '@artificer-toolkit/db'
 import {
   characterRulePolicyOutputSchema,
   type CharacterRulePolicyOutput
@@ -13,7 +13,10 @@ import {
   type CharacterRulePolicyFactsInput
 } from './characterRulePolicyFacts.js'
 import { assembleCharacterRuleSnapshot } from './characterRuleSnapshot.js'
-import { buildCharacterSpellRuleFacts } from './characterSpellRuleFacts.js'
+import {
+  buildCharacterSpellRuleFacts,
+  collectCharacterRuleInputSpellIds
+} from './characterSpellRuleFacts.js'
 import { evaluateRuleRevision } from '../rules/ruleRevisionRuntime.js'
 
 export interface CharacterRuleEvaluationInput extends Omit<
@@ -61,64 +64,67 @@ export interface CharacterRuleEvaluationResult {
   }
 }
 
+function collectCharacterRuleEvaluationSpellIdsFromSnapshot(input: {
+  referenceSpellIds?: readonly string[]
+  registry: ReturnType<typeof assembleCharacterRuleSnapshot>['registry']
+  snapshot: ReturnType<typeof assembleCharacterRuleSnapshot>['snapshot']
+}): ReadonlySet<string> {
+  const spellFacts = buildCharacterSpellRuleFacts(input.snapshot, input.registry)
+  return collectCharacterRuleInputSpellIds({
+    referenceSpellIds: input.referenceSpellIds,
+    spellAccessCandidates: spellFacts.spellAccessCandidates,
+    spellSources: input.snapshot.spellSources
+  })
+}
+
+export function collectCharacterRuleEvaluationSpellIds(
+  input: Pick<CharacterRuleEvaluationInput, 'character' | 'context' | 'referenceSpellIds'>
+): ReadonlySet<string> {
+  const assembled = assembleCharacterRuleSnapshot(input)
+  return collectCharacterRuleEvaluationSpellIdsFromSnapshot({
+    referenceSpellIds: input.referenceSpellIds,
+    registry: assembled.registry,
+    snapshot: assembled.snapshot
+  })
+}
+
 export async function evaluateCharacterRulePolicy(
   input: CharacterRuleEvaluationInput
 ): Promise<CharacterRuleEvaluationResult> {
   const startedAt = performance.now()
-  const bindingStartedAt = performance.now()
-  let bindingMs = 0
-  const bindingPromise = resolveCharacterRuleBinding({
-    db: input.db,
-    systemId: input.character.systemId,
-    existingRevisionId: input.existingRevisionId,
-    expectedRevisionId: input.expectedRevisionId
-  }).finally(() => {
-    bindingMs = performance.now() - bindingStartedAt
-  })
   const factDiscoveryStartedAt = performance.now()
   const assembled = assembleCharacterRuleSnapshot(input)
   const spellFacts = buildCharacterSpellRuleFacts(assembled.snapshot, assembled.registry)
   const spellIds = [
-    ...new Set([
-      ...(assembled.snapshot.spellSources ?? []).map((source) => source.spellId),
-      ...spellFacts.spellAccessCandidates.map((candidate) => candidate.spellId),
-      ...(input.referenceSpellIds ?? [])
-    ])
+    ...collectCharacterRuleEvaluationSpellIdsFromSnapshot({
+      referenceSpellIds: input.referenceSpellIds,
+      registry: assembled.registry,
+      snapshot: assembled.snapshot
+    })
   ]
   const factDiscoveryMs = performance.now() - factDiscoveryStartedAt
   const spellHydrationStartedAt = performance.now()
-  let spellHydrationMs = 0
-  const spellsPromise: Promise<ReadonlyMap<string, SpellAuthored>> = (
-    input.pinnedSpellsById
-      ? Promise.resolve(input.pinnedSpellsById)
-      : createAuthoredVersionRepository(input.db)
-          .findActiveByIds({
-            subjectKind: 'SPELL',
-            subjectIds: spellIds,
-            systemId: input.character.systemId,
-            userId: input.character.userId,
-            includeMaster: true
-          })
-          .then((recordsById) =>
-            new Map(
-              [...recordsById].map(([spellId, record]) => [
-                spellId,
-                spellAuthoredDtoSchema.parse(record.authored.document) as unknown as SpellAuthored
-              ])
-            )
-          )
-  )
-    .finally(() => {
-      spellHydrationMs = performance.now() - spellHydrationStartedAt
-    })
-  const [binding, spellsById] = await Promise.all([bindingPromise, spellsPromise])
-  const spellsWithEffects = spellIds.flatMap((spellId) => {
-    const spell = spellsById.get(spellId)
-    if (!spell || spell.systemId !== input.character.systemId) {
+  const spellsById = input.pinnedSpellsById ?? input.context.spellDocumentsById
+  const spellsWithEffects = spellIds.map((spellId) => {
+    const result = spellAuthoredDtoSchema.safeParse(spellsById?.get(spellId))
+    if (
+      !result.success ||
+      result.data.id !== spellId ||
+      result.data.systemId !== input.character.systemId
+    ) {
       throw new Error(`Character rule evaluation could not hydrate spell "${spellId}".`)
     }
-    return [spell]
+    return result.data as unknown as SpellAuthored
   })
+  const spellHydrationMs = performance.now() - spellHydrationStartedAt
+  const bindingStartedAt = performance.now()
+  const binding = await resolveCharacterRuleBinding({
+    db: input.db,
+    systemId: input.character.systemId,
+    existingRevisionId: input.existingRevisionId,
+    expectedRevisionId: input.expectedRevisionId
+  })
+  const bindingMs = performance.now() - bindingStartedAt
   const factAssemblyStartedAt = performance.now()
   const factsResult = composeCharacterRulePolicyFacts(
     {

@@ -106,7 +106,9 @@ function exactSpellCharge(
   return charge
 }
 
-function activeItems(evaluation: Evaluation): CharacterSheetRuleProjection['activeItemContributions'] {
+function activeItems(
+  evaluation: Evaluation
+): CharacterSheetRuleProjection['activeItemContributions'] {
   const active = new Set(evaluation.output.grantFold.activeEquipmentInstanceIds)
   return evaluation.snapshot.equipmentItems.flatMap((item) => {
     if (!active.has(item.instanceId)) return []
@@ -198,7 +200,12 @@ export function projectCharacterRulePolicyToSheetProjection(
       const definition = owner.record?.resources
       if (!definition) return []
       const candidates = evaluation.facts.resourcePoolCandidates.filter(
-        (candidate) =>
+        (
+          candidate
+        ): candidate is Extract<
+          Evaluation['facts']['resourcePoolCandidates'][number],
+          { ownerKind: 'AUTHORED_GRANT' }
+        > =>
           candidate.ownerKind === 'AUTHORED_GRANT' &&
           candidate.resourceDefinitionId === definition.id
       )
@@ -206,6 +213,7 @@ export function projectCharacterRulePolicyToSheetProjection(
         throw new Error(
           `Character rule policy class resource ownership is ${candidates.length === 0 ? 'missing' : 'ambiguous'}: ${owner.id}`
         )
+      if (candidates[0]!.activeSourceLevel < candidates[0]!.availableAtLevel) return []
       const resolved = output.resources.filter(
         (resource) => resource.poolId === candidates[0]!.poolId
       )

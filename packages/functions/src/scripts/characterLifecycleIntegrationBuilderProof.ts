@@ -22,6 +22,7 @@ import {
 } from './characterLifecycleIntegrationAssertions.js'
 import {
   allSpellChoices,
+  applySpecializationChoices,
   applyStructuralChoices,
   assertCharacterProgression,
   assertResolvedClassLevels,
@@ -106,21 +107,38 @@ export async function proveFixtureLifecycle(
     )
   }
   let resolvedPayload = structuralPayload
-  for (let pass = 0; pass < 4 && !resolvedPayload.resolution.readiness.ready; pass += 1) {
-    const completedCharacter = completeBuilderChoices(resolvedPayload.character, resolvedPayload)
+  if (fixture.classes.some(({ specializationLabel }) => specializationLabel)) {
+    const specializationCharacter = applySpecializationChoices(
+      structuralPayload.character,
+      structuralPayload,
+      fixture
+    )
     resolvedPayload = await measureBuilderResolution(
       resolutionTimings,
       fixture,
-      'completed',
+      'specialization',
       () =>
         resolveCharacterForUser(
           db,
           {
-            character: completedCharacter,
+            character: specializationCharacter,
             mode: 'create'
           },
           fixture.userId
         )
+    )
+  }
+  for (let pass = 0; pass < 4 && !resolvedPayload.resolution.readiness.ready; pass += 1) {
+    const completedCharacter = completeBuilderChoices(resolvedPayload.character, resolvedPayload)
+    resolvedPayload = await measureBuilderResolution(resolutionTimings, fixture, 'completed', () =>
+      resolveCharacterForUser(
+        db,
+        {
+          character: completedCharacter,
+          mode: 'create'
+        },
+        fixture.userId
+      )
     )
   }
   assert.deepEqual(resolvedPayload.resolution.validations, [])

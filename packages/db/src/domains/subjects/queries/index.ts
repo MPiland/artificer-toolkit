@@ -1,6 +1,7 @@
 export * from './getBackgroundListQuery.js'
 export * from './getCharacterAssemblyStructureQuery.js'
 export * from './getCharacterSheetExtraOptionsQuery.js'
+export * from './getCharacterPreparationOptionsQuery.js'
 export * from './getClassListQuery.js'
 export * from './getCreatureListQuery.js'
 export * from './getEquipmentListQuery.js'

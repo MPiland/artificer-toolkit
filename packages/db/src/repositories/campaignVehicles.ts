@@ -3,7 +3,7 @@ import type { DBLike } from '#types'
 export interface CampaignVehicleRecord {
   id: string
   campaignId: string
-  contentVersionId: string
+  vehicleDefinitionId: string
   label: string | null
   version: number
   createdAt: string
@@ -13,7 +13,7 @@ function toRecord(row: Record<string, unknown>): CampaignVehicleRecord {
   return {
     id: String(row.id),
     campaignId: String(row.campaign_id),
-    contentVersionId: String(row.content_version_id),
+    vehicleDefinitionId: String(row.vehicle_definition_id),
     label: row.label as string | null,
     version: Number(row.version),
     createdAt: new Date(row.created_at as string | Date).toISOString(),
@@ -42,13 +42,27 @@ export function createCampaignVehicleRepository(db: DBLike) {
         .executeTakeFirst()
       return row ? toRecord(row) : null
     },
-    async insert(input: { campaignId: string; contentVersionId: string; label: string | null }) {
+    async listByDefinitionsForUpdate(campaignId: string, vehicleDefinitionIds: readonly string[]) {
+      const ids = [...new Set(vehicleDefinitionIds)].sort()
+      if (ids.length === 0) return []
+      return (
+        await db
+          .selectFrom('campaign_vehicles')
+          .selectAll()
+          .where('campaign_id', '=', campaignId)
+          .where('vehicle_definition_id', 'in', ids)
+          .orderBy('id', 'asc')
+          .forUpdate()
+          .execute()
+      ).map(toRecord)
+    },
+    async insert(input: { campaignId: string; vehicleDefinitionId: string; label: string | null }) {
       return toRecord(
         await db
           .insertInto('campaign_vehicles')
           .values({
             campaign_id: input.campaignId,
-            content_version_id: input.contentVersionId,
+            vehicle_definition_id: input.vehicleDefinitionId,
             label: input.label
           })
           .returningAll()

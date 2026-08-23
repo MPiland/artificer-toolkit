@@ -13,7 +13,6 @@ import {
 const campaignNameSchema = z.string().trim().min(1).max(100)
 const campaignDescriptionSchema = authoredRichTextSchema
 const campaignToneDetailsSchema = z.string().trim().min(1).max(1_000)
-const projectionChecksumSchema = z.string().regex(/^[a-f0-9]{64}$/)
 
 export const entitlementTierDtoSchema = z.enum(['FREE', 'PLAYER', 'GM', 'PRO_GM'])
 export const entitlementLimitDtoSchema = z.strictObject({
@@ -74,8 +73,8 @@ export const campaignCapabilitiesDtoSchema = z.strictObject({
   manageMembers: z.boolean(),
   manageCharacters: z.boolean(),
   assignOwnCharacter: z.boolean(),
-  manageContent: z.boolean(),
-  submitContent: z.boolean(),
+  manageSharedContent: z.boolean(),
+  shareOwnedContent: z.boolean(),
   managePartyInventory: z.boolean(),
   transferOwnInventory: z.boolean(),
   manageNotes: z.boolean(),
@@ -152,12 +151,20 @@ export const archiveCampaignInputSchema = campaignVersionInputSchema
 export const deleteCampaignInputSchema = campaignVersionInputSchema.extend({
   confirmation: z.literal('DELETE')
 })
-export const copyCampaignInputSchema = campaignVersionInputSchema
+export const copyCampaignInputSchema = campaignVersionInputSchema.extend({ commandId: uuidSchema })
 export const campaignIdInputSchema = z.strictObject({ campaignId: uuidSchema })
-export const leaveCampaignInputSchema = campaignIdInputSchema
+export const leaveCampaignInputSchema = z.strictObject({
+  campaignId: uuidSchema,
+  expectedCampaignVersion: versionSchema,
+  expectedMembershipAccessStartedAt: timestampSchema,
+  commandId: uuidSchema
+})
 export const removeCampaignMemberInputSchema = z.strictObject({
   campaignId: uuidSchema,
-  userId: uuidSchema
+  userId: uuidSchema,
+  expectedCampaignVersion: versionSchema,
+  expectedMembershipAccessStartedAt: timestampSchema,
+  commandId: uuidSchema
 })
 export const assignCampaignCharacterInputSchema = z.strictObject({
   campaignId: uuidSchema,
@@ -210,38 +217,53 @@ export const requestCampaignOwnershipTransferInputSchema = z.strictObject({
 })
 export const acceptCampaignOwnershipTransferInputSchema = z.strictObject({ campaignId: uuidSchema })
 
-export const campaignContentBindingDtoSchema = z.strictObject({
-  id: uuidSchema,
+export const campaignContentShareDtoSchema = z.strictObject({
   subjectKind: authoredSubjectKindDtoSchema,
   subjectId: uuidSchema,
-  version: versionSchema,
-  authoredVersionId: uuidSchema,
-  authoredVersion: versionSchema,
-  authoredChecksum: projectionChecksumSchema,
-  compiledProjectionChecksum: projectionChecksumSchema,
   document: jsonSchema,
-  status: z.enum(['PENDING', 'APPROVED', 'REJECTED']),
+  sharedBy: uuidSchema,
   createdAt: timestampSchema,
-  reviewedAt: timestampSchema.nullable()
+  updatedAt: timestampSchema
 })
-export const campaignContentBindingsDtoSchema = z.array(campaignContentBindingDtoSchema)
-export const campaignCharacterBindingSummaryDtoSchema = z.strictObject({
-  characterId: uuidSchema,
+export const campaignContentSharesDtoSchema = z.array(campaignContentShareDtoSchema)
+export const shareCampaignContentInputSchema = z.strictObject({
+  campaignId: uuidSchema,
   subjectKind: authoredSubjectKindDtoSchema,
-  subjectId: uuidSchema,
-  campaignContentBindingId: uuidSchema,
-  version: versionSchema
+  subjectId: uuidSchema
 })
-export const submitCampaignContentVersionInputSchema = z.strictObject({
+export const unshareCampaignContentInputSchema = z.strictObject({
   campaignId: uuidSchema,
   subjectKind: authoredSubjectKindDtoSchema,
   subjectId: uuidSchema,
-  expectedRevision: versionSchema
+  sharedBy: uuidSchema,
+  expectedCampaignVersion: versionSchema,
+  commandId: uuidSchema
 })
-export const reviewCampaignContentVersionInputSchema = z.strictObject({
-  campaignId: uuidSchema,
-  contentVersionId: uuidSchema,
-  decision: z.enum(['APPROVE', 'REJECT'])
+export const campaignContentRemovalReceiptDtoSchema = z.strictObject({
+  eventId: uuidSchema,
+  campaignVersion: versionSchema,
+  removedShares: z.array(
+    z.strictObject({
+      subjectKind: authoredSubjectKindDtoSchema,
+      subjectId: uuidSchema,
+      sharedBy: uuidSchema
+    })
+  ),
+  affectedCharacters: z.array(
+    z.strictObject({
+      characterId: uuidSchema,
+      status: z.enum(['ACTIVE', 'DRAFT']),
+      streamVersion: versionSchema
+    })
+  ),
+  evacuatedVehicles: z.array(
+    z.strictObject({
+      vehicleId: uuidSchema,
+      vehicleDefinitionId: uuidSchema,
+      transferredTopLevelItemIds: z.array(uuidSchema),
+      transferredCurrencyGroupIds: z.array(uuidSchema)
+    })
+  )
 })
 
 export type EntitlementTierDto = z.infer<typeof entitlementTierDtoSchema>
@@ -260,14 +282,10 @@ export type CampaignPublicIdInput = z.input<typeof campaignPublicIdInputSchema>
 export type UpdateCampaignInput = z.input<typeof updateCampaignInputSchema>
 export type CampaignInviteDto = z.infer<typeof campaignInviteDtoSchema>
 export type CreateCampaignInviteInput = z.input<typeof createCampaignInviteInputSchema>
-export type CampaignContentBindingDto = z.infer<typeof campaignContentBindingDtoSchema>
-export type CampaignContentBindingsDto = z.infer<typeof campaignContentBindingsDtoSchema>
-export type CampaignCharacterBindingSummaryDto = z.infer<
-  typeof campaignCharacterBindingSummaryDtoSchema
->
-export type SubmitCampaignContentVersionInput = z.input<
-  typeof submitCampaignContentVersionInputSchema
->
-export type ReviewCampaignContentVersionInput = z.input<
-  typeof reviewCampaignContentVersionInputSchema
+export type CampaignContentShareDto = z.infer<typeof campaignContentShareDtoSchema>
+export type CampaignContentSharesDto = z.infer<typeof campaignContentSharesDtoSchema>
+export type ShareCampaignContentInput = z.input<typeof shareCampaignContentInputSchema>
+export type UnshareCampaignContentInput = z.input<typeof unshareCampaignContentInputSchema>
+export type CampaignContentRemovalReceiptDto = z.infer<
+  typeof campaignContentRemovalReceiptDtoSchema
 >

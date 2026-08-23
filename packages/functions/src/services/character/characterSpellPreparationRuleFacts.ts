@@ -104,7 +104,9 @@ export function buildCharacterSpellPreparationRuleFacts(
         classLevel: classIntent.classLevel,
         sources: getSpellSourceIds(classIntent, registry).flatMap((sourceId) => {
           const spellcasting = classById.get(sourceId)?.spellcasting
-          if (!spellcasting) return []
+          if (!spellcasting || classIntent.classLevel < (spellcasting.availableAtLevel ?? 1)) {
+            return []
+          }
           return [
             {
               sourceKind:

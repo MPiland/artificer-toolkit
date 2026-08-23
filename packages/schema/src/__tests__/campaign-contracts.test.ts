@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   acceptCampaignOwnershipTransferInputSchema,
   advanceCampaignClockInputSchema,
-  campaignContentBindingsDtoSchema,
+  campaignContentSharesDtoSchema,
   campaignCharacterSummaryDtoSchema,
   campaignConversationDtoSchema,
   campaignRealtimeEnvelopeDtoSchema,
@@ -17,11 +17,12 @@ import {
   getCampaignInventoryInputSchema,
   inventoryCurrencyDtoSchema,
   inventoryItemDtoSchema,
-  reviewCampaignContentVersionInputSchema,
+  shareCampaignContentInputSchema,
   sendCampaignChatEntryInputSchema,
   transferCampaignInventoryInputSchema,
   createCampaignNotebookSectionInputSchema,
   configureCampaignClockInputSchema,
+  copyCampaignInputSchema,
   updateCampaignNotebookSectionInputSchema,
   updateCampaignInputSchema
 } from '../api/campaigns.js'
@@ -30,6 +31,16 @@ const id = 'f3e3a390-5b22-4a1f-8a0b-bf7f184bd7c9'
 
 describe('campaign contracts', () => {
   const seededId = '00000000-0000-0000-0080-000100000000'
+
+  it('requires a copy command ID for exact retry semantics', () => {
+    expect(
+      copyCampaignInputSchema.safeParse({ campaignId: id, commandId: id, expectedVersion: 1 })
+        .success
+    ).toBe(true)
+    expect(copyCampaignInputSchema.safeParse({ campaignId: id, expectedVersion: 1 }).success).toBe(
+      false
+    )
+  })
 
   it('rejects clock values that cannot be represented safely', () => {
     const command = {
@@ -301,12 +312,12 @@ describe('campaign contracts', () => {
       toneTags: ['HEROIC'],
       contentMaturity: 'STANDARD'
     } as const
-    expect(createCampaignInputSchema.safeParse({ name: 'x'.repeat(100), ...metadata }).success).toBe(
-      true
-    )
-    expect(createCampaignInputSchema.safeParse({ name: 'x'.repeat(101), ...metadata }).success).toBe(
-      false
-    )
+    expect(
+      createCampaignInputSchema.safeParse({ name: 'x'.repeat(100), ...metadata }).success
+    ).toBe(true)
+    expect(
+      createCampaignInputSchema.safeParse({ name: 'x'.repeat(101), ...metadata }).success
+    ).toBe(false)
     expect(
       createCampaignInputSchema.safeParse({
         name: 'Game',
@@ -325,10 +336,10 @@ describe('campaign contracts', () => {
       true
     )
     expect(
-      reviewCampaignContentVersionInputSchema.safeParse({
+      shareCampaignContentInputSchema.safeParse({
         campaignId: id,
-        contentVersionId: id,
-        decision: 'APPROVE'
+        subjectKind: 'SPELL',
+        subjectId: id
       }).success
     ).toBe(true)
     expect(
@@ -441,6 +452,6 @@ describe('campaign contracts', () => {
         expectedVersion: 0
       }).success
     ).toBe(true)
-    expect(campaignContentBindingsDtoSchema.safeParse([]).success).toBe(true)
+    expect(campaignContentSharesDtoSchema.safeParse([]).success).toBe(true)
   })
 })

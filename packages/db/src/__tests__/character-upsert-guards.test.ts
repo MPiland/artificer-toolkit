@@ -400,6 +400,29 @@ describe('upsertCharacter guards', () => {
     expect(afterPersist).not.toHaveBeenCalled()
   })
 
+  it('validates newly admitted sources after the Character lock and before state writes', async () => {
+    const db = new InMemoryDb()
+    const character = buildCharacter()
+    await upsertCharacter(db as never, character)
+    const repository = createCharacterRepository(db as unknown as DBLike)
+    const calls: string[] = []
+
+    await repository.patchSheetState(character.id, [], {
+      expectedStreamVersion: 0,
+      beforeCharacterLock: async () => {
+        calls.push('campaign-access')
+      },
+      afterCharacterLock: async () => {
+        calls.push('current-source')
+      },
+      afterPersist: async () => {
+        calls.push('projection')
+      }
+    })
+
+    expect(calls).toEqual(['campaign-access', 'current-source', 'projection'])
+  })
+
   it('throws for unsupported ancestry source discriminator from persisted character rows', async () => {
     const db = new InMemoryDb()
     const character = buildCharacter()

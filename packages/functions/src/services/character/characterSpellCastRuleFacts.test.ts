@@ -141,4 +141,49 @@ describe('buildCharacterSpellCastRuleFacts', () => {
     expect(facts.spellCastSlots).toEqual([])
     expect(facts.spellCastResources).toEqual([])
   })
+
+  it('omits unselected CHOSEN options while retaining selected and fixed candidates', () => {
+    const selected = {
+      ...accessCandidate,
+      accessId: 'selected-access',
+      spellId: 'selected-spell',
+      selectionKind: 'CHOSEN' as const,
+      selectedByCharacter: true,
+      attributes: ['CAST_AT_WILL' as const]
+    }
+    const unselected = {
+      ...selected,
+      accessId: 'unselected-access',
+      spellId: 'unselected-spell',
+      selectedByCharacter: false
+    }
+    const fixed = {
+      ...selected,
+      accessId: 'fixed-access',
+      spellId: 'fixed-spell',
+      selectionKind: 'GRANTED' as const,
+      selectedByCharacter: false
+    }
+    const spellCatalog = [selected, unselected, fixed].map(({ spellId }) => ({
+      id: spellId,
+      label: spellId,
+      description: '',
+      level: 0,
+      classIds: [],
+      magicSchoolId: 'school-1',
+      castingTime: { unit: 'ROUND' as const, amount: 1 }
+    }))
+
+    const facts = buildCharacterSpellCastRuleFacts({
+      snapshot: { ...snapshot, spellSources: [] },
+      spellCatalog,
+      spellAccessCandidates: [unselected, selected, fixed],
+      resourcePoolCandidates: []
+    })
+
+    expect(facts.spellCastCandidates.map(({ spellId }) => spellId)).toEqual([
+      selected.spellId,
+      fixed.spellId
+    ])
+  })
 })

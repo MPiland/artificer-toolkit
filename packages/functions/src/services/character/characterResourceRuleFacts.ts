@@ -19,6 +19,7 @@ import type {
 } from '@artificer-toolkit/shared/subjects/authored'
 
 import { buildCharacterChargeRuleFact } from './characterChargeRuleFacts.js'
+import { isCharacterSpellActionAccessCandidate } from './characterSpellRuleFacts.js'
 
 type ResourceFacts = {
   resourcePoolCandidates: NonNullable<CharacterRulePolicyInput['resourcePoolCandidates']>
@@ -310,6 +311,7 @@ export function buildCharacterResourceRuleFacts(params: {
 
   const spellPoolIds = new Set<string>()
   for (const candidate of spellAccessCandidates) {
+    if (!isCharacterSpellActionAccessCandidate(candidate)) continue
     const charge = findSpellCharge(candidate, registry)
     if (!charge) continue
     const poolId = createCharacterResourceOwnerKey({

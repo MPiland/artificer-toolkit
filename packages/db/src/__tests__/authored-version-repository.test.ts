@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import type { AuthoredVersionRecord } from '../domains/subjects/repositories/authoredVersion.js'
@@ -8,9 +11,20 @@ import {
 import { checksumCanonicalJson } from '../utils/canonicalJson.js'
 import { checksumCompiledAuthoredProjection } from '../utils/versionedProjectionChecksum.js'
 
-function createEquipmentVariantRecord(
-  includeParentDependency = true
-): AuthoredVersionRecord {
+const source = readFileSync(
+  join(process.cwd(), 'packages/db/src/domains/subjects/repositories/authoredVersion.ts'),
+  'utf8'
+)
+
+function sourceBetween(start: string, end: string): string {
+  const startIndex = source.indexOf(start)
+  const endIndex = source.indexOf(end, startIndex)
+  expect(startIndex).toBeGreaterThanOrEqual(0)
+  expect(endIndex).toBeGreaterThan(startIndex)
+  return source.slice(startIndex, endIndex)
+}
+
+function createEquipmentVariantRecord(includeParentDependency = true): AuthoredVersionRecord {
   const document = {
     kind: 'EQUIPMENT' as const,
     id: 'equipment-variant-1',
@@ -66,6 +80,32 @@ function createEquipmentVariantRecord(
 }
 
 describe('authored version repository integrity', () => {
+  it('locks the exact immutable vocabulary snapshot for shared validation', () => {
+    const vocabularySnapshotLock = sourceBetween(
+      'async function lockVocabularySnapshot(',
+      'export interface AuthoredVersionRepository'
+    )
+
+    expect(vocabularySnapshotLock).toContain('where id = ${snapshotId}')
+    expect(vocabularySnapshotLock).toContain('for share')
+    expect(vocabularySnapshotLock).not.toContain('for update')
+  })
+
+  it('loads exact current authored versions in deterministic shared-lock order', () => {
+    const currentVersionRead = sourceBetween(
+      'async findCurrentVersions(input)',
+      'async listVersions(input)'
+    )
+
+    expect(currentVersionRead).toContain("root.status = 'ACTIVE'")
+    expect(currentVersionRead).toContain('version.id = root.active_version_id')
+    expect(currentVersionRead).toContain('order by root.id, version.id')
+    expect(currentVersionRead).toContain('for share')
+    expect(currentVersionRead).not.toContain('for update')
+    expect(currentVersionRead).toContain('sortedGroups')
+    expect(currentVersionRead).toContain('subjectEntries = [...unsortedEntries].sort')
+  })
+
   it('accepts an equipment variant that pins its exact parent version', () => {
     expect(() => assertAuthoredVersionRecordIntegrity(createEquipmentVariantRecord())).not.toThrow()
   })

@@ -75,7 +75,7 @@ export const liveSessionCommandDtoSchema = z.discriminatedUnion('aggregateKind',
 ])
 
 export const liveSessionAggregateVersionDtoSchema = z.strictObject({
-  aggregateKind: z.enum(['CHARACTER', 'ENCOUNTER', 'SCENE']),
+  aggregateKind: z.enum(['CAMPAIGN', 'CHARACTER', 'ENCOUNTER', 'SCENE']),
   aggregateId: uuidSchema,
   version: versionSchema
 })
@@ -255,6 +255,7 @@ export const liveSessionExecutorResponseDtoSchema = z.discriminatedUnion('operat
     snapshot: liveSessionCoordinatorSnapshotDtoSchema
   }),
   z.strictObject({
+    aggregateVersions: z.array(liveSessionAggregateVersionDtoSchema).max(10_000),
     memberships: z.array(liveSessionActiveMembershipDtoSchema).max(10_000),
     ok: z.literal(true),
     operation: z.literal('RENEW')

@@ -2,7 +2,7 @@ import type { CampaignDetailDto } from '#app/lib/api'
 import { getCampaignTabs } from './campaignAccess'
 
 describe('Campaign access presentation', () => {
-  it('keeps PARTY chat and owner workspaces out of a player without those capabilities', () => {
+  it('keeps owner workspaces out while exposing the player content-sharing surface', () => {
     const campaign = createCampaign()
 
     expect(getCampaignTabs(campaign)).toEqual([
@@ -12,7 +12,8 @@ describe('Campaign access presentation', () => {
       'notes',
       'files',
       'inventory',
-      'table'
+      'table',
+      'content'
     ])
   })
 
@@ -21,10 +22,10 @@ describe('Campaign access presentation', () => {
       role: 'OWNER',
       capabilities: {
         ...createCampaign().capabilities,
-        manageContent: true,
+        manageSharedContent: true,
         managePartyInventory: true,
         readPartyChat: false,
-        submitContent: false,
+        shareOwnedContent: false,
         transferOwnInventory: false
       }
     })
@@ -72,8 +73,8 @@ function createCampaign(overrides: Partial<CampaignDetailDto> = {}): CampaignDet
       manageMembers: false,
       manageCharacters: false,
       assignOwnCharacter: true,
-      manageContent: false,
-      submitContent: false,
+      manageSharedContent: false,
+      shareOwnedContent: true,
       managePartyInventory: false,
       transferOwnInventory: true,
       manageNotes: false,

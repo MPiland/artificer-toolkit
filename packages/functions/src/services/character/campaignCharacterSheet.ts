@@ -1,7 +1,7 @@
 import {
   createCampaignAdjustmentsRepository,
   checksumCanonicalJson,
-  createCampaignContentRepository,
+  createCampaignRepository,
   type CampaignAdjustment,
   type DBLike
 } from '@artificer-toolkit/db'
@@ -98,7 +98,7 @@ export async function resolveCharacterLiveSessionRuleContext(
   characterId: string,
   campaign: { id: string; attunementSlotOverride: number | null }
 ): Promise<CharacterLiveSessionRuleContext | null> {
-  const assignment = await createCampaignContentRepository(db).findAssignedCampaign(characterId)
+  const assignment = await createCampaignRepository(db).findCampaignByCharacter(characterId)
   if (assignment?.campaignId !== campaign.id) return null
 
   const records = await createCampaignAdjustmentsRepository(db).listAdjustments(
@@ -123,7 +123,7 @@ export async function resolveCharacterSheetCampaignContext(
   character: Pick<CharacterAuthored, 'id' | 'userId'>,
   userId: string
 ): Promise<CharacterSheetCampaignContext> {
-  const assignment = await createCampaignContentRepository(db).findAssignedCampaign(character.id)
+  const assignment = await createCampaignRepository(db).findCampaignByCharacter(character.id)
   if (!assignment) {
     if (character.userId !== userId) throw accessError(character.id)
     return {

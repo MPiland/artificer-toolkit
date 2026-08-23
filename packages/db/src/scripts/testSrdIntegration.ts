@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
+import { randomUUID } from 'node:crypto'
 
+import { createClient } from '@supabase/supabase-js'
 import { sql, type Transaction } from 'kysely'
 import type { ZodType } from 'zod'
 
@@ -25,6 +27,7 @@ import { SRD_SYSTEM_ID, srdBaselineContent } from '../source-data/srd/index.js'
 import type { Database, Json } from '../types/index.js'
 type Db = ReturnType<typeof createDb>
 type SrdTransaction = Transaction<Database>
+type SrdDatabase = Db | SrdTransaction
 type SrdClassRecord = BaselineContentBundle['subjects']['classes'][number]
 type SrdBaseClassRecord = Extract<SrdClassRecord, { category: 'BASE' }>
 
@@ -231,7 +234,7 @@ function assertNoSharedMutableReferences(source: unknown, clone: unknown, path =
   }
 }
 
-async function findSeedOwnerUserId(db: SrdTransaction): Promise<string> {
+async function readSeedOwnerUserId(db: SrdDatabase): Promise<string | undefined> {
   const configuredUserId = process.env.SEED_OWNER_USER_ID
   const result = configuredUserId
     ? await sql<{ id: string }>`
@@ -246,7 +249,12 @@ async function findSeedOwnerUserId(db: SrdTransaction): Promise<string> {
         order by created_at, id
         limit 1
       `.execute(db)
-  const userId = result.rows[0]?.id
+  return result.rows[0]?.id
+}
+
+async function findSeedOwnerUserId(db: SrdDatabase): Promise<string> {
+  const configuredUserId = process.env.SEED_OWNER_USER_ID
+  const userId = await readSeedOwnerUserId(db)
 
   if (!userId) {
     throw new Error(
@@ -257,6 +265,68 @@ async function findSeedOwnerUserId(db: SrdTransaction): Promise<string> {
   }
 
   return userId
+}
+
+interface DisposableAuthOwner {
+  admin: ReturnType<typeof createClient>['auth']['admin']
+  userId: string
+}
+
+function requireLocalSupabaseAdmin() {
+  const rawUrl = process.env.SUPABASE_URL
+  const secretKey = process.env.SUPABASE_SECRET_KEY
+  if (!rawUrl || !secretKey) {
+    throw new Error(
+      'SUPABASE_URL and SUPABASE_SECRET_KEY are required for the SRD integration gate.'
+    )
+  }
+  const url = new URL(rawUrl)
+  if (!LOCAL_DATABASE_HOSTS.has(url.hostname.toLowerCase())) {
+    throw new Error('The SRD integration Auth fixture must target loopback Supabase.')
+  }
+  return createClient(rawUrl, secretKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  }).auth.admin
+}
+
+async function createDisposableAuthOwner(db: Db): Promise<DisposableAuthOwner | undefined> {
+  if (await readSeedOwnerUserId(db)) return undefined
+  if (process.env.SEED_OWNER_USER_ID) {
+    throw new Error(`SEED_OWNER_USER_ID "${process.env.SEED_OWNER_USER_ID}" does not exist.`)
+  }
+  const admin = requireLocalSupabaseAdmin()
+  const runId = randomUUID().replaceAll('-', '')
+  const { data, error } = await admin.createUser({
+    email: `srd-integration-${runId.slice(0, 20)}@example.test`,
+    email_confirm: true,
+    password: `Local-${randomUUID()}-Aa1!`,
+    user_metadata: { username: `srdi${runId.slice(0, 20)}` }
+  })
+  if (error) throw error
+  if (!data.user) throw new Error('Supabase did not create the disposable SRD integration user.')
+  return { admin, userId: data.user.id }
+}
+
+function isRetryableAdmin500(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'status' in error && error.status === 500
+}
+
+async function deleteDisposableAuthOwner(db: Db, owner: DisposableAuthOwner): Promise<boolean> {
+  const first = await owner.admin.deleteUser(owner.userId)
+  let retried = false
+  if (first.error) {
+    if (!isRetryableAdmin500(first.error)) throw first.error
+    retried = true
+    const second = await owner.admin.deleteUser(owner.userId)
+    if (second.error) throw second.error
+  }
+  const residual = await sql<{ auth_users: number; profiles: number }>`
+    select
+      (select count(*)::int from auth.users where id = ${owner.userId}::uuid) as auth_users,
+      (select count(*)::int from profiles where id = ${owner.userId}::uuid) as profiles
+  `.execute(db)
+  assert.deepStrictEqual(residual.rows[0], { auth_users: 0, profiles: 0 })
+  return retried
 }
 
 function allRootRecords(bundle: BaselineContentBundle): RootRecord[] {
@@ -399,12 +469,7 @@ async function assertPublishedCorpus(
 ): Promise<void> {
   await Promise.all(
     allRootCloneCases(bundle).map((domainCase) =>
-      assertPublishedRecords(
-        db,
-        domainCase.records,
-        domainCase.subjectKind,
-        domainCase.domain
-      )
+      assertPublishedRecords(db, domainCase.records, domainCase.subjectKind, domainCase.domain)
     )
   )
 }
@@ -690,12 +755,7 @@ async function runRollbackAudit(db: Db): Promise<{ clones: number; roots: number
         canonicalize(cloneDraftSnapshot.payload),
         'Updating the source changed the clone draft payload.'
       )
-      await assertPublishedRecords(
-        transaction,
-        [deltaClass],
-        'CLASS',
-        'Class eligibility delta'
-      )
+      await assertPublishedRecords(transaction, [deltaClass], 'CLASS', 'Class eligibility delta')
 
       completed = {
         clones: cloneAudit.count,
@@ -714,10 +774,16 @@ async function runRollbackAudit(db: Db): Promise<{ clones: number; roots: number
 async function main() {
   const connectionString = requireLocalDatabaseUrl()
   const db = createDb({ connectionString })
+  const previousSeedOwnerUserId = process.env.SEED_OWNER_USER_ID
+  let disposableOwner: DisposableAuthOwner | undefined
+  let result: Awaited<ReturnType<typeof runRollbackAudit>> | undefined
+  let cleanupRetried = false
 
   try {
+    disposableOwner = await createDisposableAuthOwner(db)
+    if (disposableOwner) process.env.SEED_OWNER_USER_ID = disposableOwner.userId
     const before = await readDatabaseFingerprint(db)
-    const result = await runRollbackAudit(db)
+    result = await runRollbackAudit(db)
     const after = await readDatabaseFingerprint(db)
 
     assert.deepStrictEqual(
@@ -725,22 +791,32 @@ async function main() {
       before,
       'The SRD integration gate leaked changes outside its transaction.'
     )
-    console.info(
-      JSON.stringify(
-        {
-          ...result,
-          cloneIsolation: 'verified',
-          convergence: 'verified',
-          delta: 'verified',
-          rollback: 'verified'
-        },
-        null,
-        2
-      )
-    )
   } finally {
-    await db.destroy()
+    try {
+      if (disposableOwner) cleanupRetried = await deleteDisposableAuthOwner(db, disposableOwner)
+    } finally {
+      if (previousSeedOwnerUserId === undefined) delete process.env.SEED_OWNER_USER_ID
+      else process.env.SEED_OWNER_USER_ID = previousSeedOwnerUserId
+      await db.destroy()
+    }
   }
+  assert.ok(result, 'The SRD integration gate did not produce a result.')
+  console.info(
+    JSON.stringify(
+      {
+        ...result,
+        authFixture: disposableOwner
+          ? { cleanup: 'verified', created: true, retryUsed: cleanupRetried }
+          : { created: false },
+        cloneIsolation: 'verified',
+        convergence: 'verified',
+        delta: 'verified',
+        rollback: 'verified'
+      },
+      null,
+      2
+    )
+  )
 }
 
 main().catch((error: unknown) => {

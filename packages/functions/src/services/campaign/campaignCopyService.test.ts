@@ -4,7 +4,8 @@ import type { DBLike } from '@artificer-toolkit/db'
 const ids = {
   source: '00000000-0000-4000-8000-000000000001',
   copy: '00000000-0000-4000-8000-000000000002',
-  owner: '00000000-0000-4000-8000-000000000003'
+  owner: '00000000-0000-4000-8000-000000000003',
+  command: '00000000-0000-4000-8000-000000000004'
 }
 
 const source = {
@@ -31,7 +32,8 @@ const mocks = vi.hoisted(() => ({
     insertOwnerMembership: vi.fn()
   },
   collaboration: { copyCampaignNoteSections: vi.fn() },
-  content: { copyApprovedContentVersions: vi.fn() },
+  events: { insertCampaignEvent: vi.fn() },
+  receipts: { findCampaignEventByIdempotency: vi.fn() },
   lockTier: vi.fn(),
   resolveAuthority: vi.fn(),
   getCampaign: vi.fn(),
@@ -44,7 +46,8 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     ...actual,
     createCampaignRepository: () => mocks.campaign,
     createCampaignCollaborationRepository: () => mocks.collaboration,
-    createCampaignContentRepository: () => mocks.content,
+    createCampaignAdjustmentsRepository: () => mocks.events,
+    createInventoryRepository: () => mocks.receipts,
     createAccountEntitlementsRepository: () => ({ lockTier: mocks.lockTier }),
     withTransaction: (_db: DBLike, callback: (trx: DBLike) => Promise<unknown>) =>
       callback(mocks.transaction as DBLike)
@@ -75,12 +78,14 @@ describe('copyCampaign', () => {
       assignedCharacter: null
     })
     mocks.getCampaign.mockResolvedValue({ id: ids.copy })
+    mocks.receipts.findCampaignEventByIdempotency.mockResolvedValue(null)
   })
 
   it('copies reusable Campaign preparation into a fresh aggregate only', async () => {
     await expect(
       copyCampaign({} as DBLike, ids.owner, {
         campaignId: ids.source,
+        commandId: ids.command,
         expectedVersion: 7
       })
     ).resolves.toEqual({ id: ids.copy })
@@ -100,10 +105,16 @@ describe('copyCampaign', () => {
       ids.copy,
       ids.owner
     )
-    expect(mocks.content.copyApprovedContentVersions).toHaveBeenCalledWith(
-      ids.source,
-      ids.copy,
-      ids.owner
+    expect(mocks.events.insertCampaignEvent).toHaveBeenCalledWith({
+      campaignId: ids.source,
+      actorUserId: ids.owner,
+      kind: 'CAMPAIGN_COPIED',
+      visibility: 'OWNER',
+      payload: { copiedCampaignId: ids.copy, expectedVersion: 7 },
+      idempotencyKey: ids.command
+    })
+    expect(mocks.lockTier.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.campaign.lockCampaign.mock.invocationCallOrder[0] ?? 0
     )
   })
 
@@ -117,10 +128,59 @@ describe('copyCampaign', () => {
     await expect(
       copyCampaign({} as DBLike, '00000000-0000-4000-8000-000000000099', {
         campaignId: ids.source,
+        commandId: ids.command,
         expectedVersion: 7
       })
     ).rejects.toThrow()
     expect(mocks.lockTier).not.toHaveBeenCalled()
+    expect(mocks.campaign.createCampaign).not.toHaveBeenCalled()
+  })
+
+  it('does not inspect or transfer source shares, Vehicles, or inventory outside the copy surface', async () => {
+    await copyCampaign({} as DBLike, ids.owner, {
+      campaignId: ids.source,
+      commandId: ids.command,
+      expectedVersion: 7
+    })
+
+    expect(mocks.campaign.createCampaign).toHaveBeenCalledOnce()
+    expect(mocks.collaboration.copyCampaignNoteSections).toHaveBeenCalledOnce()
+  })
+
+  it('returns the exact prior copy for an idempotent command retry', async () => {
+    mocks.receipts.findCampaignEventByIdempotency.mockResolvedValue({
+      actorUserId: ids.owner,
+      kind: 'CAMPAIGN_COPIED',
+      payload: { copiedCampaignId: ids.copy, expectedVersion: 7 }
+    })
+
+    await expect(
+      copyCampaign({} as DBLike, ids.owner, {
+        campaignId: ids.source,
+        commandId: ids.command,
+        expectedVersion: 7
+      })
+    ).resolves.toEqual({ id: ids.copy })
+
+    expect(mocks.resolveAuthority).not.toHaveBeenCalled()
+    expect(mocks.lockTier).not.toHaveBeenCalled()
+    expect(mocks.campaign.createCampaign).not.toHaveBeenCalled()
+  })
+
+  it('rejects reuse of a copy command ID with different input', async () => {
+    mocks.receipts.findCampaignEventByIdempotency.mockResolvedValue({
+      actorUserId: ids.owner,
+      kind: 'CAMPAIGN_COPIED',
+      payload: { copiedCampaignId: ids.copy, expectedVersion: 6 }
+    })
+
+    await expect(
+      copyCampaign({} as DBLike, ids.owner, {
+        campaignId: ids.source,
+        commandId: ids.command,
+        expectedVersion: 7
+      })
+    ).rejects.toThrow('Command ID was already used')
     expect(mocks.campaign.createCampaign).not.toHaveBeenCalled()
   })
 })

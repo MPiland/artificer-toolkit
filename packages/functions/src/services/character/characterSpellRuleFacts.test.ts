@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildCharacterSpellRuleFacts } from './characterSpellRuleFacts.js'
+import {
+  buildCharacterSpellRuleFacts,
+  collectCharacterRuleInputSpellIds,
+  collectCharacterRuleOutputSpellIds,
+  isCharacterSpellActionAccessCandidate
+} from './characterSpellRuleFacts.js'
 import { createSpellGrantPolicyFixture } from '../rules/systems/dnd5e/2014/characterSpellPolicy.fixtures.js'
 
 describe('Character spell rule facts', () => {
@@ -101,6 +106,80 @@ describe('Character spell rule facts', () => {
         progressionLevel: null,
         selectedByCharacter: false
       }
+    ])
+  })
+
+  it('uses one boundary for selected and fixed mechanics while retaining unselected eligibility', () => {
+    const { snapshot, registry } = createSpellGrantPolicyFixture()
+    const candidates = buildCharacterSpellRuleFacts(snapshot, registry).spellAccessCandidates
+
+    expect(
+      candidates.filter(isCharacterSpellActionAccessCandidate).map(({ spellId }) => spellId)
+    ).toEqual([
+      'shield',
+      'fog-cloud',
+      'ice-storm',
+      'mirror-image',
+      'dancing-lights',
+      'dancing-lights',
+      'fire-bolt',
+      'fire-bolt'
+    ])
+    expect(
+      candidates.filter((candidate) => !isCharacterSpellActionAccessCandidate(candidate))
+    ).toEqual([expect.objectContaining({ spellId: 'mage-hand', selectedByCharacter: false })])
+  })
+
+  it('collects only snapshot, selected or fixed grant, and explicit reference Spell inputs', () => {
+    const { snapshot, registry } = createSpellGrantPolicyFixture()
+    const candidates = buildCharacterSpellRuleFacts(snapshot, registry).spellAccessCandidates
+
+    const spellIds = collectCharacterRuleInputSpellIds({
+      referenceSpellIds: ['reference-spell', 'shield'],
+      spellAccessCandidates: candidates,
+      spellSources: [{ spellId: 'snapshot-spell' }]
+    })
+
+    expect([...spellIds]).toEqual([
+      'snapshot-spell',
+      'shield',
+      'fog-cloud',
+      'ice-storm',
+      'mirror-image',
+      'dancing-lights',
+      'fire-bolt',
+      'reference-spell'
+    ])
+    expect(spellIds.has('mage-hand')).toBe(false)
+  })
+
+  it('collects active output state, dedupes IDs, and excludes available-only Spells', () => {
+    const output = {
+      spellAccess: [{ spellId: 'grant-spell' }, { spellId: 'duplicate-spell' }],
+      classSpellStates: [
+        {
+          learnedSpellIds: ['class-learned-spell', 'duplicate-spell'],
+          preparedSpellIds: ['class-prepared-spell']
+        }
+      ],
+      spellPreparation: {
+        sources: [
+          {
+            availableSpellIds: ['available-only-spell'],
+            learnedSpellIds: ['preparation-learned-spell', 'duplicate-spell'],
+            preparedSpellIds: ['preparation-prepared-spell']
+          }
+        ]
+      }
+    }
+
+    expect([...collectCharacterRuleOutputSpellIds(output)]).toEqual([
+      'grant-spell',
+      'duplicate-spell',
+      'class-learned-spell',
+      'class-prepared-spell',
+      'preparation-learned-spell',
+      'preparation-prepared-spell'
     ])
   })
 })

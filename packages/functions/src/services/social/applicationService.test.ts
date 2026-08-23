@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   social: {
     findSocialProfileByUser: vi.fn(),
     findSocialApplicationById: vi.fn(),
+    findSocialListingById: vi.fn(),
     lockSocialListing: vi.fn(),
     lockSocialApplication: vi.fn(),
     findVisibleSocialListing: vi.fn(),
@@ -19,6 +20,7 @@ const mocks = vi.hoisted(() => ({
     setSocialApplicationStatus: vi.fn()
   },
   campaign: {
+    findInviteById: vi.fn(),
     lockCampaign: vi.fn(),
     findMembership: vi.fn(),
     countActiveMembers: vi.fn(),
@@ -173,6 +175,7 @@ describe('Social admission', () => {
       userId === ownerUserId ? hostProfile : applicantProfile
     )
     mocks.social.findSocialApplicationById.mockResolvedValue(application)
+    mocks.social.findSocialListingById.mockResolvedValue(listing)
     mocks.social.lockSocialListing.mockResolvedValue(listing)
     mocks.social.lockSocialApplication.mockResolvedValue(application)
     mocks.social.findVisibleSocialListing.mockResolvedValue(listing)
@@ -196,7 +199,7 @@ describe('Social admission', () => {
     mocks.consumeSocialRateLimit.mockResolvedValue(undefined)
   })
 
-  it('locks listing, Campaign, source, and entitlement before activating one membership', async () => {
+  it('locks entitlement, listing, Campaign, and source before activating one membership', async () => {
     const result = await acceptSocialAdmission({} as DBLike, ownerUserId, {
       kind: 'APPLICATION',
       publicId: applicationId,
@@ -204,14 +207,14 @@ describe('Social admission', () => {
     })
 
     expect(result).toMatchObject({ kind: 'APPLICATION', campaignId: listing.campaignId })
+    expect(mocks.entitlement.lockTier.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.social.lockSocialListing.mock.invocationCallOrder[0] ?? 0
+    )
     expect(mocks.social.lockSocialListing.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.campaign.lockCampaign.mock.invocationCallOrder[0] ?? 0
     )
     expect(mocks.campaign.lockCampaign.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.social.lockSocialApplication.mock.invocationCallOrder[0] ?? 0
-    )
-    expect(mocks.social.lockSocialApplication.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.entitlement.lockTier.mock.invocationCallOrder[0] ?? 0
     )
     expect(mocks.entitlement.lockTier.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.campaign.activatePlayerMembership.mock.invocationCallOrder[0] ?? 0
@@ -227,15 +230,35 @@ describe('Social admission', () => {
     )
   })
 
+  it('rejects when the exact listing changes after entitlement acquisition', async () => {
+    mocks.social.lockSocialListing.mockResolvedValue({ ...listing, version: listing.version + 1 })
+
+    await expect(
+      acceptSocialAdmission({} as DBLike, ownerUserId, {
+        kind: 'APPLICATION',
+        publicId: applicationId,
+        expectedVersion: 1
+      })
+    ).rejects.toMatchObject({ name: 'SocialNotFoundError' })
+
+    expect(mocks.entitlement.lockTier.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.social.lockSocialListing.mock.invocationCallOrder[0] ?? 0
+    )
+    expect(mocks.campaign.lockCampaign).not.toHaveBeenCalled()
+    expect(mocks.social.lockSocialApplication).not.toHaveBeenCalled()
+  })
+
   it('returns an accepted active membership idempotently after listing closure', async () => {
     const accepted = { ...application, status: 'ACCEPTED' as const, version: 2 }
-    mocks.social.findSocialApplicationById.mockResolvedValue(accepted)
-    mocks.social.lockSocialApplication.mockResolvedValue(accepted)
-    mocks.social.lockSocialListing.mockResolvedValue({
+    const closedListing = {
       ...listing,
-      status: 'CLOSED',
-      moderationStatus: 'HIDDEN'
-    })
+      status: 'CLOSED' as const,
+      moderationStatus: 'HIDDEN' as const
+    }
+    mocks.social.findSocialApplicationById.mockResolvedValue(accepted)
+    mocks.social.findSocialListingById.mockResolvedValue(closedListing)
+    mocks.social.lockSocialApplication.mockResolvedValue(accepted)
+    mocks.social.lockSocialListing.mockResolvedValue(closedListing)
     mocks.campaign.findMembership.mockResolvedValue({
       campaignId: listing.campaignId,
       userId: applicantUserId,
@@ -341,6 +364,7 @@ describe('Social admission', () => {
       respondedAt: '2026-08-01T00:01:00.000Z',
       version: 2
     }
+    mocks.campaign.findInviteById.mockResolvedValue(invitation)
     mocks.campaign.lockInvite.mockResolvedValue(invitation)
     mocks.campaign.setInviteStatus.mockResolvedValue(accepted)
 

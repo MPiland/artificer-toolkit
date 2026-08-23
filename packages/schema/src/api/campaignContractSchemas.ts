@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const uuidSchema = z.string().uuid()
+export const uuidSchema = z.guid()
 export const versionSchema = z.number().int().nonnegative()
 export const timestampSchema = z.string().datetime()
 export const shortTextSchema = z.string().trim().min(1).max(120)

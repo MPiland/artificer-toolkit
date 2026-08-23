@@ -48,10 +48,10 @@ flowchart LR
 - The engine consumes a snapshot plus a registry and must not query or mutate persistence.
 - Provenance on character acquisitions explains why a grant exists and allows reconciliation when an upstream choice changes.
 
-## Character content binding
+## Character content pins and Campaign authority
 
-Structural character selections keep stable authored root IDs. Outside a Campaign, roots resolve against the canonical `ACTIVE` aggregate. An assigned Character may instead have an explicit binding from that selected root identity to an immutable approved Campaign content version.
+Structural Character selections keep stable authored root IDs. Draft previews and newly added sources resolve current `ACTIVE` owner, Master, or direct Campaign-shared roots. First finalization stores the exact immutable authored-version vector; finalized reads and source-preserving commands validate those exact versions without requiring the roots' active pointers to remain unchanged.
 
-Campaign versions persist a schema-validated hydrated/resolved root snapshot rather than duplicating normalized authored tables. Builder registry loading merges approved Campaign snapshots with ordinary active content, while assembly derives the same root-feature and ancestry structure expected by `planCharacterAssembly`. Persisted Character intent remains unchanged; the resulting normalized facts are evaluated through the Character's exact pinned Zen revision.
+`campaign_content_shares` grants Campaign-scoped authority to a root, not to a version snapshot. While the share remains valid, a finalized Character may keep using its pinned historical version. Authored activation changes the root's current version for drafts and future admission but does not rewrite finalized Characters.
 
-Removing an assignment deletes Campaign bindings before resolution. Reconciliation removes invalid dependent selections, preserves stale structural IDs as repair context, and persists the active Character plus owner-scoped Builder draft as `DRAFT` when a granted structural root is no longer available.
+Unshare, sharing-member removal, and authored deletion discover only actual dependents and reconcile inside the owning transaction. Reconciliation removes unavailable roots, preserves unrelated exact pins, republishes valid `ACTIVE` Characters, and uses the existing `DRAFT` repair path with live-projection deletion for structural or required transitive source loss.

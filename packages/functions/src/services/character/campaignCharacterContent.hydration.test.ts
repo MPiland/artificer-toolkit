@@ -4,7 +4,7 @@ import type { RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type {
-  CampaignAuthoredSnapshot,
+  CampaignAuthoredSource,
   CampaignCharacterContentOverlay
 } from './campaignCharacterContent.js'
 
@@ -64,18 +64,16 @@ const subrace = {
   systemId: ids.system
 } satisfies RaceAuthored
 
-const subraceSnapshot = {
-  contentVersionId: 'campaign-content-version-1',
+const subraceSource = {
   subjectKind: 'RACE',
   subjectId: ids.subrace,
-  revision: 1,
   authoredVersionId: ids.subraceVersion,
   authoredVersion: 1,
   authoredChecksum: checksum('b'),
   compiledProjectionChecksum: checksum('c'),
   authoredDependencies: [parentDependency],
   authored: subrace
-} satisfies CampaignAuthoredSnapshot
+} satisfies CampaignAuthoredSource
 
 const parentRecord = {
   authored: {
@@ -104,21 +102,19 @@ const parentRecord = {
   }
 } satisfies AuthoredVersionRecord
 
-describe('Campaign Character versioned hydration', () => {
+describe('Campaign Character current-share hydration', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     mocks.findActiveByIds.mockResolvedValue(new Map())
-    mocks.findExactVersions.mockResolvedValue(
-      new Map([[`RACE:${ids.parentRace}`, parentRecord]])
-    )
+    mocks.findExactVersions.mockResolvedValue(new Map([[`RACE:${ids.parentRace}`, parentRecord]]))
   })
 
-  it('resolves a Campaign subrace parent from the approved version dependency, not the active root', async () => {
+  it('resolves a shared subrace parent from its exact current projection dependency', async () => {
     const overlay: CampaignCharacterContentOverlay = {
       campaignId: ids.campaign,
       userId: ids.user,
-      bindings: new Map([[`RACE:${ids.subrace}`, subraceSnapshot]]),
-      latest: new Map([[`RACE:${ids.subrace}`, subraceSnapshot]])
+      latest: new Map([[`RACE:${ids.subrace}`, subraceSource]]),
+      sharesByRoot: new Map()
     }
 
     const content = await hydrateCampaignSelectedContent({} as DBLike, overlay, {
@@ -140,12 +136,12 @@ describe('Campaign Character versioned hydration', () => {
     expect(resolvedSubrace.subrace.parentLabel).toBe('Pinned parent race')
   })
 
-  it('uses the Character owner/master boundary for an unbound active source', async () => {
+  it('uses the Character owner/master boundary when no Campaign share supplies the source', async () => {
     const overlay: CampaignCharacterContentOverlay = {
       campaignId: ids.campaign,
       userId: ids.user,
-      bindings: new Map(),
-      latest: new Map()
+      latest: new Map(),
+      sharesByRoot: new Map()
     }
 
     await hydrateCampaignSelectedContent({} as DBLike, overlay, {

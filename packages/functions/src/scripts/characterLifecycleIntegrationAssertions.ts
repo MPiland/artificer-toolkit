@@ -19,6 +19,7 @@ import {
 import type { CharacterSheetCommandServiceTiming } from '../services/character/sheetService.js'
 import {
   expectedClassSummary,
+  expectedInitialCurrentHitPoints,
   expectedTotalLevel,
   type CharacterLifecycleFixture
 } from './characterLifecycleIntegrationFixtures.js'
@@ -204,7 +205,7 @@ export function assertSheetMatchesFixture(
     expectedTotalLevel(fixture),
     `${fixture.label} ${stage} exposed the wrong total level.`
   )
-  assert.equal(sheet.overview.currentHitPoints, fixture.expectedMaxHitPoints)
+  assert.equal(sheet.overview.currentHitPoints, expectedInitialCurrentHitPoints(fixture))
   assert.equal(sheet.overview.maxHitPoints, fixture.expectedMaxHitPoints)
 
   if (fixture.hitDice) {

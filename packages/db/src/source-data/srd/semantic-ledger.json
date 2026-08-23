@@ -79,7 +79,7 @@
           "sha256": "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0"
         }
       ],
-      "authoredSha256": "1825e056af37d8b861f287a6ff8a3414e442a65d1ffe429f757f7f94a827aa1b",
+      "authoredSha256": "88523ddc18b54c1a1b3cdb9f8994a9298c3b50413cb72ff05a3f5f541ad770cd",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
       "manualExceptionIds": ["00000000-0000-0000-c003-6c0b00000000"]
@@ -106,7 +106,7 @@
           "sha256": "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0"
         }
       ],
-      "authoredSha256": "2f362bc2743e1c8ef0c531b56ddd757b5c07c5fa5795d316c1c9eacc68802080",
+      "authoredSha256": "a05ae83f6b7b2e883a1b6b8582f1260fca58cf55fb4b1b7dcd63b14c383a7103",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -162,7 +162,7 @@
           "sha256": "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0"
         }
       ],
-      "authoredSha256": "9336a9d8727a76159d96b3a57098d3a83f4fb289a43ef7b30d5a3c3b2b8a08f1",
+      "authoredSha256": "c44db1c4714c1066fcb7e0a3d53d77d99a918f5ab41214bf5f3a7871c543cbce",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -277,7 +277,7 @@
           "sha256": "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0"
         }
       ],
-      "authoredSha256": "5c3390141442e90953775bf6b0b9230cbd163e816cc2da7448da7f9569ea13bb",
+      "authoredSha256": "fe530a33ba93f9020a17865482c23c5bc2aef3fe20d3da5805768dd0c4623c84",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []

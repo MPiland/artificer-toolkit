@@ -1366,8 +1366,8 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       findAuthoredById: mocks.findAuthoredById,
       patchSheetState: mocks.patchSheetState
     }),
-    createCampaignContentRepository: () => ({
-      findAssignedCampaign: async () => null
+    createCampaignRepository: () => ({
+      findCampaignByCharacter: async () => null
     }),
     createRollHistoryRepository: () => ({
       consumeForUser: mocks.consumeRollForUser,
@@ -1590,30 +1590,26 @@ describe('character sheet projection extras', () => {
     mocks.findByCommandId.mockResolvedValue(null)
     mocks.findAuthoredById.mockResolvedValue(createCharacter())
     mocks.resolveCharacterBuilder.mockResolvedValue(createResolution())
-    activeSourceMocks.loadActiveCreatures.mockImplementation(async ({
-      creatureIds
-    }: {
-      creatureIds: readonly string[]
-    }) => {
-      const creatures = (await mocks.findAllCreatures()) as CreatureAuthored[]
-      return new Map(
-        creatures
-          .filter((creature) => creatureIds.includes(creature.id))
-          .map((creature) => [creature.id, creature])
-      )
-    })
-    activeSourceMocks.loadActiveVehicles.mockImplementation(async ({
-      vehicleIds
-    }: {
-      vehicleIds: readonly string[]
-    }) => {
-      const vehicles = (await mocks.findAllVehicles()) as Array<{ id: string }>
-      return new Map(
-        vehicles
-          .filter((vehicle) => vehicleIds.includes(vehicle.id))
-          .map((vehicle) => [vehicle.id, vehicle])
-      )
-    })
+    activeSourceMocks.loadActiveCreatures.mockImplementation(
+      async ({ creatureIds }: { creatureIds: readonly string[] }) => {
+        const creatures = (await mocks.findAllCreatures()) as CreatureAuthored[]
+        return new Map(
+          creatures
+            .filter((creature) => creatureIds.includes(creature.id))
+            .map((creature) => [creature.id, creature])
+        )
+      }
+    )
+    activeSourceMocks.loadActiveVehicles.mockImplementation(
+      async ({ vehicleIds }: { vehicleIds: readonly string[] }) => {
+        const vehicles = (await mocks.findAllVehicles()) as Array<{ id: string }>
+        return new Map(
+          vehicles
+            .filter((vehicle) => vehicleIds.includes(vehicle.id))
+            .map((vehicle) => [vehicle.id, vehicle])
+        )
+      }
+    )
     mocks.patchSheetState.mockImplementation(async (_characterId, _patches, options) => {
       await options.afterPersist?.(db, 2)
       return 2

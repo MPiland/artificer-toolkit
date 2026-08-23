@@ -38,6 +38,7 @@ const characterId = '00000000-0000-4000-8000-000000000120'
 const privacySessionId = '00000000-0000-4000-8000-000000000123'
 const gmUserId = '00000000-0000-4000-8000-000000000124'
 const foggedUserId = '00000000-0000-4000-8000-000000000125'
+const controllerUserId = '00000000-0000-4000-8000-000000000149'
 const privacyCommandId = '00000000-0000-4000-8000-000000000126'
 const leaseSessionId = '00000000-0000-4000-8000-000000000132'
 const terminalSessionId = '00000000-0000-4000-8000-000000000133'
@@ -48,6 +49,15 @@ const removedPlayerUserId = '00000000-0000-4000-8000-000000000143'
 const retainedPlayerUserId = '00000000-0000-4000-8000-000000000144'
 const overdueLeaseSessionId = '00000000-0000-4000-8000-000000000145'
 const overdueLeaseCommandId = '00000000-0000-4000-8000-000000000146'
+const staleJoinSessionId = '00000000-0000-4000-8000-000000000150'
+const reconnectReceiptSessionId = '00000000-0000-4000-8000-000000000155'
+const reconnectCommitCommandId = '00000000-0000-4000-8000-000000000156'
+const reconnectRejectCommandId = '00000000-0000-4000-8000-000000000157'
+const reorderedVersionsSessionId = '00000000-0000-4000-8000-000000000158'
+const secondSceneId = '00000000-0000-4000-8000-000000000159'
+const overlappingRenewalsSessionId = '00000000-0000-4000-8000-000000000161'
+const overlappingRenewalsPlayerId = '00000000-0000-4000-8000-000000000162'
+const overlappingRenewalsCommandId = '00000000-0000-4000-8000-000000000163'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -404,6 +414,325 @@ it('rejects disallowed origins and tickets for a different session before room a
   expect(await wrongSession.text()).toBe('Live-session ticket does not match the requested room.')
 })
 
+it('does not accept a stale ticket joining during cold-room hydration', async ({ expect }) => {
+  let snapshotLoading = false
+  let snapshotReleased = false
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const body = JSON.parse(await new Request(input, init).text()) as LiveSessionExecutorRequestDto
+    if (body.operation === 'CLAIM') return Response.json({ ok: true, operation: 'CLAIM' })
+    if (body.operation === 'SNAPSHOT') {
+      snapshotLoading = true
+      while (!snapshotReleased) await new Promise<void>((resolve) => setTimeout(resolve, 1))
+      return Response.json({
+        operation: 'SNAPSHOT',
+        snapshot: {
+          aggregateVersions: [],
+          characterVisions: [],
+          encounterCharacterBindings: [],
+          sceneStates: []
+        }
+      })
+    }
+    if (body.operation === 'RENEW') {
+      if (body.userId === removedPlayerUserId) {
+        return Response.json(
+          { error: { code: 'UNAUTHORIZED', message: 'Campaign membership changed.' } },
+          { status: 403 }
+        )
+      }
+      return Response.json({
+        aggregateVersions: [],
+        memberships: [{ role: 'OWNER', userId }],
+        ok: true,
+        operation: 'RENEW'
+      })
+    }
+    if (body.operation === 'RELEASE') {
+      return Response.json({ ok: true, operation: 'RELEASE' })
+    }
+    throw new Error('Unexpected executor operation.')
+  })
+
+  const stub = env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${staleJoinSessionId}`)
+  )
+  const ownerResponsePromise = stub.fetch(
+    new Request(`https://session.test/live-session/${staleJoinSessionId}`, {
+      headers: {
+        'x-artificer-live-session-ticket': await issueTicket(
+          '00000000-0000-4000-8000-000000000151',
+          staleJoinSessionId
+        ),
+        upgrade: 'websocket'
+      }
+    })
+  )
+  await within(
+    'cold-room hydration start',
+    (async () => {
+      while (!snapshotLoading) await new Promise<void>((resolve) => setTimeout(resolve, 1))
+    })()
+  )
+
+  const staleResponsePromise = stub.fetch(
+    new Request(`https://session.test/live-session/${staleJoinSessionId}`, {
+      headers: {
+        'x-artificer-live-session-ticket': await issueTicket(
+          '00000000-0000-4000-8000-000000000152',
+          staleJoinSessionId,
+          'PLAYER',
+          removedPlayerUserId
+        ),
+        upgrade: 'websocket'
+      }
+    })
+  )
+  await new Promise<void>((resolve) => setTimeout(resolve, 10))
+  snapshotReleased = true
+  const [ownerResponse, staleResponse] = await Promise.all([
+    within('cold-room owner admission', ownerResponsePromise),
+    within('cold-room stale admission', staleResponsePromise)
+  ])
+  expect(ownerResponse.status).toBe(101)
+  const ownerSocket = ownerResponse.webSocket
+  assert(ownerSocket !== null)
+  const ownerReady = waitForMessage(ownerSocket)
+  ownerSocket.accept()
+  await expect(ownerReady).resolves.toMatchObject({ type: 'READY' })
+  expect(staleResponse.status).toBe(403)
+  expect(staleResponse.webSocket).toBeNull()
+
+  const ready = waitForMessage(ownerSocket)
+  ownerSocket.send(
+    JSON.stringify({ lastSeenDeliverySequence: 0, pendingCommandIds: [], type: 'RESUME' })
+  )
+  await expect(ready).resolves.toMatchObject({ type: 'READY' })
+  ownerSocket.close(1000, 'done')
+})
+
+it('rejects a cold-room OWNER ticket after the member was demoted to PLAYER', async ({
+  expect
+}) => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const body = JSON.parse(await new Request(input, init).text()) as LiveSessionExecutorRequestDto
+    if (body.operation === 'CLAIM') return Response.json({ ok: true, operation: 'CLAIM' })
+    if (body.operation === 'SNAPSHOT') {
+      return Response.json({
+        operation: 'SNAPSHOT',
+        snapshot: {
+          aggregateVersions: [],
+          characterVisions: [],
+          encounterCharacterBindings: [],
+          sceneStates: []
+        }
+      })
+    }
+    if (body.operation === 'RENEW') {
+      return Response.json({
+        aggregateVersions: [],
+        memberships: [{ role: 'PLAYER', userId }],
+        ok: true,
+        operation: 'RENEW'
+      })
+    }
+    throw new Error(`Unexpected executor operation: ${body.operation}`)
+  })
+
+  const testSessionId = '00000000-0000-4000-8000-000000000153'
+  const stub = env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${testSessionId}`)
+  )
+  const response = await stub.fetch(
+    new Request(`https://session.test/live-session/${testSessionId}`, {
+      headers: {
+        'x-artificer-live-session-ticket': await issueTicket(
+          '00000000-0000-4000-8000-000000000154',
+          testSessionId
+        ),
+        upgrade: 'websocket'
+      }
+    })
+  )
+  expect(response.status).toBe(403)
+  expect(response.webSocket).toBeNull()
+})
+
+it('delivers pending command success and rejection to the same actor after reconnect', async ({
+  expect
+}) => {
+  let currentVersion = 0
+  const releasedCommandIds = new Set<string>()
+  const startedCommandIds = new Set<string>()
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const body = JSON.parse(await new Request(input, init).text()) as LiveSessionExecutorRequestDto
+    if (body.operation === 'CLAIM') return Response.json({ ok: true, operation: 'CLAIM' })
+    if (body.operation === 'SNAPSHOT') {
+      return Response.json({
+        operation: 'SNAPSHOT',
+        snapshot: {
+          aggregateVersions: [
+            { aggregateId: sceneId, aggregateKind: 'SCENE', version: currentVersion }
+          ],
+          characterVisions: [],
+          encounterCharacterBindings: [],
+          sceneStates: [sceneState(currentVersion, currentVersion === 0 ? 20 : 25)]
+        }
+      })
+    }
+    if (body.operation === 'RENEW') {
+      return Response.json({
+        aggregateVersions: [
+          { aggregateId: sceneId, aggregateKind: 'SCENE', version: currentVersion }
+        ],
+        memberships: [{ role: 'OWNER', userId }],
+        ok: true,
+        operation: 'RENEW'
+      })
+    }
+    if (body.operation === 'COMMAND') {
+      const id = body.command.command.commandId
+      startedCommandIds.add(id)
+      while (!releasedCommandIds.has(id)) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 1))
+      }
+      if (id === reconnectRejectCommandId) {
+        return Response.json(
+          { error: { code: 'INVALID_REQUEST', message: 'The command is invalid.' } },
+          { status: 400 }
+        )
+      }
+      currentVersion = 1
+      return Response.json({
+        execution: {
+          aggregateId: sceneId,
+          aggregateKind: 'SCENE',
+          commandId: reconnectCommitCommandId,
+          hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
+          replayed: false,
+          response: {
+            commandId: reconnectCommitCommandId,
+            delta: { kind: 'TOKEN_MOVED', position: { x: 25, y: 20 }, tokenId },
+            replayed: false,
+            sceneId,
+            version: 1
+          },
+          state: sceneState(1, 25),
+          version: 1
+        },
+        operation: 'COMMAND'
+      })
+    }
+    if (body.operation === 'RELEASE') {
+      return Response.json({ ok: true, operation: 'RELEASE' })
+    }
+    throw new Error('Unexpected executor operation.')
+  })
+
+  const stub = env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${reconnectReceiptSessionId}`)
+  )
+  const first = await connect(
+    stub,
+    await issueTicket('00000000-0000-4000-8000-000000000158', reconnectReceiptSessionId),
+    reconnectReceiptSessionId
+  )
+  await first.ready
+  const firstAccepted = waitForMessage(first.socket)
+  const committedCommand = sceneMoveCommand(reconnectCommitCommandId, 0, 25)
+  first.socket.send(JSON.stringify({ command: committedCommand, type: 'COMMAND' }))
+  await expect(firstAccepted).resolves.toMatchObject({
+    commandId: reconnectCommitCommandId,
+    type: 'COMMAND_ACCEPTED'
+  })
+  await within(
+    'reconnect commit execution start',
+    (async () => {
+      while (!startedCommandIds.has(reconnectCommitCommandId)) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 1))
+      }
+    })()
+  )
+  first.socket.close(1000, 'reconnect')
+  await waitForNoServerSockets(stub)
+
+  const second = await connect(
+    stub,
+    await issueTicket('00000000-0000-4000-8000-000000000159', reconnectReceiptSessionId),
+    reconnectReceiptSessionId
+  )
+  await second.ready
+  const resumedCommitReady = waitForMessage(second.socket)
+  second.socket.send(
+    JSON.stringify({
+      lastSeenDeliverySequence: 0,
+      pendingCommandIds: [reconnectCommitCommandId],
+      type: 'RESUME'
+    })
+  )
+  await expect(resumedCommitReady).resolves.toMatchObject({ type: 'READY' })
+  const repeatedAccepted = waitForMessage(second.socket)
+  second.socket.send(JSON.stringify({ command: committedCommand, type: 'COMMAND' }))
+  await expect(repeatedAccepted).resolves.toMatchObject({
+    commandId: reconnectCommitCommandId,
+    type: 'COMMAND_ACCEPTED'
+  })
+  const committed = waitForMessage(second.socket)
+  releasedCommandIds.add(reconnectCommitCommandId)
+  await expect(committed).resolves.toMatchObject({
+    originCommandId: reconnectCommitCommandId,
+    type: 'COMMAND_COMMITTED'
+  })
+
+  const rejectedCommand = sceneMoveCommand(reconnectRejectCommandId, 1, 30)
+  const secondAccepted = waitForMessage(second.socket)
+  second.socket.send(JSON.stringify({ command: rejectedCommand, type: 'COMMAND' }))
+  await expect(secondAccepted).resolves.toMatchObject({
+    commandId: reconnectRejectCommandId,
+    type: 'COMMAND_ACCEPTED'
+  })
+  await within(
+    'reconnect rejection execution start',
+    (async () => {
+      while (!startedCommandIds.has(reconnectRejectCommandId)) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 1))
+      }
+    })()
+  )
+  second.socket.close(1000, 'reconnect')
+  await waitForNoServerSockets(stub)
+
+  const third = await connect(
+    stub,
+    await issueTicket('00000000-0000-4000-8000-000000000160', reconnectReceiptSessionId),
+    reconnectReceiptSessionId
+  )
+  await third.ready
+  const resumedRejectReady = waitForMessage(third.socket)
+  third.socket.send(
+    JSON.stringify({
+      lastSeenDeliverySequence: 1,
+      pendingCommandIds: [reconnectRejectCommandId],
+      type: 'RESUME'
+    })
+  )
+  await expect(resumedRejectReady).resolves.toMatchObject({ type: 'READY' })
+  const repeatedRejectAccepted = waitForMessage(third.socket)
+  third.socket.send(JSON.stringify({ command: rejectedCommand, type: 'COMMAND' }))
+  await expect(repeatedRejectAccepted).resolves.toMatchObject({
+    commandId: reconnectRejectCommandId,
+    type: 'COMMAND_ACCEPTED'
+  })
+  const rejected = waitForMessage(third.socket)
+  releasedCommandIds.add(reconnectRejectCommandId)
+  await expect(rejected).resolves.toEqual({
+    code: 'INVALID_COMMAND',
+    commandId: reconnectRejectCommandId,
+    message: 'The live-session command is invalid.',
+    type: 'COMMAND_REJECTED'
+  })
+  third.socket.close(1000, 'done')
+}, 45_000)
+
 it('persists room identity and hibernates an authenticated socket across eviction', async ({
   expect
 }) => {
@@ -427,6 +756,20 @@ it('persists room identity and hibernates an authenticated socket across evictio
           encounterCharacterBindings: [{ actorId, characterId, encounterId }],
           sceneStates: [sceneState(0, 20)]
         }
+      })
+    }
+    if (body.operation === 'RENEW') {
+      return Response.json({
+        aggregateVersions: [
+          {
+            aggregateId: sceneId,
+            aggregateKind: 'SCENE',
+            version: operations.filter((operation) => operation === 'COMMAND').length
+          }
+        ],
+        memberships: [{ role: 'OWNER', userId }],
+        ok: true,
+        operation: 'RENEW'
       })
     }
     if (body.operation === 'COMMAND') {
@@ -489,7 +832,7 @@ it('persists room identity and hibernates an authenticated socket across evictio
   ])
   expect(initialReady.deliverySequence).toBe(0)
   expect(initialReady.sceneSnapshots[0]?.scene.tokens[0]?.position).toEqual({ x: 20, y: 20 })
-  expect(operations).toEqual(['CLAIM', 'SNAPSHOT'])
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW'])
 
   const command = sceneMoveCommand(commandId, 0, 25)
   const commandMessages = waitForMessages(socket, 2)
@@ -510,7 +853,7 @@ it('persists room identity and hibernates an authenticated socket across evictio
       version: 1
     }
   ])
-  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'COMMAND'])
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'COMMAND'])
 
   const laterCommand = sceneMoveCommand(laterCommandId, 1, 30)
   const laterMessages = waitForMessages(socket, 2)
@@ -559,7 +902,7 @@ it('persists room identity and hibernates an authenticated socket across evictio
   ) {
     expect(replayMessages[1].snapshot?.scene.tokens[0]?.position).toEqual({ x: 30, y: 20 })
   }
-  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'COMMAND', 'COMMAND'])
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'COMMAND', 'COMMAND'])
 
   const duplicate = await within(
     'duplicate ticket check',
@@ -608,7 +951,7 @@ it('persists room identity and hibernates an authenticated socket across evictio
   ])
   expect(resumedReady.deliverySequence).toBe(2)
   expect(resumedReady.sceneSnapshots[0]?.scene.tokens[0]?.position).toEqual({ x: 30, y: 20 })
-  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'COMMAND', 'COMMAND'])
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'COMMAND', 'COMMAND', 'RENEW'])
   socket.close(1000, 'done')
 }, 45_000)
 
@@ -616,12 +959,15 @@ it('attaches a new scene and restores its committed snapshot after hibernation',
   expect
 }) => {
   const operations: LiveSessionExecutorRequestDto['operation'][] = []
+  let sceneAttached = false
+  let snapshotLoads = 0
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const request = new Request(input, init)
     const body = JSON.parse(await request.text()) as LiveSessionExecutorRequestDto
     if (body.sessionId !== attachSessionId) {
       if (body.operation === 'RENEW') {
         return Response.json({
+          aggregateVersions: [],
           memberships: [{ role: 'OWNER', userId: body.userId }],
           ok: true,
           operation: 'RENEW'
@@ -638,13 +984,17 @@ it('attaches a new scene and restores its committed snapshot after hibernation',
       return Response.json({ ok: true, operation: 'CLAIM' })
     }
     if (body.operation === 'SNAPSHOT') {
+      snapshotLoads += 1
       return Response.json({
         operation: 'SNAPSHOT',
         snapshot: {
-          aggregateVersions: [],
+          aggregateVersions:
+            snapshotLoads === 1
+              ? []
+              : [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 1 }],
           characterVisions: [],
           encounterCharacterBindings: [],
-          sceneStates: []
+          sceneStates: snapshotLoads === 1 ? [] : [sceneState(1, 35)]
         }
       })
     }
@@ -658,6 +1008,7 @@ it('attaches a new scene and restores its committed snapshot after hibernation',
           type: 'ATTACH_SCENE'
         }
       })
+      sceneAttached = true
       return Response.json({
         execution: {
           aggregateId: sceneId,
@@ -670,6 +1021,16 @@ it('attaches a new scene and restores its committed snapshot after hibernation',
           version: 0
         },
         operation: 'COMMAND'
+      })
+    }
+    if (body.operation === 'RENEW') {
+      return Response.json({
+        aggregateVersions: sceneAttached
+          ? [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 1 }]
+          : [],
+        memberships: [{ role: 'OWNER', userId }],
+        ok: true,
+        operation: 'RENEW'
       })
     }
     throw new Error('Unexpected executor operation.')
@@ -718,7 +1079,7 @@ it('attaches a new scene and restores its committed snapshot after hibernation',
     type: 'COMMAND_COMMITTED',
     version: 0
   })
-  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'COMMAND'])
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'COMMAND'])
 
   await prepareForHibernationEviction(stub)
   await evictDurableObject(stub)
@@ -730,17 +1091,19 @@ it('attaches a new scene and restores its committed snapshot after hibernation',
   expect(resumedReady.type).toBe('READY')
   if (resumedReady.type !== 'READY') throw new Error('Expected the resumed room snapshot.')
   expect(resumedReady.aggregateVersions).toEqual([
-    { aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }
+    { aggregateId: sceneId, aggregateKind: 'SCENE', version: 1 }
   ])
   expect(resumedReady.sceneSnapshots[0]?.scene.id).toBe(sceneId)
-  expect(resumedReady.sceneSnapshots[0]?.scene.version).toBe(0)
-  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'COMMAND'])
+  expect(resumedReady.sceneSnapshots[0]?.scene.tokens[0]?.position).toEqual({ x: 35, y: 20 })
+  expect(resumedReady.sceneSnapshots[0]?.scene.version).toBe(1)
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'COMMAND', 'RENEW', 'SNAPSHOT'])
   socket.close(1000, 'done')
 }, 45_000)
 
 it('keeps resumed receipts and token drag previews private per user and fog view', async ({
   expect
 }) => {
+  let currentVersion = 0
   const state = {
     ...sceneState(0, 20),
     barriers: [
@@ -757,6 +1120,7 @@ it('keeps resumed receipts and token drag previews private per user and fog view
     fogMode: 'PER_PLAYER' as const,
     tokens: sceneState(0, 20).tokens.map((token) => ({
       ...token,
+      controlledByUserIds: [controllerUserId],
       vision: {
         angleDegrees: 360,
         brightRange: 0,
@@ -774,14 +1138,17 @@ it('keeps resumed receipts and token drag previews private per user and fog view
       return Response.json({
         operation: 'SNAPSHOT',
         snapshot: {
-          aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }],
+          aggregateVersions: [
+            { aggregateId: sceneId, aggregateKind: 'SCENE', version: currentVersion }
+          ],
           characterVisions: [],
           encounterCharacterBindings: [],
-          sceneStates: [state]
+          sceneStates: [currentVersion === 0 ? state : committedState]
         }
       })
     }
     if (body.operation === 'COMMAND') {
+      currentVersion = 1
       return Response.json({
         execution: {
           aggregateId: sceneId,
@@ -798,9 +1165,13 @@ it('keeps resumed receipts and token drag previews private per user and fog view
     }
     if (body.operation === 'RENEW') {
       return Response.json({
+        aggregateVersions: [
+          { aggregateId: sceneId, aggregateKind: 'SCENE', version: currentVersion }
+        ],
         memberships: [
           { role: 'OWNER', userId },
           { role: 'OWNER', userId: gmUserId },
+          { role: 'PLAYER', userId: controllerUserId },
           { role: 'PLAYER', userId: foggedUserId }
         ],
         ok: true,
@@ -823,7 +1194,12 @@ it('keeps resumed receipts and token drag previews private per user and fog view
   )
   const controller = await connect(
     stub,
-    await issueTicket('00000000-0000-4000-8000-000000000128', privacySessionId, 'PLAYER', userId),
+    await issueTicket(
+      '00000000-0000-4000-8000-000000000128',
+      privacySessionId,
+      'PLAYER',
+      controllerUserId
+    ),
     privacySessionId
   )
   const gm = await connect(
@@ -853,7 +1229,7 @@ it('keeps resumed receipts and token drag previews private per user and fog view
         baselineVersion: 0,
         kind: 'TOKEN_DRAG_PREVIEW',
         position: { x: 25, y: 20 },
-        previewUserId: userId,
+        previewUserId: controllerUserId,
         sceneId,
         sequence: 1,
         tokenId
@@ -1010,6 +1386,7 @@ it('fans out six clients while disjoint scene resources commit concurrently and 
     if (body.sessionId !== multiSessionId) {
       if (body.operation === 'RENEW') {
         return Response.json({
+          aggregateVersions: [],
           memberships: [{ role: 'OWNER', userId: body.userId }],
           ok: true,
           operation: 'RENEW'
@@ -1036,6 +1413,13 @@ it('fans out six clients while disjoint scene resources commit concurrently and 
     }
     if (body.operation === 'RENEW') {
       return Response.json({
+        aggregateVersions: [
+          {
+            aggregateId: sceneId,
+            aggregateKind: 'SCENE',
+            version: operations.filter((operation) => operation === 'COMMAND').length
+          }
+        ],
         memberships: [
           { role: 'OWNER', userId: ownerUserId },
           ...playerUserIds.map((playerUserId) => ({
@@ -1213,7 +1597,14 @@ it('fans out six clients while disjoint scene resources commit concurrently and 
   expect(
     ready.sceneSnapshots[0]?.scene.tokens.map((token) => [token.id, token.position.x])
   ).toEqual([[secondTokenId, 35]])
-  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'COMMAND', 'COMMAND'])
+  expect(operations).toEqual([
+    'CLAIM',
+    'SNAPSHOT',
+    ...Array(6).fill('RENEW'),
+    'COMMAND',
+    'COMMAND',
+    'RENEW'
+  ])
   for (const socket of sockets) socket.close(1000, 'done')
 }, 45_000)
 
@@ -1221,6 +1612,7 @@ it('rotates away from a removed first connector and revokes stale-role sockets',
   expect
 }) => {
   const renewalUserIds: string[] = []
+  let membershipsChanged = false
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const body = JSON.parse(await new Request(input, init).text()) as LiveSessionExecutorRequestDto
     if (body.operation === 'CLAIM') return Response.json({ ok: true, operation: 'CLAIM' })
@@ -1237,18 +1629,26 @@ it('rotates away from a removed first connector and revokes stale-role sockets',
     }
     if (body.operation === 'RENEW') {
       renewalUserIds.push(body.userId)
-      if (body.userId === removedPlayerUserId) {
+      if (membershipsChanged && body.userId === removedPlayerUserId) {
         return Response.json(
           { error: { code: 'UNAUTHORIZED', message: 'Campaign membership changed.' } },
           { status: 403 }
         )
       }
       return Response.json({
-        memberships: [
-          { role: 'OWNER', userId },
-          { role: 'PLAYER', userId: staleOwnerUserId },
-          { role: 'PLAYER', userId: retainedPlayerUserId }
-        ],
+        aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }],
+        memberships: membershipsChanged
+          ? [
+              { role: 'OWNER', userId },
+              { role: 'PLAYER', userId: staleOwnerUserId },
+              { role: 'PLAYER', userId: retainedPlayerUserId }
+            ]
+          : [
+              { role: 'OWNER', userId },
+              { role: 'OWNER', userId: staleOwnerUserId },
+              { role: 'PLAYER', userId: removedPlayerUserId },
+              { role: 'PLAYER', userId: retainedPlayerUserId }
+            ],
         ok: true,
         operation: 'RENEW'
       })
@@ -1303,11 +1703,14 @@ it('rotates away from a removed first connector and revokes stale-role sockets',
     reauthorizationSessionId
   )
   await Promise.all([owner.ready, staleOwner.ready, removedPlayer.ready, retainedPlayer.ready])
+  const renewalsBeforeChange = renewalUserIds.length
+  membershipsChanged = true
 
   await runInDurableObject(stub, async (_instance, state) => {
     state.storage.sql.exec(
-      'UPDATE room_meta SET authority_renewal_at = ? WHERE id = 1',
-      Date.now() - 1
+      'UPDATE room_meta SET authority_renewal_at = ?, authority_user_id = ? WHERE id = 1',
+      Date.now() - 1,
+      removedPlayerUserId
     )
     await state.storage.setAlarm(Date.now() + 60_000)
   })
@@ -1326,9 +1729,11 @@ it('rotates away from a removed first connector and revokes stale-role sockets',
   }
   expect((await staleOwnerClosed).code).toBe(1008)
   expect((await removedPlayerClosed).code).toBe(1008)
-  expect(renewalUserIds).toHaveLength(2)
-  expect(renewalUserIds[0]).toBe(removedPlayerUserId)
-  expect([userId, staleOwnerUserId, retainedPlayerUserId]).toContain(renewalUserIds[1])
+  expect(renewalUserIds.slice(renewalsBeforeChange)).toHaveLength(2)
+  expect(renewalUserIds[renewalsBeforeChange]).toBe(removedPlayerUserId)
+  expect([userId, staleOwnerUserId, retainedPlayerUserId]).toContain(
+    renewalUserIds[renewalsBeforeChange + 1]
+  )
   expect(
     [userId, retainedPlayerUserId].includes(
       await runInDurableObject(
@@ -1365,10 +1770,252 @@ it('rotates away from a removed first connector and revokes stale-role sockets',
   retainedPlayer.socket.close(1000, 'done')
 }, 45_000)
 
+it('does not refresh a current snapshot when equivalent Scene versions are reordered', async ({
+  expect
+}) => {
+  const operations: LiveSessionExecutorRequestDto['operation'][] = []
+  const aggregateVersions = [
+    { aggregateId: sceneId, aggregateKind: 'SCENE' as const, version: 0 },
+    { aggregateId: secondSceneId, aggregateKind: 'SCENE' as const, version: 0 }
+  ]
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const body = JSON.parse(await new Request(input, init).text()) as LiveSessionExecutorRequestDto
+    operations.push(body.operation)
+    if (body.operation === 'CLAIM') return Response.json({ ok: true, operation: 'CLAIM' })
+    if (body.operation === 'SNAPSHOT') {
+      return Response.json({
+        operation: 'SNAPSHOT',
+        snapshot: {
+          aggregateVersions,
+          characterVisions: [],
+          encounterCharacterBindings: [],
+          sceneStates: [
+            sceneState(0, 20),
+            { ...sceneState(0, 30), definitionId: secondSceneId, id: secondSceneId }
+          ]
+        }
+      })
+    }
+    if (body.operation === 'RENEW') {
+      return Response.json({
+        aggregateVersions: [...aggregateVersions].reverse(),
+        memberships: [{ role: 'OWNER', userId }],
+        ok: true,
+        operation: 'RENEW'
+      })
+    }
+    if (body.operation === 'RELEASE') {
+      return Response.json({ ok: true, operation: 'RELEASE' })
+    }
+    throw new Error(`Unexpected executor operation: ${body.operation}`)
+  })
+
+  const stub = env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${reorderedVersionsSessionId}`)
+  )
+  const connected = await connect(
+    stub,
+    await issueTicket('00000000-0000-4000-8000-000000000160', reorderedVersionsSessionId),
+    reorderedVersionsSessionId
+  )
+  await expect(connected.ready).resolves.toMatchObject({ aggregateVersions })
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW'])
+
+  const resumed = waitForMessage(connected.socket)
+  connected.socket.send(
+    JSON.stringify({ lastSeenDeliverySequence: 0, pendingCommandIds: [], type: 'RESUME' })
+  )
+  await expect(resumed).resolves.toMatchObject({ aggregateVersions })
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'RENEW'])
+  connected.socket.close(1000, 'done')
+}, 45_000)
+
+it('serializes joining and RESUME renewals before draining a command on the final snapshot', async ({
+  expect
+}) => {
+  let releaseJoiningRenewal!: () => void
+  let releaseJoiningSnapshot!: () => void
+  let releaseResumeRenewal!: () => void
+  let releaseResumeSnapshot!: () => void
+  let signalJoiningRenewal!: () => void
+  let signalJoiningSnapshot!: () => void
+  let signalResumeRenewal!: () => void
+  let signalResumeSnapshot!: () => void
+  const joiningRenewalReleased = new Promise<void>((resolve) => {
+    releaseJoiningRenewal = resolve
+  })
+  const joiningSnapshotReleased = new Promise<void>((resolve) => {
+    releaseJoiningSnapshot = resolve
+  })
+  const resumeRenewalReleased = new Promise<void>((resolve) => {
+    releaseResumeRenewal = resolve
+  })
+  const resumeSnapshotReleased = new Promise<void>((resolve) => {
+    releaseResumeSnapshot = resolve
+  })
+  const joiningRenewalStarted = new Promise<void>((resolve) => {
+    signalJoiningRenewal = resolve
+  })
+  const joiningSnapshotStarted = new Promise<void>((resolve) => {
+    signalJoiningSnapshot = resolve
+  })
+  const resumeRenewalStarted = new Promise<void>((resolve) => {
+    signalResumeRenewal = resolve
+  })
+  const resumeSnapshotStarted = new Promise<void>((resolve) => {
+    signalResumeSnapshot = resolve
+  })
+  let renewalCount = 0
+  let snapshotCount = 0
+  let commandCount = 0
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const body = JSON.parse(await new Request(input, init).text()) as LiveSessionExecutorRequestDto
+    if (body.operation === 'CLAIM') return Response.json({ ok: true, operation: 'CLAIM' })
+    if (body.operation === 'SNAPSHOT') {
+      const call = ++snapshotCount
+      if (call === 2) {
+        signalResumeSnapshot()
+        await resumeSnapshotReleased
+      } else if (call === 3) {
+        signalJoiningSnapshot()
+        await joiningSnapshotReleased
+      }
+      const version = call - 1
+      return Response.json({
+        operation: 'SNAPSHOT',
+        snapshot: {
+          aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version }],
+          characterVisions: [],
+          encounterCharacterBindings: [],
+          sceneStates: [sceneState(version, 20)]
+        }
+      })
+    }
+    if (body.operation === 'RENEW') {
+      const call = ++renewalCount
+      if (call === 2) {
+        signalResumeRenewal()
+        await resumeRenewalReleased
+      } else if (call === 3) {
+        signalJoiningRenewal()
+        await joiningRenewalReleased
+      }
+      return Response.json({
+        aggregateVersions: [
+          { aggregateId: sceneId, aggregateKind: 'SCENE', version: Math.max(0, call - 1) }
+        ],
+        memberships: [
+          { role: 'OWNER', userId },
+          { role: 'PLAYER', userId: overlappingRenewalsPlayerId }
+        ],
+        ok: true,
+        operation: 'RENEW'
+      })
+    }
+    if (body.operation === 'COMMAND') {
+      commandCount += 1
+      return Response.json({
+        execution: {
+          aggregateId: sceneId,
+          aggregateKind: 'SCENE',
+          commandId: overlappingRenewalsCommandId,
+          hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
+          replayed: false,
+          response: {
+            commandId: overlappingRenewalsCommandId,
+            delta: { kind: 'TOKEN_MOVED', position: { x: 25, y: 20 }, tokenId },
+            replayed: false,
+            sceneId,
+            version: 3
+          },
+          state: sceneState(3, 25),
+          version: 3
+        },
+        operation: 'COMMAND'
+      })
+    }
+    throw new Error(`Unexpected executor operation: ${body.operation}`)
+  })
+
+  const stub = env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${overlappingRenewalsSessionId}`)
+  )
+  const owner = await connect(
+    stub,
+    await issueTicket('00000000-0000-4000-8000-000000000164', overlappingRenewalsSessionId),
+    overlappingRenewalsSessionId
+  )
+  await owner.ready
+  const playerTicket = await issueTicket(
+    '00000000-0000-4000-8000-000000000165',
+    overlappingRenewalsSessionId,
+    'PLAYER',
+    overlappingRenewalsPlayerId
+  )
+  const ownerMessages = waitForMessages(owner.socket, 4)
+  await runInDurableObject(stub, async (instance, state) => {
+    const ownerServerSocket = state.getWebSockets()[0]
+    assert(ownerServerSocket !== undefined)
+    const resume = instance.webSocketMessage(
+      ownerServerSocket,
+      JSON.stringify({ lastSeenDeliverySequence: 0, pendingCommandIds: [], type: 'RESUME' })
+    )
+    await resumeRenewalStarted
+    const command = instance.webSocketMessage(
+      ownerServerSocket,
+      JSON.stringify({
+        command: sceneMoveCommand(overlappingRenewalsCommandId, 2, 25),
+        type: 'COMMAND'
+      })
+    )
+    const playerResponse = instance.fetch(
+      new Request(`https://session.test/live-session/${overlappingRenewalsSessionId}`, {
+        headers: {
+          'x-artificer-live-session-ticket': playerTicket,
+          upgrade: 'websocket'
+        }
+      })
+    )
+    releaseResumeRenewal()
+    await resumeSnapshotStarted
+    expect(renewalCount).toBe(2)
+    releaseResumeSnapshot()
+    await joiningRenewalStarted
+    expect(commandCount).toBe(0)
+    releaseJoiningRenewal()
+    await joiningSnapshotStarted
+    expect(commandCount).toBe(0)
+    releaseJoiningSnapshot()
+    const response = await playerResponse
+    expect(response.status).toBe(101)
+    await Promise.all([resume, command])
+    const playerServerSocket = state.getWebSockets().find((socket) => socket !== ownerServerSocket)
+    assert(playerServerSocket !== undefined)
+    playerServerSocket.close(1000, 'done')
+  })
+  const messages = await ownerMessages
+  expect(messages).toContainEqual(
+    expect.objectContaining({
+      commandId: overlappingRenewalsCommandId,
+      type: 'COMMAND_ACCEPTED'
+    })
+  )
+  expect(messages).toContainEqual(
+    expect.objectContaining({
+      originCommandId: overlappingRenewalsCommandId,
+      type: 'COMMAND_COMMITTED',
+      version: 3
+    })
+  )
+  expect(commandCount).toBe(1)
+  owner.socket.close(1000, 'done')
+}, 45_000)
+
 it('keeps an accepted Scene command pending across hibernation until overdue authority renews', async ({
   expect
 }) => {
   const operations: LiveSessionExecutorRequestDto['operation'][] = []
+  let renewalAttempts = 0
   let beginRenewal!: () => void
   let completeRenewal!: () => void
   const renewalBegan = new Promise<void>((resolve) => {
@@ -1396,9 +2043,19 @@ it('keeps an accepted Scene command pending across hibernation until overdue aut
       })
     }
     if (body.operation === 'RENEW') {
+      renewalAttempts += 1
+      if (renewalAttempts === 1) {
+        return Response.json({
+          aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }],
+          memberships: [{ role: 'OWNER', userId }],
+          ok: true,
+          operation: 'RENEW'
+        })
+      }
       beginRenewal()
       await renewalReleased
       return Response.json({
+        aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }],
         memberships: [{ role: 'OWNER', userId }],
         ok: true,
         operation: 'RENEW'
@@ -1459,7 +2116,7 @@ it('keeps an accepted Scene command pending across hibernation until overdue aut
     type: 'COMMAND_ACCEPTED'
   })
   await renewalBegan
-  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW'])
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'RENEW'])
 
   const committed = waitForMessage(client.socket)
   completeRenewal()
@@ -1467,15 +2124,17 @@ it('keeps an accepted Scene command pending across hibernation until overdue aut
     originCommandId: overdueLeaseCommandId,
     type: 'COMMAND_COMMITTED'
   })
-  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'COMMAND'])
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'RENEW', 'COMMAND'])
   expect(
-    await runInDurableObject(stub, (_instance, state) =>
-      state.storage.sql
-        .exec<{ status: string }>(
-          'SELECT status FROM command_inbox WHERE command_id = ?',
-          overdueLeaseCommandId
-        )
-        .one().status
+    await runInDurableObject(
+      stub,
+      (_instance, state) =>
+        state.storage.sql
+          .exec<{ status: string }>(
+            'SELECT status FROM command_inbox WHERE command_id = ?',
+            overdueLeaseCommandId
+          )
+          .one().status
     )
   ).toBe('COMMITTED')
   client.socket.close(1000, 'done')
@@ -1491,6 +2150,7 @@ it('renews authority through the persisted alarm after hibernation and releases 
     if (body.sessionId !== leaseSessionId) {
       if (body.operation === 'RENEW') {
         return Response.json({
+          aggregateVersions: [],
           memberships: [{ role: 'OWNER', userId: body.userId }],
           ok: true,
           operation: 'RENEW'
@@ -1516,13 +2176,14 @@ it('renews authority through the persisted alarm after hibernation and releases 
     }
     if (body.operation === 'RENEW') {
       renewalAttempts += 1
-      if (renewalAttempts === 1) {
+      if (renewalAttempts === 2) {
         return Response.json(
           { error: { code: 'COMMAND_FAILED', message: 'Executor unavailable.' } },
           { status: 503 }
         )
       }
       return Response.json({
+        aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }],
         memberships: [{ role: 'OWNER', userId }],
         ok: true,
         operation: 'RENEW'
@@ -1582,13 +2243,12 @@ it('renews authority through the persisted alarm after hibernation and releases 
 
   vi.useFakeTimers()
   vi.setSystemTime(initialNow + 31_000)
-  const resumed = waitForMessage(client.socket)
   client.socket.send(
     JSON.stringify({ lastSeenDeliverySequence: 0, pendingCommandIds: [], type: 'RESUME' })
   )
-  await expect(resumed).resolves.toMatchObject({ type: 'READY' })
+  await runInDurableObject(stub, () => undefined)
   expect(await runDurableObjectAlarm(stub)).toBe(true)
-  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW'])
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'RENEW'])
   expect(
     await runInDurableObject(
       stub,
@@ -1614,7 +2274,7 @@ it('renews authority through the persisted alarm after hibernation and releases 
     authority_renewal_blocked: 1
   })
   expect(await runDurableObjectAlarm(stub)).toBe(true)
-  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW'])
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'RENEW'])
 
   vi.setSystemTime(initialNow + 33_001)
   const committed = waitForMessage(client.socket)
@@ -1623,7 +2283,7 @@ it('renews authority through the persisted alarm after hibernation and releases 
     originCommandId: commandId,
     type: 'COMMAND_COMMITTED'
   })
-  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'RENEW', 'COMMAND'])
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'RENEW', 'RENEW', 'COMMAND'])
   const renewedAt = await runInDurableObject(
     stub,
     (_instance, state) =>
@@ -1641,10 +2301,12 @@ it('renews authority through the persisted alarm after hibernation and releases 
     for (const socket of state.getWebSockets()) socket.close(1000, 'done')
   })
   await waitForNoServerSockets(stub)
-  const scheduledReleaseAt = await runInDurableObject(stub, (_instance, state) =>
-    state.storage.sql
-      .exec<{ release_at: number | null }>('SELECT release_at FROM room_meta WHERE id = 1')
-      .one().release_at
+  const scheduledReleaseAt = await runInDurableObject(
+    stub,
+    (_instance, state) =>
+      state.storage.sql
+        .exec<{ release_at: number | null }>('SELECT release_at FROM room_meta WHERE id = 1')
+        .one().release_at
   )
   expect(scheduledReleaseAt).toBeGreaterThan(Date.now())
   await runInDurableObject(stub, async (_instance, state) => {
@@ -1652,7 +2314,7 @@ it('renews authority through the persisted alarm after hibernation and releases 
     await state.storage.setAlarm(Date.now() + 60_000)
   })
   expect(await runDurableObjectAlarm(stub)).toBe(true)
-  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'RENEW', 'COMMAND', 'RELEASE'])
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'RENEW', 'RENEW', 'COMMAND', 'RELEASE'])
   expect(
     await runInDurableObject(stub, (_instance, state) =>
       state.storage.sql
@@ -1673,12 +2335,13 @@ it('fails closed when authority renewal is terminally rejected and requires rehy
   expect
 }) => {
   const operations: LiveSessionExecutorRequestDto['operation'][] = []
-  let rejectRenewal = true
+  let renewalAttempts = 0
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const body = JSON.parse(await new Request(input, init).text()) as LiveSessionExecutorRequestDto
     if (body.sessionId !== terminalSessionId) {
       if (body.operation === 'RENEW') {
         return Response.json({
+          aggregateVersions: [],
           memberships: [{ role: 'OWNER', userId: body.userId }],
           ok: true,
           operation: 'RENEW'
@@ -1702,8 +2365,8 @@ it('fails closed when authority renewal is terminally rejected and requires rehy
         }
       })
     }
-    if (body.operation === 'RENEW' && rejectRenewal) {
-      rejectRenewal = false
+    if (body.operation === 'RENEW') renewalAttempts += 1
+    if (body.operation === 'RENEW' && renewalAttempts === 2) {
       return Response.json(
         { error: { code: 'CONFLICT', message: 'The live-session authority expired.' } },
         { status: 409 }
@@ -1711,6 +2374,7 @@ it('fails closed when authority renewal is terminally rejected and requires rehy
     }
     if (body.operation === 'RENEW') {
       return Response.json({
+        aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }],
         memberships: [{ role: 'OWNER', userId }],
         ok: true,
         operation: 'RENEW'
@@ -1764,7 +2428,7 @@ it('fails closed when authority renewal is terminally rejected and requires rehy
     terminalSessionId
   )
   await expect(replacement.ready).resolves.toMatchObject({ type: 'READY' })
-  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'CLAIM', 'SNAPSHOT'])
+  expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'RENEW', 'CLAIM', 'SNAPSHOT', 'RENEW'])
   replacement.socket.close(1000, 'done')
 }, 45_000)
 
@@ -1821,6 +2485,7 @@ it('releases a same-key fence after terminal rejection and keeps retryable failu
     }
     if (body.operation === 'RENEW') {
       return Response.json({
+        aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }],
         memberships: [{ role: 'OWNER', userId }],
         ok: true,
         operation: 'RENEW'
@@ -1852,7 +2517,7 @@ it('releases a same-key fence after terminal rejection and keeps retryable failu
     {
       code: 'INVALID_COMMAND',
       commandId,
-      message: 'The command is invalid.',
+      message: 'The live-session command is invalid.',
       type: 'COMMAND_REJECTED'
     }
   ])

@@ -68,7 +68,65 @@ export function useCampaignLiveSession({
       onError: (nextError) => setError(nextError.message),
       onMessage: (message) => {
         if (message.type === 'READY') {
+          const previousAggregateVersions = aggregateVersions.current
           aggregateVersions.current = message.aggregateVersions
+          if (previousAggregateVersions.length > 0) {
+            const previousVersions = new Map(
+              previousAggregateVersions.map((version) => [
+                `${version.aggregateKind}:${version.aggregateId}`,
+                version.version
+              ])
+            )
+            const nextVersions = new Map(
+              message.aggregateVersions.map((version) => [
+                `${version.aggregateKind}:${version.aggregateId}`,
+                version.version
+              ])
+            )
+            const changed = new Set([...previousVersions.keys(), ...nextVersions.keys()])
+            const changedCharacterIds = [...changed].flatMap((key) => {
+              if (!key.startsWith('CHARACTER:')) return []
+              return previousVersions.get(key) === nextVersions.get(key) ? [] : [key.slice(10)]
+            })
+            for (const characterId of changedCharacterIds) {
+              void queryClient.invalidateQueries({
+                queryKey: queryKeys.characters.sheet(characterId)
+              })
+              void queryClient.invalidateQueries({
+                queryKey: queryKeys.characters.panels(characterId)
+              })
+              void queryClient.invalidateQueries({
+                queryKey: queryKeys.characters.preparationOptions(characterId)
+              })
+              void queryClient.invalidateQueries({
+                exact: true,
+                queryKey: queryKeys.characters.detail(characterId)
+              })
+              void queryClient.invalidateQueries({
+                queryKey: queryKeys.characters.draft(characterId)
+              })
+            }
+            if (changedCharacterIds.length > 0) {
+              void queryClient.invalidateQueries({ queryKey: queryKeys.characters.list() })
+            }
+            if (
+              previousVersions.get(`CAMPAIGN:${campaignId}`) !==
+              nextVersions.get(`CAMPAIGN:${campaignId}`)
+            ) {
+              void queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all() })
+            }
+            if (
+              [...changed].some(
+                (key) =>
+                  (key.startsWith('ENCOUNTER:') || key.startsWith('SCENE:')) &&
+                  previousVersions.get(key) !== nextVersions.get(key)
+              )
+            ) {
+              void queryClient.invalidateQueries({
+                queryKey: queryKeys.encounters.list(campaignId)
+              })
+            }
+          }
         } else if (message.type === 'COMMAND_COMMITTED') {
           aggregateVersions.current = withLiveSessionAggregateVersion(
             aggregateVersions.current,
@@ -118,6 +176,9 @@ export function useCampaignLiveSession({
           } else if (message.aggregateKind === 'CHARACTER') {
             const sheetKey = queryKeys.characters.sheet(message.aggregateId)
             const panelsKey = queryKeys.characters.panels(message.aggregateId)
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.characters.preparationOptions(message.aggregateId)
+            })
             const cachedVersion =
               queryClient.getQueryData<CharacterSheetResponseDto>(sheetKey)?.meta.streamVersion ?? 0
             const knownVersion =

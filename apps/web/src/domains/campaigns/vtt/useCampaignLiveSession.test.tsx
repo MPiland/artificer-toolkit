@@ -170,6 +170,94 @@ describe('useCampaignLiveSession', () => {
     ).toBe(4)
   })
 
+  it('invalidates cached aggregates when a refreshed READY advances authoritative versions', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const characterId = characterSheetFixture.meta.characterId
+    const sheetKey = queryKeys.characters.sheet(characterId)
+    const panelsKey = queryKeys.characters.panels(characterId)
+    const detailKey = queryKeys.characters.detail(characterId)
+    const draftKey = queryKeys.characters.draft(characterId)
+    const preparationOptionsKey = queryKeys.characters.preparationOptions(characterId)
+    const encounterKey = queryKeys.encounters.list(tabletopGmEncounter.campaignId)
+    const campaignKey = queryKeys.campaigns.detail(tabletopGmEncounter.campaignId)
+    for (const key of [
+      sheetKey,
+      panelsKey,
+      detailKey,
+      draftKey,
+      preparationOptionsKey,
+      encounterKey,
+      campaignKey
+    ]) {
+      queryClient.setQueryData(key, { cached: true })
+    }
+    const wrapper = ({ children }: PropsWithChildren) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    )
+    renderHook(
+      () =>
+        useCampaignLiveSession({
+          campaignId: tabletopGmEncounter.campaignId,
+          enabled: true,
+          onTransient: () => undefined,
+          sessionId: tabletopGmEncounter.sessionId
+        }),
+      { wrapper }
+    )
+
+    await waitFor(() => expect(mocks.options).not.toBeNull())
+    const options = mocks.options as Parameters<typeof createLiveSessionConnection>[0]
+    const ready = (characterVersion: number, encounterVersion: number, campaignVersion: number) =>
+      ({
+        aggregateVersions: [
+          {
+            aggregateId: tabletopGmEncounter.campaignId,
+            aggregateKind: 'CAMPAIGN',
+            version: campaignVersion
+          },
+          { aggregateId: characterId, aggregateKind: 'CHARACTER', version: characterVersion },
+          {
+            aggregateId: tabletopGmEncounter.id,
+            aggregateKind: 'ENCOUNTER',
+            version: encounterVersion
+          }
+        ],
+        campaignId: tabletopGmEncounter.campaignId,
+        deliverySequence: 0,
+        sceneSnapshots: [],
+        sessionId: tabletopGmEncounter.sessionId,
+        type: 'READY'
+      }) satisfies LiveSessionWebSocketServerMessageDto
+
+    act(() => options.onMessage(ready(1, tabletopGmEncounter.version, 3)))
+    for (const key of [
+      sheetKey,
+      panelsKey,
+      detailKey,
+      draftKey,
+      preparationOptionsKey,
+      encounterKey,
+      campaignKey
+    ]) {
+      expect(queryClient.getQueryState(key)?.isInvalidated).toBe(false)
+    }
+
+    act(() => options.onMessage(ready(2, tabletopGmEncounter.version + 1, 4)))
+    await waitFor(() => {
+      for (const key of [
+        sheetKey,
+        panelsKey,
+        detailKey,
+        draftKey,
+        preparationOptionsKey,
+        encounterKey,
+        campaignKey
+      ]) {
+        expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true)
+      }
+    })
+  })
+
   it('invalidates Campaign authority data when a connected membership is revoked', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const detailKey = queryKeys.campaigns.detail(tabletopGmEncounter.campaignId)

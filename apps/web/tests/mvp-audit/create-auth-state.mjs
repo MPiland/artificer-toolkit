@@ -15,7 +15,7 @@ const page = await context.newPage()
 
 try {
   await page.goto(`${baseUrl}/sign-in`, { waitUntil: 'networkidle', timeout: 30_000 })
-  await page.getByLabel('Email address').fill(email)
+  await page.getByLabel('Email or username').fill(email)
   await page.getByRole('textbox', { name: 'Password' }).fill(password)
   await page.getByRole('button', { name: 'Sign in' }).click()
   await page.waitForFunction(

@@ -1481,6 +1481,40 @@ describe('character sheet command reducer', () => {
     ])
   })
 
+  it('uses capability eligibility for an uncommitted prepared Spell', () => {
+    const character = createCharacter()
+    const eligibility = new Map([['class-1', new Set(['spell-3'])]])
+
+    const next = applyCharacterSheetCommand(
+      character,
+      {
+        type: 'SET_PREPARED_SPELLS',
+        classId: 'class-1',
+        spellIds: ['spell-3'],
+        expectedVersion: 1
+      },
+      createSheet(),
+      { preparationEligibleSpellIdsByClassId: eligibility }
+    )
+
+    expect(next.state.classes).toEqual([
+      { classId: 'class-1', spells: { learned: ['spell-1'], prepared: ['spell-3'] } }
+    ])
+    expect(() =>
+      applyCharacterSheetCommand(
+        character,
+        {
+          type: 'SET_PREPARED_SPELLS',
+          classId: 'class-1',
+          spellIds: ['spell-4'],
+          expectedVersion: 1
+        },
+        createSheet(),
+        { preparationEligibleSpellIdsByClassId: eligibility }
+      )
+    ).toThrow(/not available/)
+  })
+
   it('preserves class state ordering when updating prepared spells', () => {
     const character = createCharacter()
     character.state.classes = [

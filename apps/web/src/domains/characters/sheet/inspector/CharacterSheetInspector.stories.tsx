@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { expect, userEvent, within } from 'storybook/test'
-import { characterSheetFixture } from '../fixtures/characterSheet.fixtures'
 import { astralTearCharacterSheetFixture } from '../fixtures/astralTearSheet.fixtures'
 import { CharacterSheetView } from '../core/CharacterSheetView'
 import {
@@ -197,7 +196,9 @@ export const ItemInspector: Story = {
     msw: { handlers: [panelHandler(itemPanelFixture)] }
   },
   play: async ({ canvas, canvasElement }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Open Wand of Magic Missiles details' }))
+    await userEvent.click(
+      canvas.getByRole('button', { name: 'Open Wand of Magic Missiles details' })
+    )
     await expectInspectorReady(canvasElement, 'Moon-Touched Longsword', 'Owned item')
   }
 }

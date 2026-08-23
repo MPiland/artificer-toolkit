@@ -10,7 +10,7 @@ import {
   deleteCampaign,
   getCampaign,
   getCampaignSettings,
-  listCampaignContentVersions,
+  listCampaignContentShares,
   leaveCampaign,
   listSentCampaignInvites,
   listReceivedCampaignInvites,
@@ -18,9 +18,9 @@ import {
   removeCampaignMember,
   requestCampaignOwnershipTransfer,
   revokeCampaignInvite,
-  submitCampaignContentVersion,
+  shareCampaignContent,
+  unshareCampaignContent,
   unassignCampaignCharacter,
-  reviewCampaignContentVersion,
   updateCampaign
 } from '@artificer-toolkit/functions'
 import * as campaignContracts from '@artificer-toolkit/schema/api/campaigns'
@@ -146,7 +146,14 @@ export const campaignRouter = createTRPCRouter({
     .output(okResponseSchema)
     .mutation(({ ctx, input }) =>
       withExplicitAuthorityDb(ctx, async (db, userId) => {
-        await leaveCampaign(db, userId, input.campaignId)
+        await leaveCampaign(
+          db,
+          userId,
+          input.campaignId,
+          input.expectedCampaignVersion,
+          input.expectedMembershipAccessStartedAt,
+          input.commandId
+        )
         return { ok: true as const }
       })
     ),
@@ -155,7 +162,15 @@ export const campaignRouter = createTRPCRouter({
     .output(okResponseSchema)
     .mutation(({ ctx, input }) =>
       withExplicitAuthorityDb(ctx, async (db, userId) => {
-        await removeCampaignMember(db, userId, input.campaignId, input.userId)
+        await removeCampaignMember(
+          db,
+          userId,
+          input.campaignId,
+          input.userId,
+          input.expectedCampaignVersion,
+          input.expectedMembershipAccessStartedAt,
+          input.commandId
+        )
         return { ok: true as const }
       })
     ),
@@ -204,27 +219,23 @@ export const campaignRouter = createTRPCRouter({
   content: createTRPCRouter({
     list: authenticatedProcedure
       .input(campaignContracts.campaignIdInputSchema)
-      .output(campaignContracts.campaignContentBindingsDtoSchema)
+      .output(campaignContracts.campaignContentSharesDtoSchema)
       .query(({ ctx, input }) =>
         withExplicitAuthorityDb(ctx, (db, userId) =>
-          listCampaignContentVersions(db, userId, input.campaignId)
+          listCampaignContentShares(db, userId, input.campaignId)
         )
       ),
-    submit: authenticatedProcedure
-      .input(campaignContracts.submitCampaignContentVersionInputSchema)
-      .output(campaignContracts.campaignContentBindingDtoSchema)
+    share: authenticatedProcedure
+      .input(campaignContracts.shareCampaignContentInputSchema)
+      .output(campaignContracts.campaignContentShareDtoSchema)
       .mutation(({ ctx, input }) =>
-        withExplicitAuthorityDb(ctx, (db, userId) =>
-          submitCampaignContentVersion(db, userId, input)
-        )
+        withExplicitAuthorityDb(ctx, (db, userId) => shareCampaignContent(db, userId, input))
       ),
-    review: authenticatedProcedure
-      .input(campaignContracts.reviewCampaignContentVersionInputSchema)
-      .output(campaignContracts.campaignContentBindingDtoSchema)
+    unshare: authenticatedProcedure
+      .input(campaignContracts.unshareCampaignContentInputSchema)
+      .output(campaignContracts.campaignContentRemovalReceiptDtoSchema)
       .mutation(({ ctx, input }) =>
-        withExplicitAuthorityDb(ctx, (db, userId) =>
-          reviewCampaignContentVersion(db, userId, input)
-        )
+        withExplicitAuthorityDb(ctx, (db, userId) => unshareCampaignContent(db, userId, input))
       )
   }),
   conversations: campaignConversationsRouter,

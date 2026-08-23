@@ -104,18 +104,20 @@ export async function getSpellListQuery(
     .execute()
 
   const classes: SpellMetaObject[] = await db
-    .selectFrom('spell_classes')
-    .innerJoin('classes', 'classes.id', 'spell_classes.class_id')
+    .selectFrom('spell_catalog_classes as spell_class')
+    .innerJoin('spells as class_spell', 'class_spell.id', 'spell_class.spell_id')
+    .innerJoin('classes', 'classes.id', 'spell_class.class_id')
     .select((eb) => [
-      'spell_classes.class_id as id',
+      'spell_class.class_id as id',
       'classes.label as label',
       eb.fn
-        .agg<string[]>('array_agg', [eb.ref('spell_classes.spell_id')])
+        .agg<string[]>('array_agg', [eb.ref('spell_class.spell_id')])
         .distinct()
         .as('spellIds')
     ])
-    .where('spell_classes.spell_id', 'in', spellIds)
-    .groupBy(['spell_classes.class_id', 'classes.label'])
+    .whereRef('spell_class.authored_version_id', '=', 'class_spell.active_version_id')
+    .where('spell_class.spell_id', 'in', spellIds)
+    .groupBy(['spell_class.class_id', 'classes.label'])
     .execute()
 
   const schools: SpellMetaObject[] = (await db

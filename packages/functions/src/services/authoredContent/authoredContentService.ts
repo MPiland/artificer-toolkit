@@ -91,7 +91,9 @@ export function normalizeAuthoredListResponse<
   }
 }
 
-export function toDraftSummary(draft: AuthoredDraft & { publicId?: string }): AuthoredDraftSummaryDto {
+export function toDraftSummary(
+  draft: AuthoredDraft & { publicId?: string }
+): AuthoredDraftSummaryDto {
   return {
     subjectKind: draft.subjectKind,
     subjectId: draft.subjectId,
@@ -404,11 +406,16 @@ export async function assertDeletableActiveAuthoredSubject(
   subjectId: string,
   userId: string
 ): Promise<void> {
-  if (!(await activeAuthoredSubjectExists(db, subjectKind, subjectId))) {
+  const active = await createAuthoredContentRepository(db).lockActiveBySubject({
+    subjectKind,
+    subjectId
+  })
+  if (!active) {
     throw new AuthoredContentNotFoundError(subjectKind, subjectId)
   }
-
-  await assertWritableAuthoredSubject(db, subjectKind, subjectId, userId)
+  if (active.isMaster || active.ownerUserId !== userId) {
+    throw new AuthoredContentOwnershipError(subjectKind, subjectId)
+  }
   await assertNoActiveDeleteDependents(db, table, subjectKind, subjectId)
 }
 

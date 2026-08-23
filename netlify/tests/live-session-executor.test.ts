@@ -10,6 +10,27 @@ vi.mock('@artificer-toolkit/db', () => ({
   withUserContext: mocks.withUserContext
 }))
 vi.mock('@artificer-toolkit/functions/services', () => ({
+  classifyLiveSessionCommandError: (error: unknown) => {
+    const name = error instanceof Error ? error.name : ''
+    if (
+      name === 'CharacterSheetCommandError' ||
+      name === 'EncounterNotFoundError' ||
+      name === 'EncounterValidationError'
+    ) {
+      return 'INVALID_COMMAND'
+    }
+    if (name === 'CampaignAccessError' || name === 'LiveSessionAuthorityError') {
+      return 'UNAUTHORIZED'
+    }
+    if (
+      name === 'ConcurrencyError' ||
+      name === 'EncounterConflictError' ||
+      name === 'LiveSessionCommandAuthorityError'
+    ) {
+      return 'STALE_VERSION'
+    }
+    return 'COMMAND_FAILED'
+  },
   executeLiveSessionExecutorRequest: mocks.execute
 }))
 
@@ -157,9 +178,7 @@ describe('live-session Netlify executor', () => {
     expect(body).toEqual({
       error: {
         code: 'COMMAND_FAILED',
-        message: expect.stringMatching(
-          /^Live-session command failed\. Reference [0-9a-f-]{36}\.$/
-        )
+        message: expect.stringMatching(/^Live-session command failed\. Reference [0-9a-f-]{36}\.$/)
       }
     })
     expect(body.error.message).not.toContain(error.message)

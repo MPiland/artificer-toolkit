@@ -22,7 +22,10 @@ import {
 } from '@artificer-toolkit/shared/subjects/authored'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { ResolvedEquipment, ResolvedRace } from '@artificer-toolkit/shared/subjects/compilers'
-import { createSystemVocabularySnapshotRepository, type SystemSeedRecord } from '@artificer-toolkit/db'
+import {
+  createSystemVocabularySnapshotRepository,
+  type SystemSeedRecord
+} from '@artificer-toolkit/db'
 import {
   getSelectedFeatureOptionIds,
   resolveCharacterChosenGrantChoices,
@@ -35,13 +38,14 @@ import {
   loadCharacterStructuralSpellCatalog,
   loadCharacterStructuralSubclassCatalog,
   mergeCampaignContentIntoCharacterBuilderCatalog,
+  toCharacterBuilderSpellCatalogRecord,
   type CharacterBuilderCatalog
 } from './builderCatalog.js'
 import { loadCharacterAssemblyRegistry } from './characterAssemblyOrchestrator.js'
 import {
   hydrateCampaignCatalogContent,
   loadCampaignCharacterContentOverlay,
-  type CampaignAuthoredSnapshot
+  type CampaignAuthoredSource
 } from './campaignCharacterContent.js'
 import {
   appendAbilityIntentValidationIssues,
@@ -78,6 +82,11 @@ import {
   appendManualHitpointValidationIssues,
   isCharacterHitpointProgressionValid
 } from './builderHitPoints.js'
+import { assembleCharacterRuleSnapshot } from './characterRuleSnapshot.js'
+import {
+  buildCharacterSpellRuleFacts,
+  collectCharacterRuleInputSpellIds
+} from './characterSpellRuleFacts.js'
 
 type BuilderMode = 'create' | 'edit'
 
@@ -94,10 +103,40 @@ export interface CharacterBuilderRegistry {
 export interface CharacterBuilderContext {
   catalog: CharacterBuilderCatalog
   registry: CharacterBuilderRegistry
+  /** Exact current Spell documents authorized for this Character context. */
+  spellDocumentsById?: ReadonlyMap<string, SpellAuthored>
 }
 
 export interface CharacterBuilderContextLoadOptions {
   includeEffects?: boolean
+  referenceSpellIds?: readonly string[]
+}
+
+export function collectContextSpellIds(
+  character: CharacterAuthored,
+  context: CharacterBuilderContext,
+  referenceSpellIds: readonly string[] | undefined
+): readonly string[] {
+  const assembled = assembleCharacterRuleSnapshot({ character, context })
+  const spellFacts = buildCharacterSpellRuleFacts(assembled.snapshot, assembled.registry)
+  return [
+    ...collectCharacterRuleInputSpellIds({
+      referenceSpellIds,
+      spellAccessCandidates: spellFacts.spellAccessCandidates,
+      spellSources: assembled.snapshot.spellSources
+    })
+  ]
+}
+
+function getRealCampaignSpellDocuments(
+  campaignContent: Awaited<ReturnType<typeof loadCampaignCharacterContentOverlay>>
+): SpellAuthored[] {
+  if (!campaignContent) return []
+  return [...campaignContent.latest.entries()].flatMap(([key, source]) =>
+    source.subjectKind === 'SPELL' && campaignContent.sharesByRoot.has(key)
+      ? [source.authored as SpellAuthored]
+      : []
+  )
 }
 
 export function getCharacterChosenGrantChoiceRegistry(
@@ -272,7 +311,7 @@ export function createEmptyCharacterAuthored(params: {
 export async function loadCharacterBuilderContext(
   db: DBLike,
   character: CharacterAuthored,
-  campaignContentOverrides: readonly CampaignAuthoredSnapshot[] = [],
+  campaignContentOverrides: readonly CampaignAuthoredSource[] = [],
   options: CharacterBuilderContextLoadOptions = {}
 ): Promise<CharacterBuilderContext> {
   const [baseCatalog, campaignContent] = await Promise.all([
@@ -338,19 +377,32 @@ export async function loadCharacterBuilderContext(
       : await loadCharacterBuilderSpellCatalog(db, character.systemId, character.userId)
     : []
 
-  return {
+  const context: CharacterBuilderContext = {
     catalog: {
       ...catalog,
       spells
     },
     registry: lightRegistry
   }
+  const spellIds = collectContextSpellIds(character, context, options.referenceSpellIds)
+  const spellDocuments = await loadCharacterStructuralSpellCatalog({
+    db,
+    systemId: character.systemId,
+    userId: character.userId,
+    campaignSpells: getRealCampaignSpellDocuments(campaignContent),
+    spellIds
+  })
+
+  return {
+    ...context,
+    spellDocumentsById: new Map(spellDocuments.map((spell) => [spell.id, spell]))
+  }
 }
 
 export async function loadCharacterStructuralRuleContext(
   db: DBLike,
   character: CharacterAuthored,
-  campaignContentOverrides: readonly CampaignAuthoredSnapshot[] = [],
+  campaignContentOverrides: readonly CampaignAuthoredSource[] = [],
   options: CharacterBuilderContextLoadOptions = {}
 ): Promise<CharacterBuilderContext> {
   const campaignContent = await loadCampaignCharacterContentOverlay(
@@ -364,10 +416,7 @@ export async function loadCharacterStructuralRuleContext(
   if (!vocabularySnapshot) {
     throw new Error(`Character "${character.id}" has no active System vocabulary snapshot.`)
   }
-  const campaignSnapshots = new Map([
-    ...(campaignContent?.latest ?? []),
-    ...(campaignContent?.bindings ?? [])
-  ])
+  const campaignSources = new Map(campaignContent?.latest ?? [])
   const candidateFeatIds = [
     ...new Set([
       ...character.intent.featureAcquisitions.flatMap((acquisition) =>
@@ -379,21 +428,21 @@ export async function loadCharacterStructuralRuleContext(
   const canonicalFeatIds =
     candidateFeatIds.length > 0
       ? new Set(
-          [...(
-            await createAuthoredVersionRepository(db).findActiveByIds({
+          [
+            ...(await createAuthoredVersionRepository(db).findActiveByIds({
               subjectKind: 'FEAT',
               subjectIds: candidateFeatIds,
               systemId: character.systemId,
               userId: character.userId,
               includeMaster: true
-            })
-          )].flatMap(([id, record]) =>
+            }))
+          ].flatMap(([id, record]) =>
             record.authored.document.systemId === character.systemId ? [id] : []
           )
         )
       : new Set<string>()
   const campaignFeatIds = new Set(
-    [...campaignSnapshots.values()]
+    [...campaignSources.values()]
       .filter((snapshot) => snapshot.subjectKind === 'FEAT')
       .map((snapshot) => snapshot.subjectId)
   )
@@ -446,18 +495,18 @@ export async function loadCharacterStructuralRuleContext(
     )
   )
   const baseClassIds = character.intent.classes.map((selection) => selection.classId)
-  const campaignSubclasses = [...campaignSnapshots.values()].flatMap((snapshot) => {
-    const document = snapshot.subjectKind === 'CLASS' ? (snapshot.authored as ClassAuthored) : null
+  const campaignSubclasses = [...campaignSources.values()].flatMap((source) => {
+    const document = source.subjectKind === 'CLASS' ? (source.authored as ClassAuthored) : null
     return document?.category === CLASS_CATEGORY.SUBCLASS ? [document] : []
   })
-  const campaignSpells = [...campaignSnapshots.values()].flatMap((snapshot) =>
-    snapshot.subjectKind === 'SPELL' ? [snapshot.authored as SpellAuthored] : []
+  const campaignSpells = [...campaignSources.values()].flatMap((source) =>
+    source.subjectKind === 'SPELL' ? [source.authored as SpellAuthored] : []
   )
   const selectedSpellIds = [
     ...(character.intent.spellSelections ?? []).flatMap((selection) => selection.spells),
     ...(character.intent.chosenGrantSelections ?? []).flatMap((selection) => selection.targetIds)
   ]
-  const [subclasses, spells] = await Promise.all([
+  const [subclasses, baseSpellCatalog] = await Promise.all([
     loadCharacterStructuralSubclassCatalog({
       db,
       systemId: character.systemId,
@@ -466,23 +515,30 @@ export async function loadCharacterStructuralRuleContext(
       campaignSubclasses
     }),
     needsSpells
-      ? loadCharacterStructuralSpellCatalog({
-          db,
-          systemId: character.systemId,
-          userId: character.userId,
-          classIds: [
-            ...baseClassIds,
-            ...character.intent.classes.flatMap((selection) =>
-              selection.subclassId ? [selection.subclassId] : []
-            )
-          ],
-          selectedSpellIds,
-          campaignSpells
-        })
+      ? loadCharacterBuilderSpellCatalog(db, character.systemId, character.userId)
       : Promise.resolve([])
   ])
 
-  return {
+  const structuralClassIds = new Set([
+    ...baseClassIds,
+    ...character.intent.classes.flatMap((selection) =>
+      selection.subclassId ? [selection.subclassId] : []
+    )
+  ])
+  const selectedIds = new Set(selectedSpellIds)
+  const campaignSpellIds = new Set(campaignSpells.map((spell) => spell.id))
+  const spells = [
+    ...baseSpellCatalog.filter((spell) => !campaignSpellIds.has(spell.id)),
+    ...campaignSpells.map(toCharacterBuilderSpellCatalogRecord)
+  ].filter(
+    (spell) =>
+      selectedIds.has(spell.id) || spell.classIds.some((classId) => structuralClassIds.has(classId))
+  )
+  if (new Set(spells.map((spell) => spell.id)).size > 500) {
+    throw new Error('Character structural spell candidates exceed the bounded catalogue limit.')
+  }
+
+  const context: CharacterBuilderContext = {
     catalog: {
       ...emptyCatalog,
       classes: subclasses,
@@ -499,6 +555,19 @@ export async function loadCharacterStructuralRuleContext(
       spells
     },
     registry
+  }
+  const spellIds = collectContextSpellIds(character, context, options.referenceSpellIds)
+  const spellDocuments = await loadCharacterStructuralSpellCatalog({
+    db,
+    systemId: character.systemId,
+    userId: character.userId,
+    campaignSpells: getRealCampaignSpellDocuments(campaignContent),
+    spellIds
+  })
+
+  return {
+    ...context,
+    spellDocumentsById: new Map(spellDocuments.map((spell) => [spell.id, spell]))
   }
 }
 

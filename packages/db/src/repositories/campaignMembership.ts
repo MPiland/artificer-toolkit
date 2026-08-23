@@ -96,6 +96,77 @@ export function createCampaignMembershipRepository(db: DBLike) {
           }
         : null
     },
+    async lockActiveMembershipForShare(
+      campaignId: string,
+      userId: string
+    ): Promise<CampaignMembershipRecord | null> {
+      const row = await db
+        .selectFrom('campaign_memberships')
+        .selectAll()
+        .where('campaign_id', '=', campaignId)
+        .where('user_id', '=', userId)
+        .where('status', '=', 'ACTIVE')
+        .forShare()
+        .executeTakeFirst()
+      return row
+        ? {
+            campaignId: row.campaign_id,
+            userId: row.user_id,
+            role: row.role as CampaignRole,
+            status: row.status as CampaignMembershipStatus,
+            accessStartedAt: row.access_started_at,
+            joinedAt: row.joined_at,
+            leftAt: row.left_at
+          }
+        : null
+    },
+    async lockMembershipForShare(
+      campaignId: string,
+      userId: string
+    ): Promise<CampaignMembershipRecord | null> {
+      const row = await db
+        .selectFrom('campaign_memberships')
+        .selectAll()
+        .where('campaign_id', '=', campaignId)
+        .where('user_id', '=', userId)
+        .forShare()
+        .executeTakeFirst()
+      return row
+        ? {
+            campaignId: row.campaign_id,
+            userId: row.user_id,
+            role: row.role as CampaignRole,
+            status: row.status as CampaignMembershipStatus,
+            accessStartedAt: row.access_started_at,
+            joinedAt: row.joined_at,
+            leftAt: row.left_at
+          }
+        : null
+    },
+    async lockActiveMembershipForUpdate(
+      campaignId: string,
+      userId: string
+    ): Promise<CampaignMembershipRecord | null> {
+      const row = await db
+        .selectFrom('campaign_memberships')
+        .selectAll()
+        .where('campaign_id', '=', campaignId)
+        .where('user_id', '=', userId)
+        .where('status', '=', 'ACTIVE')
+        .forUpdate()
+        .executeTakeFirst()
+      return row
+        ? {
+            campaignId: row.campaign_id,
+            userId: row.user_id,
+            role: row.role as CampaignRole,
+            status: row.status as CampaignMembershipStatus,
+            accessStartedAt: row.access_started_at,
+            joinedAt: row.joined_at,
+            leftAt: row.left_at
+          }
+        : null
+    },
     async activatePlayerMembership(campaignId: string, userId: string, now: string): Promise<void> {
       await db
         .insertInto('campaign_memberships')
@@ -185,6 +256,21 @@ export function createCampaignMembershipRepository(db: DBLike) {
         .selectFrom('campaign_character_assignments')
         .selectAll()
         .where('campaign_id', '=', campaignId)
+        .where('character_id', '=', characterId)
+        .executeTakeFirst()
+      return row
+        ? {
+            campaignId: row.campaign_id,
+            characterId: row.character_id,
+            userId: row.user_id,
+            assignedAt: row.assigned_at
+          }
+        : null
+    },
+    async findCampaignByCharacter(characterId: string): Promise<CampaignAssignmentRecord | null> {
+      const row = await db
+        .selectFrom('campaign_character_assignments')
+        .selectAll()
         .where('character_id', '=', characterId)
         .executeTakeFirst()
       return row

@@ -10,7 +10,7 @@ import {
 export const campaignVehicleDtoSchema = z.strictObject({
   id: uuidSchema,
   campaignId: uuidSchema,
-  contentVersionId: uuidSchema,
+  vehicleDefinitionId: uuidSchema,
   label: shortTextSchema.nullable(),
   version: versionSchema,
   createdAt: timestampSchema,
@@ -22,7 +22,7 @@ export const listCampaignVehiclesInputSchema = z.strictObject({
 })
 export const createCampaignVehicleInputSchema = z.strictObject({
   campaignId: uuidSchema,
-  contentVersionId: uuidSchema,
+  vehicleDefinitionId: uuidSchema,
   label: shortTextSchema.nullable().optional()
 })
 export const updateCampaignVehicleInputSchema = z.strictObject({

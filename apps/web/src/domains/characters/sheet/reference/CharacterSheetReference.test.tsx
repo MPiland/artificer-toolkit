@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CharacterSheetHero } from '../hero/CharacterSheetHero'
@@ -16,6 +16,11 @@ describe('Character Sheet reference', () => {
       <CharacterSheetHero characterPublicId='character-1' editable hasDraft={false} sheet={sheet} />
     )
 
+    const identity = screen.getByRole('region', { name: 'Character identity' })
+    expect(within(identity).getByText('Character Sheet')).toBeInTheDocument()
+    expect(
+      within(identity).getByRole('heading', { name: sheet.identity.label })
+    ).toBeInTheDocument()
     expect(screen.queryByText(/careful explorer/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/<p>a careful explorer/i)).not.toBeInTheDocument()
     expect(screen.queryByText(`Level ${sheet.identity.totalLevel}`)).not.toBeInTheDocument()

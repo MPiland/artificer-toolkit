@@ -55,8 +55,8 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       publish: mocks.publishMechanics,
       requireCurrent: mocks.findMechanics
     }),
-    createCampaignContentRepository: () => ({
-      findAssignedCampaign: async () => null
+    createCampaignRepository: () => ({
+      findCampaignByCharacter: async () => null
     }),
     createCharacterSheetAdjustmentRepository: () => ({
       getMovementPreference: mocks.getMovementPreference,
@@ -67,7 +67,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       listSpellCustomizations: mocks.listSpellCustomizations,
       setResourceUsage: mocks.setResourceUsage,
       setSpellCustomization: mocks.setSpellCustomization
-    }),
+    })
   }
 })
 

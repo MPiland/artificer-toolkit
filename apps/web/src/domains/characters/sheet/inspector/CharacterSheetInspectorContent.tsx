@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react'
 import { MediaImageView } from '#app/components/MediaImage'
-import type { CharacterSheetPanelDto, CharacterSheetPanelTargetDto } from '#app/lib/api'
+import type {
+  CharacterPreparationOptionsResponseDto,
+  CharacterSheetPanelDto,
+  CharacterSheetPanelTargetDto
+} from '#app/lib/api'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetExtraPanel } from './CharacterSheetExtraPanel'
 import { CharacterSheetItemPanelContent } from './CharacterSheetItemPanel'
@@ -14,6 +18,9 @@ export function CharacterSheetInspectorContent({
   equipmentItems,
   panel,
   pending,
+  preparationOptions,
+  preparationOptionsError,
+  preparationOptionsPending,
   submitCommand,
   onClose,
   onTargetChange
@@ -22,6 +29,9 @@ export function CharacterSheetInspectorContent({
   equipmentItems: CharacterSheet['inventory']['items']
   panel: CharacterSheetPanelDto
   pending: boolean
+  preparationOptions?: CharacterPreparationOptionsResponseDto
+  preparationOptionsError?: string
+  preparationOptionsPending?: boolean
   submitCommand: SubmitSheetCommand
   onClose: () => void
   onTargetChange: (target: CharacterSheetPanelTargetDto) => void
@@ -58,6 +68,9 @@ export function CharacterSheetInspectorContent({
           expectedVersion={expectedVersion}
           panel={panel}
           pending={pending}
+          preparationOptions={preparationOptions}
+          preparationOptionsError={preparationOptionsError}
+          preparationOptionsPending={preparationOptionsPending}
           submitCommand={submitCommand}
           onTargetChange={onTargetChange}
         />

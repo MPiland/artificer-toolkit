@@ -42,6 +42,7 @@ import { vehicleAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/veh
 import { cloneAuthoredItem } from '@artificer-toolkit/shared/utils'
 import {
   activeAuthoredSubjectExists,
+  assertDeletableActiveAuthoredSubject,
   assertWritableAuthoredSubject,
   deleteActiveAuthoredSubject,
   discardAuthoredDraft,
@@ -57,6 +58,12 @@ import {
   AuthoredContentNotFoundError,
   type AuthoredRecord
 } from './authoredContentService.js'
+import {
+  assertAuthoredCampaignMutationPlanCurrent,
+  prepareAuthoredCampaignMutation,
+  reconcileAuthoredActivationInTransaction,
+  reconcileAuthoredDeletionInTransaction
+} from './authoredCampaignReconciliation.js'
 import { publishVersionedAuthoredAggregate } from './versionedAuthoring.js'
 
 type AuthoredContentTable =
@@ -169,7 +176,9 @@ export async function listAuthoredDomain(
     drafts: drafts.map((draft) => {
       const route = routeIds.get(draft.subjectId)
       if (!route) {
-        throw new Error(`Missing route identity for ${config.subjectKind} draft "${draft.subjectId}".`)
+        throw new Error(
+          `Missing route identity for ${config.subjectKind} draft "${draft.subjectId}".`
+        )
       }
       return {
         ...toDraftSummary({ ...draft, publicId: route.publicId }),
@@ -475,6 +484,22 @@ export async function deleteAuthoredDomainActive(
     }
 
     const draft = await getAuthoredDraft(trx, config.subjectKind, subjectId, userId)
+    await assertWritableAuthoredSubject(trx, config.subjectKind, subjectId, userId)
+    const mutation = await prepareAuthoredCampaignMutation(trx, {
+      kind: 'DELETED',
+      ownerUserId: userId,
+      subjectKind: config.subjectKind,
+      subjectId
+    })
+    await assertDeletableActiveAuthoredSubject(
+      trx,
+      config.table,
+      config.subjectKind,
+      subjectId,
+      userId
+    )
+    await assertAuthoredCampaignMutationPlanCurrent(trx, mutation)
+    await reconcileAuthoredDeletionInTransaction({ db: trx, plan: mutation })
     await deleteActiveAuthoredSubject(trx, config.table, config.subjectKind, subjectId, userId)
     await createMediaRepository(trx).deleteAuthoredSlot(config.subjectKind, subjectId, 'ACTIVE')
 
@@ -497,12 +522,19 @@ export async function activateAuthoredDomainDraft(
 ) {
   return withTransaction(db, async (trx) => {
     const repository = createAuthoredContentRepository(trx)
+    await assertWritableAuthoredSubject(trx, config.subjectKind, subjectId, userId)
+    const mutation = await prepareAuthoredCampaignMutation(trx, {
+      kind: 'ACTIVATED',
+      ownerUserId: userId,
+      subjectKind: config.subjectKind,
+      subjectId
+    })
     const draft = await repository.lockDraftForActivation({
       subjectKind: config.subjectKind,
       subjectId,
       userId
     })
-    await assertWritableAuthoredSubject(trx, config.subjectKind, subjectId, userId)
+    await assertAuthoredCampaignMutationPlanCurrent(trx, mutation)
     const input = config.schema.parse(normalizeStoredDraftPayloadForActivation(draft, userId))
     const normalized = await normalizeNodeRuntimeValues(trx, {
       mapId: config.mapId,
@@ -513,11 +545,16 @@ export async function activateAuthoredDomainDraft(
     const result = await config
       .createService(trx)
       .prepare(normalizeActivatedAuthoringInput(normalizedBody, userId))
-    await publishVersionedAuthoredAggregate({
+    const published = await publishVersionedAuthoredAggregate({
       authored: result.authored,
       compiled: result.compiled,
       db: trx,
       subjectKind: config.subjectKind
+    })
+    await reconcileAuthoredActivationInTransaction({
+      db: trx,
+      plan: mutation,
+      versionId: published.authored.versionId
     })
     const media = createMediaRepository(trx)
     const image = await media.getAuthoredSlot(config.subjectKind, subjectId, 'DRAFT')
@@ -552,6 +589,12 @@ export async function activateAuthoredDomainInput<TInput extends AuthoredContent
       systemId: input.systemId
     })
     const normalizedBody = config.schema.parse(normalized.values)
+    const mutation = await prepareAuthoredCampaignMutation(trx, {
+      kind: 'ACTIVATED',
+      ownerUserId: userId,
+      subjectKind: config.subjectKind,
+      subjectId: normalizedBody.id
+    })
     await saveAuthoredDraft(trx, buildDraftRequest(config.subjectKind, normalizedBody), userId)
     const repository = createAuthoredContentRepository(trx)
     await repository.lockDraftForActivation({
@@ -559,14 +602,20 @@ export async function activateAuthoredDomainInput<TInput extends AuthoredContent
       subjectId: normalizedBody.id,
       userId
     })
+    await assertAuthoredCampaignMutationPlanCurrent(trx, mutation)
     const result = await config
       .createService(trx)
       .prepare(normalizeActivatedAuthoringInput(normalizedBody, userId))
-    await publishVersionedAuthoredAggregate({
+    const published = await publishVersionedAuthoredAggregate({
       authored: result.authored,
       compiled: result.compiled,
       db: trx,
       subjectKind: config.subjectKind
+    })
+    await reconcileAuthoredActivationInTransaction({
+      db: trx,
+      plan: mutation,
+      versionId: published.authored.versionId
     })
     const media = createMediaRepository(trx)
     const image = await media.getAuthoredSlot(config.subjectKind, normalizedBody.id, 'DRAFT')

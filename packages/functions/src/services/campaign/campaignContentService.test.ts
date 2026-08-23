@@ -1,302 +1,268 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DBLike } from '@artificer-toolkit/db'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const campaignId = '00000000-0000-4000-8000-000000000001'
-const ownerId = '00000000-0000-4000-8000-000000000002'
-const playerId = '00000000-0000-4000-8000-000000000003'
-const otherPlayerId = '00000000-0000-4000-8000-000000000007'
-const subjectId = '00000000-0000-4000-8000-000000000004'
-const systemId = '00000000-0000-4000-8000-000000000005'
+const ids = {
+  campaign: '00000000-0000-4000-8000-000000000001',
+  user: '00000000-0000-4000-8000-000000000002',
+  spell: '00000000-0000-4000-8000-000000000003',
+  system: '00000000-0000-4000-8000-000000000004',
+  version: '00000000-0000-4000-8000-000000000005'
+}
 
 const mocks = vi.hoisted(() => ({
-  content: {
-    findActiveRootOwner: vi.fn(),
-    lockNextRevision: vi.fn(),
-    insertContentVersion: vi.fn(),
-    listContentVersions: vi.fn(),
-    findContentVersion: vi.fn(),
-    approvePendingContentVersion: vi.fn(),
-    rejectPendingContentVersion: vi.fn()
+  shares: {
+    lockCampaignMemberForContentRead: vi.fn(),
+    listCurrentSources: vi.fn(),
+    lockOwnedCurrentRoot: vi.fn(),
+    shareRoot: vi.fn()
   },
-  authoredVersion: {
-    findActive: vi.fn(),
-    findVersion: vi.fn()
-  },
-  campaignLock: vi.fn(),
+  authoredVersions: { findActive: vi.fn() },
+  campaign: { lockCampaign: vi.fn() },
+  findRemovalReceipt: vi.fn(),
+  removeShares: vi.fn(),
   authority: vi.fn(),
-  broadcast: vi.fn(),
-  steps: [] as string[]
+  capabilities: vi.fn(),
+  broadcast: vi.fn()
 }))
 
-vi.mock('@artificer-toolkit/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@artificer-toolkit/db')>()
-  return {
-    ...actual,
-    createCampaignContentRepository: () => mocks.content,
-    createCampaignRepository: () => ({ lockCampaign: mocks.campaignLock }),
-    createAuthoredVersionRepository: () => mocks.authoredVersion,
-    withTransaction: async (_db: DBLike, callback: (trx: DBLike) => Promise<unknown>) => {
-      const result = await callback({} as DBLike)
-      mocks.steps.push('commit')
-      return result
-    }
-  }
-})
-
+vi.mock('@artificer-toolkit/db', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@artificer-toolkit/db')>()),
+  createCampaignContentShareRepository: () => mocks.shares,
+  createAuthoredVersionRepository: () => mocks.authoredVersions,
+  createCampaignRepository: () => mocks.campaign,
+  withTransaction: async (_db: DBLike, fn: (trx: DBLike) => Promise<unknown>) => fn({} as DBLike)
+}))
 vi.mock('./campaignService.js', () => ({
-  CampaignConflictError: class CampaignConflictError extends Error {},
+  CampaignAccessError: class CampaignAccessError extends Error {},
   CampaignNotFoundError: class CampaignNotFoundError extends Error {},
   CampaignValidationError: class CampaignValidationError extends Error {},
   assertActiveCampaignMember: vi.fn(),
-  assertCampaignOwner: vi.fn(),
   assertCampaignWritable: vi.fn(),
+  getCampaignCapabilities: mocks.capabilities,
   resolveCampaignAuthority: mocks.authority
 }))
-
-vi.mock('./realtimeService.js', () => ({
-  broadcastCampaignInvalidation: async (...args: unknown[]) => {
-    mocks.steps.push('broadcast')
-    return mocks.broadcast(...args)
-  }
+vi.mock('./realtimeService.js', () => ({ broadcastCampaignInvalidation: mocks.broadcast }))
+vi.mock('./campaignContentShareRemoval.js', () => ({
+  findCampaignContentRemovalReceipt: mocks.findRemovalReceipt,
+  removeCampaignContentSharesAndReconcileInTransaction: mocks.removeShares
 }))
 
-const { listCampaignContentVersions, reviewCampaignContentVersion, submitCampaignContentVersion } =
+const { listCampaignContentShares, shareCampaignContent, unshareCampaignContent } =
   await import('./campaignContentService.js')
 
-function authoredDocument(userId: string) {
-  return {
-    kind: 'BACKGROUND' as const,
-    id: subjectId,
-    label: 'Campaign Background',
-    userId,
-    systemId
-  }
+const share = {
+  campaignId: ids.campaign,
+  subjectKind: 'SPELL' as const,
+  subjectId: ids.spell,
+  sharedBy: ids.user,
+  createdAt: '2026-08-22T00:00:00.000Z',
+  updatedAt: '2026-08-22T00:00:00.000Z'
+}
+const source = {
+  authored: {
+    subjectKind: 'SPELL' as const,
+    subjectId: ids.spell,
+    versionId: ids.version,
+    version: 1,
+    checksum: 'a'.repeat(64),
+    document: { id: ids.spell, userId: ids.user, systemId: ids.system, label: 'Shared Spell' }
+  },
+  compiled: { projectionChecksum: 'b'.repeat(64), authoredDependencies: [] }
 }
 
-function authoredVersion(userId: string) {
-  return {
-    authored: {
-      subjectKind: 'BACKGROUND' as const,
-      subjectId,
-      versionId: '00000000-0000-4000-8000-000000000008',
-      version: 1,
-      documentSchemaVersion: 1,
-      checksum: 'a'.repeat(64),
-      document: authoredDocument(userId)
-    },
-    compiled: { projectionChecksum: 'b'.repeat(64) }
-  }
-}
-
-function version(state: 'PENDING' | 'APPROVED' | 'REJECTED', authoredBy = playerId) {
-  return {
-    id: '00000000-0000-4000-8000-000000000006',
-    campaignId,
-    subjectKind: 'BACKGROUND' as const,
-    subjectId,
-    authoredBy,
-    revision: 1,
-    state,
-    authoredVersionId: '00000000-0000-4000-8000-000000000008',
-    authoredVersion: 1,
-    authoredChecksum: 'a'.repeat(64),
-    compiledProjectionChecksum: 'b'.repeat(64),
-    approvedBy: state === 'APPROVED' ? ownerId : null,
-    approvedAt: state === 'APPROVED' ? '2026-08-06T12:00:00.000Z' : null,
-    rejectedAt: state === 'REJECTED' ? '2026-08-06T12:00:00.000Z' : null,
-    createdAt: '2026-08-06T12:00:00.000Z',
-    updatedAt: '2026-08-06T12:00:00.000Z'
-  }
-}
-
-function authority(userId: string, role: 'OWNER' | 'PLAYER') {
-  return {
-    campaign: { id: campaignId, status: 'ACTIVE' },
-    membership: { userId, role, status: 'ACTIVE' },
-    assignedCharacter: null
-  }
-}
-
-describe('Campaign content service', () => {
+describe('Campaign content shares', () => {
   beforeEach(() => {
     vi.resetAllMocks()
-    mocks.steps.length = 0
-    mocks.campaignLock.mockResolvedValue({ id: campaignId })
-    mocks.content.findActiveRootOwner.mockResolvedValue({
-      subjectId,
-      subjectKind: 'BACKGROUND',
-      ownerUserId: playerId,
-      systemId,
-      isMaster: false
+    mocks.campaign.lockCampaign.mockResolvedValue({ id: ids.campaign })
+    mocks.shares.lockCampaignMemberForContentRead.mockResolvedValue({
+      campaignExists: true,
+      memberActive: true
     })
-    mocks.content.lockNextRevision.mockResolvedValue(1)
-    mocks.authoredVersion.findActive.mockResolvedValue(authoredVersion(playerId))
-    mocks.authoredVersion.findVersion.mockImplementation(async () => authoredVersion(playerId))
-    mocks.content.insertContentVersion.mockImplementation(async (input: { state: string }) =>
-      version(input.state as 'PENDING' | 'APPROVED')
-    )
-    mocks.broadcast.mockResolvedValue(true)
+    mocks.authority.mockResolvedValue({
+      campaign: { id: ids.campaign, status: 'ACTIVE', contentMaturity: 'STANDARD' },
+      membership: { userId: ids.user, role: 'PLAYER', status: 'ACTIVE' }
+    })
+    mocks.capabilities.mockReturnValue({ shareOwnedContent: true, manageSharedContent: false })
+    mocks.shares.lockOwnedCurrentRoot.mockResolvedValue({
+      subjectKind: 'SPELL',
+      subjectId: ids.spell,
+      sharedBy: ids.user,
+      versionId: ids.version,
+      version: 1,
+      checksum: 'a'.repeat(64)
+    })
+    mocks.authoredVersions.findActive.mockResolvedValue(source)
+    mocks.shares.shareRoot.mockResolvedValue(share)
+    mocks.shares.listCurrentSources.mockResolvedValue([{ share, source }])
+    mocks.findRemovalReceipt.mockResolvedValue(null)
+    mocks.removeShares.mockResolvedValue({
+      eventId: '00000000-0000-4000-8000-000000000006',
+      campaignVersion: 2,
+      removedShares: [{ subjectKind: 'SPELL', subjectId: ids.spell, sharedBy: ids.user }],
+      affectedCharacters: [],
+      evacuatedVehicles: []
+    })
   })
 
-  it('stores a player submission as pending and broadcasts only after commit', async () => {
-    mocks.authority.mockResolvedValue(authority(playerId, 'PLAYER'))
-
-    await submitCampaignContentVersion({} as DBLike, playerId, {
-      campaignId,
-      subjectKind: 'BACKGROUND',
-      subjectId,
-      expectedRevision: 1
-    })
-
-    expect(mocks.content.insertContentVersion).toHaveBeenCalledWith(
-      expect.objectContaining({ state: 'PENDING', authoredBy: playerId })
-    )
-    expect(mocks.steps).toEqual(['commit', 'broadcast'])
-    expect(mocks.broadcast).toHaveBeenCalledWith(
-      expect.anything(),
-      campaignId,
-      expect.objectContaining({ scope: 'OWNER' })
-    )
-  })
-
-  it('broadcasts an owner auto-approved submission to the table', async () => {
-    mocks.authority.mockResolvedValue(authority(ownerId, 'OWNER'))
-    mocks.content.findActiveRootOwner.mockResolvedValue({
-      subjectId,
-      subjectKind: 'BACKGROUND',
-      ownerUserId: ownerId,
-      systemId,
-      isMaster: false
-    })
-    mocks.authoredVersion.findActive.mockResolvedValue(authoredVersion(ownerId))
-
-    await submitCampaignContentVersion({} as DBLike, ownerId, {
-      campaignId,
-      subjectKind: 'BACKGROUND',
-      subjectId,
-      expectedRevision: 1
+  it('shares owned active content immediately without review state', async () => {
+    const result = await shareCampaignContent({} as DBLike, ids.user, {
+      campaignId: ids.campaign,
+      subjectKind: 'SPELL',
+      subjectId: ids.spell
     })
 
-    expect(mocks.broadcast).toHaveBeenCalledWith(
-      expect.anything(),
-      campaignId,
-      expect.objectContaining({ scope: 'TABLE' })
-    )
+    expect(mocks.shares.lockOwnedCurrentRoot).toHaveBeenCalledWith({
+      subjectKind: 'SPELL',
+      subjectId: ids.spell,
+      ownerUserId: ids.user
+    })
+    expect(mocks.shares.shareRoot).toHaveBeenCalledWith({
+      campaignId: ids.campaign,
+      subjectKind: 'SPELL',
+      subjectId: ids.spell,
+      sharedBy: ids.user
+    })
+    expect(result).not.toHaveProperty('status')
+    expect(result).not.toHaveProperty('approvedBy')
+    expect(mocks.broadcast).toHaveBeenCalledOnce()
   })
 
-  it('shows players approved content and their own pending or rejected submissions only', async () => {
-    mocks.authority.mockResolvedValue(authority(otherPlayerId, 'PLAYER'))
-    mocks.content.listContentVersions.mockResolvedValue([
-      version('APPROVED', playerId),
-      version('PENDING', playerId),
-      version('REJECTED', playerId),
-      version('PENDING', otherPlayerId)
-    ])
+  it('fails closed for a Master, inactive, or differently owned root', async () => {
+    mocks.shares.lockOwnedCurrentRoot.mockResolvedValue(null)
 
     await expect(
-      listCampaignContentVersions({} as DBLike, otherPlayerId, campaignId)
-    ).resolves.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ status: 'APPROVED' }),
-        expect.objectContaining({ status: 'PENDING' })
-      ])
-    )
-    await expect(
-      listCampaignContentVersions({} as DBLike, otherPlayerId, campaignId)
-    ).resolves.toHaveLength(2)
-  })
-
-  it('shows owners every content version', async () => {
-    mocks.authority.mockResolvedValue(authority(ownerId, 'OWNER'))
-    mocks.content.listContentVersions.mockResolvedValue([
-      version('APPROVED', playerId),
-      version('PENDING', playerId),
-      version('REJECTED', playerId)
-    ])
-
-    await expect(
-      listCampaignContentVersions({} as DBLike, ownerId, campaignId)
-    ).resolves.toHaveLength(3)
-  })
-
-  it('rejects authored version metadata that does not match the owned root', async () => {
-    mocks.authority.mockResolvedValue(authority(playerId, 'PLAYER'))
-    mocks.authoredVersion.findActive.mockResolvedValue(authoredVersion(ownerId))
-
-    await expect(
-      submitCampaignContentVersion({} as DBLike, playerId, {
-        campaignId,
-        subjectKind: 'BACKGROUND',
-        subjectId,
-        expectedRevision: 1
+      shareCampaignContent({} as DBLike, ids.user, {
+        campaignId: ids.campaign,
+        subjectKind: 'SPELL',
+        subjectId: ids.spell
       })
-    ).rejects.toThrow('metadata')
-    expect(mocks.content.insertContentVersion).not.toHaveBeenCalled()
+    ).rejects.toThrow('Only active homebrew you own can be shared.')
+    expect(mocks.shares.shareRoot).not.toHaveBeenCalled()
   })
 
-  it('requires an active owned root so its creator retains it after Campaign departure', async () => {
-    mocks.authority.mockResolvedValue(authority(playerId, 'PLAYER'))
-    mocks.content.findActiveRootOwner.mockResolvedValue(null)
+  it('does not substitute a Campaign role for the explicit share capability', async () => {
+    mocks.capabilities.mockReturnValue({ shareOwnedContent: false, manageSharedContent: true })
 
     await expect(
-      submitCampaignContentVersion({} as DBLike, playerId, {
-        campaignId,
-        subjectKind: 'BACKGROUND',
-        subjectId,
-        expectedRevision: 1
+      shareCampaignContent({} as DBLike, ids.user, {
+        campaignId: ids.campaign,
+        subjectKind: 'SPELL',
+        subjectId: ids.spell
       })
-    ).rejects.toThrow('owned homebrew')
-    expect(mocks.content.insertContentVersion).not.toHaveBeenCalled()
+    ).rejects.toThrow('You cannot share content with this Campaign.')
+    expect(mocks.shares.lockOwnedCurrentRoot).not.toHaveBeenCalled()
   })
 
-  it('does not replace existing Character bindings when a newer approval is accepted', async () => {
-    const pending = version('PENDING')
-    const approved = version('APPROVED')
-    mocks.authority.mockResolvedValue(authority(ownerId, 'OWNER'))
-    mocks.content.findContentVersion.mockResolvedValue(pending)
-    mocks.content.approvePendingContentVersion.mockResolvedValue(approved)
-
-    await reviewCampaignContentVersion({} as DBLike, ownerId, {
-      campaignId,
-      contentVersionId: pending.id,
-      decision: 'APPROVE'
+  it('fails closed when the loaded document disagrees with the locked root identity', async () => {
+    mocks.authoredVersions.findActive.mockResolvedValue({
+      ...source,
+      authored: { ...source.authored, checksum: 'c'.repeat(64) }
     })
 
-    expect(mocks.content.approvePendingContentVersion).toHaveBeenCalledOnce()
+    await expect(
+      shareCampaignContent({} as DBLike, ids.user, {
+        campaignId: ids.campaign,
+        subjectKind: 'SPELL',
+        subjectId: ids.spell
+      })
+    ).rejects.toThrow('Owned homebrew current identity is unavailable.')
+    expect(mocks.shares.shareRoot).not.toHaveBeenCalled()
   })
 
-  it('broadcasts approved reviews to the table and rejected reviews to owners and the author', async () => {
-    const pending = version('PENDING')
-    mocks.authority.mockResolvedValue(authority(ownerId, 'OWNER'))
-    mocks.content.findContentVersion.mockResolvedValue(pending)
-    mocks.content.approvePendingContentVersion.mockResolvedValue(version('APPROVED'))
+  it('lists only the repository current-share result for an active member', async () => {
+    const result = await listCampaignContentShares({} as DBLike, ids.user, ids.campaign)
 
-    await reviewCampaignContentVersion({} as DBLike, ownerId, {
-      campaignId,
-      contentVersionId: pending.id,
-      decision: 'APPROVE'
+    expect(mocks.shares.lockCampaignMemberForContentRead).toHaveBeenCalledWith({
+      campaignId: ids.campaign,
+      userId: ids.user
     })
-
-    expect(mocks.broadcast).toHaveBeenLastCalledWith(
-      expect.anything(),
-      campaignId,
-      expect.objectContaining({ scope: 'TABLE' })
+    expect(mocks.shares.lockCampaignMemberForContentRead.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.authority.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
     )
+    expect(mocks.authority.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.shares.listCurrentSources.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
+    )
+    expect(mocks.shares.listCurrentSources).toHaveBeenCalledWith(ids.campaign)
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
+      subjectKind: 'SPELL',
+      subjectId: ids.spell,
+      sharedBy: ids.user
+    })
+  })
 
-    mocks.content.rejectPendingContentVersion.mockResolvedValue(version('REJECTED'))
-    await reviewCampaignContentVersion({} as DBLike, ownerId, {
-      campaignId,
-      contentVersionId: pending.id,
-      decision: 'REJECT'
+  it('denies an inactive or missing member before resolving or loading content', async () => {
+    mocks.shares.lockCampaignMemberForContentRead.mockResolvedValue({
+      campaignExists: true,
+      memberActive: false
     })
 
-    expect(mocks.broadcast.mock.calls.slice(-2)).toEqual([
-      [expect.anything(), campaignId, expect.objectContaining({ scope: 'OWNER' })],
-      [
-        expect.anything(),
-        campaignId,
-        expect.objectContaining({ scope: 'USER', recipientUserId: playerId })
-      ]
-    ])
+    await expect(listCampaignContentShares({} as DBLike, ids.user, ids.campaign)).rejects.toThrow()
+    expect(mocks.authority).not.toHaveBeenCalled()
+    expect(mocks.shares.listCurrentSources).not.toHaveBeenCalled()
+  })
+
+  it('returns no documents when current-source loading fails inside the transaction', async () => {
+    mocks.shares.listCurrentSources.mockRejectedValue(new Error('Current source unavailable.'))
+
+    await expect(listCampaignContentShares({} as DBLike, ids.user, ids.campaign)).rejects.toThrow(
+      'Current source unavailable.'
+    )
+  })
+
+  it('denies a cross-Campaign reader before loading any shares', async () => {
+    mocks.authority.mockRejectedValue(new Error('Campaign access denied.'))
+
+    await expect(listCampaignContentShares({} as DBLike, ids.user, ids.campaign)).rejects.toThrow(
+      'Campaign access denied.'
+    )
+    expect(mocks.shares.listCurrentSources).not.toHaveBeenCalled()
+  })
+
+  it('removes one exact share through the atomic reconciliation primitive', async () => {
+    const result = await unshareCampaignContent({} as DBLike, ids.user, {
+      campaignId: ids.campaign,
+      subjectKind: 'SPELL',
+      subjectId: ids.spell,
+      sharedBy: ids.user,
+      expectedCampaignVersion: 1,
+      commandId: '00000000-0000-4000-8000-000000000006'
+    })
+
+    expect(mocks.campaign.lockCampaign).toHaveBeenCalledWith(ids.campaign)
+    expect(mocks.removeShares).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        operation: 'UNSHARE',
+        expectedCampaignVersion: 1,
+        shares: [{ subjectKind: 'SPELL', subjectId: ids.spell, sharedBy: ids.user }]
+      })
+    )
+    expect(result.campaignVersion).toBe(2)
+    expect(mocks.broadcast).not.toHaveBeenCalled()
+  })
+
+  it('returns an exact idempotent receipt before re-authorizing a retry', async () => {
+    const receipt = {
+      eventId: '00000000-0000-4000-8000-000000000006',
+      campaignVersion: 2,
+      removedShares: [],
+      affectedCharacters: [],
+      evacuatedVehicles: []
+    }
+    mocks.findRemovalReceipt.mockResolvedValue(receipt)
+
+    await expect(
+      unshareCampaignContent({} as DBLike, ids.user, {
+        campaignId: ids.campaign,
+        subjectKind: 'SPELL',
+        subjectId: ids.spell,
+        sharedBy: ids.user,
+        expectedCampaignVersion: 1,
+        commandId: receipt.eventId
+      })
+    ).resolves.toEqual(receipt)
+    expect(mocks.authority).not.toHaveBeenCalled()
+    expect(mocks.removeShares).not.toHaveBeenCalled()
   })
 })

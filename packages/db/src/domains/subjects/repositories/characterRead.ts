@@ -45,13 +45,11 @@ export interface CharacterRepository {
     options: {
       expectedStreamVersion: number
       beforeCharacterLock?: (trx: DBLike) => Promise<void>
+      afterCharacterLock?: (trx: DBLike) => Promise<void>
       afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
     }
   ): Promise<number>
-  patchLiveHitPoints(
-    characterId: string,
-    input: CharacterLiveHitPointsPatch
-  ): Promise<number>
+  patchLiveHitPoints(characterId: string, input: CharacterLiveHitPointsPatch): Promise<number>
   setRulePackRevision(
     characterId: string,
     expectedRevisionId: string,
@@ -659,10 +657,6 @@ async function hydrateCharacterAuthoredById(
     raceRow,
     `Character "${id}" is missing race intent.`
   ) as CharacterSourceRow
-  const backgroundData = requireRow(
-    backgroundRow,
-    `Character "${id}" is missing background intent.`
-  ) as CharacterSourceRow
   const hitpointIntentData = requireRow(
     hitpointIntentRow,
     `Character "${id}" is missing hitpoint intent.`
@@ -1005,7 +999,7 @@ async function hydrateCharacterAuthoredById(
             }))
           : undefined,
       background: {
-        backgroundId: String(backgroundData.background_id)
+        backgroundId: backgroundRow ? String(backgroundRow.background_id) : ''
       },
       classes: classRows.map((classRow) => ({
         classId: String(classRow.class_id),

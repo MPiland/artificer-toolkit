@@ -2,7 +2,10 @@ import { Alert, Drawer, Skeleton } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 
-import { getCharacterSheetPanel } from '#app/data/characters/queries'
+import {
+  getCharacterPreparationOptions,
+  getCharacterSheetPanel
+} from '#app/data/characters/queries'
 import type { CharacterSheetPanelTargetDto } from '#app/lib/api'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import * as sheetOverlayStyles from '../shared/sheetOverlay.css'
@@ -33,6 +36,10 @@ export function CharacterSheetInspector({
 }) {
   const isMobile = useMediaQuery('(max-width: 760px)', false)
   const panelQuery = useQuery(getCharacterSheetPanel(characterId, target))
+  const preparationOptionsQuery = useQuery({
+    ...getCharacterPreparationOptions(characterId),
+    enabled: target.kind === 'SPELLS'
+  })
 
   return (
     <Drawer
@@ -81,6 +88,9 @@ export function CharacterSheetInspector({
           equipmentItems={equipmentItems ?? []}
           panel={panelQuery.data}
           pending={pending}
+          preparationOptions={preparationOptionsQuery.data}
+          preparationOptionsError={preparationOptionsQuery.error?.message}
+          preparationOptionsPending={target.kind === 'SPELLS' && preparationOptionsQuery.isPending}
           submitCommand={submitCommand}
           onClose={onClose}
           onTargetChange={onTargetChange}

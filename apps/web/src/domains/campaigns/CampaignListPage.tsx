@@ -21,8 +21,19 @@ export function CampaignListPage() {
     return Date.parse(right.createdAt) - Date.parse(left.createdAt)
   })
   const copyCampaign = useMutation({
-    mutationFn: (campaign: (typeof campaigns)[number]) =>
-      api.campaigns.copy({ campaignId: campaign.id, expectedVersion: campaign.version }),
+    retry: 1,
+    mutationFn: ({
+      campaign,
+      commandId
+    }: {
+      campaign: (typeof campaigns)[number]
+      commandId: string
+    }) =>
+      api.campaigns.copy({
+        campaignId: campaign.id,
+        commandId,
+        expectedVersion: campaign.version
+      }),
     onSuccess: async (campaign) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.list() })
       await navigate({
@@ -147,8 +158,12 @@ export function CampaignListPage() {
                 </Button>
                 {campaign.role === 'OWNER' ? (
                   <Button
-                    loading={copyCampaign.isPending && copyCampaign.variables?.id === campaign.id}
-                    onClick={() => copyCampaign.mutate(campaign)}
+                    loading={
+                      copyCampaign.isPending && copyCampaign.variables?.campaign.id === campaign.id
+                    }
+                    onClick={() =>
+                      copyCampaign.mutate({ campaign, commandId: crypto.randomUUID() })
+                    }
                     size='sm'
                     variant='subtle'
                   >

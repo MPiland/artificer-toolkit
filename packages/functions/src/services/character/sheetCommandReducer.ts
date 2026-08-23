@@ -260,6 +260,7 @@ export function applyCharacterSheetCommand(
     attunementSlotLimit?: number
     createId?: () => string
     now?: () => string
+    preparationEligibleSpellIdsByClassId?: ReadonlyMap<string, ReadonlySet<string>>
     extraDefaults?: {
       creatures: ReadonlyMap<
         string,
@@ -704,7 +705,9 @@ export function applyCharacterSheetCommand(
           `Class "${command.classId}" can prepare up to ${preparationSource.preparedSpellLimit} spells.`
         )
       }
-      const availableSpellIds = getSheetPreparationAvailableSpellIds(sheet, command.classId)
+      const availableSpellIds = context.preparationEligibleSpellIdsByClassId
+        ? (context.preparationEligibleSpellIdsByClassId.get(command.classId) ?? new Set<string>())
+        : getSheetPreparationAvailableSpellIds(sheet, command.classId)
       const unavailableSpell = preparedSpellIds.find((spellId) => !availableSpellIds.has(spellId))
       if (unavailableSpell)
         throw new CharacterSheetCommandError(

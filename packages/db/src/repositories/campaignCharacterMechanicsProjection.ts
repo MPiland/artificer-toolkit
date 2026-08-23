@@ -29,15 +29,13 @@ interface CampaignCharacterMechanicsProjectionRow {
   stream_version: number
 }
 
-interface CurrentCampaignCharacterMechanicsProjectionRow
-  extends CampaignCharacterMechanicsProjectionRow {
+interface CurrentCampaignCharacterMechanicsProjectionRow extends CampaignCharacterMechanicsProjectionRow {
   base_projection_checksum: string
   base_stream_version: number
   character_stream_version: number
 }
 
-export interface CampaignCharacterMechanicsProjectionMetadata
-  extends CampaignCharacterMechanicsProjectionIdentity {
+export interface CampaignCharacterMechanicsProjectionMetadata extends CampaignCharacterMechanicsProjectionIdentity {
   kind: CampaignCharacterMechanicsProjection['kind']
   manualMaximumModifierOwner: CampaignCharacterMechanicsProjection['manualMaximumModifierOwner']
   projectionChecksum: string
@@ -164,7 +162,11 @@ function mapProjection(
   return projection
 }
 
-async function lockAssignment(db: DBLike, campaignId: string, characterId: string): Promise<AssignmentRow | null> {
+async function lockAssignment(
+  db: DBLike,
+  campaignId: string,
+  characterId: string
+): Promise<AssignmentRow | null> {
   const result = await sql<AssignmentRow>`
     select campaign_id, character_id
     from public.campaign_character_assignments
@@ -179,15 +181,12 @@ async function readCurrentProjection(
   db: DBLike,
   campaignId: string,
   characterId: string
-): Promise<
-  | {
-      baseMechanicsProjectionChecksum: string
-      baseStreamVersion: number
-      characterStreamVersion: number
-      projection: CampaignCharacterMechanicsProjection
-    }
-  | null
-> {
+): Promise<{
+  baseMechanicsProjectionChecksum: string
+  baseStreamVersion: number
+  characterStreamVersion: number
+  projection: CampaignCharacterMechanicsProjection
+} | null> {
   const result = await sql<CurrentCampaignCharacterMechanicsProjectionRow>`
     select
       overlay.campaign_id,
@@ -231,15 +230,12 @@ async function readCurrentProjectionMetadata(
   db: DBLike,
   campaignId: string,
   characterId: string
-): Promise<
-  | {
-      baseMechanicsProjectionChecksum: string
-      baseStreamVersion: number
-      characterStreamVersion: number
-      projection: CampaignCharacterMechanicsProjectionMetadata
-    }
-  | null
-> {
+): Promise<{
+  baseMechanicsProjectionChecksum: string
+  baseStreamVersion: number
+  characterStreamVersion: number
+  projection: CampaignCharacterMechanicsProjectionMetadata
+} | null> {
   const result = await sql<
     Pick<
       CurrentCampaignCharacterMechanicsProjectionRow,
@@ -298,7 +294,12 @@ async function readCurrentProjectionMetadata(
 }
 
 export interface CampaignCharacterMechanicsProjectionRepository {
+  deleteForDraft(input: {
+    characterId: string
+    expectedCharacterStreamVersion: number
+  }): Promise<void>
   lockAssignment(input: { campaignId: string; characterId: string }): Promise<void>
+  findCurrentChecksum(input: { campaignId: string; characterId: string }): Promise<string | null>
   publish(input: {
     expectedPriorOverlayChecksum: string | null
     projection: CampaignCharacterMechanicsProjection
@@ -312,7 +313,11 @@ export interface CampaignCharacterMechanicsProjectionRepository {
     expectedProjectionSchemaVersion: number
     baseMechanicsProjection: Pick<
       CharacterMechanicsProjection,
-      'characterId' | 'characterStreamVersion' | 'projectionChecksum' | 'rulePolicyInput' | 'rulePolicyOutput'
+      | 'characterId'
+      | 'characterStreamVersion'
+      | 'projectionChecksum'
+      | 'rulePolicyInput'
+      | 'rulePolicyOutput'
     >
   }): Promise<ResolvedCampaignCharacterMechanicsProjection>
   requireCurrentMetadata(input: {
@@ -330,6 +335,16 @@ export function createCampaignCharacterMechanicsProjectionRepository(
   db: DBLike
 ): CampaignCharacterMechanicsProjectionRepository {
   return {
+    async deleteForDraft(input) {
+      await sql`
+        delete from public.campaign_character_mechanics_projections overlay
+        using public.characters character
+        where overlay.character_id = ${input.characterId}
+          and character.id = overlay.character_id
+          and character.status = 'DRAFT'
+          and character.stream_version = ${input.expectedCharacterStreamVersion}
+      `.execute(db)
+    },
     async lockAssignment(input) {
       const assignment = await lockAssignment(db, input.campaignId, input.characterId)
       if (!assignment) {
@@ -338,9 +353,21 @@ export function createCampaignCharacterMechanicsProjectionRepository(
         )
       }
     },
+    async findCurrentChecksum(input) {
+      const result = await sql<{ projection_checksum: string }>`
+        select projection_checksum
+        from public.campaign_character_mechanics_projections
+        where campaign_id = ${input.campaignId}
+          and character_id = ${input.characterId}
+        limit 1
+      `.execute(db)
+      return result.rows[0]?.projection_checksum ?? null
+    },
     async publish(input) {
       const projection = campaignCharacterMechanicsProjectionSchema.parse(input.projection)
-      if (checksumCampaignCharacterMechanicsProjection(projection) !== projection.projectionChecksum) {
+      if (
+        checksumCampaignCharacterMechanicsProjection(projection) !== projection.projectionChecksum
+      ) {
         throw new CampaignCharacterMechanicsProjectionMismatchError(
           `Campaign "${projection.campaignId}" Character "${projection.characterId}" overlay projection checksum does not match its contents.`
         )
@@ -452,8 +479,10 @@ export function createCampaignCharacterMechanicsProjectionRepository(
       })
       if (
         input.baseMechanicsProjection.characterId !== input.characterId ||
-        input.baseMechanicsProjection.characterStreamVersion !== input.expectedCharacterStreamVersion ||
-        input.baseMechanicsProjection.projectionChecksum !== input.expectedBaseMechanicsProjectionChecksum
+        input.baseMechanicsProjection.characterStreamVersion !==
+          input.expectedCharacterStreamVersion ||
+        input.baseMechanicsProjection.projectionChecksum !==
+          input.expectedBaseMechanicsProjectionChecksum
       ) {
         throw new CampaignCharacterMechanicsProjectionMismatchError(
           'Campaign Character mechanics overlay base projection input does not match the required live identity.'
@@ -495,7 +524,9 @@ export function createCampaignCharacterMechanicsProjectionRepository(
           'Campaign Character mechanics materialized overlays require an exact policy read.'
         )
       }
-      if (checksumCampaignCharacterMechanicsProjection(projection) !== projection.projectionChecksum) {
+      if (
+        checksumCampaignCharacterMechanicsProjection(projection) !== projection.projectionChecksum
+      ) {
         throw new CampaignCharacterMechanicsProjectionMismatchError(
           'Campaign Character mechanics base-reference overlay has an invalid checksum.'
         )

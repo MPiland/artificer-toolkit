@@ -84,8 +84,21 @@ export function CampaignParty({
         | { kind: 'UNASSIGN'; characterId?: string }
         | { kind: 'LEAVE' }
     ) => {
-      if (action.kind === 'REMOVE') return api.campaigns.removeMember(campaign.id, action.userId)
-      if (action.kind === 'LEAVE') return api.campaigns.leave(campaign.id)
+      if (action.kind === 'REMOVE') {
+        const membership = campaign.memberships.find((entry) => entry.userId === action.userId)
+        if (!membership) throw new Error('Campaign membership is no longer available.')
+        return api.campaigns.removeMember(
+          campaign.id,
+          action.userId,
+          campaign.version,
+          membership.accessStartedAt
+        )
+      }
+      if (action.kind === 'LEAVE') {
+        const membership = campaign.memberships.find((entry) => entry.userId === currentUserId)
+        if (!membership) throw new Error('Campaign membership is no longer available.')
+        return api.campaigns.leave(campaign.id, campaign.version, membership.accessStartedAt)
+      }
       return api.campaigns.unassignCharacter(campaign.id, action.characterId)
     },
     onSuccess: async (_result, action) => {

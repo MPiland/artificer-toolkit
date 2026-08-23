@@ -12,6 +12,8 @@ type QueryTrace = {
   table: string
   filters: QueryFilter[]
   groupBy?: string | string[]
+  joins: { table: string; left: string; right: string }[]
+  references: { column: string; operation: string; value: string }[]
 }
 
 type QueryRows = Record<string, unknown>[]
@@ -19,18 +21,23 @@ type QueryRows = Record<string, unknown>[]
 function createListQueryDb(options: { items: QueryRows; traces: QueryTrace[] }) {
   return {
     selectFrom(table: string) {
-      const trace: QueryTrace = { table, filters: [] }
+      const trace: QueryTrace = { table, filters: [], joins: [], references: [] }
       options.traces.push(trace)
 
       const builder = {
         select() {
           return builder
         },
-        innerJoin() {
+        innerJoin(joinTable: string, left: string, right: string) {
+          trace.joins.push({ table: joinTable, left, right })
           return builder
         },
         where(column: string, operation: string, value: unknown) {
           trace.filters.push({ column, operation, value })
+          return builder
+        },
+        whereRef(column: string, operation: string, value: string) {
+          trace.references.push({ column, operation, value })
           return builder
         },
         groupBy(value: string | string[]) {
@@ -70,7 +77,7 @@ function createListQueryDb(options: { items: QueryRows; traces: QueryTrace[] }) 
             return [{ id: 'CONCENTRATION', spellIds: ['spell-1'] }]
           }
 
-          if (table === 'spell_classes') {
+          if (table === 'spell_catalog_classes as spell_class') {
             return [{ id: 'wizard', label: 'Wizard', spellIds: ['spell-1'] }]
           }
 
@@ -154,6 +161,31 @@ describe('getSpellListQuery', () => {
       castingTimeUnits: [{ id: 'ROUND', spellIds: ['spell-1'] }]
     })
     expect(traces).toHaveLength(6)
+    const classTrace = traces.find(
+      (trace) => trace.table === 'spell_catalog_classes as spell_class'
+    )
+    expect(classTrace).toEqual(
+      expect.objectContaining({
+        filters: [{ column: 'spell_class.spell_id', operation: 'in', value: ['spell-1'] }],
+        groupBy: ['spell_class.class_id', 'classes.label'],
+        joins: [
+          {
+            table: 'spells as class_spell',
+            left: 'class_spell.id',
+            right: 'spell_class.spell_id'
+          },
+          { table: 'classes', left: 'classes.id', right: 'spell_class.class_id' }
+        ],
+        references: [
+          {
+            column: 'spell_class.authored_version_id',
+            operation: '=',
+            value: 'class_spell.active_version_id'
+          }
+        ]
+      })
+    )
+    expect(traces.some((trace) => trace.table === 'spell_classes')).toBe(false)
     expect(traces[0]?.filters).toEqual([
       { column: 'system_id', operation: '=', value: 'system-1' },
       { column: 'user_id', operation: '=', value: 'user-1' }

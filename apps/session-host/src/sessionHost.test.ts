@@ -43,6 +43,7 @@ const INITIAL_ANNOTATION_ID = '00000000-0000-4000-8000-000000000009'
 const HIDDEN_TOKEN_ID = '00000000-0000-4000-8000-000000000010'
 const STALE_OWNER_ID = '00000000-0000-4000-8000-000000000012'
 const REMOVED_PLAYER_ID = '00000000-0000-4000-8000-000000000013'
+const SECOND_SCENE_ID = '00000000-0000-4000-8000-000000000014'
 
 const sockets: WebSocket[] = []
 
@@ -125,7 +126,15 @@ function dependencies(
       sceneStates: []
     }),
     releaseAuthority: async () => undefined,
-    renewAuthority: async () => [],
+    renewAuthority: async (userId) => ({
+      aggregateVersions: [],
+      memberships: [
+        {
+          role: userId === USER_ID || userId === STALE_OWNER_ID ? 'OWNER' : 'PLAYER',
+          userId
+        }
+      ]
+    }),
     ...overrides
   }
 }
@@ -294,7 +303,17 @@ describe('native local session host', () => {
     }))
     const releaseAuthority = vi.fn(async () => undefined)
     const server = createSessionHostServer(
-      dependencies({ claimAuthority, loadSnapshot, releaseAuthority }),
+      dependencies({
+        claimAuthority,
+        loadSnapshot,
+        releaseAuthority,
+        renewAuthority: async () => ({
+          aggregateVersions: [
+            { aggregateId: ENCOUNTER_ID, aggregateKind: 'ENCOUNTER', version: 7 }
+          ],
+          memberships: [{ role: 'OWNER', userId: USER_ID }]
+        })
+      }),
       { ticketSecret: TICKET_SECRET }
     )
     await server.listen(0)
@@ -330,6 +349,711 @@ describe('native local session host', () => {
       await server.gracefullyShutdown(false)
     }
     expect(releaseAuthority).toHaveBeenCalledTimes(1)
+  })
+
+  it('refreshes canonical room state on RESUME when authoritative aggregate versions changed', async () => {
+    let sceneVersion = 1
+    const state = sceneState()
+    const loadSnapshot = vi.fn(async () => ({
+      aggregateVersions: [
+        { aggregateId: SCENE_ID, aggregateKind: 'SCENE' as const, version: sceneVersion }
+      ],
+      characterRuleSnapshots: [],
+      characterVisions: [],
+      encounterCharacterBindings: [],
+      encounterRuleSnapshots: [],
+      sceneStates: [{ ...state, version: sceneVersion }]
+    }))
+    const server = createSessionHostServer(
+      dependencies({
+        loadSnapshot,
+        renewAuthority: async () => ({
+          aggregateVersions: [
+            { aggregateId: SCENE_ID, aggregateKind: 'SCENE', version: sceneVersion }
+          ],
+          memberships: [{ role: 'OWNER', userId: USER_ID }]
+        })
+      }),
+      { ticketSecret: TICKET_SECRET }
+    )
+    await server.listen(0)
+    const port = (server.httpServer.address() as AddressInfo).port
+    try {
+      const client = await connect(
+        port,
+        await issueTicket({ jti: '00000000-0000-4000-8000-000000000102' })
+      )
+      expect(client.ready).toMatchObject({
+        aggregateVersions: [{ aggregateId: SCENE_ID, aggregateKind: 'SCENE', version: 1 }]
+      })
+      sceneVersion = 2
+      const refreshed = waitForMessage(
+        client.socket,
+        (message) =>
+          message.type === 'READY' && message.aggregateVersions[0]?.version === sceneVersion
+      )
+      send(client.socket, {
+        lastSeenDeliverySequence: 0,
+        pendingCommandIds: [],
+        type: 'RESUME'
+      })
+      await expect(refreshed).resolves.toMatchObject({
+        aggregateVersions: [{ aggregateId: SCENE_ID, aggregateKind: 'SCENE', version: 2 }]
+      })
+      expect(loadSnapshot).toHaveBeenCalledTimes(2)
+    } finally {
+      await server.gracefullyShutdown(false)
+    }
+  })
+
+  it('drains active commands before replacing the coordinator during canonical refresh', async () => {
+    const firstCommandId = '00000000-0000-4000-8000-000000000114'
+    const secondCommandId = '00000000-0000-4000-8000-000000000115'
+    let state = sceneState()
+    const initialVersion = state.version
+    let releaseFirstExecution!: () => void
+    let signalFirstPersisted!: () => void
+    const firstExecutionReleased = new Promise<void>((resolve) => {
+      releaseFirstExecution = resolve
+    })
+    const firstPersisted = new Promise<void>((resolve) => {
+      signalFirstPersisted = resolve
+    })
+    const executeImplementation: LiveSessionRoomDependencies['execute'] = async (
+      _userId,
+      _options,
+      command
+    ) => {
+      if (command.aggregateKind !== 'SCENE' || command.command.type !== 'UPSERT_SCENE_ANNOTATION') {
+        throw new Error('Expected an annotation command.')
+      }
+      const delta = { annotation: command.command.annotation, kind: 'ANNOTATION_UPSERTED' as const }
+      state = applySceneEvent(state, {
+        actorUserId: USER_ID,
+        commandId: command.command.commandId,
+        delta,
+        sceneId: SCENE_ID,
+        version: state.version + 1
+      })
+      if (command.command.commandId === firstCommandId) {
+        signalFirstPersisted()
+        await firstExecutionReleased
+      }
+      return {
+        aggregateId: SCENE_ID,
+        aggregateKind: 'SCENE',
+        commandId: command.command.commandId,
+        replayed: false,
+        response: {
+          commandId: command.command.commandId,
+          delta,
+          replayed: false,
+          sceneId: SCENE_ID,
+          version: state.version
+        },
+        state,
+        version: state.version
+      }
+    }
+    const execute = vi.fn(executeImplementation)
+    const loadSnapshot = vi.fn(async () => ({
+      aggregateVersions: [
+        { aggregateId: SCENE_ID, aggregateKind: 'SCENE' as const, version: state.version }
+      ],
+      characterRuleSnapshots: [],
+      characterVisions: [],
+      encounterCharacterBindings: [],
+      encounterRuleSnapshots: [],
+      sceneStates: [state]
+    }))
+    const renewAuthority = vi.fn(async () => ({
+      aggregateVersions: [
+        { aggregateId: SCENE_ID, aggregateKind: 'SCENE' as const, version: state.version }
+      ],
+      memberships: [{ role: 'OWNER' as const, userId: USER_ID }]
+    }))
+    const commandMessage = (
+      commandId: string,
+      expectedSceneVersion: number,
+      annotationId: string
+    ): LiveSessionWebSocketClientMessageDto => ({
+      command: {
+        aggregateKind: 'SCENE',
+        command: {
+          annotation: {
+            id: annotationId,
+            position: { x: expectedSceneVersion, y: expectedSceneVersion },
+            text: `Annotation ${expectedSceneVersion}`,
+            visibility: 'GM_ONLY'
+          },
+          commandId,
+          encounterId: ENCOUNTER_ID,
+          expectedSceneVersion,
+          sceneId: SCENE_ID,
+          type: 'UPSERT_SCENE_ANNOTATION'
+        }
+      },
+      type: 'COMMAND'
+    })
+    const server = createSessionHostServer(
+      dependencies({ execute, loadSnapshot, renewAuthority }),
+      { ticketSecret: TICKET_SECRET }
+    )
+    await server.listen(0)
+    const port = (server.httpServer.address() as AddressInfo).port
+    try {
+      const client = await connect(
+        port,
+        await issueTicket({ jti: '00000000-0000-4000-8000-000000000116' })
+      )
+      const firstCommitted = waitForMessage(
+        client.socket,
+        (message) =>
+          message.type === 'COMMAND_COMMITTED' && message.originCommandId === firstCommandId
+      )
+      send(client.socket, commandMessage(firstCommandId, initialVersion, ANNOTATION_ID))
+      await firstPersisted
+
+      const refreshed = waitForMessage(
+        client.socket,
+        (message) =>
+          message.type === 'READY' && message.aggregateVersions[0]?.version === state.version
+      )
+      send(client.socket, {
+        lastSeenDeliverySequence: 0,
+        pendingCommandIds: [],
+        type: 'RESUME'
+      })
+      await waitFor(() => renewAuthority.mock.calls.length === 2)
+      expect(loadSnapshot).toHaveBeenCalledTimes(1)
+
+      releaseFirstExecution()
+      await expect(firstCommitted).resolves.toMatchObject({
+        aggregateKind: 'SCENE',
+        originCommandId: firstCommandId,
+        version: initialVersion + 1
+      })
+      await expect(refreshed).resolves.toMatchObject({
+        aggregateVersions: [
+          {
+            aggregateId: SCENE_ID,
+            aggregateKind: 'SCENE',
+            version: initialVersion + 1
+          }
+        ],
+        type: 'READY'
+      })
+      expect(loadSnapshot).toHaveBeenCalledTimes(2)
+
+      const secondCommitted = waitForMessage(
+        client.socket,
+        (message) =>
+          message.type === 'COMMAND_COMMITTED' && message.originCommandId === secondCommandId
+      )
+      send(
+        client.socket,
+        commandMessage(secondCommandId, initialVersion + 1, INITIAL_ANNOTATION_ID)
+      )
+      await expect(secondCommitted).resolves.toMatchObject({
+        aggregateKind: 'SCENE',
+        originCommandId: secondCommandId,
+        version: initialVersion + 2
+      })
+      expect(execute).toHaveBeenCalledTimes(2)
+    } finally {
+      releaseFirstExecution()
+      await server.gracefullyShutdown(false)
+    }
+  })
+
+  it('serializes joining and RESUME refreshes before accepting a command on the replacement coordinator', async () => {
+    const commandId = '00000000-0000-4000-8000-000000000137'
+    let state = sceneState()
+    const initialVersion = state.version
+    let releaseJoiningRenewal!: () => void
+    let releaseJoiningSnapshot!: () => void
+    let releaseResumeRenewal!: () => void
+    let releaseResumeSnapshot!: () => void
+    let signalJoiningRenewal!: () => void
+    let signalJoiningSnapshot!: () => void
+    let signalResumeRenewal!: () => void
+    let signalResumeSnapshot!: () => void
+    const joiningRenewalReleased = new Promise<void>((resolve) => {
+      releaseJoiningRenewal = resolve
+    })
+    const joiningSnapshotReleased = new Promise<void>((resolve) => {
+      releaseJoiningSnapshot = resolve
+    })
+    const resumeRenewalReleased = new Promise<void>((resolve) => {
+      releaseResumeRenewal = resolve
+    })
+    const resumeSnapshotReleased = new Promise<void>((resolve) => {
+      releaseResumeSnapshot = resolve
+    })
+    const joiningRenewalStarted = new Promise<void>((resolve) => {
+      signalJoiningRenewal = resolve
+    })
+    const joiningSnapshotStarted = new Promise<void>((resolve) => {
+      signalJoiningSnapshot = resolve
+    })
+    const resumeRenewalStarted = new Promise<void>((resolve) => {
+      signalResumeRenewal = resolve
+    })
+    const resumeSnapshotStarted = new Promise<void>((resolve) => {
+      signalResumeSnapshot = resolve
+    })
+    let renewalCall = 0
+    const renewAuthority = vi.fn(async (renewingUserId: string) => {
+      const call = ++renewalCall
+      if (call === 1) {
+        return {
+          aggregateVersions: [
+            { aggregateId: SCENE_ID, aggregateKind: 'SCENE' as const, version: initialVersion }
+          ],
+          memberships: [
+            { role: 'OWNER' as const, userId: USER_ID },
+            { role: 'PLAYER' as const, userId: PLAYER_ID }
+          ]
+        }
+      }
+      if (renewingUserId === PLAYER_ID) {
+        signalJoiningRenewal()
+        await joiningRenewalReleased
+        return {
+          aggregateVersions: [
+            { aggregateId: SCENE_ID, aggregateKind: 'SCENE' as const, version: initialVersion + 1 }
+          ],
+          memberships: [
+            { role: 'OWNER' as const, userId: USER_ID },
+            { role: 'PLAYER' as const, userId: PLAYER_ID }
+          ]
+        }
+      }
+      signalResumeRenewal()
+      await resumeRenewalReleased
+      return {
+        aggregateVersions: [
+          { aggregateId: SCENE_ID, aggregateKind: 'SCENE' as const, version: initialVersion + 2 }
+        ],
+        memberships: [
+          { role: 'OWNER' as const, userId: USER_ID },
+          { role: 'PLAYER' as const, userId: PLAYER_ID }
+        ]
+      }
+    })
+    let snapshotCall = 0
+    const loadSnapshot = vi.fn(async () => {
+      const call = ++snapshotCall
+      if (call === 2) {
+        signalJoiningSnapshot()
+        await joiningSnapshotReleased
+        state = { ...state, version: initialVersion + 1 }
+      } else if (call === 3) {
+        signalResumeSnapshot()
+        await resumeSnapshotReleased
+        state = { ...state, version: initialVersion + 2 }
+      }
+      return {
+        aggregateVersions: [
+          { aggregateId: SCENE_ID, aggregateKind: 'SCENE' as const, version: state.version }
+        ],
+        characterRuleSnapshots: [],
+        characterVisions: [],
+        encounterCharacterBindings: [],
+        encounterRuleSnapshots: [],
+        sceneStates: [state]
+      }
+    })
+    const execute = vi.fn<LiveSessionRoomDependencies['execute']>(async () => {
+      const delta = {
+        annotation: {
+          id: ANNOTATION_ID,
+          position: { x: 3, y: 3 },
+          text: 'After both refreshes',
+          visibility: 'GM_ONLY' as const
+        },
+        kind: 'ANNOTATION_UPSERTED' as const
+      }
+      state = applySceneEvent(state, {
+        actorUserId: USER_ID,
+        commandId,
+        delta,
+        sceneId: SCENE_ID,
+        version: initialVersion + 3
+      })
+      return {
+        aggregateId: SCENE_ID,
+        aggregateKind: 'SCENE',
+        commandId,
+        replayed: false,
+        response: {
+          commandId,
+          delta,
+          replayed: false,
+          sceneId: SCENE_ID,
+          version: initialVersion + 3
+        },
+        state,
+        version: initialVersion + 3
+      }
+    })
+    const server = createSessionHostServer(
+      dependencies({ execute, loadSnapshot, renewAuthority }),
+      { ticketSecret: TICKET_SECRET }
+    )
+    await server.listen(0)
+    const port = (server.httpServer.address() as AddressInfo).port
+    let playerSocket: WebSocket | null = null
+    try {
+      const owner = await connect(
+        port,
+        await issueTicket({ jti: '00000000-0000-4000-8000-000000000138' })
+      ).catch((error: unknown) => {
+        throw new Error(
+          `The initial owner did not receive READY (renewals=${renewalCall}, snapshots=${snapshotCall}).`,
+          { cause: error }
+        )
+      })
+      playerSocket = new WebSocket(
+        endpoint(port),
+        [
+          LIVE_SESSION_WEBSOCKET_PROTOCOL,
+          `${LIVE_SESSION_TICKET_PROTOCOL_PREFIX}${await issueTicket({
+            jti: '00000000-0000-4000-8000-000000000139',
+            role: 'PLAYER',
+            userId: PLAYER_ID
+          })}`
+        ],
+        { headers: { Origin: 'http://localhost:3000' } }
+      )
+      sockets.push(playerSocket)
+      await joiningRenewalStarted
+      send(owner.socket, {
+        lastSeenDeliverySequence: 0,
+        pendingCommandIds: [],
+        type: 'RESUME'
+      })
+      releaseJoiningRenewal()
+      await joiningSnapshotStarted
+      expect(renewAuthority).toHaveBeenCalledTimes(2)
+      releaseJoiningSnapshot()
+      await resumeRenewalStarted
+      releaseResumeRenewal()
+      await resumeSnapshotStarted
+
+      const committed = waitForMessage(
+        owner.socket,
+        (message) => message.type === 'COMMAND_COMMITTED' && message.originCommandId === commandId
+      )
+      send(owner.socket, {
+        command: {
+          aggregateKind: 'SCENE',
+          command: {
+            annotation: {
+              id: ANNOTATION_ID,
+              position: { x: 3, y: 3 },
+              text: 'After both refreshes',
+              visibility: 'GM_ONLY'
+            },
+            commandId,
+            encounterId: ENCOUNTER_ID,
+            expectedSceneVersion: initialVersion + 2,
+            sceneId: SCENE_ID,
+            type: 'UPSERT_SCENE_ANNOTATION'
+          }
+        },
+        type: 'COMMAND'
+      })
+      expect(execute).not.toHaveBeenCalled()
+      releaseResumeSnapshot()
+      const committedMessage = await committed.catch((error: unknown) => {
+        throw new Error('The command did not commit after both refreshes.', { cause: error })
+      })
+      expect(committedMessage).toMatchObject({
+        aggregateKind: 'SCENE',
+        originCommandId: commandId,
+        version: initialVersion + 3
+      })
+      expect(loadSnapshot).toHaveBeenCalledTimes(3)
+      expect(execute).toHaveBeenCalledTimes(1)
+    } finally {
+      releaseJoiningRenewal()
+      releaseJoiningSnapshot()
+      releaseResumeRenewal()
+      releaseResumeSnapshot()
+      playerSocket?.terminate()
+      await server.gracefullyShutdown(false)
+    }
+  })
+
+  it('keeps a cold runtime alive when its failed creator admission overlaps a valid join', async () => {
+    let releaseCreatorClaim!: () => void
+    let signalCreatorClaimStarted!: () => void
+    const creatorClaimGate = new Promise<void>((resolve) => {
+      releaseCreatorClaim = resolve
+    })
+    const creatorClaimStarted = new Promise<void>((resolve) => {
+      signalCreatorClaimStarted = resolve
+    })
+    const claimAuthority = vi.fn(async (claimingUserId: string) => {
+      if (claimingUserId !== USER_ID) return
+      signalCreatorClaimStarted()
+      await creatorClaimGate
+      throw new Error('The stale creator cannot claim authority.')
+    })
+    const releaseAuthority = vi.fn(async () => undefined)
+    const server = createSessionHostServer(
+      dependencies({
+        claimAuthority,
+        loadSnapshot: async () => {
+          return {
+            aggregateVersions: [],
+            characterRuleSnapshots: [],
+            characterVisions: [],
+            encounterCharacterBindings: [],
+            encounterRuleSnapshots: [],
+            sceneStates: []
+          }
+        },
+        releaseAuthority,
+        renewAuthority: async () => ({
+          aggregateVersions: [],
+          memberships: [{ role: 'PLAYER', userId: PLAYER_ID }]
+        })
+      }),
+      { ticketSecret: TICKET_SECRET }
+    )
+    await server.listen(0)
+    const port = (server.httpServer.address() as AddressInfo).port
+    try {
+      const staleCreator = new WebSocket(
+        endpoint(port),
+        [
+          LIVE_SESSION_WEBSOCKET_PROTOCOL,
+          `${LIVE_SESSION_TICKET_PROTOCOL_PREFIX}${await issueTicket({
+            jti: '00000000-0000-4000-8000-000000000140'
+          })}`
+        ],
+        { headers: { Origin: 'http://localhost:3000' } }
+      )
+      sockets.push(staleCreator)
+      const creatorClosed = waitForClose(staleCreator)
+      await creatorClaimStarted
+      const retainedPlayer = new WebSocket(
+        endpoint(port),
+        [
+          LIVE_SESSION_WEBSOCKET_PROTOCOL,
+          `${LIVE_SESSION_TICKET_PROTOCOL_PREFIX}${await issueTicket({
+            jti: '00000000-0000-4000-8000-000000000141',
+            role: 'PLAYER',
+            userId: PLAYER_ID
+          })}`
+        ],
+        { headers: { Origin: 'http://localhost:3000' } }
+      )
+      sockets.push(retainedPlayer)
+      const playerReady = waitForMessage(retainedPlayer, (message) => message.type === 'READY')
+      await waitFor(() => server.webSocketServer.clients.size === 2)
+      releaseCreatorClaim()
+      await expect(creatorClosed).resolves.toBe(1011)
+      await expect(playerReady).resolves.toMatchObject({ type: 'READY' })
+      expect(claimAuthority).toHaveBeenNthCalledWith(
+        1,
+        USER_ID,
+        expect.anything(),
+        expect.any(String)
+      )
+      expect(claimAuthority).toHaveBeenNthCalledWith(
+        2,
+        PLAYER_ID,
+        expect.anything(),
+        expect.any(String)
+      )
+      expect(releaseAuthority).not.toHaveBeenCalled()
+
+      const resumed = waitForMessage(retainedPlayer, (message) => message.type === 'READY')
+      send(retainedPlayer, {
+        lastSeenDeliverySequence: 0,
+        pendingCommandIds: [],
+        type: 'RESUME'
+      })
+      await expect(resumed).resolves.toMatchObject({ type: 'READY' })
+    } finally {
+      releaseCreatorClaim()
+      await server.gracefullyShutdown(false)
+    }
+    expect(releaseAuthority).toHaveBeenCalledTimes(1)
+  })
+
+  it('treats equivalent reordered aggregate versions as current', async () => {
+    const aggregateVersions = [
+      { aggregateId: SCENE_ID, aggregateKind: 'SCENE' as const, version: 1 },
+      { aggregateId: SECOND_SCENE_ID, aggregateKind: 'SCENE' as const, version: 2 }
+    ]
+    const loadSnapshot = vi.fn(async () => ({
+      aggregateVersions,
+      characterRuleSnapshots: [],
+      characterVisions: [],
+      encounterCharacterBindings: [],
+      encounterRuleSnapshots: [],
+      sceneStates: [sceneState()]
+    }))
+    const server = createSessionHostServer(
+      dependencies({
+        loadSnapshot,
+        renewAuthority: async () => ({
+          aggregateVersions: [...aggregateVersions].reverse(),
+          memberships: [{ role: 'OWNER', userId: USER_ID }]
+        })
+      }),
+      { ticketSecret: TICKET_SECRET }
+    )
+    await server.listen(0)
+    const port = (server.httpServer.address() as AddressInfo).port
+    try {
+      const client = await connect(
+        port,
+        await issueTicket({ jti: '00000000-0000-4000-8000-000000000142' })
+      )
+      expect(loadSnapshot).toHaveBeenCalledTimes(1)
+      const ready = waitForMessage(client.socket, (message) => message.type === 'READY')
+      send(client.socket, {
+        lastSeenDeliverySequence: 0,
+        pendingCommandIds: [],
+        type: 'RESUME'
+      })
+      await expect(ready).resolves.toMatchObject({ aggregateVersions })
+      expect(loadSnapshot).toHaveBeenCalledTimes(1)
+    } finally {
+      await server.gracefullyShutdown(false)
+    }
+  })
+
+  it('does not send READY to a stale ticket joining during cold-room hydration', async () => {
+    let releaseSnapshot!: () => void
+    let signalSnapshotStarted!: () => void
+    const snapshotGate = new Promise<void>((resolve) => {
+      releaseSnapshot = resolve
+    })
+    const snapshotStarted = new Promise<void>((resolve) => {
+      signalSnapshotStarted = resolve
+    })
+    const server = createSessionHostServer(
+      dependencies({
+        loadSnapshot: async () => {
+          signalSnapshotStarted()
+          await snapshotGate
+          return {
+            aggregateVersions: [],
+            characterRuleSnapshots: [],
+            characterVisions: [],
+            encounterCharacterBindings: [],
+            encounterRuleSnapshots: [],
+            sceneStates: []
+          }
+        },
+        renewAuthority: async (userId) => {
+          if (userId === PLAYER_ID) throw new Error('Campaign membership changed.')
+          return {
+            aggregateVersions: [],
+            memberships: [{ role: 'OWNER', userId: USER_ID }]
+          }
+        }
+      }),
+      { ticketSecret: TICKET_SECRET }
+    )
+    await server.listen(0)
+    const port = (server.httpServer.address() as AddressInfo).port
+    try {
+      const ownerSocket = new WebSocket(
+        endpoint(port),
+        [
+          LIVE_SESSION_WEBSOCKET_PROTOCOL,
+          `${LIVE_SESSION_TICKET_PROTOCOL_PREFIX}${await issueTicket({
+            jti: '00000000-0000-4000-8000-000000000134'
+          })}`
+        ],
+        { headers: { Origin: 'http://localhost:3000' } }
+      )
+      sockets.push(ownerSocket)
+      const ownerReady = waitForMessage(ownerSocket, (message) => message.type === 'READY')
+      await new Promise<void>((resolve, reject) => {
+        ownerSocket.once('open', resolve)
+        ownerSocket.once('error', reject)
+      })
+      await snapshotStarted
+      const staleSocket = new WebSocket(
+        endpoint(port),
+        [
+          LIVE_SESSION_WEBSOCKET_PROTOCOL,
+          `${LIVE_SESSION_TICKET_PROTOCOL_PREFIX}${await issueTicket({
+            jti: '00000000-0000-4000-8000-000000000135',
+            role: 'PLAYER',
+            userId: PLAYER_ID
+          })}`
+        ],
+        { headers: { Origin: 'http://localhost:3000' } }
+      )
+      sockets.push(staleSocket)
+      const noReady = expectNoMessage(staleSocket)
+      const closed = waitForClose(staleSocket)
+      await new Promise<void>((resolve, reject) => {
+        staleSocket.once('open', resolve)
+        staleSocket.once('error', reject)
+      })
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      releaseSnapshot()
+      await expect(ownerReady).resolves.toMatchObject({ type: 'READY' })
+      await expect(closed).resolves.toBe(1011)
+      await noReady
+
+      const stillReady = waitForMessage(ownerSocket, (message) => message.type === 'READY')
+      send(ownerSocket, {
+        lastSeenDeliverySequence: 0,
+        pendingCommandIds: [],
+        type: 'RESUME'
+      })
+      await expect(stillReady).resolves.toMatchObject({ type: 'READY' })
+    } finally {
+      await server.gracefullyShutdown(false)
+    }
+  })
+
+  it('rejects a cold-room OWNER ticket after the member was demoted to PLAYER', async () => {
+    const server = createSessionHostServer(
+      dependencies({
+        renewAuthority: async () => ({
+          aggregateVersions: [],
+          memberships: [{ role: 'PLAYER', userId: USER_ID }]
+        })
+      }),
+      { ticketSecret: TICKET_SECRET }
+    )
+    await server.listen(0)
+    const port = (server.httpServer.address() as AddressInfo).port
+    try {
+      const socket = new WebSocket(
+        endpoint(port),
+        [
+          LIVE_SESSION_WEBSOCKET_PROTOCOL,
+          `${LIVE_SESSION_TICKET_PROTOCOL_PREFIX}${await issueTicket({
+            jti: '00000000-0000-4000-8000-000000000136'
+          })}`
+        ],
+        { headers: { Origin: 'http://localhost:3000' } }
+      )
+      sockets.push(socket)
+      const noReady = expectNoMessage(socket)
+      const closed = waitForClose(socket)
+      await new Promise<void>((resolve, reject) => {
+        socket.once('open', resolve)
+        socket.once('error', reject)
+      })
+      await expect(closed).resolves.toBe(1011)
+      await noReady
+    } finally {
+      await server.gracefullyShutdown(false)
+    }
   })
 
   it('projects scenes privately across six clients and recovers a reconnected player', async () => {
@@ -372,6 +1096,15 @@ describe('native local session host', () => {
           encounterCharacterBindings: [],
           encounterRuleSnapshots: [],
           sceneStates: [state]
+        }),
+        renewAuthority: async () => ({
+          aggregateVersions: [
+            { aggregateId: SCENE_ID, aggregateKind: 'SCENE', version: state.version }
+          ],
+          memberships: [
+            { role: 'OWNER', userId: USER_ID },
+            { role: 'PLAYER', userId: PLAYER_ID }
+          ]
         })
       }),
       { ticketSecret: TICKET_SECRET }
@@ -517,6 +1250,16 @@ describe('native local session host', () => {
           encounterCharacterBindings: [],
           encounterRuleSnapshots: [],
           sceneStates: [state]
+        }),
+        renewAuthority: async () => ({
+          aggregateVersions: [
+            { aggregateId: SCENE_ID, aggregateKind: 'SCENE', version: state.version }
+          ],
+          memberships: [
+            { role: 'OWNER', userId: USER_ID },
+            { role: 'PLAYER', userId: PLAYER_ID },
+            { role: 'PLAYER', userId: FOGGED_PLAYER_ID }
+          ]
         })
       }),
       { ticketSecret: TICKET_SECRET }
@@ -706,18 +1449,23 @@ describe('native local session host', () => {
       if (changedMemberships && renewingUserId === REMOVED_PLAYER_ID) {
         throw new Error('Campaign membership changed.')
       }
-      return changedMemberships
-        ? [
-            { role: 'OWNER' as const, userId: USER_ID },
-            { role: 'PLAYER' as const, userId: STALE_OWNER_ID },
-            { role: 'PLAYER' as const, userId: PLAYER_ID }
-          ]
-        : [
-            { role: 'OWNER' as const, userId: USER_ID },
-            { role: 'OWNER' as const, userId: STALE_OWNER_ID },
-            { role: 'PLAYER' as const, userId: REMOVED_PLAYER_ID },
-            { role: 'PLAYER' as const, userId: PLAYER_ID }
-          ]
+      return {
+        aggregateVersions: [
+          { aggregateId: SCENE_ID, aggregateKind: 'SCENE' as const, version: state.version }
+        ],
+        memberships: changedMemberships
+          ? [
+              { role: 'OWNER' as const, userId: USER_ID },
+              { role: 'PLAYER' as const, userId: STALE_OWNER_ID },
+              { role: 'PLAYER' as const, userId: PLAYER_ID }
+            ]
+          : [
+              { role: 'OWNER' as const, userId: USER_ID },
+              { role: 'OWNER' as const, userId: STALE_OWNER_ID },
+              { role: 'PLAYER' as const, userId: REMOVED_PLAYER_ID },
+              { role: 'PLAYER' as const, userId: PLAYER_ID }
+            ]
+      }
     })
     const server = createSessionHostServer(
       dependencies({
@@ -845,6 +1593,15 @@ describe('native local session host', () => {
           encounterCharacterBindings: [],
           encounterRuleSnapshots: [],
           sceneStates: [state]
+        }),
+        renewAuthority: async () => ({
+          aggregateVersions: [
+            { aggregateId: SCENE_ID, aggregateKind: 'SCENE', version: committedState.version }
+          ],
+          memberships: [
+            { role: 'OWNER', userId: USER_ID },
+            { role: 'PLAYER', userId: FOGGED_PLAYER_ID }
+          ]
         })
       }),
       { ticketSecret: TICKET_SECRET }
@@ -948,6 +1705,13 @@ describe('native local session host', () => {
           encounterCharacterBindings: [],
           encounterRuleSnapshots: [],
           sceneStates: []
+        }),
+        renewAuthority: async () => ({
+          aggregateVersions: [],
+          memberships: [
+            { role: 'OWNER', userId: USER_ID },
+            { role: 'PLAYER', userId: PLAYER_ID }
+          ]
         })
       }),
       { ticketSecret: TICKET_SECRET }

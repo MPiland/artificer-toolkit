@@ -47,6 +47,13 @@ function buildCharacterSheetResponse(
   })
 }
 
+function createPreparedCasterSpellLimits() {
+  return createFullCasterSpellLimits().map((limit) => ({
+    ...limit,
+    preparedSpellsLimit: limit.classLevel
+  }))
+}
+
 describe('character sheet spell projection', () => {
   it('hydrates spell casting reference details into sheet spells', async () => {
     const resolution = createResolution()
@@ -465,235 +472,239 @@ describe('character sheet spell projection', () => {
 
     const sheet = await buildCharacterSheetResponse({
       character,
-      db: createConditionDb([], {
-        spells: [
-          {
-            ownerId: 'spell-attack',
+      db: createConditionDb(
+        [],
+        {
+          spells: [
+            {
+              ownerId: 'spell-attack',
+              label: 'Arcane Bolt',
+              description: '',
+              level: 1,
+              magicSchoolId: 'school-1',
+              magicSchoolCode: 'EVOCATION',
+              magicSchoolLabel: 'Evocation',
+              castingTimeUnit: 'ACTION',
+              castingTimeAmount: 1,
+              materialDescription: null,
+              effectId: 'effect-attack',
+              ownerEffectOrder: 0,
+              effectOrder: 0
+            },
+            {
+              ownerId: 'spell-save',
+              label: 'Arcane Burst',
+              description: '',
+              level: 1,
+              magicSchoolId: 'school-1',
+              magicSchoolCode: 'EVOCATION',
+              magicSchoolLabel: 'Evocation',
+              castingTimeUnit: 'ACTION',
+              castingTimeAmount: 1,
+              materialDescription: null,
+              effectId: 'effect-save',
+              ownerEffectOrder: 0,
+              effectOrder: 0
+            },
+            {
+              ownerId: 'spell-utility',
+              label: 'Arcane Ward',
+              description: '',
+              level: 1,
+              magicSchoolId: 'school-1',
+              magicSchoolCode: 'ABJURATION',
+              magicSchoolLabel: 'Abjuration',
+              castingTimeUnit: 'REACTION',
+              castingTimeAmount: 1,
+              materialDescription: null,
+              effectId: 'effect-utility',
+              ownerEffectOrder: 0,
+              effectOrder: 0
+            }
+          ],
+          effect_invocations: [
+            {
+              effectId: 'effect-attack',
+              triggerCode: 'SPELL_ATTACK',
+              activationType: 'ACTION',
+              activationValue: 1,
+              rangeCharacteristicId: 'range-attack',
+              shapeCharacteristicId: null,
+              savingThrowId: null,
+              targetSelectionKind: null,
+              targetDispositionKind: null,
+              maxTargets: null,
+              maxTargetsScaling: null,
+              resolutionCount: null,
+              resolutionCountScaling: null,
+              allowRepeatedTargets: null,
+              excludedCreatureTypeIds: null
+            },
+            {
+              effectId: 'effect-save',
+              triggerCode: 'SAVING_THROW',
+              activationType: 'BONUS_ACTION',
+              activationValue: 1,
+              rangeCharacteristicId: 'range-save',
+              shapeCharacteristicId: null,
+              savingThrowId: 'save-dexterity',
+              targetSelectionKind: null,
+              targetDispositionKind: null,
+              maxTargets: null,
+              maxTargetsScaling: null,
+              resolutionCount: null,
+              resolutionCountScaling: null,
+              allowRepeatedTargets: null,
+              excludedCreatureTypeIds: null
+            },
+            {
+              effectId: 'effect-utility',
+              triggerCode: 'ACTIVATED',
+              activationType: 'REACTION',
+              activationValue: 1,
+              rangeCharacteristicId: 'range-utility',
+              shapeCharacteristicId: null,
+              savingThrowId: null,
+              targetSelectionKind: null,
+              targetDispositionKind: null,
+              maxTargets: null,
+              maxTargetsScaling: null,
+              resolutionCount: null,
+              resolutionCountScaling: null,
+              allowRepeatedTargets: null,
+              excludedCreatureTypeIds: null
+            }
+          ],
+          characteristics: [
+            {
+              characteristicId: 'range-attack',
+              code: 'RANGE',
+              rangeKind: 'DISTANCE',
+              rangeMin: 120,
+              rangeMax: null,
+              rangeUnitCode: 'FEET',
+              rangeScaling: null,
+              shapeKind: null,
+              durationKind: null,
+              durationAmount: null,
+              durationScaling: null
+            },
+            {
+              characteristicId: 'range-save',
+              code: 'RANGE',
+              rangeKind: 'DISTANCE',
+              rangeMin: 150,
+              rangeMax: null,
+              rangeUnitCode: 'FEET',
+              rangeScaling: null,
+              shapeKind: null,
+              durationKind: null,
+              durationAmount: null,
+              durationScaling: null
+            },
+            {
+              characteristicId: 'range-utility',
+              code: 'RANGE',
+              rangeKind: 'DISTANCE',
+              rangeMin: 60,
+              rangeMax: null,
+              rangeUnitCode: 'FEET',
+              rangeScaling: null,
+              shapeKind: null,
+              durationKind: null,
+              durationAmount: null,
+              durationScaling: null
+            }
+          ],
+          saving_throws: [
+            {
+              savingThrowId: 'save-dexterity',
+              dcMethod: 'SOURCE_SAVE_DC',
+              abilityCode: 'DEXTERITY',
+              baseDc: null
+            }
+          ]
+        },
+        [
+          createAuthoredSpell({
+            classIds: ['wizard'],
+            id: 'spell-attack',
             label: 'Arcane Bolt',
-            description: '',
             level: 1,
-            magicSchoolId: 'school-1',
-            magicSchoolCode: 'EVOCATION',
-            magicSchoolLabel: 'Evocation',
-            castingTimeUnit: 'ACTION',
-            castingTimeAmount: 1,
-            materialDescription: null,
-            effectId: 'effect-attack',
-            ownerEffectOrder: 0,
-            effectOrder: 0
-          },
-          {
-            ownerId: 'spell-save',
-            label: 'Arcane Burst',
-            description: '',
-            level: 1,
-            magicSchoolId: 'school-1',
-            magicSchoolCode: 'EVOCATION',
-            magicSchoolLabel: 'Evocation',
-            castingTimeUnit: 'ACTION',
-            castingTimeAmount: 1,
-            materialDescription: null,
-            effectId: 'effect-save',
-            ownerEffectOrder: 0,
-            effectOrder: 0
-          },
-          {
-            ownerId: 'spell-utility',
-            label: 'Arcane Ward',
-            description: '',
-            level: 1,
-            magicSchoolId: 'school-1',
-            magicSchoolCode: 'ABJURATION',
-            magicSchoolLabel: 'Abjuration',
-            castingTimeUnit: 'REACTION',
-            castingTimeAmount: 1,
-            materialDescription: null,
-            effectId: 'effect-utility',
-            ownerEffectOrder: 0,
-            effectOrder: 0
-          }
-        ],
-        effect_invocations: [
-          {
-            effectId: 'effect-attack',
-            triggerCode: 'SPELL_ATTACK',
-            activationType: 'ACTION',
-            activationValue: 1,
-            rangeCharacteristicId: 'range-attack',
-            shapeCharacteristicId: null,
-            savingThrowId: null,
-            targetSelectionKind: null,
-            targetDispositionKind: null,
-            maxTargets: null,
-            maxTargetsScaling: null,
-            resolutionCount: null,
-            resolutionCountScaling: null,
-            allowRepeatedTargets: null,
-            excludedCreatureTypeIds: null
-          },
-          {
-            effectId: 'effect-save',
-            triggerCode: 'SAVING_THROW',
-            activationType: 'BONUS_ACTION',
-            activationValue: 1,
-            rangeCharacteristicId: 'range-save',
-            shapeCharacteristicId: null,
-            savingThrowId: 'save-dexterity',
-            targetSelectionKind: null,
-            targetDispositionKind: null,
-            maxTargets: null,
-            maxTargetsScaling: null,
-            resolutionCount: null,
-            resolutionCountScaling: null,
-            allowRepeatedTargets: null,
-            excludedCreatureTypeIds: null
-          },
-          {
-            effectId: 'effect-utility',
-            triggerCode: 'ACTIVATED',
-            activationType: 'REACTION',
-            activationValue: 1,
-            rangeCharacteristicId: 'range-utility',
-            shapeCharacteristicId: null,
-            savingThrowId: null,
-            targetSelectionKind: null,
-            targetDispositionKind: null,
-            maxTargets: null,
-            maxTargetsScaling: null,
-            resolutionCount: null,
-            resolutionCountScaling: null,
-            allowRepeatedTargets: null,
-            excludedCreatureTypeIds: null
-          }
-        ],
-        characteristics: [
-          {
-            characteristicId: 'range-attack',
-            code: 'RANGE',
-            rangeKind: 'DISTANCE',
-            rangeMin: 120,
-            rangeMax: null,
-            rangeUnitCode: 'FEET',
-            rangeScaling: null,
-            shapeKind: null,
-            durationKind: null,
-            durationAmount: null,
-            durationScaling: null
-          },
-          {
-            characteristicId: 'range-save',
-            code: 'RANGE',
-            rangeKind: 'DISTANCE',
-            rangeMin: 150,
-            rangeMax: null,
-            rangeUnitCode: 'FEET',
-            rangeScaling: null,
-            shapeKind: null,
-            durationKind: null,
-            durationAmount: null,
-            durationScaling: null
-          },
-          {
-            characteristicId: 'range-utility',
-            code: 'RANGE',
-            rangeKind: 'DISTANCE',
-            rangeMin: 60,
-            rangeMax: null,
-            rangeUnitCode: 'FEET',
-            rangeScaling: null,
-            shapeKind: null,
-            durationKind: null,
-            durationAmount: null,
-            durationScaling: null
-          }
-        ],
-        saving_throws: [
-          {
-            savingThrowId: 'save-dexterity',
-            dcMethod: 'SOURCE_SAVE_DC',
-            abilityCode: 'DEXTERITY',
-            baseDc: null
-          }
-        ]
-      }, [
-        createAuthoredSpell({
-          classIds: ['wizard'],
-          id: 'spell-attack',
-          label: 'Arcane Bolt',
-          level: 1,
-          effects: [
-            {
-              id: 'effect-attack',
-              order: 1,
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: 'SPELL_ATTACK',
-                activation: { code: 'ACTION', amount: 1 },
-                range: {
-                  id: 'range-attack',
-                  rangeKind: 'DISTANCE',
-                  amount: 120,
-                  unit: 'FEET'
-                }
-              },
-              paths: []
-            }
-          ]
-        }),
-        createAuthoredSpell({
-          classIds: ['wizard'],
-          id: 'spell-save',
-          label: 'Arcane Burst',
-          level: 1,
-          effects: [
-            {
-              id: 'effect-save',
-              order: 1,
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: 'SAVING_THROW',
-                activation: { code: 'BONUS_ACTION', amount: 1 },
-                range: {
-                  id: 'range-save',
-                  rangeKind: 'DISTANCE',
-                  amount: 150,
-                  unit: 'FEET'
+            effects: [
+              {
+                id: 'effect-attack',
+                order: 1,
+                invocation: {
+                  kind: 'ACTION',
+                  triggerCode: 'SPELL_ATTACK',
+                  activation: { code: 'ACTION', amount: 1 },
+                  range: {
+                    id: 'range-attack',
+                    rangeKind: 'DISTANCE',
+                    amount: 120,
+                    unit: 'FEET'
+                  }
                 },
-                savingThrow: {
-                  id: 'save-dexterity',
-                  ability: 'DEXTERITY',
-                  dcMethod: 'SOURCE_SAVE_DC'
-                }
-              },
-              paths: []
-            }
-          ]
-        }),
-        createAuthoredSpell({
-          classIds: ['wizard'],
-          id: 'spell-utility',
-          label: 'Arcane Ward',
-          level: 1,
-          effects: [
-            {
-              id: 'effect-utility',
-              order: 1,
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: 'ACTIVATED',
-                activation: { code: 'REACTION', amount: 1 },
-                range: {
-                  id: 'range-utility',
-                  rangeKind: 'DISTANCE',
-                  amount: 60,
-                  unit: 'FEET'
-                }
-              },
-              paths: []
-            }
-          ]
-        })
-      ]),
+                paths: []
+              }
+            ]
+          }),
+          createAuthoredSpell({
+            classIds: ['wizard'],
+            id: 'spell-save',
+            label: 'Arcane Burst',
+            level: 1,
+            effects: [
+              {
+                id: 'effect-save',
+                order: 1,
+                invocation: {
+                  kind: 'ACTION',
+                  triggerCode: 'SAVING_THROW',
+                  activation: { code: 'BONUS_ACTION', amount: 1 },
+                  range: {
+                    id: 'range-save',
+                    rangeKind: 'DISTANCE',
+                    amount: 150,
+                    unit: 'FEET'
+                  },
+                  savingThrow: {
+                    id: 'save-dexterity',
+                    ability: 'DEXTERITY',
+                    dcMethod: 'SOURCE_SAVE_DC'
+                  }
+                },
+                paths: []
+              }
+            ]
+          }),
+          createAuthoredSpell({
+            classIds: ['wizard'],
+            id: 'spell-utility',
+            label: 'Arcane Ward',
+            level: 1,
+            effects: [
+              {
+                id: 'effect-utility',
+                order: 1,
+                invocation: {
+                  kind: 'ACTION',
+                  triggerCode: 'ACTIVATED',
+                  activation: { code: 'REACTION', amount: 1 },
+                  range: {
+                    id: 'range-utility',
+                    rangeKind: 'DISTANCE',
+                    amount: 60,
+                    unit: 'FEET'
+                  }
+                },
+                paths: []
+              }
+            ]
+          })
+        ]
+      ),
       hasBuilderDraft: false,
       resolution,
       adjustments: [
@@ -813,170 +824,174 @@ describe('character sheet spell projection', () => {
 
     const sheet = await buildCharacterSheetResponse({
       character,
-      db: createConditionDb([], {
-        spells: [
-          {
-            ownerId: 'spell-1',
-            label: 'Arcane Burst',
-            description: '',
-            level: 1,
-            magicSchoolId: 'school-1',
-            magicSchoolCode: 'EVOCATION',
-            magicSchoolLabel: 'Evocation',
-            castingTimeUnit: 'ACTION',
-            castingTimeAmount: 1,
-            materialDescription: null,
-            effectId: 'effect-1',
-            ownerEffectOrder: 0,
-            effectOrder: 0
-          }
-        ],
-        effect_invocations: [
-          {
-            effectId: 'effect-1',
-            triggerCode: 'SPELL_ATTACK',
-            activationType: 'ACTION',
-            activationValue: 1,
-            rangeCharacteristicId: null,
-            shapeCharacteristicId: null,
-            savingThrowId: null,
-            targetSelectionKind: null,
-            targetDispositionKind: null,
-            maxTargets: null,
-            maxTargetsScaling: null,
-            resolutionCount: null,
-            resolutionCountScaling: null,
-            allowRepeatedTargets: null,
-            excludedCreatureTypeIds: null
-          }
-        ],
-        effect_paths: [
-          {
-            pathId: 'path-1',
-            effectId: 'effect-1',
-            order: 0,
-            pathCode: 'DEFAULT',
-            groupType: 'SEQUENCE',
-            selectionKind: 'FIXED',
-            originKind: null,
-            rangeOverrideCharacteristicId: null,
-            targetSelectionKind: null,
-            targetDispositionKind: null,
-            maxTargets: null,
-            maxTargetsScaling: null,
-            resolutionCount: null,
-            resolutionCountScaling: null,
-            allowRepeatedTargets: null,
-            excludedCreatureTypeIds: null,
-            resultBlockId: 'result-1',
-            rollTableKind: null,
-            die: null
-          }
-        ],
-        effect_result_blocks: [
-          {
-            resultBlockId: 'result-1',
-            resultKind: 'DAMAGE',
-            durationCharacteristicId: null,
-            lifecycleRecurringKind: null,
-            lifecycleConsumeOnFirstEvent: null,
-            lifecycleEndOnEvents: null
-          }
-        ],
-        effect_result_block_outcomes: [
-          {
-            resultBlockId: 'result-1',
-            outcomeId: 'damage-1',
-            effectKind: 'DAMAGE',
-            order: 0
-          }
-        ],
-        damages: [
-          {
-            damageId: 'damage-1',
-            damageTypeId: 'force',
-            damageTypeCode: 'FORCE',
-            damageTypeLabel: 'Force',
-            valueKind: 'DICE',
-            scalingKind: 'PER_LEVEL',
-            amountKind: null,
-            amountMultiplier: null,
-            scalingSource: 'SPELL_CAST_LEVEL',
-            classId: null,
-            order: 0,
-            valueId: null,
-            amount: null,
-            dice: null,
-            valueMultiplier: null,
-            valueMin: null,
-            valueMax: null
-          }
-        ],
-        damage_scaling_levels: [
-          {
-            scalingId: 'damage-1-1',
-            damageId: 'damage-1',
-            level: 1,
-            order: 0,
-            amount: null,
-            dice: '1d8'
-          },
-          {
-            scalingId: 'damage-1-3',
-            damageId: 'damage-1',
-            level: 3,
-            order: 1,
-            amount: null,
-            dice: '3d8'
-          }
-        ]
-      }, [
-        createAuthoredSpell({
-          classIds: ['wizard'],
-          id: 'spell-1',
-          label: 'Arcane Burst',
-          level: 1,
-          effects: [
+      db: createConditionDb(
+        [],
+        {
+          spells: [
             {
-              id: 'effect-1',
+              ownerId: 'spell-1',
+              label: 'Arcane Burst',
+              description: '',
+              level: 1,
+              magicSchoolId: 'school-1',
+              magicSchoolCode: 'EVOCATION',
+              magicSchoolLabel: 'Evocation',
+              castingTimeUnit: 'ACTION',
+              castingTimeAmount: 1,
+              materialDescription: null,
+              effectId: 'effect-1',
+              ownerEffectOrder: 0,
+              effectOrder: 0
+            }
+          ],
+          effect_invocations: [
+            {
+              effectId: 'effect-1',
+              triggerCode: 'SPELL_ATTACK',
+              activationType: 'ACTION',
+              activationValue: 1,
+              rangeCharacteristicId: null,
+              shapeCharacteristicId: null,
+              savingThrowId: null,
+              targetSelectionKind: null,
+              targetDispositionKind: null,
+              maxTargets: null,
+              maxTargetsScaling: null,
+              resolutionCount: null,
+              resolutionCountScaling: null,
+              allowRepeatedTargets: null,
+              excludedCreatureTypeIds: null
+            }
+          ],
+          effect_paths: [
+            {
+              pathId: 'path-1',
+              effectId: 'effect-1',
+              order: 0,
+              pathCode: 'DEFAULT',
+              groupType: 'SEQUENCE',
+              selectionKind: 'FIXED',
+              originKind: null,
+              rangeOverrideCharacteristicId: null,
+              targetSelectionKind: null,
+              targetDispositionKind: null,
+              maxTargets: null,
+              maxTargetsScaling: null,
+              resolutionCount: null,
+              resolutionCountScaling: null,
+              allowRepeatedTargets: null,
+              excludedCreatureTypeIds: null,
+              resultBlockId: 'result-1',
+              rollTableKind: null,
+              die: null
+            }
+          ],
+          effect_result_blocks: [
+            {
+              resultBlockId: 'result-1',
+              resultKind: 'DAMAGE',
+              durationCharacteristicId: null,
+              lifecycleRecurringKind: null,
+              lifecycleConsumeOnFirstEvent: null,
+              lifecycleEndOnEvents: null
+            }
+          ],
+          effect_result_block_outcomes: [
+            {
+              resultBlockId: 'result-1',
+              outcomeId: 'damage-1',
+              effectKind: 'DAMAGE',
+              order: 0
+            }
+          ],
+          damages: [
+            {
+              damageId: 'damage-1',
+              damageTypeId: 'force',
+              damageTypeCode: 'FORCE',
+              damageTypeLabel: 'Force',
+              valueKind: 'DICE',
+              scalingKind: 'PER_LEVEL',
+              amountKind: null,
+              amountMultiplier: null,
+              scalingSource: 'SPELL_CAST_LEVEL',
+              classId: null,
+              order: 0,
+              valueId: null,
+              amount: null,
+              dice: null,
+              valueMultiplier: null,
+              valueMin: null,
+              valueMax: null
+            }
+          ],
+          damage_scaling_levels: [
+            {
+              scalingId: 'damage-1-1',
+              damageId: 'damage-1',
+              level: 1,
+              order: 0,
+              amount: null,
+              dice: '1d8'
+            },
+            {
+              scalingId: 'damage-1-3',
+              damageId: 'damage-1',
+              level: 3,
               order: 1,
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: 'SPELL_ATTACK',
-                activation: { code: 'ACTION', amount: 1 },
-                range: { id: 'range-self', rangeKind: 'SELF' }
-              },
-              paths: [
-                {
-                  id: 'path-1',
-                  order: 1,
-                  pathCode: 'ON_HIT',
-                  groupType: 'SINGLE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: 'result-1',
-                    resultKind: 'SINGLE',
-                    outcomes: [
-                      {
-                        id: 'damage-1',
-                        effectKind: 'DAMAGE',
-                        damageTypeId: 'force',
-                        valueKind: 'DICE',
-                        scalingKind: 'PER_LEVEL',
-                        scalingSource: 'SPELL_CAST_LEVEL',
-                        levels: [
-                          { id: 'damage-1-1', level: 1, order: 1, diceConfig: '1d8' },
-                          { id: 'damage-1-3', level: 3, order: 2, diceConfig: '3d8' }
-                        ]
-                      }
-                    ]
-                  }
-                }
-              ]
+              amount: null,
+              dice: '3d8'
             }
           ]
-        })
-      ]),
+        },
+        [
+          createAuthoredSpell({
+            classIds: ['wizard'],
+            id: 'spell-1',
+            label: 'Arcane Burst',
+            level: 1,
+            effects: [
+              {
+                id: 'effect-1',
+                order: 1,
+                invocation: {
+                  kind: 'ACTION',
+                  triggerCode: 'SPELL_ATTACK',
+                  activation: { code: 'ACTION', amount: 1 },
+                  range: { id: 'range-self', rangeKind: 'SELF' }
+                },
+                paths: [
+                  {
+                    id: 'path-1',
+                    order: 1,
+                    pathCode: 'ON_HIT',
+                    groupType: 'SINGLE',
+                    selectionKind: 'FIXED',
+                    resultBlock: {
+                      id: 'result-1',
+                      resultKind: 'SINGLE',
+                      outcomes: [
+                        {
+                          id: 'damage-1',
+                          effectKind: 'DAMAGE',
+                          damageTypeId: 'force',
+                          valueKind: 'DICE',
+                          scalingKind: 'PER_LEVEL',
+                          scalingSource: 'SPELL_CAST_LEVEL',
+                          levels: [
+                            { id: 'damage-1-1', level: 1, order: 1, diceConfig: '1d8' },
+                            { id: 'damage-1-3', level: 3, order: 2, diceConfig: '3d8' }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          })
+        ]
+      ),
       hasBuilderDraft: false,
       resolution,
       adjustments: [
@@ -1219,13 +1234,13 @@ describe('character sheet spell projection', () => {
         id: 'wizard',
         label: 'Wizard',
         resetKind: 'LONG_REST',
-        spellLimits: createFullCasterSpellLimits()
+        spellLimits: createPreparedCasterSpellLimits()
       }),
       createSpellcastingClass({
         id: 'removed-class',
         label: 'Removed Class',
         resetKind: 'LONG_REST',
-        spellLimits: createFullCasterSpellLimits()
+        spellLimits: createPreparedCasterSpellLimits()
       })
     ]
     resolution.catalog.spells = [
@@ -1274,6 +1289,7 @@ describe('character sheet spell projection', () => {
       {
         classId: 'wizard',
         label: 'Wizard',
+        preparedSpellLimit: 1,
         preparedSpellIds: []
       }
     ])
@@ -1297,7 +1313,7 @@ describe('character sheet spell projection', () => {
         id: 'wizard',
         label: 'Wizard',
         resetKind: 'LONG_REST',
-        spellLimits: createFullCasterSpellLimits()
+        spellLimits: createPreparedCasterSpellLimits()
       })
     ]
     resolution.catalog.spells = [
@@ -1364,14 +1380,14 @@ describe('character sheet spell projection', () => {
         id: 'bard-spells',
         source: { kind: 'CLASS', classId: 'bard' },
         timing: { kind: 'IMMEDIATE' },
-        spells: ['spell-1']
+        spells: ['cantrip-1', 'spell-1']
       }
     ]
     character.state.classes = [
       {
         classId: 'bard',
         spells: {
-          learned: ['spell-1']
+          learned: ['cantrip-1', 'spell-1']
         }
       }
     ]
@@ -1387,6 +1403,12 @@ describe('character sheet spell projection', () => {
       })
     ]
     resolution.catalog.spells = [
+      createSpell({
+        classIds: ['bard'],
+        id: 'cantrip-1',
+        label: 'Vicious Mockery',
+        level: 0
+      }),
       createSpell({
         classIds: ['bard'],
         id: 'spell-1',
@@ -1406,27 +1428,51 @@ describe('character sheet spell projection', () => {
     expect(sheet.spells.spells).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          id: 'cantrip-1',
+          sources: expect.arrayContaining([
+            expect.objectContaining({
+              acquisition: 'KNOWN',
+              canPrepare: false,
+              classId: 'bard',
+              prepared: false,
+              provenance: 'CLASS',
+              source: expect.objectContaining({ sourceKind: 'CLASS' })
+            })
+          ])
+        }),
+        expect.objectContaining({
           id: 'spell-1',
           sources: expect.arrayContaining([
             expect.objectContaining({
+              acquisition: 'KNOWN',
               classId: 'bard',
               label: 'Bard',
               canPrepare: false,
-              prepared: false
+              prepared: false,
+              provenance: 'CLASS',
+              source: expect.objectContaining({ sourceKind: 'CLASS' })
             })
           ])
         })
       ])
     )
     expect(sheet.spells.preparationSources).toBeUndefined()
-    expect(sheet.spells.activeGroups).toEqual([
-      expect.objectContaining({
-        level: 1,
-        entries: expect.arrayContaining([
-          expect.objectContaining({ spellId: 'spell-1', available: true })
-        ])
-      })
-    ])
+    expect(sheet.spells.activeGroups).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          level: 0,
+          entries: expect.arrayContaining([
+            expect.objectContaining({ spellId: 'cantrip-1', available: true })
+          ])
+        }),
+        expect.objectContaining({
+          level: 1,
+          entries: expect.arrayContaining([
+            expect.objectContaining({ spellId: 'spell-1', available: true })
+          ])
+        })
+      ])
+    )
     expect(() =>
       applyCharacterSheetCommand(
         character,
@@ -1529,14 +1575,14 @@ describe('character sheet spell projection', () => {
         id: 'wizard',
         label: 'Wizard',
         resetKind: 'LONG_REST',
-        spellLimits: createFullCasterSpellLimits()
+        spellLimits: createPreparedCasterSpellLimits()
       }),
       createSpellcastingSubclass({
         id: 'subclass-canonical',
         label: 'Order of Scribes',
         parentClassId: 'wizard',
         resetKind: 'LONG_REST',
-        spellLimits: createFullCasterSpellLimits()
+        spellLimits: createPreparedCasterSpellLimits()
       })
     ]
     resolution.grants.spellcasting = [
@@ -1619,7 +1665,7 @@ describe('character sheet spell projection', () => {
         id: 'wizard',
         label: 'Wizard',
         resetKind: 'LONG_REST',
-        spellLimits: createFullCasterSpellLimits()
+        spellLimits: createPreparedCasterSpellLimits()
       })
     ]
     resolution.catalog.spells = [
@@ -1649,6 +1695,7 @@ describe('character sheet spell projection', () => {
       {
         classId: 'wizard',
         label: 'Wizard',
+        preparedSpellLimit: 1,
         preparedSpellIds: ['spell-1']
       }
     ])
@@ -1680,7 +1727,7 @@ describe('character sheet spell projection', () => {
         id: 'wizard',
         label: 'Wizard',
         resetKind: 'LONG_REST',
-        spellLimits: createFullCasterSpellLimits()
+        spellLimits: createPreparedCasterSpellLimits()
       })
     ]
     resolution.catalog.spells = [
@@ -1717,6 +1764,7 @@ describe('character sheet spell projection', () => {
       {
         classId: 'wizard',
         label: 'Wizard',
+        preparedSpellLimit: 1,
         preparedSpellIds: ['spell-1']
       }
     ])
@@ -1749,7 +1797,7 @@ describe('character sheet spell projection', () => {
         id: 'wizard',
         label: 'Wizard',
         resetKind: 'LONG_REST',
-        spellLimits: createFullCasterSpellLimits()
+        spellLimits: createPreparedCasterSpellLimits()
       })
     ]
 
@@ -1778,13 +1826,13 @@ describe('character sheet spell projection', () => {
         id: 'wizard',
         label: 'Wizard',
         resetKind: 'LONG_REST',
-        spellLimits: createFullCasterSpellLimits()
+        spellLimits: createPreparedCasterSpellLimits()
       }),
       createSpellcastingClass({
         id: 'cleric',
         label: 'Cleric',
         resetKind: 'LONG_REST',
-        spellLimits: createFullCasterSpellLimits()
+        spellLimits: createPreparedCasterSpellLimits()
       })
     ]
 

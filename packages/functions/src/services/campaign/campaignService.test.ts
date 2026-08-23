@@ -41,7 +41,7 @@ const mocks = vi.hoisted(() => ({
     updateCampaignOwner: vi.fn(),
     deleteOwnershipTransfer: vi.fn()
   },
-  content: { deleteAssignmentBindings: vi.fn() },
+  shares: { listByAuthor: vi.fn() },
   character: { findAuthoredById: vi.fn(), findById: vi.fn() },
   mechanics: { requireCurrent: vi.fn() },
   campaignMechanics: { publish: vi.fn(), requireCurrent: vi.fn(), lockAssignment: vi.fn() },
@@ -49,9 +49,12 @@ const mocks = vi.hoisted(() => ({
   events: { insertCampaignEvent: vi.fn() },
   reconcileCharacter: vi.fn(),
   reconcileCurrency: vi.fn(),
+  findRemovalReceipt: vi.fn(),
+  removeShares: vi.fn(),
   lockTier: vi.fn(),
   social: {
     findSocialListingByCampaign: vi.fn(),
+    findSocialListingById: vi.fn(),
     findOwnedSocialListing: vi.fn(),
     lockSocialListing: vi.fn(),
     setSocialListingStatus: vi.fn(),
@@ -79,7 +82,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   return {
     ...actual,
     createCampaignRepository: () => mocks.repository,
-    createCampaignContentRepository: () => mocks.content,
+    createCampaignContentShareRepository: () => mocks.shares,
     createCampaignAdjustmentsRepository: () => mocks.events,
     createCharacterRepository: () => mocks.character,
     createCharacterMechanicsProjectionRepository: () => mocks.mechanics,
@@ -128,6 +131,11 @@ vi.mock('./campaignInventoryService.js', () => ({
   reconcileCampaignCurrencyDeparture: mocks.reconcileCurrency
 }))
 
+vi.mock('./campaignContentShareRemoval.js', () => ({
+  findCampaignContentRemovalReceipt: mocks.findRemovalReceipt,
+  removeCampaignContentSharesAndReconcileInTransaction: mocks.removeShares
+}))
+
 vi.mock('./realtimeService.js', () => ({ broadcastCampaignInvalidation: vi.fn() }))
 
 const {
@@ -139,6 +147,7 @@ const {
   declineCampaignInvite,
   deleteCampaign,
   leaveCampaign,
+  removeCampaignMember,
   listSentCampaignInvites,
   revokeCampaignInvite,
   unassignCampaignCharacter,
@@ -201,6 +210,15 @@ describe('Campaign lifecycle service', () => {
     mocks.lockTier.mockResolvedValue('FREE')
     mocks.repository.countActiveOwned.mockResolvedValue(0)
     mocks.repository.listAssignmentCharacterIds.mockResolvedValue([])
+    mocks.shares.listByAuthor.mockResolvedValue([])
+    mocks.findRemovalReceipt.mockResolvedValue(null)
+    mocks.removeShares.mockResolvedValue({
+      eventId: '00000000-0000-4000-8000-000000000097',
+      campaignVersion: campaign.version + 1,
+      removedShares: [],
+      affectedCharacters: [],
+      evacuatedVehicles: []
+    })
     mocks.character.findAuthoredById.mockResolvedValue({
       id: '00000000-0000-4000-8000-000000000004',
       userId: '00000000-0000-4000-8000-000000000020'
@@ -291,6 +309,7 @@ describe('Campaign lifecycle service', () => {
       version: 2,
       capacity: 5
     }
+    mocks.social.findSocialListingById.mockResolvedValue(listing)
     mocks.social.lockSocialListing.mockResolvedValue(listing)
     mocks.repository.findInviteRecipientByUsername.mockResolvedValue({
       userId: playerId,
@@ -327,6 +346,12 @@ describe('Campaign lifecycle service', () => {
       recipientUsername: 'player-user',
       status: 'PENDING'
     })
+    expect(mocks.lockTier.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.social.lockSocialListing.mock.invocationCallOrder[0] ?? 0
+    )
+    expect(mocks.social.lockSocialListing.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.repository.lockCampaign.mock.invocationCallOrder[0] ?? 0
+    )
     expect(result).not.toHaveProperty('token')
     expect(mocks.repository.insertInvite).toHaveBeenCalledWith(
       expect.not.objectContaining({ token: expect.anything(), tokenDigest: expect.anything() })
@@ -543,6 +568,11 @@ describe('Campaign lifecycle service', () => {
 
     await acceptCampaignOwnershipTransfer({} as DBLike, recipientId, campaign.id)
 
+    expect(mocks.lockTier).toHaveBeenNthCalledWith(1, [campaign.ownerUserId, recipientId].sort()[0])
+    expect(mocks.lockTier).toHaveBeenNthCalledWith(2, [campaign.ownerUserId, recipientId].sort()[1])
+    expect(mocks.lockTier.mock.invocationCallOrder[1]).toBeLessThan(
+      mocks.repository.lockCampaign.mock.invocationCallOrder[0] ?? 0
+    )
     const roleChanges = mocks.repository.setMembershipRoleAndAccess.mock.calls
     expect(roleChanges[0]?.slice(0, 3)).toEqual([campaign.id, campaign.ownerUserId, 'PLAYER'])
     expect(roleChanges[1]?.slice(0, 3)).toEqual([campaign.id, recipientId, 'OWNER'])
@@ -592,11 +622,21 @@ describe('Campaign lifecycle service', () => {
     mocks.repository.leaveMembership.mockResolvedValue(true)
     mocks.reconcileCharacter.mockResolvedValue(true)
 
-    await expect(leaveCampaign({} as DBLike, playerId, campaign.id)).resolves.toEqual({
-      characterId
-    })
+    await expect(
+      leaveCampaign(
+        {} as DBLike,
+        playerId,
+        campaign.id,
+        campaign.version,
+        '2026-08-01T00:00:00.000Z',
+        '00000000-0000-4000-8000-000000000098'
+      )
+    ).resolves.toEqual({ characterId })
 
-    expect(mocks.content.deleteAssignmentBindings).toHaveBeenCalledWith(campaign.id, characterId)
+    expect(mocks.shares.listByAuthor).toHaveBeenCalledWith({
+      campaignId: campaign.id,
+      sharedBy: playerId
+    })
     expect(mocks.reconcileCharacter).toHaveBeenCalledWith(expect.anything(), characterId)
     expect(mocks.reconcileCurrency).toHaveBeenCalledWith(
       expect.anything(),
@@ -606,9 +646,6 @@ describe('Campaign lifecycle service', () => {
         actorUserId: playerId,
         reason: 'MEMBER_LEFT'
       })
-    )
-    expect(mocks.content.deleteAssignmentBindings.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.reconcileCurrency.mock.invocationCallOrder[0] ?? 0
     )
     expect(mocks.reconcileCurrency.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.repository.deleteAssignmentForUser.mock.invocationCallOrder[0] ?? 0
@@ -638,7 +675,7 @@ describe('Campaign lifecycle service', () => {
       unassignCampaignCharacter({} as DBLike, campaign.ownerUserId, campaign.id, characterId)
     ).resolves.toEqual({ characterId })
 
-    expect(mocks.content.deleteAssignmentBindings).toHaveBeenCalledWith(campaign.id, characterId)
+    expect(mocks.shares.listByAuthor).not.toHaveBeenCalled()
     expect(mocks.reconcileCurrency).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ reason: 'CHARACTER_UNASSIGNED', characterId })
@@ -667,10 +704,6 @@ describe('Campaign lifecycle service', () => {
       )
     ).resolves.toEqual({ characterId: newCharacterId })
 
-    expect(mocks.content.deleteAssignmentBindings).toHaveBeenCalledWith(campaign.id, oldCharacterId)
-    expect(mocks.content.deleteAssignmentBindings.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.reconcileCurrency.mock.invocationCallOrder[0] ?? 0
-    )
     expect(mocks.reconcileCurrency.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.repository.deleteAssignmentForUser.mock.invocationCallOrder[0] ?? 0
     )
@@ -698,7 +731,6 @@ describe('Campaign lifecycle service', () => {
 
     await acceptCampaignOwnershipTransfer({} as DBLike, recipientId, campaign.id)
 
-    expect(mocks.content.deleteAssignmentBindings).toHaveBeenCalledWith(campaign.id, characterId)
     expect(mocks.repository.deleteAssignmentForUser).toHaveBeenCalledWith(campaign.id, recipientId)
     expect(mocks.repository.deleteAssignmentForUser.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.reconcileCharacter.mock.invocationCallOrder[0] ?? 0
@@ -719,21 +751,70 @@ describe('Campaign lifecycle service', () => {
       async (_campaignId: string, characterId: string) => characterId
     )
     mocks.repository.deleteCampaign.mockResolvedValue(true)
+    mocks.shares.listByAuthor.mockResolvedValue([
+      { campaignId: campaign.id, subjectKind: 'SPELL', subjectId: 'shared-spell' }
+    ])
 
     await expect(
       deleteCampaign({} as DBLike, campaign.ownerUserId, campaign.id, campaign.version)
     ).resolves.toMatchObject({ unassignedCharacterIds: [firstCharacterId, secondCharacterId] })
 
-    expect(mocks.content.deleteAssignmentBindings.mock.calls).toEqual([
-      [campaign.id, firstCharacterId],
-      [campaign.id, secondCharacterId]
-    ])
+    expect(mocks.shares.listByAuthor).not.toHaveBeenCalled()
     expect(mocks.reconcileCurrency.mock.invocationCallOrder.at(-1)).toBeLessThan(
       mocks.repository.deleteCampaign.mock.invocationCallOrder[0] ?? 0
     )
     expect(
       mocks.repository.deleteAssignmentByCharacter.mock.invocationCallOrder.at(-1)
     ).toBeLessThan(mocks.reconcileCharacter.mock.invocationCallOrder.at(-1) ?? 0)
+  })
+
+  it('reconciles a departing author shares before ending membership', async () => {
+    const playerId = '00000000-0000-4000-8000-000000000020'
+    mocks.shares.listByAuthor.mockResolvedValue([
+      { campaignId: campaign.id, subjectKind: 'SPELL', subjectId: 'shared-spell' }
+    ])
+
+    mocks.repository.leaveMembership.mockResolvedValue(true)
+    await leaveCampaign(
+      {} as DBLike,
+      playerId,
+      campaign.id,
+      campaign.version,
+      '2026-08-01T00:00:00.000Z',
+      '00000000-0000-4000-8000-000000000098'
+    )
+    expect(mocks.removeShares).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        operation: 'MEMBER_LEFT',
+        shares: expect.arrayContaining([expect.objectContaining({ subjectId: 'shared-spell' })])
+      })
+    )
+    expect(mocks.removeShares.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.repository.leaveMembership.mock.invocationCallOrder[0] ?? 0
+    )
+  })
+
+  it('uses the same reconciliation primitive for owner-initiated member removal', async () => {
+    const playerId = '00000000-0000-4000-8000-000000000020'
+    mocks.shares.listByAuthor.mockResolvedValue([
+      { campaignId: campaign.id, subjectKind: 'SPELL', subjectId: 'shared-spell' }
+    ])
+
+    mocks.repository.leaveMembership.mockResolvedValue(true)
+    await removeCampaignMember(
+      {} as DBLike,
+      campaign.ownerUserId,
+      campaign.id,
+      playerId,
+      campaign.version,
+      '2026-08-01T00:00:00.000Z',
+      '00000000-0000-4000-8000-000000000099'
+    )
+    expect(mocks.removeShares).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ operation: 'MEMBER_REMOVED' })
+    )
   })
 
   it('rejects a stale version before an update', async () => {

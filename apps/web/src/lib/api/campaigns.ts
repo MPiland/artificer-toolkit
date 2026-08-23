@@ -100,14 +100,34 @@ export function buildCampaignsApi(client: TrpcClient) {
         )
       }
     },
-    leave: async (campaignId: string) => {
+    leave: async (
+      campaignId: string,
+      expectedCampaignVersion: number,
+      expectedMembershipAccessStartedAt: string
+    ) => {
       await request('campaigns.leave', okResponseSchema, () =>
-        client.campaigns.leave.mutate({ campaignId })
+        client.campaigns.leave.mutate({
+          campaignId,
+          expectedCampaignVersion,
+          expectedMembershipAccessStartedAt,
+          commandId: crypto.randomUUID()
+        })
       )
     },
-    removeMember: async (campaignId: string, userId: string) => {
+    removeMember: async (
+      campaignId: string,
+      userId: string,
+      expectedCampaignVersion: number,
+      expectedMembershipAccessStartedAt: string
+    ) => {
       await request('campaigns.removeMember', okResponseSchema, () =>
-        client.campaigns.removeMember.mutate({ campaignId, userId })
+        client.campaigns.removeMember.mutate({
+          campaignId,
+          userId,
+          expectedCampaignVersion,
+          expectedMembershipAccessStartedAt,
+          commandId: crypto.randomUUID()
+        })
       )
     },
     assignCharacter: async (campaignId: string, characterId: string) => {
@@ -521,18 +541,18 @@ export function buildCampaignsApi(client: TrpcClient) {
     },
     content: {
       list: (campaignId: string) =>
+        request('campaigns.content.list', campaignContracts.campaignContentSharesDtoSchema, () =>
+          client.campaigns.content.list.query({ campaignId })
+        ),
+      share: (input: campaignContracts.ShareCampaignContentInput) =>
+        request('campaigns.content.share', campaignContracts.campaignContentShareDtoSchema, () =>
+          client.campaigns.content.share.mutate(input)
+        ),
+      unshare: (input: campaignContracts.UnshareCampaignContentInput) =>
         request(
-          'campaigns.content.list',
-          campaignContracts.campaignContentBindingDtoSchema.array(),
-          () => client.campaigns.content.list.query({ campaignId })
-        ),
-      submit: (input: campaignContracts.SubmitCampaignContentVersionInput) =>
-        request('campaigns.content.submit', campaignContracts.campaignContentBindingDtoSchema, () =>
-          client.campaigns.content.submit.mutate(input)
-        ),
-      review: (input: campaignContracts.ReviewCampaignContentVersionInput) =>
-        request('campaigns.content.review', campaignContracts.campaignContentBindingDtoSchema, () =>
-          client.campaigns.content.review.mutate(input)
+          'campaigns.content.unshare',
+          campaignContracts.campaignContentRemovalReceiptDtoSchema,
+          () => client.campaigns.content.unshare.mutate(input)
         )
     },
     gm: {

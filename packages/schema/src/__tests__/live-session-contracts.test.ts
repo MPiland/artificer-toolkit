@@ -123,11 +123,13 @@ describe('live-session contracts', () => {
 
     expect(
       liveSessionExecutorResponseDtoSchema.parse({
+        aggregateVersions: [{ aggregateId: ids.character, aggregateKind: 'CHARACTER', version: 3 }],
         memberships: [{ role: 'PLAYER', userId: ids.user }],
         ok: true,
         operation: 'RENEW'
       })
     ).toEqual({
+      aggregateVersions: [{ aggregateId: ids.character, aggregateKind: 'CHARACTER', version: 3 }],
       memberships: [{ role: 'PLAYER', userId: ids.user }],
       ok: true,
       operation: 'RENEW'

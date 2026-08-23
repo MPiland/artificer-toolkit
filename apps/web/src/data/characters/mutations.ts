@@ -118,6 +118,7 @@ export function useCharacterSheetCommandMutation(
   const queryClient = useQueryClient()
   const sheetKey = queryKeys.characters.sheet(characterId)
   const panelsKey = queryKeys.characters.panels(characterId)
+  const preparationOptionsKey = queryKeys.characters.preparationOptions(characterId)
 
   return useMutation({
     mutationKey: ['characters', 'sheet', 'command', characterId],
@@ -136,7 +137,8 @@ export function useCharacterSheetCommandMutation(
     onMutate: async (input) => {
       await Promise.all([
         queryClient.cancelQueries({ queryKey: sheetKey, exact: true }),
-        queryClient.cancelQueries({ queryKey: panelsKey })
+        queryClient.cancelQueries({ queryKey: panelsKey }),
+        queryClient.cancelQueries({ queryKey: preparationOptionsKey, exact: true })
       ])
       const previousSheet = queryClient.getQueryData<CharacterSheetResponseDto>(sheetKey)
       const previousPanels = queryClient.getQueriesData<CharacterSheetPanelDto>({
@@ -156,7 +158,8 @@ export function useCharacterSheetCommandMutation(
       if (response === null) {
         await Promise.all([
           queryClient.refetchQueries({ queryKey: sheetKey, exact: true }),
-          queryClient.refetchQueries({ queryKey: panelsKey })
+          queryClient.refetchQueries({ queryKey: panelsKey }),
+          queryClient.refetchQueries({ queryKey: preparationOptionsKey, exact: true })
         ])
         await Promise.all([
           queryClient.invalidateQueries({
@@ -173,7 +176,8 @@ export function useCharacterSheetCommandMutation(
       if (response.streamVersion < Math.max(cachedVersion, liveVersion)) {
         await Promise.all([
           queryClient.refetchQueries({ queryKey: sheetKey, exact: true }),
-          queryClient.refetchQueries({ queryKey: panelsKey })
+          queryClient.refetchQueries({ queryKey: panelsKey }),
+          queryClient.refetchQueries({ queryKey: preparationOptionsKey, exact: true })
         ])
         return
       }
@@ -182,6 +186,7 @@ export function useCharacterSheetCommandMutation(
         queryKey: panelsKey,
         refetchType: 'none'
       })
+      await queryClient.invalidateQueries({ queryKey: preparationOptionsKey, exact: true })
       for (const panel of response.panels ?? []) {
         queryClient.setQueryData(queryKeys.characters.panel(characterId, panel.target), panel)
       }
@@ -203,7 +208,8 @@ export function useCharacterSheetCommandMutation(
           queryKey: sheetKey,
           exact: true
         }),
-        queryClient.refetchQueries({ queryKey: panelsKey })
+        queryClient.refetchQueries({ queryKey: panelsKey }),
+        queryClient.refetchQueries({ queryKey: preparationOptionsKey, exact: true })
       ])
     }
   })

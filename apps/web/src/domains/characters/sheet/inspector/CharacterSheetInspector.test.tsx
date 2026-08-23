@@ -16,6 +16,7 @@ import { CharacterSheetInspector } from './CharacterSheetInspector'
 import { CharacterSheetItemPanelContent } from './CharacterSheetItemPanel'
 import { CharacterSheetRulesPanel } from './CharacterSheetRulesPanel'
 import { CharacterSheetSpellCustomizationEditor } from './CharacterSheetSpellCustomizationEditor'
+import { CharacterSheetSpellsPanelContent } from './CharacterSheetSpellsPanelContent'
 import {
   abilityPanelFixture,
   astralTearItemPanelFixture,
@@ -167,6 +168,329 @@ describe('Character Sheet inspector', () => {
         name: 'Character sheet update failed'
       })
     ).toHaveTextContent('The server rejected this change.')
+  })
+
+  it('prepares a lazily discovered uncommitted Spell through the authoritative command', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+    const characterId = '00000000-0000-0000-0000-000000000001'
+    const classId = '00000000-0000-0000-0000-000000000002'
+    const spellId = '00000000-0000-0000-0000-000000000003'
+    const panel = {
+      kind: 'SPELLS',
+      target: { kind: 'SPELLS' },
+      panelId: 'spells',
+      characterId,
+      title: 'Manage spells',
+      state: 'DEFAULT',
+      editable: true,
+      allowedCommands: ['SET_PREPARED_SPELLS'],
+      slots: [],
+      groups: []
+    } satisfies CharacterSheetPanelDto
+
+    renderWithAppProviders(
+      <CharacterSheetSpellsPanelContent
+        expectedVersion={4}
+        panel={panel}
+        pending={false}
+        preparationOptions={{
+          characterId,
+          streamVersion: 4,
+          classes: [
+            {
+              classId,
+              label: 'Cleric',
+              preparedSpellLimit: 2,
+              options: [
+                {
+                  spellId,
+                  label: 'Healing Word',
+                  level: 1,
+                  prepared: false,
+                  committed: false
+                }
+              ]
+            }
+          ]
+        }}
+        submitCommand={submitCommand}
+        onTargetChange={vi.fn()}
+      />
+    )
+
+    const option = screen.getByRole('group', { name: 'Healing Word' })
+    await user.click(within(option).getByRole('button', { name: 'Prepare' }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'SET_PREPARED_SPELLS',
+      expectedVersion: 4,
+      classId,
+      spellIds: [spellId]
+    })
+  })
+
+  it('keeps preparation options independent when another class already commits the Spell', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+    const characterId = '00000000-0000-0000-0000-000000000001'
+    const preparingClassId = '00000000-0000-0000-0000-000000000002'
+    const knownClassId = '00000000-0000-0000-0000-000000000003'
+    const spellId = '00000000-0000-0000-0000-000000000004'
+    const source = {
+      spellId,
+      sourceKind: 'CLASS' as const,
+      sourceInstanceId: `CLASS:${knownClassId}`
+    }
+    const panel = {
+      kind: 'SPELLS',
+      target: { kind: 'SPELLS' },
+      panelId: 'spells',
+      characterId,
+      title: 'Manage spells',
+      state: 'DEFAULT',
+      editable: true,
+      allowedCommands: ['SET_PREPARED_SPELLS'],
+      slots: [],
+      groups: [
+        {
+          level: 1,
+          label: 'Level 1',
+          sources: [
+            {
+              target: { kind: 'SPELL', source },
+              source,
+              spellId,
+              label: 'Shared Spell',
+              sourceLabel: 'Known source',
+              prepared: false,
+              canPrepare: false,
+              known: true,
+              canManageKnown: true,
+              knownClassId,
+              state: 'DEFAULT'
+            }
+          ]
+        }
+      ]
+    } satisfies CharacterSheetPanelDto
+
+    renderWithAppProviders(
+      <CharacterSheetSpellsPanelContent
+        expectedVersion={4}
+        panel={panel}
+        pending={false}
+        preparationOptions={{
+          characterId,
+          streamVersion: 4,
+          classes: [
+            {
+              classId: preparingClassId,
+              label: 'Preparing source',
+              preparedSpellLimit: 2,
+              options: [
+                {
+                  spellId,
+                  label: 'Shared Spell',
+                  level: 1,
+                  prepared: false,
+                  committed: true
+                }
+              ]
+            }
+          ]
+        }}
+        submitCommand={submitCommand}
+        onTargetChange={vi.fn()}
+      />
+    )
+
+    const preparingOption = screen.getAllByRole('group', { name: 'Shared Spell' })[1]
+    expect(preparingOption).toBeDefined()
+    await user.click(within(preparingOption!).getByRole('button', { name: 'Prepare' }))
+
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'SET_PREPARED_SPELLS',
+      expectedVersion: 4,
+      classId: preparingClassId,
+      spellIds: [spellId]
+    })
+  })
+
+  it('blocks whole-set preparation replacement when cached options are from an older stream', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+    const characterId = '00000000-0000-0000-0000-000000000001'
+    const classId = '00000000-0000-0000-0000-000000000002'
+    const spellId = '00000000-0000-0000-0000-000000000003'
+    const source = {
+      spellId,
+      sourceKind: 'CLASS' as const,
+      sourceInstanceId: `CLASS:${classId}`
+    }
+    const panel = {
+      kind: 'SPELLS',
+      target: { kind: 'SPELLS' },
+      panelId: 'spells',
+      characterId,
+      title: 'Manage spells',
+      state: 'DEFAULT',
+      editable: true,
+      allowedCommands: ['SET_PREPARED_SPELLS'],
+      slots: [],
+      groups: [
+        {
+          level: 1,
+          label: 'Level 1',
+          sources: [
+            {
+              target: { kind: 'SPELL', source },
+              source,
+              spellId,
+              label: 'Prepared Spell',
+              sourceLabel: 'Preparing source',
+              prepared: true,
+              canPrepare: true,
+              preparationClassId: classId,
+              known: false,
+              canManageKnown: false,
+              state: 'DEFAULT'
+            }
+          ]
+        }
+      ]
+    } satisfies CharacterSheetPanelDto
+
+    renderWithAppProviders(
+      <CharacterSheetSpellsPanelContent
+        expectedVersion={5}
+        panel={panel}
+        pending={false}
+        preparationOptions={{
+          characterId,
+          streamVersion: 4,
+          classes: [
+            {
+              classId,
+              label: 'Preparing source',
+              preparedSpellLimit: 2,
+              options: [
+                {
+                  spellId,
+                  label: 'Prepared Spell',
+                  level: 1,
+                  prepared: true,
+                  committed: true
+                }
+              ]
+            }
+          ]
+        }}
+        submitCommand={submitCommand}
+        onTargetChange={vi.fn()}
+      />
+    )
+
+    const unprepare = within(screen.getByRole('group', { name: 'Prepared Spell' })).getByRole(
+      'button',
+      { name: 'Unprepare' }
+    )
+    expect(unprepare).toBeDisabled()
+    await user.click(unprepare)
+    expect(submitCommand).not.toHaveBeenCalled()
+  })
+
+  it('loads preparation options only when the aggregate Spells inspector opens', async () => {
+    const characterId = '00000000-0000-0000-0000-000000000001'
+    const classId = '00000000-0000-0000-0000-000000000002'
+    const spellId = '00000000-0000-0000-0000-000000000003'
+    server.use(
+      http.get('*/api/trpc/characters.panel,characters.preparationOptions', () =>
+        HttpResponse.json([
+          {
+            result: {
+              data: {
+                kind: 'SPELLS',
+                target: { kind: 'SPELLS' },
+                panelId: 'spells',
+                characterId,
+                title: 'Manage spells',
+                state: 'DEFAULT',
+                editable: true,
+                allowedCommands: ['SET_PREPARED_SPELLS'],
+                slots: [],
+                groups: []
+              }
+            }
+          },
+          {
+            result: {
+              data: {
+                characterId,
+                streamVersion: 4,
+                classes: [
+                  {
+                    classId,
+                    label: 'Cleric',
+                    preparedSpellLimit: 2,
+                    options: [
+                      {
+                        spellId,
+                        label: 'Healing Word',
+                        level: 1,
+                        prepared: false,
+                        committed: false
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ])
+      )
+    )
+
+    renderWithAppProviders(
+      <CharacterSheetInspector
+        characterId={characterId}
+        expectedVersion={4}
+        pending={false}
+        submitCommand={vi.fn().mockResolvedValue(true)}
+        target={{ kind: 'SPELLS' }}
+        onClose={vi.fn()}
+        onTargetChange={vi.fn()}
+      />
+    )
+
+    expect(await screen.findByRole('group', { name: 'Healing Word' })).toBeVisible()
+  })
+
+  it('does not render preparation controls without a preparation capability', () => {
+    const characterId = '00000000-0000-0000-0000-000000000001'
+    renderWithAppProviders(
+      <CharacterSheetSpellsPanelContent
+        expectedVersion={4}
+        panel={{
+          kind: 'SPELLS',
+          target: { kind: 'SPELLS' },
+          panelId: 'spells',
+          characterId,
+          title: 'Manage spells',
+          state: 'DEFAULT',
+          editable: true,
+          allowedCommands: ['SET_PREPARED_SPELLS'],
+          slots: [],
+          groups: []
+        }}
+        pending={false}
+        preparationOptions={{ characterId, streamVersion: 4, classes: [] }}
+        submitCommand={vi.fn()}
+        onTargetChange={vi.fn()}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: /prepare/i })).not.toBeInTheDocument()
   })
 
   it('commits select changes immediately', async () => {

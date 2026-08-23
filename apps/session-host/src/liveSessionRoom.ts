@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import {
+  classifyLiveSessionCommandError,
   deriveLiveSessionCharacterVision,
   LIVE_SESSION_COMMAND_LEASE_RENEWAL_MS,
   type LiveSessionCommandExecution
@@ -25,6 +26,7 @@ import {
   liveSessionWebSocketServerMessageDtoSchema,
   type LiveSessionActiveMembershipDto,
   type LiveSessionCommandDto,
+  type LiveSessionAggregateVersionDto,
   type LiveSessionCoordinatorSnapshotDto,
   type LiveSessionJoinOptionsDto,
   type LiveSessionTicketClaimsDto,
@@ -74,9 +76,33 @@ function sessionKey(options: LiveSessionJoinOptionsDto): string {
   return `${options.campaignId}:${options.sessionId}`
 }
 
+function aggregateVersionsEqual(
+  left: readonly LiveSessionAggregateVersionDto[],
+  right: readonly LiveSessionAggregateVersionDto[]
+): boolean {
+  if (left.length !== right.length) return false
+  const canonical = (versions: readonly LiveSessionAggregateVersionDto[]) =>
+    [...versions].sort((first, second) => {
+      const identity = `${first.aggregateKind}:${first.aggregateId}`.localeCompare(
+        `${second.aggregateKind}:${second.aggregateId}`
+      )
+      return identity || first.version - second.version
+    })
+  const canonicalLeft = canonical(left)
+  const canonicalRight = canonical(right)
+  return canonicalLeft.every((version, index) => {
+    const candidate = canonicalRight[index]
+    return (
+      candidate?.aggregateKind === version.aggregateKind &&
+      candidate.aggregateId === version.aggregateId &&
+      candidate.version === version.version
+    )
+  })
+}
+
 function commandFailure(error: unknown, commandId: string | null) {
-  const name = error instanceof Error ? error.name : ''
-  if (name === 'CampaignAccessError' || name === 'LiveSessionAuthorityError') {
+  const code = classifyLiveSessionCommandError(error)
+  if (code === 'UNAUTHORIZED') {
     return {
       code: 'UNAUTHORIZED' as const,
       commandId,
@@ -84,7 +110,7 @@ function commandFailure(error: unknown, commandId: string | null) {
       type: 'COMMAND_REJECTED' as const
     }
   }
-  if (name === 'ConcurrencyError' || name === 'EncounterConflictError') {
+  if (code === 'STALE_VERSION') {
     return {
       code: 'STALE_VERSION' as const,
       commandId,
@@ -92,11 +118,18 @@ function commandFailure(error: unknown, commandId: string | null) {
       type: 'COMMAND_REJECTED' as const
     }
   }
-  const message = error instanceof Error ? error.message.trim() : ''
+  if (code === 'INVALID_COMMAND') {
+    return {
+      code,
+      commandId,
+      message: 'The live-session command is invalid.',
+      type: 'COMMAND_REJECTED' as const
+    }
+  }
   return {
     code: 'COMMAND_FAILED' as const,
     commandId,
-    message: (message || 'The live-session command failed.').slice(0, 300),
+    message: 'The live-session command failed.',
     type: 'COMMAND_REJECTED' as const
   }
 }
@@ -141,15 +174,19 @@ class LiveSessionRuntime {
   readonly #authorityRenewalMs: number
   readonly #reconnectGraceMs: number
   #acceptedSequence = 0
+  #admissionsInFlight = 0
+  #admittedClient = false
   #authorityClaimed = false
   #authorityHeartbeat: ReturnType<typeof setInterval> | null = null
+  #authorityRenewal: Promise<{ available: boolean; refreshed: boolean }> | null = null
+  #authorityTransition: Promise<void> = Promise.resolve()
   #authorityUserId: string | null = null
   #closed = false
   #coordinator: LiveSessionCommandCoordinator<LiveSessionCommandExecution> | null = null
   #deliverySequence = 0
   #encounterCharacterBindings: LiveSessionCoordinatorSnapshotDto['encounterCharacterBindings'] = []
   #expiry: ReturnType<typeof setTimeout> | null = null
-  #hydration: Promise<void> | null = null
+  #hydration: Promise<void> = Promise.resolve()
 
   constructor(
     readonly options: LiveSessionJoinOptionsDto,
@@ -162,45 +199,62 @@ class LiveSessionRuntime {
     this.#reconnectGraceMs = runtimeOptions.reconnectGraceMs ?? LIVE_SESSION_RECONNECT_GRACE_MS
   }
 
-  async add(client: LiveSessionClient): Promise<void> {
-    if (this.#closed) throw new Error('The live session has closed.')
-    this.#clients.set(client.id, client)
-    client.socket.once('close', () => this.#remove(client.id))
-    client.socket.on('message', (raw, binary) => this.#receive(client, raw, binary))
-    await this.#hydrate(client.auth.userId)
-    if (this.#closed || client.socket.readyState !== WebSocket.OPEN) return
-    if (this.#expiry) clearTimeout(this.#expiry)
-    this.#expiry = null
-    this.#sendReady(client)
+  async add(client: LiveSessionClient): Promise<boolean> {
+    this.#admissionsInFlight += 1
+    try {
+      if (this.#closed) throw new Error('The live session has closed.')
+      await this.#hydrate(client.auth.userId)
+      await this.#authorizeJoiningClient(client)
+      if (this.#closed) throw new Error('The live session closed during admission.')
+      if (client.socket.readyState !== WebSocket.OPEN) return false
+      this.#clients.set(client.id, client)
+      this.#admittedClient = true
+      client.socket.once('close', () => this.#remove(client.id))
+      client.socket.on('message', (raw, binary) => this.#receive(client, raw, binary))
+      if (this.#expiry) clearTimeout(this.#expiry)
+      this.#expiry = null
+      this.#sendReady(client)
+      return true
+    } finally {
+      this.#admissionsInFlight -= 1
+    }
+  }
+
+  async #authorizeJoiningClient(client: LiveSessionClient): Promise<void> {
+    await this.#withAuthorityTransition(async () => {
+      if (this.#closed) throw new Error('The live session closed during admission.')
+      const renewal = await this.dependencies.renewAuthority(
+        client.auth.userId,
+        this.options,
+        this.#authorityId
+      )
+      const membership = renewal.memberships.find(({ userId }) => userId === client.auth.userId)
+      if (membership?.role !== client.auth.role) {
+        throw new Error('Live-session ticket authority is no longer current.')
+      }
+      await this.#applyAuthorityRenewal(client.auth.userId, renewal)
+    })
+  }
+
+  async closeIfAdmissionAbandoned(): Promise<boolean> {
+    if (this.#admittedClient || this.#admissionsInFlight > 0 || this.#clients.size > 0) return false
+    await this.close()
+    return true
   }
 
   async #hydrate(userId: string): Promise<void> {
-    this.#hydration ??= (async () => {
+    const preceding = this.#hydration
+    const hydration = (async () => {
+      await preceding.catch(() => undefined)
+      if (this.#closed) throw new Error('The live session closed while loading.')
+      if (this.#authorityClaimed && this.#coordinator) return
       await this.dependencies.claimAuthority(userId, this.options, this.#authorityId)
       this.#authorityClaimed = true
       this.#authorityUserId = userId
       try {
-        const {
-          aggregateVersions,
-          characterRuleSnapshots,
-          encounterCharacterBindings,
-          encounterRuleSnapshots,
-          sceneStates
-        } = await this.dependencies.loadSnapshot(userId, this.options)
+        const snapshot = await this.dependencies.loadSnapshot(userId, this.options)
         if (this.#closed) throw new Error('The live session closed while loading.')
-        this.#coordinator = new LiveSessionCommandCoordinator(aggregateVersions)
-        for (const { characterId, snapshot } of characterRuleSnapshots) {
-          this.#characterRuleSnapshots.set(characterId, snapshot)
-          this.#characterVisions.set(
-            characterId,
-            deriveLiveSessionCharacterVision(characterId, snapshot)
-          )
-        }
-        for (const { encounterId, snapshot } of encounterRuleSnapshots) {
-          this.#encounterRuleSnapshots.set(encounterId, snapshot)
-        }
-        this.#encounterCharacterBindings = encounterCharacterBindings
-        for (const state of sceneStates) this.#sceneStates.set(state.id, state)
+        this.#applySnapshot(snapshot)
         this.#authorityHeartbeat = setInterval(() => {
           void this.#renewAuthority()
         }, this.#authorityRenewalMs)
@@ -210,10 +264,12 @@ class LiveSessionRuntime {
           .releaseAuthority(userId, this.options, this.#authorityId)
           .catch(() => {})
         this.#authorityClaimed = false
+        this.#authorityUserId = null
         throw error
       }
     })()
-    await this.#hydration
+    this.#hydration = hydration
+    await hydration
   }
 
   #remove(clientId: string): void {
@@ -239,25 +295,102 @@ class LiveSessionRuntime {
     })
   }
 
-  async #renewAuthority(): Promise<void> {
+  #broadcastReady(): void {
+    for (const client of this.#clients.values()) this.#sendReady(client)
+  }
+
+  #applySnapshot(snapshot: Awaited<ReturnType<LiveSessionRoomDependencies['loadSnapshot']>>): void {
+    this.#coordinator = new LiveSessionCommandCoordinator(snapshot.aggregateVersions)
+    this.#characterRuleSnapshots.clear()
+    this.#characterVisions.clear()
+    this.#encounterRuleSnapshots.clear()
+    this.#sceneStates.clear()
+    this.#movementIndexes.clear()
+    for (const { characterId, snapshot: ruleSnapshot } of snapshot.characterRuleSnapshots) {
+      this.#characterRuleSnapshots.set(characterId, ruleSnapshot)
+      this.#characterVisions.set(
+        characterId,
+        deriveLiveSessionCharacterVision(characterId, ruleSnapshot)
+      )
+    }
+    for (const { encounterId, snapshot: ruleSnapshot } of snapshot.encounterRuleSnapshots) {
+      this.#encounterRuleSnapshots.set(encounterId, ruleSnapshot)
+    }
+    this.#encounterCharacterBindings = snapshot.encounterCharacterBindings
+    for (const state of snapshot.sceneStates) this.#sceneStates.set(state.id, state)
+  }
+
+  async #renewAuthority(): Promise<{ available: boolean; refreshed: boolean }> {
+    if (this.#authorityRenewal) return this.#authorityRenewal
+    const renewal = this.#withAuthorityTransition(() => this.#renewAuthorityInternal())
+    this.#authorityRenewal = renewal
+    try {
+      return await renewal
+    } finally {
+      if (this.#authorityRenewal === renewal) this.#authorityRenewal = null
+    }
+  }
+
+  async #withAuthorityTransition<T>(operation: () => Promise<T>): Promise<T> {
+    const preceding = this.#authorityTransition
+    let release!: () => void
+    const transition = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    this.#authorityTransition = transition
+    await preceding
+    try {
+      return await operation()
+    } finally {
+      release()
+    }
+  }
+
+  async #awaitAuthorityTransitions(): Promise<void> {
+    for (;;) {
+      const transition = this.#authorityTransition
+      await transition
+      if (transition === this.#authorityTransition) return
+    }
+  }
+
+  async #renewAuthorityInternal(): Promise<{ available: boolean; refreshed: boolean }> {
     const candidateUserIds = [
       ...(this.#authorityUserId ? [this.#authorityUserId] : []),
       ...[...this.#clients.values()].map((client) => client.auth.userId)
     ].filter((userId, index, candidates) => candidates.indexOf(userId) === index)
     for (const candidateUserId of candidateUserIds) {
       try {
-        const memberships = await this.dependencies.renewAuthority(
+        const renewal = await this.dependencies.renewAuthority(
           candidateUserId,
           this.options,
           this.#authorityId
         )
-        this.#authorityUserId = this.#reauthorizeClients(memberships) ?? candidateUserId
-        return
+        return await this.#applyAuthorityRenewal(candidateUserId, renewal)
       } catch {
         // A disconnected or removed authority user may be replaced by another admitted member.
       }
     }
     this.#invalidateAuthority()
+    return { available: false, refreshed: false }
+  }
+
+  async #applyAuthorityRenewal(
+    candidateUserId: string,
+    renewal: Awaited<ReturnType<LiveSessionRoomDependencies['renewAuthority']>>
+  ): Promise<{ available: true; refreshed: boolean }> {
+    const authorityUserId = this.#reauthorizeClients(renewal.memberships) ?? candidateUserId
+    this.#authorityUserId = authorityUserId
+    const currentVersions = this.#coordinator?.aggregateVersions ?? []
+    if (aggregateVersionsEqual(currentVersions, renewal.aggregateVersions)) {
+      return { available: true, refreshed: false }
+    }
+    await this.#coordinator?.drain()
+    const snapshot = await this.dependencies.loadSnapshot(authorityUserId, this.options)
+    if (this.#closed) return { available: true, refreshed: true }
+    this.#applySnapshot(snapshot)
+    this.#broadcastReady()
+    return { available: true, refreshed: true }
   }
 
   #reauthorizeClients(memberships: readonly LiveSessionActiveMembershipDto[]): string | null {
@@ -280,11 +413,9 @@ class LiveSessionRuntime {
   }
 
   #resolvedScene(scene: EncounterSceneState): EncounterSceneState {
-    return resolveSceneCharacterVision(
-      scene,
-      this.#encounterCharacterBindings,
-      [...this.#characterVisions.values()]
-    )
+    return resolveSceneCharacterVision(scene, this.#encounterCharacterBindings, [
+      ...this.#characterVisions.values()
+    ])
   }
 
   #sceneSnapshots(
@@ -346,22 +477,28 @@ class LiveSessionRuntime {
         this.#broadcastTransient(client, parsed.data.envelope)
         break
       case 'RESUME':
-        this.#sendReady(client)
-        for (const commandId of parsed.data.pendingCommandIds) {
-          const receipt = this.#receipts.get(commandId)
-          if (receipt?.actorUserId === client.auth.userId) {
-            this.#sendCommitted(client, receipt, true, true)
-          } else {
-            const acceptedSequence = this.#acceptedSequences.get(commandId)
-            if (
-              acceptedSequence !== undefined &&
-              this.#acceptedUserIds.get(commandId) === client.auth.userId
-            ) {
-              send(client, { acceptedSequence, commandId, type: 'COMMAND_ACCEPTED' })
-            }
-          }
-        }
+        void this.#resume(client, parsed.data.pendingCommandIds)
         break
+    }
+  }
+
+  async #resume(client: LiveSessionClient, pendingCommandIds: readonly string[]): Promise<void> {
+    const renewal = await this.#renewAuthority()
+    if (!renewal.available || this.#closed) return
+    if (!renewal.refreshed) this.#sendReady(client)
+    for (const commandId of pendingCommandIds) {
+      const receipt = this.#receipts.get(commandId)
+      if (receipt?.actorUserId === client.auth.userId) {
+        this.#sendCommitted(client, receipt, true, true)
+      } else {
+        const acceptedSequence = this.#acceptedSequences.get(commandId)
+        if (
+          acceptedSequence !== undefined &&
+          this.#acceptedUserIds.get(commandId) === client.auth.userId
+        ) {
+          send(client, { acceptedSequence, commandId, type: 'COMMAND_ACCEPTED' })
+        }
+      }
     }
   }
 
@@ -482,6 +619,7 @@ class LiveSessionRuntime {
 
   async #execute(client: LiveSessionClient, command: LiveSessionCommandDto): Promise<void> {
     if (this.#closed) return
+    await this.#awaitAuthorityTransitions()
     const coordinator = this.#coordinator
     const id = command.command.commandId
     if (!coordinator) {
@@ -732,11 +870,12 @@ class LiveSessionRuntime {
     if (this.#authorityHeartbeat) clearInterval(this.#authorityHeartbeat)
     this.#expiry = null
     this.#authorityHeartbeat = null
-    const coordinator = this.#coordinator
-    this.#coordinator = null
     for (const client of this.#clients.values()) client.socket.close(1001, 'Session closed.')
     this.#clients.clear()
-    await this.#hydration?.catch(() => undefined)
+    await this.#hydration.catch(() => undefined)
+    await this.#awaitAuthorityTransitions()
+    const coordinator = this.#coordinator
+    this.#coordinator = null
     await coordinator?.drain()
     if (this.#authorityClaimed && this.#authorityUserId) {
       await this.dependencies
@@ -772,9 +911,10 @@ export class LiveSessionRuntimeManager {
       this.#runtimes.set(key, runtime)
     }
     try {
-      await runtime.add(client)
+      const admitted = await runtime.add(client)
+      if (!admitted) await runtime.closeIfAdmissionAbandoned()
     } catch (error) {
-      await runtime.close()
+      await runtime.closeIfAdmissionAbandoned()
       throw error
     }
   }

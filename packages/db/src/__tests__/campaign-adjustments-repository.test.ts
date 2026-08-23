@@ -39,6 +39,7 @@ describe('campaign adjustments repository', () => {
   })
 
   it('applies the subject visibility and keyset cursor to player history', async () => {
+    const cursorWhereCalls: unknown[][] = []
     const calls: unknown[][] = []
     const expressionBuilder = Object.assign((...args: unknown[]) => ({ comparison: args }), {
       and: (parts: unknown[]) => ({ and: parts }),
@@ -46,7 +47,10 @@ describe('campaign adjustments repository', () => {
     })
     const cursorBuilder = {
       select: () => cursorBuilder,
-      where: () => cursorBuilder,
+      where: (...args: unknown[]) => {
+        cursorWhereCalls.push(args)
+        return cursorBuilder
+      },
       executeTakeFirst: async () => ({ created_at: '2026-08-06T12:00:00.000Z', id: 'event-2' })
     }
     const listBuilder = {
@@ -85,6 +89,8 @@ describe('campaign adjustments repository', () => {
     ).resolves.toEqual([])
 
     expect(calls).toContainEqual(['limit', 26])
+    expect(cursorWhereCalls).toContainEqual(['kind', '!=', 'CAMPAIGN_COPIED'])
+    expect(calls).toContainEqual(['where', ['kind', '!=', 'CAMPAIGN_COPIED']])
     expect(calls).toContainEqual(['orderBy', 'created_at', 'desc'])
     expect(calls).toContainEqual(['orderBy', 'id', 'desc'])
     expect(calls).toContainEqual([

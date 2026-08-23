@@ -738,6 +738,10 @@ export const cleric: ClassAuthored = {
     ability: ABILITY_CODE.WISDOM,
     maxSpellLevel: 9,
     attributes: [SPELLCASTING_ATTRIBUTE.PREPARES_SPELLS],
+    prepareLimit: {
+      methodKinds: ['SPELLCASTING_ABILITY', 'CLASS_LEVEL'],
+      scaling: SCALING_AMOUNT_KIND.FULL
+    },
     details: classSpellcastingDetails(C, [
       {
         label: 'Spellcasting',

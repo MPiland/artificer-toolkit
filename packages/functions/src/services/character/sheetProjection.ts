@@ -1,7 +1,4 @@
-import {
-  type CharacterSpellCustomization,
-  type DBLike
-} from '@artificer-toolkit/db'
+import { type CharacterSpellCustomization, type DBLike } from '@artificer-toolkit/db'
 import {
   ABILITIES,
   AUTHORED_RECORD_STATUS,
@@ -1038,7 +1035,9 @@ async function buildCharacterSheetBundleInternal(
     }
   }
   const preparationCapableClassIds = new Set(
-    ruleEvaluation.output.spellPreparation.sources.map((source) => source.classId)
+    ruleEvaluation.output.spellPreparation.sources.flatMap((source) =>
+      source.preparedSpellLimit === null ? [] : [source.classId]
+    )
   )
   const ruleProjection = projectCharacterRulePolicyToSheetProjection(ruleEvaluation)
   const itemMechanicsByInstanceId = new Map(
@@ -1237,14 +1236,18 @@ async function buildCharacterSheetBundleInternal(
     ruleProjection.spellAccess,
     featureLabels
   )
-  const spellPreparationSources = ruleEvaluation.output.spellPreparation.sources.map((source) => ({
-    classId: source.classId,
-    label: classLabels.get(source.classId) ?? 'Class',
-    ...(source.preparedSpellLimit === null
-      ? {}
-      : { preparedSpellLimit: source.preparedSpellLimit }),
-    preparedSpellIds: source.preparedSpellIds
-  }))
+  const spellPreparationSources = ruleEvaluation.output.spellPreparation.sources.flatMap((source) =>
+    source.preparedSpellLimit === null
+      ? []
+      : [
+          {
+            classId: source.classId,
+            label: classLabels.get(source.classId) ?? 'Class',
+            preparedSpellLimit: source.preparedSpellLimit,
+            preparedSpellIds: source.preparedSpellIds
+          }
+        ]
+  )
   const overviewSkills = Object.entries(ruleProjection.derivedStats.skillBonuses)
     .map(([skill, total]) => {
       const metadata = skillReference.metadataByCanonical.get(skill)

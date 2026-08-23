@@ -222,6 +222,13 @@ test.describe('route-backed authored domain workspace', () => {
     await expect(damageModifier).toBeFocused()
     await expect(page.getByText(/all changes saved/i)).toBeVisible()
     await expectNoHorizontalOverflow(page)
+
+    await damageModifier.click()
+    await expect(editor).toBeVisible()
+    await expect(modifierCard).toHaveAttribute('data-editing', 'true')
+    await editor.getByRole('button', { name: /^cancel$/i }).click()
+    await expect(editor).toBeHidden()
+    await expect(modifierCard).not.toHaveAttribute('data-editing')
   })
 
   test('tablet portrait keeps structure navigation in an overlay without resizing the canvas', async ({

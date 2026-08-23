@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   characterRulePolicyInputSchema,
-  characterRulePolicyOutputSchema
+  characterRulePolicyOutputSchema,
+  type CharacterRulePolicyInput,
+  type CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 import type {
   CharacterAssemblyRegistry,
@@ -34,6 +36,79 @@ const registry: CharacterAssemblyRegistry = {
   features: {},
   races: {},
   spells: {}
+}
+
+type AuthoredGrantCandidate = Extract<
+  CharacterRulePolicyInput['resourcePoolCandidates'][number],
+  { ownerKind: 'AUTHORED_GRANT' }
+>
+type AuthoredGrantResource = Extract<
+  CharacterRulePolicyOutput['resources'][number],
+  { ownerKind: 'AUTHORED_GRANT' }
+>
+
+function authoredGrantCandidate(
+  overrides: Partial<AuthoredGrantCandidate> = {}
+): AuthoredGrantCandidate {
+  return {
+    sequence: 0,
+    poolId: 'AUTHORED_GRANT:resource-1',
+    resourceDefinitionId: 'resource-1',
+    chargeId: 'charge-1',
+    chargeCalculationId: 'AUTHORED_GRANT:resource-1',
+    baseResetKind: 'LONG_REST',
+    ownerKind: 'AUTHORED_GRANT',
+    resourceGrantId: 'resource-1',
+    availableAtLevel: 1,
+    activeSourceLevel: 1,
+    ...overrides
+  }
+}
+
+function authoredGrantResource(
+  overrides: Partial<AuthoredGrantResource> = {}
+): AuthoredGrantResource {
+  return {
+    ...authoredGrantCandidate(),
+    state: 'RESOLVED',
+    maximum: 3,
+    rawUsed: 0,
+    effectiveUsed: 0,
+    remaining: 3,
+    reasonCode: 'CALCULATED',
+    baseContribution: { sourceId: 'resource-base', value: 3 },
+    bonusContributions: [],
+    resetKind: 'LONG_REST',
+    resetResolution: { baseResetKind: 'LONG_REST', appliedGrantId: null, source: null },
+    ...overrides
+  }
+}
+
+function compiledClass(
+  id: string,
+  resource?: { availableAtLevel: number; id: string }
+): CharacterAssemblyRegistry['classes'][string] {
+  return {
+    category: 'SUBCLASS',
+    id,
+    parentClassId: 'parent-class',
+    ...(resource
+      ? {
+          resources: {
+            id: resource.id,
+            label: 'Class Resource',
+            availableAtLevel: resource.availableAtLevel,
+            charges: {
+              id: 'charge-1',
+              resetKind: 'LONG_REST',
+              limitKind: 'FIXED_AMOUNT',
+              scalingKind: 'NONE',
+              amount: 3
+            }
+          }
+        }
+      : {})
+  }
 }
 
 function facts() {
@@ -72,6 +147,48 @@ async function baseOutput(input = facts()) {
     context: input
   })
   return { input, output: characterRulePolicyOutputSchema.parse(evaluated.result) }
+}
+
+async function resourceEvaluation(input: {
+  candidates: AuthoredGrantCandidate[]
+  ownerKind?: 'CLASS' | 'SUBCLASS'
+  resources: AuthoredGrantResource[]
+}) {
+  const ownerKind = input.ownerKind ?? 'CLASS'
+  const policyInput = facts()
+  policyInput.resourcePoolCandidates = input.candidates
+  const { output } = await baseOutput(policyInput)
+  return {
+    snapshot: {
+      ...snapshot,
+      classes: [
+        {
+          classId: 'class-1',
+          level: 1,
+          ...(ownerKind === 'SUBCLASS' ? { subclassId: 'subclass-1' } : {})
+        }
+      ]
+    },
+    registry: {
+      ...registry,
+      classes: {
+        'class-1': compiledClass(
+          'class-1',
+          ownerKind === 'CLASS' ? { availableAtLevel: 1, id: 'resource-1' } : undefined
+        ),
+        ...(ownerKind === 'SUBCLASS'
+          ? {
+              'subclass-1': compiledClass('subclass-1', {
+                availableAtLevel: 1,
+                id: 'resource-1'
+              })
+            }
+          : {})
+      }
+    },
+    facts: policyInput,
+    output: { ...output, resources: input.resources }
+  }
 }
 
 describe('projectCharacterRulePolicyToSheetProjection', () => {
@@ -244,5 +361,81 @@ describe('projectCharacterRulePolicyToSheetProjection', () => {
         output: targeted
       })
     ).toThrow('Character rule policy spell charge is missing or mismatched: access-1')
+  })
+
+  it.each(['CLASS', 'SUBCLASS'] as const)(
+    'omits a future inactive %s resource without requiring rule output',
+    async (ownerKind) => {
+      const evaluation = await resourceEvaluation({
+        candidates: [authoredGrantCandidate({ activeSourceLevel: 1, availableAtLevel: 2 })],
+        ownerKind,
+        resources: []
+      })
+
+      expect(projectCharacterRulePolicyToSheetProjection(evaluation).resources).toEqual([])
+    }
+  )
+
+  it('fails closed when an active resource is missing from rule output', async () => {
+    const evaluation = await resourceEvaluation({
+      candidates: [authoredGrantCandidate()],
+      resources: []
+    })
+
+    expect(() => projectCharacterRulePolicyToSheetProjection(evaluation)).toThrow(
+      'Character rule policy class resource is missing: AUTHORED_GRANT:resource-1'
+    )
+  })
+
+  it.each([
+    { candidates: [], state: 'missing' },
+    {
+      candidates: [
+        authoredGrantCandidate(),
+        authoredGrantCandidate({
+          sequence: 1,
+          poolId: 'AUTHORED_GRANT:resource-2',
+          chargeCalculationId: 'AUTHORED_GRANT:resource-2',
+          resourceGrantId: 'resource-2'
+        })
+      ],
+      state: 'ambiguous'
+    }
+  ])('fails closed when resource candidate ownership is $state', async ({ candidates, state }) => {
+    const evaluation = await resourceEvaluation({ candidates, resources: [] })
+
+    expect(() => projectCharacterRulePolicyToSheetProjection(evaluation)).toThrow(
+      `Character rule policy class resource ownership is ${state}: class-1`
+    )
+  })
+
+  it('preserves active resolved resource mapping', async () => {
+    const evaluation = await resourceEvaluation({
+      candidates: [authoredGrantCandidate()],
+      resources: [authoredGrantResource()]
+    })
+
+    expect(projectCharacterRulePolicyToSheetProjection(evaluation).resources).toEqual([
+      {
+        resourceId: 'resource-1',
+        label: 'Class Resource',
+        maxCount: 3,
+        maxCountCalculation: { base: 3, effective: 3, contributions: [] },
+        rechargeOn: 'LONG_REST',
+        sourceFeatureId: 'class-1'
+      }
+    ])
+  })
+
+  it('fails closed when active rule output is ambiguous', async () => {
+    const resource = authoredGrantResource()
+    const evaluation = await resourceEvaluation({
+      candidates: [authoredGrantCandidate()],
+      resources: [resource, resource]
+    })
+
+    expect(() => projectCharacterRulePolicyToSheetProjection(evaluation)).toThrow(
+      'Character rule policy class resource is ambiguous: AUTHORED_GRANT:resource-1'
+    )
   })
 })

@@ -360,9 +360,7 @@ export async function upsertAuthoredRootEnvelope(
     }
     case 'SPELL': {
       const castingTime = optionalDocumentObject(document, 'castingTime')
-      const castingTimeAmount = castingTime
-        ? optionalDocumentInteger(castingTime, 'amount')
-        : null
+      const castingTimeAmount = castingTime ? optionalDocumentInteger(castingTime, 'amount') : null
       const castingTimeUnit = castingTime ? optionalDocumentString(castingTime, 'unit') : null
       await sql`
         insert into public.spells (
@@ -465,19 +463,29 @@ export function assertAuthoredVersionRecordIntegrity(input: AuthoredVersionRecor
     throw new AuthoredVersionProjectionMismatchError('Authored and compiled subject kinds differ.')
   }
   if (input.authored.subjectId !== input.compiled.subjectId) {
-    throw new AuthoredVersionProjectionMismatchError('Authored and compiled subject identities differ.')
+    throw new AuthoredVersionProjectionMismatchError(
+      'Authored and compiled subject identities differ.'
+    )
   }
   if (input.authored.versionId !== input.compiled.authoredVersionId) {
-    throw new AuthoredVersionProjectionMismatchError('Compiled projection references another authored version.')
+    throw new AuthoredVersionProjectionMismatchError(
+      'Compiled projection references another authored version.'
+    )
   }
   if (input.authored.version !== input.compiled.authoredVersion) {
-    throw new AuthoredVersionProjectionMismatchError('Compiled projection references another authored version number.')
+    throw new AuthoredVersionProjectionMismatchError(
+      'Compiled projection references another authored version number.'
+    )
   }
   if (input.authored.checksum !== input.compiled.authoredChecksum) {
-    throw new AuthoredVersionProjectionMismatchError('Compiled projection references another authored checksum.')
+    throw new AuthoredVersionProjectionMismatchError(
+      'Compiled projection references another authored checksum.'
+    )
   }
   if (checksumCanonicalJson(input.authored.document) !== input.authored.checksum) {
-    throw new AuthoredVersionProjectionMismatchError('Authored document checksum does not match its contents.')
+    throw new AuthoredVersionProjectionMismatchError(
+      'Authored document checksum does not match its contents.'
+    )
   }
   if (checksumCompiledAuthoredProjection(input.compiled) !== input.compiled.projectionChecksum) {
     throw new AuthoredVersionProjectionMismatchError(
@@ -643,7 +651,7 @@ async function lockVocabularySnapshot(
     select id, system_id, vocabulary_version, checksum
     from public.system_vocabulary_snapshots
     where id = ${snapshotId}
-    for update
+    for share
   `.execute(db)
   return result.rows[0] ?? null
 }
@@ -670,6 +678,10 @@ export interface AuthoredVersionRepository {
     versionIds: readonly string[]
   }): Promise<Map<string, AuthoredVersionRecord>>
   findExactVersions(input: {
+    entries: AuthoredVersionVector
+    verifyCompiledDependencies?: boolean
+  }): Promise<Map<string, AuthoredVersionRecord>>
+  findCurrentVersions(input: {
     entries: AuthoredVersionVector
     verifyCompiledDependencies?: boolean
   }): Promise<Map<string, AuthoredVersionRecord>>
@@ -868,6 +880,90 @@ export function createAuthoredVersionRepository(db: DBLike): AuthoredVersionRepo
         exact.set(`${entry.subjectKind}:${entry.subjectId}`, record)
       }
       return exact
+    },
+
+    async findCurrentVersions(input) {
+      const entries = authoredVersionVectorSchema.parse(input.entries)
+      if (entries.length === 0) return new Map()
+      return withTransaction(db, async (trx) => {
+        const entriesBySubjectKind = new Map<AuthoredSubjectKind, AuthoredVersionVector>()
+        for (const entry of entries) {
+          const subjectEntries = entriesBySubjectKind.get(entry.subjectKind) ?? []
+          subjectEntries.push(entry)
+          entriesBySubjectKind.set(entry.subjectKind, subjectEntries)
+        }
+        const recordsByRoot = new Map<string, AuthoredVersionRecord>()
+        const sortedGroups = [...entriesBySubjectKind].sort(([left], [right]) =>
+          left.localeCompare(right)
+        )
+        for (const [subjectKind, unsortedEntries] of sortedGroups) {
+          const subjectEntries = [...unsortedEntries].sort((left, right) =>
+            `${left.subjectId}:${left.versionId}`.localeCompare(
+              `${right.subjectId}:${right.versionId}`
+            )
+          )
+          const table = tableBySubjectKind[subjectKind]
+          const result = await sql<ActiveVersionRow>`
+            select
+              root.id as subject_id,
+              version.id,
+              version.version,
+              version.document_schema_version,
+              version.projection_schema_version,
+              version.compiler_version,
+              version.authored_checksum,
+              version.authored_dependency_vector,
+              version.compiled_checksum,
+              version.authored_document,
+              version.compiled_document,
+              version.vocabulary_snapshot_id,
+              snapshot.vocabulary_version as snapshot_version,
+              snapshot.checksum as snapshot_checksum
+            from ${sql.table(table.rootTable)} root
+            join ${sql.table(table.versionTable)} version
+              on version.id = root.active_version_id
+            join public.system_vocabulary_snapshots snapshot
+              on snapshot.id = version.vocabulary_snapshot_id
+            where root.status = 'ACTIVE'
+              and (root.id, version.id) in (
+                ${sql.join(
+                  subjectEntries.map(
+                    (entry) => sql`(${entry.subjectId}::uuid, ${entry.versionId}::uuid)`
+                  )
+                )}
+              )
+            order by root.id, version.id
+            for share
+          `.execute(trx)
+          for (const row of result.rows) {
+            const record = mapVersion(subjectKind, row.subject_id, row)
+            if (input.verifyCompiledDependencies ?? true) {
+              await assertAuthoredDependencies(
+                trx,
+                record.compiled.authoredDependencies,
+                record.authored.document.systemId,
+                true
+              )
+            }
+            recordsByRoot.set(`${subjectKind}:${row.subject_id}`, record)
+          }
+        }
+
+        for (const entry of entries) {
+          const record = recordsByRoot.get(`${entry.subjectKind}:${entry.subjectId}`)
+          if (
+            !record ||
+            record.authored.versionId !== entry.versionId ||
+            record.authored.version !== entry.version ||
+            record.authored.checksum !== entry.checksum
+          ) {
+            throw new AuthoredVersionProjectionMismatchError(
+              `Authored ${entry.subjectKind} "${entry.subjectId}" is not the current active source.`
+            )
+          }
+        }
+        return recordsByRoot
+      })
     },
 
     async listVersions(input) {

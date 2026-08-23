@@ -66,7 +66,19 @@ function loadLocalEnvironment(): void {
   if (!existsSync(environmentPath)) {
     throw new Error('Root .env.local is required to provision the local VTT smoke fixture.')
   }
-  Object.assign(process.env, parseEnv(readFileSync(environmentPath, 'utf8')))
+  for (const [key, value] of Object.entries(parseEnv(readFileSync(environmentPath, 'utf8')))) {
+    if (
+      key.startsWith('NETLIFY_') ||
+      key.startsWith('PROD_') ||
+      key.startsWith('STAGING_') ||
+      key === 'MANAGED_LIVE_SESSION_ENDPOINT' ||
+      key === 'MANAGED_VTT_BASE_URL' ||
+      key === 'SUPABASE_ACCESS_TOKEN'
+    ) {
+      continue
+    }
+    process.env[key] = value
+  }
 }
 
 function assertLoopbackUrl(name: string, rawValue: string): string {

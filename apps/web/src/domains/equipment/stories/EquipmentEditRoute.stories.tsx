@@ -79,7 +79,7 @@ export const ShortswordPlusOne: Story = {
   render: () => (
     <Shell
       navigation={platformNavigation}
-      currentPath='/equipment'
+      currentPath='/equipment/longsword/longsword/edit'
       isAuthenticated
       userEmail='creator@example.test'
     >
@@ -148,7 +148,7 @@ export const AstralTearAwakenedStructure: Story = {
   render: () => (
     <Shell
       navigation={platformNavigation}
-      currentPath='/equipment'
+      currentPath='/equipment/longsword/longsword/edit'
       isAuthenticated
       userEmail='creator@example.test'
     >

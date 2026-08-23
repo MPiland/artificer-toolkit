@@ -112,7 +112,7 @@ function candidate(overrides: Partial<CharacterRulePolicyInput['spellAccessCandi
 }
 
 describe('buildCharacterResourceRuleFacts', () => {
-  it('orders all live owners, isolates copies, includes inactive spell candidates, and excludes source charges', () => {
+  it('orders live owners, retains selected/fixed Spell pools, and excludes unselected choices and source charges', () => {
     const character = createEmptyCharacterAuthored({
       id: 'character-1',
       systemId: 'dnd5e2014',
@@ -290,11 +290,18 @@ describe('buildCharacterResourceRuleFacts', () => {
       }),
       spellAccessCandidates: [
         candidate({ sequence: 0 }),
-        candidate({ sequence: 1 }),
+        candidate({
+          sequence: 1,
+          accessId: 'access-chosen',
+          spellId: 'spell-chosen',
+          selectionKind: 'CHOSEN',
+          selectedByCharacter: true
+        }),
         candidate({
           sequence: 2,
           accessId: 'access-inactive',
           spellId: 'spell-inactive',
+          selectionKind: 'CHOSEN',
           selectedByCharacter: false
         }),
         candidate({
@@ -360,14 +367,14 @@ describe('buildCharacterResourceRuleFacts', () => {
       facts.resourcePoolCandidates.find(
         (entry) => entry.ownerKind === 'SPELL_SOURCE' && entry.spellId === 'spell-inactive'
       )
-    ).toBeDefined()
+    ).toBeUndefined()
     expect(
       facts.resourcePoolCandidates
         .filter((entry) => entry.ownerKind === 'SPELL_SOURCE')
         .map((entry) => entry.poolId)
     ).toEqual([
       'SPELL_SOURCE:access-1:spell-1:FEATURE:source-1',
-      'SPELL_SOURCE:access-inactive:spell-inactive:FEATURE:source-1',
+      'SPELL_SOURCE:access-chosen:spell-chosen:FEATURE:source-1',
       'SPELL_SOURCE:access-source:spell-source:FEATURE:source-1'
     ])
     expect(

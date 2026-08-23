@@ -3,7 +3,7 @@ import {
   createAccountEntitlementsRepository,
   createCampaignAdjustmentsRepository,
   createCampaignCharacterMechanicsProjectionRepository,
-  createCampaignContentRepository,
+  createCampaignContentShareRepository,
   createCampaignRepository,
   createCharacterMechanicsProjectionRepository,
   createCharacterRepository,
@@ -55,6 +55,10 @@ import { requireActiveSocialProfile } from '../social/profileService.js'
 import { consumeSocialRateLimit } from '../social/rateLimits.js'
 import { reconcileCampaignCurrencyDeparture } from './campaignInventoryService.js'
 import { broadcastCampaignInvalidation } from './realtimeService.js'
+import {
+  findCampaignContentRemovalReceipt,
+  removeCampaignContentSharesAndReconcileInTransaction
+} from './campaignContentShareRemoval.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const DEFAULT_INVITE_MS = 7 * DAY_MS
@@ -183,8 +187,8 @@ export function getCampaignCapabilities(
       manageMembers: false,
       manageCharacters: false,
       assignOwnCharacter: false,
-      manageContent: false,
-      submitContent: false,
+      manageSharedContent: false,
+      shareOwnedContent: false,
       managePartyInventory: false,
       transferOwnInventory: false,
       manageNotes: false,
@@ -203,8 +207,8 @@ export function getCampaignCapabilities(
     manageMembers: owner,
     manageCharacters: owner,
     assignOwnCharacter: !owner,
-    manageContent: owner,
-    submitContent: !owner,
+    manageSharedContent: owner,
+    shareOwnedContent: true,
     managePartyInventory: owner,
     transferOwnInventory: !owner,
     manageNotes: owner,
@@ -337,10 +341,6 @@ async function removeAssignedCharacterCampaignState(
   db: DBLike,
   input: { campaignId: string; characterId: string; actorUserId: string; reason: string }
 ): Promise<void> {
-  await createCampaignContentRepository(db).deleteAssignmentBindings(
-    input.campaignId,
-    input.characterId
-  )
   await reconcileCampaignCurrencyDeparture(db, input)
 }
 
@@ -473,7 +473,9 @@ export async function updateCampaign(
                   'Assigned Character has no committed mechanics projection.'
                 )
               }
-              const mechanics = await createCharacterMechanicsProjectionRepository(trx).requireCurrent({
+              const mechanics = await createCharacterMechanicsProjectionRepository(
+                trx
+              ).requireCurrent({
                 characterId,
                 expectedRuleRevisionId: row.rule_pack_revision_id,
                 expectedStreamVersion: row.stream_version
@@ -483,7 +485,9 @@ export async function updateCampaign(
                 attunementSlotOverride: authority.campaign.attunementSlotOverride
               })
               if (!ruleContext) {
-                throw new CampaignConflictError('Campaign assignment changed before mechanics could be updated.')
+                throw new CampaignConflictError(
+                  'Campaign assignment changed before mechanics could be updated.'
+                )
               }
               const previousOverlay = await createCampaignCharacterMechanicsProjectionRepository(
                 trx
@@ -496,7 +500,8 @@ export async function updateCampaign(
                   adjustments: ruleContext.adjustments,
                   attunementSlotOverride: ruleContext.attunementSlotOverride
                 }),
-                expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
+                expectedProjectionSchemaVersion:
+                  CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
                 baseMechanicsProjection: mechanics
               })
               return { character, mechanics, previousOverlay }
@@ -527,7 +532,9 @@ export async function updateCampaign(
           attunementSlotOverride: input.attunementSlotOverride ?? null
         })
         if (!ruleContext) {
-          throw new CampaignConflictError('Campaign assignment changed before mechanics could be published.')
+          throw new CampaignConflictError(
+            'Campaign assignment changed before mechanics could be published.'
+          )
         }
         const nextOverlay = await prepareCampaignCharacterMechanicsProjection({
           db: trx,
@@ -703,13 +710,27 @@ export function createCampaignInvite(
   return withTransaction(db, async (trx) => {
     const host = await requireActiveSocialProfile(trx, userId)
     const socialRepository = createSocialRepository(trx)
-    const listing = await socialRepository.lockSocialListing(input.listingPublicId)
-    if (!listing || listing.campaignOwnerUserId !== userId) throw new SocialNotFoundError()
+    const preliminaryListing = await socialRepository.findSocialListingById(input.listingPublicId)
+    if (!preliminaryListing || preliminaryListing.campaignOwnerUserId !== userId) {
+      throw new SocialNotFoundError()
+    }
     if (
-      listing.version !== input.expectedListingVersion ||
-      listing.status !== 'OPEN' ||
-      listing.moderationStatus !== 'VISIBLE' ||
-      listing.campaignStatus !== 'ACTIVE'
+      preliminaryListing.version !== input.expectedListingVersion ||
+      preliminaryListing.status !== 'OPEN' ||
+      preliminaryListing.moderationStatus !== 'VISIBLE' ||
+      preliminaryListing.campaignStatus !== 'ACTIVE'
+    ) {
+      throw new SocialConflictError('This Social listing is not available for invitations.')
+    }
+    const tier = await createAccountEntitlementsRepository(trx).lockTier(userId)
+    const listing = await socialRepository.lockSocialListing(input.listingPublicId)
+    if (
+      !listing ||
+      listing.id !== preliminaryListing.id ||
+      listing.version !== preliminaryListing.version ||
+      listing.status !== preliminaryListing.status ||
+      listing.campaignId !== preliminaryListing.campaignId ||
+      listing.campaignOwnerUserId !== preliminaryListing.campaignOwnerUserId
     ) {
       throw new SocialConflictError('This Social listing is not available for invitations.')
     }
@@ -731,7 +752,6 @@ export function createCampaignInvite(
     if (membership?.status === 'ACTIVE') {
       throw new SocialValidationError('This user is already a Campaign member.')
     }
-    const tier = await createAccountEntitlementsRepository(trx).lockTier(userId)
     const counts = await repository.countActiveMembers(campaign.id)
     if (counts.players >= listing.capacity) {
       throw new SocialConflictError('This table no longer has an available seat.')
@@ -921,15 +941,44 @@ export async function declineCampaignInvite(
 export function leaveCampaign(
   db: DBLike,
   userId: string,
-  campaignId: string
+  campaignId: string,
+  expectedCampaignVersion: number,
+  expectedMembershipAccessStartedAt: string,
+  commandId: string
 ): Promise<{ characterId: string | null }> {
   return withTransaction(db, async (trx) => {
-    const authority = await lockAuthority(trx, campaignId, userId)
+    const repository = createCampaignRepository(trx)
+    const campaign = await repository.lockCampaign(campaignId)
+    if (!campaign) throw new CampaignNotFoundError()
+    const replay = await findCampaignContentRemovalReceipt(trx, campaignId, commandId, userId, {
+      operation: 'MEMBER_LEFT',
+      departingMembership: {
+        userId,
+        expectedAccessStartedAt: expectedMembershipAccessStartedAt
+      }
+    })
+    if (replay) return { characterId: null }
+    const authority = await resolveCampaignAuthority(trx, campaignId, userId)
     assertCampaignWritable(authority)
     if (authority.membership.role !== 'PLAYER') {
       throw new CampaignAccessError('The Campaign owner cannot leave the Campaign.')
     }
-    const repository = createCampaignRepository(trx)
+    const shares = await createCampaignContentShareRepository(trx).listByAuthor({
+      campaignId,
+      sharedBy: userId
+    })
+    await removeCampaignContentSharesAndReconcileInTransaction(trx, {
+      actorUserId: userId,
+      campaign,
+      commandId,
+      expectedCampaignVersion,
+      operation: 'MEMBER_LEFT',
+      shares,
+      departingMembership: {
+        userId,
+        expectedAccessStartedAt: expectedMembershipAccessStartedAt
+      }
+    })
     const assignment = await repository.findAssignmentForUser(campaignId, userId)
     if (assignment) {
       await removeAssignedCharacterCampaignState(trx, {
@@ -958,14 +1007,49 @@ export function removeCampaignMember(
   db: DBLike,
   ownerUserId: string,
   campaignId: string,
-  targetUserId: string
+  targetUserId: string,
+  expectedCampaignVersion: number,
+  expectedMembershipAccessStartedAt: string,
+  commandId: string
 ): Promise<{ characterId: string | null }> {
   return withTransaction(db, async (trx) => {
-    const authority = await lockAuthority(trx, campaignId, ownerUserId)
+    const repository = createCampaignRepository(trx)
+    const campaign = await repository.lockCampaign(campaignId)
+    if (!campaign) throw new CampaignNotFoundError()
+    const replay = await findCampaignContentRemovalReceipt(
+      trx,
+      campaignId,
+      commandId,
+      ownerUserId,
+      {
+        operation: 'MEMBER_REMOVED',
+        departingMembership: {
+          userId: targetUserId,
+          expectedAccessStartedAt: expectedMembershipAccessStartedAt
+        }
+      }
+    )
+    if (replay) return { characterId: null }
+    const authority = await resolveCampaignAuthority(trx, campaignId, ownerUserId)
     assertCampaignOwner(authority)
     assertCampaignWritable(authority)
     await requireActivePlayer(trx, campaignId, targetUserId)
-    const repository = createCampaignRepository(trx)
+    const shares = await createCampaignContentShareRepository(trx).listByAuthor({
+      campaignId,
+      sharedBy: targetUserId
+    })
+    await removeCampaignContentSharesAndReconcileInTransaction(trx, {
+      actorUserId: ownerUserId,
+      campaign,
+      commandId,
+      expectedCampaignVersion,
+      operation: 'MEMBER_REMOVED',
+      shares,
+      departingMembership: {
+        userId: targetUserId,
+        expectedAccessStartedAt: expectedMembershipAccessStartedAt
+      }
+    })
     const assignment = await repository.findAssignmentForUser(campaignId, targetUserId)
     if (assignment) {
       await removeAssignedCharacterCampaignState(trx, {
@@ -1165,12 +1249,21 @@ export function acceptCampaignOwnershipTransfer(
   campaignId: string
 ): Promise<CampaignDetailDto> {
   return withTransaction(db, async (trx) => {
+    const repository = createCampaignRepository(trx)
+    const initialTransfer = await repository.findOwnershipTransfer(campaignId)
+    if (!initialTransfer || initialTransfer.toUserId !== recipientUserId) {
+      throw new CampaignValidationError('Ownership transfer is invalid or expired.')
+    }
+    const entitlementRepository = createAccountEntitlementsRepository(trx)
+    const userIds = [initialTransfer.fromUserId, recipientUserId].sort()
+    const tiers = new Map<string, keyof typeof ENTITLEMENT_LIMITS>()
+    for (const userId of userIds) tiers.set(userId, await entitlementRepository.lockTier(userId))
+
     const socialRepository = createSocialRepository(trx)
     const existingListing = await socialRepository.findSocialListingByCampaign(campaignId)
     const lockedListing = existingListing
       ? await socialRepository.lockSocialListing(existingListing.id)
       : null
-    const repository = createCampaignRepository(trx)
     const campaign = await repository.lockCampaign(campaignId)
     if (!campaign) throw new CampaignNotFoundError()
     if (campaign.status !== 'ACTIVE')
@@ -1178,6 +1271,8 @@ export function acceptCampaignOwnershipTransfer(
     const transfer = await repository.findOwnershipTransfer(campaignId)
     if (
       !transfer ||
+      transfer.fromUserId !== initialTransfer.fromUserId ||
+      transfer.toUserId !== initialTransfer.toUserId ||
       transfer.toUserId !== recipientUserId ||
       transfer.fromUserId !== campaign.ownerUserId ||
       Date.parse(toIso(transfer.expiresAt)) <= Date.now()
@@ -1186,10 +1281,6 @@ export function acceptCampaignOwnershipTransfer(
     }
     await requireActivePlayer(trx, campaignId, recipientUserId)
 
-    const entitlementRepository = createAccountEntitlementsRepository(trx)
-    const userIds = [transfer.fromUserId, recipientUserId].sort()
-    const tiers = new Map<string, keyof typeof ENTITLEMENT_LIMITS>()
-    for (const userId of userIds) tiers.set(userId, await entitlementRepository.lockTier(userId))
     const recipientTier = tiers.get(recipientUserId)
     if (!recipientTier) throw new CampaignConflictError()
     assertEntitlementLimit(

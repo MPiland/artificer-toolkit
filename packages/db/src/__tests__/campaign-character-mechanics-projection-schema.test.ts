@@ -9,6 +9,15 @@ function read(path: string): string {
   return readFileSync(join(root, path), 'utf8')
 }
 
+function normalizeSql(source: string): string {
+  return source
+    .replace(/\s+/gu, ' ')
+    .replace(/\(\s+/gu, '(')
+    .replace(/\s+\)/gu, ')')
+    .trim()
+    .toLowerCase()
+}
+
 describe('Campaign Character mechanics projection schema', () => {
   it('keeps the canonical schema and migration server-only and assignment-bound', () => {
     const canonical = read('packages/db/src/domains/campaigns/tables/campaigns.sql')
@@ -16,16 +25,18 @@ describe('Campaign Character mechanics projection schema', () => {
       'supabase/migrations/20260818100000_campaign_character_mechanics_base_references.sql'
     )
 
-    const canonicalNormalized = canonical.toLowerCase()
+    const canonicalNormalized = normalizeSql(canonical)
     expect(canonicalNormalized).toContain('campaign_character_mechanics_projections')
     expect(canonicalNormalized).toContain('primary key (campaign_id, character_id)')
-    expect(canonicalNormalized).toContain('campaign_character_assignments (campaign_id, character_id)')
+    expect(canonicalNormalized).toContain(
+      'campaign_character_assignments (campaign_id, character_id)'
+    )
     expect(canonicalNormalized).toContain('on delete cascade')
     expect(canonicalNormalized).toContain('base_mechanics_projection_checksum')
     expect(canonicalNormalized).toContain('mechanical_context_checksum')
 
     for (const source of [canonical, migration]) {
-      const normalized = source.toLowerCase()
+      const normalized = normalizeSql(source)
       expect(normalized).toContain('projection_kind')
       expect(normalized).toContain('base_reference')
       expect(normalized).toContain('materialized')
@@ -36,6 +47,8 @@ describe('Campaign Character mechanics projection schema', () => {
     }
 
     expect(canonicalNormalized).toContain('enable row level security')
-    expect(canonicalNormalized).toContain('revoke all on table public.campaign_character_mechanics_projections')
+    expect(canonicalNormalized).toContain(
+      'revoke all on table public.campaign_character_mechanics_projections'
+    )
   })
 })

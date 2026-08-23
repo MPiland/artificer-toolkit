@@ -1,7 +1,10 @@
 import { randomUUID, timingSafeEqual } from 'node:crypto'
 
 import { createDb, withUserContext, type KyselyDatabase } from '@artificer-toolkit/db'
-import { executeLiveSessionExecutorRequest } from '@artificer-toolkit/functions/services'
+import {
+  classifyLiveSessionCommandError,
+  executeLiveSessionExecutorRequest
+} from '@artificer-toolkit/functions/services'
 import {
   liveSessionExecutorErrorDtoSchema,
   liveSessionExecutorRequestDtoSchema,
@@ -76,22 +79,14 @@ function domainError(error: unknown): Response {
   if (error instanceof ZodError) {
     return errorResponse(400, 'INVALID_REQUEST', 'Live-session executor request is invalid.')
   }
-  const name = error instanceof Error ? error.name : ''
-  if (
-    name === 'CharacterSheetCommandError' ||
-    name === 'EncounterNotFoundError' ||
-    name === 'EncounterValidationError'
-  ) {
+  const classification = classifyLiveSessionCommandError(error)
+  if (classification === 'INVALID_COMMAND') {
     return errorResponse(400, 'INVALID_REQUEST', 'Live-session command is invalid.')
   }
-  if (name === 'CampaignAccessError' || name === 'LiveSessionAuthorityError') {
+  if (classification === 'UNAUTHORIZED') {
     return errorResponse(403, 'UNAUTHORIZED', 'Live-session command is not authorized.')
   }
-  if (
-    name === 'ConcurrencyError' ||
-    name === 'EncounterConflictError' ||
-    name === 'LiveSessionCommandAuthorityError'
-  ) {
+  if (classification === 'STALE_VERSION') {
     return errorResponse(
       409,
       'CONFLICT',
@@ -117,11 +112,7 @@ function domainError(error: unknown): Response {
     errorName,
     stack: stack?.slice(0, 8_000)
   })
-  return errorResponse(
-    500,
-    'COMMAND_FAILED',
-    `Live-session command failed. Reference ${errorId}.`
-  )
+  return errorResponse(500, 'COMMAND_FAILED', `Live-session command failed. Reference ${errorId}.`)
 }
 
 export default async function liveSessionExecutor(request: Request): Promise<Response> {

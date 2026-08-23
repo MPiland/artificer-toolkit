@@ -2,11 +2,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
 
-import {
-  createSystemRepository,
-  srdBaselineContent,
-  type DBLike
-} from '@artificer-toolkit/db'
+import { createSystemRepository, srdBaselineContent, type DBLike } from '@artificer-toolkit/db'
 import {
   type CharacterBuilderChosenGrantChoiceViewDto,
   type CharacterBuilderFeatureChoiceViewDto,
@@ -145,6 +141,7 @@ interface CharacterLifecycleClassFixture {
   classId: string
   classLabel: string
   classLevel: number
+  specializationLabel?: string
   subclassId?: string
   subclassLabel?: string
 }
@@ -166,6 +163,7 @@ export interface CharacterLifecycleFixture {
   backgroundId: string
   characterId: string
   classes: CharacterLifecycleClassFixture[]
+  expectedMaxHitPointBonus?: number
   expectedMaxHitPoints: number
   hitDice?: CharacterLifecycleHitDieFixture[]
   hitpointLevels: CharacterLifecycleHitpointLevelFixture[]
@@ -181,7 +179,7 @@ export interface CharacterLifecycleFixture {
 export interface BuilderResolutionTiming {
   durationMs: number
   fixture: string
-  stage: 'initial' | 'structural' | 'completed' | 'reloaded'
+  stage: 'initial' | 'structural' | 'specialization' | 'completed' | 'reloaded'
 }
 
 export interface SheetReadTiming {
@@ -272,6 +270,10 @@ export function expectedTotalLevel(fixture: CharacterLifecycleFixture): number {
   return fixture.classes.reduce((total, classFixture) => total + classFixture.classLevel, 0)
 }
 
+export function expectedInitialCurrentHitPoints(fixture: CharacterLifecycleFixture): number {
+  return fixture.hitpointLevels.reduce((total, level) => total + level.value, 0)
+}
+
 export function assertCharacterProgression(
   character: CharacterAuthored,
   fixture: CharacterLifecycleFixture,
@@ -337,9 +339,10 @@ export function createFixtureCharacter(params: CharacterLifecycleFixture): Chara
     `${params.label} fixture needs one hit point row per character level.`
   )
   assert.equal(
-    params.hitpointLevels.reduce((total, level) => total + level.value, 0),
+    params.hitpointLevels.reduce((total, level) => total + level.value, 0) +
+      (params.expectedMaxHitPointBonus ?? 0),
     params.expectedMaxHitPoints,
-    `${params.label} fixture hit point rows do not total its expected max hit points.`
+    `${params.label} fixture hit point progression plus derived bonuses does not equal its expected max hit points.`
   )
 
   return {
@@ -384,7 +387,7 @@ export function createFixtureCharacter(params: CharacterLifecycleFixture): Chara
         ]
       },
       hitpoints: {
-        current: params.expectedMaxHitPoints,
+        current: expectedInitialCurrentHitPoints(params),
         hitDice: params.hitDice ?? []
       }
     }
@@ -492,11 +495,44 @@ export function applyStructuralChoices(
     )
     nextCharacter.intent.classes = nextCharacter.intent.classes.map((classIntent) =>
       classIntent.classId === classFixture.classId
-        ? { ...classIntent, subclassId: classFixture.subclassId }
+        ? {
+            ...classIntent,
+            subclassId: classFixture.subclassId
+          }
         : classIntent
     )
   }
 
+  return nextCharacter
+}
+
+export function applySpecializationChoices(
+  character: CharacterAuthored,
+  payload: CharacterBuilderPayloadDto,
+  fixture: CharacterLifecycleFixture
+): CharacterAuthored {
+  const configuredClasses = fixture.classes.filter(({ specializationLabel }) => specializationLabel)
+  if (configuredClasses.length === 0) return character
+
+  const nextCharacter = structuredClone(character)
+  for (const classFixture of configuredClasses) {
+    const classView = payload.view.classes.selectedClasses.find(
+      (candidate) => candidate.classId === classFixture.classId
+    )
+    assert.ok(classView, `${classFixture.classLabel} is missing from the resolved Builder view.`)
+    const specialization = classView.specializationOptions.find(
+      (candidate) => candidate.label === classFixture.specializationLabel
+    )
+    assert.ok(
+      specialization,
+      `${classFixture.subclassLabel ?? classFixture.subclassId} does not expose the configured specialization "${classFixture.specializationLabel}".`
+    )
+    nextCharacter.intent.classes = nextCharacter.intent.classes.map((classIntent) =>
+      classIntent.classId === classFixture.classId
+        ? { ...classIntent, specializationId: specialization.id }
+        : classIntent
+    )
+  }
   return nextCharacter
 }
 

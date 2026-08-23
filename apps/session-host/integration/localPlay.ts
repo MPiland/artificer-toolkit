@@ -22,6 +22,7 @@ import {
   createCampaign,
   createCampaignSceneDefinition,
   createCampaignSession,
+  CampaignAccessError,
   CampaignNotFoundError,
   createEncounter,
   createEncounterTemplate,
@@ -31,7 +32,8 @@ import {
   deleteCampaign,
   getCampaign,
   getVttMapDelivery,
-  issueLiveSessionTicket
+  issueLiveSessionTicket,
+  removeCampaignMember
 } from '@artificer-toolkit/functions/services'
 import { sql } from 'kysely'
 import { MediaAccessError, MediaNotFoundError } from '@artificer-toolkit/functions/services/media'
@@ -243,6 +245,21 @@ class LocalLiveRoom {
       socket.once('close', () => resolve())
       socket.close(1000, 'Client left.')
     })
+  }
+
+  refreshAuthorityAndStopReconnect(): void {
+    const socket = this.#socket
+    if (socket?.readyState !== WebSocket.OPEN) {
+      throw new Error('The live-session socket is not open for authority refresh.')
+    }
+    this.#closed = true
+    socket.send(
+      JSON.stringify({
+        lastSeenDeliverySequence: this.#deliverySequence,
+        pendingCommandIds: [...this.#pendingCommandIds],
+        type: 'RESUME'
+      } satisfies LiveSessionWebSocketClientMessageDto)
+    )
   }
 
   async #open(reconnecting: boolean): Promise<void> {
@@ -778,14 +795,13 @@ async function main(): Promise<void> {
       { campaignId: campaign.id, title: 'Local integration session' },
       gm.id
     )
-    const encounterCreature = srdBaselineContent.subjects.creatures.find(
-      (creature) =>
-        (creature.features ?? []).some(
-          (feature) =>
-            feature.charges?.limitKind === 'FIXED_AMOUNT' &&
-            feature.charges.scalingKind === 'NONE' &&
-            feature.charges.amount > 0
-        )
+    const encounterCreature = srdBaselineContent.subjects.creatures.find((creature) =>
+      (creature.features ?? []).some(
+        (feature) =>
+          feature.charges?.limitKind === 'FIXED_AMOUNT' &&
+          feature.charges.scalingKind === 'NONE' &&
+          feature.charges.amount > 0
+      )
     )
     assert.ok(encounterCreature, 'The SRD fixture must include a fixed-use creature feature.')
     const encounterTemplate = await createEncounterTemplate(db, gm.id, {
@@ -1396,7 +1412,8 @@ async function main(): Promise<void> {
       resourceTiming?.service.totalMs,
       spellSlotTiming?.service.totalMs
     ].filter((duration): duration is number => duration !== undefined)
-    if (!externalEndpoint) assert.equal(ruleBoundHostSamples.length, VTT_USAGE_MEASURED_PAIRS * 2 + 2)
+    if (!externalEndpoint)
+      assert.equal(ruleBoundHostSamples.length, VTT_USAGE_MEASURED_PAIRS * 2 + 2)
     const ruleBoundHostP95Ms =
       ruleBoundHostSamples.length > 0 ? percentile(ruleBoundHostSamples, 0.95) : null
     if (enforcesDirectHostLatencyBudgets && ruleBoundHostP95Ms !== null) {
@@ -1501,6 +1518,61 @@ async function main(): Promise<void> {
     assert.equal(persisted.state.hitpoints.current, fixture.expectedMaxHitPoints)
     assert.equal(persistedEncounter.version, encounter.version + 1)
 
+    const removedPlayer = players.at(-1)
+    const removedRoom = playerRooms.at(-1)
+    assert.ok(removedPlayer && removedRoom)
+    const campaignBeforeRemoval = await getCampaign(db, gm.id, campaign.id)
+    const removedMembership = campaignBeforeRemoval.memberships.find(
+      ({ userId }) => userId === removedPlayer.id
+    )
+    assert.ok(removedMembership)
+    const removedRejection = waitForMessage(
+      removedRoom,
+      'COMMAND_REJECTED',
+      (message) => message.code === 'UNAUTHORIZED' && message.commandId === null
+    )
+    const removedDrop = removedRoom.waitForDrop()
+    const retainedRefresh = waitForMessage(gmRoom, 'READY', (message) =>
+      message.aggregateVersions.some(
+        (version) =>
+          version.aggregateKind === 'CAMPAIGN' &&
+          version.aggregateId === campaign.id &&
+          version.version > campaignBeforeRemoval.version
+      )
+    )
+    await removeCampaignMember(
+      db,
+      gm.id,
+      campaign.id,
+      removedPlayer.id,
+      campaignBeforeRemoval.version,
+      removedMembership.accessStartedAt,
+      randomUUID()
+    )
+    removedRoom.refreshAuthorityAndStopReconnect()
+    const [revocation, refreshedCampaign] = await Promise.all([removedRejection, retainedRefresh])
+    await removedDrop
+    assert.equal(revocation.code, 'UNAUTHORIZED')
+    const campaignAfterRemoval = await getCampaign(db, gm.id, campaign.id)
+    assert.equal(
+      campaignAfterRemoval.memberships.some(({ userId }) => userId === removedPlayer.id),
+      false
+    )
+    assert.ok(
+      refreshedCampaign.aggregateVersions.some(
+        (version) =>
+          version.aggregateKind === 'CAMPAIGN' &&
+          version.aggregateId === campaign.id &&
+          version.version === campaignAfterRemoval.version
+      )
+    )
+    await assert.rejects(
+      withUserContext(db, removedPlayer.id, (scopedDb) =>
+        issueLiveSessionTicket(scopedDb, removedPlayer.id, options, ticketSecret)
+      ),
+      CampaignAccessError
+    )
+
     await Promise.all(playerRooms.map((room) => room.leave()))
     playerRooms = []
     playerRoom = null
@@ -1555,17 +1627,22 @@ async function main(): Promise<void> {
         }).finally(() => {
           attachFinished = true
         })
-        const liveCommand = executeEncounterSceneCommandWithState(liveCommandProofDb, gmUser.id, {
-          barrierId: doorId,
-          commandId: randomUUID(),
-          encounterId: encounter.id,
-          expectedSceneVersion,
-          sceneId,
-          state: 'CLOSED' as const,
-          type: 'SET_SCENE_DOOR_STATE' as const
-        }, {
-          liveSceneContext: { authorityId, campaignId: currentCampaignId, sessionId: session.id }
-        }).finally(() => {
+        const liveCommand = executeEncounterSceneCommandWithState(
+          liveCommandProofDb,
+          gmUser.id,
+          {
+            barrierId: doorId,
+            commandId: randomUUID(),
+            encounterId: encounter.id,
+            expectedSceneVersion,
+            sceneId,
+            state: 'CLOSED' as const,
+            type: 'SET_SCENE_DOOR_STATE' as const
+          },
+          {
+            liveSceneContext: { authorityId, campaignId: currentCampaignId, sessionId: session.id }
+          }
+        ).finally(() => {
           liveCommandFinished = true
         })
 
@@ -1606,6 +1683,7 @@ async function main(): Promise<void> {
         encounterCommittedSnapshot: 'verified',
         localDatabaseOnly: true,
         multiClientCommittedBroadcast: 'verified',
+        membershipRevocationCurrentness: 'verified',
         reconnectBufferedCommand: 'verified',
         timings: {
           coldCommandMs: cold.durationMs,

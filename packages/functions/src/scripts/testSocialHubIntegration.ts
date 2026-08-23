@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
+import { randomUUID } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 
+import { createClient } from '@supabase/supabase-js'
 import { createDb, type DBLike } from '@artificer-toolkit/db'
 import type { CreateSocialListingInput } from '@artificer-toolkit/schema/api/socialHub'
 import { sql } from 'kysely'
@@ -37,6 +39,8 @@ interface FixtureUsers {
   secondPlayer: FixtureUser
 }
 
+type AuthAdmin = ReturnType<typeof createClient>['auth']['admin']
+
 function requireLocalDatabaseUrl(): string {
   const connectionString = process.env.DATABASE_CONNECTION_STRING
   if (!connectionString) {
@@ -55,7 +59,26 @@ function requireLocalDatabaseUrl(): string {
   return connectionString
 }
 
-async function loadFixtureUsers(db: DBLike): Promise<FixtureUsers> {
+function requireLocalSupabaseAdmin(): AuthAdmin {
+  const rawUrl = process.env.SUPABASE_URL
+  const secretKey = process.env.SUPABASE_SECRET_KEY
+  if (!rawUrl || !secretKey) {
+    throw new Error('SUPABASE_URL and SUPABASE_SECRET_KEY are required for the Social Hub proof.')
+  }
+  const url = new URL(rawUrl)
+  if (!LOCAL_DATABASE_HOSTS.has(url.hostname.toLowerCase())) {
+    throw new Error('The Social Hub Auth fixtures must target loopback Supabase.')
+  }
+  return createClient(rawUrl, secretKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  }).auth.admin
+}
+
+async function loadFixtureUsers(
+  db: DBLike,
+  admin: AuthAdmin,
+  createdUserIds: string[]
+): Promise<FixtureUsers> {
   const result = await sql<{ email: string; id: string }>`
     select email, id::text as id
     from auth.users
@@ -63,21 +86,39 @@ async function loadFixtureUsers(db: DBLike): Promise<FixtureUsers> {
   `.execute(db)
   const byEmail = new Map(result.rows.map((row) => [row.email.toLowerCase(), row.id]))
 
-  const fixture = (email: string, username: string): FixtureUser => {
-    const id = byEmail.get(email)
-    if (!id) {
-      throw new Error(
-        `Missing local user ${email}. Run packages/db/src/scripts/seedLocalAuthUser.ts.`
-      )
-    }
-    return { id, username }
+  const fixture = async (email: string, username: string): Promise<FixtureUser> => {
+    const existingId = byEmail.get(email)
+    if (existingId) return { id: existingId, username }
+    const { data, error } = await admin.createUser({
+      email,
+      email_confirm: true,
+      password: `Local-${randomUUID()}-Aa1!`,
+      user_metadata: { username }
+    })
+    if (error) throw error
+    if (!data.user) throw new Error(`Supabase did not create the disposable user ${email}.`)
+    createdUserIds.push(data.user.id)
+    return { id: data.user.id, username }
   }
 
   return {
-    host: fixture(HOST_EMAIL, 'social_host'),
-    firstPlayer: fixture(FIRST_PLAYER_EMAIL, 'social_player_one'),
-    secondPlayer: fixture(SECOND_PLAYER_EMAIL, 'social_player_two')
+    host: await fixture(HOST_EMAIL, 'social_host'),
+    firstPlayer: await fixture(FIRST_PLAYER_EMAIL, 'social_player_one'),
+    secondPlayer: await fixture(SECOND_PLAYER_EMAIL, 'social_player_two')
   }
+}
+
+function isRetryableAdmin500(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'status' in error && error.status === 500
+}
+
+async function deleteDisposableUser(admin: AuthAdmin, userId: string): Promise<boolean> {
+  const first = await admin.deleteUser(userId)
+  if (!first.error) return false
+  if (!isRetryableAdmin500(first.error)) throw first.error
+  const second = await admin.deleteUser(userId)
+  if (second.error) throw second.error
+  return true
 }
 
 async function prepareUsers(db: DBLike, users: FixtureUsers): Promise<void> {
@@ -452,12 +493,14 @@ async function proveInboxExpiry(
 
 async function main(): Promise<void> {
   const db = createDb({ connectionString: requireLocalDatabaseUrl() })
+  const admin = requireLocalSupabaseAdmin()
   const createdCampaignIds = new Set<string>()
+  const createdUserIds: string[] = []
   let originalTier = 'FREE'
   let users: FixtureUsers | undefined
 
   try {
-    users = await loadFixtureUsers(db)
+    users = await loadFixtureUsers(db, admin, createdUserIds)
     const tier = await sql<{ tier: string }>`
       select tier from account_entitlements where user_id = ${users.host.id}::uuid
     `.execute(db)
@@ -481,21 +524,45 @@ async function main(): Promise<void> {
     console.info('Social Hub local proof passed: membership/source agreement after commit')
     console.info('Social Hub local proof passed: expired inbox lifecycle transition')
   } finally {
-    for (const campaignId of createdCampaignIds) {
-      await sql`delete from campaigns where id = ${campaignId}::uuid`.execute(db)
+    try {
+      for (const campaignId of createdCampaignIds) {
+        await sql`delete from campaigns where id = ${campaignId}::uuid`.execute(db)
+      }
+      if (users) {
+        await sql`
+          delete from social_action_rate_limits
+          where user_id in (${users.host.id}::uuid, ${users.firstPlayer.id}::uuid,
+            ${users.secondPlayer.id}::uuid)
+        `.execute(db)
+        await sql`
+          update account_entitlements set tier = ${originalTier}
+          where user_id = ${users.host.id}::uuid
+        `.execute(db)
+      }
+      let authDeleteRetryCount = 0
+      for (const userId of createdUserIds.reverse()) {
+        if (await deleteDisposableUser(admin, userId)) authDeleteRetryCount += 1
+      }
+      if (createdUserIds.length > 0) {
+        const residual = await sql<{ auth_users: number; profiles: number }>`
+          select
+            (select count(*)::int from auth.users where id = any(${sql.val(createdUserIds)}::uuid[]))
+              as auth_users,
+            (select count(*)::int from profiles where id = any(${sql.val(createdUserIds)}::uuid[]))
+              as profiles
+        `.execute(db)
+        assert.deepStrictEqual(residual.rows[0], { auth_users: 0, profiles: 0 })
+        console.info(
+          JSON.stringify({
+            authFixtureCleanup: 'verified',
+            authDeleteRetryCount,
+            createdUserCount: createdUserIds.length
+          })
+        )
+      }
+    } finally {
+      await db.destroy()
     }
-    if (users) {
-      await sql`
-        delete from social_action_rate_limits
-        where user_id in (${users.host.id}::uuid, ${users.firstPlayer.id}::uuid,
-          ${users.secondPlayer.id}::uuid)
-      `.execute(db)
-      await sql`
-        update account_entitlements set tier = ${originalTier}
-        where user_id = ${users.host.id}::uuid
-      `.execute(db)
-    }
-    await db.destroy()
   }
 }
 

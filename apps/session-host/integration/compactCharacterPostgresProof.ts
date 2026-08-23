@@ -96,24 +96,25 @@ async function readCompactCharacterState(
   characterId: string,
   commandId: string
 ): Promise<CompactCharacterState> {
-  const [character, canonicalHitPoints, mechanics, overlay, maximumAdjustment, event] = await Promise.all([
-    sql<{ snapshot: unknown; streamVersion: number }>`
+  const [character, canonicalHitPoints, mechanics, overlay, maximumAdjustment, event] =
+    await Promise.all([
+      sql<{ snapshot: unknown; streamVersion: number }>`
       select to_jsonb(character) as snapshot, character.stream_version as "streamVersion"
       from public.characters character
       where character.id = ${characterId}::uuid
     `.execute(db),
-    sql<{ current: number | null; temp: number | null }>`
+      sql<{ current: number | null; temp: number | null }>`
       select hit_points.current, hit_points.temp
       from public.character_hitpoint_state hit_points
       where hit_points.character_id = ${characterId}::uuid
     `.execute(db),
-    sql<{
-      commandLaneChecksum: string
-      commandState: { state: { hitpoints: { current: number | null; temp: number | null } } }
-      projectionChecksum: string
-      snapshot: unknown
-      streamVersion: number
-    }>`
+      sql<{
+        commandLaneChecksum: string
+        commandState: { state: { hitpoints: { current: number | null; temp: number | null } } }
+        projectionChecksum: string
+        snapshot: unknown
+        streamVersion: number
+      }>`
       select
         to_jsonb(projection) as snapshot,
         projection.stream_version as "streamVersion",
@@ -123,13 +124,13 @@ async function readCompactCharacterState(
       from public.character_mechanics_projections projection
       where projection.character_id = ${characterId}::uuid
     `.execute(db),
-    sql<{
-      baseMechanicsProjectionChecksum: string
-      manualMaximumModifierOwner: 'CHARACTER' | 'CAMPAIGN' | null
-      projectionChecksum: string
-      snapshot: unknown
-      streamVersion: number
-    }>`
+      sql<{
+        baseMechanicsProjectionChecksum: string
+        manualMaximumModifierOwner: 'CHARACTER' | 'CAMPAIGN' | null
+        projectionChecksum: string
+        snapshot: unknown
+        streamVersion: number
+      }>`
       select
         to_jsonb(projection) as snapshot,
         projection.stream_version as "streamVersion",
@@ -140,19 +141,19 @@ async function readCompactCharacterState(
       where projection.campaign_id = ${campaignId}::uuid
         and projection.character_id = ${characterId}::uuid
     `.execute(db),
-    sql<{ id: string; value: number }>`
+      sql<{ id: string; value: number }>`
       select id, integer_value as value
       from public.character_hitpoint_adjustments
       where character_id = ${characterId}::uuid
         and field_kind = 'MAXIMUM_MODIFIER'
     `.execute(db),
-    sql<{
-      commandId: string
-      commandType: string | null
-      committedStreamVersion: number | null
-      snapshot: unknown
-      type: string
-    }>`
+      sql<{
+        commandId: string
+        commandType: string | null
+        committedStreamVersion: number | null
+        snapshot: unknown
+        type: string
+      }>`
       select
         to_jsonb(event) as snapshot,
         event.command_id::text as "commandId",
@@ -163,7 +164,7 @@ async function readCompactCharacterState(
       where event.character_id = ${characterId}::uuid
         and event.command_id = ${commandId}::uuid
     `.execute(db)
-  ])
+    ])
 
   const characterRow = character.rows[0]
   const hitPointsRow = canonicalHitPoints.rows[0]
@@ -199,10 +200,7 @@ function assertCompactAdvance(
     },
     after.canonicalHitPoints
   )
-  assert.equal(
-    after.overlay.baseMechanicsProjectionChecksum,
-    after.mechanics.projectionChecksum
-  )
+  assert.equal(after.overlay.baseMechanicsProjectionChecksum, after.mechanics.projectionChecksum)
   assert.notEqual(after.overlay.projectionChecksum, before.overlay.projectionChecksum)
   assert.ok(after.event)
   assert.equal(after.event.commandId, commandId)
@@ -350,7 +348,10 @@ export async function proveCompactCharacterPostgresSemantics(
       await pendingClaim
       pendingClaim = undefined
       transactionAuthorityClaimed = true
-      await assert.rejects(pendingCampaignUpdate, (error: unknown) => error === campaignUpdateRollback)
+      await assert.rejects(
+        pendingCampaignUpdate,
+        (error: unknown) => error === campaignUpdateRollback
+      )
       pendingCampaignUpdate = undefined
       const lease = await sql<{ authorityId: string; campaignStatus: string }>`
         select lease.authority_id as "authorityId", campaign.status as "campaignStatus"
@@ -359,7 +360,9 @@ export async function proveCompactCharacterPostgresSemantics(
         join public.campaigns campaign on campaign.id = session.campaign_id
         where lease.session_id = ${options.sessionId}::uuid
       `.execute(control)
-      assert.deepEqual(lease.rows, [{ authorityId: transactionAuthorityId, campaignStatus: 'ACTIVE' }])
+      assert.deepEqual(lease.rows, [
+        { authorityId: transactionAuthorityId, campaignStatus: 'ACTIVE' }
+      ])
     } finally {
       releaseSessionLock?.()
       await heldSessionLock
@@ -442,7 +445,7 @@ export async function proveCompactCharacterPostgresSemantics(
       contentionBaseline.character.streamVersion
     )
     let releaseAssignmentLock: (() => void) | undefined
-    let contentionFailure: unknown
+    let heldLockFailure: unknown
     const assignmentLockReleased = new Promise<void>((resolve) => {
       releaseAssignmentLock = resolve
     })
@@ -504,23 +507,19 @@ export async function proveCompactCharacterPostgresSemantics(
         assert.equal(result.response, null)
         assert.equal(result.version, contentionBaseline.character.streamVersion + 1)
       }
-      const characterResults = results.filter(
-        (result) => result.aggregateKind === 'CHARACTER'
-      )
+      const characterResults = results.filter((result) => result.aggregateKind === 'CHARACTER')
       assert.equal(characterResults.length, 2)
       assert.deepEqual(characterResults[0]?.characterVision, characterResults[1]?.characterVision)
-    } catch (error) {
-      contentionFailure = error
-      throw error
     } finally {
       releaseAssignmentLock?.()
       try {
         await heldLock
       } catch (error) {
-        if (!contentionFailure) throw error
+        heldLockFailure = error
       }
       if (executionsPromise) await executionsPromise
     }
+    if (heldLockFailure) throw heldLockFailure
 
     const afterContention = await readCompactCharacterState(
       control,
@@ -731,34 +730,29 @@ export async function proveCompactCharacterPostgresSemantics(
       competingMaximumResults.filter((result) => result.status === 'fulfilled').length,
       1
     )
-    assert.equal(
-      competingMaximumResults.filter((result) => result.status === 'rejected').length,
-      1
-    )
+    assert.equal(competingMaximumResults.filter((result) => result.status === 'rejected').length, 1)
     const rejectedMaximum = competingMaximumResults.find(
       (result): result is PromiseRejectedResult => result.status === 'rejected'
     )
     assert.ok(rejectedMaximum)
     assert.ok(rejectedMaximum.reason instanceof ConcurrencyError)
     const winningMaximum = competingMaximumResults.find(
-      (result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof executeLiveSessionCommand>>> =>
+      (
+        result
+      ): result is PromiseFulfilledResult<Awaited<ReturnType<typeof executeLiveSessionCommand>>> =>
         result.status === 'fulfilled'
     )
     assert.ok(winningMaximum)
     assert.equal(winningMaximum.value.aggregateKind, 'CHARACTER')
     assert.equal(winningMaximum.value.replayed, false)
-    assert.equal(
-      winningMaximum.value.version,
-      competingMaximumBaseline.character.streamVersion + 1
-    )
+    assert.equal(winningMaximum.value.version, competingMaximumBaseline.character.streamVersion + 1)
     const afterCompetingMaximum = await readCompactCharacterState(
       control,
       options.campaignId,
       options.characterId,
       winningMaximum.value.commandId
     )
-    const winningMaximumValue =
-      winningMaximum.value.commandId === competingMaximumAId ? 23 : 29
+    const winningMaximumValue = winningMaximum.value.commandId === competingMaximumAId ? 23 : 29
     assertMaximumModifierAdvance(
       competingMaximumBaseline,
       afterCompetingMaximum,

@@ -1,7 +1,11 @@
 import { Accordion, Badge, Button, Text } from '@mantine/core'
 import clsx from 'clsx'
 
-import type { CharacterSheetPanelDto, CharacterSheetPanelTargetDto } from '#app/lib/api'
+import type {
+  CharacterPreparationOptionsResponseDto,
+  CharacterSheetPanelDto,
+  CharacterSheetPanelTargetDto
+} from '#app/lib/api'
 import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import * as inspectorEditorStyles from './inspectorEditor.css'
 import * as inspectorShellStyles from './inspectorShell.css'
@@ -12,36 +16,74 @@ export function CharacterSheetSpellsPanelContent({
   expectedVersion,
   panel,
   pending,
+  preparationOptions,
+  preparationOptionsError,
+  preparationOptionsPending,
   submitCommand,
   onTargetChange
 }: {
   expectedVersion: number
   panel: SpellsPanel
   pending: boolean
+  preparationOptions?: CharacterPreparationOptionsResponseDto
+  preparationOptionsError?: string
+  preparationOptionsPending?: boolean
   submitCommand: SubmitSheetCommand
   onTargetChange: (target: CharacterSheetPanelTargetDto) => void
 }) {
   const canUseSlot = panel.editable && panel.allowedCommands.includes('USE_SPELL_SLOT')
   const canRestoreSlot = panel.editable && panel.allowedCommands.includes('RESTORE_SPELL_SLOT')
+  const preparationOptionsCurrent =
+    !preparationOptions || preparationOptions.streamVersion === expectedVersion
   const sources = panel.groups.flatMap((group) => group.sources)
-
-  async function setPrepared(
-    source: SpellsPanel['groups'][number]['sources'][number],
-    prepared: boolean
-  ) {
-    if (!source.preparationClassId) return false
-    const spellIds = sources
-      .filter(
+  const preparationOptionsByLevel = new Map<
+    number,
+    Array<
+      CharacterPreparationOptionsResponseDto['classes'][number]['options'][number] & {
+        classId: string
+        sourceLabel: string
+      }
+    >
+  >()
+  for (const source of preparationOptions?.classes ?? []) {
+    for (const option of source.options) {
+      const existingPreparationSource = sources.some(
         (candidate) =>
-          candidate.preparationClassId === source.preparationClassId &&
-          (candidate.spellId !== source.spellId ? candidate.prepared : prepared)
+          candidate.spellId === option.spellId &&
+          candidate.preparationClassId === source.classId &&
+          candidate.canPrepare
       )
-      .map((candidate) => candidate.spellId)
+      if (existingPreparationSource) continue
+      const options = preparationOptionsByLevel.get(option.level) ?? []
+      options.push({ ...option, classId: source.classId, sourceLabel: source.label })
+      preparationOptionsByLevel.set(option.level, options)
+    }
+  }
+  const spellLevels = [
+    ...new Set([...panel.groups.map((group) => group.level), ...preparationOptionsByLevel.keys()])
+  ].sort((left, right) => left - right)
+
+  async function setPrepared(classId: string, spellId: string, prepared: boolean) {
+    if (!preparationOptionsCurrent) return false
+    const options = preparationOptions?.classes.find(
+      (source) => source.classId === classId
+    )?.options
+    const spellIds = options
+      ? options
+          .filter((candidate) => (candidate.spellId === spellId ? prepared : candidate.prepared))
+          .map((candidate) => candidate.spellId)
+      : sources
+          .filter(
+            (candidate) =>
+              candidate.preparationClassId === classId &&
+              (candidate.spellId !== spellId ? candidate.prepared : prepared)
+          )
+          .map((candidate) => candidate.spellId)
 
     return await submitCommand({
       type: 'SET_PREPARED_SPELLS',
       expectedVersion,
-      classId: source.preparationClassId,
+      classId,
       spellIds
     })
   }
@@ -85,7 +127,7 @@ export function CharacterSheetSpellsPanelContent({
             control: inspectorShellStyles.disclosureControl,
             root: inspectorShellStyles.disclosureRoot
           }}
-          defaultValue={['slots', ...panel.groups.map((group) => `spells:${group.level}`)]}
+          defaultValue={['slots', ...spellLevels.map((level) => `spells:${level}`)]}
           order={3}
           variant='default'
         >
@@ -150,72 +192,127 @@ export function CharacterSheetSpellsPanelContent({
             </Accordion.Panel>
           </Accordion.Item>
 
-          {panel.groups.map((group) => (
-            <Accordion.Item
-              className={inspectorShellStyles.disclosureItem}
-              key={group.level}
-              value={`spells:${group.level}`}
-            >
-              <Accordion.Control>
-                <Text fw={700}>{group.label}</Text>
-              </Accordion.Control>
-              <Accordion.Panel>
-                <div className={inspectorEditorStyles.entries}>
-                  {group.sources.map((source) => (
-                    <div
-                      className={inspectorEditorStyles.entry}
-                      key={`${source.source.sourceKind}:${source.source.sourceInstanceId}:${source.spellId}`}
-                    >
-                      <button
-                        className={inspectorEditorStyles.entryLink}
-                        type='button'
-                        onClick={() => onTargetChange(source.target)}
+          {spellLevels.map((level) => {
+            const group = panel.groups.find((candidate) => candidate.level === level)
+            const options = preparationOptionsByLevel.get(level) ?? []
+            return (
+              <Accordion.Item
+                className={inspectorShellStyles.disclosureItem}
+                key={level}
+                value={`spells:${level}`}
+              >
+                <Accordion.Control>
+                  <Text fw={700}>
+                    {group?.label ?? (level === 0 ? 'Cantrips' : `Level ${level}`)}
+                  </Text>
+                </Accordion.Control>
+                <Accordion.Panel>
+                  <div className={inspectorEditorStyles.entries}>
+                    {(group?.sources ?? []).map((source) => (
+                      <div
+                        aria-label={source.label}
+                        className={inspectorEditorStyles.entry}
+                        key={`${source.source.sourceKind}:${source.source.sourceInstanceId}:${source.spellId}`}
+                        role='group'
                       >
-                        <Text fw={700}>{source.label}</Text>
-                        <Text className={inspectorShellStyles.muted}>{source.sourceLabel}</Text>
-                      </button>
-                      <div className={inspectorEditorStyles.actions}>
-                        {source.state !== 'DEFAULT' ? (
-                          <Badge color='cyan' variant='light'>
-                            Modified
-                          </Badge>
-                        ) : null}
-                        {source.canPrepare && source.preparationClassId ? (
+                        <button
+                          className={inspectorEditorStyles.entryLink}
+                          type='button'
+                          onClick={() => onTargetChange(source.target)}
+                        >
+                          <Text fw={700}>{source.label}</Text>
+                          <Text className={inspectorShellStyles.muted}>{source.sourceLabel}</Text>
+                        </button>
+                        <div className={inspectorEditorStyles.actions}>
+                          {source.state !== 'DEFAULT' ? (
+                            <Badge color='cyan' variant='light'>
+                              Modified
+                            </Badge>
+                          ) : null}
+                          {source.canPrepare && source.preparationClassId ? (
+                            <Button
+                              disabled={
+                                pending ||
+                                !preparationOptionsCurrent ||
+                                !panel.editable ||
+                                !panel.allowedCommands.includes('SET_PREPARED_SPELLS')
+                              }
+                              size='xs'
+                              variant={source.prepared ? 'default' : 'filled'}
+                              onClick={() =>
+                                void setPrepared(
+                                  source.preparationClassId!,
+                                  source.spellId,
+                                  !source.prepared
+                                )
+                              }
+                            >
+                              {source.prepared ? 'Unprepare' : 'Prepare'}
+                            </Button>
+                          ) : null}
+                          {source.canManageKnown && source.knownClassId ? (
+                            <Button
+                              disabled={
+                                pending ||
+                                !panel.editable ||
+                                !panel.allowedCommands.includes('SET_KNOWN_SPELLS')
+                              }
+                              size='xs'
+                              variant={source.known ? 'default' : 'filled'}
+                              onClick={() => void setKnown(source, !source.known)}
+                            >
+                              {source.known ? 'Forget' : 'Learn'}
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                    {options.map((option) => (
+                      <div
+                        aria-label={option.label}
+                        className={inspectorEditorStyles.entry}
+                        key={`preparation:${option.classId}:${option.spellId}`}
+                        role='group'
+                      >
+                        <div>
+                          <Text fw={700}>{option.label}</Text>
+                          <Text className={inspectorShellStyles.muted}>{option.sourceLabel}</Text>
+                        </div>
+                        <div className={inspectorEditorStyles.actions}>
                           <Button
                             disabled={
                               pending ||
+                              !preparationOptionsCurrent ||
                               !panel.editable ||
                               !panel.allowedCommands.includes('SET_PREPARED_SPELLS')
                             }
                             size='xs'
-                            variant={source.prepared ? 'default' : 'filled'}
-                            onClick={() => void setPrepared(source, !source.prepared)}
-                          >
-                            {source.prepared ? 'Unprepare' : 'Prepare'}
-                          </Button>
-                        ) : null}
-                        {source.canManageKnown && source.knownClassId ? (
-                          <Button
-                            disabled={
-                              pending ||
-                              !panel.editable ||
-                              !panel.allowedCommands.includes('SET_KNOWN_SPELLS')
+                            variant={option.prepared ? 'default' : 'filled'}
+                            onClick={() =>
+                              void setPrepared(option.classId, option.spellId, !option.prepared)
                             }
-                            size='xs'
-                            variant={source.known ? 'default' : 'filled'}
-                            onClick={() => void setKnown(source, !source.known)}
                           >
-                            {source.known ? 'Forget' : 'Learn'}
+                            {option.prepared ? 'Unprepare' : 'Prepare'}
                           </Button>
-                        ) : null}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </Accordion.Panel>
-            </Accordion.Item>
-          ))}
-          {!panel.groups.length ? (
+                    ))}
+                  </div>
+                </Accordion.Panel>
+              </Accordion.Item>
+            )
+          })}
+          {preparationOptionsPending ? (
+            <Text className={inspectorShellStyles.muted} role='status'>
+              Loading preparation options…
+            </Text>
+          ) : null}
+          {preparationOptionsError ? (
+            <Text c='red' role='alert'>
+              Preparation options are unavailable. {preparationOptionsError}
+            </Text>
+          ) : null}
+          {!spellLevels.length && !preparationOptionsPending ? (
             <Accordion.Item className={inspectorShellStyles.disclosureItem} value='spells:empty'>
               <Accordion.Control>
                 <Text fw={700}>Spells</Text>

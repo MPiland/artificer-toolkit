@@ -506,6 +506,10 @@ export const wizard: ClassAuthored = {
       SPELLCASTING_ATTRIBUTE.USES_SPELLBOOK,
       SPELLCASTING_ATTRIBUTE.RITUAL_CASTER
     ],
+    prepareLimit: {
+      methodKinds: ['SPELLCASTING_ABILITY', 'CLASS_LEVEL'],
+      scaling: SCALING_AMOUNT_KIND.FULL
+    },
     details: classSpellcastingDetails(WZ, [
       {
         label: 'Spellcasting',

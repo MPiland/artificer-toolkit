@@ -8,6 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessions'
 
 import {
+  classifyLiveSessionCommandError,
   claimLiveSessionRoomCommandAuthority,
   executeLiveSessionCommand,
   loadLiveSessionCoordinatorSnapshot,
@@ -87,13 +88,14 @@ export async function executeLiveSessionExecutorRequest(
       break
     case 'RENEW':
       {
+        const renewal = await renewLiveSessionRoomCommandAuthority(
+          db,
+          request.userId,
+          options,
+          request.authorityId
+        )
         response = {
-          memberships: await renewLiveSessionRoomCommandAuthority(
-            db,
-            request.userId,
-            options,
-            request.authorityId
-          ),
+          ...renewal,
           ok: true,
           operation: 'RENEW'
         }
@@ -146,6 +148,7 @@ export async function executeLiveSessionExecutorRequest(
 }
 
 export const liveSessionExecutorInternals = {
+  classifyLiveSessionCommandError,
   hostTiming,
   wireExecution
 }

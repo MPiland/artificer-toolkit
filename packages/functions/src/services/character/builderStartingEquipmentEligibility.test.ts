@@ -15,9 +15,15 @@ const repositoryState = vi.hoisted(() => ({
 }))
 
 vi.mock('@artificer-toolkit/db', () => ({
-  createCampaignContentRepository: () => ({ findAssignedCampaign: async () => null }),
+  createCampaignRepository: () => ({ findCampaignByCharacter: async () => null }),
   createAuthoredVersionRepository: () => ({
-    findActiveByIds: async ({ subjectIds, subjectKind }: { subjectIds: readonly string[]; subjectKind: string }) => {
+    findActiveByIds: async ({
+      subjectIds,
+      subjectKind
+    }: {
+      subjectIds: readonly string[]
+      subjectKind: string
+    }) => {
       const records =
         subjectKind === 'RACE'
           ? repositoryState.races
@@ -51,13 +57,22 @@ vi.mock('@artificer-toolkit/db', () => ({
           ])
       )
     },
-    findExactVersions: async ({ entries }: { entries: readonly { subjectId: string; subjectKind: string }[] }) => {
+    findExactVersions: async ({
+      entries
+    }: {
+      entries: readonly { subjectId: string; subjectKind: string }[]
+    }) => {
       const records = [...repositoryState.races, ...repositoryState.equipment]
       return new Map(
         entries.flatMap((entry) => {
           const record = records.find((candidate) => candidate.id === entry.subjectId)
           return record
-            ? [[`${entry.subjectKind}:${entry.subjectId}`, { authored: { document: record }, compiled: { authoredDependencies: [] } }] as const]
+            ? [
+                [
+                  `${entry.subjectKind}:${entry.subjectId}`,
+                  { authored: { document: record }, compiled: { authoredDependencies: [] } }
+                ] as const
+              ]
             : []
         })
       )

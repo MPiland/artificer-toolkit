@@ -14,6 +14,17 @@ function localEnvironmentFile(path: string): Record<string, string> {
   if (!existsSync(path)) return {}
   return Object.entries(parseEnv(readFileSync(path, 'utf8'))).reduce<Record<string, string>>(
     (result, [key, value]) => {
+      if (
+        key.startsWith('NETLIFY_') ||
+        key.startsWith('PROD_') ||
+        key.startsWith('STAGING_') ||
+        key === 'MANAGED_LIVE_SESSION_ENDPOINT' ||
+        key === 'MANAGED_VTT_BASE_URL' ||
+        key === 'SUPABASE_ACCESS_TOKEN' ||
+        key === 'VITE_SENTRY_DSN'
+      ) {
+        return result
+      }
       if (value !== undefined) result[key] = value
       return result
     },

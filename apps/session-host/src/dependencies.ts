@@ -10,6 +10,7 @@ import {
 } from '@artificer-toolkit/functions/services'
 import type {
   LiveSessionActiveMembershipDto,
+  LiveSessionAggregateVersionDto,
   LiveSessionCommandDto,
   LiveSessionJoinOptionsDto,
   LiveSessionSceneVisionContextDto
@@ -34,7 +35,10 @@ export interface LiveSessionRoomDependencies {
     userId: string,
     options: LiveSessionJoinOptionsDto,
     authorityId: string
-  ): Promise<LiveSessionActiveMembershipDto[]>
+  ): Promise<{
+    aggregateVersions: LiveSessionAggregateVersionDto[]
+    memberships: LiveSessionActiveMembershipDto[]
+  }>
   releaseAuthority(
     userId: string,
     options: LiveSessionJoinOptionsDto,

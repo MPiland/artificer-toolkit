@@ -398,6 +398,7 @@ export async function patchCharacterSheetState(
   options: {
     expectedStreamVersion: number
     beforeCharacterLock?: (trx: DBLike) => Promise<void>
+    afterCharacterLock?: (trx: DBLike) => Promise<void>
     afterPersist?: (trx: DBLike, nextStreamVersion: number) => Promise<void>
   }
 ): Promise<number> {
@@ -413,6 +414,7 @@ export async function patchCharacterSheetState(
     if (row.stream_version !== options.expectedStreamVersion) {
       throw new ConcurrencyError(characterId, options.expectedStreamVersion)
     }
+    await options.afterCharacterLock?.(trx)
 
     const inspirationPatch = patches.find(
       (patch): patch is Extract<CharacterSheetStatePatch, { kind: 'INSPIRATION' }> =>

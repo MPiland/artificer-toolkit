@@ -9,6 +9,15 @@ function read(relativePath: string): string {
   return readFileSync(join(root, relativePath), 'utf8')
 }
 
+function normalizeSql(source: string): string {
+  return source
+    .replace(/\s+/gu, ' ')
+    .replace(/\(\s+/gu, '(')
+    .replace(/\s+\)/gu, ')')
+    .trim()
+    .toLowerCase()
+}
+
 describe('live-session command lease schema', () => {
   const canonical = read('packages/db/src/domains/campaigns/tables/campaigns.sql')
   const migration = read('supabase/migrations/20260815010000_live_session_command_leases.sql')
@@ -16,20 +25,20 @@ describe('live-session command lease schema', () => {
   const generatedTypes = read('packages/db/src/types/supabase.database.ts')
 
   it('keeps one private expiring command authority per Campaign session', () => {
-    for (const source of [canonical, migration, bundle]) {
-      expect(source).toContain('CREATE TABLE IF NOT EXISTS public.live_session_command_leases')
+    for (const source of [canonical, migration, bundle].map(normalizeSql)) {
+      expect(source).toContain('create table if not exists public.live_session_command_leases')
       expect(source).toContain(
-        'session_id uuid PRIMARY KEY REFERENCES public.campaign_sessions (id) ON DELETE CASCADE'
+        'session_id uuid primary key references public.campaign_sessions (id) on delete cascade'
       )
       expect(source).toContain(
-        'authority_id text NOT NULL CHECK (char_length(authority_id) BETWEEN 1 AND 128)'
+        'authority_id text not null check (char_length(authority_id) between 1 and 128)'
       )
-      expect(source).toContain('expires_at timestamptz NOT NULL')
+      expect(source).toContain('expires_at timestamptz not null')
       expect(source).toContain(
-        'ALTER TABLE public.live_session_command_leases ENABLE ROW LEVEL SECURITY'
+        'alter table public.live_session_command_leases enable row level security'
       )
       expect(source).toContain(
-        'REVOKE ALL ON TABLE public.live_session_command_leases FROM anon, authenticated'
+        'revoke all on table public.live_session_command_leases from anon, authenticated'
       )
     }
     expect(generatedTypes).toContain('live_session_command_leases:')

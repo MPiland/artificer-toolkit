@@ -9,6 +9,15 @@ function read(relativePath: string): string {
   return readFileSync(join(root, relativePath), 'utf8')
 }
 
+function normalizeSql(source: string): string {
+  return source
+    .replace(/\s+/gu, ' ')
+    .replace(/\(\s+/gu, '(')
+    .replace(/\s+\)/gu, ')')
+    .trim()
+    .toLowerCase()
+}
+
 function table(sql: string, name: string): string {
   const start = sql.indexOf(`CREATE TABLE IF NOT EXISTS public.${name} (`)
   const end = sql.indexOf(';', start)
@@ -38,12 +47,12 @@ describe('Campaign child scope constraints', () => {
       ['campaign_session_reference_pins', 'campaign_sessions']
     ] as const) {
       for (const sql of [canonical, bundle]) {
-        const definition = table(sql, name)
+        const definition = normalizeSql(table(sql, name))
         expect(definition).toContain(
-          `FOREIGN KEY (${parent === 'campaign_conversations' ? 'conversation_id' : 'session_id'}, campaign_id)`
+          `foreign key (${parent === 'campaign_conversations' ? 'conversation_id' : 'session_id'}, campaign_id)`
         )
-        expect(definition).toContain(`REFERENCES public.${parent} (id, campaign_id)`)
-        expect(definition).not.toContain(`REFERENCES public.${parent} (id) ON DELETE CASCADE`)
+        expect(definition).toContain(`references public.${parent} (id, campaign_id)`)
+        expect(definition).not.toContain(`references public.${parent} (id) on delete cascade`)
       }
     }
 

@@ -55,6 +55,7 @@ import type {
   CharacterDraftRequestDto,
   CharacterHistoryResponseDto,
   CharacterListResponseDto,
+  CharacterPreparationOptionsResponseDto,
   CharacterRestPreviewResponseDto,
   CharacterSheetExtraCatalogInputDto,
   CharacterSheetExtraCatalogResponseDto,
@@ -608,15 +609,15 @@ export interface TrpcClient {
     content: {
       list: QueryProcedure<
         SchemaInput<typeof campaignContracts.campaignIdInputSchema>,
-        campaignContracts.CampaignContentBindingDto[]
+        campaignContracts.CampaignContentShareDto[]
       >
-      submit: MutationProcedure<
-        campaignContracts.SubmitCampaignContentVersionInput,
-        campaignContracts.CampaignContentBindingDto
+      share: MutationProcedure<
+        campaignContracts.ShareCampaignContentInput,
+        campaignContracts.CampaignContentShareDto
       >
-      review: MutationProcedure<
-        campaignContracts.ReviewCampaignContentVersionInput,
-        campaignContracts.CampaignContentBindingDto
+      unshare: MutationProcedure<
+        campaignContracts.UnshareCampaignContentInput,
+        campaignContracts.CampaignContentRemovalReceiptDto
       >
     }
     gm: {
@@ -830,6 +831,7 @@ export interface TrpcClient {
       { id: string; target: CharacterSheetPanelTargetDto },
       CharacterSheetPanelDto
     >
+    preparationOptions: QueryProcedure<IdProcedureInput, CharacterPreparationOptionsResponseDto>
     previewSave: MutationProcedure<
       CharacterBuilderSaveRequestDto,
       CharacterBuilderPreviewPayloadDto

@@ -36,20 +36,14 @@ const campaignMocks = vi.hoisted(() => {
     transferCampaignInventory: vi.fn(async () => ({
       eventId: '00000000-0000-4000-8000-000000000010'
     })),
-    listCampaignContentVersions: vi.fn(async () => []),
-    submitCampaignContentVersion: vi.fn(async () => ({
-      id: '00000000-0000-4000-8000-000000000020',
+    listCampaignContentShares: vi.fn(async () => []),
+    shareCampaignContent: vi.fn(async () => ({
       subjectKind: 'SPELL',
       subjectId: '00000000-0000-4000-8000-000000000021',
-      version: 0,
-      authoredVersionId: '00000000-0000-4000-8000-000000000022',
-      authoredVersion: 1,
-      authoredChecksum: 'a'.repeat(64),
-      compiledProjectionChecksum: 'b'.repeat(64),
-      document: { id: 'snapshot-spell', kind: 'SPELL', revision: 1 },
-      status: 'PENDING',
+      document: { id: 'shared-spell', kind: 'SPELL' },
+      sharedBy: '00000000-0000-4000-8000-000000000023',
       createdAt: '2026-08-01T12:00:00.000Z',
-      reviewedAt: null
+      updatedAt: '2026-08-01T12:00:00.000Z'
     })),
     listCampaignAdjustments: vi.fn(async () => [] as unknown[]),
     listCampaignEvents: vi.fn(async () => ({
@@ -206,26 +200,21 @@ describe('tRPC campaign router', () => {
     const listInput = { campaignId: '00000000-0000-4000-8000-000000000001' }
 
     await expect(caller.campaigns.content.list(listInput)).resolves.toEqual([])
-    expect(campaignMocks.listCampaignContentVersions).toHaveBeenCalledWith(
+    expect(campaignMocks.listCampaignContentShares).toHaveBeenCalledWith(
       {},
       'user-1',
       listInput.campaignId
     )
 
-    const submitInput = {
+    const shareInput = {
       campaignId: listInput.campaignId,
       subjectKind: 'SPELL' as const,
-      subjectId: '00000000-0000-4000-8000-000000000021',
-      expectedRevision: 1
+      subjectId: '00000000-0000-4000-8000-000000000021'
     }
-    await expect(caller.campaigns.content.submit(submitInput)).resolves.toMatchObject({
-      status: 'PENDING'
+    await expect(caller.campaigns.content.share(shareInput)).resolves.toMatchObject({
+      subjectId: shareInput.subjectId
     })
-    expect(campaignMocks.submitCampaignContentVersion).toHaveBeenCalledWith(
-      {},
-      'user-1',
-      submitInput
-    )
+    expect(campaignMocks.shareCampaignContent).toHaveBeenCalledWith({}, 'user-1', shareInput)
   })
 
   it('forwards GM adjustment arguments and validates GM event input', async () => {
