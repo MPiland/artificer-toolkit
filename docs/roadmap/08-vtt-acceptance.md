@@ -51,12 +51,13 @@ frozen, bounded agents may work concurrently on disjoint capability/source/UI la
 and contract ownership. Validators and reviewers never mutate source. Multiple independent
 orchestrators must not write the same worktree or reinterpret architecture.
 
-## Gate 1 — Rules foundation (0/12)
+## Gate 1 — Rules foundation (1/12)
 
 1. Game System capability isolation.
 2. Rules Catalogue and Content Source binding.
 3. UUID identity and same-System reference integrity.
-4. Bounded typed graph validation and rejection.
+4. Bounded typed graph validation and rejection. **ACCEPTED** — `321af79`; 13 focused tests,
+   affected build/lint/format green, independent review clean.
 5. Draft, Publish, and current-active lifecycle.
 6. Runtime capability discovery.
 7. Runtime execution, continuation, and receipt lifecycle.

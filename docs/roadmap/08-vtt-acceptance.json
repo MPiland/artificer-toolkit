@@ -24,7 +24,21 @@
         { "id": "G1-SYSTEM-CAPABILITIES", "title": "Game System capability isolation", "proofTier": "REVIEW", "status": "IN_PROGRESS" },
         { "id": "G1-CATALOGUE-BINDING", "title": "Rules Catalogue and Content Source binding", "proofTier": "DATABASE", "status": "NOT_STARTED" },
         { "id": "G1-UUID-INTEGRITY", "title": "UUID identity and same-System reference integrity", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G1-GRAPH-VALIDATION", "title": "Bounded typed graph validation and rejection", "proofTier": "FOCUSED", "status": "IN_PROGRESS" },
+        {
+          "id": "G1-GRAPH-VALIDATION",
+          "title": "Bounded typed graph validation and rejection",
+          "proofTier": "FOCUSED",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-24",
+          "evidence": {
+            "sourceCommit": "321af79",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate1-tracer-focused-tests.log",
+            "build": ".codex/validation/rules-runtime-rebaseline/gate1-tracer-functions-build.log",
+            "lint": ".codex/validation/rules-runtime-rebaseline/gate1-tracer-lint.log",
+            "format": ".codex/validation/rules-runtime-rebaseline/gate1-tracer-format.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/gate1-tracer-review.md"
+          }
+        },
         { "id": "G1-PUBLISH-LIFECYCLE", "title": "Draft, Publish, and current-active lifecycle", "proofTier": "DATABASE", "status": "NOT_STARTED" },
         { "id": "G1-CAPABILITY-DISCOVERY", "title": "Runtime capability discovery", "proofTier": "REVIEW", "status": "IN_PROGRESS" },
         { "id": "G1-EXECUTION-LIFECYCLE", "title": "Runtime execution, continuation, and receipt lifecycle", "proofTier": "DATABASE", "status": "IN_PROGRESS" },
