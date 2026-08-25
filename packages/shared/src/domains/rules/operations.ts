@@ -19,6 +19,7 @@ export const addNumbersRuleOperation = {
   outputs: {
     value: RULE_VALUE_KIND.NUMBER
   },
+  executionKind: 'PURE',
   execute(inputs) {
     return { value: requireNumber(inputs, 'left') + requireNumber(inputs, 'right') }
   }
@@ -35,6 +36,7 @@ export const compareThresholdRuleOperation = {
     passed: RULE_VALUE_KIND.BOOLEAN,
     margin: RULE_VALUE_KIND.NUMBER
   },
+  executionKind: 'PURE',
   execute(inputs) {
     const value = requireNumber(inputs, 'value')
     const threshold = requireNumber(inputs, 'threshold')
@@ -45,7 +47,22 @@ export const compareThresholdRuleOperation = {
   }
 } satisfies RuleOperationContract
 
+export const integerRangeEvidenceRuleOperation = {
+  key: 'evidence.integer-range',
+  contractVersion: 1,
+  inputs: { min: RULE_VALUE_KIND.NUMBER, max: RULE_VALUE_KIND.NUMBER },
+  outputs: { value: RULE_VALUE_KIND.NUMBER },
+  executionKind: 'EVIDENCE',
+  evidence: {
+    kind: 'INTEGER_RANGE',
+    minInput: 'min',
+    maxInput: 'max',
+    valueOutput: 'value'
+  }
+} satisfies RuleOperationContract
+
 export const coreRuleOperations = [
   addNumbersRuleOperation,
-  compareThresholdRuleOperation
+  compareThresholdRuleOperation,
+  integerRangeEvidenceRuleOperation
 ] as const satisfies readonly RuleOperationContract[]

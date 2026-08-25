@@ -3,7 +3,10 @@ import { z } from 'zod'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 
 import {
+  ruleFactContractDtoSchema,
   ruleGraphDefinitionDtoSchema,
+  ruleGraphNodeDefinitionDtoSchema,
+  ruleInputBindingDtoSchema,
   ruleOperationReferenceDtoSchema,
   ruleValueDtoSchema
 } from '../api/rulesRuntime.js'
@@ -27,6 +30,7 @@ export const serverPublishedRuleDefinitionDtoSchema = z.strictObject({
 /** Server-only runtime invocation after domain authorization and capability discovery. */
 export const serverRuleExecutionInputDtoSchema = z.strictObject({
   definitionId: uuidSchema,
+  occurrenceId: uuidSchema,
   facts: z
     .record(capabilityKeySchema, ruleValueDtoSchema)
     .refine((facts) => Object.keys(facts).length <= RULE_GRAPH_LIMITS.RUNTIME_FACTS, {
@@ -45,7 +49,73 @@ export const serverRuleExecutionTraceEntryDtoSchema = z.strictObject({
   nodeId: localNodeIdSchema,
   operation: ruleOperationReferenceDtoSchema,
   inputs: z.record(portNameSchema, ruleValueDtoSchema),
-  outputs: z.record(portNameSchema, ruleValueDtoSchema)
+  outputs: z.record(portNameSchema, ruleValueDtoSchema),
+  evidence: z
+    .strictObject({
+      requestId: z.string().min(1).max(256),
+      kind: z.literal('INTEGER_RANGE'),
+      value: z.number().int()
+    })
+    .optional()
+})
+
+const compiledRuleGraphDtoSchema = z.strictObject({
+  schemaVersion: z.literal(1),
+  source: ruleGraphSourceIdentityDtoSchema,
+  capabilityContractVersion: contractVersionSchema,
+  factContracts: z.array(ruleFactContractDtoSchema).max(RULE_GRAPH_LIMITS.FACT_CONTRACTS),
+  nodes: z.array(ruleGraphNodeDefinitionDtoSchema).min(1).max(RULE_GRAPH_LIMITS.NODES),
+  outputs: z.record(portNameSchema, ruleInputBindingDtoSchema).refine((outputs) => {
+    const count = Object.keys(outputs).length
+    return count >= 1 && count <= RULE_GRAPH_LIMITS.OUTPUTS
+  }, `Compiled rule graphs require between one and ${RULE_GRAPH_LIMITS.OUTPUTS} outputs.`)
+})
+
+export const serverRuleIntegerRangeRequestDtoSchema = z
+  .strictObject({
+    requestId: z.string().min(1).max(256),
+    kind: z.literal('INTEGER_RANGE'),
+    nodeId: localNodeIdSchema,
+    ordinal: z
+      .number()
+      .int()
+      .min(0)
+      .max(RULE_GRAPH_LIMITS.NODES - 1),
+    min: z.number().int(),
+    max: z.number().int()
+  })
+  .refine((request) => request.min <= request.max, 'Integer-range request bounds must be ordered.')
+
+export const serverRuleExecutionContinuationDtoSchema = z.strictObject({
+  schemaVersion: z.literal(1),
+  occurrenceId: uuidSchema,
+  graph: compiledRuleGraphDtoSchema,
+  facts: z
+    .record(capabilityKeySchema, ruleValueDtoSchema)
+    .refine((facts) => Object.keys(facts).length <= RULE_GRAPH_LIMITS.RUNTIME_FACTS, {
+      message: `Rule continuations support at most ${RULE_GRAPH_LIMITS.RUNTIME_FACTS} runtime facts.`
+    }),
+  nextNodeIndex: z
+    .number()
+    .int()
+    .min(0)
+    .max(RULE_GRAPH_LIMITS.NODES - 1),
+  nodeOutputs: z.record(localNodeIdSchema, z.record(portNameSchema, ruleValueDtoSchema)),
+  trace: z.array(serverRuleExecutionTraceEntryDtoSchema).max(RULE_GRAPH_LIMITS.NODES),
+  request: serverRuleIntegerRangeRequestDtoSchema,
+  authority: z.literal('APPLICATION_SERVICE'),
+  redaction: z.literal('SERVER_ONLY'),
+  seal: checksumSchema
+})
+
+export const serverRuleEvidenceResponseDtoSchema = z.strictObject({
+  requestId: z.string().min(1).max(256),
+  value: z.number().int()
+})
+
+export const serverRuleExecutionResumeInputDtoSchema = z.strictObject({
+  continuation: serverRuleExecutionContinuationDtoSchema,
+  response: serverRuleEvidenceResponseDtoSchema
 })
 
 /**
@@ -64,6 +134,14 @@ export const serverCompletedRuleExecutionDtoSchema = z.strictObject({
   })
 })
 
+export const serverRuleExecutionResultDtoSchema = z.discriminatedUnion('status', [
+  serverCompletedRuleExecutionDtoSchema,
+  z.strictObject({
+    status: z.literal('PAUSED'),
+    continuation: serverRuleExecutionContinuationDtoSchema
+  })
+])
+
 export type ServerPublishedRuleDefinitionDto = z.infer<
   typeof serverPublishedRuleDefinitionDtoSchema
 >
@@ -73,3 +151,10 @@ export type ServerRuleExecutionTraceEntryDto = z.infer<
   typeof serverRuleExecutionTraceEntryDtoSchema
 >
 export type ServerCompletedRuleExecutionDto = z.infer<typeof serverCompletedRuleExecutionDtoSchema>
+export type ServerRuleExecutionContinuationDto = z.infer<
+  typeof serverRuleExecutionContinuationDtoSchema
+>
+export type ServerRuleExecutionResumeInputDto = z.infer<
+  typeof serverRuleExecutionResumeInputDtoSchema
+>
+export type ServerRuleExecutionResultDto = z.infer<typeof serverRuleExecutionResultDtoSchema>

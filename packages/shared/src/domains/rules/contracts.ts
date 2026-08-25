@@ -89,6 +89,11 @@ export interface RuleExecutionTraceEntry {
   operation: RuleOperationReference
   inputs: Readonly<Record<string, RuleValue>>
   outputs: Readonly<Record<string, RuleValue>>
+  evidence?: {
+    requestId: string
+    kind: 'INTEGER_RANGE'
+    value: number
+  }
 }
 
 export interface RuleExecutionEvidence {
@@ -104,3 +109,33 @@ export interface CompletedRuleExecution {
   outputs: Readonly<Record<string, RuleValue>>
   evidence: RuleExecutionEvidence
 }
+
+export interface RuleIntegerRangeEvidenceRequest {
+  requestId: string
+  kind: 'INTEGER_RANGE'
+  nodeId: string
+  ordinal: number
+  min: number
+  max: number
+}
+
+/** Pure, serializable state. Application services seal and persist it as an occurrence. */
+export interface RuleExecutionContinuation {
+  schemaVersion: 1
+  occurrenceId: string
+  graph: CompiledRuleGraph
+  facts: Readonly<Record<string, RuleValue>>
+  nextNodeIndex: number
+  nodeOutputs: Readonly<Record<string, Readonly<Record<string, RuleValue>>>>
+  trace: readonly RuleExecutionTraceEntry[]
+  request: RuleIntegerRangeEvidenceRequest
+  authority: 'APPLICATION_SERVICE'
+  redaction: 'SERVER_ONLY'
+}
+
+export interface PausedRuleExecution {
+  status: 'PAUSED'
+  continuation: RuleExecutionContinuation
+}
+
+export type RuleExecutionResult = CompletedRuleExecution | PausedRuleExecution

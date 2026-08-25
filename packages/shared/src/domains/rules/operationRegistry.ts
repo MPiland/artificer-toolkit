@@ -5,13 +5,29 @@ import {
   type RuleValueKind
 } from './contracts.js'
 
-export interface RuleOperationContract {
+interface RuleOperationContractBase {
   key: string
   contractVersion: number
   inputs: Readonly<Record<string, RuleValueKind>>
   outputs: Readonly<Record<string, RuleValueKind>>
+}
+
+export interface PureRuleOperationContract extends RuleOperationContractBase {
+  executionKind: 'PURE'
   execute(inputs: Readonly<Record<string, RuleValue>>): Readonly<Record<string, RuleValue>>
 }
+
+export interface EvidenceRuleOperationContract extends RuleOperationContractBase {
+  executionKind: 'EVIDENCE'
+  evidence: {
+    kind: 'INTEGER_RANGE'
+    minInput: string
+    maxInput: string
+    valueOutput: string
+  }
+}
+
+export type RuleOperationContract = PureRuleOperationContract | EvidenceRuleOperationContract
 
 export interface RuleOperationRegistry {
   require(reference: RuleOperationReference): RuleOperationContract
@@ -48,6 +64,16 @@ export function createRuleOperationRegistry(
     const identity = operationIdentity(contract)
     if (byIdentity.has(identity)) {
       throw new RuleOperationRegistryError(`Duplicate rule operation contract "${identity}".`)
+    }
+    if (
+      contract.executionKind === 'EVIDENCE' &&
+      (contract.inputs[contract.evidence.minInput] !== RULE_VALUE_KIND.NUMBER ||
+        contract.inputs[contract.evidence.maxInput] !== RULE_VALUE_KIND.NUMBER ||
+        contract.outputs[contract.evidence.valueOutput] !== RULE_VALUE_KIND.NUMBER)
+    ) {
+      throw new RuleOperationRegistryError(
+        `Evidence operation contract "${identity}" must bind numeric minimum, maximum, and value ports.`
+      )
     }
     byIdentity.set(identity, contract)
   }

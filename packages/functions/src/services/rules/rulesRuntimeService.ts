@@ -1,19 +1,23 @@
 import { gameSystemCapabilityDtoSchema } from '@artificer-toolkit/schema/api/rulesRuntime'
 import {
-  serverCompletedRuleExecutionDtoSchema,
+  serverRuleExecutionContinuationDtoSchema,
+  serverRuleExecutionResumeInputDtoSchema,
+  serverRuleExecutionResultDtoSchema,
   serverPublishedRuleDefinitionDtoSchema,
   serverRuleExecutionInputDtoSchema,
-  type ServerCompletedRuleExecutionDto
+  type ServerRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import {
   compileRuleGraph,
   coreRuleOperations,
   createRuleOperationRegistry,
   executeRuleGraph,
+  resumeRuleGraph,
+  type RuleExecutionContinuation,
   type RuleOperationContract
 } from '@artificer-toolkit/shared/rules'
 
-import { checksumRuleDocument } from './ruleChecksum.js'
+import { canonicalizeRuleDocument, checksumRuleDocument } from './ruleChecksum.js'
 
 export class RuleRuntimeConfigurationError extends Error {
   constructor(message: string) {
@@ -44,14 +48,51 @@ export interface PublishedRuleDefinitionSource {
 }
 
 export interface RulesRuntimeService {
-  execute(input: unknown): Promise<ServerCompletedRuleExecutionDto>
+  execute(input: unknown): Promise<ServerRuleExecutionResultDto>
+  resume(input: unknown): Promise<ServerRuleExecutionResultDto>
+}
+
+function continuationSeal(candidate: unknown, integrityKey: Uint8Array): string {
+  return createHmac('sha256', integrityKey)
+    .update(canonicalizeRuleDocument(candidate))
+    .digest('hex')
+}
+
+function sealContinuation(candidate: unknown, integrityKey: Uint8Array) {
+  const parsed = serverRuleExecutionContinuationDtoSchema.parse({
+    ...(candidate as object),
+    seal: '0'.repeat(64)
+  })
+  const { seal: _seal, ...continuation } = parsed
+  return { ...continuation, seal: continuationSeal(continuation, integrityKey) }
+}
+
+function unsealContinuation(
+  candidate: unknown,
+  integrityKey: Uint8Array
+): RuleExecutionContinuation {
+  const continuation = serverRuleExecutionContinuationDtoSchema.parse(candidate)
+  const { seal, ...unsealed } = continuation
+  const expected = continuationSeal(unsealed, integrityKey)
+  if (!timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(seal, 'hex'))) {
+    throw new RuleRuntimeSourceIntegrityError(
+      'Frozen rule continuation checksum does not match its contents.'
+    )
+  }
+  return unsealed as RuleExecutionContinuation
 }
 
 export function createRulesRuntimeService(input: {
   capabilities: readonly unknown[]
   definitions: PublishedRuleDefinitionSource
+  continuationIntegrityKey: Uint8Array
   operations?: readonly RuleOperationContract[]
 }): RulesRuntimeService {
+  if (input.continuationIntegrityKey.byteLength < 32)
+    throw new RuleRuntimeConfigurationError(
+      'Rule continuation integrity key must contain at least 32 bytes.'
+    )
+  const continuationIntegrityKey = Uint8Array.from(input.continuationIntegrityKey)
   const capabilities = new Map(
     input.capabilities.map((candidate) => {
       const capability = gameSystemCapabilityDtoSchema.parse(candidate)
@@ -106,9 +147,35 @@ export function createRulesRuntimeService(input: {
       })
       if (!compiled.ok) throw new RuleDefinitionCompilationError(compiled.diagnostics)
 
-      return serverCompletedRuleExecutionDtoSchema.parse(
-        executeRuleGraph({ graph: compiled.value, facts: command.facts, operations })
+      const result = executeRuleGraph({
+        graph: compiled.value,
+        occurrenceId: command.occurrenceId,
+        facts: command.facts,
+        operations
+      })
+      return serverRuleExecutionResultDtoSchema.parse(
+        result.status === 'PAUSED'
+          ? {
+              status: 'PAUSED',
+              continuation: sealContinuation(result.continuation, continuationIntegrityKey)
+            }
+          : result
+      )
+    },
+    async resume(candidate) {
+      const command = serverRuleExecutionResumeInputDtoSchema.parse(candidate)
+      const continuation = unsealContinuation(command.continuation, continuationIntegrityKey)
+      const response = command.response
+      const result = resumeRuleGraph({ continuation, response, operations })
+      return serverRuleExecutionResultDtoSchema.parse(
+        result.status === 'PAUSED'
+          ? {
+              status: 'PAUSED',
+              continuation: sealContinuation(result.continuation, continuationIntegrityKey)
+            }
+          : result
       )
     }
   }
 }
+import { createHmac, timingSafeEqual } from 'node:crypto'

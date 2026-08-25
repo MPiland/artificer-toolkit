@@ -70,6 +70,7 @@ describe('rules runtime contracts', () => {
     expect(
       serverRuleExecutionInputDtoSchema.parse({
         definitionId: DEFINITION_ID,
+        occurrenceId: '44444444-4444-4444-8444-444444444444',
         facts: { 'actor.value': 12 }
       }).facts
     ).toEqual({ 'actor.value': 12 })

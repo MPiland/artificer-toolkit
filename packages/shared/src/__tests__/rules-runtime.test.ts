@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  addNumbersRuleOperation,
   compileRuleGraph,
   coreRuleOperations,
   createRuleOperationRegistry,
   executeRuleGraph,
+  resumeRuleGraph,
   type GameSystemCapabilityContract,
   type RuleGraphDefinition
 } from '../domains/rules/index.js'
@@ -12,6 +14,7 @@ import {
 const SYSTEM_ID = '11111111-1111-4111-8111-111111111111'
 const DEFINITION_ID = '22222222-2222-4222-8222-222222222222'
 const CHECKSUM = 'a'.repeat(64)
+const OCCURRENCE_ID = '44444444-4444-4444-8444-444444444444'
 
 const capability: GameSystemCapabilityContract = {
   gameSystemId: SYSTEM_ID,
@@ -27,6 +30,42 @@ const capability: GameSystemCapabilityContract = {
     key,
     contractVersion
   }))
+}
+
+function evidenceDefinition(): RuleGraphDefinition {
+  return {
+    ...thresholdDefinition(),
+    nodes: [
+      thresholdDefinition().nodes[0]!,
+      {
+        id: 'roll',
+        operation: { key: 'evidence.integer-range', contractVersion: 1 },
+        inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
+      },
+      {
+        id: 'with_first_roll',
+        operation: { key: 'number.add', contractVersion: 1 },
+        inputs: {
+          left: { kind: 'NODE_OUTPUT', nodeId: 'total', port: 'value' },
+          right: { kind: 'NODE_OUTPUT', nodeId: 'roll', port: 'value' }
+        }
+      },
+      {
+        id: 'second_roll',
+        operation: { key: 'evidence.integer-range', contractVersion: 1 },
+        inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 6 } }
+      },
+      {
+        id: 'result',
+        operation: { key: 'number.add', contractVersion: 1 },
+        inputs: {
+          left: { kind: 'NODE_OUTPUT', nodeId: 'with_first_roll', port: 'value' },
+          right: { kind: 'NODE_OUTPUT', nodeId: 'second_roll', port: 'value' }
+        }
+      }
+    ],
+    outputs: { value: { kind: 'NODE_OUTPUT', nodeId: 'result', port: 'value' } }
+  }
 }
 
 function thresholdDefinition(): RuleGraphDefinition {
@@ -75,9 +114,13 @@ describe('shared rules runtime', () => {
 
     const result = executeRuleGraph({
       graph: compiled.value,
+      occurrenceId: OCCURRENCE_ID,
       facts: { 'actor.base': 12, 'test.threshold': 13, 'private.unused': true },
       operations
     })
+
+    expect(result.status).toBe('COMPLETE')
+    if (result.status !== 'COMPLETE') throw new Error('Expected a completed rule execution.')
 
     expect(result.outputs).toEqual({ passed: true, margin: 1 })
     expect(result.evidence).toEqual({
@@ -125,6 +168,27 @@ describe('shared rules runtime', () => {
         expect.objectContaining({ code: 'RULE_OPERATION_NOT_SUPPORTED' })
       ])
     })
+  })
+
+  it('rejects malformed code-owned evidence operation descriptors at registry admission', () => {
+    expect(() =>
+      createRuleOperationRegistry([
+        ...coreRuleOperations,
+        {
+          key: 'test.invalid-evidence',
+          contractVersion: 1,
+          inputs: { min: 'TEXT', max: 'NUMBER' },
+          outputs: { value: 'NUMBER' },
+          executionKind: 'EVIDENCE',
+          evidence: {
+            kind: 'INTEGER_RANGE',
+            minInput: 'min',
+            maxInput: 'max',
+            valueOutput: 'value'
+          }
+        }
+      ])
+    ).toThrow(/must bind numeric minimum, maximum, and value ports/)
   })
 
   it('rejects cycles, unknown ports, and mismatched value kinds at compilation', () => {
@@ -201,12 +265,82 @@ describe('shared rules runtime', () => {
     })
     if (!compiled.ok) throw new Error('Expected rule graph compilation to succeed.')
 
-    expect(
-      executeRuleGraph({
-        graph: compiled.value,
-        facts: { 'actor.base': 8, 'test.threshold': 13 },
-        operations
-      }).outputs
-    ).toEqual({ passed: false, margin: -3 })
+    const result = executeRuleGraph({
+      graph: compiled.value,
+      occurrenceId: OCCURRENCE_ID,
+      facts: { 'actor.base': 8, 'test.threshold': 13 },
+      operations
+    })
+    expect(result.status).toBe('COMPLETE')
+    if (result.status !== 'COMPLETE') throw new Error('Expected a completed rule execution.')
+    expect(result.outputs).toEqual({ passed: false, margin: -3 })
+  })
+
+  it('pauses sequential evidence requests and never re-executes completed pure nodes', async () => {
+    let additionExecutions = 0
+    const countedAdd = {
+      ...addNumbersRuleOperation,
+      execute(inputs: Parameters<typeof addNumbersRuleOperation.execute>[0]) {
+        additionExecutions += 1
+        return addNumbersRuleOperation.execute(inputs)
+      }
+    }
+    const operations = createRuleOperationRegistry(
+      coreRuleOperations.map((operation) =>
+        operation.key === addNumbersRuleOperation.key ? countedAdd : operation
+      )
+    )
+    const compiled = compileRuleGraph({
+      definition: evidenceDefinition(),
+      sourceChecksum: CHECKSUM,
+      capability,
+      operations
+    })
+    if (!compiled.ok) throw new Error('Expected rule graph compilation to succeed.')
+
+    const first = executeRuleGraph({
+      graph: compiled.value,
+      occurrenceId: OCCURRENCE_ID,
+      facts: { 'actor.base': 12, 'test.threshold': 13 },
+      operations
+    })
+    expect(first.status).toBe('PAUSED')
+    if (first.status !== 'PAUSED') throw new Error('Expected a paused rule execution.')
+    expect(first.continuation.request).toMatchObject({ nodeId: 'roll', min: 1, max: 20 })
+    expect(first.continuation.trace.map((entry) => entry.nodeId)).toEqual(['total'])
+    expect(additionExecutions).toBe(1)
+
+    const second = resumeRuleGraph({
+      continuation: first.continuation,
+      response: { requestId: first.continuation.request.requestId, value: 14 },
+      operations
+    })
+    expect(second.status).toBe('PAUSED')
+    if (second.status !== 'PAUSED') throw new Error('Expected a second paused rule execution.')
+    expect(second.continuation.request).toMatchObject({ nodeId: 'second_roll', min: 1, max: 6 })
+    expect(second.continuation.request.requestId).not.toBe(first.continuation.request.requestId)
+    expect(second.continuation.trace.map((entry) => entry.nodeId)).toEqual([
+      'total',
+      'roll',
+      'with_first_roll'
+    ])
+    expect(additionExecutions).toBe(2)
+
+    const complete = resumeRuleGraph({
+      continuation: second.continuation,
+      response: { requestId: second.continuation.request.requestId, value: 4 },
+      operations
+    })
+    expect(complete.status).toBe('COMPLETE')
+    if (complete.status !== 'COMPLETE') throw new Error('Expected a completed rule execution.')
+    expect(complete.outputs).toEqual({ value: 32 })
+    expect(complete.evidence.trace.map((entry) => entry.nodeId)).toEqual([
+      'total',
+      'roll',
+      'with_first_roll',
+      'second_roll',
+      'result'
+    ])
+    expect(additionExecutions).toBe(3)
   })
 })

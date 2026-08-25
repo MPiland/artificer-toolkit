@@ -102,6 +102,15 @@ Raw Kernel facts and trace values are server-only. A domain application service 
 authorized, visibility-filtered result/receipt projection before any browser or live-session transport;
 the generic runtime exposes no public raw-evidence DTO.
 
+The current Gate 1 tracer implements this boundary with a code-owned integer-range evidence operation.
+A new execution receives a server-owned occurrence UUID; a pause freezes the compiled graph, source and
+capability identity, consumed facts, completed node state, exact request, application-service authority,
+and server-only redaction policy. The application service applies a secret-keyed integrity seal; resume
+verifies that seal, the exact response, and the cursor before continuing without rereading the current
+published source or rerunning completed nodes. Aggregate persistence, user decision authority,
+idempotent receipts, and transaction/concurrency proof remain later Gate 1 work rather than hidden
+behavior in the Kernel.
+
 ## D&D 2014 adapter
 
 D&D 2014 supplies policy for abilities, skills, attacks, saves, damage, conditions, spellcasting,
