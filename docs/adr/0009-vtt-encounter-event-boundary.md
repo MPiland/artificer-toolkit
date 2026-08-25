@@ -1,6 +1,6 @@
 # ADR 0009: VTT encounter events are separate from character Sheet history
 
-- **Status:** decision
+- **Status:** transitional — event ownership retained; rules-runtime details superseded by ADR 0023
 - **Date:** 2026-08-09
 - **Scope:** Encounter templates, Session-bound runs, actor state, event timelines, character commands, and pure rules evaluation
 - **Update when:** encounter persistence, action resolution, initiative/turn state, timeline visibility, or replay changes

@@ -30,7 +30,15 @@ Tablet landscape is a first-class map surface. Player tablet play is map-first a
 
 When that open Session marks the displayed Character present, Sheet play-state commands use the same live-session WebSocket as the tabletop instead of the ordinary HTTP mutation path. The Sheet may project an existing optimistic UI update locally, but it treats the command as successful only after the coordinator returns the persisted `COMMAND_COMMITTED` result. The high-frequency `ADJUST_HIT_POINTS` lane returns a compact public receipt with no Sheet payload; the originating Sheet retains its optimistic value and immediately refetches its bounded canonical Sheet query. Character commits from another admitted client likewise carry no private response payload and invalidate the relevant Sheet caches. A Character that is not present in an open Session continues to use the ordinary HTTP path. This keeps the independently open Sheet responsive without allowing HTTP mutations to race the room's command-authority lease.
 
-The live maximum-HP policy lane follows the same public receipt contract while evaluating the exact pinned Character rule revision. It locks Campaign before Session authority and Character ownership state, validates the checksum-bound base and Campaign mechanics projections, and commits the adjustment, clamped HP, both projections, stream version, and idempotency receipt atomically. Campaign overlay provenance distinguishes a Character-owned modifier from a Campaign-owned override without reconstructing Campaign adjustment lists. Replays do not rerun Zen, and no private mechanics document is returned to the Worker or browser.
+The transitional live maximum-HP policy lane follows the same public receipt contract while evaluating
+the currently committed Character mechanics input. Its old exact rule-revision pin is not a target
+contract: ADRs 0023-0025 replace it with current capability discovery and a frozen occurrence snapshot
+when execution starts. It locks Campaign before Session authority and Character ownership state,
+validates the checksum-bound base and Campaign mechanics projections, and commits the adjustment,
+clamped HP, both projections, stream version, and idempotency receipt atomically. Campaign overlay
+provenance distinguishes a Character-owned modifier from a Campaign-owned override without
+reconstructing Campaign adjustment lists. Replays do not rerun mechanics, and no private mechanics
+document is returned to the Worker or browser.
 
 React owns the window header, mode controls, accessible alternatives, and editor inspectors. PixiJS owns only frame-rate scene rendering. GMs may switch between Play and Edit while live. Players never receive editor chrome and may use only authorized character actions and interactive scene elements. Structural values such as a door's swing angle are stored in the scene definition and controlled by the GM/editor.
 
@@ -87,7 +95,10 @@ sequenceDiagram
   Host-->>Client: Private result + projected committed broadcast
 ```
 
-Local hosting avoids the Cloudflare-to-Netlify hop while preserving the protocol, rule pins, reducers, command identity, private projection, and persistence semantics. It is online local hosting, not offline-first: Supabase still provides identity and durable state unless a later product decision changes that boundary.
+Local hosting avoids the Cloudflare-to-Netlify hop while preserving the protocol, current capability
+discovery, frozen occurrence semantics, reducers, command identity, private projection, and
+persistence semantics. It is online local hosting, not offline-first: Supabase still provides identity
+and durable state unless a later product decision changes that boundary.
 
 ## Deployment ownership
 
@@ -141,7 +152,14 @@ An ambiguous executor timeout remains pending and keeps its conflict-local fence
 
 Reconnect receives a full private `READY` snapshot with the global delivery high-water, then statuses only for pending command IDs originally submitted by that authenticated user. The high-water does not imply the client was authorized to see every lower delivery. Hibernation or isolate eviction restores the journal, lease-renewal deadline, and retry schedule from SQLite; a new connection cycle reloads canonical gameplay state through the executor. In-memory locks are never recovery truth.
 
-The room may retain an exact Character mechanics payload only after the executor has loaded and checksum-verified its durable projection. On each eligible host command it rechecks the compact durable projection identity (stream, rule revision, whole-projection checksum, and command-lane checksum); a missing or mismatched identity falls back to the full verified read. This server-only payload is stripped at the executor boundary and never enters a browser `READY`, receipt, transient, or Durable Object journal.
+The room may retain an exact Character mechanics payload only after the executor has loaded and
+checksum-verified its durable projection. On each eligible host command it rechecks the compact
+durable projection identity (stream, current capability/source identity, whole-projection checksum,
+and command-lane checksum); a missing or mismatched identity falls back to the full verified read.
+Once a command creates an occurrence, its frozen execution snapshot—not a consumer rule pin—governs
+resume and replay. This server-only payload is stripped at the executor boundary and never enters a
+browser `READY`, transient, or Durable Object journal; authorized receipts expose only their redacted
+evidence contract.
 
 ## Private state
 
@@ -180,7 +198,8 @@ Implemented backend foundation:
 
 - native WebSocket ticket admission for remote and local play;
 - hibernatable Durable Object room routing, alarm-driven authority renewal, bounded SQLite journal, conflict scheduler, retry/replay, and private fanout;
-- private Netlify executor using existing application services, rule pins, native Zen, and Supabase transactions;
+- private Netlify executor using existing application services, the shared rules runtime, frozen
+  occurrences, and Supabase transactions;
 - local Node host using the same wire protocol and direct application execution;
 - renderer-neutral scene contracts, pure reconstruction, semantic scene rebase, persistence, and VTT map media profile/tiles;
 - atomic scene/exploration batches, Character-derived vision, bounded deterministic exploration, and server-side private scene projection;

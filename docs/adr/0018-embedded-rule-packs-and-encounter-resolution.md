@@ -1,6 +1,6 @@
 # ADR 0018: Embedded rule packs and authoritative Encounter resolution
 
-- **Status:** decision
+- **Status:** historical — superseded by ADR 0023
 - **Date:** 2026-08-13
 - **Scope:** rule-pack authoring, activation, simulation, and Encounter resolution
 - **Update when:** the rule-document format, activation gate, runtime deployment, Encounter outcome contract, or engine extraction boundary changes

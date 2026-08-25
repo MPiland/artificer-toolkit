@@ -1,6 +1,6 @@
 # ADR 0008: Explicit ruleset identity and active content binding
 
-- **Status:** decision
+- **Status:** historical — superseded by ADRs 0023-0025
 - **Date:** 2026-07-13
 - **Scope:** systems, engine selection, authored references, Builder/Sheet assembly, and future rules implementations
 - **Update when:** a rules system/version is added, content pinning policy changes, or engine content references change

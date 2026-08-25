@@ -1,6 +1,6 @@
 # Persistence and Kysely
 
-> Status: canonical (current working-tree baseline)
+> Status: canonical for current persistence; transitional rule-pack/content-version sections are superseded by ADRs 0023-0025
 >
 > Scope: Supabase/Postgres schema, Kysely client, repositories, upserts, hydration, and source data
 >
@@ -9,6 +9,10 @@
 > Verification: `packages/db/src/client.ts`, `packages/db/src/repositories/contracts.ts`, `packages/db/src/domains/**/upserts`, `packages/db/src/types`, and `supabase/migrations`
 
 SQL migrations define the relational schema and RLS policies. `packages/db` uses Kysely with generated Supabase types (`src/types/supabase.database.ts`) and exposes repositories/query functions so application services do not depend on row layouts.
+
+Sections describing immutable rule packs, authored document histories, consumer pins, or upgrade
+commands record the implementation being replaced. New rules/content persistence follows
+[Shared rules runtime](rules-runtime.md) and [Rules runtime ERDs](rules-runtime-erd.md).
 
 ## Connection and RLS
 

@@ -94,7 +94,12 @@ The GM workflow is split by the moment of use instead of accumulated on one scre
 
 ### Encounters and VTT
 
-Encounters are authoritative, versioned, Campaign-owned play aggregates for both one-shot and ongoing Campaigns. They reuse Campaign membership and do not own invitations or a second cohort model. The VTT renders and commands an Encounter; it does not create another combat model. Character state remains coordinated with Sheet ownership, while creature state remains Encounter-local.
+Encounter Runs are authoritative, concurrency-controlled Campaign-owned play aggregates for both
+one-shot and ongoing Campaigns. Reusable creator-owned Encounter Blueprints provide setup without
+owning player Characters or run state. Runs reuse Campaign membership and do not own invitations or a
+second cohort model. The VTT renders and commands a Run through the shared Rules Kernel; it does not
+create another combat model. Character state remains coordinated with Sheet ownership, while
+creature/custom state remains Encounter-local.
 
 ### Social and commerce
 
@@ -255,7 +260,7 @@ Exact numeric thresholds are a pre-launch business decision. The behaviors above
 | 05    | [Notifications and delivery](05-notifications-and-delivery.md)                             | Supabase-backed in-app/email delivery, preferences, secure deep links, grouping, and retryable source intents work on web    |
 | 06    | [Live Campaign play](06-live-campaign-play.md)                                             | **Complete:** Session prep/play/closeout, references, vehicles, files, clock, settings, and announcements work on web          |
 | 07    | [Encounters](07-encounters.md)                                                             | Campaign-owned Encounters provide authoritative GM-run combat and enemy action rolls for one-shot and ongoing play on web    |
-| 08    | [Web VTT](08-vtt.md)                                                                       | One Encounter-backed VTT provides maps, tokens, fog, measurement, initiative, and accessible controls on web                 |
+| 08    | [Web VTT](08-vtt.md) / [fixed acceptance](08-vtt-acceptance.md)                             | Shared rules runtime plus one Encounter-backed VTT completes authoritative, accessible web play                              |
 | 09    | [Plans and entitlements](09-entitlements-and-subscriptions.md)                             | Phase 03 limits gain Stripe web subscriptions and remaining capability enforcement                                           |
 | 10    | [Paid tables](10-paid-tables.md)                                                           | Approved paid-table checkout, capacity, payouts, refunds, and plan-based fees work on web                                    |
 | 11    | [Native foundation and parity](11-cross-platform-foundation.md)                            | After web viability, iOS and Android provide first-class play journeys against the proven contracts                          |
@@ -279,7 +284,9 @@ Exact numeric thresholds are a pre-launch business decision. The behaviors above
 - Deep links open the correct authorized destination after a cold start and fail closed when access is absent.
 - Upload intent, finalize, reference, delivery, replacement, and deletion tests enforce the same asset authorization on web, native, API, and Storage RLS.
 - Spoofed, oversized, unsafe, or disallowed uploads never become ready; image delivery strips private metadata; removed members cannot download private Campaign assets.
-- Immutable Campaign content versions, Marketplace releases, and Encounter/VTT history retain exact asset references, while VTT map limits remain independent from ordinary Campaign files.
+- Current Campaign content, frozen Encounter occurrences, Marketplace releases, and Encounter/VTT
+  history retain exact asset references, while VTT map limits remain independent from ordinary
+  Campaign files.
 - Duplicate, delayed, and out-of-order provider webhooks converge on the same entitlement state.
 - Free, Player, GM, and Pro GM creation, storage, hosted-Campaign, seat, listing, Encounter, and paid-table capabilities are enforced by owning server operations; Phase 03 enforces its available limits before billing ships.
 - GM and Pro GM paid-table orders snapshot the applicable 10% or 0% Artificer platform fee; processing charges and taxes remain separately represented.

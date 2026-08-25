@@ -1,6 +1,6 @@
 # ADR 0021: Command-scoped rules responsibilities
 
-- **Status:** decision
+- **Status:** transitional — command ownership retained; versioned evaluator details superseded by ADRs 0023 and 0024
 - **Date:** 2026-08-14
 - **Revised:** 2026-08-15
 - **Scope:** Character derivation, Sheet play commands, Encounter actions, live-session ordering, and future VTT mechanical commands

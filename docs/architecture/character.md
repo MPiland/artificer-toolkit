@@ -1,6 +1,6 @@
 # Character Builder, Sheet, and engine flow
 
-> Status: canonical (current working-tree baseline)
+> Status: transitional current implementation; rules/content pins and upgrade workflows are superseded by ADRs 0023-0025
 >
 > Scope: character intent, draft lifecycle, reconciliation, preview/commit, snapshots, engine, Sheet commands, and history
 >
@@ -9,6 +9,10 @@
 > Verification: `apps/apis/src/trpc/characterRouter.ts`; `packages/functions/src/services/character/characterApplicationService.ts`, `builderService.ts`, `builderEligibility.ts`, `builderReconciliation.ts`, `characterBuilderView.ts`, `characterRuleEvaluation.ts`, `sheetProjection.ts`, `sheetRestService.ts`, `sheetCommandReducer.ts`, `sheetCommandValidation.ts`, and `sheetService.ts`; `packages/db/src/domains/subjects/upserts/character.ts`; and character schema/tests
 
 Characters are playable aggregates, not generic authored-content forms. Builder owns structural character changes; Sheet owns play-state interaction. Both use shared authored models, repositories, compiled content, and engine primitives, but their workflows and contracts remain separate.
+
+This guide remains authoritative for Builder/Sheet ownership and current behavior. Its immutable
+authored-version vectors, rule-revision pins, and consumer upgrade workflows are not target contracts;
+use [Shared rules runtime](rules-runtime.md) for the rebaseline.
 
 ```mermaid
 sequenceDiagram

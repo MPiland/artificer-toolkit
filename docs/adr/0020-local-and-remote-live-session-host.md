@@ -6,7 +6,7 @@
 - **Scope:** live VTT coordination, local hosting, remote hosting, and the deployment boundary around Zen
 - **Update when:** session authority, native WebSocket protocol, command scheduling, local packaging, remote deployment, or VTT synchronization changes
 - **Verification:** Worker workerd tests; session-host build and authenticated local join, replay, reconnect, persistence, broadcast, and latency gates
-- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaces command-time Character reconstruction at the authoritative executor seam; transport and journal ownership remain unchanged.
+- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaces command-time Character reconstruction at the authoritative executor seam; ADRs [0023](0023-shared-rules-kernel-and-system-capabilities.md)-[0025](0025-game-system-catalogues-and-encounter-blueprints.md) replace rule pins with current capability discovery and frozen occurrence snapshots. Transport and journal ownership remain unchanged.
 
 ## Context
 
@@ -41,7 +41,11 @@ Postgres aggregate versions are canonical. Encounter and Scene commands append i
 
 Durable Object events may interleave while awaiting the executor fetch, so scheduler ownership is explicit; the implementation does not hold `blockConcurrencyWhile()` across network I/O. One persisted alarm multiplexes command retries, reconnect release, and lease renewal. Initial admission and each renewal revalidate the exact current Campaign membership and role before `READY`; removed members and stale-role sockets receive `UNAUTHORIZED` and close with code `1008`, while unaffected sockets continue. Renewal also returns the current Campaign aggregate version so clients invalidate stale Campaign state. If the prior renewal identity has left, another connected active member renews the same room lease before the coordinator fails closed. Retryable renewal failure pauses durable draining; terminal authority loss closes sockets and forces a fresh ticket and canonical hydration. SQLite retains every nonterminal command plus the newest 10,000 terminal receipts and is recovery truth for pending delivery, while Supabase remains gameplay truth. Hibernation or isolate eviction reconstructs room delivery and renewal state from SQLite. On reconnect the browser resumes delivery and resends each unresolved command with its original command ID; Postgres idempotency and the managed journal converge lost, duplicated, or reordered notifications without making either adapter durable gameplay authority. A delayed replay returns its original persisted result only to its original authenticated actor, even after later commands have advanced the aggregate; clients never let an older receipt replace a newer `READY` or cached Character version.
 
-Local play uses `apps/session-host`, a loopback-capable Node process with the same native WebSocket client/server contracts, signed tickets, private projections, conflict-key semantics, rule pins, reducers, and persistence services. It invokes native Zen and Supabase directly instead of taking the remote DO-to-Netlify hop. A future launcher may start it invisibly; Docker is not required for local play.
+Local play uses `apps/session-host`, a loopback-capable Node process with the same native WebSocket
+client/server contracts, signed tickets, private projections, conflict-key semantics, frozen
+occurrence contracts, reducers, and persistence services. It invokes the same authoritative rules
+runtime and Supabase directly instead of taking the remote DO-to-Netlify hop. A future launcher may
+start it invisibly; Docker is not required for local play.
 
 Campaign scene definitions remain renderer-neutral shared contracts. Attaching a definition to an Encounter materializes its exact version; Encounter scene events and projection own live tokens, doors, fog, measurements, and geometry overrides. React owns accessible controls and surrounding UI. One imperative PixiJS canvas boundary owns frame-rate rendering only. PixiJS, React, WebSocket, DOM, and database types do not enter scene contracts.
 
@@ -71,4 +75,6 @@ Socket.IO, Colyseus, Render room hosting, Redis, multi-region orchestration, a c
 
 The native transport, Durable Object journal/hibernation path, local Node host, scene persistence, VTT map backend, deterministic geometry/exploration, private scene projection, standalone tabletop surface, launch points, source-window live Sheet route, GM editor, and accessible player controls are implemented as the Phase 08 foundation. The Pixi boundary progressively loads signed renderer tiles, keeps loaded textures independent of delivery expiry, refreshes delivery after a network reconnect, renders exploration masks and labeled measurements, relays pointer/drag previews, and expires abandoned transient visuals. The three-hour headed hardware soak has passed; the deployed managed journey and authorized remote asset delivery remain Phase 08 promotion work.
 
-This decision supersedes ADR 0019's temporary statement that no second client-facing backend would be introduced. It does not change ADR 0019's single versioned rules authority or ADR 0009's Encounter/Character ownership and transaction boundaries.
+This decision supersedes ADR 0019's temporary statement that no second client-facing backend would be
+introduced. ADR 0023 supersedes ADR 0019's versioned rules authority; this decision retains only the
+Encounter/Character ownership, transaction, transport, and journal boundaries.

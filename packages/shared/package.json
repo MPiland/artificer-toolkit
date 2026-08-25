@@ -64,6 +64,10 @@
       "types": "./dist/domains/rolls/index.d.ts",
       "default": "./dist/domains/rolls/index.js"
     },
+    "./rules": {
+      "types": "./dist/domains/rules/index.d.ts",
+      "default": "./dist/domains/rules/index.js"
+    },
     "./vtt": {
       "types": "./dist/domains/vtt/index.d.ts",
       "default": "./dist/domains/vtt/index.js"

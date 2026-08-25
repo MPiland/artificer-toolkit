@@ -6,13 +6,17 @@ This directory contains the repository's canonical architecture and decision doc
 
 When documents disagree, use this order:
 
-1. Current code and tests in the working tree.
-2. Canonical architecture guides in `docs/architecture/` and the glossary in `CONTEXT.md`.
-3. ADRs in `docs/adr/` for intentional load-bearing decisions.
+1. Current code and tests in the working tree for current behavior.
+2. An explicitly labeled canonical target guide together with the ADRs that establish that target.
+3. Other canonical architecture guides in `docs/architecture/` and the glossary in `CONTEXT.md`.
 4. Product and design intent in `PRODUCT.md` and `DESIGN.md`.
 5. Root planning, review, critique, and phase documents, which are historical or transitional unless explicitly marked otherwise.
 
-The current documentation baseline is the working tree. Any unfinished or target behavior must be labeled instead of being presented as current fact.
+The current documentation baseline is the working tree. Any unfinished or target behavior must be
+labeled instead of being presented as current fact. For the rules runtime, authored-content
+lifecycle, Campaign rules binding, and Encounter Blueprint/Run seams, ADRs 0023-0025 and
+`architecture/rules-runtime.md` override transitional guides that document the version-pinned
+implementation being replaced.
 
 ## Document status
 
@@ -35,8 +39,10 @@ Keep intent at the interface it explains. Cross-module flows belong in architect
 - [Character Builder, Sheet, and engine flow](architecture/character.md)
 - [Media lifecycle and delivery](architecture/media.md)
 - [Engine](architecture/engine.md)
+- [Shared rules runtime](architecture/rules-runtime.md) — canonical rebaseline target
+- [Rules runtime domain ERDs](architecture/rules-runtime-erd.md)
 - [Live-session host](architecture/live-sessions.md)
-- [Versioned documents and correctness projections](architecture/versioned-projections.md) — transitional reset target and cutover map
+- [Versioned documents and correctness projections](architecture/versioned-projections.md) — transitional record; its rules/content pinning target is superseded by ADRs 0023-0025
 
 ## Audits
 
@@ -49,6 +55,7 @@ Keep intent at the interface it explains. Cross-module flows belong in architect
 ## Future roadmap
 
 - [Future platform roadmap](roadmap/README.md) — transitional, phase-oriented planning for Character Sheet play depth and overrides, media/files, native clients, Campaigns, notifications, Encounters, commerce, Social Hub, Marketplace, and VTT
+- [Phase 08 fixed acceptance ledger](roadmap/08-vtt-acceptance.md) — frozen 12/14/10/8/10 scenarios and gate governance
 
 ## Decisions
 

@@ -11,3 +11,6 @@ export * from './barrels/core/index.js'
 
 // Maps
 export * from './barrels/maps/index.js'
+
+// Rules runtime
+export * from './domains/rules/index.js'

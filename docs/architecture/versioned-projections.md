@@ -1,12 +1,21 @@
 # Versioned documents and correctness projections
 
-> Status: implementation cutover and staging release validation in progress; production reset and managed/hardware release gates remain pending
+> Status: transitional current-implementation record; rules/content pinning is superseded by ADRs 0023-0025
 >
 > Scope: authored content, System vocabulary, Character mechanics, Campaign correctness projections, Encounter/Scene replay, and live-command reads
 >
-> Update when: projection inputs, checksum/schema versions, transaction publication, or a command/read boundary changes
+> Update when: transitional projection inputs or command/read boundaries change before the rules-runtime rebaseline replaces them
 >
-> Verification: deterministic compiler/rebuild tests, transaction rollback tests, fail-closed read tests, pin-stability tests, replay tests, and the focused performance gates
+> Verification: current implementation tests only; do not use this guide as the target rules/content lifecycle
+
+This document records the version-pinned implementation being replaced. It remains authoritative for
+unaffected synchronous projection, checksum, transaction-publication, and replay invariants only.
+For rules execution, authored-content publication, Campaign catalogue binding, Characters, and
+Encounter Runs, the canonical target is [Shared rules runtime](rules-runtime.md) under ADRs
+[0023](../adr/0023-shared-rules-kernel-and-system-capabilities.md),
+[0024](../adr/0024-current-published-authored-content.md), and
+[0025](../adr/0025-game-system-catalogues-and-encounter-blueprints.md). Do not extend immutable rule
+packs, authored version vectors, consumer pins, or upgrade workflows from this record.
 
 ## Goal
 

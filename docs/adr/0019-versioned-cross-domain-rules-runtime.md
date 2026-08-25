@@ -1,6 +1,6 @@
 # ADR 0019: Versioned cross-domain rules runtime
 
-- **Status:** decision
+- **Status:** historical — superseded by ADRs 0023 and 0024
 - **Date:** 2026-08-13
 - **Scope:** Character, Encounter, and future VTT mechanical evaluation; rule-pack revisions and migration from the TypeScript engine
 - **Update when:** evaluator boundary, revision identity, model contract, Character pin policy, command responsibility, or migration gate changes

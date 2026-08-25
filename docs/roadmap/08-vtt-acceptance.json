@@ -1,0 +1,109 @@
+{
+  "version": 2,
+  "statusVocabulary": [
+    "NOT_STARTED",
+    "IN_PROGRESS",
+    "READY_FOR_ACCEPTANCE",
+    "ACCEPTED",
+    "BLOCKED"
+  ],
+  "proofTiers": {
+    "FOCUSED": "Focused contract/unit/property tests plus affected package typecheck/build and diff checks.",
+    "REVIEW": "FOCUSED evidence plus independent targeted review of the complete scenario seam.",
+    "DATABASE": "REVIEW evidence plus bounded local PostgreSQL authorization, replay, rollback, privacy, cleanup, and concurrency schedules where applicable.",
+    "BROWSER": "REVIEW evidence plus focused browser interaction, accessibility, selector, and reconnect coverage against the authoritative backend.",
+    "LOCAL_E2E": "One complete final-source local lifecycle: generated artifacts, builds, typechecks, tests, database reset/seed/audit, transaction schedules, browser journeys, privacy, performance, and exact cleanup."
+  },
+  "denominatorPolicy": "Frozen after architecture approval; engineering subchecks do not change gate totals.",
+  "gates": [
+    {
+      "gate": 1,
+      "title": "Rules foundation",
+      "fixedTotal": 12,
+      "cases": [
+        { "id": "G1-SYSTEM-CAPABILITIES", "title": "Game System capability isolation", "proofTier": "REVIEW", "status": "IN_PROGRESS" },
+        { "id": "G1-CATALOGUE-BINDING", "title": "Rules Catalogue and Content Source binding", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G1-UUID-INTEGRITY", "title": "UUID identity and same-System reference integrity", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G1-GRAPH-VALIDATION", "title": "Bounded typed graph validation and rejection", "proofTier": "FOCUSED", "status": "IN_PROGRESS" },
+        { "id": "G1-PUBLISH-LIFECYCLE", "title": "Draft, Publish, and current-active lifecycle", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G1-CAPABILITY-DISCOVERY", "title": "Runtime capability discovery", "proofTier": "REVIEW", "status": "IN_PROGRESS" },
+        { "id": "G1-EXECUTION-LIFECYCLE", "title": "Runtime execution, continuation, and receipt lifecycle", "proofTier": "DATABASE", "status": "IN_PROGRESS" },
+        { "id": "G1-LIVE-UPDATES", "title": "Live source updates with frozen occurrences", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G1-AUTHORING-INTENT", "title": "Override, Edit Source, and Create New separation", "proofTier": "REVIEW", "status": "NOT_STARTED" },
+        { "id": "G1-CAMPAIGN-COMPATIBILITY", "title": "Campaign and Character compatibility enforcement", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G1-BLUEPRINT-RUN", "title": "Reusable Encounter Blueprint and independent Encounter Run persistence", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G1-PORTABILITY-DOCS", "title": "Neutral portability tracers plus canonical documentation and ERDs", "proofTier": "REVIEW", "status": "IN_PROGRESS" }
+      ]
+    },
+    {
+      "gate": 2,
+      "title": "Authoritative mechanics",
+      "fixedTotal": 14,
+      "cases": [
+        { "id": "G2-AUTOMATION-MODES", "title": "Automatic, Assisted, Manual, and sanitized reminder behavior", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G2-RANDOM-CONTRIBUTORS", "title": "Random evidence, d20 contributors, cancellation, and supported tests", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G2-ACTION-AUTHORITY", "title": "Action authorization, selections, targets, and cross-owner outcomes", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G2-TEST-RESOLUTION", "title": "Attacks, criticals, saving throws, and checks", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G2-OUTCOMES", "title": "Damage, healing, temporary hit points, conditions, and resources", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G2-STATE-RECONCILIATION", "title": "Grants, modifiers, aggregate state, and rules-based reconciliation", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G2-EFFECT-LIFECYCLE", "title": "Active and passive effects, recurrence, duration, and expiry", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G2-CONCENTRATION", "title": "Concentration start, replacement, checks, cleanup, and privacy", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G2-SPATIAL-PERCEPTION", "title": "Movement, spatial geometry, perception, auras, and traps", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G2-REACTIONS", "title": "Reactions, durable choices, interruption, reconnect, and resource use", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G2-TURN-INITIATIVE", "title": "Turn lifecycle and every approved initiative mode", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G2-LEGENDARY-RECHARGE", "title": "Legendary resources, actions, resistance, and recharge", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G2-OPTIONAL-COMBAT", "title": "Every approved 2014 DMG optional combat rule", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        { "id": "G2-SRD-MANIFEST", "title": "Exhaustive 2014 SRD path classification and seed/homebrew parity", "proofTier": "DATABASE", "status": "NOT_STARTED" }
+      ]
+    },
+    {
+      "gate": 3,
+      "title": "Authoring and VTT workflows",
+      "fixedTotal": 10,
+      "cases": [
+        { "id": "G3-SYSTEM-SHELL", "title": "System-aware application shell and capability-driven navigation", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G3-DEFINITION-AUTHORING", "title": "Guided and Advanced typed definition authoring", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G3-DOMAIN-AUTHORING", "title": "Guided and Advanced domain-item authoring", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G3-AUTHORING-WORKFLOWS", "title": "Override, source-editing, and new-content workflows", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G3-CAMPAIGN-SETTINGS", "title": "Campaign System, catalogue, automation, and optional-rule settings", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G3-BLUEPRINT-AUTHORING", "title": "Encounter Blueprint authoring and Encounter Run creation", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G3-ACTIONS-TARGETS", "title": "Action discovery, selection, targeting, and outcome presentation", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G3-MOVEMENT", "title": "Straight and waypoint movement, preview, and commit", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G3-LIVE-DECISIONS", "title": "Rolls, reactions, decisions, initiative, GM control, and reconnect", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G3-EVIDENCE-A11Y", "title": "Evidence, conflicts, privacy, keyboard, screen-reader, and selector coverage", "proofTier": "BROWSER", "status": "NOT_STARTED" }
+      ]
+    },
+    {
+      "gate": 4,
+      "title": "Scene and token presentation",
+      "fixedTotal": 8,
+      "cases": [
+        { "id": "G4-TOKEN-IDENTITY", "title": "Token art, identity, and deterministic colour precedence", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G4-STATUS-PRESENTATION", "title": "Conditions, effects, halos, ordering, and overflow", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G4-FOOTPRINTS", "title": "Full footprints, large tokens, containment, dragging, and rotation", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G4-FACING", "title": "Facing, arcs, marks, and positional cues", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G4-PREVIEWS", "title": "Range, target, path, aura, and trap previews", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G4-PERCEPTION", "title": "Light, darkness, obscurement, senses, and hidden-information rendering", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G4-SYSTEM-STATE", "title": "Injuries, morale, reactions, and System-driven state presentation", "proofTier": "BROWSER", "status": "NOT_STARTED" },
+        { "id": "G4-ACCESSIBILITY-PERFORMANCE", "title": "Low zoom, performance, responsiveness, and non-colour accessibility", "proofTier": "BROWSER", "status": "NOT_STARTED" }
+      ]
+    },
+    {
+      "gate": 5,
+      "title": "Complete local acceptance",
+      "fixedTotal": 10,
+      "cases": [
+        { "id": "G5-RELEASE-MANIFEST", "title": "Final source identity, documentation, and release manifest", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
+        { "id": "G5-CODE-LIFECYCLE", "title": "Complete build, test, typecheck, format, and lint lifecycle", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
+        { "id": "G5-DATABASE-LIFECYCLE", "title": "Migration, generated-type, canonical-SQL, seed, and audit parity", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
+        { "id": "G5-SRD-PARITY", "title": "Complete 2014 SRD manifest and seed/homebrew equivalence", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
+        { "id": "G5-AUTOMATIC-JOURNEY", "title": "Three-user Automatic Encounter journey", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
+        { "id": "G5-ASSISTED-MANUAL-JOURNEY", "title": "Assisted and Manual decisions, rolls, reconnect, and GM control", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
+        { "id": "G5-LIFECYCLE-JOURNEY", "title": "Effects, spatial movement, reactions, concentration, and turn lifecycle", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
+        { "id": "G5-OPTIONAL-JOURNEY", "title": "Initiative and optional-combat representative combinations", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
+        { "id": "G5-RESILIENCE", "title": "WebSocket, privacy, replay, rollback, concurrency, and performance", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
+        { "id": "G5-CLEANUP-ACCEPTANCE", "title": "Exact cleanup and final architect acceptance", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" }
+      ]
+    }
+  ]
+}

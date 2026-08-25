@@ -1,6 +1,6 @@
 # Data lifecycle and model boundaries
 
-> Status: canonical (current working-tree baseline)
+> Status: transitional current implementation; authored/rules lifecycle target is ADRs 0023-0025
 >
 > Scope: vocabulary, authored content, compilation, persistence, and engine input
 >
@@ -9,6 +9,10 @@
 > Verification: `packages/shared/src/domains/subjects`, `packages/shared/src/domains/features`, `packages/shared/src/domains/grants`, `packages/db/src/repositories`, and `packages/shared/src/domains/engine/snapshot.ts`
 
 The same game concept appears in several representations. Names are intentional; do not collapse them because their fields look similar.
+
+This guide remains useful for current representation boundaries. Its immutable authored-version,
+vocabulary-snapshot, rule-pin, and upgrade semantics are superseded by
+[Shared rules runtime](rules-runtime.md) for the rebaseline.
 
 ```mermaid
 flowchart LR

@@ -60,6 +60,15 @@ Campaigns will support a campaign-level **Feature** concept that applies tempora
 
 ## Other future enhancements (parked)
 
+### Adventure Module Packages
+
+Allow creators to assemble reusable Game-System-bound packages for GMs from existing UUID-backed
+content: NPCs, Encounter Blueprints, maps, handouts, reference material, and Campaign preparation.
+Packages compose and share existing authored objects; they do not introduce another mechanics engine,
+historical source versions, arbitrary scripts, or user-created Game Systems. Define licensing,
+ownership, dependency updates, installation, and Marketplace behavior only after the core rules
+lifecycle and Encounter Blueprint model are accepted.
+
 - Rich chat extensions: typing indicators, reactions, threads, and attachments.
 - Semantic note links/hover tooltips (campaign places, people, and lore references).
 - Multi-calendar support and reversible GM clock editing.
@@ -74,5 +83,4 @@ Campaigns will support a campaign-level **Feature** concept that applies tempora
 - “View as player” and deliberate co-GM/assistant-GM roles with a separate permission model rather than treating every helper as the owner.
 - Ambience libraries, playlists, scene audio, and player presentation controls after the VTT/media usage model is known.
 - Optional session recording, transcription, recap drafting, and continuity extraction only after consent, privacy, retention, and cost policy are approved.
-- Deeper combat assistance such as recharge automation, concentration/effect duration rules, lair or environmental turn markers, group initiative, and automatic proposed outcomes. These must build on Phase 07 events rather than bypass them.
 - Home-base, settlement, bastion, faction-reputation, and downtime trackers after Campaign and Vehicle ownership seams are stable.

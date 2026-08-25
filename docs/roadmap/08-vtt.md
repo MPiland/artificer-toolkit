@@ -1,13 +1,20 @@
 # Phase 08 — Web VTT
 
-> **Status:** in progress — native remote/local scene backend, accessible standalone browser surface, automated recovery/load diagnostics, and the headed three-hour hardware soak implemented; deployed remote validation pending
+> **Status:** rebaselined — retained scene/live-session foundation is implemented; rules runtime, authoritative combat, authoring workflows, and presentation follow the fixed acceptance ledger
 > **Depends on:** [Phase 01](01-dice-and-roll-infrastructure.md), [Phase 02](02-media-and-file-pipeline.md), [Phase 06](06-live-campaign-play.md), and [Phase 07](07-encounters.md)
 > **Unlocks:** the complete connected web play loop and its viability test
-> **Primary ADRs:** [0009](../adr/0009-vtt-encounter-event-boundary.md), [0010](../adr/0010-platform-neutral-design-system.md), [0019](../adr/0019-versioned-cross-domain-rules-runtime.md), and [0020](../adr/0020-local-and-remote-live-session-host.md)
+> **Primary ADRs:** [0009](../adr/0009-vtt-encounter-event-boundary.md), [0010](../adr/0010-platform-neutral-design-system.md), [0020](../adr/0020-local-and-remote-live-session-host.md), [0023](../adr/0023-shared-rules-kernel-and-system-capabilities.md), [0024](../adr/0024-current-published-authored-content.md), and [0025](../adr/0025-game-system-catalogues-and-encounter-blueprints.md)
+>
+> **Acceptance authority:** [Phase 08 fixed acceptance ledger](08-vtt-acceptance.md)
 
 ## Goal
 
-Add one Encounter-backed responsive web virtual tabletop. The retained production tracer supports maps, calibration, square and gridless play, walls, doors, lights, darkness, tokens, fog, measurement, player-view preview, committed movement, initiative, chat, and rolls. It does not introduce another combat, actor, dice, or rules model.
+Complete one Encounter-backed responsive web virtual tabletop over the shared Rules Kernel and
+platform-owned Game System capabilities. Retain the existing maps, calibration, square/gridless play,
+walls, doors, lights, darkness, tokens, fog, measurement, player preview, movement, chat, native
+WebSocket, and local/managed host foundation. Add authoritative modular combat, source/homebrew parity,
+authoring workflows, and System-driven presentation without introducing another actor, dice, or rules
+authority.
 
 ## Current starting point
 
@@ -129,7 +136,13 @@ If the gate fails, retain the scene model and command contracts and simplify or 
 
 ## Out of scope
 
-- Automated attacks, saves, damage, conditions, reactions, authored-effect execution, 3D, physics, voice/video, AI, marketplace asset sales, offline-first persistence, peer-authoritative state, arbitrary scripting, map-art creation, procedural generation, texture painting, public plugin APIs, Redis/multi-region orchestration, and premature storage-provider abstraction. Local hosting is supported but cannot become required for managed online play. Revisit R2 only when VTT map volume or egress evidence requires it.
+- D&D 2024 catalogue ingestion, a second product Game System, user-created Systems, arbitrary scripts,
+  general environment/object/material simulation, epic progression, Adventure Module Packages, 3D,
+  physics, voice/video, AI, marketplace asset sales, offline-first persistence, peer-authoritative
+  state, map-art creation, procedural generation, texture painting, public plugin APIs,
+  Redis/multi-region orchestration, and premature storage-provider abstraction. Local hosting is
+  supported but cannot become required for managed online play. Revisit R2 only when VTT map volume
+  or egress evidence requires it.
 
 ## Concerns and expansions
 
@@ -137,4 +150,10 @@ The responsive browser/PWA remains the canonical VTT client and must pass the be
 
 ## New-session instruction
 
-Continue from the implemented native WebSocket, Durable Object/local-host, scene-persistence, VTT-map, geometry/exploration, Character-vision, private-projection backend, and accessible standalone tabletop. The three-hour headed hardware soak has passed; run the deployed managed recovery/asset journey next when staging promotion is separately authorized. Preserve the Session/Sheet-to-tabletop launch direction, source-window live Sheet command route for present Characters, GM Play/Edit boundary, player-only Play surface, durable state, broadcast-only previews, and local-only UI state; do not let PixiJS, React, WebSocket, or DOM types cross into shared contracts.
+Continue from the implemented native WebSocket, Durable Object/local host, scene persistence, VTT map,
+geometry/exploration, private projection, and accessible standalone tabletop. First follow the
+[shared rules runtime](../architecture/rules-runtime.md) rebaseline and the fixed Gate 1 ledger; do not
+resume the superseded version-pinned combat packet. Preserve the Session/Sheet-to-tabletop direction,
+GM Play/Edit boundary, player-only Play surface, durable state, broadcast-only previews, and local-only
+UI state. PixiJS, React, WebSocket, and DOM types remain outside shared contracts. Staging promotion
+waits for the complete final local lifecycle.

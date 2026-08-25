@@ -50,31 +50,61 @@ A Phase 05 per-recipient presentation derived from an authorized application sou
 
 ## Data model
 
-### System
+### Game System
 
-A rules/content universe that owns vocabulary and supplies the rules-system context used by compilation and engine resolution.
+A mechanically compatible product family, such as D&D 5e or Fate. A reviewed platform-owned Game
+System capability contract declares its supported authored domains, reusable definition families,
+authoring recipes, rule modules, state shapes, Campaign settings, and VTT capabilities. Users cannot
+create or install Game Systems or arbitrary rules plugins.
 
-### Vocabulary
+### Rules Catalogue
 
-System-owned reusable dictionary data—skills, senses, languages, damage types, magic schools, and similar values. Authored content references vocabulary by stable ID; vocabulary entries are not authored grants or engine-derived results.
+A core rules lineage inside one Game System, such as D&D 2014 or D&D 2024. Catalogue identity is
+metadata and policy selection within the owning Game System; it never selects a different shared
+engine. Compatible catalogues may coexist in one Campaign, which has one current primary catalogue.
+
+### Content Source
+
+The publication or creator collection from which authored content originates, such as an SRD, a
+rulebook, or a homebrew collection. A Content Source is provenance, not automatically a Rules
+Catalogue or runtime dispatch key.
+
+### Reusable definition
+
+A UUID-backed, Game-System-bound concept that can be independently authored, referenced, shared,
+overridden, or lifecycle-managed, such as a sense, skill, condition, or damage type. Labels and codes
+are display/search metadata and never dispatch mechanics. Inline configured values such as `60 feet`,
+`3d6`, or a cone size remain typed data inside their owning item rather than separate records.
 
 ### Authored object
 
 The human-authorable contract for content. It uses meaningful domain shapes, keeps parent ownership explicit, and avoids exposing normalized join-table details. Features, grants, effects, outcomes, subjects, and character intent/state are authored objects or authored aggregates.
 
-The active authored roots are Background, Class, Creature, Equipment, Feat, Race, Spell, and Vehicle. Features, feature options, grants, effects, outcomes, details, and other child records are owned parts of those aggregates, not independent products.
+The authored root families available in a product surface come from the selected Game System
+capability contract. Background, Class, Creature, Equipment, Feat, Race, Spell, and Vehicle are D&D
+domain adapters, not universal rules-kernel concepts. Features, options, grants, effects, outcomes,
+details, and other non-independent records remain owned parts of their aggregate.
 
 ### Authored draft
 
-A complete JSON payload for a new authored root or an edit of an active root. A user may own many new-item drafts, while an active root has at most one edit draft. An edit draft records the active root timestamp on which editing began so activation can reject stale replacements.
+A complete working payload for a new authored root or an edit of a published root. A source has at
+most one autosaved edit draft. Runtime never reads the draft; explicit Publish is the live-change
+boundary.
 
 ### Active authored root
 
-A relational envelope for ownership, routing, search, constrained cross-root references, and the active immutable document version. Activation validates a complete authored document, allocates its immutable version, compiles its operational projection, advances the active pointer, and removes the draft in one transaction. During the reset cutover, normalized root/child rows remain a transitional authoring-write implementation; operational and finalized-mechanics reads use the immutable version document and compiled projection rather than child-table hydration.
+A relational envelope for UUID identity, Game System, ownership, routing, search, constrained
+references, one working draft, and one current published document. Publish validates the complete
+typed rule graph and atomically replaces current behavior; it does not create user-visible historical
+versions or consumer upgrade workflows. Future uses read the current document. Already issued
+decisions, rolls, active effects, and receipts retain their frozen occurrence data.
 
-### Compiled object
+### Validated rule definition
 
-The deterministic engine-oriented transformation of authored content. Compilation may resolve inheritance, normalize authored choices, or prepare grant/effect data, but it does not perform persistence or transport work.
+The current published authored document after bounded graph, port, primitive-contract, UUID-reference,
+same-System, and dependency validation. Validation proves that the runtime can evaluate the graph; it
+does not bind an actor, target, Scene, choice, roll, or result and does not create a persistent prepared
+execution plan.
 
 ### Persisted object
 
@@ -119,9 +149,43 @@ Do not use “resolver” as an unqualified name for unrelated behavior.
 
 An application module that composes validation, repository reads, compilation, persistence, reconciliation, or engine execution for a use case. Orchestration belongs in `packages/functions`; transport modules delegate to it.
 
-### Compiler
+### Rule-definition validator
 
-A shared, deterministic module that transforms authored contracts into compiled contracts. Compilers are transport-agnostic and persistence-agnostic.
+A shared deterministic module that validates an authored modular graph at Publish. It resolves and
+checks reference compatibility and graph structure, but runtime capability discovery and execution
+bind all live facts.
+
+### Rules Kernel
+
+The Game-System-agnostic runtime protocol for walking validated modular graphs, requesting bounded
+facts or random evidence, pausing for decisions, and proposing state changes plus serializable
+continuation/receipt data. The owning application transaction persists those proposals. The Kernel
+does not access repositories and does not own D&D concepts such as attacks, spell slots,
+concentration, or reactions.
+
+### Mechanics operation
+
+A reusable typed operation, such as comparison, opposed testing, dice-pool result bands, contributor
+aggregation, spatial contact, or bounded state mutation. Primitive keys and contract versions are
+code-owned. Game System modules compose operations into named mechanics.
+
+### Capability discovery
+
+The runtime process that determines which validated entry points an actor currently has from its
+sources, grants, equipment, effects, overrides, Campaign policy, and Scene context. A derived UI
+projection may list current options, but every command revalidates discovery and authority.
+
+### Execution instance
+
+One runtime invocation created only after an actor uses a capability and supplies the required current
+context. It binds actors, targets, Scene facts, selections, state, Campaign policy, and roll evidence,
+then walks the rule graph until completion or a bounded pause.
+
+### Frozen occurrence
+
+An issued decision, roll request, active effect, continuation, or completed receipt that retains the
+exact facts and rule identity required for deterministic resume or audit. Frozen occurrences are not
+historical versions of authored content.
 
 ## Character model
 
@@ -139,19 +203,21 @@ The engine-facing snapshot assembled from authored character intent/state and co
 
 ### Content reference
 
-A stable authored root ID plus a binding policy. Draft Builder selections resolve the current active immutable version. A finalized Character mechanics projection records the exact complete authored-version vector used by its rule evaluation, including transitive dependencies; activation of newer content cannot change that vector. An explicit preview, reconciliation, and commit operation is required to advance it. Equipment inputs additionally carry an explicit `ContentRef` with system ID and `ACTIVE` binding. A Character rule-revision pin is separate from authored-content binding.
+A stable UUID-backed definition or authored-root ID bound to one Game System. Runtime capability
+discovery resolves the current published document. A published source update affects future uses and
+derived/passive facts immediately after typed reconciliation; frozen occurrences remain unchanged.
 
 ### Character assembly registry
 
 The compiled content registry supplied to the engine for the character's selected race, classes, features, grants, equipment, and related content.
 
-### Rules evaluator
+### Rules runtime
 
-The embedded, versioned Zen runtime that makes production game-system decisions for Character, Encounter, and future VTT mechanics. It consumes TypeScript-normalized facts with stable IDs/provenance and returns typed mechanics, explanations, and source IDs. Native trace output is diagnostic only. Arbitrary Function nodes and all I/O, wall-clock, random, authentication, persistence, or mutation access are forbidden. The bounded, exact repository-owned `character-grant-fold`, `character-action-resolve`, and `encounter-actor-policy` models are the only Function exceptions; their complete graphs and source are server-locked and hidden from Rule Studio. Application-owned dice is supplied as facts.
-
-### Rule revision pin
-
-The exact activated rule-pack revision, checksum, evaluator kind/version, and model-contract version bound to a Character mechanics projection or Encounter under its existing lifecycle policy. A Character draft preview uses the current compatible active revision; a finalized Character changes pins only through an explicit transactional upgrade/reconciliation command that increments its stream version. Retirement does not invalidate a pin. The rule pin and exact authored-version vector together make the committed mechanical input replayable.
+The server runtime that performs capability discovery and executes validated rule graphs using the
+shared Rules Kernel, mechanics operations, and the selected platform-owned Game System module. Zen
+may implement bounded pure formulas or tables behind typed operations; it is not a global D&D model
+selector. I/O, authorization, persistence, mutation, clocks, and random generation remain application
+owned. Arbitrary authored code is forbidden.
 
 ### Derived output
 
@@ -159,7 +225,10 @@ Rules-evaluator-produced values such as derived statistics, proficiencies, sense
 
 ### Encounter event
 
-An Encounter-scoped immutable fact about an encounter, actor, action, target, roll, or outcome. Encounter events are distinct from Character Sheet commands/history. Pinned rule models resolve mechanics, while Encounter services own sequencing, transactional application, and persistence.
+An Encounter-scoped immutable fact about an Encounter Run, actor, action, target, roll, decision, or
+outcome. Encounter events are distinct from Character Sheet history. Rules runtime resolves mechanics;
+Encounter services own sequencing, authorization, transactional application, persistence, replay, and
+privacy.
 
 ## Architectural invariants
 
@@ -168,8 +237,17 @@ An Encounter-scoped immutable fact about an encounter, actor, action, target, ro
 - `packages/functions` owns use-case orchestration; `packages/db` owns persistence adapters.
 - SQL defines schema/bootstrap; Kysely owns application writes.
 - Repositories expose authored-shaped interfaces and enforce persistence invariants behind their seam.
-- Active authored roots retain relational envelopes and replaceable JSON drafts. Immutable authored document versions and compiled projections are the operational source for mechanics and finalized-content reads; normalized child-table hydration is transitional authoring-write support only.
-- The eight authored root domains own their nested features, options, grants, effects, and outcomes.
+- Active authored roots retain one relational UUID envelope, one working draft, and one current
+  published typed document. Runtime does not expose authored version selection or upgrade workflows.
+- The selected Game System capability contract declares its root-domain adapters and reusable
+  definition families. D&D's eight current roots are not universal engine concepts.
 - Node maps define reusable authored-content structure; character Builder and Sheet remain domain-specific modules.
 - Master/seeded records are locked from direct UI editing but copyable into owned drafts.
 - Builder owns structural character changes; Sheet owns play-state interaction.
+- Overrides, source edits, and new reusable content are distinct authoring operations that share the
+  same typed mechanics contracts.
+- Runtime capability discovery and execution bind actors, targets, Scene facts, choices, state, and
+  rolls; Publish validates structure but never precomputes an Encounter execution plan.
+- Architecture decisions belong to the primary architect. Implementers escalate only changes to
+  product behavior, public/persisted contracts, security, concurrency, load-bearing ownership, or
+  frozen acceptance—not ordinary implementation details.

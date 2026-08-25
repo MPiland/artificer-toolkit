@@ -204,6 +204,37 @@ When using a subagent, assign a narrow task and require:
 
 You own final judgment and integration.
 
+## Architect Escalation
+
+The primary agent owns product interpretation, scope, public contracts, persistence meaning, and
+acceptance. Implementers and validators must not reinterpret those decisions or contact the user
+directly for ordinary implementation details.
+
+Escalate only when the answer would change at least one of these:
+
+- user-observable behavior or approved scope;
+- a public API, schema, transport, or persisted contract;
+- persistence ownership, lifecycle, migration meaning, or potential data loss;
+- authorization, privacy, redaction, or security;
+- transaction boundaries, canonical lock order, concurrency, idempotency, or replay semantics;
+- a load-bearing System, rules-kernel, authoring, Builder, Sheet, Encounter, or VTT ownership boundary;
+- a frozen gate scenario or acceptance criterion;
+- an accepted ADR or explicit architect ruling;
+- a dependency, service, infrastructure component, or operational cost; or
+- a contradiction where approved requirements cannot all be satisfied.
+
+Do not escalate naming, file placement, helper extraction, ordinary module organization, test-file
+structure, fixture construction, assertion style, use of an established repository pattern, a bug fix
+whose behavior is already dictated by the contract, values derivable from authoritative System data,
+or internal DTO composition that does not change a public or persisted contract.
+
+Workers report potential escalations to the integration owner. The integration owner first checks the
+approved plan, canonical guides, ADRs, source, and tests. If those sources answer the question, the
+integration owner decides and work continues. If the question is genuinely uncovered, freeze only the
+affected slice, continue unrelated approved work, and send the architect one concise packet containing
+evidence, the conflicting requirements, viable options, and a recommendation. Record the resolution in
+canonical documentation when it changes a load-bearing contract.
+
 ## Communication
 
 Before editing, state the approach only for non-trivial tasks.

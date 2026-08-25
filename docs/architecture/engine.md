@@ -1,14 +1,21 @@
 # Character engine
 
-> Status: canonical current production Character authority
+> Status: transitional current implementation; [shared rules runtime](rules-runtime.md) is the canonical rebaseline target
 >
 > Scope: normalized Character facts, exact versioned mechanics inputs, rules evaluation, and derived output
 >
-> Update when: engine input/output, rule ordering, resolver stages, or a system implementation changes
+> Update when: the transitional Character evaluator changes before the ADR 0023/0024 cutover
 >
 > Verification: rule-pack revision and Character evaluator contracts, migration fixtures, and focused Character tests
 
-The rules boundary turns normalized Character facts plus an exact pinned rule revision into deterministic derived play data. It is not a repository and does not own persistence. Production Character Builder and Sheet flows use this boundary and fail closed without a compatible revision. The superseded TypeScript `runEngine`/`RulesSystem` implementation has been removed after the parity, lifecycle, and Linux deployment gates; [ADR 0019](../adr/0019-versioned-cross-domain-rules-runtime.md) governs the replacement.
+This guide records the current version-pinned Character implementation only. It must not be used to
+extend the target architecture. ADRs [0023](../adr/0023-shared-rules-kernel-and-system-capabilities.md)
+and [0024](../adr/0024-current-published-authored-content.md) replace global rule-pack selection,
+authored version vectors, and consumer upgrade workflows with runtime capability discovery over the
+current published modular definitions.
+
+The current rules boundary turns normalized Character facts plus an exact pinned rule revision into
+deterministic derived play data. It is not a repository and does not own persistence.
 
 ```mermaid
 flowchart LR

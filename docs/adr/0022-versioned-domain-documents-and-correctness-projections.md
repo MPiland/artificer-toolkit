@@ -1,6 +1,6 @@
 # ADR 0022: Versioned domain documents and correctness projections
 
-- **Status:** accepted — implementation and staging release validation in progress
+- **Status:** historical — superseded by ADR 0024
 - **Date:** 2026-08-17
 - **Scope:** authored versions, System vocabulary snapshots, Character mechanics projections, replayable Encounter/Scene projections, and live-command reads
 - **Update when:** projection inputs/checksums, synchronous publication, domain ownership, or command-read contracts change
