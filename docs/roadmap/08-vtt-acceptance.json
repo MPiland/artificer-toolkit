@@ -41,7 +41,28 @@
         },
         { "id": "G1-PUBLISH-LIFECYCLE", "title": "Draft, Publish, and current-active lifecycle", "proofTier": "DATABASE", "status": "NOT_STARTED" },
         { "id": "G1-CAPABILITY-DISCOVERY", "title": "Runtime capability discovery", "proofTier": "REVIEW", "status": "IN_PROGRESS" },
-        { "id": "G1-EXECUTION-LIFECYCLE", "title": "Runtime execution, continuation, and receipt lifecycle", "proofTier": "DATABASE", "status": "IN_PROGRESS" },
+        {
+          "id": "G1-EXECUTION-LIFECYCLE",
+          "title": "Runtime execution, continuation, and receipt lifecycle",
+          "proofTier": "DATABASE",
+          "status": "IN_PROGRESS",
+          "implementationEvidence": {
+            "sourceCommit": "9c4bc299",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate1-continuation-focused-tests.log",
+            "schemaBuild": ".codex/validation/rules-runtime-rebaseline/gate1-continuation-schema-build.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate1-continuation-functions-build.log",
+            "lint": ".codex/validation/rules-runtime-rebaseline/gate1-continuation-lint.log",
+            "format": ".codex/validation/rules-runtime-rebaseline/gate1-continuation-format.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/gate1-continuation-review.md"
+          },
+          "remainingProof": [
+            "aggregate-owned continuation persistence",
+            "authorization and occurrence ownership binding",
+            "idempotent receipt replay",
+            "transaction rollback and cleanup",
+            "concurrent resume settlement"
+          ]
+        },
         { "id": "G1-LIVE-UPDATES", "title": "Live source updates with frozen occurrences", "proofTier": "DATABASE", "status": "NOT_STARTED" },
         { "id": "G1-AUTHORING-INTENT", "title": "Override, Edit Source, and Create New separation", "proofTier": "REVIEW", "status": "NOT_STARTED" },
         { "id": "G1-CAMPAIGN-COMPATIBILITY", "title": "Campaign and Character compatibility enforcement", "proofTier": "DATABASE", "status": "NOT_STARTED" },

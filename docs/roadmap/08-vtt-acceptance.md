@@ -60,7 +60,10 @@ orchestrators must not write the same worktree or reinterpret architecture.
    affected build/lint/format green, independent review clean.
 5. Draft, Publish, and current-active lifecycle.
 6. Runtime capability discovery.
-7. Runtime execution, continuation, and receipt lifecycle.
+7. Runtime execution, continuation, and receipt lifecycle. **IN PROGRESS** — `9c4bc299`
+   implements sealed server-only pause/resume with sequential evidence and no prior-node reexecution;
+   17 focused tests, affected builds/lint/format, and independent review are green. Aggregate-owned
+   persistence, authorization, receipt replay, rollback, cleanup, and concurrent settlement remain.
 8. Live source updates with frozen occurrences.
 9. Override, Edit Source, and Create New separation.
 10. Campaign and Character compatibility enforcement.
