@@ -463,6 +463,7 @@ describe('buildCharacterActionRuleFacts', () => {
       outcomes: [
         {
           kind: 'DAMAGE',
+          outcomeId: 'mechanic-damage',
           pathCode: 'ON_SAVE_FAIL',
           label: null,
           damageTypeId: 'fire',
@@ -496,6 +497,7 @@ describe('buildCharacterActionRuleFacts', () => {
         },
         {
           kind: 'HEAL',
+          outcomeId: 'mechanic-heal',
           pathCode: 'ON_SAVE_FAIL',
           label: null,
           valueKind: 'POOL',

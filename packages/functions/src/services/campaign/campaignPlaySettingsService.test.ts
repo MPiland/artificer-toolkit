@@ -9,7 +9,10 @@ const mocks = vi.hoisted(() => ({
   listCurrentDefinitions: vi.fn(),
   requireCurrentDefinition: vi.fn(),
   findSystem: vi.fn(),
-  campaign: { lockCampaign: vi.fn(), listContentSourceIdsNotEnabledForCampaign: vi.fn() },
+  campaign: {
+    lockCampaign: vi.fn(),
+    listContentSourceIdsNotEnabledForCampaign: vi.fn()
+  },
   resolveAuthority: vi.fn(),
   assertActiveMember: vi.fn()
 }))
@@ -19,7 +22,10 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   return {
     ...actual,
     createCampaignRepository: () => mocks.campaign,
-    createCampaignSettingsRepository: () => ({ find: mocks.find, save: mocks.save }),
+    createCampaignSettingsRepository: () => ({
+      find: mocks.find,
+      save: mocks.save
+    }),
     createSystemRepository: () => ({ findById: mocks.findSystem }),
     createReusableDefinitionRepository: () => ({
       listCurrentAvailableToCampaign: mocks.listCurrentDefinitions,
@@ -52,6 +58,7 @@ const contentSourceId = '00000000-0000-4000-8000-000000000008'
 const abilityId = '00000000-0000-4000-8000-000000000009'
 const initiativeOrderChoiceDefinitionId = '00000000-0000-4000-8000-000000000010'
 const optionalCombatDefinitionId = '00000000-0000-4000-8000-000000000011'
+const foundationOptionalCombatDefinitionId = '00000000-0000-4000-8000-000000000012'
 const settings = {
   campaignId,
   normalCadenceDays: 14,
@@ -126,7 +133,9 @@ function graph(definitionId: string) {
       {
         id: 'resolve',
         operation: { key: 'initiative.resolve', contractVersion: 1 },
-        inputs: { score: { kind: 'FACT' as const, factKey: 'initiative.score' } }
+        inputs: {
+          score: { kind: 'FACT' as const, factKey: 'initiative.score' }
+        }
       }
     ],
     outputs: {
@@ -252,11 +261,31 @@ describe('Campaign play settings service', () => {
           kind: 'FLANKING',
           id: optionalCombatDefinitionId,
           gameSystemId,
-          module: { policyModuleKey: 'combat.position.flanking', contractVersion: 1 },
+          module: {
+            policyModuleKey: 'd20.attack.flanking-opposition',
+            contractVersion: 1
+          },
           parameters: {
             kind: 'FLANKING',
             participantCapabilityDefinitionId: '00000000-0000-4000-8000-000000000012'
           },
+          mutuallyExclusiveGroup: null
+        }
+      }),
+      currentDefinition({
+        id: foundationOptionalCombatDefinitionId,
+        family: 'dnd5e-optional-combat',
+        label: 'Facing',
+        document: {
+          schemaVersion: 1,
+          kind: 'FACING',
+          id: foundationOptionalCombatDefinitionId,
+          gameSystemId,
+          module: {
+            policyModuleKey: 'scene.grid.square.facing',
+            contractVersion: 1
+          },
+          parameters: { kind: 'FACING' },
           mutuallyExclusiveGroup: null
         }
       })
@@ -269,14 +298,55 @@ describe('Campaign play settings service', () => {
             definitionId: initiativePolicyDefinitionId,
             label: 'Standard initiative',
             defaultTieResolverDefinitionId: initiativeTieDefinitionId,
-            tieResolvers: [{ definitionId: initiativeTieDefinitionId, label: 'Dexterity priority' }]
+            tieResolvers: [
+              {
+                definitionId: initiativeTieDefinitionId,
+                label: 'Dexterity priority'
+              }
+            ]
           }
         ],
         optionalCombatRules: [
-          { definitionId: optionalCombatDefinitionId, kind: 'FLANKING', label: 'Flanking' }
+          {
+            definitionId: optionalCombatDefinitionId,
+            kind: 'FLANKING',
+            label: 'Flanking'
+          }
         ]
       }
     )
+  })
+
+  it('does not advertise an integrated optional-combat kind with the wrong module', async () => {
+    mocks.resolveAuthority.mockResolvedValue(authority('OWNER', 'STANDARD'))
+    mocks.listCurrentDefinitions.mockResolvedValue([
+      currentDefinition({
+        id: optionalCombatDefinitionId,
+        family: 'dnd5e-optional-combat',
+        label: 'Mismatched flanking',
+        document: {
+          schemaVersion: 1,
+          kind: 'FLANKING',
+          id: optionalCombatDefinitionId,
+          gameSystemId,
+          module: {
+            policyModuleKey: 'scene.grid.square.alternating-diagonals',
+            contractVersion: 1
+          },
+          parameters: {
+            kind: 'FLANKING',
+            participantCapabilityDefinitionId: '00000000-0000-4000-8000-000000000012'
+          },
+          mutuallyExclusiveGroup: null
+        }
+      })
+    ])
+
+    await expect(
+      getCampaignPlaySettingsOptions({} as DBLike, userId, campaignId)
+    ).resolves.toMatchObject({
+      optionalCombatRules: []
+    })
   })
 
   it('masks shared Standard settings for players', async () => {
@@ -312,7 +382,10 @@ describe('Campaign play settings service', () => {
     })
 
     expect(mocks.save).toHaveBeenCalledWith(
-      expect.objectContaining({ automationMode: 'MANUAL', manualReminderMode: 'SUBTLE' })
+      expect.objectContaining({
+        automationMode: 'MANUAL',
+        manualReminderMode: 'SUBTLE'
+      })
     )
   })
 
@@ -356,7 +429,10 @@ describe('Campaign play settings service', () => {
       contentSourceIds: [contentSourceId]
     })
     expect(mocks.save).toHaveBeenCalledWith(
-      expect.objectContaining({ initiativePolicyDefinitionId, initiativeTieDefinitionId })
+      expect.objectContaining({
+        initiativePolicyDefinitionId,
+        initiativeTieDefinitionId
+      })
     )
   })
 

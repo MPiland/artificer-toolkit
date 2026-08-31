@@ -136,7 +136,7 @@ export const handler = async (input) => {
           expression: applyDamageAmountMetadata(formatExpression(resolveDamageValue(outcome, entry.level), bonus), outcome.amountKind, outcome.amountMultiplier)
         }))
       : [];
-    return { kind: 'DAMAGE', pathCode: outcome.pathCode, expression, damageTypeId: outcome.damageTypeId, scaling };
+    return { kind: 'DAMAGE', ...(typeof outcome.outcomeId === 'string' ? { outcomeId: outcome.outcomeId } : {}), pathCode: outcome.pathCode, expression, damageTypeId: outcome.damageTypeId, scaling };
   };
   const resolveHealBonus = (bonus, spellcasting) => {
     let value = null;
@@ -162,7 +162,7 @@ export const handler = async (input) => {
     const scaling = outcome.scalingKind !== 'NONE' && outcome.scalingSource === 'SPELL_CAST_LEVEL' && context.spellCastLevel == null
       ? outcome.values.filter((entry) => entry.level != null).map((entry) => ({ level: entry.level, expression: formatExpression(resolveHealValue(outcome, entry.level), bonus) }))
       : [];
-    return { kind: 'HEAL', pathCode: outcome.pathCode, expression: formatExpression(value, bonus), temporary: outcome.temporary, scaling };
+    return { kind: 'HEAL', ...(typeof outcome.outcomeId === 'string' ? { outcomeId: outcome.outcomeId } : {}), pathCode: outcome.pathCode, expression: formatExpression(value, bonus), temporary: outcome.temporary, scaling };
   };
   const resolveSave = (savingThrow, spellcasting) => {
     if (savingThrow == null) return null;

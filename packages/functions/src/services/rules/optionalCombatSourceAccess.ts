@@ -1,7 +1,9 @@
 import { createReusableDefinitionRepository, type DBLike } from '@artificer-toolkit/db'
 import {
   dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema,
+  DND5E_ALTERNATING_DIAGONALS_OPERATION_KEY,
   DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY,
+  DND5E_FLANKING_OPERATION_KEY,
   type Dnd5eOptionalCombatReusableDefinitionDocumentDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
@@ -19,6 +21,29 @@ export class OptionalCombatSourceError extends Error {
 export interface ResolvedOptionalCombatDefinition {
   current: ReusableDefinitionCurrentDto
   document: Dnd5eOptionalCombatReusableDefinitionDocumentDto
+}
+
+const INTEGRATED_OPTIONAL_COMBAT_RULE_MODULES = {
+  FLANKING: { key: DND5E_FLANKING_OPERATION_KEY, contractVersion: 1 },
+  ALTERNATING_DIAGONALS: {
+    key: DND5E_ALTERNATING_DIAGONALS_OPERATION_KEY,
+    contractVersion: 1
+  }
+} as const
+
+/** Only rules with an authoritative Encounter execution path may be selected. */
+export function isIntegratedOptionalCombatRule(
+  document: Dnd5eOptionalCombatReusableDefinitionDocumentDto
+): boolean {
+  const expected =
+    INTEGRATED_OPTIONAL_COMBAT_RULE_MODULES[
+      document.kind as keyof typeof INTEGRATED_OPTIONAL_COMBAT_RULE_MODULES
+    ]
+  return (
+    expected !== undefined &&
+    document.module.policyModuleKey === expected.key &&
+    document.module.contractVersion === expected.contractVersion
+  )
 }
 
 function requireExactCurrentOptionalCombatDefinition(input: {
@@ -86,6 +111,11 @@ export async function resolveCurrentOptionalCombatSources(input: {
   const kinds = new Set<string>()
   const groups = new Set<string>()
   for (const definition of resolved) {
+    if (!isIntegratedOptionalCombatRule(definition.document)) {
+      throw new OptionalCombatSourceError(
+        'Optional combat rule is not available for Encounter execution.'
+      )
+    }
     try {
       ;(input.requirePolicyModule ?? requireInstalledGameSystemPolicyModule)({
         gameSystemId: input.gameSystemId,

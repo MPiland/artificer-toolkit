@@ -43,6 +43,7 @@ import {
   dnd5eSaveTestOperation,
   dnd5eDamageProposalOperation,
   dnd5eDamageTotalOperation,
+  dnd5eHealTotalOperation,
   dnd5eConditionApplyProposalOperation,
   dnd5eTestDamageProposalOperation,
   dnd5eCharacterRuleActionSystemAdapter,
@@ -51,6 +52,8 @@ import {
   specializeDnd5eEffectActionOutcome,
   Dnd5eEffectActionCompilerError,
   DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS,
+  DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY,
+  DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY
 } from './effectActionCompiler.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
@@ -396,7 +399,10 @@ describe('D&D Effect action compiler', () => {
     if (!outcome) throw new Error('Expected selected save-failure outcome.')
     expect(outcome.phase).toBe('OUTCOME')
     expect(outcome.published.definition.sourceEntryBindings).toEqual([
-      { sourceEntryId: '00000000-0000-4000-8000-000000000031', nodeId: 'proposal-on_save_fail' }
+      {
+        sourceEntryId: '00000000-0000-4000-8000-000000000032',
+        nodeId: 'proposal-on_save_fail'
+      }
     ])
     expect(
       outcome.published.definition.nodes.filter((node) => node.id.startsWith('die-'))
@@ -501,7 +507,9 @@ describe('D&D Effect action compiler', () => {
 
   it('applies a bounded flat damage modifier and clamps the resolved total at zero', async () => {
     const candidate = diceAttackAction({ dice: '1d4-1' })
-    const testTemplate = compileDnd5eEffectActionTestTemplate({ action: candidate })
+    const testTemplate = compileDnd5eEffectActionTestTemplate({
+      action: candidate
+    })
     const outcome = specializeDnd5eEffectActionOutcome({
       action: candidate,
       testTemplate,
@@ -545,7 +553,9 @@ describe('D&D Effect action compiler', () => {
 
   it('compiles an authored positive integer damage expression without requesting dice', () => {
     const candidate = diceAttackAction({ dice: '1' })
-    const testTemplate = compileDnd5eEffectActionTestTemplate({ action: candidate })
+    const testTemplate = compileDnd5eEffectActionTestTemplate({
+      action: candidate
+    })
     const outcome = specializeDnd5eEffectActionOutcome({
       action: candidate,
       testTemplate,
@@ -565,7 +575,9 @@ describe('D&D Effect action compiler', () => {
       dice: '2d8',
       bonuses: [{ bonusKind: 'ABILITY_BONUS', ability: 'STRENGTH', order: 1 }]
     })
-    const testTemplate = compileDnd5eEffectActionTestTemplate({ action: candidate })
+    const testTemplate = compileDnd5eEffectActionTestTemplate({
+      action: candidate
+    })
     expect(() =>
       specializeDnd5eEffectActionOutcome({
         action: candidate,
@@ -590,7 +602,9 @@ describe('D&D Effect action compiler', () => {
 
   it('binds resolved damage expressions from the current locked action mechanic', () => {
     const candidate = diceAttackAction({ dice: '2d8' })
-    const testTemplate = compileDnd5eEffectActionTestTemplate({ action: candidate })
+    const testTemplate = compileDnd5eEffectActionTestTemplate({
+      action: candidate
+    })
     const bound = dnd5eCharacterRuleActionSystemAdapter.bindFacts({
       actionMechanic: {
         attackBonus: 5,
@@ -600,6 +614,7 @@ describe('D&D Effect action compiler', () => {
         outcomes: [
           {
             kind: 'DAMAGE',
+            outcomeId: 'damage-0',
             pathCode: 'ON_HIT',
             expression: '2d8 + 6',
             damageTypeId: '00000000-0000-4000-8000-000000000099',
@@ -618,6 +633,55 @@ describe('D&D Effect action compiler', () => {
       defenses: []
     })
     expect(bound.facts[DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS.ON_HIT]).toBe('2d8 + 6')
+    expect(bound.facts[DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY]).toBe(
+      JSON.stringify({ 'damage-0': '2d8 + 6' })
+    )
+  })
+
+  it('binds multiple same-path damage expressions only by exact outcome identity', () => {
+    const candidate = diceAttackAction({ dice: '1d6' })
+    const testTemplate = compileDnd5eEffectActionTestTemplate({
+      action: candidate
+    })
+    const bound = dnd5eCharacterRuleActionSystemAdapter.bindFacts({
+      actionMechanic: {
+        attackBonus: 5,
+        attackKind: 'MELEE',
+        attackRollMode: 'NORMAL',
+        save: null,
+        outcomes: [
+          {
+            kind: 'DAMAGE',
+            outcomeId: 'first-damage',
+            pathCode: 'ON_HIT',
+            expression: '1d6 + 2',
+            damageTypeId: '00000000-0000-4000-8000-000000000099',
+            scaling: []
+          },
+          {
+            kind: 'DAMAGE',
+            outcomeId: 'second-damage',
+            pathCode: 'ON_HIT',
+            expression: '1d4 + 3',
+            damageTypeId: '00000000-0000-4000-8000-000000000098',
+            scaling: []
+          }
+        ]
+      },
+      published: testTemplate.published,
+      sourceDerivedFacts: {},
+      targetActorId: ACTOR_ID,
+      targetDerivedFacts: { statBlock: { armorClass: 12 } },
+      targetConditionIds: [],
+      currentHitPoints: 10,
+      temporaryHitPoints: 0,
+      maximumHitPoints: 10,
+      defenses: []
+    })
+    expect(bound.facts[DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS.ON_HIT]).toBeUndefined()
+    expect(bound.facts[DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY]).toBe(
+      JSON.stringify({ 'first-damage': '1d6 + 2', 'second-damage': '1d4 + 3' })
+    )
   })
 
   it('specializes one selected fixed outcome family and never carries an unselected branch', () => {
@@ -634,7 +698,11 @@ describe('D&D Effect action compiler', () => {
             pathCode: PATH_CODE.ON_SAVE_FAIL,
             groupType: PATH_GROUP_TYPE.SINGLE,
             selectionKind: 'FIXED',
-            resultBlock: { id: 'fixed-result-id', resultKind: 'SINGLE', outcomes: [outcome] }
+            resultBlock: {
+              id: 'fixed-result-id',
+              resultKind: 'SINGLE',
+              outcomes: [outcome]
+            }
           }
         ]
       })
@@ -720,7 +788,9 @@ describe('D&D Effect action compiler', () => {
 
   it('interprets multiple compiled proposals in graph order', async () => {
     const candidate = attackAction()
-    const testTemplate = compileDnd5eEffectActionTestTemplate({ action: candidate })
+    const testTemplate = compileDnd5eEffectActionTestTemplate({
+      action: candidate
+    })
     const outcome = specializeDnd5eEffectActionOutcome({
       action: candidate,
       testTemplate,
@@ -797,7 +867,9 @@ describe('D&D Effect action compiler', () => {
         paths
       })
     } as CharacterActionCapabilityDescriptor
-    const testTemplate = compileDnd5eEffectActionTestTemplate({ action: candidate })
+    const testTemplate = compileDnd5eEffectActionTestTemplate({
+      action: candidate
+    })
     const outcome = specializeDnd5eEffectActionOutcome({
       action: candidate,
       testTemplate,
@@ -879,7 +951,9 @@ describe('D&D Effect action compiler', () => {
         paths
       })
     } as CharacterActionCapabilityDescriptor
-    const testTemplate = compileDnd5eEffectActionTestTemplate({ action: candidate })
+    const testTemplate = compileDnd5eEffectActionTestTemplate({
+      action: candidate
+    })
     const outcome = specializeDnd5eEffectActionOutcome({
       action: candidate,
       testTemplate,
@@ -889,6 +963,57 @@ describe('D&D Effect action compiler', () => {
     expect(outcome?.published.definition.nodes.map((node) => node.operation.key)).toEqual([
       'dnd5e.damage-proposal',
       'dnd5e.condition-apply-proposal'
+    ])
+  })
+
+  it('keeps same-result dice damage outcomes distinct by authored outcome identity', () => {
+    const base = diceAttackAction({ dice: '1d6' })
+    const compiledEntries = base.compiledEffect.entries.flatMap((entry) => {
+      if (entry.pathCode !== PATH_CODE.ON_HIT || !('outcome' in entry)) return [entry]
+      return [
+        entry,
+        {
+          ...entry,
+          entryId: 'second-damage',
+          outcome: {
+            ...entry.outcome,
+            id: 'second-damage',
+            damageTypeId: '00000000-0000-4000-8000-000000000098',
+            dice: '1d4'
+          }
+        }
+      ]
+    })
+    const candidate = {
+      ...base,
+      compiledEffect: { ...base.compiledEffect, entries: compiledEntries }
+    } as CharacterActionCapabilityDescriptor
+    const testTemplate = compileDnd5eEffectActionTestTemplate({
+      action: candidate
+    })
+    const outcome = specializeDnd5eEffectActionOutcome({
+      action: candidate,
+      testTemplate,
+      selectedPath: 'ON_HIT',
+      facts: {
+        resolvedDamageOutcomeExpressions: {
+          'damage-0': '1d6 + 2',
+          'second-damage': '1d4 + 3'
+        }
+      }
+    })
+    expect(
+      outcome?.published.definition.nodes
+        .filter((node) => node.operation.key === 'dnd5e.damage-proposal')
+        .map((node) => node.id)
+    ).toEqual(['outcome1-proposal-on_hit', 'outcome2-proposal-on_hit'])
+    expect(
+      outcome?.published.definition.nodes
+        .filter((node) => node.operation.key === 'dnd5e.damage-total')
+        .map((node) => node.inputs.modifier)
+    ).toEqual([
+      { kind: 'LITERAL', value: 2 },
+      { kind: 'LITERAL', value: 3 }
     ])
   })
 
@@ -917,7 +1042,9 @@ describe('D&D Effect action compiler', () => {
         paths
       })
     } as CharacterActionCapabilityDescriptor
-    const testTemplate = compileDnd5eEffectActionTestTemplate({ action: candidate })
+    const testTemplate = compileDnd5eEffectActionTestTemplate({
+      action: candidate
+    })
     const outcome = specializeDnd5eEffectActionOutcome({
       action: candidate,
       testTemplate,
@@ -1009,7 +1136,10 @@ describe('D&D Effect action compiler', () => {
       }
     }
     expect(() =>
-      dnd5eCharacterRuleActionSystemAdapter.interpret({ ...target, published: malformed })
+      dnd5eCharacterRuleActionSystemAdapter.interpret({
+        ...target,
+        published: malformed
+      })
     ).toThrow(Dnd5eEffectActionCompilerError)
   })
 
@@ -1022,7 +1152,9 @@ describe('D&D Effect action compiler', () => {
         entries: [candidate.compiledEffect.entries[0]!, candidate.compiledEffect.entries[2]!]
       }
     }
-    const test = compileDnd5eEffectActionTestTemplate({ action: hitAndCritical })
+    const test = compileDnd5eEffectActionTestTemplate({
+      action: hitAndCritical
+    })
     expect(
       specializeDnd5eEffectActionOutcome({
         action: hitAndCritical,
@@ -1475,7 +1607,10 @@ describe('D&D Effect action compiler', () => {
     })
     const stopped = compileDnd5eEffectAction({
       action: movementReactionAttackAction({
-        movementInterruption: { kind: 'STOP', whenResultPath: PATH_CODE.ON_HIT }
+        movementInterruption: {
+          kind: 'STOP',
+          whenResultPath: PATH_CODE.ON_HIT
+        }
       })
     })
 
@@ -1491,7 +1626,10 @@ describe('D&D Effect action compiler', () => {
     expect(() =>
       compileDnd5eEffectAction({
         action: movementReactionAttackAction({
-          movementInterruption: { kind: 'STOP', whenResultPath: PATH_CODE.ON_SAVE_FAIL }
+          movementInterruption: {
+            kind: 'STOP',
+            whenResultPath: PATH_CODE.ON_SAVE_FAIL
+          }
         })
       })
     ).toThrow('Movement interruption must bind one exact D&D test proposal path.')
@@ -2081,6 +2219,133 @@ describe('D&D Effect action compiler', () => {
     expect(published.definition.nodes[0]?.operation.key).toBe(operation)
   })
 
+  it('executes a bonus-action dice heal with its locked resolved modifier', async () => {
+    const base = action()
+    const entry = directEntry(base)
+    const candidate = {
+      ...base,
+      compiledEffect: {
+        ...base.compiledEffect,
+        invocation: {
+          ...base.compiledEffect.invocation,
+          activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 }
+        },
+        entries: [
+          {
+            ...entry,
+            outcome: {
+              id: 'heal-id',
+              effectKind: EFFECT_KIND.HEAL,
+              valueKind: 'DICE',
+              scalingKind: 'NONE',
+              diceConfig: '1d10',
+              bonuses: [
+                {
+                  id: 'class-level-bonus',
+                  bonusKind: 'CLASS_LEVEL',
+                  classId: '00000000-0000-4000-8000-000000000020',
+                  order: 1
+                }
+              ]
+            }
+          }
+        ]
+      }
+    } as CharacterActionCapabilityDescriptor
+    const published = compileDnd5eEffectAction({ action: candidate })
+    expect(published.definition.nodes.map((node) => node.operation.key)).toEqual([
+      'evidence.integer-range',
+      'dnd5e.heal-total',
+      'dnd5e.heal-proposal'
+    ])
+    const bound = dnd5eCharacterRuleActionSystemAdapter.bindFacts({
+      actionMechanic: {
+        attackBonus: null,
+        attackKind: null,
+        attackRollMode: 'NORMAL',
+        save: null,
+        outcomes: [
+          {
+            kind: 'HEAL',
+            outcomeId: 'heal-id',
+            pathCode: 'ON_USE',
+            expression: '1d10 + 4',
+            temporary: false,
+            scaling: []
+          }
+        ]
+      },
+      published,
+      sourceDerivedFacts: {},
+      targetActorId: ACTOR_ID,
+      targetDerivedFacts: {},
+      targetConditionIds: [],
+      currentHitPoints: 4,
+      temporaryHitPoints: 0,
+      maximumHitPoints: 20,
+      defenses: []
+    })
+    expect(bound.facts[DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY]).toBe(4)
+    expect(() =>
+      dnd5eCharacterRuleActionSystemAdapter.bindFacts({
+        actionMechanic: {
+          attackBonus: null,
+          attackKind: null,
+          attackRollMode: 'NORMAL',
+          save: null,
+          outcomes: [
+            {
+              kind: 'HEAL',
+              outcomeId: 'heal-id',
+              pathCode: 'ON_USE',
+              expression: '2d10 + 4',
+              temporary: false,
+              scaling: []
+            }
+          ]
+        },
+        published,
+        sourceDerivedFacts: {},
+        targetActorId: ACTOR_ID,
+        targetDerivedFacts: {},
+        targetConditionIds: [],
+        currentHitPoints: 4,
+        temporaryHitPoints: 0,
+        maximumHitPoints: 20,
+        defenses: []
+      })
+    ).toThrow(Dnd5eEffectActionCompilerError)
+    const runtime = createRulesRuntimeService({
+      capabilities: [dnd5eEffectActionCapability],
+      operations: [
+        integerRangeEvidenceRuleOperation,
+        dnd5eHealTotalOperation,
+        dnd5eHealProposalOperation
+      ],
+      continuationIntegrityKey: new Uint8Array(32).fill(1),
+      definitions: {
+        async requireCurrent() {
+          throw new Error('Not used.')
+        }
+      }
+    })
+    const started = await runtime.executeResolved({
+      command: {
+        definitionId: EFFECT_ID,
+        occurrenceId: OCCURRENCE_ID,
+        facts: bound.facts
+      },
+      published
+    })
+    if (started.status !== 'PAUSED') throw new Error('Expected exact healing die request.')
+    const completed = await runtime.resume({
+      continuation: started.continuation,
+      response: { requestId: started.continuation.request.requestId, value: 6 }
+    })
+    expect(completed.status).toBe('COMPLETE')
+    if (completed.status === 'COMPLETE') expect(completed.outputs.amount).toBe(10)
+  })
+
   it('compiles a pinned direct self condition application', () => {
     const candidate = action()
     const published = compileDnd5eEffectAction({
@@ -2245,30 +2510,6 @@ describe('D&D Effect action compiler', () => {
               ...candidate.compiledEffect.invocation,
               targeting: { selectionKind: 'SINGLE_TARGET' }
             }
-          }
-        }
-      }
-    ],
-    [
-      'dice healing',
-      () => {
-        const candidate = action()
-        return {
-          ...candidate,
-          compiledEffect: {
-            ...candidate.compiledEffect,
-            entries: [
-              {
-                ...directEntry(candidate),
-                outcome: {
-                  id: 'heal-id',
-                  effectKind: EFFECT_KIND.HEAL,
-                  valueKind: 'DICE',
-                  scalingKind: 'NONE',
-                  diceConfig: '1d8'
-                }
-              }
-            ]
           }
         }
       }

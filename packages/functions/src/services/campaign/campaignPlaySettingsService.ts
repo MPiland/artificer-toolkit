@@ -21,6 +21,7 @@ import {
   resolveEffectiveInitiativePolicySources
 } from '../rules/initiativePolicySourceAccess.js'
 import {
+  isIntegratedOptionalCombatRule,
   OptionalCombatSourceError,
   resolveCurrentOptionalCombatSources
 } from '../rules/optionalCombatSourceAccess.js'
@@ -103,7 +104,7 @@ export async function getCampaignPlaySettingsOptions(
     const rule = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.safeParse(
       definition.document
     )
-    return rule.success
+    return rule.success && isIntegratedOptionalCombatRule(rule.data)
       ? [{ definitionId: definition.id, label: definition.label, kind: rule.data.kind }]
       : []
   })

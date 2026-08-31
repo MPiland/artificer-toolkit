@@ -178,6 +178,7 @@ function normalizeHealOutcome(
 
   return {
     kind: 'HEAL',
+    outcomeId: outcome.id,
     pathCode,
     label,
     valueKind: outcome.valueKind,
@@ -251,6 +252,7 @@ export function normalizeCharacterActionMechanicFacts(
       })
       outcomes.push({
         kind: 'DAMAGE',
+        outcomeId: outcome.id,
         pathCode: entry.pathCode,
         label: nullableLabel(entry.label),
         damageTypeId: outcome.damageTypeId,

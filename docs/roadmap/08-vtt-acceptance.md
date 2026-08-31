@@ -209,11 +209,13 @@ contracts remain covered by focused tests or are explicitly logged below as post
     rejects stale, cross-System, non-executable, or non-Boolean graph outputs. Focused contract,
     compiler, and publisher proof is green. Creature source normalization, Encounter occurrence
     execution, final review, and PostgreSQL authorization/replay/rollback/concurrency acceptance remain.
-13. Every approved 2014 DMG optional combat rule. **ACCEPTED** — UUID-backed System reusable
-    definitions now flow through bounded Campaign selection into checksum-protected Encounter snapshots;
-    individual optional-rule mechanics remain outside this foundation slice.
+13. Optional-combat selection foundation plus Flanking and Alternating Diagonals execution.
+    **ACCEPTED** — UUID-backed System reusable definitions flow through bounded Campaign selection
+    into checksum-protected Encounter snapshots. Campaign settings and Encounter resolution expose only
+    the two rules whose mechanics are integrated; the other twelve definitions remain unavailable
+    foundation work rather than implied product support.
 14. Exhaustive 2014 SRD path classification and seed/homebrew parity. **ACCEPTED** — the
-    generated manifest classifies all 1,046 seeded roots and 11,021 leaves, retains 373 executable
+    generated manifest classifies all 1,046 seeded roots and 11,018 leaves, retains 376 executable
     pins, rejects duplicate roots/leaves and unsupported executable pins, and matches the final local
     reset, 1,046-root seed, 83-manual-exception audit, and post-seed freshness verification.
 
@@ -281,6 +283,54 @@ privacy/redaction, and deterministic-concurrency subchecks where applicable.
     fixtures, Campaign Scene rows, media references, events, authority leases, and Worker state are
     cleaned or isolated exactly; no staging or production operation was performed.
 
+## Phase 8.1 — Pre-launch combat completeness addendum (5/73)
+
+This is a separate, fixed addendum to the accepted 54/54 Phase 8 baseline. Its denominator was frozen
+on 2026-08-30. Defects found while proving a case remain subchecks of that case; genuinely new product
+scope requires another explicitly approved addendum and cannot silently increase this total. The
+machine-readable case ledger is the `addenda` section of `08-vtt-acceptance.json`.
+
+| Workstream | Accepted | Total | Current boundary |
+| --- | ---: | ---: | --- |
+| Current Phase 8.1 packet | 5 | 5 | **ACCEPTED** after focused proof and clean repeat review |
+| Creature special mechanics | 0 | 13 | Exact semantics frozen below |
+| Creature UUID-backed equipment | 0 | 5 | Contract, SRD audit, shared derivation, actor pin, GM replacement |
+| Speed Factor initiative | 0 | 4 | Declaration, ordering, ties, declared-action enforcement |
+| High-value optional combat rules | 0 | 10 | Disarm, Overrun, Shove Aside, Tumble, Cleaving |
+| Final PostgreSQL lifecycle | 0 | 6 | Lifecycle, replay, rollback, concurrency, privacy, cleanup |
+| Managed-host proof | 0 | 2 | Rule-bound and Scene latency/delivery |
+| Exhaustive race schedules | 0 | 28 | Fourteen fixed races in both lock orderings |
+
+The thirteen Creature cases are thirteen unique source semantics, not thirteen manifest rows. Nested
+save branches expand some semantics into multiple manifest leaves:
+
+1. Balor Whip forced movement with save.
+2. Clay Golem Slam.
+3. Cloaker Bite.
+4. Dryad Shillelagh club damage.
+5. Enlarged Duergar war pick damage.
+6. Enlarged Duergar javelin damage.
+7. Kraken Lightning Storm.
+8. Purple Worm Tail Stinger.
+9. Quasit Claws.
+10. Quasit Scare.
+11. Rug of Smothering Smother.
+12. Shadow Strength Drain.
+13. Spirit Naga Bite poison.
+
+Creature equipment coverage includes mechanically relevant held or worn weapons, armour, shields,
+foci, and action-referenced items. Natural weapons remain Creature actions. Shared equipment mechanics
+must use the same modular equipment path as Characters; Creature-specific differences must use existing
+typed Feature, effect, grant, modifier, and action primitives. No automated loot transfer is included.
+
+The selected optional rules use these fixed product contracts:
+
+- Disarm changes held state only, preserves ownership, and creates no Scene object.
+- Overrun and Tumble surface from an authoritative movement path.
+- Shove Aside requires a legal destination selection before the roll.
+- Cleaving requires a human-selected eligible target; mixed damage allocation becomes GM-owned only
+  when defense differences make the type split mechanically relevant, and riders never carry.
+
 ## Deferred product scope
 
 ### Deferred implementation gaps
@@ -292,32 +342,17 @@ privacy/redaction, and deterministic-concurrency subchecks where applicable.
   evidence/order decisions remain available. This deferral does not add a Phase 8 acceptance case or
   change the fixed denominator.
 
-- A resumed `ENCOUNTER_MOVEMENT_REACTION` can currently fall through to the generic d20 evidence
-  gate instead of its specialized reaction continuation. It fails before settlement or mutation.
-  Post-MVP work must restore the specialized resume dispatch and add an exact receipt/replay
-  regression. This deferral does not add a Phase 8 acceptance case or change the fixed denominator.
+- The thirteen 2014 SRD Creature semantics formerly deferred from Phase 8 are now the fixed Creature
+  portion of Phase 8.1. Until each case is accepted, its unresolved path continues to fail closed.
 
-- Fifteen 2014 SRD leaves remain fail-closed rather than receiving an automatic execution pin:
-  thirteen creature special-action leaves still use unnormalized `CLOSED_RULE` or nested-save
-  semantics, and two same-result multi-damage leaves lack an exact outcome identity in the locked
-  action projection. Post-MVP work must normalize those sources before enabling them. The manifest
-  still classifies all 11,021 leaves, and this deferral does not change the fixed Phase 8 denominator.
-
-- Seeded Second Wind remains visible but fail-closed/manual because its authored outcome combines a
-  dice-valued heal with a class-level bonus. The current bounded compiler publishes fixed healing and
-  dice damage, but not that mixed heal expression. Post-MVP source/compiler work must normalize this
-  leaf before enabling it; no label-based runtime branch is permitted.
+- Seven optional-combat definitions remain foundation-only after Phase 8.1: Facing, Climb Onto a
+  Bigger Creature, Mark, Hitting Cover, Injuries, Massive Damage, and Morale, plus any definition not named
+  in the fixed addendum. Flanking and Alternating Diagonals are already integrated; Disarm, Overrun,
+  Shove Aside, Tumble, and Cleaving are Phase 8.1 work and must remain unavailable until accepted.
 
 - D&D 2024 catalogue ingestion and a second product Game System.
-- Exhaustive per-branch PostgreSQL race permutations beyond the representative Phase 8 schedules.
-  The accepted 80/20 proof retains real database coverage for shared occurrence concurrency, action
-  replay/rollback, movement-reaction scoping/CAS, active-effect CAS, initiative state, optional
-  snapshots, RLS, and cleanup; deferred permutations must reuse those contracts rather than add a
-  second execution or decision channel.
-- The local all-in-one browser topology accepts a 1.5-second rule-bound p95 while Chromium, Vite,
-  Wrangler, the executor, and PostgreSQL share one development host. Phase 8 retains the 500 ms Scene
-  budget and the managed-environment 250 ms rule-bound target. Before hosted promotion, optimize the
-  compact Character policy lane and prove the managed target; do not raise the managed budget.
+- The previously deferred exhaustive PostgreSQL race permutations and managed-host latency proof are
+  now fixed Phase 8.1 cases. They are no longer post-launch deferrals.
 - User-created Systems, plugins, or arbitrary scripts.
 - Campaign epic-level and spell-rank overrides.
 - General targetable environment/object/material simulation.

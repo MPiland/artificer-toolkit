@@ -21,7 +21,9 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@artificer-toolkit/db')>()
   return {
     ...actual,
-    createReusableDefinitionRepository: () => ({ requireCurrent: mocks.requireCurrent }),
+    createReusableDefinitionRepository: () => ({
+      requireCurrent: mocks.requireCurrent
+    }),
     createCampaignRepository: () => ({
       listContentSourceIdsNotEnabledForCampaign: mocks.listUnavailableSources
     })
@@ -37,23 +39,38 @@ const { resolveEncounterOptionalCombatSnapshot } =
 const { OptionalCombatSourceError, resolveCurrentOptionalCombatSources } =
   await import('../rules/optionalCombatSourceAccess.js')
 
-function document(id: string, kind: 'FLANKING' | 'FACING', group: string | null = null) {
+function document(
+  id: string,
+  kind: 'FLANKING' | 'FACING' | 'ALTERNATING_DIAGONALS',
+  group: string | null = null,
+  moduleKey = kind === 'FLANKING'
+    ? 'd20.attack.flanking-opposition'
+    : 'scene.grid.square.alternating-diagonals'
+) {
   return {
     schemaVersion: 1 as const,
     id,
     gameSystemId: ids.system,
     kind,
-    module: { policyModuleKey: 'scene.grid.square.alternating-diagonals', contractVersion: 1 },
+    module: { policyModuleKey: moduleKey, contractVersion: 1 },
     parameters:
       kind === 'FLANKING'
-        ? { kind, participantCapabilityDefinitionId: '00000000-0000-4000-8000-000000000006' }
+        ? {
+            kind,
+            participantCapabilityDefinitionId: '00000000-0000-4000-8000-000000000006'
+          }
         : { kind },
     mutuallyExclusiveGroup: group
   }
 }
 
-function current(id: string, kind: 'FLANKING' | 'FACING', group: string | null = null) {
-  const value = document(id, kind, group)
+function current(
+  id: string,
+  kind: 'FLANKING' | 'FACING' | 'ALTERNATING_DIAGONALS',
+  group: string | null = null,
+  moduleKey?: string
+) {
+  const value = document(id, kind, group, moduleKey)
   return {
     id,
     gameSystemId: ids.system,
@@ -85,12 +102,11 @@ describe('Encounter optional combat snapshot', () => {
       db: {} as DBLike,
       campaignId: ids.campaign,
       gameSystemId: ids.system,
-      definitionIds: [ids.flanking, ids.facing]
+      definitionIds: [ids.flanking]
     })
 
     expect(resolved.snapshot.definitions.map((definition) => definition.definitionId)).toEqual([
-      ids.flanking,
-      ids.facing
+      ids.flanking
     ])
     expect(resolved.snapshot.definitions[0]?.document).toEqual(document(ids.flanking, 'FLANKING'))
     expect(resolved.checksum).toMatch(/^[a-f0-9]{64}$/)
@@ -131,7 +147,7 @@ describe('Encounter optional combat snapshot', () => {
     ).rejects.toThrow('sources are not enabled')
   })
 
-  it('fails closed when current published content has the wrong System or a conflicting group', async () => {
+  it('fails closed when current published content has the wrong System or a duplicate kind', async () => {
     mocks.requireCurrent.mockResolvedValue({
       ...current(ids.flanking, 'FLANKING'),
       gameSystemId: ids.facing
@@ -146,9 +162,7 @@ describe('Encounter optional combat snapshot', () => {
     ).rejects.toThrow('does not match')
 
     mocks.requireCurrent.mockImplementation(async (id: string) =>
-      id === ids.flanking
-        ? current(id, 'FLANKING', 'positioning')
-        : current(id, 'FACING', 'positioning')
+      id === ids.flanking ? current(id, 'FLANKING') : current(id, 'FLANKING')
     )
     await expect(
       resolveEncounterOptionalCombatSnapshot({
@@ -157,7 +171,35 @@ describe('Encounter optional combat snapshot', () => {
         gameSystemId: ids.system,
         definitionIds: [ids.flanking, ids.facing]
       })
-    ).rejects.toThrow('incompatible')
+    ).rejects.toThrow('duplicate rule kind')
+  })
+
+  it('rejects a foundation-only rule before an Encounter snapshot can advertise it', async () => {
+    mocks.requireCurrent.mockResolvedValue(current(ids.facing, 'FACING'))
+
+    await expect(
+      resolveEncounterOptionalCombatSnapshot({
+        db: {} as DBLike,
+        campaignId: ids.campaign,
+        gameSystemId: ids.system,
+        definitionIds: [ids.facing]
+      })
+    ).rejects.toThrow('not available for Encounter execution')
+  })
+
+  it('rejects an integrated kind paired with the wrong policy module', async () => {
+    mocks.requireCurrent.mockResolvedValue(
+      current(ids.flanking, 'FLANKING', null, 'scene.grid.square.alternating-diagonals')
+    )
+
+    await expect(
+      resolveEncounterOptionalCombatSnapshot({
+        db: {} as DBLike,
+        campaignId: ids.campaign,
+        gameSystemId: ids.system,
+        definitionIds: [ids.flanking]
+      })
+    ).rejects.toThrow('not available for Encounter execution')
   })
 
   it('rejects a published definition when its exact module contract is no longer supported', async () => {

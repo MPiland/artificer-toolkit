@@ -98,6 +98,7 @@ const actionDamageBonusSchema = z.discriminatedUnion('bonusKind', [
 
 const actionDamageFactSchema = z.strictObject({
   kind: z.literal('DAMAGE'),
+  outcomeId: identitySchema.optional(),
   pathCode: identitySchema,
   label: z.string().trim().min(1).max(500).nullable(),
   damageTypeId: identitySchema,
@@ -154,6 +155,7 @@ const actionHealBonusSchema = z.discriminatedUnion('bonusKind', [
 
 const actionHealFactSchema = z.strictObject({
   kind: z.literal('HEAL'),
+  outcomeId: identitySchema.optional(),
   pathCode: identitySchema,
   label: z.string().trim().min(1).max(500).nullable(),
   valueKind: z.enum(['DICE', 'FIXED', 'POOL']),
@@ -279,6 +281,7 @@ export const characterResolvedActionMechanicSchema = z.strictObject({
       z.discriminatedUnion('kind', [
         z.strictObject({
           kind: z.literal('DAMAGE'),
+          outcomeId: identitySchema.optional(),
           pathCode: identitySchema,
           expression: z.string().trim().min(1).max(500),
           damageTypeId: identitySchema,
@@ -286,6 +289,7 @@ export const characterResolvedActionMechanicSchema = z.strictObject({
         }),
         z.strictObject({
           kind: z.literal('HEAL'),
+          outcomeId: identitySchema.optional(),
           pathCode: identitySchema,
           expression: z.string().trim().min(1).max(500),
           temporary: z.boolean(),

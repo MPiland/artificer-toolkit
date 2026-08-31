@@ -93,8 +93,8 @@ describe('SRD rule-path manifest', () => {
   it('pins a stable real-SRD dice tracer rather than synthetic fixed fixtures', () => {
     const manifest = generateSrdRulePathManifest()
     const pinned = manifest.leaves.filter((leaf) => leaf.executionPin !== null)
-    expect(pinned).toHaveLength(373)
-    expect(manifest.leaves.filter((leaf) => leaf.capability === 'AUTOMATIC')).toHaveLength(373)
+    expect(pinned).toHaveLength(376)
+    expect(manifest.leaves.filter((leaf) => leaf.capability === 'AUTOMATIC')).toHaveLength(376)
     const sacredFlameEffectId = '00000020-0000-0210-0105-000000000001'
     const sacredFlame = manifest.leaves.filter(
       (leaf) =>

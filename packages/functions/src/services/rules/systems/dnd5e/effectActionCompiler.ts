@@ -55,6 +55,7 @@ export const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY =
   'dnd5e.temporary-hit-points-proposal'
 export const DND5E_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-proposal'
 export const DND5E_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.damage-total'
+export const DND5E_HEAL_TOTAL_OPERATION_KEY = 'dnd5e.heal-total'
 export const DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY = 'dnd5e.condition-apply-proposal'
 export const DND5E_TARGET_ACTOR_FACT_KEY = 'encounter.target-actor-id'
 export const DND5E_ATTACK_MODIFIER_FACT_KEY = 'dnd5e.attack-modifier'
@@ -80,6 +81,9 @@ export const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
   ON_SAVE_FAIL: 'dnd5e.resolved-damage-expression.on-save-fail',
   ON_SAVE_SUCCESS: 'dnd5e.resolved-damage-expression.on-save-success'
 } as const satisfies Record<SpecializedPath, string>
+export const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
+  'dnd5e.resolved-damage-outcome-expressions'
+export const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
@@ -104,7 +108,10 @@ type Outcome =
   | { kind: 'HEAL' | 'TEMPORARY_HIT_POINTS'; amount: number }
   | { kind: 'DAMAGE'; amount: number; damageTypeId: string }
   | { kind: 'CONDITION_APPLY'; conditionId: string }
-type SpecializedOutcome = Outcome | { kind: 'DICE_DAMAGE'; damageTypeId: string }
+type SpecializedOutcome =
+  | Outcome
+  | { kind: 'DICE_DAMAGE'; damageTypeId: string }
+  | { kind: 'DICE_HEAL'; temporary: boolean }
 type TestKind = 'ATTACK' | 'SAVE'
 type SpecializedPath =
   | 'ON_USE'
@@ -127,6 +134,7 @@ export type Dnd5eEffectScalingFacts = Readonly<{
   spellCastLevel?: number
   classLevels?: Readonly<Record<string, number>>
   resolvedDamageExpressions?: Readonly<Partial<Record<SpecializedPath, string>>>
+  resolvedDamageOutcomeExpressions?: Readonly<Record<string, string>>
 }>
 
 export type Dnd5eEffectActionTemplate = Readonly<{
@@ -158,8 +166,36 @@ function dndScalingFactsFromRuleValues(
         const expression = facts[key]
         return typeof expression === 'string' ? [[path, expression]] : []
       })
+    ),
+    resolvedDamageOutcomeExpressions: parseResolvedOutcomeExpressions(
+      facts[DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY]
     )
   }
+}
+
+function parseResolvedOutcomeExpressions(value: RuleValue | undefined): Record<string, string> {
+  if (value === undefined) return {}
+  if (typeof value !== 'string') unsupported('D&D resolved outcome expressions are malformed.')
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch {
+    unsupported('D&D resolved outcome expressions are malformed.')
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    unsupported('D&D resolved outcome expressions are malformed.')
+  }
+  const entries = Object.entries(parsed)
+  if (
+    entries.length > 1_000 ||
+    entries.some(
+      ([outcomeId, expression]) =>
+        outcomeId.length === 0 || outcomeId.length > 240 || typeof expression !== 'string'
+    )
+  ) {
+    unsupported('D&D resolved outcome expressions are malformed.')
+  }
+  return Object.fromEntries(entries.sort(([left], [right]) => left.localeCompare(right)))
 }
 /** Exact compiled-effect input shared by runtime publication and source manifest admission. */
 export type Dnd5eCompiledEffectActionSource = Pick<
@@ -407,6 +443,13 @@ function specializedTestOutcome(entry: CompiledEffectGroup['entries'][number]): 
     uuid(outcome.damageTypeId, 'D&D damage type identity')
     return { kind: 'DICE_DAMAGE', damageTypeId: outcome.damageTypeId }
   }
+  if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
+    if (outcome.scalingKind !== 'NONE')
+      unsupported('D&D dice healing requires one unscaled authored value.')
+    parseBoundedDiceConfiguration(outcome.diceConfig)
+    validateHealBonuses(outcome.bonuses)
+    return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
+  }
   return boundedTestOutcome(entry)
 }
 
@@ -435,6 +478,51 @@ function parseBoundedDiceConfiguration(value: unknown): ParsedRollExpression {
   return parsed
 }
 
+function authoredHealingDiceTerm(published: ServerPublishedRuleDefinitionDto): {
+  count: number
+  die: number
+} {
+  const nodes = published.definition.nodes
+  const byId = new Map(nodes.map((node) => [node.id, node]))
+  const healingTotal = nodes.find((node) => node.operation.key === DND5E_HEAL_TOTAL_OPERATION_KEY)
+  const subtotal = healingTotal?.inputs.subtotal
+  if (!subtotal || subtotal.kind !== 'NODE_OUTPUT')
+    throw new Dnd5eEffectActionCompilerError(
+      'D&D dice healing compiled graph has no exact authored subtotal.'
+    )
+  const dieNodes = new Set<string>()
+  const visit = (binding: unknown): void => {
+    if (!binding || typeof binding !== 'object' || Array.isArray(binding)) return
+    const value = binding as { kind?: unknown; nodeId?: unknown }
+    if (value.kind !== 'NODE_OUTPUT' || typeof value.nodeId !== 'string') return
+    if (dieNodes.has(value.nodeId)) return
+    const node = byId.get(value.nodeId)
+    if (!node) return
+    if (node.operation.key === 'evidence.integer-range') {
+      dieNodes.add(node.id)
+      return
+    }
+    Object.values(node.inputs).forEach(visit)
+  }
+  visit(subtotal)
+  const dieValues = [...dieNodes].map((id) => byId.get(id)?.inputs.max)
+  if (
+    dieNodes.size === 0 ||
+    dieValues.some(
+      (binding) => !binding || binding.kind !== 'LITERAL' || typeof binding.value !== 'number'
+    )
+  )
+    throw new Dnd5eEffectActionCompilerError(
+      'D&D dice healing compiled graph has no exact authored dice term.'
+    )
+  const die = dieValues[0]!.value
+  if (dieValues.some((binding) => binding!.value !== die))
+    throw new Dnd5eEffectActionCompilerError(
+      'D&D dice healing compiled graph has inconsistent authored dice sizes.'
+    )
+  return { count: dieNodes.size, die }
+}
+
 function validateDamageBonuses(value: unknown): void {
   if (value === undefined) return
   if (!Array.isArray(value) || value.length > 100)
@@ -458,6 +546,33 @@ function validateDamageBonuses(value: unknown): void {
         (typeof row.skillId !== 'string' || row.skillId.length === 0))
     ) {
       unsupported('D&D dice outcome bonus is malformed.')
+    }
+  }
+}
+
+function validateHealBonuses(value: unknown): void {
+  if (value === undefined) return
+  if (!Array.isArray(value) || value.length > 100)
+    unsupported('D&D dice healing bonuses exceed the bounded contract.')
+  for (const bonus of value) {
+    if (!bonus || typeof bonus !== 'object' || Array.isArray(bonus))
+      unsupported('D&D dice healing bonus is malformed.')
+    const row = bonus as Record<string, unknown>
+    if (
+      (row.bonusKind !== 'ABILITY_BONUS' &&
+        row.bonusKind !== 'PROFICIENCY_BONUS' &&
+        row.bonusKind !== 'CLASS_LEVEL') ||
+      !Number.isSafeInteger(row.order) ||
+      Number(row.order) < 0 ||
+      (row.min !== undefined && !Number.isSafeInteger(row.min)) ||
+      (row.max !== undefined && !Number.isSafeInteger(row.max)) ||
+      (row.multiplier !== undefined && !Number.isSafeInteger(row.multiplier)) ||
+      (row.bonusKind === 'ABILITY_BONUS' &&
+        (typeof row.ability !== 'string' || row.ability.length === 0)) ||
+      (row.bonusKind === 'CLASS_LEVEL' &&
+        (typeof row.classId !== 'string' || row.classId.length === 0))
+    ) {
+      unsupported('D&D dice healing bonus is malformed.')
     }
   }
 }
@@ -571,7 +686,7 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   return { kind, branches }
 }
 
-function supported(action: Dnd5eCompiledEffectActionSource): Outcome {
+function supported(action: Dnd5eCompiledEffectActionSource): SpecializedOutcome {
   const effect = action.compiledEffect
   const invocation = effect.invocation
   const supportsSelf =
@@ -584,7 +699,7 @@ function supported(action: Dnd5eCompiledEffectActionSource): Outcome {
   if (
     invocation.kind !== 'ACTION' ||
     invocation.triggerCode !== 'ACTIVATED' ||
-    invocation.activation.code !== 'ACTION' ||
+    (invocation.activation.code !== 'ACTION' && invocation.activation.code !== 'BONUS_ACTION') ||
     invocation.activation.amount !== 1 ||
     (!supportsSelf && !supportsUnlimitedSingleTarget) ||
     invocation.shape
@@ -622,6 +737,18 @@ function supported(action: Dnd5eCompiledEffectActionSource): Outcome {
   }
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
     unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
+  if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DICE') {
+    if (
+      outcome.scalingKind !== 'NONE' ||
+      !('diceConfig' in outcome) ||
+      typeof outcome.diceConfig !== 'string'
+    ) {
+      unsupported('D&D dice healing requires one unscaled authored dice value.')
+    }
+    parseBoundedDiceConfiguration(outcome.diceConfig)
+    validateHealBonuses(outcome.bonuses)
+    return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
+  }
   if (
     outcome.valueKind !== 'FIXED' ||
     outcome.scalingKind !== 'NONE' ||
@@ -736,7 +863,10 @@ export const dnd5eDamageTotalOperation: PureRuleOperationContract = {
   key: DND5E_DAMAGE_TOTAL_OPERATION_KEY,
   contractVersion: 1,
   executionKind: 'PURE',
-  inputs: { subtotal: RULE_VALUE_KIND.NUMBER, modifier: RULE_VALUE_KIND.NUMBER },
+  inputs: {
+    subtotal: RULE_VALUE_KIND.NUMBER,
+    modifier: RULE_VALUE_KIND.NUMBER
+  },
   outputs: { value: RULE_VALUE_KIND.NUMBER },
   execute(inputs) {
     const subtotal = inputs.subtotal
@@ -749,6 +879,30 @@ export const dnd5eDamageTotalOperation: PureRuleOperationContract = {
       !Number.isSafeInteger(subtotal + modifier)
     ) {
       throw new Error('D&D damage total requires safe integer operands.')
+    }
+    return { value: Math.max(0, subtotal + modifier) }
+  }
+}
+export const dnd5eHealTotalOperation: PureRuleOperationContract = {
+  key: DND5E_HEAL_TOTAL_OPERATION_KEY,
+  contractVersion: 1,
+  executionKind: 'PURE',
+  inputs: {
+    subtotal: RULE_VALUE_KIND.NUMBER,
+    modifier: RULE_VALUE_KIND.NUMBER
+  },
+  outputs: { value: RULE_VALUE_KIND.NUMBER },
+  execute(inputs) {
+    const subtotal = inputs.subtotal
+    const modifier = inputs.modifier
+    if (
+      typeof subtotal !== 'number' ||
+      !Number.isSafeInteger(subtotal) ||
+      typeof modifier !== 'number' ||
+      !Number.isSafeInteger(modifier) ||
+      !Number.isSafeInteger(subtotal + modifier)
+    ) {
+      throw new Error('D&D healing total requires safe integer operands.')
     }
     return { value: Math.max(0, subtotal + modifier) }
   }
@@ -990,6 +1144,14 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
       valueKind: RULE_VALUE_KIND.TEXT
     })),
     {
+      key: DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY,
+      valueKind: RULE_VALUE_KIND.TEXT
+    },
+    {
+      key: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
+      valueKind: RULE_VALUE_KIND.NUMBER
+    },
+    {
       key: MOVEMENT_REACTION_CHOICE_MIN_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
     },
@@ -1009,6 +1171,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_TOTAL_OPERATION_KEY,
+    DND5E_HEAL_TOTAL_OPERATION_KEY,
     DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
     DND5E_ATTACK_TEST_OPERATION_KEY,
     DND5E_SAVE_TEST_OPERATION_KEY,
@@ -1253,7 +1416,10 @@ export function compileDnd5eEffectActionTestTemplate({
       {
         id: 'd20',
         operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
+        inputs: {
+          min: { kind: 'LITERAL', value: 1 },
+          max: { kind: 'LITERAL', value: 20 }
+        }
       },
       {
         id: 'test',
@@ -1263,16 +1429,27 @@ export function compileDnd5eEffectActionTestTemplate({
           naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
           modifier: { kind: 'FACT', factKey: modifierFact },
           threshold: { kind: 'FACT', factKey: thresholdFact },
-          contributorChecksum: { kind: 'FACT', factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY }
+          contributorChecksum: {
+            kind: 'FACT',
+            factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY
+          }
         }
       }
     ],
     outputs: {
-      targetActorId: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'targetActorId' },
+      targetActorId: {
+        kind: 'NODE_OUTPUT',
+        nodeId: 'test',
+        port: 'targetActorId'
+      },
       naturalD20: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'naturalD20' },
       total: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'total' },
       resultPath: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'resultPath' },
-      contributorChecksum: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'contributorChecksum' }
+      contributorChecksum: {
+        kind: 'NODE_OUTPUT',
+        nodeId: 'test',
+        port: 'contributorChecksum'
+      }
     }
   }
   const published = serverPublishedRuleDefinitionDtoSchema.parse({
@@ -1304,10 +1481,27 @@ function scalingLevel(source: unknown, facts: Dnd5eEffectScalingFacts): number {
   unsupported('D&D dice scaling facts are unavailable.')
 }
 
+function compiledOutcomeIdentity(entry: CompiledEffectGroup['entries'][number]): string {
+  if (typeof entry.entryId !== 'string' || entry.entryId.length === 0)
+    unsupported('D&D outcome identity is unavailable.')
+  return entry.entryId
+}
+
+function compiledDiceConfiguration(entry: CompiledEffectGroup['entries'][number]): string {
+  if (
+    !('outcome' in entry) ||
+    !('diceConfig' in entry.outcome) ||
+    typeof entry.outcome.diceConfig !== 'string'
+  )
+    unsupported('D&D dice configuration is unavailable.')
+  return entry.outcome.diceConfig
+}
+
 function exactDiceConfiguration(
   outcomes: readonly Record<string, unknown>[],
   facts: Dnd5eEffectScalingFacts,
-  selectedPath: SpecializedPath
+  selectedPath: SpecializedPath,
+  outcomeId: string
 ): string {
   const outcome = outcomes[0]
   if (!outcome) unsupported('D&D selected outcome has no authored dice value.')
@@ -1343,7 +1537,9 @@ function exactDiceConfiguration(
       unsupported('D&D dice scaling does not select an authored value.')
     authored = selected.dice
   }
-  const resolved = facts.resolvedDamageExpressions?.[selectedPath]
+  const resolved =
+    facts.resolvedDamageOutcomeExpressions?.[outcomeId] ??
+    facts.resolvedDamageExpressions?.[selectedPath]
   if (!resolved) {
     if (Array.isArray(outcome.bonuses) && outcome.bonuses.length > 0)
       unsupported('D&D resolved damage expression is unavailable.')
@@ -1362,13 +1558,17 @@ function diceGraphDefinition(input: {
   action: Dnd5eCompiledEffectActionSource
   entry: CompiledEffectGroup['entries'][number]
   diceConfig: string
+  modifierFactKey?: string
   nodePrefix?: string
 }): RuleGraphDefinition {
-  if (!('outcome' in input.entry) || input.entry.outcome.effectKind !== 'DAMAGE')
-    unsupported('Only direct D&D damage dice outcomes are currently specialized.')
+  if (
+    !('outcome' in input.entry) ||
+    (input.entry.outcome.effectKind !== 'DAMAGE' && input.entry.outcome.effectKind !== 'HEAL')
+  )
+    unsupported('Only direct D&D damage and healing dice outcomes are currently specialized.')
   const outcome = input.entry.outcome
   if (outcome.valueKind !== 'DICE') unsupported('D&D outcome is not dice-backed.')
-  uuid(outcome.damageTypeId, 'D&D damage type identity')
+  if (outcome.effectKind === 'DAMAGE') uuid(outcome.damageTypeId, 'D&D damage type identity')
   const parsed = parseBoundedDiceConfiguration(input.diceConfig)
   const term = parsed.terms[0]
   if (
@@ -1401,33 +1601,64 @@ function diceGraphDefinition(input: {
     inputs: {
       left:
         index === 0
-          ? { kind: 'NODE_OUTPUT' as const, nodeId: dieNodeId(0), port: 'value' }
-          : { kind: 'NODE_OUTPUT' as const, nodeId: sumNodeId(index - 1), port: 'value' },
-      right: { kind: 'NODE_OUTPUT' as const, nodeId: dieNodeId(index + 1), port: 'value' }
+          ? {
+              kind: 'NODE_OUTPUT' as const,
+              nodeId: dieNodeId(0),
+              port: 'value'
+            }
+          : {
+              kind: 'NODE_OUTPUT' as const,
+              nodeId: sumNodeId(index - 1),
+              port: 'value'
+            },
+      right: {
+        kind: 'NODE_OUTPUT' as const,
+        nodeId: dieNodeId(index + 1),
+        port: 'value'
+      }
     }
   }))
   const rolledSubtotal =
     term.count === 1
       ? { kind: 'NODE_OUTPUT' as const, nodeId: dieNodeId(0), port: 'value' }
-      : { kind: 'NODE_OUTPUT' as const, nodeId: sumNodeId(term.count - 2), port: 'value' }
-  const totalNode =
-    parsed.modifier === 0
-      ? []
-      : [
-          {
-            id: `${prefix}damage-total`,
-            operation: { key: DND5E_DAMAGE_TOTAL_OPERATION_KEY, contractVersion: 1 },
-            inputs: {
-              subtotal: rolledSubtotal,
-              modifier: { kind: 'LITERAL' as const, value: parsed.modifier }
-            }
+      : {
+          kind: 'NODE_OUTPUT' as const,
+          nodeId: sumNodeId(term.count - 2),
+          port: 'value'
+        }
+  const modifier = input.modifierFactKey
+    ? { kind: 'FACT' as const, factKey: input.modifierFactKey }
+    : { kind: 'LITERAL' as const, value: parsed.modifier }
+  const needsTotal = input.modifierFactKey !== undefined || parsed.modifier !== 0
+  const totalNodeId = `${prefix}${outcome.effectKind === 'DAMAGE' ? 'damage' : 'heal'}-total`
+  const totalNode = !needsTotal
+    ? []
+    : [
+        {
+          id: totalNodeId,
+          operation: {
+            key:
+              outcome.effectKind === 'DAMAGE'
+                ? DND5E_DAMAGE_TOTAL_OPERATION_KEY
+                : DND5E_HEAL_TOTAL_OPERATION_KEY,
+            contractVersion: 1
+          },
+          inputs: {
+            subtotal: rolledSubtotal,
+            modifier
           }
-        ]
-  const amount =
-    parsed.modifier === 0
-      ? rolledSubtotal
-      : { kind: 'NODE_OUTPUT' as const, nodeId: `${prefix}damage-total`, port: 'value' }
-  const proposalId = `proposal-${input.entry.pathCode.toLowerCase()}`
+        }
+      ]
+  const amount = !needsTotal
+    ? rolledSubtotal
+    : { kind: 'NODE_OUTPUT' as const, nodeId: totalNodeId, port: 'value' }
+  const proposalId = `${prefix}proposal-${input.entry.pathCode.toLowerCase()}`
+  const proposalOperation =
+    outcome.effectKind === 'DAMAGE'
+      ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
+      : outcome.temporary
+        ? DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY
+        : DND5E_HEAL_PROPOSAL_OPERATION_KEY
   return {
     schemaVersion: 1,
     id: input.action.effectId,
@@ -1439,22 +1670,46 @@ function diceGraphDefinition(input: {
       ...totalNode,
       {
         id: proposalId,
-        operation: { key: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY, contractVersion: 1 },
+        operation: { key: proposalOperation, contractVersion: 1 },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-          targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY },
+          targetStateChecksum: {
+            kind: 'FACT',
+            factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
+          },
           amount,
-          damageTypeId: { kind: 'LITERAL', value: outcome.damageTypeId }
+          ...(outcome.effectKind === 'DAMAGE'
+            ? {
+                damageTypeId: {
+                  kind: 'LITERAL' as const,
+                  value: outcome.damageTypeId
+                }
+              }
+            : {})
         }
       }
     ],
     outputs: {
-      targetActorId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'targetActorId' },
+      targetActorId: {
+        kind: 'NODE_OUTPUT',
+        nodeId: proposalId,
+        port: 'targetActorId'
+      },
       amount: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'amount' },
-      damageTypeId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'damageTypeId' }
+      ...(outcome.effectKind === 'DAMAGE'
+        ? {
+            damageTypeId: {
+              kind: 'NODE_OUTPUT' as const,
+              nodeId: proposalId,
+              port: 'damageTypeId'
+            }
+          }
+        : {})
     },
-    ...(UUID.test(input.entry.resultBlockId)
-      ? { sourceEntryBindings: [{ sourceEntryId: input.entry.resultBlockId, nodeId: proposalId }] }
+    ...(UUID.test(input.entry.entryId)
+      ? {
+          sourceEntryBindings: [{ sourceEntryId: input.entry.entryId, nodeId: proposalId }]
+        }
       : {})
   }
 }
@@ -1474,14 +1729,20 @@ function fixedOutcomeGraphDefinition(input: {
           ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
           : DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY
   const inputs = {
-    targetActorId: { kind: 'FACT' as const, factKey: DND5E_TARGET_ACTOR_FACT_KEY },
+    targetActorId: {
+      kind: 'FACT' as const,
+      factKey: DND5E_TARGET_ACTOR_FACT_KEY
+    },
     targetStateChecksum: {
       kind: 'FACT' as const,
       factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
     },
     ...(input.outcome.kind === 'CONDITION_APPLY'
       ? {
-          conditionId: { kind: 'LITERAL' as const, value: input.outcome.conditionId },
+          conditionId: {
+            kind: 'LITERAL' as const,
+            value: input.outcome.conditionId
+          },
           conditionImmune: {
             kind: 'FACT' as const,
             factKey:
@@ -1493,16 +1754,35 @@ function fixedOutcomeGraphDefinition(input: {
       : {
           amount: { kind: 'LITERAL' as const, value: input.outcome.amount },
           ...(input.outcome.kind === 'DAMAGE'
-            ? { damageTypeId: { kind: 'LITERAL' as const, value: input.outcome.damageTypeId } }
+            ? {
+                damageTypeId: {
+                  kind: 'LITERAL' as const,
+                  value: input.outcome.damageTypeId
+                }
+              }
             : {})
         })
   }
   const outputs = {
-    targetActorId: { kind: 'NODE_OUTPUT' as const, nodeId: proposalId, port: 'targetActorId' },
+    targetActorId: {
+      kind: 'NODE_OUTPUT' as const,
+      nodeId: proposalId,
+      port: 'targetActorId'
+    },
     ...(input.outcome.kind === 'CONDITION_APPLY'
-      ? { conditionId: { kind: 'NODE_OUTPUT' as const, nodeId: proposalId, port: 'conditionId' } }
+      ? {
+          conditionId: {
+            kind: 'NODE_OUTPUT' as const,
+            nodeId: proposalId,
+            port: 'conditionId'
+          }
+        }
       : {
-          amount: { kind: 'NODE_OUTPUT' as const, nodeId: proposalId, port: 'amount' },
+          amount: {
+            kind: 'NODE_OUTPUT' as const,
+            nodeId: proposalId,
+            port: 'amount'
+          },
           ...(input.outcome.kind === 'DAMAGE'
             ? {
                 damageTypeId: {
@@ -1527,8 +1807,10 @@ function fixedOutcomeGraphDefinition(input: {
       }
     ],
     outputs,
-    ...('resultBlockId' in input.entry && UUID.test(input.entry.resultBlockId)
-      ? { sourceEntryBindings: [{ sourceEntryId: input.entry.resultBlockId, nodeId: proposalId }] }
+    ...(UUID.test(input.entry.entryId)
+      ? {
+          sourceEntryBindings: [{ sourceEntryId: input.entry.entryId, nodeId: proposalId }]
+        }
       : {})
   }
 }
@@ -1545,9 +1827,12 @@ function authoredOutcomeGroups(
   for (const entry of entries) {
     if (!('resultBlockId' in entry) || typeof entry.resultBlockId !== 'string')
       unsupported('D&D selected outcome path must retain an exact authored result block.')
-    const group = groups.get(entry.resultBlockId)
+    if (typeof entry.entryId !== 'string' || entry.entryId.length === 0)
+      unsupported('D&D selected outcome path must retain an exact authored outcome identity.')
+    const groupKey = `${entry.resultBlockId}\u0000${entry.entryId}`
+    const group = groups.get(groupKey)
     if (group) group.push(entry)
-    else groups.set(entry.resultBlockId, [entry])
+    else groups.set(groupKey, [entry])
   }
   return [...groups.values()]
 }
@@ -1615,7 +1900,9 @@ export function specializeDnd5eEffectActionOutcome(input: {
   selectedPath: SpecializedPath
   facts: Dnd5eEffectScalingFacts
 }): Dnd5eEffectActionTemplate | null {
-  const expectedTest = compileDnd5eEffectActionTestTemplate({ action: input.action })
+  const expectedTest = compileDnd5eEffectActionTestTemplate({
+    action: input.action
+  })
   if (
     input.testTemplate.phase !== 'TEST' ||
     input.testTemplate.published.id !== input.action.effectId ||
@@ -1634,26 +1921,36 @@ export function specializeDnd5eEffectActionOutcome(input: {
     const entry = entries[0]
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
     const outcome = specializedTestOutcome(entry)
-    return outcome.kind === 'DICE_DAMAGE'
+    return outcome.kind === 'DICE_DAMAGE' || outcome.kind === 'DICE_HEAL'
       ? diceGraphDefinition({
           action: input.action,
           entry,
-          diceConfig: exactDiceConfiguration(
-            entries.map(
-              (candidate) =>
-                (candidate as Extract<typeof candidate, { outcome: unknown }>)
-                  .outcome as unknown as Record<string, unknown>
-            ),
-            input.facts,
-            input.selectedPath
-          ),
+          diceConfig:
+            outcome.kind === 'DICE_DAMAGE'
+              ? exactDiceConfiguration(
+                  entries.map(
+                    (candidate) =>
+                      (candidate as Extract<typeof candidate, { outcome: unknown }>)
+                        .outcome as unknown as Record<string, unknown>
+                  ),
+                  input.facts,
+                  input.selectedPath,
+                  compiledOutcomeIdentity(entry)
+                )
+              : compiledDiceConfiguration(entry),
+          ...(outcome.kind === 'DICE_HEAL'
+            ? { modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY }
+            : {}),
           ...(groups.length > 1 ? { nodePrefix: `outcome${groupIndex + 1}-` } : {})
         })
       : entries.length === 1
         ? fixedOutcomeGraphDefinition({ action: input.action, entry, outcome })
         : unsupported('D&D fixed outcome path must compile to one direct result.')
   })
-  const definition = mergedOutcomeGraphDefinition({ action: input.action, definitions })
+  const definition = mergedOutcomeGraphDefinition({
+    action: input.action,
+    definitions
+  })
   const published = serverPublishedRuleDefinitionDtoSchema.parse({
     id: definition.id,
     gameSystemId: definition.gameSystemId,
@@ -1701,7 +1998,11 @@ function bindMovementInterruptionOutput(input: {
     ...input.published.definition,
     outputs: {
       ...input.published.definition.outputs,
-      movementInterruption: { kind: 'NODE_OUTPUT', nodeId: proposalNodeId, port: 'authorized' }
+      movementInterruption: {
+        kind: 'NODE_OUTPUT',
+        nodeId: proposalNodeId,
+        port: 'authorized'
+      }
     }
   }
   return serverPublishedRuleDefinitionDtoSchema.parse({
@@ -1737,6 +2038,34 @@ export function compileDnd5eEffectAction({
     })
   }
   const outcome = supported(action)
+  if (outcome.kind === 'DICE_HEAL') {
+    const entry = action.compiledEffect.entries[0]
+    if (
+      !entry ||
+      !('outcome' in entry) ||
+      entry.outcome.effectKind !== 'HEAL' ||
+      entry.outcome.valueKind !== 'DICE'
+    )
+      unsupported('D&D dice healing must retain one exact authored outcome.')
+    const definition = diceGraphDefinition({
+      action,
+      entry,
+      diceConfig: compiledDiceConfiguration(entry),
+      modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY
+    })
+    return bindMovementInterruptionOutput({
+      action,
+      published: serverPublishedRuleDefinitionDtoSchema.parse({
+        id: definition.id,
+        gameSystemId: definition.gameSystemId,
+        definitionFamilyKey: definition.definitionFamilyKey,
+        checksum: checksumRuleDocument(definition),
+        definition
+      })
+    })
+  }
+  if (outcome.kind === 'DICE_DAMAGE')
+    unsupported('D&D direct dice damage requires an authored test phase.')
   const operation =
     outcome.kind === 'HEAL'
       ? DND5E_HEAL_PROPOSAL_OPERATION_KEY
@@ -2480,7 +2809,10 @@ function interpretDirect(
             trace: [
               resolvedAmount === undefined
                 ? proposal
-                : { ...proposal, outputs: { ...proposal.outputs, amount: resolvedAmount } }
+                : {
+                    ...proposal,
+                    outputs: { ...proposal.outputs, amount: resolvedAmount }
+                  }
             ]
           }
         }
@@ -2699,13 +3031,21 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   compileExecutionPlan: ({ action, compilerSource }) => {
     const source = dndSourceFromCompilerSource(compilerSource)
     if (!testPhaseKindOrNull(source)) {
-      return { kind: 'SINGLE_GRAPH', published: compileDnd5eEffectAction({ action }) }
+      return {
+        kind: 'SINGLE_GRAPH',
+        published: compileDnd5eEffectAction({ action })
+      }
     }
-    const testTemplate = compileDnd5eEffectActionTestTemplate({ action: source })
+    const testTemplate = compileDnd5eEffectActionTestTemplate({
+      action: source
+    })
     return {
       kind: 'TEST_OUTCOME',
       compilerSource,
-      test: { published: testTemplate.published, template: templateIdentity(testTemplate) },
+      test: {
+        published: testTemplate.published,
+        template: templateIdentity(testTemplate)
+      },
       outcomes: testOutcomeTemplateIdentities(source)
     }
   },
@@ -2742,7 +3082,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       facts: dndScalingFactsFromRuleValues(facts)
     })
     return outcome
-      ? { published: outcome.published, templateChecksum: outcome.templateChecksum }
+      ? {
+          published: outcome.published,
+          templateChecksum: outcome.templateChecksum
+        }
       : null
   },
   positionalCapabilityDefinitionIds: ({
@@ -2810,6 +3153,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     positionalFacts
   }) => {
     const resolvedDamageExpressionFacts: Record<string, string> = {}
+    const resolvedDamageOutcomeExpressions: Record<string, string> = {}
+    const resolvedDamagePathCounts = new Map<SpecializedPath, number>()
     const actionOutcomes = (actionMechanic as { outcomes?: unknown }).outcomes
     if (Array.isArray(actionOutcomes)) {
       for (const outcome of actionOutcomes) {
@@ -2822,12 +3167,68 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           typeof row.expression !== 'string'
         )
           continue
+        if (typeof row.outcomeId === 'string' && row.outcomeId.length > 0) {
+          if (resolvedDamageOutcomeExpressions[row.outcomeId] !== undefined)
+            throw new Dnd5eEffectActionCompilerError(
+              'D&D action has duplicate resolved damage outcome identities.'
+            )
+          resolvedDamageOutcomeExpressions[row.outcomeId] = row.expression
+        }
+        resolvedDamagePathCounts.set(
+          row.pathCode,
+          (resolvedDamagePathCounts.get(row.pathCode) ?? 0) + 1
+        )
+      }
+      for (const outcome of actionOutcomes) {
+        if (!outcome || typeof outcome !== 'object' || Array.isArray(outcome)) continue
+        const row = outcome as Record<string, unknown>
+        if (
+          row.kind !== 'DAMAGE' ||
+          typeof row.pathCode !== 'string' ||
+          !isSpecializedPath(row.pathCode) ||
+          typeof row.expression !== 'string' ||
+          resolvedDamagePathCounts.get(row.pathCode) !== 1
+        )
+          continue
         const key = DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS[row.pathCode]
-        if (resolvedDamageExpressionFacts[key] !== undefined)
-          throw new Dnd5eEffectActionCompilerError(
-            'D&D action has multiple resolved damage expressions for one path.'
-          )
         resolvedDamageExpressionFacts[key] = row.expression
+      }
+    }
+    const requiresHealModifier = published.definition.nodes.some((node) =>
+      Object.values(node.inputs).some(
+        (binding) =>
+          binding.kind === 'FACT' && binding.factKey === DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY
+      )
+    )
+    let resolvedHealModifierFacts: Record<string, number> = {}
+    if (requiresHealModifier) {
+      const healingOutcomes = Array.isArray(actionOutcomes)
+        ? actionOutcomes.filter(
+            (outcome): outcome is Record<string, unknown> =>
+              !!outcome &&
+              typeof outcome === 'object' &&
+              !Array.isArray(outcome) &&
+              (outcome as Record<string, unknown>).kind === 'HEAL' &&
+              typeof (outcome as Record<string, unknown>).expression === 'string'
+          )
+        : []
+      if (healingOutcomes.length !== 1)
+        throw new Dnd5eEffectActionCompilerError(
+          'D&D dice healing requires one exact resolved healing expression.'
+        )
+      const parsed = parseBoundedDiceConfiguration(healingOutcomes[0]!.expression)
+      const authoredTerm = authoredHealingDiceTerm(published)
+      const resolvedTerm = parsed.terms[0]
+      if (
+        !resolvedTerm ||
+        resolvedTerm.count !== authoredTerm.count ||
+        resolvedTerm.die !== authoredTerm.die
+      )
+        throw new Dnd5eEffectActionCompilerError(
+          'D&D resolved healing expression does not match the authored dice.'
+        )
+      resolvedHealModifierFacts = {
+        [DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY]: parsed.modifier
       }
     }
     const baseFacts = {
@@ -2840,7 +3241,19 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         conditionIds: targetConditionIds
       }),
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
-      ...resolvedDamageExpressionFacts
+      ...resolvedDamageExpressionFacts,
+      ...(Object.keys(resolvedDamageOutcomeExpressions).length > 0
+        ? {
+            [DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY]: JSON.stringify(
+              Object.fromEntries(
+                Object.entries(resolvedDamageOutcomeExpressions).sort(([left], [right]) =>
+                  left.localeCompare(right)
+                )
+              )
+            )
+          }
+        : {}),
+      ...resolvedHealModifierFacts
     }
     const action = actionMechanic as {
       attackBonus?: unknown
@@ -3207,6 +3620,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ...target
     })
     if (resolvedTest) return resolvedTest
-    return interpretDirect({ execution, ...target }, graph, { fullTrace: true })
+    return interpretDirect({ execution, ...target }, graph, {
+      fullTrace: true
+    })
   }
 }
