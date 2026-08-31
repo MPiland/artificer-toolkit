@@ -8,7 +8,11 @@ import { mapDraftSummariesToAuthoredItems } from '#app/data/authoredListDrafts'
 import { createServerApi } from '#app/lib/api'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
-import { getBackground, getBackgroundList, useGetBackgroundList } from '#app/data/backgrounds/queries'
+import {
+  getBackground,
+  getBackgroundList,
+  useGetBackgroundList
+} from '#app/data/backgrounds/queries'
 import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildBackgroundRouteParams } from '#app/routing/authoredRouteParams'
 import type { BackgroundListRequestDto } from '#app/lib/api'

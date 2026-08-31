@@ -43,9 +43,40 @@ Authenticated `rolls.execute` accepts a restricted expression, optional single-d
 
 Notification payloads and links carry public source IDs only. One safe event payload drives the durable feed projection and direct Resend email in the Supabase Edge dispatcher. Rendered email HTML, text, subjects, email addresses, and provider URLs never enter an intent, log, or feed response. The web maps fixed data kinds to known internal routes rather than rendering provider URLs or HTML. Every destination performs its ordinary Social or Campaign API read, so current ownership, membership, moderation, and symmetric-block rules still apply. Missing or newly unauthorized sources return the same generic unavailable behavior; notification presence never grants access.
 
-`encounters` exposes retry-idempotent template creation, Session-bound run creation, GM commands, role-projected reads, and the filtered event timeline. Template retries reuse a Campaign-scoped command ID only when the persisted request fingerprint matches. Enemy action rolls return the updated projection plus the exact optional roll result; retries return the original persisted result, and TABLE visibility publishes that evidence through the Campaign conversation service without rerolling. Timeline visibility is filtered before cursor pagination. Every procedure uses shared contracts and functions-owned authority checks. Campaign, Social Hub, and Encounter procedures receive the top-level server database handle through `withExplicitAuthorityDb`; each functions-owned transaction is therefore the real commit boundary before best-effort Broadcast, rather than a nested transaction inside the general RLS-scoped API wrapper. PARTY denial is indistinguishable from other access denial, and no web query, count, Realtime subscription, or invalidation path bypasses that service boundary. Account entitlements are a read-only authenticated projection; tier assignment and billing are not browser procedures in this phase.
+`encounters.blueprints` exposes creator-only, Game-System-scoped Blueprint list/create/update procedures. Create retries use owner-scoped command IDs; versioned updates use durable owner-and-command receipts and return the closed stored result on matching replay. `encounters.create` accepts a Campaign, open Session, and Blueprint ID; the Campaign supplies the System and current automation policy, while the service pins the Blueprint version/checksum and effective `automationMode` plus GM-only `manualReminderMode` before copying actors. Player Encounter projections expose `automationMode` only. The transitional `rule_pack_revision_id` remains mechanics authority in Gate 1. GM commands, role-projected reads, and filtered timeline behavior remain unchanged.
 
 Campaign Realtime is a private invalidation channel, not a second mutation or history transport. Services commit Postgres first and then attempt a best-effort Broadcast containing only the Campaign scope, entity/event identity, cursor, and version. A Campaign metadata hint invalidates both Campaign and Social query roots so maturity and indexed projections refetch immediately. The web falls back to polling/cursor recovery after disconnect.
+
+## Authoritative live-session coordination
+
+The local Session Host and managed Session Worker use the same server-only coordinator snapshot and executor-result contracts. The snapshot carries the Session-presented Campaign Scene, current aggregate versions, Character vision facts, optional Encounter-to-Scene and actor-to-token bindings, and the exact binding for each pending Encounter rule occurrence. That occurrence binding is derived from the occurrence's sealed pending snapshot rather than inferred from the Encounter or Scene catalogue:
+
+- `SPATIAL` binds one occurrence to its exact Campaign Scene through the Encounter binding;
+- `NON_SPATIAL` explicitly carries no Scene binding.
+
+```mermaid
+sequenceDiagram
+  participant Host as Session Host / Worker
+  participant Executor as functions live-session executor
+  participant DB as Postgres occurrence + aggregate rows
+  Host->>Executor: command with current coordinator snapshot
+  Executor->>DB: authorize, lock roots, execute or replay
+  DB-->>Executor: current pending occurrence or terminal receipt
+  Executor-->>Host: changed roots + exact occurrence-binding update
+  alt authoritative snapshot refresh ran
+    Host->>Executor: renew authority + load complete snapshot
+    Executor-->>Host: non-regressing current snapshot
+  else no version changed (for example a replayed pause)
+    Host->>Host: apply binding update despite replay status
+  end
+  Host->>Host: derive the next command's exact conflict keys
+```
+
+`RESOLVE_RULE_OCCURRENCE` fails closed unless exactly one binding matches its Encounter and occurrence. A spatial resolution claims the Encounter, the exact bound Scene, and the Encounter's bound Characters; a non-spatial resolution does not claim a Scene merely because the Encounter has one. A command result adds, replaces, or clears the cached binding immediately. A persisted replay whose pause changed no aggregate version must still reconcile that binding; when a full authoritative refresh ran, the refreshed snapshot wins. Any replay refresh must cover both the replay's changed roots and every root already represented in the coordinator, so recovery cannot drop or regress unrelated state.
+
+Every mechanics-bearing movement result carries a canonical, sorted list of the aggregate transitions committed by that exact command. Each transition includes its before and after version. The Host and Worker apply those transitions atomically and refresh only the roots named by the fresh command. A later occurrence resume may advance the same Character, Encounter, or Scene again, but replaying the original movement command returns the original command's transition list—not transitions reconstructed from the occurrence's final result. Current coordinator snapshots retain only the latest final version for each root.
+
+Fresh command responses are visible to the GM and the currently authorized requester. Cached or reconnect delivery does not reuse the requester's privileged response projection. Local and managed hosts must apply the same response and redaction rules.
 
 Every authenticated procedure uses `authenticatedProcedure`, then either the general RLS-scoped `withAuthenticatedDb` or the explicit-authority Campaign wrapper described above. `withAuthenticatedDb`:
 

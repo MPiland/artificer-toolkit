@@ -192,23 +192,23 @@ The numbered order is the default product sequence. Hard dependencies are shown 
 
 ## Technology direction
 
-| Area                 | Direction                                                                                                                                                                     |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shared language      | TypeScript for clients, transport, orchestration, and pure domain logic                                                                                                       |
-| Persistence          | PostgreSQL, Supabase migrations/RLS, and Kysely repositories                                                                                                                  |
-| Web                  | Existing TanStack Start, React, Mantine, Vanilla Extract, TanStack Query                                                                                                      |
-| Native               | Expo, React Native, Expo Router, TanStack Query, Reanimated, Gesture Handler                                                                                                  |
-| Contracts            | Zod DTOs in `packages/schema`; typed tRPC through `packages/api-client`                                                                                                       |
-| Identity             | One Supabase user identity across web, iOS, and Android                                                                                                                       |
-| Native secrets/cache | `expo-secure-store` for session secrets; `expo-sqlite` for non-authoritative read-only projections                                                                            |
-| Realtime             | Private Supabase Broadcast; Presence only for slow-changing connection state                                                                                                  |
+| Area                 | Direction                                                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared language      | TypeScript for clients, transport, orchestration, and pure domain logic                                                                                                               |
+| Persistence          | PostgreSQL, Supabase migrations/RLS, and Kysely repositories                                                                                                                          |
+| Web                  | Existing TanStack Start, React, Mantine, Vanilla Extract, TanStack Query                                                                                                              |
+| Native               | Expo, React Native, Expo Router, TanStack Query, Reanimated, Gesture Handler                                                                                                          |
+| Contracts            | Zod DTOs in `packages/schema`; typed tRPC through `packages/api-client`                                                                                                               |
+| Identity             | One Supabase user identity across web, iOS, and Android                                                                                                                               |
+| Native secrets/cache | `expo-secure-store` for session secrets; `expo-sqlite` for non-authoritative read-only projections                                                                                    |
+| Realtime             | Private Supabase Broadcast; Presence only for slow-changing connection state                                                                                                          |
 | Notifications        | Phase 05 Supabase feed/preferences/Edge delivery with Resend email and API-authorized deep links; Phase 06 Campaign and Phase 10 paid-table sources reuse it; Phase 11 adds Expo push |
-| Media and files      | Private Supabase Storage, API-issued upload intents, signed/authenticated delivery, verified profile limits, image normalization, and quarantined supporting files            |
-| Dice                 | Restricted server-authoritative evaluation with injected cryptographic randomness and exact per-die evidence; lazy Three/Fiber/Rapier presentation on web                     |
-| VTT                  | Platform-neutral scene model; PixiJS on web and initially in an Expo DOM host; React Native Skia only if the benchmark gate fails                                             |
-| Web payments         | Stripe Billing for Artificer subscriptions; Stripe Connect for creator and professional-GM money movement                                                                     |
-| Native subscriptions | StoreKit and Google Play Billing through RevenueCat after plan and store-policy approval                                                                                      |
-| Tests                | Vitest for shared/packages, existing web tests and Playwright, `jest-expo`/React Native Testing Library, Maestro on EAS                                                       |
+| Media and files      | Private Supabase Storage, API-issued upload intents, signed/authenticated delivery, verified profile limits, image normalization, and quarantined supporting files                    |
+| Dice                 | Restricted server-authoritative evaluation with injected cryptographic randomness and exact per-die evidence; lazy Three/Fiber/Rapier presentation on web                             |
+| VTT                  | Platform-neutral scene model; PixiJS on web and initially in an Expo DOM host; React Native Skia only if the benchmark gate fails                                                     |
+| Web payments         | Stripe Billing for Artificer subscriptions; Stripe Connect for creator and professional-GM money movement                                                                             |
+| Native subscriptions | StoreKit and Google Play Billing through RevenueCat after plan and store-policy approval                                                                                              |
+| Tests                | Vitest for shared/packages, existing web tests and Playwright, `jest-expo`/React Native Testing Library, Maestro on EAS                                                               |
 
 Expo's current guidance supports workspace monorepos, Router-based native navigation, SecureStore, development builds, and EAS profiles. Supabase's React Native guidance requires platform storage and foreground-aware session refresh. Re-check these external contracts when Phase 11 begins because SDK behavior changes: [Expo monorepos](https://docs.expo.dev/guides/monorepos/), [Expo Router](https://docs.expo.dev/router/introduction/), [Supabase React Native Auth](https://supabase.com/docs/guides/auth/quickstarts/react-native).
 
@@ -258,9 +258,9 @@ Exact numeric thresholds are a pre-launch business decision. The behaviors above
 | 03    | [Campaign Core](03-campaign-core.md)                                                       | Entitlements, Campaign lifecycle/content/custody, GM authority, two-room chat/rolls, notes, and private Realtime work on web |
 | 04    | [Social Hub](04-social-hub.md)                                                             | Users 13 and older can privately invite or publicly discover, apply to, moderate, and form free tables                       |
 | 05    | [Notifications and delivery](05-notifications-and-delivery.md)                             | Supabase-backed in-app/email delivery, preferences, secure deep links, grouping, and retryable source intents work on web    |
-| 06    | [Live Campaign play](06-live-campaign-play.md)                                             | **Complete:** Session prep/play/closeout, references, vehicles, files, clock, settings, and announcements work on web          |
+| 06    | [Live Campaign play](06-live-campaign-play.md)                                             | **Complete:** Session prep/play/closeout, references, vehicles, files, clock, settings, and announcements work on web        |
 | 07    | [Encounters](07-encounters.md)                                                             | Campaign-owned Encounters provide authoritative GM-run combat and enemy action rolls for one-shot and ongoing play on web    |
-| 08    | [Web VTT](08-vtt.md) / [fixed acceptance](08-vtt-acceptance.md)                             | Shared rules runtime plus one Encounter-backed VTT completes authoritative, accessible web play                              |
+| 08    | [Web VTT](08-vtt.md) / [fixed acceptance](08-vtt-acceptance.md)                            | Shared rules runtime plus one Encounter-backed VTT completes authoritative, accessible web play                              |
 | 09    | [Plans and entitlements](09-entitlements-and-subscriptions.md)                             | Phase 03 limits gain Stripe web subscriptions and remaining capability enforcement                                           |
 | 10    | [Paid tables](10-paid-tables.md)                                                           | Approved paid-table checkout, capacity, payouts, refunds, and plan-based fees work on web                                    |
 | 11    | [Native foundation and parity](11-cross-platform-foundation.md)                            | After web viability, iOS and Android provide first-class play journeys against the proven contracts                          |

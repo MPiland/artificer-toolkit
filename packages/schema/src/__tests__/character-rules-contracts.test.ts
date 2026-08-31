@@ -634,6 +634,53 @@ describe('Character rule contracts', () => {
       }).success
     ).toBe(false)
 
+    expect(output.rollContributorEvidence).toEqual({
+      initiative: [],
+      abilityChecks: {
+        STRENGTH: [],
+        DEXTERITY: [],
+        CONSTITUTION: [],
+        INTELLIGENCE: [],
+        WISDOM: [],
+        CHARISMA: []
+      },
+      savingThrows: {
+        STRENGTH: [],
+        DEXTERITY: [],
+        CONSTITUTION: [],
+        INTELLIGENCE: [],
+        WISDOM: [],
+        CHARISMA: []
+      },
+      skillChecks: {},
+      attacks: { MELEE: [], RANGED: [], SPELL: [], UNARMED: [] }
+    })
+    const contributor = {
+      sourceId: 'feature-1',
+      source: { kind: 'MANUAL_ADJUSTMENT' as const, adjustmentId: 'adjustment-1' },
+      grantId: 'grant-1',
+      domainKey: 'INITIATIVE:ADVANTAGE',
+      influence: 'ADVANTAGE' as const
+    }
+    expect(
+      characterRulePolicyOutputSchema.safeParse({
+        ...output,
+        rollContributorEvidence: {
+          ...output.rollContributorEvidence,
+          initiative: Array.from({ length: 501 }, () => contributor)
+        }
+      }).success
+    ).toBe(false)
+    expect(
+      characterRulePolicyOutputSchema.safeParse({
+        ...output,
+        rollContributorEvidence: {
+          ...output.rollContributorEvidence,
+          initiative: [{ ...contributor, influence: 'NORMAL' }]
+        }
+      }).success
+    ).toBe(false)
+
     const outputWithClosedCodes = {
       ...output,
       proficiencies: [
@@ -658,7 +705,7 @@ describe('Character rule contracts', () => {
       },
       senses: [
         {
-          senseCode: 'DARKVISION',
+          senseDefinitionId: '00000000-0000-4000-8000-000000000010',
           range: {
             id: 'darkvision',
             amount: 60,

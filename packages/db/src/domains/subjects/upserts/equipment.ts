@@ -18,6 +18,7 @@ import { normalizeSubjectStatus } from '../status.js'
 type EquipmentRow = {
   id: string
   system_id: string
+  content_source_id: string
   user_id: string
   label: string
   description: string | null
@@ -117,7 +118,7 @@ function requireProperty(
   return value as BaseEquipmentAuthored['properties'][number]
 }
 
-function mapEquipmentRow(json_data: EquipmentAuthored): EquipmentRow {
+function mapEquipmentRow(json_data: EquipmentAuthored, contentSourceId: string): EquipmentRow {
   const weightAmount = isBaseEquipment(json_data) ? (json_data.weight?.amount ?? null) : null
   const weightUnit =
     isBaseEquipment(json_data) && json_data.weight
@@ -134,6 +135,7 @@ function mapEquipmentRow(json_data: EquipmentAuthored): EquipmentRow {
   return {
     id: json_data.id,
     system_id: json_data.systemId,
+    content_source_id: contentSourceId,
     user_id: json_data.userId,
     label: json_data.label,
     description: json_data.description,
@@ -157,7 +159,12 @@ function mapEquipmentRow(json_data: EquipmentAuthored): EquipmentRow {
   }
 }
 
-export async function upsertEquipment(db: DBLike, json_data: EquipmentAuthored, _systemId: string) {
+export async function upsertEquipment(
+  db: DBLike,
+  json_data: EquipmentAuthored,
+  systemId: string,
+  contentSourceId: string
+) {
   const attributeRows: EquipmentAttributeRow[] = (
     isBaseEquipment(json_data) ? (json_data.attributes ?? []) : []
   ).map((attribute, index) => ({
@@ -219,10 +226,11 @@ export async function upsertEquipment(db: DBLike, json_data: EquipmentAuthored, 
 
     await trx
       .insertInto('equipment')
-      .values(mapEquipmentRow(json_data))
+      .values(mapEquipmentRow(json_data, contentSourceId))
       .onConflict((oc) =>
         oc.column('id').doUpdateSet((eb) => ({
           system_id: eb.ref('excluded.system_id'),
+          content_source_id: eb.ref('equipment.content_source_id'),
           user_id: eb.ref('excluded.user_id'),
           label: eb.ref('excluded.label'),
           description: eb.ref('excluded.description'),
@@ -268,7 +276,7 @@ export async function upsertEquipment(db: DBLike, json_data: EquipmentAuthored, 
     }
 
     for (const effect of authoredEffects) {
-      await upsertEffect(trx, effect)
+      await upsertEffect(trx, effect, systemId)
     }
 
     if (effectRows.length > 0) {

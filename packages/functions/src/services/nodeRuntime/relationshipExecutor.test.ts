@@ -67,6 +67,33 @@ describe('node runtime relationship executor', () => {
     )
   })
 
+  it('resolves System-scoped ability definitions through the trusted picker columns only', async () => {
+    nodeRuntimeQueryMock.rowsByTable.set('ability_definitions', [
+      { id: 'ability-might', label: 'Might' }
+    ])
+
+    const result = streamToOptions(
+      await executeRelationshipPlan(
+        dbMock,
+        {
+          kind: 'TABLE',
+          table: 'ability_definitions',
+          selectColumns: ['id', 'label']
+        },
+        { systemId: 'system-a', values: {} }
+      )
+    )
+
+    expect(result).toEqual([{ value: 'ability-might', label: 'Might', description: undefined }])
+    expect(nodeRuntimeQueryMock.selectNodeRuntimeRows).toHaveBeenCalledWith(
+      dbMock,
+      'ability_definitions',
+      ['id', 'label'],
+      undefined,
+      'system-a'
+    )
+  })
+
   it('preserves implicit option fields without selecting whole rows', async () => {
     nodeRuntimeQueryMock.rowsByTable.set('currencies', [
       {
@@ -291,7 +318,12 @@ describe('node runtime relationship executor', () => {
       dbMock,
       'equipment_properties',
       ['property_code', 'equipment_id'],
-      { kind: 'PREDICATE', column: 'property_code', op: 'IN', values: ['FINESSE'] },
+      {
+        kind: 'PREDICATE',
+        column: 'property_code',
+        op: 'IN',
+        values: ['FINESSE']
+      },
       'dnd5e2014'
     )
     expect(nodeRuntimeQueryMock.selectNodeRuntimeRows).toHaveBeenNthCalledWith(
@@ -326,7 +358,12 @@ describe('node runtime relationship executor', () => {
             kind: 'TABLE',
             table: 'equipment',
             selectColumns: ['id', 'label'],
-            where: { kind: 'PREDICATE', column: 'category', op: '=', value: 'WEAPON' }
+            where: {
+              kind: 'PREDICATE',
+              column: 'category',
+              op: '=',
+              value: 'WEAPON'
+            }
           }
         }
       ],
@@ -374,7 +411,12 @@ describe('node runtime relationship executor', () => {
                   whereColumn: 'id',
                   valueColumn: 'id',
                   selectColumns: ['id', 'label'],
-                  where: { kind: 'PREDICATE', column: 'category', op: '=', value: 'WEAPON' }
+                  where: {
+                    kind: 'PREDICATE',
+                    column: 'category',
+                    op: '=',
+                    value: 'WEAPON'
+                  }
                 }
               ]
             },
@@ -388,7 +430,12 @@ describe('node runtime relationship executor', () => {
                   whereColumn: 'id',
                   valueColumn: 'id',
                   selectColumns: ['id', 'label'],
-                  where: { kind: 'PREDICATE', column: 'category', op: '=', value: 'ARMOR' }
+                  where: {
+                    kind: 'PREDICATE',
+                    column: 'category',
+                    op: '=',
+                    value: 'ARMOR'
+                  }
                 }
               ]
             }
@@ -425,6 +472,18 @@ describe('node runtime relationship executor', () => {
 
     await expect(executeRelationshipPlan(dbMock, plan, { values: {} })).rejects.toThrow(
       'Untrusted node runtime column for classes: skill_id'
+    )
+  })
+
+  it('rejects undeclared ability definition columns', async () => {
+    const plan = {
+      kind: 'TABLE',
+      table: 'ability_definitions',
+      selectColumns: ['code']
+    } as unknown as RelationshipPlan
+
+    await expect(executeRelationshipPlan(dbMock, plan, { values: {} })).rejects.toThrow(
+      'Untrusted node runtime column for ability_definitions: code'
     )
   })
 })

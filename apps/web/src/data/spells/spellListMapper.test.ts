@@ -53,10 +53,7 @@ const response: SpellListResponseDto = {
   meta: {
     classes: [{ id: 'class-wizard', label: 'Wizard' }],
     schools: [{ id: 'school-evocation', label: 'Evocation' }],
-    levels: [
-      { id: 1 },
-      { id: 3 }
-    ]
+    levels: [{ id: 1 }, { id: 3 }]
   },
   page: { nextCursor: null, previousCursor: null, totalCount: 2 },
   summary: { activeCount: 2, masterCount: 1, ownedCount: 1 }

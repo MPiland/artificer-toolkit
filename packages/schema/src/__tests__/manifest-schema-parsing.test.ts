@@ -91,7 +91,7 @@ describe('manifest schema parsing', () => {
       magicSchoolId: 'evocation',
       effects: [
         {
-          id: 'arcane-sword-effect',
+          id: '00000000-0000-4000-8000-0000000000f1',
           order: 1,
           invocation: {
             triggerCode: 'ACTIVATED',
@@ -117,7 +117,7 @@ describe('manifest schema parsing', () => {
                 manifestKind: 'WEAPON',
                 behaviors: [
                   {
-                    id: 'arcane-sword-attack',
+                    id: '00000000-0000-4000-8000-0000000000f2',
                     order: 1,
                     invocation: {
                       triggerCode: 'SPELL_ATTACK',
@@ -180,6 +180,60 @@ describe('manifest schema parsing', () => {
     })
   })
 
+  it('rejects an incomplete cylinder in a manifest-owned nested behavior', () => {
+    expect(
+      effectDtoSchema.safeParse({
+        id: '00000000-0000-4000-8000-0000000000f8',
+        order: 1,
+        invocation: {
+          triggerCode: 'ACTIVATED',
+          activation: { code: 'ACTION', amount: 1 },
+          range: { id: 'outer-cylinder-range', rangeKind: 'SELF' }
+        },
+        paths: [
+          fixedPath(
+            'outer-cylinder-path',
+            1,
+            'ON_USE',
+            singleResultBlock('outer-cylinder-result', {
+              id: 'outer-cylinder-manifest',
+              effectKind: 'MANIFEST',
+              manifestKind: 'WEAPON',
+              behaviors: [
+                {
+                  id: '00000000-0000-4000-8000-0000000000f9',
+                  order: 1,
+                  invocation: {
+                    triggerCode: 'ACTIVATED',
+                    activation: { code: 'ACTION', amount: 1 },
+                    range: { id: 'nested-cylinder-range', rangeKind: 'SELF' },
+                    shape: {
+                      id: 'nested-cylinder-shape',
+                      shapeKind: 'CYLINDER',
+                      radius: { amount: 5, unit: 'FEET' }
+                    }
+                  },
+                  paths: [
+                    fixedPath(
+                      'nested-cylinder-path',
+                      1,
+                      'ON_USE',
+                      singleResultBlock('nested-cylinder-result', {
+                        id: 'nested-cylinder-outcome',
+                        effectKind: 'CONDITION',
+                        conditionId: 'nested-cylinder-condition'
+                      })
+                    )
+                  ]
+                }
+              ]
+            })
+          )
+        ]
+      }).success
+    ).toBe(false)
+  })
+
   it('rejects manifest-owned nested behaviors that try to manifest again', () => {
     expect(() =>
       spellAuthoredDtoSchema.parse({
@@ -196,7 +250,7 @@ describe('manifest schema parsing', () => {
         magicSchoolId: 'conjuration',
         effects: [
           {
-            id: 'outer-effect',
+            id: '00000000-0000-4000-8000-0000000000f3',
             order: 1,
             invocation: {
               triggerCode: 'ACTIVATED',
@@ -222,7 +276,7 @@ describe('manifest schema parsing', () => {
                   manifestKind: 'SUMMON',
                   behaviors: [
                     {
-                      id: 'nested-effect',
+                      id: '00000000-0000-4000-8000-0000000000f4',
                       order: 1,
                       invocation: {
                         triggerCode: 'ACTIVATED',
@@ -262,7 +316,7 @@ describe('manifest schema parsing', () => {
 
   it('strips roll-table row labels and descriptions', () => {
     const parsed = effectDtoSchema.parse({
-      id: 'bad-roll-table-metadata',
+      id: '00000000-0000-4000-8000-0000000000f5',
       order: 1,
       invocation: {
         triggerCode: 'ACTIVATED',
@@ -306,7 +360,7 @@ describe('manifest schema parsing', () => {
 
   it('strips creature manifest inline behaviors', () => {
     const parsed = effectDtoSchema.parse({
-      id: 'bad-creature-manifest',
+      id: '00000000-0000-4000-8000-0000000000f6',
       order: 1,
       invocation: {
         triggerCode: 'ACTIVATED',
@@ -349,7 +403,7 @@ describe('manifest schema parsing', () => {
 
   it('parses summon manifests with authored stat block data', () => {
     const parsed = effectDtoSchema.parse({
-      id: 'summon-manifest',
+      id: '00000000-0000-4000-8000-0000000000f7',
       order: 1,
       invocation: {
         triggerCode: 'ACTIVATED',

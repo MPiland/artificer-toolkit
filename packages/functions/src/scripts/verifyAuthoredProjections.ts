@@ -65,7 +65,9 @@ async function loadDependencies(
   })
 }
 
-export async function verifyAuthoredProjections(db: DBLike): Promise<Record<AuthoredSubjectKind, number>> {
+export async function verifyAuthoredProjections(
+  db: DBLike
+): Promise<Record<AuthoredSubjectKind, number>> {
   const repository = createAuthoredVersionRepository(db)
   const counts = {} as Record<AuthoredSubjectKind, number>
   for (const subjectKind of subjectKinds) {

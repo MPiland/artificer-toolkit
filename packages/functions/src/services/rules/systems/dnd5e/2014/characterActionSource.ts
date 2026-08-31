@@ -33,6 +33,11 @@ export const handler = async (input) => {
     return multiplied;
   };
   const canonicalAbility = (value) => abilityAliases[value] || null;
+  const abilityFromDefinitionId = (abilityDefinitionId) => {
+    const matches = input.abilityDefinitions.filter((definition) => definition.id === abilityDefinitionId);
+    if (matches.length !== 1) return null;
+    return canonicalAbility(matches[0].code);
+  };
   const abilityModifier = (value, spellcasting = input.spellcasting) => {
     if (value === 'SPELLCASTING') {
       if (spellcasting == null || spellcasting.attackBonus == null) return null;
@@ -46,6 +51,45 @@ export const handler = async (input) => {
   const skillTotal = (skillId) => {
     const match = input.skills.find((skill) => skill.skillId === skillId);
     return match == null ? null : match.total;
+  };
+  const proficiencyMultiplier = (scaling) => scaling === 'DOUBLE' ? 2 : scaling === 'FULL' ? 1 : 0.5;
+  const attackProficiencyMultiplier = (candidate, attackDomain) => {
+    if (attackDomain === 'UNARMED') return 1;
+    if (candidate.equipment == null || candidate.equipment.equipmentId == null) return 0;
+    const matching = input.proficiencies.filter((proficiency) =>
+      (proficiency.kind === 'EQUIPMENT' && proficiency.subjectId === candidate.equipment.equipmentId) ||
+      (proficiency.kind === 'EQUIPMENT_PROPERTY' &&
+        (proficiency.category == null || proficiency.category === candidate.equipment.category) &&
+        (candidate.equipment.properties || []).includes(proficiency.subjectId))
+    );
+    return matching.reduce((maximum, proficiency) => Math.max(maximum, proficiencyMultiplier(proficiency.scaling)), 0);
+  };
+  const sourceModifierValues = (candidate, attackDomain, modifierKinds) => {
+    const domainKeys = modifierKinds.map((modifierKind) =>
+      'ATTACK_ROLL:' + modifierKind + '|attackDomain=' + attackDomain
+    );
+    return input.modifierGroups
+      .filter((group) => domainKeys.includes(group.domainKey))
+      .flatMap((group) => group.contributions)
+      .filter((contribution) => contribution.sourceId === candidate.sourceId && contribution.state === 'APPLIED')
+      .map((contribution) => contribution.value);
+  };
+  const sourceModifierTotal = (candidate, attackDomain, modifierKinds) =>
+    sourceModifierValues(candidate, attackDomain, modifierKinds).reduce((sum, value) => sum + value, 0);
+  const itemAttackAdjustment = (candidate) => candidate.equipment == null
+    ? null
+    : input.itemAttackAdjustments.find((adjustment) => adjustment.itemInstanceId === candidate.equipment.itemInstanceId) || null;
+  const resolveAttackBonus = (candidate, attackDomain, spellcasting) => {
+    if (attackDomain == null) return null;
+    if (attackDomain === 'SPELL') return spellcasting == null ? null : spellcasting.attackBonus;
+    const abilityValues = sourceModifierValues(candidate, attackDomain, ['ABILITY_MODIFIER_BONUS', 'OPTIONAL_ABILITY_MODIFIER_BONUS']);
+    if (abilityValues.length === 0) return null;
+    const abilityBonus = abilityValues.reduce((sum, value) => sum + value, 0);
+    const adjustment = itemAttackAdjustment(candidate);
+    if (adjustment != null && adjustment.override != null) return adjustment.override;
+    const proficiency = Math.floor(input.proficiencyBonus * attackProficiencyMultiplier(candidate, attackDomain));
+    const sourceBonus = sourceModifierTotal(candidate, attackDomain, ['BONUS', 'PENALTY']);
+    return abilityBonus + proficiency + sourceBonus + (adjustment == null ? 0 : adjustment.bonus);
   };
   const classLevel = (classId) => {
     const match = input.classLevels.find((entry) => entry.classId === classId);
@@ -122,7 +166,7 @@ export const handler = async (input) => {
   };
   const resolveSave = (savingThrow, spellcasting) => {
     if (savingThrow == null) return null;
-    const ability = canonicalAbility(savingThrow.ability);
+    const ability = abilityFromDefinitionId(savingThrow.abilityDefinitionId);
     if (ability == null) return null;
     if (savingThrow.dcMethod === 'SOURCE_SAVE_DC') {
       return { ability, dc: spellcasting == null ? null : spellcasting.saveDc };
@@ -131,7 +175,8 @@ export const handler = async (input) => {
     const bonuses = savingThrow.bonuses.map((bonus) => {
       if (bonus.bonusKind === 'STATIC_BONUS') return bonus.amount;
       if (bonus.bonusKind === 'PROFICIENCY_BONUS') return input.proficiencyBonus;
-      return abilityModifier(bonus.ability, spellcasting);
+      const bonusAbility = abilityFromDefinitionId(bonus.abilityDefinitionId);
+      return bonusAbility == null ? null : abilityModifier(bonusAbility, spellcasting);
     });
     return bonuses.some((bonus) => bonus == null)
       ? { ability, dc: null }
@@ -152,7 +197,7 @@ export const handler = async (input) => {
       trigger: invocation.triggerCode,
       activation: invocation.activation != null && invocation.activation.amount != null && Number.isInteger(invocation.activation.amount) && invocation.activation.amount > 0 ? { kind: invocation.activation.code, amount: invocation.activation.amount } : null,
       rangeLabel: rangeLabel(invocation.range),
-      attackBonus: attackDomain === 'SPELL' && context.spellcasting != null ? context.spellcasting.attackBonus : null,
+      attackBonus: resolveAttackBonus(candidate, attackDomain, context.spellcasting),
       attackRollMode: attackDomain == null ? null : input.attackRollModes[attackDomain],
       save: resolveSave(invocation.savingThrow, context.spellcasting),
       outcomes: facts.outcomes.map((outcome) => outcome.kind === 'DAMAGE' ? resolveDamage(outcome, context) : outcome.kind === 'HEAL' ? resolveHeal(outcome, context) : outcome.kind === 'CONDITION' ? outcome : outcome)

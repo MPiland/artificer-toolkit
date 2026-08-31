@@ -27,7 +27,10 @@ import {
   retainCharacterCommittedSheetRuleSources
 } from './characterCommittedSheetSources.js'
 import { resolveCharacterBuilder } from './builderService.js'
-import { compileCharacterMechanicsProjection } from './characterMechanicsCompiler.js'
+import {
+  carryPinnedCharacterSenseDefinitions,
+  compileCharacterMechanicsProjection
+} from './characterMechanicsCompiler.js'
 import { evaluateCharacterRulePolicy } from './characterRuleEvaluation.js'
 
 export type CharacterStructuralReconciliationResult =
@@ -117,7 +120,10 @@ async function persistDraftReconciliation(input: {
   sourceLossTargets: readonly CharacterSourceLossTarget[]
 }): Promise<CharacterStructuralReconciliationResult> {
   const characters = createCharacterRepository(input.db)
-  const character = { ...input.character, status: AUTHORED_RECORD_STATUS.DRAFT }
+  const character = {
+    ...input.character,
+    status: AUTHORED_RECORD_STATUS.DRAFT
+  }
   const streamVersion = await characters.upsertAuthored(character, {
     expectedStreamVersion: input.expectedStreamVersion,
     incrementStreamVersion: true,
@@ -141,7 +147,12 @@ async function persistDraftReconciliation(input: {
       baseActiveUpdatedAt: updatedAt
     })
   } else {
-    await saveDraft({ db: input.db, draft: null, character, baseActiveUpdatedAt: updatedAt })
+    await saveDraft({
+      db: input.db,
+      draft: null,
+      character,
+      baseActiveUpdatedAt: updatedAt
+    })
   }
   return { kind: 'DRAFT', character, streamVersion }
 }
@@ -267,6 +278,11 @@ export async function commitCharacterStructuralReconciliation(input: {
       ruleBinding: evaluation.binding,
       rulePolicyInput: evaluation.facts,
       rulePolicyOutput: evaluation.output,
+      pinnedSenseDefinitions: carryPinnedCharacterSenseDefinitions({
+        prior: priorMechanics.pinnedSenseDefinitions,
+        senses: evaluation.output.senses
+      }),
+      compiledActionEntryPoints: evaluation.compiledActionEntryPoints,
       ruleRegistry: evaluation.registry,
       ruleSnapshot: evaluation.snapshot,
       authoredVersionVector: retainedSources.mechanics.authoredVersionVector
@@ -321,7 +337,12 @@ export async function commitCharacterDraftSourceLoss(input: {
       baseActiveUpdatedAt: updatedAt
     })
   } else {
-    await saveDraft({ db: input.db, draft: null, character, baseActiveUpdatedAt: updatedAt })
+    await saveDraft({
+      db: input.db,
+      draft: null,
+      character,
+      baseActiveUpdatedAt: updatedAt
+    })
   }
   return { character, streamVersion }
 }

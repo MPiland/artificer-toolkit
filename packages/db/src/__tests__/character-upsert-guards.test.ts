@@ -34,7 +34,25 @@ vi.mock('kysely', () => ({
       if (lowered.includes('from inventory_currency_balances')) {
         return { rows: [] }
       }
-
+      if (lowered.includes('insert into public.characters')) {
+        await db
+          .insertInto('characters')
+          .values({
+            id: values[0],
+            system_id: values[1],
+            primary_rules_catalogue_id: values[2],
+            user_id: values[3],
+            label: values[4],
+            description: values[5],
+            status: values[6],
+            inspiration: values[7],
+            rule_pack_revision_id: values[8],
+            stream_version: values[9]
+          })
+          .onConflict((builder) => builder.column('id').doUpdateSet({}))
+          .execute()
+        return { rows: [] }
+      }
       if (!queryTable) {
         throw new Error(`Unhandled SQL in test mock: ${statement}`)
       }

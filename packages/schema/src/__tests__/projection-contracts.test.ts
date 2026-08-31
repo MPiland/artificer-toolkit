@@ -5,6 +5,7 @@ import {
   authoredVersionVectorSchema,
   characterMechanicsProjectionSchema,
   campaignCharacterMechanicsProjectionSchema,
+  compiledActionEntryPointsSchema,
   compiledAuthoredProjectionSchema
 } from '../projections/index.js'
 
@@ -152,6 +153,20 @@ describe('versioned projection contracts', () => {
         rulePolicyOutput: {},
         ruleRegistry: {}
       }).success
+    ).toBe(false)
+  })
+
+  it('rejects malformed persisted Character action entry points', () => {
+    expect(
+      compiledActionEntryPointsSchema.safeParse([
+        {
+          schemaVersion: 1,
+          kind: 'CHARACTER_ACTION',
+          actionId: 'action-1',
+          effectId: '00000000-0000-4000-8000-000000000010',
+          compilation: { kind: 'COMPILED', published: { arbitrary: true } }
+        }
+      ]).success
     ).toBe(false)
   })
 })

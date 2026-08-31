@@ -128,11 +128,15 @@ export function useCampaignLiveSession({
             }
           }
         } else if (message.type === 'COMMAND_COMMITTED') {
-          aggregateVersions.current = withLiveSessionAggregateVersion(
-            aggregateVersions.current,
-            message.aggregateKind,
-            message.aggregateId,
-            message.version
+          aggregateVersions.current = message.changedAggregates.reduce(
+            (versions, aggregate) =>
+              withLiveSessionAggregateVersion(
+                versions,
+                aggregate.aggregateKind,
+                aggregate.aggregateId,
+                aggregate.version
+              ),
+            aggregateVersions.current
           )
         }
         if (message.type === 'COMMAND_REJECTED') {
@@ -152,6 +156,39 @@ export function useCampaignLiveSession({
           setPendingEncounterCommandIds((current) =>
             current.filter((commandId) => commandId !== message.originCommandId)
           )
+          const changedCharacterIds = message.changedAggregates.flatMap((aggregate) =>
+            aggregate.aggregateKind === 'CHARACTER' ? [aggregate.aggregateId] : []
+          )
+          for (const characterId of changedCharacterIds) {
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.characters.sheet(characterId)
+            })
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.characters.panels(characterId)
+            })
+            void queryClient.invalidateQueries({
+              queryKey: queryKeys.characters.preparationOptions(characterId)
+            })
+            void queryClient.invalidateQueries({
+              exact: true,
+              queryKey: queryKeys.characters.detail(characterId)
+            })
+          }
+          if (changedCharacterIds.length > 0) {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.characters.list() })
+          }
+          if (
+            message.changedAggregates.some((aggregate) => aggregate.aggregateKind === 'ENCOUNTER')
+          ) {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.list(campaignId) })
+            for (const aggregate of message.changedAggregates) {
+              if (aggregate.aggregateKind === 'ENCOUNTER') {
+                void queryClient.invalidateQueries({
+                  queryKey: queryKeys.encounters.pendingOccurrence(aggregate.aggregateId)
+                })
+              }
+            }
+          }
           if (message.aggregateKind === 'ENCOUNTER') {
             const queryKey = queryKeys.encounters.list(campaignId)
             const knownVersion =
@@ -160,14 +197,17 @@ export function useCampaignLiveSession({
                   candidate.aggregateKind === 'ENCOUNTER' &&
                   candidate.aggregateId === message.aggregateId
               )?.version ?? message.version
-            if (message.response && message.version >= knownVersion) {
+            if (
+              message.response &&
+              'projection' in message.response &&
+              message.version >= knownVersion
+            ) {
+              const projection = message.response.projection
               queryClient.setQueryData<
                 Array<EncounterGmProjectionDto | EncounterPlayerProjectionDto>
               >(queryKey, (current) =>
                 current?.map((encounter) =>
-                  encounter.id === message.response!.projection.id
-                    ? message.response!.projection
-                    : encounter
+                  encounter.id === projection.id ? projection : encounter
                 )
               )
             } else {

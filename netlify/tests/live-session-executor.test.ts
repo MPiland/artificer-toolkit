@@ -64,6 +64,9 @@ function authorizedRequest(body: unknown = input): Request {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.execute.mockReset()
+  mocks.withUserContext.mockReset()
+  mocks.withUserContext.mockImplementation(async (_db, _userId, callback) => callback({}))
   vi.stubEnv('LIVE_SESSION_EXECUTOR_SECRET', secret)
   mocks.execute.mockResolvedValue({ ok: true, operation: 'CLAIM' })
 })
@@ -101,7 +104,9 @@ describe('live-session Netlify executor', () => {
         command: {
           commandId: '00000000-0000-4000-8000-000000000010',
           encounterId: '00000000-0000-4000-8000-000000000011',
+          expectedEncounterVersion: 0,
           expectedSceneVersion: 0,
+          movementKind: 'VOLUNTARY',
           path: [
             { x: 20, y: 20 },
             { x: 25, y: 20 }

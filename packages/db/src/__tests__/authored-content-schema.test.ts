@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { normalizeSql } from './helpers/normalize-sql.js'
 
 const root = process.cwd()
 
 function read(relativePath: string): string {
-  return readFileSync(join(root, relativePath), 'utf8')
+  return normalizeSql(readFileSync(join(root, relativePath), 'utf8'))
 }
 
 const raceSchema = read('packages/db/src/domains/subjects/tables/races.sql')
@@ -133,16 +134,14 @@ describe('authored root reference integrity', () => {
   })
 
   it('keeps spell class references backed by a database foreign key', () => {
-    expect(spellSchema).toMatch(/class_id uuid NOT NULL\s+REFERENCES public\.classes\(id\)/)
+    expect(spellSchema).toMatch(/class_id UUID NOT NULL\s+REFERENCES public\.classes\s*\(id\)/i)
   })
 
   it('keeps the Spell catalogue class index bound to its exact authored version', () => {
     const generatedBundle = read(
       'packages/db/src/domains/bootstrap/generated/create_database.bundle.sql'
     )
-    const migration = read(
-      'supabase/migrations/20260818020000_spell_catalog_class_index.sql'
-    )
+    const migration = read('supabase/migrations/20260818020000_spell_catalog_class_index.sql')
 
     for (const source of [versionedProjectionsSchema, generatedBundle, migration]) {
       expect(source).toContain('CREATE TABLE IF NOT EXISTS public.spell_catalog_classes')
@@ -152,7 +151,9 @@ describe('authored root reference integrity', () => {
       expect(source).toContain('idx_spell_catalog_classes_class')
       expect(source).toContain('ON DELETE NO ACTION DEFERRABLE INITIALLY DEFERRED')
       expect(source).toContain('ALTER TABLE public.spell_catalog_classes ENABLE ROW LEVEL SECURITY')
-      expect(source).toContain('ALTER TABLE public.spell_catalog_index_versions ENABLE ROW LEVEL SECURITY')
+      expect(source).toContain(
+        'ALTER TABLE public.spell_catalog_index_versions ENABLE ROW LEVEL SECURITY'
+      )
     }
   })
 })

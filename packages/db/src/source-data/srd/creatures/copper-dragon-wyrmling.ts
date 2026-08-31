@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const copperDragonWyrmling: CreatureAuthored = {
@@ -102,6 +103,9 @@ export const copperDragonWyrmling: CreatureAuthored = {
     },
     {
       id: S.featureId(70, 3),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(70, 3)),
       label: 'Breath Weapons (Recharge 5-6)',
       description: 'The dragon uses one of the following breath weapons.',
       effects: [
@@ -114,7 +118,7 @@ export const copperDragonWyrmling: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(7951, 6),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.DEXTERITY,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
               baseDc: 11
             },
             activation: {
@@ -183,7 +187,7 @@ export const copperDragonWyrmling: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(7951, 11),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
               baseDc: 11
             },
             activation: {

@@ -196,6 +196,9 @@ export const ettercap: CreatureAuthored = {
     },
     {
       id: S.featureId(99, 7),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(99, 7)),
       label: 'Web (Recharge 5-6)',
       description:
         'Web (Recharge 5-6). Ranged Weapon Attack: +4 to hit, range 30/60 ft., one Large or smaller creature. Hit: The creature is restrained by webbing. As an action, the restrained creature can make a DC 11 Strength check, escaping from the webbing on a success. The effect also ends if the webbing is destroyed. The webbing has AC 10, 5 hit points, vulnerability to fire damage, and immunity to bludgeoning, poison, and psychic damage.',

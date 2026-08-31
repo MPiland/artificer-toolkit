@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   ABILITY_CODE,
@@ -779,7 +780,7 @@ export const fighter: ClassAuthored = {
             activation: { code: ACTIVATION_CODE.FREE },
             savingThrow: {
               id: classRowId(F, 0x72, index + 1),
-              ability,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS[ability],
               dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
             },
             range: {

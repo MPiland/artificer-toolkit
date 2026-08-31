@@ -7,7 +7,6 @@ import type {
   ShapeKind,
   CoreMeta
 } from '#core'
-import type { SenseCode } from '../vocabulary/authored/sense.js'
 import { type EmptyObject, valuesOf } from '#utils'
 
 export const VALUE_DOMAIN_CODE = {
@@ -391,8 +390,8 @@ export type ValueDomainParamByCode = {
   // Set-like: movement modes (fly, swim...). Treat as per-mode set, no param needed.
   MOVEMENT_MODE: EmptyObject
 
-  // Sense range is per sense type
-  SENSE_RANGE: { senseCode: SenseCode }
+  // Sense range is per UUID-backed sense definition.
+  SENSE_RANGE: { senseDefinitionId: string }
 
   /* ──────────────────────────────────────────────
    * DAMAGE (parameterized by “attack domain” for sheet-style bonuses)

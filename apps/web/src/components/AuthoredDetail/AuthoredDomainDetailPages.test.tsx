@@ -125,6 +125,7 @@ function draft(payload: Record<string, unknown>): AuthoredDraftDto {
 
 const spellReferences = {
   systemId: 'system-5e',
+  abilities: [{ value: 'ability-dexterity', label: 'Dexterity' }],
   magicSchools: [{ value: '00000000-0000-0000-0007-000200000000', label: 'Conjuration' }],
   classes: [{ value: '00000000-0000-0000-0010-000c00000000', label: 'Wizard' }],
   damageTypes: [{ value: 'damage-acid', label: 'Acid' }],

@@ -1,5 +1,6 @@
-import type { EffectDto, PathDto, TargetingDto } from '@artificer-toolkit/schema/effects'
+import type { EffectDto, TargetingDto } from '@artificer-toolkit/schema/effects'
 import type { RangeDto } from '@artificer-toolkit/schema/shared/range'
+import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import type {
   NodeRuntimeArrayGroupNodeDto,
   NodeRuntimeGroupNodeDto,
@@ -580,8 +581,8 @@ export function createDefaultEffect(order: number): EffectDto {
 
 export function createDefaultPath(
   order: number,
-  pathCode: PathDto['pathCode'] = 'ON_USE'
-): PathDto {
+  pathCode: EffectAuthored['paths'][number]['pathCode'] = 'ON_USE'
+): EffectAuthored['paths'][number] {
   return {
     id: crypto.randomUUID(),
     order,
@@ -593,7 +594,7 @@ export function createDefaultPath(
       resultKind: 'SINGLE',
       outcomes: []
     }
-  } as PathDto
+  }
 }
 
 export function createRange(rangeKind = 'SELF', amount = 30): RangeDto {

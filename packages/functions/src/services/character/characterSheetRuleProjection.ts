@@ -43,7 +43,7 @@ export interface CharacterRuleProficiency {
 }
 
 export interface CharacterRuleSense {
-  senseCode: string
+  senseDefinitionId: string
   range?: CompiledRange
 }
 

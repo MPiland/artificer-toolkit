@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const steamMephit: CreatureAuthored = {
@@ -148,6 +149,9 @@ export const steamMephit: CreatureAuthored = {
     },
     {
       id: S.featureId(262, 4),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_6_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(262, 4)),
       label: 'Steam Breath (Recharge 6)',
       description:
         'Steam Breath (Recharge 6). The mephit exhales a 15-foot cone of scalding steam. Each creature in that area must succeed on a DC 10 Dexterity saving throw, taking 4 (1d8) fire damage on a failed save, or half as much damage on a successful one.',
@@ -161,7 +165,7 @@ export const steamMephit: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(262, 6),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.DEXTERITY,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
               baseDc: 10
             },
             activation: {

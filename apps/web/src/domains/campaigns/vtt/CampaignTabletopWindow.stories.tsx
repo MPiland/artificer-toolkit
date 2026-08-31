@@ -143,6 +143,7 @@ export const PlayerWindow: Story = {
     await expect(controls.getByText('Focus Ember')).toBeVisible()
     await expect(controls.getByText(/Remove Vault span/)).toBeVisible()
     await expect(controls.getByText('No doors')).toBeVisible()
+    await expect(page.queryByText('Vault Warden')).not.toBeInTheDocument()
     await expect(page.queryByText('Reveal entire map')).not.toBeInTheDocument()
     await expect(page.queryByRole('button', { name: 'Edit objects' })).not.toBeInTheDocument()
   }
@@ -195,17 +196,34 @@ function StoryLiveSessionTransport({
             role: 'PLAYER',
             userId: tabletopCurrentUserId
           })
+    const encounter = role === 'OWNER' ? tabletopGmEncounter : tabletopPlayerEncounter
+    const actorTokenBindings = [
+      {
+        actorId: tabletopGmEncounter.actors[0]!.id,
+        tokenId: tabletopLiveScene.tokens[0]!.id
+      },
+      {
+        actorId: tabletopGmEncounter.actors[1]!.id,
+        tokenId: tabletopLiveScene.tokens[1]!.id
+      }
+    ].filter((binding) => scene.tokens.some((token) => token.id === binding.tokenId))
     const readyMessage = {
       aggregateVersions: [
         {
-          aggregateId: tabletopGmEncounter.id,
+          aggregateId: encounter.id,
           aggregateKind: 'ENCOUNTER',
-          version: tabletopGmEncounter.version
+          version: encounter.version
         },
         { aggregateId: scene.id, aggregateKind: 'SCENE', version: scene.version }
       ],
       campaignId: tabletopCampaignId,
       deliverySequence: 0,
+      encounterActorTokenBindings: actorTokenBindings.map((binding) => ({
+        ...binding,
+        encounterId: encounter.id,
+        sceneId: scene.id
+      })),
+      encounterSceneBindings: [{ encounterId: encounter.id, sceneId: scene.id }],
       sceneSnapshots: [{ campaignId: tabletopCampaignId, scene, sessionId: tabletopSession.id }],
       sessionId: tabletopSession.id,
       type: 'READY'

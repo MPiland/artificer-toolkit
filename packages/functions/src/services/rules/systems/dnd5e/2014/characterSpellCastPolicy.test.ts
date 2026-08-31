@@ -41,6 +41,7 @@ function policyFacts(overrides: Partial<CharacterRulePolicyInput> = {}): Charact
     eligibilityFacets: [],
     rest: { totalHitDice: 0, currentExhaustion: 0, attunementSlotOverride: null },
     ...overrides,
+    abilityDefinitions: overrides.abilityDefinitions ?? [],
     spellActionFacts,
     spellMechanicsFacts: overrides.spellMechanicsFacts ?? { snapshotSources: [], adjustments: [] },
     itemMechanicsFacts: overrides.itemMechanicsFacts ?? { items: [], adjustments: [] },
@@ -120,13 +121,14 @@ describe('D&D 5e 2014 Character spell cast policy', () => {
             spellId: 'fire-spell',
             effects: [
               {
-                effectId: 'fire-effect',
+                effectId: '00000000-0000-4000-8000-0000000000c3',
                 mechanicFacts: {
                   invocation: {
                     triggerCode: 'SPELL_ATTACK',
                     activation: { code: 'ACTION', amount: 1 },
                     range: { rangeKind: 'DISTANCE', amount: 120, unit: 'FEET' },
-                    savingThrow: null
+                    savingThrow: null,
+                    reactionMovementTrigger: null
                   },
                   outcomes: [
                     {

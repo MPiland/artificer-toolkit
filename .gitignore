@@ -16,12 +16,15 @@ storybook-static/
 
 # Local tool state and generated test artifacts
 .codex/
+.corepack/
+.impeccable/review/
 /artifacts/
 .yarn/install-state.gz
 .turbo/
 .cache/
 apps/*/.cache/
 apps/*/.netlify/
+apps/session-worker/.wrangler/
 test-results/
 playwright-report/
 .playwright-cli/
@@ -33,6 +36,7 @@ tmp/
 apps/*/.impeccable/live/*.json
 apps/web/.tanstack/tmp/
 supabase/.temp/
+/codex/validation/
 
 # Editor directories and files
 .vscode/*
@@ -53,5 +57,8 @@ supabase/.temp/
 
 !jest.config.js
 *.d.ts
+packages/db/src/source-data/**/*.d.ts.map
+packages/db/src/source-data/**/*.js
+packages/db/src/source-data/**/*.js.map
 
 *storybook.log

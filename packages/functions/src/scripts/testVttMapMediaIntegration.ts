@@ -99,6 +99,7 @@ function resolveTusEndpoint(supabaseUrl: string): string {
 function createSceneInput(campaignId: string, assetId: string): CreateSceneDefinitionInputDto {
   return {
     annotations: [],
+    ambientIllumination: 'BRIGHT',
     barriers: [],
     campaignId,
     darknessZones: [],
@@ -313,6 +314,8 @@ async function main(): Promise<void> {
 
     const campaign = await createCampaign(db, userId, {
       contentMaturity: 'STANDARD',
+      gameSystemId: '00000000-0000-0000-0000-000000000001',
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       format: 'ONGOING',
       name: 'VTT map media integration',
       toneTags: ['HEROIC']

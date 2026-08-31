@@ -11,6 +11,8 @@
     "start": "node dist/index.js",
     "test": "yarn --cwd ../.. vitest run --config vitest.config.ts apps/session-host/src",
     "test:local": "tsx integration/localPlay.ts",
+    "proof:catalogue-content-source:local": "tsx integration/runCampaignCatalogueContentSourcePostgresProof.ts",
+    "proof:encounter-blueprint:local": "tsx integration/runEncounterBlueprintPostgresProof.ts",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "typecheck:integration": "tsc -p tsconfig.integration.json"
   },

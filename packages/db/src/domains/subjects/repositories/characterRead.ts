@@ -14,6 +14,7 @@ import { hydrateSubjectStatus } from '../status.js'
 export interface CharacterRow {
   id: string
   system_id: string
+  primary_rules_catalogue_id: string
   user_id: string
   label: string
   description: string | null
@@ -1145,6 +1146,7 @@ async function hydrateCharacterAuthoredById(
       vehicleEquipment: Object.keys(vehicleEquipment).length > 0 ? vehicleEquipment : undefined
     },
     systemId: row.system_id,
+    primaryRulesCatalogueId: String(row.primary_rules_catalogue_id),
     userId: row.user_id
   }
 }

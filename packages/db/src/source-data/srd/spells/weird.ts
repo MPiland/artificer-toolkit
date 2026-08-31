@@ -1,6 +1,6 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
-  ABILITY_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
@@ -49,7 +49,7 @@ export const weird: SpellAuthored = {
         savingThrow: {
           id: spellChildId(SPELL_IDS.WEIRD, 0x211, 1),
           dcMethod: 'SOURCE_SAVE_DC',
-          ability: ABILITY_CODE.WISDOM
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
         },
         activation: {
           code: ACTIVATION_CODE.ACTION,
@@ -95,7 +95,7 @@ export const weird: SpellAuthored = {
                 savingThrow: {
                   id: spellChildId(SPELL_IDS.WEIRD, 0x217, 1),
                   dcMethod: 'SOURCE_SAVE_DC' as const,
-                  ability: ABILITY_CODE.WISDOM
+                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
                 },
                 attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
                 onSuccess: { kind: 'END' as const },

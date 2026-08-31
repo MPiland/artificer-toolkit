@@ -1,5 +1,5 @@
 import type {
-  EncounterSceneState,
+  CampaignSceneState,
   SceneAnnotation,
   SceneAtomicDelta,
   SceneBarrier,
@@ -23,11 +23,27 @@ import type {
 import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt'
 import { z } from 'zod'
 
+import { encounterRuleOccurrenceSummaryDtoSchema } from './encounters.js'
+import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/rulesExecution.js'
+import { spatialMovementKindDtoSchema } from '../shared/spatialFacts.js'
+import {
+  combatPerceptionIlluminationDtoSchema,
+  combatPerceptionObscurementDtoSchema
+} from '../shared/combatPerception.js'
+
 const uuidSchema = z.string().uuid()
 const versionSchema = z.number().int().nonnegative()
 const definitionVersionSchema = z.number().int().positive()
-const coordinateSchema = z.number().finite().min(-1_000_000).max(1_000_000)
-const positiveDistanceSchema = z.number().finite().positive().max(1_000_000)
+const coordinateSchema = z
+  .number()
+  .finite()
+  .min(-VTT_SCENE_LIMITS.coordinateMagnitude)
+  .max(VTT_SCENE_LIMITS.coordinateMagnitude)
+const positiveDistanceSchema = z
+  .number()
+  .finite()
+  .positive()
+  .max(VTT_SCENE_LIMITS.coordinateMagnitude)
 const degreesSchema = z.number().finite().min(0).lt(360)
 
 function uniqueIds<T extends { id: string }>(
@@ -94,7 +110,6 @@ export const sceneTokenVisionDtoSchema: z.ZodType<SceneTokenVision> = z.strictOb
 
 export const sceneTokenDtoSchema: z.ZodType<SceneToken> = z
   .strictObject({
-    actorId: uuidSchema.nullable(),
     assetId: uuidSchema.nullable(),
     controlledByUserIds: z.array(uuidSchema).max(100),
     height: positiveDistanceSchema,
@@ -187,6 +202,8 @@ export const sceneLightDtoSchema: z.ZodType<SceneLight> = z.discriminatedUnion('
 
 export const sceneDarknessZoneDtoSchema: z.ZodType<SceneDarknessZone> = z.strictObject({
   id: uuidSchema,
+  mechanicalIllumination: combatPerceptionIlluminationDtoSchema.exclude(['BRIGHT']).nullable(),
+  mechanicalObscurement: combatPerceptionObscurementDtoSchema.exclude(['NONE']).nullable(),
   opacity: z.number().finite().min(0).max(1),
   polygon: scenePolygonDtoSchema
 })
@@ -200,6 +217,7 @@ export const sceneAnnotationDtoSchema: z.ZodType<SceneAnnotation> = z.strictObje
 
 const sceneDefinitionObject = z.strictObject({
   annotations: z.array(sceneAnnotationDtoSchema).max(VTT_SCENE_LIMITS.annotations),
+  ambientIllumination: combatPerceptionIlluminationDtoSchema,
   barriers: z.array(sceneBarrierDtoSchema).max(VTT_SCENE_LIMITS.barriers),
   campaignId: uuidSchema,
   darknessZones: z.array(sceneDarknessZoneDtoSchema).max(VTT_SCENE_LIMITS.darknessZones),
@@ -295,7 +313,7 @@ export const sceneMeasurementDtoSchema: z.ZodType<SceneMeasurement> = z.strictOb
   path: z.array(scenePointDtoSchema).min(2).max(VTT_SCENE_LIMITS.transientPathPoints)
 })
 
-const encounterSceneStateObject = sceneDefinitionObject
+const campaignSceneStateObject = sceneDefinitionObject
   .omit({
     id: true,
     version: true
@@ -304,14 +322,13 @@ const encounterSceneStateObject = sceneDefinitionObject
     definitionId: uuidSchema,
     definitionVersion: definitionVersionSchema,
     doorStates: z.record(uuidSchema, z.enum(['OPEN', 'CLOSED', 'LOCKED'])),
-    encounterId: uuidSchema,
     fogLayers: z.array(sceneFogLayerDtoSchema).max(101),
     id: uuidSchema,
     measurements: z.array(sceneMeasurementDtoSchema).max(VTT_SCENE_LIMITS.measurements),
     version: versionSchema
   })
-export const encounterSceneStateDtoSchema: z.ZodType<EncounterSceneState> =
-  encounterSceneStateObject.superRefine((scene, context) => {
+export const campaignSceneStateDtoSchema: z.ZodType<CampaignSceneState> =
+  campaignSceneStateObject.superRefine((scene, context) => {
     uniqueIds(scene.annotations, context, 'annotations')
     uniqueIds(scene.barriers, context, 'barriers')
     uniqueIds(scene.darknessZones, context, 'darknessZones')
@@ -349,7 +366,18 @@ export const encounterSceneStateDtoSchema: z.ZodType<EncounterSceneState> =
     }
   })
 
+export const campaignLiveSceneSummaryDtoSchema = campaignSceneStateObject.pick({
+  definitionId: true,
+  id: true,
+  name: true,
+  version: true
+})
+
 const sceneAtomicDeltaDtoSchema: z.ZodType<SceneAtomicDelta> = z.discriminatedUnion('kind', [
+  z.strictObject({
+    illumination: combatPerceptionIlluminationDtoSchema,
+    kind: z.literal('AMBIENT_ILLUMINATION_SET')
+  }),
   z.strictObject({ kind: z.literal('TOKEN_UPSERTED'), token: sceneTokenDtoSchema }),
   z.strictObject({ kind: z.literal('TOKEN_REMOVED'), tokenId: uuidSchema }),
   z.strictObject({
@@ -433,7 +461,7 @@ export const sceneEventDtoSchema: z.ZodType<SceneEvent> = z.strictObject({
 
 export const sceneSnapshotDtoSchema: z.ZodType<SceneSnapshot> = z.strictObject({
   campaignId: uuidSchema,
-  scene: encounterSceneStateDtoSchema,
+  scene: campaignSceneStateDtoSchema,
   sessionId: uuidSchema
 })
 
@@ -475,29 +503,114 @@ export const sceneTransientEnvelopeDtoSchema: z.ZodType<SceneTransientEnvelope> 
 
 const sceneCommandBaseDtoSchema = z.strictObject({
   commandId: uuidSchema,
-  encounterId: uuidSchema,
   expectedSceneVersion: versionSchema,
   sceneId: uuidSchema
 })
 
-export const attachEncounterSceneInputDtoSchema = z.strictObject({
+export const bindEncounterToPresentedSceneInputDtoSchema = z.strictObject({
   commandId: uuidSchema,
   encounterId: uuidSchema,
-  sceneDefinitionId: uuidSchema,
-  type: z.literal('ATTACH_SCENE')
+  type: z.literal('BIND_ENCOUNTER_TO_PRESENTED_SCENE')
 })
 
-export const sceneCommandInputDtoSchema = z.discriminatedUnion('type', [
+export const setCampaignLiveScenePresentationInputDtoSchema = z.strictObject({
+  commandId: uuidSchema,
+  expectedPresentationVersion: versionSchema.nullable(),
+  sceneId: uuidSchema.nullable(),
+  sessionId: uuidSchema,
+  type: z.literal('SET_CAMPAIGN_LIVE_SCENE_PRESENTATION')
+})
+
+export const encounterSceneActorTokenBindingDtoSchema = z.strictObject({
+  actorId: uuidSchema,
+  encounterId: uuidSchema,
+  sceneId: uuidSchema,
+  tokenId: uuidSchema
+})
+
+export const setEncounterSceneActorTokenBindingInputDtoSchema = z.strictObject({
+  actorId: uuidSchema,
+  commandId: uuidSchema,
+  encounterId: uuidSchema,
+  expectedEncounterVersion: versionSchema,
+  sceneId: uuidSchema,
+  tokenId: uuidSchema,
+  type: z.literal('SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING')
+})
+
+export const removeEncounterSceneActorTokenBindingInputDtoSchema = z.strictObject({
+  actorId: uuidSchema,
+  commandId: uuidSchema,
+  encounterId: uuidSchema,
+  expectedEncounterVersion: versionSchema,
+  sceneId: uuidSchema,
+  type: z.literal('REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING')
+})
+
+export const LEGACY_VISUAL_ONLY_DARKNESS_REPLAY_KIND = 'VISUAL_ONLY_DARKNESS_V0' as const
+
+const currentSceneDarknessCommandInputDtoSchema = sceneCommandBaseDtoSchema.extend({
+  legacyReplayKind: z.literal(LEGACY_VISUAL_ONLY_DARKNESS_REPLAY_KIND).optional(),
+  type: z.literal('UPSERT_SCENE_DARKNESS'),
+  zone: sceneDarknessZoneDtoSchema
+})
+
+const legacyVisualOnlyDarknessCommandInputDtoSchema = sceneCommandBaseDtoSchema
+  .extend({
+    type: z.literal('UPSERT_SCENE_DARKNESS'),
+    zone: z.strictObject({
+      id: uuidSchema,
+      opacity: z.number().finite().min(0).max(1),
+      polygon: scenePolygonDtoSchema
+    })
+  })
+  .transform((command) => ({
+    ...command,
+    legacyReplayKind: LEGACY_VISUAL_ONLY_DARKNESS_REPLAY_KIND,
+    zone: {
+      id: command.zone.id,
+      mechanicalIllumination: null,
+      mechanicalObscurement: null,
+      opacity: command.zone.opacity,
+      polygon: command.zone.polygon
+    }
+  }))
+
+const currentSceneCommandInputDtoSchema = z.discriminatedUnion('type', [
   sceneCommandBaseDtoSchema.extend({
     type: z.literal('UPSERT_SCENE_TOKEN'),
     token: sceneTokenDtoSchema
   }),
   sceneCommandBaseDtoSchema.extend({ type: z.literal('REMOVE_SCENE_TOKEN'), tokenId: uuidSchema }),
-  sceneCommandBaseDtoSchema.extend({
-    type: z.literal('MOVE_SCENE_TOKEN'),
-    tokenId: uuidSchema,
-    path: z.array(scenePointDtoSchema).min(2).max(VTT_SCENE_LIMITS.transientPathPoints)
-  }),
+  sceneCommandBaseDtoSchema
+    .extend({
+      type: z.literal('MOVE_SCENE_TOKEN'),
+      expectedEncounterVersion: versionSchema.nullable(),
+      correlationId: serverRuleExecutionCorrelationIdDtoSchema.default(null),
+      movementKind: spatialMovementKindDtoSchema,
+      tokenId: uuidSchema,
+      path: z.array(scenePointDtoSchema).min(2).max(VTT_SCENE_LIMITS.transientPathPoints)
+    })
+    .superRefine((command, context) => {
+      if (command.movementKind === 'TELEPORT' && command.path.length !== 2)
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['path'],
+          message: 'Teleport movement requires exactly its origin and destination.'
+        })
+      let totalDistance = 0
+      for (let index = 1; index < command.path.length; index += 1) {
+        const start = command.path[index - 1]!
+        const end = command.path[index]!
+        totalDistance += Math.hypot(end.x - start.x, end.y - start.y)
+      }
+      if (totalDistance <= 1e-8)
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['path'],
+          message: 'Movement requires a non-zero authoritative path length.'
+        })
+    }),
   sceneCommandBaseDtoSchema.extend({
     type: z.literal('SET_SCENE_DOOR_STATE'),
     barrierId: uuidSchema,
@@ -512,14 +625,15 @@ export const sceneCommandInputDtoSchema = z.discriminatedUnion('type', [
     barrierId: uuidSchema
   }),
   sceneCommandBaseDtoSchema.extend({
+    illumination: combatPerceptionIlluminationDtoSchema,
+    type: z.literal('SET_SCENE_AMBIENT_ILLUMINATION')
+  }),
+  sceneCommandBaseDtoSchema.extend({
     type: z.literal('UPSERT_SCENE_LIGHT'),
     light: sceneLightDtoSchema
   }),
   sceneCommandBaseDtoSchema.extend({ type: z.literal('REMOVE_SCENE_LIGHT'), lightId: uuidSchema }),
-  sceneCommandBaseDtoSchema.extend({
-    type: z.literal('UPSERT_SCENE_DARKNESS'),
-    zone: sceneDarknessZoneDtoSchema
-  }),
+  currentSceneDarknessCommandInputDtoSchema,
   sceneCommandBaseDtoSchema.extend({
     type: z.literal('REMOVE_SCENE_DARKNESS'),
     zoneId: uuidSchema
@@ -551,6 +665,11 @@ export const sceneCommandInputDtoSchema = z.discriminatedUnion('type', [
   })
 ])
 
+export const sceneCommandInputDtoSchema = z.union([
+  currentSceneCommandInputDtoSchema,
+  legacyVisualOnlyDarknessCommandInputDtoSchema
+])
+
 const sceneDefinitionInputObject = sceneDefinitionObject.omit({
   id: true,
   version: true
@@ -564,41 +683,93 @@ export const updateSceneDefinitionInputDtoSchema = sceneDefinitionInputObject
   })
   .superRefine(refineSceneStructure)
 export const getCampaignSceneDefinitionsInputDtoSchema = z.strictObject({ campaignId: uuidSchema })
+export const listCampaignLiveScenesInputDtoSchema = z.strictObject({ campaignId: uuidSchema })
 export const getSceneDefinitionInputDtoSchema = z.strictObject({
   campaignId: uuidSchema,
   sceneId: uuidSchema
 })
-export const getEncounterSceneInputDtoSchema = z.strictObject({ encounterId: uuidSchema })
+export const getCampaignLiveSceneInputDtoSchema = z.strictObject({ sceneId: uuidSchema })
 export const deleteSceneDefinitionInputDtoSchema = getSceneDefinitionInputDtoSchema.extend({
   expectedVersion: definitionVersionSchema
 })
 
-export const sceneCommandResultDtoSchema = z.strictObject({
+export const sceneCommandResultDtoSchema = z
+  .strictObject({
+    commandId: uuidSchema,
+    delta: sceneDeltaDtoSchema.nullable(),
+    occurrence: encounterRuleOccurrenceSummaryDtoSchema.nullable().default(null),
+    replayed: z.boolean(),
+    sceneId: uuidSchema,
+    version: versionSchema
+  })
+  .superRefine((result, context) => {
+    if (result.delta === null && result.occurrence === null)
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['delta'],
+        message:
+          'A Scene command may omit its delta only when an Encounter rule occurrence owns the mechanics result.'
+      })
+  })
+
+export const bindEncounterToPresentedSceneResultDtoSchema = z.strictObject({
   commandId: uuidSchema,
-  delta: sceneDeltaDtoSchema,
+  encounterId: uuidSchema,
   replayed: z.boolean(),
-  sceneId: uuidSchema,
+  sceneId: uuidSchema
+})
+
+export const setCampaignLiveScenePresentationResultDtoSchema = z.strictObject({
+  commandId: uuidSchema,
+  replayed: z.boolean(),
+  sceneId: uuidSchema.nullable(),
+  sessionId: uuidSchema,
   version: versionSchema
 })
 
-export const attachEncounterSceneResultDtoSchema = z.strictObject({
-  replayed: z.boolean(),
-  scene: encounterSceneStateDtoSchema
+/** Server-only durable campaign-event payload for a Session presentation command. */
+export const campaignLiveScenePresentationReceiptDtoSchema = z.strictObject({
+  commandFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+  result: setCampaignLiveScenePresentationResultDtoSchema
 })
 
 export type SceneDefinitionDto = z.infer<typeof sceneDefinitionDtoSchema>
-export type EncounterSceneStateDto = z.infer<typeof encounterSceneStateDtoSchema>
+export type CampaignSceneStateDto = z.infer<typeof campaignSceneStateDtoSchema>
+export type CampaignLiveSceneSummaryDto = z.infer<typeof campaignLiveSceneSummaryDtoSchema>
 export type SceneCommandInputDto = z.infer<typeof sceneCommandInputDtoSchema>
-export type AttachEncounterSceneInputDto = z.infer<typeof attachEncounterSceneInputDtoSchema>
+export type BindEncounterToPresentedSceneInputDto = z.infer<
+  typeof bindEncounterToPresentedSceneInputDtoSchema
+>
+export type SetCampaignLiveScenePresentationInputDto = z.infer<
+  typeof setCampaignLiveScenePresentationInputDtoSchema
+>
+export type EncounterSceneActorTokenBindingDto = z.infer<
+  typeof encounterSceneActorTokenBindingDtoSchema
+>
+export type SetEncounterSceneActorTokenBindingInputDto = z.infer<
+  typeof setEncounterSceneActorTokenBindingInputDtoSchema
+>
+export type RemoveEncounterSceneActorTokenBindingInputDto = z.infer<
+  typeof removeEncounterSceneActorTokenBindingInputDtoSchema
+>
 export type CreateSceneDefinitionInputDto = z.infer<typeof createSceneDefinitionInputDtoSchema>
 export type UpdateSceneDefinitionInputDto = z.infer<typeof updateSceneDefinitionInputDtoSchema>
 export type GetCampaignSceneDefinitionsInputDto = z.infer<
   typeof getCampaignSceneDefinitionsInputDtoSchema
 >
+export type ListCampaignLiveScenesInputDto = z.infer<typeof listCampaignLiveScenesInputDtoSchema>
 export type GetSceneDefinitionInputDto = z.infer<typeof getSceneDefinitionInputDtoSchema>
-export type GetEncounterSceneInputDto = z.infer<typeof getEncounterSceneInputDtoSchema>
+export type GetCampaignLiveSceneInputDto = z.infer<typeof getCampaignLiveSceneInputDtoSchema>
 export type DeleteSceneDefinitionInputDto = z.infer<typeof deleteSceneDefinitionInputDtoSchema>
 export type SceneCommandResultDto = z.infer<typeof sceneCommandResultDtoSchema>
-export type AttachEncounterSceneResultDto = z.infer<typeof attachEncounterSceneResultDtoSchema>
+export type BindEncounterToPresentedSceneResultDto = z.infer<
+  typeof bindEncounterToPresentedSceneResultDtoSchema
+>
+export type SetCampaignLiveScenePresentationResultDto = z.infer<
+  typeof setCampaignLiveScenePresentationResultDtoSchema
+>
+export type CampaignLiveScenePresentationReceiptDto = z.infer<
+  typeof campaignLiveScenePresentationReceiptDtoSchema
+>
 export type SceneSnapshotDto = z.infer<typeof sceneSnapshotDtoSchema>
 export type SceneTransientEnvelopeDto = z.infer<typeof sceneTransientEnvelopeDtoSchema>

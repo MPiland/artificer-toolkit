@@ -1,8 +1,6 @@
 import { NumberInput, Select, Stack, Switch, TextInput } from '@mantine/core'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
-import type { AbilityCode } from '@artificer-toolkit/shared/core'
 import {
-  GUIDED_ABILITY_OPTIONS,
   GUIDED_DURATION_OPTIONS,
   type GuidedSpellDraft
 } from '#forms/guided/guidedSimpleEffect.types'
@@ -30,6 +28,10 @@ export function GuidedSpellMechanicsScreen({
     value: item.id,
     label: item.label
   }))
+  const abilityOptions = ('abilities' in system ? system.abilities : []).map((item) => ({
+    value: item.id,
+    label: item.label
+  }))
 
   return (
     <Stack gap='lg'>
@@ -46,12 +48,10 @@ export function GuidedSpellMechanicsScreen({
         {draft.intent !== 'HEALING' ? (
           <Select
             label='Saving throw'
-            data={[
-              { value: '', label: 'No save' },
-              ...GUIDED_ABILITY_OPTIONS.map((item) => ({ value: item.value, label: item.label }))
-            ]}
-            value={draft.saveAbility}
-            onChange={(value) => updateDraft('saveAbility', (value ?? '') as AbilityCode | '')}
+            data={[{ value: '', label: 'No save' }, ...abilityOptions]}
+            value={draft.saveAbilityDefinitionId}
+            onChange={(value) => updateDraft('saveAbilityDefinitionId', value ?? '')}
+            disabled={!abilityOptions.length}
           />
         ) : null}
         {draft.target === 'CREATURE' ? (

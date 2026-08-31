@@ -63,7 +63,7 @@ export const characterSheetFixture = {
     },
     conditions: [
       {
-        conditionTypeId: 'condition-poisoned',
+        conditionTypeId: '00000000-0000-4000-8000-000000000601',
         label: 'Poisoned',
         description: 'A poisoned creature has disadvantage on attack rolls and ability checks.',
         notes: 'Spider venom, save at end of turn.'
@@ -1115,7 +1115,7 @@ export const characterSheetFixture = {
           'A blinded creature cannot see and automatically fails ability checks that require sight.'
       },
       {
-        id: 'condition-poisoned',
+        id: '00000000-0000-4000-8000-000000000601',
         code: 'POISONED',
         label: 'Poisoned',
         description: 'A poisoned creature has disadvantage on attack rolls and ability checks.'

@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
@@ -131,6 +132,9 @@ export const dustMephit: CreatureAuthored = {
     },
     {
       id: S.featureId(92, 4),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_6_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(92, 4)),
       label: 'Blinding Breath (Recharge 6)',
       description:
         'Blinding Breath (Recharge 6). The mephit exhales a 15-foot cone of blinding dust. Each creature in that area must succeed on a DC 10 Dexterity saving throw or be blinded for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
@@ -144,7 +148,7 @@ export const dustMephit: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(92, 7),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.DEXTERITY,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
               baseDc: 10
             },
             activation: {

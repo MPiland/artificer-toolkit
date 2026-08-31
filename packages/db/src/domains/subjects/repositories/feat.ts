@@ -89,6 +89,10 @@ async function hydrateFeatRows(
   rows: readonly FeatRow[],
   options: FeatRepositoryReadOptions = {}
 ): Promise<Map<string, FeatAuthored>> {
+  const expectedSystemId =
+    rows.length > 0 && rows.every((row) => row.system_id === rows[0]?.system_id)
+      ? rows[0]?.system_id
+      : undefined
   const featIds = rows.map((row) => row.id)
   if (featIds.length === 0) {
     return new Map()
@@ -165,7 +169,7 @@ async function hydrateFeatRows(
       (prerequisiteId) => hydrateFacetById<'CHARACTER'>(db, prerequisiteId)
     )
   ])
-  const effectRepository = createEffectRepository(db)
+  const effectRepository = createEffectRepository(db, expectedSystemId)
   const detailRepository = createDetailRepository(db)
   const featGrantRepository = createFeatGrantRepository(db)
   const modifierRepository = createModifierGrantRepository(db)
@@ -196,7 +200,7 @@ async function hydrateFeatRows(
     senseRepository.findByIds(senseLinks.map((link) => link.sense_grant_id)),
     spellRepository.findByIds(spellLinks.map((link) => link.spell_grant_id)),
     modifierRepository.findByIds(modifierLinks.map((link) => link.modifier_grant_id)),
-    createFeatureRepository(db).findByIds(
+    createFeatureRepository(db, expectedSystemId).findByIds(
       selectedFeatureLinks.map((link) => link.feature_id),
       { includeEffects: options.includeEffects }
     )
@@ -332,8 +336,8 @@ async function hydrateFeatsByIds(
 
 export function createFeatRepository(db: DBLike): FeatRepositoryWithReadOptions {
   return {
-    async upsert(entity) {
-      await upsertFeat(db, entity, entity.systemId)
+    async upsert(entity, options) {
+      await upsertFeat(db, entity, entity.systemId, options.contentSourceId)
     },
 
     async findById(id, filter) {

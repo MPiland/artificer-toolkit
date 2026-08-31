@@ -85,11 +85,8 @@ import type {
   LiveSessionTicketDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type {
-  AttachEncounterSceneInputDto,
-  AttachEncounterSceneResultDto,
+  CampaignLiveSceneSummaryDto,
   DeleteSceneDefinitionInputDto,
-  EncounterSceneStateDto,
-  GetEncounterSceneInputDto,
   GetSceneDefinitionInputDto,
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
@@ -116,7 +113,9 @@ import type {
   SystemListResponseDto,
   SystemResponseDto
 } from '@artificer-toolkit/schema/api/systems'
+import type { GameSystemRuleCapabilityDto } from '@artificer-toolkit/schema/api/rulesRuntime'
 import type * as ruleContracts from '@artificer-toolkit/schema/api/rules'
+import type * as reusableDefinitionContracts from '@artificer-toolkit/schema/api/reusableDefinitions'
 import * as campaignContracts from '@artificer-toolkit/schema/api/campaigns'
 import * as encounterContracts from '@artificer-toolkit/schema/api/encounters'
 import * as notificationContracts from '@artificer-toolkit/schema/api/notifications'
@@ -282,6 +281,10 @@ export interface TrpcClient {
       get: QueryProcedure<
         SchemaInput<typeof campaignContracts.getCampaignPlaySettingsInputSchema>,
         campaignContracts.CampaignPlaySettingsDto
+      >
+      options: QueryProcedure<
+        SchemaInput<typeof campaignContracts.getCampaignPlaySettingsInputSchema>,
+        campaignContracts.CampaignPlaySettingsOptionsDto
       >
       save: MutationProcedure<
         campaignContracts.SaveCampaignPlaySettingsInput,
@@ -474,7 +477,6 @@ export interface TrpcClient {
       }
     }
     scenes: {
-      attach: MutationProcedure<AttachEncounterSceneInputDto, AttachEncounterSceneResultDto>
       create: MutationProcedure<
         SchemaInput<typeof vttSceneContracts.createSceneDefinitionInputDtoSchema>,
         SceneDefinitionDto
@@ -482,7 +484,7 @@ export interface TrpcClient {
       delete: MutationProcedure<DeleteSceneDefinitionInputDto, { ok: true }>
       get: QueryProcedure<GetSceneDefinitionInputDto, SceneDefinitionDto>
       list: QueryProcedure<{ campaignId: string }, SceneDefinitionDto[]>
-      projection: QueryProcedure<GetEncounterSceneInputDto, EncounterSceneStateDto>
+      listLive: QueryProcedure<{ campaignId: string }, CampaignLiveSceneSummaryDto[]>
       update: MutationProcedure<
         SchemaInput<typeof vttSceneContracts.updateSceneDefinitionInputDtoSchema>,
         SceneDefinitionDto
@@ -772,14 +774,18 @@ export interface TrpcClient {
     retire: MutationProcedure<ruleContracts.RetireRulePackInputDto, { ok: true }>
   }
   encounters: {
-    templates: {
+    blueprints: {
       list: QueryProcedure<
-        SchemaInput<typeof encounterContracts.getCampaignEncounterTemplatesInputDtoSchema>,
-        encounterContracts.EncounterTemplateDto[]
+        SchemaInput<typeof encounterContracts.getEncounterBlueprintsInputDtoSchema>,
+        encounterContracts.EncounterBlueprintDto[]
       >
       create: MutationProcedure<
-        encounterContracts.CreateEncounterTemplateInputDto,
-        encounterContracts.EncounterTemplateDto
+        encounterContracts.CreateEncounterBlueprintInputDto,
+        encounterContracts.EncounterBlueprintDto
+      >
+      update: MutationProcedure<
+        encounterContracts.UpdateEncounterBlueprintInputDto,
+        encounterContracts.EncounterBlueprintDto
       >
     }
     create: MutationProcedure<
@@ -802,6 +808,10 @@ export interface TrpcClient {
         | encounterContracts.EncounterGmProjectionDto
         | encounterContracts.EncounterPlayerProjectionDto
       >
+    >
+    pendingRuleOccurrence: QueryProcedure<
+      SchemaInput<typeof encounterContracts.getPendingEncounterRuleOccurrenceInputDtoSchema>,
+      encounterContracts.PendingEncounterRuleOccurrenceSummaryDto | null
     >
     command: MutationProcedure<
       encounterContracts.EncounterCommandInputDto,
@@ -953,6 +963,29 @@ export interface TrpcClient {
     resolve: QueryProcedure<RouteIdentityResolveRequestDto, RouteIdentityDto | null>
   }
   systems: {
+    capability: QueryProcedure<IdProcedureInput, GameSystemRuleCapabilityDto | null>
+    definitions: {
+      create: MutationProcedure<
+        reusableDefinitionContracts.CreateReusableDefinitionInputDto,
+        reusableDefinitionContracts.ReusableDefinitionWorkspaceDto
+      >
+      get: QueryProcedure<
+        SchemaInput<typeof reusableDefinitionContracts.getReusableDefinitionInputDtoSchema>,
+        reusableDefinitionContracts.ReusableDefinitionWorkspaceDto
+      >
+      list: QueryProcedure<
+        SchemaInput<typeof reusableDefinitionContracts.listReusableDefinitionsInputDtoSchema>,
+        reusableDefinitionContracts.ReusableDefinitionSummaryDto[]
+      >
+      publish: MutationProcedure<
+        reusableDefinitionContracts.PublishReusableDefinitionDraftInputDto,
+        reusableDefinitionContracts.ReusableDefinitionWorkspaceDto
+      >
+      saveDraft: MutationProcedure<
+        reusableDefinitionContracts.SaveReusableDefinitionDraftInputDto,
+        reusableDefinitionContracts.ReusableDefinitionWorkspaceDto
+      >
+    }
     get: QueryProcedure<IdProcedureInput, SystemResponseDto>
     list: EmptyQueryProcedure<SystemListResponseDto>
   }

@@ -14,6 +14,10 @@ function matchesFilter(row: Row, filter: Filter): boolean {
     return Array.isArray(filter.value) && filter.value.includes(rowValue)
   }
 
+  if (filter.op === 'not in') {
+    return Array.isArray(filter.value) && !filter.value.includes(rowValue)
+  }
+
   if (filter.op === 'is not') {
     return rowValue !== filter.value
   }
@@ -39,13 +43,40 @@ function withQualifiedColumns(table: string, row: Row): Row {
   )
 }
 
-function projectSelectedColumns(row: Row, columns: string | string[]): Row {
+function selectedColumnIdentity(columnExpression: unknown): { column: string; alias: string } {
+  if (typeof columnExpression === 'string') {
+    const [rawColumn, rawAlias] = columnExpression.split(/\s+as\s+/i)
+    const column = rawColumn?.trim() ?? ''
+    return { column, alias: rawAlias?.trim() ?? column.split('.').pop() ?? column }
+  }
+
+  if (
+    typeof columnExpression === 'object' &&
+    columnExpression !== null &&
+    'toOperationNode' in columnExpression &&
+    typeof columnExpression.toOperationNode === 'function'
+  ) {
+    const operation = columnExpression.toOperationNode() as {
+      alias?: { name?: string }
+      node?: {
+        parameters?: Array<{
+          column?: { column?: { name?: string } }
+        }>
+      }
+    }
+    const column = operation.node?.parameters?.[0]?.column?.column?.name
+    const alias = operation.alias?.name
+    if (column && alias) return { column, alias }
+  }
+
+  throw new TypeError('Unsupported selected-column expression in the in-memory DB adapter.')
+}
+
+function projectSelectedColumns(row: Row, columns: string | readonly unknown[]): Row {
   const columnList = Array.isArray(columns) ? columns : [columns]
 
   return columnList.reduce<Row>((next, columnExpression) => {
-    const [rawColumn, rawAlias] = columnExpression.split(/\s+as\s+/i)
-    const column = rawColumn?.trim() ?? ''
-    const alias = rawAlias?.trim() ?? column.split('.').pop() ?? column
+    const { column, alias } = selectedColumnIdentity(columnExpression)
 
     return {
       ...next,
@@ -58,7 +89,7 @@ class SelectBuilder {
   private readonly filters: Filter[] = []
   private rows: Row[]
   private orderByColumn: string | null = null
-  private selectedColumns: string | string[] | null = null
+  private selectedColumns: string | readonly unknown[] | null = null
 
   constructor(
     private readonly db: InMemoryDb,
@@ -67,7 +98,7 @@ class SelectBuilder {
     this.rows = db.readTable(table).map((row) => withQualifiedColumns(table, row))
   }
 
-  select(columns: string | string[]) {
+  select(columns: string | readonly unknown[]) {
     this.selectedColumns = columns
     return this
   }

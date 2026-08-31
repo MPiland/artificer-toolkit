@@ -29,6 +29,7 @@ export interface FeatureBaseAuthored<N extends NodeSubjectCode = NodeSubjectCode
   details?: DetailAuthored[]
   effects?: EffectAuthored[]
   rollDefinitions?: FeatureRollDefinitionAuthored[]
+  ruleDefinitionIds?: string[]
   charges?: ChargeAuthored<true>
   grants?: {
     feats?: FeatGrantAuthored<N>[]

@@ -51,6 +51,7 @@ function makeCharacter(): CharacterAuthored {
       hitpoints: { current: 0, hitDice: [] }
     },
     systemId: 'system-1',
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000302',
     userId: 'user-1'
   }
 }

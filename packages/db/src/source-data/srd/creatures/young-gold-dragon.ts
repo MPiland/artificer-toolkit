@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 
@@ -67,7 +68,7 @@ export const youngGoldDragon: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(306, 203),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.DEXTERITY,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
               baseDc: 17
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },

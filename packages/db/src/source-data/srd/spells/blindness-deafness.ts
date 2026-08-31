@@ -1,5 +1,5 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
@@ -38,7 +38,7 @@ export const blindnessDeafness: SpellAuthored = {
         savingThrow: {
           id: spellChildId(SPELL_IDS.BLINDNESS_DEAFNESS, 0x214, 2),
           dcMethod: 'SOURCE_SAVE_DC',
-          ability: ABILITY_CODE.CONSTITUTION
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION
         },
         activation: {
           code: ACTIVATION_CODE.ACTION,

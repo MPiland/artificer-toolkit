@@ -11,16 +11,19 @@ import {
 const wrapperCalls: string[] = []
 const wrapperDatabases: unknown[] = []
 const versionState = vi.hoisted(() => ({
-  activeBySubject: new Map<string, {
-    authored: {
-      checksum: string
-      document: unknown
-      subjectId: string
-      subjectKind: string
-      version: number
-      versionId: string
+  activeBySubject: new Map<
+    string,
+    {
+      authored: {
+        checksum: string
+        document: unknown
+        subjectId: string
+        subjectKind: string
+        version: number
+        versionId: string
+      }
     }
-  }>(),
+  >(),
   findActiveForPublication: vi.fn(),
   publish: vi.fn(),
   syncSpellCatalogClassIndex: vi.fn(),
@@ -66,8 +69,9 @@ vi.mock('../repositories/index.js', () => ({
     seedSrdSubjects: vi.fn()
   })),
   createAuthoredVersionRepository: vi.fn(() => ({
-    findActive: vi.fn(async (input: { subjectId: string; subjectKind: string }) =>
-      versionState.activeBySubject.get(`${input.subjectKind}:${input.subjectId}`) ?? null
+    findActive: vi.fn(
+      async (input: { subjectId: string; subjectKind: string }) =>
+        versionState.activeBySubject.get(`${input.subjectKind}:${input.subjectId}`) ?? null
     ),
     findActiveForPublication: versionState.findActiveForPublication,
     publish: versionState.publish
@@ -82,15 +86,20 @@ vi.mock('../repositories/index.js', () => ({
 
 import { seedBaselineContent } from '../seed/baseline.js'
 import { assignBaselineContentOwner, defineBaselineContentBundle } from '../source-data/content.js'
-import { srdBaselineContent } from '../source-data/srd/index.js'
+import { SRD_SYSTEM_ID, srdBaselineContent } from '../source-data/srd/index.js'
+import { SRD_SENSE_DEFINITIONS } from '../source-data/srd/senses.js'
 
 type SeedRow = Record<string, unknown>
 type SeedTables = Record<string, SeedRow[]>
 type WhereOperator = '=' | 'in' | 'not in'
 
-function createSeedTransactionDb(initialTables: SeedTables = {}) {
+function createSeedTransactionDb(
+  initialTables: SeedTables = {},
+  executeRawQuery: (query: unknown) => { rows: SeedRow[] } = () => ({ rows: [] })
+) {
   const tables = structuredClone(initialTables)
   const operations: Array<{ operation: string; table: string }> = []
+  const rawQueries: unknown[] = []
 
   const createQuery = (operation: 'select' | 'delete' | 'update', table: string) => {
     const predicates: Array<(row: SeedRow) => boolean> = []
@@ -131,12 +140,20 @@ function createSeedTransactionDb(initialTables: SeedTables = {}) {
 
   const db = {
     isTransaction: true,
+    getExecutor: () => ({
+      transformQuery: (node: unknown) => node,
+      compileQuery: (node: unknown) => node,
+      executeQuery: async (query: unknown) => {
+        rawQueries.push(query)
+        return executeRawQuery(query)
+      }
+    }),
     selectFrom: (table: string) => createQuery('select', table),
     deleteFrom: (table: string) => createQuery('delete', table),
     updateTable: (table: string) => createQuery('update', table)
   }
 
-  return { db, operations, tables }
+  return { db, operations, rawQueries, tables }
 }
 
 function createEmptyBundle(systemId = 'system-1') {
@@ -209,38 +226,42 @@ describe('seedBaselineContent', () => {
     versionState.vocabularyFindActiveForPublication.mockReset()
     versionState.vocabularyFindActiveForPublication.mockResolvedValue(null)
     versionState.vocabularyPublish.mockReset()
-    versionState.vocabularyPublish.mockImplementation(async (input: {
-      document: unknown
-      schemaVersion: number
-      snapshotId: string
-      systemId: string
-    }) => ({
-      checksum: 'a'.repeat(64),
-      document: input.document,
-      schemaVersion: input.schemaVersion,
-      snapshotId: input.snapshotId,
-      snapshotVersion: 1,
-      systemId: input.systemId
-    }))
-    versionState.publish.mockImplementation(async (input: {
-      authoredChecksum: string
-      document: unknown
-      subjectId: string
-      subjectKind: string
-      versionId: string
-    }) => {
-      versionState.activeBySubject.set(`${input.subjectKind}:${input.subjectId}`, {
-        authored: {
-          checksum: input.authoredChecksum,
-          document: input.document,
-          subjectId: input.subjectId,
-          subjectKind: input.subjectKind,
-          version: 1,
-          versionId: input.versionId
-        }
+    versionState.vocabularyPublish.mockImplementation(
+      async (input: {
+        document: unknown
+        schemaVersion: number
+        snapshotId: string
+        systemId: string
+      }) => ({
+        checksum: 'a'.repeat(64),
+        document: input.document,
+        schemaVersion: input.schemaVersion,
+        snapshotId: input.snapshotId,
+        snapshotVersion: 1,
+        systemId: input.systemId
       })
-      return { authored: { versionId: input.versionId } }
-    })
+    )
+    versionState.publish.mockImplementation(
+      async (input: {
+        authoredChecksum: string
+        document: unknown
+        subjectId: string
+        subjectKind: string
+        versionId: string
+      }) => {
+        versionState.activeBySubject.set(`${input.subjectKind}:${input.subjectId}`, {
+          authored: {
+            checksum: input.authoredChecksum,
+            document: input.document,
+            subjectId: input.subjectId,
+            subjectKind: input.subjectKind,
+            version: 1,
+            versionId: input.versionId
+          }
+        })
+        return { authored: { versionId: input.versionId } }
+      }
+    )
   })
 
   it('seeds systems before system-scoped content and returns counts', async () => {
@@ -284,7 +305,14 @@ describe('seedBaselineContent', () => {
           }
         ],
         details: [{ id: 'detail-1', label: 'Detail', description: 'Description', order: 1 }],
-        savingThrows: [{ id: 'save-1', ability: 'DEXTERITY', dcMethod: 'FIXED_DC', baseDc: 14 }],
+        savingThrows: [
+          {
+            id: 'save-1',
+            abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
+            dcMethod: 'FIXED_DC',
+            baseDc: 14
+          }
+        ],
         startingEquipment: [{ id: 'se-1', sets: [] }]
       },
       effects: {
@@ -319,13 +347,67 @@ describe('seedBaselineContent', () => {
       bundle
     )
 
-    expect(wrapperCalls).toEqual([
-      'upsertSystem'
-    ])
+    expect(wrapperCalls).toEqual(['upsertSystem'])
     expect(result).toEqual({
       systems: 1,
       domainRoots: 0
     })
+  })
+
+  it('publishes canonical sense definitions as the resolved System owner without validating other Systems', async () => {
+    const ownerUserId = '11111111-1111-4111-8111-111111111111'
+    const bundle = assignBaselineContentOwner(createEmptyBundle(SRD_SYSTEM_ID), ownerUserId)
+    const { db, rawQueries } = createSeedTransactionDb()
+
+    await seedBaselineContent({ db: db as unknown as DBLike, systemId: SRD_SYSTEM_ID }, bundle)
+
+    const executedSql = JSON.stringify(rawQueries)
+    expect(executedSql).toContain(ownerUserId)
+    expect(executedSql).not.toContain('VALIDATE CONSTRAINT')
+  })
+
+  it('republishes a same-checksum sense definition when the resolved System owner changes', async () => {
+    const definition = SRD_SENSE_DEFINITIONS[0]
+    if (!definition) throw new Error('Canonical sense definition fixture is missing.')
+    const priorOwnerUserId = '11111111-1111-4111-8111-111111111111'
+    const currentOwnerUserId = '22222222-2222-4222-8222-222222222222'
+    const bundle = assignBaselineContentOwner(createEmptyBundle(SRD_SYSTEM_ID), currentOwnerUserId)
+    const { db, rawQueries } = createSeedTransactionDb({}, (query) => {
+      const serialized = JSON.stringify(query)
+      if (
+        serialized.includes('FROM public.reusable_definitions') &&
+        serialized.includes(definition.id)
+      ) {
+        return {
+          rows: [
+            {
+              game_system_id: SRD_SYSTEM_ID,
+              content_source_id: '00000000-0000-4000-8000-000000000302',
+              definition_family_key: 'sense',
+              current_document: definition.document,
+              current_checksum: definition.checksum,
+              current_contract_version: 1,
+              published_by: priorOwnerUserId,
+              label: definition.label,
+              description: definition.description
+            }
+          ]
+        }
+      }
+      return { rows: [] }
+    })
+
+    await seedBaselineContent({ db: db as unknown as DBLike, systemId: SRD_SYSTEM_ID }, bundle)
+
+    const repairQuery = rawQueries.find((query) => {
+      const serialized = JSON.stringify(query)
+      return (
+        serialized.includes('UPDATE public.reusable_definitions') &&
+        serialized.includes(definition.id)
+      )
+    })
+    expect(repairQuery).toBeDefined()
+    expect(JSON.stringify(repairQuery)).toContain(currentOwnerUserId)
   })
 
   it('compiles the immutable document with the selected seed owner', async () => {
@@ -419,7 +501,7 @@ describe('seedBaselineContent', () => {
       snapshotId: 'snapshot-1',
       systemId: system.id,
       snapshotVersion: 1,
-      schemaVersion: 1,
+      schemaVersion: 2,
       checksum: '0'.repeat(64),
       document: system
     }).document
@@ -428,11 +510,11 @@ describe('seedBaselineContent', () => {
         snapshotId: 'snapshot-1',
         systemId: system.id,
         snapshotVersion: 1,
-        schemaVersion: 1,
+        schemaVersion: 2,
         document: vocabularyDocument
       }),
       document: vocabularyDocument,
-      schemaVersion: 1,
+      schemaVersion: 2,
       snapshotId: 'snapshot-1',
       snapshotVersion: 1,
       systemId: system.id

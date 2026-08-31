@@ -34,7 +34,7 @@ export const shapeDtoSchema = z.discriminatedUnion('shapeKind', [
   z.object({
     id: authoredIdentifierSchema,
     shapeKind: z.literal(shapeKindSchema.enum.CYLINDER),
-    height: shapeMeasurementDtoSchema.optional(),
+    height: shapeMeasurementDtoSchema,
     radius: shapeMeasurementDtoSchema
   }),
   z.object({

@@ -51,7 +51,9 @@ function parsePriorEvent(value: Json): CharacterSheetCommandAppliedEvent {
     typeof value.commandFingerprint !== 'string' ||
     typeof value.summary !== 'string'
   ) {
-    throw new LiveMaximumHitPointPolicyContextError('The prior Character command receipt is invalid.')
+    throw new LiveMaximumHitPointPolicyContextError(
+      'The prior Character command receipt is invalid.'
+    )
   }
   return {
     type: 'CHARACTER_SHEET_COMMAND_APPLIED',
@@ -77,9 +79,12 @@ interface CharacterProjectionRow {
   command_lane_checksum: string
   command_state: Json
   command_state_checksum: string
+  compiled_action_entry_points: Json
   evaluator_version: string
+  initiative_actor_facts: Json
   model_contract_version: number
   normalized_facts: Json
+  pinned_sense_definitions: Json
   projection_checksum: string
   projection_schema_version: number
   rule_pack_checksum: string
@@ -150,7 +155,10 @@ function parseMechanics(row: CharacterProjectionRow): CharacterMechanicsProjecti
     ruleSnapshot: row.rule_snapshot,
     rulePolicyInput: row.normalized_facts,
     rulePolicyOutput: row.rule_result,
-    ruleRegistry: row.bounded_registry
+    initiativeActorFacts: row.initiative_actor_facts,
+    pinnedSenseDefinitions: row.pinned_sense_definitions,
+    ruleRegistry: row.bounded_registry,
+    compiledActionEntryPoints: row.compiled_action_entry_points
   })
   if (
     checksumCharacterMechanicsCommandState(projection.commandState) !==
@@ -158,7 +166,9 @@ function parseMechanics(row: CharacterProjectionRow): CharacterMechanicsProjecti
     checksumCharacterMechanicsCommandLane(projection) !== projection.commandLaneChecksum ||
     checksumCharacterMechanicsProjection(projection) !== projection.projectionChecksum
   ) {
-    throw new LiveMaximumHitPointPolicyContextError('The committed Character mechanics projection is invalid.')
+    throw new LiveMaximumHitPointPolicyContextError(
+      'The committed Character mechanics projection is invalid.'
+    )
   }
   return projection
 }
@@ -175,7 +185,10 @@ function parseOverlay(row: OverlayRow): CampaignCharacterMechanicsProjection {
     projectionChecksum: row.projection_checksum,
     kind: row.projection_kind,
     ...(row.projection_kind === 'MATERIALIZED'
-      ? { rulePolicyInput: row.rule_policy_input, rulePolicyOutput: row.rule_policy_output }
+      ? {
+          rulePolicyInput: row.rule_policy_input,
+          rulePolicyOutput: row.rule_policy_output
+        }
       : {})
   })
   if (checksumCampaignCharacterMechanicsProjection(projection) !== projection.projectionChecksum) {
@@ -208,10 +221,7 @@ export function createLiveMaximumHitPointPolicyRepository(db: DBLike) {
       nextAdjustment: { actorId: string; id: string; value: number } | null
       nextHitPoints: { current: number; temp: number | null }
       nextCharacterCommandState: CharacterMechanicsProjection['commandState']
-      nextBasePolicy: Pick<
-        CharacterMechanicsProjection,
-        'rulePolicyInput' | 'rulePolicyOutput'
-      >
+      nextBasePolicy: Pick<CharacterMechanicsProjection, 'rulePolicyInput' | 'rulePolicyOutput'>
       nextCampaignPolicy: {
         rulePolicyInput: CharacterRulePolicyInput
         rulePolicyOutput: CharacterRulePolicyOutput
@@ -314,6 +324,7 @@ export function createLiveMaximumHitPointPolicyRepository(db: DBLike) {
             projection_checksum = ${mechanics.projectionChecksum},
             normalized_facts = ${JSON.stringify(mechanics.rulePolicyInput)}::jsonb,
             rule_result = ${JSON.stringify(mechanics.rulePolicyOutput)}::jsonb,
+            compiled_action_entry_points = ${JSON.stringify(mechanics.compiledActionEntryPoints)}::jsonb,
             updated_at = now()
           from character
           where character_mechanics_projections.character_id = ${context.character.id}
@@ -432,7 +443,9 @@ export function createLiveMaximumHitPointPolicyRepository(db: DBLike) {
             snapshot.checksum as vocabulary_snapshot_checksum, projection.rule_pack_revision_id,
             projection.rule_pack_checksum, projection.evaluator_version, projection.model_contract_version,
             projection.projection_schema_version, projection.projection_checksum, projection.rule_snapshot,
-            projection.normalized_facts, projection.bounded_registry, projection.rule_result
+            projection.normalized_facts, projection.bounded_registry, projection.rule_result,
+            projection.initiative_actor_facts, projection.pinned_sense_definitions,
+            projection.compiled_action_entry_points
           from public.character_mechanics_projections projection
           join character_lock character on character.id = projection.character_id
           join public.system_vocabulary_snapshots snapshot on snapshot.id = projection.vocabulary_snapshot_id
@@ -535,7 +548,9 @@ export function createLiveMaximumHitPointPolicyRepository(db: DBLike) {
         row.overlay_projection_checksum === null ||
         row.overlay_projection_kind === null
       ) {
-        throw new LiveMaximumHitPointPolicyContextError('The Campaign mechanics projection is unavailable.')
+        throw new LiveMaximumHitPointPolicyContextError(
+          'The Campaign mechanics projection is unavailable.'
+        )
       }
       const overlay = parseOverlay({
         campaign_id: row.overlay_campaign_id,
@@ -571,10 +586,14 @@ export function createLiveMaximumHitPointPolicyRepository(db: DBLike) {
           ruleRevisionId: row.character_rule_pack_revision_id,
           streamVersion: row.character_stream_version
         },
-        existingAdjustment: row.adjustment_id !== null && row.adjustment_value !== null
-          ? { id: row.adjustment_id, value: row.adjustment_value }
-          : null,
-        hitPoints: { current: row.hit_points_current, temp: row.hit_points_temp },
+        existingAdjustment:
+          row.adjustment_id !== null && row.adjustment_value !== null
+            ? { id: row.adjustment_id, value: row.adjustment_value }
+            : null,
+        hitPoints: {
+          current: row.hit_points_current,
+          temp: row.hit_points_temp
+        },
         mechanics,
         overlay,
         priorEvent

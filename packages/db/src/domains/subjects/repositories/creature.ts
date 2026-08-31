@@ -320,8 +320,8 @@ async function hydrateCreatureById(db: DBLike, id: string): Promise<CreatureAuth
 
 export function createCreatureRepository(db: DBLike): CreatureRepository {
   return {
-    async upsert(entity) {
-      await upsertCreature(db, entity, entity.systemId)
+    async upsert(entity, options) {
+      await upsertCreature(db, entity, entity.systemId, options.contentSourceId)
     },
 
     async findById(id, filter) {

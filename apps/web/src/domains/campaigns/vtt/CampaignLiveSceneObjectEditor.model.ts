@@ -1,5 +1,5 @@
 import type {
-  EncounterSceneStateDto,
+  CampaignSceneStateDto,
   SceneCommandInputDto,
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
@@ -17,7 +17,7 @@ export interface LiveSceneObjectOption {
   value: string
 }
 
-export function listLiveSceneObjectOptions(scene: EncounterSceneStateDto): LiveSceneObjectOption[] {
+export function listLiveSceneObjectOptions(scene: CampaignSceneStateDto): LiveSceneObjectOption[] {
   return [
     ...scene.tokens.map((token) => option('TOKEN', token.id, `Token · ${token.label}`)),
     ...scene.barriers.map((barrier, index) =>
@@ -40,11 +40,12 @@ export function listLiveSceneObjectOptions(scene: EncounterSceneStateDto): LiveS
 }
 
 export function createLiveSceneObjectDraft(
-  scene: EncounterSceneStateDto,
+  scene: CampaignSceneStateDto,
   selection: LiveSceneObjectSelection
 ): SceneDefinitionDto | null {
   const draft: SceneDefinitionDto = {
     annotations: [],
+    ambientIllumination: scene.ambientIllumination,
     barriers: [],
     campaignId: scene.campaignId,
     darknessZones: [],
@@ -91,7 +92,7 @@ export function createLiveSceneObjectUpsertCommand({
 }: {
   draft: SceneDefinitionDto
   expectedSceneVersion: number
-  scene: EncounterSceneStateDto
+  scene: CampaignSceneStateDto
   selection: LiveSceneObjectSelection
 }): SceneCommandInputDto | null {
   const base = commandBase(scene, expectedSceneVersion)
@@ -125,7 +126,7 @@ export function createLiveSceneObjectRemoveCommand({
   selection
 }: {
   expectedSceneVersion: number
-  scene: EncounterSceneStateDto
+  scene: CampaignSceneStateDto
   selection: LiveSceneObjectSelection
 }): SceneCommandInputDto {
   const base = commandBase(scene, expectedSceneVersion)
@@ -152,7 +153,7 @@ export function createLiveSceneCreationCommand({
   before: SceneDefinitionDto
   next: SceneDefinitionDto
   expectedSceneVersion: number
-  scene: EncounterSceneStateDto
+  scene: CampaignSceneStateDto
 }): SceneCommandInputDto | null {
   const base = commandBase(scene, expectedSceneVersion)
   const annotation = next.annotations.find(
@@ -173,10 +174,9 @@ export function createLiveSceneCreationCommand({
   return token ? { ...base, token, type: 'UPSERT_SCENE_TOKEN' } : null
 }
 
-function commandBase(scene: EncounterSceneStateDto, expectedSceneVersion: number) {
+function commandBase(scene: CampaignSceneStateDto, expectedSceneVersion: number) {
   return {
     commandId: crypto.randomUUID(),
-    encounterId: scene.encounterId,
     expectedSceneVersion,
     sceneId: scene.id
   }

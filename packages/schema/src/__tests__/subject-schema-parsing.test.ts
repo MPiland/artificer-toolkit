@@ -12,6 +12,7 @@ import { equipmentAuthoredDtoSchema } from '../subjects/equipment.js'
 import { featAuthoredDtoSchema } from '../subjects/feat.js'
 import { raceAuthoredDtoSchema } from '../subjects/race.js'
 import { spellAuthoredDtoSchema } from '../subjects/spell.js'
+import { systemVocabularySnapshotSchema } from '../projections/systemVocabulary.js'
 
 function singleResultBlock(
   id: string,
@@ -60,14 +61,14 @@ describe('subject schema parsing', () => {
       magicSchoolId: 'evocation',
       effects: [
         {
-          id: 'burning-hands-effect',
+          id: '00000000-0000-4000-8000-0000000000d1',
           order: 1,
           invocation: {
             triggerCode: 'SAVING_THROW',
             savingThrow: {
               id: 'burning-hands-save',
               dcMethod: 'SOURCE_SAVE_DC',
-              ability: 'DEXTERITY'
+              abilityDefinitionId: '00000000-0000-0000-0011-000200000000'
             },
             activation: {
               code: 'ACTION',
@@ -142,7 +143,7 @@ describe('subject schema parsing', () => {
 
   it('parses richer invocation targeting qualifiers for multi-target effects', () => {
     const parsed = effectDtoSchema.parse({
-      id: 'mass-cure-wounds-effect',
+      id: '00000000-0000-4000-8000-0000000000d2',
       order: 1,
       invocation: {
         triggerCode: 'SPELL_ATTACK',
@@ -212,14 +213,14 @@ describe('subject schema parsing', () => {
   it('rejects legacy placeholder values once nested enums are tightened', () => {
     expect(() =>
       effectDtoSchema.parse({
-        id: 'bad-effect',
+        id: '00000000-0000-4000-8000-0000000000d3',
         order: 1,
         invocation: {
           triggerCode: 'SAVING_THROW',
           savingThrow: {
             id: 'dex-save',
             dcMethod: 'FIXED_DC',
-            ability: 'DEXTERITY',
+            abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
             baseDc: 13
           },
           activation: {
@@ -283,6 +284,7 @@ describe('subject schema parsing', () => {
         description: system.description,
         rulesetCode: system.rulesetCode,
         rulesetVersion: system.rulesetVersion,
+        rulesCatalogues: [],
         userId: system.userId
       }
     ]) as { label?: string }[]
@@ -293,6 +295,72 @@ describe('subject schema parsing', () => {
     expect(system.rulesetCode).toBe('dnd5e')
     expect(system.rulesetVersion).toBe('2014')
     expect(params.id).toBe(system.id)
+  })
+
+  it('keeps schema-v1 vocabulary snapshots readable while requiring unique UUID abilities in v2', () => {
+    const v1 = {
+      id: 'dnd-5e-srd',
+      label: 'D&D 5e SRD',
+      rulesetCode: 'dnd5e',
+      rulesetVersion: '2014',
+      alignments: [],
+      challengeRatings: [],
+      conditionTypes: [],
+      creatureTypes: [],
+      currencies: [],
+      damageTypes: [],
+      heritages: [],
+      languages: [],
+      lifestyles: [],
+      magicSchools: [],
+      passives: [],
+      rarities: [],
+      senses: [],
+      skills: [],
+      speeds: [],
+      terrains: [],
+      userId: 'master'
+    }
+    expect(
+      systemVocabularySnapshotSchema.parse({
+        snapshotId: '00000000-0000-4000-8000-000000000001',
+        systemId: v1.id,
+        snapshotVersion: 1,
+        schemaVersion: 1,
+        checksum: 'a'.repeat(64),
+        document: v1
+      }).document
+    ).toEqual(v1)
+    const v2 = {
+      ...v1,
+      schemaVersion: 2 as const,
+      abilities: [
+        { id: '00000000-0000-0000-0011-000300000000', code: 'CONSTITUTION', label: 'Constitution' }
+      ]
+    }
+    const parsedV2 = systemAuthoredDtoSchema.parse(v2)
+    expect('abilities' in parsedV2 ? parsedV2.abilities : []).toHaveLength(1)
+    expect(() =>
+      systemAuthoredDtoSchema.parse({ ...v1, schemaVersion: 2, abilities: [] })
+    ).toThrow()
+    expect(() =>
+      systemAuthoredDtoSchema.parse({ ...v2, abilities: [v2.abilities[0], v2.abilities[0]] })
+    ).toThrow()
+    expect(() =>
+      systemAuthoredDtoSchema.parse({
+        ...v2,
+        abilities: [
+          v2.abilities[0],
+          { ...v2.abilities[0], id: '00000000-0000-0000-0011-000400000000' }
+        ]
+      })
+    ).toThrow()
+    expect(() =>
+      systemAuthoredDtoSchema.parse({
+        ...v2,
+        abilities: [{ ...v2.abilities[0], id: 'not-a-uuid' }]
+      })
+    ).toThrow()
   })
 
   it('parses feat prerequisites authored on CHARACTER facets', () => {

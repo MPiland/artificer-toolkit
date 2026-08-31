@@ -17,7 +17,6 @@ import {
   withUserContext
 } from '@artificer-toolkit/db'
 import {
-  attachEncounterScene,
   assignCampaignCharacter,
   createCampaign,
   createCampaignSceneDefinition,
@@ -25,7 +24,7 @@ import {
   CampaignAccessError,
   CampaignNotFoundError,
   createEncounter,
-  createEncounterTemplate,
+  createEncounterBlueprint,
   dispatchCommandForUser,
   executeEncounterCommand,
   executeEncounterSceneCommandWithState,
@@ -33,7 +32,8 @@ import {
   getCampaign,
   getVttMapDelivery,
   issueLiveSessionTicket,
-  removeCampaignMember
+  removeCampaignMember,
+  setCampaignLiveScenePresentation
 } from '@artificer-toolkit/functions/services'
 import { sql } from 'kysely'
 import { MediaAccessError, MediaNotFoundError } from '@artificer-toolkit/functions/services/media'
@@ -179,6 +179,35 @@ async function createDisposableUser(
   if (error) throw error
   if (!data.user) throw new Error(`Supabase did not create the ${role} integration user.`)
   return { email, id: data.user.id, password }
+}
+
+function isRetryableAdmin500(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'status' in error && error.status === 500
+}
+
+async function deleteDisposableAuthUser(
+  admin: ReturnType<typeof createClient>['auth']['admin'],
+  db: ReturnType<typeof createDb>,
+  userId: string
+): Promise<void> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    let failure: unknown = null
+    try {
+      const { error } = await admin.deleteUser(userId)
+      failure = error
+    } catch (error) {
+      failure = error
+    }
+    const result = await sql<{ exists: boolean }>`
+      select exists(select 1 from auth.users where id = ${userId}::uuid) as exists
+    `.execute(db)
+    if (!(result.rows[0]?.exists ?? false)) return
+    if (attempt === 0 && isRetryableAdmin500(failure)) {
+      await delay(250)
+      continue
+    }
+    throw failure ?? new Error(`Disposable auth user "${userId}" was not deleted.`)
+  }
 }
 
 class LocalLiveRoom {
@@ -373,6 +402,7 @@ type LiveSessionMessageOf<TType extends LiveSessionWebSocketServerMessageDto['ty
 type LiveSessionCommandOutcome =
   | Extract<LiveSessionMessageOf<'COMMAND_COMMITTED'>, { aggregateKind: 'CHARACTER' }>
   | Extract<LiveSessionMessageOf<'COMMAND_COMMITTED'>, { aggregateKind: 'ENCOUNTER' }>
+  | Extract<LiveSessionMessageOf<'COMMAND_COMMITTED'>, { aggregateKind: 'SESSION' }>
 type LiveSessionSceneCommandOutcome = Extract<
   LiveSessionMessageOf<'COMMAND_COMMITTED'>,
   { aggregateKind: 'SCENE' }
@@ -542,8 +572,7 @@ async function sendCharacterCommand(
     characterId,
     command
   } satisfies LiveSessionCommandDto)
-  const result = await outcome
-  if (committed) await committed
+  const [result] = await Promise.all([outcome, committed ?? Promise.resolve([])])
   assert.equal(result.aggregateKind, 'CHARACTER')
   if (isCompactCharacterCommand) {
     assert.equal(result.response, null)
@@ -586,7 +615,41 @@ async function sendEncounterCommand(
     commandId: command.commandId,
     durationMs: performance.now() - startedAt,
     replayed: result.replayed,
-    streamVersion: result.response.projection.version
+    streamVersion: result.version
+  }
+}
+
+async function sendSessionCommand(
+  room: LocalLiveRoom,
+  witnesses: readonly LocalLiveRoom[],
+  command: Extract<LiveSessionCommandDto, { aggregateKind: 'SESSION' }>['command']
+): Promise<
+  CommandMeasurement & {
+    outcome: Extract<LiveSessionCommandOutcome, { aggregateKind: 'SESSION' }>
+  }
+> {
+  const outcome = waitForCommandOutcome(room, command.commandId)
+  const committed = Promise.all(
+    [room, ...witnesses].map((target) =>
+      waitForMessage(
+        target,
+        'COMMAND_COMMITTED',
+        (message) => message.originCommandId === command.commandId
+      )
+    )
+  )
+  const startedAt = performance.now()
+  room.send({ aggregateKind: 'SESSION', command } satisfies LiveSessionCommandDto)
+  const result = await outcome
+  await committed
+  assert.equal(result.aggregateKind, 'SESSION')
+  assert.ok(result.response)
+  return {
+    commandId: command.commandId,
+    durationMs: performance.now() - startedAt,
+    outcome: result,
+    replayed: result.replayed,
+    streamVersion: result.version
   }
 }
 
@@ -609,9 +672,25 @@ async function sendSceneCommand(
       )
     : null
   const startedAt = performance.now()
-  room.send({ aggregateKind: 'SCENE', command } satisfies LiveSessionCommandDto)
-  const result = await outcome
-  if (committed) await committed
+  room.send({
+    aggregateKind: 'SCENE',
+    command
+  } satisfies LiveSessionCommandDto)
+  let result: LiveSessionSceneCommandOutcome
+  try {
+    ;[result] = await Promise.all([outcome, committed ?? Promise.resolve([])])
+  } catch (error) {
+    const versionContext = {
+      expectedSceneVersion: command.expectedSceneVersion,
+      ...(command.type === 'MOVE_SCENE_TOKEN'
+        ? { expectedEncounterVersion: command.expectedEncounterVersion }
+        : {})
+    }
+    throw new Error(
+      `Scene command ${command.type} (${command.commandId}) failed with ${JSON.stringify(versionContext)}: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error }
+    )
+  }
   assert.equal(result.aggregateKind, 'SCENE')
   return {
     commandId: command.commandId,
@@ -627,7 +706,11 @@ async function main(): Promise<void> {
   const { secretKey, url } = localSupabaseConfig()
   const db = createDb({ connectionString })
   const admin = createClient(url, secretKey, {
-    auth: { autoRefreshToken: false, detectSessionInUrl: false, persistSession: false }
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      persistSession: false
+    }
   })
   const runId = randomUUID()
   const characterId = randomUUID()
@@ -637,6 +720,7 @@ async function main(): Promise<void> {
   const mapTileObjectKey = `integration/${runId}/map-tile-0-0.png`
   const mapObjectKeys = [mapOverviewObjectKey, mapTileObjectKey]
   let campaignId: string | null = null
+  let encounterBlueprintId: string | null = null
   let gm: DisposableUser | null = null
   let outsider: DisposableUser | null = null
   let player: DisposableUser | null = null
@@ -720,7 +804,9 @@ async function main(): Promise<void> {
       name: `Local live-session integration ${runId}`,
       format: 'ONE_SHOT',
       toneTags: ['HEROIC'],
-      contentMaturity: 'STANDARD'
+      contentMaturity: 'STANDARD',
+      gameSystemId: fixture.systemId,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301'
     })
     campaignId = campaign.id
     const media = createMediaRepository(db)
@@ -804,17 +890,17 @@ async function main(): Promise<void> {
       )
     )
     assert.ok(encounterCreature, 'The SRD fixture must include a fixed-use creature feature.')
-    const encounterTemplate = await createEncounterTemplate(db, gm.id, {
-      campaignId: campaign.id,
+    const encounterBlueprint = await createEncounterBlueprint(db, gm.id, {
+      gameSystemId: encounterCreature.systemId,
       name: `Local encounter ${runId}`,
       enemies: [{ kind: 'CREATURE', sourceId: encounterCreature.id }],
       commandId: randomUUID()
     })
+    encounterBlueprintId = encounterBlueprint.id
     const encounter = await createEncounter(db, gm.id, {
       campaignId: campaign.id,
       sessionId: session.id,
-      templateId: encounterTemplate.id,
-      systemId: encounterCreature.systemId,
+      blueprintId: encounterBlueprint.id,
       commandId: randomUUID()
     })
     const encounterActor = encounter.actors.find((actor) => actor.sourceId === encounterCreature.id)
@@ -847,6 +933,7 @@ async function main(): Promise<void> {
           openAngleDegrees: 90
         }
       ],
+      ambientIllumination: 'BRIGHT',
       campaignId: campaign.id,
       darknessZones: [],
       fogMode: 'SHARED_PARTY',
@@ -859,11 +946,15 @@ async function main(): Promise<void> {
         unit: 'FEET'
       },
       lights: [],
-      map: { assetId: mapAssetId, height: 1_000, tileManifestAssetId: null, width: 1_000 },
+      map: {
+        assetId: mapAssetId,
+        height: 1_000,
+        tileManifestAssetId: null,
+        width: 1_000
+      },
       name: 'Local live Scene integration',
       tokens: [
         {
-          actorId: null,
           assetId: null,
           controlledByUserIds: [player.id],
           height: 1,
@@ -877,7 +968,6 @@ async function main(): Promise<void> {
           width: 1
         },
         {
-          actorId: null,
           assetId: null,
           controlledByUserIds: [],
           height: 1,
@@ -893,6 +983,10 @@ async function main(): Promise<void> {
       ],
       visionRevealMode: 'ON_DRAG'
     })
+    const liveScene = (await createVttSceneRepository(db).listLiveScenes(campaign.id)).find(
+      (candidate) => candidate.state.definitionId === sceneDefinition.id
+    )
+    assert.ok(liveScene, 'Creating a Campaign Scene definition must materialize its live Scene.')
     const options = { campaignId: campaign.id, sessionId: session.id }
     const externalEndpoint = externalSessionHostEndpoint()
     const ticketSecret =
@@ -904,7 +998,7 @@ async function main(): Promise<void> {
       )
     }
     if (!externalEndpoint) {
-      const admissionDependencies = createLiveSessionRoomDependencies()
+      const admissionDependencies = createLiveSessionRoomDependencies({ ticketSecret })
       try {
         const firstPlayerSnapshot = await admissionDependencies.loadSnapshot(player.id, options)
         for (const aggregateId of [characterId, playerBCharacterId]) {
@@ -939,12 +1033,30 @@ async function main(): Promise<void> {
       endpoint = externalEndpoint
     } else {
       const port = await availablePort()
+      const localDependencies = createLiveSessionRoomDependencies({
+        ticketSecret,
+        onCharacterCommandTiming: (timing) => commandTimings.push(timing),
+        onEncounterCommandTiming: (timing) => encounterCommandTimings.push(timing),
+        onSceneCommandTiming: (timing) => sceneCommandTimings.push(timing)
+      })
+      const executeLocalCommand = localDependencies.execute
       sessionHost = createSessionHostServer(
-        createLiveSessionRoomDependencies({
-          onCharacterCommandTiming: (timing) => commandTimings.push(timing),
-          onEncounterCommandTiming: (timing) => encounterCommandTimings.push(timing),
-          onSceneCommandTiming: (timing) => sceneCommandTimings.push(timing)
-        }),
+        {
+          ...localDependencies,
+          execute: async (...args) => {
+            try {
+              return await executeLocalCommand(...args)
+            } catch (error) {
+              const command = args[2]
+              const detail =
+                error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+              process.stderr.write(
+                `Local ${command.aggregateKind} command ${command.command.type} (${command.command.commandId}) failed: ${detail}\n`
+              )
+              throw error
+            }
+          }
+        },
         { ticketSecret }
       )
       await sessionHost.listen(port)
@@ -1009,53 +1121,67 @@ async function main(): Promise<void> {
     const characterWitnesses = [...playerRooms.slice(1), gmRoom]
     const playerBRoom = playerRooms[1]
     assert.ok(playerBRoom)
-    const sceneAttachCommand = {
+    const scenePresentationCommand = {
       commandId: randomUUID(),
-      encounterId: encounter.id,
-      sceneDefinitionId: sceneDefinition.id,
-      type: 'ATTACH_SCENE' as const
+      expectedPresentationVersion: null,
+      sceneId: liveScene.state.id,
+      sessionId: session.id,
+      type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION' as const
     }
-    const sceneAttachBroadcasts = [gmRoom, ...playerRooms].map((room) =>
+    const scenePresentationBroadcasts = [gmRoom, ...playerRooms].map((room) =>
       waitForMessage(
         room,
         'COMMAND_COMMITTED',
-        (message) => message.originCommandId === sceneAttachCommand.commandId
+        (message) => message.originCommandId === scenePresentationCommand.commandId
       )
     )
-    const sceneAttach = await sendSceneCommand(gmRoom, playerRooms, sceneAttachCommand)
-    const sceneAttachMessages = await Promise.all(sceneAttachBroadcasts)
-    assert.equal(sceneAttach.replayed, false)
-    assert.ok(sceneAttach.snapshot)
-    const sceneId = sceneAttach.snapshot.scene.id
-    assert.equal(sceneAttach.streamVersion, 0)
-    const gmSceneSnapshot = sceneAttachMessages[0]
+    const scenePresentation = await sendSessionCommand(
+      gmRoom,
+      playerRooms,
+      scenePresentationCommand
+    )
+    const scenePresentationMessages = await Promise.all(scenePresentationBroadcasts)
+    assert.equal(scenePresentation.replayed, false)
+    const sceneId = liveScene.state.id
+    assert.equal(scenePresentation.streamVersion, 0)
+    const sceneBinding = await sendEncounterCommand(gmRoom, playerRooms, {
+      commandId: randomUUID(),
+      encounterId: encounter.id,
+      type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE'
+    })
+    assert.equal(sceneBinding.replayed, false)
+    const gmSceneSnapshot = scenePresentationMessages[0]
     if (
       !gmSceneSnapshot ||
-      gmSceneSnapshot.aggregateKind !== 'SCENE' ||
-      !gmSceneSnapshot.snapshot
+      gmSceneSnapshot.aggregateKind !== 'SESSION' ||
+      !gmSceneSnapshot.sceneSnapshots?.[0]
     ) {
-      assert.fail('GM did not receive the attached Scene snapshot.')
+      assert.fail('GM did not receive the presented Scene snapshot.')
     }
-    assert.ok(gmSceneSnapshot.snapshot.scene.tokens.some((token) => token.id === hiddenTokenId))
     assert.ok(
-      gmSceneSnapshot.snapshot.scene.annotations.some(
+      gmSceneSnapshot.sceneSnapshots[0].scene.tokens.some((token) => token.id === hiddenTokenId)
+    )
+    assert.ok(
+      gmSceneSnapshot.sceneSnapshots[0].scene.annotations.some(
         (annotation) => annotation.id === annotationId
       )
     )
-    for (const [index, message] of sceneAttachMessages.slice(1).entries()) {
-      if (message.aggregateKind !== 'SCENE' || !message.snapshot) {
-        assert.fail('Player did not receive the attached Scene snapshot.')
+    for (const [index, message] of scenePresentationMessages.slice(1).entries()) {
+      if (message.aggregateKind !== 'SESSION' || !message.sceneSnapshots?.[0]) {
+        assert.fail('Player did not receive the presented Scene snapshot.')
       }
       assert.equal(
-        message.snapshot.scene.tokens.some((token) => token.id === hiddenTokenId),
+        message.sceneSnapshots[0].scene.tokens.some((token) => token.id === hiddenTokenId),
         false
       )
       assert.equal(
-        message.snapshot.scene.annotations.some((annotation) => annotation.id === annotationId),
+        message.sceneSnapshots[0].scene.annotations.some(
+          (annotation) => annotation.id === annotationId
+        ),
         false
       )
       assert.equal(
-        message.snapshot.scene.tokens.some((token) => token.id === sceneTokenId),
+        message.sceneSnapshots[0].scene.tokens.some((token) => token.id === sceneTokenId),
         index === 0
       )
     }
@@ -1078,8 +1204,10 @@ async function main(): Promise<void> {
 
     const sceneMoveCommand = {
       commandId: randomUUID(),
-      encounterId: encounter.id,
-      expectedSceneVersion: sceneAttach.streamVersion,
+      correlationId: null,
+      expectedEncounterVersion: null,
+      expectedSceneVersion: liveScene.state.version,
+      movementKind: 'VOLUNTARY' as const,
       path: [
         { x: 20, y: 20 },
         { x: 25, y: 20 }
@@ -1091,20 +1219,19 @@ async function main(): Promise<void> {
     const sceneDoorCommand = {
       barrierId: doorId,
       commandId: randomUUID(),
-      encounterId: encounter.id,
-      expectedSceneVersion: sceneAttach.streamVersion,
+      expectedSceneVersion: liveScene.state.version,
       sceneId,
       state: 'OPEN' as const,
       type: 'SET_SCENE_DOOR_STATE' as const
     }
     const [sceneMove, sceneDoor] = await Promise.all([
-      sendSceneCommand(playerRoom, [...playerRooms.slice(1), gmRoom], sceneMoveCommand),
+      sendSceneCommand(gmRoom, playerRooms, sceneMoveCommand),
       sendSceneCommand(gmRoom, playerRooms, sceneDoorCommand)
     ])
     assert.equal(sceneMove.replayed, false)
     assert.equal(sceneDoor.replayed, false)
     assert.notEqual(sceneMove.streamVersion, sceneDoor.streamVersion)
-    const sceneReplay = await sendSceneCommand(playerRoom, [], sceneMoveCommand, false)
+    const sceneReplay = await sendSceneCommand(gmRoom, [], sceneMoveCommand, false)
     assert.equal(sceneReplay.replayed, true)
     assert.equal(sceneReplay.streamVersion, sceneMove.streamVersion)
 
@@ -1115,7 +1242,6 @@ async function main(): Promise<void> {
       doorState = doorState === 'OPEN' ? 'CLOSED' : 'OPEN'
       const measurement = await sendSceneCommand(gmRoom, playerRooms, {
         commandId: randomUUID(),
-        encounterId: encounter.id,
         expectedSceneVersion,
         barrierId: doorId,
         sceneId,
@@ -1141,7 +1267,7 @@ async function main(): Promise<void> {
         `Scene host p95 ${sceneHostP95Ms.toFixed(2)} ms exceeded ${SCENE_HOST_P95_LIMIT_MS} ms.`
       )
     }
-    const persistedScene = await createVttSceneRepository(db).findByEncounter(encounter.id)
+    const persistedScene = await createVttSceneRepository(db).findLiveScene(sceneId)
     assert.ok(persistedScene)
     assert.equal(persistedScene.state.version, expectedSceneVersion)
     assert.equal(doorState, 'OPEN')
@@ -1149,7 +1275,6 @@ async function main(): Promise<void> {
     assert.deepEqual(
       replaySceneEvents(
         persistedScene.definitionSnapshot,
-        encounter.id,
         persistedScene.state.id,
         (await createVttSceneRepository(db).listEvents(persistedScene.state.id)).map(
           (event) => event.event
@@ -1454,7 +1579,8 @@ async function main(): Promise<void> {
       assert.equal(encounterResourceTiming?.service.evaluationLane, 'NONE')
       assert.equal(encounterResourceTiming?.service.actorEvaluationMs, 0)
     }
-    const expectedRoomDeliverySequenceBeforeReconnect = expectedVersion + expectedSceneVersion + 2
+    const expectedRoomDeliverySequenceBeforeReconnect =
+      expectedVersion + playerBCommand.streamVersion + expectedSceneVersion + 1
 
     const dropped = playerRoom.waitForDrop()
     const reconnected = playerRoom.waitForReconnect()
@@ -1609,23 +1735,32 @@ async function main(): Promise<void> {
     })
     assert.equal(claimed, true)
     const sceneEventsBeforeLockProof = await createVttSceneRepository(db).listEvents(sceneId)
-    const attachProofDb = createDb({ connectionString })
+    const presentationProofDb = createDb({ connectionString })
     const liveCommandProofDb = createDb({ connectionString })
     try {
-      let attachFinished = false
+      let presentationFinished = false
       let liveCommandFinished = false
       const proof = await withTransaction(db, async (trx) => {
         await sql`
           SELECT id
-          FROM public.encounter_scenes
+          FROM public.campaign_live_scenes
           WHERE id = ${sceneId}
           FOR UPDATE
         `.execute(trx)
 
-        const attachReplay = attachEncounterScene(attachProofDb, gmUser.id, sceneAttachCommand, {
-          liveSessionAuthority: { authorityId, sessionId: session.id }
-        }).finally(() => {
-          attachFinished = true
+        const presentationUpdate = setCampaignLiveScenePresentation(
+          presentationProofDb,
+          gmUser.id,
+          {
+            commandId: randomUUID(),
+            expectedPresentationVersion: scenePresentation.streamVersion,
+            sceneId,
+            sessionId: session.id,
+            type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
+          },
+          { liveSessionAuthority: { authorityId, sessionId: session.id } }
+        ).finally(() => {
+          presentationFinished = true
         })
         const liveCommand = executeEncounterSceneCommandWithState(
           liveCommandProofDb,
@@ -1633,26 +1768,38 @@ async function main(): Promise<void> {
           {
             barrierId: doorId,
             commandId: randomUUID(),
-            encounterId: encounter.id,
             expectedSceneVersion,
             sceneId,
             state: 'CLOSED' as const,
             type: 'SET_SCENE_DOOR_STATE' as const
           },
           {
-            liveSceneContext: { authorityId, campaignId: currentCampaignId, sessionId: session.id }
+            liveSessionAuthority: { authorityId, sessionId: session.id },
+            liveSceneContext: {
+              authorityId,
+              campaignId: currentCampaignId,
+              sessionId: session.id
+            }
           }
         ).finally(() => {
           liveCommandFinished = true
         })
 
         await delay(75)
-        assert.equal(attachFinished, false, 'Attach/replay bypassed the held Scene lock.')
+        assert.equal(
+          presentationFinished,
+          false,
+          'Session presentation bypassed the held Scene lock.'
+        )
         assert.equal(liveCommandFinished, false, 'Live Scene command bypassed the held Scene lock.')
-        return { attachReplay, liveCommand }
+        return { liveCommand, presentationUpdate }
       })
-      const [attachReplay, liveCommand] = await Promise.all([proof.attachReplay, proof.liveCommand])
-      assert.equal(attachReplay.replayed, true)
+      const [presentationUpdate, liveCommand] = await Promise.all([
+        proof.presentationUpdate,
+        proof.liveCommand
+      ])
+      assert.equal(presentationUpdate.replayed, false)
+      assert.equal(presentationUpdate.version, scenePresentation.streamVersion + 1)
       assert.equal(liveCommand.result.replayed, false)
       const sceneEventsAfterLockProof = await createVttSceneRepository(db).listEvents(sceneId)
       assert.equal(sceneEventsAfterLockProof.length, sceneEventsBeforeLockProof.length + 1)
@@ -1660,9 +1807,12 @@ async function main(): Promise<void> {
       assert.equal(liveCommand.state.doorStates[doorId], 'CLOSED')
     } finally {
       await Promise.all([
-        attachProofDb.destroy(),
+        presentationProofDb.destroy(),
         liveCommandProofDb.destroy(),
-        createLiveSessionCommandLeaseRepository(db).release({ authorityId, sessionId: session.id })
+        createLiveSessionCommandLeaseRepository(db).release({
+          authorityId,
+          sessionId: session.id
+        })
       ])
     }
 
@@ -1740,28 +1890,32 @@ async function main(): Promise<void> {
         await createMediaRepository(db).deleteAsset(mapAssetId)
       })
     }
-    for (const currentPlayer of players) {
+    if (encounterBlueprintId && gm) {
+      const currentEncounterBlueprintId = encounterBlueprintId
+      const currentGm = gm
       await captureCleanup(async () => {
-        const { error } = await admin.auth.admin.deleteUser(currentPlayer.id)
-        if (error) throw error
+        const deleted = await sql<{ id: string }>`
+          delete from public.encounter_blueprints
+          where id = ${currentEncounterBlueprintId}::uuid
+            and owner_user_id = ${currentGm.id}::uuid
+          returning id
+        `.execute(db)
+        assert.equal(deleted.rows[0]?.id, currentEncounterBlueprintId)
       })
+    }
+    for (const currentPlayer of players) {
+      await captureCleanup(() => deleteDisposableAuthUser(admin.auth.admin, db, currentPlayer.id))
     }
     await captureCleanup(async () => {
       assert.equal(await createCharacterRepository(db).findById(characterId), null)
     })
     if (gm) {
       const currentGm = gm
-      await captureCleanup(async () => {
-        const { error } = await admin.auth.admin.deleteUser(currentGm.id)
-        if (error) throw error
-      })
+      await captureCleanup(() => deleteDisposableAuthUser(admin.auth.admin, db, currentGm.id))
     }
     if (outsider) {
       const currentOutsider = outsider
-      await captureCleanup(async () => {
-        const { error } = await admin.auth.admin.deleteUser(currentOutsider.id)
-        if (error) throw error
-      })
+      await captureCleanup(() => deleteDisposableAuthUser(admin.auth.admin, db, currentOutsider.id))
     }
     await captureCleanup(() => db.destroy())
   }

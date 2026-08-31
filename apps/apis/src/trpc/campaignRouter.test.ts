@@ -28,6 +28,7 @@ const campaignMocks = vi.hoisted(() => {
     EntitlementLimitError,
     listCampaigns: vi.fn(async () => []),
     listCampaignSceneDefinitions: vi.fn(async () => []),
+    listCampaignLiveScenes: vi.fn(async () => []),
     issueLiveSessionTicket: vi.fn(async () => ({
       expiresAt: '2026-08-15T12:01:00.000Z',
       ticket: 'signed-room-ticket'
@@ -188,11 +189,13 @@ describe('tRPC campaign router', () => {
     const campaignId = '00000000-0000-4000-8000-000000000001'
 
     await expect(caller.campaigns.scenes.list({ campaignId })).resolves.toEqual([])
+    await expect(caller.campaigns.scenes.listLive({ campaignId })).resolves.toEqual([])
     expect(campaignMocks.listCampaignSceneDefinitions).toHaveBeenCalledWith(
       {},
       'user-1',
       campaignId
     )
+    expect(campaignMocks.listCampaignLiveScenes).toHaveBeenCalledWith({}, 'user-1', campaignId)
   })
 
   it('forwards Campaign content service arguments and parses content payloads', async () => {

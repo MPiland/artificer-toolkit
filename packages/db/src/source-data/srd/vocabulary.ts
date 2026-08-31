@@ -31,7 +31,31 @@ const D = {
   terrain: '000d',
   challengeRating: '000e',
   creatureType: '000f',
-  lifestyle: '0010'
+  lifestyle: '0010',
+  ability: '0011'
+} as const
+
+// ─── Abilities ───────────────────────────────────────────────────────────────
+
+export const SRD_ABILITIES = [
+  { id: vocabId(D.ability, 1), code: 'STRENGTH', label: 'Strength' },
+  { id: vocabId(D.ability, 2), code: 'DEXTERITY', label: 'Dexterity' },
+  { id: vocabId(D.ability, 3), code: 'CONSTITUTION', label: 'Constitution' },
+  { id: vocabId(D.ability, 4), code: 'INTELLIGENCE', label: 'Intelligence' },
+  { id: vocabId(D.ability, 5), code: 'WISDOM', label: 'Wisdom' },
+  { id: vocabId(D.ability, 6), code: 'CHARISMA', label: 'Charisma' }
+] as const
+
+export const SRD_CONSTITUTION_ABILITY_DEFINITION_ID = SRD_ABILITIES[2].id
+
+/** Stable UUID references used by authored mechanics; codes remain catalogue keys only. */
+export const SRD_ABILITY_DEFINITION_IDS = {
+  STRENGTH: SRD_ABILITIES[0].id,
+  DEXTERITY: SRD_ABILITIES[1].id,
+  CONSTITUTION: SRD_ABILITIES[2].id,
+  INTELLIGENCE: SRD_ABILITIES[3].id,
+  WISDOM: SRD_ABILITIES[4].id,
+  CHARISMA: SRD_ABILITIES[5].id
 } as const
 
 // ─── Alignments ───────────────────────────────────────────────────────────────
@@ -638,10 +662,10 @@ export const SRD_SENSES = [
 
 // Named sense ID helpers — consumed by races.ts, creatures.ts, and anywhere
 // a sense grant needs to reference a vocabulary sense ID.
-export const SRD_DARKVISION_SENSE_ID = SRD_SENSES.find((s) => s.code === 'DARKVISION')!.id
-export const SRD_BLINDSIGHT_SENSE_ID = SRD_SENSES.find((s) => s.code === 'BLINDSIGHT')!.id
-export const SRD_TREMORSENSE_SENSE_ID = SRD_SENSES.find((s) => s.code === 'TREMORSENSE')!.id
-export const SRD_TRUESIGHT_SENSE_ID = SRD_SENSES.find((s) => s.code === 'TRUESIGHT')!.id
+export const SRD_DARKVISION_SENSE_ID = SRD_SENSES[0]!.id
+export const SRD_BLINDSIGHT_SENSE_ID = SRD_SENSES[1]!.id
+export const SRD_TREMORSENSE_SENSE_ID = SRD_SENSES[2]!.id
+export const SRD_TRUESIGHT_SENSE_ID = SRD_SENSES[3]!.id
 
 // ─── Skills ───────────────────────────────────────────────────────────────────
 
@@ -1177,13 +1201,15 @@ export const SRD_CREATURE_TYPES = [
 // ─── Full system record ───────────────────────────────────────────────────────
 
 export const srdSystemRecord: SystemSeedRecord = {
+  schemaVersion: 2,
   id: SRD_SYSTEM_ID,
-  label: 'D&D 5e SRD 5.1',
+  label: 'D&D 5e',
   description: 'Baseline SRD content bundle for Artificer Toolkit.',
   rulesetCode: 'dnd5e',
   rulesetVersion: '2014',
   userId: SRD_USER_ID,
   alignments: SRD_ALIGNMENTS,
+  abilities: [...SRD_ABILITIES],
   challengeRatings: SRD_CHALLENGE_RATINGS,
   conditionTypes: SRD_CONDITION_TYPES,
   creatureTypes: SRD_CREATURE_TYPES,

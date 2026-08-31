@@ -71,9 +71,8 @@ export function AuthoredListPage({
   const isMobile = useMediaQuery(mobileQuery, false)
   const isTablet = useMediaQuery(tabletQuery, false)
   const [uncontrolledQuery, setUncontrolledQuery] = useState('')
-  const [uncontrolledFilterValues, setUncontrolledFilterValues] = useState<AuthoredListFilterValues>(() =>
-    buildInitialFilters(filters)
-  )
+  const [uncontrolledFilterValues, setUncontrolledFilterValues] =
+    useState<AuthoredListFilterValues>(() => buildInitialFilters(filters))
   const [uncontrolledSort, setUncontrolledSort] = useState(defaultSort)
   const [contentPanel, setContentPanel] = useState<'active' | 'draft'>('active')
   const [viewMode, setViewMode] = useState<AuthoredListViewMode>(() => {
@@ -138,7 +137,8 @@ export function AuthoredListPage({
     sortOptions[0]?.label ??
     'Default'
   const activeCount = catalog?.activeCount ?? items.length
-  const resultCount = catalog && contentPanel === 'active' ? catalog.totalCount : filteredItems.length
+  const resultCount =
+    catalog && contentPanel === 'active' ? catalog.totalCount : filteredItems.length
 
   const cardColumnCount = viewMode === 'cards' ? (isMobile ? 1 : isTablet ? 2 : 3) : 1
   const virtualRowCount =
@@ -191,11 +191,7 @@ export function AuthoredListPage({
     if (!catalog || contentPanel !== 'active' || virtualRows.length === 0) return
     const firstVisibleRow = virtualRows[0]?.index ?? 0
     const lastVisibleRow = virtualRows.at(-1)?.index ?? 0
-    if (
-      firstVisibleRow <= 3 &&
-      catalog.hasPreviousPage &&
-      !catalog.isFetchingPreviousPage
-    ) {
+    if (firstVisibleRow <= 3 && catalog.hasPreviousPage && !catalog.isFetchingPreviousPage) {
       catalog.fetchPreviousPage()
     }
     if (

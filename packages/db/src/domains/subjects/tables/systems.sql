@@ -14,14 +14,13 @@
 
 CREATE TABLE IF NOT EXISTS public.systems (
   id uuid PRIMARY KEY,
-
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-
+  user_id uuid REFERENCES auth.users (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
   label text NOT NULL,
   description text,
   ruleset_code text NOT NULL,
   ruleset_version text NOT NULL,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -29,45 +28,47 @@ CREATE TABLE IF NOT EXISTS public.systems (
 ALTER TABLE public.systems ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Systems are readable by owner or public." ON public.systems;
-CREATE POLICY "Systems are readable by owner or public."
-  ON public.systems FOR SELECT TO authenticated
-  USING (
-    user_id IS NULL
-    OR user_id = (SELECT auth.uid())
-    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
-  );
+CREATE POLICY "Systems are readable by owner or public." ON public.systems
+FOR SELECT
+TO authenticated
+USING (
+  user_id IS NULL
+  OR user_id = (SELECT auth.uid())
+  OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+);
 
 DROP POLICY IF EXISTS "Users can insert own systems." ON public.systems;
-CREATE POLICY "Users can insert own systems."
-  ON public.systems FOR INSERT TO authenticated
-  WITH CHECK (
-    user_id = (SELECT auth.uid())
-    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
-  );
+CREATE POLICY "Users can insert own systems." ON public.systems
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  user_id = (SELECT auth.uid())
+  OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+);
 
 DROP POLICY IF EXISTS "Users can update own systems." ON public.systems;
-CREATE POLICY "Users can update own systems."
-  ON public.systems FOR UPDATE TO authenticated
-  USING (
-    user_id = (SELECT auth.uid())
-    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
-  )
-  WITH CHECK (
-    user_id = (SELECT auth.uid())
-    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
-  );
+CREATE POLICY "Users can update own systems." ON public.systems
+FOR UPDATE
+TO authenticated
+USING (
+  user_id = (SELECT auth.uid())
+  OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+)
+WITH CHECK (
+  user_id = (SELECT auth.uid())
+  OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+);
 
 DROP POLICY IF EXISTS "Users can delete own systems." ON public.systems;
-CREATE POLICY "Users can delete own systems."
-  ON public.systems FOR DELETE TO authenticated
-  USING (
-    user_id = (SELECT auth.uid())
-    OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
-  );
+CREATE POLICY "Users can delete own systems." ON public.systems
+FOR DELETE
+TO authenticated
+USING (
+  user_id = (SELECT auth.uid())
+  OR ((SELECT auth.jwt())::jsonb -> 'app_metadata' ->> 'admin') = 'true'
+);
 
-CREATE INDEX IF NOT EXISTS idx_systems_user
-  ON public.systems(user_id);
-
+CREATE INDEX IF NOT EXISTS idx_systems_user ON public.systems (user_id);
 
 /* ──────────────────────────────────────────────
  * VOCABULARY TABLE TEMPLATE
@@ -79,6 +80,38 @@ CREATE INDEX IF NOT EXISTS idx_systems_user
  *  - label/description/tooltip/short: presentation
  * ────────────────────────────────────────────── */
 
+/* ──────────────────────────────────────────────
+ * ABILITY DEFINITIONS
+ * ────────────────────────────────────────────── */
+
+CREATE TABLE IF NOT EXISTS public.ability_definitions (
+  id uuid PRIMARY KEY,
+  system_id uuid NOT NULL REFERENCES public.systems (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
+  code text NOT NULL,
+  label text NOT NULL,
+  description text,
+  tooltip text,
+  short text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.ability_definitions ENABLE ROW LEVEL SECURITY;
+SELECT public.apply_system_vocabulary_policies('ability_definitions');
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_ability_definitions_system_code ON public.ability_definitions (
+  system_id,
+  code
+);
+
+ALTER TABLE public.ability_definitions
+ADD CONSTRAINT ability_definitions_id_system_key UNIQUE (id, system_id);
+
+CREATE INDEX IF NOT EXISTS idx_ability_definitions_system ON public.ability_definitions (
+  system_id
+);
 
 /* ──────────────────────────────────────────────
  * ALIGNMENTS
@@ -86,18 +119,14 @@ CREATE INDEX IF NOT EXISTS idx_systems_user
 
 CREATE TABLE IF NOT EXISTS public.alignments (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -105,12 +134,14 @@ CREATE TABLE IF NOT EXISTS public.alignments (
 ALTER TABLE public.alignments ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('alignments');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_alignments_system_code
-  ON public.alignments(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_alignments_system_code ON public.alignments (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_alignments_system
-  ON public.alignments(system_id);
-
+CREATE INDEX IF NOT EXISTS idx_alignments_system ON public.alignments (
+  system_id
+);
 
 /* ──────────────────────────────────────────────
  * CONDITIONS
@@ -118,18 +149,14 @@ CREATE INDEX IF NOT EXISTS idx_alignments_system
 
 CREATE TABLE IF NOT EXISTS public.condition_types (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -137,12 +164,14 @@ CREATE TABLE IF NOT EXISTS public.condition_types (
 ALTER TABLE public.condition_types ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('condition_types');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_condition_types_system_code
-  ON public.condition_types(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_condition_types_system_code ON public.condition_types (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_condition_types_system
-  ON public.condition_types(system_id);
-
+CREATE INDEX IF NOT EXISTS idx_condition_types_system ON public.condition_types (
+  system_id
+);
 
 /* ──────────────────────────────────────────────
  * CURRENCIES
@@ -150,18 +179,14 @@ CREATE INDEX IF NOT EXISTS idx_condition_types_system
 
 CREATE TABLE IF NOT EXISTS public.currencies (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -169,12 +194,14 @@ CREATE TABLE IF NOT EXISTS public.currencies (
 ALTER TABLE public.currencies ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('currencies');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_currencies_system_code
-  ON public.currencies(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_currencies_system_code ON public.currencies (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_currencies_system
-  ON public.currencies(system_id);
-
+CREATE INDEX IF NOT EXISTS idx_currencies_system ON public.currencies (
+  system_id
+);
 
 /* ──────────────────────────────────────────────
  * DAMAGE TYPES
@@ -182,18 +209,14 @@ CREATE INDEX IF NOT EXISTS idx_currencies_system
 
 CREATE TABLE IF NOT EXISTS public.damage_types (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -201,26 +224,25 @@ CREATE TABLE IF NOT EXISTS public.damage_types (
 ALTER TABLE public.damage_types ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('damage_types');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_damage_types_system_code
-  ON public.damage_types(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_damage_types_system_code ON public.damage_types (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_damage_types_system
-  ON public.damage_types(system_id);
+CREATE INDEX IF NOT EXISTS idx_damage_types_system ON public.damage_types (
+  system_id
+);
 
 CREATE TABLE IF NOT EXISTS public.heritages (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -228,12 +250,12 @@ CREATE TABLE IF NOT EXISTS public.heritages (
 ALTER TABLE public.heritages ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('heritages');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_heritages_system_code
-  ON public.heritages(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_heritages_system_code ON public.heritages (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_heritages_system
-  ON public.heritages(system_id);
-
+CREATE INDEX IF NOT EXISTS idx_heritages_system ON public.heritages (system_id);
 
 /* ──────────────────────────────────────────────
  * LANGUAGES
@@ -241,18 +263,14 @@ CREATE INDEX IF NOT EXISTS idx_heritages_system
 
 CREATE TABLE IF NOT EXISTS public.languages (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -260,29 +278,25 @@ CREATE TABLE IF NOT EXISTS public.languages (
 ALTER TABLE public.languages ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('languages');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_languages_system_code
-  ON public.languages(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_languages_system_code ON public.languages (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_languages_system
-  ON public.languages(system_id);
-
+CREATE INDEX IF NOT EXISTS idx_languages_system ON public.languages (system_id);
 
 /* LIFESTYLES */
 
 CREATE TABLE IF NOT EXISTS public.lifestyles (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -290,11 +304,14 @@ CREATE TABLE IF NOT EXISTS public.lifestyles (
 ALTER TABLE public.lifestyles ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('lifestyles');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_lifestyles_system_code
-  ON public.lifestyles(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_lifestyles_system_code ON public.lifestyles (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_lifestyles_system
-  ON public.lifestyles(system_id);
+CREATE INDEX IF NOT EXISTS idx_lifestyles_system ON public.lifestyles (
+  system_id
+);
 
 /* ──────────────────────────────────────────────
  * MAGIC SCHOOLS
@@ -302,18 +319,14 @@ CREATE INDEX IF NOT EXISTS idx_lifestyles_system
 
 CREATE TABLE IF NOT EXISTS public.magic_schools (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -321,12 +334,14 @@ CREATE TABLE IF NOT EXISTS public.magic_schools (
 ALTER TABLE public.magic_schools ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('magic_schools');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_magic_schools_system_code
-  ON public.magic_schools(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_magic_schools_system_code ON public.magic_schools (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_magic_schools_system
-  ON public.magic_schools(system_id);
-
+CREATE INDEX IF NOT EXISTS idx_magic_schools_system ON public.magic_schools (
+  system_id
+);
 
 /* ──────────────────────────────────────────────
  * PASSIVES
@@ -334,18 +349,14 @@ CREATE INDEX IF NOT EXISTS idx_magic_schools_system
 
 CREATE TABLE IF NOT EXISTS public.passives (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -353,12 +364,12 @@ CREATE TABLE IF NOT EXISTS public.passives (
 ALTER TABLE public.passives ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('passives');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_passives_system_code
-  ON public.passives(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_passives_system_code ON public.passives (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_passives_system
-  ON public.passives(system_id);
-
+CREATE INDEX IF NOT EXISTS idx_passives_system ON public.passives (system_id);
 
 /* ──────────────────────────────────────────────
  * RARITIES
@@ -366,18 +377,14 @@ CREATE INDEX IF NOT EXISTS idx_passives_system
 
 CREATE TABLE IF NOT EXISTS public.rarities (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -385,12 +392,12 @@ CREATE TABLE IF NOT EXISTS public.rarities (
 ALTER TABLE public.rarities ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('rarities');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_rarities_system_code
-  ON public.rarities(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_rarities_system_code ON public.rarities (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_rarities_system
-  ON public.rarities(system_id);
-
+CREATE INDEX IF NOT EXISTS idx_rarities_system ON public.rarities (system_id);
 
 /* ──────────────────────────────────────────────
  * SENSES
@@ -398,18 +405,14 @@ CREATE INDEX IF NOT EXISTS idx_rarities_system
 
 CREATE TABLE IF NOT EXISTS public.senses (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -417,12 +420,15 @@ CREATE TABLE IF NOT EXISTS public.senses (
 ALTER TABLE public.senses ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('senses');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_senses_system_code
-  ON public.senses(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_senses_system_code ON public.senses (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_senses_system
-  ON public.senses(system_id);
+ALTER TABLE public.senses
+ADD CONSTRAINT senses_id_system_key UNIQUE (id, system_id);
 
+CREATE INDEX IF NOT EXISTS idx_senses_system ON public.senses (system_id);
 
 /* ──────────────────────────────────────────────
  * SKILLS
@@ -430,18 +436,14 @@ CREATE INDEX IF NOT EXISTS idx_senses_system
 
 CREATE TABLE IF NOT EXISTS public.skills (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -449,12 +451,12 @@ CREATE TABLE IF NOT EXISTS public.skills (
 ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('skills');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_skills_system_code
-  ON public.skills(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_skills_system_code ON public.skills (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_skills_system
-  ON public.skills(system_id);
-
+CREATE INDEX IF NOT EXISTS idx_skills_system ON public.skills (system_id);
 
 /* ──────────────────────────────────────────────
  * SPEEDS
@@ -462,18 +464,14 @@ CREATE INDEX IF NOT EXISTS idx_skills_system
 
 CREATE TABLE IF NOT EXISTS public.speeds (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -481,12 +479,12 @@ CREATE TABLE IF NOT EXISTS public.speeds (
 ALTER TABLE public.speeds ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('speeds');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_speeds_system_code
-  ON public.speeds(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_speeds_system_code ON public.speeds (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_speeds_system
-  ON public.speeds(system_id);
-
+CREATE INDEX IF NOT EXISTS idx_speeds_system ON public.speeds (system_id);
 
 /* ──────────────────────────────────────────────
  * CHALLENGE RATINGS
@@ -494,18 +492,14 @@ CREATE INDEX IF NOT EXISTS idx_speeds_system
 
 CREATE TABLE IF NOT EXISTS public.challenge_ratings (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -513,12 +507,14 @@ CREATE TABLE IF NOT EXISTS public.challenge_ratings (
 ALTER TABLE public.challenge_ratings ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('challenge_ratings');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_challenge_ratings_system_code
-  ON public.challenge_ratings(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_challenge_ratings_system_code ON public.challenge_ratings (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_challenge_ratings_system
-  ON public.challenge_ratings(system_id);
-
+CREATE INDEX IF NOT EXISTS idx_challenge_ratings_system ON public.challenge_ratings (
+  system_id
+);
 
 /* ──────────────────────────────────────────────
  * CREATURE TYPES
@@ -526,18 +522,14 @@ CREATE INDEX IF NOT EXISTS idx_challenge_ratings_system
 
 CREATE TABLE IF NOT EXISTS public.creature_types (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -545,12 +537,14 @@ CREATE TABLE IF NOT EXISTS public.creature_types (
 ALTER TABLE public.creature_types ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('creature_types');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_creature_types_system_code
-  ON public.creature_types(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_creature_types_system_code ON public.creature_types (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_creature_types_system
-  ON public.creature_types(system_id);
-
+CREATE INDEX IF NOT EXISTS idx_creature_types_system ON public.creature_types (
+  system_id
+);
 
 /* ──────────────────────────────────────────────
  * TERRAINS
@@ -558,18 +552,14 @@ CREATE INDEX IF NOT EXISTS idx_creature_types_system
 
 CREATE TABLE IF NOT EXISTS public.terrains (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   code text NOT NULL,
   label text NOT NULL,
   description text,
   tooltip text,
   short text,
-
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -577,9 +567,9 @@ CREATE TABLE IF NOT EXISTS public.terrains (
 ALTER TABLE public.terrains ENABLE ROW LEVEL SECURITY;
 SELECT public.apply_system_vocabulary_policies('terrains');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_terrains_system_code
-  ON public.terrains(system_id, code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_terrains_system_code ON public.terrains (
+  system_id,
+  code
+);
 
-CREATE INDEX IF NOT EXISTS idx_terrains_system
-  ON public.terrains(system_id);
-
+CREATE INDEX IF NOT EXISTS idx_terrains_system ON public.terrains (system_id);

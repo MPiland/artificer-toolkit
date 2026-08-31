@@ -21,6 +21,7 @@ import { normalizeSubjectStatus } from '../status.js'
 type ClassRow = {
   id: string
   system_id: string
+  content_source_id: string
   user_id: string
   category: string
   parent_class_id: string | null
@@ -246,11 +247,12 @@ function requireRoundingCode(ownerId: string, value: string): string {
   return value
 }
 
-function mapClassRow(json_data: ClassAuthored): ClassRow {
+function mapClassRow(json_data: ClassAuthored, contentSourceId: string): ClassRow {
   if (json_data.category === CLASS_CATEGORY.BASE) {
     return {
       id: json_data.id,
       system_id: json_data.systemId,
+      content_source_id: contentSourceId,
       user_id: json_data.userId,
       category: requireClassCategory(json_data.id, json_data.category),
       parent_class_id: null,
@@ -265,6 +267,7 @@ function mapClassRow(json_data: ClassAuthored): ClassRow {
   return {
     id: json_data.id,
     system_id: json_data.systemId,
+    content_source_id: contentSourceId,
     user_id: json_data.userId,
     category: requireClassCategory(json_data.id, json_data.category),
     parent_class_id: json_data.parentClassId,
@@ -276,13 +279,14 @@ function mapClassRow(json_data: ClassAuthored): ClassRow {
   }
 }
 
-async function upsertClassRow(db: DBLike, json_data: ClassAuthored) {
+async function upsertClassRow(db: DBLike, json_data: ClassAuthored, contentSourceId: string) {
   await db
     .insertInto('classes')
-    .values(mapClassRow(json_data))
+    .values(mapClassRow(json_data, contentSourceId))
     .onConflict((oc) =>
       oc.column('id').doUpdateSet((eb) => ({
         system_id: eb.ref('excluded.system_id'),
+        content_source_id: eb.ref('classes.content_source_id'),
         user_id: eb.ref('excluded.user_id'),
         category: eb.ref('excluded.category'),
         parent_class_id: eb.ref('excluded.parent_class_id'),
@@ -296,17 +300,27 @@ async function upsertClassRow(db: DBLike, json_data: ClassAuthored) {
     .execute()
 }
 
-export async function upsertClassRoot(db: DBLike, json_data: ClassAuthored, _systemId: string) {
+export async function upsertClassRoot(
+  db: DBLike,
+  json_data: ClassAuthored,
+  _systemId: string,
+  contentSourceId: string
+) {
   return withTransaction(db, async (trx) => {
     if (json_data.category === CLASS_CATEGORY.BASE) {
       await upsertStartingEquipment(trx, json_data.startingEquipment)
     }
 
-    await upsertClassRow(trx, json_data)
+    await upsertClassRow(trx, json_data, contentSourceId)
   })
 }
 
-export async function upsertClass(db: DBLike, json_data: ClassAuthored, _systemId: string) {
+export async function upsertClass(
+  db: DBLike,
+  json_data: ClassAuthored,
+  _systemId: string,
+  contentSourceId: string
+) {
   const detailRows: ClassDetailRow[] = (json_data.details ?? []).map((detail) => ({
     class_id: json_data.id,
     detail_id: detail.id,
@@ -423,7 +437,7 @@ export async function upsertClass(db: DBLike, json_data: ClassAuthored, _systemI
       await upsertStartingEquipment(trx, json_data.startingEquipment)
     }
 
-    await upsertClassRow(trx, json_data)
+    await upsertClassRow(trx, json_data, contentSourceId)
 
     await trx.deleteFrom('class_features').where('class_id', '=', json_data.id).execute()
     await trx.deleteFrom('class_details').where('class_id', '=', json_data.id).execute()

@@ -14,7 +14,7 @@ export const systemVocabularySnapshotSchema = z
     snapshotVersion: projectionSchemaVersionSchema,
     schemaVersion: projectionSchemaVersionSchema,
     checksum: projectionChecksumSchema,
-    document: systemAuthoredDtoSchema.strict()
+    document: systemAuthoredDtoSchema
   })
   .superRefine((value, context) => {
     if (value.document.id !== value.systemId) {

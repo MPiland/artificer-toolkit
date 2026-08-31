@@ -73,6 +73,8 @@ describe('active Character authored sources', () => {
 
     await expect(
       loadActiveCharacterCreatures({ ...input, creatureIds: [creature.id] })
-    ).rejects.toThrow(`Character "${input.characterId}" requires an active Creature "${creature.id}" version.`)
+    ).rejects.toThrow(
+      `Character "${input.characterId}" requires an active Creature "${creature.id}" version.`
+    )
   })
 })

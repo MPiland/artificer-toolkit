@@ -5,6 +5,7 @@ import {
   createCampaignCharacterMechanicsProjectionRepository,
   createCampaignContentShareRepository,
   createCampaignRepository,
+  createCampaignSettingsRepository,
   createCharacterMechanicsProjectionRepository,
   createCharacterRepository,
   createSocialRepository,
@@ -33,6 +34,7 @@ import {
   checksumCampaignCharacterMechanicalContext,
   resolveCharacterLiveSessionRuleContext
 } from '../character/campaignCharacterSheet.js'
+import { lockCharacterAssignmentAuthority } from '../character/characterAssignmentAuthority.js'
 import {
   CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
   prepareCampaignCharacterMechanicsProjection
@@ -54,6 +56,10 @@ import { mapCampaignInvite, socialIso } from '../social/mapping.js'
 import { requireActiveSocialProfile } from '../social/profileService.js'
 import { consumeSocialRateLimit } from '../social/rateLimits.js'
 import { reconcileCampaignCurrencyDeparture } from './campaignInventoryService.js'
+import {
+  InitiativePolicySourceError,
+  resolveEffectiveInitiativePolicySources
+} from '../rules/initiativePolicySourceAccess.js'
 import { broadcastCampaignInvalidation } from './realtimeService.js'
 import {
   findCampaignContentRemovalReceipt,
@@ -106,6 +112,9 @@ export interface CampaignAuthority {
     >
     toneDetails: string | null
     contentMaturity: 'STANDARD' | 'MATURE'
+    gameSystemId: string
+    primaryRulesCatalogueId: string
+    additionalRulesCatalogueIds: string[]
     attunementSlotOverride: number | null
     status: 'ACTIVE' | 'ARCHIVED'
     version: number
@@ -127,10 +136,21 @@ function toIso(value: string | Date): string {
   return typeof value === 'string' ? new Date(value).toISOString() : value.toISOString()
 }
 
+function requireCampaignBinding(value: string | undefined, label: string): string {
+  if (!value) throw new CampaignValidationError(`Campaign ${label} is required.`)
+  return value
+}
+
 function normalizeAuthority(authority: CampaignAuthorityRecord): CampaignAuthority {
   return {
     campaign: {
       ...authority.campaign,
+      gameSystemId: requireCampaignBinding(authority.campaign.gameSystemId, 'Game System'),
+      primaryRulesCatalogueId: requireCampaignBinding(
+        authority.campaign.primaryRulesCatalogueId,
+        'primary Rules Catalogue'
+      ),
+      additionalRulesCatalogueIds: authority.campaign.additionalRulesCatalogueIds ?? [],
       createdAt: toIso(authority.campaign.createdAt),
       updatedAt: toIso(authority.campaign.updatedAt)
     },
@@ -229,6 +249,12 @@ function mapSummary(record: CampaignListRecord): CampaignSummaryDto {
     toneTags: record.toneTags,
     toneDetails: record.toneDetails ? presentCampaignPlainText(record.toneDetails, maturity) : null,
     contentMaturity: maturity,
+    gameSystemId: requireCampaignBinding(record.gameSystemId, 'Game System'),
+    primaryRulesCatalogueId: requireCampaignBinding(
+      record.primaryRulesCatalogueId,
+      'primary Rules Catalogue'
+    ),
+    additionalRulesCatalogueIds: record.additionalRulesCatalogueIds ?? [],
     status: record.status,
     role: record.role,
     version: record.version,
@@ -275,6 +301,12 @@ async function buildDetail(
             authority.campaign.contentMaturity
           ),
     contentMaturity: authority.campaign.contentMaturity,
+    gameSystemId: requireCampaignBinding(authority.campaign.gameSystemId, 'Game System'),
+    primaryRulesCatalogueId: requireCampaignBinding(
+      authority.campaign.primaryRulesCatalogueId,
+      'primary Rules Catalogue'
+    ),
+    additionalRulesCatalogueIds: authority.campaign.additionalRulesCatalogueIds ?? [],
     attunementSlotOverride: authority.campaign.attunementSlotOverride,
     status: authority.campaign.status,
     role: authority.membership.role,
@@ -393,18 +425,37 @@ export function createCampaign(
     const tier = await entitlementRepository.lockTier(userId)
     const limits = ENTITLEMENT_LIMITS[tier]
     const repository = createCampaignRepository(trx)
+    const gameSystemId = requireCampaignBinding(input.gameSystemId, 'Game System')
+    const primaryRulesCatalogueId = requireCampaignBinding(
+      input.primaryRulesCatalogueId,
+      'primary Rules Catalogue'
+    )
+    const additionalRulesCatalogueIds = input.additionalRulesCatalogueIds ?? []
     assertEntitlementLimit(
       'activeHostedCampaigns',
       await repository.countActiveOwned(userId),
       limits.activeHostedCampaigns
     )
+    await repository.requireRulesCatalogues({
+      gameSystemId,
+      primaryRulesCatalogueId,
+      additionalRulesCatalogueIds
+    })
     const campaign = await repository.createCampaign(userId, {
       name: input.name,
       description: input.description ?? null,
       format: input.format,
       tone_tags: input.toneTags,
       tone_details: input.toneDetails ?? null,
-      content_maturity: input.contentMaturity
+      content_maturity: input.contentMaturity,
+      game_system_id: gameSystemId,
+      primary_rules_catalogue_id: primaryRulesCatalogueId
+    })
+    await repository.insertAdditionalRulesCatalogues({
+      campaignId: campaign.id,
+      gameSystemId,
+      primaryRulesCatalogueId,
+      additionalRulesCatalogueIds
     })
     await repository.insertOwnerMembership(campaign.id, userId)
     return buildDetail(trx, await resolveCampaignAuthority(trx, campaign.id, userId))
@@ -426,6 +477,7 @@ export async function updateCampaign(
     assertCampaignOwner(authority)
     assertCampaignWritable(authority)
     assertExpectedVersion(authority, input.expectedVersion)
+    const repository = createCampaignRepository(trx)
     if (
       input.format === 'ONE_SHOT' &&
       lockedListing?.status === 'OPEN' &&
@@ -442,6 +494,72 @@ export async function updateCampaign(
     const nextToneDetails =
       input.toneDetails === undefined ? authority.campaign.toneDetails : input.toneDetails
     const nextMaturity = input.contentMaturity ?? authority.campaign.contentMaturity
+    const nextPrimaryRulesCatalogueId =
+      input.primaryRulesCatalogueId ?? authority.campaign.primaryRulesCatalogueId
+    const nextAdditionalRulesCatalogueIds =
+      input.additionalRulesCatalogueIds ?? authority.campaign.additionalRulesCatalogueIds
+    const catalogueChanged =
+      nextPrimaryRulesCatalogueId !== authority.campaign.primaryRulesCatalogueId ||
+      nextAdditionalRulesCatalogueIds.length !==
+        authority.campaign.additionalRulesCatalogueIds.length ||
+      nextAdditionalRulesCatalogueIds.some(
+        (catalogueId, index) =>
+          catalogueId !== authority.campaign.additionalRulesCatalogueIds[index]
+      )
+    if (catalogueChanged) {
+      await repository.requireRulesCatalogues({
+        gameSystemId: authority.campaign.gameSystemId,
+        primaryRulesCatalogueId: nextPrimaryRulesCatalogueId,
+        additionalRulesCatalogueIds: nextAdditionalRulesCatalogueIds
+      })
+      const enabledCatalogueIds = new Set([
+        nextPrimaryRulesCatalogueId,
+        ...nextAdditionalRulesCatalogueIds
+      ])
+      const assignedPrimaryCatalogueIds = await repository.listAssignmentPrimaryRulesCatalogueIds(
+        input.campaignId
+      )
+      if (
+        assignedPrimaryCatalogueIds.some((catalogueId) => !enabledCatalogueIds.has(catalogueId))
+      ) {
+        throw new CampaignValidationError(
+          'Campaign Rules Catalogues cannot remove an assigned Character primary Rules Catalogue.'
+        )
+      }
+      const [settings, encounterInitiativeSourceIds, optionalCombatSourceIds] = await Promise.all([
+        createCampaignSettingsRepository(trx).find(input.campaignId),
+        repository.listActiveEncounterInitiativeContentSourceIds(input.campaignId),
+        repository.listOptionalCombatContentSourceIdsRequiredByCampaign(input.campaignId)
+      ])
+      let initiativeSources: Awaited<ReturnType<typeof resolveEffectiveInitiativePolicySources>>
+      try {
+        initiativeSources = await resolveEffectiveInitiativePolicySources({
+          db: trx,
+          gameSystemId: authority.campaign.gameSystemId,
+          configuredPolicyDefinitionId: settings?.initiativePolicyDefinitionId ?? null,
+          configuredTieDefinitionId: settings?.initiativeTieDefinitionId ?? null
+        })
+      } catch (error) {
+        if (error instanceof InitiativePolicySourceError) {
+          throw new CampaignValidationError(error.message)
+        }
+        throw error
+      }
+      const missingInitiativeSourceIds =
+        await repository.listContentSourceIdsMissingFromRulesCatalogues({
+          rulesCatalogueIds: [nextPrimaryRulesCatalogueId, ...nextAdditionalRulesCatalogueIds],
+          contentSourceIds: [
+            ...(initiativeSources?.contentSourceIds ?? []),
+            ...encounterInitiativeSourceIds,
+            ...optionalCombatSourceIds
+          ]
+        })
+      if (missingInitiativeSourceIds.length > 0) {
+        throw new CampaignValidationError(
+          'Campaign Rules Catalogues cannot remove an active combat-policy dependency.'
+        )
+      }
+    }
     const projectionChanged =
       nextName !== authority.campaign.name ||
       nextFormat !== authority.campaign.format ||
@@ -460,7 +578,7 @@ export async function updateCampaign(
       input.attunementSlotOverride !== authority.campaign.attunementSlotOverride
     const existingMechanicsOverlays = attunementChanged
       ? await Promise.all(
-          (await createCampaignRepository(trx).listAssignmentCharacterIds(input.campaignId))
+          (await repository.listAssignmentCharacterIds(input.campaignId))
             .sort((left, right) => left.localeCompare(right))
             .map(async (characterId) => {
               const characterRepository = createCharacterRepository(trx)
@@ -509,22 +627,32 @@ export async function updateCampaign(
         )
       : []
 
-    const updated = await createCampaignRepository(trx).updateCampaign(
-      input.campaignId,
-      input.expectedVersion,
-      {
-        ...(input.name === undefined ? {} : { name: input.name }),
-        ...(input.description === undefined ? {} : { description: input.description }),
-        ...(input.format === undefined ? {} : { format: input.format }),
-        ...(input.toneTags === undefined ? {} : { tone_tags: input.toneTags }),
-        ...(input.toneDetails === undefined ? {} : { tone_details: input.toneDetails }),
-        ...(input.contentMaturity === undefined ? {} : { content_maturity: input.contentMaturity }),
-        ...(input.attunementSlotOverride === undefined
-          ? {}
-          : { attunement_slot_override: input.attunementSlotOverride })
-      }
-    )
+    if (catalogueChanged) {
+      await repository.clearAdditionalRulesCatalogues(input.campaignId)
+    }
+    const updated = await repository.updateCampaign(input.campaignId, input.expectedVersion, {
+      ...(input.name === undefined ? {} : { name: input.name }),
+      ...(input.description === undefined ? {} : { description: input.description }),
+      ...(input.format === undefined ? {} : { format: input.format }),
+      ...(input.toneTags === undefined ? {} : { tone_tags: input.toneTags }),
+      ...(input.toneDetails === undefined ? {} : { tone_details: input.toneDetails }),
+      ...(input.contentMaturity === undefined ? {} : { content_maturity: input.contentMaturity }),
+      ...(input.attunementSlotOverride === undefined
+        ? {}
+        : { attunement_slot_override: input.attunementSlotOverride }),
+      ...(input.primaryRulesCatalogueId === undefined
+        ? {}
+        : { primary_rules_catalogue_id: input.primaryRulesCatalogueId })
+    })
     if (!updated) throw new CampaignConflictError()
+    if (catalogueChanged) {
+      await repository.insertAdditionalRulesCatalogues({
+        campaignId: updated.id,
+        gameSystemId: requireCampaignBinding(updated.gameSystemId, 'Game System'),
+        primaryRulesCatalogueId: nextPrimaryRulesCatalogueId,
+        additionalRulesCatalogueIds: nextAdditionalRulesCatalogueIds
+      })
+    }
     if (attunementChanged) {
       for (const { character, mechanics, previousOverlay } of existingMechanicsOverlays) {
         const ruleContext = await resolveCharacterLiveSessionRuleContext(trx, character.id, {
@@ -1081,6 +1209,7 @@ export function assignCampaignCharacter(
   characterId: string
 ): Promise<{ characterId: string }> {
   return withTransaction(db, async (trx) => {
+    await lockCharacterAssignmentAuthority(trx, characterId)
     const authority = await lockAuthority(trx, campaignId, actorUserId)
     assertCampaignWritable(authority)
     const repository = createCampaignRepository(trx)
@@ -1097,11 +1226,18 @@ export function assignCampaignCharacter(
 
     const current = await repository.findAssignmentForUser(campaignId, character.userId)
     if (current?.characterId === characterId) return { characterId }
-    const systems = await repository.listAssignedSystemIdsExceptUser(campaignId, character.userId)
-    if (systems.some((systemId) => systemId !== character.systemId)) {
-      // ponytail: the first Character establishes compatibility until Campaigns store a system id.
+    if (character.systemId !== authority.campaign.gameSystemId) {
       throw new CampaignValidationError(
         'Character uses a different game system from this Campaign.'
+      )
+    }
+    const enabledCatalogues = new Set([
+      authority.campaign.primaryRulesCatalogueId,
+      ...authority.campaign.additionalRulesCatalogueIds
+    ])
+    if (!enabledCatalogues.has(character.primaryRulesCatalogueId)) {
+      throw new CampaignValidationError(
+        'Character primary Rules Catalogue is not enabled for this Campaign.'
       )
     }
 

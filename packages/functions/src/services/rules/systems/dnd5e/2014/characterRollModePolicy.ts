@@ -33,9 +33,13 @@ function abilityAlias(value: string): string {
 }
 
 function rollMode(match: string): string {
-  const has = (modifierKind: 'ADVANTAGE' | 'DISADVANTAGE') =>
-    `some($.rollModeModifiers as modifier, modifier.modifierKind == "${modifierKind}" and (${match}))`
+  const has = (influence: 'ADVANTAGE' | 'DISADVANTAGE') =>
+    `some($.rollModeContributors as contributor, contributor.influence == "${influence}" and (${match.replaceAll('modifier', 'contributor')}))`
   return `(${has('ADVANTAGE')} ? (${has('DISADVANTAGE')} ? "NORMAL" : "ADVANTAGE") : (${has('DISADVANTAGE')} ? "DISADVANTAGE" : "NORMAL"))`
+}
+
+function contributors(match: string): string {
+  return `map(filter($.rollModeContributors as contributor, ${match.replaceAll('modifier', 'contributor')}) as contributor, { sourceId: contributor.sourceId, source: contributor.source, grantId: contributor.grantId, domainKey: contributor.domainKey, influence: contributor.influence })`
 }
 
 function abilityCheckMatch(ability: string): string {
@@ -54,9 +58,9 @@ function skillCheckMatch(skillId: string): string {
 /** Ordered expressions consumed by the single Character calculations node. */
 const modeExpressions = [
   {
-    id: 'roll-mode-modifiers',
-    key: 'rollModeModifiers',
-    value: `map(filter($.resolvedModifierGroups as group, group.effective == 1 and (group.modifierKind == "ADVANTAGE" or group.modifierKind == "DISADVANTAGE")) as group, { valueDomainCode: group.valueDomainCode, modifierKind: group.modifierKind, ability: ${abilityAlias('grantFold.modifiers[group.contributions[0].acceptedModifierIndex].grant.domain.ability')}, conditionTypeId: grantFold.modifiers[group.contributions[0].acceptedModifierIndex].grant.domain.conditionTypeId, skillId: grantFold.modifiers[group.contributions[0].acceptedModifierIndex].grant.domain.skillId, attackDomain: grantFold.modifiers[group.contributions[0].acceptedModifierIndex].grant.domain.attackDomain })`
+    id: 'roll-mode-contributors',
+    key: 'rollModeContributors',
+    value: `flatten(map(filter($.resolvedModifierGroups as group, group.effective == 1 and (group.modifierKind == "ADVANTAGE" or group.modifierKind == "DISADVANTAGE")) as group, map(group.contributions as contribution, { sourceId: contribution.sourceId, source: contribution.source, grantId: contribution.grantId, domainKey: contribution.domainKey, influence: group.modifierKind, valueDomainCode: group.valueDomainCode, ability: ${abilityAlias('grantFold.modifiers[contribution.acceptedModifierIndex].grant.domain.ability')}, conditionTypeId: grantFold.modifiers[contribution.acceptedModifierIndex].grant.domain.conditionTypeId, skillId: grantFold.modifiers[contribution.acceptedModifierIndex].grant.domain.skillId, attackDomain: grantFold.modifiers[contribution.acceptedModifierIndex].grant.domain.attackDomain })))`
   },
   {
     id: 'initiative-roll-mode',
@@ -101,11 +105,19 @@ for (const attack of ['MELEE', 'RANGED', 'SPELL', 'UNARMED']) {
 const objectEntries = (entries: readonly string[], key: (entry: string) => string) =>
   `{ ${entries.map((entry) => `"${entry}": $.${key(entry)}`).join(', ')} }`
 
+const objectValues = (entries: readonly string[], value: (entry: string) => string) =>
+  `{ ${entries.map((entry) => `"${entry}": ${value(entry)}`).join(', ')} }`
+
 export const dnd5e2014CharacterRollModePolicyExpressions = [
   ...modeExpressions,
   {
     id: 'resolved-roll-modes',
     key: 'rollModes',
     value: `{ initiative: $.rollModeInitiative, abilityChecks: ${objectEntries(abilityCodes, (ability) => `rollModeAbilityCheck${ability}`)}, savingThrows: ${objectEntries(abilityCodes, (ability) => `rollModeSavingThrow${ability}`)}, skillChecks: ${objectEntries(skillIds, (skillId) => `rollModeSkill${skillId.replaceAll('-', '_')}`)}, attacks: ${objectEntries(['MELEE', 'RANGED', 'SPELL', 'UNARMED'], (attack) => `rollModeAttack${attack}`)} }`
+  },
+  {
+    id: 'resolved-roll-contributor-evidence',
+    key: 'rollContributorEvidence',
+    value: `{ initiative: ${contributors('modifier.valueDomainCode == "INITIATIVE"')}, abilityChecks: ${objectValues(abilityCodes, (ability) => contributors(abilityCheckMatch(`"${ability}"`)))}, savingThrows: ${objectValues(abilityCodes, (ability) => contributors(savingThrowMatch(ability)))}, skillChecks: ${objectValues(skillIds, (skillId) => contributors(skillCheckMatch(skillId)))}, attacks: ${objectValues(['MELEE', 'RANGED', 'SPELL', 'UNARMED'], (attack) => contributors(`modifier.valueDomainCode == "ATTACK_ROLL" and modifier.attackDomain == "${attack}"`))} }`
   }
 ]

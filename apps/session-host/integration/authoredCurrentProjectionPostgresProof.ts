@@ -861,6 +861,7 @@ async function runCanonicalSourceCorruptions(
   })
   await assertCorruptionRollsBack(db, fixture, 'canonical-system-mismatch', async (trx) => {
     const alternateSystemId = randomUUID()
+    const alternateContentSourceId = randomUUID()
     await sql`
       insert into public.systems (id, user_id, label, description, ruleset_code, ruleset_version)
       select
@@ -874,8 +875,23 @@ async function runCanonicalSourceCorruptions(
       where system.id = ${options.systemId}::uuid
     `.execute(trx)
     await sql`
+      insert into public.content_sources (
+        id, game_system_id, kind, owner_user_id, code, label, description
+      ) values (
+        ${alternateContentSourceId}::uuid,
+        ${alternateSystemId}::uuid,
+        'USER',
+        ${options.ownerUserId}::uuid,
+        null,
+        'PG alternate current projection source',
+        'Transaction-local mismatch fixture.'
+      )
+    `.execute(trx)
+    await sql`
       update public.spells
-      set system_id = ${alternateSystemId}::uuid
+      set
+        system_id = ${alternateSystemId}::uuid,
+        content_source_id = ${alternateContentSourceId}::uuid
       where id = ${fixture.spell.id}::uuid
     `.execute(trx)
   })

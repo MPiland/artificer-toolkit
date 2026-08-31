@@ -1,15 +1,12 @@
-import type { AbilityCode } from '@artificer-toolkit/shared/core'
-
 export type GuidedSpellIntent = 'DAMAGE' | 'CONDITION' | 'HEALING' | 'MOVEMENT'
 type GuidedSpellTarget = 'SELF' | 'CREATURE'
-type GuidedSpellSave = '' | AbilityCode
 export type GuidedConditionDuration = 'INSTANTANEOUS' | 'ROUND' | 'MINUTE' | 'UNTIL_DISPELLED'
 
 export type GuidedSpellDraft = {
   intent: GuidedSpellIntent
   target: GuidedSpellTarget
   targetDistance: number
-  saveAbility: GuidedSpellSave
+  saveAbilityDefinitionId: string
   damageDice: string
   damageTypeId: string
   conditionTypeId: string
@@ -25,15 +22,6 @@ export type GuidedEffectIds = {
   savingThrowId: string
   durationId: string
 }
-
-export const GUIDED_ABILITY_OPTIONS: readonly { value: AbilityCode; label: string }[] = [
-  { value: 'STRENGTH', label: 'Strength' },
-  { value: 'DEXTERITY', label: 'Dexterity' },
-  { value: 'CONSTITUTION', label: 'Constitution' },
-  { value: 'INTELLIGENCE', label: 'Intelligence' },
-  { value: 'WISDOM', label: 'Wisdom' },
-  { value: 'CHARISMA', label: 'Charisma' }
-]
 
 export const GUIDED_DURATION_OPTIONS: readonly {
   value: GuidedConditionDuration
@@ -53,7 +41,7 @@ export function createGuidedSpellDraft(
     intent,
     target: 'CREATURE',
     targetDistance: 60,
-    saveAbility: '',
+    saveAbilityDefinitionId: '',
     damageDice: '1d6',
     damageTypeId: options.damageTypeId ?? '',
     conditionTypeId: options.conditionTypeId ?? '',

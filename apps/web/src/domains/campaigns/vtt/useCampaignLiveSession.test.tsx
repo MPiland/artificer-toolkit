@@ -82,10 +82,19 @@ describe('useCampaignLiveSession', () => {
       acceptedSequence: 1,
       aggregateId: tabletopGmEncounter.id,
       aggregateKind: 'ENCOUNTER',
+      changedAggregates: [
+        {
+          aggregateId: tabletopGmEncounter.id,
+          aggregateKind: 'ENCOUNTER',
+          version: projection.version
+        }
+      ],
       deliverySequence: 1,
+      encounterActorTokenBindings: [],
+      encounterSceneBindings: [],
       originCommandId: commandId,
       replayed: false,
-      response: { projection, resolution: null, roll: null },
+      response: { occurrence: null, projection, resolution: null, roll: null },
       type: 'COMMAND_COMMITTED',
       version: projection.version
     } satisfies LiveSessionWebSocketServerMessageDto
@@ -135,6 +144,8 @@ describe('useCampaignLiveSession', () => {
         ],
         campaignId: tabletopGmEncounter.campaignId,
         deliverySequence: 2,
+        encounterActorTokenBindings: [],
+        encounterSceneBindings: [],
         sceneSnapshots: [],
         sessionId: tabletopGmEncounter.sessionId,
         type: 'READY'
@@ -154,6 +165,13 @@ describe('useCampaignLiveSession', () => {
         acceptedSequence: 1,
         aggregateId: currentSheet.meta.characterId,
         aggregateKind: 'CHARACTER',
+        changedAggregates: [
+          {
+            aggregateId: currentSheet.meta.characterId,
+            aggregateKind: 'CHARACTER',
+            version: 5
+          }
+        ],
         deliverySequence: 1,
         originCommandId: crypto.randomUUID(),
         replayed: true,
@@ -224,6 +242,8 @@ describe('useCampaignLiveSession', () => {
         ],
         campaignId: tabletopGmEncounter.campaignId,
         deliverySequence: 0,
+        encounterActorTokenBindings: [],
+        encounterSceneBindings: [],
         sceneSnapshots: [],
         sessionId: tabletopGmEncounter.sessionId,
         type: 'READY'

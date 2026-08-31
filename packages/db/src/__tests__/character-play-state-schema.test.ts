@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { normalizeSql } from './helpers/normalize-sql.js'
 
 const root = process.cwd()
 
 function read(relativePath: string): string {
-  return readFileSync(join(root, relativePath), 'utf8')
+  return normalizeSql(readFileSync(join(root, relativePath), 'utf8'))
 }
 
 describe('character play-state persistence schema', () => {
@@ -41,7 +42,7 @@ describe('character play-state persistence schema', () => {
     ['generated bootstrap bundle', generatedBundle],
     ['bootstrap migration', bootstrapMigration]
   ])('keeps %s on the structured character state schema', (_label, sql) => {
-    expect(sql).toContain('inspiration boolean NOT NULL DEFAULT false')
+    expect(sql).toMatch(/inspiration boolean NOT NULL DEFAULT false/i)
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS public.character_note_groups')
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS public.character_notes')
     expect(sql).toContain('character_notes_group_owner_fkey')
@@ -111,8 +112,8 @@ describe('character play-state persistence schema', () => {
   ])('stores creature origin and instance hit point state in %s', (_label, sql) => {
     expect(sql).toContain("origin_kind text NOT NULL DEFAULT 'WORLD'")
     expect(sql).toContain("relationship_kind IN ('MOUNT', 'COMPANION', 'OWNED')")
-    expect(sql).toContain('current_hit_points integer')
-    expect(sql).toContain('temp_hit_points integer')
+    expect(sql).toContain('current_hit_points INTEGER')
+    expect(sql).toContain('temp_hit_points INTEGER')
     expect(sql).toContain('character_creatures_hit_points_nonnegative_chk')
     expect(sql).toContain('character_vehicles_current_hit_points_nonnegative_chk')
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS public.character_creature_hit_dice_state')
@@ -164,7 +165,7 @@ describe('character play-state persistence schema', () => {
     expect(characterAdjustmentTables).toContain('source_kind IN (')
     expect(characterAdjustmentTables).toContain('AND source_instance_id IS NOT NULL')
     expect(characterAdjustmentTables).toContain(
-      'character_id,\n    resource_grant_id,\n    spell_id,\n    source_kind,\n    source_instance_id'
+      'character_id, resource_grant_id, spell_id, source_kind, source_instance_id'
     )
   })
 

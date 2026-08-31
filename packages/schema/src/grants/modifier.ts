@@ -6,6 +6,7 @@ import {
   authoredNestedCollectionSchema,
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
+import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
   chargeLimitKindSchema,
   chargeResetKindSchema,
@@ -48,7 +49,7 @@ const speedParamDtoSchema = z.object({
 })
 
 const senseParamDtoSchema = z.object({
-  senseCode: authoredIdentifierSchema
+  senseDefinitionId: postgresUuidSchema
 })
 
 const spellLevelParamDtoSchema = z.object({

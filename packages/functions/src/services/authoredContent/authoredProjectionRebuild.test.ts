@@ -101,8 +101,9 @@ function createRaceVersionRecord(input: {
   const projection = requireProjectionDocument(
     compileRace(
       resolveRaceAuthored(input.document, (parentId) =>
-        parentId === input.parent?.authored.subjectId && input.parent?.authored.subjectKind === 'RACE'
-          ? input.parent.authored.document as RaceAuthored
+        parentId === input.parent?.authored.subjectId &&
+        input.parent?.authored.subjectKind === 'RACE'
+          ? (input.parent.authored.document as RaceAuthored)
           : null
       )
     )
@@ -159,7 +160,7 @@ function createEquipmentVersionRecord(input: {
         ? resolveEquipmentAuthored(input.document, (parentId) =>
             parentId === input.parent?.authored.subjectId &&
             input.parent?.authored.subjectKind === 'EQUIPMENT'
-              ? input.parent.authored.document as EquipmentAuthored
+              ? (input.parent.authored.document as EquipmentAuthored)
               : null
           )
         : input.document
@@ -240,7 +241,7 @@ describe('authored projection rebuild', () => {
     if (!parent) throw new Error('SRD base equipment fixture is missing.')
     const variant: EquipmentAuthored = {
       kind: 'EQUIPMENT',
-      id: 'equipment-variant-1',
+      id: '00000000-0000-4000-8000-000000000402',
       label: `${parent.label} +1`,
       description: null,
       rarityId: parent.rarityId,

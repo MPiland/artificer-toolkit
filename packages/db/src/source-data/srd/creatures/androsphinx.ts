@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
@@ -185,7 +186,7 @@ export const androsphinx: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(24, 113),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.WISDOM,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
               baseDc: 18
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
@@ -229,7 +230,7 @@ export const androsphinx: CreatureAuthored = {
                     savingThrow: {
                       id: S.actionId(24, 119),
                       dcMethod: 'FIXED_DC',
-                      ability: S.ABILITY_CODE.WISDOM,
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
                       baseDc: 18
                     },
                     attempts: { kind: 'ONCE', repeatOnFailure: true },
@@ -255,7 +256,7 @@ export const androsphinx: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(24, 122),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.WISDOM,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
               baseDc: 18
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
@@ -309,7 +310,7 @@ export const androsphinx: CreatureAuthored = {
                     savingThrow: {
                       id: S.actionId(24, 130),
                       dcMethod: 'FIXED_DC',
-                      ability: S.ABILITY_CODE.WISDOM,
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
                       baseDc: 18
                     },
                     attempts: { kind: 'ONCE', repeatOnFailure: true },
@@ -335,7 +336,7 @@ export const androsphinx: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(24, 133),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
               baseDc: 18
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
@@ -413,60 +414,116 @@ export const androsphinx: CreatureAuthored = {
     },
     {
       id: S.featureId(24, 6),
-      label: 'Legendary Actions',
-      section: 'LEGENDARY_ACTION',
-      description:
-        "The sphinx can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. The sphinx regains spent legendary actions at the start of its turn. Claw Attack. The sphinx makes one claw attack. Teleport (Costs 2 Actions). The sphinx magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see. Cast a Spell (Costs 3 Actions). The sphinx casts a spell from its list of prepared spells, using a spell slot as normal.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.legendaryActionId(24, 101),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.FREE },
-            range: { id: S.legendaryActionId(24, 102), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ANDROSPHINX_LEGENDARY_ACTIONS
-        }),
+      options: [
         {
-          id: S.legendaryActionId(24, 103),
-          order: 2,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.FREE },
-            range: {
-              id: S.legendaryActionId(24, 104),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 120,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          paths: [
+          id: '00000000-0005-00c9-0070-001800000000',
+          label: 'Claw Attack',
+          description: 'The sphinx makes one claw attack.',
+          order: 1,
+          effects: [
             {
-              id: S.legendaryActionId(24, 105),
+              id: '00000000-0005-0065-0070-001800000000',
               order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${S.legendaryActionId(24, 105)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: S.legendaryActionId(24, 106),
-                    effectKind: S.EFFECT_KIND.TELEPORT,
-                    targetKind: 'SELF',
-                    destinationKind: 'VISIBLE'
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'ACTIVATED',
+                activation: { code: 'FREE' },
+                range: { id: '00000000-0005-0066-0070-001800000000', rangeKind: 'SPECIAL' },
+                resourceUse: { chargeId: S.legendaryActionId(24, 99), cost: 1 }
+              },
+              paths: [
+                {
+                  id: '593bb636-10be-52b3-8d17-888bd1b1936d',
+                  order: 1,
+                  pathCode: 'ON_USE',
+                  groupType: 'SINGLE',
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: 'ae7116ac-5928-5210-a999-41fbddf1d3ae',
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: '088faf18-5c8f-5d39-a682-e1b473f32963',
+                        effectKind: 'CLOSED_RULE',
+                        ruleKind: 'CREATURE_ANDROSPHINX_LEGENDARY_ACTIONS'
+                      }
+                    ]
                   }
-                ]
-              }
+                }
+              ]
             }
           ]
+        },
+        {
+          id: '00000000-0005-00ca-0070-001800000000',
+          label: 'Teleport (Costs 2 Actions)',
+          description:
+            'The sphinx magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see.',
+          order: 2,
+          effects: [
+            {
+              id: '00000000-0005-0067-0070-001800000000',
+              order: 2,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'ACTIVATED',
+                activation: { code: 'FREE' },
+                range: {
+                  id: '00000000-0005-0068-0070-001800000000',
+                  rangeKind: 'DISTANCE',
+                  amount: 120,
+                  unit: 'FEET'
+                },
+                targeting: { selectionKind: 'SELF' },
+                resourceUse: { chargeId: S.legendaryActionId(24, 99), cost: 2 }
+              },
+              paths: [
+                {
+                  id: '00000000-0005-0069-0070-001800000000',
+                  order: 1,
+                  pathCode: 'ON_USE',
+                  groupType: 'SINGLE',
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: '00000000-0005-0069-0070-001800000000__result',
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: '00000000-0005-006a-0070-001800000000',
+                        effectKind: 'TELEPORT',
+                        targetKind: 'SELF',
+                        destinationKind: 'VISIBLE'
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: '00000000-0005-00cb-0070-001800000000',
+          label: 'Cast a Spell (Costs 3 Actions)',
+          description:
+            'The sphinx casts a spell from its list of prepared spells, using a spell slot as normal.',
+          order: 3
         }
       ],
+      ruleDefinitionIds: [S.DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID],
+      label: 'Legendary Actions',
+      section: 'LEGENDARY_ACTION',
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      description:
+        "The sphinx can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. The sphinx regains spent legendary actions at the start of its turn. Claw Attack. The sphinx makes one claw attack. Teleport (Costs 2 Actions). The sphinx magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see. Cast a Spell (Costs 3 Actions). The sphinx casts a spell from its list of prepared spells, using a spell slot as normal.",
+      charges: {
+        id: S.legendaryActionId(24, 99),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: S.SCALING.NONE,
+        resetKind: S.CHARGE_RESET_KIND.MANUAL,
+        amount: 3
+      },
       order: 6
     }
   ]

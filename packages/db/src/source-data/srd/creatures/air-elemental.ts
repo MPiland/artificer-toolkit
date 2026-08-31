@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
@@ -66,6 +67,9 @@ export const airElemental: CreatureAuthored = {
     },
     {
       id: S.featureId(13, 2),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_4_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(13, 2)),
       label: 'Whirlwind (Recharge 4-6)',
       description:
         "Whirlwind (Recharge 4-6). Each creature in the elemental's space must make a DC 13 Strength saving throw. On a failure, a target takes 15 (3d8 + 2) bludgeoning damage and is flung up 20 feet away from the elemental in a random direction and knocked prone. If a thrown target strikes an object, such as a wall or floor, the target takes 3 (1d6) bludgeoning damage for every 10 feet it was thrown. If the target is thrown at another creature, that creature must succeed on a DC 13 Dexterity saving throw or take the same damage and be knocked prone. If the saving throw is successful, the target takes half the bludgeoning damage and isn't flung away or knocked prone.",
@@ -79,7 +83,7 @@ export const airElemental: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(13, 104),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.STRENGTH,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
               baseDc: 13
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },

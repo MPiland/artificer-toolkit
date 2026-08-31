@@ -2,7 +2,7 @@ import type { DBLike, RulePackRevisionRecord } from '@artificer-toolkit/db'
 import type { RulePackDocumentDto } from '@artificer-toolkit/schema/api/rules'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { checksumRuleDocument } from './ruleChecksum.js'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { dnd5e2014CanonicalRulePackDocument } from './systems/dnd5e/2014/canonicalRulePack.js'
 import { dnd5e2014CharacterPolicyDocument } from './systems/dnd5e/2014/characterPolicy.js'
 import { RULE_MODEL_CONTRACT_VERSION } from './ruleModelContracts.js'

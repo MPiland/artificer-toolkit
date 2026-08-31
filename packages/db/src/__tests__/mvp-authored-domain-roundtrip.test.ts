@@ -84,7 +84,7 @@ describe('MVP authored-domain persistence audit', () => {
     const repository = createCreatureRepository(db as never)
     const initial = creatureFixture()
 
-    await repository.upsert(initial)
+    await repository.upsert(initial, { contentSourceId: 'content-source-1' })
     await expect(repository.findById(initial.id)).resolves.toMatchObject({
       id: initial.id,
       tags: ['dragon', 'audit'],
@@ -93,14 +93,17 @@ describe('MVP authored-domain persistence audit', () => {
       features: [{ id: 'creature-feature-mvp-audit', section: 'ACTION' }]
     })
 
-    await repository.upsert({
-      ...initial,
-      label: 'Updated Audit Dragon',
-      tags: ['updated'],
-      senses: ['blindsight-30'],
-      damageResistances: [],
-      features: []
-    })
+    await repository.upsert(
+      {
+        ...initial,
+        label: 'Updated Audit Dragon',
+        tags: ['updated'],
+        senses: ['blindsight-30'],
+        damageResistances: [],
+        features: []
+      },
+      { contentSourceId: 'content-source-1' }
+    )
 
     const updated = await repository.findById(initial.id)
     expect(updated).toMatchObject({
@@ -120,19 +123,22 @@ describe('MVP authored-domain persistence audit', () => {
     const repository = createVehicleRepository(db as never)
     const initial = vehicleFixture()
 
-    await repository.upsert(initial)
+    await repository.upsert(initial, { contentSourceId: 'content-source-1' })
     await expect(repository.findById(initial.id)).resolves.toMatchObject({
       id: initial.id,
       weight: { amount: 400, unit: 'POUNDS' },
       properties: ['CARGO', 'WHEELED']
     })
 
-    await repository.upsert({
-      ...initial,
-      label: 'Updated Audit Wagon',
-      weight: { amount: 600, unit: 'POUNDS' },
-      properties: ['ARMORED']
-    })
+    await repository.upsert(
+      {
+        ...initial,
+        label: 'Updated Audit Wagon',
+        weight: { amount: 600, unit: 'POUNDS' },
+        properties: ['ARMORED']
+      },
+      { contentSourceId: 'content-source-1' }
+    )
 
     await expect(repository.findById(initial.id)).resolves.toMatchObject({
       label: 'Updated Audit Wagon',
@@ -154,7 +160,7 @@ describe('MVP authored-domain persistence audit', () => {
     const repository = createClassRepository(db as never)
     const initial = subclassFixture()
 
-    await repository.upsert(initial)
+    await repository.upsert(initial, { contentSourceId: 'content-source-1' })
     await expect(repository.findById(initial.id)).resolves.toMatchObject({
       id: initial.id,
       category: 'SUBCLASS',
@@ -163,12 +169,15 @@ describe('MVP authored-domain persistence audit', () => {
       specializations: [{ id: 'specialization-mvp-audit', label: 'Audit Path', order: 1 }]
     })
 
-    await repository.upsert({
-      ...initial,
-      label: 'Updated Audit Champion',
-      attributes: ['RESOURCE'],
-      specializations: [{ id: 'specialization-mvp-audit-2', label: 'Updated Path', order: 1 }]
-    })
+    await repository.upsert(
+      {
+        ...initial,
+        label: 'Updated Audit Champion',
+        attributes: ['RESOURCE'],
+        specializations: [{ id: 'specialization-mvp-audit-2', label: 'Updated Path', order: 1 }]
+      },
+      { contentSourceId: 'content-source-1' }
+    )
 
     await expect(repository.findById(initial.id)).resolves.toMatchObject({
       label: 'Updated Audit Champion',

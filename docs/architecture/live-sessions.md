@@ -6,9 +6,9 @@
 >
 > Update when: admission, native WebSocket contracts, conflict scheduling, persistence, prediction, or deployment changes
 >
-> Verification: `apps/session-worker`, `apps/session-host`, private Netlify executor tests, authenticated local integration, and ADRs 0020–0021
+> Verification: `apps/session-worker`, `apps/session-host`, private Netlify executor tests, authenticated local integration, and ADRs 0020–0021 plus 0027
 
-Managed remote rooms run in `apps/session-worker`: a Cloudflare Worker routes each Campaign session to one hibernatable Durable Object. Local rooms run in `apps/session-host`: a Node process invokes the same application services and native Zen evaluator directly. Both expose the same Zod-validated native WebSocket protocol and use Supabase aggregate versions as canonical gameplay state. Cold room hydration reads bounded aggregate version metadata plus checksum-verified Character, Encounter, and Scene projections; it does not reconstruct normalized Encounter mechanics or run Zen before a command requires it. Ordinary Encounter API reads use that same current projection for both owner and player contracts; the player view is derived by strict server-side redaction rather than a second aggregate hydration path.
+Managed remote rooms run in `apps/session-worker`: a Cloudflare Worker routes each Campaign session to one hibernatable Durable Object. Local rooms run in `apps/session-host`: a Node process invokes the same application services and native Zen evaluator directly. Both expose the same Zod-validated native WebSocket protocol and use Supabase aggregate versions as canonical gameplay state. Cold room hydration reads bounded aggregate version metadata plus checksum-verified Character, Encounter, and Campaign Scene projections; it does not reconstruct normalized Encounter mechanics or run Zen before a command requires it. The Session's presented Scene is hydrated independently from the optional Encounter overlay. Ordinary Encounter API reads use the same current Encounter projection for both owner and player contracts; the player view is derived by strict server-side redaction rather than a second aggregate hydration path.
 
 ## Browser surface ownership
 
@@ -16,17 +16,19 @@ Managed remote rooms run in `apps/session-worker`: a Cloudflare Worker routes ea
 flowchart LR
   Session["Campaign Session workspace"] -->|"Open tabletop"| Tabletop["Dedicated tabletop window"]
   Sheet["Character Sheet<br/>latest open Session"] -->|"Open tabletop"| Tabletop
-  Tabletop --> Canvas["Imperative PixiJS scene"]
+  CampaignScene["Campaign live Scene"] -->|"Session presents"| Tabletop
+  Encounter["Optional Encounter overlay"] -->|"actor–token binding"| CampaignScene
+  Tabletop --> Canvas["Imperative PixiJS Scene"]
   Tabletop --> Controls["React play controls"]
   Owner["GM"] -->|"Play or Edit"| Controls
   Player["Player"] -->|"Play only"| Controls
 ```
 
-The tabletop is a separate authenticated browser surface so the Campaign workspace or Character Sheet can remain open independently. A stable Campaign/session window name reuses the same tabletop window, which may be tiled, moved to another display, or screen-shared. Navigation is one-way: the Session workspace or the latest open Session associated with a Character Sheet launches the tabletop; the tabletop does not become a launcher for workspace or Sheet windows.
+The tabletop is a separate authenticated browser surface so the Campaign workspace or Character Sheet can remain open independently. A stable Campaign/session window name reuses the same tabletop window, which may be tiled, moved to another display, or screen-shared. Navigation is one-way: the Session workspace or the latest open Session associated with a Character Sheet launches the tabletop; the tabletop does not become a launcher for workspace or Sheet windows. The GM may present and switch Campaign Scenes before, during, or after combat. Starting an Encounter binds its actors to tokens on the already-presented Scene; ending it removes the combat overlay without replacing the Scene.
 
 One admitted user may keep multiple devices connected to the same Session. Each connection receives its own short-lived ticket and private projection; opening a tablet tabletop does not displace that user's desktop workspace or phone Character Sheet. Camera, zoom, selected tool, mode, and open panels are connection-local, while token positions, doors, fog, Character play state, and other committed gameplay remain shared through room authority. The server derives permissions from Campaign membership rather than trusting a device-selected role. Managed play supports this composition directly. The local host protocol also supports concurrent connections, but the current developer endpoint does not provide secure LAN discovery or browser delivery; a future launcher must supply that trusted local origin before local multi-device play is presented as an end-user workflow.
 
-Tablet landscape is a first-class map surface. Player tablet play is map-first and keeps permanent chrome minimal; GM tablet play uses collapsible drawers for live and editing tools. Phone play is Character-Sheet-first. The phone tabletop remains a focused, usable player surface for locating and moving the controlled token, panning/zooming, measurement, and authorized scene interactions, but it is not treated as a compressed full-map editor. Responsive behavior follows available space and input capability rather than device sniffing or separate client implementations.
+Tablet landscape is a first-class map surface. Player tablet play is map-first and keeps permanent chrome minimal; GM tablet play uses collapsible drawers for live and editing tools. Phone play is Character-Sheet-first. During an Encounter, the phone tabletop remains a focused, usable player surface for locating and moving the bound token, panning/zooming, measurement, and authorized Scene interactions, but it is not treated as a compressed full-map editor. Outside an Encounter, Phase 08 provides the authorized projected Scene without inventing exploration-actor control. Responsive behavior follows available space and input capability rather than device sniffing or separate client implementations.
 
 When that open Session marks the displayed Character present, Sheet play-state commands use the same live-session WebSocket as the tabletop instead of the ordinary HTTP mutation path. The Sheet may project an existing optimistic UI update locally, but it treats the command as successful only after the coordinator returns the persisted `COMMAND_COMMITTED` result. The high-frequency `ADJUST_HIT_POINTS` lane returns a compact public receipt with no Sheet payload; the originating Sheet retains its optimistic value and immediately refetches its bounded canonical Sheet query. Character commits from another admitted client likewise carry no private response payload and invalidate the relevant Sheet caches. A Character that is not present in an open Session continues to use the ordinary HTTP path. This keeps the independently open Sheet responsive without allowing HTTP mutations to race the room's command-authority lease.
 
@@ -40,7 +42,7 @@ provenance distinguishes a Character-owned modifier from a Campaign-owned overri
 reconstructing Campaign adjustment lists. Replays do not rerun mechanics, and no private mechanics
 document is returned to the Worker or browser.
 
-React owns the window header, mode controls, accessible alternatives, and editor inspectors. PixiJS owns only frame-rate scene rendering. GMs may switch between Play and Edit while live. Players never receive editor chrome and may use only authorized character actions and interactive scene elements. Structural values such as a door's swing angle are stored in the scene definition and controlled by the GM/editor.
+React owns the window header, mode controls, accessible alternatives, Scene selector, and editor inspectors. PixiJS owns only frame-rate Scene rendering. GMs may switch between Play and Edit while live. Players never receive editor chrome and may use only authorized Character actions and interactive Scene elements. Reusable definitions supply initial structure; committed live edits belong to the Campaign Scene aggregate.
 
 ## Remote command flow
 
@@ -73,7 +75,7 @@ The DO-to-Netlify hop applies only to durable commands. Pointer movement, drag p
 
 Netlify remains viable because native Zen runs during an ordinary on-demand Node invocation. It does not require an always-on process. Warm invocations may reuse loaded modules, but correctness never depends on process memory or a warm evaluator cache.
 
-Managed Scene commands use a dedicated bounded lane: one locked Postgres read verifies active membership, exact Campaign/session/Encounter identity, the open Session, the current room lease, the checksum-verified Scene projection, and any prior command receipt. Every live, attach, and replay path takes locks in `Session → lease → Scene` order, deliberately serializing durable work in a Session. TypeScript reduces the validated projection, then one dependent CTE appends the immutable Scene event and compare-and-swap publishes the next checksum-verified projection. Missing context, a lost lease, or a checksum/version mismatch fails closed; ordinary non-live Scene service calls retain their direct authorization path.
+Managed Scene commands use a dedicated bounded lane: one locked Postgres read verifies active membership, exact Campaign and Session identity, the open Session, the current room lease, the checksum-verified Campaign Scene projection, any optional Encounter binding, and any prior command receipt. Scene-only commands take locks in `Session → lease → Scene` order. Encounter-bound movement takes `Session → lease → Encounter → Scene → actor-token binding` before rule state and receipts. Presentation and binding changes follow the same roots but omit mechanics that they do not execute. TypeScript reduces the validated projection, then one dependent CTE appends the immutable Campaign Scene event and compare-and-swap publishes the next checksum-verified projection. Missing context, a lost lease, or a checksum/version mismatch fails closed; ordinary non-live GM Scene editing retains its direct Campaign authorization path.
 
 ## Local command flow
 
@@ -194,7 +196,7 @@ The retained Node geometry kernel benchmark uses an 8192×8192 map, 100 tokens w
 
 ## Current foundation and remaining work
 
-Implemented backend foundation:
+Implemented backend foundation being retained through the Campaign Scene cutover:
 
 - native WebSocket ticket admission for remote and local play;
 - hibernatable Durable Object room routing, alarm-driven authority renewal, bounded SQLite journal, conflict scheduler, retry/replay, and private fanout;
@@ -205,4 +207,4 @@ Implemented backend foundation:
 - atomic scene/exploration batches, Character-derived vision, bounded deterministic exploration, and server-side private scene projection;
 - focused workerd, local multi-client, authority, replay, reconnect, migration, and latency gates.
 
-The standalone tabletop window, Session/Character Sheet launch points, source-window live Sheet command route, live GM Play/Edit boundary, scene-authoring and map-calibration surface, accessible live controls, and player-focused narrow layout are implemented. Pixi progressively loads signed renderer tiles, keeps complete textures independent of delivery expiry, retries incomplete delivery after a network reconnect, displays exploration masks and labeled measurements, relays bounded pointer/drag previews, and expires abandoned transient visuals. Managed workerd and real local-Supabase six-client recovery/privacy gates pass; protocol-backed GM/player browser stories verify role-separated rendering; the retained headless browser diagnostic covers load correctness, stalls, sampled heap, and transient cleanup; and the headed three-hour FPS/memory soak has passed. Remaining Phase 08 evidence is the deployed managed journey and its authorized remote asset delivery. Socket.IO, Colyseus, Redis, and a custom Worker Zen build are not compatibility paths.
+The standalone tabletop, launch points, live GM Play/Edit boundary, Scene authoring, map calibration, accessible controls, and Pixi renderer all exist and remain reusable. The previous local discovery lifecycle proved those surfaces against the transitional Encounter-owned Scene contract. ADR 0027 reopened only the affected ownership, presentation, binding, reconnect, and browser cases; they are not final acceptance evidence until the Campaign-owned Scene cutover and one final local lifecycle pass. Socket.IO, Colyseus, Redis, and a custom Worker Zen build are not compatibility paths.

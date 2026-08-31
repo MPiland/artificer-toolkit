@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   ABILITY_CODE,
@@ -106,13 +107,13 @@ function dragonbornAncestryFeatures(
             savingThrow: {
               id: ancestryFeatureId(optionIndex, 4),
               dcMethod: SAVING_THROW_DC_METHOD.DERIVED_DC,
-              ability: config.saveAbility,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS[config.saveAbility],
               baseDc: 8,
               bonuses: [
                 {
                   id: ancestryFeatureId(optionIndex, 19),
                   bonusKind: SAVING_THROW_DC_BONUS_KIND.ABILITY_MODIFIER,
-                  ability: ABILITY_CODE.CONSTITUTION
+                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION
                 },
                 {
                   id: ancestryFeatureId(optionIndex, 20),

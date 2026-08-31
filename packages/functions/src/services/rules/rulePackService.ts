@@ -19,7 +19,7 @@ import { ENCOUNTER_ACTOR_MODEL_KEY } from '@artificer-toolkit/schema/api/encount
 import { CHARACTER_GRANT_FOLD_MODEL_KEY } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import { CHARACTER_ACTION_MODEL_KEY } from '@artificer-toolkit/schema/api/characterActionRules'
 
-import { checksumRuleDocument } from './ruleChecksum.js'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { assertRulePackConformance } from './ruleConformance.js'
 import { RuleDocumentValidationError, validateRulePackDocument } from './ruleDocumentValidation.js'
 import {

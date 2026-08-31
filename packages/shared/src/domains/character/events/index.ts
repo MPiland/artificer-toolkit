@@ -158,6 +158,36 @@ export interface CharacterSheetCommandAppliedEvent extends CharacterEventEnvelop
   result?: CharacterSheetCommandResult
 }
 
+/** A rules-runtime batch applied through one owning aggregate command. */
+interface CharacterRuleOutcomeAppliedEventBase extends CharacterEventEnvelope {
+  type: 'CHARACTER_RULE_OUTCOME_APPLIED'
+  encounterId: string
+  occurrenceId: string
+  /** Client-issued aggregate command correlated to the deterministic child event command. */
+  sourceCommandId: string
+  committedStreamVersion: number
+  targetActorId: string
+}
+
+export type CharacterRuleOutcomeAppliedEvent = CharacterRuleOutcomeAppliedEventBase & {
+  applications: readonly (
+    | {
+        ordinal: number
+        outcome: 'HEAL' | 'TEMPORARY_HIT_POINTS'
+        appliedAmount: number
+      }
+    | { ordinal: number; outcome: 'DAMAGE'; appliedAmount: number; damageTypeId: string }
+    | {
+        ordinal: number
+        outcome: 'CONDITION_APPLY'
+        conditionId: string
+        beforePresent: boolean
+        afterPresent: true
+        applied: boolean
+      }
+  )[]
+}
+
 /* ──────────────────────────────────────────────
  * Full event union
  * ────────────────────────────────────────────── */
@@ -178,3 +208,4 @@ export type CharacterEvent =
   | ItemEquippedEvent
   | ItemUnequippedEvent
   | CharacterSheetCommandAppliedEvent
+  | CharacterRuleOutcomeAppliedEvent

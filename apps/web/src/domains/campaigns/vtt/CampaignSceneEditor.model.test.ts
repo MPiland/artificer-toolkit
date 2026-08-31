@@ -34,6 +34,7 @@ function scene(): SceneDefinitionDto {
         openAngleDegrees: -90
       }
     ],
+    ambientIllumination: 'BRIGHT',
     campaignId: ids.campaign,
     darknessZones: [],
     fogMode: 'SHARED_PARTY',
@@ -45,7 +46,6 @@ function scene(): SceneDefinitionDto {
     name: 'Prepared scene',
     tokens: [
       {
-        actorId: null,
         assetId: null,
         controlledByUserIds: [],
         height: 10,
@@ -59,7 +59,6 @@ function scene(): SceneDefinitionDto {
         width: 10
       },
       {
-        actorId: null,
         assetId: null,
         controlledByUserIds: [ids.campaign],
         height: 10,

@@ -21,7 +21,8 @@ import {
 } from '../steps/abilities/abilityGeneration'
 
 export function createFallbackCharacterFormValues(
-  systemId = 'pending-system'
+  systemId = 'pending-system',
+  primaryRulesCatalogueId = '00000000-0000-4000-8000-000000000301'
 ): CharacterFormValues {
   return {
     id: 'pending-character',
@@ -55,6 +56,7 @@ export function createFallbackCharacterFormValues(
         hitDice: []
       }
     },
+    primaryRulesCatalogueId,
     systemId,
     userId: 'server-owned'
   }

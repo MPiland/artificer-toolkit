@@ -14,6 +14,9 @@ import { compileCharacterGrantFoldRuleFacts } from '../../../../character/charac
 import { dnd5e2014CharacterPolicyDocument } from './characterPolicy.js'
 import { evaluateZenRuleModel } from '../../../zenRuleEngine.js'
 
+const DARKVISION_ID = '00000000-0000-4000-8000-000000000010'
+const BLINDSIGHT_ID = '00000000-0000-4000-8000-000000000011'
+
 const registry = {
   classes: {},
   equipment: {},
@@ -29,7 +32,7 @@ const registry = {
           grantKind: 'SENSE_GRANT',
           selectionKind: 'GRANTED',
           authoringModeKind: 'SELECTED',
-          senseIds: ['DARKVISION'],
+          senseIds: [DARKVISION_ID],
           scalingKind: 'NONE',
           range: { id: 'darkvision-30', rangeKind: 'DISTANCE', amount: 30, unit: 'METERS' },
           order: 0
@@ -39,7 +42,7 @@ const registry = {
           grantKind: 'SENSE_GRANT',
           selectionKind: 'GRANTED',
           authoringModeKind: 'SELECTED',
-          senseIds: ['DARKVISION'],
+          senseIds: [DARKVISION_ID],
           scalingKind: 'NONE',
           range: { id: 'darkvision-60', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' },
           order: 1
@@ -49,7 +52,7 @@ const registry = {
           grantKind: 'SENSE_GRANT',
           selectionKind: 'GRANTED',
           authoringModeKind: 'SELECTED',
-          senseIds: ['DARKVISION'],
+          senseIds: [DARKVISION_ID],
           scalingKind: 'NONE',
           range: { id: 'darkvision-60-tie', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' },
           order: 2
@@ -59,7 +62,7 @@ const registry = {
           grantKind: 'SENSE_GRANT',
           selectionKind: 'GRANTED',
           authoringModeKind: 'SELECTED',
-          senseIds: ['BLINDSIGHT'],
+          senseIds: [BLINDSIGHT_ID],
           scalingKind: 'NONE',
           range: { id: 'blindsight-self', rangeKind: 'SELF' },
           order: 3
@@ -71,7 +74,7 @@ const registry = {
           grantKind: 'MODIFIER_GRANT',
           valueDomainCode: 'SENSE_RANGE',
           modifierKind: 'BONUS',
-          domain: { senseId: 'DARKVISION' },
+          domain: { senseDefinitionId: DARKVISION_ID },
           scope: 'GLOBAL',
           payload: { amount: 30 },
           selectionKind: 'GRANTED',
@@ -138,17 +141,17 @@ describe('D&D 5e 2014 Character sense policy', () => {
     await expect(evaluate(baseline)).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          senseCode: 'DARKVISION',
+          senseDefinitionId: DARKVISION_ID,
           range: expect.objectContaining({ id: 'darkvision-60', amount: 90, unit: 'FEET' })
         }),
-        expect.objectContaining({ senseCode: 'BLINDSIGHT', range: null })
+        expect.objectContaining({ senseDefinitionId: BLINDSIGHT_ID, range: null })
       ])
     )
     const overridden = snapshot([
       {
         id: 'override',
         family: 'SENSE',
-        senseId: 'DARKVISION',
+        senseId: DARKVISION_ID,
         field: 'RANGE_OVERRIDE',
         value: 120
       }
@@ -156,7 +159,7 @@ describe('D&D 5e 2014 Character sense policy', () => {
     await expect(evaluate(overridden)).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          senseCode: 'DARKVISION',
+          senseDefinitionId: DARKVISION_ID,
           range: expect.objectContaining({
             amount: 120,
             calculation: expect.objectContaining({
@@ -172,7 +175,7 @@ describe('D&D 5e 2014 Character sense policy', () => {
           {
             id: 'unseen-override',
             family: 'SENSE',
-            senseId: 'UNSEEN',
+            senseId: '00000000-0000-4000-8000-000000000012',
             field: 'RANGE_OVERRIDE',
             value: 15
           }
@@ -181,7 +184,7 @@ describe('D&D 5e 2014 Character sense policy', () => {
     ).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          senseCode: 'UNSEEN',
+          senseDefinitionId: '00000000-0000-4000-8000-000000000012',
           range: expect.objectContaining({ amount: 15, unit: 'FEET' })
         })
       ])

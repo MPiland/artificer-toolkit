@@ -22,14 +22,16 @@ function createEffectReferenceApi(): EffectReferenceApi {
           label: 'System A',
           rulesetCode: 'dnd5e',
           rulesetVersion: '2014',
-          userId: 'user-1'
+          userId: 'user-1',
+          rulesCatalogues: []
         },
         {
           id: 'system-b',
           label: 'System B',
           rulesetCode: 'dnd5e',
           rulesetVersion: '2014',
-          userId: 'user-1'
+          userId: 'user-1',
+          rulesCatalogues: []
         }
       ],
       get: async (id: string) => ({

@@ -179,8 +179,8 @@ async function hydrateVehicleById(db: DBLike, id: string): Promise<VehicleAuthor
 
 export function createVehicleRepository(db: DBLike): VehicleRepository {
   return {
-    async upsert(entity) {
-      await upsertVehicle(db, entity, entity.systemId)
+    async upsert(entity, options) {
+      await upsertVehicle(db, entity, entity.systemId, options.contentSourceId)
     },
 
     async findById(id, filter) {

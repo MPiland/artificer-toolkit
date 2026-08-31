@@ -87,6 +87,10 @@ async function hydrateBackgroundRows(
   rows: readonly BackgroundRow[],
   options: BackgroundRepositoryReadOptions = {}
 ): Promise<Map<string, BackgroundAuthored>> {
+  const expectedSystemId =
+    rows.length > 0 && rows.every((row) => row.system_id === rows[0]?.system_id)
+      ? rows[0]?.system_id
+      : undefined
   const backgroundIds = rows.map((row) => row.id)
   if (backgroundIds.length === 0) {
     return new Map()
@@ -124,7 +128,7 @@ async function hydrateBackgroundRows(
   const featureLinksByBackground = groupBackgroundRows(selectedFeatureLinks)
   const [detailsById, featuresById, proficienciesById, startingEquipmentById] = await Promise.all([
     detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
-    createFeatureRepository(db).findByIds(
+    createFeatureRepository(db, expectedSystemId).findByIds(
       selectedFeatureLinks.map((link) => link.feature_id),
       { includeEffects: options.includeFeatureEffects }
     ),
@@ -213,8 +217,8 @@ async function hydrateBackgroundsByIds(
 
 export function createBackgroundRepository(db: DBLike): BackgroundRepositoryWithReadOptions {
   return {
-    async upsert(entity) {
-      await upsertBackground(db, entity, entity.systemId)
+    async upsert(entity, options) {
+      await upsertBackground(db, entity, entity.systemId, options.contentSourceId)
     },
 
     async findById(id, filter) {

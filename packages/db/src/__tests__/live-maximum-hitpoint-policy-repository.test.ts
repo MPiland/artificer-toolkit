@@ -23,7 +23,7 @@ describe('live maximum-hit-point policy repository', () => {
       lockContext.indexOf('const result = await sql<LockContextRow>'),
       lockContext.indexOf('const row = result.rows[0]')
     )
-    expect((mainContextQuery.match(/\.execute\(db\)/g) ?? [])).toHaveLength(1)
+    expect(mainContextQuery.match(/\.execute\(db\)/g) ?? []).toHaveLength(1)
     expect(lockContext).toContain('for share')
     expect(lockContext).toContain('for update')
     expect(lockContext).toContain("and session.status = 'OPEN'")
@@ -31,7 +31,11 @@ describe('live maximum-hit-point policy repository', () => {
     expect(lockContext).toContain('and lease.expires_at > now()')
     expect(lockContext).toContain('for share of membership, session, attendance, lease')
     expect(lockContext).toContain('overlay.projection_checksum as overlay_projection_checksum')
-    expect(lockContext).toContain('overlay.projection_schema_version as overlay_projection_schema_version')
+    expect(lockContext).toContain(
+      'overlay.projection_schema_version as overlay_projection_schema_version'
+    )
+    expect(lockContext).toContain('projection.initiative_actor_facts')
+    expect(lockContext).toContain('projection.pinned_sense_definitions')
     expect(lockContext).toContain('const overlay = parseOverlay({')
     expect(lockContext).not.toContain('base.*, overlay.*')
     expect(lockContext).toContain('expectedStreamVersion: number')
@@ -39,7 +43,9 @@ describe('live maximum-hit-point policy repository', () => {
       'priorEvent === null && row.character_stream_version !== input.expectedStreamVersion'
     )
     expect(lockContext).toContain('const receipt = await sql<{ event_data: Json }>')
-    expect(lockContext).toContain('where character_id = ${input.characterId} and command_id = ${input.commandId}')
+    expect(lockContext).toContain(
+      'where character_id = ${input.characterId} and command_id = ${input.commandId}'
+    )
   })
 
   it('prepares and commits dependent CAS projections without a forgeable projection input', () => {
@@ -60,7 +66,9 @@ describe('live maximum-hit-point policy repository', () => {
     expect(commit).toContain('nextBasePolicy')
     expect(commit).toContain('nextCampaignPolicy')
     expect(commit).toContain('nextManualMaximumModifierOwner')
-    expect(commit).toContain('checksumCharacterMechanicsCommandState(\n        input.nextCharacterCommandState')
+    expect(commit).toContain(
+      'checksumCharacterMechanicsCommandState(\n        input.nextCharacterCommandState'
+    )
     expect(commit).toContain('checksumCharacterMechanicsCommandLane(mechanicsCandidate)')
     expect(commit).toContain('checksumCharacterMechanicsProjection(parsedMechanics)')
     expect(commit).toContain('checksumCampaignCharacterMechanicsProjection(parsedOverlay)')

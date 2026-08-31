@@ -8,7 +8,7 @@ import {
   type LiveSessionExecutorRequestDto,
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
-import type { EncounterSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { evictDurableObject, runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test'
 import { env, exports } from 'cloudflare:workers'
 import { SignJWT } from 'jose'
@@ -58,6 +58,21 @@ const secondSceneId = '00000000-0000-4000-8000-000000000159'
 const overlappingRenewalsSessionId = '00000000-0000-4000-8000-000000000161'
 const overlappingRenewalsPlayerId = '00000000-0000-4000-8000-000000000162'
 const overlappingRenewalsCommandId = '00000000-0000-4000-8000-000000000163'
+const spatialTerminalSessionId = '00000000-0000-4000-8000-000000000171'
+const zeroRootPauseSessionId = '00000000-0000-4000-8000-000000000172'
+const replayCatchUpSessionId = '00000000-0000-4000-8000-000000000175'
+const encounterProjectionSessionId = '00000000-0000-4000-8000-000000000176'
+const replayCatchUpCommandId = '00000000-0000-4000-8000-000000000177'
+const encounterProjectionCommandId = '00000000-0000-4000-8000-000000000178'
+const zeroRootReplaySessionId = '00000000-0000-4000-8000-000000000190'
+const zeroRootReplayCommandId = '00000000-0000-4000-8000-000000000191'
+const zeroRootReplayResolutionId = '00000000-0000-4000-8000-000000000192'
+const zeroRootReplayOccurrenceId = '00000000-0000-4000-8000-000000000193'
+const legacyEnvironmentSessionId = '00000000-0000-4000-8000-000000000194'
+const legacyEnvironmentCompletedCommandId = '00000000-0000-4000-8000-000000000195'
+const legacyEnvironmentPendingCommandId = '00000000-0000-4000-8000-000000000196'
+const legacyEnvironmentFreshCommandId = '00000000-0000-4000-8000-000000000197'
+const legacyEnvironmentZoneId = '00000000-0000-4000-8000-000000000198'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -87,27 +102,31 @@ async function issueTicket(
     .sign(new TextEncoder().encode(secret))
 }
 
-function sceneState(version: number, tokenX: number): EncounterSceneStateDto {
+function sceneState(version: number, tokenX: number): CampaignSceneStateDto {
   return {
     annotations: [],
+    ambientIllumination: 'BRIGHT',
     barriers: [],
     campaignId,
     darknessZones: [],
     definitionId,
     definitionVersion: 1,
     doorStates: {},
-    encounterId,
     fogLayers: [],
     fogMode: 'SHARED_PARTY',
     grid: { kind: 'GRIDLESS', pixelsPerUnit: 5, unit: 'FEET' },
     id: sceneId,
     lights: [],
-    map: { assetId: mapAssetId, height: 100, tileManifestAssetId: null, width: 100 },
+    map: {
+      assetId: mapAssetId,
+      height: 100,
+      tileManifestAssetId: null,
+      width: 100
+    },
     measurements: [],
     name: 'Worker test scene',
     tokens: [
       {
-        actorId,
         assetId: null,
         controlledByUserIds: [userId],
         height: 1,
@@ -132,7 +151,7 @@ function multiTokenSceneState(
   secondTokenX: number,
   firstTokenControllerId = userId,
   secondTokenControllerId = userId
-): EncounterSceneStateDto {
+): CampaignSceneStateDto {
   const state = sceneState(version, firstTokenX)
   return {
     ...state,
@@ -169,14 +188,17 @@ function multiTokenSceneState(
 function sceneMoveCommand(
   id: string,
   expectedSceneVersion: number,
-  tokenX: number
+  tokenX: number,
+  expectedEncounterVersion = 1
 ): LiveSessionCommandDto {
   return {
     aggregateKind: 'SCENE',
     command: {
       commandId: id,
-      encounterId,
+      correlationId: null,
+      expectedEncounterVersion,
       expectedSceneVersion,
+      movementKind: 'VOLUNTARY',
       path: [
         { x: tokenX - 5, y: 20 },
         { x: tokenX, y: 20 }
@@ -185,6 +207,100 @@ function sceneMoveCommand(
       tokenId,
       type: 'MOVE_SCENE_TOKEN'
     }
+  }
+}
+
+const legacyEnvironmentPolygon = {
+  points: [
+    { x: 5, y: 5 },
+    { x: 15, y: 5 },
+    { x: 5, y: 15 }
+  ]
+}
+
+function currentEnvironmentZone() {
+  return {
+    id: legacyEnvironmentZoneId,
+    mechanicalIllumination: null,
+    mechanicalObscurement: null,
+    opacity: 0.5,
+    polygon: legacyEnvironmentPolygon
+  }
+}
+
+function legacyEnvironmentZone() {
+  const {
+    mechanicalIllumination: _mechanicalIllumination,
+    mechanicalObscurement: _mechanicalObscurement,
+    ...zone
+  } = currentEnvironmentZone()
+  return zone
+}
+
+function currentEnvironmentSceneState(version: number): CampaignSceneStateDto {
+  return {
+    ...sceneState(version, 20),
+    darknessZones: [currentEnvironmentZone()]
+  }
+}
+
+function legacyEnvironmentSceneState(version: number): Record<string, unknown> {
+  const {
+    ambientIllumination: _ambientIllumination,
+    darknessZones: _darknessZones,
+    ...state
+  } = currentEnvironmentSceneState(version)
+  return { ...state, darknessZones: [legacyEnvironmentZone()] }
+}
+
+function currentEnvironmentCommand(
+  id: string,
+  expectedSceneVersion: number
+): LiveSessionCommandDto {
+  return {
+    aggregateKind: 'SCENE',
+    command: {
+      commandId: id,
+      expectedSceneVersion,
+      sceneId,
+      type: 'UPSERT_SCENE_DARKNESS',
+      zone: currentEnvironmentZone()
+    }
+  }
+}
+
+function legacyEnvironmentCommand(id: string, expectedSceneVersion: number) {
+  return {
+    aggregateKind: 'SCENE' as const,
+    command: {
+      commandId: id,
+      expectedSceneVersion,
+      sceneId,
+      type: 'UPSERT_SCENE_DARKNESS' as const,
+      zone: legacyEnvironmentZone()
+    }
+  }
+}
+
+function legacyEnvironmentExecution(id: string, version: number) {
+  return {
+    aggregateId: sceneId,
+    aggregateKind: 'SCENE' as const,
+    commandId: id,
+    hostTiming: { category: 'SCENE_ONLY' as const, durationMs: 1 },
+    replayed: false,
+    response: {
+      commandId: id,
+      delta: {
+        deltas: [{ kind: 'DARKNESS_UPSERTED' as const, zone: legacyEnvironmentZone() }],
+        kind: 'BATCH' as const
+      },
+      replayed: false,
+      sceneId,
+      version
+    },
+    state: legacyEnvironmentSceneState(version),
+    version
   }
 }
 
@@ -436,7 +552,12 @@ it('does not accept a stale ticket joining during cold-room hydration', async ({
     if (body.operation === 'RENEW') {
       if (body.userId === removedPlayerUserId) {
         return Response.json(
-          { error: { code: 'UNAUTHORIZED', message: 'Campaign membership changed.' } },
+          {
+            error: {
+              code: 'UNAUTHORIZED',
+              message: 'Campaign membership changed.'
+            }
+          },
           { status: 403 }
         )
       }
@@ -504,7 +625,11 @@ it('does not accept a stale ticket joining during cold-room hydration', async ({
 
   const ready = waitForMessage(ownerSocket)
   ownerSocket.send(
-    JSON.stringify({ lastSeenDeliverySequence: 0, pendingCommandIds: [], type: 'RESUME' })
+    JSON.stringify({
+      lastSeenDeliverySequence: 0,
+      pendingCommandIds: [],
+      type: 'RESUME'
+    })
   )
   await expect(ready).resolves.toMatchObject({ type: 'READY' })
   ownerSocket.close(1000, 'done')
@@ -535,7 +660,7 @@ it('rejects a cold-room OWNER ticket after the member was demoted to PLAYER', as
         operation: 'RENEW'
       })
     }
-    throw new Error(`Unexpected executor operation: ${body.operation}`)
+    throw new Error('Unexpected executor operation.')
   })
 
   const testSessionId = '00000000-0000-4000-8000-000000000153'
@@ -571,7 +696,11 @@ it('delivers pending command success and rejection to the same actor after recon
         operation: 'SNAPSHOT',
         snapshot: {
           aggregateVersions: [
-            { aggregateId: sceneId, aggregateKind: 'SCENE', version: currentVersion }
+            {
+              aggregateId: sceneId,
+              aggregateKind: 'SCENE',
+              version: currentVersion
+            }
           ],
           characterVisions: [],
           encounterCharacterBindings: [],
@@ -582,7 +711,11 @@ it('delivers pending command success and rejection to the same actor after recon
     if (body.operation === 'RENEW') {
       return Response.json({
         aggregateVersions: [
-          { aggregateId: sceneId, aggregateKind: 'SCENE', version: currentVersion }
+          {
+            aggregateId: sceneId,
+            aggregateKind: 'SCENE',
+            version: currentVersion
+          }
         ],
         memberships: [{ role: 'OWNER', userId }],
         ok: true,
@@ -597,7 +730,12 @@ it('delivers pending command success and rejection to the same actor after recon
       }
       if (id === reconnectRejectCommandId) {
         return Response.json(
-          { error: { code: 'INVALID_REQUEST', message: 'The command is invalid.' } },
+          {
+            error: {
+              code: 'INVALID_REQUEST',
+              message: 'The command is invalid.'
+            }
+          },
           { status: 400 }
         )
       }
@@ -606,6 +744,7 @@ it('delivers pending command success and rejection to the same actor after recon
         execution: {
           aggregateId: sceneId,
           aggregateKind: 'SCENE',
+          changedAggregates: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 1 }],
           commandId: reconnectCommitCommandId,
           hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
           replayed: false,
@@ -753,7 +892,9 @@ it('persists room identity and hibernates an authenticated socket across evictio
         snapshot: {
           aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }],
           characterVisions: [{ characterId, dimRange: { amount: 60, unit: 'FEET' } }],
-          encounterCharacterBindings: [{ actorId, characterId, encounterId }],
+          encounterActorTokenBindings: [{ actorId, encounterId, sceneId, tokenId }],
+          encounterCharacterBindings: [{ actorId, characterId, encounterId, tokenId }],
+          encounterSceneBindings: [{ encounterId, sceneId }],
           sceneStates: [sceneState(0, 20)]
         }
       })
@@ -789,12 +930,19 @@ it('persists room identity and hibernates an authenticated socket across evictio
       )
       expect(body.sceneVisionContext).toEqual({
         characterVisions: [{ characterId, dimRange: { amount: 60, unit: 'FEET' } }],
-        encounterCharacterBindings: [{ actorId, characterId, encounterId }]
+        encounterCharacterBindings: [{ actorId, characterId, encounterId, tokenId }]
       })
       return Response.json({
         execution: {
           aggregateId: sceneId,
           aggregateKind: 'SCENE',
+          changedAggregates: [
+            {
+              aggregateId: sceneId,
+              aggregateKind: 'SCENE',
+              version: next.version
+            }
+          ],
           commandId: requestedCommand.commandId,
           hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
           replayed: false,
@@ -831,7 +979,10 @@ it('persists room identity and hibernates an authenticated socket across evictio
     { aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }
   ])
   expect(initialReady.deliverySequence).toBe(0)
-  expect(initialReady.sceneSnapshots[0]?.scene.tokens[0]?.position).toEqual({ x: 20, y: 20 })
+  expect(initialReady.sceneSnapshots[0]?.scene.tokens[0]?.position).toEqual({
+    x: 20,
+    y: 20
+  })
   expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW'])
 
   const command = sceneMoveCommand(commandId, 0, 25)
@@ -843,6 +994,7 @@ it('persists room identity and hibernates an authenticated socket across evictio
       acceptedSequence: 1,
       aggregateId: sceneId,
       aggregateKind: 'SCENE',
+      changedAggregates: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 1 }],
       deliverySequence: 1,
       delta: { kind: 'TOKEN_MOVED', position: { x: 25, y: 20 }, tokenId },
       hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
@@ -859,11 +1011,16 @@ it('persists room identity and hibernates an authenticated socket across evictio
   const laterMessages = waitForMessages(socket, 2)
   socket.send(JSON.stringify({ command: laterCommand, type: 'COMMAND' }))
   expect(await laterMessages).toEqual([
-    { acceptedSequence: 2, commandId: laterCommandId, type: 'COMMAND_ACCEPTED' },
+    {
+      acceptedSequence: 2,
+      commandId: laterCommandId,
+      type: 'COMMAND_ACCEPTED'
+    },
     {
       acceptedSequence: 2,
       aggregateId: sceneId,
       aggregateKind: 'SCENE',
+      changedAggregates: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 2 }],
       deliverySequence: 2,
       delta: { kind: 'TOKEN_MOVED', position: { x: 30, y: 20 }, tokenId },
       hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
@@ -900,7 +1057,10 @@ it('persists room identity and hibernates an authenticated socket across evictio
     replayMessages[1]?.type === 'COMMAND_COMMITTED' &&
     replayMessages[1].aggregateKind === 'SCENE'
   ) {
-    expect(replayMessages[1].snapshot?.scene.tokens[0]?.position).toEqual({ x: 30, y: 20 })
+    expect(replayMessages[1].snapshot?.scene.tokens[0]?.position).toEqual({
+      x: 30,
+      y: 20
+    })
   }
   expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'COMMAND', 'COMMAND'])
 
@@ -923,7 +1083,11 @@ it('persists room identity and hibernates an authenticated socket across evictio
       'SQLite inspection',
       runInDurableObject(stub, (_instance, state) =>
         state.storage.sql
-          .exec<{ delivery_sequence: number; status: string; ticket_count: number }>(
+          .exec<{
+            delivery_sequence: number
+            status: string
+            ticket_count: number
+          }>(
             `SELECT
                  (SELECT COUNT(*) FROM used_tickets) AS ticket_count,
                  delivery_sequence,
@@ -941,7 +1105,11 @@ it('persists room identity and hibernates an authenticated socket across evictio
   await evictDurableObject(stub)
   const resumed = waitForMessage(socket)
   socket.send(
-    JSON.stringify({ lastSeenDeliverySequence: 0, pendingCommandIds: [], type: 'RESUME' })
+    JSON.stringify({
+      lastSeenDeliverySequence: 0,
+      pendingCommandIds: [],
+      type: 'RESUME'
+    })
   )
   const resumedReady = await resumed
   expect(resumedReady.type).toBe('READY')
@@ -950,15 +1118,732 @@ it('persists room identity and hibernates an authenticated socket across evictio
     { aggregateId: sceneId, aggregateKind: 'SCENE', version: 2 }
   ])
   expect(resumedReady.deliverySequence).toBe(2)
-  expect(resumedReady.sceneSnapshots[0]?.scene.tokens[0]?.position).toEqual({ x: 30, y: 20 })
+  expect(resumedReady.sceneSnapshots[0]?.scene.tokens[0]?.position).toEqual({
+    x: 30,
+    y: 20
+  })
   expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'COMMAND', 'COMMAND', 'RENEW'])
   socket.close(1000, 'done')
 }, 45_000)
 
-it('attaches a new scene and restores its committed snapshot after hibernation', async ({
+it('delivers and replays an exact multi-root spatial settlement without regressing room versions', async ({
   expect
 }) => {
   const operations: LiveSessionExecutorRequestDto['operation'][] = []
+  const command = sceneMoveCommand(commandId, 0, 25, 2)
+  const changedAggregates = [
+    {
+      aggregateId: characterId,
+      aggregateKind: 'CHARACTER' as const,
+      beforeVersion: 1,
+      version: 3
+    },
+    {
+      aggregateId: encounterId,
+      aggregateKind: 'ENCOUNTER' as const,
+      beforeVersion: 2,
+      version: 3
+    },
+    {
+      aggregateId: sceneId,
+      aggregateKind: 'SCENE' as const,
+      beforeVersion: 0,
+      version: 1
+    }
+  ]
+  const currentAggregateVersions = changedAggregates.map(
+    ({ aggregateId, aggregateKind, version }) => ({ aggregateId, aggregateKind, version })
+  )
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const body = JSON.parse(await new Request(input, init).text()) as LiveSessionExecutorRequestDto
+    operations.push(body.operation)
+    if (body.operation === 'CLAIM') return Response.json({ ok: true, operation: 'CLAIM' })
+    if (body.operation === 'SNAPSHOT') {
+      return Response.json({
+        operation: 'SNAPSHOT',
+        snapshot: {
+          aggregateVersions: [
+            {
+              aggregateId: characterId,
+              aggregateKind: 'CHARACTER',
+              version: 1
+            },
+            {
+              aggregateId: encounterId,
+              aggregateKind: 'ENCOUNTER',
+              version: 2
+            },
+            { aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }
+          ],
+          characterVisions: [{ characterId, dimRange: null }],
+          encounterActorTokenBindings: [{ actorId, encounterId, sceneId, tokenId }],
+          encounterCharacterBindings: [{ actorId, characterId, encounterId, tokenId }],
+          encounterSceneBindings: [{ encounterId, sceneId }],
+          sceneStates: [sceneState(0, 20)]
+        }
+      })
+    }
+    if (body.operation === 'RENEW') {
+      return Response.json({
+        aggregateVersions: [
+          { aggregateId: characterId, aggregateKind: 'CHARACTER', version: 1 },
+          { aggregateId: encounterId, aggregateKind: 'ENCOUNTER', version: 2 },
+          { aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }
+        ],
+        memberships: [{ role: 'OWNER', userId }],
+        ok: true,
+        operation: 'RENEW'
+      })
+    }
+    if (body.operation === 'COMMAND') {
+      expect(body.command).toEqual(command)
+      return Response.json({
+        execution: {
+          aggregateId: sceneId,
+          aggregateKind: 'SCENE',
+          changedAggregates,
+          commandId,
+          hostTiming: { category: 'RULE_BOUND', durationMs: 12 },
+          replayed: false,
+          response: {
+            commandId,
+            delta: { kind: 'TOKEN_MOVED', position: { x: 25, y: 20 }, tokenId },
+            replayed: false,
+            sceneId,
+            version: 1
+          },
+          spatialRefresh: {
+            characterVisions: [{ characterId, dimRange: { amount: 60, unit: 'FEET' } }],
+            sceneState: sceneState(1, 25)
+          },
+          state: sceneState(1, 25),
+          version: 1
+        },
+        operation: 'COMMAND'
+      })
+    }
+    throw new Error('Unexpected executor operation.')
+  })
+
+  const stub = env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${spatialTerminalSessionId}`)
+  )
+  const connected = await connect(
+    stub,
+    await issueTicket('00000000-0000-4000-8000-000000000170', spatialTerminalSessionId),
+    spatialTerminalSessionId
+  )
+  await connected.ready
+
+  const initialMessages = waitForMessages(connected.socket, 2)
+  connected.socket.send(JSON.stringify({ command, type: 'COMMAND' }))
+  const [, committed] = await initialMessages
+  expect(committed).toMatchObject({
+    changedAggregates,
+    originCommandId: commandId,
+    replayed: false,
+    type: 'COMMAND_COMMITTED'
+  })
+
+  const replayMessages = waitForMessages(connected.socket, 2)
+  connected.socket.send(JSON.stringify({ command, type: 'COMMAND' }))
+  const [, replayed] = await replayMessages
+  expect(replayed).toMatchObject({
+    changedAggregates,
+    originCommandId: commandId,
+    replayed: true,
+    type: 'COMMAND_COMMITTED'
+  })
+  expect(operations.filter((operation) => operation === 'COMMAND')).toHaveLength(1)
+
+  const ready = waitForMessage(connected.socket)
+  connected.socket.send(
+    JSON.stringify({
+      lastSeenDeliverySequence: 1,
+      pendingCommandIds: [],
+      type: 'RESUME'
+    })
+  )
+  await expect(ready).resolves.toMatchObject({
+    aggregateVersions: currentAggregateVersions,
+    type: 'READY'
+  })
+  connected.socket.close(1000, 'done')
+}, 45_000)
+
+it('broadcasts a fresh zero-root spatial pause once and replays it only to its requester', async ({
+  expect
+}) => {
+  let commandCount = 0
+  const command = sceneMoveCommand(commandId, 0, 25)
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const body = JSON.parse(await new Request(input, init).text()) as LiveSessionExecutorRequestDto
+    if (body.operation === 'CLAIM') return Response.json({ ok: true, operation: 'CLAIM' })
+    if (body.operation === 'SNAPSHOT') {
+      return Response.json({
+        operation: 'SNAPSHOT',
+        snapshot: {
+          aggregateVersions: [
+            {
+              aggregateId: encounterId,
+              aggregateKind: 'ENCOUNTER',
+              version: 1
+            },
+            { aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }
+          ],
+          characterVisions: [],
+          encounterCharacterBindings: [],
+          sceneStates: [sceneState(0, 20)]
+        }
+      })
+    }
+    if (body.operation === 'RENEW') {
+      return Response.json({
+        aggregateVersions: [
+          { aggregateId: encounterId, aggregateKind: 'ENCOUNTER', version: 1 },
+          { aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }
+        ],
+        memberships: [
+          { role: 'OWNER', userId },
+          { role: 'OWNER', userId: gmUserId }
+        ],
+        ok: true,
+        operation: 'RENEW'
+      })
+    }
+    if (body.operation === 'COMMAND') {
+      commandCount += 1
+      return Response.json({
+        execution: {
+          aggregateId: sceneId,
+          aggregateKind: 'SCENE',
+          changedAggregates: [],
+          commandId,
+          hostTiming: { category: 'RULE_BOUND', durationMs: 12 },
+          replayed: false,
+          response: {
+            commandId,
+            delta: null,
+            occurrence: {
+              occurrenceId: commandId,
+              occurrenceVersion: 0,
+              outcome: null,
+              pending: {
+                kind: 'D20_EVIDENCE',
+                allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL'],
+                encounterVersion: 1,
+                occurrenceId: commandId,
+                occurrenceVersion: 0,
+                request: {
+                  max: 20,
+                  min: 1,
+                  requestId: 'roll-1',
+                  rollMode: 'NORMAL'
+                }
+              },
+              status: 'PENDING'
+            },
+            replayed: false,
+            sceneId,
+            version: 0
+          },
+          state: sceneState(0, 20),
+          version: 0
+        },
+        operation: 'COMMAND'
+      })
+    }
+    throw new Error(`Unexpected executor operation: ${body.operation}`)
+  })
+
+  const stub = env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${zeroRootPauseSessionId}`)
+  )
+  const requester = await connect(
+    stub,
+    await issueTicket('00000000-0000-4000-8000-000000000173', zeroRootPauseSessionId),
+    zeroRootPauseSessionId
+  )
+  await requester.ready
+  const peer = await connect(
+    stub,
+    await issueTicket(
+      '00000000-0000-4000-8000-000000000174',
+      zeroRootPauseSessionId,
+      'OWNER',
+      gmUserId
+    ),
+    zeroRootPauseSessionId
+  )
+  await peer.ready
+  expect(await runInDurableObject(stub, (_instance, state) => state.getWebSockets().length)).toBe(2)
+
+  const requesterMessages = waitForMessages(requester.socket, 2)
+  const peerCommit = waitForMessage(peer.socket)
+  requester.socket.send(JSON.stringify({ command, type: 'COMMAND' }))
+  const [, requesterCommit] = await requesterMessages
+  expect(requesterCommit).toMatchObject({
+    changedAggregates: [],
+    originCommandId: commandId,
+    replayed: false,
+    snapshot: { scene: { version: 0 } },
+    type: 'COMMAND_COMMITTED'
+  })
+  await expect(peerCommit).resolves.toMatchObject({
+    changedAggregates: [],
+    originCommandId: commandId,
+    replayed: false,
+    snapshot: { scene: { version: 0 } },
+    type: 'COMMAND_COMMITTED'
+  })
+
+  const peerNoReplay = expectNoMessage(peer.socket, 100, ['READY'])
+  const replayMessages = waitForMessages(requester.socket, 2)
+  requester.socket.send(JSON.stringify({ command, type: 'COMMAND' }))
+  const [, replay] = await replayMessages
+  expect(replay).toMatchObject({
+    changedAggregates: [],
+    originCommandId: commandId,
+    replayed: true,
+    type: 'COMMAND_COMMITTED'
+  })
+  await peerNoReplay
+  expect(commandCount).toBe(1)
+  requester.socket.close(1000, 'done')
+  peer.socket.close(1000, 'done')
+}, 45_000)
+
+it('restores a zero-root spatial binding from executor replay before resolution', async ({
+  expect
+}) => {
+  let resolutionReachedExecutor = false
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const body = JSON.parse(await new Request(input, init).text()) as LiveSessionExecutorRequestDto
+    if (body.operation === 'CLAIM') return Response.json({ ok: true, operation: 'CLAIM' })
+    if (body.operation === 'SNAPSHOT') {
+      return Response.json({
+        operation: 'SNAPSHOT',
+        snapshot: {
+          aggregateVersions: [
+            {
+              aggregateId: encounterId,
+              aggregateKind: 'ENCOUNTER',
+              version: 1
+            },
+            { aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }
+          ],
+          characterVisions: [],
+          encounterCharacterBindings: [],
+          encounterRuleOccurrenceBindings: [],
+          sceneStates: [sceneState(0, 20)]
+        }
+      })
+    }
+    if (body.operation === 'RENEW') {
+      return Response.json({
+        aggregateVersions: [
+          { aggregateId: encounterId, aggregateKind: 'ENCOUNTER', version: 1 },
+          { aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }
+        ],
+        memberships: [{ role: 'OWNER', userId }],
+        ok: true,
+        operation: 'RENEW'
+      })
+    }
+    if (body.operation === 'COMMAND') {
+      if (body.command.command.type === 'RESOLVE_RULE_OCCURRENCE') {
+        resolutionReachedExecutor = true
+        return Response.json(
+          {
+            error: {
+              code: 'COMMAND_FAILED',
+              message: 'Expected resolution executor stop.'
+            }
+          },
+          { status: 400 }
+        )
+      }
+      return Response.json({
+        execution: {
+          aggregateId: sceneId,
+          aggregateKind: 'SCENE',
+          changedAggregates: [],
+          commandId: zeroRootReplayCommandId,
+          hostTiming: { category: 'RULE_BOUND', durationMs: 12 },
+          occurrenceBindingUpdate: {
+            binding: {
+              encounterId,
+              executionKind: 'SPATIAL',
+              occurrenceId: zeroRootReplayOccurrenceId,
+              sceneId
+            },
+            encounterId
+          },
+          replayed: true,
+          response: {
+            commandId: zeroRootReplayCommandId,
+            delta: null,
+            occurrence: {
+              occurrenceId: zeroRootReplayOccurrenceId,
+              occurrenceVersion: 0,
+              outcome: null,
+              pending: {
+                kind: 'D20_EVIDENCE',
+                allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL'],
+                encounterVersion: 1,
+                occurrenceId: zeroRootReplayOccurrenceId,
+                occurrenceVersion: 0,
+                request: {
+                  max: 20,
+                  min: 1,
+                  requestId: 'spatial-request',
+                  rollMode: 'NORMAL'
+                }
+              },
+              status: 'PENDING'
+            },
+            replayed: true,
+            sceneId,
+            version: 0
+          },
+          state: sceneState(0, 20),
+          version: 0
+        },
+        operation: 'COMMAND'
+      })
+    }
+    throw new Error(`Unexpected executor operation: ${body.operation}`)
+  })
+
+  const stub = env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${zeroRootReplaySessionId}`)
+  )
+  const requester = await connect(
+    stub,
+    await issueTicket('00000000-0000-4000-8000-000000000194', zeroRootReplaySessionId),
+    zeroRootReplaySessionId
+  )
+  await requester.ready
+
+  const pauseMessages = waitForMessages(requester.socket, 2)
+  requester.socket.send(
+    JSON.stringify({
+      command: sceneMoveCommand(zeroRootReplayCommandId, 0, 25),
+      type: 'COMMAND'
+    })
+  )
+  expect(await pauseMessages).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        originCommandId: zeroRootReplayCommandId,
+        replayed: true,
+        type: 'COMMAND_COMMITTED'
+      })
+    ])
+  )
+
+  const resolutionCommand = {
+    aggregateKind: 'ENCOUNTER',
+    command: {
+      commandId: zeroRootReplayResolutionId,
+      correlationId: null,
+      encounterId,
+      expectedOccurrenceVersion: 0,
+      expectedVersion: 1,
+      occurrenceId: zeroRootReplayOccurrenceId,
+      resolution: { kind: 'SYSTEM_ROLL', requestId: 'spatial-request' },
+      type: 'RESOLVE_RULE_OCCURRENCE'
+    }
+  } satisfies LiveSessionCommandDto
+  const resolutionMessages = waitForMessages(requester.socket, 2)
+  requester.socket.send(JSON.stringify({ command: resolutionCommand, type: 'COMMAND' }))
+  expect(await resolutionMessages).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        commandId: zeroRootReplayResolutionId,
+        type: 'COMMAND_REJECTED'
+      })
+    ])
+  )
+  expect(resolutionReachedExecutor).toBe(true)
+  requester.socket.close(1000, 'done')
+}, 45_000)
+
+it('refreshes a stale room from an executor replay once before broadcasting current scene state', async ({
+  expect
+}) => {
+  let commandCount = 0
+  let snapshotCount = 0
+  const command = sceneMoveCommand(replayCatchUpCommandId, 0, 25, 1)
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const body = JSON.parse(await new Request(input, init).text()) as LiveSessionExecutorRequestDto
+    if (body.operation === 'CLAIM') return Response.json({ ok: true, operation: 'CLAIM' })
+    if (body.operation === 'SNAPSHOT') {
+      snapshotCount += 1
+      const version = snapshotCount === 1 ? 0 : 2
+      return Response.json({
+        operation: 'SNAPSHOT',
+        snapshot: {
+          aggregateVersions: [
+            {
+              aggregateId: encounterId,
+              aggregateKind: 'ENCOUNTER',
+              version: 1
+            },
+            { aggregateId: sceneId, aggregateKind: 'SCENE', version }
+          ],
+          characterVisions: [],
+          encounterCharacterBindings: [],
+          sceneStates: [sceneState(version, version === 0 ? 20 : 30)]
+        }
+      })
+    }
+    if (body.operation === 'RENEW') {
+      return Response.json({
+        aggregateVersions: [
+          { aggregateId: encounterId, aggregateKind: 'ENCOUNTER', version: 1 },
+          {
+            aggregateId: sceneId,
+            aggregateKind: 'SCENE',
+            version: snapshotCount > 1 ? 2 : 0
+          }
+        ],
+        memberships: [
+          { role: 'PLAYER', userId },
+          { role: 'OWNER', userId: gmUserId }
+        ],
+        ok: true,
+        operation: 'RENEW'
+      })
+    }
+    if (body.operation === 'COMMAND') {
+      commandCount += 1
+      return Response.json({
+        execution: {
+          aggregateId: sceneId,
+          aggregateKind: 'SCENE',
+          changedAggregates: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 1 }],
+          commandId: replayCatchUpCommandId,
+          hostTiming: { category: 'RULE_BOUND', durationMs: 12 },
+          replayed: true,
+          response: {
+            commandId: replayCatchUpCommandId,
+            delta: { kind: 'TOKEN_MOVED', position: { x: 25, y: 20 }, tokenId },
+            replayed: true,
+            sceneId,
+            version: 1
+          },
+          state: sceneState(1, 25),
+          version: 1
+        },
+        operation: 'COMMAND'
+      })
+    }
+    throw new Error(`Unexpected executor operation: ${body.operation}`)
+  })
+
+  const stub = env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${replayCatchUpSessionId}`)
+  )
+  const requester = await connect(
+    stub,
+    await issueTicket('00000000-0000-4000-8000-000000000179', replayCatchUpSessionId, 'PLAYER'),
+    replayCatchUpSessionId
+  )
+  await requester.ready
+  const peer = await connect(
+    stub,
+    await issueTicket(
+      '00000000-0000-4000-8000-000000000180',
+      replayCatchUpSessionId,
+      'OWNER',
+      gmUserId
+    ),
+    replayCatchUpSessionId
+  )
+  await peer.ready
+
+  const requesterMessages = waitForMessages(requester.socket, 2)
+  const peerCommit = waitForMessage(peer.socket)
+  requester.socket.send(JSON.stringify({ command, type: 'COMMAND' }))
+  const [, requesterCommit] = await requesterMessages
+  expect(requesterCommit).toMatchObject({
+    originCommandId: replayCatchUpCommandId,
+    replayed: true,
+    snapshot: { scene: { version: 2 } },
+    type: 'COMMAND_COMMITTED'
+  })
+  await expect(peerCommit).resolves.toMatchObject({
+    originCommandId: replayCatchUpCommandId,
+    replayed: true,
+    snapshot: { scene: { version: 2 } },
+    type: 'COMMAND_COMMITTED'
+  })
+
+  const peerNoDuplicate = expectNoMessage(peer.socket, 100, ['READY'])
+  const duplicateMessages = waitForMessages(requester.socket, 2)
+  requester.socket.send(JSON.stringify({ command, type: 'COMMAND' }))
+  const [, duplicate] = await duplicateMessages
+  expect(duplicate).toMatchObject({
+    originCommandId: replayCatchUpCommandId,
+    replayed: true,
+    snapshot: { scene: { version: 2 } },
+    type: 'COMMAND_COMMITTED'
+  })
+  await peerNoDuplicate
+  expect(commandCount).toBe(1)
+  expect(snapshotCount).toBe(2)
+  requester.socket.close(1000, 'done')
+  peer.socket.close(1000, 'done')
+}, 45_000)
+
+it('delivers fresh Encounter responses only to the acting player and preserves GM visibility', async ({
+  expect
+}) => {
+  const command = {
+    aggregateKind: 'ENCOUNTER',
+    command: {
+      commandId: encounterProjectionCommandId,
+      encounterId,
+      expectedVersion: 1,
+      type: 'ADVANCE_TURN'
+    }
+  } satisfies LiveSessionCommandDto
+  const response = {
+    occurrence: null,
+    projection: {
+      actors: [],
+      automationMode: 'ASSISTED' as const,
+      blueprintChecksum: 'a'.repeat(64),
+      blueprintId: definitionId,
+      blueprintVersion: 1,
+      campaignId,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      currentActorId: null,
+      gameSystemId: definitionId,
+      id: encounterId,
+      name: 'Redacted Encounter',
+      round: 1,
+      rulePackRevisionId: null,
+      sessionId: encounterProjectionSessionId,
+      status: 'ACTIVE' as const,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      version: 2
+    },
+    resolution: null,
+    roll: null
+  }
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const body = JSON.parse(await new Request(input, init).text()) as LiveSessionExecutorRequestDto
+    if (body.operation === 'CLAIM') return Response.json({ ok: true, operation: 'CLAIM' })
+    if (body.operation === 'SNAPSHOT') {
+      return Response.json({
+        operation: 'SNAPSHOT',
+        snapshot: {
+          aggregateVersions: [
+            {
+              aggregateId: encounterId,
+              aggregateKind: 'ENCOUNTER',
+              version: 1
+            }
+          ],
+          characterVisions: [],
+          encounterCharacterBindings: [],
+          sceneStates: []
+        }
+      })
+    }
+    if (body.operation === 'RENEW') {
+      return Response.json({
+        aggregateVersions: [{ aggregateId: encounterId, aggregateKind: 'ENCOUNTER', version: 1 }],
+        memberships: [
+          { role: 'PLAYER', userId },
+          { role: 'OWNER', userId: gmUserId }
+        ],
+        ok: true,
+        operation: 'RENEW'
+      })
+    }
+    if (body.operation === 'COMMAND') {
+      return Response.json({
+        execution: {
+          aggregateId: encounterId,
+          aggregateKind: 'ENCOUNTER',
+          changedAggregates: [
+            {
+              aggregateId: encounterId,
+              aggregateKind: 'ENCOUNTER',
+              version: 2
+            }
+          ],
+          commandId: encounterProjectionCommandId,
+          hostTiming: { category: 'RULE_BOUND', durationMs: 12 },
+          replayed: false,
+          response,
+          version: 2
+        },
+        operation: 'COMMAND'
+      })
+    }
+    throw new Error(`Unexpected executor operation: ${body.operation}`)
+  })
+
+  const stub = env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${encounterProjectionSessionId}`)
+  )
+  const player = await connect(
+    stub,
+    await issueTicket(
+      '00000000-0000-4000-8000-000000000181',
+      encounterProjectionSessionId,
+      'PLAYER'
+    ),
+    encounterProjectionSessionId
+  )
+  await player.ready
+  const gm = await connect(
+    stub,
+    await issueTicket(
+      '00000000-0000-4000-8000-000000000182',
+      encounterProjectionSessionId,
+      'OWNER',
+      gmUserId
+    ),
+    encounterProjectionSessionId
+  )
+  await gm.ready
+
+  const playerMessages = waitForMessages(player.socket, 2)
+  const gmCommit = waitForMessage(gm.socket)
+  player.socket.send(JSON.stringify({ command, type: 'COMMAND' }))
+  const [, playerCommit] = await playerMessages
+  expect(playerCommit).toMatchObject({
+    aggregateKind: 'ENCOUNTER',
+    response: { projection: { name: 'Redacted Encounter' } },
+    type: 'COMMAND_COMMITTED'
+  })
+  await expect(gmCommit).resolves.toMatchObject({
+    aggregateKind: 'ENCOUNTER',
+    response: { projection: { name: 'Redacted Encounter' } },
+    type: 'COMMAND_COMMITTED'
+  })
+
+  const replayMessages = waitForMessages(player.socket, 2)
+  player.socket.send(JSON.stringify({ command, type: 'COMMAND' }))
+  const [, replay] = await replayMessages
+  expect(replay).toMatchObject({
+    aggregateKind: 'ENCOUNTER',
+    replayed: true,
+    response: null,
+    type: 'COMMAND_COMMITTED'
+  })
+  player.socket.close(1000, 'done')
+  gm.socket.close(1000, 'done')
+}, 45_000)
+
+it('presents a Campaign scene and restores it after hibernation', async ({ expect }) => {
+  const operations: LiveSessionExecutorRequestDto['operation'][] = []
+  let executedCommand: LiveSessionCommandDto | null = null
   let sceneAttached = false
   let snapshotLoads = 0
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
@@ -991,33 +1876,36 @@ it('attaches a new scene and restores its committed snapshot after hibernation',
           aggregateVersions:
             snapshotLoads === 1
               ? []
-              : [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 1 }],
+              : [{ aggregateId: attachSessionId, aggregateKind: 'SESSION', version: 1 }],
           characterVisions: [],
+          encounterActorTokenBindings: [],
           encounterCharacterBindings: [],
+          encounterSceneBindings: [],
           sceneStates: snapshotLoads === 1 ? [] : [sceneState(1, 35)]
         }
       })
     }
     if (body.operation === 'COMMAND') {
-      expect(body.command).toEqual({
-        aggregateKind: 'SCENE',
-        command: {
-          commandId: attachCommandId,
-          encounterId,
-          sceneDefinitionId: definitionId,
-          type: 'ATTACH_SCENE'
-        }
-      })
+      executedCommand = body.command
       sceneAttached = true
       return Response.json({
         execution: {
-          aggregateId: sceneId,
-          aggregateKind: 'SCENE',
+          aggregateId: attachSessionId,
+          aggregateKind: 'SESSION',
+          changedAggregates: [
+            { aggregateId: attachSessionId, aggregateKind: 'SESSION', version: 0 }
+          ],
           commandId: attachCommandId,
           hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
           replayed: false,
-          response: null,
-          state: sceneState(0, 20),
+          response: {
+            commandId: attachCommandId,
+            replayed: false,
+            sceneId,
+            sessionId: attachSessionId,
+            version: 0
+          },
+          sceneState: sceneState(0, 20),
           version: 0
         },
         operation: 'COMMAND'
@@ -1026,7 +1914,7 @@ it('attaches a new scene and restores its committed snapshot after hibernation',
     if (body.operation === 'RENEW') {
       return Response.json({
         aggregateVersions: sceneAttached
-          ? [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 1 }]
+          ? [{ aggregateId: attachSessionId, aggregateKind: 'SESSION', version: 1 }]
           : [],
         memberships: [{ role: 'OWNER', userId }],
         ok: true,
@@ -1050,34 +1938,45 @@ it('attaches a new scene and restores its committed snapshot after hibernation',
   socket.send(
     JSON.stringify({
       command: {
-        aggregateKind: 'SCENE',
+        aggregateKind: 'SESSION',
         command: {
           commandId: attachCommandId,
-          encounterId,
-          sceneDefinitionId: definitionId,
-          type: 'ATTACH_SCENE'
+          expectedPresentationVersion: null,
+          sceneId,
+          sessionId: attachSessionId,
+          type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
         }
       },
       type: 'COMMAND'
     })
   )
-  const [accepted, committed] = await attachMessages
+  const [accepted, committed] = await attachMessages.catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(
+      `${message} operations=${operations.join(',')} command=${JSON.stringify(executedCommand)}`
+    )
+  })
   expect(accepted).toEqual({
     acceptedSequence: 1,
     commandId: attachCommandId,
     type: 'COMMAND_ACCEPTED'
   })
   expect(committed).toMatchObject({
-    aggregateId: sceneId,
-    aggregateKind: 'SCENE',
-    delta: null,
-    snapshot: {
-      campaignId,
-      scene: { id: sceneId, version: 0 },
-      sessionId: attachSessionId
-    },
+    aggregateId: attachSessionId,
+    aggregateKind: 'SESSION',
+    sceneSnapshots: [{ scene: { id: sceneId, version: 0 } }],
     type: 'COMMAND_COMMITTED',
     version: 0
+  })
+  expect(executedCommand).toEqual({
+    aggregateKind: 'SESSION',
+    command: {
+      commandId: attachCommandId,
+      expectedPresentationVersion: null,
+      sceneId,
+      sessionId: attachSessionId,
+      type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
+    }
   })
   expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'COMMAND'])
 
@@ -1085,16 +1984,23 @@ it('attaches a new scene and restores its committed snapshot after hibernation',
   await evictDurableObject(stub)
   const resumed = waitForMessage(socket)
   socket.send(
-    JSON.stringify({ lastSeenDeliverySequence: 0, pendingCommandIds: [], type: 'RESUME' })
+    JSON.stringify({
+      lastSeenDeliverySequence: 0,
+      pendingCommandIds: [],
+      type: 'RESUME'
+    })
   )
   const resumedReady = await resumed
   expect(resumedReady.type).toBe('READY')
   if (resumedReady.type !== 'READY') throw new Error('Expected the resumed room snapshot.')
   expect(resumedReady.aggregateVersions).toEqual([
-    { aggregateId: sceneId, aggregateKind: 'SCENE', version: 1 }
+    { aggregateId: attachSessionId, aggregateKind: 'SESSION', version: 1 }
   ])
   expect(resumedReady.sceneSnapshots[0]?.scene.id).toBe(sceneId)
-  expect(resumedReady.sceneSnapshots[0]?.scene.tokens[0]?.position).toEqual({ x: 35, y: 20 })
+  expect(resumedReady.sceneSnapshots[0]?.scene.tokens[0]?.position).toEqual({
+    x: 35,
+    y: 20
+  })
   expect(resumedReady.sceneSnapshots[0]?.scene.version).toBe(1)
   expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'COMMAND', 'RENEW', 'SNAPSHOT'])
   socket.close(1000, 'done')
@@ -1139,7 +2045,11 @@ it('keeps resumed receipts and token drag previews private per user and fog view
         operation: 'SNAPSHOT',
         snapshot: {
           aggregateVersions: [
-            { aggregateId: sceneId, aggregateKind: 'SCENE', version: currentVersion }
+            {
+              aggregateId: sceneId,
+              aggregateKind: 'SCENE',
+              version: currentVersion
+            }
           ],
           characterVisions: [],
           encounterCharacterBindings: [],
@@ -1153,6 +2063,7 @@ it('keeps resumed receipts and token drag previews private per user and fog view
         execution: {
           aggregateId: sceneId,
           aggregateKind: 'SCENE',
+          changedAggregates: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 1 }],
           commandId: privacyCommandId,
           hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
           replayed: false,
@@ -1166,7 +2077,11 @@ it('keeps resumed receipts and token drag previews private per user and fog view
     if (body.operation === 'RENEW') {
       return Response.json({
         aggregateVersions: [
-          { aggregateId: sceneId, aggregateKind: 'SCENE', version: currentVersion }
+          {
+            aggregateId: sceneId,
+            aggregateKind: 'SCENE',
+            version: currentVersion
+          }
         ],
         memberships: [
           { role: 'OWNER', userId },
@@ -1244,7 +2159,10 @@ it('keeps resumed receipts and token drag previews private per user and fog view
   ])
   for (const message of [originMessage, controllerMessage, gmMessage]) {
     expect(message).toMatchObject({
-      message: { envelope: { kind: 'TOKEN_DRAG_PREVIEW' }, visionLayers: expect.any(Array) },
+      message: {
+        envelope: { kind: 'TOKEN_DRAG_PREVIEW' },
+        visionLayers: expect.any(Array)
+      },
       type: 'TRANSIENT'
     })
   }
@@ -1309,10 +2227,15 @@ it('keeps resumed receipts and token drag previews private per user and fog view
   const originCommand = waitForMessages(origin.socket, 2)
   const observedCommand = waitForMessage(gm.socket)
   origin.socket.send(
-    JSON.stringify({ command: sceneMoveCommand(privacyCommandId, 0, 25), type: 'COMMAND' })
+    JSON.stringify({
+      command: sceneMoveCommand(privacyCommandId, 0, 25),
+      type: 'COMMAND'
+    })
   )
   await expect(originCommand).resolves.toContainEqual(
-    expect.objectContaining({ hostTiming: { category: 'SCENE_ONLY', durationMs: 12 } })
+    expect.objectContaining({
+      hostTiming: { category: 'SCENE_ONLY', durationMs: 12 }
+    })
   )
   const observedCommit = await observedCommand
   expect(observedCommit).toMatchObject({
@@ -1366,7 +2289,7 @@ it('keeps resumed receipts and token drag previews private per user and fog view
   }
 }, 45_000)
 
-it('fans out six clients while disjoint scene resources commit concurrently and recover', async ({
+it('fans out six clients while mechanically bound scene movement serializes and recovers', async ({
   expect
 }) => {
   const ownerUserId = '00000000-0000-4000-8001-000000000001'
@@ -1449,6 +2372,7 @@ it('fans out six clients while disjoint scene resources commit concurrently and 
         execution: {
           aggregateId: sceneId,
           aggregateKind: 'SCENE',
+          changedAggregates: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 1 }],
           commandId,
           hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
           replayed: false,
@@ -1470,6 +2394,7 @@ it('fans out six clients while disjoint scene resources commit concurrently and 
         execution: {
           aggregateId: sceneId,
           aggregateKind: 'SCENE',
+          changedAggregates: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 2 }],
           commandId: secondMoveCommandId,
           hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
           replayed: false,
@@ -1546,15 +2471,22 @@ it('fans out six clients while disjoint scene resources commit concurrently and 
   )
 
   const received = sockets.map((socket, index) => waitForMessages(socket, index < 2 ? 3 : 2))
-  sockets[0]!.send(JSON.stringify({ command: sceneMoveCommand(commandId, 0, 25), type: 'COMMAND' }))
+  sockets[0]!.send(
+    JSON.stringify({
+      command: sceneMoveCommand(commandId, 0, 25),
+      type: 'COMMAND'
+    })
+  )
   sockets[1]!.send(
     JSON.stringify({
       command: {
         aggregateKind: 'SCENE',
         command: {
           commandId: secondMoveCommandId,
-          encounterId,
+          correlationId: null,
+          expectedEncounterVersion: 1,
           expectedSceneVersion: 0,
+          movementKind: 'VOLUNTARY',
           path: [
             { x: 30, y: 40 },
             { x: 35, y: 40 }
@@ -1568,7 +2500,7 @@ it('fans out six clients while disjoint scene resources commit concurrently and 
     })
   )
   const messagesByClient = await Promise.all(received)
-  expect(maximumCommandsInFlight).toBe(2)
+  expect(maximumCommandsInFlight).toBe(1)
   for (const messages of messagesByClient) {
     expect(
       messages
@@ -1588,7 +2520,11 @@ it('fans out six clients while disjoint scene resources commit concurrently and 
   await evictDurableObject(stub)
   const resumed = waitForMessage(sockets[1]!)
   sockets[1]!.send(
-    JSON.stringify({ lastSeenDeliverySequence: 0, pendingCommandIds: [], type: 'RESUME' })
+    JSON.stringify({
+      lastSeenDeliverySequence: 0,
+      pendingCommandIds: [],
+      type: 'RESUME'
+    })
   )
   const ready = await resumed
   expect(ready.type).toBe('READY')
@@ -1631,7 +2567,12 @@ it('rotates away from a removed first connector and revokes stale-role sockets',
       renewalUserIds.push(body.userId)
       if (membershipsChanged && body.userId === removedPlayerUserId) {
         return Response.json(
-          { error: { code: 'UNAUTHORIZED', message: 'Campaign membership changed.' } },
+          {
+            error: {
+              code: 'UNAUTHORIZED',
+              message: 'Campaign membership changed.'
+            }
+          },
           { status: 403 }
         )
       }
@@ -1740,9 +2681,9 @@ it('rotates away from a removed first connector and revokes stale-role sockets',
         stub,
         (_instance, state) =>
           state.storage.sql
-            .exec<{ authority_user_id: string }>(
-              'SELECT authority_user_id FROM room_meta WHERE id = 1'
-            )
+            .exec<{
+              authority_user_id: string
+            }>('SELECT authority_user_id FROM room_meta WHERE id = 1')
             .one().authority_user_id
       )
     )
@@ -1791,7 +2732,11 @@ it('does not refresh a current snapshot when equivalent Scene versions are reord
           encounterCharacterBindings: [],
           sceneStates: [
             sceneState(0, 20),
-            { ...sceneState(0, 30), definitionId: secondSceneId, id: secondSceneId }
+            {
+              ...sceneState(0, 30),
+              definitionId: secondSceneId,
+              id: secondSceneId
+            }
           ]
         }
       })
@@ -1823,7 +2768,11 @@ it('does not refresh a current snapshot when equivalent Scene versions are reord
 
   const resumed = waitForMessage(connected.socket)
   connected.socket.send(
-    JSON.stringify({ lastSeenDeliverySequence: 0, pendingCommandIds: [], type: 'RESUME' })
+    JSON.stringify({
+      lastSeenDeliverySequence: 0,
+      pendingCommandIds: [],
+      type: 'RESUME'
+    })
   )
   await expect(resumed).resolves.toMatchObject({ aggregateVersions })
   expect(operations).toEqual(['CLAIM', 'SNAPSHOT', 'RENEW', 'RENEW'])
@@ -1902,7 +2851,11 @@ it('serializes joining and RESUME renewals before draining a command on the fina
       }
       return Response.json({
         aggregateVersions: [
-          { aggregateId: sceneId, aggregateKind: 'SCENE', version: Math.max(0, call - 1) }
+          {
+            aggregateId: sceneId,
+            aggregateKind: 'SCENE',
+            version: Math.max(0, call - 1)
+          }
         ],
         memberships: [
           { role: 'OWNER', userId },
@@ -1918,6 +2871,7 @@ it('serializes joining and RESUME renewals before draining a command on the fina
         execution: {
           aggregateId: sceneId,
           aggregateKind: 'SCENE',
+          changedAggregates: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 3 }],
           commandId: overlappingRenewalsCommandId,
           hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
           replayed: false,
@@ -1958,7 +2912,11 @@ it('serializes joining and RESUME renewals before draining a command on the fina
     assert(ownerServerSocket !== undefined)
     const resume = instance.webSocketMessage(
       ownerServerSocket,
-      JSON.stringify({ lastSeenDeliverySequence: 0, pendingCommandIds: [], type: 'RESUME' })
+      JSON.stringify({
+        lastSeenDeliverySequence: 0,
+        pendingCommandIds: [],
+        type: 'RESUME'
+      })
     )
     await resumeRenewalStarted
     const command = instance.webSocketMessage(
@@ -2066,6 +3024,7 @@ it('keeps an accepted Scene command pending across hibernation until overdue aut
         execution: {
           aggregateId: sceneId,
           aggregateKind: 'SCENE',
+          changedAggregates: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 1 }],
           commandId: overdueLeaseCommandId,
           hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
           replayed: false,
@@ -2130,10 +3089,9 @@ it('keeps an accepted Scene command pending across hibernation until overdue aut
       stub,
       (_instance, state) =>
         state.storage.sql
-          .exec<{ status: string }>(
-            'SELECT status FROM command_inbox WHERE command_id = ?',
-            overdueLeaseCommandId
-          )
+          .exec<{
+            status: string
+          }>('SELECT status FROM command_inbox WHERE command_id = ?', overdueLeaseCommandId)
           .one().status
     )
   ).toBe('COMMITTED')
@@ -2178,7 +3136,9 @@ it('renews authority through the persisted alarm after hibernation and releases 
       renewalAttempts += 1
       if (renewalAttempts === 2) {
         return Response.json(
-          { error: { code: 'COMMAND_FAILED', message: 'Executor unavailable.' } },
+          {
+            error: { code: 'COMMAND_FAILED', message: 'Executor unavailable.' }
+          },
           { status: 503 }
         )
       }
@@ -2194,6 +3154,7 @@ it('renews authority through the persisted alarm after hibernation and releases 
         execution: {
           aggregateId: sceneId,
           aggregateKind: 'SCENE',
+          changedAggregates: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 1 }],
           commandId,
           hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
           replayed: false,
@@ -2244,7 +3205,11 @@ it('renews authority through the persisted alarm after hibernation and releases 
   vi.useFakeTimers()
   vi.setSystemTime(initialNow + 31_000)
   client.socket.send(
-    JSON.stringify({ lastSeenDeliverySequence: 0, pendingCommandIds: [], type: 'RESUME' })
+    JSON.stringify({
+      lastSeenDeliverySequence: 0,
+      pendingCommandIds: [],
+      type: 'RESUME'
+    })
   )
   await runInDurableObject(stub, () => undefined)
   expect(await runDurableObjectAlarm(stub)).toBe(true)
@@ -2254,16 +3219,18 @@ it('renews authority through the persisted alarm after hibernation and releases 
       stub,
       (_instance, state) =>
         state.storage.sql
-          .exec<{ status: string }>(
-            'SELECT status FROM command_inbox WHERE command_id = ?',
-            commandId
-          )
+          .exec<{
+            status: string
+          }>('SELECT status FROM command_inbox WHERE command_id = ?', commandId)
           .one().status
     )
   ).toBe('PENDING')
   const renewalRetry = await runInDurableObject(stub, (_instance, state) =>
     state.storage.sql
-      .exec<{ authority_renewal_at: number | null; authority_renewal_blocked: number }>(
+      .exec<{
+        authority_renewal_at: number | null
+        authority_renewal_blocked: number
+      }>(
         `SELECT authority_renewal_at, authority_renewal_blocked
            FROM room_meta WHERE id = 1`
       )
@@ -2288,9 +3255,9 @@ it('renews authority through the persisted alarm after hibernation and releases 
     stub,
     (_instance, state) =>
       state.storage.sql
-        .exec<{ authority_renewal_at: number | null }>(
-          'SELECT authority_renewal_at FROM room_meta WHERE id = 1'
-        )
+        .exec<{
+          authority_renewal_at: number | null
+        }>('SELECT authority_renewal_at FROM room_meta WHERE id = 1')
         .one().authority_renewal_at
   )
   expect(renewedAt).toBeGreaterThanOrEqual(initialNow + 43_001)
@@ -2305,7 +3272,9 @@ it('renews authority through the persisted alarm after hibernation and releases 
     stub,
     (_instance, state) =>
       state.storage.sql
-        .exec<{ release_at: number | null }>('SELECT release_at FROM room_meta WHERE id = 1')
+        .exec<{
+          release_at: number | null
+        }>('SELECT release_at FROM room_meta WHERE id = 1')
         .one().release_at
   )
   expect(scheduledReleaseAt).toBeGreaterThan(Date.now())
@@ -2328,7 +3297,11 @@ it('renews authority through the persisted alarm after hibernation and releases 
         )
         .one()
     )
-  ).toEqual({ authority_renewal_at: null, authority_renewal_blocked: 0, release_at: null })
+  ).toEqual({
+    authority_renewal_at: null,
+    authority_renewal_blocked: 0,
+    release_at: null
+  })
 }, 45_000)
 
 it('fails closed when authority renewal is terminally rejected and requires rehydration', async ({
@@ -2368,7 +3341,12 @@ it('fails closed when authority renewal is terminally rejected and requires rehy
     if (body.operation === 'RENEW') renewalAttempts += 1
     if (body.operation === 'RENEW' && renewalAttempts === 2) {
       return Response.json(
-        { error: { code: 'CONFLICT', message: 'The live-session authority expired.' } },
+        {
+          error: {
+            code: 'CONFLICT',
+            message: 'The live-session authority expired.'
+          }
+        },
         { status: 409 }
       )
     }
@@ -2403,7 +3381,9 @@ it('fails closed when authority renewal is terminally rejected and requires rehy
     await state.storage.setAlarm(Date.now() + 60_000)
   })
   const closed = new Promise<CloseEvent>((resolve) =>
-    first.socket.addEventListener('close', (event) => resolve(event), { once: true })
+    first.socket.addEventListener('close', (event) => resolve(event), {
+      once: true
+    })
   )
   expect(await runDurableObjectAlarm(stub)).toBe(true)
   expect((await closed).code).toBe(1012)
@@ -2420,7 +3400,11 @@ it('fails closed when authority renewal is terminally rejected and requires rehy
         )
         .one()
     )
-  ).toEqual({ authority_renewal_at: null, authority_renewal_blocked: 0, snapshot_json: null })
+  ).toEqual({
+    authority_renewal_at: null,
+    authority_renewal_blocked: 0,
+    snapshot_json: null
+  })
 
   const replacement = await connect(
     stub,
@@ -2453,13 +3437,20 @@ it('releases a same-key fence after terminal rejection and keeps retryable failu
       const id = body.command.command.commandId
       if (id === commandId) {
         return Response.json(
-          { error: { code: 'INVALID_REQUEST', message: 'The command is invalid.' } },
+          {
+            error: {
+              code: 'INVALID_REQUEST',
+              message: 'The command is invalid.'
+            }
+          },
           { status: 400 }
         )
       }
       if (id === retryableCommandId) {
         return Response.json(
-          { error: { code: 'COMMAND_FAILED', message: 'Executor unavailable.' } },
+          {
+            error: { code: 'COMMAND_FAILED', message: 'Executor unavailable.' }
+          },
           { status: 503 }
         )
       }
@@ -2467,6 +3458,7 @@ it('releases a same-key fence after terminal rejection and keeps retryable failu
         execution: {
           aggregateId: sceneId,
           aggregateKind: 'SCENE',
+          changedAggregates: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 1 }],
           commandId: laterCommandId,
           hostTiming: { category: 'SCENE_ONLY', durationMs: 12 },
           replayed: false,
@@ -2510,7 +3502,10 @@ it('releases a same-key fence after terminal rejection and keeps retryable failu
 
   const rejected = waitForMessages(client.socket, 2)
   client.socket.send(
-    JSON.stringify({ command: sceneMoveCommand(commandId, 0, 25), type: 'COMMAND' })
+    JSON.stringify({
+      command: sceneMoveCommand(commandId, 0, 25),
+      type: 'COMMAND'
+    })
   )
   await expect(rejected).resolves.toEqual([
     { acceptedSequence: 1, commandId, type: 'COMMAND_ACCEPTED' },
@@ -2524,15 +3519,24 @@ it('releases a same-key fence after terminal rejection and keeps retryable failu
 
   const committed = waitForMessages(client.socket, 2)
   client.socket.send(
-    JSON.stringify({ command: sceneMoveCommand(laterCommandId, 0, 30), type: 'COMMAND' })
+    JSON.stringify({
+      command: sceneMoveCommand(laterCommandId, 0, 30),
+      type: 'COMMAND'
+    })
   )
   await expect(committed).resolves.toContainEqual(
-    expect.objectContaining({ originCommandId: laterCommandId, type: 'COMMAND_COMMITTED' })
+    expect.objectContaining({
+      originCommandId: laterCommandId,
+      type: 'COMMAND_COMMITTED'
+    })
   )
 
   const acceptedRetry = waitForMessage(client.socket)
   client.socket.send(
-    JSON.stringify({ command: sceneMoveCommand(retryableCommandId, 1, 35), type: 'COMMAND' })
+    JSON.stringify({
+      command: sceneMoveCommand(retryableCommandId, 1, 35),
+      type: 'COMMAND'
+    })
   )
   await expect(acceptedRetry).resolves.toEqual({
     acceptedSequence: 3,
@@ -2551,6 +3555,206 @@ it('releases a same-key fence after terminal rejection and keeps retryable failu
   )
   expect(retryableRow).toMatchObject({ attempts: 1, status: 'PENDING' })
   expect(retryableRow.next_attempt_at).toBeGreaterThan(Date.now())
+  client.socket.close(1000, 'done')
+}, 45_000)
+
+it('recovers pre-cutover Scene environment state, pending payloads, results, and retries', async ({
+  expect
+}) => {
+  const operations: LiveSessionExecutorRequestDto['operation'][] = []
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+    const body = JSON.parse(await new Request(input, init).text()) as LiveSessionExecutorRequestDto
+    if (body.sessionId !== legacyEnvironmentSessionId) {
+      throw new Error(`Unexpected executor request for session ${body.sessionId}.`)
+    }
+    operations.push(body.operation)
+    if (body.operation === 'CLAIM') return Response.json({ ok: true, operation: 'CLAIM' })
+    if (body.operation === 'SNAPSHOT') {
+      return Response.json({
+        operation: 'SNAPSHOT',
+        snapshot: {
+          aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }],
+          characterVisions: [],
+          encounterCharacterBindings: [],
+          encounterRuleOccurrenceBindings: [],
+          sceneStates: [currentEnvironmentSceneState(0)]
+        }
+      })
+    }
+    if (body.operation === 'RENEW') {
+      return Response.json({
+        aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }],
+        memberships: [{ role: 'OWNER', userId }],
+        ok: true,
+        operation: 'RENEW'
+      })
+    }
+    if (body.operation === 'COMMAND') {
+      expect(body.command).toEqual(currentEnvironmentCommand(legacyEnvironmentPendingCommandId, 1))
+      return Response.json({
+        execution: {
+          aggregateId: sceneId,
+          aggregateKind: 'SCENE',
+          changedAggregates: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 2 }],
+          commandId: legacyEnvironmentPendingCommandId,
+          hostTiming: { category: 'SCENE_ONLY', durationMs: 1 },
+          replayed: false,
+          response: {
+            commandId: legacyEnvironmentPendingCommandId,
+            delta: {
+              kind: 'DARKNESS_UPSERTED',
+              zone: currentEnvironmentZone()
+            },
+            replayed: false,
+            sceneId,
+            version: 2
+          },
+          state: currentEnvironmentSceneState(2),
+          version: 2
+        },
+        operation: 'COMMAND'
+      })
+    }
+    if (body.operation === 'RELEASE') {
+      return Response.json({ ok: true, operation: 'RELEASE' })
+    }
+    throw new Error('Unexpected executor operation.')
+  })
+
+  const stub = env.LIVE_SESSION_ROOMS.get(
+    env.LIVE_SESSION_ROOMS.idFromName(`${campaignId}:${legacyEnvironmentSessionId}`)
+  )
+  const client = await connect(
+    stub,
+    await issueTicket('00000000-0000-4000-8000-000000000199', legacyEnvironmentSessionId),
+    legacyEnvironmentSessionId
+  )
+  await client.ready
+
+  const completedPayload = JSON.stringify(
+    legacyEnvironmentCommand(legacyEnvironmentCompletedCommandId, 0)
+  )
+  const pendingPayload = JSON.stringify(
+    legacyEnvironmentCommand(legacyEnvironmentPendingCommandId, 1)
+  )
+  await runInDurableObject(stub, async (_instance, state) => {
+    const journal = new LiveSessionRoomJournal(state.storage)
+    state.storage.sql.exec(
+      'UPDATE room_meta SET snapshot_json = ? WHERE id = 1',
+      JSON.stringify({
+        aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }],
+        characterVisions: [],
+        encounterCharacterBindings: [],
+        encounterRuleOccurrenceBindings: [],
+        sceneStates: [legacyEnvironmentSceneState(0)]
+      })
+    )
+    journal.acceptCommand({
+      actorRole: 'OWNER',
+      actorUserId: userId,
+      commandId: legacyEnvironmentCompletedCommandId,
+      conflictKeys: [`scene:${sceneId}:darkness:${legacyEnvironmentZoneId}`],
+      fingerprint: completedPayload,
+      originSocketId: crypto.randomUUID(),
+      payloadJson: completedPayload
+    })
+    journal.markCompleted(
+      legacyEnvironmentCompletedCommandId,
+      JSON.stringify(legacyEnvironmentExecution(legacyEnvironmentCompletedCommandId, 1))
+    )
+    journal.acceptCommand({
+      actorRole: 'OWNER',
+      actorUserId: userId,
+      commandId: legacyEnvironmentPendingCommandId,
+      conflictKeys: [`scene:${sceneId}:darkness:${legacyEnvironmentZoneId}`],
+      fingerprint: pendingPayload,
+      originSocketId: crypto.randomUUID(),
+      payloadJson: pendingPayload
+    })
+    await state.storage.deleteAlarm()
+  })
+  await evictDurableObject(stub)
+
+  const committedMessages = waitForMessages(client.socket, 2)
+  expect(await runDurableObjectAlarm(stub)).toBe(true)
+  await waitForJournalIdle(stub)
+  expect((await committedMessages).map((message) => message.type)).toEqual([
+    'COMMAND_COMMITTED',
+    'COMMAND_COMMITTED'
+  ])
+  expect(operations).toContain('COMMAND')
+
+  const recovered = await runInDurableObject(stub, (_instance, state) => {
+    const rows = state.storage.sql
+      .exec<{ command_id: string; status: string }>(
+        `SELECT command_id, status FROM command_inbox
+         WHERE command_id IN (?, ?) ORDER BY accepted_sequence`,
+        legacyEnvironmentCompletedCommandId,
+        legacyEnvironmentPendingCommandId
+      )
+      .toArray()
+    const snapshotJson = state.storage.sql
+      .exec<{
+        snapshot_json: string
+      }>('SELECT snapshot_json FROM room_meta WHERE id = 1')
+      .one().snapshot_json
+    return {
+      rows,
+      snapshot: JSON.parse(snapshotJson) as {
+        sceneStates: CampaignSceneStateDto[]
+      }
+    }
+  })
+  expect(recovered.rows).toEqual([
+    { command_id: legacyEnvironmentCompletedCommandId, status: 'COMMITTED' },
+    { command_id: legacyEnvironmentPendingCommandId, status: 'COMMITTED' }
+  ])
+  expect(recovered.snapshot.sceneStates[0]).toMatchObject({
+    ambientIllumination: 'BRIGHT',
+    darknessZones: [
+      {
+        mechanicalIllumination: null,
+        mechanicalObscurement: null
+      }
+    ],
+    version: 2
+  })
+
+  const historicalRetry = waitForMessages(client.socket, 2)
+  client.socket.send(
+    JSON.stringify({
+      command: currentEnvironmentCommand(legacyEnvironmentCompletedCommandId, 0),
+      type: 'COMMAND'
+    })
+  )
+  const retryMessages = await historicalRetry
+  expect(retryMessages[0]).toMatchObject({
+    commandId: legacyEnvironmentCompletedCommandId,
+    type: 'COMMAND_ACCEPTED'
+  })
+  expect(retryMessages[1]).toMatchObject({
+    originCommandId: legacyEnvironmentCompletedCommandId,
+    replayed: true,
+    type: 'COMMAND_COMMITTED'
+  })
+
+  const freshLegacyRejection = waitForMessage(client.socket)
+  client.socket.send(
+    JSON.stringify({
+      command: legacyEnvironmentCommand(legacyEnvironmentFreshCommandId, 2),
+      type: 'COMMAND'
+    })
+  )
+  await expect(freshLegacyRejection).resolves.toMatchObject({
+    code: 'INVALID_COMMAND',
+    commandId: legacyEnvironmentFreshCommandId,
+    type: 'COMMAND_REJECTED'
+  })
+  expect(
+    await runInDurableObject(stub, (_instance, state) =>
+      new LiveSessionRoomJournal(state.storage).findCommand(legacyEnvironmentFreshCommandId)
+    )
+  ).toBeNull()
   client.socket.close(1000, 'done')
 }, 45_000)
 
@@ -2588,7 +3792,10 @@ it('keeps authority renewal anchored to the last actual claim or renewal', async
     }
   })
 
-  expect(stored).toEqual({ authorityRenewalAt: renewalAt, status: 'COMPLETED' })
+  expect(stored).toEqual({
+    authorityRenewalAt: renewalAt,
+    status: 'COMPLETED'
+  })
 }, 45_000)
 
 it('caps terminal command receipts without pruning pending, executing, or completed work', async ({
@@ -2601,7 +3808,9 @@ it('caps terminal command receipts without pruning pending, executing, or comple
   await stub.fetch(new Request('https://session.test/not-a-websocket'))
 
   const statuses = await runInDurableObject(stub, (_instance, state) => {
-    const journal = new LiveSessionRoomJournal(state.storage, { terminalCommandLimit: 2 })
+    const journal = new LiveSessionRoomJournal(state.storage, {
+      terminalCommandLimit: 2
+    })
     journal.ensureRoomIdentity({
       authorityId: crypto.randomUUID(),
       campaignId,

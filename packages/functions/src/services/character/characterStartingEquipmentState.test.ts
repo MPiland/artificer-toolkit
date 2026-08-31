@@ -8,6 +8,7 @@ describe('Character starting equipment state', () => {
     const character = createEmptyCharacterAuthored({
       id: 'character-1',
       systemId: 'system-1',
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       userId: 'user-1'
     })
     character.intent.startingEquipment = {

@@ -299,7 +299,15 @@ export interface CampaignCharacterMechanicsProjectionRepository {
     expectedCharacterStreamVersion: number
   }): Promise<void>
   lockAssignment(input: { campaignId: string; characterId: string }): Promise<void>
+  lockAssignmentIfPresent(input: { campaignId: string; characterId: string }): Promise<boolean>
   findCurrentChecksum(input: { campaignId: string; characterId: string }): Promise<string | null>
+  requireFinalizationUpgradeChecksum(input: {
+    campaignId: string
+    characterId: string
+    expectedBaseMechanicsProjectionChecksum: string
+    expectedCharacterStreamVersion: number
+    expectedMechanicalContextChecksum: string
+  }): Promise<string>
   publish(input: {
     expectedPriorOverlayChecksum: string | null
     projection: CampaignCharacterMechanicsProjection
@@ -353,6 +361,9 @@ export function createCampaignCharacterMechanicsProjectionRepository(
         )
       }
     },
+    async lockAssignmentIfPresent(input) {
+      return (await lockAssignment(db, input.campaignId, input.characterId)) !== null
+    },
     async findCurrentChecksum(input) {
       const result = await sql<{ projection_checksum: string }>`
         select projection_checksum
@@ -362,6 +373,37 @@ export function createCampaignCharacterMechanicsProjectionRepository(
         limit 1
       `.execute(db)
       return result.rows[0]?.projection_checksum ?? null
+    },
+    async requireFinalizationUpgradeChecksum(input) {
+      const result = await sql<{
+        base_mechanics_projection_checksum: string
+        character_stream_version: number
+        mechanical_context_checksum: string
+        projection_checksum: string
+      }>`
+        select
+          overlay.base_mechanics_projection_checksum,
+          overlay.character_stream_version,
+          overlay.mechanical_context_checksum,
+          overlay.projection_checksum
+        from public.campaign_character_mechanics_projections overlay
+        where overlay.campaign_id = ${input.campaignId}
+          and overlay.character_id = ${input.characterId}
+        for share of overlay
+      `.execute(db)
+      const row = result.rows[0]
+      if (
+        !row ||
+        row.base_mechanics_projection_checksum !== input.expectedBaseMechanicsProjectionChecksum ||
+        row.character_stream_version !== input.expectedCharacterStreamVersion ||
+        row.mechanical_context_checksum !== input.expectedMechanicalContextChecksum ||
+        !/^[a-f0-9]{64}$/.test(row.projection_checksum)
+      ) {
+        throw new CampaignCharacterMechanicsProjectionMismatchError(
+          `Campaign "${input.campaignId}" Character "${input.characterId}" overlay is not eligible for explicit base projection upgrade.`
+        )
+      }
+      return row.projection_checksum
     },
     async publish(input) {
       const projection = campaignCharacterMechanicsProjectionSchema.parse(input.projection)

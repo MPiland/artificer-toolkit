@@ -32,6 +32,7 @@ function character() {
   const value = createEmptyCharacterAuthored({
     id: ids.character,
     userId: ids.user,
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000014',
     systemId: ids.system
   })
   value.status = 'ACTIVE'

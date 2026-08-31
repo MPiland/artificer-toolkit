@@ -8,6 +8,7 @@ import {
   type CharacterAssemblyRegistry,
   type CharacterBuildSnapshot
 } from '@artificer-toolkit/shared/core'
+import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 
 import { buildCharacterDerivedRuleFacts } from '../../../../character/characterDerivedRuleFacts.js'
 import { compileCharacterGrantFoldRuleFacts } from '../../../../character/characterGrantFoldRuleFacts.js'
@@ -156,7 +157,8 @@ async function evaluate(snapshotValue: CharacterBuildSnapshot) {
 describe('D&D 5e 2014 Character roll-mode policy', () => {
   it('resolves cancellation, aliases, conditional saves, and attacks', async () => {
     const character = snapshot()
-    await expect(evaluate(character)).resolves.toMatchObject({
+    const output = await evaluatePolicy(character)
+    expect(output.rollModes).toMatchObject({
       initiative: 'NORMAL',
       abilityChecks: {
         STRENGTH: 'ADVANTAGE',
@@ -175,6 +177,50 @@ describe('D&D 5e 2014 Character roll-mode policy', () => {
         UNARMED: 'NORMAL'
       }
     })
+
+    expect(output.rollContributorEvidence).toMatchObject({
+      initiative: [
+        {
+          sourceId: 'AUTHORED:FEATURE:roll-feature:FEATURE%3Aroll-feature%3Aroll-feature',
+          grantId: 'initiative-advantage',
+          domainKey: 'INITIATIVE:ADVANTAGE',
+          influence: 'ADVANTAGE'
+        },
+        {
+          sourceId: 'AUTHORED:FEATURE:roll-feature:FEATURE%3Aroll-feature%3Aroll-feature',
+          grantId: 'initiative-disadvantage',
+          domainKey: 'INITIATIVE:DISADVANTAGE',
+          influence: 'DISADVANTAGE'
+        }
+      ],
+      abilityChecks: {
+        DEXTERITY: [
+          { grantId: 'global-check-advantage', influence: 'ADVANTAGE' },
+          { grantId: 'dexterity-check-disadvantage', influence: 'DISADVANTAGE' }
+        ]
+      },
+      savingThrows: {
+        WISDOM: [{ grantId: 'wisdom-save-advantage', influence: 'ADVANTAGE' }]
+      },
+      skillChecks: {
+        perception: [
+          { grantId: 'global-check-advantage', influence: 'ADVANTAGE' },
+          { grantId: 'perception-advantage', influence: 'ADVANTAGE' }
+        ]
+      },
+      attacks: {
+        MELEE: [{ grantId: 'melee-advantage', influence: 'ADVANTAGE' }]
+      }
+    })
+    expect(output.rollContributorEvidence.savingThrows.WISDOM).not.toContainEqual(
+      expect.objectContaining({ grantId: 'conditional-wisdom-save-disadvantage' })
+    )
+    expect(resolveD20Contributors(output.rollContributorEvidence.initiative).rollMode).toBe(
+      output.rollModes.initiative
+    )
+    expect(resolveD20Contributors(output.rollContributorEvidence.attacks.MELEE).rollMode).toBe(
+      output.rollModes.attacks.MELEE
+    )
   })
 
   it('includes only active, attuned equipment root modifiers', async () => {

@@ -22,7 +22,8 @@ vi.mock('../services/character/characterCommittedSheetSources.js', () => ({
   loadCharacterCommittedSheetSources: mocks.loadSources
 }))
 
-const { verifyCharacterMechanicsProjections } = await import('./verifyCharacterMechanicsProjections.js')
+const { verifyCharacterMechanicsProjections } =
+  await import('./verifyCharacterMechanicsProjections.js')
 
 function createDb(
   rows: readonly { id: string; rule_pack_revision_id: string | null; stream_version: number }[]
@@ -45,7 +46,13 @@ describe('verifyCharacterMechanicsProjections', () => {
   it('checks each active Character against its stream, rule pin, exact sources, and checksum', async () => {
     await expect(
       verifyCharacterMechanicsProjections(
-        createDb([{ id: mechanics.characterId, stream_version: 3, rule_pack_revision_id: mechanics.ruleRevisionId }])
+        createDb([
+          {
+            id: mechanics.characterId,
+            stream_version: 3,
+            rule_pack_revision_id: mechanics.ruleRevisionId
+          }
+        ])
       )
     ).resolves.toBe(1)
 
@@ -72,7 +79,13 @@ describe('verifyCharacterMechanicsProjections', () => {
 
     await expect(
       verifyCharacterMechanicsProjections(
-        createDb([{ id: mechanics.characterId, stream_version: 3, rule_pack_revision_id: mechanics.ruleRevisionId }])
+        createDb([
+          {
+            id: mechanics.characterId,
+            stream_version: 3,
+            rule_pack_revision_id: mechanics.ruleRevisionId
+          }
+        ])
       )
     ).rejects.toThrow('unavailable exact authored version')
   })

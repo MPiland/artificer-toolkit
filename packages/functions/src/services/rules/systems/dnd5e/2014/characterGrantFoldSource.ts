@@ -240,8 +240,8 @@ export const handler = async (input) => {
     for (const operation of source.senses) {
       const senseIds = [];
       applyScalingTargets(operation, senseLevel, senseIds);
-      for (const senseCode of senseIds) {
-        const sense = { acceptedSenseIndex: acc.senses.length, senseCode, grantId: operation.grantId, source: source.mechanicSource };
+      for (const senseDefinitionId of senseIds) {
+        const sense = { acceptedSenseIndex: acc.senses.length, senseDefinitionId, grantId: operation.grantId, source: source.mechanicSource };
         if (operation.range != null) sense.range = operation.range;
         acc.senses.push(sense);
       }

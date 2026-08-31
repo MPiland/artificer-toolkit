@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { EncounterSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   applySceneDelta,
   createSceneFogAreaPatch,
@@ -54,7 +54,7 @@ interface VttFrameGapRecord {
 export function VttLoadFixture() {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const rendererRef = useRef<VttSceneRenderer | null>(null)
-  const sceneRef = useRef<EncounterSceneStateDto>(vttLoadFixtureScene)
+  const sceneRef = useRef<CampaignSceneStateDto>(vttLoadFixtureScene)
   const cancelExerciseRef = useRef<(() => void) | null>(null)
   const [ready, setReady] = useState(false)
   const [running, setRunning] = useState(false)
@@ -440,7 +440,7 @@ export function VttLoadFixture() {
 }
 
 function ownerUpdate(
-  scene: EncounterSceneStateDto,
+  scene: CampaignSceneStateDto,
   tool: 'MEASURE' | 'SELECT'
 ): Parameters<VttSceneRenderer['update']>[0] {
   return {

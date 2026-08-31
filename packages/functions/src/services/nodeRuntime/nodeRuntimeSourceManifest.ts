@@ -1,5 +1,6 @@
 /** Exact database columns that shipped Authoring Schema data sources may query. */
 export const nodeRuntimeSourceManifest = {
+  ability_definitions: ['id', 'label'],
   alignments: ['id', 'label'],
   background_features: ['background_id', 'feature_id'],
   backgrounds: ['id', 'label'],
@@ -46,6 +47,7 @@ export const nodeRuntimeSourceManifest = {
   race_features: ['feature_id', 'race_id'],
   races: ['category', 'id', 'label', 'parent_race_id'],
   rarities: ['id', 'label'],
+  reusable_definitions: ['id', 'label'],
   senses: ['id', 'label'],
   skills: ['id', 'label', 'tooltip'],
   speeds: ['id', 'label', 'tooltip'],

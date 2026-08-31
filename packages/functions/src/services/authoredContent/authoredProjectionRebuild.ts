@@ -5,27 +5,12 @@ import {
 } from '@artificer-toolkit/db'
 import type { JsonValue } from '@artificer-toolkit/schema/projections/identity'
 import {
-  compileBackground,
-  compileClass,
-  compileCreature,
-  compileEquipment,
-  compileFeat,
-  compileRace,
-  compileSpell,
-  compileVehicle,
+  assertCompiledSubjectMechanicsIndex,
+  compileSubjectWithMechanicsIndex,
   resolveEquipmentAuthored,
   resolveRaceAuthored
 } from '@artificer-toolkit/shared/subjects/compilers'
-import type {
-  BackgroundAuthored,
-  ClassAuthored,
-  CreatureAuthored,
-  EquipmentAuthored,
-  FeatAuthored,
-  RaceAuthored,
-  SpellAuthored,
-  VehicleAuthored
-} from '@artificer-toolkit/shared/subjects/authored'
+import type { EquipmentAuthored, RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import {
   AUTHORED_PROJECTION_COMPILER_VERSION,
@@ -42,7 +27,9 @@ export class AuthoredProjectionRebuildError extends Error {
 function requireProjectionDocument(value: unknown): Record<string, JsonValue> {
   const normalized = normalizeCanonicalJson(value)
   if (typeof normalized !== 'object' || normalized === null || Array.isArray(normalized)) {
-    throw new AuthoredProjectionRebuildError('Authored compilation must produce an object projection.')
+    throw new AuthoredProjectionRebuildError(
+      'Authored compilation must produce an object projection.'
+    )
   }
   return normalized
 }
@@ -66,7 +53,9 @@ function rebuildRaceProjection(
 ): Record<string, JsonValue> {
   const authored = record.authored
   if (authored.subjectKind !== 'RACE') {
-    throw new AuthoredProjectionRebuildError('Race projection rebuild received another subject kind.')
+    throw new AuthoredProjectionRebuildError(
+      'Race projection rebuild received another subject kind.'
+    )
   }
   const race = authored.document as RaceAuthored
   if (race.category === 'BASE') {
@@ -75,7 +64,9 @@ function rebuildRaceProjection(
         `Base race "${authored.subjectId}" cannot have authored dependencies.`
       )
     }
-    return requireProjectionDocument(compileRace(resolveRaceAuthored(race, () => null)))
+    const compilation = compileSubjectWithMechanicsIndex({ subjectKind: 'RACE', authored: race })
+    assertCompiledSubjectMechanicsIndex(compilation.mechanicsIndex)
+    return requireProjectionDocument(compilation.compiled)
   }
 
   const parent = dependencies.find(
@@ -93,15 +84,15 @@ function rebuildRaceProjection(
       `Subrace "${authored.subjectId}" must have exactly one authored dependency.`
     )
   }
-  return requireProjectionDocument(
-    compileRace(
-      resolveRaceAuthored(race, (parentId) =>
-        parentId === parent.authored.subjectId
-          ? (parent.authored.document as RaceAuthored)
-          : null
-      )
+  const compilation = compileSubjectWithMechanicsIndex({
+    subjectKind: 'RACE',
+    authored: race,
+    effectiveAuthored: resolveRaceAuthored(race, (parentId) =>
+      parentId === parent.authored.subjectId ? (parent.authored.document as RaceAuthored) : null
     )
-  )
+  })
+  assertCompiledSubjectMechanicsIndex(compilation.mechanicsIndex)
+  return requireProjectionDocument(compilation.compiled)
 }
 
 function rebuildEquipmentProjection(
@@ -110,7 +101,9 @@ function rebuildEquipmentProjection(
 ): Record<string, JsonValue> {
   const authored = record.authored
   if (authored.subjectKind !== 'EQUIPMENT') {
-    throw new AuthoredProjectionRebuildError('Equipment projection rebuild received another subject kind.')
+    throw new AuthoredProjectionRebuildError(
+      'Equipment projection rebuild received another subject kind.'
+    )
   }
   const equipment = authored.document as EquipmentAuthored
   if (equipment.category !== 'VARIANT') {
@@ -119,7 +112,12 @@ function rebuildEquipmentProjection(
         `Base equipment "${authored.subjectId}" cannot have authored dependencies.`
       )
     }
-    return requireProjectionDocument(compileEquipment(equipment))
+    const compilation = compileSubjectWithMechanicsIndex({
+      subjectKind: 'EQUIPMENT',
+      authored: equipment
+    })
+    assertCompiledSubjectMechanicsIndex(compilation.mechanicsIndex)
+    return requireProjectionDocument(compilation.compiled)
   }
 
   const parent = dependencies.find(
@@ -137,17 +135,17 @@ function rebuildEquipmentProjection(
       `Equipment variant "${authored.subjectId}" must have exactly one authored dependency.`
     )
   }
-  return requireProjectionDocument(
-    compileEquipment(
-      resolveEquipmentAuthored(
-        equipment,
-        (parentId) =>
-          parentId === parent.authored.subjectId
-            ? (parent.authored.document as EquipmentAuthored)
-            : null
-      )
+  const compilation = compileSubjectWithMechanicsIndex({
+    subjectKind: 'EQUIPMENT',
+    authored: equipment,
+    effectiveAuthored: resolveEquipmentAuthored(equipment, (parentId) =>
+      parentId === parent.authored.subjectId
+        ? (parent.authored.document as EquipmentAuthored)
+        : null
     )
-  )
+  })
+  assertCompiledSubjectMechanicsIndex(compilation.mechanicsIndex)
+  return requireProjectionDocument(compilation.compiled)
 }
 
 export function rebuildAuthoredProjectionDocument(
@@ -157,22 +155,18 @@ export function rebuildAuthoredProjectionDocument(
   assertSupportedCompiler(record)
   const authored = record.authored
   switch (authored.subjectKind) {
-    case 'BACKGROUND':
-      return requireProjectionDocument(compileBackground(authored.document as BackgroundAuthored))
-    case 'CLASS':
-      return requireProjectionDocument(compileClass(authored.document as ClassAuthored))
-    case 'CREATURE':
-      return requireProjectionDocument(compileCreature(authored.document as CreatureAuthored))
     case 'EQUIPMENT':
       return rebuildEquipmentProjection(record, dependencies)
-    case 'FEAT':
-      return requireProjectionDocument(compileFeat(authored.document as FeatAuthored))
     case 'RACE':
       return rebuildRaceProjection(record, dependencies)
-    case 'SPELL':
-      return requireProjectionDocument(compileSpell(authored.document as SpellAuthored))
-    case 'VEHICLE':
-      return requireProjectionDocument(compileVehicle(authored.document as VehicleAuthored))
+    default: {
+      const compilation = compileSubjectWithMechanicsIndex({
+        subjectKind: authored.subjectKind,
+        authored: authored.document
+      })
+      assertCompiledSubjectMechanicsIndex(compilation.mechanicsIndex)
+      return requireProjectionDocument(compilation.compiled)
+    }
   }
 }
 

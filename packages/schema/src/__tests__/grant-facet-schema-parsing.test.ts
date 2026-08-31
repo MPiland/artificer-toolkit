@@ -180,6 +180,32 @@ describe('grant and facet schema parsing', () => {
     expect((parsed as { domain: { attackDomain: string } }).domain.attackDomain).toBe('SPELL')
   })
 
+  it('requires a UUID-backed sense definition for SENSE_RANGE without a legacy code alias', () => {
+    const base = {
+      grantKind: 'MODIFIER_GRANT',
+      id: 'darkvision-range',
+      order: 1,
+      selectionKind: 'GRANTED',
+      valueDomainCode: 'SENSE_RANGE',
+      modifierKind: 'BONUS',
+      scope: 'GLOBAL',
+      payload: { valueKind: 'FIXED', amount: 30 }
+    }
+
+    expect(
+      modifierGrantDtoSchema.parse({
+        ...base,
+        domain: { senseDefinitionId: '00000000-0000-0000-000a-000100000000' }
+      }).domain
+    ).toEqual({ senseDefinitionId: '00000000-0000-0000-000a-000100000000' })
+    expect(() =>
+      modifierGrantDtoSchema.parse({ ...base, domain: { senseCode: 'DARKVISION' } })
+    ).toThrow()
+    expect(() =>
+      modifierGrantDtoSchema.parse({ ...base, domain: { senseDefinitionId: 'darkvision' } })
+    ).toThrow()
+  })
+
   it('rejects chosen modifier grants without a target-binding model', () => {
     expect(() =>
       modifierGrantDtoSchema.parse({

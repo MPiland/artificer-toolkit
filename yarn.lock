@@ -309,6 +309,7 @@ __metadata:
   dependencies:
     "@2toad/profanity": "npm:^3.3.0"
     "@artificer-toolkit/design-system": "workspace:^"
+    "@noble/hashes": "npm:1.8.0"
     "@types/rbush": "npm:4.0.0"
     fast-check: "npm:4.9.0"
     polygon-clipping: "npm:0.15.7"

@@ -23,3 +23,24 @@ export function getSystem(id: string, client: Api = api) {
 export function useGetSystem(id: string) {
   return useSuspenseQuery(getSystem(id))
 }
+
+export function getSystemRuleCapability(id: string, client: Api = api) {
+  return queryOptions({
+    queryKey: [...queryKeys.systems.detail(id), 'rule-capability'],
+    queryFn: async () => await client.systems.capability(id)
+  })
+}
+
+export function getSystemDefinitions(id: string, client: Api = api) {
+  return queryOptions({
+    queryKey: queryKeys.systems.definitions(id),
+    queryFn: async () => await client.systems.definitions.list(id)
+  })
+}
+
+export function getSystemDefinition(definitionId: string, client: Api = api) {
+  return queryOptions({
+    queryKey: queryKeys.systems.definition(definitionId),
+    queryFn: async () => await client.systems.definitions.get(definitionId)
+  })
+}

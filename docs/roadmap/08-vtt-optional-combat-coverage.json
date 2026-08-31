@@ -1,0 +1,467 @@
+{
+  "schemaVersion": 1,
+  "gate": 2,
+  "caseId": "G2-OPTIONAL-COMBAT",
+  "title": "Optional combat coverage manifest",
+  "purpose": "A fixed, non-runtime checklist for the fourteen approved 2014 DMG miniature/combat variants. This manifest does not change the Gate 2 denominator or imply that a rule is implemented.",
+  "statusVocabulary": ["DECLARED", "FOUNDATION", "INTEGRATED", "DB_ACCEPTED"],
+  "currentGateStatus": "IN_PROGRESS",
+  "rules": [
+    {
+      "kind": "FLANKING",
+      "definition": {
+        "definitionId": "00000000-0000-4000-8000-0000000000f3",
+        "module": { "key": "d20.attack.flanking-opposition", "contractVersion": 1 },
+        "parameterKind": "FLANKING"
+      },
+      "owner": "action-positional-policy",
+      "requiredFacts": [
+        "square-grid",
+        "occupied-footprints",
+        "adjacency",
+        "opposition",
+        "visibility",
+        "incapacitation",
+        "melee-attack"
+      ],
+      "persistenceImpact": [
+        "campaign-optional-rule-selection",
+        "encounter-settings-snapshot",
+        "action-receipt-evidence"
+      ],
+      "status": "INTEGRATED",
+      "evidence": [
+        "packages/functions/src/services/rules/systems/dnd5e/flankingPolicy.ts",
+        "packages/shared/src/domains/vtt/optionalCombatGeometry.ts",
+        "packages/functions/src/services/encounter/encounterActionPositionalFacts.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/flankingActionBinding.test.ts"
+      ],
+      "requiredProof": [
+        "focused geometry/policy cases",
+        "database action/replay/concurrency/privacy schedule"
+      ]
+    },
+    {
+      "kind": "ALTERNATING_DIAGONALS",
+      "definition": {
+        "definitionId": "00000000-0000-4000-8000-0000000000f1",
+        "module": { "key": "scene.grid.square.alternating-diagonals", "contractVersion": 1 },
+        "parameterKind": "ALTERNATING_DIAGONALS"
+      },
+      "owner": "scene-grid-policy",
+      "requiredFacts": [
+        "square-grid",
+        "ordered-waypoints",
+        "movement-or-range-distance",
+        "diagonal-cadence"
+      ],
+      "persistenceImpact": [
+        "campaign-optional-rule-selection",
+        "encounter-settings-snapshot",
+        "movement-or-action-receipt-evidence"
+      ],
+      "status": "INTEGRATED",
+      "evidence": [
+        "packages/functions/src/services/rules/systems/dnd5e/optionalCombatPolicy.ts",
+        "packages/functions/src/services/rules/sceneGridPolicyRegistry.ts",
+        "packages/functions/src/services/encounter/encounterActionSceneContext.ts",
+        "packages/functions/src/services/encounter/encounterMovementReactionActionCoordinator.ts",
+        "packages/functions/src/services/encounter/vttSceneService.ts",
+        "packages/shared/src/domains/vtt/geometry.ts",
+        "packages/functions/src/services/encounter/encounterActionSceneContext.test.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalCombatPolicy.test.ts"
+      ],
+      "requiredProof": [
+        "focused multi-segment movement/range cases",
+        "database snapshot/replay/concurrency schedule"
+      ]
+    },
+    {
+      "kind": "FACING",
+      "definition": {
+        "definitionId": "00000000-0000-4000-8000-0000000000f4",
+        "module": { "key": "scene.grid.square.facing", "contractVersion": 1 },
+        "parameterKind": "FACING"
+      },
+      "owner": "positional-policy",
+      "requiredFacts": ["oriented-token", "occupied-footprint", "relative-arc", "visibility"],
+      "persistenceImpact": [
+        "campaign-optional-rule-selection",
+        "encounter-settings-snapshot",
+        "token-orientation-receipt-evidence"
+      ],
+      "status": "FOUNDATION",
+      "evidence": [
+        "packages/functions/src/services/rules/systems/dnd5e/facingPolicy.ts",
+        "packages/shared/src/domains/vtt/optionalCombatGeometry.ts"
+      ],
+      "requiredProof": [
+        "closed UUID-backed source registration",
+        "focused facing arcs/rotation cases",
+        "database action/replay/privacy schedule"
+      ]
+    },
+    {
+      "kind": "CLIMB_ONTO_LARGER_CREATURE",
+      "definition": {
+        "definitionId": "00000000-0000-4000-8000-0000000000f5",
+        "module": { "key": "d20.action.climb-onto-larger-creature", "contractVersion": 1 },
+        "parameterKind": "CLIMB_ONTO_LARGER_CREATURE"
+      },
+      "owner": "action-policy",
+      "requiredFacts": [
+        "actor-size",
+        "target-size",
+        "occupied-footprints",
+        "action-selection",
+        "movement-state"
+      ],
+      "persistenceImpact": [
+        "campaign-optional-rule-selection",
+        "encounter-action-receipt",
+        "movement-state-if-successful"
+      ],
+      "status": "FOUNDATION",
+      "evidence": [
+        "packages/schema/src/shared/optionalCombat.ts",
+        "packages/db/src/source-data/srd/optionalCombat.ts",
+        "packages/db/src/__tests__/srd-optional-combat-definition-source.test.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalActionPolicy.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalActionPolicy.test.ts"
+      ],
+      "requiredProof": [
+        "closed UUID-backed source registration",
+        "focused selection/eligibility/outcome cases",
+        "database action/replay/rollback schedule"
+      ]
+    },
+    {
+      "kind": "DISARM",
+      "definition": {
+        "definitionId": "00000000-0000-4000-8000-0000000000f6",
+        "module": { "key": "d20.action.disarm", "contractVersion": 1 },
+        "parameterKind": "DISARM"
+      },
+      "owner": "action-policy",
+      "requiredFacts": ["action-selection", "target", "attack-or-contest", "held-item", "outcome"],
+      "persistenceImpact": [
+        "campaign-optional-rule-selection",
+        "action-receipt",
+        "target-item-state-if-successful"
+      ],
+      "status": "FOUNDATION",
+      "evidence": [
+        "packages/schema/src/shared/optionalCombat.ts",
+        "packages/db/src/source-data/srd/optionalCombat.ts",
+        "packages/db/src/__tests__/srd-optional-combat-definition-source.test.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalActionPolicy.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalActionPolicy.test.ts"
+      ],
+      "requiredProof": [
+        "closed UUID-backed source registration",
+        "focused target/save/outcome cases",
+        "database authorization/replay/rollback schedule"
+      ]
+    },
+    {
+      "kind": "MARK",
+      "definition": {
+        "definitionId": "00000000-0000-4000-8000-0000000000f7",
+        "module": { "key": "d20.attack.mark", "contractVersion": 1 },
+        "parameterKind": "MARK"
+      },
+      "owner": "action-effect-policy",
+      "requiredFacts": [
+        "source-actor",
+        "target-actor",
+        "mark-duration",
+        "mark-limit",
+        "action-or-reaction-use"
+      ],
+      "persistenceImpact": [
+        "campaign-optional-rule-selection",
+        "active-effect-or-aggregate-mark-state",
+        "expiry-receipt"
+      ],
+      "status": "FOUNDATION",
+      "evidence": [
+        "packages/schema/src/shared/optionalCombat.ts",
+        "packages/db/src/source-data/srd/optionalCombat.ts",
+        "packages/db/src/__tests__/srd-optional-combat-definition-source.test.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalActionPolicy.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalActionPolicy.test.ts"
+      ],
+      "requiredProof": [
+        "closed UUID-backed source registration",
+        "focused apply/expire/limit cases",
+        "database lifecycle/replay/concurrency/privacy schedule"
+      ]
+    },
+    {
+      "kind": "OVERRUN",
+      "definition": {
+        "definitionId": "00000000-0000-4000-8000-0000000000f8",
+        "module": { "key": "scene.movement.overrun", "contractVersion": 1 },
+        "parameterKind": "OVERRUN"
+      },
+      "owner": "movement-policy",
+      "requiredFacts": [
+        "actor-size",
+        "target-size",
+        "movement-kind",
+        "occupied-footprints",
+        "contest-or-check"
+      ],
+      "persistenceImpact": [
+        "campaign-optional-rule-selection",
+        "movement-receipt",
+        "token-position-if-successful"
+      ],
+      "status": "FOUNDATION",
+      "evidence": [
+        "packages/schema/src/shared/optionalCombat.ts",
+        "packages/db/src/source-data/srd/optionalCombat.ts",
+        "packages/db/src/__tests__/srd-optional-combat-definition-source.test.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalMovementPolicy.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalMovementPolicy.test.ts"
+      ],
+      "requiredProof": [
+        "closed UUID-backed source registration",
+        "focused movement/eligibility cases",
+        "database movement/replay/rollback schedule"
+      ]
+    },
+    {
+      "kind": "SHOVE_ASIDE",
+      "definition": {
+        "definitionId": "00000000-0000-4000-8000-0000000000f9",
+        "module": { "key": "scene.movement.shove-aside", "contractVersion": 1 },
+        "parameterKind": "SHOVE_ASIDE"
+      },
+      "owner": "movement-policy",
+      "requiredFacts": [
+        "actor-size",
+        "target-size",
+        "direction",
+        "occupied-footprints",
+        "forced-movement"
+      ],
+      "persistenceImpact": [
+        "campaign-optional-rule-selection",
+        "movement-receipt",
+        "token-position-if-successful"
+      ],
+      "status": "FOUNDATION",
+      "evidence": [
+        "packages/schema/src/shared/optionalCombat.ts",
+        "packages/db/src/source-data/srd/optionalCombat.ts",
+        "packages/db/src/__tests__/srd-optional-combat-definition-source.test.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalMovementPolicy.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalMovementPolicy.test.ts"
+      ],
+      "requiredProof": [
+        "closed UUID-backed source registration",
+        "focused direction/space/outcome cases",
+        "database movement/replay/rollback schedule"
+      ]
+    },
+    {
+      "kind": "TUMBLE",
+      "definition": {
+        "definitionId": "00000000-0000-4000-8000-0000000000fa",
+        "module": { "key": "scene.movement.tumble", "contractVersion": 1 },
+        "parameterKind": "TUMBLE"
+      },
+      "owner": "movement-policy",
+      "requiredFacts": [
+        "movement-kind",
+        "occupied-footprints",
+        "opportunity-reaction-suppression",
+        "check-or-contest"
+      ],
+      "persistenceImpact": [
+        "campaign-optional-rule-selection",
+        "movement-receipt",
+        "reaction-window-state-if-applicable"
+      ],
+      "status": "FOUNDATION",
+      "evidence": [
+        "packages/schema/src/shared/optionalCombat.ts",
+        "packages/db/src/source-data/srd/optionalCombat.ts",
+        "packages/db/src/__tests__/srd-optional-combat-definition-source.test.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalMovementPolicy.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalMovementPolicy.test.ts"
+      ],
+      "requiredProof": [
+        "closed UUID-backed source registration",
+        "focused movement/reaction cases",
+        "database movement/replay/concurrency schedule"
+      ]
+    },
+    {
+      "kind": "HITTING_COVER",
+      "definition": {
+        "definitionId": "00000000-0000-4000-8000-0000000000fb",
+        "module": { "key": "d20.attack.hitting-cover", "contractVersion": 1 },
+        "parameterKind": "HITTING_COVER"
+      },
+      "owner": "attack-resolution-policy",
+      "requiredFacts": [
+        "attack-result",
+        "intervening-creature-footprint",
+        "target-actor",
+        "cover-relationship"
+      ],
+      "persistenceImpact": [
+        "campaign-optional-rule-selection",
+        "attack-receipt",
+        "secondary-target-outcome-if-applicable"
+      ],
+      "status": "FOUNDATION",
+      "evidence": [
+        "packages/schema/src/shared/optionalCombat.ts",
+        "packages/db/src/source-data/srd/optionalCombat.ts",
+        "packages/db/src/__tests__/srd-optional-combat-definition-source.test.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalResolutionPolicy.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalResolutionPolicy.test.ts"
+      ],
+      "requiredProof": [
+        "closed UUID-backed source registration",
+        "focused creature-cover cases",
+        "database attack/replay/privacy schedule"
+      ]
+    },
+    {
+      "kind": "CLEAVING",
+      "definition": {
+        "definitionId": "00000000-0000-4000-8000-0000000000fc",
+        "module": { "key": "damage.outcome.cleaving", "contractVersion": 1 },
+        "parameterKind": "CLEAVING"
+      },
+      "owner": "damage-outcome-policy",
+      "requiredFacts": [
+        "final-damage",
+        "qualifying-target-state",
+        "adjacent-target",
+        "same-attack-context"
+      ],
+      "persistenceImpact": [
+        "campaign-optional-rule-selection",
+        "ordered-outcome-receipt",
+        "secondary-target-damage-if-applicable"
+      ],
+      "status": "FOUNDATION",
+      "evidence": [
+        "packages/schema/src/shared/optionalCombat.ts",
+        "packages/db/src/source-data/srd/optionalCombat.ts",
+        "packages/db/src/__tests__/srd-optional-combat-definition-source.test.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalResolutionPolicy.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalResolutionPolicy.test.ts"
+      ],
+      "requiredProof": [
+        "closed UUID-backed source registration",
+        "focused qualifying/non-qualifying cases",
+        "database ordered-outcome/replay/rollback schedule"
+      ]
+    },
+    {
+      "kind": "INJURIES",
+      "definition": {
+        "definitionId": "00000000-0000-4000-8000-0000000000fd",
+        "module": { "key": "character.consequence.injuries", "contractVersion": 1 },
+        "parameterKind": "INJURIES"
+      },
+      "owner": "character-consequence-policy",
+      "requiredFacts": [
+        "qualifying-damage-or-critical",
+        "actor-state",
+        "closed-injury-consequence",
+        "recovery-state"
+      ],
+      "persistenceImpact": [
+        "campaign-optional-rule-selection",
+        "character-or-encounter-injury-record",
+        "recovery-receipt"
+      ],
+      "status": "FOUNDATION",
+      "evidence": [
+        "packages/schema/src/shared/optionalCombat.ts",
+        "packages/db/src/source-data/srd/optionalCombat.ts",
+        "packages/db/src/__tests__/srd-optional-combat-definition-source.test.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalResolutionPolicy.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalResolutionPolicy.test.ts"
+      ],
+      "requiredProof": [
+        "closed UUID-backed source registration",
+        "focused consequence/recovery cases",
+        "database RLS/replay/idempotency schedule"
+      ]
+    },
+    {
+      "kind": "MASSIVE_DAMAGE",
+      "definition": {
+        "definitionId": "00000000-0000-4000-8000-0000000000fe",
+        "module": { "key": "damage.consequence.massive-damage", "contractVersion": 1 },
+        "parameterKind": "MASSIVE_DAMAGE"
+      },
+      "owner": "damage-consequence-policy",
+      "requiredFacts": [
+        "damage-occurrence",
+        "maximum-hit-points",
+        "remaining-hit-points",
+        "closed-consequence-or-choice"
+      ],
+      "persistenceImpact": [
+        "campaign-optional-rule-selection",
+        "ordered-consequence-receipt",
+        "actor-state-or-decision"
+      ],
+      "status": "FOUNDATION",
+      "evidence": [
+        "packages/schema/src/shared/optionalCombat.ts",
+        "packages/db/src/source-data/srd/optionalCombat.ts",
+        "packages/db/src/__tests__/srd-optional-combat-definition-source.test.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalResolutionPolicy.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalResolutionPolicy.test.ts"
+      ],
+      "requiredProof": [
+        "closed UUID-backed source registration",
+        "focused threshold/automation-mode cases",
+        "database outcome/replay/rollback/privacy schedule"
+      ]
+    },
+    {
+      "kind": "MORALE",
+      "definition": {
+        "definitionId": "00000000-0000-4000-8000-0000000000ff",
+        "module": { "key": "encounter.morale", "contractVersion": 1 },
+        "parameterKind": "MORALE"
+      },
+      "owner": "encounter-morale-policy",
+      "requiredFacts": [
+        "morale-boundary",
+        "encounter-actor-state",
+        "closed-roll-or-choice",
+        "controller-authority"
+      ],
+      "persistenceImpact": [
+        "campaign-optional-rule-selection",
+        "encounter-decision",
+        "ordered-receipt-and-projection"
+      ],
+      "status": "FOUNDATION",
+      "evidence": [
+        "packages/schema/src/shared/optionalCombat.ts",
+        "packages/db/src/source-data/srd/optionalCombat.ts",
+        "packages/db/src/__tests__/srd-optional-combat-definition-source.test.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalResolutionPolicy.ts",
+        "packages/functions/src/services/rules/systems/dnd5e/optionalResolutionPolicy.test.ts"
+      ],
+      "requiredProof": [
+        "closed UUID-backed source registration",
+        "focused boundary/decision/privacy cases",
+        "database decision/replay/concurrency schedule"
+      ]
+    }
+  ]
+}

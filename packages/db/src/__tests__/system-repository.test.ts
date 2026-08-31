@@ -6,12 +6,8 @@ import type { DBLike } from '#types'
 
 const mocks = vi.hoisted(() => ({
   findActive: vi.fn<(systemId: string) => Promise<SystemVocabularySnapshot | null>>(),
-  findActiveForPublication: vi.fn<
-    (systemId: string) => Promise<SystemVocabularySnapshot | null>
-  >(),
-  publish: vi.fn<
-    (db: DBLike, input: { snapshotId: string; systemId: string }) => Promise<void>
-  >(),
+  findActiveForPublication: vi.fn<(systemId: string) => Promise<SystemVocabularySnapshot | null>>(),
+  publish: vi.fn<(db: DBLike, input: { snapshotId: string; systemId: string }) => Promise<void>>(),
   upsertSystem: vi.fn<(db: DBLike, entity: unknown) => Promise<void>>()
 }))
 
@@ -173,10 +169,12 @@ describe('createSystemRepository', () => {
     })
     const repository = createSystemRepository(db as unknown as DBLike)
 
-    await expect(repository.upsert(system)).rejects.toThrow('vocabulary snapshot publication failed')
-    await expect(asInMemoryTableDb(db).selectFrom('systems').selectAll().execute()).resolves.toEqual(
-      []
+    await expect(repository.upsert(system)).rejects.toThrow(
+      'vocabulary snapshot publication failed'
     )
+    await expect(
+      asInMemoryTableDb(db).selectFrom('systems').selectAll().execute()
+    ).resolves.toEqual([])
     await expect(
       asInMemoryTableDb(db).selectFrom('system_vocabulary_snapshots').selectAll().execute()
     ).resolves.toEqual([])

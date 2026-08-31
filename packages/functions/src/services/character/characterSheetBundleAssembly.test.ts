@@ -60,6 +60,10 @@ const ids = {
   revision: 'revision-1',
   system: 'system-1'
 }
+const vocabularySnapshot = {
+  document: { abilities: [] },
+  snapshotId: 'vocabulary-1'
+}
 
 describe('assembleCharacterSheetBundleForRuleContext', () => {
   beforeEach(() => {
@@ -71,8 +75,11 @@ describe('assembleCharacterSheetBundleForRuleContext', () => {
     mocks.listSpellCustomizations.mockResolvedValue([])
     mocks.loadContext.mockResolvedValue({ catalog: {}, registry: {} })
     mocks.resolveBuilder.mockResolvedValue({ summary: { totalLevel: 1 } })
-    mocks.loadCommittedSources.mockResolvedValue({})
-    mocks.createCommittedExtras.mockReturnValue({ creaturesById: new Map(), vehiclesById: new Map() })
+    mocks.loadCommittedSources.mockResolvedValue({ vocabularySnapshot })
+    mocks.createCommittedExtras.mockReturnValue({
+      creaturesById: new Map(),
+      vehiclesById: new Map()
+    })
     mocks.createCommittedSpells.mockReturnValue(new Map([['spell-1', { id: 'spell-1' }]]))
     mocks.resolveCommittedSheet.mockReturnValue({
       catalog: {},
@@ -80,7 +87,10 @@ describe('assembleCharacterSheetBundleForRuleContext', () => {
       sourceRegistry: {},
       summary: { totalLevel: 1 }
     })
-    mocks.assembleRuleSnapshot.mockReturnValue({ snapshot: { characterId: ids.character }, registry: {} })
+    mocks.assembleRuleSnapshot.mockReturnValue({
+      snapshot: { characterId: ids.character },
+      registry: {}
+    })
     mocks.findMechanics.mockResolvedValue({
       ruleRevisionId: ids.revision,
       ruleRevisionChecksum: 'a'.repeat(64),
@@ -142,7 +152,10 @@ describe('assembleCharacterSheetBundleForRuleContext', () => {
     expect(mocks.buildSheetBundle).toHaveBeenCalledWith(
       expect.objectContaining({
         committedRuleEvaluation: expect.any(Object),
-        pinnedSpellsById: new Map([['spell-1', { id: 'spell-1' }]])
+        pinnedSpellsById: new Map([['spell-1', { id: 'spell-1' }]]),
+        ruleEvaluation: expect.objectContaining({
+          context: expect.objectContaining({ vocabularySnapshot })
+        })
       })
     )
   })

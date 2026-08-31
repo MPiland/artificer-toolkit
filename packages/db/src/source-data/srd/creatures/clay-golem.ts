@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const clayGolem: CreatureAuthored = {
@@ -211,7 +212,7 @@ export const clayGolem: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(3256, 102),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
               baseDc: 15
             },
             activation: { code: S.ACTIVATION_CODE.FREE },
@@ -253,6 +254,9 @@ export const clayGolem: CreatureAuthored = {
     },
     {
       id: S.featureId(64, 8),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(64, 8)),
       label: 'Haste (Recharge 5-6)',
       description:
         'Haste (Recharge 5-6). Until the end of its next turn, the golem magically gains a +2 bonus to its AC, has advantage on Dexterity saving throws, and can use its slam attack as a bonus action.',

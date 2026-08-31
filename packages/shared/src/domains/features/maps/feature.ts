@@ -144,9 +144,10 @@ export const FEATURE_BASICS_NODE_MAP = feature.define('featureBasics', ({ map, n
     )
 })
 
-export const FEATURE_NODE_MAP = feature.define('feature', ({ map, nodes, cond }) => {
+export const FEATURE_NODE_MAP = feature.define('feature', ({ map, nodes, cond, data }) => {
   const { text, richText, selectMulti, selectSingle, groupArray, groupObject, number } = nodes
   const local = cond.local()
+  const { table } = data
 
   map
     .set('id', text(['id'], 'ID'))
@@ -219,6 +220,20 @@ export const FEATURE_NODE_MAP = feature.define('feature', ({ map, nodes, cond })
         order: 20,
         showIf: local.field(['attributes']).contains(['LIMITED_USE'])
       })
+    )
+    .set(
+      'ruleDefinitionIds',
+      selectMulti(
+        ['ruleDefinitionIds'],
+        'Rule Definitions',
+        {
+          kind: 'DATA',
+          relationship: table('reusable_definitions', {
+            selectColumns: ['id', 'label']
+          })
+        },
+        { section: FEATURE_SECTIONS.usage, order: 25 }
+      )
     )
     .set(
       'restrictions',

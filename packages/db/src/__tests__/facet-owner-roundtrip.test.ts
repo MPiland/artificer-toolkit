@@ -13,45 +13,48 @@ describe('facet-backed owners round-trip', () => {
     const db = new InMemoryDb()
     const repository = createEquipmentRepository(db as never)
 
-    await repository.upsert({
-      kind: 'EQUIPMENT',
-      id: 'equipment-facet-owner-1',
-      label: 'Wardblade',
-      description: 'Protected by restrictions.',
-      cost: { amount: 20, currencyId: 'gp' },
-      weight: { amount: 3, unit: 'POUNDS' },
-      rarityId: 'common',
-      userId: 'user-1',
-      systemId: 'system-1',
-      properties: ['MARTIAL'],
-      category: 'WEAPON',
-      restrictions: {
-        id: 'equipment-facet-1',
-        groups: [
-          {
-            id: 'equipment-facet-group-1',
-            order: 1,
-            contexts: [
-              {
-                id: 'equipment-facet-context-1',
-                order: 1,
-                subject: 'CHARACTER',
-                conditions: [
-                  {
-                    id: 'equipment-facet-condition-1',
-                    order: 1,
-                    kind: 'PREDICATE',
-                    constraint: 'INCLUDE',
-                    predicateCode: 'FEATURE_OBTAINED',
-                    featureIds: ['wardblade-training']
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    })
+    await repository.upsert(
+      {
+        kind: 'EQUIPMENT',
+        id: 'equipment-facet-owner-1',
+        label: 'Wardblade',
+        description: 'Protected by restrictions.',
+        cost: { amount: 20, currencyId: 'gp' },
+        weight: { amount: 3, unit: 'POUNDS' },
+        rarityId: 'common',
+        userId: 'user-1',
+        systemId: 'system-1',
+        properties: ['MARTIAL'],
+        category: 'WEAPON',
+        restrictions: {
+          id: 'equipment-facet-1',
+          groups: [
+            {
+              id: 'equipment-facet-group-1',
+              order: 1,
+              contexts: [
+                {
+                  id: 'equipment-facet-context-1',
+                  order: 1,
+                  subject: 'CHARACTER',
+                  conditions: [
+                    {
+                      id: 'equipment-facet-condition-1',
+                      order: 1,
+                      kind: 'PREDICATE',
+                      constraint: 'INCLUDE',
+                      predicateCode: 'FEATURE_OBTAINED',
+                      featureIds: ['wardblade-training']
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      { contentSourceId: 'content-source-1' }
+    )
 
     await expect(repository.findById('equipment-facet-owner-1')).resolves.toEqual({
       kind: 'EQUIPMENT',

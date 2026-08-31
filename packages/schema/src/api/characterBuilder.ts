@@ -13,6 +13,7 @@ import {
   authoredRecordStatusSchema
 } from '../shared/enums.js'
 import { startingEquipmentDtoSchema } from '../shared/startingEquipment.js'
+import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
   characterAcquisitionTimingDtoSchema,
   characterAbilityScoresIntentDtoSchema,
@@ -563,7 +564,8 @@ export const characterBuilderPreviewPayloadDtoSchema = z.object({
 
 export const characterDraftRequestDtoSchema = z.object({
   id: z.string().min(1),
-  systemId: z.string().min(1).optional()
+  systemId: postgresUuidSchema,
+  primaryRulesCatalogueId: postgresUuidSchema
 })
 
 export const characterBuilderDraftSaveRequestDtoSchema = z.object({
@@ -674,7 +676,9 @@ export type CharacterBuilderPayloadDto = {
   builderIntent?: CharacterBuilderIntentCacheDto
   baseActiveUpdatedAt?: string | null
 }
-export type CharacterBuilderCommitReceiptDto = z.infer<typeof characterBuilderCommitReceiptDtoSchema>
+export type CharacterBuilderCommitReceiptDto = z.infer<
+  typeof characterBuilderCommitReceiptDtoSchema
+>
 export type CharacterBuilderAbilitiesIntentCacheDto = z.infer<
   typeof characterBuilderAbilitiesIntentCacheDtoSchema
 >

@@ -6,6 +6,7 @@ import { sql } from 'kysely'
 import type { ZodType } from 'zod'
 
 import { type AuthoredSubjectKind } from '@artificer-toolkit/schema/projections/identity'
+import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 import { backgroundAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/background'
 import { classAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/class'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
@@ -26,6 +27,7 @@ import {
   resolveEquipmentAuthored,
   resolveRaceAuthored
 } from '@artificer-toolkit/shared/subjects/compilers'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EquipmentAuthored, RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import { createDb } from '../client.js'
@@ -33,6 +35,14 @@ import type { DBLike } from '../types/index.js'
 import { createAuthoredVersionRepository } from '../repositories/index.js'
 import { assignBaselineContentOwner } from '../source-data/content.js'
 import { SRD_SYSTEM_ID, srdBaselineContent } from '../source-data/srd/index.js'
+import { SRD_SENSE_DEFINITIONS } from '../source-data/srd/senses.js'
+import {
+  SRD_BLINDSIGHT_SENSE_ID,
+  SRD_DARKVISION_SENSE_ID,
+  SRD_SENSES,
+  SRD_TREMORSENSE_SENSE_ID,
+  SRD_TRUESIGHT_SENSE_ID
+} from '../source-data/srd/vocabulary.js'
 type Db = DBLike
 
 interface InactiveMasterRow {
@@ -168,7 +178,8 @@ async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
   const authoredVersionRepository = createAuthoredVersionRepository(db)
   const equipmentById = new Map(
     bundle.subjects.equipment.map(
-      (record) => [record.id, equipmentAuthoredDtoSchema.parse(record) as EquipmentAuthored] as const
+      (record) =>
+        [record.id, equipmentAuthoredDtoSchema.parse(record) as EquipmentAuthored] as const
     )
   )
   const raceById = new Map(
@@ -359,7 +370,9 @@ async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
                 issue: `active authored document violates schema: ${parsed.error.issues.map((entry) => entry.message).join('; ')}`
               })
             } else {
-              if (!isDeepStrictEqual(canonicalize(active.authored.document), canonicalize(record))) {
+              if (
+                !isDeepStrictEqual(canonicalize(active.authored.document), canonicalize(record))
+              ) {
                 issues.push({
                   domain: domainCase.domain,
                   id: record.id,
@@ -457,6 +470,38 @@ async function auditRootCorpus(db: Db): Promise<RootCorpusIssue[]> {
 
 function auditSourceSemantics(): RootCorpusIssue[] {
   const issues: RootCorpusIssue[] = []
+  const expectedSenseDefinitionIds = [
+    SRD_DARKVISION_SENSE_ID,
+    SRD_BLINDSIGHT_SENSE_ID,
+    SRD_TREMORSENSE_SENSE_ID,
+    SRD_TRUESIGHT_SENSE_ID
+  ]
+  const actualSenseDefinitionIds = SRD_SENSE_DEFINITIONS.map((definition) => definition.id)
+  if (
+    actualSenseDefinitionIds.length !== expectedSenseDefinitionIds.length ||
+    actualSenseDefinitionIds.some((id, index) => id !== expectedSenseDefinitionIds[index])
+  ) {
+    issues.push({
+      domain: 'senses',
+      id: '<sense-definition-roots>',
+      label: 'SRD sense definitions',
+      issue: 'canonical sense definition roots do not exactly match the vocabulary UUID set'
+    })
+  }
+  for (const definition of SRD_SENSE_DEFINITIONS) {
+    if (
+      definition.document.id !== definition.id ||
+      definition.document.gameSystemId !== SRD_SYSTEM_ID ||
+      definition.checksum !== checksumRuleDocument(definition.document)
+    ) {
+      issues.push({
+        domain: 'senses',
+        id: definition.id,
+        label: definition.label,
+        issue: 'sense definition identity, System, or checksum is not canonical'
+      })
+    }
+  }
   const classes = srdBaselineContent.subjects.classes
   const baseClasses = classes.filter((record) => record.category === 'BASE')
   const subclasses = classes.filter((record) => record.category === 'SUBCLASS')
@@ -586,17 +631,147 @@ function auditSourceSemantics(): RootCorpusIssue[] {
   return issues
 }
 
+async function auditSrdSenseDefinitionRows(db: Db): Promise<RootCorpusIssue[]> {
+  const expectedById = new Map(
+    SRD_SENSE_DEFINITIONS.map((definition) => [definition.id, definition])
+  )
+  const expectedCatalogueById = new Map(SRD_SENSES.map((sense) => [sense.id, sense]))
+  const [systemResult, catalogueResult, rows] = await Promise.all([
+    sql<{ user_id: string | null }>`
+      SELECT user_id::text
+      FROM public.systems
+      WHERE id = ${SRD_SYSTEM_ID}::uuid
+      LIMIT 1
+    `.execute(db),
+    sql<{
+      id: string
+      system_id: string
+      code: string
+      label: string
+      description: string | null
+    }>`
+      SELECT id::text, system_id::text, code, label, description
+      FROM public.senses
+      WHERE system_id = ${SRD_SYSTEM_ID}::uuid
+      ORDER BY id
+    `.execute(db),
+    db
+      .selectFrom('reusable_definitions')
+      .select([
+        'id',
+        'game_system_id',
+        'content_source_id',
+        'definition_family_key',
+        'current_document',
+        'current_checksum',
+        'current_contract_version',
+        'published_by'
+      ])
+      .where('game_system_id', '=', SRD_SYSTEM_ID)
+      .where('content_source_id', '=', '00000000-0000-4000-8000-000000000302')
+      .where('definition_family_key', '=', 'sense')
+      .execute()
+  ])
+  const issues: RootCorpusIssue[] = []
+  const systemOwnerUserId = systemResult.rows[0]?.user_id ?? null
+  const catalogueRowsById = new Map(catalogueResult.rows.map((row) => [row.id, row]))
+  const rowsById = new Map(rows.map((row) => [row.id, row]))
+
+  if (!systemOwnerUserId) {
+    issues.push({
+      domain: 'senses',
+      id: SRD_SYSTEM_ID,
+      label: 'D&D 5e 2014 SRD',
+      issue: 'missing SRD System owner for reusable sense definition publication'
+    })
+  }
+
+  for (const row of catalogueResult.rows) {
+    if (!expectedCatalogueById.has(row.id)) {
+      issues.push({
+        domain: 'senses',
+        id: row.id,
+        label: row.label,
+        issue: 'unexpected sense catalogue row is bound to the canonical SRD System'
+      })
+    }
+  }
+
+  for (const [senseId, expected] of expectedCatalogueById) {
+    const row = catalogueRowsById.get(senseId)
+    if (
+      !row ||
+      row.system_id !== SRD_SYSTEM_ID ||
+      row.code !== expected.code ||
+      row.label !== expected.label ||
+      row.description !== expected.description
+    ) {
+      issues.push({
+        domain: 'senses',
+        id: senseId,
+        label: expected.label,
+        issue: 'sense catalogue row does not match the exact canonical SRD source'
+      })
+    }
+  }
+
+  for (const row of rows) {
+    if (!expectedById.has(row.id)) {
+      issues.push({
+        domain: 'senses',
+        id: row.id,
+        label: 'Unexpected SRD sense definition',
+        issue: 'unexpected reusable sense definition is bound to the canonical SRD source'
+      })
+    }
+  }
+
+  for (const [definitionId, expected] of expectedById) {
+    const row = rowsById.get(definitionId)
+    if (!row) {
+      issues.push({
+        domain: 'senses',
+        id: definitionId,
+        label: expected.label,
+        issue: 'missing canonical reusable sense definition root'
+      })
+      continue
+    }
+    const document = senseReusableDefinitionDocumentDtoSchema.safeParse(row.current_document)
+    if (
+      row.game_system_id !== SRD_SYSTEM_ID ||
+      row.content_source_id !== '00000000-0000-4000-8000-000000000302' ||
+      row.definition_family_key !== 'sense' ||
+      row.current_checksum !== expected.checksum ||
+      row.current_contract_version !== 1 ||
+      row.published_by !== systemOwnerUserId ||
+      !document.success ||
+      !isDeepStrictEqual(document.data, expected.document)
+    ) {
+      issues.push({
+        domain: 'senses',
+        id: definitionId,
+        label: expected.label,
+        issue: 'reusable sense definition does not match the exact canonical seed document'
+      })
+    }
+  }
+  return issues
+}
+
 export async function auditSrdData(db: Db) {
-  const [inactiveMasterRows, rootCorpus, sourceSemantics] = await Promise.all([
+  const [inactiveMasterRows, rootCorpus, sourceSemantics, senseDefinitions] = await Promise.all([
     listInactiveMasterRows(db),
     auditRootCorpus(db),
-    Promise.resolve(auditSourceSemantics())
+    Promise.resolve(auditSourceSemantics()),
+    auditSrdSenseDefinitionRows(db)
   ])
 
   return {
     inactiveMasterRows,
     rootCorpus,
-    sourceSemantics
+    sourceSemantics,
+    senseDefinitions
   }
 }
 
@@ -604,7 +779,8 @@ export function hasSrdAuditIssues(summary: Awaited<ReturnType<typeof auditSrdDat
   return (
     summary.inactiveMasterRows.length > 0 ||
     summary.rootCorpus.length > 0 ||
-    summary.sourceSemantics.length > 0
+    summary.sourceSemantics.length > 0 ||
+    summary.senseDefinitions.length > 0
   )
 }
 

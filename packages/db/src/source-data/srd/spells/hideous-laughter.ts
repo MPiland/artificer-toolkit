@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   PATH_CODE,
@@ -47,7 +48,7 @@ export const hideousLaughter: SpellAuthored = {
         savingThrow: {
           id: spellChildId(SPELL_IDS.HIDEOUS_LAUGHTER, 0x211, 1),
           dcMethod: 'SOURCE_SAVE_DC',
-          ability: 'WISDOM'
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
         },
         activation: {
           code: ACTIVATION_CODE.ACTION,

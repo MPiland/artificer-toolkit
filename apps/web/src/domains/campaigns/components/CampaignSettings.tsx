@@ -1,10 +1,23 @@
-import { Alert, Button, Group, Loader, NumberInput, Stack, TextInput, Title } from '@mantine/core'
+import {
+  Alert,
+  Button,
+  Group,
+  Loader,
+  MultiSelect,
+  NumberInput,
+  Select,
+  Stack,
+  TextInput,
+  Title
+} from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import type { CampaignDetailDto } from '#app/lib/api'
+import type { SystemListItemDto } from '@artificer-toolkit/schema/api/systems'
 import { api } from '#app/lib/api'
 import { getCampaignSettings as getCampaignSettingsQuery } from '#app/data/campaigns/queries'
+import { getSystemList } from '#app/data/systems/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
 import * as sharedStyles from '../campaigns.css'
@@ -13,12 +26,21 @@ import { CampaignMetadataFields } from './CampaignMetadataFields'
 
 export function CampaignSettings({ campaign }: { campaign: CampaignDetailDto }) {
   const settings = useQuery(getCampaignSettingsQuery(campaign.id))
-  if (settings.isPending) return <Loader aria-label='Loading Campaign settings' size='sm' />
-  if (settings.isError) return <Alert color='red'>Campaign settings are unavailable.</Alert>
-  return <CampaignSettingsForm campaign={settings.data} />
+  const systems = useQuery(getSystemList())
+  if (settings.isPending || systems.isPending)
+    return <Loader aria-label='Loading Campaign settings' size='sm' />
+  if (settings.isError || systems.isError)
+    return <Alert color='red'>Campaign settings are unavailable.</Alert>
+  return <CampaignSettingsForm campaign={settings.data} systems={systems.data} />
 }
 
-function CampaignSettingsForm({ campaign }: { campaign: CampaignDetailDto }) {
+function CampaignSettingsForm({
+  campaign,
+  systems
+}: {
+  campaign: CampaignDetailDto
+  systems: SystemListItemDto[]
+}) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [name, setName] = useState(campaign.name)
@@ -30,6 +52,17 @@ function CampaignSettingsForm({ campaign }: { campaign: CampaignDetailDto }) {
   const [attunementSlotOverride, setAttunementSlotOverride] = useState<string | number>(
     campaign.attunementSlotOverride ?? ''
   )
+  const [primaryRulesCatalogueId, setPrimaryRulesCatalogueId] = useState(
+    campaign.primaryRulesCatalogueId
+  )
+  const [additionalRulesCatalogueIds, setAdditionalRulesCatalogueIds] = useState(
+    campaign.additionalRulesCatalogueIds
+  )
+  const gameSystem = systems.find((system) => system.id === campaign.gameSystemId)
+  const catalogueOptions = (gameSystem?.rulesCatalogues ?? []).map((catalogue) => ({
+    value: catalogue.id,
+    label: catalogue.label
+  }))
   const editable = campaign.capabilities.edit && campaign.status === 'ACTIVE'
 
   async function refreshCampaign() {
@@ -55,7 +88,9 @@ function CampaignSettingsForm({ campaign }: { campaign: CampaignDetailDto }) {
         toneDetails: toneDetails.trim() || null,
         contentMaturity,
         attunementSlotOverride:
-          attunementSlotOverride === '' ? null : Number(attunementSlotOverride)
+          attunementSlotOverride === '' ? null : Number(attunementSlotOverride),
+        primaryRulesCatalogueId,
+        additionalRulesCatalogueIds
       }),
     onSuccess: refreshCampaign
   })
@@ -121,6 +156,34 @@ function CampaignSettingsForm({ campaign }: { campaign: CampaignDetailDto }) {
           onChange={setAttunementSlotOverride}
           placeholder='Ruleset default'
           value={attunementSlotOverride}
+        />
+        <Select
+          disabled
+          label='Game System'
+          value={campaign.gameSystemId}
+          data={[
+            { value: campaign.gameSystemId, label: gameSystem?.label ?? 'Configured Game System' }
+          ]}
+        />
+        <Select
+          data={catalogueOptions}
+          disabled={!editable}
+          label='Primary Rules Catalogue'
+          onChange={(value) => {
+            if (!value) return
+            setPrimaryRulesCatalogueId(value)
+            setAdditionalRulesCatalogueIds((current) => current.filter((id) => id !== value))
+          }}
+          required
+          value={primaryRulesCatalogueId}
+        />
+        <MultiSelect
+          data={catalogueOptions.filter((option) => option.value !== primaryRulesCatalogueId)}
+          disabled={!editable}
+          label='Additional Rules Catalogues'
+          onChange={setAdditionalRulesCatalogueIds}
+          searchable
+          value={additionalRulesCatalogueIds}
         />
       </section>
       {editable ? (

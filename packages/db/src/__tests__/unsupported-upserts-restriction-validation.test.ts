@@ -360,7 +360,8 @@ describe('unsupported authored effect paths fail loudly', () => {
           properties: [],
           category: 'WEAPON'
         } as never,
-        'system-1'
+        'system-1',
+        'content-source-1'
       )
     ).rejects.toThrow('cannot mix DISTANCE')
   })

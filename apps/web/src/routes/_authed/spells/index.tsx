@@ -51,7 +51,9 @@ function SpellsRoute() {
     }),
     initialSort: 'name',
     mapDrafts: (response) => {
-      const spellMeta = response.meta as { schools?: Array<{ id: string | number; label?: string }> }
+      const spellMeta = response.meta as {
+        schools?: Array<{ id: string | number; label?: string }>
+      }
       return mapDraftSummariesToAuthoredItems(response.drafts, {
         formatSchool: (schoolId) => {
           if (!schoolId) return undefined

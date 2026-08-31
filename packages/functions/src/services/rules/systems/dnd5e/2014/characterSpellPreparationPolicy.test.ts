@@ -76,6 +76,7 @@ function policyFacts(overrides: Partial<CharacterRulePolicyInput> = {}): Charact
       attunementSlotOverride: null
     },
     ...overrides,
+    abilityDefinitions: overrides.abilityDefinitions ?? [],
     spellActionFacts: overrides.spellActionFacts ?? [],
     spellMechanicsFacts: overrides.spellMechanicsFacts ?? { snapshotSources: [], adjustments: [] },
     itemMechanicsFacts: overrides.itemMechanicsFacts ?? { items: [], adjustments: [] },

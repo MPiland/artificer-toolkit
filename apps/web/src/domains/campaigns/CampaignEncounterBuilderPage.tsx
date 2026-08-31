@@ -15,20 +15,20 @@ import { IconChevronLeft } from '@tabler/icons-react'
 import { useState } from 'react'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
 import { loadPagedAuthoredCatalogItems } from '#app/data/authoredCatalogPages'
-import { getEncounterTemplates } from '#app/data/encounters/queries'
+import { getEncounterBlueprints } from '#app/data/encounters/queries'
 import { api } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import * as sharedStyles from './campaigns.css'
 import * as encounterStyles from './components/encounter.css'
 
-type TemplateEnemy =
+type BlueprintEnemy =
   | { kind: 'CREATURE'; sourceId: string; label: string }
   | { kind: 'CUSTOM'; label: string; maxHitPoints: number }
 
 export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: string }) {
   const { data: campaign } = useSuspenseQuery(getCampaignDetail(campaignId))
-  const templates = useQuery({
-    ...getEncounterTemplates(campaign.id),
+  const blueprints = useQuery({
+    ...getEncounterBlueprints(campaign.gameSystemId),
     enabled: campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
   })
   const creatures = useQuery({
@@ -45,11 +45,11 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
   const [creatureId, setCreatureId] = useState<string | null>(null)
   const [customName, setCustomName] = useState('')
   const [customHitPoints, setCustomHitPoints] = useState(10)
-  const [enemies, setEnemies] = useState<TemplateEnemy[]>([])
+  const [enemies, setEnemies] = useState<BlueprintEnemy[]>([])
   const create = useMutation({
     mutationFn: () =>
-      api.encounters.templates.create({
-        campaignId: campaign.id,
+      api.encounters.blueprints.create({
+        gameSystemId: campaign.gameSystemId,
         name: name.trim(),
         enemies: enemies.map((enemy) =>
           enemy.kind === 'CREATURE'
@@ -61,7 +61,9 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
     onSuccess: async () => {
       setName('')
       setEnemies([])
-      await queryClient.invalidateQueries({ queryKey: queryKeys.encounters.templates(campaign.id) })
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.encounters.blueprints(campaign.gameSystemId)
+      })
       window.history.back()
     }
   })
@@ -85,7 +87,7 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
           Back to Session
         </Button>
       </header>
-      {templates.error || creatures.error ? (
+      {blueprints.error || creatures.error ? (
         <Alert color='red'>
           Encounter builder options couldn’t be loaded. Refresh the page to try again.
         </Alert>
@@ -122,9 +124,7 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
               disabled={!creatureId}
               variant='default'
               onClick={() => {
-                const creature = (creatures.data ?? []).find(
-                  (item) => item.id === creatureId
-                )
+                const creature = (creatures.data ?? []).find((item) => item.id === creatureId)
                 if (!creature) return
                 setEnemies((current) => [
                   ...current,
@@ -214,23 +214,23 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
             <Title id='encounter-template-history-title' order={2}>
               Saved encounters
             </Title>
-            <Badge variant='light'>{templates.data?.length ?? 0}</Badge>
+            <Badge variant='light'>{blueprints.data?.length ?? 0}</Badge>
           </Group>
-          {templates.isPending ? <Text c='dimmed'>Loading saved encounters…</Text> : null}
-          {templates.data?.length ? (
+          {blueprints.isPending ? <Text c='dimmed'>Loading saved Blueprints…</Text> : null}
+          {blueprints.data?.length ? (
             <Stack gap='xs'>
-              {templates.data.map((template) => (
-                <div className={encounterStyles.encounterActorSummary} key={template.id}>
-                  <Text fw={600}>{template.name}</Text>
+              {blueprints.data.map((blueprint) => (
+                <div className={encounterStyles.encounterActorSummary} key={blueprint.id}>
+                  <Text fw={600}>{blueprint.name}</Text>
                   <Text c='dimmed' size='sm'>
-                    {template.enemies
+                    {blueprint.enemies
                       .map((enemy) => `${enemy.label} (${enemy.maxHitPoints} HP)`)
                       .join(', ')}
                   </Text>
                 </div>
               ))}
             </Stack>
-          ) : !templates.isPending ? (
+          ) : !blueprints.isPending ? (
             <Text c='dimmed'>No saved encounters yet.</Text>
           ) : null}
         </section>

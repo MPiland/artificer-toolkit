@@ -10,6 +10,7 @@ import {
 import { cloneAuthoredItem } from '@artificer-toolkit/shared/utils'
 
 import { createEffectRepository } from '../repositories/index.js'
+import { SRD_SYSTEM_ID } from '../source-data/srd/vocabulary.js'
 import { acidArrow } from '../source-data/srd/spells/acid-arrow.js'
 import { aid } from '../source-data/srd/spells/aid.js'
 import { astralProjection } from '../source-data/srd/spells/astral-projection.js'
@@ -55,7 +56,7 @@ describe('SRD spell semantic mechanics', () => {
         'level' in entry.outcome &&
         entry.outcome.level === 2
     )
-    expect(initialDamage?.outcome).toMatchObject({ dice: '4d4', amountKind: undefined })
+    expect(initialDamage?.outcome).toMatchObject({ dice: '4d4' })
 
     const missDamage = entries.find(
       (entry) =>
@@ -123,7 +124,7 @@ describe('SRD spell semantic mechanics', () => {
 
   it('round-trips new authored outcomes and remaps their nested owned IDs when cloned', async () => {
     const db = new InMemoryDb()
-    const repository = createEffectRepository(db as never)
+    const repository = createEffectRepository(db as never, SRD_SYSTEM_ID)
 
     for (const spell of [acidArrow, fleshToStone]) {
       const effect = spell.effects?.[0]
@@ -181,7 +182,7 @@ describe('SRD spell semantic mechanics', () => {
       }
     })
 
-    const repository = createEffectRepository(new InMemoryDb() as never)
+    const repository = createEffectRepository(new InMemoryDb() as never, SRD_SYSTEM_ID)
     await repository.upsert(effect)
     await expect(repository.findById(effect.id)).resolves.toEqual(effect)
   })
@@ -216,7 +217,7 @@ describe('SRD spell semantic mechanics', () => {
       ])
     )
 
-    const repository = createEffectRepository(new InMemoryDb() as never)
+    const repository = createEffectRepository(new InMemoryDb() as never, SRD_SYSTEM_ID)
     await repository.upsert(effect)
     await expect(repository.findById(effect.id)).resolves.toEqual(effect)
   })
@@ -349,7 +350,7 @@ describe('SRD spell semantic mechanics', () => {
   })
 
   it('round-trips and clones every restored missing spell mechanic', async () => {
-    const repository = createEffectRepository(new InMemoryDb() as never)
+    const repository = createEffectRepository(new InMemoryDb() as never, SRD_SYSTEM_ID)
     for (const spell of [
       barkskin,
       bladeBarrier,
@@ -436,7 +437,7 @@ describe('SRD spell semantic mechanics', () => {
       [maze, 'MAZE'],
       [planarBinding, 'PLANAR_BINDING']
     ] as const
-    const repository = createEffectRepository(new InMemoryDb() as never)
+    const repository = createEffectRepository(new InMemoryDb() as never, SRD_SYSTEM_ID)
 
     for (const [spell, ruleKind] of spells) {
       expect(spellAuthoredDtoSchema.safeParse(spell).success).toBe(true)

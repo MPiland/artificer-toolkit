@@ -168,6 +168,10 @@ async function hydrateRaceRows(
   rows: readonly RaceRow[],
   options: RaceRepositoryReadOptions = {}
 ): Promise<Map<string, RaceAuthored>> {
+  const expectedSystemId =
+    rows.length > 0 && rows.every((row) => row.system_id === rows[0]?.system_id)
+      ? rows[0]?.system_id
+      : undefined
   const raceIds = rows.map((row) => row.id)
   if (raceIds.length === 0) {
     return new Map()
@@ -252,7 +256,7 @@ async function hydrateRaceRows(
 
   const [detailsById, featuresById] = await Promise.all([
     detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
-    createFeatureRepository(db).findByIds(
+    createFeatureRepository(db, expectedSystemId).findByIds(
       [
         ...selectedFeatureLinks.map((link) => link.feature_id),
         ...selectedOptionFeatureLinks.map((link) => link.feature_id)
@@ -423,8 +427,8 @@ export function createRaceRepository(db: DBLike): RaceRepositoryWithReadOptions 
   }
 
   return {
-    async upsert(entity) {
-      await upsertRace(db, entity, entity.systemId)
+    async upsert(entity, options) {
+      await upsertRace(db, entity, entity.systemId, options.contentSourceId)
     },
 
     async findById(id, filter) {

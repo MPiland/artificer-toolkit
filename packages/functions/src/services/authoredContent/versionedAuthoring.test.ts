@@ -2,9 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { srdBaselineContent, type DBLike } from '@artificer-toolkit/db'
 import {
-  compileBackground,
   compileEquipment,
-  compileSpell,
   resolveEquipmentAuthored
 } from '@artificer-toolkit/shared/subjects/compilers'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
@@ -55,13 +53,14 @@ describe('publishVersionedAuthoredAggregate', () => {
 
     await publishVersionedAuthoredAggregate({
       db,
+      contentSourceId: '00000000-0000-4000-8000-000000000302',
       subjectKind: 'BACKGROUND',
-      authored,
-      compiled: compileBackground(authored)
+      authored
     })
 
     expect(mocks.vocabularySnapshotRepository.findActive).toHaveBeenCalledWith(authored.systemId)
     expect(mocks.upsertAuthoredRootEnvelope).toHaveBeenCalledWith(db, {
+      contentSourceId: '00000000-0000-4000-8000-000000000302',
       document: authored,
       subjectKind: 'BACKGROUND'
     })
@@ -70,7 +69,7 @@ describe('publishVersionedAuthoredAggregate', () => {
         subjectKind: 'BACKGROUND',
         subjectId: authored.id,
         document: authored,
-        compiledDocument: compileBackground(authored),
+        compiledDocument: expect.objectContaining({ id: authored.id }),
         authoredDependencies: [],
         authoredChecksum: expect.stringMatching(/^[a-f0-9]{64}$/),
         vocabularySnapshotId: 'snapshot-1'
@@ -82,7 +81,9 @@ describe('publishVersionedAuthoredAggregate', () => {
     const authored = srdBaselineContent.subjects.backgrounds[0]
     if (!authored) throw new Error('SRD background fixture is missing.')
     const transactionDb = { isTransaction: true } as unknown as DBLike
-    const execute = vi.fn(async (callback: (trx: DBLike) => Promise<unknown>) => callback(transactionDb))
+    const execute = vi.fn(async (callback: (trx: DBLike) => Promise<unknown>) =>
+      callback(transactionDb)
+    )
     const outerDb = {
       isTransaction: false,
       transaction: () => ({ execute })
@@ -90,19 +91,35 @@ describe('publishVersionedAuthoredAggregate', () => {
 
     await publishVersionedAuthoredAggregate({
       db: outerDb,
+      contentSourceId: '00000000-0000-4000-8000-000000000302',
       subjectKind: 'BACKGROUND',
-      authored,
-      compiled: compileBackground(authored)
+      authored
     })
 
     expect(execute).toHaveBeenCalledOnce()
     expect(mocks.vocabularySnapshotRepository.findActive).toHaveBeenCalledWith(authored.systemId)
     expect(mocks.upsertAuthoredRootEnvelope).toHaveBeenCalledWith(transactionDb, {
+      contentSourceId: '00000000-0000-4000-8000-000000000302',
       document: authored,
       subjectKind: 'BACKGROUND'
     })
     expect(mocks.authoredVersionRepositoryDbs).toEqual([transactionDb])
     expect(mocks.vocabularySnapshotRepositoryDbs).toEqual([transactionDb])
+  })
+
+  it('rejects a non-UUID compiled mechanics root before publication persists it', async () => {
+    const authored = srdBaselineContent.subjects.backgrounds[0]
+    if (!authored) throw new Error('SRD background fixture is missing.')
+
+    await expect(
+      publishVersionedAuthoredAggregate({
+        db,
+        contentSourceId: '00000000-0000-4000-8000-000000000302',
+        subjectKind: 'BACKGROUND',
+        authored: { ...authored, id: 'not-a-uuid' }
+      })
+    ).rejects.toThrow('root identity must be a UUID')
+    expect(mocks.authoredVersionRepository.publish).not.toHaveBeenCalled()
   })
 
   it('pins and compiles an equipment variant from its active parent version', async () => {
@@ -123,7 +140,7 @@ describe('publishVersionedAuthoredAggregate', () => {
     }
     const variant: EquipmentAuthored = {
       kind: 'EQUIPMENT',
-      id: 'equipment-variant-1',
+      id: '00000000-0000-4000-8000-000000000401',
       label: `${parent.label} +1`,
       description: null,
       rarityId: parent.rarityId,
@@ -136,9 +153,9 @@ describe('publishVersionedAuthoredAggregate', () => {
 
     await publishVersionedAuthoredAggregate({
       db,
+      contentSourceId: '00000000-0000-4000-8000-000000000302',
       subjectKind: 'EQUIPMENT',
-      authored: variant,
-      compiled: compileEquipment(resolveEquipmentAuthored(variant, () => parent))
+      authored: variant
     })
 
     expect(mocks.authoredVersionRepository.findActive).toHaveBeenCalledWith({
@@ -172,9 +189,9 @@ describe('publishVersionedAuthoredAggregate', () => {
 
     await publishVersionedAuthoredAggregate({
       db,
+      contentSourceId: '00000000-0000-4000-8000-000000000302',
       subjectKind: 'SPELL',
-      authored: spell,
-      compiled: compileSpell(spell)
+      authored: spell
     })
 
     expect(mocks.syncSpellCatalogClassIndex).toHaveBeenCalledWith(db, {
@@ -188,7 +205,9 @@ describe('publishVersionedAuthoredAggregate', () => {
     const spell = srdBaselineContent.subjects.spells[0]
     if (!spell) throw new Error('SRD spell fixture is missing.')
     const transactionDb = { isTransaction: true } as unknown as DBLike
-    const execute = vi.fn(async (callback: (trx: DBLike) => Promise<unknown>) => callback(transactionDb))
+    const execute = vi.fn(async (callback: (trx: DBLike) => Promise<unknown>) =>
+      callback(transactionDb)
+    )
     const outerDb = {
       isTransaction: false,
       transaction: () => ({ execute })
@@ -201,9 +220,9 @@ describe('publishVersionedAuthoredAggregate', () => {
     await expect(
       publishVersionedAuthoredAggregate({
         db: outerDb,
+        contentSourceId: '00000000-0000-4000-8000-000000000302',
         subjectKind: 'SPELL',
-        authored: spell,
-        compiled: compileSpell(spell)
+        authored: spell
       })
     ).rejects.toThrow('catalogue index failed')
 

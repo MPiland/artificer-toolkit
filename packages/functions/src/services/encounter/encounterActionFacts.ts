@@ -1,7 +1,6 @@
 import { z } from 'zod'
 
 import type { DBLike, EncounterActorRecord, EncounterRecord } from '@artificer-toolkit/db'
-import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
 
 import { getCharacterSheetForUser } from '../character/characterApplicationService.js'
@@ -45,6 +44,7 @@ async function actorFacts(
     })
   }
 
+  const actorRule = requireEncounterActorRuleResult(actorRules, actor.id)
   return z.json().parse({
     id: actor.id,
     kind: actor.kind,
@@ -58,7 +58,8 @@ async function actorFacts(
     conditions: actor.conditions,
     resources: actor.resources,
     statBlock: snapshotStatBlock(actor),
-    features: snapshotFeatures(actor, requireEncounterActorRuleResult(actorRules, actor.id))
+    features: snapshotFeatures(actor, actorRule),
+    targetProtection: actorRule.targetProtection
   })
 }
 
@@ -66,7 +67,11 @@ export async function buildEncounterActionFacts(input: {
   db: DBLike
   userId: string
   encounter: EncounterRecord
-  command: ResolveEncounterActionInputDto
+  command: {
+    actorId: string
+    targetActorIds: readonly string[]
+    selections: unknown
+  }
   actorRules: EncounterActorRuleOutput
 }): Promise<RuleFacts> {
   const actor = requireActor(input.encounter, input.command.actorId)

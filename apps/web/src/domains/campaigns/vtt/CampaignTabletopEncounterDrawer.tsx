@@ -12,24 +12,34 @@ import {
 import { useDisclosure } from '@mantine/hooks'
 import { ListOrdered } from 'lucide-react'
 import type {
-  EncounterCommandInputDto,
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
+import type { LiveSessionCommandDto } from '@artificer-toolkit/schema/api/liveSessions'
+import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import * as styles from './CampaignTabletopEncounterDrawer.css'
 
+type LiveEncounterCommand = Extract<
+  LiveSessionCommandDto,
+  { aggregateKind: 'ENCOUNTER' }
+>['command']
+
 export function CampaignTabletopEncounterDrawer({
+  actorIdByTokenId,
   connected,
   encounter,
   pending,
   role,
+  scene,
   onCommand
 }: {
+  actorIdByTokenId: ReadonlyMap<string, string>
   connected: boolean
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
   pending: boolean
   role: 'OWNER' | 'PLAYER'
-  onCommand: (command: EncounterCommandInputDto) => void
+  scene: CampaignSceneStateDto | null
+  onCommand: (command: LiveEncounterCommand) => void
 }) {
   const [opened, { close, open }] = useDisclosure(false)
   const controlsDisabled = !connected || pending
@@ -46,6 +56,30 @@ export function CampaignTabletopEncounterDrawer({
       encounterId: encounter.id,
       expectedVersion: encounter.version
     })
+  }
+
+  function bindActorToToken(actorId: string, tokenId: string | null): void {
+    if (!scene) return
+    onCommand(
+      tokenId
+        ? {
+            actorId,
+            commandId: crypto.randomUUID(),
+            encounterId: encounter.id,
+            expectedEncounterVersion: encounter.version,
+            sceneId: scene.id,
+            tokenId,
+            type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
+          }
+        : {
+            actorId,
+            commandId: crypto.randomUUID(),
+            encounterId: encounter.id,
+            expectedEncounterVersion: encounter.version,
+            sceneId: scene.id,
+            type: 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
+          }
+    )
   }
 
   return (
@@ -98,7 +132,11 @@ export function CampaignTabletopEncounterDrawer({
                     <Text fw={current ? 700 : 600} lineClamp={1}>
                       {actor.label}
                     </Text>
-                    <Text className={current ? styles.currentTurn : undefined} c={current ? undefined : 'dimmed'} size='xs'>
+                    <Text
+                      className={current ? styles.currentTurn : undefined}
+                      c={current ? undefined : 'dimmed'}
+                      size='xs'
+                    >
                       {current ? 'Current turn' : actor.kind.toLowerCase()}
                     </Text>
                   </div>
@@ -143,6 +181,45 @@ export function CampaignTabletopEncounterDrawer({
                 >
                   Next turn
                 </Button>
+              </div>
+              <div className={styles.bindingControls}>
+                <div>
+                  <Text fw={650} size='sm'>
+                    Scene tokens
+                  </Text>
+                  <Text c='dimmed' size='xs'>
+                    Connect combatants to tokens only while this Encounter uses the presented Scene.
+                  </Text>
+                </div>
+                {scene ? (
+                  encounter.actors.map((actor) => {
+                    const selectedTokenId =
+                      scene.tokens.find((token) => actorIdByTokenId.get(token.id) === actor.id)
+                        ?.id ?? null
+                    return (
+                      <Select
+                        aria-label={`Scene token for ${actor.label}`}
+                        clearable
+                        data={scene.tokens
+                          .filter((token) => {
+                            const boundActorId = actorIdByTokenId.get(token.id)
+                            return !boundActorId || boundActorId === actor.id
+                          })
+                          .map((token) => ({ label: token.label, value: token.id }))}
+                        disabled={controlsDisabled}
+                        key={actor.id}
+                        label={actor.label}
+                        placeholder='Not on this scene'
+                        value={selectedTokenId}
+                        onChange={(tokenId) => bindActorToToken(actor.id, tokenId)}
+                      />
+                    )
+                  })
+                ) : (
+                  <Text c='dimmed' size='xs'>
+                    Bind and present the Encounter&apos;s Scene before assigning tokens.
+                  </Text>
+                )}
               </div>
               {pending ? (
                 <Text aria-live='polite' c='dimmed' size='xs'>

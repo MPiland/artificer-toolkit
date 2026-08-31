@@ -1,19 +1,19 @@
-import type { EncounterSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { describe, expect, it } from 'vitest'
 import { canMoveSceneToken, createSceneBarrier, nudgeSceneToken } from './CampaignVttStage.model'
 
 const currentUserId = '00000000-0000-4000-8000-000000000001'
 
-function scene(): EncounterSceneStateDto {
+function scene(): CampaignSceneStateDto {
   return {
     annotations: [],
+    ambientIllumination: 'BRIGHT',
     barriers: [],
     campaignId: '00000000-0000-4000-8000-000000000002',
     darknessZones: [],
     definitionId: '00000000-0000-4000-8000-000000000003',
     definitionVersion: 1,
     doorStates: {},
-    encounterId: '00000000-0000-4000-8000-000000000004',
     fogLayers: [],
     fogMode: 'SHARED_PARTY',
     visionRevealMode: 'ON_DROP',
@@ -37,7 +37,6 @@ function scene(): EncounterSceneStateDto {
     name: 'Accessible movement test',
     tokens: [
       {
-        actorId: null,
         assetId: null,
         controlledByUserIds: [currentUserId],
         height: 50,

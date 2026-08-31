@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const waterElemental: CreatureAuthored = {
@@ -95,7 +96,7 @@ export const waterElemental: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(285, 205),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.STRENGTH,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
               baseDc: 15
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },

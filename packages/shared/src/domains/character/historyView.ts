@@ -54,6 +54,10 @@ function summarise(event: CharacterEvent): string {
       return `Item unequipped from ${event.unequippedFromSlot}`
     case 'CHARACTER_SHEET_COMMAND_APPLIED':
       return event.summary
+    case 'CHARACTER_RULE_OUTCOME_APPLIED':
+      return `Rule outcomes applied: ${event.applications.length} result${
+        event.applications.length === 1 ? '' : 's'
+      }`
     default: {
       const _exhaustive: never = event
       return `Unknown event: ${(_exhaustive as { type: string }).type}`

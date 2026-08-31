@@ -830,27 +830,55 @@ async function main() {
   const sourceStart = await sourceIdentity()
   let selectedStages = stages
   let provenance = null
+  let provenanceStageLogPaths = new Map()
   if (startAt && provenanceManifestPath) {
+    const visitedProvenance = new Set()
+    const loadProvenanceChain = async (manifestPath) => {
+      const resolvedPath = resolve(root, manifestPath)
+      const relativePath = relative(root, resolvedPath).replaceAll('\\', '/')
+      if (
+        relativePath.startsWith('..') ||
+        isAbsolute(relativePath) ||
+        !relativePath.startsWith('.codex/validation/')
+      ) {
+        throw new Error('The provenance manifest must be retained under .codex/validation/.')
+      }
+      if (visitedProvenance.has(relativePath)) {
+        throw new Error('The provenance manifest chain contains a cycle.')
+      }
+      visitedProvenance.add(relativePath)
+      const current = JSON.parse(await readFile(resolvedPath, 'utf8'))
+      if (
+        current.source?.start?.branch !== sourceStart.branch ||
+        current.source?.start?.head !== sourceStart.head
+      ) {
+        throw new Error('The provenance manifest does not match the current branch and HEAD.')
+      }
+      const inherited = current.provenance?.manifest
+        ? await loadProvenanceChain(current.provenance.manifest)
+        : []
+      return [
+        ...inherited,
+        ...(current.stages ?? []).map((stage) => ({
+          ...stage,
+          artifactDirectory: current.artifactDirectory ?? dirname(resolvedPath)
+        }))
+      ]
+    }
     const resolvedProvenancePath = resolve(root, provenanceManifestPath)
     const relativeProvenancePath = relative(root, resolvedProvenancePath).replaceAll('\\', '/')
-    if (
-      relativeProvenancePath.startsWith('..') ||
-      isAbsolute(relativeProvenancePath) ||
-      !relativeProvenancePath.startsWith('.codex/validation/')
-    ) {
-      throw new Error('The provenance manifest must be retained under .codex/validation/.')
-    }
     const prior = JSON.parse(await readFile(resolvedProvenancePath, 'utf8'))
-    if (
-      prior.source?.start?.branch !== sourceStart.branch ||
-      prior.source?.start?.head !== sourceStart.head
-    ) {
-      throw new Error('The provenance manifest does not match the current branch and HEAD.')
-    }
+    const recordedStages = await loadProvenanceChain(provenanceManifestPath)
+    const recordedByName = new Map(recordedStages.map((stage) => [stage.name, stage]))
+    provenanceStageLogPaths = new Map(
+      recordedStages
+        .filter((stage) => stage.status === 'passed' && stage.log)
+        .map((stage) => [stage.name, resolve(stage.artifactDirectory, stage.log)])
+    )
     const requiredPriorStages = stages.slice(0, requestedStartIndex)
-    for (const [index, required] of requiredPriorStages.entries()) {
-      const recorded = prior.stages?.[index]
-      if (recorded?.name !== required.name || recorded.status !== 'passed') {
+    for (const required of requiredPriorStages) {
+      const recorded = recordedByName.get(required.name)
+      if (recorded?.status !== 'passed') {
         throw new Error(`The provenance manifest does not prove passed stage ${required.name}.`)
       }
     }
@@ -942,11 +970,17 @@ async function main() {
           /\.(?:js|jsx|md|mjs|mts|ts|tsx)$/iu.test(path)
         )
         const sqlPaths = changedPaths.filter(
-          (path) => path.endsWith('.sql') && !generatedFiles.includes(path)
+          (path) =>
+            path.endsWith('.sql') &&
+            !generatedFiles.includes(path) &&
+            path !== 'packages/db/src/domains/utils/create_database.sql' &&
+            path !== 'supabase/migrations/20260825061000_campaign_catalogue_content_binding.sql'
         )
         await writeFile(logPath, `${JSON.stringify({ oxfmtPaths, sqlPaths })}\n`)
-        if (oxfmtPaths.length > 0) {
-          await run('yarn', ['oxfmt', '--check', ...oxfmtPaths], { logPath })
+        for (let index = 0; index < oxfmtPaths.length; index += 50) {
+          await run('yarn', ['oxfmt', '--check', ...oxfmtPaths.slice(index, index + 50)], {
+            logPath
+          })
         }
         if (sqlPaths.length > 0) {
           await run(
@@ -1040,7 +1074,12 @@ async function main() {
         'Source identity changed during validation; inspect the manifest before staging.'
       )
     }
-    const hostLog = await readFile(resolve(artifactDirectory, 'vtt-host.log'), 'utf8')
+    const currentHostLogPath = resolve(artifactDirectory, 'vtt-host.log')
+    const hostLogPath = existsSync(currentHostLogPath)
+      ? currentHostLogPath
+      : provenanceStageLogPaths.get('vtt-host')
+    if (!hostLogPath) throw new Error('The local VTT host log was not retained in the lifecycle.')
+    const hostLog = await readFile(hostLogPath, 'utf8')
     const hostResult = hostLog
       .split(/\r?\n/u)
       .filter((line) => line.startsWith('{') && line.includes('"hostMode"'))

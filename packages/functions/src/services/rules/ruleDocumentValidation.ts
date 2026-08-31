@@ -7,7 +7,7 @@ import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits
 import { dnd5e2014CharacterActionModel } from './systems/dnd5e/2014/characterActionSource.js'
 import { dnd5e2014CharacterGrantFoldModel } from './systems/dnd5e/2014/characterGrantFoldSource.js'
 import { dnd5e2014EncounterActorModel } from './systems/dnd5e/2014/encounterActorSource.js'
-import { equalCanonicalJson } from './ruleChecksum.js'
+import { equalCanonicalJson } from '@artificer-toolkit/shared/rules'
 
 const ALLOWED_NODE_TYPES = new Set([
   'inputNode',

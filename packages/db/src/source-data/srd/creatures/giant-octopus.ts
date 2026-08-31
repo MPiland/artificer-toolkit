@@ -141,6 +141,14 @@ export const giantOctopus: CreatureAuthored = {
       label: 'Ink Cloud (Recharges after a Short or Long Rest)',
       description:
         'Ink Cloud (Recharges after a Short or Long Rest). A 20-foot-radius cloud of ink extends all around the octopus if it is underwater. The area is heavily obscured for 1 minute, although a significant current can disperse the ink. After releasing the ink, the octopus can use the Dash action as a bonus action.',
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: S.actionId(128, 211),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: S.SCALING.NONE,
+        resetKind: S.CHARGE_RESET_KIND.SHORT_REST,
+        amount: 1
+      },
       effects: [
         S.closedRuleEffect({
           id: S.actionId(128, 210),
@@ -149,7 +157,8 @@ export const giantOctopus: CreatureAuthored = {
             triggerCode: S.TRIGGER.ACTIVATED,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: { id: S.actionId(128, 1210), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF },
+            resourceUse: { chargeId: S.actionId(128, 211), cost: 1 }
           },
           ruleKind: S.CLOSED_RULE_KIND.CREATURE_GIANT_OCTOPUS_INK_CLOUD
         })

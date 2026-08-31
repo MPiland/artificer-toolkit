@@ -27,6 +27,12 @@ export interface CharacterActionEvaluationResult {
   zenEvaluationMs: number
 }
 
+export interface CharacterActionEvaluationState {
+  binding: Pick<CharacterRuleEvaluationResult['binding'], 'revisionId'>
+  facts: CharacterRuleEvaluationResult['facts']
+  output: CharacterRuleEvaluationResult['output']
+}
+
 function buildUsageByPoolId(resourceUsage: readonly ResourceUsageInput[]): Map<string, number> {
   const usageByPoolId = new Map<string, number>()
   for (const usage of resourceUsage) {
@@ -77,14 +83,22 @@ function resolveSpellSlots(
   }
 }
 
-export async function evaluateCharacterActionStateChange(params: {
+export async function evaluateCharacterActionStateChange<
+  T extends CharacterActionEvaluationState
+>(params: {
   db: DBLike
-  committed: CharacterRuleEvaluationResult
+  committed: T
   changedPoolId?: string
   changedSpellSlotKey?: string
   resourceUsage: readonly ResourceUsageInput[]
   spellSlotUsage: readonly SpellSlotUsageInput[]
-}): Promise<CharacterActionEvaluationResult> {
+}): Promise<{
+  ruleEvaluation: T & {
+    facts: CharacterRuleEvaluationResult['facts']
+    output: CharacterRuleEvaluationResult['output']
+  }
+  zenEvaluationMs: number
+}> {
   if (params.changedPoolId === undefined && params.changedSpellSlotKey === undefined) {
     throw new Error('A Character action-state change must identify a resource pool or spell slot.')
   }
@@ -139,6 +153,7 @@ export async function evaluateCharacterActionStateChange(params: {
   })
   const actionInput = characterActionModelInputSchema.parse({
     candidates: facts.actionCandidates,
+    abilityDefinitions: facts.abilityDefinitions,
     spellCandidates: facts.spellCastCandidates,
     spellSlots: [
       ...spellSlots.maxByLevel.map((slot) => ({
@@ -170,6 +185,25 @@ export async function evaluateCharacterActionStateChange(params: {
     activeSourceIds: params.committed.output.grantFold.activeSourceIds,
     activeEquipmentInstanceIds: params.committed.output.grantFold.activeEquipmentInstanceIds,
     resources,
+    proficiencies: params.committed.output.proficiencies.map((proficiency) => ({
+      kind: proficiency.kind,
+      subjectId: proficiency.subjectId,
+      scaling: proficiency.scaling,
+      category: proficiency.category ?? null
+    })),
+    modifierGroups: params.committed.output.modifierGroups.map((group) => ({
+      domainKey: group.domainKey,
+      contributions: group.contributions.map((contribution) => ({
+        sourceId: contribution.sourceId,
+        value: contribution.value,
+        state: contribution.state
+      }))
+    })),
+    itemAttackAdjustments: params.committed.output.itemMechanics.map((item) => ({
+      itemInstanceId: item.itemInstanceId,
+      bonus: item.calculations.attackBonus.override === null ? item.attackBonus : 0,
+      override: item.calculations.attackBonus.override?.value ?? null
+    })),
     totalLevel: facts.totalLevel,
     classLevels: facts.grantFoldFacts.base.classes.map((entry) => ({
       classId: entry.classId,

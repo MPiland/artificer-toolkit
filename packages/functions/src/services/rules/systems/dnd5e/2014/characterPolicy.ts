@@ -8,6 +8,7 @@ import {
 } from './characterDerivedPolicy.js'
 import { dnd5e2014CharacterModifierPolicyExpressions } from './characterModifierPolicy.js'
 import {
+  dnd5e2014CharacterConditionImmunityPolicyOutputExpression,
   dnd5e2014CharacterDefensePolicyExpressions,
   dnd5e2014CharacterDefensePolicyOutputExpression
 } from './characterDefensePolicy.js'
@@ -66,6 +67,49 @@ import {
   dnd5e2014CharacterSpellReferencePolicyOutputExpression
 } from './characterActionPolicy.js'
 import { dnd5e2014CharacterActionModel } from './characterActionSource.js'
+
+const dnd5e2014EmptyRollContributorEvidence = {
+  initiative: [],
+  abilityChecks: {
+    STRENGTH: [],
+    DEXTERITY: [],
+    CONSTITUTION: [],
+    INTELLIGENCE: [],
+    WISDOM: [],
+    CHARISMA: []
+  },
+  savingThrows: {
+    STRENGTH: [],
+    DEXTERITY: [],
+    CONSTITUTION: [],
+    INTELLIGENCE: [],
+    WISDOM: [],
+    CHARISMA: []
+  },
+  skillChecks: {
+    acrobatics: [],
+    'animal-handling': [],
+    arcana: [],
+    athletics: [],
+    deception: [],
+    history: [],
+    insight: [],
+    intimidation: [],
+    investigation: [],
+    medicine: [],
+    nature: [],
+    perception: [],
+    performance: [],
+    persuasion: [],
+    religion: [],
+    'sleight-of-hand': [],
+    stealth: [],
+    survival: []
+  },
+  attacks: { MELEE: [], RANGED: [], SPELL: [], UNARMED: [] }
+}
+
+/** UUID identity from the D&D System vocabulary snapshot, never a display code. */
 
 const multiclassSlotTable: Record<number, Array<{ spellLevel: number; slotCount: number }>> = {
   1: [{ spellLevel: 1, slotCount: 2 }],
@@ -650,7 +694,13 @@ const model: RulePackDocumentDto['models'][string] = {
               'map(resolvedModifierGroups as group, { domainKey: group.domainKey, effective: group.effective, contributions: group.contributions })'
           },
           { id: 'roll-modes', key: 'rollModes', value: 'rollModes' },
+          {
+            id: 'roll-contributor-evidence',
+            key: 'rollContributorEvidence',
+            value: 'rollContributorEvidence'
+          },
           dnd5e2014CharacterDefensePolicyOutputExpression,
+          dnd5e2014CharacterConditionImmunityPolicyOutputExpression,
           dnd5e2014CharacterMovementPolicyOutputExpression,
           dnd5e2014CharacterSensePolicyOutputExpression,
           dnd5e2014CharacterHitPointProgressionOutputExpression,
@@ -926,6 +976,7 @@ export const dnd5e2014CharacterPolicyDocument = {
           },
           attacks: { MELEE: 'NORMAL', RANGED: 'NORMAL', SPELL: 'NORMAL', UNARMED: 'NORMAL' }
         },
+        rollContributorEvidence: dnd5e2014EmptyRollContributorEvidence,
         defenses: [],
         hitPointProgression: [],
         derivedStats: {

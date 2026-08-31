@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   ABILITY_CODE,
@@ -102,7 +103,7 @@ function dangerSenseEffect(): EffectAuthored {
       triggerCode: TRIGGER.SAVING_THROW,
       savingThrow: {
         id: classRowId(B, 0x6e, 5),
-        ability: ABILITY_CODE.DEXTERITY,
+        abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
         dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
       },
       range: { id: classRowId(B, 0x69, 5), rangeKind: RANGE_KIND.SELF },

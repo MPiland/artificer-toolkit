@@ -39,6 +39,7 @@ interface ResidualCounts {
   campaignRoutes: number
   campaignVehicles: number
   campaigns: number
+  contentSources: number
   inventoryBalances: number
   inventoryItems: number
   inventoryOwners: number
@@ -93,7 +94,11 @@ function localSupabaseConfig() {
   if (!url || !secretKey || !publishableKey) {
     throw new Error('Local Supabase URL and keys are required.')
   }
-  return { publishableKey, secretKey, url: requireLoopbackUrl(url, 'SUPABASE_URL') }
+  return {
+    publishableKey,
+    secretKey,
+    url: requireLoopbackUrl(url, 'SUPABASE_URL')
+  }
 }
 
 async function createDisposableUser(
@@ -146,10 +151,18 @@ async function expectDataApiDenied(
   user: DisposableUser
 ): Promise<void> {
   const anonymous = createClient(url, publishableKey, {
-    auth: { autoRefreshToken: false, detectSessionInUrl: false, persistSession: false }
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      persistSession: false
+    }
   })
   const authenticated = createClient(url, publishableKey, {
-    auth: { autoRefreshToken: false, detectSessionInUrl: false, persistSession: false }
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      persistSession: false
+    }
   })
   const signIn = await authenticated.auth.signInWithPassword({
     email: user.email,
@@ -214,6 +227,7 @@ async function readResidualCounts(
       (select count(*)::int from auth.users where id = any(${sql.val(userIds)}::uuid[])) as "authUsers",
       (select count(*)::int from public.profiles where id = any(${sql.val(userIds)}::uuid[])) as profiles,
       (select count(*)::int from public.campaigns where id = any(${sql.val(campaignIds)}::uuid[]) or name = ${sourceName}) as campaigns,
+      (select count(*)::int from public.content_sources where owner_user_id = any(${sql.val(userIds)}::uuid[])) as "contentSources",
       (select count(*)::int from public.campaign_memberships where campaign_id = any(${sql.val(campaignIds)}::uuid[])) as memberships,
       (select count(*)::int from public.campaign_content_shares where campaign_id = any(${sql.val(campaignIds)}::uuid[])) as shares,
       (select count(*)::int from public.campaign_vehicles where campaign_id = any(${sql.val(campaignIds)}::uuid[])) as "campaignVehicles",
@@ -255,6 +269,37 @@ async function deleteExactRoutes(
   }
 }
 
+async function deleteDisposableAuthoredRoots(
+  db: DBLike,
+  userIds: readonly string[],
+  roots: readonly RootIdentity[]
+): Promise<void> {
+  const spellIds = roots
+    .filter((root) => root.subjectKind === 'SPELL')
+    .map((root) => root.subjectId)
+  const vehicleIds = roots
+    .filter((root) => root.subjectKind === 'VEHICLE')
+    .map((root) => root.subjectId)
+  if (spellIds.length > 0) {
+    await sql`
+      delete from public.spells
+      where user_id = any(${sql.val(userIds)}::uuid[])
+        and id = any(${sql.val(spellIds)}::uuid[])
+    `.execute(db)
+  }
+  if (vehicleIds.length > 0) {
+    await sql`
+      delete from public.vehicles
+      where user_id = any(${sql.val(userIds)}::uuid[])
+        and id = any(${sql.val(vehicleIds)}::uuid[])
+    `.execute(db)
+  }
+  await sql`
+    delete from public.content_sources
+    where owner_user_id = any(${sql.val(userIds)}::uuid[])
+  `.execute(db)
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2)
   const seededMasterVehicleOnly = args.length === 1 && args[0] === '--seeded-master-vehicle'
@@ -269,7 +314,11 @@ async function main(): Promise<void> {
   const { publishableKey, secretKey, url } = localSupabaseConfig()
   const db = createDb({ connectionString })
   const admin = createClient(url, secretKey, {
-    auth: { autoRefreshToken: false, detectSessionInUrl: false, persistSession: false }
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      persistSession: false
+    }
   })
   const runId = randomUUID()
   const sourceName = `Gate 4 closeout ${runId}`
@@ -301,7 +350,9 @@ async function main(): Promise<void> {
       name: sourceName,
       format: 'ONE_SHOT',
       toneTags: ['HEROIC'],
-      contentMaturity: 'STANDARD'
+      contentMaturity: 'STANDARD',
+      gameSystemId: systemId,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301'
     })
     campaignIds.add(source.id)
     if (seededMasterVehicleOnly) {
@@ -355,6 +406,13 @@ async function main(): Promise<void> {
       assert.equal(deleted.rows.length, campaignIds.size)
     })
     await captureCleanup(() => deleteExactRoutes(db, [...campaignIds], roots))
+    await captureCleanup(() =>
+      deleteDisposableAuthoredRoots(
+        db,
+        users.map((user) => user.id),
+        roots
+      )
+    )
     await captureCleanup(async () => {
       if (mediaKeys.size > 0) {
         await createMediaRepository(db).completeObjectDeletions([...mediaKeys])
@@ -382,6 +440,7 @@ async function main(): Promise<void> {
         campaignRoutes: 0,
         campaignVehicles: 0,
         campaigns: 0,
+        contentSources: 0,
         inventoryBalances: 0,
         inventoryItems: 0,
         inventoryOwners: 0,

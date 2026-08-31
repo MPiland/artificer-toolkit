@@ -131,7 +131,7 @@ export async function createAttunementEquipmentFixture(
   })
   await publishVersionedAuthoredAggregate({
     authored: result.authored,
-    compiled: result.compiled,
+    contentSourceId: '00000000-0000-4000-8000-000000000302',
     db,
     subjectKind: 'EQUIPMENT'
   })
@@ -326,6 +326,7 @@ export function createFixtureCharacter(params: CharacterLifecycleFixture): Chara
   const character = createEmptyCharacterAuthored({
     id: params.characterId,
     systemId: params.systemId,
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
     userId: params.userId
   })
   const backpack = requireRecordByLabel(

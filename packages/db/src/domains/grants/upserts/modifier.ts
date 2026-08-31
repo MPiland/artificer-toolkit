@@ -32,12 +32,13 @@ type ModifierGrantRootRow = {
 
 type ModifierGrantDomainParamRow = {
   modifier_grant_id: string
+  system_id: string
   value_domain_code: string
   attack_domain_code: string | null
   ability_code: string | null
   skill_id: string | null
   speed_id: string | null
-  sense_code: string | null
+  sense_definition_id: string | null
   spell_level: number | null
   condition_type_id: string | null
 }
@@ -249,7 +250,7 @@ function mapModifierGrantRootRow(
 
 function mapModifierGrantDomainRow(
   json_data: ModifierGrantAuthored
-): ModifierGrantDomainParamRow | null {
+): Omit<ModifierGrantDomainParamRow, 'system_id'> | null {
   switch (json_data.valueDomainCode) {
     case 'ATTACK_ROLL':
     case 'DAMAGE':
@@ -263,7 +264,7 @@ function mapModifierGrantDomainRow(
         ability_code: null,
         skill_id: null,
         speed_id: null,
-        sense_code: null,
+        sense_definition_id: null,
         spell_level: null,
         condition_type_id: null
       }
@@ -280,7 +281,7 @@ function mapModifierGrantDomainRow(
         ),
         skill_id: null,
         speed_id: null,
-        sense_code: null,
+        sense_definition_id: null,
         spell_level: null,
         condition_type_id:
           (json_data.domain as { conditionTypeId?: string }).conditionTypeId ?? null
@@ -298,7 +299,7 @@ function mapModifierGrantDomainRow(
         ),
         skill_id: null,
         speed_id: null,
-        sense_code: null,
+        sense_definition_id: null,
         spell_level: null,
         condition_type_id: null
       }
@@ -316,7 +317,7 @@ function mapModifierGrantDomainRow(
         ability_code: null,
         skill_id: skillId,
         speed_id: null,
-        sense_code: null,
+        sense_definition_id: null,
         spell_level: null,
         condition_type_id: null
       }
@@ -335,16 +336,17 @@ function mapModifierGrantDomainRow(
         ability_code: null,
         skill_id: null,
         speed_id: speedId,
-        sense_code: null,
+        sense_definition_id: null,
         spell_level: null,
         condition_type_id: null
       }
     }
 
     case 'SENSE_RANGE': {
-      const senseCode = (json_data.domain as { senseCode?: string }).senseCode
-      if (!senseCode) {
-        throw new Error(`Modifier grant "${json_data.id}" is missing domain senseCode.`)
+      const senseDefinitionId = (json_data.domain as { senseDefinitionId?: string })
+        .senseDefinitionId
+      if (!senseDefinitionId) {
+        throw new Error(`Modifier grant "${json_data.id}" is missing domain senseDefinitionId.`)
       }
 
       return {
@@ -354,7 +356,7 @@ function mapModifierGrantDomainRow(
         ability_code: null,
         skill_id: null,
         speed_id: null,
-        sense_code: senseCode,
+        sense_definition_id: senseDefinitionId,
         spell_level: null,
         condition_type_id: null
       }
@@ -373,7 +375,7 @@ function mapModifierGrantDomainRow(
         ability_code: null,
         skill_id: null,
         speed_id: null,
-        sense_code: null,
+        sense_definition_id: null,
         spell_level: spellLevel,
         condition_type_id: null
       }
@@ -761,7 +763,8 @@ export async function upsertModifierGrant(
   systemId?: string
 ) {
   const root = mapModifierGrantRootRow(json_data, requireSystemId(systemId))
-  const domainRow = mapModifierGrantDomainRow(json_data)
+  const mappedDomainRow = mapModifierGrantDomainRow(json_data)
+  const domainRow = mappedDomainRow ? { ...mappedDomainRow, system_id: root.system_id } : null
   const { payload, chargeLevels, optionalAbilities } = mapModifierGrantPayload(json_data)
 
   return withTransaction(db, async (trx) => {

@@ -406,7 +406,7 @@ export function createMediaRepository(db: DBLike) {
                   where definition.definition #>> '{map,assetId}' = asset.id::text
                 )
                 and not exists (
-                  select 1 from encounter_scenes scene
+                  select 1 from campaign_live_scenes scene
                   where scene.definition_snapshot #>> '{map,assetId}' = asset.id::text
                     or scene.projection #>> '{map,assetId}' = asset.id::text
                 )

@@ -40,6 +40,35 @@ describe('Campaign live-play contracts', () => {
     ).toBe(false)
   })
 
+  it('defaults omitted automation settings and rejects invalid modes', () => {
+    const base = {
+      campaignId: uuid,
+      normalCadenceDays: null,
+      expectedDurationMinutes: null,
+      quorum: null,
+      absentCharacterPolicy: null,
+      contentGuidance: null,
+      allowedContentRules: null,
+      tableConduct: null,
+      contentBoundaries: null,
+      safetyPractices: [],
+      liveSafetyMethod: null,
+      version: 0,
+      updatedAt: '2026-08-12T17:00:00.000Z'
+    }
+
+    expect(campaignPlaySettingsDtoSchema.parse(base)).toMatchObject({
+      automationMode: 'ASSISTED',
+      manualReminderMode: 'OFF'
+    })
+    expect(
+      campaignPlaySettingsDtoSchema.safeParse({ ...base, automationMode: 'SUGGESTIVE' }).success
+    ).toBe(false)
+    expect(
+      campaignPlaySettingsDtoSchema.safeParse({ ...base, manualReminderMode: 'LOUD' }).success
+    ).toBe(false)
+  })
+
   it('keeps Campaign files small and handout maps image-only', () => {
     expect(
       createCampaignFileUploadIntentInputSchema.safeParse({

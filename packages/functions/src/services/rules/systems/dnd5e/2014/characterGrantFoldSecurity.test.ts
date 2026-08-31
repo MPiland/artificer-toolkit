@@ -175,7 +175,11 @@ describe('reserved Character Function-model security', () => {
       classLevels: [],
       proficiencyBonus: 2,
       abilities: [],
+      abilityDefinitions: [],
       skills: [],
+      proficiencies: [],
+      modifierGroups: [],
+      itemAttackAdjustments: [],
       spellcasting: null,
       attackRollModes: {
         MELEE: 'NORMAL',

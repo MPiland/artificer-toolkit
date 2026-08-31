@@ -1,5 +1,5 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   DURATION_KIND,
   PATH_CODE,
@@ -48,7 +48,7 @@ const createLayerBehavior = (
     savingThrow: {
       id: spellChildId(SPELL_IDS.PRISMATIC_WALL, formScope + 0x11, layer),
       dcMethod: 'SOURCE_SAVE_DC',
-      ability: ABILITY_CODE.DEXTERITY
+      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY
     },
     range: {
       id: spellChildId(SPELL_IDS.PRISMATIC_WALL, formScope + 0x12, layer),
@@ -152,7 +152,7 @@ const createIndigoLayer = (formScope: number): ManifestComponentAuthored => {
             savingThrow: {
               id: spellChildId(SPELL_IDS.PRISMATIC_WALL, formScope + 0x22, layer),
               dcMethod: 'SOURCE_SAVE_DC',
-              ability: ABILITY_CODE.CONSTITUTION
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION
             },
             attempts: {
               kind: 'THRESHOLDS',
@@ -216,7 +216,7 @@ const createVioletLayer = (formScope: number): ManifestComponentAuthored => {
             savingThrow: {
               id: spellChildId(SPELL_IDS.PRISMATIC_WALL, formScope + 0x22, layer),
               dcMethod: 'SOURCE_SAVE_DC',
-              ability: ABILITY_CODE.WISDOM
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
             },
             attempts: { kind: 'ONCE' },
             onSuccess: { kind: 'END' },
@@ -321,7 +321,7 @@ const createProximityBehavior = (formScope: number): ManifestBehaviorAuthored =>
     savingThrow: {
       id: spellChildId(SPELL_IDS.PRISMATIC_WALL, formScope + 0x81, 1),
       dcMethod: 'SOURCE_SAVE_DC',
-      ability: ABILITY_CODE.CONSTITUTION
+      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION
     },
     range: {
       id: spellChildId(SPELL_IDS.PRISMATIC_WALL, formScope + 0x82, 1),

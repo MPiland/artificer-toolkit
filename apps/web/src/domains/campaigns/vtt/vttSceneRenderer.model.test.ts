@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { EncounterSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { SceneBarrierIndex, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 import {
   buildVttFogMask,
@@ -339,16 +339,16 @@ describe('VTT scene renderer model', () => {
   })
 })
 
-function movementScene(): EncounterSceneStateDto {
+function movementScene(): CampaignSceneStateDto {
   return {
     annotations: [],
+    ambientIllumination: 'BRIGHT',
     barriers: [],
     campaignId: 'campaign',
     darknessZones: [],
     definitionId: 'definition',
     definitionVersion: 1,
     doorStates: {},
-    encounterId: 'encounter',
     fogLayers: [],
     fogMode: 'SHARED_PARTY',
     visionRevealMode: 'ON_DROP',
@@ -367,7 +367,6 @@ function movementScene(): EncounterSceneStateDto {
     name: 'Movement scene',
     tokens: [
       {
-        actorId: null,
         assetId: null,
         controlledByUserIds: ['user'],
         height: 50,

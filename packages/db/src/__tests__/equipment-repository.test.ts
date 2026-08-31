@@ -362,82 +362,88 @@ describe('createEquipmentRepository', () => {
   it('resolves variant equipment against parent data for effective reads', async () => {
     const db = new InMemoryDb()
     const repository = createEquipmentRepository(db as never)
-    await repository.upsert({
-      kind: 'EQUIPMENT',
-      id: 'equipment-parent-1',
-      label: 'Longsword',
-      description: 'A martial blade.',
-      weight: { amount: 3, unit: 'POUNDS' },
-      rarityId: 'common',
-      userId: 'user-1',
-      systemId: 'system-1',
-      properties: ['MARTIAL', 'VERSATILE'],
-      category: 'WEAPON',
-      effects: [
-        {
-          id: 'parent-effect-1',
-          order: 1,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: 'MELEE_WEAPON_ATTACK',
-            activation: { code: 'FREE' },
-            range: { id: 'parent-range-1', rangeKind: 'SELF' }
-          },
-          paths: [
-            {
-              id: 'parent-path-1',
-              order: 1,
-              pathCode: 'ON_HIT',
-              groupType: 'SINGLE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: 'parent-path-1__result',
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: 'parent-outcome-1',
-                    effectKind: 'DAMAGE',
-                    damageTypeId: 'slashing',
-                    valueKind: 'FIXED',
-                    scalingKind: 'NONE',
-                    amount: 8
-                  }
-                ]
+    await repository.upsert(
+      {
+        kind: 'EQUIPMENT',
+        id: 'equipment-parent-1',
+        label: 'Longsword',
+        description: 'A martial blade.',
+        weight: { amount: 3, unit: 'POUNDS' },
+        rarityId: 'common',
+        userId: 'user-1',
+        systemId: 'system-1',
+        properties: ['MARTIAL', 'VERSATILE'],
+        category: 'WEAPON',
+        effects: [
+          {
+            id: 'parent-effect-1',
+            order: 1,
+            invocation: {
+              kind: 'ACTION',
+              triggerCode: 'MELEE_WEAPON_ATTACK',
+              activation: { code: 'FREE' },
+              range: { id: 'parent-range-1', rangeKind: 'SELF' }
+            },
+            paths: [
+              {
+                id: 'parent-path-1',
+                order: 1,
+                pathCode: 'ON_HIT',
+                groupType: 'SINGLE',
+                selectionKind: 'FIXED',
+                resultBlock: {
+                  id: 'parent-path-1__result',
+                  resultKind: 'SINGLE',
+                  outcomes: [
+                    {
+                      id: 'parent-outcome-1',
+                      effectKind: 'DAMAGE',
+                      damageTypeId: 'slashing',
+                      valueKind: 'FIXED',
+                      scalingKind: 'NONE',
+                      amount: 8
+                    }
+                  ]
+                }
               }
-            }
-          ]
-        }
-      ]
-    })
-    await repository.upsert({
-      kind: 'EQUIPMENT',
-      id: 'equipment-variant-1',
-      label: 'Longsword +1',
-      description: null,
-      rarityId: 'uncommon',
-      userId: 'user-1',
-      systemId: 'system-1',
-      category: 'VARIANT',
-      parentEquipmentId: 'equipment-parent-1',
-      properties: ['MAGIC'],
-      maxBonus: 1,
-      modifiers: [
-        {
-          id: 'variant-modifier-1',
-          grantKind: 'MODIFIER_GRANT',
-          order: 1,
-          selectionKind: 'GRANTED',
-          valueDomainCode: 'ATTACK_ROLL',
-          domain: { attackDomain: 'MELEE' },
-          modifierKind: 'BONUS',
-          scope: 'SOURCE',
-          payload: {
-            valueKind: 'FIXED',
-            amount: 1
+            ]
           }
-        }
-      ]
-    })
+        ]
+      },
+      { contentSourceId: 'content-source-1' }
+    )
+    await repository.upsert(
+      {
+        kind: 'EQUIPMENT',
+        id: 'equipment-variant-1',
+        label: 'Longsword +1',
+        description: null,
+        rarityId: 'uncommon',
+        userId: 'user-1',
+        systemId: 'system-1',
+        category: 'VARIANT',
+        parentEquipmentId: 'equipment-parent-1',
+        properties: ['MAGIC'],
+        maxBonus: 1,
+        modifiers: [
+          {
+            id: 'variant-modifier-1',
+            grantKind: 'MODIFIER_GRANT',
+            order: 1,
+            selectionKind: 'GRANTED',
+            valueDomainCode: 'ATTACK_ROLL',
+            domain: { attackDomain: 'MELEE' },
+            modifierKind: 'BONUS',
+            scope: 'SOURCE',
+            payload: {
+              valueKind: 'FIXED',
+              amount: 1
+            }
+          }
+        ]
+      },
+      { contentSourceId: 'content-source-1' }
+    )
     await expect(repository.findResolvedById('equipment-variant-1')).resolves.toMatchObject({
       id: 'equipment-variant-1',
       label: 'Longsword +1',
@@ -477,59 +483,62 @@ describe('createEquipmentRepository', () => {
   it('round-trips supported equipment effects through the typed effect repository', async () => {
     const db = new InMemoryDb()
     const repository = createEquipmentRepository(db as never)
-    await repository.upsert({
-      kind: 'EQUIPMENT',
-      id: 'equipment-effects-1',
-      label: 'Storm Blade',
-      description: 'An energized weapon.',
-      cost: { amount: 50, currencyId: 'gp' },
-      weight: { amount: 4, unit: 'POUNDS' },
-      rarityId: 'uncommon',
-      effects: [
-        {
-          id: 'equipment-effect-1',
-          order: 1,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: 'MELEE_WEAPON_ATTACK',
-            activation: {
-              code: 'FREE'
-            },
-            range: {
-              id: 'equipment-range-1',
-              rangeKind: 'SELF'
-            }
-          },
-          paths: [
-            {
-              id: 'equipment-PATH_CODE-1',
-              order: 1,
-              pathCode: 'ON_HIT',
-              groupType: 'SINGLE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: 'equipment-PATH_CODE-1',
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: 'equipment-PATH_CODE-1',
-                    effectKind: 'DAMAGE',
-                    damageTypeId: 'lightning',
-                    valueKind: 'FIXED',
-                    scalingKind: 'NONE',
-                    amount: 4
-                  }
-                ]
+    await repository.upsert(
+      {
+        kind: 'EQUIPMENT',
+        id: 'equipment-effects-1',
+        label: 'Storm Blade',
+        description: 'An energized weapon.',
+        cost: { amount: 50, currencyId: 'gp' },
+        weight: { amount: 4, unit: 'POUNDS' },
+        rarityId: 'uncommon',
+        effects: [
+          {
+            id: 'equipment-effect-1',
+            order: 1,
+            invocation: {
+              kind: 'ACTION',
+              triggerCode: 'MELEE_WEAPON_ATTACK',
+              activation: {
+                code: 'FREE'
+              },
+              range: {
+                id: 'equipment-range-1',
+                rangeKind: 'SELF'
               }
-            }
-          ]
-        }
-      ],
-      userId: 'user-1',
-      systemId: 'system-1',
-      properties: ['MARTIAL'],
-      category: 'WEAPON'
-    })
+            },
+            paths: [
+              {
+                id: 'equipment-PATH_CODE-1',
+                order: 1,
+                pathCode: 'ON_HIT',
+                groupType: 'SINGLE',
+                selectionKind: 'FIXED',
+                resultBlock: {
+                  id: 'equipment-PATH_CODE-1',
+                  resultKind: 'SINGLE',
+                  outcomes: [
+                    {
+                      id: 'equipment-PATH_CODE-1',
+                      effectKind: 'DAMAGE',
+                      damageTypeId: 'lightning',
+                      valueKind: 'FIXED',
+                      scalingKind: 'NONE',
+                      amount: 4
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        userId: 'user-1',
+        systemId: 'system-1',
+        properties: ['MARTIAL'],
+        category: 'WEAPON'
+      },
+      { contentSourceId: 'content-source-1' }
+    )
     await expect(repository.findById('equipment-effects-1')).resolves.toMatchObject({
       kind: 'EQUIPMENT',
       id: 'equipment-effects-1',

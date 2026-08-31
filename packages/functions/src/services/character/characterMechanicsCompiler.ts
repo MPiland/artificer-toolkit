@@ -3,6 +3,7 @@ import {
   checksumCharacterMechanicsCommandLane,
   checksumCharacterMechanicsProjection,
   createAuthoredVersionRepository,
+  createReusableDefinitionRepository,
   normalizeCanonicalJson,
   type AuthoredVersionRecord,
   type DBLike
@@ -13,6 +14,10 @@ import {
   type CharacterMechanicsProjection,
   type CharacterMechanicsRuleSnapshot
 } from '@artificer-toolkit/schema/projections/characterMechanics'
+import {
+  pinnedSenseDefinitionSchema,
+  type PinnedSenseDefinition
+} from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
   AuthoredSubjectKind,
   AuthoredVersionVector
@@ -22,11 +27,15 @@ import type {
   CharacterAssemblyRegistry,
   CharacterBuildSnapshot
 } from '@artificer-toolkit/shared/core'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
+import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
+import type { CharacterInitiativeActorFacts } from '@artificer-toolkit/schema/projections/characterMechanics'
+import { senseReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 
 import type { CharacterRuleBinding } from './characterRuleBinding.js'
 import { collectCharacterRuleOutputSpellIds } from './characterSpellRuleFacts.js'
@@ -35,7 +44,7 @@ import {
   type CampaignCharacterContentOverlay
 } from './campaignCharacterContent.js'
 
-export const CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION = 1
+export const CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION = 2
 
 export interface CharacterMechanicsCompilerInput {
   authoredVersionVector: CharacterMechanicsProjection['authoredVersionVector']
@@ -45,9 +54,78 @@ export interface CharacterMechanicsCompilerInput {
   ruleBinding: CharacterRuleBinding
   rulePolicyInput: CharacterRulePolicyInput
   rulePolicyOutput: CharacterRulePolicyOutput
+  compiledActionEntryPoints: readonly CompiledActionEntryPoint[]
   ruleRegistry: CharacterAssemblyRegistry | CharacterMechanicsProjection['ruleRegistry']
   ruleSnapshot: CharacterBuildSnapshot | CharacterMechanicsProjection['ruleSnapshot']
+  pinnedSenseDefinitions?: readonly PinnedSenseDefinition[]
   vocabularySnapshot: Pick<SystemVocabularySnapshot, 'checksum' | 'snapshotId' | 'snapshotVersion'>
+}
+
+export async function resolvePinnedCharacterSenseDefinitions(input: {
+  db: DBLike
+  gameSystemId: string
+  senses: CharacterRulePolicyOutput['senses']
+}): Promise<PinnedSenseDefinition[]> {
+  const uniqueSenseIds = [...new Set(input.senses.map((sense) => sense.senseDefinitionId))].sort(
+    (left, right) => left.localeCompare(right)
+  )
+  if (uniqueSenseIds.length !== input.senses.length) {
+    throw new Error('Final Character senses must have unique definition identities.')
+  }
+  const repository = createReusableDefinitionRepository(input.db)
+  const currentById = new Map(
+    await Promise.all(
+      uniqueSenseIds.map(
+        async (senseDefinitionId) =>
+          [senseDefinitionId, await repository.requireCurrent(senseDefinitionId)] as const
+      )
+    )
+  )
+  return uniqueSenseIds.map((senseDefinitionId) => {
+    const current = currentById.get(senseDefinitionId)
+    const sense = input.senses.find(
+      (candidate) => candidate.senseDefinitionId === senseDefinitionId
+    )
+    if (!current || !sense)
+      throw new Error('Character sense definition resolution changed unexpectedly.')
+    const document = senseReusableDefinitionDocumentDtoSchema.parse(current.document)
+    if (
+      current.definitionFamilyKey !== 'sense' ||
+      current.id !== senseDefinitionId ||
+      current.gameSystemId !== input.gameSystemId ||
+      document.id !== senseDefinitionId ||
+      document.gameSystemId !== input.gameSystemId
+    ) {
+      throw new Error('Character sense definition is not a current same-System sense document.')
+    }
+    if (checksumRuleDocument(document) !== current.checksum) {
+      throw new Error('Character sense definition checksum does not match its current document.')
+    }
+    return pinnedSenseDefinitionSchema.parse({
+      senseDefinitionId,
+      definitionVersion: current.version,
+      definitionContractVersion: current.contractVersion,
+      definitionChecksum: current.checksum,
+      document,
+      range: sense.range
+    })
+  })
+}
+
+export function carryPinnedCharacterSenseDefinitions(input: {
+  prior: readonly PinnedSenseDefinition[]
+  senses: CharacterRulePolicyOutput['senses']
+}): PinnedSenseDefinition[] {
+  const priorById = new Map(input.prior.map((pin) => [pin.senseDefinitionId, pin]))
+  return [...input.senses]
+    .sort((left, right) => left.senseDefinitionId.localeCompare(right.senseDefinitionId))
+    .map((sense) => {
+      const prior = priorById.get(sense.senseDefinitionId)
+      if (!prior) {
+        throw new Error('A republished Character sense has no prior immutable definition pin.')
+      }
+      return pinnedSenseDefinitionSchema.parse({ ...prior, range: sense.range })
+    })
 }
 
 function toCharacterMechanicsRuleSnapshot(
@@ -61,13 +139,46 @@ function toCharacterMechanicsRuleSnapshot(
       classId,
       ...(subclassId ? { subclassId } : {})
     })),
-    features: snapshot.features.map(({ featureId, source }) => ({ featureId, source })),
+    features: snapshot.features.map(({ featureId, source }) => ({
+      featureId,
+      source
+    })),
     equipmentItems: snapshot.equipmentItems.map(({ instanceId, contentRef, compiledItem }) => ({
       instanceId,
       contentRef,
       compiledItem: { category: compiledItem.category }
     }))
   })
+}
+
+/**
+ * Extracts exact actor facts from the same compiled authored snapshot that is
+ * pinned into a Character mechanics projection. The shared engine carries
+ * only these codes; a System policy decides whether a given property or size
+ * has mechanical significance.
+ */
+function toCharacterInitiativeActorFacts(input: {
+  snapshot: CharacterBuildSnapshot | CharacterMechanicsProjection['ruleSnapshot']
+  registry: CharacterAssemblyRegistry | CharacterMechanicsProjection['ruleRegistry']
+}): CharacterInitiativeActorFacts {
+  if (!('totalLevel' in input.snapshot)) {
+    // Historical compact rule snapshots intentionally do not carry the
+    // source facts. They remain readable but cannot authorize declared-action
+    // initiative without a freshly compiled Character projection.
+    return { effectiveSize: null, equippedItems: [] }
+  }
+  const registry = input.registry as CharacterAssemblyRegistry
+  const raceId = input.snapshot.subraceId ?? input.snapshot.raceId
+  const effectiveSize = raceId ? (registry.races[raceId]?.size ?? null) : null
+  const equippedItems = input.snapshot.equipmentItems
+    .filter((item) => item.equippedState !== undefined)
+    .map((item) => ({
+      itemInstanceId: item.instanceId,
+      equipmentDefinitionId: item.contentRef.definitionId,
+      properties: [...new Set(item.compiledItem.properties ?? [])].sort()
+    }))
+    .sort((left, right) => left.itemInstanceId.localeCompare(right.itemInstanceId))
+  return { effectiveSize, equippedItems }
 }
 
 function sortAuthoredVersionVector(
@@ -291,6 +402,12 @@ export function compileCharacterMechanicsProjection(
     ruleSnapshot: toCharacterMechanicsRuleSnapshot(input.ruleSnapshot),
     rulePolicyInput: input.rulePolicyInput,
     rulePolicyOutput: input.rulePolicyOutput,
+    initiativeActorFacts: toCharacterInitiativeActorFacts({
+      snapshot: input.ruleSnapshot,
+      registry: input.ruleRegistry
+    }),
+    pinnedSenseDefinitions: input.pinnedSenseDefinitions ?? [],
+    compiledActionEntryPoints: input.compiledActionEntryPoints,
     ruleRegistry: normalizeCanonicalJson(input.ruleRegistry)
   } as const
   const candidate = characterMechanicsProjectionSchema.parse({
@@ -320,6 +437,37 @@ export function advanceCharacterMechanicsProjectionCommandState(input: {
     characterStreamVersion: input.characterStreamVersion,
     commandState: input.characterCommandState,
     commandStateChecksum,
+    commandLaneChecksum: '0'.repeat(64),
+    projectionChecksum: '0'.repeat(64)
+  }
+  const candidate = characterMechanicsProjectionSchema.parse({
+    ...laneCandidate,
+    commandLaneChecksum: checksumCharacterMechanicsCommandLane(laneCandidate)
+  })
+  return {
+    ...candidate,
+    projectionChecksum: checksumCharacterMechanicsProjection(candidate)
+  }
+}
+
+/**
+ * Advances a committed Character action-state evaluation after aggregate-owned
+ * resource usage changes. Authored, vocabulary, graph, and entry-point pins
+ * remain unchanged; only the evaluated action/resource policy state advances.
+ */
+export function advanceCharacterMechanicsProjectionActionState(input: {
+  characterStreamVersion: number
+  current: CharacterMechanicsProjection
+  rulePolicyInput: CharacterRulePolicyInput
+  rulePolicyOutput: CharacterRulePolicyOutput
+}): CharacterMechanicsProjection {
+  const commandStateChecksum = checksumCharacterMechanicsCommandState(input.current.commandState)
+  const laneCandidate = {
+    ...input.current,
+    characterStreamVersion: input.characterStreamVersion,
+    commandStateChecksum,
+    rulePolicyInput: input.rulePolicyInput,
+    rulePolicyOutput: input.rulePolicyOutput,
     commandLaneChecksum: '0'.repeat(64),
     projectionChecksum: '0'.repeat(64)
   }

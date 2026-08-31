@@ -81,6 +81,14 @@ export const duergar: CreatureAuthored = {
       label: 'Enlarge (Recharges after a Short or Long Rest)',
       description:
         'Enlarge (Recharges after a Short or Long Rest). For 1 minute, the duergar magically increases in size, along with anything it is wearing or carrying. While enlarged, the duergar is Large, doubles its damage dice on Strength-based weapon attacks (included in the attacks), and makes Strength checks and Strength saving throws with advantage. If the duergar lacks the room to become Large, it attains the maximum size possible in the space available.',
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: S.actionId(3450, 100),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: S.SCALING.NONE,
+        resetKind: S.CHARGE_RESET_KIND.SHORT_REST,
+        amount: 1
+      },
       effects: [
         {
           id: S.actionId(3450, 1),
@@ -95,7 +103,8 @@ export const duergar: CreatureAuthored = {
             range: {
               id: S.actionId(3450, 2),
               rangeKind: S.RANGE_KIND.SELF
-            }
+            },
+            resourceUse: { chargeId: S.actionId(3450, 100), cost: 1 }
           },
           paths: [
             {
@@ -303,6 +312,14 @@ export const duergar: CreatureAuthored = {
       label: 'Invisibility (Recharges after a Short or Long Rest)',
       description:
         'Invisibility (Recharges after a Short or Long Rest). The duergar magically turns invisible until it attacks, casts a spell, or uses its Enlarge, or until its concentration is broken, up to 1 hour (as if concentrating on a spell). Any equipment the duergar wears or carries is invisible with it.',
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: S.actionId(3450, 101),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: S.SCALING.NONE,
+        resetKind: S.CHARGE_RESET_KIND.SHORT_REST,
+        amount: 1
+      },
       effects: [
         {
           id: S.actionId(3450, 13),
@@ -317,7 +334,8 @@ export const duergar: CreatureAuthored = {
             range: {
               id: S.actionId(3450, 14),
               rangeKind: S.RANGE_KIND.SELF
-            }
+            },
+            resourceUse: { chargeId: S.actionId(3450, 101), cost: 1 }
           },
           paths: [
             {

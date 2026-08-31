@@ -7,6 +7,7 @@ import { InMemoryDb } from './helpers/in-memory-db.js'
 
 const systemId = 'system-1'
 const userId = 'user-1'
+const contentSourceId = 'content-source-1'
 
 type TestDb = DBLike & InMemoryDb
 
@@ -48,8 +49,8 @@ describe('subject owned bridge upserts', () => {
       features: [feature('creature-feature-1')]
     } satisfies Parameters<typeof upsertCreature>[1]
 
-    await upsertCreature(db, creature, systemId)
-    await upsertCreature(db, creature, systemId)
+    await upsertCreature(db, creature, systemId, contentSourceId)
+    await upsertCreature(db, creature, systemId, contentSourceId)
 
     expect(db.snapshot('features')).toEqual([expect.objectContaining({ id: 'creature-feature-1' })])
     expect(db.snapshot('creature_features')).toEqual([
@@ -57,6 +58,9 @@ describe('subject owned bridge upserts', () => {
         creature_id: 'creature-1',
         feature_id: 'creature-feature-1'
       })
+    ])
+    expect(db.snapshot('creatures')).toEqual([
+      expect.objectContaining({ content_source_id: contentSourceId })
     ])
   })
 
@@ -71,8 +75,8 @@ describe('subject owned bridge upserts', () => {
       features: [feature('feat-feature-1')]
     } satisfies Parameters<typeof upsertFeat>[1]
 
-    await upsertFeat(db, feat, systemId)
-    await upsertFeat(db, feat, systemId)
+    await upsertFeat(db, feat, systemId, contentSourceId)
+    await upsertFeat(db, feat, systemId, contentSourceId)
 
     expect(db.snapshot('features')).toEqual([expect.objectContaining({ id: 'feat-feature-1' })])
     expect(db.snapshot('feat_features')).toEqual([
@@ -80,6 +84,9 @@ describe('subject owned bridge upserts', () => {
         feat_id: 'feat-1',
         feature_id: 'feat-feature-1'
       })
+    ])
+    expect(db.snapshot('feats')).toEqual([
+      expect.objectContaining({ content_source_id: contentSourceId })
     ])
   })
 
@@ -94,8 +101,8 @@ describe('subject owned bridge upserts', () => {
       features: [feature('vehicle-feature-1')]
     } satisfies Parameters<typeof upsertVehicle>[1]
 
-    await upsertVehicle(db, vehicle, systemId)
-    await upsertVehicle(db, vehicle, systemId)
+    await upsertVehicle(db, vehicle, systemId, contentSourceId)
+    await upsertVehicle(db, vehicle, systemId, contentSourceId)
 
     expect(db.snapshot('features')).toEqual([expect.objectContaining({ id: 'vehicle-feature-1' })])
     expect(db.snapshot('vehicle_features')).toEqual([
@@ -103,6 +110,9 @@ describe('subject owned bridge upserts', () => {
         vehicle_id: 'vehicle-1',
         feature_id: 'vehicle-feature-1'
       })
+    ])
+    expect(db.snapshot('vehicles')).toEqual([
+      expect.objectContaining({ content_source_id: contentSourceId })
     ])
   })
 })

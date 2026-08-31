@@ -40,9 +40,8 @@ function toPage(rows: ExtraCatalogRow[], limit: number): CharacterSheetExtraCata
       label: row.label,
       ...(row.description ? { description: row.description } : {})
     })),
-    nextCursor: rows.length > limit && lastPageRow
-      ? { id: lastPageRow.id, label: lastPageRow.label }
-      : null
+    nextCursor:
+      rows.length > limit && lastPageRow ? { id: lastPageRow.id, label: lastPageRow.label } : null
   }
 }
 
@@ -69,7 +68,14 @@ export async function getCharacterSheetExtraOptionsQuery(
         ])
       )
     }
-    return toPage((await query.orderBy('label').orderBy('id').limit(limit + 1).execute()) as ExtraCatalogRow[], limit)
+    return toPage(
+      (await query
+        .orderBy('label')
+        .orderBy('id')
+        .limit(limit + 1)
+        .execute()) as ExtraCatalogRow[],
+      limit
+    )
   }
 
   let query = db
@@ -88,5 +94,12 @@ export async function getCharacterSheetExtraOptionsQuery(
       ])
     )
   }
-  return toPage((await query.orderBy('label').orderBy('id').limit(limit + 1).execute()) as ExtraCatalogRow[], limit)
+  return toPage(
+    (await query
+      .orderBy('label')
+      .orderBy('id')
+      .limit(limit + 1)
+      .execute()) as ExtraCatalogRow[],
+    limit
+  )
 }

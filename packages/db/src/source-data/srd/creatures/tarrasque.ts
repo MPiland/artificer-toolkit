@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const tarrasque: CreatureAuthored = {
@@ -35,6 +36,7 @@ export const tarrasque: CreatureAuthored = {
   features: [
     {
       id: S.featureId(268, 1),
+      ruleDefinitionIds: [S.DND5E_LEGENDARY_RESISTANCE_LIFECYCLE_DEFINITION_ID],
       label: 'Legendary Resistance',
       description:
         'Legendary Resistance (3/Day). If the tarrasque fails a saving throw, it can choose to succeed instead.',
@@ -346,7 +348,7 @@ export const tarrasque: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(268, 226),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.WISDOM,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
               baseDc: 17
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },

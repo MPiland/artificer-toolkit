@@ -69,39 +69,45 @@ describe('round-trip upsert correctness', () => {
   it('rewrites spell class and attribute rows idempotently without leaving stale links behind', async () => {
     const db = new InMemoryDb()
     const repository = createSpellRepository(db as never)
-    await repository.upsert({
-      kind: 'SPELL',
-      id: 'spell-1',
-      label: 'Magic Missile',
-      description: 'Original spell',
-      attributes: ['RITUAL'],
-      castingTime: {
-        unit: 'ROUND',
-        amount: 1
+    await repository.upsert(
+      {
+        kind: 'SPELL',
+        id: 'spell-1',
+        label: 'Magic Missile',
+        description: 'Original spell',
+        attributes: ['RITUAL'],
+        castingTime: {
+          unit: 'ROUND',
+          amount: 1
+        },
+        level: 1,
+        classIds: ['wizard', 'sorcerer'],
+        magicSchoolId: 'evocation',
+        materialDescription: 'A sliver of glass.',
+        userId: 'user-1',
+        systemId: 'system-1'
       },
-      level: 1,
-      classIds: ['wizard', 'sorcerer'],
-      magicSchoolId: 'evocation',
-      materialDescription: 'A sliver of glass.',
-      userId: 'user-1',
-      systemId: 'system-1'
-    })
-    await repository.upsert({
-      kind: 'SPELL',
-      id: 'spell-1',
-      label: 'Magic Missile',
-      description: 'Updated spell',
-      attributes: ['CONCENTRATION', 'ADDS_TO_WEAPON_ATTACK'],
-      castingTime: {
-        unit: 'MINUTE',
-        amount: 10
+      { contentSourceId: 'content-source-1' }
+    )
+    await repository.upsert(
+      {
+        kind: 'SPELL',
+        id: 'spell-1',
+        label: 'Magic Missile',
+        description: 'Updated spell',
+        attributes: ['CONCENTRATION', 'ADDS_TO_WEAPON_ATTACK'],
+        castingTime: {
+          unit: 'MINUTE',
+          amount: 10
+        },
+        level: 2,
+        classIds: ['wizard'],
+        magicSchoolId: 'evocation',
+        userId: 'user-1',
+        systemId: 'system-1'
       },
-      level: 2,
-      classIds: ['wizard'],
-      magicSchoolId: 'evocation',
-      userId: 'user-1',
-      systemId: 'system-1'
-    })
+      { contentSourceId: 'content-source-1' }
+    )
     await expect(repository.findById('spell-1')).resolves.toEqual({
       kind: 'SPELL',
       id: 'spell-1',
@@ -144,117 +150,123 @@ describe('round-trip upsert correctness', () => {
   it('rewrites spell-owned effects idempotently while preserving reused effect ids', async () => {
     const db = new InMemoryDb()
     const repository = createSpellRepository(db as never)
-    await repository.upsert({
-      kind: 'SPELL',
-      id: 'spell-effect-rewrite-1',
-      label: 'Thunder Burst',
-      description: 'Original spell',
-      castingTime: {
-        unit: 'ROUND',
-        amount: 1
-      },
-      level: 1,
-      classIds: ['wizard'],
-      magicSchoolId: 'evocation',
-      effects: [
-        {
-          id: 'spell-shared-effect-1',
-          order: 1,
-          invocation: {
-            triggerCode: 'SPELL_ATTACK',
-            activation: {
-              code: 'ACTION',
-              amount: 1
+    await repository.upsert(
+      {
+        kind: 'SPELL',
+        id: 'spell-effect-rewrite-1',
+        label: 'Thunder Burst',
+        description: 'Original spell',
+        castingTime: {
+          unit: 'ROUND',
+          amount: 1
+        },
+        level: 1,
+        classIds: ['wizard'],
+        magicSchoolId: 'evocation',
+        effects: [
+          {
+            id: 'spell-shared-effect-1',
+            order: 1,
+            invocation: {
+              triggerCode: 'SPELL_ATTACK',
+              activation: {
+                code: 'ACTION',
+                amount: 1
+              },
+              range: {
+                id: 'spell-effect-range-1',
+                rangeKind: 'DISTANCE',
+                amount: 60,
+                unit: 'FEET'
+              }
             },
-            range: {
-              id: 'spell-effect-range-1',
-              rangeKind: 'DISTANCE',
-              amount: 60,
-              unit: 'FEET'
-            }
-          },
-          paths: [
-            {
-              id: 'spell-effect-PATH_CODE-1',
-              order: 1,
-              pathCode: 'ON_HIT',
-              groupType: 'SINGLE',
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
+            paths: [
+              {
                 id: 'spell-effect-PATH_CODE-1',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: 'spell-effect-PATH_CODE-1',
-                    effectKind: 'DAMAGE',
-                    damageTypeId: 'thunder',
-                    valueKind: 'FIXED',
-                    scalingKind: 'NONE',
-                    amount: 5
-                  }
-                ]
+                order: 1,
+                pathCode: 'ON_HIT',
+                groupType: 'SINGLE',
+                selectionKind: 'FIXED' as const,
+                resultBlock: {
+                  id: 'spell-effect-PATH_CODE-1',
+                  resultKind: 'SINGLE' as const,
+                  outcomes: [
+                    {
+                      id: 'spell-effect-PATH_CODE-1',
+                      effectKind: 'DAMAGE',
+                      damageTypeId: 'thunder',
+                      valueKind: 'FIXED',
+                      scalingKind: 'NONE',
+                      amount: 5
+                    }
+                  ]
+                }
               }
-            }
-          ]
-        }
-      ],
-      userId: 'user-1',
-      systemId: 'system-1'
-    })
-    await repository.upsert({
-      kind: 'SPELL',
-      id: 'spell-effect-rewrite-1',
-      label: 'Thunder Burst',
-      description: 'Updated spell',
-      castingTime: {
-        unit: 'ROUND',
-        amount: 1
+            ]
+          }
+        ],
+        userId: 'user-1',
+        systemId: 'system-1'
       },
-      level: 1,
-      classIds: ['wizard'],
-      magicSchoolId: 'evocation',
-      effects: [
-        {
-          id: 'spell-shared-effect-1',
-          order: 2,
-          invocation: {
-            triggerCode: 'SPELL_ATTACK',
-            activation: {
-              code: 'BONUS_ACTION',
-              amount: 1
-            },
-            range: {
-              id: 'spell-effect-range-1',
-              rangeKind: 'DISTANCE',
-              amount: 120,
-              unit: 'FEET'
-            }
-          },
-          paths: [
-            {
-              id: 'spell-effect-PATH_CODE-2',
-              order: 1,
-              pathCode: 'ON_HIT',
-              groupType: 'SINGLE',
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: 'spell-effect-PATH_CODE-2',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: 'spell-effect-PATH_CODE-2',
-                    effectKind: 'CONDITION',
-                    conditionId: 'deafened'
-                  }
-                ]
+      { contentSourceId: 'content-source-1' }
+    )
+    await repository.upsert(
+      {
+        kind: 'SPELL',
+        id: 'spell-effect-rewrite-1',
+        label: 'Thunder Burst',
+        description: 'Updated spell',
+        castingTime: {
+          unit: 'ROUND',
+          amount: 1
+        },
+        level: 1,
+        classIds: ['wizard'],
+        magicSchoolId: 'evocation',
+        effects: [
+          {
+            id: 'spell-shared-effect-1',
+            order: 2,
+            invocation: {
+              triggerCode: 'SPELL_ATTACK',
+              activation: {
+                code: 'BONUS_ACTION',
+                amount: 1
+              },
+              range: {
+                id: 'spell-effect-range-1',
+                rangeKind: 'DISTANCE',
+                amount: 120,
+                unit: 'FEET'
               }
-            }
-          ]
-        }
-      ],
-      userId: 'user-1',
-      systemId: 'system-1'
-    })
+            },
+            paths: [
+              {
+                id: 'spell-effect-PATH_CODE-2',
+                order: 1,
+                pathCode: 'ON_HIT',
+                groupType: 'SINGLE',
+                selectionKind: 'FIXED' as const,
+                resultBlock: {
+                  id: 'spell-effect-PATH_CODE-2',
+                  resultKind: 'SINGLE' as const,
+                  outcomes: [
+                    {
+                      id: 'spell-effect-PATH_CODE-2',
+                      effectKind: 'CONDITION',
+                      conditionId: 'deafened'
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        userId: 'user-1',
+        systemId: 'system-1'
+      },
+      { contentSourceId: 'content-source-1' }
+    )
     await expect(repository.findById('spell-effect-rewrite-1')).resolves.toMatchObject({
       kind: 'SPELL',
       id: 'spell-effect-rewrite-1',

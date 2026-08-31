@@ -44,12 +44,15 @@ export const queryKeys = {
     list: () => ['campaigns', 'list'] as const,
     detail: (campaignId: string) => ['campaigns', 'detail', campaignId] as const,
     playSettings: (campaignId: string) => ['campaigns', campaignId, 'play-settings'] as const,
+    playSettingsOptions: (campaignId: string) =>
+      ['campaigns', campaignId, 'play-settings', 'options'] as const,
     conversations: (campaignId: string) => ['campaigns', campaignId, 'conversations'] as const,
     chat: (campaignId: string, room: 'TABLE' | 'PARTY' | 'DIRECT', directUserId?: string) =>
       ['campaigns', campaignId, 'chat', room, directUserId ?? null] as const,
     notebook: (campaignId: string) => ['campaigns', campaignId, 'notebook'] as const,
     sessions: (campaignId: string) => ['campaigns', campaignId, 'sessions'] as const,
     scenes: (campaignId: string) => ['campaigns', campaignId, 'scenes'] as const,
+    liveScenes: (campaignId: string) => ['campaigns', campaignId, 'scenes', 'live'] as const,
     session: (campaignId: string, sessionNumber: number) =>
       ['campaigns', campaignId, 'sessions', sessionNumber] as const,
     sessionAttendance: (campaignId: string, sessionId: string) =>
@@ -94,10 +97,12 @@ export const queryKeys = {
 
   encounters: {
     detail: (encounterId: string) => ['encounters', encounterId] as const,
+    pendingOccurrence: (encounterId: string) =>
+      ['encounters', encounterId, 'pending-occurrence'] as const,
     timeline: (encounterId: string) => ['encounters', encounterId, 'timeline'] as const,
     active: (campaignId: string) => ['encounters', 'campaign', campaignId, 'active'] as const,
     list: (campaignId: string) => ['encounters', 'campaign', campaignId, 'list'] as const,
-    templates: (campaignId: string) => ['encounters', 'campaign', campaignId, 'templates'] as const
+    blueprints: (gameSystemId: string) => ['encounters', 'blueprints', gameSystemId] as const
   },
 
   media: {
@@ -216,7 +221,9 @@ export const queryKeys = {
   systems: {
     all: () => ['systems'] as const,
     list: () => ['systems', 'list'] as const,
-    detail: (id: string) => ['systems', 'detail', id] as const
+    detail: (id: string) => ['systems', 'detail', id] as const,
+    definitions: (id: string) => ['systems', 'detail', id, 'definitions'] as const,
+    definition: (id: string) => ['systems', 'definitions', id] as const
   },
 
   nodeRuntime: {

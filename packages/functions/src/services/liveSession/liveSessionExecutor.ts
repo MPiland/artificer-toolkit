@@ -2,6 +2,7 @@ import type { DBLike } from '@artificer-toolkit/db'
 import {
   liveSessionExecutorRequestDtoSchema,
   liveSessionExecutorResponseDtoSchema,
+  type LiveSessionExecutorSpatialRefreshDto,
   type LiveSessionHostTimingDto,
   type LiveSessionExecutorCommandResultDto,
   type LiveSessionExecutorResponseDto
@@ -16,26 +17,47 @@ import {
   renewLiveSessionRoomCommandAuthority
 } from './liveSessionService.js'
 
+function wireSpatialRefresh(
+  refresh: Awaited<ReturnType<typeof executeLiveSessionCommand>>['spatialRefresh']
+): LiveSessionExecutorSpatialRefreshDto | undefined {
+  return refresh
+    ? { characterVisions: refresh.characterVisions, sceneState: refresh.sceneState }
+    : undefined
+}
+
 function wireExecution(
   execution: Awaited<ReturnType<typeof executeLiveSessionCommand>>,
   hostTiming: LiveSessionHostTimingDto
 ): LiveSessionExecutorCommandResultDto {
-  if (execution.aggregateKind === 'SCENE') return { ...execution, hostTiming }
+  if (execution.aggregateKind === 'SCENE') {
+    const { spatialRefresh, ...wire } = execution
+    return {
+      ...wire,
+      hostTiming,
+      ...(spatialRefresh ? { spatialRefresh: wireSpatialRefresh(spatialRefresh) } : {})
+    }
+  }
   if (execution.aggregateKind === 'CHARACTER') {
     const {
       characterVision,
       ruleEvaluationLane: _ruleEvaluationLane,
       ruleSnapshot: _ruleSnapshot,
+      spatialRefresh,
       ...wire
     } = execution
     return {
       ...wire,
       characterVision,
-      hostTiming
+      hostTiming,
+      ...(spatialRefresh ? { spatialRefresh: wireSpatialRefresh(spatialRefresh) } : {})
     }
   }
-  const { ruleSnapshot: _ruleSnapshot, ...wire } = execution
-  return { ...wire, hostTiming }
+  const { ruleSnapshot: _ruleSnapshot, spatialRefresh, ...wire } = execution
+  return {
+    ...wire,
+    hostTiming,
+    ...(spatialRefresh ? { spatialRefresh: wireSpatialRefresh(spatialRefresh) } : {})
+  }
 }
 
 function hostTiming(

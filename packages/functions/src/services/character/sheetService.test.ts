@@ -71,6 +71,7 @@ const mocks = vi.hoisted(() => ({
   loadCharacterBuilderContext: vi.fn(),
   resolveCharacterBuilder: vi.fn(),
   resolveCampaignContext: vi.fn(),
+  resolveLiveSessionRuleContext: vi.fn(),
   resolveActiveCharacterEquipment: vi.fn(),
   loadActiveCreatures: vi.fn(),
   loadActiveVehicles: vi.fn(),
@@ -113,7 +114,16 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createCharacterMechanicsProjectionRepository: () => ({
       advanceLiveCommandState: mocks.advanceLiveMechanicsProjection,
       publish: mocks.publishMechanics,
-      requireCurrent: mocks.findMechanics,
+      requireCurrent: async (input: unknown) => {
+        const projection = await mocks.findMechanics(input)
+        return projection?.rulePolicyOutput
+          ? projection
+          : {
+              ...projection,
+              pinnedSenseDefinitions: projection?.pinnedSenseDefinitions ?? [],
+              rulePolicyOutput: { senses: [] }
+            }
+      },
       requireCurrentMetadata: mocks.findMechanicsMetadata
     }),
     createLiveMaximumHitPointPolicyRepository: () => ({
@@ -155,7 +165,9 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
           (vehicle) => vehicle.id === id
         ) ?? null,
       findByIds: async () => {
-        const vehicles = (await mocks.findAllVehicles()) as Array<{ id: string }>
+        const vehicles = (await mocks.findAllVehicles()) as Array<{
+          id: string
+        }>
         return new Map(vehicles.map((vehicle) => [vehicle.id, vehicle]))
       }
     }),
@@ -187,7 +199,10 @@ vi.mock('./builderService.js', async (importOriginal) => {
 
 vi.mock('./characterAssemblyOrchestrator.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./characterAssemblyOrchestrator.js')>()
-  return { ...actual, resolveActiveCharacterEquipment: mocks.resolveActiveCharacterEquipment }
+  return {
+    ...actual,
+    resolveActiveCharacterEquipment: mocks.resolveActiveCharacterEquipment
+  }
 })
 
 vi.mock('./characterActiveAuthoredSources.js', () => ({
@@ -213,6 +228,20 @@ vi.mock('./campaignCharacterContent.js', () => ({
 
 vi.mock('./characterMechanicsCompiler.js', () => ({
   advanceCharacterMechanicsProjectionCommandState: mocks.advanceMechanicsProjection,
+  carryPinnedCharacterSenseDefinitions: ({
+    prior,
+    senses
+  }: {
+    prior: readonly unknown[] | undefined
+    senses: readonly { senseDefinitionId: string; range: unknown }[]
+  }) =>
+    (prior ?? []).flatMap((pin) => {
+      if (typeof pin !== 'object' || pin === null || !('senseDefinitionId' in pin)) return []
+      const sense = senses.find(
+        (candidate) => candidate.senseDefinitionId === pin.senseDefinitionId
+      )
+      return sense ? [{ ...pin, range: sense.range }] : []
+    }),
   compileCharacterMechanicsProjection: mocks.compileMechanicsProjection
 }))
 
@@ -234,7 +263,11 @@ vi.mock('./characterRuleBinding.js', () => ({
 
 vi.mock('./campaignCharacterSheet.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./campaignCharacterSheet.js')>()
-  return { ...actual, resolveCharacterSheetCampaignContext: mocks.resolveCampaignContext }
+  return {
+    ...actual,
+    resolveCharacterLiveSessionRuleContext: mocks.resolveLiveSessionRuleContext,
+    resolveCharacterSheetCampaignContext: mocks.resolveCampaignContext
+  }
 })
 
 vi.mock('./characterActionEvaluation.js', () => ({
@@ -295,6 +328,7 @@ function createCharacter(overrides: Partial<CharacterAuthored> = {}): CharacterA
     status: 'ACTIVE',
     profile: {},
     systemId: 'system-1',
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000302',
     userId: 'user-1',
     intent: {
       advancement: { method: 'MILESTONE' },
@@ -324,6 +358,51 @@ function createCharacter(overrides: Partial<CharacterAuthored> = {}): CharacterA
       }
     },
     ...overrides
+  }
+}
+
+function createPinnedVisionSense(rangeFeet: number) {
+  const senseDefinitionId = '00000000-0000-4000-8000-000000000401'
+  return {
+    senseDefinitionId,
+    definitionVersion: 1,
+    definitionContractVersion: 1,
+    definitionChecksum: '4'.repeat(64),
+    document: {
+      schemaVersion: 1 as const,
+      kind: 'SENSE' as const,
+      id: senseDefinitionId,
+      gameSystemId: 'system-1',
+      capabilities: [
+        {
+          channel: 'VISUAL' as const,
+          accessGrade: 'PRECISE' as const,
+          satisfies: ['SEE' as const],
+          illuminationAccess: 'ORDINARY_DARKNESS' as const,
+          obscurementAccess: 'NONE' as const,
+          perceivesInvisible: false,
+          physicalConstraints: []
+        }
+      ]
+    },
+    range: {
+      id: '00000000-0000-4000-8000-000000000402',
+      amount: rangeFeet,
+      unit: 'FEET' as const,
+      calculation: {
+        base: rangeFeet,
+        effective: rangeFeet,
+        contributions: [],
+        override: null
+      }
+    }
+  }
+}
+
+function sensePolicyFact(rangeFeet: number) {
+  return {
+    senseDefinitionId: '00000000-0000-4000-8000-000000000401',
+    range: createPinnedVisionSense(rangeFeet).range
   }
 }
 
@@ -432,7 +511,13 @@ function createCommittedMechanicsPayload(evaluation: CharacterRuleEvaluationResu
     },
     rulePolicyInput: evaluation.facts,
     rulePolicyOutput: evaluation.output,
-    ruleRegistry: {}
+    initiativeActorFacts: {
+      effectiveSize: null,
+      equippedItems: []
+    },
+    pinnedSenseDefinitions: [],
+    ruleRegistry: {},
+    compiledActionEntryPoints: []
   }
 }
 
@@ -512,7 +597,13 @@ function configureCommittedSpellEligibility(input: {
                     ? [SPELLCASTING_ATTRIBUTE.PREPARES_SPELLS]
                     : [SPELLCASTING_ATTRIBUTE.LIMIT_KNOWN_SPELL_AMOUNT],
                 abilityIndex: 0,
-                spellLimits: [{ classLevel: 1, preparedSpellsLimit: null, spellLevels: [1] }],
+                spellLimits: [
+                  {
+                    classLevel: 1,
+                    preparedSpellsLimit: null,
+                    spellLevels: [1]
+                  }
+                ],
                 prepareLimit:
                   input.mode === 'PREPARED'
                     ? {
@@ -594,6 +685,7 @@ describe('executeCharacterSheetCommand persistence', () => {
     mocks.removeAdjustment.mockReset()
     mocks.upsertAdjustment.mockReset()
     mocks.resolveCharacterBuilder.mockReset()
+    mocks.resolveLiveSessionRuleContext.mockReset()
     mocks.buildSheetBundle.mockReset()
     mocks.setMovementPreference.mockReset()
     mocks.setRulePackRevision.mockReset()
@@ -688,7 +780,7 @@ describe('executeCharacterSheetCommand persistence', () => {
     mocks.loadCommittedSources.mockResolvedValue({
       mechanics,
       recordsByRoot: new Map(),
-      vocabularySnapshot: { snapshotId: 'snapshot-1' }
+      vocabularySnapshot: { snapshotId: 'snapshot-1', document: { abilities: [] } }
     })
     mocks.createCommittedResolution.mockReturnValue(resolution)
     mocks.createCommittedExtras.mockReturnValue({
@@ -705,7 +797,10 @@ describe('executeCharacterSheetCommand persistence', () => {
       (params: { sources: unknown }) => params.sources
     )
     mocks.pruneCommittedSources.mockImplementation((params: { sources: unknown }) => params.sources)
-    mocks.compileMechanicsProjection.mockReturnValue({})
+    mocks.compileMechanicsProjection.mockReturnValue({
+      pinnedSenseDefinitions: [],
+      rulePolicyOutput: { senses: [] }
+    })
     mocks.publishMechanics.mockResolvedValue(undefined)
     mocks.loadCharacterBuilderContext.mockResolvedValue({
       catalog: resolution.catalog,
@@ -725,7 +820,9 @@ describe('executeCharacterSheetCommand persistence', () => {
     )
     mocks.loadActiveVehicles.mockImplementation(
       async ({ vehicleIds }: { vehicleIds: readonly string[] }) => {
-        const vehicles = (await mocks.findAllVehicles()) as Array<{ id: string }>
+        const vehicles = (await mocks.findAllVehicles()) as Array<{
+          id: string
+        }>
         return new Map(
           vehicles
             .filter((vehicle) => vehicleIds.includes(vehicle.id))
@@ -764,7 +861,11 @@ describe('executeCharacterSheetCommand persistence', () => {
         })
         return {
           bundle,
-          mechanics: { projectionChecksum: 'b'.repeat(64) },
+          mechanics: {
+            projectionChecksum: 'b'.repeat(64),
+            pinnedSenseDefinitions: [],
+            rulePolicyOutput: { senses: [] }
+          },
           campaignMechanics: null,
           resolution,
           characterAdjustments: await mocks.listAdjustments(params.character.id),
@@ -810,6 +911,133 @@ describe('executeCharacterSheetCommand persistence', () => {
     expect(response.sheet.meta.streamVersion).toBe(response.streamVersion)
     expect(response.sheet.overview.inspiration).toBe(false)
   })
+
+  it.each([30, 90])(
+    'returns the prepared Campaign-effective %i-foot vision with its matching projection checksum',
+    async (campaignRange) => {
+      const character = createCharacter()
+      character.state.inspiration = true
+      const policyResolution = createResolution()
+      const evaluation = await evaluateCharacterBuilderTestPolicy({
+        db: db as unknown as DBLike,
+        character,
+        context: {
+          catalog: policyResolution.catalog,
+          registry: policyResolution.sourceRegistry
+        },
+        existingRevisionId: 'revision-1',
+        expectedRevisionId: 'revision-1',
+        adjustments: [],
+        movementDisplayPreference: { mode: 'AUTO' },
+        resourceUsage: [],
+        attunementSlotOverride: 2
+      })
+      const basePolicyOutput = {
+        ...evaluation.output,
+        senses: [sensePolicyFact(60)]
+      }
+      const campaignPolicyOutput = {
+        ...evaluation.output,
+        senses: [sensePolicyFact(campaignRange)]
+      }
+      const currentMechanics = {
+        characterId: character.id,
+        characterStreamVersion: 1,
+        commandLaneChecksum: '6'.repeat(64),
+        commandState: character,
+        projectionChecksum: '7'.repeat(64),
+        authoredVersionVector: [],
+        systemVocabularySnapshotId: 'snapshot-1',
+        systemVocabularySnapshotVersion: 1,
+        systemVocabularySnapshotChecksum: '8'.repeat(64),
+        ruleRevisionId: 'revision-1',
+        ruleRevisionChecksum: '9'.repeat(64),
+        evaluatorVersion: '0.54.0',
+        modelContractVersion: 5,
+        ruleSnapshot: {
+          characterId: character.id,
+          systemId: character.systemId,
+          classes: [],
+          features: [],
+          equipmentItems: []
+        },
+        rulePolicyInput: evaluation.facts,
+        rulePolicyOutput: basePolicyOutput,
+        pinnedSenseDefinitions: [createPinnedVisionSense(60)],
+        ruleRegistry: {},
+        compiledActionEntryPoints: []
+      } as unknown as CharacterMechanicsProjection
+      const nextMechanics = {
+        ...currentMechanics,
+        characterStreamVersion: 2,
+        commandState: {
+          ...character,
+          state: { ...character.state, inspiration: false }
+        },
+        projectionChecksum: 'a'.repeat(64)
+      } as CharacterMechanicsProjection
+      const campaignId = '00000000-0000-4000-8000-000000000320'
+      const campaignContext = {
+        viewer: 'CHARACTER_OWNER' as const,
+        campaignId,
+        campaignStatus: 'ACTIVE' as const,
+        contentMaturity: null,
+        attunementSlotOverride: 2,
+        adjustments: [],
+        secretAdjustmentIds: new Set<string>(),
+        conditions: []
+      }
+      const mechanicalContextChecksum = checksumCampaignCharacterMechanicalContext({
+        adjustments: [],
+        attunementSlotOverride: 2
+      })
+      mocks.findAuthoredById.mockResolvedValue(character)
+      mocks.findMechanics.mockResolvedValue(currentMechanics)
+      mocks.compileMechanicsProjection.mockReturnValue(nextMechanics)
+      mocks.resolveCampaignContext.mockResolvedValue(campaignContext)
+      mocks.resolveLiveSessionRuleContext.mockResolvedValue({
+        adjustments: [],
+        attunementSlotOverride: 2
+      })
+      mocks.findCampaignMechanics.mockResolvedValue({
+        campaignId,
+        characterId: character.id,
+        characterStreamVersion: 1,
+        baseMechanicsProjectionChecksum: currentMechanics.projectionChecksum,
+        mechanicalContextChecksum,
+        manualMaximumModifierOwner: null,
+        projectionChecksum: 'b'.repeat(64),
+        projectionSchemaVersion: 3,
+        kind: 'MATERIALIZED',
+        rulePolicyInput: evaluation.facts,
+        rulePolicyOutput: campaignPolicyOutput
+      })
+
+      const execution = await executeCharacterSheetCommandWithRuleEvaluation({
+        db: db as unknown as DBLike,
+        characterId: character.id,
+        userId: character.userId,
+        command: {
+          type: 'SET_INSPIRATION',
+          commandId:
+            campaignRange === 30
+              ? '00000000-0000-4000-8000-000000000321'
+              : '00000000-0000-4000-8000-000000000322',
+          expectedVersion: 1,
+          inspired: false
+        }
+      })
+
+      expect(execution.ruleSnapshot.effectiveSceneVision).toEqual({
+        characterId: character.id,
+        dimRange: { amount: campaignRange, unit: 'FEET' }
+      })
+      expect(execution.ruleSnapshot.campaignMechanicsProjectionChecksum).toBe(
+        mocks.publishCampaignMechanics.mock.calls[0]?.[0].projection.projectionChecksum
+      )
+      expect(mocks.assembleSheetBundleForRuleContext).not.toHaveBeenCalled()
+    }
+  )
 
   it('updates spell-slot availability through the bounded Character action lane', async () => {
     mocks.buildSheetBundle.mockImplementation(async (params) => {
@@ -871,7 +1099,10 @@ describe('executeCharacterSheetCommand persistence', () => {
           buildCount === 1
             ? {
                 ...bundle.ruleEvaluation,
-                binding: { ...bundle.ruleEvaluation.binding, modelContractVersion: 4 }
+                binding: {
+                  ...bundle.ruleEvaluation.binding,
+                  modelContractVersion: 4
+                }
               }
             : bundle.ruleEvaluation,
         sheet: {
@@ -912,7 +1143,9 @@ describe('executeCharacterSheetCommand persistence', () => {
     expect(mocks.compileMechanicsProjection).toHaveBeenCalledWith(
       expect.objectContaining({ characterStreamVersion: 2 })
     )
-    expect(mocks.publishMechanics).toHaveBeenCalledWith({})
+    expect(mocks.publishMechanics).toHaveBeenCalledWith(
+      expect.objectContaining({ pinnedSenseDefinitions: [] })
+    )
   })
 
   it('rejects spending through an unavailable action before persisting usage', async () => {
@@ -1131,7 +1364,9 @@ describe('executeCharacterSheetCommand persistence', () => {
     expect(mocks.compileMechanicsProjection).toHaveBeenCalledWith(
       expect.objectContaining({ characterStreamVersion: 2 })
     )
-    expect(mocks.publishMechanics).toHaveBeenCalledWith({})
+    expect(mocks.publishMechanics).toHaveBeenCalledWith(
+      expect.objectContaining({ pinnedSenseDefinitions: [] })
+    )
     expect(mocks.buildSheetBundle).toHaveBeenLastCalledWith(expect.any(Object))
   })
 
@@ -1154,7 +1389,10 @@ describe('executeCharacterSheetCommand persistence', () => {
     })
     const mechanics = await mocks.findMechanicsMetadata()
     mocks.findMechanics.mockReset()
-    mocks.findMechanics.mockResolvedValue({ ...mechanics, commandState: character })
+    mocks.findMechanics.mockResolvedValue({
+      ...mechanics,
+      commandState: character
+    })
     mocks.findMechanicsMetadata.mockClear()
     mocks.loadCharacterBuilderContext.mockClear()
     mocks.resolveCharacterBuilder.mockClear()
@@ -1164,6 +1402,7 @@ describe('executeCharacterSheetCommand persistence', () => {
       characterId: 'character-1',
       userId: 'user-1',
       committedRuleSnapshot: {
+        effectiveSceneVision: { characterId: 'character-1', dimRange: null },
         mechanicsProjectionChecksum: 'b'.repeat(64),
         mechanicsCommandLaneChecksum: 'c'.repeat(64),
         mechanicsPayload: createCommittedMechanicsPayload(committedRuleEvaluation),
@@ -1211,7 +1450,10 @@ describe('executeCharacterSheetCommand persistence', () => {
     const evaluation = await evaluateCharacterBuilderTestPolicy({
       db: db as unknown as DBLike,
       character,
-      context: { catalog: resolution.catalog, registry: resolution.sourceRegistry },
+      context: {
+        catalog: resolution.catalog,
+        registry: resolution.sourceRegistry
+      },
       existingRevisionId: 'revision-1',
       expectedRevisionId: 'revision-1',
       adjustments: [],
@@ -1261,6 +1503,7 @@ describe('executeCharacterSheetCommand persistence', () => {
       },
       liveSessionAuthority: { sessionId: 'session-1', authorityId: 'room-1' },
       committedRuleSnapshot: {
+        effectiveSceneVision: { characterId: 'character-1', dimRange: null },
         mechanicsProjectionChecksum,
         mechanicsCommandLaneChecksum: 'c'.repeat(64),
         mechanicsPayload,
@@ -1299,7 +1542,10 @@ describe('executeCharacterSheetCommand persistence', () => {
     const evaluation = await evaluateCharacterBuilderTestPolicy({
       db: db as unknown as DBLike,
       character,
-      context: { catalog: resolution.catalog, registry: resolution.sourceRegistry },
+      context: {
+        catalog: resolution.catalog,
+        registry: resolution.sourceRegistry
+      },
       existingRevisionId: 'revision-1',
       expectedRevisionId: 'revision-1',
       adjustments: [],
@@ -1321,6 +1567,7 @@ describe('executeCharacterSheetCommand persistence', () => {
       userId: 'user-1',
       liveSessionAuthority: { sessionId: 'session-1', authorityId: 'room-1' },
       committedRuleSnapshot: {
+        effectiveSceneVision: { characterId: 'character-1', dimRange: null },
         mechanicsProjectionChecksum: 'b'.repeat(64),
         mechanicsCommandLaneChecksum: 'c'.repeat(64),
         mechanicsPayload: createCommittedMechanicsPayload(evaluation),
@@ -1370,6 +1617,7 @@ describe('executeCharacterSheetCommand persistence', () => {
       characterId: 'character-1',
       userId: 'user-1',
       committedRuleSnapshot: {
+        effectiveSceneVision: { characterId: 'character-1', dimRange: null },
         mechanicsProjectionChecksum: 'b'.repeat(64),
         mechanicsCommandLaneChecksum: 'c'.repeat(64),
         mechanicsPayload: createCommittedMechanicsPayload(committedRuleEvaluation),
@@ -1394,7 +1642,9 @@ describe('executeCharacterSheetCommand persistence', () => {
 
   it('rechecks and repins an explicit active rule upgrade in the versioned command transaction', async () => {
     mocks.findById.mockResolvedValue(
-      createCharacterRow({ rule_pack_revision_id: '00000000-0000-4000-8000-000000000201' })
+      createCharacterRow({
+        rule_pack_revision_id: '00000000-0000-4000-8000-000000000201'
+      })
     )
 
     const response = await executeCharacterSheetCommand({
@@ -1667,7 +1917,9 @@ describe('executeCharacterSheetCommand persistence', () => {
     expect(mocks.compileMechanicsProjection).toHaveBeenCalledWith(
       expect.objectContaining({ characterStreamVersion: 2 })
     )
-    expect(mocks.publishMechanics).toHaveBeenCalledWith({})
+    expect(mocks.publishMechanics).toHaveBeenCalledWith(
+      expect.objectContaining({ pinnedSenseDefinitions: [] })
+    )
   })
 
   it('resets only adjustments owned by the requested panel target', async () => {
@@ -1721,7 +1973,11 @@ describe('executeCharacterSheetCommand persistence', () => {
   it('persists movement display preferences through the versioned command path', async () => {
     const resolution = createResolution()
     resolution.registry.system!.speeds = [
-      { id: '00000000-0000-4000-8000-000000000010', code: 'WALKING', label: 'Walking' }
+      {
+        id: '00000000-0000-4000-8000-000000000010',
+        code: 'WALKING',
+        label: 'Walking'
+      }
     ]
     mocks.createCommittedResolution.mockReturnValue(resolution)
     mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
@@ -1907,7 +2163,7 @@ describe('executeCharacterSheetCommand persistence', () => {
     const sources = {
       mechanics,
       recordsByRoot: new Map(),
-      vocabularySnapshot: { snapshotId: 'snapshot-1' }
+      vocabularySnapshot: { snapshotId: 'snapshot-1', document: { abilities: [] } }
     }
     const extendedSources = {
       ...sources,
@@ -1943,7 +2199,11 @@ describe('executeCharacterSheetCommand persistence', () => {
         type: 'ADD_SHEET_EXTRA',
         expectedVersion: 1,
         commandId: '00000000-0000-4000-8000-000000000195',
-        extra: { kind: 'COMPANION', creatureId: creature.id, originKind: 'WORLD' }
+        extra: {
+          kind: 'COMPANION',
+          creatureId: creature.id,
+          originKind: 'WORLD'
+        }
       }
     })
 
@@ -1958,7 +2218,9 @@ describe('executeCharacterSheetCommand persistence', () => {
         characterStreamVersion: 2
       })
     )
-    expect(mocks.publishMechanics).toHaveBeenCalledWith({})
+    expect(mocks.publishMechanics).toHaveBeenCalledWith(
+      expect.objectContaining({ pinnedSenseDefinitions: [] })
+    )
   })
 
   it('admits exact SET_* Spell sources, locks Campaign authority first, and reduces the next vector', async () => {
@@ -2034,7 +2296,7 @@ describe('executeCharacterSheetCommand persistence', () => {
     const sources = {
       mechanics,
       recordsByRoot: new Map(),
-      vocabularySnapshot: { snapshotId: 'snapshot-1' }
+      vocabularySnapshot: { snapshotId: 'snapshot-1', document: { abilities: [] } }
     }
     const extendedSources = {
       ...sources,
@@ -2440,7 +2702,7 @@ describe('executeCharacterSheetCommand persistence', () => {
       const baseSources = {
         mechanics,
         recordsByRoot: new Map(),
-        vocabularySnapshot: { snapshotId: 'snapshot-1' }
+        vocabularySnapshot: { snapshotId: 'snapshot-1', document: { abilities: [] } }
       }
       const fullSources = {
         ...baseSources,
@@ -2530,7 +2792,10 @@ describe('executeCharacterSheetCommand persistence', () => {
             }
           }
           if (params.pinnedSpellsById === reducedSpellDocuments) {
-            persistedReloadSheet = { ...sheet, meta: { ...sheet.meta, campaignId: null } }
+            persistedReloadSheet = {
+              ...sheet,
+              meta: { ...sheet.meta, campaignId: null }
+            }
           }
           return {
             ...bundle,
@@ -2620,9 +2885,19 @@ describe('executeCharacterSheetCommand persistence', () => {
     resolution.registry.system = {
       ...resolution.registry.system!,
       alignments: [
-        { id: '00000000-0000-4000-8000-000000000022', label: 'Neutral', code: 'NEUTRAL' }
+        {
+          id: '00000000-0000-4000-8000-000000000022',
+          label: 'Neutral',
+          code: 'NEUTRAL'
+        }
       ],
-      creatureTypes: [{ id: '00000000-0000-4000-8000-000000000021', label: 'Beast', code: 'BEAST' }]
+      creatureTypes: [
+        {
+          id: '00000000-0000-4000-8000-000000000021',
+          label: 'Beast',
+          code: 'BEAST'
+        }
+      ]
     }
     mocks.findAuthoredById.mockResolvedValue(character)
     mocks.resolveCharacterBuilder.mockResolvedValue(resolution)
@@ -2645,7 +2920,11 @@ describe('executeCharacterSheetCommand persistence', () => {
       }
     })
     expect(mocks.upsertAdjustment).toHaveBeenCalledWith(
-      expect.objectContaining({ family: 'COMPANION', field: 'SIZE_OVERRIDE', value: 'TINY' })
+      expect.objectContaining({
+        family: 'COMPANION',
+        field: 'SIZE_OVERRIDE',
+        value: 'TINY'
+      })
     )
 
     for (const adjustment of [
@@ -2720,7 +2999,11 @@ describe('executeCharacterSheetCommand persistence', () => {
       featureId,
       chargeId
     }
-    let usage: Array<{ id: string; owner: CharacterResourceOwnerKey; used: number }> = []
+    let usage: Array<{
+      id: string
+      owner: CharacterResourceOwnerKey
+      used: number
+    }> = []
     mocks.listResourceUsage.mockImplementation(async () => usage)
     mocks.setResourceUsage.mockImplementation(async (input) => {
       usage = input.used === 0 ? [] : [{ id: input.id, owner: input.owner, used: input.used }]
@@ -2743,7 +3026,9 @@ describe('executeCharacterSheetCommand persistence', () => {
     expect(used.sheet.resources.items).toContainEqual(expect.objectContaining({ owner, used: 1 }))
     expect(mocks.loadCharacterBuilderContext).not.toHaveBeenCalled()
     expect(mocks.evaluateActionStateChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({ changedPoolId: createCharacterResourceOwnerKey(owner) })
+      expect.objectContaining({
+        changedPoolId: createCharacterResourceOwnerKey(owner)
+      })
     )
 
     mocks.findById.mockResolvedValue(createCharacterRow({ stream_version: 2 }))
@@ -2781,7 +3066,10 @@ describe('executeCharacterSheetCommand persistence', () => {
       }
     })
     expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
-      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 3 })
+      expect.objectContaining({
+        owner: toCharacterResourceOwnerKey(owner),
+        used: 3
+      })
     )
     expect(legacyUsed.sheet.resources.items).toContainEqual(
       expect.objectContaining({ owner, used: 3 })
@@ -2836,7 +3124,10 @@ describe('executeCharacterSheetCommand persistence', () => {
       }
     })
     expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
-      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 2 })
+      expect.objectContaining({
+        owner: toCharacterResourceOwnerKey(owner),
+        used: 2
+      })
     )
     expect(legacyRecovered.sheet.resources.items).toContainEqual(
       expect.objectContaining({ owner, used: 2 })
@@ -2863,7 +3154,10 @@ describe('executeCharacterSheetCommand persistence', () => {
       }
     })
     expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
-      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 6 })
+      expect.objectContaining({
+        owner: toCharacterResourceOwnerKey(owner),
+        used: 6
+      })
     )
 
     usage = [
@@ -2906,7 +3200,10 @@ describe('executeCharacterSheetCommand persistence', () => {
       })
     ).rejects.toThrow('only has 0 uses remaining')
     expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
-      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 6 })
+      expect.objectContaining({
+        owner: toCharacterResourceOwnerKey(owner),
+        used: 6
+      })
     )
 
     const buildCharacterSheetResponse = sheetProjection.buildCharacterSheetResponse
@@ -2940,7 +3237,10 @@ describe('executeCharacterSheetCommand persistence', () => {
       }
     })
     expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
-      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 3 })
+      expect.objectContaining({
+        owner: toCharacterResourceOwnerKey(owner),
+        used: 3
+      })
     )
 
     usage = []
@@ -2956,7 +3256,10 @@ describe('executeCharacterSheetCommand persistence', () => {
       }
     })
     expect(mocks.setResourceUsage).toHaveBeenLastCalledWith(
-      expect.objectContaining({ owner: toCharacterResourceOwnerKey(owner), used: 1 })
+      expect.objectContaining({
+        owner: toCharacterResourceOwnerKey(owner),
+        used: 1
+      })
     )
     projectionSpy.mockRestore()
   })
@@ -3077,7 +3380,11 @@ describe('executeCharacterSheetCommand persistence', () => {
       sourceKind: 'FEATURE' as const,
       sourceInstanceId
     }
-    let usage: Array<{ id: string; owner: CharacterResourceOwnerKey; used: number }> = []
+    let usage: Array<{
+      id: string
+      owner: CharacterResourceOwnerKey
+      used: number
+    }> = []
     mocks.listResourceUsage.mockImplementation(async () => usage)
     mocks.setResourceUsage.mockImplementation(async (input) => {
       usage = [{ id: input.id, owner: input.owner, used: input.used }]
@@ -3100,7 +3407,9 @@ describe('executeCharacterSheetCommand persistence', () => {
       expect.objectContaining({ owner, used: 1 })
     )
     expect(mocks.evaluateActionStateChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({ changedPoolId: createCharacterResourceOwnerKey(owner) })
+      expect.objectContaining({
+        changedPoolId: createCharacterResourceOwnerKey(owner)
+      })
     )
     expect(response.sheet.resources.items).toContainEqual(
       expect.objectContaining({
@@ -3230,7 +3539,9 @@ describe('executeCharacterSheetCommand persistence', () => {
     expect(mocks.compileMechanicsProjection).toHaveBeenCalledWith(
       expect.objectContaining({ characterStreamVersion: 2 })
     )
-    expect(mocks.publishMechanics).toHaveBeenCalledWith({})
+    expect(mocks.publishMechanics).toHaveBeenCalledWith(
+      expect.objectContaining({ pinnedSenseDefinitions: [] })
+    )
     expect(response.result).toMatchObject({
       type: 'COMPLETE_REST',
       rest: {
@@ -3257,7 +3568,9 @@ describe('executeCharacterSheetCommand persistence', () => {
         currentHitPoints: 3
       }
     ]
-    character.state.creatureEquipment = { [companionInstanceId]: [{ equipmentItemId: 'item-1' }] }
+    character.state.creatureEquipment = {
+      [companionInstanceId]: [{ equipmentItemId: 'item-1' }]
+    }
     mocks.findAuthoredById.mockResolvedValue(character)
     mocks.findAllCreatures.mockResolvedValue([createCreature()])
     mocks.listAdjustments.mockResolvedValue([
@@ -3327,11 +3640,27 @@ describe('executeCharacterSheetCommand persistence', () => {
       characterId: 'character-1',
       characterStreamVersion: 2,
       commandState: createCharacter(),
+      pinnedSenseDefinitions: [createPinnedVisionSense(60)],
       projectionChecksum: 'c'.repeat(64),
-      rulePolicyOutput: { senses: [] }
+      rulePolicyOutput: { senses: [sensePolicyFact(60)] }
     } as unknown as CharacterMechanicsProjection
     mocks.findById.mockResolvedValue(createCharacterRow({ stream_version: 2 }))
     mocks.findMechanics.mockResolvedValue(replayMechanics)
+    mocks.resolveCampaignContext.mockResolvedValue({
+      viewer: 'CHARACTER_OWNER',
+      campaignId: 'campaign-1',
+      campaignStatus: 'ACTIVE',
+      contentMaturity: null,
+      attunementSlotOverride: null,
+      adjustments: [],
+      secretAdjustmentIds: new Set(),
+      conditions: []
+    })
+    mocks.findCampaignMechanics.mockResolvedValue({
+      kind: 'MATERIALIZED',
+      projectionChecksum: 'd'.repeat(64),
+      rulePolicyOutput: { senses: [sensePolicyFact(30)] }
+    })
     mocks.findByCommandId.mockResolvedValue({
       type: 'CHARACTER_SHEET_COMMAND_APPLIED',
       commandType: command.type,
@@ -3352,7 +3681,10 @@ describe('executeCharacterSheetCommand persistence', () => {
         liveSessionAuthority
       })
     ).resolves.toEqual({
-      characterVision: { characterId: 'character-1', dimRange: null },
+      characterVision: {
+        characterId: 'character-1',
+        dimRange: { amount: 30, unit: 'FEET' }
+      },
       replayed: true,
       version: 2
     })
@@ -3384,9 +3716,10 @@ describe('executeCharacterSheetCommand persistence', () => {
         }
       }),
       projectionChecksum: 'd'.repeat(64),
+      pinnedSenseDefinitions: [createPinnedVisionSense(60)],
       rulePolicyOutput: {
         derivedStats: { maxHitPoints: { effective: 12 } },
-        senses: []
+        senses: [sensePolicyFact(60)]
       }
     } as unknown as CharacterMechanicsProjection
     const replayMechanics = {
@@ -3422,7 +3755,10 @@ describe('executeCharacterSheetCommand persistence', () => {
         }
       })
     ).resolves.toEqual({
-      characterVision: { characterId: 'character-1', dimRange: null },
+      characterVision: {
+        characterId: 'character-1',
+        dimRange: { amount: 60, unit: 'FEET' }
+      },
       replayed: true,
       version: 2
     })
@@ -3526,7 +3862,8 @@ describe('executeCharacterSheetCommand persistence', () => {
         ruleSnapshot: currentMechanics.ruleSnapshot,
         rulePolicyInput: currentMechanics.rulePolicyInput,
         rulePolicyOutput: currentMechanics.rulePolicyOutput,
-        ruleRegistry: currentMechanics.ruleRegistry
+        ruleRegistry: currentMechanics.ruleRegistry,
+        compiledActionEntryPoints: currentMechanics.compiledActionEntryPoints
       },
       mechanicsProjectionChecksum: currentMechanics.projectionChecksum,
       streamVersion: 1,
@@ -3567,7 +3904,10 @@ describe('executeCharacterSheetCommand persistence', () => {
       })
     )
     expect(mocks.advanceMechanicsProjection).toHaveBeenCalledWith(
-      expect.objectContaining({ characterStreamVersion: 2, current: currentMechanics })
+      expect.objectContaining({
+        characterStreamVersion: 2,
+        current: currentMechanics
+      })
     )
     expect(mocks.publishMechanics).toHaveBeenCalledWith(nextMechanics)
     expect(mocks.appendEvent).toHaveBeenCalledWith(
@@ -3596,7 +3936,8 @@ describe('executeCharacterSheetCommand persistence', () => {
       ruleSnapshot: nextMechanics.ruleSnapshot,
       rulePolicyInput: nextMechanics.rulePolicyInput,
       rulePolicyOutput: nextMechanics.rulePolicyOutput,
-      ruleRegistry: nextMechanics.ruleRegistry
+      ruleRegistry: nextMechanics.ruleRegistry,
+      compiledActionEntryPoints: nextMechanics.compiledActionEntryPoints
     })
     expect(execution.ruleSnapshot?.campaignMechanicsProjectionChecksum).toBe(
       mocks.publishCampaignMechanics.mock.calls[0]?.[0].projection.projectionChecksum
@@ -3610,7 +3951,10 @@ describe('executeCharacterSheetCommand persistence', () => {
     const evaluation = await evaluateCharacterBuilderTestPolicy({
       db: db as unknown as DBLike,
       character,
-      context: { catalog: resolution.catalog, registry: resolution.sourceRegistry },
+      context: {
+        catalog: resolution.catalog,
+        registry: resolution.sourceRegistry
+      },
       existingRevisionId: 'revision-1',
       expectedRevisionId: 'revision-1',
       adjustments: [],
@@ -3618,6 +3962,14 @@ describe('executeCharacterSheetCommand persistence', () => {
       resourceUsage: [],
       attunementSlotOverride: null
     })
+    const basePolicyOutput = {
+      ...evaluation.output,
+      senses: [sensePolicyFact(60)]
+    }
+    const campaignPolicyOutput = {
+      ...evaluation.output,
+      senses: [sensePolicyFact(30)]
+    }
     const currentMechanics = {
       characterId: character.id,
       characterStreamVersion: 1,
@@ -3640,7 +3992,8 @@ describe('executeCharacterSheetCommand persistence', () => {
         equipmentItems: []
       },
       rulePolicyInput: evaluation.facts,
-      rulePolicyOutput: evaluation.output,
+      rulePolicyOutput: basePolicyOutput,
+      pinnedSenseDefinitions: [createPinnedVisionSense(60)],
       ruleRegistry: {}
     } as unknown as CharacterMechanicsProjection
     const nextMechanics = {
@@ -3650,14 +4003,23 @@ describe('executeCharacterSheetCommand persistence', () => {
     } as CharacterMechanicsProjection
     mocks.findMechanics.mockResolvedValue(currentMechanics)
     mocks.compileMechanicsProjection.mockReturnValue(nextMechanics)
-    mocks.evaluatePinnedRuleRevision.mockResolvedValue({
-      checksum: currentMechanics.ruleRevisionChecksum,
-      evaluatorKind: 'ZEN',
-      evaluatorVersion: currentMechanics.evaluatorVersion,
-      modelContractVersion: currentMechanics.modelContractVersion,
-      result: evaluation.output,
-      revisionId: currentMechanics.ruleRevisionId
-    })
+    mocks.evaluatePinnedRuleRevision
+      .mockResolvedValueOnce({
+        checksum: currentMechanics.ruleRevisionChecksum,
+        evaluatorKind: 'ZEN',
+        evaluatorVersion: currentMechanics.evaluatorVersion,
+        modelContractVersion: currentMechanics.modelContractVersion,
+        result: basePolicyOutput,
+        revisionId: currentMechanics.ruleRevisionId
+      })
+      .mockResolvedValueOnce({
+        checksum: currentMechanics.ruleRevisionChecksum,
+        evaluatorKind: 'ZEN',
+        evaluatorVersion: currentMechanics.evaluatorVersion,
+        modelContractVersion: currentMechanics.modelContractVersion,
+        result: campaignPolicyOutput,
+        revisionId: currentMechanics.ruleRevisionId
+      })
     const campaignId = '00000000-0000-4000-8000-000000000311'
     mocks.lockMaximumHitPointContext.mockResolvedValue({
       campaignId,
@@ -3682,7 +4044,9 @@ describe('executeCharacterSheetCommand persistence', () => {
         manualMaximumModifierOwner: null,
         projectionChecksum: '9'.repeat(64),
         projectionSchemaVersion: 3,
-        kind: 'BASE_REFERENCE'
+        kind: 'MATERIALIZED',
+        rulePolicyInput: evaluation.facts,
+        rulePolicyOutput: campaignPolicyOutput
       },
       priorEvent: null
     })
@@ -3694,7 +4058,11 @@ describe('executeCharacterSheetCommand persistence', () => {
       characterId: character.id,
       userId: character.userId,
       command: {
-        adjustment: { family: 'HIT_POINTS', field: 'MAXIMUM_MODIFIER', value: 3 },
+        adjustment: {
+          family: 'HIT_POINTS',
+          field: 'MAXIMUM_MODIFIER',
+          value: 3
+        },
         commandId: '00000000-0000-4000-8000-000000000309',
         expectedVersion: 1,
         type: 'UPSERT_SHEET_ADJUSTMENT'
@@ -3725,14 +4093,86 @@ describe('executeCharacterSheetCommand persistence', () => {
             })
           })
         }),
-        nextCampaignPolicy: null,
+        nextCampaignPolicy: expect.objectContaining({
+          rulePolicyOutput: campaignPolicyOutput
+        }),
         nextManualMaximumModifierOwner: 'CHARACTER'
       })
     )
     expect(mocks.publishMechanics).not.toHaveBeenCalled()
     expect(mocks.buildSheetBundle).not.toHaveBeenCalled()
     expect(mocks.assembleSheetBundleForRuleContext).not.toHaveBeenCalled()
-    expect(execution).toMatchObject({ replayed: false, version: 2 })
+    expect(execution).toMatchObject({
+      characterVision: {
+        characterId: character.id,
+        dimRange: { amount: 30, unit: 'FEET' }
+      },
+      replayed: false,
+      version: 2
+    })
+  })
+
+  it('returns Campaign-effective vision for a compact maximum-hit-point replay', async () => {
+    const character = createCharacter()
+    const command = {
+      adjustment: {
+        family: 'HIT_POINTS' as const,
+        field: 'MAXIMUM_MODIFIER' as const,
+        value: 3
+      },
+      commandId: '00000000-0000-4000-8000-000000000313',
+      expectedVersion: 1,
+      type: 'UPSERT_SHEET_ADJUSTMENT' as const
+    }
+    mocks.lockMaximumHitPointContext.mockResolvedValue({
+      campaignId: '00000000-0000-4000-8000-000000000311',
+      character: {
+        id: character.id,
+        ruleRevisionId: 'revision-1',
+        streamVersion: 2,
+        userId: character.userId
+      },
+      existingAdjustment: null,
+      hitPoints: { current: 10, temp: null },
+      mechanics: {
+        characterId: character.id,
+        pinnedSenseDefinitions: [createPinnedVisionSense(60)],
+        rulePolicyOutput: { senses: [sensePolicyFact(60)] }
+      },
+      overlay: {
+        kind: 'MATERIALIZED',
+        rulePolicyOutput: { senses: [sensePolicyFact(30)] }
+      },
+      priorEvent: {
+        type: 'CHARACTER_SHEET_COMMAND_APPLIED',
+        commandType: command.type,
+        commandFingerprint: fingerprintSheetCommand(command),
+        committedStreamVersion: 2
+      }
+    })
+
+    await expect(
+      executeCompactLiveMaximumHitPointModifierCommand({
+        db: db as unknown as DBLike,
+        campaignId: '00000000-0000-4000-8000-000000000311',
+        characterId: character.id,
+        userId: character.userId,
+        command,
+        liveSessionAuthority: {
+          authorityId: 'room-authority',
+          sessionId: '00000000-0000-4000-8000-000000000312'
+        }
+      })
+    ).resolves.toEqual({
+      characterVision: {
+        characterId: character.id,
+        dimRange: { amount: 30, unit: 'FEET' }
+      },
+      replayed: true,
+      version: 2
+    })
+    expect(mocks.evaluatePinnedRuleRevision).not.toHaveBeenCalled()
+    expect(mocks.commitMaximumHitPointPolicy).not.toHaveBeenCalled()
   })
 
   it('does not refresh a compact hit-point snapshot with a mismatched durable identity', async () => {
@@ -3748,7 +4188,10 @@ describe('executeCharacterSheetCommand persistence', () => {
         }
       }),
       projectionChecksum: 'a'.repeat(64),
-      rulePolicyOutput: { derivedStats: { maxHitPoints: { effective: 12 } }, senses: [] }
+      rulePolicyOutput: {
+        derivedStats: { maxHitPoints: { effective: 12 } },
+        senses: []
+      }
     } as unknown as CharacterMechanicsProjection
     const nextMechanics = {
       ...currentMechanics,
@@ -3774,6 +4217,7 @@ describe('executeCharacterSheetCommand persistence', () => {
         type: 'ADJUST_HIT_POINTS'
       },
       committedRuleSnapshot: {
+        effectiveSceneVision: { characterId: 'character-1', dimRange: null },
         campaignMechanicalContextChecksum: null,
         campaignMechanicsProjectionChecksum: null,
         mechanicsCommandLaneChecksum: currentMechanics.commandLaneChecksum,

@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const ironGolem: CreatureAuthored = {
@@ -271,6 +272,9 @@ export const ironGolem: CreatureAuthored = {
     },
     {
       id: S.featureId(175, 9),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_6_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(175, 9)),
       label: 'Poison Breath (Recharge 6)',
       description:
         'The golem exhales poisonous gas in a 15-foot cone. Each creature in that area must make a DC 19 Constitution saving throw, taking 45 (10d8) poison damage on a failed save, or half as much damage on a successful one.',
@@ -284,7 +288,7 @@ export const ironGolem: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(175, 17),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
               baseDc: 19
             },
             activation: {

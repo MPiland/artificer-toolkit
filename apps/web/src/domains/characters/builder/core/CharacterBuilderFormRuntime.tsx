@@ -132,8 +132,7 @@ export function CharacterBuilderFormRuntime({
         mode: session.mode,
         targetStatus: AUTHORED_RECORD_STATUS.ACTIVE,
         baseActiveUpdatedAt: session.mode === 'edit' ? session.baseActiveUpdatedAt : undefined,
-        authoredContentUpgradePreviewChecksum:
-          preview?.authoredContentUpgrade?.previewChecksum
+        authoredContentUpgradePreviewChecksum: preview?.authoredContentUpgrade?.previewChecksum
       })
       notifications.show({ color: 'green', message: 'Character finalized.' })
       await navigate({

@@ -18,6 +18,13 @@ Every reusable authored source has one stable UUID identity, one autosaved worki
 current published typed document. Explicit Publish validates and atomically replaces current behavior.
 The product exposes no historical source versions, forks, or consumer upgrade workflow.
 
+The Gate 1 foundation records that contract as a reusable definition root, a single editable draft,
+and an all-null-or-complete current document/checksum/contract tuple. The root version and draft
+version are optimistic-concurrency controls, not authored history. A family-specific server publisher
+locks referenced reusable-definition roots in canonical UUID order and revalidates exact current pins
+inside the same publication transaction before replacing the current document.
+revalidates the document at draft save and publish; repositories never accept arbitrary semantic JSON.
+
 ```mermaid
 stateDiagram-v2
   [*] --> WorkingDraft
@@ -41,6 +48,7 @@ contract versions, resolved reusable-definition inputs, source identities/checks
 execution state required to resume. This snapshot is lifecycle data for that occurrence, not an
 authored-document revision and not a consumer-selectable pin. Completed receipts retain only the
 committed evidence/result required for retry and audit.
+
 - Stale derived projections may never be served; they are synchronously reconciled before an
   authoritative read or command.
 

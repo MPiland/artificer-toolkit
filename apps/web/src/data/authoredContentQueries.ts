@@ -61,16 +61,21 @@ export function createAuthoredContentQueries<
       AuthoredCatalogPageParam
     >({
       queryKey: keys.listPage(input),
-      queryFn: async ({ pageParam }) =>
-        await getDomain(client).list({ ...input, ...pageParam }),
+      queryFn: async ({ pageParam }) => await getDomain(client).list({ ...input, ...pageParam }),
       initialPageParam: { direction: 'FORWARD' } satisfies AuthoredCatalogPageParam,
       getNextPageParam: (page) =>
         page.page.nextCursor
-          ? ({ cursor: page.page.nextCursor, direction: 'FORWARD' } satisfies AuthoredCatalogPageParam)
+          ? ({
+              cursor: page.page.nextCursor,
+              direction: 'FORWARD'
+            } satisfies AuthoredCatalogPageParam)
           : undefined,
       getPreviousPageParam: (page) =>
         page.page.previousCursor
-          ? ({ cursor: page.page.previousCursor, direction: 'BACKWARD' } satisfies AuthoredCatalogPageParam)
+          ? ({
+              cursor: page.page.previousCursor,
+              direction: 'BACKWARD'
+            } satisfies AuthoredCatalogPageParam)
           : undefined,
       maxPages: 5
     })

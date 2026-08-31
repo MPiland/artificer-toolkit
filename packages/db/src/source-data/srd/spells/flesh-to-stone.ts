@@ -1,5 +1,5 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
@@ -41,7 +41,7 @@ export const fleshToStone: SpellAuthored = {
         savingThrow: {
           id: spellChildId(SPELL_IDS.FLESH_TO_STONE, 0x211, 1),
           dcMethod: 'SOURCE_SAVE_DC',
-          ability: ABILITY_CODE.CONSTITUTION
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION
         },
         activation: {
           code: ACTIVATION_CODE.ACTION,
@@ -87,7 +87,7 @@ export const fleshToStone: SpellAuthored = {
                 savingThrow: {
                   id: spellChildId(SPELL_IDS.FLESH_TO_STONE, 0x217, 1),
                   dcMethod: 'SOURCE_SAVE_DC' as const,
-                  ability: ABILITY_CODE.CONSTITUTION
+                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION
                 },
                 attempts: {
                   kind: 'THRESHOLDS' as const,

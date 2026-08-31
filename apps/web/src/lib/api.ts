@@ -192,7 +192,7 @@ export type {
 } from '@artificer-toolkit/schema/api/liveSessions'
 
 export type {
-  EncounterSceneStateDto,
+  CampaignSceneStateDto,
   SceneCommandInputDto,
   SceneDefinitionDto,
   SceneSnapshotDto,

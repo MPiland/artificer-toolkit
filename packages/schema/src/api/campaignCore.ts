@@ -13,6 +13,11 @@ import {
 const campaignNameSchema = z.string().trim().min(1).max(100)
 const campaignDescriptionSchema = authoredRichTextSchema
 const campaignToneDetailsSchema = z.string().trim().min(1).max(1_000)
+export const MAX_CAMPAIGN_RULES_CATALOGUES = 32
+const additionalRulesCatalogueIdsSchema = z
+  .array(postgresUuidSchema)
+  .max(MAX_CAMPAIGN_RULES_CATALOGUES - 1)
+  .refine((ids) => new Set(ids).size === ids.length, 'Rules Catalogues must be unique.')
 
 export const entitlementTierDtoSchema = z.enum(['FREE', 'PLAYER', 'GM', 'PRO_GM'])
 export const entitlementLimitDtoSchema = z.strictObject({
@@ -105,6 +110,9 @@ const campaignBaseDtoSchema = z.strictObject({
   toneTags: campaignToneTagsDtoSchema,
   toneDetails: campaignToneDetailsSchema.nullable(),
   contentMaturity: campaignContentMaturityDtoSchema,
+  gameSystemId: postgresUuidSchema,
+  primaryRulesCatalogueId: postgresUuidSchema,
+  additionalRulesCatalogueIds: additionalRulesCatalogueIdsSchema,
   status: campaignStatusDtoSchema,
   role: campaignRoleDtoSchema,
   version: versionSchema,
@@ -121,14 +129,27 @@ export const campaignDetailDtoSchema = campaignBaseDtoSchema.extend({
   attunementSlotOverride: z.number().int().nonnegative().nullable(),
   memberships: z.array(campaignMembershipDtoSchema)
 })
-export const createCampaignInputSchema = z.strictObject({
-  name: campaignNameSchema,
-  description: campaignDescriptionSchema.nullable().optional(),
-  format: campaignFormatDtoSchema,
-  toneTags: campaignToneTagsDtoSchema,
-  toneDetails: campaignToneDetailsSchema.nullable().optional(),
-  contentMaturity: campaignContentMaturityDtoSchema
-})
+export const createCampaignInputSchema = z
+  .strictObject({
+    name: campaignNameSchema,
+    description: campaignDescriptionSchema.nullable().optional(),
+    format: campaignFormatDtoSchema,
+    toneTags: campaignToneTagsDtoSchema,
+    toneDetails: campaignToneDetailsSchema.nullable().optional(),
+    contentMaturity: campaignContentMaturityDtoSchema,
+    gameSystemId: postgresUuidSchema,
+    primaryRulesCatalogueId: postgresUuidSchema,
+    additionalRulesCatalogueIds: additionalRulesCatalogueIdsSchema.default([])
+  })
+  .superRefine((input, context) => {
+    if (input.additionalRulesCatalogueIds.includes(input.primaryRulesCatalogueId)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['additionalRulesCatalogueIds'],
+        message: 'The primary Rules Catalogue is enabled implicitly and cannot be additional.'
+      })
+    }
+  })
 export const campaignPublicIdInputSchema = z.strictObject({
   campaignPublicId: z.string().trim().min(1)
 })
@@ -141,6 +162,8 @@ export const updateCampaignInputSchema = z.strictObject({
   toneDetails: campaignToneDetailsSchema.nullable().optional(),
   contentMaturity: campaignContentMaturityDtoSchema.optional(),
   attunementSlotOverride: z.number().int().nonnegative().nullable().optional(),
+  primaryRulesCatalogueId: postgresUuidSchema.optional(),
+  additionalRulesCatalogueIds: additionalRulesCatalogueIdsSchema.optional(),
   expectedVersion: versionSchema
 })
 const campaignVersionInputSchema = z.strictObject({

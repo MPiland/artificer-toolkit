@@ -86,6 +86,9 @@ const campaign = {
   toneTags: [],
   toneDetails: null,
   contentMaturity: 'STANDARD' as const,
+  gameSystemId: '00000000-0000-4000-8000-000000000301',
+  primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000302',
+  additionalRulesCatalogueIds: [],
   attunementSlotOverride: null,
   status: 'ACTIVE' as const,
   version: 3,
@@ -231,7 +234,8 @@ describe('Campaign content share removal transaction', () => {
     const draftCharacter = createEmptyCharacterAuthored({
       id: ids.character,
       userId: ids.characterOwner,
-      systemId: '00000000-0000-4000-8000-000000000015'
+      systemId: '00000000-0000-4000-8000-000000000015',
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000315'
     })
     draftCharacter.intent.spellSelections = [
       {

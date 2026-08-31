@@ -31,7 +31,12 @@ import {
   grantFoldFacts
 } from './characterRuleResourceProjection.fixtures.js'
 function character() {
-  const entity = createEmptyCharacterAuthored({ id: characterId, systemId, userId })
+  const entity = createEmptyCharacterAuthored({
+    id: characterId,
+    systemId,
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000302',
+    userId
+  })
   entity.intent.resourceGrants = [
     {
       id: 'persisted-resource-grant',

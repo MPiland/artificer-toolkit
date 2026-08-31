@@ -5,10 +5,12 @@ import type { CharacterSheetCommittedRuleSnapshot } from '../character/sheetServ
 const ids = {
   campaign: '00000000-0000-4000-8000-000000000001',
   encounter: '00000000-0000-4000-8000-000000000002',
+  scene: '00000000-0000-4000-8000-000000000007',
   session: '00000000-0000-4000-8000-000000000003',
   playerA: '00000000-0000-4000-8000-000000000004',
   characterA: '00000000-0000-4000-8000-000000000005',
-  characterB: '00000000-0000-4000-8000-000000000006'
+  characterB: '00000000-0000-4000-8000-000000000006',
+  occurrence: '00000000-0000-4000-8000-000000000008'
 } as const
 
 const mocks = vi.hoisted(() => ({
@@ -17,10 +19,19 @@ const mocks = vi.hoisted(() => ({
   listCampaignSessions: vi.fn(),
   listSessionAttendance: vi.fn(),
   findCharacter: vi.fn(),
+  findEncounter: vi.fn(),
+  findActiveEncounter: vi.fn(),
   listEncounters: vi.fn(),
   requireCurrentProjection: vi.fn(),
-  findSceneByEncounter: vi.fn(),
+  findLiveScene: vi.fn(),
+  findSessionPresentation: vi.fn(),
+  findEncounterBinding: vi.fn(),
+  listActorTokenBindings: vi.fn(),
   executeSceneCommand: vi.fn(),
+  setLiveScenePresentation: vi.fn(),
+  bindEncounterToPresentedScene: vi.fn(),
+  executeActorTokenBinding: vi.fn(),
+  executeEncounterCommand: vi.fn(),
   executeCompactLiveHitPoints: vi.fn(),
   executeCompactMaximumHitPointModifier: vi.fn(),
   executeCharacterSheetCommand: vi.fn(),
@@ -30,7 +41,8 @@ const mocks = vi.hoisted(() => ({
   claimLiveSessionCommandAuthority: vi.fn(),
   renewLiveSessionCommandAuthority: vi.fn(),
   createCampaignCollaborationRepository: vi.fn(),
-  createLiveSessionCommandLeaseRepository: vi.fn()
+  createLiveSessionCommandLeaseRepository: vi.fn(),
+  listPendingEncounters: vi.fn()
 }))
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => {
@@ -41,13 +53,21 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createCampaignRepository: () => ({ listActiveMemberships: mocks.listActiveMemberships }),
     createCharacterRepository: () => ({ findById: mocks.findCharacter }),
     createEncounterRepository: () => ({
+      find: mocks.findEncounter,
+      findActiveForCampaign: mocks.findActiveEncounter,
       listVersionMetadataForSession: mocks.listEncounters,
       requireCurrentProjection: mocks.requireCurrentProjection
     }),
     createVttSceneRepository: () => ({
-      findByEncounter: mocks.findSceneByEncounter
+      findLiveScene: mocks.findLiveScene,
+      findSessionPresentation: mocks.findSessionPresentation,
+      findEncounterBinding: mocks.findEncounterBinding,
+      listActorTokenBindings: mocks.listActorTokenBindings
     }),
-    createLiveSessionCommandLeaseRepository: mocks.createLiveSessionCommandLeaseRepository
+    createLiveSessionCommandLeaseRepository: mocks.createLiveSessionCommandLeaseRepository,
+    createRuleOccurrenceRepository: () => ({
+      listPendingEncounters: mocks.listPendingEncounters
+    })
   }
 })
 
@@ -84,8 +104,14 @@ vi.mock('../character/sheetService.js', () => ({
 }))
 
 vi.mock('../encounter/vttSceneService.js', () => ({
-  attachEncounterScene: vi.fn(),
-  executeEncounterSceneCommandWithState: mocks.executeSceneCommand
+  bindEncounterToPresentedScene: mocks.bindEncounterToPresentedScene,
+  executeEncounterSceneActorTokenBindingCommand: mocks.executeActorTokenBinding,
+  executeEncounterSceneCommandWithState: mocks.executeSceneCommand,
+  setCampaignLiveScenePresentation: mocks.setLiveScenePresentation
+}))
+
+vi.mock('../encounter/encounterService.js', () => ({
+  executeEncounterCommandWithRuleSnapshot: mocks.executeEncounterCommand
 }))
 
 const {
@@ -113,6 +139,8 @@ describe('live-session room snapshot authorization', () => {
     mocks.executeCompactLiveHitPoints.mockReset()
     mocks.executeCompactMaximumHitPointModifier.mockReset()
     mocks.executeCharacterSheetCommand.mockReset()
+    mocks.executeEncounterCommand.mockReset()
+    mocks.executeSceneCommand.mockReset()
     mocks.listActiveMemberships.mockResolvedValue([{ role: 'PLAYER', userId: ids.playerA }])
     mocks.renewLiveSessionCommandAuthority.mockResolvedValue(undefined)
     mocks.lockCampaignForCommand.mockResolvedValue(true)
@@ -142,6 +170,12 @@ describe('live-session room snapshot authorization', () => {
       stream_version: characterId === ids.characterA ? 7 : 11
     }))
     mocks.listEncounters.mockResolvedValue([])
+    mocks.findSessionPresentation.mockResolvedValue(null)
+    mocks.findLiveScene.mockResolvedValue(null)
+    mocks.findEncounterBinding.mockResolvedValue(null)
+    mocks.listActorTokenBindings.mockResolvedValue([])
+    mocks.findActiveEncounter.mockResolvedValue(null)
+    mocks.listPendingEncounters.mockResolvedValue([])
     mocks.loadCharacterRuleSnapshot.mockImplementation(async (_db, characterId: string) =>
       ruleSnapshot(characterId === ids.characterA ? 7 : 11)
     )
@@ -255,6 +289,21 @@ describe('live-session room snapshot authorization', () => {
         revisionId: ids.encounter
       }
     })
+    mocks.listPendingEncounters.mockResolvedValue([
+      {
+        aggregateId: ids.encounter,
+        id: ids.occurrence,
+        pendingSnapshot: {
+          applicationContext: {
+            kind: 'ENCOUNTER_SPATIAL_MOVEMENT',
+            root: { sceneId: ids.scene }
+          }
+        }
+      }
+    ])
+    mocks.listActorTokenBindings.mockResolvedValue([
+      { actorId: ids.encounter, tokenId: ids.characterB }
+    ])
 
     const snapshot = await loadLiveSessionRoomSnapshot(transactionDb, ids.playerA, {
       campaignId: ids.campaign,
@@ -266,7 +315,20 @@ describe('live-session room snapshot authorization', () => {
       expectedStreamVersion: 3
     })
     expect(snapshot.encounterCharacterBindings).toEqual([
-      { actorId: ids.encounter, characterId: ids.characterA, encounterId: ids.encounter }
+      {
+        actorId: ids.encounter,
+        characterId: ids.characterA,
+        encounterId: ids.encounter,
+        tokenId: ids.characterB
+      }
+    ])
+    expect(snapshot.encounterRuleOccurrenceBindings).toEqual([
+      {
+        encounterId: ids.encounter,
+        executionKind: 'SPATIAL',
+        occurrenceId: ids.occurrence,
+        sceneId: ids.scene
+      }
     ])
     expect(snapshot.encounterRuleSnapshots).toEqual([
       {
@@ -332,7 +394,6 @@ describe('live-session room snapshot authorization', () => {
         command: {
           barrierId: ids.encounter,
           commandId,
-          encounterId: ids.encounter,
           expectedSceneVersion: 0,
           sceneId: ids.encounter,
           state: 'OPEN',
@@ -354,9 +415,307 @@ describe('live-session room snapshot authorization', () => {
           campaignId: ids.campaign,
           sessionId: ids.session
         },
+        liveSessionAuthority: {
+          authorityId: 'room-authority',
+          sessionId: ids.session
+        },
         sceneVisionContext: { characterVisions: [], encounterCharacterBindings: [] }
       }
     )
+  })
+
+  it('publishes a fresh reaction-only movement as one exact multi-root transition', async () => {
+    const commandId = '00000000-0000-4000-8000-000000000009'
+    const sceneState = { campaignId: ids.campaign, id: ids.scene, version: 1 }
+    mocks.executeSceneCommand.mockResolvedValue({
+      result: {
+        commandId,
+        delta: {
+          kind: 'TOKEN_MOVED',
+          position: { x: 5, y: 0 },
+          tokenId: ids.characterB
+        },
+        occurrence: {
+          occurrenceId: ids.occurrence,
+          occurrenceVersion: 0,
+          outcome: null,
+          pending: null,
+          status: 'COMPLETE'
+        },
+        replayed: false,
+        sceneId: ids.scene,
+        version: 1
+      },
+      spatialTerminalResult: {
+        status: 'MOVEMENT_COMPLETE',
+        schemaVersion: 1,
+        occurrenceId: ids.occurrence,
+        occurrenceVersion: 0,
+        encounterId: ids.encounter,
+        encounterVersion: 4,
+        sceneId: ids.scene,
+        sceneVersion: 1,
+        tokenId: ids.characterB,
+        movementKind: 'VOLUNTARY',
+        reactionExecutions: [
+          {
+            sourceCommandId: commandId,
+            characterTransitions: [
+              {
+                characterId: ids.characterA,
+                beforeStreamVersion: 7,
+                afterStreamVersion: 8
+              }
+            ]
+          }
+        ],
+        terminalPosition: { x: 5, y: 0 }
+      },
+      spatialChangedAggregates: [
+        {
+          aggregateId: ids.characterA,
+          aggregateKind: 'CHARACTER',
+          beforeVersion: 7,
+          version: 8
+        },
+        {
+          aggregateId: ids.encounter,
+          aggregateKind: 'ENCOUNTER',
+          beforeVersion: 3,
+          version: 4
+        },
+        {
+          aggregateId: ids.scene,
+          aggregateKind: 'SCENE',
+          beforeVersion: 0,
+          version: 1
+        }
+      ],
+      state: sceneState
+    })
+    mocks.loadCharacterRuleSnapshot.mockResolvedValueOnce(ruleSnapshot(8))
+    mocks.requireCurrentProjection.mockResolvedValue({ ruleSnapshot: ruleSnapshot(4) })
+    mocks.findActiveEncounter.mockResolvedValue({
+      campaignId: ids.campaign,
+      id: ids.encounter,
+      sessionId: ids.session,
+      version: 3
+    })
+    mocks.findEncounterBinding.mockResolvedValue({ sceneId: ids.scene })
+    mocks.findLiveScene.mockResolvedValue({ state: sceneState })
+
+    const execution = await executeLiveSessionCommand(
+      {} as DBLike,
+      ids.playerA,
+      { campaignId: ids.campaign, sessionId: ids.session },
+      {
+        aggregateKind: 'SCENE',
+        command: {
+          commandId,
+          correlationId: null,
+          expectedEncounterVersion: 3,
+          expectedSceneVersion: 0,
+          movementKind: 'VOLUNTARY',
+          path: [
+            { x: 0, y: 0 },
+            { x: 5, y: 0 }
+          ],
+          sceneId: ids.scene,
+          tokenId: ids.characterB,
+          type: 'MOVE_SCENE_TOKEN'
+        }
+      },
+      'room-authority',
+      { characterVisions: [], encounterCharacterBindings: [] }
+    )
+
+    expect(execution.changedAggregates).toEqual([
+      {
+        aggregateId: ids.characterA,
+        aggregateKind: 'CHARACTER',
+        beforeVersion: 7,
+        version: 8
+      },
+      {
+        aggregateId: ids.encounter,
+        aggregateKind: 'ENCOUNTER',
+        beforeVersion: 3,
+        version: 4
+      },
+      {
+        aggregateId: ids.scene,
+        aggregateKind: 'SCENE',
+        beforeVersion: 0,
+        version: 1
+      }
+    ])
+    expect(execution.spatialRefresh).toMatchObject({
+      characterRuleSnapshots: [{ characterId: ids.characterA, snapshot: { streamVersion: 8 } }],
+      encounterRuleSnapshot: { streamVersion: 4 },
+      sceneState
+    })
+  })
+
+  it('replays an original movement from its own transitions after later resolutions advanced the occurrence', async () => {
+    const commandId = '00000000-0000-4000-8000-000000000010'
+    mocks.executeSceneCommand.mockResolvedValue({
+      result: {
+        commandId,
+        delta: null,
+        occurrence: {
+          occurrenceId: ids.occurrence,
+          occurrenceVersion: 3,
+          outcome: null,
+          pending: null,
+          status: 'COMPLETE'
+        },
+        replayed: true,
+        sceneId: ids.scene,
+        version: 4
+      },
+      spatialChangedAggregates: [],
+      spatialTerminalResult: {
+        status: 'BATCH_COMPLETE',
+        batchKind: 'ENCOUNTER_SPATIAL_MOVEMENT',
+        schemaVersion: 1,
+        occurrenceId: ids.occurrence,
+        occurrenceVersion: 3,
+        encounterId: ids.encounter,
+        encounterVersion: 5,
+        sceneId: ids.scene,
+        sceneVersion: 4,
+        tokenId: ids.characterB,
+        movementKind: 'VOLUNTARY',
+        reactionExecutions: [],
+        terminalPosition: { x: 5, y: 0 },
+        executions: [],
+        spatialEffectTransitions: [],
+        characterTransitions: [],
+        encounterActorTransitions: []
+      },
+      state: { campaignId: ids.campaign, id: ids.scene, version: 4 }
+    })
+    mocks.findActiveEncounter.mockResolvedValue({
+      campaignId: ids.campaign,
+      id: ids.encounter,
+      sessionId: ids.session,
+      version: 3
+    })
+    mocks.findEncounterBinding.mockResolvedValue({ sceneId: ids.scene })
+
+    const execution = await executeLiveSessionCommand(
+      {} as DBLike,
+      ids.playerA,
+      { campaignId: ids.campaign, sessionId: ids.session },
+      {
+        aggregateKind: 'SCENE',
+        command: {
+          commandId,
+          correlationId: null,
+          expectedEncounterVersion: 3,
+          expectedSceneVersion: 0,
+          movementKind: 'VOLUNTARY',
+          path: [
+            { x: 0, y: 0 },
+            { x: 5, y: 0 }
+          ],
+          sceneId: ids.scene,
+          tokenId: ids.characterB,
+          type: 'MOVE_SCENE_TOKEN'
+        }
+      },
+      'room-authority',
+      { characterVisions: [], encounterCharacterBindings: [] }
+    )
+
+    expect(execution.replayed).toBe(true)
+    expect(execution.changedAggregates).toEqual([])
+    expect(execution.spatialRefresh).toBeUndefined()
+  })
+
+  it('propagates exact Scene-only changes and authoritative vision for a spatial re-pause', async () => {
+    const commandId = '00000000-0000-4000-8000-000000000010'
+    const sceneVisionContext = {
+      characterVisions: [{ characterId: ids.characterA, dimRange: null }],
+      encounterCharacterBindings: [
+        {
+          actorId: ids.characterA,
+          characterId: ids.characterA,
+          encounterId: ids.encounter,
+          tokenId: ids.characterB
+        }
+      ]
+    }
+    const spatialSceneState = { campaignId: ids.campaign, id: ids.scene, version: 4 }
+    mocks.findEncounter.mockResolvedValue({
+      campaignId: ids.campaign,
+      id: ids.encounter,
+      sessionId: ids.session
+    })
+    mocks.executeEncounterCommand.mockResolvedValue({
+      replayed: false,
+      response: { projection: { version: 3 } },
+      spatialChangedAggregates: [{ aggregateId: ids.scene, aggregateKind: 'SCENE', version: 4 }],
+      spatialSceneState
+    })
+    mocks.listPendingEncounters.mockResolvedValue([
+      {
+        aggregateId: ids.encounter,
+        id: ids.characterB,
+        pendingSnapshot: {
+          applicationContext: {
+            kind: 'ENCOUNTER_SPATIAL_MOVEMENT',
+            root: { sceneId: ids.scene }
+          }
+        }
+      }
+    ])
+
+    const execution = await executeLiveSessionCommand(
+      {} as DBLike,
+      ids.playerA,
+      { campaignId: ids.campaign, sessionId: ids.session },
+      {
+        aggregateKind: 'ENCOUNTER',
+        command: {
+          commandId,
+          correlationId: null,
+          encounterId: ids.encounter,
+          expectedOccurrenceVersion: 1,
+          expectedVersion: 3,
+          occurrenceId: ids.characterB,
+          resolution: { kind: 'SYSTEM_ROLL', requestId: 'spatial-request' },
+          type: 'RESOLVE_RULE_OCCURRENCE'
+        }
+      },
+      'room-authority',
+      sceneVisionContext
+    )
+
+    expect(mocks.executeEncounterCommand).toHaveBeenCalledWith(
+      expect.anything(),
+      ids.playerA,
+      expect.objectContaining({ commandId, type: 'RESOLVE_RULE_OCCURRENCE' }),
+      expect.objectContaining({ sceneVisionContext })
+    )
+    expect(execution.changedAggregates).toEqual([
+      { aggregateId: ids.scene, aggregateKind: 'SCENE', version: 4 }
+    ])
+    if (execution.aggregateKind !== 'ENCOUNTER') throw new Error('Expected Encounter execution.')
+    expect(execution.occurrenceBindingUpdate).toEqual({
+      binding: {
+        encounterId: ids.encounter,
+        executionKind: 'SPATIAL',
+        occurrenceId: ids.characterB,
+        sceneId: ids.scene
+      },
+      encounterId: ids.encounter
+    })
+    expect(execution.spatialRefresh).toEqual({
+      characterRuleSnapshots: [],
+      characterVisions: [],
+      sceneState: spatialSceneState
+    })
   })
 
   it('routes live hit-point adjustments through the compact receipt lane', async () => {

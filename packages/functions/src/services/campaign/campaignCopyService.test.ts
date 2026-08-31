@@ -17,6 +17,9 @@ const source = {
   toneTags: ['DARK', 'HORROR'] as const,
   toneDetails: 'Bleak but hopeful',
   contentMaturity: 'MATURE' as const,
+  gameSystemId: '00000000-0000-4000-8000-000000000301',
+  primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000302',
+  additionalRulesCatalogueIds: ['00000000-0000-4000-8000-000000000304'],
   attunementSlotOverride: 4,
   status: 'ACTIVE' as const,
   version: 7,
@@ -29,6 +32,7 @@ const mocks = vi.hoisted(() => ({
     lockCampaign: vi.fn(),
     countActiveOwned: vi.fn(),
     createCampaign: vi.fn(),
+    insertAdditionalRulesCatalogues: vi.fn(),
     insertOwnerMembership: vi.fn()
   },
   collaboration: { copyCampaignNoteSections: vi.fn() },
@@ -97,7 +101,15 @@ describe('copyCampaign', () => {
       tone_tags: source.toneTags,
       tone_details: source.toneDetails,
       content_maturity: source.contentMaturity,
+      game_system_id: source.gameSystemId,
+      primary_rules_catalogue_id: source.primaryRulesCatalogueId,
       attunement_slot_override: source.attunementSlotOverride
+    })
+    expect(mocks.campaign.insertAdditionalRulesCatalogues).toHaveBeenCalledWith({
+      campaignId: ids.copy,
+      gameSystemId: source.gameSystemId,
+      primaryRulesCatalogueId: source.primaryRulesCatalogueId,
+      additionalRulesCatalogueIds: source.additionalRulesCatalogueIds
     })
     expect(mocks.campaign.insertOwnerMembership).toHaveBeenCalledWith(ids.copy, ids.owner)
     expect(mocks.collaboration.copyCampaignNoteSections).toHaveBeenCalledWith(

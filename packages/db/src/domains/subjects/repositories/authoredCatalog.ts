@@ -347,7 +347,10 @@ function asCursorValues(value: unknown): AuthoredCatalogCursorValue[] {
     !Array.isArray(value) ||
     value.length === 0 ||
     value.length > 4 ||
-    !value.every((entry) => typeof entry === 'string' || (typeof entry === 'number' && Number.isSafeInteger(entry)))
+    !value.every(
+      (entry) =>
+        typeof entry === 'string' || (typeof entry === 'number' && Number.isSafeInteger(entry))
+    )
   ) {
     throw new Error('Authored catalog cursor values are invalid.')
   }
@@ -541,21 +544,21 @@ function keysetCondition(
   }
   const operator = direction === 'FORWARD' ? '>' : '<'
   const branches = expressions.map((expression, index) => {
-    const prefix = expressions.slice(0, index).map((previous, previousIndex) =>
-      sql`${previous} = ${cursor.values[previousIndex]}`
-    )
+    const prefix = expressions
+      .slice(0, index)
+      .map((previous, previousIndex) => sql`${previous} = ${cursor.values[previousIndex]}`)
     const comparison =
       operator === '>'
         ? sql`${expression} > ${cursor.values[index]}`
         : sql`${expression} < ${cursor.values[index]}`
     return sql`(${sql.join([...prefix, comparison], sql` and `)})`
   })
-  const equals = expressions.map((expression, index) => sql`${expression} = ${cursor.values[index]}`)
+  const equals = expressions.map(
+    (expression, index) => sql`${expression} = ${cursor.values[index]}`
+  )
   const idComparison =
     operator === '>' ? sql`root.id > ${cursor.id}::uuid` : sql`root.id < ${cursor.id}::uuid`
-  branches.push(
-    sql`(${sql.join([...equals, idComparison], sql` and `)})`
-  )
+  branches.push(sql`(${sql.join([...equals, idComparison], sql` and `)})`)
   return sql`(${sql.join(branches, sql` or `)})`
 }
 
@@ -583,7 +586,10 @@ async function loadMeta(
         inner join public.spell_catalog_classes spell_class on spell_class.spell_id = root.id
           and spell_class.authored_version_id = root.active_version_id
         inner join public.classes class_reference on class_reference.id = spell_class.class_id
-        where ${sql.join(conditions.map((condition) => sql`${condition}`), sql` and `)}
+        where ${sql.join(
+          conditions.map((condition) => sql`${condition}`),
+          sql` and `
+        )}
         order by class_reference.label, class_reference.id
       `.execute(db),
       sql<{ id: number }>`

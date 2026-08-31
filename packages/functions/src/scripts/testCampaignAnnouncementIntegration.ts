@@ -119,7 +119,9 @@ async function main(): Promise<void> {
       name: 'Local announcement proof',
       format: 'ONGOING',
       toneTags: ['HEROIC'],
-      contentMaturity: 'STANDARD'
+      contentMaturity: 'STANDARD',
+      gameSystemId: '00000000-0000-0000-0000-000000000001',
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301'
     })
     campaignId = campaign.id
     await sql`

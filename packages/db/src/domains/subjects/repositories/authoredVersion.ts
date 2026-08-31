@@ -55,6 +55,7 @@ const tableBySubjectKind = {
 
 interface RootRow {
   active_version_id: string | null
+  content_source_id: string
   id: string
   status: string
   system_id: string
@@ -96,6 +97,7 @@ export interface PublishAuthoredVersionInput {
   authoredDependencies: CompiledAuthoredProjection['authoredDependencies']
   authoredChecksum: string
   compiledDocument: CompiledAuthoredProjection['projection']
+  contentSourceId: string
   compilerVersion: string
   document: AuthoredDocumentVersion['document']
   documentSchemaVersion: number
@@ -161,6 +163,7 @@ function optionalDocumentObject(
 export async function upsertAuthoredRootEnvelope(
   db: DBLike,
   input: {
+    contentSourceId: string
     document: AuthoredDocumentVersion['document']
     subjectKind: AuthoredSubjectKind
   }
@@ -171,13 +174,15 @@ export async function upsertAuthoredRootEnvelope(
   const userId = requiredDocumentString(document, 'userId')
   const label = requiredDocumentString(document, 'label')
   const description = optionalDocumentString(document, 'description')
+  const contentSourceId = input.contentSourceId
 
   switch (input.subjectKind) {
     case 'BACKGROUND':
       await sql`
-        insert into public.backgrounds (id, system_id, user_id, label, description)
-        values (${id}::uuid, ${systemId}::uuid, ${userId}::uuid, ${label}, ${description})
+        insert into public.backgrounds (id, system_id, content_source_id, user_id, label, description)
+        values (${id}::uuid, ${systemId}::uuid, ${contentSourceId}::uuid, ${userId}::uuid, ${label}, ${description})
         on conflict (id) do update set
+          content_source_id = backgrounds.content_source_id,
           system_id = excluded.system_id,
           user_id = excluded.user_id,
           label = excluded.label,
@@ -193,6 +198,7 @@ export async function upsertAuthoredRootEnvelope(
         insert into public.classes (
           id,
           system_id,
+          content_source_id,
           user_id,
           category,
           parent_class_id,
@@ -203,6 +209,7 @@ export async function upsertAuthoredRootEnvelope(
         values (
           ${id}::uuid,
           ${systemId}::uuid,
+          ${contentSourceId}::uuid,
           ${userId}::uuid,
           ${category},
           ${parentClassId}::uuid,
@@ -211,6 +218,7 @@ export async function upsertAuthoredRootEnvelope(
           ${description}
         )
         on conflict (id) do update set
+          content_source_id = classes.content_source_id,
           system_id = excluded.system_id,
           user_id = excluded.user_id,
           category = excluded.category,
@@ -230,6 +238,7 @@ export async function upsertAuthoredRootEnvelope(
         insert into public.creatures (
           id,
           system_id,
+          content_source_id,
           user_id,
           label,
           description,
@@ -240,6 +249,7 @@ export async function upsertAuthoredRootEnvelope(
         values (
           ${id}::uuid,
           ${systemId}::uuid,
+          ${contentSourceId}::uuid,
           ${userId}::uuid,
           ${label},
           ${description},
@@ -248,6 +258,7 @@ export async function upsertAuthoredRootEnvelope(
           ${challengeRatingId}::uuid
         )
         on conflict (id) do update set
+          content_source_id = creatures.content_source_id,
           system_id = excluded.system_id,
           user_id = excluded.user_id,
           label = excluded.label,
@@ -267,6 +278,7 @@ export async function upsertAuthoredRootEnvelope(
         insert into public.equipment (
           id,
           system_id,
+          content_source_id,
           user_id,
           label,
           description,
@@ -278,6 +290,7 @@ export async function upsertAuthoredRootEnvelope(
         values (
           ${id}::uuid,
           ${systemId}::uuid,
+          ${contentSourceId}::uuid,
           ${userId}::uuid,
           ${label},
           ${description},
@@ -287,6 +300,7 @@ export async function upsertAuthoredRootEnvelope(
           ${optionalDocumentBoolean(document, 'requiresAttunement')}
         )
         on conflict (id) do update set
+          content_source_id = equipment.content_source_id,
           system_id = excluded.system_id,
           user_id = excluded.user_id,
           label = excluded.label,
@@ -301,15 +315,17 @@ export async function upsertAuthoredRootEnvelope(
     }
     case 'FEAT':
       await sql`
-        insert into public.feats (id, system_id, user_id, label, description)
+        insert into public.feats (id, system_id, content_source_id, user_id, label, description)
         values (
           ${id}::uuid,
           ${systemId}::uuid,
+          ${contentSourceId}::uuid,
           ${userId}::uuid,
           ${label},
           ${requiredDocumentString(document, 'description')}
         )
         on conflict (id) do update set
+          content_source_id = feats.content_source_id,
           system_id = excluded.system_id,
           user_id = excluded.user_id,
           label = excluded.label,
@@ -326,6 +342,7 @@ export async function upsertAuthoredRootEnvelope(
         insert into public.races (
           id,
           system_id,
+          content_source_id,
           user_id,
           label,
           description,
@@ -337,6 +354,7 @@ export async function upsertAuthoredRootEnvelope(
         values (
           ${id}::uuid,
           ${systemId}::uuid,
+          ${contentSourceId}::uuid,
           ${userId}::uuid,
           ${label},
           ${description},
@@ -346,6 +364,7 @@ export async function upsertAuthoredRootEnvelope(
           ${size}
         )
         on conflict (id) do update set
+          content_source_id = races.content_source_id,
           system_id = excluded.system_id,
           user_id = excluded.user_id,
           label = excluded.label,
@@ -366,6 +385,7 @@ export async function upsertAuthoredRootEnvelope(
         insert into public.spells (
           id,
           system_id,
+          content_source_id,
           user_id,
           label,
           description,
@@ -378,6 +398,7 @@ export async function upsertAuthoredRootEnvelope(
         values (
           ${id}::uuid,
           ${systemId}::uuid,
+          ${contentSourceId}::uuid,
           ${userId}::uuid,
           ${label},
           ${description},
@@ -388,6 +409,7 @@ export async function upsertAuthoredRootEnvelope(
           ${optionalDocumentString(document, 'materialDescription')}
         )
         on conflict (id) do update set
+          content_source_id = spells.content_source_id,
           system_id = excluded.system_id,
           user_id = excluded.user_id,
           label = excluded.label,
@@ -403,16 +425,18 @@ export async function upsertAuthoredRootEnvelope(
     }
     case 'VEHICLE':
       await sql`
-        insert into public.vehicles (id, system_id, user_id, label, description, category)
+        insert into public.vehicles (id, system_id, content_source_id, user_id, label, description, category)
         values (
           ${id}::uuid,
           ${systemId}::uuid,
+          ${contentSourceId}::uuid,
           ${userId}::uuid,
           ${label},
           ${description},
           ${requiredDocumentString(document, 'category')}
         )
         on conflict (id) do update set
+          content_source_id = vehicles.content_source_id,
           system_id = excluded.system_id,
           user_id = excluded.user_id,
           label = excluded.label,
@@ -558,7 +582,7 @@ async function lockRoot(
 ): Promise<RootRow | null> {
   const table = tableBySubjectKind[subjectKind]
   const result = await sql<RootRow>`
-    select id, system_id, status, active_version_id
+    select id, system_id, content_source_id, status, active_version_id
     from ${sql.table(table.rootTable)}
     where id = ${subjectId}
     for update
@@ -699,7 +723,7 @@ export function createAuthoredVersionRepository(db: DBLike): AuthoredVersionRepo
     async findActive(input) {
       const table = tableBySubjectKind[input.subjectKind]
       const rootResult = await sql<RootRow>`
-        select id, system_id, status, active_version_id
+        select id, system_id, content_source_id, status, active_version_id
         from ${sql.table(table.rootTable)}
         where id = ${input.subjectId}
       `.execute(db)
@@ -728,7 +752,7 @@ export function createAuthoredVersionRepository(db: DBLike): AuthoredVersionRepo
     async findActiveForPublication(input) {
       const table = tableBySubjectKind[input.subjectKind]
       const rootResult = await sql<RootRow>`
-        select id, system_id, status, active_version_id
+        select id, system_id, content_source_id, status, active_version_id
         from ${sql.table(table.rootTable)}
         where id = ${input.subjectId}
       `.execute(db)
@@ -1035,6 +1059,11 @@ export function createAuthoredVersionRepository(db: DBLike): AuthoredVersionRepo
         if (!root) {
           throw new AuthoredVersionProjectionMismatchError(
             `Cannot publish unavailable ${subjectKind} "${input.subjectId}".`
+          )
+        }
+        if (root.content_source_id !== input.contentSourceId) {
+          throw new AuthoredVersionProjectionMismatchError(
+            `Cannot publish ${subjectKind} "${input.subjectId}" with a different Content Source.`
           )
         }
         const vocabularySnapshot = await lockVocabularySnapshot(

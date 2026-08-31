@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const stoneGolem: CreatureAuthored = {
@@ -109,7 +110,7 @@ export const stoneGolem: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(265, 207),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.WISDOM,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
               baseDc: 17
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },

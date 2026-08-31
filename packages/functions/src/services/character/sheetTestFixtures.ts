@@ -1,5 +1,6 @@
 import type { DBLike } from '@artificer-toolkit/db'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
+import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { SPELLCASTING_ATTRIBUTE } from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
@@ -15,6 +16,7 @@ export function createCharacter(overrides: Partial<CharacterAuthored> = {}): Cha
     status: 'ACTIVE',
     profile: {},
     systemId: 'system-1',
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
     userId: 'user-1',
     intent: {
       advancement: { method: 'MILESTONE' },
@@ -351,7 +353,7 @@ export function createConditionDb(
 export function createSystem(
   overrides: Partial<NonNullable<CharacterBuilderResolution['registry']['system']>> = {}
 ): NonNullable<CharacterBuilderResolution['registry']['system']> {
-  return {
+  return systemAuthoredDtoSchema.parse({
     id: 'system-1',
     label: 'D&D 5e',
     rulesetCode: 'dnd5e',
@@ -374,7 +376,7 @@ export function createSystem(
     terrains: [],
     userId: 'user-1',
     ...overrides
-  }
+  })
 }
 
 export function createResolution(): CharacterBuilderResolution {
@@ -418,9 +420,7 @@ export function createResolution(): CharacterBuilderResolution {
       backgrounds: [],
       equipment: [],
       feats: [],
-      spells: [
-        createSpell({ classIds: ['class-1'], id: 'spell-1', label: 'Test Spell', level: 1 })
-      ]
+      spells: [createSpell({ classIds: ['class-1'], id: 'spell-1', label: 'Test Spell', level: 1 })]
     },
     registry: sourceRegistry,
     sourceRegistry,
@@ -622,6 +622,7 @@ export function createExecuteCharacter(
     status: 'ACTIVE',
     profile: {},
     systemId: 'system-1',
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
     userId: 'user-1',
     intent: {
       advancement: { method: 'MILESTONE' },

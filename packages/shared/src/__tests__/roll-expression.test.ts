@@ -2,10 +2,37 @@ import { describe, expect, it } from 'vitest'
 import {
   evaluateRollExpression,
   parseRollExpression,
-  parseStandaloneDiceConfiguration
+  parseStandaloneDiceConfiguration,
+  resolveD20Contributors
 } from '../domains/rolls/index.js'
 
 describe('roll expressions', () => {
+  it('aggregates qualified d20 contributors without mutating their ordered evidence', () => {
+    const contributors = [
+      { id: 'first', influence: 'ADVANTAGE' as const },
+      { id: 'second', influence: 'ADVANTAGE' as const }
+    ]
+
+    expect(resolveD20Contributors([]).rollMode).toBe('NORMAL')
+    expect(resolveD20Contributors(contributors).rollMode).toBe('ADVANTAGE')
+    expect(
+      resolveD20Contributors([
+        { id: 'first', influence: 'DISADVANTAGE' as const },
+        { id: 'second', influence: 'DISADVANTAGE' as const }
+      ]).rollMode
+    ).toBe('DISADVANTAGE')
+    expect(
+      resolveD20Contributors([...contributors, { id: 'third', influence: 'DISADVANTAGE' as const }])
+    ).toEqual({
+      contributors: [...contributors, { id: 'third', influence: 'DISADVANTAGE' }],
+      rollMode: 'NORMAL'
+    })
+    expect(contributors).toEqual([
+      { id: 'first', influence: 'ADVANTAGE' },
+      { id: 'second', influence: 'ADVANTAGE' }
+    ])
+  })
+
   it('normalizes and deterministically evaluates ordered mixed dice evidence', () => {
     const values = [0, 5, 19]
     const result = evaluateRollExpression(parseRollExpression('double 2D6 + d20 - 3'), {

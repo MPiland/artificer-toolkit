@@ -6,7 +6,7 @@ import {
   type RulePackDocumentDto
 } from '@artificer-toolkit/schema/api/rules'
 
-import * as checksum from './ruleChecksum.js'
+import * as checksum from '@artificer-toolkit/shared/rules'
 import { assertRulePackConformance, RuleConformanceError } from './ruleConformance.js'
 import { RuleDocumentValidationError, validateRulePackDocument } from './ruleDocumentValidation.js'
 import { evaluatePinnedZenRuleModel, evaluateZenRuleModel } from './zenRuleEngine.js'

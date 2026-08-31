@@ -185,6 +185,10 @@ async function hydrateClassRows(
   rows: readonly ClassRow[],
   options: ClassRepositoryReadOptions = {}
 ): Promise<Map<string, ClassAuthored>> {
+  const expectedSystemId =
+    rows.length > 0 && rows.every((row) => row.system_id === rows[0]?.system_id)
+      ? rows[0]?.system_id
+      : undefined
   const classIds = rows.map((row) => row.id)
   if (classIds.length === 0) {
     return new Map()
@@ -395,7 +399,7 @@ async function hydrateClassRows(
       ...detailLinks.map((link) => link.detail_id),
       ...spellcastingDetailRows.map((link) => link.detail_id)
     ]),
-    createFeatureRepository(db).findByIds(
+    createFeatureRepository(db, expectedSystemId).findByIds(
       selectedFeatureLinks.map((link) => link.feature_id),
       { includeEffects: options.includeFeatureEffects }
     ),
@@ -722,8 +726,8 @@ async function hydrateClassesByIds(
 
 export function createClassRepository(db: DBLike): ClassRepositoryWithReadOptions {
   return {
-    async upsert(entity) {
-      await upsertClass(db, entity, entity.systemId)
+    async upsert(entity, options) {
+      await upsertClass(db, entity, entity.systemId, options.contentSourceId)
     },
 
     async findById(id, filter) {

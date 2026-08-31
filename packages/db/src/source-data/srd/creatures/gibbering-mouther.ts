@@ -62,6 +62,9 @@ export const gibberingMouther: CreatureAuthored = {
     },
     {
       id: S.featureId(141, 5),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(141, 5)),
       label: 'Blinding Spittle (Recharge 5-6)',
       description:
         "Blinding Spittle (Recharge 5-6). The mouther spits a chemical glob at a point it can see within 15 feet of it. The glob explodes in a blinding flash of light on impact. Each creature within 5 feet of the flash must succeed on a DC 13 Dexterity saving throw or be blinded until the end of the mouther's next turn.",

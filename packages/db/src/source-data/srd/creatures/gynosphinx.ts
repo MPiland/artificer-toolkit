@@ -213,70 +213,150 @@ export const gynosphinx: CreatureAuthored = {
     },
     {
       id: S.featureId(157, 6),
-      label: 'Legendary Actions',
-      section: 'LEGENDARY_ACTION',
-      description:
-        "The sphinx can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. The sphinx regains spent legendary actions at the start of its turn. Claw Attack. The sphinx makes one claw attack. Teleport (Costs 2 Actions). The sphinx magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see. Cast a Spell (Costs 3 Actions). The sphinx casts a spell from its list of prepared spells, using a spell slot as normal.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.legendaryActionId(157, 209),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(157, 1206), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GYNOSPHINX_LEGENDARY_ACTIONS
-        }),
+      options: [
         {
-          id: S.legendaryActionId(157, 210),
-          order: 2,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 2 },
-            range: {
-              id: S.actionId(157, 1210),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 120,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          paths: [
+          id: '00000000-0005-00c9-0070-009d00000000',
+          label: 'Claw Attack',
+          description: 'The sphinx makes one claw attack.',
+          order: 1,
+          effects: [
             {
-              id: S.legendaryActionId(157, 211),
+              id: '00000000-0005-00d1-0070-009d00000000',
               order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: S.legendaryActionId(157, 212),
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: S.legendaryActionId(157, 213),
-                    effectKind: S.EFFECT_KIND.TELEPORT,
-                    targetKind: 'SELF',
-                    destinationKind: 'VISIBLE'
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'ACTIVATED',
+                activation: { code: 'ACTION', amount: 1 },
+                range: { id: '00000000-0002-04b6-0070-009d00000000', rangeKind: 'SPECIAL' },
+                resourceUse: { chargeId: S.legendaryActionId(157, 208), cost: 1 }
+              },
+              paths: [
+                {
+                  id: '9fcbe47c-2a83-5108-8a6d-6b240749d0a1',
+                  order: 1,
+                  pathCode: 'ON_USE',
+                  groupType: 'SINGLE',
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: '20d1f7e3-eb93-54ea-a8bc-05b4d3bd3e69',
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: 'c3fbb00f-e1c4-5d76-8319-6df956d8299d',
+                        effectKind: 'CLOSED_RULE',
+                        ruleKind: 'CREATURE_GYNOSPHINX_LEGENDARY_ACTIONS'
+                      }
+                    ]
                   }
-                ]
-              }
+                }
+              ]
             }
           ]
         },
-        S.closedRuleEffect({
-          id: S.legendaryActionId(157, 214),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.SPELL_ATTACK,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 3 },
-            range: { id: S.actionId(157, 1214), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GYNOSPHINX_LEGENDARY_ACTIONS
-        })
+        {
+          id: '00000000-0005-00ca-0070-009d00000000',
+          label: 'Teleport (Costs 2 Actions)',
+          description:
+            'The sphinx magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see.',
+          order: 2,
+          effects: [
+            {
+              id: '00000000-0005-00d2-0070-009d00000000',
+              order: 2,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'ACTIVATED',
+                activation: { code: 'ACTION', amount: 2 },
+                range: {
+                  id: '00000000-0002-04ba-0070-009d00000000',
+                  rangeKind: 'DISTANCE',
+                  amount: 120,
+                  unit: 'FEET'
+                },
+                targeting: { selectionKind: 'SELF' },
+                resourceUse: { chargeId: S.legendaryActionId(157, 208), cost: 2 }
+              },
+              paths: [
+                {
+                  id: '00000000-0005-00d3-0070-009d00000000',
+                  order: 1,
+                  pathCode: 'ON_USE',
+                  groupType: 'SINGLE',
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: '00000000-0005-00d4-0070-009d00000000',
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: '00000000-0005-00d5-0070-009d00000000',
+                        effectKind: 'TELEPORT',
+                        targetKind: 'SELF',
+                        destinationKind: 'VISIBLE'
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: '00000000-0005-00cb-0070-009d00000000',
+          label: 'Cast a Spell (Costs 3 Actions)',
+          description:
+            'The sphinx casts a spell from its list of prepared spells, using a spell slot as normal.',
+          order: 3,
+          effects: [
+            {
+              id: '00000000-0005-00d6-0070-009d00000000',
+              order: 1,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'SPELL_ATTACK',
+                activation: { code: 'ACTION', amount: 3 },
+                range: { id: '00000000-0002-04be-0070-009d00000000', rangeKind: 'SPECIAL' },
+                resourceUse: { chargeId: S.legendaryActionId(157, 208), cost: 3 }
+              },
+              paths: [
+                {
+                  id: '37f3fd8f-3302-59c5-90b2-e91ff0998d73',
+                  order: 1,
+                  pathCode: 'ON_HIT',
+                  groupType: 'SINGLE',
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: 'b17ab546-0bdd-54a6-b419-7d883e981663',
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: '60a52704-47ad-5820-9fdf-3fa03decf3bb',
+                        effectKind: 'CLOSED_RULE',
+                        ruleKind: 'CREATURE_GYNOSPHINX_LEGENDARY_ACTIONS'
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
       ],
+      ruleDefinitionIds: [S.DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID],
+      label: 'Legendary Actions',
+      section: 'LEGENDARY_ACTION',
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      description:
+        "The sphinx can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. The sphinx regains spent legendary actions at the start of its turn. Claw Attack. The sphinx makes one claw attack. Teleport (Costs 2 Actions). The sphinx magically teleports, along with any equipment it is wearing or carrying, up to 120 feet to an unoccupied space it can see. Cast a Spell (Costs 3 Actions). The sphinx casts a spell from its list of prepared spells, using a spell slot as normal.",
+      charges: {
+        id: S.legendaryActionId(157, 208),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: S.SCALING.NONE,
+        resetKind: S.CHARGE_RESET_KIND.MANUAL,
+        amount: 3
+      },
       order: 6
     }
   ]

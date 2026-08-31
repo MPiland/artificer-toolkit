@@ -8,6 +8,19 @@
 
 DO $$
 BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'character_active_rule_effects_maintained_state_encounter_fkey') THEN
+    ALTER TABLE public.character_active_rule_effects
+      ADD CONSTRAINT character_active_rule_effects_maintained_state_encounter_fkey
+      FOREIGN KEY (maintained_effect_state_id, source_encounter_id)
+      REFERENCES public.encounter_maintained_effect_states (id, encounter_id)
+      ON DELETE RESTRICT
+      DEFERRABLE INITIALLY DEFERRED;
+  END IF;
+END;
+$$;
+
+DO $$
+BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'starting_equipment_option_item_equipment_equipment_id_fkey') THEN
     ALTER TABLE public.starting_equipment_option_item_equipment
       ADD CONSTRAINT starting_equipment_option_item_equipment_equipment_id_fkey

@@ -12,6 +12,8 @@ import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import { buildCharacterSpellActionRuleFacts } from './characterSpellActionRuleFacts.js'
 
+const EFFECT_ID = '00000000-0000-4000-8000-0000000000c4'
+
 const spell: SpellAuthored = {
   kind: 'SPELL',
   id: 'spell-1',
@@ -25,7 +27,7 @@ const spell: SpellAuthored = {
   systemId: 'dnd5e2014',
   effects: [
     {
-      id: 'effect-1',
+      id: EFFECT_ID,
       order: 1,
       invocation: {
         kind: 'ACTION',
@@ -64,12 +66,13 @@ describe('buildCharacterSpellActionRuleFacts', () => {
           spellId: 'spell-1',
           effects: [
             {
-              effectId: 'effect-1',
+              effectId: EFFECT_ID,
               mechanicFacts: {
                 invocation: {
                   triggerCode: TRIGGER.ACTIVATED,
                   activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
                   range: { rangeKind: RANGE_KIND.SELF, amount: null, unit: null },
+                  reactionMovementTrigger: null,
                   savingThrow: null
                 },
                 outcomes: [{ kind: 'CONDITION', pathCode: PATH_CODE.ON_USE, conditionId: 'prone' }]

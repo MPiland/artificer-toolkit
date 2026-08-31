@@ -58,7 +58,8 @@ vi.mock('./characterCommittedSheetSources.js', () => ({
   removeCharacterCommittedSheetSourceLoss: mocks.removeSourceLoss,
   retainCharacterCommittedSheetRuleSources: mocks.retainSources
 }))
-vi.mock('./characterMechanicsCompiler.js', () => ({
+vi.mock('./characterMechanicsCompiler.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./characterMechanicsCompiler.js')>()),
   compileCharacterMechanicsProjection: mocks.compile
 }))
 
@@ -90,7 +91,8 @@ function snapshot() {
   const value = createEmptyCharacterAuthored({
     id: ids.character,
     userId: ids.user,
-    systemId: ids.system
+    systemId: ids.system,
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000302'
   })
   value.status = 'ACTIVE'
   value.intent.race.raceId = ids.race
@@ -103,7 +105,10 @@ describe('Character structural reconciliation commit', () => {
     vi.resetAllMocks()
     mocks.findDraft.mockResolvedValue(null)
     mocks.findUpdatedAt.mockResolvedValue('2026-08-22T00:00:00.000Z')
-    mocks.requireCurrent.mockResolvedValue({ authoredVersionVector: [oldPin] })
+    mocks.requireCurrent.mockResolvedValue({
+      authoredVersionVector: [oldPin],
+      pinnedSenseDefinitions: []
+    })
     mocks.loadSources.mockResolvedValue(exactSources)
     mocks.removeSourceLoss.mockReturnValue({ kind: 'EXACT', sources: exactSources })
     mocks.createContext.mockResolvedValue({})
@@ -114,7 +119,7 @@ describe('Character structural reconciliation commit', () => {
     mocks.publishBase.mockResolvedValue({ projectionChecksum: 'compiled' })
     mocks.evaluate.mockResolvedValue({
       binding: { revisionId: 'revision-1' },
-      output: { derivedStats: { maxHitPoints: { effective: 8 } } },
+      output: { derivedStats: { maxHitPoints: { effective: 8 } }, senses: [] },
       registry: {},
       facts: {},
       snapshot: {}

@@ -19,14 +19,22 @@ describe('buildCharacterSenseRuleFacts', () => {
         {
           id: 'darkvision',
           family: 'SENSE',
-          senseId: 'DARKVISION',
+          senseId: '00000000-0000-4000-8000-000000000010',
           field: 'RANGE_OVERRIDE',
           value: 120
         }
       ]
     }
     expect(buildCharacterSenseRuleFacts(snapshot)).toEqual({
-      senseFacts: { overrides: [{ senseCode: 'DARKVISION', sourceId: 'darkvision', value: 120 }] }
+      senseFacts: {
+        overrides: [
+          {
+            senseDefinitionId: '00000000-0000-4000-8000-000000000010',
+            sourceId: 'darkvision',
+            value: 120
+          }
+        ]
+      }
     })
   })
 })

@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
@@ -116,6 +117,9 @@ export const youngBrassDragon: CreatureAuthored = {
     },
     {
       id: S.featureId(303, 4),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(303, 4)),
       label: 'Fire Breath (Recharge 5-6)',
       description:
         'The dragon exhales fire in a 40-foot line that is 5 feet wide. Each creature in that line must make a DC 14 Dexterity saving throw, taking 42 (12d6) fire damage on a failed save, or half as much damage on a successful one.',
@@ -129,7 +133,7 @@ export const youngBrassDragon: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(303, 13),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.DEXTERITY,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
               baseDc: 14
             },
             activation: {
@@ -194,6 +198,9 @@ export const youngBrassDragon: CreatureAuthored = {
     },
     {
       id: S.featureId(303, 5),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(303, 5)),
       label: 'Sleep Breath (Recharge 5-6)',
       description:
         'The dragon exhales sleep gas in a 30-foot cone. Each creature in that area must succeed on a DC 14 Constitution saving throw or fall unconscious for 5 minutes. This effect ends for a creature if the creature takes damage or someone uses an action to wake it.',
@@ -207,7 +214,7 @@ export const youngBrassDragon: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(303, 18),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
               baseDc: 14
             },
             activation: {

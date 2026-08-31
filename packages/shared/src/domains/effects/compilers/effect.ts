@@ -47,12 +47,15 @@ import {
 export type CompiledEffect = {
   id: string
   entryId: string
+  /** Exact authored result-block identity, distinct from option/row entry identity. */
+  resultBlockId: string
   pathGroupId: string
   pathCode: PathCode
   pathOrder: number
   entryOrder: number
   label?: string
   description?: string
+  maintenanceDefinitionId?: string
   duration?: CompiledDuration
   lifecycle?: PathLifecycleAuthored
   rangeOverride?: RangeAuthored
@@ -129,7 +132,9 @@ export type CompiledManifestProximityRule = Omit<ManifestProximityRuleAuthored, 
 
 export type CompiledManifest =
   | CreatureManifestAuthored
-  | (Omit<SummonManifestAuthored, 'behaviors'> & { behaviors?: CompiledEffectGroup[] })
+  | (Omit<SummonManifestAuthored, 'behaviors'> & {
+      behaviors?: CompiledEffectGroup[]
+    })
   | (Omit<NonCreatureManifestAuthored, 'behaviors' | 'components' | 'proximityRule'> & {
       behaviors?: CompiledEffectGroup[]
       components?: CompiledManifestComponent[]
@@ -322,7 +327,10 @@ function compileResultBlock(
   const duration = resultBlock.duration ? compileDuration(resultBlock.duration) : undefined
 
   const compiled: CompiledEffect[] = []
-  const outcomeGroups: Array<{ sourceId: string; outcomes: CompiledEffectOutcome[] }> =
+  const outcomeGroups: Array<{
+    sourceId: string
+    outcomes: CompiledEffectOutcome[]
+  }> =
     resultBlock.outcomes.length > 0
       ? resultBlock.outcomes.map((outcome) => ({
           sourceId: outcome.id,
@@ -340,12 +348,16 @@ function compileResultBlock(
       const base = {
         id: compiledOutcome.id,
         entryId: meta?.entryId ?? outcomeGroup.sourceId,
+        resultBlockId: resultBlock.id,
         pathGroupId: path.id,
         pathCode: path.pathCode,
         pathOrder: path.order,
         entryOrder: meta?.entryOrderBase != null ? meta.entryOrderBase + index : index + 1,
         ...(meta?.label !== undefined ? { label: meta.label } : {}),
         ...(meta?.description !== undefined ? { description: meta.description } : {}),
+        ...(resultBlock.maintenanceDefinitionId
+          ? { maintenanceDefinitionId: resultBlock.maintenanceDefinitionId }
+          : {}),
         outcome: compiledOutcome,
         ...(duration ? { duration } : {}),
         ...(resultBlock.lifecycle ? { lifecycle: resultBlock.lifecycle } : {}),

@@ -7,16 +7,17 @@ import {
   createRuleOperationRegistry,
   executeRuleGraph,
   resumeRuleGraph,
-  type GameSystemCapabilityContract,
+  type GameSystemRuleCapabilityContract,
   type RuleGraphDefinition
 } from '../domains/rules/index.js'
 
 const SYSTEM_ID = '11111111-1111-4111-8111-111111111111'
+const SEEDED_SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
 const DEFINITION_ID = '22222222-2222-4222-8222-222222222222'
 const CHECKSUM = 'a'.repeat(64)
 const OCCURRENCE_ID = '44444444-4444-4444-8444-444444444444'
 
-const capability: GameSystemCapabilityContract = {
+const capability: GameSystemRuleCapabilityContract = {
   gameSystemId: SYSTEM_ID,
   contractVersion: 1,
   authoredRootKinds: ['action'],
@@ -35,12 +36,21 @@ const capability: GameSystemCapabilityContract = {
 function evidenceDefinition(): RuleGraphDefinition {
   return {
     ...thresholdDefinition(),
+    sourceEntryBindings: [
+      {
+        sourceEntryId: '55555555-5555-4555-8555-555555555555',
+        nodeId: 'result'
+      }
+    ],
     nodes: [
       thresholdDefinition().nodes[0]!,
       {
         id: 'roll',
         operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
+        inputs: {
+          min: { kind: 'LITERAL', value: 1 },
+          max: { kind: 'LITERAL', value: 20 }
+        }
       },
       {
         id: 'with_first_roll',
@@ -53,18 +63,27 @@ function evidenceDefinition(): RuleGraphDefinition {
       {
         id: 'second_roll',
         operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 6 } }
+        inputs: {
+          min: { kind: 'LITERAL', value: 1 },
+          max: { kind: 'LITERAL', value: 6 }
+        }
       },
       {
         id: 'result',
         operation: { key: 'number.add', contractVersion: 1 },
         inputs: {
-          left: { kind: 'NODE_OUTPUT', nodeId: 'with_first_roll', port: 'value' },
+          left: {
+            kind: 'NODE_OUTPUT',
+            nodeId: 'with_first_roll',
+            port: 'value'
+          },
           right: { kind: 'NODE_OUTPUT', nodeId: 'second_roll', port: 'value' }
         }
       }
     ],
-    outputs: { value: { kind: 'NODE_OUTPUT', nodeId: 'result', port: 'value' } }
+    outputs: {
+      value: { kind: 'NODE_OUTPUT', nodeId: 'result', port: 'value' }
+    }
   }
 }
 
@@ -99,7 +118,102 @@ function thresholdDefinition(): RuleGraphDefinition {
   }
 }
 
+function boundedChoiceDefinition(): RuleGraphDefinition {
+  return {
+    schemaVersion: 1,
+    id: DEFINITION_ID,
+    gameSystemId: SYSTEM_ID,
+    definitionFamilyKey: 'test-resolution',
+    nodes: [
+      {
+        id: 'choice',
+        operation: {
+          key: 'evidence.bounded-choice-index',
+          contractVersion: 1
+        },
+        inputs: {
+          minIndex: { kind: 'LITERAL', value: 0 },
+          maxIndex: { kind: 'LITERAL', value: 2 }
+        }
+      }
+    ],
+    outputs: {
+      selectedIndex: {
+        kind: 'NODE_OUTPUT',
+        nodeId: 'choice',
+        port: 'selectedIndex'
+      }
+    }
+  }
+}
+
 describe('shared rules runtime', () => {
+  it('records an exact bounded application-owned choice without carrying option identity', () => {
+    const operations = createRuleOperationRegistry(coreRuleOperations)
+    const compiled = compileRuleGraph({
+      definition: boundedChoiceDefinition(),
+      sourceChecksum: CHECKSUM,
+      capability,
+      operations
+    })
+    expect(compiled.ok).toBe(true)
+    if (!compiled.ok) throw new Error('Expected bounded-choice graph compilation to succeed.')
+
+    const paused = executeRuleGraph({
+      graph: compiled.value,
+      occurrenceId: OCCURRENCE_ID,
+      facts: {},
+      operations
+    })
+    expect(paused).toMatchObject({
+      status: 'PAUSED',
+      continuation: {
+        request: {
+          kind: 'INTEGER_RANGE',
+          min: 0,
+          max: 2
+        }
+      }
+    })
+    if (paused.status !== 'PAUSED') throw new Error('Expected a paused bounded-choice execution.')
+
+    const completed = resumeRuleGraph({
+      continuation: paused.continuation,
+      response: {
+        requestId: paused.continuation.request.requestId,
+        value: 2
+      },
+      operations
+    })
+    expect(completed).toMatchObject({
+      status: 'COMPLETE',
+      outputs: { selectedIndex: 2 },
+      evidence: {
+        trace: [
+          {
+            operation: {
+              key: 'evidence.bounded-choice-index',
+              contractVersion: 1
+            },
+            evidence: { kind: 'INTEGER_RANGE', value: 2 }
+          }
+        ]
+      }
+    })
+  })
+
+  it('accepts deterministic PostgreSQL UUID identities for seeded Game Systems', () => {
+    const operations = createRuleOperationRegistry(coreRuleOperations)
+    const compiled = compileRuleGraph({
+      definition: { ...thresholdDefinition(), gameSystemId: SEEDED_SYSTEM_ID },
+      sourceChecksum: CHECKSUM,
+      capability: { ...capability, gameSystemId: SEEDED_SYSTEM_ID },
+      operations
+    })
+
+    expect(compiled.ok).toBe(true)
+  })
+
   it('compiles and executes a neutral threshold graph from runtime facts', () => {
     const operations = createRuleOperationRegistry(coreRuleOperations)
     const compiled = compileRuleGraph({
@@ -148,6 +262,73 @@ describe('shared rules runtime', () => {
       ],
       outputs: { passed: true, margin: 1 }
     })
+  })
+
+  it('executes a typed proposal node once and retains its exact trace entry', () => {
+    let executions = 0
+    const proposal = {
+      key: 'test.proposal',
+      contractVersion: 1,
+      inputs: { value: 'NUMBER' as const },
+      outputs: { proposed: 'NUMBER' as const },
+      executionKind: 'PROPOSAL' as const,
+      execute(inputs: Readonly<Record<string, boolean | number | string>>) {
+        executions += 1
+        return { proposed: (inputs.value as number) + 1 }
+      }
+    }
+    const operations = createRuleOperationRegistry([...coreRuleOperations, proposal])
+    const compiled = compileRuleGraph({
+      definition: {
+        ...thresholdDefinition(),
+        nodes: [
+          {
+            id: 'proposal',
+            operation: { key: 'test.proposal', contractVersion: 1 },
+            inputs: { value: { kind: 'FACT', factKey: 'actor.base' } }
+          }
+        ],
+        outputs: {
+          proposed: {
+            kind: 'NODE_OUTPUT',
+            nodeId: 'proposal',
+            port: 'proposed'
+          }
+        }
+      },
+      sourceChecksum: CHECKSUM,
+      capability: {
+        ...capability,
+        operationContracts: [
+          ...capability.operationContracts,
+          { key: 'test.proposal', contractVersion: 1 }
+        ]
+      },
+      operations
+    })
+    if (!compiled.ok) throw new Error('Expected proposal graph compilation to succeed.')
+
+    const result = executeRuleGraph({
+      graph: compiled.value,
+      occurrenceId: OCCURRENCE_ID,
+      facts: { 'actor.base': 12 },
+      operations
+    })
+    expect(result).toMatchObject({
+      status: 'COMPLETE',
+      outputs: { proposed: 13 },
+      evidence: {
+        trace: [
+          {
+            nodeId: 'proposal',
+            operation: { key: 'test.proposal', contractVersion: 1 },
+            inputs: { value: 12 },
+            outputs: { proposed: 13 }
+          }
+        ]
+      }
+    })
+    expect(executions).toBe(1)
   })
 
   it('rejects an operation not declared by the Game System', () => {
@@ -201,7 +382,11 @@ describe('shared rules runtime', () => {
           {
             ...definition.nodes[0]!,
             inputs: {
-              left: { kind: 'NODE_OUTPUT', nodeId: 'threshold', port: 'missing' },
+              left: {
+                kind: 'NODE_OUTPUT',
+                nodeId: 'threshold',
+                port: 'missing'
+              },
               right: { kind: 'LITERAL', value: 'not-a-number' }
             }
           },
@@ -219,6 +404,99 @@ describe('shared rules runtime', () => {
         expect.objectContaining({ code: 'RULE_GRAPH_CYCLE' }),
         expect.objectContaining({ code: 'RULE_UNKNOWN_OUTPUT_PORT' }),
         expect.objectContaining({ code: 'RULE_PORT_TYPE_MISMATCH' })
+      ])
+    })
+  })
+
+  it('rejects ambiguous and missing authored source-entry bindings', () => {
+    const operations = createRuleOperationRegistry(coreRuleOperations)
+    const definition = thresholdDefinition()
+    const ambiguous = compileRuleGraph({
+      definition: {
+        ...definition,
+        sourceEntryBindings: [
+          {
+            sourceEntryId: '55555555-5555-4555-8555-555555555555',
+            nodeId: 'total'
+          },
+          {
+            sourceEntryId: '55555555-5555-4555-8555-555555555555',
+            nodeId: 'threshold'
+          }
+        ]
+      },
+      sourceChecksum: CHECKSUM,
+      capability,
+      operations
+    })
+    const missing = compileRuleGraph({
+      definition: {
+        ...definition,
+        sourceEntryBindings: [
+          {
+            sourceEntryId: '55555555-5555-4555-8555-555555555555',
+            nodeId: 'missing'
+          }
+        ]
+      },
+      sourceChecksum: CHECKSUM,
+      capability,
+      operations
+    })
+    const malformed = compileRuleGraph({
+      definition: {
+        ...definition,
+        sourceEntryBindings: [{ sourceEntryId: 'not-a-uuid', nodeId: 'total' }]
+      },
+      sourceChecksum: CHECKSUM,
+      capability,
+      operations
+    })
+    const sharedNode = compileRuleGraph({
+      definition: {
+        ...definition,
+        sourceEntryBindings: [
+          {
+            sourceEntryId: '55555555-5555-4555-8555-555555555555',
+            nodeId: 'total'
+          },
+          {
+            sourceEntryId: '66666666-6666-4666-8666-666666666666',
+            nodeId: 'total'
+          }
+        ]
+      },
+      sourceChecksum: CHECKSUM,
+      capability,
+      operations
+    })
+
+    expect(ambiguous).toMatchObject({
+      ok: false,
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          code: 'RULE_DUPLICATE_SOURCE_ENTRY_BINDING'
+        })
+      ])
+    })
+    expect(missing).toMatchObject({
+      ok: false,
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({ code: 'RULE_SOURCE_ENTRY_NODE_MISSING' })
+      ])
+    })
+    expect(malformed).toMatchObject({
+      ok: false,
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({ code: 'RULE_INVALID_SOURCE_ENTRY_ID' })
+      ])
+    })
+    expect(sharedNode).toMatchObject({
+      ok: false,
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          code: 'RULE_DUPLICATE_SOURCE_ENTRY_BINDING'
+        })
       ])
     })
   })
@@ -306,8 +584,18 @@ describe('shared rules runtime', () => {
     })
     expect(first.status).toBe('PAUSED')
     if (first.status !== 'PAUSED') throw new Error('Expected a paused rule execution.')
-    expect(first.continuation.request).toMatchObject({ nodeId: 'roll', min: 1, max: 20 })
+    expect(first.continuation.request).toMatchObject({
+      nodeId: 'roll',
+      min: 1,
+      max: 20
+    })
     expect(first.continuation.trace.map((entry) => entry.nodeId)).toEqual(['total'])
+    expect(first.continuation.graph.sourceEntryBindings).toEqual([
+      {
+        sourceEntryId: '55555555-5555-4555-8555-555555555555',
+        nodeId: 'result'
+      }
+    ])
     expect(additionExecutions).toBe(1)
 
     const second = resumeRuleGraph({
@@ -317,7 +605,11 @@ describe('shared rules runtime', () => {
     })
     expect(second.status).toBe('PAUSED')
     if (second.status !== 'PAUSED') throw new Error('Expected a second paused rule execution.')
-    expect(second.continuation.request).toMatchObject({ nodeId: 'second_roll', min: 1, max: 6 })
+    expect(second.continuation.request).toMatchObject({
+      nodeId: 'second_roll',
+      min: 1,
+      max: 6
+    })
     expect(second.continuation.request.requestId).not.toBe(first.continuation.request.requestId)
     expect(second.continuation.trace.map((entry) => entry.nodeId)).toEqual([
       'total',
@@ -340,6 +632,12 @@ describe('shared rules runtime', () => {
       'with_first_roll',
       'second_roll',
       'result'
+    ])
+    expect(complete.evidence.sourceEntryBindings).toEqual([
+      {
+        sourceEntryId: '55555555-5555-4555-8555-555555555555',
+        nodeId: 'result'
+      }
     ])
     expect(additionExecutions).toBe(3)
   })

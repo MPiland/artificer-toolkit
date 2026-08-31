@@ -1,5 +1,5 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
@@ -97,13 +97,13 @@ export const pathOfTheBerserker: ClassAuthored = {
             savingThrow: {
               id: classRowId(B, 25, 1),
               dcMethod: 'DERIVED_DC',
-              ability: ABILITY_CODE.WISDOM,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
               baseDc: 8,
               bonuses: [
                 {
                   id: classRowId(B, 26, 1),
                   bonusKind: 'ABILITY_MODIFIER',
-                  ability: ABILITY_CODE.CHARISMA
+                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CHARISMA
                 },
                 {
                   id: classRowId(B, 26, 2),

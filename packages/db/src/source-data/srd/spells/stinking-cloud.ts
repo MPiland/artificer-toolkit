@@ -1,5 +1,5 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   ACTION_ECONOMY_RULE_KIND,
   CASTING_TIME_UNIT_CODE,
@@ -32,7 +32,7 @@ const stinkingCloudSave: ManifestBehaviorAuthored = {
     savingThrow: {
       id: spellChildId(SPELL_IDS.STINKING_CLOUD, 0x411, 1),
       dcMethod: 'SOURCE_SAVE_DC',
-      ability: ABILITY_CODE.CONSTITUTION
+      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION
     },
     range: {
       id: spellChildId(SPELL_IDS.STINKING_CLOUD, 0x412, 1),

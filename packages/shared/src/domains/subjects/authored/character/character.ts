@@ -14,5 +14,6 @@ export interface CharacterAuthored {
   state: CharacterState
 
   systemId: string
+  primaryRulesCatalogueId: string
   userId: string
 }

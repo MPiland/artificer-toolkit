@@ -9,6 +9,7 @@ import { normalizeSubjectStatus } from '../status.js'
 type VehicleRow = {
   id: string
   system_id: string
+  content_source_id: string
   user_id: string
   label: string
   description: string | null
@@ -58,10 +59,16 @@ function requireSizeCode(vehicleId: string, value: string): SizeCode {
   return value as SizeCode
 }
 
-export async function upsertVehicle(db: DBLike, json_data: VehicleAuthored, _systemId: string) {
+export async function upsertVehicle(
+  db: DBLike,
+  json_data: VehicleAuthored,
+  _systemId: string,
+  contentSourceId: string
+) {
   const row: VehicleRow = {
     id: json_data.id,
     system_id: json_data.systemId,
+    content_source_id: contentSourceId,
     user_id: json_data.userId,
     label: json_data.label,
     description: json_data.description ?? null,
@@ -99,7 +106,12 @@ export async function upsertVehicle(db: DBLike, json_data: VehicleAuthored, _sys
     await trx
       .insertInto('vehicles')
       .values(row)
-      .onConflict((oc) => oc.column('id').doUpdateSet(row))
+      .onConflict((oc) =>
+        oc.column('id').doUpdateSet((eb) => ({
+          ...row,
+          content_source_id: eb.ref('vehicles.content_source_id')
+        }))
+      )
       .execute()
 
     await trx.deleteFrom('vehicle_details').where('vehicle_id', '=', json_data.id).execute()

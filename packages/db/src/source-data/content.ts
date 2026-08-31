@@ -76,7 +76,7 @@ export interface VocabularySeedRecord {
   short?: string | null
 }
 
-export interface SystemSeedRecord {
+interface SystemSeedRecordBase {
   id: string
   label: string
   description?: string | null
@@ -100,6 +100,27 @@ export interface SystemSeedRecord {
   terrains: VocabularySeedRecord[]
   userId: string
 }
+
+/** Historical schema-v1 snapshots remain byte-faithfully readable. */
+interface SystemSeedRecordV1 extends SystemSeedRecordBase {
+  schemaVersion?: never
+  abilities?: never
+  initiativePolicy?: never
+}
+
+interface SystemSeedRecordV2 extends SystemSeedRecordBase {
+  schemaVersion: 2
+  abilities: VocabularySeedRecord[]
+  initiativePolicy?: never
+}
+
+interface SystemSeedRecordV3 extends SystemSeedRecordBase {
+  schemaVersion: 3
+  abilities: VocabularySeedRecord[]
+  initiativePolicy: { defaultDefinitionId: string }
+}
+
+export type SystemSeedRecord = SystemSeedRecordV1 | SystemSeedRecordV2 | SystemSeedRecordV3
 
 /**
  * This is the repo-owned seed/import artifact for SRD baseline content.

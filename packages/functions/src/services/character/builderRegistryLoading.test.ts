@@ -272,6 +272,7 @@ function createCharacter(raceId: string, classId: string) {
   const character = createEmptyCharacterAuthored({
     id: 'character-1',
     systemId: 'system-1',
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
     userId: 'user-1'
   })
   character.intent.race = { raceId }
@@ -1079,7 +1080,10 @@ describe('character Builder conditional spell registry loading', () => {
       { id: 'owned-wand', equipmentId: 'wand-of-sparks', quantity: 1 }
     ]
 
-    await loadCharacterBuilderContext({} as never, character)
+    const context = await loadCharacterBuilderContext({} as never, character)
+
+    expect(context.vocabularySnapshot?.document.id).toBe('system-1')
+    expect(repositoryCalls.snapshotFindActive).toHaveBeenCalledWith('system-1')
 
     expect(repositoryCalls.authoredVersionFindActiveByIds).toHaveBeenCalledWith(
       activeVersionInput('RACE', ['human'])

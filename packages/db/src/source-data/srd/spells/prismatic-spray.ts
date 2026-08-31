@@ -1,5 +1,5 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
@@ -92,7 +92,7 @@ export const prismaticSpray: SpellAuthored = {
         savingThrow: {
           id: spellChildId(SPELL_IDS.PRISMATIC_SPRAY, 0x214, 1),
           dcMethod: 'SOURCE_SAVE_DC',
-          ability: ABILITY_CODE.DEXTERITY
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY
         },
         activation: {
           code: ACTIVATION_CODE.ACTION,
@@ -152,7 +152,7 @@ export const prismaticSpray: SpellAuthored = {
                     savingThrow: {
                       id: spellChildId(SPELL_IDS.PRISMATIC_SPRAY, 0x232, 6),
                       dcMethod: 'SOURCE_SAVE_DC' as const,
-                      ability: ABILITY_CODE.CONSTITUTION
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION
                     },
                     attempts: {
                       kind: 'THRESHOLDS' as const,
@@ -198,7 +198,7 @@ export const prismaticSpray: SpellAuthored = {
                     savingThrow: {
                       id: spellChildId(SPELL_IDS.PRISMATIC_SPRAY, 0x232, 7),
                       dcMethod: 'SOURCE_SAVE_DC' as const,
-                      ability: ABILITY_CODE.WISDOM
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
                     },
                     attempts: { kind: 'ONCE' as const },
                     onSuccess: { kind: 'END' as const },

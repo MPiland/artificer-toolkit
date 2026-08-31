@@ -12,6 +12,11 @@ export interface CampaignPlaySettingsRecord {
   contentBoundaries: string | null
   safetyPractices: string[]
   liveSafetyMethod: string | null
+  automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
+  manualReminderMode: 'OFF' | 'SUBTLE'
+  initiativePolicyDefinitionId: string | null
+  initiativeTieDefinitionId: string | null
+  optionalCombatRuleDefinitionIds: string[]
   version: number
   updatedAt: string
 }
@@ -29,6 +34,20 @@ function toRecord(row: Record<string, unknown>): CampaignPlaySettingsRecord {
     contentBoundaries: row.content_boundaries as string | null,
     safetyPractices: row.safety_practices as string[],
     liveSafetyMethod: row.live_safety_method as string | null,
+    automationMode: row.automation_mode as CampaignPlaySettingsRecord['automationMode'],
+    manualReminderMode:
+      row.manual_reminder_mode as CampaignPlaySettingsRecord['manualReminderMode'],
+    initiativePolicyDefinitionId:
+      row.initiative_policy_definition_id == null
+        ? null
+        : String(row.initiative_policy_definition_id),
+    initiativeTieDefinitionId:
+      row.initiative_tie_definition_id == null ? null : String(row.initiative_tie_definition_id),
+    optionalCombatRuleDefinitionIds: (
+      (row.optional_combat_rule_definition_ids as string[] | null) ?? []
+    )
+      .map(String)
+      .sort((left, right) => left.localeCompare(right)),
     version: Number(row.version),
     updatedAt: new Date(row.updated_at as string | Date).toISOString()
   }
@@ -59,7 +78,12 @@ export function createCampaignSettingsRepository(db: DBLike) {
         table_conduct: input.tableConduct,
         content_boundaries: input.contentBoundaries,
         safety_practices: input.safetyPractices,
-        live_safety_method: input.liveSafetyMethod
+        live_safety_method: input.liveSafetyMethod,
+        automation_mode: input.automationMode,
+        manual_reminder_mode: input.manualReminderMode,
+        initiative_policy_definition_id: input.initiativePolicyDefinitionId,
+        initiative_tie_definition_id: input.initiativeTieDefinitionId,
+        optional_combat_rule_definition_ids: input.optionalCombatRuleDefinitionIds
       }
       const updated = await db
         .updateTable('campaign_play_settings')

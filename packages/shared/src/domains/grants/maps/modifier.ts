@@ -110,9 +110,9 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         )
       )
       .set(
-        'senseCode',
+        'senseDefinitionId',
         selectSingle(
-          ['senseCode'],
+          ['senseDefinitionId'],
           'Sense',
           {
             kind: 'DATA',

@@ -4,13 +4,14 @@ import {
   authoredNestedCollectionSchema,
   authoredNonnegativeNumberSchema
 } from './authoredLimits.js'
+import { postgresUuidSchema } from './postgresUuid.js'
 
 const savingThrowDcBonusDtoSchema = z.union([
   z
     .object({
       id: authoredIdentifierSchema,
       bonusKind: z.literal('ABILITY_MODIFIER'),
-      ability: authoredIdentifierSchema
+      abilityDefinitionId: postgresUuidSchema
     })
     .strict(),
   z
@@ -33,14 +34,14 @@ export const savingThrowDtoSchema = z.union([
     .object({
       id: authoredIdentifierSchema,
       dcMethod: z.literal('SOURCE_SAVE_DC'),
-      ability: authoredIdentifierSchema
+      abilityDefinitionId: postgresUuidSchema
     })
     .strict(),
   z
     .object({
       id: authoredIdentifierSchema,
       dcMethod: z.literal('FIXED_DC'),
-      ability: authoredIdentifierSchema,
+      abilityDefinitionId: postgresUuidSchema,
       baseDc: z.number().int(),
       bonuses: authoredNestedCollectionSchema(savingThrowDcBonusDtoSchema).optional()
     })
@@ -49,7 +50,7 @@ export const savingThrowDtoSchema = z.union([
     .object({
       id: authoredIdentifierSchema,
       dcMethod: z.literal('DERIVED_DC'),
-      ability: authoredIdentifierSchema,
+      abilityDefinitionId: postgresUuidSchema,
       baseDc: z.number().int(),
       bonuses: authoredNestedCollectionSchema(savingThrowDcBonusDtoSchema)
     })

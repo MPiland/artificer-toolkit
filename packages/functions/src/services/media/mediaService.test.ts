@@ -102,9 +102,14 @@ describe('media service safety contracts', () => {
   })
 
   it('authorizes VTT delivery before signing every overview and tile URL', () => {
+    const delivery = source.slice(source.indexOf('export async function getVttMapDelivery'))
     expect(source).toContain('assertActiveCampaignMember(authority)')
     expect(source).toContain("authority.membership.role === 'OWNER'")
-    expect(source).toContain("scene.definition_snapshot #>> '{map,assetId}'")
+    expect(delivery).toContain('select 1 from campaign_live_scenes scene')
+    expect(delivery).toContain('join campaign_session_scene_presentations presentation')
+    expect(delivery).toContain("session.status = 'OPEN'")
+    expect(delivery).toContain("scene.definition_snapshot #>> '{map,assetId}'")
+    expect(delivery).not.toContain('encounter_scenes')
     expect(source).toContain('createSignedUrl(tile.object_key, expiresInSeconds)')
   })
 })

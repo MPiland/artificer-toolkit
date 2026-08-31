@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const youngWhiteDragon: CreatureAuthored = {
@@ -224,6 +225,9 @@ export const youngWhiteDragon: CreatureAuthored = {
     },
     {
       id: S.featureId(310, 5),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(310, 5)),
       label: 'Cold Breath (Recharge 5-6)',
       description:
         'The dragon exhales an icy blast in a 30-foot cone. Each creature in that area must make a DC 15 Constitution saving throw, taking 45 (10d8) cold damage on a failed save, or half as much damage on a successful one.',
@@ -237,7 +241,7 @@ export const youngWhiteDragon: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(310, 14),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
               baseDc: 15
             },
             activation: {

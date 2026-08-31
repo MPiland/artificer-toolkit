@@ -317,12 +317,22 @@ export const characterSheetCommandInputDtoSchema = z
     }),
     characterSheetCommandBaseDtoSchema.extend({
       type: z.literal('ADD_CONDITION'),
-      conditionTypeId: z.string(),
+      conditionTypeId: z
+        .string()
+        .regex(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+          'Condition definition identity must be a canonical lowercase PostgreSQL UUID.'
+        ),
       notes: z.string().optional()
     }),
     characterSheetCommandBaseDtoSchema.extend({
       type: z.literal('REMOVE_CONDITION'),
-      conditionTypeId: z.string()
+      conditionTypeId: z
+        .string()
+        .regex(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+          'Condition definition identity must be a canonical lowercase PostgreSQL UUID.'
+        )
     }),
     characterSheetCommandBaseDtoSchema.extend({
       type: z.literal('USE_RESOURCE'),

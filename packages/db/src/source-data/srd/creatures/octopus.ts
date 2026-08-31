@@ -137,6 +137,14 @@ export const octopus: CreatureAuthored = {
       label: 'Ink Cloud (Recharges after a Short or Long Rest)',
       description:
         'Ink Cloud (Recharges after a Short or Long Rest). A 5-foot-radius cloud of ink extends all around the octopus if it is underwater. The area is heavily obscured for 1 minute, although a significant current can disperse the ink. After releasing the ink, the octopus can use the Dash action as a bonus action.',
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: S.actionId(208, 505),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: S.SCALING.NONE,
+        resetKind: S.CHARGE_RESET_KIND.SHORT_REST,
+        amount: 1
+      },
       effects: [
         S.closedRuleEffect({
           id: S.actionId(208, 504),
@@ -153,7 +161,8 @@ export const octopus: CreatureAuthored = {
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            },
+            resourceUse: { chargeId: S.actionId(208, 505), cost: 1 }
           },
           ruleKind: S.CLOSED_RULE_KIND.CREATURE_OCTOPUS_INK_CLOUD
         })

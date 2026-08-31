@@ -10,6 +10,7 @@ import type {
   AuthoredSubjectKind,
   AuthoredVersionVector
 } from '@artificer-toolkit/schema/projections/identity'
+import { authoredVersionVectorSchema } from '@artificer-toolkit/schema/projections/identity'
 
 import type { DBLike, Json } from '#types'
 import {
@@ -31,7 +32,11 @@ const tableBySubjectKind = {
     rootTable: 'backgrounds',
     versionTable: 'background_versions'
   },
-  CLASS: { rootIdColumn: 'class_id', rootTable: 'classes', versionTable: 'class_versions' },
+  CLASS: {
+    rootIdColumn: 'class_id',
+    rootTable: 'classes',
+    versionTable: 'class_versions'
+  },
   CREATURE: {
     rootIdColumn: 'creature_id',
     rootTable: 'creatures',
@@ -42,9 +47,21 @@ const tableBySubjectKind = {
     rootTable: 'equipment',
     versionTable: 'equipment_versions'
   },
-  FEAT: { rootIdColumn: 'feat_id', rootTable: 'feats', versionTable: 'feat_versions' },
-  RACE: { rootIdColumn: 'race_id', rootTable: 'races', versionTable: 'race_versions' },
-  SPELL: { rootIdColumn: 'spell_id', rootTable: 'spells', versionTable: 'spell_versions' },
+  FEAT: {
+    rootIdColumn: 'feat_id',
+    rootTable: 'feats',
+    versionTable: 'feat_versions'
+  },
+  RACE: {
+    rootIdColumn: 'race_id',
+    rootTable: 'races',
+    versionTable: 'race_versions'
+  },
+  SPELL: {
+    rootIdColumn: 'spell_id',
+    rootTable: 'spells',
+    versionTable: 'spell_versions'
+  },
   VEHICLE: {
     rootIdColumn: 'vehicle_id',
     rootTable: 'vehicles',
@@ -77,6 +94,11 @@ interface ExistingProjectionRow {
   stream_version: number
 }
 
+export interface CharacterMechanicsLegacyUpgradeSource {
+  authoredVersionVector: AuthoredVersionVector
+  projectionChecksum: string
+}
+
 interface AuthoredVersionValidationRow {
   authored_checksum: string
   id: string
@@ -93,16 +115,19 @@ interface CharacterMechanicsProjectionRow {
   character_system_id: string
   command_state: Json
   command_state_checksum: string
+  compiled_action_entry_points: Json
   command_lane_checksum: string
   character_stream_version: number
   evaluator_version: string
   model_contract_version: number
   normalized_facts: Json
+  initiative_actor_facts: Json
   projection_checksum: string
   projection_schema_version: number
   rule_pack_checksum: string
   rule_pack_revision_id: string
   rule_result: Json
+  pinned_sense_definitions: Json
   rule_snapshot: Json
   stream_version: number
   vocabulary_snapshot_checksum: string
@@ -173,7 +198,10 @@ function mapProjection(row: CharacterMechanicsProjectionRow): CharacterMechanics
     ruleSnapshot: row.rule_snapshot,
     rulePolicyInput: row.normalized_facts,
     rulePolicyOutput: row.rule_result,
-    ruleRegistry: row.bounded_registry
+    initiativeActorFacts: row.initiative_actor_facts,
+    pinnedSenseDefinitions: row.pinned_sense_definitions,
+    ruleRegistry: row.bounded_registry,
+    compiledActionEntryPoints: row.compiled_action_entry_points
   })
   if (
     checksumCharacterMechanicsCommandState(projection.commandState) !==
@@ -369,7 +397,10 @@ async function validateExactAuthoredVersionVector(
   }
   const rowsByDependency = new Map(
     rows.map((row) => [
-      authoredVersionDependencyKey({ subjectId: row.subject_id, subjectKind: row.subject_kind }),
+      authoredVersionDependencyKey({
+        subjectId: row.subject_id,
+        subjectKind: row.subject_kind
+      }),
       row
     ])
   )
@@ -434,7 +465,10 @@ async function readProjection(
       projection.rule_snapshot,
       projection.normalized_facts,
       projection.bounded_registry,
-      projection.rule_result
+      projection.rule_result,
+      projection.initiative_actor_facts,
+      projection.pinned_sense_definitions,
+      projection.compiled_action_entry_points
     from public.character_mechanics_projections projection
     join public.characters character
       on character.id = projection.character_id
@@ -516,8 +550,16 @@ export interface CharacterMechanicsProjectionRepository {
   }): Promise<CharacterMechanicsProjection>
   publish(
     projection: CharacterMechanicsProjection,
-    options?: CharacterMechanicsProjectionPublishOptions
+    options?: CharacterMechanicsProjectionPublishOptions & {
+      expectedPriorProjectionChecksum?: string
+    }
   ): Promise<CharacterMechanicsProjection>
+  requireLegacyFinalizationUpgradeSource(input: {
+    characterId: string
+    expectedRuleRevisionId: string
+    expectedStreamVersion: number
+    expectedSystemId: string
+  }): Promise<CharacterMechanicsLegacyUpgradeSource>
   listCharacterIdsByAuthoredRoot(input: {
     candidateCharacterIds: readonly string[]
     subjectKind: AuthoredSubjectKind
@@ -541,6 +583,51 @@ export function createCharacterMechanicsProjectionRepository(
   db: DBLike
 ): CharacterMechanicsProjectionRepository {
   return {
+    async requireLegacyFinalizationUpgradeSource(input) {
+      const result = await sql<{
+        authored_version_vector: Json
+        character_id: string
+        character_stream_version: number
+        character_system_id: string
+        projection_checksum: string
+        projection_schema_version: number
+        rule_pack_revision_id: string
+        stream_version: number
+      }>`
+        select
+          projection.character_id,
+          projection.authored_version_vector,
+          projection.projection_checksum,
+          projection.projection_schema_version,
+          projection.rule_pack_revision_id,
+          projection.stream_version,
+          character.system_id as character_system_id,
+          character.stream_version as character_stream_version
+        from public.character_mechanics_projections projection
+        join public.characters character on character.id = projection.character_id
+        where projection.character_id = ${input.characterId}
+        for share of projection
+      `.execute(db)
+      const row = result.rows[0]
+      if (
+        !row ||
+        row.projection_schema_version >= 2 ||
+        row.character_id !== input.characterId ||
+        row.character_system_id !== input.expectedSystemId ||
+        row.stream_version !== input.expectedStreamVersion ||
+        row.character_stream_version !== input.expectedStreamVersion ||
+        row.rule_pack_revision_id !== input.expectedRuleRevisionId ||
+        !/^[a-f0-9]{64}$/.test(row.projection_checksum)
+      ) {
+        throw new CharacterMechanicsProjectionMismatchError(
+          `Character "${input.characterId}" has no eligible pre-v2 mechanics projection for explicit finalization.`
+        )
+      }
+      return {
+        authoredVersionVector: authoredVersionVectorSchema.parse(row.authored_version_vector),
+        projectionChecksum: row.projection_checksum
+      }
+    },
     async deleteForDraft(input) {
       await sql`
         delete from public.character_mechanics_projections projection
@@ -606,6 +693,9 @@ export function createCharacterMechanicsProjectionRepository(
             projection_checksum = ${projection.projectionChecksum},
             normalized_facts = ${JSON.stringify(projection.rulePolicyInput)}::jsonb,
             rule_result = ${JSON.stringify(projection.rulePolicyOutput)}::jsonb,
+            initiative_actor_facts = ${JSON.stringify(projection.initiativeActorFacts)}::jsonb,
+            pinned_sense_definitions = ${JSON.stringify(projection.pinnedSenseDefinitions)}::jsonb,
+            compiled_action_entry_points = ${JSON.stringify(projection.compiledActionEntryPoints)}::jsonb,
             updated_at = now()
           where character_id = ${projection.characterId}
             and stream_version = ${input.expectedPriorStreamVersion}
@@ -709,6 +799,14 @@ export function createCharacterMechanicsProjectionRepository(
         const existing = await lockExistingProjection(trx, projection.characterId)
         existingProjectionLockMs = performance.now() - startedAt
         if (existing) {
+          if (
+            options?.expectedPriorProjectionChecksum &&
+            existing.projection_checksum !== options.expectedPriorProjectionChecksum
+          ) {
+            throw new CharacterMechanicsProjectionMismatchError(
+              `Character "${projection.characterId}" mechanics projection changed before explicit upgrade publication.`
+            )
+          }
           if (existing.stream_version > projection.characterStreamVersion) {
             throw new CharacterMechanicsProjectionMismatchError(
               `Character "${projection.characterId}" already has a newer mechanics projection.`
@@ -750,6 +848,9 @@ export function createCharacterMechanicsProjectionRepository(
             normalized_facts,
             bounded_registry,
             rule_result,
+            initiative_actor_facts,
+            pinned_sense_definitions,
+            compiled_action_entry_points,
             updated_at
           ) values (
             ${projection.characterId},
@@ -769,6 +870,9 @@ export function createCharacterMechanicsProjectionRepository(
             ${JSON.stringify(projection.rulePolicyInput)}::jsonb,
             ${JSON.stringify(projection.ruleRegistry)}::jsonb,
             ${JSON.stringify(projection.rulePolicyOutput)}::jsonb,
+            ${JSON.stringify(projection.initiativeActorFacts)}::jsonb,
+            ${JSON.stringify(projection.pinnedSenseDefinitions)}::jsonb,
+            ${JSON.stringify(projection.compiledActionEntryPoints)}::jsonb,
             now()
           )
           on conflict (character_id) do update set
@@ -788,6 +892,9 @@ export function createCharacterMechanicsProjectionRepository(
             normalized_facts = excluded.normalized_facts,
             bounded_registry = excluded.bounded_registry,
             rule_result = excluded.rule_result,
+            initiative_actor_facts = excluded.initiative_actor_facts,
+            pinned_sense_definitions = excluded.pinned_sense_definitions,
+            compiled_action_entry_points = excluded.compiled_action_entry_points,
             updated_at = now()
         `.execute(trx)
         writeMs = performance.now() - startedAt

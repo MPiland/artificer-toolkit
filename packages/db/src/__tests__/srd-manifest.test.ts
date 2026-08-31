@@ -26,6 +26,7 @@ import { srdFeats } from '../source-data/srd/feats/index.js'
 import { srdRaces } from '../source-data/srd/races/index.js'
 import { srdSpells } from '../source-data/srd/spells/index.js'
 import { srdVehicles } from '../source-data/srd/vehicles/index.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '../source-data/srd/vocabulary.js'
 
 function expectUniqueIds(records: Array<{ id: string }>, label: string) {
   const ids = records.map((record) => record.id)
@@ -217,7 +218,7 @@ describe('SRD manifest coverage', () => {
     })
     expect(savingThrow).toMatchObject({
       dcMethod: SAVING_THROW_DC_METHOD.DERIVED_DC,
-      ability: 'DEXTERITY',
+      abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
       baseDc: 8
     })
     expect(
@@ -226,7 +227,7 @@ describe('SRD manifest coverage', () => {
       {
         id: expect.any(String),
         bonusKind: SAVING_THROW_DC_BONUS_KIND.ABILITY_MODIFIER,
-        ability: 'CONSTITUTION'
+        abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION
       },
       {
         id: expect.any(String),

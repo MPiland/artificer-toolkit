@@ -6,7 +6,7 @@ import type {
 } from '@artificer-toolkit/schema/api/encounters'
 import type { SignedVttMapDeliveryDto } from '@artificer-toolkit/schema/api/media'
 import type {
-  EncounterSceneStateDto,
+  CampaignSceneStateDto,
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 
@@ -105,10 +105,13 @@ export const tabletopSceneDefinition = {
       movementCostMultiplier: 2
     }
   ],
+  ambientIllumination: 'BRIGHT',
   campaignId: tabletopCampaignId,
   darknessZones: [
     {
       id: '77777777-7777-4777-8777-777777777704',
+      mechanicalIllumination: null,
+      mechanicalObscurement: null,
       opacity: 0.62,
       polygon: {
         points: [
@@ -162,7 +165,6 @@ export const tabletopSceneDefinition = {
   name: 'The Lantern Vault',
   tokens: [
     {
-      actorId: null,
       assetId: null,
       controlledByUserIds: [tabletopCurrentUserId],
       height: 70,
@@ -182,7 +184,6 @@ export const tabletopSceneDefinition = {
       width: 70
     },
     {
-      actorId: null,
       assetId: null,
       controlledByUserIds: [],
       height: 70,
@@ -204,7 +205,6 @@ export const tabletopLiveScene = {
   definitionId: tabletopSceneDefinition.id,
   definitionVersion: tabletopSceneDefinition.version,
   doorStates: { '77777777-7777-4777-8777-777777777703': 'CLOSED' },
-  encounterId: tabletopEncounterId,
   fogLayers: [],
   id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   measurements: [
@@ -219,7 +219,7 @@ export const tabletopLiveScene = {
     }
   ],
   version: 19
-} satisfies EncounterSceneStateDto
+} satisfies CampaignSceneStateDto
 
 export const tabletopMapDelivery = {
   assetId: tabletopMapAssetId,
@@ -260,17 +260,22 @@ const playerActors = [
 ] satisfies EncounterPlayerProjectionDto['actors']
 
 const encounterBase = {
+  automationMode: 'ASSISTED',
   campaignId: tabletopCampaignId,
   createdAt: '2026-08-15T22:05:00.000Z',
   currentActorId: playerActors[0].id,
   id: tabletopEncounterId,
+  gameSystemId: assignedCharacter.systemId,
+  initiativePolicy: null,
   name: 'Vault confrontation',
+  optionalCombatRules: [] as EncounterPlayerProjectionDto['optionalCombatRules'],
   round: 3,
   rulePackRevisionId: null,
   sessionId: tabletopSession.id,
   status: 'ACTIVE',
-  templateId: '99999999-9999-4999-8999-999999999903',
-  templateVersion: 1,
+  blueprintId: '99999999-9999-4999-8999-999999999903',
+  blueprintVersion: 1,
+  blueprintChecksum: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   updatedAt: '2026-08-15T22:25:00.000Z',
   version: 12
 } as const
@@ -282,6 +287,7 @@ export const tabletopPlayerEncounter = {
 
 export const tabletopGmEncounter = {
   ...encounterBase,
+  manualReminderMode: 'OFF',
   actors: playerActors.map((actor, index) => ({
     ...actor,
     currentHitPoints: index === 0 ? 36 : 47,
@@ -322,6 +328,7 @@ export function createTabletopCampaign(role: 'OWNER' | 'PLAYER'): CampaignDetail
     createdAt: '2026-08-01T12:00:00.000Z',
     description: '<p>A city of glass, smoke, and buried promises.</p>',
     format: 'ONGOING',
+    gameSystemId: assignedCharacter.systemId,
     id: tabletopCampaignId,
     memberCount: 5,
     memberships: [
@@ -335,6 +342,8 @@ export function createTabletopCampaign(role: 'OWNER' | 'PLAYER'): CampaignDetail
       }
     ],
     name: 'The Ashen Road',
+    primaryRulesCatalogueId: '77777777-7777-4777-8777-777777777701',
+    additionalRulesCatalogueIds: [],
     playerCount: 4,
     publicId: 'ashen-road',
     role,

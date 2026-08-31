@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
+  DAMAGE_BONUS_KIND,
+  DAMAGE_VALUE_KIND,
   EFFECT_KIND,
   FORCED_MOVEMENT_ACTION_ECONOMY,
   FORCED_MOVEMENT_DIRECTION,
@@ -17,8 +19,69 @@ import {
   TRIGGER
 } from '#core'
 import { compileEffectResult } from '#compilers'
+import { checksumRuleDocument } from '../domains/rules/checksum.js'
+
+function expectNoUndefined(value: unknown): void {
+  if (Array.isArray(value)) {
+    for (const entry of value) expectNoUndefined(entry)
+    return
+  }
+  if (value && typeof value === 'object') {
+    for (const entry of Object.values(value)) {
+      expect(entry).not.toBeUndefined()
+      expectNoUndefined(entry)
+    }
+  }
+}
 
 describe('effect compiler', () => {
+  it('omits absent optional damage fields from canonical compiled output', () => {
+    const result = compileEffectResult({
+      id: 'canonical-damage-effect',
+      order: 1,
+      invocation: {
+        triggerCode: TRIGGER.ACTIVATED,
+        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+        range: { id: 'canonical-damage-range', rangeKind: RANGE_KIND.SELF }
+      },
+      paths: [
+        {
+          id: 'canonical-damage-path',
+          order: 1,
+          pathCode: PATH_CODE.ON_USE,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: 'canonical-damage-result',
+            resultKind: 'SINGLE',
+            outcomes: [
+              {
+                id: 'canonical-damage-outcome',
+                effectKind: EFFECT_KIND.DAMAGE,
+                damageTypeId: 'canonical-damage-type',
+                valueKind: DAMAGE_VALUE_KIND.DICE,
+                scalingKind: SCALING.NONE,
+                diceConfig: '1d6',
+                bonuses: [
+                  {
+                    id: 'canonical-damage-bonus',
+                    bonusKind: DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                    ability: 'STRENGTH',
+                    order: 1
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    })
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected compileEffectResult to succeed')
+    expectNoUndefined(result.value)
+    expect(() => checksumRuleDocument(result.value)).not.toThrow()
+  })
+
   it('preserves authored action resource use on compiled effect groups', () => {
     const result = compileEffectResult({
       id: 'resource-use-effect',
@@ -127,6 +190,7 @@ describe('effect compiler', () => {
       {
         id: 'slowed',
         entryId: 'slowed',
+        resultBlockId: 'slowed__result',
         pathGroupId: 'potion-side-effects-table',
         pathCode: PATH_CODE.PASSIVE,
         pathOrder: 1,
@@ -145,6 +209,7 @@ describe('effect compiler', () => {
       {
         id: 'poisoned',
         entryId: 'poisoned',
+        resultBlockId: 'poisoned__result',
         pathGroupId: 'potion-side-effects-table',
         pathCode: PATH_CODE.PASSIVE,
         pathOrder: 1,
@@ -240,6 +305,7 @@ describe('effect compiler', () => {
       {
         id: 'shield-buff',
         entryId: 'shield-buff',
+        resultBlockId: 'shield-buff__result',
         pathGroupId: 'shield-buff',
         pathCode: PATH_CODE.ON_CAST,
         pathOrder: 1,
@@ -267,12 +333,12 @@ describe('effect compiler', () => {
               }
             ]
           }
-        },
-        duration: undefined
+        }
       },
       {
         id: 'shield-rule',
         entryId: 'shield-rule',
+        resultBlockId: 'shield-rule__result',
         pathGroupId: 'shield-rule',
         pathCode: PATH_CODE.ON_CAST,
         pathOrder: 2,
@@ -285,8 +351,7 @@ describe('effect compiler', () => {
           label: 'Resolve shield rule',
           reasonCode: 'NARRATIVE_JUDGMENT',
           instructions: 'Apply the remaining shield rule as written.'
-        },
-        duration: undefined
+        }
       }
     ])
   })
@@ -431,6 +496,7 @@ describe('effect compiler', () => {
       {
         id: 'choice-copy-direct-entry',
         entryId: 'choice-copy-direct-entry',
+        resultBlockId: 'choice-copy-direct__result',
         pathGroupId: 'choice-copy-direct',
         pathCode: PATH_CODE.ON_HIT,
         pathOrder: 1,
@@ -448,6 +514,7 @@ describe('effect compiler', () => {
       {
         id: 'choice-copy-roll-entry',
         entryId: 'choice-copy-roll-entry',
+        resultBlockId: 'choice-copy-roll-entry__result',
         pathGroupId: 'choice-copy-roll',
         pathCode: PATH_CODE.ON_HIT,
         pathOrder: 2,
@@ -626,7 +693,7 @@ describe('effect compiler', () => {
         savingThrow: {
           id: 'dw-save',
           dcMethod: 'FIXED_DC',
-          ability: 'WISDOM',
+          abilityDefinitionId: '00000000-0000-0000-0011-000500000000',
           baseDc: 14
         },
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },

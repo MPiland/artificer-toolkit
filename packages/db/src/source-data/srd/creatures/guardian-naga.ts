@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const guardianNaga: CreatureAuthored = {
@@ -179,7 +180,7 @@ export const guardianNaga: CreatureAuthored = {
                     savingThrow: {
                       id: S.actionId(156, 221),
                       dcMethod: 'FIXED_DC',
-                      ability: S.ABILITY_CODE.CONSTITUTION,
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
                       baseDc: 15
                     },
                     attempts: { kind: 'ONCE' },
@@ -269,7 +270,7 @@ export const guardianNaga: CreatureAuthored = {
                     savingThrow: {
                       id: S.actionId(156, 231),
                       dcMethod: 'FIXED_DC',
-                      ability: S.ABILITY_CODE.CONSTITUTION,
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
                       baseDc: 15
                     },
                     attempts: { kind: 'ONCE' },

@@ -59,7 +59,7 @@ export async function resolveActiveRulePackForSystems(
 }
 
 export function encounterSystemIds(encounter: EncounterRecord): Array<string | null> {
-  return encounter.actors.map((actor) => actor.systemId)
+  return [encounter.gameSystemId, ...encounter.actors.map((actor) => actor.systemId)]
 }
 
 export async function requireCompatibleActiveRulePackRevision(

@@ -43,7 +43,7 @@ describe('guided spell effect mapping', () => {
     const draft = createGuidedSpellDraft('DAMAGE', { damageTypeId: 'fire' })
     draft.target = 'CREATURE'
     draft.targetDistance = 90
-    draft.saveAbility = 'DEXTERITY'
+    draft.saveAbilityDefinitionId = '00000000-0000-0000-0011-000200000000'
 
     const effect = mapGuidedSpellEffect(draft, createDefaultEffect(1) as EffectAuthored, ids)
 
@@ -52,7 +52,7 @@ describe('guided spell effect mapping', () => {
     expect(effect.invocation.savingThrow).toMatchObject({
       id: 'save-1',
       dcMethod: 'SOURCE_SAVE_DC',
-      ability: 'DEXTERITY'
+      abilityDefinitionId: '00000000-0000-0000-0011-000200000000'
     })
     expect(effect.invocation.range).toMatchObject({
       rangeKind: 'DISTANCE',
@@ -138,7 +138,7 @@ describe('guided spell effect mapping', () => {
 
   it('rejects incomplete Advanced mechanics instead of normalizing them', () => {
     const draft = createGuidedSpellDraft('DAMAGE', { damageTypeId: 'fire' })
-    draft.saveAbility = 'DEXTERITY'
+    draft.saveAbilityDefinitionId = '00000000-0000-0000-0011-000200000000'
     const effect = mapGuidedSpellEffect(draft, createDefaultEffect(1) as EffectAuthored, ids)
     if (effect.invocation.triggerCode !== 'SAVING_THROW') {
       throw new Error('Expected a saving throw.')

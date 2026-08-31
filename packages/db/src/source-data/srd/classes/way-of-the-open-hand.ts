@@ -1,5 +1,5 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   CLOSED_RULE_KIND,
   PATH_CODE,
@@ -143,13 +143,13 @@ export const wayOfTheOpenHand: ClassAuthored = {
             savingThrow: {
               id: classRowId(M, 25, 1),
               dcMethod: 'DERIVED_DC',
-              ability: ABILITY_CODE.WISDOM,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
               baseDc: 8,
               bonuses: [
                 {
                   id: classRowId(M, 26, 1),
                   bonusKind: 'ABILITY_MODIFIER',
-                  ability: ABILITY_CODE.WISDOM
+                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
                 },
                 {
                   id: classRowId(M, 26, 2),
@@ -218,13 +218,13 @@ export const wayOfTheOpenHand: ClassAuthored = {
             savingThrow: {
               id: classRowId(M, 25, 2),
               dcMethod: 'DERIVED_DC',
-              ability: ABILITY_CODE.CONSTITUTION,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
               baseDc: 8,
               bonuses: [
                 {
                   id: classRowId(M, 26, 3),
                   bonusKind: 'ABILITY_MODIFIER',
-                  ability: ABILITY_CODE.WISDOM
+                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
                 },
                 {
                   id: classRowId(M, 26, 4),

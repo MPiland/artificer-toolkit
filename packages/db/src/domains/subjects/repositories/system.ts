@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 import type { DBLike } from '#types'
+import { sql } from 'kysely'
 import type { SystemSeedRecord } from '../../../source-data/index.js'
 import { upsertSystem } from '../upserts/system.js'
 import type { SystemRepository } from '../../../repositories/contracts.js'
@@ -43,6 +44,17 @@ export function createSystemRepository(db: DBLike): SystemRepository {
 
     async findById(id) {
       return hydrateSystemById(db, id)
+    },
+
+    async hasRulesCatalogue(input) {
+      const result = await sql<{ found: boolean }>`
+        SELECT EXISTS(
+          SELECT 1 FROM public.rules_catalogues
+          WHERE id = ${input.rulesCatalogueId}::uuid
+            AND game_system_id = ${input.gameSystemId}::uuid
+        ) AS found
+      `.execute(db)
+      return Boolean(result.rows[0]?.found)
     },
 
     async findByIds(ids) {

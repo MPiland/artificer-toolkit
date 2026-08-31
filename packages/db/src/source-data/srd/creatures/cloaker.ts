@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
@@ -104,7 +105,7 @@ export const cloaker: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(65, 108),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.WISDOM,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
               baseDc: 13
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },

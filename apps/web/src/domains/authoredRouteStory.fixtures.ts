@@ -54,7 +54,8 @@ export const authoredRouteStorySystems = [
     description: 'Seed-derived SRD system used for authoring route stories.',
     rulesetCode: 'dnd5e',
     rulesetVersion: '2014',
-    userId: seedStoryUserId
+    userId: seedStoryUserId,
+    rulesCatalogues: []
   }
 ] satisfies SystemListResponseDto
 
@@ -64,6 +65,23 @@ export const authoredRouteStorySystem = {
   description: 'Seed-derived SRD system used for authoring route stories.',
   rulesetCode: 'dnd5e',
   rulesetVersion: '2014',
+  schemaVersion: 2,
+  abilities: [
+    { id: '00000000-0000-0000-0011-000100000000', code: 'STRENGTH', label: 'Strength' },
+    { id: '00000000-0000-0000-0011-000200000000', code: 'DEXTERITY', label: 'Dexterity' },
+    {
+      id: '00000000-0000-0000-0011-000300000000',
+      code: 'CONSTITUTION',
+      label: 'Constitution'
+    },
+    {
+      id: '00000000-0000-0000-0011-000400000000',
+      code: 'INTELLIGENCE',
+      label: 'Intelligence'
+    },
+    { id: '00000000-0000-0000-0011-000500000000', code: 'WISDOM', label: 'Wisdom' },
+    { id: '00000000-0000-0000-0011-000600000000', code: 'CHARISMA', label: 'Charisma' }
+  ],
   alignments: [],
   challengeRatings: [
     {
@@ -160,7 +178,7 @@ export const authoredCreateRouteLoaderData = createAuthoredFormRouteLoaderData({
 
 const seedFireballEffects = [
   {
-    id: 'fireball-effect',
+    id: '00000000-0000-4000-8000-000000000303',
     order: 1,
     invocation: {
       kind: 'ACTION',
@@ -168,7 +186,7 @@ const seedFireballEffects = [
       savingThrow: {
         id: 'fireball-save',
         dcMethod: 'SOURCE_SAVE_DC',
-        ability: 'DEXTERITY'
+        abilityDefinitionId: '00000000-0000-0000-0011-000200000000'
       },
       activation: {
         code: 'ACTION',
@@ -421,7 +439,7 @@ export const seedShortswordPlusOneEquipment = {
   ],
   effects: [
     {
-      id: 'shortsword-plus-one-melee-effect',
+      id: '00000000-0000-4000-8000-000000000301',
       order: 1,
       invocation: {
         kind: 'ACTION',
@@ -542,7 +560,7 @@ export const seedAstralTearAwakenedEquipment = {
   },
   effects: [
     {
-      id: 'astral-tear-melee-effect',
+      id: '00000000-0000-4000-8000-000000000302',
       order: 1,
       invocation: {
         kind: 'ACTION',

@@ -284,7 +284,7 @@ export async function upsertFeature<N extends NodeSubjectCode>(
     }
 
     for (const effect of authoredEffects) {
-      await upsertEffect(trx, effect)
+      await upsertEffect(trx, effect, systemId)
     }
 
     for (const detail of json_data.details ?? []) {

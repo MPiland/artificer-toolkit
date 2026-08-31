@@ -5,16 +5,17 @@ const request = { direction: 'FORWARD', limit: 48, sort: 'name' } as const
 
 describe('loadPagedAuthoredCatalogItems', () => {
   it('walks bounded cursor pages in order', async () => {
-    const list = vi.fn(async (input: typeof request & { cursor?: { id: string; values: string[] } }) =>
-      input.cursor
-        ? {
-            items: [{ id: 'two' }],
-            page: { nextCursor: null }
-          }
-        : {
-            items: [{ id: 'one' }],
-            page: { nextCursor: { id: 'one', values: ['one'] } }
-          }
+    const list = vi.fn(
+      async (input: typeof request & { cursor?: { id: string; values: string[] } }) =>
+        input.cursor
+          ? {
+              items: [{ id: 'two' }],
+              page: { nextCursor: null }
+            }
+          : {
+              items: [{ id: 'one' }],
+              page: { nextCursor: { id: 'one', values: ['one'] } }
+            }
     )
 
     await expect(loadPagedAuthoredCatalogItems(list, request)).resolves.toEqual([

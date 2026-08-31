@@ -15,7 +15,7 @@ import {
   EyeOff
 } from 'lucide-react'
 import type { ComponentType } from 'react'
-import type { EncounterSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type {
   SceneAnnotation,
   SceneBarrier,
@@ -58,15 +58,14 @@ export const editTools: CampaignVttToolDefinition[] = [
   { icon: EyeOff, label: 'Hide fog area', value: 'FOG_HIDE' }
 ]
 
-export function findSceneForEncounter(
-  scenes: EncounterSceneStateDto[],
-  encounterId?: string
-): EncounterSceneStateDto | undefined {
-  return encounterId ? scenes.find((candidate) => candidate.encounterId === encounterId) : undefined
+export function findPresentedScene(
+  scenes: CampaignSceneStateDto[]
+): CampaignSceneStateDto | undefined {
+  return scenes[0]
 }
 
 export function canMoveSceneToken(
-  token: EncounterSceneStateDto['tokens'][number],
+  token: CampaignSceneStateDto['tokens'][number],
   currentUserId: string,
   role: 'OWNER' | 'PLAYER'
 ): boolean {
@@ -74,8 +73,8 @@ export function canMoveSceneToken(
 }
 
 export function nudgeSceneToken(
-  scene: EncounterSceneStateDto,
-  token: EncounterSceneStateDto['tokens'][number],
+  scene: CampaignSceneStateDto,
+  token: CampaignSceneStateDto['tokens'][number],
   direction: SceneTokenNudgeDirection
 ): ScenePoint {
   const step = scene.grid.kind === 'SQUARE' ? scene.grid.cellSize : scene.grid.pixelsPerUnit
@@ -144,6 +143,8 @@ export function createSceneDarknessZone(a: ScenePoint, b: ScenePoint): SceneDark
   if (Math.abs(a.x - b.x) < 1 || Math.abs(a.y - b.y) < 1) return null
   return {
     id: crypto.randomUUID(),
+    mechanicalIllumination: null,
+    mechanicalObscurement: null,
     opacity: 0.72,
     polygon: {
       points: [
@@ -187,7 +188,6 @@ export function createSceneToken(
 ): SceneToken {
   const size = grid.kind === 'SQUARE' ? grid.cellSize : 64
   return {
-    actorId: null,
     assetId: null,
     controlledByUserIds: [],
     height: size,

@@ -115,6 +115,7 @@ export function CampaignScenePreparation({
       if (!name.trim()) throw new Error('Name this scene.')
       return api.campaigns.scenes.create({
         annotations: [],
+        ambientIllumination: 'BRIGHT',
         barriers: [],
         campaignId,
         darknessZones: [],

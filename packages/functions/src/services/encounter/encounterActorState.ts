@@ -5,6 +5,8 @@ import { encounterFeatureReferenceDtoSchema } from '@artificer-toolkit/schema/ap
 import type { EncounterActorRuleResult } from '@artificer-toolkit/schema/api/encounterActorRules'
 import { rollResultDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { featureDtoSchema, type FeatureDto } from '@artificer-toolkit/schema/features/feature'
+import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
+import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
 export function snapshotFeatureDefinitions(actor: EncounterActorRecord): FeatureDto[] {
@@ -55,7 +57,91 @@ export function withFeatureChargeUsed(
   const existing = resources.featureCharges
   const featureCharges =
     typeof existing === 'object' && existing !== null && !Array.isArray(existing) ? existing : {}
-  return { ...resources, featureCharges: { ...featureCharges, [featureId]: used } }
+  return {
+    ...resources,
+    featureCharges: { ...featureCharges, [featureId]: used }
+  }
+}
+
+/**
+ * Reads aggregate-owned, System-defined Encounter usage. The definition UUID
+ * supplies semantics elsewhere; this storage helper understands only a
+ * bounded nonnegative usage value.
+ */
+export function encounterRuleUsageUsed(actor: EncounterActorRecord, definitionId: string): number {
+  const normalizedDefinitionId = serverUuidIdentityDtoSchema.parse(definitionId)
+  return encounterRuleUsageSnapshot(actor)[normalizedDefinitionId] ?? 0
+}
+
+/**
+ * Returns bounded raw UUID-keyed usage for System policy. This validates the
+ * aggregate state but deliberately does not select or interpret a definition.
+ */
+export function encounterRuleUsageSnapshot(
+  actor: EncounterActorRecord
+): Readonly<Record<string, number>> {
+  if (
+    typeof actor.resources !== 'object' ||
+    actor.resources === null ||
+    Array.isArray(actor.resources)
+  ) {
+    return {}
+  }
+  const usage = actor.resources.ruleUsage
+  if (usage === undefined) return {}
+  if (typeof usage !== 'object' || usage === null || Array.isArray(usage)) {
+    throw new Error('Encounter rule usage state is invalid.')
+  }
+  const entries = Object.entries(usage)
+  if (entries.length > RULE_GRAPH_LIMITS.RUNTIME_FACTS) {
+    throw new Error('Encounter rule usage state exceeds its bounded size.')
+  }
+  const normalized: Record<string, number> = {}
+  for (const [definitionId, used] of entries) {
+    const normalizedDefinitionId = serverUuidIdentityDtoSchema.parse(definitionId)
+    if (
+      normalized[normalizedDefinitionId] !== undefined ||
+      typeof used !== 'number' ||
+      !Number.isSafeInteger(used) ||
+      used < 0
+    ) {
+      throw new Error('Encounter rule usage value is invalid.')
+    }
+    normalized[normalizedDefinitionId] = used
+  }
+  return Object.fromEntries(
+    Object.entries(normalized).sort(([left], [right]) => left.localeCompare(right))
+  )
+}
+
+/** Writes one System-defined usage value without interpreting its policy. */
+export function withEncounterRuleUsageUsed(
+  actor: EncounterActorRecord,
+  definitionId: string,
+  used: number
+): Json {
+  const normalizedDefinitionId = serverUuidIdentityDtoSchema.parse(definitionId)
+  if (!Number.isSafeInteger(used) || used < 0) {
+    throw new Error('Encounter rule usage value must be a nonnegative safe integer.')
+  }
+  const resources =
+    typeof actor.resources === 'object' &&
+    actor.resources !== null &&
+    !Array.isArray(actor.resources)
+      ? actor.resources
+      : {}
+  const existing = resources.ruleUsage
+  if (
+    existing !== undefined &&
+    (typeof existing !== 'object' || existing === null || Array.isArray(existing))
+  ) {
+    throw new Error('Encounter rule usage state is invalid.')
+  }
+  const ruleUsage = existing ?? {}
+  return {
+    ...resources,
+    ruleUsage: { ...ruleUsage, [normalizedDefinitionId]: used }
+  }
 }
 
 export function snapshotFeatures(actor: EncounterActorRecord, rules: EncounterActorRuleResult) {

@@ -82,6 +82,29 @@ export type CompiledRace = (
 ) &
   CompiledRaceBase
 
+/**
+ * Child-authored mechanics only. This deliberately excludes the parent projection so source
+ * auditing can pin a subrace's own mechanics without duplicating inherited mechanics.
+ */
+export type CompiledSubraceSource = {
+  id: string
+  category: typeof RACE_CATEGORY_CODE.SUBRACE
+  parentRaceId: string
+  heritageIds?: string[]
+  features?: CompiledFeature[]
+}
+
+export function compileSubraceSource(authored: SubraceAuthored): CompiledSubraceSource {
+  return {
+    id: authored.id,
+    category: authored.category,
+    parentRaceId: authored.parentRaceId,
+    features: authored.features?.length
+      ? authored.features.map((feature) => compileFeature(feature))
+      : undefined
+  }
+}
+
 function mergeOrderedValues<T>(parent?: readonly T[], child?: readonly T[]): T[] | undefined {
   const merged = [...(parent ?? []), ...(child ?? [])]
 

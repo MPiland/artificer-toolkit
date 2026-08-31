@@ -187,6 +187,7 @@ describe('Character mechanics authored version vector', () => {
     const character = createEmptyCharacterAuthored({
       id: identifiers.character,
       systemId: identifiers.system,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       userId: identifiers.user
     })
     character.intent.race = { raceId: identifiers.subrace }
@@ -276,6 +277,7 @@ describe('Character mechanics authored version vector', () => {
     const character = createEmptyCharacterAuthored({
       id: identifiers.character,
       systemId: identifiers.system,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       userId: identifiers.user
     })
     character.intent.race = { raceId: identifiers.subrace }
@@ -324,6 +326,7 @@ describe('Character mechanics authored version vector', () => {
     const character = createEmptyCharacterAuthored({
       id: identifiers.character,
       systemId: identifiers.system,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       userId: identifiers.user
     })
 
@@ -350,6 +353,7 @@ describe('Character mechanics authored version vector', () => {
     const character = createEmptyCharacterAuthored({
       id: identifiers.character,
       systemId: identifiers.system,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       userId: identifiers.user
     })
 

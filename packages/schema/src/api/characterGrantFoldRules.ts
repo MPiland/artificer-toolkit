@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { serverUuidIdentityDtoSchema } from '../shared/rulesExecution.js'
 
 export const CHARACTER_GRANT_FOLD_MODEL_KEY = 'character-grant-fold'
 
@@ -255,7 +256,7 @@ const proficiencyResultSchema = z.strictObject({
 })
 
 const senseResultSchema = z.strictObject({
-  senseCode: identitySchema,
+  senseDefinitionId: serverUuidIdentityDtoSchema,
   range: boundedJsonSchema.optional(),
   acceptedSenseIndex: z.number().int().min(0).max(9_999),
   grantId: identitySchema,

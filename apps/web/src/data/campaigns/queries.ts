@@ -44,6 +44,13 @@ export function getCampaignPlaySettings(campaignId: string, client: Api = api) {
   })
 }
 
+export function getCampaignPlaySettingsOptions(campaignId: string, client: Api = api) {
+  return queryOptions({
+    queryKey: queryKeys.campaigns.playSettingsOptions(campaignId),
+    queryFn: () => client.campaigns.playSettings.options(campaignId)
+  })
+}
+
 export function getCampaignConversations(campaignId: string, client: Api = api) {
   return queryOptions({
     queryKey: queryKeys.campaigns.conversations(campaignId),

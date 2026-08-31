@@ -1,4 +1,5 @@
 import { createAuthoredVersionRepository, type DBLike } from '@artificer-toolkit/db'
+import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import {
   ADVANCEMENT_METHOD_CODE,
   AUTHORED_RECORD_STATUS,
@@ -105,6 +106,8 @@ export interface CharacterBuilderContext {
   registry: CharacterBuilderRegistry
   /** Exact current Spell documents authorized for this Character context. */
   spellDocumentsById?: ReadonlyMap<string, SpellAuthored>
+  /** Exact server-loaded vocabulary snapshot that produced this registry. */
+  vocabularySnapshot?: SystemVocabularySnapshot
 }
 
 export interface CharacterBuilderContextLoadOptions {
@@ -267,6 +270,7 @@ export interface CharacterBuilderResolution {
 
 export function createEmptyCharacterAuthored(params: {
   id: string
+  primaryRulesCatalogueId: string
   systemId: string
   userId: string
 }): CharacterAuthored {
@@ -304,6 +308,7 @@ export function createEmptyCharacterAuthored(params: {
       }
     },
     systemId: params.systemId,
+    primaryRulesCatalogueId: params.primaryRulesCatalogueId,
     userId: params.userId
   }
 }
@@ -314,10 +319,14 @@ export async function loadCharacterBuilderContext(
   campaignContentOverrides: readonly CampaignAuthoredSource[] = [],
   options: CharacterBuilderContextLoadOptions = {}
 ): Promise<CharacterBuilderContext> {
-  const [baseCatalog, campaignContent] = await Promise.all([
+  const [baseCatalog, campaignContent, vocabularySnapshot] = await Promise.all([
     loadCharacterBuilderCatalog(db, character.systemId, character.userId, { includeSpells: false }),
-    loadCampaignCharacterContentOverlay(db, character, campaignContentOverrides)
+    loadCampaignCharacterContentOverlay(db, character, campaignContentOverrides),
+    createSystemVocabularySnapshotRepository(db).findActive(character.systemId)
   ])
+  if (!vocabularySnapshot) {
+    throw new Error(`Character "${character.id}" has no active System vocabulary snapshot.`)
+  }
   const campaignCatalogContent = campaignContent
     ? await hydrateCampaignCatalogContent(db, campaignContent)
     : null
@@ -382,7 +391,8 @@ export async function loadCharacterBuilderContext(
       ...catalog,
       spells
     },
-    registry: lightRegistry
+    registry: lightRegistry,
+    vocabularySnapshot
   }
   const spellIds = collectContextSpellIds(character, context, options.referenceSpellIds)
   const spellDocuments = await loadCharacterStructuralSpellCatalog({
@@ -567,6 +577,7 @@ export async function loadCharacterStructuralRuleContext(
 
   return {
     ...context,
+    vocabularySnapshot,
     spellDocumentsById: new Map(spellDocuments.map((spell) => [spell.id, spell]))
   }
 }

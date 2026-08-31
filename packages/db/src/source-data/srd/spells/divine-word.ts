@@ -1,5 +1,5 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
@@ -37,7 +37,7 @@ export const divineWord: SpellAuthored = {
         savingThrow: {
           id: spellChildId(SPELL_IDS.DIVINE_WORD, 0x214, 1),
           dcMethod: 'SOURCE_SAVE_DC',
-          ability: ABILITY_CODE.CHARISMA
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CHARISMA
         },
         activation: {
           code: ACTIVATION_CODE.ACTION,

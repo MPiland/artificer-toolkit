@@ -164,9 +164,7 @@ export function CharacterSheetExtras({
                   ? 'Loading options…'
                   : 'No matching options. Try another search.'
               }
-              placeholder={
-                isCreature ? 'Search creatures' : 'Search vehicles'
-              }
+              placeholder={isCreature ? 'Search creatures' : 'Search vehicles'}
               searchable
               searchValue={sourceQuery}
               value={sourceId}

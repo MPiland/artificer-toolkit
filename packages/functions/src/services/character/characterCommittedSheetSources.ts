@@ -943,7 +943,8 @@ export function createCharacterCommittedSheetContext(
   return {
     catalog: createExactCatalog({ ...registry, spells: documents.spells }),
     registry,
-    spellDocumentsById: new Map(documents.spells.map((spell) => [spell.id, spell]))
+    spellDocumentsById: new Map(documents.spells.map((spell) => [spell.id, spell])),
+    vocabularySnapshot: sources.vocabularySnapshot
   }
 }
 

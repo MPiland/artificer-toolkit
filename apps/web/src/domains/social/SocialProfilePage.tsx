@@ -58,7 +58,9 @@ export function SocialProfilePage({ profilePublicId }: { profilePublicId: string
             >
               {blocked ? 'Unblock' : 'Block'}
             </Button>
-            <SocialReportDialog target={{ targetKind: 'PROFILE', targetPublicId: profilePublicId }} />
+            <SocialReportDialog
+              target={{ targetKind: 'PROFILE', targetPublicId: profilePublicId }}
+            />
           </Group>
         ) : null}
       </div>

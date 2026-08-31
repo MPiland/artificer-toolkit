@@ -4,7 +4,6 @@ import { createLiveSessionConnection, resolveLiveSessionWebSocketUrl } from './l
 
 const campaignId = '00000000-0000-4000-8000-000000000001'
 const sessionId = '00000000-0000-4000-8000-000000000002'
-const encounterId = '00000000-0000-4000-8000-000000000003'
 const sceneDefinitionId = '00000000-0000-4000-8000-000000000004'
 const commandId = '00000000-0000-4000-8000-000000000005'
 
@@ -45,6 +44,8 @@ const readyMessage: LiveSessionWebSocketServerMessageDto = {
   aggregateVersions: [],
   campaignId,
   deliverySequence: 0,
+  encounterActorTokenBindings: [],
+  encounterSceneBindings: [],
   sceneSnapshots: [],
   sessionId,
   type: 'READY'
@@ -83,8 +84,14 @@ describe('live-session browser connection', () => {
     first?.open()
     first?.receive(readyMessage)
     const pending = connection.executeCommand({
-      aggregateKind: 'SCENE',
-      command: { commandId, encounterId, sceneDefinitionId, type: 'ATTACH_SCENE' }
+      aggregateKind: 'SESSION',
+      command: {
+        commandId,
+        expectedPresentationVersion: null,
+        sceneId: sceneDefinitionId,
+        sessionId,
+        type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
+      }
     })
 
     first?.close(1012, 'restart')
@@ -103,21 +110,33 @@ describe('live-session browser connection', () => {
       },
       {
         command: {
-          aggregateKind: 'SCENE',
-          command: { commandId, encounterId, sceneDefinitionId, type: 'ATTACH_SCENE' }
+          aggregateKind: 'SESSION',
+          command: {
+            commandId,
+            expectedPresentationVersion: null,
+            sceneId: sceneDefinitionId,
+            sessionId,
+            type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
+          }
         },
         type: 'COMMAND'
       }
     ])
     second?.receive({
       acceptedSequence: 1,
-      aggregateId: encounterId,
-      aggregateKind: 'SCENE',
+      aggregateId: sessionId,
+      aggregateKind: 'SESSION',
+      changedAggregates: [{ aggregateId: sessionId, aggregateKind: 'SESSION', version: 1 }],
       deliverySequence: 1,
-      delta: null,
       originCommandId: commandId,
       replayed: true,
-      snapshot: null,
+      response: {
+        commandId,
+        replayed: true,
+        sceneId: sceneDefinitionId,
+        sessionId,
+        version: 1
+      },
       type: 'COMMAND_COMMITTED',
       version: 1
     })
@@ -148,35 +167,48 @@ describe('live-session browser connection', () => {
     socket.receive(readyMessage)
 
     const committed = connection.executeCommand({
-      aggregateKind: 'SCENE',
-      command: { commandId, encounterId, sceneDefinitionId, type: 'ATTACH_SCENE' }
+      aggregateKind: 'SESSION',
+      command: {
+        commandId,
+        expectedPresentationVersion: null,
+        sceneId: sceneDefinitionId,
+        sessionId,
+        type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
+      }
     })
     socket.receive({
       acceptedSequence: 1,
-      aggregateId: encounterId,
-      aggregateKind: 'SCENE',
+      aggregateId: sessionId,
+      aggregateKind: 'SESSION',
+      changedAggregates: [{ aggregateId: sessionId, aggregateKind: 'SESSION', version: 1 }],
       deliverySequence: 1,
-      delta: null,
       originCommandId: commandId,
       replayed: false,
-      snapshot: null,
+      response: {
+        commandId,
+        replayed: false,
+        sceneId: sceneDefinitionId,
+        sessionId,
+        version: 1
+      },
       type: 'COMMAND_COMMITTED',
       version: 1
     })
     await expect(committed).resolves.toMatchObject({
-      aggregateKind: 'SCENE',
+      aggregateKind: 'SESSION',
       originCommandId: commandId,
       version: 1
     })
 
     const rejectedCommandId = '00000000-0000-4000-8000-000000000006'
     const rejected = connection.executeCommand({
-      aggregateKind: 'SCENE',
+      aggregateKind: 'SESSION',
       command: {
         commandId: rejectedCommandId,
-        encounterId,
-        sceneDefinitionId,
-        type: 'ATTACH_SCENE'
+        expectedPresentationVersion: 1,
+        sceneId: sceneDefinitionId,
+        sessionId,
+        type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
       }
     })
     socket.receive({
@@ -210,16 +242,23 @@ describe('live-session browser connection', () => {
     socket.receive(readyMessage)
 
     const first = connection.executeCommand({
-      aggregateKind: 'SCENE',
-      command: { commandId, encounterId, sceneDefinitionId, type: 'ATTACH_SCENE' }
+      aggregateKind: 'SESSION',
+      command: {
+        commandId,
+        expectedPresentationVersion: null,
+        sceneId: sceneDefinitionId,
+        sessionId,
+        type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
+      }
     })
     const second = connection.executeCommand({
-      aggregateKind: 'SCENE',
+      aggregateKind: 'SESSION',
       command: {
         commandId: '00000000-0000-4000-8000-000000000007',
-        encounterId,
-        sceneDefinitionId,
-        type: 'ATTACH_SCENE'
+        expectedPresentationVersion: null,
+        sceneId: sceneDefinitionId,
+        sessionId,
+        type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
       }
     })
     const firstRejection = expect(first).rejects.toThrow('Campaign membership changed.')

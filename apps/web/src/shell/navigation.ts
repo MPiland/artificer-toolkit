@@ -43,6 +43,11 @@ export const platformNavigation: AppShellNavGroup[] = [
         icon: ICampaign
       },
       {
+        label: 'Game Systems',
+        href: '/systems',
+        icon: ICategory
+      },
+      {
         label: 'Social Hub',
         href: '/social',
         icon: IUser

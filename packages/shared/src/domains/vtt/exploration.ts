@@ -1,7 +1,7 @@
 import { SceneBarrierIndex, visibilityPolygonForToken } from './geometry.js'
 import {
   VTT_SCENE_LIMITS,
-  type EncounterSceneState,
+  type CampaignSceneState,
   type SceneBarrier,
   type SceneFogChunk,
   type SceneFogLayer,
@@ -80,7 +80,7 @@ function polygonBounds(polygon: ScenePolygon): {
   return { maximumX, maximumY, minimumX, minimumY }
 }
 
-function fogDimensions(state: EncounterSceneState): { height: number; width: number } {
+function fogDimensions(state: CampaignSceneState): { height: number; width: number } {
   const scale = Math.min(
     1,
     VTT_SCENE_LIMITS.fogCellsPerSide / Math.max(state.map.width, state.map.height)
@@ -135,7 +135,7 @@ function chunkFromMask(
   }
 }
 
-function visionRangeInMapPixels(state: EncounterSceneState, token: SceneToken): SceneToken | null {
+function visionRangeInMapPixels(state: CampaignSceneState, token: SceneToken): SceneToken | null {
   if (!token.vision) return null
   const multiplier =
     state.grid.kind === 'GRIDLESS'
@@ -172,7 +172,7 @@ function squaredDistanceToSegment(point: ScenePoint, barrier: SceneBarrier): num
 
 /** Return vision-bearing tokens whose current sight radius can intersect changed barriers. */
 export function sceneTokenIdsAffectedByBarriers(
-  state: EncounterSceneState,
+  state: CampaignSceneState,
   barriers: readonly SceneBarrier[]
 ): string[] {
   if (barriers.length === 0) return []
@@ -191,7 +191,7 @@ export function sceneTokenIdsAffectedByBarriers(
 }
 
 function eligibleTokens(
-  state: EncounterSceneState,
+  state: CampaignSceneState,
   ownerUserId: string | null,
   tokenIds: ReadonlySet<string> | null
 ): SceneToken[] {
@@ -217,7 +217,7 @@ function eligibleTokens(
  * monotonic: already explored cells stay explored and an unchanged view returns null.
  */
 export function deriveSceneExplorationPatch(
-  state: EncounterSceneState,
+  state: CampaignSceneState,
   options: { ownerUserId: string | null; tokenIds?: readonly string[] }
 ): SceneFogLayer | null {
   const existing = state.fogLayers.find((layer) => layer.ownerUserId === options.ownerUserId)
@@ -300,7 +300,7 @@ export function deriveSceneExplorationPatch(
   }
 }
 
-function withFogPatch(state: EncounterSceneState, patch: SceneFogLayer): EncounterSceneState {
+function withFogPatch(state: CampaignSceneState, patch: SceneFogLayer): CampaignSceneState {
   const current = state.fogLayers.find((layer) => layer.ownerUserId === patch.ownerUserId)
   const chunks = new Map(current?.chunks.map((chunk) => [chunk.index, chunk]) ?? [])
   for (const chunk of patch.chunks) chunks.set(chunk.index, chunk)
@@ -317,7 +317,7 @@ function withFogPatch(state: EncounterSceneState, patch: SceneFogLayer): Encount
 
 /** Derive one cumulative exploration patch for a token's validated movement path. */
 export function deriveSceneTokenPathExplorationPatch(
-  state: EncounterSceneState,
+  state: CampaignSceneState,
   options: { ownerUserId: string | null; path: readonly ScenePoint[]; tokenId: string }
 ): SceneFogLayer | null {
   const token = state.tokens.find((candidate) => candidate.id === options.tokenId)
@@ -349,7 +349,7 @@ export function deriveSceneTokenPathExplorationPatch(
  * Owners receive all affected per-player layers so their explicit player-preview mode stays exact.
  */
 export function deriveSceneTokenPreviewFogLayers(
-  state: EncounterSceneState,
+  state: CampaignSceneState,
   options: { path: readonly ScenePoint[]; tokenId: string; viewer: SceneViewer }
 ): SceneFogLayer[] {
   const token = state.tokens.find((candidate) => candidate.id === options.tokenId)
@@ -374,7 +374,7 @@ export function deriveSceneTokenPreviewFogLayers(
 
 /** Build a complete manual fog replacement for one shared or per-player layer. */
 export function createUniformSceneFogLayer(
-  state: EncounterSceneState,
+  state: CampaignSceneState,
   options: { explored: boolean; ownerUserId: string | null }
 ): SceneFogLayer {
   if (state.fogMode === 'SHARED_PARTY' && options.ownerUserId !== null) {
@@ -411,7 +411,7 @@ export function createUniformSceneFogLayer(
  * canonical chunks whose bits changed, so it composes with concurrent unrelated fog edits.
  */
 export function createSceneFogAreaPatch(
-  state: EncounterSceneState,
+  state: CampaignSceneState,
   options: {
     explored: boolean
     ownerUserId: string | null
@@ -497,7 +497,7 @@ export function isSceneFogCellExplored(layer: SceneFogLayer, x: number, y: numbe
 }
 
 export function isScenePointExplored(
-  state: Pick<EncounterSceneState, 'fogLayers' | 'map'>,
+  state: Pick<CampaignSceneState, 'fogLayers' | 'map'>,
   ownerUserId: string,
   point: ScenePoint
 ): boolean {
@@ -514,7 +514,7 @@ export function isScenePointExplored(
 }
 
 export function isSceneSegmentExplored(
-  state: Pick<EncounterSceneState, 'fogLayers' | 'map'>,
+  state: Pick<CampaignSceneState, 'fogLayers' | 'map'>,
   ownerUserId: string,
   a: ScenePoint,
   b: ScenePoint
@@ -554,7 +554,7 @@ export function isSceneSegmentExplored(
 }
 
 export function isScenePolygonExplored(
-  state: Pick<EncounterSceneState, 'fogLayers' | 'map'>,
+  state: Pick<CampaignSceneState, 'fogLayers' | 'map'>,
   ownerUserId: string,
   polygon: ScenePolygon
 ): boolean {

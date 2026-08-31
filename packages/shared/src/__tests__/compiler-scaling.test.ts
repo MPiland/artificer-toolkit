@@ -97,6 +97,21 @@ describe('shared compiler scaling', () => {
       cost: 1
     })
   })
+  it('preserves exact reusable definition identities on compiled Features', () => {
+    const ruleDefinitionIds = [
+      '11111111-1111-4111-8111-111111111111',
+      '22222222-2222-4222-8222-222222222222'
+    ]
+    const result = compileFeatureResult({
+      id: 'feature-rule-bindings',
+      label: 'Feature rule bindings',
+      description: 'Uses reusable rule definitions.',
+      order: 0,
+      ruleDefinitionIds
+    })
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.value.ruleDefinitionIds).toEqual(ruleDefinitionIds)
+  })
   it('returns a compile result and preserves nested spell-grant scaling on features', () => {
     const authored = {
       id: 'wizard-spell-progression',

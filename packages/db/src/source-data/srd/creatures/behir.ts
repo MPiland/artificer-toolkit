@@ -61,6 +61,7 @@ export const behir: CreatureAuthored = {
     },
     {
       id: S.featureId(43, 4),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
       label: 'Lightning Breath (Recharge 5-6)',
       description:
         'Lightning Breath (Recharge 5-6). The behir exhales a line of lightning that is 20 feet long and 5 feet wide. Each creature in that line must make a DC 16 Dexterity saving throw, taking 66 (12d10) lightning damage on a failed save, or half as much damage on a successful one.',

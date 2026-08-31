@@ -11,7 +11,7 @@ import {
 } from '@artificer-toolkit/schema/api/characterRules'
 import { CHARACTER_ACTION_MODEL_KEY } from '@artificer-toolkit/schema/api/characterActionRules'
 
-import { checksumRuleDocument } from './ruleChecksum.js'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   getRuleModelContract,
   RULE_EVALUATOR_KIND,
@@ -46,8 +46,12 @@ vi.mock('./zenRuleEngine.js', () => ({
   evaluatePinnedZenRuleModel: mocks.evaluatePinned
 }))
 
-const { evaluatePinnedRuleRevision, evaluateRuleRevision, RuleRevisionEvaluationError } =
-  await import('./ruleRevisionRuntime.js')
+const {
+  evaluatePinnedRuleRevision,
+  evaluateRuleRevision,
+  ruleRevisionRuntimeInternals,
+  RuleRevisionEvaluationError
+} = await import('./ruleRevisionRuntime.js')
 
 function document(): RulePackDocumentDto {
   return rulePackDocumentDtoSchema.parse({
@@ -146,6 +150,7 @@ function characterPolicyRevision(): RulePackRevisionRecord {
 describe('exact rule revision evaluator', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    ruleRevisionRuntimeInternals.clearPinnedRevisionCache()
     mocks.getRevision.mockResolvedValue(revision())
     mocks.evaluate.mockResolvedValue({
       result: {
@@ -326,6 +331,33 @@ describe('exact rule revision evaluator', () => {
       })
     ).rejects.toThrow('identity does not match')
     expect(mocks.evaluatePinned).not.toHaveBeenCalled()
+  })
+
+  it('reuses an exact verified immutable pinned revision', async () => {
+    const db = {} as DBLike
+    const expected = {
+      revisionId: ids.revision,
+      checksum: revision().checksum,
+      evaluatorKind: RULE_EVALUATOR_KIND,
+      evaluatorVersion: RULE_EVALUATOR_VERSION,
+      modelContractVersion: RULE_MODEL_CONTRACT_VERSION
+    }
+
+    await evaluatePinnedRuleRevision({
+      db,
+      expected,
+      modelKey: 'encounter-resolve',
+      normalizedFacts: facts()
+    })
+    await evaluatePinnedRuleRevision({
+      db,
+      expected,
+      modelKey: 'encounter-resolve',
+      normalizedFacts: facts()
+    })
+
+    expect(mocks.getRevision).toHaveBeenCalledTimes(1)
+    expect(mocks.evaluatePinned).toHaveBeenCalledTimes(2)
   })
 
   it('keeps raw bounds ahead of contract traversal on the pinned path', async () => {

@@ -91,6 +91,29 @@ export function snapshotStatBlock(actor: EncounterActorRecord) {
   }
 }
 
+function currentActorIdForProjection(encounter: EncounterRecord): string | null {
+  const initiativeState = encounter.initiativeRoundState
+  // Legacy in-memory fixtures do not carry normalized initiative state. Live
+  // repository reads always set the field, including to null when no current
+  // round exists.
+  if (initiativeState === undefined) return encounter.currentActorId
+  if (
+    encounter.status !== 'ACTIVE' ||
+    initiativeState === null ||
+    initiativeState.round.round !== encounter.round ||
+    initiativeState.round.status !== 'ACTIVE'
+  ) {
+    return null
+  }
+  const activeParticipants = initiativeState.participants.filter(
+    (participant) => participant.status === 'ACTIVE'
+  )
+  const activeActorId = activeParticipants.length === 1 ? activeParticipants[0]!.actorId : null
+  return activeActorId !== null && encounter.actors.some((actor) => actor.id === activeActorId)
+    ? activeActorId
+    : null
+}
+
 export function projectGm(
   encounter: EncounterRecord,
   actorRules: EncounterActorRuleOutput
@@ -99,14 +122,35 @@ export function projectGm(
     id: encounter.id,
     campaignId: encounter.campaignId,
     sessionId: encounter.sessionId,
-    templateId: encounter.templateId,
-    templateVersion: encounter.templateVersion,
+    gameSystemId: encounter.gameSystemId,
+    blueprintId: encounter.blueprintId,
+    blueprintVersion: encounter.blueprintVersion,
+    blueprintChecksum: encounter.blueprintChecksum,
     name: encounter.name,
     status: encounter.status,
+    automationMode: encounter.automationMode,
+    manualReminderMode: encounter.manualReminderMode,
     rulePackRevisionId: encounter.rulePackRevisionId,
+    initiativePolicy:
+      encounter.initiativePolicySnapshot == null
+        ? null
+        : {
+            definitionId: encounter.initiativePolicySnapshot.policy.definitionId,
+            label: encounter.initiativePolicySnapshot.policy.label,
+            procedure: encounter.initiativePolicySnapshot.policy.document.procedure,
+            cadence: encounter.initiativePolicySnapshot.policy.document.cadence,
+            tieResolverDefinitionId: encounter.initiativePolicySnapshot.tieResolver.definitionId,
+            tieResolverLabel: encounter.initiativePolicySnapshot.tieResolver.label
+          },
+    optionalCombatRules:
+      encounter.optionalCombatSnapshot?.definitions.map((definition) => ({
+        definitionId: definition.definitionId,
+        label: definition.label,
+        kind: definition.document.kind
+      })) ?? [],
     version: encounter.version,
     round: encounter.round,
-    currentActorId: encounter.currentActorId,
+    currentActorId: currentActorIdForProjection(encounter),
     actors: stableActors(encounter).map((actor) => ({
       id: actor.id,
       encounterId: actor.encounterId,
@@ -159,11 +203,16 @@ export function projectPlayerEncounterProjection(
     id: encounter.id,
     campaignId: encounter.campaignId,
     sessionId: encounter.sessionId,
-    templateId: encounter.templateId,
-    templateVersion: encounter.templateVersion,
+    gameSystemId: encounter.gameSystemId,
+    blueprintId: encounter.blueprintId,
+    blueprintVersion: encounter.blueprintVersion,
+    blueprintChecksum: encounter.blueprintChecksum,
     name: encounter.name,
     status: encounter.status,
+    automationMode: encounter.automationMode,
     rulePackRevisionId: encounter.rulePackRevisionId,
+    initiativePolicy: encounter.initiativePolicy,
+    optionalCombatRules: encounter.optionalCombatRules,
     version: encounter.version,
     round: encounter.round,
     currentActorId:

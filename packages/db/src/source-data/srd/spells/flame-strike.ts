@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   PATH_CODE,
@@ -46,7 +47,7 @@ export const flameStrike: SpellAuthored = {
         savingThrow: {
           id: spellChildId(SPELL_IDS.FLAME_STRIKE, 0x211, 1),
           dcMethod: 'SOURCE_SAVE_DC',
-          ability: 'DEXTERITY'
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY
         },
         activation: {
           code: ACTIVATION_CODE.ACTION,

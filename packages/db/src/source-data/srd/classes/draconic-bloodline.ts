@@ -1,5 +1,5 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
@@ -274,7 +274,7 @@ export const draconicBloodlineOrigin: ClassAuthored = {
             savingThrow: {
               id: classRowId(S, 25, 1),
               dcMethod: 'SOURCE_SAVE_DC',
-              ability: ABILITY_CODE.WISDOM
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
             },
             activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
             range: {

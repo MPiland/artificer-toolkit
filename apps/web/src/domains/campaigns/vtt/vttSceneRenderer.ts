@@ -1,7 +1,7 @@
 import type { SignedVttMapDeliveryDto } from '@artificer-toolkit/schema/api/media'
 import type { LiveSessionTransientBroadcastDto } from '@artificer-toolkit/schema/api/liveSessions'
 import type {
-  EncounterSceneStateDto,
+  CampaignSceneStateDto,
   SceneTransientEnvelopeDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
@@ -34,7 +34,9 @@ import {
   sceneTokenAppearanceKey,
   stableVttMapPartIds,
   shouldReloadVttMap,
-  visibleGridLinePositions
+  visibleGridLinePositions,
+  type VttScenePresentationOverlay,
+  type VttTokenPresentation
 } from './vttSceneRenderer.model'
 
 export type CampaignVttMode = 'PLAY' | 'EDIT'
@@ -81,8 +83,10 @@ export interface VttSceneRendererUpdate {
   currentUserId: string
   mapDelivery: SignedVttMapDeliveryDto | null
   mode: CampaignVttMode
+  overlays?: readonly VttScenePresentationOverlay[]
   role: 'OWNER' | 'PLAYER'
-  scene: EncounterSceneStateDto
+  scene: CampaignSceneStateDto
+  tokenPresentations?: Readonly<Record<string, VttTokenPresentation>>
   tool: CampaignVttTool
 }
 
@@ -93,11 +97,18 @@ export interface VttSceneRenderer {
   focusPoint: (point: ScenePoint) => void
   getDiagnostics: () => {
     doorVisualCreateCount: number
+    facingIndicatorCount: number
     fogRenderCount: number
     loadedMapAssetCount: number
     mapLoadComplete: boolean
+    overlayCount: number
     sceneVersion: number | null
+    tokenArtCount: number
+    tokenOverflowCount: number
+    tokenStatusCount: number
+    tokenVisualCount: number
     transientVisualCount: number
+    zoomScale: number
   }
   retryMap: (delivery: SignedVttMapDeliveryDto) => void
   update: (next: VttSceneRendererUpdate) => void
@@ -118,6 +129,7 @@ const colors = {
 } as const
 
 const transientVisualLifetimeMs = 1_200
+const visibleTokenStatusLimit = 4
 const zoomFactor = 1.1
 
 function isBarrierTool(
@@ -183,6 +195,7 @@ export async function createVttSceneRenderer(
   const fogLayer = new pixi.Container()
   const lightLayer = new pixi.Container()
   const darknessLayer = new pixi.Container()
+  const presentationLayer = new pixi.Container()
   const tokenLayer = new pixi.Container()
   const measurementLayer = new pixi.Container()
   const wallLayer = new pixi.Container()
@@ -195,6 +208,7 @@ export async function createVttSceneRenderer(
     fogLayer,
     lightLayer,
     darknessLayer,
+    presentationLayer,
     tokenLayer,
     measurementLayer,
     wallLayer,
@@ -215,20 +229,22 @@ export async function createVttSceneRenderer(
   let overviewLayer: Container | null = null
   let tileLayer: Container | null = null
   let fogTexture: Texture | null = null
-  let renderedFogLayers: EncounterSceneStateDto['fogLayers'] | null = null
+  let renderedFogLayers: CampaignSceneStateDto['fogLayers'] | null = null
   let renderedFogRole: VttSceneRendererUpdate['role'] | null = null
-  let renderedBarriers: EncounterSceneStateDto['barriers'] | null = null
-  let renderedDoorStates: EncounterSceneStateDto['doorStates'] | null = null
-  let renderedDarknessZones: EncounterSceneStateDto['darknessZones'] | null = null
-  let renderedGrid: EncounterSceneStateDto['grid'] | null = null
-  let renderedLightingBarriers: EncounterSceneStateDto['barriers'] | null = null
-  let renderedLights: EncounterSceneStateDto['lights'] | null = null
-  let renderedLightingDoorStates: EncounterSceneStateDto['doorStates'] | null = null
-  let renderedMeasurements: EncounterSceneStateDto['measurements'] | null = null
-  let renderedTokens: EncounterSceneStateDto['tokens'] | null = null
+  let renderedBarriers: CampaignSceneStateDto['barriers'] | null = null
+  let renderedDoorStates: CampaignSceneStateDto['doorStates'] | null = null
+  let renderedDarknessZones: CampaignSceneStateDto['darknessZones'] | null = null
+  let renderedGrid: CampaignSceneStateDto['grid'] | null = null
+  let renderedLightingBarriers: CampaignSceneStateDto['barriers'] | null = null
+  let renderedLights: CampaignSceneStateDto['lights'] | null = null
+  let renderedLightingDoorStates: CampaignSceneStateDto['doorStates'] | null = null
+  let renderedMeasurements: CampaignSceneStateDto['measurements'] | null = null
+  let renderedTokens: CampaignSceneStateDto['tokens'] | null = null
+  let renderedTokenPresentations: VttSceneRendererUpdate['tokenPresentations'] | null = null
+  let renderedOverlays: VttSceneRendererUpdate['overlays'] | null = null
   let lightingBarrierIndex: SceneBarrierIndex | null = null
   let movementBarrierIndex: SceneBarrierIndex | null = null
-  let movementBarrierSource: EncounterSceneStateDto['barriers'] | null = null
+  let movementBarrierSource: CampaignSceneStateDto['barriers'] | null = null
   let fittedSceneId: string | null = null
   let panStart: { pointer: ScenePoint; world: ScenePoint } | null = null
   let gestureStart: ScenePoint | null = null
@@ -247,19 +263,21 @@ export async function createVttSceneRenderer(
     string,
     {
       appearanceKey: string
-      token: EncounterSceneStateDto['tokens'][number]
+      presentation: VttTokenPresentation | undefined
+      token: CampaignSceneStateDto['tokens'][number]
       visual: Container
     }
   >()
   const doorVisuals = new Map<
     string,
     {
-      barrier: Extract<EncounterSceneStateDto['barriers'][number], { kind: 'DOOR' }>
+      barrier: Extract<CampaignSceneStateDto['barriers'][number], { kind: 'DOOR' }>
       state: 'CLOSED' | 'LOCKED' | 'OPEN'
       visuals: Record<'CLOSED' | 'LOCKED' | 'OPEN', Graphics>
     }
   >()
   const lightVisuals = new Map<string, Graphics>()
+  const loadedTokenArtUrls = new Set<string>()
   const transientVisuals = new Map<
     string,
     | { container: Graphics; kind: 'POINTER_PREVIEW' | 'TOKEN_DRAG_PREVIEW' }
@@ -345,7 +363,7 @@ export async function createVttSceneRenderer(
     zoomAt(factor, { x: app.screen.width / 2, y: app.screen.height / 2 })
   }
 
-  function drawMap(scene: EncounterSceneStateDto, delivery: SignedVttMapDeliveryDto | null): void {
+  function drawMap(scene: CampaignSceneStateDto, delivery: SignedVttMapDeliveryDto | null): void {
     destroyChildren(mapLayer)
     releaseMapAssets()
     mapLoadComplete = false
@@ -367,7 +385,7 @@ export async function createVttSceneRenderer(
   }
 
   function loadMissingMapParts(
-    scene: EncounterSceneStateDto,
+    scene: CampaignSceneStateDto,
     delivery: SignedVttMapDeliveryDto,
     generation = mapGeneration
   ): void {
@@ -448,7 +466,7 @@ export async function createVttSceneRenderer(
   }
 
   function isMapDeliveryForScene(
-    scene: EncounterSceneStateDto,
+    scene: CampaignSceneStateDto,
     delivery: SignedVttMapDeliveryDto
   ): boolean {
     return (
@@ -468,7 +486,7 @@ export async function createVttSceneRenderer(
     void pixi.Assets.unload(url)
   }
 
-  function drawGrid(scene: EncounterSceneStateDto): void {
+  function drawGrid(scene: CampaignSceneStateDto): void {
     destroyChildren(gridLayer)
     if (scene.grid.kind !== 'SQUARE') return
     const grid = new pixi.Graphics()
@@ -483,7 +501,7 @@ export async function createVttSceneRenderer(
     gridLayer.addChild(grid)
   }
 
-  function drawFog(scene: EncounterSceneStateDto): void {
+  function drawFog(scene: CampaignSceneStateDto): void {
     fogRenderCount += 1
     destroyChildren(fogLayer)
     fogTexture?.destroy(true)
@@ -549,9 +567,9 @@ export async function createVttSceneRenderer(
   function drawVisionReveals(): void {
     destroyChildren(visionRevealLayer)
     if (!current) return
-    const barriers = new Map<string, EncounterSceneStateDto['barriers'][number]>()
-    const doorStates: EncounterSceneStateDto['doorStates'] = {}
-    const tokens = new Map<string, EncounterSceneStateDto['tokens'][number]>()
+    const barriers = new Map<string, CampaignSceneStateDto['barriers'][number]>()
+    const doorStates: CampaignSceneStateDto['doorStates'] = {}
+    const tokens = new Map<string, CampaignSceneStateDto['tokens'][number]>()
     for (const preview of remoteVisionReveals.values()) {
       if (preview.baselineVersion !== current.scene.version) continue
       for (const barrier of preview.reveal.barriers) barriers.set(barrier.id, barrier)
@@ -562,16 +580,15 @@ export async function createVttSceneRenderer(
       drawBarrier(visionRevealLayer, barrier, doorStates[barrier.id])
     }
     for (const token of tokens.values()) {
-      const visual = createTokenVisual(token)
+      const visual = createTokenVisual(token, undefined)
       visual.eventMode = 'none'
       visual.cursor = 'default'
       visual.position.set(token.position.x, token.position.y)
-      visual.rotation = (token.rotationDegrees * Math.PI) / 180
       visionRevealLayer.addChild(visual)
     }
   }
 
-  function drawLighting(scene: EncounterSceneStateDto): void {
+  function drawLighting(scene: CampaignSceneStateDto): void {
     const lightingStructureChanged =
       renderedLightingBarriers !== scene.barriers || renderedLights !== scene.lights
     if (lightingStructureChanged) {
@@ -607,8 +624,8 @@ export async function createVttSceneRenderer(
   }
 
   function drawLight(
-    scene: EncounterSceneStateDto,
-    light: EncounterSceneStateDto['lights'][number],
+    scene: CampaignSceneStateDto,
+    light: CampaignSceneStateDto['lights'][number],
     barrierIndex: SceneBarrierIndex
   ): void {
     const prior = lightVisuals.get(light.id)
@@ -627,8 +644,8 @@ export async function createVttSceneRenderer(
   }
 
   function changedDoorStateIds(
-    previous: EncounterSceneStateDto['doorStates'] | null,
-    next: EncounterSceneStateDto['doorStates']
+    previous: CampaignSceneStateDto['doorStates'] | null,
+    next: CampaignSceneStateDto['doorStates']
   ): string[] {
     if (!previous) return Object.keys(next)
     const ids = new Set([...Object.keys(previous), ...Object.keys(next)])
@@ -636,9 +653,9 @@ export async function createVttSceneRenderer(
   }
 
   function doorCanAffectLight(
-    scene: EncounterSceneStateDto,
+    scene: CampaignSceneStateDto,
     doorId: string,
-    light: EncounterSceneStateDto['lights'][number]
+    light: CampaignSceneStateDto['lights'][number]
   ): boolean {
     const door = scene.barriers.find(
       (barrier): barrier is Extract<(typeof scene.barriers)[number], { kind: 'DOOR' }> =>
@@ -649,7 +666,7 @@ export async function createVttSceneRenderer(
     return distanceToSegment(light.position, door.a, door.b) <= maximum
   }
 
-  function drawBarriers(scene: EncounterSceneStateDto): void {
+  function drawBarriers(scene: CampaignSceneStateDto): void {
     if (renderedBarriers === scene.barriers && renderedDoorStates === scene.doorStates) return
     if (renderedBarriers !== scene.barriers) {
       destroyChildren(wallLayer)
@@ -685,7 +702,7 @@ export async function createVttSceneRenderer(
   }
 
   function createDoorVisuals(
-    barrier: Extract<EncounterSceneStateDto['barriers'][number], { kind: 'DOOR' }>
+    barrier: Extract<CampaignSceneStateDto['barriers'][number], { kind: 'DOOR' }>
   ): Record<'CLOSED' | 'LOCKED' | 'OPEN', Graphics> {
     const visuals = {
       CLOSED: new pixi.Graphics(),
@@ -717,7 +734,7 @@ export async function createVttSceneRenderer(
 
   function drawBarrier(
     layer: Container,
-    barrier: EncounterSceneStateDto['barriers'][number],
+    barrier: CampaignSceneStateDto['barriers'][number],
     doorState?: 'CLOSED' | 'LOCKED' | 'OPEN'
   ): void {
     const line = new pixi.Graphics()
@@ -727,7 +744,7 @@ export async function createVttSceneRenderer(
 
   function drawBarrierGraphic(
     line: Graphics,
-    barrier: EncounterSceneStateDto['barriers'][number],
+    barrier: CampaignSceneStateDto['barriers'][number],
     doorState?: 'CLOSED' | 'LOCKED' | 'OPEN'
   ): void {
     line.clear()
@@ -771,7 +788,7 @@ export async function createVttSceneRenderer(
     }
   }
 
-  function drawMeasurements(scene: EncounterSceneStateDto): void {
+  function drawMeasurements(scene: CampaignSceneStateDto): void {
     destroyChildren(measurementLayer)
     for (const measurement of scene.measurements) {
       const line = new pixi.Graphics()
@@ -785,7 +802,7 @@ export async function createVttSceneRenderer(
     }
   }
 
-  function tokenCanMove(token: EncounterSceneStateDto['tokens'][number]): boolean {
+  function tokenCanMove(token: CampaignSceneStateDto['tokens'][number]): boolean {
     return Boolean(
       current &&
       !token.locked &&
@@ -793,7 +810,7 @@ export async function createVttSceneRenderer(
     )
   }
 
-  function movementIndexFor(scene: EncounterSceneStateDto): SceneBarrierIndex {
+  function movementIndexFor(scene: CampaignSceneStateDto): SceneBarrierIndex {
     if (movementBarrierSource !== scene.barriers) {
       movementBarrierSource = scene.barriers
       movementBarrierIndex = new SceneBarrierIndex(scene.barriers)
@@ -801,20 +818,24 @@ export async function createVttSceneRenderer(
     return movementBarrierIndex ?? new SceneBarrierIndex(scene.barriers)
   }
 
-  function drawTokens(scene: EncounterSceneStateDto): void {
-    if (renderedTokens === scene.tokens) return
+  function drawTokens(
+    scene: CampaignSceneStateDto,
+    presentations: VttSceneRendererUpdate['tokenPresentations']
+  ): void {
+    if (renderedTokens === scene.tokens && renderedTokenPresentations === presentations) return
     const remainingTokenIds = new Set(tokenVisuals.keys())
     for (const token of scene.tokens) {
       remainingTokenIds.delete(token.id)
-      const appearanceKey = sceneTokenAppearanceKey(token)
+      const presentation = presentations?.[token.id]
+      const appearanceKey = sceneTokenAppearanceKey(token, presentation)
       let entry = tokenVisuals.get(token.id)
       const tokenChanged = entry?.token !== token
       if (!entry || entry.appearanceKey !== appearanceKey) {
         entry?.visual.removeFromParent()
         entry?.visual.destroy({ children: true })
-        const visual = createTokenVisual(token)
+        const visual = createTokenVisual(token, presentation)
         tokenLayer.addChild(visual)
-        entry = { appearanceKey, token, visual }
+        entry = { appearanceKey, presentation, token, visual }
         tokenVisuals.set(token.id, entry)
       } else if (tokenChanged) {
         entry.token = token
@@ -822,7 +843,6 @@ export async function createVttSceneRenderer(
       if (tokenChanged && (drag?.tokenId !== token.id || drag.visual !== entry.visual)) {
         entry.visual.position.set(token.position.x, token.position.y)
       }
-      if (tokenChanged) entry.visual.rotation = (token.rotationDegrees * Math.PI) / 180
     }
     for (const tokenId of remainingTokenIds) {
       const entry = tokenVisuals.get(tokenId)
@@ -831,16 +851,40 @@ export async function createVttSceneRenderer(
       tokenVisuals.delete(tokenId)
     }
     renderedTokens = scene.tokens
+    renderedTokenPresentations = presentations ?? null
+    const descriptions = scene.tokens.flatMap((token) => {
+      const description = presentations?.[token.id]?.accessibleDescription
+      return description ? [description] : [token.label]
+    })
+    app.canvas.setAttribute(
+      'aria-description',
+      descriptions.length ? `Visible tokens: ${descriptions.join('; ')}` : 'No visible tokens'
+    )
   }
 
-  function createTokenVisual(token: EncounterSceneStateDto['tokens'][number]): Container {
+  function createTokenVisual(
+    token: CampaignSceneStateDto['tokens'][number],
+    presentation: VttTokenPresentation | undefined
+  ): Container {
     const visual = new pixi.Container()
     visual.eventMode = tokenCanMove(token) ? 'static' : 'none'
     visual.cursor = tokenCanMove(token) ? 'grab' : 'default'
+    if (presentation?.halo) {
+      visual.addChild(
+        new pixi.Graphics()
+          .ellipse(0, 0, token.width / 2 + 8, token.height / 2 + 8)
+          .stroke({ alpha: 0.9, color: presentation.halo.color, width: 5 })
+      )
+    }
     const body = new pixi.Graphics()
       .ellipse(0, 0, token.width / 2, token.height / 2)
-      .fill({ color: colors.token })
-      .stroke({ color: colors.tokenOutline, width: 3 })
+      .fill({ color: presentation?.fillColor ?? colors.token })
+    visual.addChild(body)
+    visual.addChild(
+      new pixi.Graphics()
+        .ellipse(0, 0, token.width / 2, token.height / 2)
+        .stroke({ color: presentation?.outlineColor ?? colors.tokenOutline, width: 3 })
+    )
     const label: PixiText = new pixi.Text({
       style: {
         align: 'center',
@@ -852,7 +896,54 @@ export async function createVttSceneRenderer(
       text: token.label.slice(0, 2).toUpperCase()
     })
     label.anchor.set(0.5)
-    visual.addChild(body, label)
+    visual.addChild(label)
+    if (presentation?.artUrl) {
+      const artUrl = presentation.artUrl
+      void pixi.Assets.load<Texture>(artUrl)
+        .then((texture) => {
+          loadedTokenArtUrls.add(artUrl)
+          if (visual.destroyed) return
+          const art = new pixi.Sprite(texture)
+          art.anchor.set(0.5)
+          art.height = Math.max(1, token.height - 8)
+          art.width = Math.max(1, token.width - 8)
+          visual.addChildAt(art, 1)
+          label.visible = false
+        })
+        .catch(() => {
+          label.visible = true
+        })
+    }
+    if (presentation?.facing) {
+      const facing = new pixi.Container()
+      facing.addChild(
+        new pixi.Graphics()
+          .arc(0, 0, Math.max(token.width, token.height) / 2 + 12, (-3 * Math.PI) / 4, -Math.PI / 4)
+          .stroke({ alpha: 0.9, color: 0xffffff, width: 3 })
+      )
+      facing.addChild(
+        new pixi.Graphics()
+          .moveTo(0, -token.height / 2 - 10)
+          .lineTo(-7, -token.height / 2 + 1)
+          .lineTo(7, -token.height / 2 + 1)
+          .closePath()
+          .fill(0xffffff)
+          .stroke({ color: 0x101315, width: 2 })
+      )
+      facing.rotation = (token.rotationDegrees * Math.PI) / 180
+      visual.addChild(facing)
+    }
+    if (presentation?.marked) {
+      visual.addChild(
+        new pixi.Graphics()
+          .moveTo(-token.width / 2 - 5, 0)
+          .lineTo(token.width / 2 + 5, 0)
+          .moveTo(0, -token.height / 2 - 5)
+          .lineTo(0, token.height / 2 + 5)
+          .stroke({ alpha: 0.9, color: 0x22b8cf, width: 2 })
+      )
+    }
+    addTokenStatuses(visual, token, presentation)
     visual.on('pointerdown', (event) => {
       if (!tokenCanMove(token) || current?.tool !== 'SELECT') return
       event.stopPropagation()
@@ -869,6 +960,88 @@ export async function createVttSceneRenderer(
       visual.cursor = 'grabbing'
     })
     return visual
+  }
+
+  function addTokenStatuses(
+    visual: Container,
+    token: CampaignSceneStateDto['tokens'][number],
+    presentation: VttTokenPresentation | undefined
+  ): void {
+    if (!presentation?.statuses.length) return
+    const shown = presentation.statuses.slice(0, visibleTokenStatusLimit)
+    const overflow = presentation.statuses.length - shown.length
+    const items =
+      overflow > 0
+        ? [
+            ...shown.slice(0, visibleTokenStatusLimit - 1),
+            {
+              id: 'overflow',
+              kind: 'EFFECT' as const,
+              label: `${overflow + 1} more`,
+              shortLabel: `+${overflow + 1}`
+            }
+          ]
+        : shown
+    const diameter = Math.max(16, Math.min(24, Math.min(token.width, token.height) / 3))
+    const startX = -((items.length - 1) * (diameter + 3)) / 2
+    items.forEach((status, index) => {
+      const badge = new pixi.Container()
+      badge.position.set(startX + index * (diameter + 3), token.height / 2 + diameter / 2 + 5)
+      badge.addChild(
+        new pixi.Graphics()
+          .circle(0, 0, diameter / 2)
+          .fill(statusColour(status.kind))
+          .stroke({ color: 0xffffff, width: 2 })
+      )
+      const text = new pixi.Text({
+        style: {
+          align: 'center',
+          fill: '#ffffff',
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: Math.max(9, diameter * 0.45),
+          fontWeight: '800'
+        },
+        text: status.shortLabel
+      })
+      text.anchor.set(0.5)
+      badge.addChild(text)
+      visual.addChild(badge)
+    })
+  }
+
+  function drawPresentationOverlays(overlays: VttSceneRendererUpdate['overlays']): void {
+    if (renderedOverlays === overlays) return
+    destroyChildren(presentationLayer)
+    for (const overlay of overlays ?? []) {
+      const graphic = new pixi.Graphics()
+      if (overlay.kind === 'CIRCLE') {
+        graphic
+          .circle(overlay.center.x, overlay.center.y, overlay.radius)
+          .fill({ alpha: 0.1, color: overlay.color })
+          .stroke({ alpha: 0.9, color: overlay.color, width: overlay.purpose === 'TARGET' ? 5 : 3 })
+      } else if (overlay.kind === 'PATH') {
+        const first = overlay.points[0]
+        if (first) graphic.moveTo(first.x, first.y)
+        for (const point of overlay.points.slice(1)) graphic.lineTo(point.x, point.y)
+        graphic.stroke({ alpha: 0.9, color: overlay.color, width: 4 })
+      } else if (overlay.points.length >= 3) {
+        graphic
+          .poly(overlay.points.flatMap((point) => [point.x, point.y]))
+          .fill({ alpha: overlay.purpose === 'TRAP' ? 0.18 : 0.1, color: overlay.color })
+          .stroke({ alpha: 0.85, color: overlay.color, width: 3 })
+      }
+      presentationLayer.addChild(graphic)
+    }
+    renderedOverlays = overlays ?? null
+  }
+
+  function statusColour(kind: VttTokenPresentation['statuses'][number]['kind']): number {
+    if (kind === 'REACTION') return 0xc2255c
+    if (kind === 'INJURY') return 0xa61e4d
+    if (kind === 'MORALE') return 0x5f3dc4
+    if (kind === 'HEALTH') return 0xc92a2a
+    if (kind === 'EFFECT') return 0x1971c2
+    return 0x2f9e44
   }
 
   function draw(next: VttSceneRendererUpdate): void {
@@ -959,7 +1132,8 @@ export async function createVttSceneRenderer(
       renderedFogRole = next.role
     }
     drawLighting(next.scene)
-    drawTokens(next.scene)
+    drawPresentationOverlays(next.overlays)
+    drawTokens(next.scene, next.tokenPresentations)
     if (renderedMeasurements !== next.scene.measurements) {
       drawMeasurements(next.scene)
       renderedMeasurements = next.scene.measurements
@@ -990,7 +1164,9 @@ export async function createVttSceneRenderer(
       previous.scene.lights === next.scene.lights &&
       previous.scene.darknessZones === next.scene.darknessZones &&
       previous.scene.measurements === next.scene.measurements &&
-      previous.scene.tokens === next.scene.tokens
+      previous.scene.tokens === next.scene.tokens &&
+      previous.overlays === next.overlays &&
+      previous.tokenPresentations === next.tokenPresentations
     )
   }
 
@@ -1343,6 +1519,8 @@ export async function createVttSceneRenderer(
       mapGeneration += 1
       destroyChildren(mapLayer)
       releaseMapAssets()
+      for (const url of loadedTokenArtUrls) void pixi.Assets.unload(url)
+      loadedTokenArtUrls.clear()
       clearTransientVisuals()
       app.ticker.remove(onTickerUpdate)
       fogTexture?.destroy(true)
@@ -1362,11 +1540,26 @@ export async function createVttSceneRenderer(
     getDiagnostics() {
       return {
         doorVisualCreateCount,
+        facingIndicatorCount: [...tokenVisuals.values()].filter(
+          (entry) => entry.presentation?.facing
+        ).length,
         fogRenderCount,
         loadedMapAssetCount: loadedMapUrls.size,
         mapLoadComplete,
+        overlayCount: renderedOverlays?.length ?? 0,
         sceneVersion: current?.scene.version ?? null,
-        transientVisualCount: transientVisuals.size
+        tokenArtCount: [...tokenVisuals.values()].filter((entry) => entry.presentation?.artUrl)
+          .length,
+        tokenOverflowCount: [...tokenVisuals.values()].filter(
+          (entry) => (entry.presentation?.statuses.length ?? 0) > visibleTokenStatusLimit
+        ).length,
+        tokenStatusCount: [...tokenVisuals.values()].reduce(
+          (total, entry) => total + (entry.presentation?.statuses.length ?? 0),
+          0
+        ),
+        tokenVisualCount: tokenVisuals.size,
+        transientVisualCount: transientVisuals.size,
+        zoomScale: world.scale.x
       }
     },
     retryMap(delivery) {
@@ -1421,7 +1614,7 @@ export async function createVttSceneRenderer(
     for (const key of remoteVisionReveals.keys()) clearTransientVisual(key)
   }
 
-  function clearCommittedRemoteFogPreviews(nextScene: EncounterSceneStateDto): void {
+  function clearCommittedRemoteFogPreviews(nextScene: CampaignSceneStateDto): void {
     for (const [key, preview] of remoteFogPreviews) {
       if (preview.baselineVersion !== nextScene.version) clearTransientVisual(key)
     }
@@ -1434,8 +1627,8 @@ export async function createVttSceneRenderer(
   }
 
   function clearCommittedRemoteTokenDragPreviews(
-    previousScene: EncounterSceneStateDto,
-    nextScene: EncounterSceneStateDto
+    previousScene: CampaignSceneStateDto,
+    nextScene: CampaignSceneStateDto
   ): void {
     for (const [key, preview] of remoteTokenDragPreviews) {
       if (hasCommittedSceneTokenPositionChanged(previousScene, nextScene, preview.tokenId)) {
@@ -1497,7 +1690,7 @@ export async function createVttSceneRenderer(
     tileLayer = null
   }
 
-  function measurementLabel(scene: EncounterSceneStateDto, path: ScenePoint[]): PixiText {
+  function measurementLabel(scene: CampaignSceneStateDto, path: ScenePoint[]): PixiText {
     const first = path[0]!
     const last = path[path.length - 1]!
     const label: PixiText = new pixi.Text({

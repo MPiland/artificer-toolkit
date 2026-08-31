@@ -32,6 +32,7 @@ import {
   pathRollTableKindSchema
 } from '../shared/enums.js'
 import { rangeDtoSchema } from '../shared/range.js'
+import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
@@ -108,6 +109,7 @@ const createResultBlockDtoSchema = (outcomePayloadDtoSchema: z.ZodTypeAny) =>
   z.object({
     id: authoredIdentifierSchema,
     resultKind: z.enum(['SINGLE', 'SEQUENCE']),
+    maintenanceDefinitionId: postgresUuidSchema.optional(),
     duration: durationDtoSchema.optional(),
     lifecycle: pathLifecycleDtoSchema.optional(),
     outcomes: authoredNestedCollectionSchema(outcomePayloadDtoSchema)

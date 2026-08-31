@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { type CreatureAuthored } from '@artificer-toolkit/shared'
 
 import * as S from './shared.js'
@@ -192,6 +193,9 @@ export const vrock: CreatureAuthored = {
     },
     {
       id: S.featureId(281, 6),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_6_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(281, 6)),
       label: 'Spores (Recharge 6)',
       description:
         'Spores (Recharge 6). A 15-foot-radius cloud of toxic spores extends out from the vrock. The spores spread around corners. Each creature in that area must succeed on a DC 14 Constitution saving throw or become poisoned. While poisoned in this way, a target takes 5 (1d10) poison damage at the start of each of its turns. A target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. Emptying a vial of holy water on the target also ends the effect on it.',
@@ -204,7 +208,7 @@ export const vrock: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(281, 215),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
               baseDc: 14
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
@@ -247,7 +251,7 @@ export const vrock: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(281, 219),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
               baseDc: 14
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },

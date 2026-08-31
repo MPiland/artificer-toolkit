@@ -1,16 +1,18 @@
 import { sql } from 'kysely'
 
 import {
-  encounterSceneStateDtoSchema,
+  campaignLiveScenePresentationReceiptDtoSchema,
+  campaignSceneStateDtoSchema,
   sceneDefinitionDtoSchema,
-  sceneEventDtoSchema
+  sceneEventDtoSchema,
+  type CampaignLiveScenePresentationReceiptDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   sceneCurrentProjectionSchema,
   type SceneCurrentProjection
 } from '@artificer-toolkit/schema/projections/scene'
 import type {
-  EncounterSceneState,
+  CampaignSceneState,
   SceneDefinition,
   SceneDelta,
   SceneEvent
@@ -27,18 +29,18 @@ export interface CampaignSceneDefinitionRecord {
   updatedAt: string
 }
 
-export interface EncounterSceneRecord {
-  attachCommandFingerprint: string
-  attachCommandId: string
+export interface CampaignLiveSceneRecord {
+  materializationCommandFingerprint: string
+  materializationCommandId: string
   createdAt: string
   definitionSnapshot: SceneDefinition
   projectionChecksum: string
   projectionSchemaVersion: number
-  state: EncounterSceneState
+  state: CampaignSceneState
   updatedAt: string
 }
 
-export interface EncounterSceneEventRecord {
+export interface CampaignSceneEventRecord {
   commandFingerprint: string
   commandType: string
   createdAt: string
@@ -48,9 +50,11 @@ export interface EncounterSceneEventRecord {
 
 export interface LockedLiveSceneCommandContext {
   membershipRole: 'OWNER' | 'PLAYER'
-  priorEvent: EncounterSceneEventRecord | null
-  scene: EncounterSceneRecord
+  priorEvent: CampaignSceneEventRecord | null
+  scene: CampaignLiveSceneRecord
 }
+
+const SESSION_SCENE_PRESENTATION_EVENT_KIND = 'SESSION_SCENE_PRESENTATION_SET'
 
 function iso(value: RuntimeTimestamp): string {
   const date = value instanceof Date ? value : new Date(value)
@@ -70,20 +74,22 @@ function definitionFromRow(row: Record<string, unknown>): CampaignSceneDefinitio
   }
 }
 
-function encounterSceneFromRow(row: Record<string, unknown>): EncounterSceneRecord {
+function campaignLiveSceneFromRow(row: Record<string, unknown>): CampaignLiveSceneRecord {
   const currentProjection = sceneCurrentProjectionSchema.parse({
     sceneId: row.id,
     streamVersion: row.version,
     projectionSchemaVersion: row.projection_schema_version,
     projectionChecksum: row.projection_checksum,
-    projection: encounterSceneStateDtoSchema.parse(row.projection)
+    projection: campaignSceneStateDtoSchema.parse(row.projection)
   })
   if (checksumSceneCurrentProjection(currentProjection) !== currentProjection.projectionChecksum) {
-    throw new Error(`Encounter scene "${currentProjection.sceneId}" projection checksum is invalid.`)
+    throw new Error(
+      `Campaign live Scene "${currentProjection.sceneId}" projection checksum is invalid.`
+    )
   }
   return {
-    attachCommandFingerprint: String(row.attach_command_fingerprint),
-    attachCommandId: String(row.attach_command_id),
+    materializationCommandFingerprint: String(row.materialization_command_fingerprint),
+    materializationCommandId: String(row.materialization_command_id),
     createdAt: iso(row.created_at as RuntimeTimestamp),
     definitionSnapshot: sceneDefinitionDtoSchema.parse(row.definition_snapshot),
     projectionChecksum: currentProjection.projectionChecksum,
@@ -93,7 +99,7 @@ function encounterSceneFromRow(row: Record<string, unknown>): EncounterSceneReco
   }
 }
 
-function eventFromRow(row: Record<string, unknown>): EncounterSceneEventRecord {
+function eventFromRow(row: Record<string, unknown>): CampaignSceneEventRecord {
   return {
     commandFingerprint: String(row.command_fingerprint),
     commandType: String(row.command_type),
@@ -107,6 +113,12 @@ function eventFromRow(row: Record<string, unknown>): EncounterSceneEventRecord {
     }),
     id: String(row.id)
   }
+}
+
+function sessionPresentationReceiptFromRow(
+  row: Record<string, unknown>
+): CampaignLiveScenePresentationReceiptDto {
+  return campaignLiveScenePresentationReceiptDtoSchema.parse(row.payload)
 }
 
 export function createVttSceneRepository(db: DBLike) {
@@ -174,18 +186,204 @@ export function createVttSceneRepository(db: DBLike) {
       return result.rows.length > 0
     },
 
-    async findByEncounter(encounterId: string): Promise<EncounterSceneRecord | null> {
+    async findLiveScene(sceneId: string): Promise<CampaignLiveSceneRecord | null> {
       const result = await sql<Record<string, unknown>>`
-        SELECT * FROM public.encounter_scenes WHERE encounter_id = ${encounterId}
+        SELECT * FROM public.campaign_live_scenes WHERE id = ${sceneId}
       `.execute(db)
-      return result.rows[0] ? encounterSceneFromRow(result.rows[0]) : null
+      return result.rows[0] ? campaignLiveSceneFromRow(result.rows[0]) : null
     },
 
-    async lockByEncounter(encounterId: string): Promise<EncounterSceneRecord | null> {
+    async listLiveScenes(campaignId: string): Promise<CampaignLiveSceneRecord[]> {
       const result = await sql<Record<string, unknown>>`
-        SELECT * FROM public.encounter_scenes WHERE encounter_id = ${encounterId} FOR UPDATE
+        SELECT * FROM public.campaign_live_scenes
+        WHERE campaign_id = ${campaignId}
+        ORDER BY created_at, id
       `.execute(db)
-      return result.rows[0] ? encounterSceneFromRow(result.rows[0]) : null
+      return result.rows.map(campaignLiveSceneFromRow)
+    },
+
+    async lockLiveScene(sceneId: string): Promise<CampaignLiveSceneRecord | null> {
+      const result = await sql<Record<string, unknown>>`
+        SELECT * FROM public.campaign_live_scenes WHERE id = ${sceneId} FOR UPDATE
+      `.execute(db)
+      return result.rows[0] ? campaignLiveSceneFromRow(result.rows[0]) : null
+    },
+
+    async findEncounterBinding(
+      encounterId: string
+    ): Promise<{ commandFingerprint: string; commandId: string; sceneId: string } | null> {
+      const result = await sql<{
+        command_fingerprint: string
+        command_id: string
+        scene_id: string
+      }>`
+        SELECT scene_id, command_id, command_fingerprint
+        FROM public.encounter_scene_bindings
+        WHERE encounter_id = ${encounterId}
+      `.execute(db)
+      return result.rows[0]
+        ? {
+            commandFingerprint: result.rows[0].command_fingerprint,
+            commandId: result.rows[0].command_id,
+            sceneId: result.rows[0].scene_id
+          }
+        : null
+    },
+
+    async findSessionPresentation(
+      sessionId: string
+    ): Promise<{ sceneId: string | null; version: number } | null> {
+      const result = await sql<{ scene_id: string | null; version: number }>`
+        SELECT scene_id, version FROM public.campaign_session_scene_presentations
+        WHERE session_id = ${sessionId}
+      `.execute(db)
+      return result.rows[0]
+        ? { sceneId: result.rows[0].scene_id, version: Number(result.rows[0].version) }
+        : null
+    },
+
+    async lockSession(
+      campaignId: string,
+      sessionId: string
+    ): Promise<{ id: string; status: 'OPEN' | 'FINISHED' } | null> {
+      const result = await sql<{ id: string; status: 'OPEN' | 'FINISHED' }>`
+        SELECT id, status FROM public.campaign_sessions
+        WHERE id = ${sessionId} AND campaign_id = ${campaignId}
+        FOR UPDATE
+      `.execute(db)
+      return result.rows[0] ?? null
+    },
+
+    async findSessionCampaignId(sessionId: string): Promise<string | null> {
+      const result = await sql<{ campaign_id: string }>`
+        SELECT campaign_id FROM public.campaign_sessions WHERE id = ${sessionId}
+      `.execute(db)
+      return result.rows[0]?.campaign_id ?? null
+    },
+
+    async findSessionScenePresentationReceipt(input: {
+      campaignId: string
+      commandId: string
+    }): Promise<CampaignLiveScenePresentationReceiptDto | null> {
+      const result = await sql<Record<string, unknown>>`
+        SELECT payload FROM public.campaign_events
+        WHERE campaign_id = ${input.campaignId}
+          AND idempotency_key = ${input.commandId}
+          AND kind = ${SESSION_SCENE_PRESENTATION_EVENT_KIND}
+      `.execute(db)
+      return result.rows[0] ? sessionPresentationReceiptFromRow(result.rows[0]) : null
+    },
+
+    async appendSessionScenePresentationReceipt(input: {
+      actorUserId: string
+      campaignId: string
+      commandId: string
+      receipt: CampaignLiveScenePresentationReceiptDto
+    }): Promise<void> {
+      const receipt = campaignLiveScenePresentationReceiptDtoSchema.parse(input.receipt)
+      await sql`
+        INSERT INTO public.campaign_events (
+          campaign_id, actor_user_id, subject_user_id, subject_character_id,
+          kind, visibility, payload, idempotency_key
+        ) VALUES (
+          ${input.campaignId}, ${input.actorUserId}, NULL, NULL,
+          ${SESSION_SCENE_PRESENTATION_EVENT_KIND}, 'TABLE', ${json(receipt)}::jsonb,
+          ${input.commandId}
+        )
+      `.execute(db)
+    },
+
+    async presentSessionScene(input: {
+      campaignId: string
+      commandFingerprint: string
+      commandId: string
+      expectedVersion: number | null
+      sceneId: string | null
+      sessionId: string
+    }): Promise<boolean> {
+      const result = await sql<{ session_id: string }>`
+        WITH inserted AS (
+          INSERT INTO public.campaign_session_scene_presentations (
+            session_id, campaign_id, scene_id, version, command_id, command_fingerprint
+          )
+          SELECT ${input.sessionId}, ${input.campaignId}, ${input.sceneId}, 0,
+                 ${input.commandId}, ${input.commandFingerprint}
+          WHERE ${input.expectedVersion}::integer IS NULL
+          ON CONFLICT (session_id) DO NOTHING
+          RETURNING session_id
+        ), updated AS (
+          UPDATE public.campaign_session_scene_presentations
+          SET scene_id = ${input.sceneId},
+              version = version + 1,
+              command_id = ${input.commandId},
+              command_fingerprint = ${input.commandFingerprint},
+              updated_at = now()
+          WHERE session_id = ${input.sessionId}
+            AND ${input.expectedVersion}::integer IS NOT NULL
+            AND version = ${input.expectedVersion}
+          RETURNING session_id
+        )
+        SELECT session_id FROM inserted
+        UNION ALL
+        SELECT session_id FROM updated
+      `.execute(db)
+      return result.rows.length === 1
+    },
+
+    async bindEncounterToScene(input: {
+      campaignId: string
+      commandFingerprint: string
+      commandId: string
+      encounterId: string
+      sceneId: string
+    }): Promise<boolean> {
+      const result = await sql<{ encounter_id: string }>`
+        INSERT INTO public.encounter_scene_bindings (
+          encounter_id, campaign_id, scene_id, command_id, command_fingerprint
+        ) VALUES (
+          ${input.encounterId}, ${input.campaignId}, ${input.sceneId},
+          ${input.commandId}, ${input.commandFingerprint}
+        ) ON CONFLICT (encounter_id) DO NOTHING
+        RETURNING encounter_id
+      `.execute(db)
+      return result.rows.length === 1
+    },
+
+    async setActorTokenBinding(input: {
+      actorId: string
+      encounterId: string
+      sceneId: string
+      tokenId: string
+    }): Promise<void> {
+      await sql`
+        INSERT INTO public.encounter_scene_actor_token_bindings (
+          encounter_id, actor_id, scene_id, token_id
+        ) VALUES (${input.encounterId}, ${input.actorId}, ${input.sceneId}, ${input.tokenId})
+        ON CONFLICT (encounter_id, actor_id) DO UPDATE
+        SET token_id = EXCLUDED.token_id, scene_id = EXCLUDED.scene_id, updated_at = now()
+      `.execute(db)
+    },
+
+    async removeActorTokenBinding(input: {
+      actorId: string
+      encounterId: string
+    }): Promise<boolean> {
+      const result = await sql<{ actor_id: string }>`
+        DELETE FROM public.encounter_scene_actor_token_bindings
+        WHERE encounter_id = ${input.encounterId} AND actor_id = ${input.actorId}
+        RETURNING actor_id
+      `.execute(db)
+      return result.rows.length === 1
+    },
+
+    async listActorTokenBindings(
+      encounterId: string
+    ): Promise<{ actorId: string; tokenId: string }[]> {
+      const result = await sql<{ actor_id: string; token_id: string }>`
+        SELECT actor_id, token_id FROM public.encounter_scene_actor_token_bindings
+        WHERE encounter_id = ${encounterId} ORDER BY actor_id
+      `.execute(db)
+      return result.rows.map((row) => ({ actorId: row.actor_id, tokenId: row.token_id }))
     },
 
     async lockLiveCommandContext(input: {
@@ -220,10 +418,13 @@ export function createVttSceneRepository(db: DBLike) {
           scene.*,
           membership.role AS membership_role,
           campaign.id AS campaign_id
-        FROM public.encounter_scenes AS scene
+        FROM public.campaign_live_scenes AS scene
+        INNER JOIN public.encounter_scene_bindings AS binding
+          ON binding.scene_id = scene.id
+          AND binding.campaign_id = scene.campaign_id
         INNER JOIN public.encounters AS encounter
-          ON encounter.id = scene.encounter_id
-          AND encounter.campaign_id = scene.campaign_id
+          ON encounter.id = binding.encounter_id
+          AND encounter.campaign_id = binding.campaign_id
         INNER JOIN public.campaigns AS campaign
           ON campaign.id = encounter.campaign_id
         INNER JOIN public.campaign_memberships AS membership
@@ -234,18 +435,22 @@ export function createVttSceneRepository(db: DBLike) {
           ON session.id = encounter.session_id
           AND session.campaign_id = campaign.id
           AND session.status = 'OPEN'
+        INNER JOIN public.campaign_session_scene_presentations AS presentation
+          ON presentation.session_id = session.id
+          AND presentation.campaign_id = campaign.id
+          AND presentation.scene_id = scene.id
         INNER JOIN public.live_session_command_leases AS lease
           ON lease.session_id = session.id
           AND lease.authority_id = ${input.authorityId}
           AND lease.expires_at > now()
         WHERE scene.id = ${input.sceneId}
-          AND scene.encounter_id = ${input.encounterId}
+          AND binding.encounter_id = ${input.encounterId}
           AND campaign.id = ${input.campaignId}
           AND session.id = ${input.sessionId}
           AND encounter.campaign_id = ${input.campaignId}
           AND encounter.session_id = ${input.sessionId}
           AND campaign.status = 'ACTIVE'
-        FOR UPDATE OF scene
+        FOR UPDATE OF scene, presentation
       `.execute(db)
       const row = result.rows[0]
       if (!row) return null
@@ -255,45 +460,47 @@ export function createVttSceneRepository(db: DBLike) {
       }
       const prior = await sql<Record<string, unknown>>`
         SELECT *
-        FROM public.encounter_scene_events
-        WHERE encounter_id = ${input.encounterId}
+        FROM public.campaign_scene_events
+        WHERE scene_id = ${input.sceneId}
           AND command_id = ${input.commandId}
       `.execute(db)
       return {
         membershipRole,
         priorEvent: prior.rows[0] ? eventFromRow(prior.rows[0]) : null,
-        scene: encounterSceneFromRow(row)
+        scene: campaignLiveSceneFromRow(row)
       }
     },
 
-    async createEncounterScene(input: {
-      attachCommandFingerprint: string
-      attachCommandId: string
+    async createCampaignLiveScene(input: {
+      materializationCommandFingerprint: string
+      materializationCommandId: string
       definitionSnapshot: SceneDefinition
       projection: SceneCurrentProjection
-    }): Promise<EncounterSceneRecord> {
+    }): Promise<CampaignLiveSceneRecord> {
       const projection = sceneCurrentProjectionSchema.parse(input.projection)
       if (checksumSceneCurrentProjection(projection) !== projection.projectionChecksum) {
-        throw new Error(`Encounter scene "${projection.sceneId}" projection checksum is invalid.`)
+        throw new Error(
+          `Campaign live Scene "${projection.sceneId}" projection checksum is invalid.`
+        )
       }
       const result = await sql<Record<string, unknown>>`
-        INSERT INTO public.encounter_scenes (
-          id, campaign_id, encounter_id, definition_id, definition_version, definition_snapshot,
+        INSERT INTO public.campaign_live_scenes (
+          id, campaign_id, definition_id, definition_version, definition_snapshot,
           projection, version, projection_schema_version, projection_checksum,
-          attach_command_id, attach_command_fingerprint
+          materialization_command_id, materialization_command_fingerprint
         ) VALUES (
           ${projection.projection.id}, ${projection.projection.campaignId},
-          ${projection.projection.encounterId}, ${projection.projection.definitionId},
+          ${projection.projection.definitionId},
           ${projection.projection.definitionVersion}, ${json(input.definitionSnapshot)}::jsonb,
           ${json(projection.projection)}::jsonb, ${projection.streamVersion},
           ${projection.projectionSchemaVersion}, ${projection.projectionChecksum},
-          ${input.attachCommandId},
-          ${input.attachCommandFingerprint}
+          ${input.materializationCommandId},
+          ${input.materializationCommandFingerprint}
         ) RETURNING *
       `.execute(db)
       const row = result.rows[0]
-      if (!row) throw new Error('Encounter scene was not created.')
-      return encounterSceneFromRow(row)
+      if (!row) throw new Error('Campaign live Scene was not created.')
+      return campaignLiveSceneFromRow(row)
     },
 
     async updateProjection(input: {
@@ -302,17 +509,18 @@ export function createVttSceneRepository(db: DBLike) {
     }): Promise<boolean> {
       const projection = sceneCurrentProjectionSchema.parse(input.projection)
       if (checksumSceneCurrentProjection(projection) !== projection.projectionChecksum) {
-        throw new Error(`Encounter scene "${projection.sceneId}" projection checksum is invalid.`)
+        throw new Error(
+          `Campaign live Scene "${projection.sceneId}" projection checksum is invalid.`
+        )
       }
       const result = await sql<{ id: string }>`
-        UPDATE public.encounter_scenes
+        UPDATE public.campaign_live_scenes
         SET projection = ${json(projection.projection)}::jsonb,
             version = ${projection.streamVersion},
             projection_schema_version = ${projection.projectionSchemaVersion},
             projection_checksum = ${projection.projectionChecksum},
             updated_at = now()
         WHERE id = ${projection.projection.id}
-          AND encounter_id = ${projection.projection.encounterId}
           AND version = ${input.expectedVersion}
         RETURNING id
       `.execute(db)
@@ -322,7 +530,7 @@ export function createVttSceneRepository(db: DBLike) {
     async publishLiveCommand(input: {
       commandFingerprint: string
       commandType: string
-      encounterId: string
+      encounterId: string | null
       event: SceneEvent
       eventId: string
       expectedVersion: number
@@ -330,22 +538,23 @@ export function createVttSceneRepository(db: DBLike) {
     }): Promise<boolean> {
       const projection = sceneCurrentProjectionSchema.parse(input.projection)
       if (checksumSceneCurrentProjection(projection) !== projection.projectionChecksum) {
-        throw new Error(`Encounter scene "${projection.sceneId}" projection checksum is invalid.`)
+        throw new Error(
+          `Campaign live Scene "${projection.sceneId}" projection checksum is invalid.`
+        )
       }
       const result = await sql<{ event_id: string }>`
         WITH updated_scene AS (
-          UPDATE public.encounter_scenes
+          UPDATE public.campaign_live_scenes
           SET projection = ${json(projection.projection)}::jsonb,
               version = ${projection.streamVersion},
               projection_schema_version = ${projection.projectionSchemaVersion},
               projection_checksum = ${projection.projectionChecksum},
               updated_at = now()
           WHERE id = ${projection.projection.id}
-            AND encounter_id = ${projection.projection.encounterId}
             AND version = ${input.expectedVersion}
           RETURNING id
         ), appended_event AS (
-          INSERT INTO public.encounter_scene_events (
+          INSERT INTO public.campaign_scene_events (
             id, scene_id, encounter_id, version, command_id, command_type,
             command_fingerprint, delta, actor_user_id
           )
@@ -364,28 +573,28 @@ export function createVttSceneRepository(db: DBLike) {
     },
 
     async findEventByCommand(
-      encounterId: string,
+      sceneId: string,
       commandId: string
-    ): Promise<EncounterSceneEventRecord | null> {
+    ): Promise<CampaignSceneEventRecord | null> {
       const result = await sql<Record<string, unknown>>`
-        SELECT * FROM public.encounter_scene_events
-        WHERE encounter_id = ${encounterId} AND command_id = ${commandId}
+        SELECT * FROM public.campaign_scene_events
+        WHERE scene_id = ${sceneId} AND command_id = ${commandId}
       `.execute(db)
       return result.rows[0] ? eventFromRow(result.rows[0]) : null
     },
 
-    async listEventsAfter(sceneId: string, version: number): Promise<EncounterSceneEventRecord[]> {
+    async listEventsAfter(sceneId: string, version: number): Promise<CampaignSceneEventRecord[]> {
       const result = await sql<Record<string, unknown>>`
-        SELECT * FROM public.encounter_scene_events
+        SELECT * FROM public.campaign_scene_events
         WHERE scene_id = ${sceneId} AND version > ${version}
         ORDER BY version ASC
       `.execute(db)
       return result.rows.map(eventFromRow)
     },
 
-    async listEvents(sceneId: string): Promise<EncounterSceneEventRecord[]> {
+    async listEvents(sceneId: string): Promise<CampaignSceneEventRecord[]> {
       const result = await sql<Record<string, unknown>>`
-        SELECT * FROM public.encounter_scene_events
+        SELECT * FROM public.campaign_scene_events
         WHERE scene_id = ${sceneId}
         ORDER BY version ASC
       `.execute(db)
@@ -397,10 +606,10 @@ export function createVttSceneRepository(db: DBLike) {
       commandType: string
       event: SceneEvent
       id: string
-      encounterId: string
-    }): Promise<EncounterSceneEventRecord> {
+      encounterId: string | null
+    }): Promise<CampaignSceneEventRecord> {
       const result = await sql<Record<string, unknown>>`
-        INSERT INTO public.encounter_scene_events (
+        INSERT INTO public.campaign_scene_events (
           id, scene_id, encounter_id, version, command_id, command_type,
           command_fingerprint, delta, actor_user_id
         ) VALUES (

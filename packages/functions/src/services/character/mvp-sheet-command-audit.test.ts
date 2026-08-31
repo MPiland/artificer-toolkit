@@ -92,7 +92,9 @@ vi.mock('./characterCommittedSheetSources.js', () => ({
   loadCharacterCommittedSheetSources: mocks.loadCommittedSources
 }))
 
-vi.mock('./characterMechanicsCompiler.js', () => ({
+vi.mock('./characterMechanicsCompiler.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./characterMechanicsCompiler.js')>()),
+  carryPinnedCharacterSenseDefinitions: ({ prior }: { prior: readonly unknown[] }) => prior,
   compileCharacterMechanicsProjection: mocks.compileMechanicsProjection
 }))
 
@@ -133,6 +135,7 @@ function createCharacter(overrides: Partial<CharacterAuthored> = {}): CharacterA
     status: 'ACTIVE',
     profile: {},
     systemId: 'dnd5e2014',
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
     userId: 'user-1',
     intent: {
       advancement: { method: 'MILESTONE' },
@@ -366,8 +369,9 @@ describe('MVP character Sheet command audit', () => {
       ruleRevisionChecksum: 'a'.repeat(64),
       evaluatorVersion: '0.54.0',
       modelContractVersion: 5,
-      rulePolicyInput: {},
+      rulePolicyInput: { spellPreparationClasses: [] },
       rulePolicyOutput: {},
+      pinnedSenseDefinitions: [],
       ruleRegistry: {},
       ruleSnapshot: { characterId: 'character-1' }
     }
@@ -383,7 +387,12 @@ describe('MVP character Sheet command audit', () => {
       vehiclesById: new Map()
     })
     mocks.createCommittedSpells.mockReturnValue(new Map())
-    mocks.compileMechanicsProjection.mockReturnValue({})
+    mocks.compileMechanicsProjection.mockReturnValue({
+      rulePolicyInput: { spellPreparationClasses: [] },
+      rulePolicyOutput: { senses: [] },
+      pinnedSenseDefinitions: [],
+      compiledActionEntryPoints: []
+    })
     mocks.publishMechanics.mockResolvedValue(undefined)
     mocks.loadCharacterBuilderContext.mockResolvedValue({
       catalog: resolution.catalog,
@@ -404,21 +413,36 @@ describe('MVP character Sheet command audit', () => {
             maxHitPoints: { base: 10, effective: 10, contributions: [], override: null }
           }
         },
-        ruleEvaluation: { output: { rest: { attunementSlotLimit: 3 } } }
+        ruleEvaluation: {
+          facts: { spellPreparationClasses: [] },
+          output: {
+            rest: { attunementSlotLimit: 3 },
+            spellPreparation: { sources: [] },
+            senses: []
+          }
+        }
       })
     )
     mocks.assembleSheetBundleForRuleContext.mockImplementation(
       async (params: { character: CharacterAuthored; row: { stream_version: number } }) => ({
         bundle: {
           sheet: createAuditSheet(params.character, params.row.stream_version),
-          ruleEvaluation: { output: { rest: { attunementSlotLimit: 3 } } }
+          ruleEvaluation: {
+            facts: { spellPreparationClasses: [] },
+            output: {
+              rest: { attunementSlotLimit: 3 },
+              spellPreparation: { sources: [] },
+              senses: []
+            }
+          }
         },
         mechanics: {
           projectionChecksum: 'mechanics-checksum',
           commandLaneChecksum: 'mechanics-lane-checksum',
           ruleSnapshot: { characterId: params.character.id },
-          rulePolicyInput: {},
+          rulePolicyInput: { spellPreparationClasses: [] },
           rulePolicyOutput: {},
+          pinnedSenseDefinitions: [],
           ruleRegistry: {}
         },
         resolution,

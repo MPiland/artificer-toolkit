@@ -17,70 +17,67 @@
 
 CREATE TABLE IF NOT EXISTS public.backgrounds (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-
+  content_source_id uuid NOT NULL,
+  user_id uuid REFERENCES auth.users (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
   label text NOT NULL,
   description text,
   status text NOT NULL DEFAULT 'DRAFT',
-
-  starting_equipment_id uuid
-    REFERENCES public.starting_equipment(id)
+  starting_equipment_id uuid REFERENCES public.starting_equipment (id)
     ON DELETE SET NULL
     DEFERRABLE INITIALLY DEFERRED,
-
-  is_master boolean,
-
+  is_master BOOLEAN,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-
-  CONSTRAINT backgrounds_status_chk CHECK (
-    status IN ('DRAFT', 'ACTIVE')
-  )
+  CONSTRAINT backgrounds_status_chk CHECK (status IN ('DRAFT', 'ACTIVE'))
 );
+
+ALTER TABLE public.backgrounds
+ADD CONSTRAINT backgrounds_content_source_system_fk
+  FOREIGN KEY (content_source_id, system_id) REFERENCES public.content_sources (
+    id,
+    game_system_id
+  )
+    ON DELETE RESTRICT;
 
 ALTER TABLE public.backgrounds ENABLE ROW LEVEL SECURITY;
 
 SELECT public.apply_system_derived_policies('backgrounds');
 
-CREATE INDEX IF NOT EXISTS idx_backgrounds_system
-  ON public.backgrounds(system_id);
+CREATE INDEX IF NOT EXISTS idx_backgrounds_system ON public.backgrounds (
+  system_id
+);
 
-CREATE INDEX IF NOT EXISTS idx_backgrounds_user
-  ON public.backgrounds(user_id);
+CREATE INDEX IF NOT EXISTS idx_backgrounds_user ON public.backgrounds (user_id);
 
-CREATE INDEX IF NOT EXISTS idx_backgrounds_starting_equipment
-  ON public.backgrounds(starting_equipment_id);
+CREATE INDEX IF NOT EXISTS idx_backgrounds_starting_equipment ON public.backgrounds (
+  starting_equipment_id
+);
 
 /* ──────────────────────────────────────────────
  * BACKGROUND — DETAILS (OWNED)
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.background_details (
-  background_id uuid NOT NULL
-    REFERENCES public.backgrounds(id)
+  background_id uuid NOT NULL REFERENCES public.backgrounds (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  detail_id uuid NOT NULL
-    REFERENCES public.details(id)
+  detail_id uuid NOT NULL REFERENCES public.details (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  sort_order integer NOT NULL,
-
+  sort_order INTEGER NOT NULL,
   PRIMARY KEY (background_id, detail_id)
 );
 
 ALTER TABLE background_details ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_background_details_background
-  ON public.background_details(background_id);
+CREATE INDEX IF NOT EXISTS idx_background_details_background ON public.background_details (
+  background_id
+);
 
 DO $$
 BEGIN
@@ -103,22 +100,19 @@ $$;
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.background_proficiency_grants (
-  background_id uuid NOT NULL
-    REFERENCES public.backgrounds(id)
+  background_id uuid NOT NULL REFERENCES public.backgrounds (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   proficiency_grant_id uuid NOT NULL,
-
-  sort_order integer NOT NULL,
-
+  sort_order INTEGER NOT NULL,
   PRIMARY KEY (background_id, proficiency_grant_id)
 );
 
 ALTER TABLE public.background_proficiency_grants ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_background_proficiency_grants_background
-  ON public.background_proficiency_grants(background_id);
+CREATE INDEX IF NOT EXISTS idx_background_proficiency_grants_background ON public.background_proficiency_grants (
+  background_id
+);
 
 DO $$
 BEGIN
@@ -141,25 +135,21 @@ $$;
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.background_features (
-  background_id uuid NOT NULL
-    REFERENCES public.backgrounds(id)
+  background_id uuid NOT NULL REFERENCES public.backgrounds (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  feature_id uuid NOT NULL
-    REFERENCES public.features(id)
+  feature_id uuid NOT NULL REFERENCES public.features (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  sort_order integer NOT NULL,
-
+  sort_order INTEGER NOT NULL,
   PRIMARY KEY (background_id, feature_id)
 );
 
 ALTER TABLE public.background_features ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_background_features_background
-  ON public.background_features(background_id);
+CREATE INDEX IF NOT EXISTS idx_background_features_background ON public.background_features (
+  background_id
+);
 
 DO $$
 BEGIN

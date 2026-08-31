@@ -100,7 +100,9 @@ async function seedHostedTarget(
   let result: { domainRoots: number; systems: number } | undefined
 
   try {
-    console.info('Compiling the repository SRD corpus directly into the selected target transaction...')
+    console.info(
+      'Compiling the repository SRD corpus directly into the selected target transaction...'
+    )
     try {
       await targetDb.transaction().execute(async (transaction) => {
         result = await seedAndAudit(transaction, targetOwnerId)

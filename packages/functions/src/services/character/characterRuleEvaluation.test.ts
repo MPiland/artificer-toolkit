@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { DBLike } from '@artificer-toolkit/db'
+import { characterRulePolicyOutputSchema } from '@artificer-toolkit/schema/api/characterRules'
 import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
@@ -18,6 +19,9 @@ const { resolveBinding, evaluateRevision } = vi.hoisted(() => ({
   resolveBinding: vi.fn(),
   evaluateRevision: vi.fn()
 }))
+const { discoverCapabilities } = vi.hoisted(() => ({
+  discoverCapabilities: vi.fn()
+}))
 
 vi.mock('./characterRuleBinding.js', () => ({
   resolveCharacterRuleBinding: resolveBinding
@@ -25,11 +29,19 @@ vi.mock('./characterRuleBinding.js', () => ({
 vi.mock('../rules/ruleRevisionRuntime.js', () => ({
   evaluateRuleRevision: evaluateRevision
 }))
+vi.mock('../rules/characterActionCapabilityDiscoveryRegistry.js', () => ({
+  discoverCharacterActionCapabilities: discoverCapabilities
+}))
 
-const { collectCharacterRuleEvaluationSpellIds, evaluateCharacterRulePolicy } =
-  await import('./characterRuleEvaluation.js')
+const {
+  collectCharacterRuleEvaluationSpellIds,
+  evaluateCharacterRulePolicy,
+  resolveCharacterRulePolicyRollModes
+} = await import('./characterRuleEvaluation.js')
 const { dnd5e2014CharacterPolicyDocument } =
   await import('../rules/systems/dnd5e/2014/characterPolicy.js')
+
+const SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
 
 function context(documents: readonly SpellAuthored[] = []): CharacterBuilderContext {
   return {
@@ -54,7 +66,7 @@ function context(documents: readonly SpellAuthored[] = []): CharacterBuilderCont
   }
 }
 
-function spellDocument(id: string, systemId = 'dnd5e2014') {
+function spellDocument(id: string, systemId = SYSTEM_ID) {
   return {
     kind: 'SPELL' as const,
     id,
@@ -77,7 +89,8 @@ function mixedActiveSpellFixture() {
   const reference = spellDocument('reference-spell')
   const character = createEmptyCharacterAuthored({
     id: 'character-1',
-    systemId: 'dnd5e2014',
+    systemId: SYSTEM_ID,
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
     userId: 'user-1'
   })
   character.intent.classes = [{ classId: 'wizard', classLevel: 1 }]
@@ -115,7 +128,7 @@ function mixedActiveSpellFixture() {
       size: 'MEDIUM',
       speeds: [],
       userId: 'user-1',
-      systemId: 'dnd5e2014',
+      systemId: SYSTEM_ID,
       features: [
         {
           id: 'chosen-spell-feature',
@@ -178,6 +191,8 @@ describe('evaluateCharacterRulePolicy', () => {
   beforeEach(() => {
     resolveBinding.mockReset()
     evaluateRevision.mockReset()
+    discoverCapabilities.mockReset()
+    discoverCapabilities.mockReturnValue([])
     resolveBinding.mockResolvedValue({
       revisionId: 'revision-1',
       checksum: 'checksum-1',
@@ -210,7 +225,8 @@ describe('evaluateCharacterRulePolicy', () => {
   it('resolves one exact revision and invokes the generic runtime once', async () => {
     const character = createEmptyCharacterAuthored({
       id: 'character-1',
-      systemId: 'dnd5e2014',
+      systemId: SYSTEM_ID,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       userId: 'user-1'
     })
     character.intent.abilities = {
@@ -227,7 +243,7 @@ describe('evaluateCharacterRulePolicy', () => {
 
     expect(resolveBinding).toHaveBeenCalledWith({
       db: {},
-      systemId: 'dnd5e2014',
+      systemId: SYSTEM_ID,
       existingRevisionId: 'revision-1',
       expectedRevisionId: undefined
     })
@@ -263,12 +279,151 @@ describe('evaluateCharacterRulePolicy', () => {
       })
     )
     expect(result.evaluation.timing.totalMs).toBeGreaterThanOrEqual(0)
+    expect(result.discoveredActionCapabilities).toEqual([])
+    expect(discoverCapabilities).toHaveBeenCalledWith({
+      gameSystemId: SYSTEM_ID,
+      candidates: [],
+      abilityDefinitions: [],
+      conditionDefinitionIds: [],
+      entryPoints: []
+    })
+  })
+
+  it('derives every supported d20 mode from private contributor evidence over conflicting model scalars', () => {
+    const fixture = dnd5e2014CharacterPolicyDocument.fixtures.find(
+      ({ modelKey }) => modelKey === 'character-policy'
+    )
+    if (!fixture) throw new Error('Policy fixture missing.')
+    const expected = characterRulePolicyOutputSchema.parse(fixture.expected)
+    const contributor = {
+      sourceId: 'manual-adjustment:advantage',
+      source: { kind: 'MANUAL_ADJUSTMENT' as const, adjustmentId: 'advantage' },
+      grantId: 'grant:advantage',
+      domainKey: 'TEST:ADVANTAGE',
+      influence: 'ADVANTAGE' as const
+    }
+    const savingThrowDefinition = {
+      abilityDefinitionId: '00000000-0000-4000-8000-000000000401',
+      modifier: 3,
+      rollMode: 'ADVANTAGE' as const,
+      contributors: [contributor]
+    }
+    expect(
+      characterRulePolicyOutputSchema.parse({
+        ...expected,
+        savingThrowDefinitions: [savingThrowDefinition]
+      }).savingThrowDefinitions
+    ).toEqual([savingThrowDefinition])
+    expect(() =>
+      characterRulePolicyOutputSchema.parse({
+        ...expected,
+        savingThrowDefinitions: [
+          {
+            ...savingThrowDefinition,
+            abilityDefinitionId: 'constitution'
+          }
+        ]
+      })
+    ).toThrow()
+    expect(() =>
+      characterRulePolicyOutputSchema.parse({
+        ...expected,
+        savingThrowDefinitions: [
+          { ...savingThrowDefinition, contributors: [contributor, contributor] }
+        ]
+      })
+    ).toThrow()
+    const result = resolveCharacterRulePolicyRollModes(
+      characterRulePolicyOutputSchema.parse({
+        ...expected,
+        rollModes: {
+          initiative: 'DISADVANTAGE',
+          abilityChecks: Object.fromEntries(
+            Object.keys(expected.rollModes.abilityChecks).map((key) => [key, 'DISADVANTAGE'])
+          ),
+          savingThrows: Object.fromEntries(
+            Object.keys(expected.rollModes.savingThrows).map((key) => [key, 'DISADVANTAGE'])
+          ),
+          skillChecks: Object.fromEntries(
+            Object.keys(expected.rollModes.skillChecks).map((key) => [key, 'DISADVANTAGE'])
+          ),
+          attacks: Object.fromEntries(
+            Object.keys(expected.rollModes.attacks).map((key) => [key, 'DISADVANTAGE'])
+          )
+        },
+        rollContributorEvidence: {
+          initiative: [contributor],
+          abilityChecks: Object.fromEntries(
+            Object.keys(expected.rollContributorEvidence.abilityChecks).map((key) => [
+              key,
+              [contributor]
+            ])
+          ),
+          savingThrows: Object.fromEntries(
+            Object.keys(expected.rollContributorEvidence.savingThrows).map((key) => [
+              key,
+              [contributor]
+            ])
+          ),
+          skillChecks: Object.fromEntries(
+            Object.keys(expected.rollContributorEvidence.skillChecks).map((key) => [
+              key,
+              [contributor]
+            ])
+          ),
+          attacks: Object.fromEntries(
+            Object.keys(expected.rollContributorEvidence.attacks).map((key) => [key, [contributor]])
+          )
+        }
+      })
+    )
+
+    expect(result.rollModes).toEqual({
+      initiative: 'ADVANTAGE',
+      abilityChecks: Object.fromEntries(
+        Object.keys(expected.rollModes.abilityChecks).map((key) => [key, 'ADVANTAGE'])
+      ),
+      savingThrows: Object.fromEntries(
+        Object.keys(expected.rollModes.savingThrows).map((key) => [key, 'ADVANTAGE'])
+      ),
+      skillChecks: Object.fromEntries(
+        Object.keys(expected.rollModes.skillChecks).map((key) => [key, 'ADVANTAGE'])
+      ),
+      attacks: Object.fromEntries(
+        Object.keys(expected.rollModes.attacks).map((key) => [key, 'ADVANTAGE'])
+      )
+    })
+  })
+
+  it('stops before legacy evaluation when capability discovery rejects an invalid adapter result', async () => {
+    discoverCapabilities.mockImplementation(() => {
+      throw new Error(
+        'Character action capability discovery produced an invalid descriptor at index 0.'
+      )
+    })
+    const character = createEmptyCharacterAuthored({
+      id: 'character-1',
+      systemId: SYSTEM_ID,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
+      userId: 'user-1'
+    })
+
+    await expect(
+      evaluateCharacterRulePolicy({
+        db: {} as unknown as DBLike,
+        character,
+        context: context(),
+        existingRevisionId: 'revision-1'
+      })
+    ).rejects.toThrow('invalid descriptor at index 0')
+    expect(evaluateRevision).not.toHaveBeenCalled()
   })
 
   it('hydrates the union of Character spells and requested Sheet reference spells before one Zen call', async () => {
     const character = createEmptyCharacterAuthored({
       id: 'character-1',
-      systemId: 'dnd5e2014',
+      systemId: SYSTEM_ID,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       userId: 'user-1'
     })
     character.intent.spellSelections = [
@@ -289,9 +444,13 @@ describe('evaluateCharacterRulePolicy', () => {
       classIds: ['wizard'],
       magicSchoolId: 'evocation',
       userId: 'user-1',
-      systemId: 'dnd5e2014'
+      systemId: SYSTEM_ID
     }
-    const referenceSpell = { ...spell, id: 'spell-2', label: 'Reference spell' }
+    const referenceSpell = {
+      ...spell,
+      id: 'spell-2',
+      label: 'Reference spell'
+    }
     const builderContext = context([spell, referenceSpell])
     builderContext.catalog.spells = [spell, referenceSpell].map(
       ({ kind: _kind, systemId: _systemId, userId: _userId, ...summary }) => summary
@@ -385,7 +544,8 @@ describe('evaluateCharacterRulePolicy', () => {
   ])('fails before binding when an active Spell document is %s', async (_case, document) => {
     const character = createEmptyCharacterAuthored({
       id: 'character-1',
-      systemId: 'dnd5e2014',
+      systemId: SYSTEM_ID,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       userId: 'user-1'
     })
     character.intent.spellSelections = [
@@ -414,7 +574,8 @@ describe('evaluateCharacterRulePolicy', () => {
   it('uses a committed Character spell pin without querying active authored versions', async () => {
     const character = createEmptyCharacterAuthored({
       id: 'character-1',
-      systemId: 'dnd5e2014',
+      systemId: SYSTEM_ID,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       userId: 'user-1'
     })
     character.intent.spellSelections = [
@@ -435,7 +596,7 @@ describe('evaluateCharacterRulePolicy', () => {
       classIds: ['wizard'],
       magicSchoolId: 'evocation',
       userId: 'user-1',
-      systemId: 'dnd5e2014'
+      systemId: SYSTEM_ID
     }
 
     await evaluateCharacterRulePolicy({
@@ -458,7 +619,8 @@ describe('evaluateCharacterRulePolicy', () => {
   it('fails closed when an active Spell version belongs to another System', async () => {
     const character = createEmptyCharacterAuthored({
       id: 'character-1',
-      systemId: 'dnd5e2014',
+      systemId: SYSTEM_ID,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       userId: 'user-1'
     })
     character.intent.spellSelections = [
@@ -488,7 +650,8 @@ describe('evaluateCharacterRulePolicy', () => {
     resolveBinding.mockRejectedValueOnce(error)
     const character = createEmptyCharacterAuthored({
       id: 'character-1',
-      systemId: 'dnd5e2014',
+      systemId: SYSTEM_ID,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       userId: 'user-1'
     })
 

@@ -26,6 +26,9 @@ export interface CampaignRecord {
   toneTags: CampaignToneTag[]
   toneDetails: string | null
   contentMaturity: CampaignContentMaturity
+  gameSystemId: string
+  primaryRulesCatalogueId: string
+  additionalRulesCatalogueIds: string[]
   attunementSlotOverride: number | null
   status: CampaignStatus
   version: number
@@ -37,7 +40,10 @@ export interface CampaignListRecord extends CampaignRecord {
   role: CampaignRole
   memberCount: number
   playerCount: number
-  assignedCharacter: Omit<CampaignCharacterRecord, 'userId' | 'status'> | null
+  assignedCharacter: Omit<
+    CampaignCharacterRecord,
+    'userId' | 'status' | 'primaryRulesCatalogueId'
+  > | null
 }
 
 export interface CampaignMembershipRecord {
@@ -56,6 +62,7 @@ export interface CampaignCharacterRecord {
   userId: string
   label: string
   systemId: string
+  primaryRulesCatalogueId: string
   status: string
 }
 
@@ -69,7 +76,10 @@ export interface CampaignAssignmentRecord {
 export interface CampaignAuthorityRecord {
   campaign: CampaignRecord
   membership: CampaignMembershipRecord
-  assignedCharacter: Omit<CampaignCharacterRecord, 'userId' | 'status'> | null
+  assignedCharacter: Omit<
+    CampaignCharacterRecord,
+    'userId' | 'status' | 'primaryRulesCatalogueId'
+  > | null
 }
 
 export interface CampaignMembershipProjection {
@@ -78,7 +88,10 @@ export interface CampaignMembershipProjection {
   role: CampaignRole
   accessStartedAt: Timestamp
   acceptedAt: Timestamp
-  assignedCharacter: Omit<CampaignCharacterRecord, 'userId' | 'status'> | null
+  assignedCharacter: Omit<
+    CampaignCharacterRecord,
+    'userId' | 'status' | 'primaryRulesCatalogueId'
+  > | null
 }
 
 export interface CampaignInviteRecord {
@@ -130,6 +143,9 @@ export interface RawCampaignRow {
   tone_tags: string[]
   tone_details: string | null
   content_maturity: string
+  game_system_id: string
+  primary_rules_catalogue_id: string
+  additional_rules_catalogue_ids: string[]
   attunement_slot_override?: number | null
   status: CampaignStatus
   version: number
@@ -158,10 +174,21 @@ export function mapCampaign(row: RawCampaignRow): CampaignRecord {
     toneTags: row.tone_tags as CampaignToneTag[],
     toneDetails: row.tone_details,
     contentMaturity: row.content_maturity as CampaignContentMaturity,
+    gameSystemId: requireCampaignBinding(row.game_system_id, 'Game System'),
+    primaryRulesCatalogueId: requireCampaignBinding(
+      row.primary_rules_catalogue_id,
+      'primary Rules Catalogue'
+    ),
+    additionalRulesCatalogueIds: row.additional_rules_catalogue_ids,
     attunementSlotOverride: row.attunement_slot_override ?? null,
     status: row.status,
     version: row.version,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   }
+}
+
+function requireCampaignBinding(value: string, label: string): string {
+  if (!value) throw new Error(`Campaign is missing its ${label} binding.`)
+  return value
 }

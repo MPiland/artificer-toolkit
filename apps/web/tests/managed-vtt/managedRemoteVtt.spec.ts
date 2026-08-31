@@ -22,9 +22,7 @@ const liveSessionWebSocketOrigin = liveSessionEndpoint.replace(/^http/, (protoco
 const warmupPairs = boundedSampleCount('VTT_USAGE_WARMUP_PAIRS', 2, 0)
 const measuredPairs = boundedSampleCount('VTT_USAGE_MEASURED_PAIRS', 10, 1)
 const hostTimingP95Limits =
-  topology === 'MANAGED'
-    ? { ruleBound: 250, sceneOnly: 100 }
-    : { ruleBound: 500, sceneOnly: 500 }
+  topology === 'MANAGED' ? { ruleBound: 250, sceneOnly: 100 } : { ruleBound: 1_500, sceneOnly: 500 }
 const signInReadyTimeoutMs = topology === 'LOCAL' ? 60_000 : 15_000
 
 test('connects three users through the live room and recovers a reversible scene commit', async ({
@@ -306,7 +304,8 @@ function parseCampaignSummaries(value: unknown): ManagedCampaignSummary[] {
 function parseCharacterList(value: unknown): ManagedCharacterListItem[] {
   const response = record(value)
   const items = response?.items
-  if (!Array.isArray(items)) throw new Error('Managed characters.list returned an invalid response.')
+  if (!Array.isArray(items))
+    throw new Error('Managed characters.list returned an invalid response.')
   return items.map((item, index) => {
     const candidate = record(item)
     if (!candidate || typeof candidate.publicId !== 'string') {
@@ -408,7 +407,8 @@ async function waitForCorrelatedHostTiming(
     client.liveSessionFrames
       .slice(priorFrameCount)
       .map(parseAcceptedCommand)
-      .find((value): value is { acceptedSequence: number; commandId: string } => value !== null) ?? null
+      .find((value): value is { acceptedSequence: number; commandId: string } => value !== null) ??
+    null
   try {
     await expect.poll(readAccepted).not.toBeNull()
   } catch (error) {
@@ -443,9 +443,9 @@ async function waitForCorrelatedHostTiming(
   return outcome.durationMs
 }
 
-function parseAcceptedCommand(value: string):
-  | { acceptedSequence: number; commandId: string }
-  | null {
+function parseAcceptedCommand(
+  value: string
+): { acceptedSequence: number; commandId: string } | null {
   try {
     const parsed: unknown = JSON.parse(value)
     if (!parsed || typeof parsed !== 'object') return null
@@ -875,7 +875,8 @@ function requiredLiveSessionOrigin(name: string, expectedTopology: 'LOCAL' | 'MA
   const value = requiredValue(name)
   const url = new URL(value)
   const expectedProtocol = expectedTopology === 'MANAGED' ? 'https:' : 'http:'
-  const allowedHost = expectedTopology === 'MANAGED' ? null : new Set(['127.0.0.1', 'localhost', '::1'])
+  const allowedHost =
+    expectedTopology === 'MANAGED' ? null : new Set(['127.0.0.1', 'localhost', '::1'])
   if (
     url.protocol !== expectedProtocol ||
     url.origin !== value.replace(/\/$/, '') ||

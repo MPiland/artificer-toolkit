@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const youngRedDragon: CreatureAuthored = {
@@ -193,6 +194,9 @@ export const youngRedDragon: CreatureAuthored = {
     },
     {
       id: S.featureId(308, 4),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(308, 4)),
       label: 'Fire Breath (Recharge 5-6)',
       description:
         'The dragon exhales fire in a 30-foot cone. Each creature in that area must make a DC 17 Dexterity saving throw, taking 56 (16d6) fire damage on a failed save, or half as much damage on a successful one.',
@@ -206,7 +210,7 @@ export const youngRedDragon: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(308, 14),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.DEXTERITY,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
               baseDc: 17
             },
             activation: {

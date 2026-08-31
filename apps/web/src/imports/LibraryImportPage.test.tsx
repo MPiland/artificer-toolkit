@@ -51,7 +51,9 @@ it('previews selected entries, requires replacement confirmation, and commits on
   fireEvent.change(screen.getByLabelText('Character-sheet links'), {
     target: { value: 'https://www.dndbeyond.com/characters/1' }
   })
-  fireEvent.click(screen.getByRole('button', { name: 'Preview import' }))
+  const previewButton = screen.getByRole('button', { name: 'Preview import' })
+  await waitFor(() => expect(previewButton).toBeEnabled())
+  fireEvent.click(previewButton)
   await screen.findByText('A matching owned item already exists.')
   expect(screen.getByRole('button', { name: 'Confirm import' })).toBeDisabled()
   fireEvent.click(screen.getByLabelText('Replace the existing edit draft'))
@@ -141,7 +143,9 @@ it('groups preview outcomes and commits individual active or draft choices', asy
   fireEvent.change(screen.getByLabelText('Character-sheet links'), {
     target: { value: 'https://www.dndbeyond.com/characters/1' }
   })
-  fireEvent.click(screen.getByRole('button', { name: 'Preview import' }))
+  const previewButton = screen.getByRole('button', { name: 'Preview import' })
+  await waitFor(() => expect(previewButton).toBeEnabled())
+  fireEvent.click(previewButton)
 
   const entryControl = await screen.findByRole('button', {
     name: /Varen.*1 existing match.*1 ready to activate.*1 draft required.*1 not imported/i
@@ -212,7 +216,9 @@ it('collapses every top-level entry in a batch', async () => {
       value: 'https://www.dndbeyond.com/characters/1\nhttps://www.dndbeyond.com/characters/2'
     }
   })
-  fireEvent.click(screen.getByRole('button', { name: 'Preview import' }))
+  const previewButton = screen.getByRole('button', { name: 'Preview import' })
+  await waitFor(() => expect(previewButton).toBeEnabled())
+  fireEvent.click(previewButton)
 
   expect(await screen.findByRole('button', { name: /Aria.*No related content/i })).toHaveAttribute(
     'aria-expanded',

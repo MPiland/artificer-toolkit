@@ -3,7 +3,9 @@ import {
   Button,
   Checkbox,
   Loader,
+  MultiSelect,
   NumberInput,
+  Select,
   Stack,
   Text,
   Textarea,
@@ -12,10 +14,14 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import type { CampaignPlaySettingsDto } from '@artificer-toolkit/schema/api/campaigns'
+import type { CampaignPlaySettingsOptionsDto } from '@artificer-toolkit/schema/api/campaigns'
 import type { TableSafetyPracticeDto } from '@artificer-toolkit/schema/api/tableSafety'
 import type { CampaignDetailDto } from '#app/lib/api'
 import { api } from '#app/lib/api'
-import { getCampaignPlaySettings } from '#app/data/campaigns/queries'
+import {
+  getCampaignPlaySettings,
+  getCampaignPlaySettingsOptions
+} from '#app/data/campaigns/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import * as styles from './CampaignTableSettings.css'
 
@@ -35,21 +41,35 @@ type Draft = Omit<CampaignPlaySettingsDto, 'campaignId' | 'updatedAt' | 'version
 
 export function CampaignTableSettings({ campaign }: { campaign: CampaignDetailDto }) {
   const settings = useQuery(getCampaignPlaySettings(campaign.id))
-  if (settings.isPending) return <Loader aria-label='Loading table settings' size='sm' />
-  if (settings.isError) return <Alert color='red'>Table settings are unavailable.</Alert>
-  return <CampaignTableSettingsForm campaign={campaign} settings={settings.data} />
+  const options = useQuery(getCampaignPlaySettingsOptions(campaign.id))
+  if (settings.isPending || options.isPending)
+    return <Loader aria-label='Loading table settings' size='sm' />
+  if (settings.isError || options.isError)
+    return <Alert color='red'>Table settings are unavailable.</Alert>
+  return (
+    <CampaignTableSettingsForm
+      campaign={campaign}
+      options={options.data}
+      settings={settings.data}
+    />
+  )
 }
 
 function CampaignTableSettingsForm({
   campaign,
+  options,
   settings
 }: {
   campaign: CampaignDetailDto
+  options: CampaignPlaySettingsOptionsDto
   settings: CampaignPlaySettingsDto
 }) {
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState<Draft>(() => toDraft(settings))
   const editable = isCampaignTableSettingsEditable(campaign)
+  const selectedInitiativePolicy = options.initiativePolicies.find(
+    (policy) => policy.definitionId === draft.initiativePolicyDefinitionId
+  )
   useEffect(() => setDraft(toDraft(settings)), [settings])
 
   const save = useMutation({
@@ -104,6 +124,88 @@ function CampaignTableSettingsForm({
           onChange={(value) => set('quorum', value === '' ? null : Number(value))}
         />
       </div>
+      <div>
+        <Title order={3}>Rules automation</Title>
+        <Text c='dimmed' size='sm'>
+          Choose how much of the rules engine resolves for the table. New Encounters snapshot these
+          settings.
+        </Text>
+      </div>
+      <div className={styles.scheduleGrid}>
+        <Select
+          data={[
+            { value: 'AUTOMATIC', label: 'Automatic' },
+            { value: 'ASSISTED', label: 'Assisted' },
+            { value: 'MANUAL', label: 'Manual' }
+          ]}
+          disabled={!editable}
+          label='Automation mode'
+          onChange={(value) => {
+            if (value === 'AUTOMATIC' || value === 'ASSISTED' || value === 'MANUAL') {
+              set('automationMode', value)
+            }
+          }}
+          value={draft.automationMode}
+        />
+        <Select
+          data={[
+            { value: 'OFF', label: 'Off' },
+            { value: 'SUBTLE', label: 'Subtle reminders' }
+          ]}
+          disabled={!editable}
+          label='Manual reminders'
+          onChange={(value) => {
+            if (value === 'OFF' || value === 'SUBTLE') set('manualReminderMode', value)
+          }}
+          value={draft.manualReminderMode}
+        />
+        <Select
+          clearable
+          data={options.initiativePolicies.map((policy) => ({
+            value: policy.definitionId,
+            label: policy.label
+          }))}
+          description='Leave empty to use the Game System default.'
+          disabled={!editable}
+          label='Initiative policy'
+          onChange={(value) => {
+            set('initiativePolicyDefinitionId', value)
+            set('initiativeTieDefinitionId', null)
+          }}
+          value={draft.initiativePolicyDefinitionId}
+        />
+        <Select
+          clearable
+          data={(selectedInitiativePolicy?.tieResolvers ?? []).map((resolver) => ({
+            value: resolver.definitionId,
+            label: resolver.label
+          }))}
+          description='Leave empty to use the policy default.'
+          disabled={!editable || !selectedInitiativePolicy}
+          label='Initiative tie resolver'
+          onChange={(value) => set('initiativeTieDefinitionId', value)}
+          value={draft.initiativeTieDefinitionId}
+        />
+      </div>
+      <MultiSelect
+        clearable
+        data={options.optionalCombatRules.map((rule) => ({
+          value: rule.definitionId,
+          label: rule.label
+        }))}
+        description='Each selected rule is frozen when a new Encounter starts.'
+        disabled={!editable}
+        label='Optional combat rules'
+        maxValues={14}
+        onChange={(values) =>
+          set(
+            'optionalCombatRuleDefinitionIds',
+            [...values].sort((left, right) => left.localeCompare(right))
+          )
+        }
+        searchable
+        value={draft.optionalCombatRuleDefinitionIds}
+      />
       <Stack gap='md'>
         <PolicyField
           disabled={!editable}

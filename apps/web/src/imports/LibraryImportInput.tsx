@@ -4,12 +4,14 @@ import {
   FileInput,
   Group,
   Radio,
+  Select,
   SimpleGrid,
   Stack,
   Text,
   Textarea
 } from '@mantine/core'
 import { IMPORT_MAX_ENTRIES, type ImportSourceDto } from '@artificer-toolkit/schema/api/imports'
+import type { SystemListItemDto } from '@artificer-toolkit/schema/api/systems'
 import { hasImportInput } from './libraryImport.model'
 
 const sourceOptions: { value: ImportSourceDto; label: string; description: string }[] = [
@@ -36,9 +38,14 @@ export function LibraryImportInput({
   links,
   loading,
   source,
+  systems,
+  gameSystemId,
+  primaryRulesCatalogueId,
   onFilesChange,
   onLinksChange,
   onPreview,
+  onGameSystemChange,
+  onPrimaryRulesCatalogueChange,
   onSourceChange
 }: {
   files: File[]
@@ -46,11 +53,18 @@ export function LibraryImportInput({
   links: string
   loading: boolean
   source: ImportSourceDto
+  systems: SystemListItemDto[]
+  gameSystemId: string
+  primaryRulesCatalogueId: string
   onFilesChange: (files: File[]) => void
   onLinksChange: (links: string) => void
   onPreview: () => void
+  onGameSystemChange: (systemId: string) => void
+  onPrimaryRulesCatalogueChange: (catalogueId: string) => void
   onSourceChange: (source: ImportSourceDto) => void
 }) {
+  const selectedSystem = systems.find((system) => system.id === gameSystemId)
+  const bindingRequired = source !== 'ARTIFICER_JSON'
   return (
     <Stack gap='lg'>
       <Radio.Group
@@ -69,6 +83,30 @@ export function LibraryImportInput({
           ))}
         </SimpleGrid>
       </Radio.Group>
+
+      {bindingRequired ? (
+        <SimpleGrid cols={{ base: 1, sm: 2 }}>
+          <Select
+            data={systems.map((system) => ({ value: system.id, label: system.label }))}
+            label='Game System'
+            onChange={(value) => onGameSystemChange(value ?? '')}
+            required
+            searchable
+            value={gameSystemId || null}
+          />
+          <Select
+            data={(selectedSystem?.rulesCatalogues ?? []).map((catalogue) => ({
+              value: catalogue.id,
+              label: catalogue.label
+            }))}
+            disabled={!selectedSystem}
+            label='Rules Catalogue'
+            onChange={(value) => onPrimaryRulesCatalogueChange(value ?? '')}
+            required
+            value={primaryRulesCatalogueId || null}
+          />
+        </SimpleGrid>
+      ) : null}
 
       {source === 'DND_BEYOND' ? (
         <Textarea
@@ -98,7 +136,10 @@ export function LibraryImportInput({
           {inputSummary}
         </Text>
         <Button
-          disabled={!hasImportInput(source, links, files)}
+          disabled={
+            !hasImportInput(source, links, files) ||
+            (bindingRequired && (!gameSystemId || !primaryRulesCatalogueId))
+          }
           loading={loading}
           onClick={onPreview}
         >

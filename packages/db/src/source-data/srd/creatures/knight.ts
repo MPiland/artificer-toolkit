@@ -207,7 +207,8 @@ export const knight: CreatureAuthored = {
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
               dispositionKind: S.TARGET_DISPOSITION_KIND.WILLING
-            }
+            },
+            resourceUse: { chargeId: S.actionId(178, 605), cost: 1 }
           },
           ruleKind: S.CLOSED_RULE_KIND.CREATURE_KNIGHT_LEADERSHIP
         })

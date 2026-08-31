@@ -36,9 +36,7 @@ import {
   type CharacterCommittedSheetSources,
   loadCharacterCommittedSheetSources
 } from '../character/characterCommittedSheetSources.js'
-import {
-  validateSheetAdjustmentTarget
-} from '../character/sheetCommandValidation.js'
+import { validateSheetAdjustmentTarget } from '../character/sheetCommandValidation.js'
 import {
   checksumCampaignCharacterMechanicalContext,
   getCharacterSheetAdjustmentSlotKey,
@@ -175,7 +173,9 @@ async function requireCurrentCampaignCharacterMechanicsOverlay(input: {
     attunementSlotOverride: input.attunementSlotOverride
   })
   if (!ruleContext) {
-    throw new CampaignConflictError('Campaign assignment changed before mechanics could be compiled.')
+    throw new CampaignConflictError(
+      'Campaign assignment changed before mechanics could be compiled.'
+    )
   }
   const mechanicalContextChecksum = checksumCampaignCharacterMechanicalContext({
     adjustments: ruleContext.adjustments,
@@ -286,7 +286,9 @@ export async function saveCampaignAdjustment(
       attunementSlotOverride: authority.campaign.attunementSlotOverride
     })
     if (!nextRuleContext) {
-      throw new CampaignConflictError('Campaign assignment changed before mechanics could be published.')
+      throw new CampaignConflictError(
+        'Campaign assignment changed before mechanics could be published.'
+      )
     }
     const nextOverlay = await prepareCampaignCharacterMechanicsProjection({
       db: trx,
@@ -373,7 +375,9 @@ export async function deleteCampaignAdjustment(
       attunementSlotOverride: authority.campaign.attunementSlotOverride
     })
     if (!nextRuleContext) {
-      throw new CampaignConflictError('Campaign assignment changed before mechanics could be published.')
+      throw new CampaignConflictError(
+        'Campaign assignment changed before mechanics could be published.'
+      )
     }
     const nextOverlay = await prepareCampaignCharacterMechanicsProjection({
       db: trx,

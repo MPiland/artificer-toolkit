@@ -5,15 +5,18 @@ import {
   createEncounterRepository,
   LiveMaximumHitPointPolicyContextError,
   createLiveSessionCommandLeaseRepository,
+  createRuleOccurrenceRepository,
   createVttSceneRepository,
   withTransaction,
-  type DBLike
+  type DBLike,
+  type RuleOccurrenceRecord
 } from '@artificer-toolkit/db'
 import {
   liveSessionJoinOptionsDtoSchema,
   type LiveSessionAggregateVersionDto,
   type LiveSessionCommandDto,
   type LiveSessionCoordinatorSnapshotDto,
+  type LiveSessionEncounterRuleOccurrenceBindingUpdateDto,
   type LiveSessionJoinOptionsDto,
   type LiveSessionRejectedDto,
   type LiveSessionSceneVisionContextDto
@@ -40,19 +43,22 @@ import {
 } from '../character/sheetService.js'
 import {
   loadCharacterRuleSnapshotForLiveSessionCampaign,
-  loadCharacterSceneVisionForLiveSessionCampaign,
-  resolveCharacterSceneVisionDimRangeFeet
+  loadCharacterSceneVisionForLiveSessionCampaign
 } from '../character/characterLiveSessionSnapshot.js'
 import {
   executeEncounterCommandWithRuleSnapshot,
   type EncounterCommandServiceTiming
 } from '../encounter/encounterService.js'
 import type { EncounterActorRuleSnapshot } from '../encounter/encounterActorRuleEvaluation.js'
+import type { RulesRuntimeService } from '../rules/rulesRuntimeService.js'
 import {
-  attachEncounterScene,
+  bindEncounterToPresentedScene,
+  executeEncounterSceneActorTokenBindingCommand,
+  setCampaignLiveScenePresentation,
   executeEncounterSceneCommandWithState
 } from '../encounter/vttSceneService.js'
-import type { EncounterSceneState, SceneCharacterVision } from '@artificer-toolkit/shared/vtt'
+import type { CampaignSceneState, SceneCharacterVision } from '@artificer-toolkit/shared/vtt'
+import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 
 export class LiveSessionAuthorityError extends Error {
   constructor() {
@@ -268,20 +274,19 @@ async function loadLiveSessionAggregateVersionsForOptions(
       version: encounter.version
     }))
     .sort((left, right) => left.aggregateId.localeCompare(right.aggregateId))
-  const sceneVersions = (
-    await Promise.all(
-      encounterVersions.map(async ({ aggregateId: encounterId }) => {
-        const scene = await createVttSceneRepository(db).findByEncounter(encounterId)
-        return scene
-          ? {
-              aggregateKind: 'SCENE' as const,
-              aggregateId: scene.state.id,
-              version: scene.state.version
-            }
-          : null
-      })
-    )
-  ).filter((scene): scene is NonNullable<typeof scene> => scene !== null)
+  const presentation = await createVttSceneRepository(db).findSessionPresentation(options.sessionId)
+  const scene =
+    presentation?.sceneId === null || presentation?.sceneId === undefined
+      ? null
+      : await createVttSceneRepository(db).findLiveScene(presentation.sceneId)
+  const sceneVersion =
+    scene?.state.campaignId === options.campaignId
+      ? {
+          aggregateKind: 'SCENE' as const,
+          aggregateId: scene.state.id,
+          version: scene.state.version
+        }
+      : null
   return [
     {
       aggregateKind: 'CAMPAIGN',
@@ -290,7 +295,16 @@ async function loadLiveSessionAggregateVersionsForOptions(
     },
     ...characterVersions,
     ...encounterVersions,
-    ...sceneVersions
+    ...(presentation
+      ? [
+          {
+            aggregateKind: 'SESSION' as const,
+            aggregateId: options.sessionId,
+            version: presentation.version
+          }
+        ]
+      : []),
+    ...(sceneVersion ? [sceneVersion] : [])
   ]
 }
 
@@ -305,19 +319,85 @@ export interface LiveSessionRoomSnapshot {
     encounterId: string
     snapshot: EncounterActorRuleSnapshot
   }>
+  encounterActorTokenBindings: LiveSessionCoordinatorSnapshotDto['encounterActorTokenBindings']
   encounterCharacterBindings: LiveSessionCoordinatorSnapshotDto['encounterCharacterBindings']
-  sceneStates: EncounterSceneState[]
+  encounterRuleOccurrenceBindings: LiveSessionCoordinatorSnapshotDto['encounterRuleOccurrenceBindings']
+  encounterSceneBindings: LiveSessionCoordinatorSnapshotDto['encounterSceneBindings']
+  sceneStates: CampaignSceneState[]
+}
+
+type SpatialTerminalResult = Extract<
+  StoredRuleExecutionResultDto,
+  | { status: 'MOVEMENT_COMPLETE' }
+  | { status: 'BATCH_COMPLETE'; batchKind: 'ENCOUNTER_SPATIAL_MOVEMENT' }
+>
+
+export interface LiveSessionSpatialRefresh {
+  characterRuleSnapshots: Array<{
+    characterId: string
+    snapshot: CharacterSheetCommittedRuleSnapshot
+  }>
+  characterVisions: SceneCharacterVision[]
+  encounterRuleSnapshot?: EncounterActorRuleSnapshot
+  sceneState: CampaignSceneState
+}
+
+async function loadSpatialCharacterRuleSnapshots(
+  db: DBLike,
+  campaign: { id: string; attunementSlotOverride: number | null },
+  changedAggregates: readonly LiveSessionAggregateVersionDto[]
+): Promise<LiveSessionSpatialRefresh['characterRuleSnapshots']> {
+  return Promise.all(
+    changedAggregates
+      .filter((transition) => transition.aggregateKind === 'CHARACTER')
+      .map(async (transition) => {
+        const snapshot = await loadCharacterRuleSnapshotForLiveSessionCampaign(
+          db,
+          transition.aggregateId,
+          campaign
+        )
+        if (!snapshot || snapshot.streamVersion !== transition.version) {
+          throw new Error('Spatial Character state changed before live-session refresh.')
+        }
+        return { characterId: transition.aggregateId, snapshot }
+      })
+  )
+}
+
+async function loadSpatialTerminalRefresh(
+  db: DBLike,
+  campaign: { id: string; attunementSlotOverride: number | null },
+  result: SpatialTerminalResult,
+  changedAggregates: readonly LiveSessionAggregateVersionDto[]
+): Promise<LiveSessionSpatialRefresh> {
+  const characterRuleSnapshots = await loadSpatialCharacterRuleSnapshots(
+    db,
+    campaign,
+    changedAggregates
+  )
+  const projection = await createEncounterRepository(db).requireCurrentProjection({
+    encounterId: result.encounterId,
+    expectedStreamVersion: result.encounterVersion
+  })
+  const scene = await createVttSceneRepository(db).findLiveScene(result.sceneId)
+  if (!scene || scene.state.id !== result.sceneId || scene.state.version !== result.sceneVersion) {
+    throw new Error('Spatial Scene state changed before live-session refresh.')
+  }
+  return {
+    characterRuleSnapshots,
+    characterVisions: characterRuleSnapshots.map(({ characterId, snapshot }) =>
+      deriveLiveSessionCharacterVision(characterId, snapshot)
+    ),
+    encounterRuleSnapshot: projection.ruleSnapshot,
+    sceneState: scene.state
+  }
 }
 
 export function deriveLiveSessionCharacterVision(
   characterId: string,
-  snapshot: Pick<CharacterSheetCommittedRuleSnapshot, 'evaluation'>
+  snapshot: Pick<CharacterSheetCommittedRuleSnapshot, 'effectiveSceneVision'>
 ): SceneCharacterVision {
-  const dimRange = resolveCharacterSceneVisionDimRangeFeet(snapshot.evaluation.output.senses)
-  return {
-    characterId,
-    dimRange: dimRange !== null && dimRange > 0 ? { amount: dimRange, unit: 'FEET' } : null
-  }
+  return { ...snapshot.effectiveSceneVision, characterId }
 }
 
 async function loadLiveSessionEncounterCurrentProjections(
@@ -336,22 +416,101 @@ async function loadLiveSessionEncounterCurrentProjections(
   )
 }
 
-function loadLiveSessionEncounterCharacterBindings(
+async function loadLiveSessionEncounterBindings(
+  db: DBLike,
   projections: readonly EncounterCurrentProjection[]
-): LiveSessionCoordinatorSnapshotDto['encounterCharacterBindings'] {
-  return projections.flatMap((projection) =>
-    projection.projection.actors.flatMap((actor) =>
-      actor.kind === 'CHARACTER' && actor.sourceId
-        ? [
-            {
-              actorId: actor.id,
-              characterId: actor.sourceId,
-              encounterId: projection.encounterId
-            }
-          ]
-        : []
-    )
+): Promise<
+  Pick<
+    LiveSessionCoordinatorSnapshotDto,
+    'encounterActorTokenBindings' | 'encounterCharacterBindings' | 'encounterSceneBindings'
+  >
+> {
+  const bindingsByEncounter = await Promise.all(
+    projections.map(async (projection) => {
+      const repository = createVttSceneRepository(db)
+      const [sceneBinding, actorTokenBindings] = await Promise.all([
+        repository.findEncounterBinding(projection.encounterId),
+        repository.listActorTokenBindings(projection.encounterId)
+      ])
+      const tokenIdByActorId = new Map(
+        actorTokenBindings.map((binding) => [binding.actorId, binding.tokenId])
+      )
+      const encounterCharacterBindings = projection.projection.actors.flatMap((actor) => {
+        const tokenId = tokenIdByActorId.get(actor.id)
+        return actor.kind === 'CHARACTER' && actor.sourceId && tokenId
+          ? [
+              {
+                actorId: actor.id,
+                characterId: actor.sourceId,
+                encounterId: projection.encounterId,
+                tokenId
+              }
+            ]
+          : []
+      })
+      return {
+        encounterActorTokenBindings: sceneBinding
+          ? actorTokenBindings.map((binding) => ({
+              ...binding,
+              encounterId: projection.encounterId,
+              sceneId: sceneBinding.sceneId
+            }))
+          : [],
+        encounterCharacterBindings,
+        encounterSceneBinding: sceneBinding
+          ? { encounterId: projection.encounterId, sceneId: sceneBinding.sceneId }
+          : null
+      }
+    })
   )
+  return {
+    encounterActorTokenBindings: bindingsByEncounter.flatMap(
+      (binding) => binding.encounterActorTokenBindings
+    ),
+    encounterCharacterBindings: bindingsByEncounter.flatMap(
+      (binding) => binding.encounterCharacterBindings
+    ),
+    encounterSceneBindings: bindingsByEncounter.flatMap((binding) =>
+      binding.encounterSceneBinding ? [binding.encounterSceneBinding] : []
+    )
+  }
+}
+
+function loadLiveSessionEncounterRuleOccurrenceBindings(
+  occurrences: readonly RuleOccurrenceRecord[]
+): LiveSessionCoordinatorSnapshotDto['encounterRuleOccurrenceBindings'] {
+  return occurrences.map((occurrence) => {
+    const context = occurrence.pendingSnapshot?.applicationContext
+    if (!context) throw new Error('A pending Encounter occurrence requires its sealed snapshot.')
+    return context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ||
+      context.kind === 'ENCOUNTER_MOVEMENT_REACTION'
+      ? {
+          encounterId: occurrence.aggregateId,
+          executionKind: 'SPATIAL' as const,
+          occurrenceId: occurrence.id,
+          sceneId: context.root.sceneId
+        }
+      : {
+          encounterId: occurrence.aggregateId,
+          executionKind: 'NON_SPATIAL' as const,
+          occurrenceId: occurrence.id,
+          sceneId: null
+        }
+  })
+}
+
+async function loadCurrentEncounterRuleOccurrenceBindingUpdate(
+  db: DBLike,
+  encounterId: string
+): Promise<LiveSessionEncounterRuleOccurrenceBindingUpdateDto> {
+  const occurrences = await createRuleOccurrenceRepository(db).listPendingEncounters([encounterId])
+  if (occurrences.length > 1) {
+    throw new Error('An Encounter cannot have multiple pending rule occurrences.')
+  }
+  return {
+    encounterId,
+    binding: loadLiveSessionEncounterRuleOccurrenceBindings(occurrences)[0] ?? null
+  }
 }
 
 interface LiveSessionCoordinatorState extends LiveSessionCoordinatorSnapshotDto {
@@ -380,7 +539,15 @@ async function loadLiveSessionCoordinatorState(
       admission.options,
       admission.campaign.version
     )
-    const [encounterCurrentProjections, characterStates, sceneStates] = await Promise.all([
+    const encounterIds = aggregateVersions
+      .filter((version) => version.aggregateKind === 'ENCOUNTER')
+      .map((version) => version.aggregateId)
+    const [
+      encounterCurrentProjections,
+      characterStates,
+      presentation,
+      pendingEncounterOccurrences
+    ] = await Promise.all([
       loadLiveSessionEncounterCurrentProjections(trx, aggregateVersions),
       Promise.all(
         aggregateVersions
@@ -404,15 +571,19 @@ async function loadLiveSessionCoordinatorState(
             return { characterId: aggregateId, kind: 'SCENE_VISION' as const, vision }
           })
       ),
-      Promise.all(
-        aggregateVersions
-          .filter((version) => version.aggregateKind === 'ENCOUNTER')
-          .map(async ({ aggregateId }) =>
-            createVttSceneRepository(trx).findByEncounter(aggregateId)
-          )
-      ).then((scenes) => scenes.flatMap((scene) => (scene ? [scene.state] : [])))
+      createVttSceneRepository(trx).findSessionPresentation(admission.options.sessionId),
+      createRuleOccurrenceRepository(trx).listPendingEncounters(encounterIds)
     ])
-    const encounterCharacterBindings = loadLiveSessionEncounterCharacterBindings(
+    const presentedScene =
+      presentation?.sceneId === null || presentation?.sceneId === undefined
+        ? null
+        : await createVttSceneRepository(trx).findLiveScene(presentation.sceneId)
+    const sceneStates =
+      presentedScene?.state.campaignId === admission.options.campaignId
+        ? [presentedScene.state]
+        : []
+    const encounterBindings = await loadLiveSessionEncounterBindings(
+      trx,
       encounterCurrentProjections
     )
     const versionByCharacterId = new Map(
@@ -449,7 +620,10 @@ async function loadLiveSessionCoordinatorState(
               : null
         }
       }),
-      encounterCharacterBindings,
+      ...encounterBindings,
+      encounterRuleOccurrenceBindings: loadLiveSessionEncounterRuleOccurrenceBindings(
+        pendingEncounterOccurrences
+      ),
       encounterRuleSnapshots: encounterCurrentProjections.map((projection) => ({
         encounterId: projection.encounterId,
         snapshot: projection.ruleSnapshot
@@ -485,30 +659,60 @@ export type LiveSessionCommandExecution =
       aggregateKind: 'CHARACTER'
       aggregateId: string
       commandId: string
+      changedAggregates: LiveSessionAggregateVersionDto[]
       replayed: boolean
       version: number
       characterVision: SceneCharacterVision
       response: CharacterSheetCommandExecutionResult['response'] | null
       ruleSnapshot?: CharacterSheetCommittedRuleSnapshot
       ruleEvaluationLane?: 'CHARACTER_POLICY'
+      spatialRefresh?: LiveSessionSpatialRefresh
     }
   | {
       aggregateKind: 'ENCOUNTER'
       aggregateId: string
       commandId: string
+      changedAggregates: LiveSessionAggregateVersionDto[]
       replayed: boolean
       version: number
-      response: Awaited<ReturnType<typeof executeEncounterCommandWithRuleSnapshot>>['response']
+      response:
+        | Awaited<ReturnType<typeof executeEncounterCommandWithRuleSnapshot>>['response']
+        | Awaited<ReturnType<typeof bindEncounterToPresentedScene>>
+      bindingRefresh?: {
+        encounterActorTokenBindings: LiveSessionCoordinatorSnapshotDto['encounterActorTokenBindings']
+        encounterCharacterBindings: LiveSessionCoordinatorSnapshotDto['encounterCharacterBindings']
+        encounterId: string
+        encounterSceneBinding:
+          | LiveSessionCoordinatorSnapshotDto['encounterSceneBindings'][number]
+          | null
+      }
+      occurrenceBindingUpdate?: LiveSessionEncounterRuleOccurrenceBindingUpdateDto
       ruleSnapshot?: EncounterActorRuleSnapshot
+      spatialRefresh?: LiveSessionSpatialRefresh
     }
   | {
       aggregateKind: 'SCENE'
       aggregateId: string
       commandId: string
+      changedAggregates: LiveSessionAggregateVersionDto[]
       replayed: boolean
       response: Awaited<ReturnType<typeof executeEncounterSceneCommandWithState>>['result'] | null
-      state: EncounterSceneState
+      occurrenceBindingUpdate?: LiveSessionEncounterRuleOccurrenceBindingUpdateDto
+      state: CampaignSceneState
       version: number
+      spatialRefresh?: LiveSessionSpatialRefresh
+    }
+  | {
+      aggregateKind: 'SESSION'
+      aggregateId: string
+      commandId: string
+      changedAggregates: LiveSessionAggregateVersionDto[]
+      replayed: boolean
+      response: Awaited<ReturnType<typeof setCampaignLiveScenePresentation>>
+      sceneState: CampaignSceneState | null
+      version: number
+      ruleSnapshot?: undefined
+      spatialRefresh?: undefined
     }
 
 export async function executeLiveSessionCommand(
@@ -521,7 +725,8 @@ export async function executeLiveSessionCommand(
   committedRuleSnapshot?: CharacterSheetCommittedRuleSnapshot,
   onCharacterTiming?: (timing: CharacterSheetCommandServiceTiming) => void,
   committedEncounterRuleSnapshot?: EncounterActorRuleSnapshot,
-  onEncounterTiming?: (timing: EncounterCommandServiceTiming) => void
+  onEncounterTiming?: (timing: EncounterCommandServiceTiming) => void,
+  rulesRuntime?: RulesRuntimeService
 ): Promise<LiveSessionCommandExecution> {
   const options = liveSessionJoinOptionsDtoSchema.parse(rawOptions)
   const commandAuthority = liveSessionAuthority(options, authorityId)
@@ -553,6 +758,13 @@ export async function executeLiveSessionCommand(
         return {
           aggregateKind: 'CHARACTER',
           aggregateId: command.characterId,
+          changedAggregates: [
+            {
+              aggregateKind: 'CHARACTER',
+              aggregateId: command.characterId,
+              version: execution.version
+            }
+          ],
           commandId: command.command.commandId,
           replayed: execution.replayed,
           version: execution.version,
@@ -581,6 +793,13 @@ export async function executeLiveSessionCommand(
       return {
         aggregateKind: 'CHARACTER',
         aggregateId: command.characterId,
+        changedAggregates: [
+          {
+            aggregateKind: 'CHARACTER',
+            aggregateId: command.characterId,
+            version: execution.version
+          }
+        ],
         commandId: command.command.commandId,
         replayed: execution.replayed,
         version: execution.version,
@@ -601,6 +820,13 @@ export async function executeLiveSessionCommand(
     return {
       aggregateKind: 'CHARACTER',
       aggregateId: command.characterId,
+      changedAggregates: [
+        {
+          aggregateKind: 'CHARACTER',
+          aggregateId: command.characterId,
+          version: execution.response.streamVersion
+        }
+      ],
       commandId: command.command.commandId,
       replayed: execution.replayed,
       version: execution.response.streamVersion,
@@ -613,29 +839,54 @@ export async function executeLiveSessionCommand(
     }
   }
 
+  if (command.aggregateKind === 'SESSION') {
+    await authorizeLiveSessionAdmissionForOptions(db, userId, options)
+    const execution = await setCampaignLiveScenePresentation(db, userId, command.command, {
+      liveSessionAuthority: commandAuthority
+    })
+    const scene = execution.sceneId
+      ? await createVttSceneRepository(db).findLiveScene(execution.sceneId)
+      : null
+    if (scene && scene.state.campaignId !== options.campaignId) throw new CampaignAccessError()
+    return {
+      aggregateKind: 'SESSION',
+      aggregateId: command.command.sessionId,
+      changedAggregates: [
+        {
+          aggregateKind: 'SESSION',
+          aggregateId: command.command.sessionId,
+          version: execution.version
+        }
+      ],
+      commandId: execution.commandId,
+      replayed: execution.replayed,
+      response: execution,
+      sceneState: scene?.state ?? null,
+      version: execution.version
+    }
+  }
+
   if (command.aggregateKind === 'SCENE') {
-    if (command.command.type === 'ATTACH_SCENE') {
-      await authorizeLiveSessionAdmissionForOptions(db, userId, options)
-      const encounter = await createEncounterRepository(db).find(command.command.encounterId)
-      if (
-        !encounter ||
-        encounter.campaignId !== options.campaignId ||
-        encounter.sessionId !== options.sessionId
-      ) {
-        throw new CampaignAccessError()
-      }
-      const execution = await attachEncounterScene(db, userId, command.command, {
-        liveSessionAuthority: commandAuthority
-      })
-      return {
-        aggregateKind: 'SCENE',
-        aggregateId: execution.scene.id,
-        commandId: command.command.commandId,
-        replayed: execution.replayed,
-        response: null,
-        state: execution.scene,
-        version: execution.scene.version
-      }
+    const expectedEncounterVersion =
+      command.command.type === 'MOVE_SCENE_TOKEN' &&
+      command.command.expectedEncounterVersion !== null
+        ? command.command.expectedEncounterVersion
+        : null
+    const mechanicsEncounter =
+      expectedEncounterVersion === null
+        ? null
+        : await createEncounterRepository(db).findActiveForCampaign(options.campaignId)
+    if (
+      mechanicsEncounter &&
+      (mechanicsEncounter.sessionId !== options.sessionId ||
+        mechanicsEncounter.version !== expectedEncounterVersion ||
+        (await createVttSceneRepository(db).findEncounterBinding(mechanicsEncounter.id))
+          ?.sceneId !== command.command.sceneId)
+    ) {
+      throw new CampaignAccessError()
+    }
+    if (expectedEncounterVersion !== null && !mechanicsEncounter) {
+      throw new CampaignAccessError()
     }
     const execution = await executeEncounterSceneCommandWithState(db, userId, command.command, {
       liveSceneContext: {
@@ -643,16 +894,46 @@ export async function executeLiveSessionCommand(
         campaignId: options.campaignId,
         sessionId: options.sessionId
       },
-      sceneVisionContext
+      liveSessionAuthority: commandAuthority,
+      rulesRuntime,
+      sceneVisionContext,
+      ...(mechanicsEncounter ? { encounterId: mechanicsEncounter.id } : {})
     })
+    const spatialChangedAggregates = execution.spatialChangedAggregates
+      ? execution.spatialChangedAggregates
+      : execution.result.occurrence &&
+          execution.result.version === command.command.expectedSceneVersion
+        ? []
+        : [
+            {
+              aggregateKind: 'SCENE' as const,
+              aggregateId: execution.state.id,
+              version: execution.result.version
+            }
+          ]
+    const spatialRefresh =
+      execution.spatialTerminalResult && !execution.result.replayed
+        ? await loadSpatialTerminalRefresh(
+            db,
+            (await resolveCampaignAuthority(db, options.campaignId, userId)).campaign,
+            execution.spatialTerminalResult,
+            spatialChangedAggregates
+          )
+        : undefined
+    const occurrenceBindingUpdate = mechanicsEncounter
+      ? await loadCurrentEncounterRuleOccurrenceBindingUpdate(db, mechanicsEncounter.id)
+      : undefined
     return {
       aggregateKind: 'SCENE',
       aggregateId: execution.state.id,
+      changedAggregates: spatialChangedAggregates,
       commandId: execution.result.commandId,
       replayed: execution.result.replayed,
       response: execution.result,
       state: execution.state,
-      version: execution.result.version
+      version: execution.result.version,
+      ...(occurrenceBindingUpdate ? { occurrenceBindingUpdate } : {}),
+      ...(spatialRefresh ? { spatialRefresh } : {})
     }
   }
 
@@ -665,18 +946,120 @@ export async function executeLiveSessionCommand(
   ) {
     throw new CampaignAccessError()
   }
+  if (command.command.type === 'BIND_ENCOUNTER_TO_PRESENTED_SCENE') {
+    const execution = await bindEncounterToPresentedScene(db, userId, command.command, {
+      liveSessionAuthority: commandAuthority
+    })
+    const projection = await createEncounterRepository(db).requireCurrentProjection({
+      encounterId: encounter.id,
+      expectedStreamVersion: encounter.version
+    })
+    const bindings = await loadLiveSessionEncounterBindings(db, [projection])
+    return {
+      aggregateKind: 'ENCOUNTER',
+      aggregateId: encounter.id,
+      changedAggregates: [],
+      commandId: execution.commandId,
+      bindingRefresh: {
+        encounterActorTokenBindings: bindings.encounterActorTokenBindings,
+        encounterCharacterBindings: bindings.encounterCharacterBindings,
+        encounterId: encounter.id,
+        encounterSceneBinding: bindings.encounterSceneBindings[0] ?? null
+      },
+      replayed: execution.replayed,
+      response: execution,
+      version: encounter.version
+    }
+  }
+  if (
+    command.command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
+    command.command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
+  ) {
+    const execution = await executeEncounterSceneActorTokenBindingCommand(
+      db,
+      userId,
+      command.command,
+      { liveSessionAuthority: commandAuthority }
+    )
+    const projection = await createEncounterRepository(db).requireCurrentProjection({
+      encounterId: encounter.id,
+      expectedStreamVersion: execution.response.projection.version
+    })
+    const bindings = await loadLiveSessionEncounterBindings(db, [projection])
+    return {
+      aggregateKind: 'ENCOUNTER',
+      aggregateId: encounter.id,
+      changedAggregates: [
+        {
+          aggregateKind: 'ENCOUNTER',
+          aggregateId: encounter.id,
+          version: execution.response.projection.version
+        }
+      ],
+      bindingRefresh: {
+        encounterActorTokenBindings: bindings.encounterActorTokenBindings,
+        encounterCharacterBindings: bindings.encounterCharacterBindings,
+        encounterId: encounter.id,
+        encounterSceneBinding: bindings.encounterSceneBindings[0] ?? null
+      },
+      commandId: command.command.commandId,
+      replayed: execution.replayed,
+      response: execution.response,
+      version: execution.response.projection.version
+    }
+  }
   const execution = await executeEncounterCommandWithRuleSnapshot(db, userId, command.command, {
     committedRuleSnapshot: committedEncounterRuleSnapshot,
     onTiming: onEncounterTiming,
-    liveSessionAuthority: commandAuthority
+    liveSessionAuthority: commandAuthority,
+    rulesRuntime,
+    sceneVisionContext
   })
+  const spatialChangedAggregates = execution.spatialChangedAggregates ?? [
+    {
+      aggregateKind: 'ENCOUNTER' as const,
+      aggregateId: command.command.encounterId,
+      version: execution.response.projection.version
+    }
+  ]
+  const spatialRefresh =
+    execution.spatialTerminalBatch && !execution.replayed
+      ? await loadSpatialTerminalRefresh(
+          db,
+          (await resolveCampaignAuthority(db, options.campaignId, userId)).campaign,
+          execution.spatialTerminalBatch,
+          spatialChangedAggregates
+        )
+      : execution.spatialSceneState && !execution.replayed
+        ? await (async () => {
+            const characterRuleSnapshots = await loadSpatialCharacterRuleSnapshots(
+              db,
+              (await resolveCampaignAuthority(db, options.campaignId, userId)).campaign,
+              spatialChangedAggregates
+            )
+            return {
+              characterRuleSnapshots,
+              characterVisions: characterRuleSnapshots.map(({ characterId, snapshot }) =>
+                deriveLiveSessionCharacterVision(characterId, snapshot)
+              ),
+              sceneState: execution.spatialSceneState!
+            }
+          })()
+        : undefined
+  const occurrenceBindingUpdate = await loadCurrentEncounterRuleOccurrenceBindingUpdate(
+    db,
+    command.command.encounterId
+  )
   return {
     aggregateKind: 'ENCOUNTER',
     aggregateId: command.command.encounterId,
+    changedAggregates: spatialChangedAggregates,
     commandId: command.command.commandId,
     replayed: execution.replayed,
     version: execution.response.projection.version,
     response: execution.response,
-    ...(execution.ruleSnapshot ? { ruleSnapshot: execution.ruleSnapshot } : {})
+    occurrenceBindingUpdate,
+    ...(execution.ruleSnapshot ? { ruleSnapshot: execution.ruleSnapshot } : {}),
+    ...(spatialRefresh ? { spatialRefresh } : {})
   }
 }

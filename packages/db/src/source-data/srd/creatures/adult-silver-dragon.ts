@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
@@ -40,6 +41,7 @@ export const adultSilverDragon: CreatureAuthored = {
   features: [
     {
       id: S.featureId(11, 1),
+      ruleDefinitionIds: [S.DND5E_LEGENDARY_RESISTANCE_LIFECYCLE_DEFINITION_ID],
       label: 'Legendary Resistance (3/Day)',
       description:
         'Legendary Resistance (3/Day). If the dragon fails a saving throw, it can choose to succeed instead.',
@@ -299,7 +301,7 @@ export const adultSilverDragon: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(11, 601),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.WISDOM,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
               baseDc: 18
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
@@ -343,7 +345,7 @@ export const adultSilverDragon: CreatureAuthored = {
                     savingThrow: {
                       id: S.actionId(11, 605),
                       dcMethod: 'FIXED_DC',
-                      ability: S.ABILITY_CODE.WISDOM,
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
                       baseDc: 18
                     },
                     attempts: { kind: 'ONCE', repeatOnFailure: true },
@@ -384,6 +386,9 @@ export const adultSilverDragon: CreatureAuthored = {
     },
     {
       id: S.featureId(11, 7),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(11, 7)),
       label: 'Breath Weapons (Recharge 5-6)',
       description: 'The dragon uses one of the following breath weapons.',
       effects: [
@@ -423,6 +428,9 @@ export const adultSilverDragon: CreatureAuthored = {
     },
     {
       id: S.featureId(11, 8),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(11, 8)),
       label: 'Cold Breath (Recharge 5-6)',
       description:
         'The dragon exhales an icy blast in a 60-foot cone. Each creature in that area must make a DC 20 Constitution saving throw, taking 58 (13d8) cold damage on a failed save, or half as much damage on a successful one.',
@@ -436,7 +444,7 @@ export const adultSilverDragon: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(11, 32),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
               baseDc: 20
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
@@ -495,6 +503,9 @@ export const adultSilverDragon: CreatureAuthored = {
     },
     {
       id: S.featureId(11, 9),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(11, 9)),
       label: 'Paralyzing Breath (Recharge 5-6)',
       description:
         'The dragon exhales paralyzing gas in a 60-foot cone. Each creature in that area must succeed on a DC 20 Constitution saving throw or be paralyzed for 1 minute. A creature can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.',
@@ -508,7 +519,7 @@ export const adultSilverDragon: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(11, 37),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
               baseDc: 20
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
@@ -543,7 +554,7 @@ export const adultSilverDragon: CreatureAuthored = {
                     savingThrow: {
                       id: S.actionId(11, 614),
                       dcMethod: 'FIXED_DC',
-                      ability: S.ABILITY_CODE.CONSTITUTION,
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
                       baseDc: 20
                     },
                     attempts: { kind: 'ONCE', repeatOnFailure: true },
@@ -605,6 +616,130 @@ export const adultSilverDragon: CreatureAuthored = {
     },
     {
       id: S.featureId(11, 11),
+      options: [
+        {
+          id: '00000000-0005-00c9-0070-000b00000000',
+          label: 'Detect',
+          description: 'The dragon makes a Wisdom (Perception) check.',
+          order: 1,
+          effects: [
+            {
+              id: '00000000-0005-0016-0070-000b00000000',
+              order: 1,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'ACTIVATED',
+                activation: { code: 'FREE' },
+                range: { id: '00000000-0005-0017-0070-000b00000000', rangeKind: 'SPECIAL' },
+                resourceUse: { chargeId: '00000000-0005-0015-0070-000b00000000', cost: 1 }
+              },
+              paths: [
+                {
+                  id: '00000000-0005-0018-0070-000b00000000',
+                  order: 1,
+                  pathCode: 'ON_USE',
+                  groupType: 'SINGLE',
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: '00000000-0005-0018-0070-000b00000000__result',
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: '00000000-0005-0018-0070-000b00000000',
+                        effectKind: 'CLOSED_RULE',
+                        ruleKind: 'DRAGON_LEGENDARY_DETECT'
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: '00000000-0005-00ca-0070-000b00000000',
+          label: 'Tail Attack',
+          description: 'The dragon makes a tail attack.',
+          order: 2,
+          effects: [
+            {
+              id: '00000000-0005-0019-0070-000b00000000',
+              order: 2,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'ACTIVATED',
+                activation: { code: 'FREE' },
+                range: { id: '00000000-0005-001a-0070-000b00000000', rangeKind: 'SPECIAL' },
+                resourceUse: { chargeId: '00000000-0005-0015-0070-000b00000000', cost: 1 }
+              },
+              paths: [
+                {
+                  id: '00000000-0005-001b-0070-000b00000000',
+                  order: 1,
+                  pathCode: 'ON_USE',
+                  groupType: 'SINGLE',
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: '00000000-0005-001b-0070-000b00000000__result',
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: '00000000-0005-001b-0070-000b00000000',
+                        effectKind: 'CLOSED_RULE',
+                        ruleKind: 'DRAGON_LEGENDARY_TAIL_ATTACK'
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: '00000000-0005-00cb-0070-000b00000000',
+          label: 'Wing Attack (Costs 2 Actions)',
+          description:
+            'The dragon beats its wings. Each creature within 10 feet of the dragon must succeed on a DC 21 Dexterity saving throw or take 15 (2d6 + 8) bludgeoning damage and be knocked prone. The dragon can then fly up to half its flying speed.',
+          order: 3,
+          effects: [
+            {
+              id: '00000000-0005-001c-0070-000b00000000',
+              order: 3,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'ACTIVATED',
+                activation: { code: 'FREE' },
+                range: { id: '00000000-0005-001d-0070-000b00000000', rangeKind: 'SPECIAL' },
+                resourceUse: { chargeId: '00000000-0005-0015-0070-000b00000000', cost: 1 }
+              },
+              paths: [
+                {
+                  id: '00000000-0005-001e-0070-000b00000000',
+                  order: 1,
+                  pathCode: 'ON_USE',
+                  groupType: 'SINGLE',
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: '00000000-0005-001e-0070-000b00000000__result',
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: '00000000-0005-001e-0070-000b00000000',
+                        effectKind: 'CLOSED_RULE',
+                        ruleKind: 'DRAGON_LEGENDARY_WING_ATTACK'
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      ruleDefinitionIds: [S.DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID],
       label: 'Legendary Actions',
       section: 'LEGENDARY_ACTION',
       description:
@@ -617,101 +752,6 @@ export const adultSilverDragon: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 3
       },
-      effects: [
-        {
-          id: S.legendaryActionId(11, 22),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.FREE },
-            range: { id: S.legendaryActionId(11, 23), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          paths: [
-            {
-              id: S.legendaryActionId(11, 24),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.legendaryActionId(11, 24) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.legendaryActionId(11, 24),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_LEGENDARY_DETECT
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          id: S.legendaryActionId(11, 25),
-          order: 2,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.FREE },
-            range: { id: S.legendaryActionId(11, 26), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          paths: [
-            {
-              id: S.legendaryActionId(11, 27),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.legendaryActionId(11, 27) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.legendaryActionId(11, 27),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_LEGENDARY_TAIL_ATTACK
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          id: S.legendaryActionId(11, 28),
-          order: 3,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.FREE },
-            range: { id: S.legendaryActionId(11, 29), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          paths: [
-            {
-              id: S.legendaryActionId(11, 30),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.legendaryActionId(11, 30) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.legendaryActionId(11, 30),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_LEGENDARY_WING_ATTACK
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ],
       order: 11
     }
   ]

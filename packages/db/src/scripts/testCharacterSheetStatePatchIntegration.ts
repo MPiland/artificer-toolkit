@@ -262,6 +262,7 @@ async function insertFixture(
     status: 'ACTIVE',
     profile: {},
     systemId: identity.systemId,
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
     userId: identity.userId,
     intent: {
       advancement: { method: 'MILESTONE' },

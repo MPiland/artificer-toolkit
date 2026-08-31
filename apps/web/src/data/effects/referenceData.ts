@@ -86,9 +86,7 @@ export async function loadEffectReferenceData(
       sort: 'name'
     })
   ])
-  const systemCreatureItems = creatures.filter(
-    (creature) => creature.systemId === targetSystemId
-  )
+  const systemCreatureItems = creatures.filter((creature) => creature.systemId === targetSystemId)
 
   return buildEffectReferenceData(system ?? emptySystem(targetSystemId), systemCreatureItems)
 }

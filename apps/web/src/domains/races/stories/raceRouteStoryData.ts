@@ -26,7 +26,8 @@ export const raceStorySystems = [
     description: 'Seed-derived SRD system used for Storybook authoring review.',
     rulesetCode: 'dnd5e',
     rulesetVersion: '2014',
-    userId: 'srd'
+    userId: 'srd',
+    rulesCatalogues: []
   }
 ] satisfies SystemListResponseDto
 

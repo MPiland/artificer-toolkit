@@ -3,7 +3,6 @@ import { z } from 'zod'
 
 import type { EncounterRecord, RulePackRecord, RulePackRevisionRecord } from '@artificer-toolkit/db'
 import type { DBLike } from '@artificer-toolkit/db'
-import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
 import type { RollRecordDto, RollSourceDto } from '@artificer-toolkit/schema/api/rolls'
 import {
@@ -11,6 +10,8 @@ import {
   ruleResolutionEvidenceDtoSchema,
   type ProposedRuleOutcomeDto,
   type RuleEvaluationDto,
+  type RuleModelKeyDto,
+  type RuleOutcomeOverrideDto,
   type RuleResolutionEvidenceDto,
   type RuleRollRequestDto
 } from '@artificer-toolkit/schema/api/rules'
@@ -150,7 +151,18 @@ export async function resolveEncounterAction(input: {
   db: DBLike
   userId: string
   encounter: EncounterRecord
-  command: ResolveEncounterActionInputDto
+  command: {
+    encounterId: string
+    commandId: string
+    expectedVersion: number
+    type: 'RESOLVE_ACTION'
+    actorId: string
+    modelKey: RuleModelKeyDto
+    targetActorIds: readonly string[]
+    selections: unknown
+    visibility: 'PRIVATE' | 'TABLE'
+    override?: RuleOutcomeOverrideDto
+  }
   pack: RulePackRecord
   revision: RulePackRevisionRecord
   actorRules: EncounterActorRuleOutput

@@ -114,6 +114,7 @@ export const blinkDog: CreatureAuthored = {
     },
     {
       id: S.featureId(48, 4),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_4_LIFECYCLE_DEFINITION_ID],
       label: 'Teleport (Recharge 4-6)',
       description: 'Teleport (Recharge 4-6). The dog magically teleports,',
       attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],

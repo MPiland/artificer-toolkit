@@ -314,8 +314,8 @@ describe('D&D 5e 2014 Character grant fold', () => {
           selectionKind: 'GRANTED',
           scalingKind: 'PER_LEVEL',
           levels: [
-            { level: 1, senseIds: ['DARKVISION'] },
-            { level: 5, senseIds: ['TREMORSENSE'] }
+            { level: 1, senseIds: ['00000000-0000-4000-8000-000000000091'] },
+            { level: 5, senseIds: ['00000000-0000-4000-8000-000000000092'] }
           ]
         }
       ],

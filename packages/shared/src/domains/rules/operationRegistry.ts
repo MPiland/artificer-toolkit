@@ -17,6 +17,16 @@ export interface PureRuleOperationContract extends RuleOperationContractBase {
   execute(inputs: Readonly<Record<string, RuleValue>>): Readonly<Record<string, RuleValue>>
 }
 
+/**
+ * A deterministic typed operation whose outputs are interpreted by a
+ * server-owned application service after the kernel completes. The kernel
+ * records it exactly as it records a pure operation and never mutates state.
+ */
+export interface ProposalRuleOperationContract extends RuleOperationContractBase {
+  executionKind: 'PROPOSAL'
+  execute(inputs: Readonly<Record<string, RuleValue>>): Readonly<Record<string, RuleValue>>
+}
+
 export interface EvidenceRuleOperationContract extends RuleOperationContractBase {
   executionKind: 'EVIDENCE'
   evidence: {
@@ -27,7 +37,10 @@ export interface EvidenceRuleOperationContract extends RuleOperationContractBase
   }
 }
 
-export type RuleOperationContract = PureRuleOperationContract | EvidenceRuleOperationContract
+export type RuleOperationContract =
+  | PureRuleOperationContract
+  | ProposalRuleOperationContract
+  | EvidenceRuleOperationContract
 
 export interface RuleOperationRegistry {
   require(reference: RuleOperationReference): RuleOperationContract

@@ -2,10 +2,153 @@ import { describe, expect, it } from 'vitest'
 import { createEffectRepository } from '../repositories/index.js'
 import { InMemoryDb } from './helpers/in-memory-db.js'
 
+const EFFECT_TEST_SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
+const DEXTERITY_ABILITY_DEFINITION_ID = '00000000-0000-0000-0011-000200000000'
+const WISDOM_ABILITY_DEFINITION_ID = '00000000-0000-0000-0011-000500000000'
+const CONSTITUTION_ABILITY_DEFINITION_ID = '00000000-0000-0000-0011-000300000000'
+
 describe('createEffectRepository', () => {
-  it('round-trips an incoming saving-throw trigger through passive effect persistence', async () => {
+  it('requires an authoritative parent System to hydrate an Effect saving throw', async () => {
+    const db = new InMemoryDb()
+    const effect = {
+      id: 'effect-system-bound-read',
+      order: 1,
+      invocation: {
+        kind: 'ACTION' as const,
+        triggerCode: 'SAVING_THROW' as const,
+        savingThrow: {
+          id: 'effect-system-bound-read-save',
+          dcMethod: 'FIXED_DC' as const,
+          abilityDefinitionId: DEXTERITY_ABILITY_DEFINITION_ID,
+          baseDc: 12
+        },
+        activation: { code: 'ACTION' as const, amount: 1 },
+        range: {
+          id: 'effect-system-bound-read-range',
+          rangeKind: 'SELF' as const
+        }
+      },
+      paths: []
+    }
+
+    await createEffectRepository(db as never, EFFECT_TEST_SYSTEM_ID).upsert(effect)
+
+    await expect(createEffectRepository(db as never).findById(effect.id)).rejects.toThrow(
+      'requires an authoritative parent System'
+    )
+  })
+
+  it('rejects malformed cross-System saving throw parents and bonuses on read', async () => {
+    const db = new InMemoryDb()
+    const repository = createEffectRepository(db as never, EFFECT_TEST_SYSTEM_ID)
+    const effect = {
+      id: 'effect-system-ownership-read',
+      order: 1,
+      invocation: {
+        kind: 'ACTION' as const,
+        triggerCode: 'SAVING_THROW' as const,
+        savingThrow: {
+          id: 'effect-system-ownership-read-save',
+          dcMethod: 'DERIVED_DC' as const,
+          abilityDefinitionId: DEXTERITY_ABILITY_DEFINITION_ID,
+          baseDc: 8,
+          bonuses: [
+            {
+              id: 'effect-system-ownership-read-bonus',
+              bonusKind: 'ABILITY_MODIFIER' as const,
+              abilityDefinitionId: CONSTITUTION_ABILITY_DEFINITION_ID
+            }
+          ]
+        },
+        activation: { code: 'ACTION' as const, amount: 1 },
+        range: {
+          id: 'effect-system-ownership-read-range',
+          rangeKind: 'SELF' as const
+        }
+      },
+      paths: []
+    }
+
+    await repository.upsert(effect)
+    db.insertRow(
+      'saving_throws',
+      {
+        id: effect.invocation.savingThrow.id,
+        system_id: 'other-system',
+        ability_definition_id: DEXTERITY_ABILITY_DEFINITION_ID,
+        dc_method: 'DERIVED_DC',
+        base_dc: 8
+      },
+      ['id'],
+      'doUpdateSet'
+    )
+
+    await expect(repository.findById(effect.id)).rejects.toThrow(
+      'does not match authoritative System'
+    )
+
+    db.insertRow(
+      'saving_throws',
+      {
+        id: effect.invocation.savingThrow.id,
+        system_id: EFFECT_TEST_SYSTEM_ID,
+        ability_definition_id: DEXTERITY_ABILITY_DEFINITION_ID,
+        dc_method: 'DERIVED_DC',
+        base_dc: 8
+      },
+      ['id'],
+      'doUpdateSet'
+    )
+    db.insertRow(
+      'saving_throw_dc_bonuses',
+      {
+        id: 'effect-system-ownership-read-bonus',
+        saving_throw_id: effect.invocation.savingThrow.id,
+        system_id: 'other-system',
+        bonus_kind: 'ABILITY_MODIFIER',
+        ability_definition_id: CONSTITUTION_ABILITY_DEFINITION_ID,
+        amount: null,
+        sort_order: 1
+      },
+      ['id'],
+      'doUpdateSet'
+    )
+
+    await expect(repository.findById(effect.id)).rejects.toThrow(
+      'does not match authoritative System'
+    )
+  })
+
+  it('rejects a saving-throw Effect without an owning System before persistence', async () => {
     const db = new InMemoryDb()
     const repository = createEffectRepository(db as never)
+
+    await expect(
+      repository.upsert({
+        id: 'effect-without-system',
+        order: 1,
+        invocation: {
+          kind: 'ACTION',
+          triggerCode: 'SAVING_THROW',
+          savingThrow: {
+            id: 'save-without-system',
+            dcMethod: 'FIXED_DC',
+            abilityDefinitionId: DEXTERITY_ABILITY_DEFINITION_ID,
+            baseDc: 12
+          },
+          activation: { code: 'ACTION', amount: 1 },
+          range: { id: 'range-without-system', rangeKind: 'SELF' }
+        },
+        paths: []
+      })
+    ).rejects.toThrow('requires an owning System')
+
+    await expect(repository.findById('effect-without-system')).resolves.toBeNull()
+  })
+
+  it('round-trips an incoming saving-throw trigger through passive effect persistence', async () => {
+    const db = new InMemoryDb()
+    const repository = createEffectRepository(db as never, EFFECT_TEST_SYSTEM_ID)
 
     await repository.upsert({
       id: 'effect-incoming-save-1',
@@ -55,7 +198,7 @@ describe('createEffectRepository', () => {
 
   it('round-trips a direct saving-throw effect with owned shape, duration, and damage payloads', async () => {
     const db = new InMemoryDb()
-    const repository = createEffectRepository(db as never)
+    const repository = createEffectRepository(db as never, EFFECT_TEST_SYSTEM_ID)
 
     await repository.upsert({
       id: 'effect-direct-1',
@@ -66,7 +209,7 @@ describe('createEffectRepository', () => {
         savingThrow: {
           id: 'saving-throw-1',
           dcMethod: 'FIXED_DC',
-          ability: 'WISDOM',
+          abilityDefinitionId: WISDOM_ABILITY_DEFINITION_ID,
           baseDc: 15,
           bonuses: [
             {
@@ -168,7 +311,7 @@ describe('createEffectRepository', () => {
         savingThrow: {
           id: 'saving-throw-1',
           dcMethod: 'FIXED_DC',
-          ability: 'WISDOM',
+          abilityDefinitionId: WISDOM_ABILITY_DEFINITION_ID,
           baseDc: 15,
           bonuses: [
             {
@@ -260,7 +403,7 @@ describe('createEffectRepository', () => {
 
   it('hydrates until-dispelled durations without requiring an amount', async () => {
     const db = new InMemoryDb()
-    const repository = createEffectRepository(db as never)
+    const repository = createEffectRepository(db as never, EFFECT_TEST_SYSTEM_ID)
 
     await repository.upsert({
       id: 'effect-until-dispelled-1',
@@ -271,7 +414,7 @@ describe('createEffectRepository', () => {
         savingThrow: {
           id: 'effect-until-dispelled-1-saving-throw',
           dcMethod: 'FIXED_DC',
-          ability: 'WISDOM',
+          abilityDefinitionId: WISDOM_ABILITY_DEFINITION_ID,
           baseDc: 15
         },
         activation: {
@@ -327,7 +470,7 @@ describe('createEffectRepository', () => {
 
   it('hydrates numeric database strings as authored numbers', async () => {
     const db = new InMemoryDb()
-    const repository = createEffectRepository(db as never)
+    const repository = createEffectRepository(db as never, EFFECT_TEST_SYSTEM_ID)
 
     await repository.upsert({
       id: 'effect-numeric-strings',
@@ -338,7 +481,7 @@ describe('createEffectRepository', () => {
         savingThrow: {
           id: 'numeric-saving-throw',
           dcMethod: 'FIXED_DC',
-          ability: 'DEXTERITY',
+          abilityDefinitionId: DEXTERITY_ABILITY_DEFINITION_ID,
           baseDc: 13
         },
         activation: {
@@ -502,7 +645,7 @@ describe('createEffectRepository', () => {
 
   it('round-trips a passive saving-throw effect with passive save-fail/save-success paths', async () => {
     const db = new InMemoryDb()
-    const repository = createEffectRepository(db as never)
+    const repository = createEffectRepository(db as never, EFFECT_TEST_SYSTEM_ID)
 
     await repository.upsert({
       id: 'effect-passive-save-1',
@@ -513,7 +656,7 @@ describe('createEffectRepository', () => {
         savingThrow: {
           id: 'effect-passive-save-1-saving-throw',
           dcMethod: 'FIXED_DC',
-          ability: 'WISDOM',
+          abilityDefinitionId: WISDOM_ABILITY_DEFINITION_ID,
           baseDc: 15
         },
         range: {
@@ -583,7 +726,7 @@ describe('createEffectRepository', () => {
         savingThrow: {
           id: 'effect-passive-save-1-saving-throw',
           dcMethod: 'FIXED_DC',
-          ability: 'WISDOM',
+          abilityDefinitionId: WISDOM_ABILITY_DEFINITION_ID,
           baseDc: 15
         },
         range: {
@@ -606,7 +749,7 @@ describe('createEffectRepository', () => {
 
   it('round-trips a source-DC saving throw with the target save ability', async () => {
     const db = new InMemoryDb()
-    const repository = createEffectRepository(db as never)
+    const repository = createEffectRepository(db as never, EFFECT_TEST_SYSTEM_ID)
 
     await repository.upsert({
       id: 'effect-source-save-1',
@@ -617,7 +760,7 @@ describe('createEffectRepository', () => {
         savingThrow: {
           id: 'effect-source-save-1-saving-throw',
           dcMethod: 'SOURCE_SAVE_DC',
-          ability: 'DEXTERITY'
+          abilityDefinitionId: DEXTERITY_ABILITY_DEFINITION_ID
         },
         activation: {
           code: 'ACTION',
@@ -659,7 +802,7 @@ describe('createEffectRepository', () => {
         savingThrow: {
           id: 'effect-source-save-1-saving-throw',
           dcMethod: 'SOURCE_SAVE_DC',
-          ability: 'DEXTERITY'
+          abilityDefinitionId: DEXTERITY_ABILITY_DEFINITION_ID
         }
       }
     })
@@ -667,7 +810,7 @@ describe('createEffectRepository', () => {
 
   it('round-trips a derived saving throw DC with ability and proficiency bonuses', async () => {
     const db = new InMemoryDb()
-    const repository = createEffectRepository(db as never)
+    const repository = createEffectRepository(db as never, EFFECT_TEST_SYSTEM_ID)
 
     await repository.upsert({
       id: 'effect-derived-save-1',
@@ -678,13 +821,13 @@ describe('createEffectRepository', () => {
         savingThrow: {
           id: 'effect-derived-save-1-saving-throw',
           dcMethod: 'DERIVED_DC',
-          ability: 'DEXTERITY',
+          abilityDefinitionId: DEXTERITY_ABILITY_DEFINITION_ID,
           baseDc: 8,
           bonuses: [
             {
               id: 'effect-derived-save-1-ability-bonus',
               bonusKind: 'ABILITY_MODIFIER',
-              ability: 'CONSTITUTION'
+              abilityDefinitionId: CONSTITUTION_ABILITY_DEFINITION_ID
             },
             {
               id: 'effect-derived-save-1-proficiency-bonus',
@@ -732,13 +875,13 @@ describe('createEffectRepository', () => {
         savingThrow: {
           id: 'effect-derived-save-1-saving-throw',
           dcMethod: 'DERIVED_DC',
-          ability: 'DEXTERITY',
+          abilityDefinitionId: DEXTERITY_ABILITY_DEFINITION_ID,
           baseDc: 8,
           bonuses: [
             {
               id: 'effect-derived-save-1-ability-bonus',
               bonusKind: 'ABILITY_MODIFIER',
-              ability: 'CONSTITUTION'
+              abilityDefinitionId: CONSTITUTION_ABILITY_DEFINITION_ID
             },
             {
               id: 'effect-derived-save-1-proficiency-bonus',
@@ -752,7 +895,7 @@ describe('createEffectRepository', () => {
 
   it('round-trips a roll-table effect with mixed damage and condition entries', async () => {
     const db = new InMemoryDb()
-    const repository = createEffectRepository(db as never)
+    const repository = createEffectRepository(db as never, EFFECT_TEST_SYSTEM_ID)
 
     await repository.upsert({
       id: 'effect-roll-table-1',

@@ -59,7 +59,8 @@ describe('Campaign Character removal reconciliation', () => {
     const character = createEmptyCharacterAuthored({
       id: '00000000-0000-4000-8000-000000000001',
       userId: '00000000-0000-4000-8000-000000000002',
-      systemId: '00000000-0000-4000-8000-000000000003'
+      systemId: '00000000-0000-4000-8000-000000000003',
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000303'
     })
     character.status = 'ACTIVE'
     character.label = 'Rook'

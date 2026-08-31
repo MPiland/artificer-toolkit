@@ -204,127 +204,133 @@ describe('round-trip upsert correctness', () => {
   it('round-trips a background through composed owned upserts and cleans replaced owned content', async () => {
     const db = new InMemoryDb()
     const repository = createBackgroundRepository(db as never)
-    await repository.upsert({
-      kind: 'BACKGROUND',
-      id: 'background-1',
-      label: 'Scholar',
-      description: 'Original background',
-      details: [
-        {
-          id: 'detail-1',
-          label: 'Lore',
-          description: 'Old detail',
-          order: 1
-        }
-      ],
-      startingEquipment: {
-        id: 'background-se-1',
-        sets: [
+    await repository.upsert(
+      {
+        kind: 'BACKGROUND',
+        id: 'background-1',
+        label: 'Scholar',
+        description: 'Original background',
+        details: [
           {
-            id: 'se-set-1',
-            order: 1,
-            groups: [
-              {
-                id: 'se-group-1',
-                order: 1,
-                options: [
-                  {
-                    id: 'se-option-1',
-                    order: 1,
-                    items: [
-                      {
-                        id: 'se-currency-1',
-                        order: 1,
-                        startingEquipmentKind: 'CURRENCY',
-                        currencies: [{ currencyId: 'gp', amount: 15 }]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
+            id: 'detail-1',
+            label: 'Lore',
+            description: 'Old detail',
+            order: 1
           }
-        ]
-      },
-      proficiencies: [
-        {
-          id: 'background-grant-1',
-          grantKind: 'PROFICIENCY_GRANT',
-          proficiencyKind: 'SKILL',
-          order: 1,
-          selectionKind: 'GRANTED',
-          scalingKind: 'NONE',
-          authoringModeKind: 'SELECTED',
-          skillIds: ['history'],
-          level: 'FULL'
-        }
-      ],
-      userId: 'user-1',
-      systemId: 'system-1'
-    })
-    await repository.upsert({
-      kind: 'BACKGROUND',
-      id: 'background-1',
-      label: 'Scholar',
-      description: 'Updated background',
-      status: 'DRAFT',
-      details: [
-        {
-          id: 'detail-2',
-          label: 'Research',
-          description: 'New detail',
-          order: 1
-        }
-      ],
-      features: undefined,
-      startingEquipment: {
-        id: 'background-se-2',
-        sets: [
+        ],
+        startingEquipment: {
+          id: 'background-se-1',
+          sets: [
+            {
+              id: 'se-set-1',
+              order: 1,
+              groups: [
+                {
+                  id: 'se-group-1',
+                  order: 1,
+                  options: [
+                    {
+                      id: 'se-option-1',
+                      order: 1,
+                      items: [
+                        {
+                          id: 'se-currency-1',
+                          order: 1,
+                          startingEquipmentKind: 'CURRENCY',
+                          currencies: [{ currencyId: 'gp', amount: 15 }]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        proficiencies: [
           {
-            id: 'se-set-2',
+            id: 'background-grant-1',
+            grantKind: 'PROFICIENCY_GRANT',
+            proficiencyKind: 'SKILL',
             order: 1,
-            groups: [
-              {
-                id: 'se-group-2',
-                order: 1,
-                options: [
-                  {
-                    id: 'se-option-2',
-                    order: 1,
-                    items: [
-                      {
-                        id: 'se-equipment-1',
-                        order: 1,
-                        startingEquipmentKind: 'EQUIPMENT',
-                        authoringModeKind: 'ALL',
-                        selectionKind: 'GRANTED',
-                        quantity: 1,
-                        category: 'WEAPON'
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
+            selectionKind: 'GRANTED',
+            scalingKind: 'NONE',
+            authoringModeKind: 'SELECTED',
+            skillIds: ['history'],
+            level: 'FULL'
           }
-        ]
+        ],
+        userId: 'user-1',
+        systemId: 'system-1'
       },
-      proficiencies: [
-        {
-          id: 'background-grant-2',
-          grantKind: 'PROFICIENCY_GRANT',
-          proficiencyKind: 'LANGUAGE',
-          order: 1,
-          selectionKind: 'GRANTED',
-          scalingKind: 'NONE',
-          authoringModeKind: 'SELECTED',
-          languageIds: ['elvish'],
-          level: 'FULL'
-        }
-      ],
-      userId: 'user-1',
-      systemId: 'system-1'
-    })
+      { contentSourceId: 'content-source-1' }
+    )
+    await repository.upsert(
+      {
+        kind: 'BACKGROUND',
+        id: 'background-1',
+        label: 'Scholar',
+        description: 'Updated background',
+        status: 'DRAFT',
+        details: [
+          {
+            id: 'detail-2',
+            label: 'Research',
+            description: 'New detail',
+            order: 1
+          }
+        ],
+        features: undefined,
+        startingEquipment: {
+          id: 'background-se-2',
+          sets: [
+            {
+              id: 'se-set-2',
+              order: 1,
+              groups: [
+                {
+                  id: 'se-group-2',
+                  order: 1,
+                  options: [
+                    {
+                      id: 'se-option-2',
+                      order: 1,
+                      items: [
+                        {
+                          id: 'se-equipment-1',
+                          order: 1,
+                          startingEquipmentKind: 'EQUIPMENT',
+                          authoringModeKind: 'ALL',
+                          selectionKind: 'GRANTED',
+                          quantity: 1,
+                          category: 'WEAPON'
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        proficiencies: [
+          {
+            id: 'background-grant-2',
+            grantKind: 'PROFICIENCY_GRANT',
+            proficiencyKind: 'LANGUAGE',
+            order: 1,
+            selectionKind: 'GRANTED',
+            scalingKind: 'NONE',
+            authoringModeKind: 'SELECTED',
+            languageIds: ['elvish'],
+            level: 'FULL'
+          }
+        ],
+        userId: 'user-1',
+        systemId: 'system-1'
+      },
+      { contentSourceId: 'content-source-1' }
+    )
     await expect(repository.findById('background-1')).resolves.toEqual({
       kind: 'BACKGROUND',
       id: 'background-1',
@@ -424,104 +430,110 @@ describe('round-trip upsert correctness', () => {
   it('round-trips a feat through supported owned grants and replaces stale owned rows', async () => {
     const db = new InMemoryDb()
     const repository = createFeatRepository(db as never)
-    await repository.upsert({
-      id: 'feat-1',
-      label: 'Arcane Initiate',
-      description: 'Original feat',
-      details: [
-        {
-          id: 'feat-detail-1',
-          label: 'Detail',
-          description: 'Original detail',
-          order: 1
-        }
-      ],
-      charges: {
-        id: 'feat-charge-1',
-        resetKind: 'LONG_REST',
-        limitKind: 'FIXED_AMOUNT',
-        scalingKind: 'NONE',
-        amount: 1
-      },
-      grants: {
-        proficiencies: [
+    await repository.upsert(
+      {
+        id: 'feat-1',
+        label: 'Arcane Initiate',
+        description: 'Original feat',
+        details: [
           {
-            id: 'feat-prof-1',
-            grantKind: 'PROFICIENCY_GRANT',
-            proficiencyKind: 'SKILL',
-            order: 1,
-            selectionKind: 'GRANTED',
-            scalingKind: 'NONE',
-            authoringModeKind: 'SELECTED',
-            skillIds: ['arcana'],
-            level: 'FULL'
+            id: 'feat-detail-1',
+            label: 'Detail',
+            description: 'Original detail',
+            order: 1
           }
         ],
-        senses: [
-          {
-            id: 'feat-sense-1',
-            grantKind: 'SENSE_GRANT',
-            order: 2,
-            selectionKind: 'GRANTED',
-            scalingKind: 'NONE',
-            authoringModeKind: 'SELECTED',
-            senseIds: ['darkvision']
-          }
-        ]
+        charges: {
+          id: 'feat-charge-1',
+          resetKind: 'LONG_REST',
+          limitKind: 'FIXED_AMOUNT',
+          scalingKind: 'NONE',
+          amount: 1
+        },
+        grants: {
+          proficiencies: [
+            {
+              id: 'feat-prof-1',
+              grantKind: 'PROFICIENCY_GRANT',
+              proficiencyKind: 'SKILL',
+              order: 1,
+              selectionKind: 'GRANTED',
+              scalingKind: 'NONE',
+              authoringModeKind: 'SELECTED',
+              skillIds: ['arcana'],
+              level: 'FULL'
+            }
+          ],
+          senses: [
+            {
+              id: 'feat-sense-1',
+              grantKind: 'SENSE_GRANT',
+              order: 2,
+              selectionKind: 'GRANTED',
+              scalingKind: 'NONE',
+              authoringModeKind: 'SELECTED',
+              senseIds: ['darkvision']
+            }
+          ]
+        },
+        userId: 'user-1',
+        systemId: 'system-1'
       },
-      userId: 'user-1',
-      systemId: 'system-1'
-    })
-    await repository.upsert({
-      id: 'feat-1',
-      label: 'Arcane Initiate',
-      description: 'Updated feat',
-      status: 'DRAFT',
-      details: [
-        {
-          id: 'feat-detail-2',
-          label: 'Detail',
-          description: 'Updated detail',
-          order: 1
-        }
-      ],
-      charges: {
-        id: 'feat-charge-2',
-        resetKind: 'SHORT_REST',
-        limitKind: 'FIXED_AMOUNT',
-        scalingKind: 'NONE',
-        amount: 2
-      },
-      grants: {
-        feats: [
+      { contentSourceId: 'content-source-1' }
+    )
+    await repository.upsert(
+      {
+        id: 'feat-1',
+        label: 'Arcane Initiate',
+        description: 'Updated feat',
+        status: 'DRAFT',
+        details: [
           {
-            id: 'feat-feat-grant-1',
-            grantKind: 'FEAT_GRANT',
-            order: 2,
-            selectionKind: 'GRANTED',
-            scalingKind: 'NONE',
-            authoringModeKind: 'SELECTED',
-            featIds: ['grappler']
+            id: 'feat-detail-2',
+            label: 'Detail',
+            description: 'Updated detail',
+            order: 1
           }
         ],
-        spells: [
-          {
-            id: 'feat-spell-1',
-            grantKind: 'SPELL_GRANT',
-            order: 1,
-            selectionKind: 'GRANTED',
-            scalingKind: 'NONE',
-            authoringModeKind: 'SELECTED',
-            spellIds: ['magic-missile'],
-            attributes: ['CAST_AT_LEVEL'],
-            castAtLevel: 1,
-            castingAbility: 'INTELLIGENCE'
-          }
-        ]
+        charges: {
+          id: 'feat-charge-2',
+          resetKind: 'SHORT_REST',
+          limitKind: 'FIXED_AMOUNT',
+          scalingKind: 'NONE',
+          amount: 2
+        },
+        grants: {
+          feats: [
+            {
+              id: 'feat-feat-grant-1',
+              grantKind: 'FEAT_GRANT',
+              order: 2,
+              selectionKind: 'GRANTED',
+              scalingKind: 'NONE',
+              authoringModeKind: 'SELECTED',
+              featIds: ['grappler']
+            }
+          ],
+          spells: [
+            {
+              id: 'feat-spell-1',
+              grantKind: 'SPELL_GRANT',
+              order: 1,
+              selectionKind: 'GRANTED',
+              scalingKind: 'NONE',
+              authoringModeKind: 'SELECTED',
+              spellIds: ['magic-missile'],
+              attributes: ['CAST_AT_LEVEL'],
+              castAtLevel: 1,
+              castingAbility: 'INTELLIGENCE'
+            }
+          ]
+        },
+        userId: 'user-1',
+        systemId: 'system-1'
       },
-      userId: 'user-1',
-      systemId: 'system-1'
-    })
+      { contentSourceId: 'content-source-1' }
+    )
     await expect(repository.findById('feat-1')).resolves.toEqual({
       id: 'feat-1',
       label: 'Arcane Initiate',
@@ -638,71 +650,74 @@ describe('round-trip upsert correctness', () => {
   it('round-trips feat, feature, and option details and clears empty detail arrays', async () => {
     const db = new InMemoryDb()
     const repository = createFeatRepository(db as never)
-    await repository.upsert({
-      id: 'feat-detail-roundtrip-1',
-      label: 'Layered Feat',
-      description: 'Has nested prose.',
-      details: [
-        {
-          id: 'feat-detail-a',
-          label: 'Feat Detail A',
-          description: 'First feat detail.',
-          order: 1
-        },
-        {
-          id: 'feat-detail-b',
-          label: 'Feat Detail B',
-          description: 'Second feat detail.',
-          order: 2
-        }
-      ],
-      features: [
-        {
-          id: 'feature-detail-a',
-          label: 'Layered Feature',
-          description: 'Feature prose.',
-          order: 1,
-          details: [
-            {
-              id: 'feature-detail-a-1',
-              label: 'Feature Detail A',
-              description: 'First feature detail.',
-              order: 1
-            },
-            {
-              id: 'feature-detail-a-2',
-              label: 'Feature Detail B',
-              description: 'Second feature detail.',
-              order: 2
-            }
-          ],
-          options: [
-            {
-              id: 'option-detail-a',
-              label: 'Layered Option',
-              description: 'Option prose.',
-              order: 1,
-              details: [
-                {
-                  id: 'option-detail-a-1',
-                  label: 'Option Detail A',
-                  description: 'First option detail.',
-                  order: 1
-                },
-                {
-                  id: 'option-detail-a-2',
-                  label: 'Option Detail B',
-                  description: 'Second option detail.',
-                  order: 2
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      userId: 'user-1',
-      systemId: 'system-1'
-    })
+    await repository.upsert(
+      {
+        id: 'feat-detail-roundtrip-1',
+        label: 'Layered Feat',
+        description: 'Has nested prose.',
+        details: [
+          {
+            id: 'feat-detail-a',
+            label: 'Feat Detail A',
+            description: 'First feat detail.',
+            order: 1
+          },
+          {
+            id: 'feat-detail-b',
+            label: 'Feat Detail B',
+            description: 'Second feat detail.',
+            order: 2
+          }
+        ],
+        features: [
+          {
+            id: 'feature-detail-a',
+            label: 'Layered Feature',
+            description: 'Feature prose.',
+            order: 1,
+            details: [
+              {
+                id: 'feature-detail-a-1',
+                label: 'Feature Detail A',
+                description: 'First feature detail.',
+                order: 1
+              },
+              {
+                id: 'feature-detail-a-2',
+                label: 'Feature Detail B',
+                description: 'Second feature detail.',
+                order: 2
+              }
+            ],
+            options: [
+              {
+                id: 'option-detail-a',
+                label: 'Layered Option',
+                description: 'Option prose.',
+                order: 1,
+                details: [
+                  {
+                    id: 'option-detail-a-1',
+                    label: 'Option Detail A',
+                    description: 'First option detail.',
+                    order: 1
+                  },
+                  {
+                    id: 'option-detail-a-2',
+                    label: 'Option Detail B',
+                    description: 'Second option detail.',
+                    order: 2
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        userId: 'user-1',
+        systemId: 'system-1'
+      },
+      { contentSourceId: 'content-source-1' }
+    )
     await expect(repository.findById('feat-detail-roundtrip-1')).resolves.toMatchObject({
       details: [
         { id: 'feat-detail-a', label: 'Feat Detail A' },
@@ -725,32 +740,35 @@ describe('round-trip upsert correctness', () => {
         }
       ]
     })
-    await repository.upsert({
-      id: 'feat-detail-roundtrip-1',
-      label: 'Layered Feat',
-      description: 'Has nested prose.',
-      details: [],
-      features: [
-        {
-          id: 'feature-detail-a',
-          label: 'Layered Feature',
-          description: 'Feature prose.',
-          order: 1,
-          details: [],
-          options: [
-            {
-              id: 'option-detail-a',
-              label: 'Layered Option',
-              description: 'Option prose.',
-              order: 1,
-              details: []
-            }
-          ]
-        }
-      ],
-      userId: 'user-1',
-      systemId: 'system-1'
-    })
+    await repository.upsert(
+      {
+        id: 'feat-detail-roundtrip-1',
+        label: 'Layered Feat',
+        description: 'Has nested prose.',
+        details: [],
+        features: [
+          {
+            id: 'feature-detail-a',
+            label: 'Layered Feature',
+            description: 'Feature prose.',
+            order: 1,
+            details: [],
+            options: [
+              {
+                id: 'option-detail-a',
+                label: 'Layered Option',
+                description: 'Option prose.',
+                order: 1,
+                details: []
+              }
+            ]
+          }
+        ],
+        userId: 'user-1',
+        systemId: 'system-1'
+      },
+      { contentSourceId: 'content-source-1' }
+    )
     await expect(repository.findById('feat-detail-roundtrip-1')).resolves.toMatchObject({
       details: undefined,
       features: [

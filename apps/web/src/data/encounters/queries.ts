@@ -26,10 +26,18 @@ export function getCampaignEncounters(campaignId: string, client: Api = api) {
   })
 }
 
-export function getEncounterTemplates(campaignId: string, client: Api = api) {
+export function getPendingEncounterRuleOccurrence(encounterId: string, client: Api = api) {
   return queryOptions({
-    queryKey: queryKeys.encounters.templates(campaignId),
-    queryFn: () => client.encounters.templates.list(campaignId),
+    queryKey: queryKeys.encounters.pendingOccurrence(encounterId),
+    queryFn: () => client.encounters.pendingRuleOccurrence(encounterId),
+    refetchInterval: 5_000
+  })
+}
+
+export function getEncounterBlueprints(gameSystemId: string, client: Api = api) {
+  return queryOptions({
+    queryKey: queryKeys.encounters.blueprints(gameSystemId),
+    queryFn: () => client.encounters.blueprints.list(gameSystemId),
     refetchInterval: 30_000
   })
 }

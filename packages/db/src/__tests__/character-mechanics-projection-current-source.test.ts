@@ -137,4 +137,26 @@ describe('Character mechanics projection exact authored-pin contract', () => {
     expect(metadataRead).toContain('current.characterSystemId')
     expect(metadataRead).not.toContain('current.projection.commandState.systemId')
   })
+
+  it('round-trips immutable pinned sense definitions in every full projection lane', () => {
+    const read = sourceBetween(
+      'async function readProjection(',
+      'async function readProjectionMetadata('
+    )
+    const advance = sourceBetween(
+      'async advanceLiveCommandState(input)',
+      'async publish(input, options)'
+    )
+    const publish = sourceBetween('async publish(input, options)', 'async requireCurrent(input)')
+
+    expect(source).toContain('pinned_sense_definitions: Json')
+    expect(source).toContain('pinnedSenseDefinitions: row.pinned_sense_definitions')
+    expect(read).toContain('projection.pinned_sense_definitions')
+    expect(advance).toContain(
+      'pinned_sense_definitions = ${JSON.stringify(projection.pinnedSenseDefinitions)}::jsonb'
+    )
+    expect(publish).toContain('pinned_sense_definitions,')
+    expect(publish).toContain('${JSON.stringify(projection.pinnedSenseDefinitions)}::jsonb')
+    expect(publish).toContain('pinned_sense_definitions = excluded.pinned_sense_definitions')
+  })
 })

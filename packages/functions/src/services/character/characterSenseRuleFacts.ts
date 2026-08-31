@@ -12,7 +12,7 @@ export function buildCharacterSenseRuleFacts(
   return {
     senseFacts: {
       overrides: adjustments.map((adjustment) => ({
-        senseCode: adjustment.senseId,
+        senseDefinitionId: adjustment.senseId,
         sourceId: adjustment.id,
         value: adjustment.value
       })) as SenseFacts['overrides']

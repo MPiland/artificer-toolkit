@@ -7,108 +7,114 @@ describe('round-trip upsert correctness', () => {
   it('round-trips a race through supported details and speeds while clearing stale owned rows', async () => {
     const db = new InMemoryDb()
     const repository = createRaceRepository(db as never)
-    await repository.upsert({
-      id: 'race-1',
-      label: 'Elf',
-      quote: 'Graceful.',
-      description: 'Original race',
-      heritageIds: ['heritage-elven'],
-      details: [
-        {
-          id: 'race-detail-1',
-          label: 'Keen Senses',
-          description: 'Old detail',
-          order: 1
-        }
-      ],
-      userId: 'user-1',
-      systemId: 'system-1',
-      category: 'BASE',
-      selectionMode: 'REQUIRES_SUBRACE',
-      ancestry: {
-        id: 'race-ancestry-1',
-        label: 'Draconic',
-        description: 'Choose a color.',
-        options: [
+    await repository.upsert(
+      {
+        id: 'race-1',
+        label: 'Elf',
+        quote: 'Graceful.',
+        description: 'Original race',
+        heritageIds: ['heritage-elven'],
+        details: [
           {
-            id: 'race-ancestry-option-1',
-            label: 'Red',
-            description: 'Fire lineage.',
-            order: 1,
-            features: [
-              {
-                id: 'race-ancestry-feature-1',
-                label: 'Fire Breath',
-                description: 'Breathe fire.',
-                order: 1
-              }
-            ]
+            id: 'race-detail-1',
+            label: 'Keen Senses',
+            description: 'Old detail',
+            order: 1
           }
-        ]
-      },
-      size: 'MEDIUM',
-      speeds: [
-        {
-          speedId: 'walk',
-          amount: 30,
-          unit: 'FEET'
-        }
-      ]
-    })
-    await repository.upsert({
-      id: 'race-1',
-      label: 'Elf',
-      quote: 'Graceful.',
-      description: 'Updated race',
-      status: 'DRAFT',
-      heritageIds: ['heritage-elven', 'heritage-fey'],
-      details: [
-        {
-          id: 'race-detail-2',
-          label: 'Trance',
-          description: 'New detail',
-          order: 1
-        }
-      ],
-      userId: 'user-1',
-      systemId: 'system-1',
-      category: 'BASE',
-      selectionMode: 'REQUIRES_SUBRACE',
-      ancestry: {
-        id: 'race-ancestry-2',
-        label: 'Draconic',
-        description: 'Choose a color.',
-        options: [
-          {
-            id: 'race-ancestry-option-2',
-            label: 'Blue',
-            description: 'Lightning lineage.',
-            order: 1,
-            features: [
-              {
-                id: 'race-ancestry-feature-2',
-                label: 'Lightning Breath',
-                description: 'Breathe lightning.',
-                order: 1
-              }
-            ]
-          }
-        ]
-      },
-      size: 'MEDIUM',
-      speeds: [
-        {
-          speedId: 'walk',
-          amount: 35,
-          unit: 'FEET'
+        ],
+        userId: 'user-1',
+        systemId: 'system-1',
+        category: 'BASE',
+        selectionMode: 'REQUIRES_SUBRACE',
+        ancestry: {
+          id: 'race-ancestry-1',
+          label: 'Draconic',
+          description: 'Choose a color.',
+          options: [
+            {
+              id: 'race-ancestry-option-1',
+              label: 'Red',
+              description: 'Fire lineage.',
+              order: 1,
+              features: [
+                {
+                  id: 'race-ancestry-feature-1',
+                  label: 'Fire Breath',
+                  description: 'Breathe fire.',
+                  order: 1
+                }
+              ]
+            }
+          ]
         },
-        {
-          speedId: 'fly',
-          amount: 20,
-          unit: 'FEET'
-        }
-      ]
-    })
+        size: 'MEDIUM',
+        speeds: [
+          {
+            speedId: 'walk',
+            amount: 30,
+            unit: 'FEET'
+          }
+        ]
+      },
+      { contentSourceId: 'content-source-1' }
+    )
+    await repository.upsert(
+      {
+        id: 'race-1',
+        label: 'Elf',
+        quote: 'Graceful.',
+        description: 'Updated race',
+        status: 'DRAFT',
+        heritageIds: ['heritage-elven', 'heritage-fey'],
+        details: [
+          {
+            id: 'race-detail-2',
+            label: 'Trance',
+            description: 'New detail',
+            order: 1
+          }
+        ],
+        userId: 'user-1',
+        systemId: 'system-1',
+        category: 'BASE',
+        selectionMode: 'REQUIRES_SUBRACE',
+        ancestry: {
+          id: 'race-ancestry-2',
+          label: 'Draconic',
+          description: 'Choose a color.',
+          options: [
+            {
+              id: 'race-ancestry-option-2',
+              label: 'Blue',
+              description: 'Lightning lineage.',
+              order: 1,
+              features: [
+                {
+                  id: 'race-ancestry-feature-2',
+                  label: 'Lightning Breath',
+                  description: 'Breathe lightning.',
+                  order: 1
+                }
+              ]
+            }
+          ]
+        },
+        size: 'MEDIUM',
+        speeds: [
+          {
+            speedId: 'walk',
+            amount: 35,
+            unit: 'FEET'
+          },
+          {
+            speedId: 'fly',
+            amount: 20,
+            unit: 'FEET'
+          }
+        ]
+      },
+      { contentSourceId: 'content-source-1' }
+    )
     await expect(repository.findById('race-1')).resolves.toEqual({
       id: 'race-1',
       label: 'Elf',
@@ -228,49 +234,55 @@ describe('round-trip upsert correctness', () => {
   it('rewrites supported equipment rows idempotently and clears stale child rows', async () => {
     const db = new InMemoryDb()
     const repository = createEquipmentRepository(db as never)
-    await repository.upsert({
-      kind: 'EQUIPMENT',
-      id: 'equipment-1',
-      label: 'Longsword',
-      description: 'Original',
-      cost: { amount: 15, currencyId: 'gp' },
-      weight: { amount: 3, unit: 'POUNDS' },
-      attributes: ['LIMITED_USE'],
-      charges: {
-        id: 'equipment-charge-1',
-        resetKind: 'LONG_REST',
-        limitKind: 'FIXED_AMOUNT',
-        scalingKind: 'NONE',
-        amount: 1
+    await repository.upsert(
+      {
+        kind: 'EQUIPMENT',
+        id: 'equipment-1',
+        label: 'Longsword',
+        description: 'Original',
+        cost: { amount: 15, currencyId: 'gp' },
+        weight: { amount: 3, unit: 'POUNDS' },
+        attributes: ['LIMITED_USE'],
+        charges: {
+          id: 'equipment-charge-1',
+          resetKind: 'LONG_REST',
+          limitKind: 'FIXED_AMOUNT',
+          scalingKind: 'NONE',
+          amount: 1
+        },
+        rarityId: 'common',
+        userId: 'user-1',
+        systemId: 'system-1',
+        properties: ['MARTIAL'],
+        category: 'WEAPON',
+        contains: [{ equipmentId: 'sheath-1', quantity: 1 }]
       },
-      rarityId: 'common',
-      userId: 'user-1',
-      systemId: 'system-1',
-      properties: ['MARTIAL'],
-      category: 'WEAPON',
-      contains: [{ equipmentId: 'sheath-1', quantity: 1 }]
-    })
-    await repository.upsert({
-      kind: 'EQUIPMENT',
-      id: 'equipment-1',
-      label: 'Longsword',
-      description: 'Updated',
-      cost: { amount: 20, currencyId: 'gp' },
-      weight: { amount: 4, unit: 'POUNDS' },
-      rarityId: 'common',
-      userId: 'user-1',
-      systemId: 'system-1',
-      properties: ['VERSATILE'],
-      category: 'WEAPON',
-      contains: [{ equipmentId: 'sheath-2', quantity: 1 }],
-      charges: {
-        id: 'equipment-charge-2',
-        resetKind: 'SHORT_REST',
-        limitKind: 'FIXED_AMOUNT',
-        scalingKind: 'NONE',
-        amount: 2
-      }
-    })
+      { contentSourceId: 'content-source-1' }
+    )
+    await repository.upsert(
+      {
+        kind: 'EQUIPMENT',
+        id: 'equipment-1',
+        label: 'Longsword',
+        description: 'Updated',
+        cost: { amount: 20, currencyId: 'gp' },
+        weight: { amount: 4, unit: 'POUNDS' },
+        rarityId: 'common',
+        userId: 'user-1',
+        systemId: 'system-1',
+        properties: ['VERSATILE'],
+        category: 'WEAPON',
+        contains: [{ equipmentId: 'sheath-2', quantity: 1 }],
+        charges: {
+          id: 'equipment-charge-2',
+          resetKind: 'SHORT_REST',
+          limitKind: 'FIXED_AMOUNT',
+          scalingKind: 'NONE',
+          amount: 2
+        }
+      },
+      { contentSourceId: 'content-source-1' }
+    )
     await expect(repository.findById('equipment-1')).resolves.toEqual({
       kind: 'EQUIPMENT',
       id: 'equipment-1',
@@ -331,32 +343,38 @@ describe('round-trip upsert correctness', () => {
   it('round-trips equipment variants and clears stale base-only rows when switching categories', async () => {
     const db = new InMemoryDb()
     const repository = createEquipmentRepository(db as never)
-    await repository.upsert({
-      kind: 'EQUIPMENT',
-      id: 'equipment-variant-1',
-      label: 'Longsword',
-      description: 'Base item',
-      cost: { amount: 15, currencyId: 'gp' },
-      weight: { amount: 3, unit: 'POUNDS' },
-      rarityId: 'common',
-      userId: 'user-1',
-      systemId: 'system-1',
-      properties: ['MARTIAL'],
-      category: 'WEAPON'
-    })
-    await repository.upsert({
-      kind: 'EQUIPMENT',
-      id: 'equipment-variant-1',
-      label: 'Flame Tongue Longsword',
-      description: 'Variant item',
-      rarityId: 'rare',
-      userId: 'user-1',
-      systemId: 'system-1',
-      category: 'VARIANT',
-      parentEquipmentId: 'equipment-parent-1',
-      requiresAttunement: true,
-      properties: ['MAGIC']
-    })
+    await repository.upsert(
+      {
+        kind: 'EQUIPMENT',
+        id: 'equipment-variant-1',
+        label: 'Longsword',
+        description: 'Base item',
+        cost: { amount: 15, currencyId: 'gp' },
+        weight: { amount: 3, unit: 'POUNDS' },
+        rarityId: 'common',
+        userId: 'user-1',
+        systemId: 'system-1',
+        properties: ['MARTIAL'],
+        category: 'WEAPON'
+      },
+      { contentSourceId: 'content-source-1' }
+    )
+    await repository.upsert(
+      {
+        kind: 'EQUIPMENT',
+        id: 'equipment-variant-1',
+        label: 'Flame Tongue Longsword',
+        description: 'Variant item',
+        rarityId: 'rare',
+        userId: 'user-1',
+        systemId: 'system-1',
+        category: 'VARIANT',
+        parentEquipmentId: 'equipment-parent-1',
+        requiresAttunement: true,
+        properties: ['MAGIC']
+      },
+      { contentSourceId: 'content-source-1' }
+    )
     await expect(repository.findById('equipment-variant-1')).resolves.toEqual({
       kind: 'EQUIPMENT',
       id: 'equipment-variant-1',
@@ -382,6 +400,7 @@ describe('round-trip upsert correctness', () => {
       {
         id: 'equipment-variant-1',
         system_id: 'system-1',
+        content_source_id: 'content-source-1',
         user_id: 'user-1',
         label: 'Flame Tongue Longsword',
         description: 'Variant item',

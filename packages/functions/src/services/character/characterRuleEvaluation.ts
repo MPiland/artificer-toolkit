@@ -4,6 +4,8 @@ import {
   type CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
+import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
+import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 import type { CharacterAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { performance } from 'node:perf_hooks'
 
@@ -18,6 +20,11 @@ import {
   collectCharacterRuleInputSpellIds
 } from './characterSpellRuleFacts.js'
 import { evaluateRuleRevision } from '../rules/ruleRevisionRuntime.js'
+import { discoverCharacterActionCapabilities } from '../rules/characterActionCapabilityDiscoveryRegistry.js'
+import type { CharacterActionCapabilityDescriptor } from '../rules/characterActionCapabilityDiscovery.js'
+import { compileCharacterActionEntryPoints } from '../rules/characterActionEntryPointCompiler.js'
+import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
+import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
 
 export interface CharacterRuleEvaluationInput extends Omit<
   CharacterRulePolicyFactsInput,
@@ -36,9 +43,14 @@ export interface CharacterRuleEvaluationInput extends Omit<
 export interface CharacterRuleEvaluationResult {
   binding: CharacterRuleBinding
   context: CharacterRuleEvaluationInput['context']
+  vocabularySnapshot?: SystemVocabularySnapshot
   snapshot: ReturnType<typeof composeCharacterRulePolicyFacts>['snapshot']
   registry: ReturnType<typeof composeCharacterRulePolicyFacts>['registry']
   facts: ReturnType<typeof composeCharacterRulePolicyFacts>['facts']
+  /** Server-only capability discovery; not part of Sheet or action projections until Gate 2. */
+  discoveredActionCapabilities: readonly CharacterActionCapabilityDescriptor[]
+  /** Server-only committed action execution sources aligned with action candidates. */
+  compiledActionEntryPoints: readonly CompiledActionEntryPoint[]
   output: CharacterRulePolicyOutput
   evaluation: {
     revisionId: string
@@ -61,6 +73,125 @@ export interface CharacterRuleEvaluationResult {
       normalizedFactsBytes: number
       resultBytes: number
     }
+  }
+}
+
+type CharacterRollMode = CharacterRulePolicyOutput['rollModes']['initiative']
+
+type CharacterRollContributor =
+  CharacterRulePolicyOutput['rollContributorEvidence']['initiative'][number]
+
+function canonicalizeRollContributors(
+  contributors: readonly CharacterRollContributor[]
+): readonly CharacterRollContributor[] {
+  const ordered = [...contributors].sort(compareCanonicalD20Contributors)
+  for (let index = 1; index < ordered.length; index += 1) {
+    const prior = ordered[index - 1]!
+    const current = ordered[index]!
+    if (
+      prior.sourceId === current.sourceId &&
+      prior.grantId === current.grantId &&
+      prior.domainKey === current.domainKey &&
+      prior.influence === current.influence
+    ) {
+      throw new Error('Character saving-throw contributors must be unique.')
+    }
+  }
+  return ordered
+}
+
+function resolveRollMode(
+  contributors: CharacterRulePolicyOutput['rollContributorEvidence']['initiative']
+): CharacterRollMode {
+  return resolveD20Contributors(contributors).rollMode
+}
+
+function resolveRollModeRecord<
+  T extends Record<string, readonly { influence: 'ADVANTAGE' | 'DISADVANTAGE' }[]>
+>(contributors: T): { [Key in keyof T]: CharacterRollMode } {
+  return Object.fromEntries(
+    Object.entries(contributors).map(([key, values]) => [
+      key,
+      resolveD20Contributors(values).rollMode
+    ])
+  ) as { [Key in keyof T]: CharacterRollMode }
+}
+
+/**
+ * System policy qualifies private contributors. Scalar modes emitted by the
+ * transitional model contract are overwritten here and are never authoritative.
+ */
+export function resolveCharacterRulePolicyRollModes(
+  output: CharacterRulePolicyOutput,
+  vocabularySnapshot?: SystemVocabularySnapshot
+): CharacterRulePolicyOutput {
+  const contributors = output.rollContributorEvidence
+  const savingThrowContributors = Object.fromEntries(
+    Object.entries(contributors.savingThrows).map(([abilityId, values]) => [
+      abilityId,
+      canonicalizeRollContributors(values)
+    ])
+  ) as CharacterRulePolicyOutput['rollContributorEvidence']['savingThrows']
+  const canonicalContributors = {
+    ...contributors,
+    savingThrows: savingThrowContributors
+  }
+  const rollModes = {
+    initiative: resolveRollMode(canonicalContributors.initiative),
+    abilityChecks: resolveRollModeRecord(canonicalContributors.abilityChecks),
+    savingThrows: resolveRollModeRecord(canonicalContributors.savingThrows),
+    skillChecks: resolveRollModeRecord(canonicalContributors.skillChecks),
+    attacks: resolveRollModeRecord(canonicalContributors.attacks)
+  }
+  const derivedSavingThrows = output.derivedStats.savingThrows
+  const abilityDefinitions =
+    vocabularySnapshot && 'abilities' in vocabularySnapshot.document
+      ? vocabularySnapshot.document.abilities
+      : []
+  if (derivedSavingThrows.length > 0 && abilityDefinitions.length === 0) {
+    throw new Error(
+      'Character saving throws require a System vocabulary snapshot with ability definitions.'
+    )
+  }
+  const savingThrowDefinitions = derivedSavingThrows.map((savingThrow) => {
+    const matches = abilityDefinitions.filter((ability) => ability.code === savingThrow.abilityId)
+    if (matches.length !== 1) {
+      throw new Error(
+        `Character saving throw "${savingThrow.abilityId}" has no exact System ability definition.`
+      )
+    }
+    const abilityDefinition = matches[0]!
+    const rollMode =
+      rollModes.savingThrows[savingThrow.abilityId as keyof typeof rollModes.savingThrows]
+    const savingThrowEvidence =
+      canonicalContributors.savingThrows[
+        savingThrow.abilityId as keyof typeof contributors.savingThrows
+      ]
+    if (!rollMode || !savingThrowEvidence) {
+      throw new Error(
+        `Character saving throw "${savingThrow.abilityId}" lacks normalized roll evidence.`
+      )
+    }
+    return {
+      abilityDefinitionId: abilityDefinition.id,
+      modifier: savingThrow.total.effective,
+      rollMode,
+      contributors: savingThrowEvidence
+    }
+  })
+  if (
+    new Set(savingThrowDefinitions.map((savingThrow) => savingThrow.abilityDefinitionId)).size !==
+    savingThrowDefinitions.length
+  ) {
+    throw new Error('Character saving throws must map to unique System ability definitions.')
+  }
+  return {
+    ...output,
+    rollContributorEvidence: canonicalContributors,
+    rollModes,
+    savingThrowDefinitions: savingThrowDefinitions.sort((left, right) =>
+      left.abilityDefinitionId.localeCompare(right.abilityDefinitionId)
+    )
   }
 }
 
@@ -139,6 +270,23 @@ export async function evaluateCharacterRulePolicy(
     }
   )
   const factAssemblyMs = performance.now() - factAssemblyStartedAt
+  const discoveredActionCapabilities = discoverCharacterActionCapabilities({
+    gameSystemId: input.character.systemId,
+    candidates: factsResult.facts.actionCandidates,
+    conditionDefinitionIds: (input.context.registry.system?.conditionTypes ?? [])
+      .map((condition) => condition.id)
+      .sort(),
+    abilityDefinitions:
+      input.context.vocabularySnapshot && 'abilities' in input.context.vocabularySnapshot.document
+        ? input.context.vocabularySnapshot.document.abilities.map(({ id, code }) => ({ id, code }))
+        : [],
+    entryPoints: factsResult.actionEntryPoints
+  })
+  const compiledActionEntryPoints = compileCharacterActionEntryPoints({
+    gameSystemId: input.character.systemId,
+    candidates: factsResult.facts.actionCandidates,
+    descriptors: discoveredActionCapabilities
+  })
   const runtimeStartedAt = performance.now()
   const evaluation = await evaluateRuleRevision({
     db: input.db,
@@ -149,14 +297,20 @@ export async function evaluateCharacterRulePolicy(
     trace: input.trace
   })
   const runtimeMs = performance.now() - runtimeStartedAt
-  const output = characterRulePolicyOutputSchema.parse(evaluation.result)
+  const output = resolveCharacterRulePolicyRollModes(
+    characterRulePolicyOutputSchema.parse(evaluation.result),
+    input.context.vocabularySnapshot
+  )
 
   return {
     binding,
     context: input.context,
+    vocabularySnapshot: input.context.vocabularySnapshot,
     snapshot: factsResult.snapshot,
     registry: factsResult.registry,
     facts: factsResult.facts,
+    discoveredActionCapabilities,
+    compiledActionEntryPoints,
     output,
     evaluation: {
       revisionId: evaluation.revisionId,

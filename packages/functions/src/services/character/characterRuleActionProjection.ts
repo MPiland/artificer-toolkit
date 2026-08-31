@@ -78,8 +78,6 @@ export function projectCharacterRuleActionMechanic(
             ...(mechanic.save.dc === null ? {} : { dc: mechanic.save.dc })
           }
         }),
-    outcomes: mechanic.outcomes.map((outcome) =>
-      projectOutcome(outcome, references)
-    )
+    outcomes: mechanic.outcomes.map((outcome) => projectOutcome(outcome, references))
   }
 }

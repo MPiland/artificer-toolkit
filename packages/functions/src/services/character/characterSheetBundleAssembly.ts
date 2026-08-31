@@ -44,22 +44,17 @@ export async function assembleCharacterSheetBundleForRuleContext(params: {
 }) {
   const adjustmentRepository = createCharacterSheetAdjustmentRepository(params.db)
   const playStateRepository = createCharacterSheetPlayStateRepository(params.db)
-  const [
-    adjustments,
-    movementDisplayPreference,
-    resourceUsage,
-    spellCustomizations,
-    draft
-  ] = await Promise.all([
-    adjustmentRepository.listByCharacter(params.character.id),
-    adjustmentRepository.getMovementPreference(params.character.id),
-    playStateRepository.listResourceUsage(params.character.id),
-    playStateRepository.listSpellCustomizations(params.character.id),
-    createCharacterBuilderDraftRepository(params.db).findByCharacter({
-      characterId: params.character.id,
-      userId: params.character.userId
-    })
-  ])
+  const [adjustments, movementDisplayPreference, resourceUsage, spellCustomizations, draft] =
+    await Promise.all([
+      adjustmentRepository.listByCharacter(params.character.id),
+      adjustmentRepository.getMovementPreference(params.character.id),
+      playStateRepository.listResourceUsage(params.character.id),
+      playStateRepository.listSpellCustomizations(params.character.id),
+      createCharacterBuilderDraftRepository(params.db).findByCharacter({
+        characterId: params.character.id,
+        userId: params.character.userId
+      })
+    ])
   const excludedCharacterAdjustmentIds = new Set(params.excludeCharacterAdjustmentIds)
   const effectiveCharacterAdjustments = adjustments.filter(
     (adjustment) => !excludedCharacterAdjustmentIds.has(adjustment.id)
@@ -99,26 +94,26 @@ export async function assembleCharacterSheetBundleForRuleContext(params: {
   const pinnedSpellsById = createCharacterCommittedSheetSpells(committedSources)
   const context = {
     catalog: resolution.catalog,
-    registry: resolution.sourceRegistry
+    registry: resolution.sourceRegistry,
+    vocabularySnapshot: committedSources.vocabularySnapshot
   }
-  const committedRuleEvaluation =
-    params.excludeCharacterAdjustmentIds?.length
-      ? undefined
-      : createCommittedCharacterRuleEvaluation({
-          character: params.character,
-          context,
-          mechanics,
-          adjustments: mergedAdjustments,
-          movementDisplayPreference,
-          ...(campaignMechanics
-            ? {
-                rulePolicy: {
-                  input: campaignMechanics.rulePolicyInput,
-                  output: campaignMechanics.rulePolicyOutput
-                }
+  const committedRuleEvaluation = params.excludeCharacterAdjustmentIds?.length
+    ? undefined
+    : createCommittedCharacterRuleEvaluation({
+        character: params.character,
+        context,
+        mechanics,
+        adjustments: mergedAdjustments,
+        movementDisplayPreference,
+        ...(campaignMechanics
+          ? {
+              rulePolicy: {
+                input: campaignMechanics.rulePolicyInput,
+                output: campaignMechanics.rulePolicyOutput
               }
-            : {})
-        })
+            }
+          : {})
+      })
   const bundle = await buildCharacterSheetBundle({
     db: params.db,
     character: params.character,

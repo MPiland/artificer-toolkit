@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   ABILITY_CODE,
@@ -911,7 +912,7 @@ export const cleric: ClassAuthored = {
             activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
             savingThrow: {
               id: classRowId(C, 0x6e, 3),
-              ability: ABILITY_CODE.WISDOM,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
               dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
             },
             range: { id: classRowId(C, 0x69, 3), rangeKind: RANGE_KIND.SELF },
@@ -966,7 +967,7 @@ export const cleric: ClassAuthored = {
             triggerCode: TRIGGER.SAVING_THROW,
             savingThrow: {
               id: classRowId(C, 0x6e, 6),
-              ability: ABILITY_CODE.WISDOM,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
               dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
             },
             range: { id: classRowId(C, 0x69, 6), rangeKind: RANGE_KIND.SELF },

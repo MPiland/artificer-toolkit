@@ -7,7 +7,7 @@ import { rulePackDocumentDtoSchema } from '@artificer-toolkit/schema/api/rules'
 import { z } from 'zod'
 import { performance } from 'node:perf_hooks'
 
-import { checksumRuleDocument } from './ruleChecksum.js'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   getRuleModelContract,
   RULE_EVALUATOR_KIND,
@@ -17,6 +17,9 @@ import { evaluatePinnedZenRuleModel, evaluateZenRuleModel } from './zenRuleEngin
 
 const MAX_RUNTIME_JSON_BYTES = 256 * 1024
 const MAX_RUNTIME_JSON_DEPTH = 32
+const MAX_CACHED_PINNED_REVISIONS = 8
+
+const cachedPinnedRevisions = new Map<string, RulePackRevisionRecord>()
 
 type JsonValue = z.infer<ReturnType<typeof z.json>>
 
@@ -99,6 +102,31 @@ function assertExpectedIdentity(
   }
 }
 
+async function loadPinnedRevision(
+  db: DBLike,
+  expected: PinnedRuleRevisionIdentity
+): Promise<RulePackRevisionRecord> {
+  const cached = cachedPinnedRevisions.get(expected.revisionId)
+  if (cached) {
+    assertExpectedIdentity(cached, expected)
+    cachedPinnedRevisions.delete(expected.revisionId)
+    cachedPinnedRevisions.set(expected.revisionId, cached)
+    return cached
+  }
+
+  const revision = await createRulePackRepository(db).getRevision(expected.revisionId)
+  if (!revision) throw new RuleRevisionEvaluationError('Rule pack revision was not found.')
+  if (revision.state === 'DRAFT') {
+    throw new RuleRevisionEvaluationError('Draft rule pack revisions cannot be evaluated.')
+  }
+  assertExpectedIdentity(revision, expected)
+  cachedPinnedRevisions.set(expected.revisionId, revision)
+  if (cachedPinnedRevisions.size > MAX_CACHED_PINNED_REVISIONS) {
+    cachedPinnedRevisions.delete(cachedPinnedRevisions.keys().next().value!)
+  }
+  return revision
+}
+
 export async function evaluateRuleRevision(input: {
   db: DBLike
   revisionId: string
@@ -179,12 +207,7 @@ export async function evaluatePinnedRuleRevision(input: {
   normalizedFacts: JsonValue
   trace?: boolean
 }): ReturnType<typeof evaluateRuleRevision> {
-  const revision = await createRulePackRepository(input.db).getRevision(input.expected.revisionId)
-  if (!revision) throw new RuleRevisionEvaluationError('Rule pack revision was not found.')
-  if (revision.state === 'DRAFT') {
-    throw new RuleRevisionEvaluationError('Draft rule pack revisions cannot be evaluated.')
-  }
-  assertExpectedIdentity(revision, input.expected)
+  const revision = await loadPinnedRevision(input.db, input.expected)
   const contractKey = input.contractKey ?? input.modelKey
   const contract = assertCompatibleRuntime(revision, contractKey)
   const modelContractVersion = contract.version
@@ -221,5 +244,11 @@ export async function evaluatePinnedRuleRevision(input: {
     documentBytes: Buffer.byteLength(JSON.stringify(revision.document), 'utf8'),
     normalizedFactsBytes: Buffer.byteLength(JSON.stringify(normalizedFacts), 'utf8'),
     resultBytes: Buffer.byteLength(JSON.stringify(result), 'utf8')
+  }
+}
+
+export const ruleRevisionRuntimeInternals = {
+  clearPinnedRevisionCache(): void {
+    cachedPinnedRevisions.clear()
   }
 }

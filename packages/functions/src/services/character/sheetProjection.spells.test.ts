@@ -35,12 +35,32 @@ vi.mock('./characterRuleEvaluation.js', async (importOriginal) => {
 function buildCharacterSheetResponse(
   params: Omit<BuildCharacterSheetResponseParams, 'ruleEvaluation'>
 ) {
+  const system = params.resolution.sourceRegistry.system ?? params.resolution.registry.system
+  if (!system) throw new Error('Spell projection test requires a System vocabulary.')
   return buildPinnedCharacterSheetResponse({
     ...params,
     ruleEvaluation: {
       context: {
         catalog: params.resolution.catalog,
-        registry: params.resolution.sourceRegistry
+        registry: params.resolution.sourceRegistry,
+        vocabularySnapshot: {
+          snapshotId: 'spell-projection-vocabulary',
+          systemId: system.id,
+          snapshotVersion: 1,
+          schemaVersion: 1,
+          checksum: 'a'.repeat(64),
+          document: {
+            ...system,
+            schemaVersion: 2,
+            abilities: [
+              {
+                id: '00000000-0000-0000-0011-000200000000',
+                code: 'DEXTERITY',
+                label: 'Dexterity'
+              }
+            ]
+          }
+        }
       },
       revisionId: 'sheet-spell-projection-test-revision'
     }
@@ -487,7 +507,7 @@ describe('character sheet spell projection', () => {
               castingTimeUnit: 'ACTION',
               castingTimeAmount: 1,
               materialDescription: null,
-              effectId: 'effect-attack',
+              effectId: '00000000-0000-4000-8000-000000000101',
               ownerEffectOrder: 0,
               effectOrder: 0
             },
@@ -502,7 +522,7 @@ describe('character sheet spell projection', () => {
               castingTimeUnit: 'ACTION',
               castingTimeAmount: 1,
               materialDescription: null,
-              effectId: 'effect-save',
+              effectId: '00000000-0000-4000-8000-000000000102',
               ownerEffectOrder: 0,
               effectOrder: 0
             },
@@ -517,14 +537,14 @@ describe('character sheet spell projection', () => {
               castingTimeUnit: 'REACTION',
               castingTimeAmount: 1,
               materialDescription: null,
-              effectId: 'effect-utility',
+              effectId: '00000000-0000-4000-8000-000000000103',
               ownerEffectOrder: 0,
               effectOrder: 0
             }
           ],
           effect_invocations: [
             {
-              effectId: 'effect-attack',
+              effectId: '00000000-0000-4000-8000-000000000101',
               triggerCode: 'SPELL_ATTACK',
               activationType: 'ACTION',
               activationValue: 1,
@@ -541,7 +561,7 @@ describe('character sheet spell projection', () => {
               excludedCreatureTypeIds: null
             },
             {
-              effectId: 'effect-save',
+              effectId: '00000000-0000-4000-8000-000000000102',
               triggerCode: 'SAVING_THROW',
               activationType: 'BONUS_ACTION',
               activationValue: 1,
@@ -558,7 +578,7 @@ describe('character sheet spell projection', () => {
               excludedCreatureTypeIds: null
             },
             {
-              effectId: 'effect-utility',
+              effectId: '00000000-0000-4000-8000-000000000103',
               triggerCode: 'ACTIVATED',
               activationType: 'REACTION',
               activationValue: 1,
@@ -633,7 +653,7 @@ describe('character sheet spell projection', () => {
             level: 1,
             effects: [
               {
-                id: 'effect-attack',
+                id: '00000000-0000-4000-8000-000000000101',
                 order: 1,
                 invocation: {
                   kind: 'ACTION',
@@ -657,7 +677,7 @@ describe('character sheet spell projection', () => {
             level: 1,
             effects: [
               {
-                id: 'effect-save',
+                id: '00000000-0000-4000-8000-000000000102',
                 order: 1,
                 invocation: {
                   kind: 'ACTION',
@@ -671,7 +691,7 @@ describe('character sheet spell projection', () => {
                   },
                   savingThrow: {
                     id: 'save-dexterity',
-                    ability: 'DEXTERITY',
+                    abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
                     dcMethod: 'SOURCE_SAVE_DC'
                   }
                 },
@@ -686,7 +706,7 @@ describe('character sheet spell projection', () => {
             level: 1,
             effects: [
               {
-                id: 'effect-utility',
+                id: '00000000-0000-4000-8000-000000000103',
                 order: 1,
                 invocation: {
                   kind: 'ACTION',
@@ -839,14 +859,14 @@ describe('character sheet spell projection', () => {
               castingTimeUnit: 'ACTION',
               castingTimeAmount: 1,
               materialDescription: null,
-              effectId: 'effect-1',
+              effectId: '00000000-0000-4000-8000-000000000104',
               ownerEffectOrder: 0,
               effectOrder: 0
             }
           ],
           effect_invocations: [
             {
-              effectId: 'effect-1',
+              effectId: '00000000-0000-4000-8000-000000000104',
               triggerCode: 'SPELL_ATTACK',
               activationType: 'ACTION',
               activationValue: 1,
@@ -866,7 +886,7 @@ describe('character sheet spell projection', () => {
           effect_paths: [
             {
               pathId: 'path-1',
-              effectId: 'effect-1',
+              effectId: '00000000-0000-4000-8000-000000000104',
               order: 0,
               pathCode: 'DEFAULT',
               groupType: 'SEQUENCE',
@@ -952,7 +972,7 @@ describe('character sheet spell projection', () => {
             level: 1,
             effects: [
               {
-                id: 'effect-1',
+                id: '00000000-0000-4000-8000-000000000104',
                 order: 1,
                 invocation: {
                   kind: 'ACTION',

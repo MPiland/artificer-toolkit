@@ -42,8 +42,7 @@ export const handler = async (input) => {
       );
     }
 
-    maximum = Math.max(0, Math.floor(maximum));
-    return maximum > 0 ? maximum : null;
+    return Math.max(0, Math.floor(maximum));
   };
 
   return {
@@ -53,15 +52,17 @@ export const handler = async (input) => {
         actor.abilityScores.DEXTERITY == null
           ? 0
           : abilityModifier(actor.abilityScores.DEXTERITY),
+      targetProtection: actor.targetProtection,
       featureResources: actor.featureResources.map((feature) => {
         const maximum = resolveMaximum(feature.charge, actor.abilityScores);
-        const used = maximum == null ? 0 : Math.min(feature.used, maximum);
+        const used = maximum == null ? 0 : feature.used;
         return {
           featureId: feature.featureId,
           maximum,
+          reconciliationPolicy: maximum == null ? null : 'CLAMP_USED_TO_MAXIMUM',
           rawUsed: feature.used,
           used,
-          remaining: maximum == null ? null : maximum - used,
+          remaining: maximum == null ? null : Math.max(0, maximum - used),
           resetKind: maximum == null ? null : feature.charge.resetKind
         };
       })
@@ -118,6 +119,11 @@ export const dnd5e2014EncounterActorFixture: RulePackDocumentDto['fixtures'][num
       {
         actorId: '00000000-0000-4000-8000-000000000001',
         abilityScores: { DEXTERITY: 14, CHARISMA: 18 },
+        targetProtection: {
+          status: 'NORMALIZED',
+          defenses: [],
+          conditionImmunityIds: []
+        },
         featureResources: [
           {
             featureId: 'legendary-resistance',
@@ -147,10 +153,16 @@ export const dnd5e2014EncounterActorFixture: RulePackDocumentDto['fixtures'][num
       {
         actorId: '00000000-0000-4000-8000-000000000001',
         initiativeModifier: 2,
+        targetProtection: {
+          status: 'NORMALIZED',
+          defenses: [],
+          conditionImmunityIds: []
+        },
         featureResources: [
           {
             featureId: 'legendary-resistance',
             maximum: 5,
+            reconciliationPolicy: 'CLAMP_USED_TO_MAXIMUM',
             rawUsed: 2,
             used: 2,
             remaining: 3,

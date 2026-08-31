@@ -107,9 +107,45 @@ function exactRollTablePath(
 }
 
 describe('effect schema parsing', () => {
+  it('rejects a cylinder shape without its authored height', () => {
+    expect(
+      effectDtoSchema.safeParse({
+        id: '00000000-0000-4000-8000-0000000000e0',
+        order: 1,
+        invocation: {
+          triggerCode: 'ACTIVATED',
+          activation: { code: 'ACTION', amount: 1 },
+          range: {
+            id: 'cylinder-range',
+            rangeKind: 'DISTANCE',
+            amount: 30,
+            unit: 'FEET'
+          },
+          shape: {
+            id: 'cylinder-shape',
+            shapeKind: 'CYLINDER',
+            radius: { amount: 10, unit: 'FEET' }
+          }
+        },
+        paths: [
+          fixedPath(
+            'cylinder-path',
+            1,
+            'ON_USE',
+            singleResultBlock('cylinder-result', {
+              id: 'cylinder-outcome',
+              effectKind: 'CONDITION',
+              conditionId: 'cylinder-condition'
+            })
+          )
+        ]
+      }).success
+    ).toBe(false)
+  })
+
   it('accepts action resource use and rejects passive, zero-cost, and partial resource use', () => {
     const actionEffect = {
-      id: 'resource-use-effect',
+      id: '00000000-0000-4000-8000-0000000000e1',
       order: 1,
       invocation: {
         kind: 'ACTION',
@@ -151,21 +187,80 @@ describe('effect schema parsing', () => {
     expect(
       effectDtoSchema.safeParse({
         ...actionEffect,
-        invocation: { ...actionEffect.invocation, resourceUse: { chargeId: 'resource-use-charge' } }
+        invocation: {
+          ...actionEffect.invocation,
+          resourceUse: { chargeId: 'resource-use-charge' }
+        }
+      }).success
+    ).toBe(false)
+  })
+
+  it('accepts only REACTION action movement trigger bindings', () => {
+    const reactionEffect = {
+      id: '00000000-0000-4000-8000-0000000000e9',
+      order: 1,
+      invocation: {
+        kind: 'ACTION',
+        triggerCode: 'ACTIVATED',
+        activation: { code: 'REACTION', amount: 1 },
+        range: { id: 'reaction-range', rangeKind: 'SELF' },
+        reactionMovementTrigger: {
+          kind: 'MOVEMENT',
+          stage: 'ENTER_REACH',
+          perceptionRequirement: null,
+          eligibilityDefinitionId: 'AAAAAAAA-0000-4000-8000-000000000001'
+        }
+      },
+      paths: [
+        fixedPath(
+          'reaction-path',
+          1,
+          'ON_USE',
+          singleResultBlock('reaction-result', {
+            id: 'reaction-outcome',
+            effectKind: 'CONDITION',
+            conditionId: 'reaction-condition'
+          })
+        )
+      ]
+    }
+
+    const parsed = effectDtoSchema.parse(reactionEffect)
+    expect(parsed.invocation).toMatchObject({
+      reactionMovementTrigger: {
+        kind: 'MOVEMENT',
+        stage: 'ENTER_REACH',
+        perceptionRequirement: null,
+        eligibilityDefinitionId: 'aaaaaaaa-0000-4000-8000-000000000001'
+      }
+    })
+    expect(
+      effectDtoSchema.safeParse({
+        ...reactionEffect,
+        invocation: {
+          ...reactionEffect.invocation,
+          activation: { code: 'ACTION', amount: 1 }
+        }
+      }).success
+    ).toBe(false)
+    expect(
+      effectDtoSchema.safeParse({
+        ...reactionEffect,
+        invocation: { ...reactionEffect.invocation, kind: 'PASSIVE' }
       }).success
     ).toBe(false)
   })
 
   it('parses effects with nested saving throw invocations and fixed paths', () => {
     const parsed = effectDtoSchema.parse({
-      id: 'burning-hands-effect',
+      id: '00000000-0000-4000-8000-0000000000e2',
       order: 1,
       invocation: {
         triggerCode: 'SAVING_THROW',
         savingThrow: {
           id: 'dex-save',
           dcMethod: 'FIXED_DC',
-          ability: 'DEXTERITY',
+          abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
           baseDc: 13
         },
         activation: {
@@ -203,7 +298,7 @@ describe('effect schema parsing', () => {
 
   it('parses passive effects with saving throw invocations', () => {
     const parsed = effectDtoSchema.parse({
-      id: 'spirit-guardians-effect',
+      id: '00000000-0000-4000-8000-0000000000e3',
       order: 1,
       invocation: {
         kind: 'PASSIVE',
@@ -211,7 +306,7 @@ describe('effect schema parsing', () => {
         savingThrow: {
           id: 'spirit-guardians-save',
           dcMethod: 'FIXED_DC',
-          ability: 'WISDOM',
+          abilityDefinitionId: '00000000-0000-0000-0011-000500000000',
           baseDc: 15
         },
         range: {
@@ -264,7 +359,7 @@ describe('effect schema parsing', () => {
 
   it('parses labeled choice options and roll-table rows for authored copy', () => {
     const parsed = effectDtoSchema.parse({
-      id: 'choice-copy-effect',
+      id: '00000000-0000-4000-8000-0000000000e4',
       order: 1,
       invocation: {
         triggerCode: 'SPELL_ATTACK',
@@ -325,7 +420,7 @@ describe('effect schema parsing', () => {
 
   it('parses non-damage outcome families such as apply-grant and rule fallbacks', () => {
     const parsed = effectDtoSchema.parse({
-      id: 'shield-effect',
+      id: '00000000-0000-4000-8000-0000000000e5',
       order: 1,
       invocation: {
         triggerCode: 'SPELL_ATTACK',
@@ -385,14 +480,14 @@ describe('effect schema parsing', () => {
 
   it('parses result-block lifecycle metadata and sequential outcomes', () => {
     const parsed = effectDtoSchema.parse({
-      id: 'dissonant-whispers-effect',
+      id: '00000000-0000-4000-8000-0000000000e6',
       order: 1,
       invocation: {
         triggerCode: 'SAVING_THROW',
         savingThrow: {
           id: 'wis-save',
           dcMethod: 'FIXED_DC',
-          ability: 'WISDOM',
+          abilityDefinitionId: '00000000-0000-0000-0011-000500000000',
           baseDc: 14
         },
         activation: {
@@ -459,7 +554,7 @@ describe('effect schema parsing', () => {
 
   it('parses activated feature-style effects with on-use healing bonuses', () => {
     const parsed = effectDtoSchema.parse({
-      id: 'second-wind-effect',
+      id: '00000000-0000-4000-8000-0000000000e7',
       order: 1,
       invocation: {
         triggerCode: 'ACTIVATED',
@@ -532,7 +627,7 @@ describe('effect schema parsing', () => {
       components: ['VERBAL', 'SOMATIC', 'MATERIAL'],
       effects: [
         {
-          id: 'find-familiar-effect',
+          id: '00000000-0000-4000-8000-0000000000e8',
           order: 1,
           invocation: {
             triggerCode: 'ACTIVATED',
@@ -579,7 +674,9 @@ describe('effect schema parsing', () => {
       effects?: Array<{
         invocation?: { activation?: { code?: string; amount?: number } }
         paths?: Array<{
-          resultBlock?: { outcomes?: Array<{ effectKind?: string; manifestKind?: string }> }
+          resultBlock?: {
+            outcomes?: Array<{ effectKind?: string; manifestKind?: string }>
+          }
         }>
       }>
     }
@@ -597,5 +694,33 @@ describe('effect schema parsing', () => {
       effectKind: 'MANIFEST',
       manifestKind: 'CREATURE'
     })
+  })
+
+  it('rejects non-UUID Effect entry points before authored domain evaluation', () => {
+    expect(
+      effectDtoSchema.safeParse({
+        id: 'not-an-effect-uuid',
+        order: 1,
+        invocation: {
+          triggerCode: 'ACTIVATED',
+          activation: { code: 'ACTION', amount: 1 },
+          range: { id: 'invalid-effect-range', rangeKind: 'SELF' }
+        },
+        paths: [
+          fixedPath(
+            'invalid-effect-path',
+            1,
+            'ON_USE',
+            singleResultBlock('invalid-effect-result', {
+              id: 'invalid-effect-outcome',
+              effectKind: 'MANUAL_ADJUDICATION',
+              label: 'Manual resolution',
+              instructions: 'Resolve at the table.',
+              reasonCode: 'NARRATIVE_JUDGMENT'
+            })
+          )
+        ]
+      }).success
+    ).toBe(false)
   })
 })

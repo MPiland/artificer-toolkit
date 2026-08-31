@@ -1,10 +1,15 @@
 import { randomUUID } from 'node:crypto'
+import { isDeepStrictEqual } from 'node:util'
+import { sql } from 'kysely'
 
 import {
   authoredDocumentVersionSchema,
   type CompiledAuthoredProjection
 } from '@artificer-toolkit/schema/projections/authoredContent'
-import { type AuthoredSubjectKind, type JsonValue } from '@artificer-toolkit/schema/projections/identity'
+import {
+  type AuthoredSubjectKind,
+  type JsonValue
+} from '@artificer-toolkit/schema/projections/identity'
 import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import {
   equipmentAuthoredDtoSchema,
@@ -25,9 +30,7 @@ import {
 } from '@artificer-toolkit/shared/subjects/compilers'
 import type { EquipmentAuthored, RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
-import {
-  upsertSystem
-} from '../domains/index.js'
+import { upsertSystem } from '../domains/index.js'
 import {
   createAuthoredRouteIdRepository,
   createAuthoredVersionRepository,
@@ -36,6 +39,10 @@ import {
   upsertAuthoredRootEnvelope
 } from '../repositories/index.js'
 import type { BaselineContentBundle, SystemSeedRecord } from '../source-data/content.js'
+import { SRD_RULE_STATE_DEFINITIONS } from '../source-data/srd/ruleState.js'
+import { SRD_SENSE_DEFINITIONS } from '../source-data/srd/senses.js'
+import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '../source-data/srd/optionalCombat.js'
+import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from '../source-data/srd/encounterLifecycle.js'
 import {
   checksumCanonicalJson,
   checksumCompiledAuthoredProjection,
@@ -76,8 +83,103 @@ interface StaleBaselineSubjectSet extends BaselineSubjectSet {
 }
 
 const BASELINE_DOCUMENT_SCHEMA_VERSION = 1
+const BASELINE_SYSTEM_VOCABULARY_SCHEMA_VERSION = 2
 const BASELINE_PROJECTION_SCHEMA_VERSION = 1
 const BASELINE_PROJECTION_COMPILER_VERSION = 'subject-compiler-v1'
+const SRD_51_CONTENT_SOURCE_ID = '00000000-0000-4000-8000-000000000302'
+const DND_2014_RULES_CATALOGUE_ID = '00000000-0000-4000-8000-000000000301'
+const DND_5E_SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
+
+type SrdReusableDefinitionSeed = {
+  id: string
+  definitionFamilyKey: string
+  label: string
+  description: string
+  document: unknown
+  checksum: string
+}
+
+async function seedSrdReusableDefinitions(
+  context: SeedContext,
+  publishedByUserId: string,
+  definitions: readonly SrdReusableDefinitionSeed[]
+): Promise<void> {
+  for (const definition of definitions) {
+    const existing = await sql<{
+      game_system_id: string
+      content_source_id: string
+      current_contract_version: number | null
+      current_document: unknown
+      definition_family_key: string
+      current_checksum: string | null
+      label: string
+      description: string | null
+      published_by: string | null
+    }>`
+      SELECT game_system_id, content_source_id, definition_family_key,
+             current_document, current_checksum, current_contract_version,
+             published_by, label, description
+      FROM public.reusable_definitions
+      WHERE id = ${definition.id}::uuid
+      FOR UPDATE
+    `.execute(context.db)
+    const root = existing.rows[0]
+
+    if (!root) {
+      await sql`
+        INSERT INTO public.reusable_definitions (
+          id, game_system_id, content_source_id, definition_family_key, label, description,
+          current_document, current_checksum, current_contract_version, published_at, published_by, version
+        ) VALUES (
+          ${definition.id}::uuid, ${DND_5E_SYSTEM_ID}::uuid, ${SRD_51_CONTENT_SOURCE_ID}::uuid,
+          ${definition.definitionFamilyKey}, ${definition.label}, ${definition.description},
+          ${JSON.stringify(definition.document)}::jsonb, ${definition.checksum}, 1, now(),
+          ${publishedByUserId}::uuid, 1
+        )
+      `.execute(context.db)
+      continue
+    }
+
+    if (
+      root.game_system_id !== DND_5E_SYSTEM_ID ||
+      root.content_source_id !== SRD_51_CONTENT_SOURCE_ID ||
+      root.definition_family_key !== definition.definitionFamilyKey
+    ) {
+      throw new Error(
+        `Canonical SRD reusable definition "${definition.id}" has an incompatible root.`
+      )
+    }
+
+    if (
+      root.current_checksum !== definition.checksum ||
+      root.current_contract_version !== 1 ||
+      root.published_by !== publishedByUserId ||
+      !isDeepStrictEqual(root.current_document, definition.document)
+    ) {
+      await sql`
+        UPDATE public.reusable_definitions
+        SET label = ${definition.label},
+            description = ${definition.description},
+            current_document = ${JSON.stringify(definition.document)}::jsonb,
+            current_checksum = ${definition.checksum},
+            current_contract_version = 1,
+            published_at = now(),
+            published_by = ${publishedByUserId}::uuid,
+            version = version + 1
+        WHERE id = ${definition.id}::uuid
+      `.execute(context.db)
+      continue
+    }
+
+    if (root.label !== definition.label || root.description !== definition.description) {
+      await sql`
+        UPDATE public.reusable_definitions
+        SET label = ${definition.label}, description = ${definition.description}
+        WHERE id = ${definition.id}::uuid
+      `.execute(context.db)
+    }
+  }
+}
 
 function requireProjectionRecord(value: unknown): Record<string, JsonValue> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -86,40 +188,38 @@ function requireProjectionRecord(value: unknown): Record<string, JsonValue> {
   return value as Record<string, JsonValue>
 }
 
-async function ensureVocabularySnapshot(
-  context: SeedContext,
-  system: SystemSeedRecord
-) {
+async function ensureVocabularySnapshot(context: SeedContext, system: SystemSeedRecord) {
   const repository = createSystemVocabularySnapshotRepository(context.db)
   const active = await repository.findActiveForPublication(system.id)
   const document = systemVocabularySnapshotSchema.parse({
     snapshotId: 'seed-validation',
     systemId: system.id,
     snapshotVersion: 1,
-    schemaVersion: BASELINE_DOCUMENT_SCHEMA_VERSION,
+    schemaVersion: BASELINE_SYSTEM_VOCABULARY_SCHEMA_VERSION,
     checksum: '0'.repeat(64),
     document: system
   }).document
   if (active) {
     const checksum = checksumSystemVocabularySnapshot({
-        snapshotId: active.snapshotId,
-        systemId: system.id,
-        snapshotVersion: active.snapshotVersion,
-        schemaVersion: BASELINE_DOCUMENT_SCHEMA_VERSION,
-        document
-      })
+      snapshotId: active.snapshotId,
+      systemId: system.id,
+      snapshotVersion: active.snapshotVersion,
+      schemaVersion: BASELINE_SYSTEM_VOCABULARY_SCHEMA_VERSION,
+      document
+    })
     if (active.checksum === checksum) return active
   }
   return repository.publish({
     snapshotId: randomUUID(),
     systemId: system.id,
-    schemaVersion: BASELINE_DOCUMENT_SCHEMA_VERSION,
+    schemaVersion: BASELINE_SYSTEM_VOCABULARY_SCHEMA_VERSION,
     document
   })
 }
 
 async function publishBaselineSubjectVersion(input: {
   authored: { id: string; systemId: string }
+  contentSourceId: string
   authoredDependencies: CompiledAuthoredProjection['authoredDependencies']
   compiled: unknown
   context: SeedContext
@@ -139,6 +239,7 @@ async function publishBaselineSubjectVersion(input: {
     document: authoredDocument
   })
   await upsertAuthoredRootEnvelope(input.context.db, {
+    contentSourceId: input.contentSourceId,
     document: authored.document,
     subjectKind: input.subjectKind
   })
@@ -179,6 +280,7 @@ async function publishBaselineSubjectVersion(input: {
   }
 
   const published = await versionRepository.publish({
+    contentSourceId: input.contentSourceId,
     subjectKind: authored.subjectKind,
     subjectId: authored.subjectId,
     versionId: authored.versionId,
@@ -222,11 +324,11 @@ async function prepareBaselineRaceProjection(input: {
     subjectId: input.race.parentRaceId
   })
   if (!parent || parent.authored.subjectKind !== 'RACE') {
-    throw new Error(
-      `Cannot seed subrace "${input.race.id}" without an active parent race version.`
-    )
+    throw new Error(`Cannot seed subrace "${input.race.id}" without an active parent race version.`)
   }
-  const parentRace = raceAuthoredDtoSchema.parse(parent.authored.document) as unknown as RaceAuthored
+  const parentRace = raceAuthoredDtoSchema.parse(
+    parent.authored.document
+  ) as unknown as RaceAuthored
 
   return {
     authoredDependencies: [
@@ -416,14 +518,39 @@ async function seedBaselineSubjectRouteIds(
  * versions/projections in one transaction.
  */
 const seedBaselineContentInTransaction: SeedBaselineContent = async (context, bundle) => {
-  if (!bundle.vocabulary.systems.some((system) => system.id === context.systemId)) {
+  const targetSystem = bundle.vocabulary.systems.find((system) => system.id === context.systemId)
+  if (!targetSystem) {
     throw new Error(`Missing system seed record for systemId "${context.systemId}".`)
   }
 
-  const vocabularySnapshots = new Map<string, Awaited<ReturnType<typeof ensureVocabularySnapshot>>>()
+  const vocabularySnapshots = new Map<
+    string,
+    Awaited<ReturnType<typeof ensureVocabularySnapshot>>
+  >()
   for (const system of bundle.vocabulary.systems) {
     await upsertSystem(context.db, system)
     vocabularySnapshots.set(system.id, await ensureVocabularySnapshot(context, system))
+  }
+
+  if (context.systemId === DND_5E_SYSTEM_ID) {
+    await sql`insert into public.rules_catalogues (id, game_system_id, code, label, description)
+      values (${DND_2014_RULES_CATALOGUE_ID}::uuid, ${DND_5E_SYSTEM_ID}::uuid, 'dnd-2014', 'D&D 2014', 'D&D 5e 2014 catalogue.')
+      on conflict (id) do nothing`.execute(context.db)
+    await sql`insert into public.content_sources (id, game_system_id, kind, owner_user_id, code, label, description)
+      values (${SRD_51_CONTENT_SOURCE_ID}::uuid, ${DND_5E_SYSTEM_ID}::uuid, 'PLATFORM', null, 'srd-5.1', 'SRD 5.1', 'D&D 5e SRD 5.1 platform source.')
+      on conflict (id) do nothing`.execute(context.db)
+    await sql`insert into public.rules_catalogue_content_sources (catalogue_id, content_source_id, game_system_id)
+      values (${DND_2014_RULES_CATALOGUE_ID}::uuid, ${SRD_51_CONTENT_SOURCE_ID}::uuid, ${DND_5E_SYSTEM_ID}::uuid)
+      on conflict (catalogue_id, content_source_id) do nothing`.execute(context.db)
+    await seedSrdReusableDefinitions(context, targetSystem.userId, [
+      ...SRD_SENSE_DEFINITIONS.map((definition) => ({
+        ...definition,
+        definitionFamilyKey: 'sense'
+      })),
+      ...SRD_RULE_STATE_DEFINITIONS,
+      ...SRD_OPTIONAL_COMBAT_DEFINITIONS,
+      ...SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS
+    ])
   }
 
   await pruneStaleBaselineContent(context, bundle)
@@ -441,6 +568,7 @@ const seedBaselineContentInTransaction: SeedBaselineContent = async (context, bu
       context,
       subjectKind: 'BACKGROUND',
       authored: background,
+      contentSourceId: SRD_51_CONTENT_SOURCE_ID,
       compiled: compileBackground(background),
       authoredDependencies: [],
       vocabularySnapshot: vocabularySnapshotFor(background.systemId)
@@ -454,6 +582,7 @@ const seedBaselineContentInTransaction: SeedBaselineContent = async (context, bu
       context,
       subjectKind: 'CLASS',
       authored: characterClass,
+      contentSourceId: SRD_51_CONTENT_SOURCE_ID,
       compiled: compileClass(characterClass),
       authoredDependencies: [],
       vocabularySnapshot: vocabularySnapshotFor(characterClass.systemId)
@@ -464,6 +593,7 @@ const seedBaselineContentInTransaction: SeedBaselineContent = async (context, bu
       context,
       subjectKind: 'CREATURE',
       authored: creature,
+      contentSourceId: SRD_51_CONTENT_SOURCE_ID,
       compiled: compileCreature(creature),
       authoredDependencies: [],
       vocabularySnapshot: vocabularySnapshotFor(creature.systemId)
@@ -478,6 +608,7 @@ const seedBaselineContentInTransaction: SeedBaselineContent = async (context, bu
       context,
       subjectKind: 'EQUIPMENT',
       authored: equipment,
+      contentSourceId: SRD_51_CONTENT_SOURCE_ID,
       compiled: prepared.compiled,
       authoredDependencies: prepared.authoredDependencies,
       vocabularySnapshot: vocabularySnapshotFor(equipment.systemId)
@@ -488,6 +619,7 @@ const seedBaselineContentInTransaction: SeedBaselineContent = async (context, bu
       context,
       subjectKind: 'FEAT',
       authored: feat,
+      contentSourceId: SRD_51_CONTENT_SOURCE_ID,
       compiled: compileFeat(feat),
       authoredDependencies: [],
       vocabularySnapshot: vocabularySnapshotFor(feat.systemId)
@@ -502,6 +634,7 @@ const seedBaselineContentInTransaction: SeedBaselineContent = async (context, bu
       context,
       subjectKind: 'RACE',
       authored: race,
+      contentSourceId: SRD_51_CONTENT_SOURCE_ID,
       compiled: prepared.compiled,
       authoredDependencies: prepared.authoredDependencies,
       vocabularySnapshot: vocabularySnapshotFor(race.systemId)
@@ -512,6 +645,7 @@ const seedBaselineContentInTransaction: SeedBaselineContent = async (context, bu
       context,
       subjectKind: 'SPELL',
       authored: spell,
+      contentSourceId: SRD_51_CONTENT_SOURCE_ID,
       compiled: compileSpell(spell),
       authoredDependencies: [],
       vocabularySnapshot: vocabularySnapshotFor(spell.systemId)
@@ -522,6 +656,7 @@ const seedBaselineContentInTransaction: SeedBaselineContent = async (context, bu
       context,
       subjectKind: 'VEHICLE',
       authored: vehicle,
+      contentSourceId: SRD_51_CONTENT_SOURCE_ID,
       compiled: compileVehicle(vehicle),
       authoredDependencies: [],
       vocabularySnapshot: vocabularySnapshotFor(vehicle.systemId)

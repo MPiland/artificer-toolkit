@@ -338,7 +338,7 @@ async function hydrateEquipmentById(
       : Promise.resolve(null)
   ])
 
-  const effectRepository = createEffectRepository(db)
+  const effectRepository = createEffectRepository(db, row.system_id)
   const featureRepository = createFeatureRepository<'EQUIPMENT'>(db, row.system_id)
   const modifierRepository = createModifierGrantRepository(db)
   const selectedFeatureLinks = options.allowedFeatureIds
@@ -408,6 +408,10 @@ async function hydrateEquipmentRows(
   rows: readonly EquipmentRow[],
   options: EquipmentRepositoryReadOptions = {}
 ): Promise<Map<string, AnyEquipmentAuthored>> {
+  const expectedSystemId =
+    rows.length > 0 && rows.every((row) => row.system_id === rows[0]?.system_id)
+      ? rows[0]?.system_id
+      : undefined
   const equipmentIds = rows.map((row) => row.id)
   if (equipmentIds.length === 0) {
     return new Map()
@@ -471,8 +475,8 @@ async function hydrateEquipmentRows(
     )
   ])
 
-  const effectRepository = createEffectRepository(db)
-  const featureRepository = createFeatureRepository<'EQUIPMENT'>(db)
+  const effectRepository = createEffectRepository(db, expectedSystemId)
+  const featureRepository = createFeatureRepository<'EQUIPMENT'>(db, expectedSystemId)
   const modifierRepository = createModifierGrantRepository(db)
   const selectedFeatureLinks = options.allowedFeatureIds
     ? featureLinks.filter((link) => options.allowedFeatureIds?.has(link.feature_id))
@@ -572,8 +576,8 @@ export function createEquipmentRepository(db: DBLike): EquipmentRepositoryWithRe
   }
 
   return {
-    async upsert(entity) {
-      await upsertEquipment(db, entity, entity.systemId)
+    async upsert(entity, options) {
+      await upsertEquipment(db, entity, entity.systemId, options.contentSourceId)
     },
 
     async findById(id, filter) {

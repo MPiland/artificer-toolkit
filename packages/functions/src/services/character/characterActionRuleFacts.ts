@@ -8,7 +8,6 @@ import type {
 
 import { getCharacterGrantFoldSelectedOptionIds } from './characterGrantFoldSourceFacts.js'
 
-type ActionCandidates = Pick<CharacterRulePolicyInput, 'actionCandidates'>
 type ActionCandidate = NonNullable<CharacterRulePolicyInput['actionCandidates']>[number]
 type CharacterActionSource = ActionCandidate['source']
 type CharacterActionRestrictions = CharacterGrantFoldInput['equipmentItems'][number]['restrictions']
@@ -18,6 +17,22 @@ type ActionMechanicFacts = ActionCandidate['mechanicFacts']
 type ActionMechanicOutcome = ActionMechanicFacts['outcomes'][number]
 type CompiledEffectEntry = Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
 type HealOutcome = Extract<ActionMechanicOutcome, { kind: 'HEAL' }>
+
+/** Server-only exact source retained until action capability discovery completes. */
+export interface CharacterActionRuleEntryPoint {
+  actionId: string
+  effectId: string
+  sourceId: string
+  source: CharacterActionSource
+  mechanicsOwner: CharacterActionMechanicsOwner
+  activationSourceKind: ActionCandidate['activationSourceKind']
+  compiledEffect: CompiledEffectGroup
+}
+
+export interface CharacterActionRuleFacts {
+  actionCandidates: ActionCandidate[]
+  entryPoints: CharacterActionRuleEntryPoint[]
+}
 
 function actionId(sourceId: string, effectId: string): string {
   const id = `${sourceId}:ACTION:${encodeURIComponent(effectId)}`
@@ -73,14 +88,17 @@ function normalizeInvocation(
     invocation.triggerCode === 'SAVING_THROW'
       ? {
           dcMethod: invocation.savingThrow.dcMethod,
-          ability: invocation.savingThrow.ability,
+          abilityDefinitionId: invocation.savingThrow.abilityDefinitionId,
           baseDc: 'baseDc' in invocation.savingThrow ? invocation.savingThrow.baseDc : null,
           bonuses:
             'bonuses' in invocation.savingThrow
               ? (invocation.savingThrow.bonuses ?? []).map((bonus) => {
                   switch (bonus.bonusKind) {
                     case 'ABILITY_MODIFIER':
-                      return { bonusKind: bonus.bonusKind, ability: bonus.ability }
+                      return {
+                        bonusKind: bonus.bonusKind,
+                        abilityDefinitionId: bonus.abilityDefinitionId
+                      }
                     case 'PROFICIENCY_BONUS':
                       return { bonusKind: bonus.bonusKind }
                     case 'STATIC_BONUS':
@@ -95,7 +113,14 @@ function normalizeInvocation(
     triggerCode: invocation.triggerCode,
     activation,
     range,
-    savingThrow
+    savingThrow,
+    reactionMovementTrigger:
+      'reactionMovementTrigger' in invocation && invocation.reactionMovementTrigger
+        ? {
+            ...invocation.reactionMovementTrigger,
+            movementInterruption: invocation.reactionMovementTrigger.movementInterruption ?? null
+          }
+        : null
   }
 }
 
@@ -272,6 +297,7 @@ export function normalizeCharacterActionMechanicFacts(
 
 function appendActions(params: {
   candidates: ActionCandidate[]
+  entryPoints: CharacterActionRuleEntryPoint[]
   effects: readonly CompiledEffectGroup[] | undefined
   source: { sourceId: string; mechanicSource: CharacterActionSource }
   mechanicsOwner: CharacterActionMechanicsOwner
@@ -307,7 +333,7 @@ function appendActions(params: {
             )
           })()
       : []
-    params.candidates.push({
+    const candidate = {
       sequence: params.candidates.length,
       actionId: actionId(params.source.sourceId, effect.id),
       effectId: effect.id,
@@ -324,6 +350,16 @@ function appendActions(params: {
           }
         : null,
       mechanicFacts: normalizeCharacterActionMechanicFacts(effect)
+    }
+    params.candidates.push(candidate)
+    params.entryPoints.push({
+      actionId: candidate.actionId,
+      effectId: candidate.effectId,
+      sourceId: candidate.sourceId,
+      source: candidate.source,
+      mechanicsOwner: candidate.mechanicsOwner,
+      activationSourceKind: candidate.activationSourceKind,
+      compiledEffect: effect
     })
   }
 }
@@ -333,9 +369,10 @@ export function buildCharacterActionRuleFacts(params: {
   registry: CharacterAssemblyRegistry
   grantFoldFacts: CharacterGrantFoldInput
   resourcePoolCandidates: readonly ResourcePoolCandidate[]
-}): ActionCandidates {
+}): CharacterActionRuleFacts {
   const { snapshot, registry, grantFoldFacts } = params
   const actionCandidates: ActionCandidate[] = []
+  const entryPoints: CharacterActionRuleEntryPoint[] = []
   const emittedFeatRootIds = new Set<string>()
 
   for (const [index, feature] of snapshot.features.entries()) {
@@ -345,6 +382,7 @@ export function buildCharacterActionRuleFacts(params: {
     if (folded.definition) {
       appendActions({
         candidates: actionCandidates,
+        entryPoints,
         effects: definition.effects,
         source: folded.definition,
         mechanicsOwner: { kind: 'FEATURE', id: feature.featureId },
@@ -364,6 +402,7 @@ export function buildCharacterActionRuleFacts(params: {
       if (!source) continue
       appendActions({
         candidates: actionCandidates,
+        entryPoints,
         effects: option.effects,
         source,
         mechanicsOwner: { kind: 'FEATURE_OPTION', id: option.id },
@@ -380,6 +419,7 @@ export function buildCharacterActionRuleFacts(params: {
       emittedFeatRootIds.add(feature.source.featId)
       appendActions({
         candidates: actionCandidates,
+        entryPoints,
         effects: registry.feats[feature.source.featId]?.effects,
         source: folded.featDefinition,
         mechanicsOwner: { kind: 'FEAT', id: feature.source.featId },
@@ -396,6 +436,9 @@ export function buildCharacterActionRuleFacts(params: {
     const rootRequirements = sourceStateRequirements(folded.restrictions)
     const rootEquipment = {
       itemInstanceId: item.instanceId,
+      equipmentId: item.contentRef.definitionId,
+      category: item.compiledItem.category ?? null,
+      properties: [...(item.compiledItem.properties ?? [])],
       equipped: Boolean(item.equippedState),
       attuned: item.attuned,
       requiresAttunement: folded.requiresAttunement,
@@ -411,6 +454,7 @@ export function buildCharacterActionRuleFacts(params: {
     }
     appendActions({
       candidates: actionCandidates,
+      entryPoints,
       effects: item.compiledItem.effects,
       source: rootSource,
       mechanicsOwner: { kind: 'EQUIPMENT', id: item.compiledItem.id },
@@ -424,12 +468,16 @@ export function buildCharacterActionRuleFacts(params: {
       const requirements = sourceStateRequirements(nested.restrictions)
       appendActions({
         candidates: actionCandidates,
+        entryPoints,
         effects: feature.effects,
         source: nested,
         mechanicsOwner: { kind: 'FEATURE', id: feature.id },
         activationSourceKind: 'ACTIVE_SOURCE',
         equipment: {
           itemInstanceId: item.instanceId,
+          equipmentId: item.contentRef.definitionId,
+          category: item.compiledItem.category ?? null,
+          properties: [...(item.compiledItem.properties ?? [])],
           equipped: Boolean(item.equippedState),
           attuned: item.attuned,
           requiresAttunement: folded.requiresAttunement,
@@ -441,5 +489,5 @@ export function buildCharacterActionRuleFacts(params: {
     }
   }
 
-  return { actionCandidates }
+  return { actionCandidates, entryPoints }
 }

@@ -37,6 +37,7 @@ interface ResidualCounts {
   character_events: number
   character_routes: number
   characters: number
+  content_sources: number
   mechanics_projections: number
   profiles: number
   spell_catalog_classes: number
@@ -218,6 +219,24 @@ async function deleteExactRouteIdentities(
   }
 }
 
+async function deleteDisposableAuthoredRoots(
+  db: DBLike,
+  userId: string,
+  spellIds: readonly string[]
+): Promise<void> {
+  if (spellIds.length > 0) {
+    await sql`
+      delete from public.spells
+      where user_id = ${userId}::uuid
+        and id = any(${sql.val(spellIds)}::uuid[])
+    `.execute(db)
+  }
+  await sql`
+    delete from public.content_sources
+    where owner_user_id = ${userId}::uuid
+  `.execute(db)
+}
+
 async function readResidualCounts(
   db: DBLike,
   userId: string,
@@ -228,6 +247,11 @@ async function readResidualCounts(
     select
       (select count(*)::int from auth.users where id = ${userId}::uuid) as auth_users,
       (select count(*)::int from public.profiles where id = ${userId}::uuid) as profiles,
+      (
+        select count(*)::int
+        from public.content_sources
+        where owner_user_id = ${userId}::uuid
+      ) as content_sources,
       (select count(*)::int from public.characters where id = any(${sql.val(characterIds)}::uuid[])) as characters,
       (
         select count(*)::int
@@ -285,6 +309,7 @@ async function assertDisposableRowsRemoved(
     character_events: 0,
     character_routes: 0,
     characters: 0,
+    content_sources: 0,
     mechanics_projections: 0,
     profiles: 0,
     spell_catalog_classes: 0,
@@ -347,6 +372,7 @@ async function main(): Promise<void> {
     if (user) {
       const userId = user.id
       await captureCleanup(() => deleteExactRouteIdentities(db, characterIds, [...spellIds]))
+      await captureCleanup(() => deleteDisposableAuthoredRoots(db, userId, [...spellIds]))
       await captureCleanup(async () => {
         retryUsed = await deleteAuthUserWithRetry(admin.auth.admin, db, userId)
       })

@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   createSceneDefinitionInputDtoSchema,
+  LEGACY_VISUAL_ONLY_DARKNESS_REPLAY_KIND,
   sceneCommandInputDtoSchema,
+  sceneCommandResultDtoSchema,
   sceneDefinitionDtoSchema,
   sceneDeltaDtoSchema,
   sceneFogLayerDtoSchema,
@@ -19,6 +21,7 @@ const ids = {
 function sceneDefinition() {
   return {
     annotations: [],
+    ambientIllumination: 'BRIGHT' as const,
     barriers: [],
     campaignId: ids.campaign,
     darknessZones: [],
@@ -33,7 +36,12 @@ function sceneDefinition() {
     },
     id: ids.scene,
     lights: [],
-    map: { assetId: ids.map, height: 4_000, tileManifestAssetId: null, width: 4_000 },
+    map: {
+      assetId: ids.map,
+      height: 4_000,
+      tileManifestAssetId: null,
+      width: 4_000
+    },
     name: 'Dungeon',
     tokens: [],
     version: 1,
@@ -45,7 +53,122 @@ describe('VTT scene contracts', () => {
   it('accepts an exact renderer-neutral definition and rejects unknown fields', () => {
     expect(sceneDefinitionDtoSchema.parse(sceneDefinition())).toEqual(sceneDefinition())
     expect(
-      sceneDefinitionDtoSchema.safeParse({ ...sceneDefinition(), renderer: 'PIXI' }).success
+      sceneDefinitionDtoSchema.safeParse({
+        ...sceneDefinition(),
+        renderer: 'PIXI'
+      }).success
+    ).toBe(false)
+  })
+
+  it('requires closed ambient and zone mechanics without compatibility defaults', () => {
+    const zone = {
+      id: ids.token,
+      mechanicalIllumination: null,
+      mechanicalObscurement: null,
+      opacity: 0.5,
+      polygon: {
+        points: [
+          { x: 0, y: 0 },
+          { x: 1, y: 0 },
+          { x: 0, y: 1 }
+        ]
+      }
+    }
+    expect(
+      sceneDefinitionDtoSchema.safeParse({
+        ...sceneDefinition(),
+        darknessZones: [zone]
+      }).success
+    ).toBe(true)
+    expect(
+      sceneDefinitionDtoSchema.safeParse({
+        ...sceneDefinition(),
+        ambientIllumination: 'VOID'
+      }).success
+    ).toBe(false)
+    const { ambientIllumination: _ambientIllumination, ...missingAmbient } = sceneDefinition()
+    expect(sceneDefinitionDtoSchema.safeParse(missingAmbient).success).toBe(false)
+    const { mechanicalObscurement: _mechanicalObscurement, ...missingMechanics } = zone
+    expect(
+      sceneDefinitionDtoSchema.safeParse({
+        ...sceneDefinition(),
+        darknessZones: [missingMechanics]
+      }).success
+    ).toBe(false)
+    expect(
+      sceneDeltaDtoSchema.safeParse({
+        kind: 'AMBIENT_ILLUMINATION_SET',
+        illumination: 'DIM'
+      }).success
+    ).toBe(true)
+    expect(
+      sceneDeltaDtoSchema.safeParse({
+        kind: 'AMBIENT_ILLUMINATION_SET',
+        illumination: 'VOID'
+      }).success
+    ).toBe(false)
+  })
+
+  it('accepts ambient commands and decodes only exact legacy visual darkness commands', () => {
+    const commandBase = {
+      commandId: ids.campaign,
+      expectedSceneVersion: 3,
+      sceneId: ids.scene
+    }
+    const polygon = {
+      points: [
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+        { x: 0, y: 1 }
+      ]
+    }
+
+    expect(
+      sceneCommandInputDtoSchema.safeParse({
+        ...commandBase,
+        illumination: 'DIM',
+        type: 'SET_SCENE_AMBIENT_ILLUMINATION'
+      }).success
+    ).toBe(true)
+    expect(
+      sceneCommandInputDtoSchema.safeParse({
+        ...commandBase,
+        type: 'UPSERT_SCENE_DARKNESS',
+        zone: {
+          id: ids.token,
+          mechanicalIllumination: 'ORDINARY_DARKNESS',
+          mechanicalObscurement: null,
+          opacity: 0.5,
+          polygon
+        }
+      }).success
+    ).toBe(true)
+
+    expect(
+      sceneCommandInputDtoSchema.parse({
+        ...commandBase,
+        type: 'UPSERT_SCENE_DARKNESS',
+        zone: { id: ids.token, opacity: 0.5, polygon }
+      })
+    ).toMatchObject({
+      legacyReplayKind: LEGACY_VISUAL_ONLY_DARKNESS_REPLAY_KIND,
+      zone: {
+        mechanicalIllumination: null,
+        mechanicalObscurement: null
+      }
+    })
+
+    expect(
+      sceneCommandInputDtoSchema.safeParse({
+        ...commandBase,
+        type: 'UPSERT_SCENE_DARKNESS',
+        zone: {
+          id: ids.token,
+          mechanicalIllumination: null,
+          opacity: 0.5,
+          polygon
+        }
+      }).success
     ).toBe(false)
   })
 
@@ -63,7 +186,6 @@ describe('VTT scene contracts', () => {
       }).success
     ).toBe(false)
     const token = {
-      actorId: null,
       assetId: null,
       controlledByUserIds: [],
       height: 1,
@@ -77,12 +199,17 @@ describe('VTT scene contracts', () => {
       width: 1
     }
     expect(
-      sceneDefinitionDtoSchema.safeParse({ ...sceneDefinition(), tokens: [token, token] }).success
+      sceneDefinitionDtoSchema.safeParse({
+        ...sceneDefinition(),
+        tokens: [token, token]
+      }).success
     ).toBe(false)
     const { id: _id, version: _version, ...createInput } = sceneDefinition()
     expect(
-      createSceneDefinitionInputDtoSchema.safeParse({ ...createInput, tokens: [token, token] })
-        .success
+      createSceneDefinitionInputDtoSchema.safeParse({
+        ...createInput,
+        tokens: [token, token]
+      }).success
     ).toBe(false)
   })
 
@@ -138,8 +265,10 @@ describe('VTT scene contracts', () => {
     expect(
       sceneCommandInputDtoSchema.safeParse({
         commandId: ids.campaign,
-        encounterId: ids.map,
+        correlationId: null,
+        expectedEncounterVersion: null,
         expectedSceneVersion: 3,
+        movementKind: 'VOLUNTARY',
         path: [
           { x: 1, y: 2 },
           { x: 3, y: 4 }
@@ -152,8 +281,43 @@ describe('VTT scene contracts', () => {
     expect(
       sceneCommandInputDtoSchema.safeParse({
         commandId: ids.campaign,
-        encounterId: ids.map,
+        correlationId: null,
+        expectedEncounterVersion: null,
         expectedSceneVersion: 3,
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 1, y: 2 },
+          { x: 1, y: 2 }
+        ],
+        sceneId: ids.scene,
+        tokenId: ids.token,
+        type: 'MOVE_SCENE_TOKEN'
+      }).success
+    ).toBe(false)
+    expect(
+      sceneCommandInputDtoSchema.safeParse({
+        commandId: ids.campaign,
+        correlationId: null,
+        expectedEncounterVersion: null,
+        expectedSceneVersion: 3,
+        movementKind: 'VOLUNTARY',
+        path: [
+          { x: 1, y: 2 },
+          { x: 3, y: 2 },
+          { x: 1, y: 2 }
+        ],
+        sceneId: ids.scene,
+        tokenId: ids.token,
+        type: 'MOVE_SCENE_TOKEN'
+      }).success
+    ).toBe(true)
+    expect(
+      sceneCommandInputDtoSchema.safeParse({
+        commandId: ids.campaign,
+        correlationId: null,
+        expectedEncounterVersion: null,
+        expectedSceneVersion: 3,
+        movementKind: 'TELEPORT',
         path: [{ x: 1, y: 2 }],
         sceneId: ids.scene,
         tokenId: ids.token,
@@ -163,7 +327,23 @@ describe('VTT scene contracts', () => {
     expect(
       sceneCommandInputDtoSchema.safeParse({
         commandId: ids.campaign,
-        encounterId: ids.map,
+        correlationId: null,
+        expectedEncounterVersion: null,
+        expectedSceneVersion: 3,
+        movementKind: 'TELEPORT',
+        path: [
+          { x: 1, y: 2 },
+          { x: 2, y: 3 },
+          { x: 3, y: 4 }
+        ],
+        sceneId: ids.scene,
+        tokenId: ids.token,
+        type: 'MOVE_SCENE_TOKEN'
+      }).success
+    ).toBe(false)
+    expect(
+      sceneCommandInputDtoSchema.safeParse({
+        commandId: ids.campaign,
         expectedSceneVersion: 3,
         sceneId: ids.scene,
         type: 'UNDO_LAST_SCENE_MOVE'
@@ -174,6 +354,48 @@ describe('VTT scene contracts', () => {
         kind: 'FOG_LAYER_REPLACED',
         layer: { chunks: [], height: 8, ownerUserId: ids.token, width: 8 },
         ownerUserId: ids.campaign
+      }).success
+    ).toBe(false)
+  })
+
+  it('permits a null Scene delta only when an Encounter occurrence owns mechanics', () => {
+    const occurrence = {
+      occurrenceId: ids.map,
+      occurrenceVersion: 2,
+      status: 'PENDING' as const,
+      outcome: null,
+      pending: {
+        kind: 'D20_EVIDENCE' as const,
+        occurrenceId: ids.map,
+        occurrenceVersion: 2,
+        encounterVersion: 5,
+        request: {
+          requestId: 'd20',
+          min: 1 as const,
+          max: 20 as const,
+          rollMode: 'NORMAL' as const
+        },
+        allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL'] as const
+      }
+    }
+    expect(
+      sceneCommandResultDtoSchema.safeParse({
+        commandId: ids.campaign,
+        delta: null,
+        occurrence,
+        replayed: false,
+        sceneId: ids.scene,
+        version: 3
+      }).success
+    ).toBe(true)
+    expect(
+      sceneCommandResultDtoSchema.safeParse({
+        commandId: ids.campaign,
+        delta: null,
+        occurrence: null,
+        replayed: false,
+        sceneId: ids.scene,
+        version: 3
       }).success
     ).toBe(false)
   })

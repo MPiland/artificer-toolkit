@@ -10,7 +10,7 @@ describe('saving throw DTOs', () => {
       savingThrowDtoSchema.parse({
         id: 'fixed-save',
         dcMethod: 'FIXED_DC',
-        ability: 'DEXTERITY',
+        abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
         baseDc: 15,
         bonuses: [{ id: 'fixed-save-static', bonusKind: 'STATIC_BONUS', amount: 1 }]
       })
@@ -20,7 +20,7 @@ describe('saving throw DTOs', () => {
       savingThrowDtoSchema.parse({
         id: 'source-save',
         dcMethod: 'SOURCE_SAVE_DC',
-        ability: 'WISDOM'
+        abilityDefinitionId: '00000000-0000-0000-0011-000500000000'
       })
     ).toMatchObject({ dcMethod: 'SOURCE_SAVE_DC' })
 
@@ -28,10 +28,14 @@ describe('saving throw DTOs', () => {
       savingThrowDtoSchema.parse({
         id: 'derived-save',
         dcMethod: 'DERIVED_DC',
-        ability: 'CONSTITUTION',
+        abilityDefinitionId: '00000000-0000-0000-0011-000300000000',
         baseDc: 8,
         bonuses: [
-          { id: 'derived-save-ability', bonusKind: 'ABILITY_MODIFIER', ability: 'CONSTITUTION' },
+          {
+            id: 'derived-save-ability',
+            bonusKind: 'ABILITY_MODIFIER',
+            abilityDefinitionId: '00000000-0000-0000-0011-000300000000'
+          },
           { id: 'derived-save-proficiency', bonusKind: 'PROFICIENCY_BONUS' }
         ]
       })
@@ -43,7 +47,7 @@ describe('saving throw DTOs', () => {
       savingThrowDtoSchema.parse({
         id: 'legacy-save',
         dcMethod: 'SOURCE_SAVE_DC',
-        ability: 'DEXTERITY',
+        abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
         sourceAbility: 'CONSTITUTION'
       })
     ).toThrow()

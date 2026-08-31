@@ -1,31 +1,64 @@
 import { z } from 'zod'
 
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
+import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
-const uuidSchema = z.string().uuid()
+const uuidSchema = postgresUuidSchema.transform((value) => value.toLowerCase())
 const contractVersionSchema = z.number().int().positive().max(10_000)
-const capabilityKeySchema = z.string().regex(/^[a-z][a-z0-9.-]{0,79}$/)
+export const ruleCapabilityKeyDtoSchema = z.string().regex(/^[a-z][a-z0-9.-]{0,79}$/)
 const localNodeIdSchema = z.string().regex(/^[a-z][a-z0-9_-]{0,79}$/)
-const portNameSchema = z.string().regex(/^[a-z][a-zA-Z0-9_]{0,79}$/)
+export const ruleGraphPortNameDtoSchema = z.string().regex(/^[a-z][a-zA-Z0-9_]{0,79}$/)
+
+export const ruleGraphSourceEntryBindingDtoSchema = z.strictObject({
+  sourceEntryId: uuidSchema,
+  nodeId: localNodeIdSchema
+})
+const sourceEntryBindingsDtoSchema = z
+  .array(ruleGraphSourceEntryBindingDtoSchema)
+  .max(RULE_GRAPH_LIMITS.NODES)
+  .refine(
+    (bindings) =>
+      new Set(bindings.map((binding) => binding.sourceEntryId)).size === bindings.length &&
+      new Set(bindings.map((binding) => binding.nodeId)).size === bindings.length,
+    'Rule source-entry bindings must form a one-to-one source-entry to node relation.'
+  )
+
+const vocabularyBindingsDtoSchema = z
+  .array(
+    z.strictObject({
+      kind: z.literal('ABILITY'),
+      definitionId: uuidSchema
+    })
+  )
+  .max(RULE_GRAPH_LIMITS.NODES)
+  .refine(
+    (bindings) =>
+      new Set(bindings.map((binding) => `${binding.kind}:${binding.definitionId}`)).size ===
+      bindings.length,
+    'Rule vocabulary bindings must be unique.'
+  )
 
 export const ruleValueKindDtoSchema = z.enum(['BOOLEAN', 'NUMBER', 'TEXT'])
 export const ruleValueDtoSchema = z.union([z.boolean(), z.number().finite(), z.string().max(1_000)])
 
 export const ruleOperationReferenceDtoSchema = z.strictObject({
-  key: capabilityKeySchema,
+  key: ruleCapabilityKeyDtoSchema,
   contractVersion: contractVersionSchema
 })
 
 export const ruleFactContractDtoSchema = z.strictObject({
-  key: capabilityKeySchema,
+  key: ruleCapabilityKeyDtoSchema,
   valueKind: ruleValueKindDtoSchema
 })
 
-export const gameSystemCapabilityDtoSchema = z.strictObject({
+/** Rules Runtime's typed sub-contract within a platform Game System capability module. */
+export const gameSystemRuleCapabilityDtoSchema = z.strictObject({
   gameSystemId: uuidSchema,
   contractVersion: contractVersionSchema,
-  authoredRootKinds: z.array(capabilityKeySchema).max(RULE_GRAPH_LIMITS.AUTHORED_ROOT_KINDS),
-  definitionFamilyKeys: z.array(capabilityKeySchema).max(RULE_GRAPH_LIMITS.DEFINITION_FAMILIES),
+  authoredRootKinds: z.array(ruleCapabilityKeyDtoSchema).max(RULE_GRAPH_LIMITS.AUTHORED_ROOT_KINDS),
+  definitionFamilyKeys: z
+    .array(ruleCapabilityKeyDtoSchema)
+    .max(RULE_GRAPH_LIMITS.DEFINITION_FAMILIES),
   factContracts: z.array(ruleFactContractDtoSchema).max(RULE_GRAPH_LIMITS.FACT_CONTRACTS),
   operationContracts: z
     .array(ruleOperationReferenceDtoSchema)
@@ -34,12 +67,12 @@ export const gameSystemCapabilityDtoSchema = z.strictObject({
 })
 
 export const ruleInputBindingDtoSchema = z.discriminatedUnion('kind', [
-  z.strictObject({ kind: z.literal('FACT'), factKey: capabilityKeySchema }),
+  z.strictObject({ kind: z.literal('FACT'), factKey: ruleCapabilityKeyDtoSchema }),
   z.strictObject({ kind: z.literal('LITERAL'), value: ruleValueDtoSchema }),
   z.strictObject({
     kind: z.literal('NODE_OUTPUT'),
     nodeId: localNodeIdSchema,
-    port: portNameSchema
+    port: ruleGraphPortNameDtoSchema
   })
 ])
 
@@ -47,29 +80,45 @@ export const ruleGraphNodeDefinitionDtoSchema = z.strictObject({
   id: localNodeIdSchema,
   operation: ruleOperationReferenceDtoSchema,
   inputs: z
-    .record(portNameSchema, ruleInputBindingDtoSchema)
+    .record(ruleGraphPortNameDtoSchema, ruleInputBindingDtoSchema)
     .refine((inputs) => Object.keys(inputs).length <= RULE_GRAPH_LIMITS.NODE_INPUTS, {
       message: `Rule nodes support at most ${RULE_GRAPH_LIMITS.NODE_INPUTS} input bindings.`
     })
 })
 
-export const ruleGraphDefinitionDtoSchema = z.strictObject({
-  schemaVersion: z.literal(1),
-  id: uuidSchema,
-  gameSystemId: uuidSchema,
-  definitionFamilyKey: capabilityKeySchema,
-  nodes: z.array(ruleGraphNodeDefinitionDtoSchema).min(1).max(RULE_GRAPH_LIMITS.NODES),
-  outputs: z.record(portNameSchema, ruleInputBindingDtoSchema).refine((outputs) => {
-    const count = Object.keys(outputs).length
-    return count >= 1 && count <= RULE_GRAPH_LIMITS.OUTPUTS
-  }, `Rule graphs require between one and ${RULE_GRAPH_LIMITS.OUTPUTS} outputs.`)
-})
+export const ruleGraphDefinitionDtoSchema = z
+  .strictObject({
+    schemaVersion: z.literal(1),
+    id: uuidSchema,
+    gameSystemId: uuidSchema,
+    definitionFamilyKey: ruleCapabilityKeyDtoSchema,
+    nodes: z.array(ruleGraphNodeDefinitionDtoSchema).min(1).max(RULE_GRAPH_LIMITS.NODES),
+    outputs: z.record(ruleGraphPortNameDtoSchema, ruleInputBindingDtoSchema).refine((outputs) => {
+      const count = Object.keys(outputs).length
+      return count >= 1 && count <= RULE_GRAPH_LIMITS.OUTPUTS
+    }, `Rule graphs require between one and ${RULE_GRAPH_LIMITS.OUTPUTS} outputs.`),
+    sourceEntryBindings: sourceEntryBindingsDtoSchema.optional(),
+    vocabularyBindings: vocabularyBindingsDtoSchema.optional()
+  })
+  .superRefine((definition, context) => {
+    if (
+      definition.sourceEntryBindings?.some(
+        (binding) => !definition.nodes.some((node) => node.id === binding.nodeId)
+      )
+    )
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['sourceEntryBindings'],
+        message: 'Rule source-entry bindings must reference an existing graph node.'
+      })
+  })
 
 export type RuleValueKindDto = z.infer<typeof ruleValueKindDtoSchema>
 export type RuleValueDto = z.infer<typeof ruleValueDtoSchema>
 export type RuleOperationReferenceDto = z.infer<typeof ruleOperationReferenceDtoSchema>
 export type RuleFactContractDto = z.infer<typeof ruleFactContractDtoSchema>
-export type GameSystemCapabilityDto = z.infer<typeof gameSystemCapabilityDtoSchema>
+export type GameSystemRuleCapabilityDto = z.infer<typeof gameSystemRuleCapabilityDtoSchema>
 export type RuleInputBindingDto = z.infer<typeof ruleInputBindingDtoSchema>
 export type RuleGraphNodeDefinitionDto = z.infer<typeof ruleGraphNodeDefinitionDtoSchema>
+export type RuleGraphSourceEntryBindingDto = z.infer<typeof ruleGraphSourceEntryBindingDtoSchema>
 export type RuleGraphDefinitionDto = z.infer<typeof ruleGraphDefinitionDtoSchema>

@@ -56,13 +56,13 @@ export function assertRemoteDatabaseConnectionString(connectionString: string): 
   }
 }
 
-export function parseRemoteSchemaResetTarget(
-  args: readonly string[]
-): RemoteSchemaResetTarget {
-  const targets = (Object.entries(REMOTE_RESET_TARGETS) as [
-    RemoteSchemaResetTarget,
-    (typeof REMOTE_RESET_TARGETS)[RemoteSchemaResetTarget]
-  ][]).filter(([, configuration]) => args.includes(configuration.flag))
+export function parseRemoteSchemaResetTarget(args: readonly string[]): RemoteSchemaResetTarget {
+  const targets = (
+    Object.entries(REMOTE_RESET_TARGETS) as [
+      RemoteSchemaResetTarget,
+      (typeof REMOTE_RESET_TARGETS)[RemoteSchemaResetTarget]
+    ][]
+  ).filter(([, configuration]) => args.includes(configuration.flag))
 
   if (targets.length !== 1) {
     throw new Error('Pass exactly one of --staging or --production.')

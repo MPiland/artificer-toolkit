@@ -1,50 +1,50 @@
 {
-	"$schema": "../../node_modules/wrangler/config-schema.json",
-	"name": "artificer-live-session",
-	"main": "src/index.ts",
-	"compatibility_date": "2026-08-15",
-	"keep_vars": true,
-	"routes": [
-		{
-			"pattern": "tabletop.artificertoolkit.app",
-			"custom_domain": true
-		}
-	],
-	"durable_objects": {
-		"bindings": [
-			{
-				"name": "LIVE_SESSION_ROOMS",
-				"class_name": "LiveSessionRoom"
-			}
-		]
-	},
-	"exports": {
-		"LiveSessionRoom": {
-			"type": "durable-object",
-			"storage": "sqlite"
-		}
-	},
-	"env": {
-		"staging": {
-			"name": "artificer-live-session-staging",
-			"routes": [
-				{
-					"pattern": "tabletop-staging.artificertoolkit.app",
-					"custom_domain": true
-				}
-			],
-			"durable_objects": {
-				"bindings": [
-					{
-						"name": "LIVE_SESSION_ROOMS",
-						"class_name": "LiveSessionRoom"
-					}
-				]
-			},
-			"vars": {
-				"LIVE_SESSION_ALLOWED_ORIGINS": "https://deploy-preview-75--cerulean-sorbet-c62c71.netlify.app",
-				"LIVE_SESSION_EXECUTOR_URL": "https://deploy-preview-75--cerulean-sorbet-c62c71.netlify.app/.netlify/functions/live-session-executor"
-			}
-		}
-	}
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "artificer-live-session",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-15",
+  "keep_vars": true,
+  "routes": [
+    {
+      "pattern": "tabletop.artificertoolkit.app",
+      "custom_domain": true
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "LIVE_SESSION_ROOMS",
+        "class_name": "LiveSessionRoom"
+      }
+    ]
+  },
+  "exports": {
+    "LiveSessionRoom": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  },
+  "env": {
+    "staging": {
+      "name": "artificer-live-session-staging",
+      "routes": [
+        {
+          "pattern": "tabletop-staging.artificertoolkit.app",
+          "custom_domain": true
+        }
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "LIVE_SESSION_ROOMS",
+            "class_name": "LiveSessionRoom"
+          }
+        ]
+      },
+      "vars": {
+        "LIVE_SESSION_ALLOWED_ORIGINS": "https://deploy-preview-75--cerulean-sorbet-c62c71.netlify.app",
+        "LIVE_SESSION_EXECUTOR_URL": "https://deploy-preview-75--cerulean-sorbet-c62c71.netlify.app/.netlify/functions/live-session-executor"
+      }
+    }
+  }
 }

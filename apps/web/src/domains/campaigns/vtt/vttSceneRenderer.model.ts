@@ -1,5 +1,5 @@
 import type { SignedVttMapDeliveryDto } from '@artificer-toolkit/schema/api/media'
-import type { EncounterSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   canMoveBetween,
   measureScenePathDistance,
@@ -47,9 +47,53 @@ export interface VttSceneTokenDragUpdate {
   currentUserId: string
   mode: 'EDIT' | 'PLAY'
   role: 'OWNER' | 'PLAYER'
-  scene: EncounterSceneStateDto
+  scene: CampaignSceneStateDto
+  tokenPresentations?: Readonly<Record<string, VttTokenPresentation>>
   tool: string
 }
+
+export interface VttTokenPresentation {
+  accessibleDescription: string
+  artUrl: string | null
+  facing: boolean
+  fillColor: number
+  halo: { color: number; label: string } | null
+  marked: boolean
+  outlineColor: number
+  statuses: Array<{
+    id: string
+    kind: 'CONDITION' | 'EFFECT' | 'HEALTH' | 'INJURY' | 'MORALE' | 'REACTION'
+    label: string
+    shortLabel: string
+  }>
+}
+
+export type VttScenePresentationOverlay =
+  | {
+      color: number
+      id: string
+      kind: 'CIRCLE'
+      label: string
+      purpose: 'AURA' | 'RANGE' | 'TARGET'
+      center: ScenePoint
+      radius: number
+    }
+  | {
+      color: number
+      id: string
+      kind: 'PATH'
+      label: string
+      purpose: 'PATH'
+      points: ScenePoint[]
+    }
+  | {
+      color: number
+      id: string
+      kind: 'POLYGON'
+      label: string
+      purpose: 'AURA' | 'TRAP'
+      points: ScenePoint[]
+    }
 
 export type VttMapTilePlacement = SignedVttMapDeliveryDto['tiles'][number] & {
   x: number
@@ -57,7 +101,7 @@ export type VttMapTilePlacement = SignedVttMapDeliveryDto['tiles'][number] & {
 }
 
 export function buildVttFogMask(
-  scene: Pick<EncounterSceneStateDto, 'fogLayers'>,
+  scene: Pick<CampaignSceneStateDto, 'fogLayers'>,
   hideUnexploredWithoutLayer = false
 ): VttFogMask | null {
   if (scene.fogLayers.length === 0) {
@@ -101,8 +145,8 @@ export function formatSceneMeasurement(grid: SceneGrid, path: readonly ScenePoin
 }
 
 export function resolveSceneTokenMove(
-  scene: EncounterSceneStateDto,
-  token: EncounterSceneStateDto['tokens'][number],
+  scene: CampaignSceneStateDto,
+  token: CampaignSceneStateDto['tokens'][number],
   from: ScenePoint,
   requested: ScenePoint,
   barrierIndex = new SceneBarrierIndex(scene.barriers)
@@ -116,7 +160,10 @@ export function resolveSceneTokenMove(
   return canMoveBetween(scene, from, position, barrierIndex) ? position : from
 }
 
-export function sceneTokenAppearanceKey(token: EncounterSceneStateDto['tokens'][number]): string {
+export function sceneTokenAppearanceKey(
+  token: CampaignSceneStateDto['tokens'][number],
+  presentation?: VttTokenPresentation
+): string {
   return [
     token.assetId,
     token.controlledByUserIds.join(','),
@@ -125,7 +172,14 @@ export function sceneTokenAppearanceKey(token: EncounterSceneStateDto['tokens'][
     token.label,
     token.locked,
     token.rotationDegrees,
-    token.width
+    token.width,
+    presentation?.artUrl,
+    presentation?.facing,
+    presentation?.fillColor,
+    presentation?.halo?.color,
+    presentation?.marked,
+    presentation?.outlineColor,
+    presentation?.statuses.map((status) => `${status.id}:${status.label}:${status.kind}`).join(',')
   ].join(':')
 }
 
@@ -147,7 +201,7 @@ export function canPreserveSceneTokenDrag(
   const token = next.scene.tokens.find((candidate) => candidate.id === drag.tokenId)
   if (!token || token.locked || !canControlSceneToken(token, next)) return false
   if (!pointsEqual(token.position, drag.origin)) return false
-  return sceneTokenAppearanceKey(token) === drag.appearanceKey
+  return sceneTokenAppearanceKey(token, next.tokenPresentations?.[token.id]) === drag.appearanceKey
 }
 
 export function interpolateScenePoint(
@@ -169,8 +223,8 @@ export function interpolateScenePoint(
 }
 
 export function hasCommittedSceneTokenPositionChanged(
-  previous: Pick<EncounterSceneStateDto, 'tokens'>,
-  next: Pick<EncounterSceneStateDto, 'tokens'>,
+  previous: Pick<CampaignSceneStateDto, 'tokens'>,
+  next: Pick<CampaignSceneStateDto, 'tokens'>,
   tokenId: string
 ): boolean {
   const previousToken = previous.tokens.find((token) => token.id === tokenId)
@@ -290,7 +344,7 @@ function offsetBefore(sizes: ReadonlyMap<number, number>, index: number): number
 }
 
 function canControlSceneToken(
-  token: EncounterSceneStateDto['tokens'][number],
+  token: CampaignSceneStateDto['tokens'][number],
   update: Pick<VttSceneTokenDragUpdate, 'currentUserId' | 'role'>
 ): boolean {
   return update.role === 'OWNER' || token.controlledByUserIds.includes(update.currentUserId)

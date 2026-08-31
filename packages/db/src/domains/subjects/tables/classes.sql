@@ -33,74 +33,78 @@
 
 CREATE TABLE IF NOT EXISTS public.classes (
   id uuid PRIMARY KEY,
-
-  system_id uuid NOT NULL
-    REFERENCES public.systems(id)
+  system_id uuid NOT NULL REFERENCES public.systems (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-
+  content_source_id uuid NOT NULL,
+  user_id uuid REFERENCES auth.users (id)
+    ON DELETE CASCADE
+    DEFERRABLE INITIALLY DEFERRED,
   category text NOT NULL, -- ClassCategoryCode (BASE|SUBCLASS)
-
   parent_class_id uuid,
-  subclass_selection_level smallint,
-
+  subclass_selection_level SMALLINT,
   label text NOT NULL,
   description text,
   status text NOT NULL DEFAULT 'DRAFT',
-
-  starting_equipment_id uuid
-    REFERENCES public.starting_equipment(id)
+  starting_equipment_id uuid REFERENCES public.starting_equipment (id)
     ON DELETE SET NULL
     DEFERRABLE INITIALLY DEFERRED,
-
-  is_master boolean,
-
+  is_master BOOLEAN,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-
-  CONSTRAINT classes_category_chk CHECK (
-    category IN ('BASE', 'SUBCLASS')
-  ),
-  CONSTRAINT classes_subclass_selection_level_chk CHECK (
-    (category = 'BASE' AND (subclass_selection_level IS NULL OR subclass_selection_level BETWEEN 1 AND 20))
-    OR (category = 'SUBCLASS' AND subclass_selection_level IS NULL)
-  ),
+  CONSTRAINT classes_category_chk CHECK (category IN ('BASE', 'SUBCLASS')),
+  CONSTRAINT classes_subclass_selection_level_chk
+    CHECK (
+      (
+        category = 'BASE'
+        AND (
+          subclass_selection_level IS NULL
+          OR subclass_selection_level BETWEEN 1 AND 20
+        )
+      )
+      OR (category = 'SUBCLASS' AND subclass_selection_level IS NULL)
+    ),
   CONSTRAINT classes_id_system_uq UNIQUE (id, system_id),
-  CONSTRAINT classes_parent_system_fk FOREIGN KEY (parent_class_id, system_id)
-    REFERENCES public.classes(id, system_id)
-    ON DELETE CASCADE
-    DEFERRABLE INITIALLY DEFERRED,
-  CONSTRAINT classes_status_chk CHECK (
-    status IN ('DRAFT', 'ACTIVE')
-  )
+  CONSTRAINT classes_parent_system_fk
+    FOREIGN KEY (parent_class_id, system_id) REFERENCES public.classes (
+      id,
+      system_id
+    )
+      ON DELETE CASCADE
+      DEFERRABLE INITIALLY DEFERRED,
+  CONSTRAINT classes_status_chk CHECK (status IN ('DRAFT', 'ACTIVE'))
 );
+
+ALTER TABLE public.classes
+ADD CONSTRAINT classes_content_source_system_fk
+  FOREIGN KEY (content_source_id, system_id) REFERENCES public.content_sources (
+    id,
+    game_system_id
+  )
+    ON DELETE RESTRICT;
 
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
 
 SELECT public.apply_system_derived_policies('classes');
 
-CREATE INDEX IF NOT EXISTS idx_classes_system
-  ON public.classes(system_id);
+CREATE INDEX IF NOT EXISTS idx_classes_system ON public.classes (system_id);
 
-CREATE INDEX IF NOT EXISTS idx_classes_parent
-  ON public.classes(parent_class_id);
+CREATE INDEX IF NOT EXISTS idx_classes_parent ON public.classes (
+  parent_class_id
+);
 
 CREATE TABLE IF NOT EXISTS public.class_attributes (
-  class_id uuid NOT NULL
-    REFERENCES public.classes(id)
+  class_id uuid NOT NULL REFERENCES public.classes (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   attribute_code text NOT NULL,
-  sort_order integer NOT NULL,
-
+  sort_order INTEGER NOT NULL,
   PRIMARY KEY (class_id, attribute_code)
 );
 
-CREATE INDEX IF NOT EXISTS idx_class_attributes_class
-  ON public.class_attributes(class_id);
+CREATE INDEX IF NOT EXISTS idx_class_attributes_class ON public.class_attributes (
+  class_id
+);
 
 ALTER TABLE public.class_attributes ENABLE ROW LEVEL SECURITY;
 
@@ -113,23 +117,19 @@ ALTER TABLE public.class_attributes ENABLE ROW LEVEL SECURITY;
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.class_details (
-  class_id uuid NOT NULL
-    REFERENCES public.classes(id)
+  class_id uuid NOT NULL REFERENCES public.classes (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  detail_id uuid NOT NULL
-    REFERENCES public.details(id)
+  detail_id uuid NOT NULL REFERENCES public.details (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  sort_order integer NOT NULL,
-
+  sort_order INTEGER NOT NULL,
   PRIMARY KEY (class_id, detail_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_class_details_class
-  ON public.class_details(class_id);
+CREATE INDEX IF NOT EXISTS idx_class_details_class ON public.class_details (
+  class_id
+);
 
 ALTER TABLE public.class_details ENABLE ROW LEVEL SECURITY;
 
@@ -151,28 +151,24 @@ BEGIN
 END;
 $$;
 
-
 /* ──────────────────────────────────────────────
  * CLASS — PROFICIENCY GRANTS (OWNED BRIDGE)
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.class_proficiency_grants (
-  class_id uuid NOT NULL
-    REFERENCES public.classes(id)
+  class_id uuid NOT NULL REFERENCES public.classes (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   proficiency_grant_id uuid NOT NULL,
-
-  sort_order integer NOT NULL,
-
+  sort_order INTEGER NOT NULL,
   PRIMARY KEY (class_id, proficiency_grant_id)
 );
 
 ALTER TABLE public.class_proficiency_grants ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_proficiency_grants_class
-  ON public.class_proficiency_grants(class_id);
+CREATE INDEX IF NOT EXISTS idx_class_proficiency_grants_class ON public.class_proficiency_grants (
+  class_id
+);
 
 DO $$
 BEGIN
@@ -197,25 +193,21 @@ $$;
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.class_features (
-  class_id uuid NOT NULL
-    REFERENCES public.classes(id)
+  class_id uuid NOT NULL REFERENCES public.classes (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  feature_id uuid NOT NULL
-    REFERENCES public.features(id)
+  feature_id uuid NOT NULL REFERENCES public.features (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  sort_order integer NOT NULL,
-
+  sort_order INTEGER NOT NULL,
   PRIMARY KEY (class_id, feature_id)
 );
 
 ALTER TABLE public.class_features ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_features_class
-  ON public.class_features(class_id);
+CREATE INDEX IF NOT EXISTS idx_class_features_class ON public.class_features (
+  class_id
+);
 
 DO $$
 BEGIN
@@ -240,11 +232,9 @@ $$;
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.class_hitpoints (
-  class_id uuid PRIMARY KEY
-    REFERENCES public.classes(id)
+  class_id uuid PRIMARY KEY REFERENCES public.classes (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   ability_code text NOT NULL, -- AbilityCode
   die_config text NOT NULL
 );
@@ -256,17 +246,13 @@ ALTER TABLE public.class_hitpoints ENABLE ROW LEVEL SECURITY;
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.class_starting_gold (
-  class_id uuid PRIMARY KEY
-    REFERENCES public.classes(id)
+  class_id uuid PRIMARY KEY REFERENCES public.classes (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  multiplier integer NOT NULL,
-  currency_id uuid NOT NULL
-    REFERENCES public.currencies(id)
+  multiplier INTEGER NOT NULL,
+  currency_id uuid NOT NULL REFERENCES public.currencies (id)
     ON DELETE RESTRICT
     DEFERRABLE INITIALLY DEFERRED,
-
   die_config text NOT NULL
 );
 
@@ -317,37 +303,33 @@ BEGIN
 END;
 $$;
 
-
 /* ──────────────────────────────────────────────
  * CLASS — RESOURCES (OWNED, OPTIONAL)
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.class_resources (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-
-  class_id uuid NOT NULL
-    REFERENCES public.classes(id)
+  class_id uuid NOT NULL REFERENCES public.classes (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   label text NOT NULL,
   description text,
-  available_at_level integer NOT NULL,
-  sort_order integer,
-
-  charge_id uuid NOT NULL
-    REFERENCES public.charges(id)
+  available_at_level INTEGER NOT NULL,
+  sort_order INTEGER,
+  charge_id uuid NOT NULL REFERENCES public.charges (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED
 );
 
 ALTER TABLE public.class_resources ENABLE ROW LEVEL SECURITY;
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_class_resources_class
-  ON public.class_resources(class_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_class_resources_class ON public.class_resources (
+  class_id
+);
 
-CREATE INDEX IF NOT EXISTS idx_class_resources_charge
-  ON public.class_resources(charge_id);
+CREATE INDEX IF NOT EXISTS idx_class_resources_charge ON public.class_resources (
+  charge_id
+);
 
 DO $$
 BEGIN
@@ -385,39 +367,35 @@ BEGIN
 END;
 $$;
 
-
 /* ──────────────────────────────────────────────
  * CLASS — SPELLCASTING (OWNED SUBTREE, OPTIONAL)
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.class_spellcasting (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-
-  class_id uuid NOT NULL
-    REFERENCES public.classes(id)
+  class_id uuid NOT NULL REFERENCES public.classes (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   magic_name text,
-  ability_code text,         -- AbilityCode
-  max_spell_level integer NOT NULL,
+  ability_code text, -- AbilityCode
+  max_spell_level INTEGER NOT NULL,
   available_spell_ids uuid[] NOT NULL DEFAULT '{}'::uuid[],
-  available_at_level integer,
-  sort_order integer,
-
-  charge_id uuid NOT NULL
-    REFERENCES public.charges(id)
+  available_at_level INTEGER,
+  sort_order INTEGER,
+  charge_id uuid NOT NULL REFERENCES public.charges (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED
 );
 
 ALTER TABLE public.class_spellcasting ENABLE ROW LEVEL SECURITY;
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_class_spellcasting_class
-  ON public.class_spellcasting(class_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_class_spellcasting_class ON public.class_spellcasting (
+  class_id
+);
 
-CREATE INDEX IF NOT EXISTS idx_class_spellcasting_charge
-  ON public.class_spellcasting(charge_id);
+CREATE INDEX IF NOT EXISTS idx_class_spellcasting_charge ON public.class_spellcasting (
+  charge_id
+);
 
 DO $$
 BEGIN
@@ -456,25 +434,21 @@ END;
 $$;
 
 CREATE TABLE IF NOT EXISTS public.class_spellcasting_details (
-  spellcasting_id uuid NOT NULL
-    REFERENCES public.class_spellcasting(id)
+  spellcasting_id uuid NOT NULL REFERENCES public.class_spellcasting (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  detail_id uuid NOT NULL
-    REFERENCES public.details(id)
+  detail_id uuid NOT NULL REFERENCES public.details (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  sort_order integer NOT NULL,
-
+  sort_order INTEGER NOT NULL,
   PRIMARY KEY (spellcasting_id, detail_id)
 );
 
 ALTER TABLE public.class_spellcasting_details ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_spellcasting_details_sc
-  ON public.class_spellcasting_details(spellcasting_id);
+CREATE INDEX IF NOT EXISTS idx_class_spellcasting_details_sc ON public.class_spellcasting_details (
+  spellcasting_id
+);
 
 DO $$
 BEGIN
@@ -503,68 +477,61 @@ $$;
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.class_spellcasting_attributes (
-  spellcasting_id uuid NOT NULL
-    REFERENCES public.class_spellcasting(id)
+  spellcasting_id uuid NOT NULL REFERENCES public.class_spellcasting (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   attribute_code text NOT NULL,
-  sort_order integer NOT NULL,
-
+  sort_order INTEGER NOT NULL,
   PRIMARY KEY (spellcasting_id, attribute_code)
 );
 
 ALTER TABLE public.class_spellcasting_attributes ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_spellcasting_attributes_sc
-  ON public.class_spellcasting_attributes(spellcasting_id);
+CREATE INDEX IF NOT EXISTS idx_class_spellcasting_attributes_sc ON public.class_spellcasting_attributes (
+  spellcasting_id
+);
 
 CREATE TABLE IF NOT EXISTS public.class_spellcasting_prepare_limit (
-  spellcasting_id uuid PRIMARY KEY
-    REFERENCES public.class_spellcasting(id)
+  spellcasting_id uuid PRIMARY KEY REFERENCES public.class_spellcasting (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  scaling text,    -- ScalingAmountCode (optional)
-  rounding text    -- RoundingCode (optional)
+  scaling text, -- ScalingAmountCode (optional)
+  rounding text -- RoundingCode (optional)
 );
 
 ALTER TABLE public.class_spellcasting_prepare_limit ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.class_spellcasting_prepare_limit_methods (
-  spellcasting_id uuid NOT NULL
-    REFERENCES public.class_spellcasting(id)
+  spellcasting_id uuid NOT NULL REFERENCES public.class_spellcasting (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   method_code text NOT NULL, -- PrepareLimitMethodCode
-  sort_order integer NOT NULL,
-
+  sort_order INTEGER NOT NULL,
   PRIMARY KEY (spellcasting_id, method_code)
 );
 
-ALTER TABLE public.class_spellcasting_prepare_limit_methods ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.class_spellcasting_prepare_limit_methods
+ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_spellcasting_prepare_methods_sc
-  ON public.class_spellcasting_prepare_limit_methods(spellcasting_id);
+CREATE INDEX IF NOT EXISTS idx_class_spellcasting_prepare_methods_sc ON public.class_spellcasting_prepare_limit_methods (
+  spellcasting_id
+);
 
 CREATE TABLE IF NOT EXISTS public.class_spellcasting_prepare_limit_levels (
-  spellcasting_id uuid NOT NULL
-    REFERENCES public.class_spellcasting(id)
+  spellcasting_id uuid NOT NULL REFERENCES public.class_spellcasting (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  class_level integer NOT NULL,
-  amount integer NOT NULL,
-
+  class_level INTEGER NOT NULL,
+  amount INTEGER NOT NULL,
   PRIMARY KEY (spellcasting_id, class_level)
 );
 
-ALTER TABLE public.class_spellcasting_prepare_limit_levels ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.class_spellcasting_prepare_limit_levels
+ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_spellcasting_prepare_levels_sc
-  ON public.class_spellcasting_prepare_limit_levels(spellcasting_id);
-
+CREATE INDEX IF NOT EXISTS idx_class_spellcasting_prepare_levels_sc ON public.class_spellcasting_prepare_limit_levels (
+  spellcasting_id
+);
 
 /* ──────────────────────────────────────────────
  * SPELLCASTING — SPELL LIMITS / SLOTS
@@ -572,44 +539,40 @@ CREATE INDEX IF NOT EXISTS idx_class_spellcasting_prepare_levels_sc
 
 CREATE TABLE IF NOT EXISTS public.class_spell_limits (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-
-  spellcasting_id uuid NOT NULL
-    REFERENCES public.class_spellcasting(id)
+  spellcasting_id uuid NOT NULL REFERENCES public.class_spellcasting (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  class_level integer NOT NULL,
-
-  learned_spells_limit integer,
-  prepared_spells_limit integer,
-  cantrips_limit integer
+  class_level INTEGER NOT NULL,
+  learned_spells_limit INTEGER,
+  prepared_spells_limit INTEGER,
+  cantrips_limit INTEGER
 );
 
 ALTER TABLE public.class_spell_limits ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_spell_limits_sc
-  ON public.class_spell_limits(spellcasting_id);
+CREATE INDEX IF NOT EXISTS idx_class_spell_limits_sc ON public.class_spell_limits (
+  spellcasting_id
+);
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_class_spell_limits_sc_level
-  ON public.class_spell_limits(spellcasting_id, class_level);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_class_spell_limits_sc_level ON public.class_spell_limits (
+  spellcasting_id,
+  class_level
+);
 
 CREATE TABLE IF NOT EXISTS public.class_spell_slots (
-  spell_limit_id uuid NOT NULL
-    REFERENCES public.class_spell_limits(id)
+  spell_limit_id uuid NOT NULL REFERENCES public.class_spell_limits (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  spell_level integer NOT NULL,
-  slot_count integer NOT NULL,
-
+  spell_level INTEGER NOT NULL,
+  slot_count INTEGER NOT NULL,
   PRIMARY KEY (spell_limit_id, spell_level)
 );
 
 ALTER TABLE public.class_spell_slots ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_spell_slots_limit
-  ON public.class_spell_slots(spell_limit_id);
-
+CREATE INDEX IF NOT EXISTS idx_class_spell_slots_limit ON public.class_spell_slots (
+  spell_limit_id
+);
 
 /* ──────────────────────────────────────────────
  * CLASS — MULTICLASS (OWNED SUBTREE, BASE ONLY)
@@ -617,74 +580,69 @@ CREATE INDEX IF NOT EXISTS idx_class_spell_slots_limit
 
 CREATE TABLE IF NOT EXISTS public.class_multiclass (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-
-  class_id uuid NOT NULL
-    REFERENCES public.classes(id)
+  class_id uuid NOT NULL REFERENCES public.classes (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED
 );
 
 ALTER TABLE public.class_multiclass ENABLE ROW LEVEL SECURITY;
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_class_multiclass_class
-  ON public.class_multiclass(class_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_class_multiclass_class ON public.class_multiclass (
+  class_id
+);
 
 CREATE TABLE IF NOT EXISTS public.class_multiclass_requirement_groups (
   id uuid PRIMARY KEY,
-
-  multiclass_id uuid NOT NULL
-    REFERENCES public.class_multiclass(id)
+  multiclass_id uuid NOT NULL REFERENCES public.class_multiclass (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
-  sort_order integer NOT NULL
+  sort_order INTEGER NOT NULL
 );
 
-ALTER TABLE public.class_multiclass_requirement_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.class_multiclass_requirement_groups
+ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_multiclass_req_groups_mc
-  ON public.class_multiclass_requirement_groups(multiclass_id);
+CREATE INDEX IF NOT EXISTS idx_class_multiclass_req_groups_mc ON public.class_multiclass_requirement_groups (
+  multiclass_id
+);
 
 CREATE TABLE IF NOT EXISTS public.class_multiclass_requirements (
   id uuid PRIMARY KEY,
-
-  requirement_group_id uuid NOT NULL
-    REFERENCES public.class_multiclass_requirement_groups(id)
+  requirement_group_id uuid NOT NULL REFERENCES public.class_multiclass_requirement_groups (
+    id
+  )
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   ability_code text NOT NULL,
-  min integer NOT NULL,
-  sort_order integer NOT NULL
+  min INTEGER NOT NULL,
+  sort_order INTEGER NOT NULL
 );
 
 ALTER TABLE public.class_multiclass_requirements ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_multiclass_reqs_group
-  ON public.class_multiclass_requirements(requirement_group_id);
-
+CREATE INDEX IF NOT EXISTS idx_class_multiclass_reqs_group ON public.class_multiclass_requirements (
+  requirement_group_id
+);
 
 /* ──────────────────────────────────────────────
  * MULTICLASS — PROFICIENCY GRANTS (OWNED BRIDGE)
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.class_multiclass_proficiency_grants (
-  multiclass_id uuid NOT NULL
-    REFERENCES public.class_multiclass(id)
+  multiclass_id uuid NOT NULL REFERENCES public.class_multiclass (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   proficiency_grant_id uuid NOT NULL,
-
-  sort_order integer NOT NULL,
-
+  sort_order INTEGER NOT NULL,
   PRIMARY KEY (multiclass_id, proficiency_grant_id)
 );
 
-ALTER TABLE public.class_multiclass_proficiency_grants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.class_multiclass_proficiency_grants
+ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_multiclass_prof_grants_mc
-  ON public.class_multiclass_proficiency_grants(multiclass_id);
+CREATE INDEX IF NOT EXISTS idx_class_multiclass_prof_grants_mc ON public.class_multiclass_proficiency_grants (
+  multiclass_id
+);
 
 DO $$
 BEGIN
@@ -704,23 +662,21 @@ BEGIN
 END;
 $$;
 
-
 /* ──────────────────────────────────────────────
  * SUBCLASS — SPECIALIZATIONS
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.class_specializations (
   id uuid PRIMARY KEY,
-  class_id uuid NOT NULL
-    REFERENCES public.classes(id)
+  class_id uuid NOT NULL REFERENCES public.classes (id)
     ON DELETE CASCADE
     DEFERRABLE INITIALLY DEFERRED,
-
   label text NOT NULL,
-  sort_order integer NOT NULL
+  sort_order INTEGER NOT NULL
 );
 
 ALTER TABLE public.class_specializations ENABLE ROW LEVEL SECURITY;
 
-CREATE INDEX IF NOT EXISTS idx_class_specializations_class
-  ON public.class_specializations(class_id);
+CREATE INDEX IF NOT EXISTS idx_class_specializations_class ON public.class_specializations (
+  class_id
+);

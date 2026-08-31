@@ -1,7 +1,10 @@
 import type { CharacterMechanicsProjection } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { CampaignCharacterMechanicsProjection } from '@artificer-toolkit/schema/projections/campaignCharacterMechanics'
 import type { CompiledAuthoredProjection } from '@artificer-toolkit/schema/projections/authoredContent'
-import type { EncounterCurrentProjection } from '@artificer-toolkit/schema/projections/encounter'
+import type {
+  EncounterCurrentProjection,
+  LegacyEncounterCurrentProjectionV1
+} from '@artificer-toolkit/schema/projections/encounter'
 import type { SceneCurrentProjection } from '@artificer-toolkit/schema/projections/scene'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
 
@@ -42,8 +45,13 @@ export function checksumSystemVocabularySnapshot(
 export function checksumCharacterMechanicsProjection(
   projection: CharacterMechanicsProjection
 ): string {
-  const { projectionChecksum: _projectionChecksum, ...checksummed } = projection
-  return checksumCanonicalJson(checksummed)
+  const {
+    projectionChecksum: _projectionChecksum,
+    compiledActionEntryPoints,
+    ...checksummed
+  } = projection
+  if (compiledActionEntryPoints.length === 0) return checksumCanonicalJson(checksummed)
+  return checksumCanonicalJson({ ...checksummed, compiledActionEntryPoints })
 }
 
 type CampaignCharacterMechanicsProjectionChecksumInput = Omit<
@@ -113,8 +121,13 @@ export function checksumCharacterMechanicsCommandState(
   return checksumCanonicalJson(commandState)
 }
 
-export function checksumEncounterCurrentProjection(
-  projection: EncounterCurrentProjection
+export function checksumEncounterCurrentProjection(projection: EncounterCurrentProjection): string {
+  const { projectionChecksum: _projectionChecksum, ...checksummed } = projection
+  return checksumCanonicalJson(checksummed)
+}
+
+export function checksumLegacyEncounterCurrentProjectionV1(
+  projection: LegacyEncounterCurrentProjectionV1
 ): string {
   const { projectionChecksum: _projectionChecksum, ...checksummed } = projection
   return checksumCanonicalJson(checksummed)

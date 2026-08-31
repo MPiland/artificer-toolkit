@@ -1,8 +1,8 @@
 import { canonicalizeJson, checksumSceneCurrentProjection } from '@artificer-toolkit/db'
-import { encounterSceneStateDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
+import { campaignSceneStateDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   replaySceneEvents,
-  type EncounterSceneState,
+  type CampaignSceneState,
   type SceneDefinition,
   type SceneEvent
 } from '@artificer-toolkit/shared/vtt'
@@ -15,7 +15,7 @@ import {
 import { EncounterConflictError } from './encounterErrors.js'
 
 export function compileSceneCurrentProjection(
-  projection: EncounterSceneState
+  projection: CampaignSceneState
 ): SceneCurrentProjection {
   const candidate = sceneCurrentProjectionSchema.parse({
     sceneId: projection.id,
@@ -30,26 +30,24 @@ export function compileSceneCurrentProjection(
   })
 }
 
-export function replayEncounterSceneProjection(input: {
+export function replayCampaignSceneProjection(input: {
   definition: SceneDefinition
-  encounterId: string
   events: readonly SceneEvent[]
   sceneId: string
-}): EncounterSceneState {
-  return encounterSceneStateDtoSchema.parse(
-    replaySceneEvents(input.definition, input.encounterId, input.sceneId, input.events)
+}): CampaignSceneState {
+  return campaignSceneStateDtoSchema.parse(
+    replaySceneEvents(input.definition, input.sceneId, input.events)
   )
 }
 
-export function assertEncounterSceneProjectionReplay(input: {
+export function assertCampaignSceneProjectionReplay(input: {
   definition: SceneDefinition
-  encounterId: string
   events: readonly SceneEvent[]
-  projection: EncounterSceneState
+  projection: CampaignSceneState
   sceneId: string
-}): EncounterSceneState {
-  const replayed = replayEncounterSceneProjection(input)
-  const persisted = encounterSceneStateDtoSchema.parse(input.projection)
+}): CampaignSceneState {
+  const replayed = replayCampaignSceneProjection(input)
+  const persisted = campaignSceneStateDtoSchema.parse(input.projection)
   if (canonicalizeJson(replayed) !== canonicalizeJson(persisted)) {
     throw new EncounterConflictError('Encounter scene projection does not match its event replay.')
   }

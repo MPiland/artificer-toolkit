@@ -53,7 +53,8 @@ function requiredFacts(graph: CompiledRuleGraph): Set<string> {
   )
 }
 
-function validateAndFreezeFacts(
+/** Validates and retains only the graph facts that can affect execution evidence. */
+export function freezeRuleGraphFacts(
   graph: CompiledRuleGraph,
   facts: Readonly<Record<string, RuleValue>>
 ): Record<string, RuleValue> {
@@ -92,7 +93,19 @@ function copyGraph(graph: CompiledRuleGraph): CompiledRuleGraph {
     })),
     outputs: Object.fromEntries(
       Object.entries(graph.outputs).map(([key, binding]) => [key, { ...binding }])
-    )
+    ),
+    ...(graph.sourceEntryBindings
+      ? {
+          sourceEntryBindings: graph.sourceEntryBindings.map((binding) => ({
+            ...binding
+          }))
+        }
+      : {}),
+    ...(graph.vocabularyBindings
+      ? {
+          vocabularyBindings: graph.vocabularyBindings.map((binding) => ({ ...binding }))
+        }
+      : {})
   }
 }
 
@@ -170,7 +183,11 @@ function continueExecution(input: {
     const resolvedInputs = Object.fromEntries(
       Object.entries(node.inputs).map(([port, binding]) => [
         port,
-        resolveBinding({ binding, facts: input.facts, nodeOutputs: input.nodeOutputs })
+        resolveBinding({
+          binding,
+          facts: input.facts,
+          nodeOutputs: input.nodeOutputs
+        })
       ])
     )
     validateOperationInputs(operation, resolvedInputs)
@@ -217,11 +234,18 @@ function continueExecution(input: {
         operation: node.operation,
         inputs: resolvedInputs,
         outputs,
-        evidence: { requestId: request.requestId, kind: request.kind, value: response.value }
+        evidence: {
+          requestId: request.requestId,
+          kind: request.kind,
+          value: response.value
+        }
       })
       response = undefined
       continue
     }
+    // Proposal operations are deterministic scalar transforms. Their meaning
+    // remains outside the kernel and is interpreted only after completion by
+    // a server-owned application service.
     const outputs = operation.execute(resolvedInputs)
     validateOperationOutputs(operation, outputs)
     input.nodeOutputs.set(node.id, outputs)
@@ -237,7 +261,11 @@ function continueExecution(input: {
   const outputs = Object.fromEntries(
     Object.entries(input.graph.outputs).map(([key, binding]) => [
       key,
-      resolveBinding({ binding, facts: input.facts, nodeOutputs: input.nodeOutputs })
+      resolveBinding({
+        binding,
+        facts: input.facts,
+        nodeOutputs: input.nodeOutputs
+      })
     ])
   )
   return {
@@ -248,7 +276,17 @@ function continueExecution(input: {
       capabilityContractVersion: input.graph.capabilityContractVersion,
       facts: { ...input.facts },
       trace: input.trace,
-      outputs
+      outputs,
+      ...(input.graph.sourceEntryBindings
+        ? {
+            sourceEntryBindings: input.graph.sourceEntryBindings.map((binding) => ({ ...binding }))
+          }
+        : {}),
+      ...(input.graph.vocabularyBindings
+        ? {
+            vocabularyBindings: input.graph.vocabularyBindings.map((binding) => ({ ...binding }))
+          }
+        : {})
     }
   }
 }
@@ -264,7 +302,7 @@ export function executeRuleGraph(input: {
   return continueExecution({
     graph: input.graph,
     occurrenceId: input.occurrenceId,
-    facts: validateAndFreezeFacts(input.graph, input.facts),
+    facts: freezeRuleGraphFacts(input.graph, input.facts),
     nextNodeIndex: 0,
     nodeOutputs: new Map(),
     trace: [],
@@ -295,7 +333,7 @@ export function resumeRuleGraph(input: {
   return continueExecution({
     graph: continuation.graph,
     occurrenceId: continuation.occurrenceId,
-    facts: validateAndFreezeFacts(continuation.graph, continuation.facts),
+    facts: freezeRuleGraphFacts(continuation.graph, continuation.facts),
     nextNodeIndex: continuation.nextNodeIndex,
     nodeOutputs: new Map(
       Object.entries(continuation.nodeOutputs).map(([key, value]) => [key, { ...value }])

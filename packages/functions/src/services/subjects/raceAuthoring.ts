@@ -32,7 +32,9 @@ export function createRaceSubjectAuthoringService(db: DBLike, deps: RaceSubjectA
         subjectId: id
       })
       if (!parent) return null
-      const parentRace = raceAuthoredDtoSchema.parse(parent.authored.document) as unknown as RaceAuthored
+      const parentRace = raceAuthoredDtoSchema.parse(
+        parent.authored.document
+      ) as unknown as RaceAuthored
       if (parentRace.systemId !== authored.systemId) return null
       cache.set(id, parentRace)
       return parentRace

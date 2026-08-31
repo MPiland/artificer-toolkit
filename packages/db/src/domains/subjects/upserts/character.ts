@@ -1,4 +1,5 @@
 import type { DBLike } from '#types'
+import { sql } from 'kysely'
 import {
   ADVANCEMENT_METHOD_CODE,
   CHARACTER_ABILITY_GENERATION_METHOD
@@ -43,13 +44,31 @@ export async function upsertCharacter(
   }
 
   return withTransaction(db, async (trx) => {
-    const lockedVersionRow = await trx
+    const lockedVersionRow = (await trx
       .selectFrom('characters')
-      .select('stream_version')
+      .selectAll()
       .where('id', '=', json_data.id)
       .forUpdate()
-      .executeTakeFirst()
+      .executeTakeFirst()) as
+      | {
+          stream_version: number
+          system_id: string
+          primary_rules_catalogue_id: string
+        }
+      | undefined
     const lockedStreamVersion = lockedVersionRow?.stream_version ?? 0
+
+    if (
+      lockedVersionRow &&
+      (lockedVersionRow.system_id !== json_data.systemId ||
+        lockedVersionRow.primary_rules_catalogue_id !== json_data.primaryRulesCatalogueId)
+    ) {
+      const error = new Error(
+        `Character "${json_data.id}" cannot change its Game System or primary Rules Catalogue.`
+      )
+      error.name = 'CharacterRuleBindingError'
+      throw error
+    }
 
     if (
       options.expectedStreamVersion != null &&
@@ -66,36 +85,22 @@ export async function upsertCharacter(
       ? lockedStreamVersion + 1
       : lockedStreamVersion
 
-    await trx
-      .insertInto('characters')
-      .values({
-        id: json_data.id,
-        system_id: json_data.systemId,
-        user_id: json_data.userId,
-        label: json_data.label,
-        description: json_data.description ?? null,
-        status: normalizeSubjectStatus(json_data.status),
-        inspiration: json_data.state.inspiration ?? false,
-        ...(options.rulePackRevisionId === undefined
-          ? {}
-          : { rule_pack_revision_id: options.rulePackRevisionId }),
-        stream_version: nextStreamVersion
-      })
-      .onConflict((oc) =>
-        oc.column('id').doUpdateSet((eb) => ({
-          system_id: eb.ref('excluded.system_id'),
-          user_id: eb.ref('excluded.user_id'),
-          label: eb.ref('excluded.label'),
-          description: eb.ref('excluded.description'),
-          status: eb.ref('excluded.status'),
-          inspiration: eb.ref('excluded.inspiration'),
-          ...(options.rulePackRevisionId === undefined
-            ? {}
-            : { rule_pack_revision_id: eb.ref('excluded.rule_pack_revision_id') }),
-          stream_version: eb.ref('excluded.stream_version')
-        }))
-      )
-      .execute()
+    await sql`insert into public.characters (
+      id, system_id, primary_rules_catalogue_id, user_id, label, description, status, inspiration, rule_pack_revision_id, stream_version
+    ) values (
+      ${json_data.id}::uuid, ${json_data.systemId}::uuid, ${json_data.primaryRulesCatalogueId}::uuid, ${json_data.userId}::uuid,
+      ${json_data.label}, ${json_data.description ?? null}, ${normalizeSubjectStatus(json_data.status)}, ${json_data.state.inspiration ?? false},
+      ${options.rulePackRevisionId ?? null}::uuid, ${nextStreamVersion}
+    ) on conflict (id) do update set
+      system_id = characters.system_id,
+      primary_rules_catalogue_id = characters.primary_rules_catalogue_id,
+      user_id = excluded.user_id,
+      label = excluded.label,
+      description = excluded.description,
+      status = excluded.status,
+      inspiration = excluded.inspiration,
+      rule_pack_revision_id = case when ${options.rulePackRevisionId === undefined} then characters.rule_pack_revision_id else excluded.rule_pack_revision_id end,
+      stream_version = excluded.stream_version`.execute(trx)
 
     await deleteExistingCharacterChildren(trx, json_data.id)
 

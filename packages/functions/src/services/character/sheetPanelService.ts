@@ -291,7 +291,10 @@ function buildAbilityPanel(
     'ABILITY',
     (adjustment) => adjustment.ability === target.ability && adjustment.field === 'SCORE_OVERRIDE'
   )
-  const calculation = toPanelCalculation(ruleProjection.calculations.abilityScores[target.ability], params)
+  const calculation = toPanelCalculation(
+    ruleProjection.calculations.abilityScores[target.ability],
+    params
+  )
 
   return {
     kind: 'ABILITY',
@@ -362,7 +365,10 @@ function buildSavingThrowPanel(
     total: ruleProjection.derivedStats.savingThrows[target.ability] ?? 0,
     proficiency:
       ruleProjection.calculations.savingThrowProficiencyLevels[target.ability]?.effective ?? 'NONE',
-    calculation: toPanelCalculation(ruleProjection.calculations.savingThrows[target.ability], params),
+    calculation: toPanelCalculation(
+      ruleProjection.calculations.savingThrows[target.ability],
+      params
+    ),
     numericEditors: [
       ['MAGIC_BONUS', 'Magic bonus'],
       ['MISC_BONUS', 'Miscellaneous bonus'],
@@ -516,8 +522,7 @@ function buildSensesPanel(
       {
         skillId: skill.skillId,
         label: passive.label,
-        total:
-          ruleProjection.derivedStats.passiveChecks[ruleProjectionKey] ?? 10 + skill.total,
+        total: ruleProjection.derivedStats.passiveChecks[ruleProjectionKey] ?? 10 + skill.total,
         state: adjustment ? ('OVERRIDDEN' as const) : ('DEFAULT' as const),
         calculation: toPanelCalculation(
           ruleProjection.calculations.passiveChecks[ruleProjectionKey],
@@ -542,10 +547,9 @@ function buildSensesPanel(
       (candidate) => candidate.senseId === sense.id
     )
     const ruleSense = ruleProjection.senses.find(
-      (candidate) => candidate.senseCode === sense.id || candidate.senseCode === sense.code
+      (candidate) => candidate.senseDefinitionId === sense.id
     )
-    const calculation =
-      ruleProjection.calculations.senseRanges[sense.id] ?? ruleProjection.calculations.senseRanges[sense.code]
+    const calculation = ruleProjection.calculations.senseRanges[sense.id]
     const range =
       calculation?.effective ??
       (ruleSense?.range?.rangeKind === 'DISTANCE' ? ruleSense.range.amount : 0)
@@ -615,7 +619,8 @@ function buildMovementPanel(
       (candidate) => candidate.speedId === speed.id || candidate.speedId === speed.code
     )
     const calculation =
-      ruleProjection.calculations.movementSpeeds[speed.id] ?? ruleProjection.calculations.movementSpeeds[speed.code]
+      ruleProjection.calculations.movementSpeeds[speed.id] ??
+      ruleProjection.calculations.movementSpeeds[speed.code]
     return {
       speedId: speed.id,
       label: speed.label,

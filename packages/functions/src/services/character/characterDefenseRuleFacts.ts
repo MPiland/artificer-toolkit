@@ -1,4 +1,5 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
+import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
 
 type DefenseFacts = CharacterRulePolicyInput['defenseFacts']
@@ -14,7 +15,7 @@ export function buildCharacterDefenseRuleFacts(
               sourceId: adjustment.id,
               source: { kind: 'MANUAL_ADJUSTMENT', adjustmentId: adjustment.id },
               kind: adjustment.defenseKind,
-              damageTypeId: adjustment.damageTypeId
+              damageTypeId: serverUuidIdentityDtoSchema.parse(adjustment.damageTypeId)
             }
           ]
         : []

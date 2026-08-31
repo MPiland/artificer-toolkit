@@ -1,16 +1,15 @@
 import { DurableObject } from 'cloudflare:workers'
 import {
-  liveSessionCoordinatorSnapshotDtoSchema,
-  liveSessionCommandDtoSchema,
-  liveSessionExecutorCommandResultDtoSchema,
   liveSessionWebSocketClientMessageDtoSchema,
   liveSessionWebSocketServerMessageDtoSchema,
   type LiveSessionCommandDto,
   type LiveSessionActiveMembershipDto,
   type LiveSessionAggregateVersionDto,
   type LiveSessionCoordinatorSnapshotDto,
+  type LiveSessionEncounterRuleOccurrenceBindingUpdateDto,
   type LiveSessionExecutorCommandResultDto,
   type LiveSessionExecutorResponseDto,
+  type LiveSessionExecutorSpatialRefreshDto,
   type LiveSessionRejectedDto,
   type LiveSessionTicketClaimsDto,
   type LiveSessionWebSocketServerMessageDto
@@ -24,7 +23,7 @@ import {
   isSceneTokenVisibleToViewer,
   resolveSceneCharacterVision,
   SceneBarrierIndex,
-  type EncounterSceneState,
+  type CampaignSceneState,
   type SceneViewer
 } from '@artificer-toolkit/shared/vtt'
 import { z } from 'zod'
@@ -36,6 +35,15 @@ import {
 } from './conflictKeys.js'
 import type { SessionWorkerEnvironment } from './environment.js'
 import { callLiveSessionExecutor, LiveSessionExecutorRequestError } from './executorClient.js'
+import {
+  currentLiveSessionCommandFingerprint,
+  isLegacyVisualOnlyDarknessReplayCommand,
+  legacyVisualOnlyDarknessLiveCommandFingerprint,
+  parsePersistedLiveSessionCommand,
+  parsePersistedLiveSessionCoordinatorSnapshot,
+  parsePersistedLiveSessionExecutorCommandResult,
+  withoutLegacyVisualOnlyDarknessReplayMarker
+} from './legacySceneEnvironmentCutover.js'
 import { LiveSessionRoomJournal, type LiveSessionJournalCommand } from './roomJournal.js'
 import { selectRunnableCommands } from './scheduler.js'
 import { verifyLiveSessionTicket } from './ticket.js'
@@ -78,6 +86,28 @@ function aggregateVersionsEqual(
   })
 }
 
+function hasNewerAggregateVersion(
+  candidate: readonly LiveSessionAggregateVersionDto[],
+  current: readonly LiveSessionAggregateVersionDto[]
+): boolean {
+  const currentVersions = new Map(current.map((version) => [aggregateVersionKey(version), version]))
+  return candidate.some(
+    (version) =>
+      version.version > (currentVersions.get(aggregateVersionKey(version))?.version ?? -1)
+  )
+}
+
+function hasAggregateVersionRegression(
+  candidate: readonly LiveSessionAggregateVersionDto[],
+  current: readonly LiveSessionAggregateVersionDto[]
+): boolean {
+  const currentVersions = new Map(current.map((version) => [aggregateVersionKey(version), version]))
+  return candidate.some((version) => {
+    const existing = currentVersions.get(aggregateVersionKey(version))
+    return existing !== undefined && version.version < existing.version
+  })
+}
+
 class LiveSessionJoinAuthorityError extends Error {}
 
 const socketAttachmentSchema = z.strictObject({
@@ -105,15 +135,24 @@ function commandId(command: LiveSessionCommandDto): string {
 
 function aggregateIdentity(command: LiveSessionCommandDto) {
   if (command.aggregateKind === 'CHARACTER') {
-    return { aggregateId: command.characterId, aggregateKind: command.aggregateKind }
-  }
-  if (command.aggregateKind === 'SCENE') {
     return {
-      aggregateId: command.command.type === 'ATTACH_SCENE' ? null : command.command.sceneId,
+      aggregateId: command.characterId,
       aggregateKind: command.aggregateKind
     }
   }
-  return { aggregateId: command.command.encounterId, aggregateKind: command.aggregateKind }
+  if (command.aggregateKind === 'SCENE') {
+    return {
+      aggregateId: command.command.sceneId,
+      aggregateKind: command.aggregateKind
+    }
+  }
+  if (command.aggregateKind === 'SESSION') {
+    return { aggregateId: command.command.sessionId, aggregateKind: command.aggregateKind }
+  }
+  return {
+    aggregateId: command.command.encounterId,
+    aggregateKind: command.aggregateKind
+  }
 }
 
 function retryDelay(attempts: number): number {
@@ -147,43 +186,146 @@ function rejection(error: unknown, id: string): LiveSessionRejectedDto {
   }
 }
 
-function versionFor(
-  snapshot: LiveSessionCoordinatorSnapshotDto,
-  execution: LiveSessionExecutorCommandResultDto
-): number | null {
-  const version = snapshot.aggregateVersions.find(
-    (candidate) =>
-      candidate.aggregateKind === execution.aggregateKind &&
-      candidate.aggregateId === execution.aggregateId
-  )?.version
-  if (version !== undefined) return version
-  return execution.aggregateKind === 'SCENE' && execution.response === null ? -1 : null
+function aggregateVersionKey(version: LiveSessionAggregateVersionDto): string {
+  return `${version.aggregateKind}:${version.aggregateId}`
 }
 
-function withAggregateVersion(
-  snapshot: LiveSessionCoordinatorSnapshotDto,
+function transitionStart(version: LiveSessionAggregateVersionDto): number {
+  return version.beforeVersion ?? version.version - 1
+}
+
+function changedAggregatesFor(
   execution: LiveSessionExecutorCommandResultDto
+): readonly LiveSessionAggregateVersionDto[] {
+  const changedAggregates = execution.changedAggregates
+  for (let index = 1; index < changedAggregates.length; index += 1) {
+    const previous = changedAggregates[index - 1]
+    const current = changedAggregates[index]
+    if (!previous || !current || aggregateVersionKey(previous) >= aggregateVersionKey(current)) {
+      throw new Error('Live-session executor returned unsorted or duplicate changed aggregates.')
+    }
+  }
+  return changedAggregates
+}
+
+function versionForAggregate(
+  snapshot: LiveSessionCoordinatorSnapshotDto,
+  aggregate: LiveSessionAggregateVersionDto,
+  execution: LiveSessionExecutorCommandResultDto
+): number | null {
+  const currentVersion = snapshot.aggregateVersions.find(
+    (candidate) =>
+      candidate.aggregateKind === aggregate.aggregateKind &&
+      candidate.aggregateId === aggregate.aggregateId
+  )?.version
+  if (currentVersion !== undefined) return currentVersion
+  const initialScene =
+    aggregate.aggregateKind === 'SCENE' &&
+    aggregate.aggregateId === execution.aggregateId &&
+    execution.aggregateKind === 'SCENE' &&
+    execution.response === null
+  const initialSessionPresentation =
+    aggregate.aggregateKind === 'SESSION' &&
+    aggregate.aggregateId === execution.aggregateId &&
+    aggregate.version === 0 &&
+    execution.aggregateKind === 'SESSION'
+  return initialScene || initialSessionPresentation ? -1 : null
+}
+
+function withAggregateVersions(
+  snapshot: LiveSessionCoordinatorSnapshotDto,
+  changedAggregates: readonly LiveSessionAggregateVersionDto[]
 ): LiveSessionCoordinatorSnapshotDto {
   const aggregateVersions = snapshot.aggregateVersions.filter(
     (version) =>
-      version.aggregateKind !== execution.aggregateKind ||
-      version.aggregateId !== execution.aggregateId
+      !changedAggregates.some(
+        (changed) => aggregateVersionKey(changed) === aggregateVersionKey(version)
+      )
   )
-  aggregateVersions.push({
-    aggregateId: execution.aggregateId,
-    aggregateKind: execution.aggregateKind,
-    version: execution.version
-  })
+  aggregateVersions.push(
+    ...changedAggregates.map(({ aggregateKind, aggregateId, version }) => ({
+      aggregateKind,
+      aggregateId,
+      version
+    }))
+  )
   aggregateVersions.sort((left, right) =>
-    `${left.aggregateKind}:${left.aggregateId}`.localeCompare(
-      `${right.aggregateKind}:${right.aggregateId}`
-    )
+    aggregateVersionKey(left).localeCompare(aggregateVersionKey(right))
   )
   return { ...snapshot, aggregateVersions }
 }
 
+function withSpatialRefresh(
+  snapshot: LiveSessionCoordinatorSnapshotDto,
+  spatialRefresh: LiveSessionExecutorSpatialRefreshDto
+): LiveSessionCoordinatorSnapshotDto {
+  const refreshedCharacterIds = new Set(
+    spatialRefresh.characterVisions.map((vision) => vision.characterId)
+  )
+  return {
+    ...snapshot,
+    characterVisions: [
+      ...snapshot.characterVisions.filter(
+        (vision) => !refreshedCharacterIds.has(vision.characterId)
+      ),
+      ...spatialRefresh.characterVisions
+    ].sort((left, right) => left.characterId.localeCompare(right.characterId)),
+    sceneStates: [
+      ...snapshot.sceneStates.filter((scene) => scene.id !== spatialRefresh.sceneState.id),
+      spatialRefresh.sceneState
+    ]
+  }
+}
+
+function withOccurrenceBindingUpdate(
+  snapshot: LiveSessionCoordinatorSnapshotDto,
+  update: LiveSessionEncounterRuleOccurrenceBindingUpdateDto
+): LiveSessionCoordinatorSnapshotDto {
+  return {
+    ...snapshot,
+    encounterRuleOccurrenceBindings: [
+      ...snapshot.encounterRuleOccurrenceBindings.filter(
+        (binding) => binding.encounterId !== update.encounterId
+      ),
+      ...(update.binding ? [update.binding] : [])
+    ]
+  }
+}
+
+function withEncounterBindingRefresh(
+  snapshot: LiveSessionCoordinatorSnapshotDto,
+  refresh: NonNullable<
+    Extract<LiveSessionExecutorCommandResultDto, { aggregateKind: 'ENCOUNTER' }>['bindingRefresh']
+  >
+): LiveSessionCoordinatorSnapshotDto {
+  return {
+    ...snapshot,
+    encounterActorTokenBindings: [
+      ...snapshot.encounterActorTokenBindings.filter(
+        (binding) => binding.encounterId !== refresh.encounterId
+      ),
+      ...refresh.encounterActorTokenBindings
+    ],
+    encounterCharacterBindings: [
+      ...snapshot.encounterCharacterBindings.filter(
+        (binding) => binding.encounterId !== refresh.encounterId
+      ),
+      ...refresh.encounterCharacterBindings
+    ],
+    encounterSceneBindings: [
+      ...snapshot.encounterSceneBindings.filter(
+        (binding) => binding.encounterId !== refresh.encounterId
+      ),
+      ...(refresh.encounterSceneBinding ? [refresh.encounterSceneBinding] : [])
+    ]
+  }
+}
+
 function viewer(attachment: SocketAttachment): SceneViewer {
-  return { role: attachment.role === 'OWNER' ? 'GM' : 'PLAYER', userId: attachment.userId }
+  return {
+    role: attachment.role === 'OWNER' ? 'GM' : 'PLAYER',
+    userId: attachment.userId
+  }
 }
 
 function parseAttachment(socket: WebSocket): SocketAttachment | null {
@@ -202,7 +344,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
   readonly #journal: LiveSessionRoomJournal
   readonly #movementIndexes = new Map<
     string,
-    { barriers: EncounterSceneState['barriers']; index: SceneBarrierIndex }
+    { barriers: CampaignSceneState['barriers']; index: SceneBarrierIndex }
   >()
   #authorityId: string
   #authorityRenewal: Promise<AuthorityRenewalResult> | null = null
@@ -220,7 +362,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     const meta = this.#journal.loadMeta()
     this.#authorityId = meta?.authorityId ?? crypto.randomUUID()
     this.#snapshot = meta?.snapshotJson
-      ? liveSessionCoordinatorSnapshotDtoSchema.parse(JSON.parse(meta.snapshotJson))
+      ? parsePersistedLiveSessionCoordinatorSnapshot(JSON.parse(meta.snapshotJson))
       : null
     this.#hydratedForConnectionCycle = this.#hasOpenSockets() && this.#snapshot !== null
     ctx.blockConcurrencyWhile(async () => {
@@ -254,7 +396,9 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     })
     this.#authorityId = meta.authorityId
     if (!this.#journal.consumeTicket(claims.jti, claims.exp, Math.floor(Date.now() / 1_000))) {
-      return new Response('Live-session ticket was already used.', { status: 409 })
+      return new Response('Live-session ticket was already used.', {
+        status: 409
+      })
     }
     this.#journal.setReleaseAt(null)
 
@@ -270,7 +414,9 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
       ) {
         return new Response('Live-session ticket authority is no longer current.', { status: 403 })
       }
-      return new Response('The live session could not be loaded.', { status: 503 })
+      return new Response('The live session could not be loaded.', {
+        status: 503
+      })
     }
 
     const pair = new WebSocketPair()
@@ -376,6 +522,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
       meta?.authorityRenewalAt !== null &&
       meta?.authorityRenewalAt !== undefined &&
       meta.authorityRenewalAt <= Date.now() &&
+      (this.#journal.activeWorkCount() === 0 || meta.authorityRenewalBlocked) &&
       this.#shouldMaintainAuthority(meta)
     ) {
       const authorityAvailable = await this.#renewAuthority(meta)
@@ -398,7 +545,10 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
         userId: claims.sub
       }
       await callLiveSessionExecutor(this.env, { ...base, operation: 'CLAIM' })
-      const response = await callLiveSessionExecutor(this.env, { ...base, operation: 'SNAPSHOT' })
+      const response = await callLiveSessionExecutor(this.env, {
+        ...base,
+        operation: 'SNAPSHOT'
+      })
       if (response.operation !== 'SNAPSHOT') {
         throw new Error('Live-session executor returned the wrong hydration response.')
       }
@@ -427,6 +577,8 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
       aggregateVersions: this.#snapshot.aggregateVersions,
       campaignId: attachment.campaignId,
       deliverySequence: meta.deliverySequence,
+      encounterActorTokenBindings: this.#visibleEncounterActorTokenBindings(attachment),
+      encounterSceneBindings: this.#visibleEncounterSceneBindings(attachment),
       sceneSnapshots: this.#sceneSnapshots(attachment),
       sessionId: attachment.sessionId,
       type: 'READY'
@@ -440,7 +592,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     }
   }
 
-  #resolvedScene(scene: EncounterSceneState): EncounterSceneState {
+  #resolvedScene(scene: CampaignSceneState): CampaignSceneState {
     const snapshot = this.#snapshot
     return snapshot
       ? resolveSceneCharacterVision(
@@ -453,7 +605,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
 
   #sceneSnapshots(
     attachment: SocketAttachment,
-    predicate: (scene: EncounterSceneState) => boolean = () => true
+    predicate: (scene: CampaignSceneState) => boolean = () => true
   ) {
     return (this.#snapshot?.sceneStates ?? []).filter(predicate).map((scene) => ({
       campaignId: attachment.campaignId,
@@ -468,7 +620,30 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
         .filter((binding) => binding.characterId === characterId)
         .map((binding) => binding.encounterId)
     )
-    return this.#sceneSnapshots(attachment, (scene) => encounterIds.has(scene.encounterId))
+    const sceneIds = new Set(
+      (this.#snapshot?.encounterSceneBindings ?? [])
+        .filter((binding) => encounterIds.has(binding.encounterId))
+        .map((binding) => binding.sceneId)
+    )
+    return this.#sceneSnapshots(attachment, (scene) => sceneIds.has(scene.id))
+  }
+
+  #visibleEncounterSceneBindings(attachment: SocketAttachment) {
+    const sceneIds = new Set(this.#sceneSnapshots(attachment).map((snapshot) => snapshot.scene.id))
+    return (this.#snapshot?.encounterSceneBindings ?? []).filter((binding) =>
+      sceneIds.has(binding.sceneId)
+    )
+  }
+
+  #visibleEncounterActorTokenBindings(attachment: SocketAttachment) {
+    const tokenIds = new Set(
+      this.#sceneSnapshots(attachment).flatMap((snapshot) =>
+        snapshot.scene.tokens.map((token) => token.id)
+      )
+    )
+    return (this.#snapshot?.encounterActorTokenBindings ?? []).filter((binding) =>
+      tokenIds.has(binding.tokenId)
+    )
   }
 
   #acceptCommand(
@@ -486,17 +661,44 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
       })
       return
     }
-    const payloadJson = JSON.stringify(command)
+    const prior = this.#journal.findCommand(commandId(command))
+    if (isLegacyVisualOnlyDarknessReplayCommand(command) && !prior) {
+      send(socket, {
+        code: 'INVALID_COMMAND',
+        commandId: commandId(command),
+        message: 'Legacy visual-only darkness input is valid only for an existing command retry.',
+        type: 'COMMAND_REJECTED'
+      })
+      return
+    }
+    const currentCommand = withoutLegacyVisualOnlyDarknessReplayMarker(command)
+    const payloadJson = currentLiveSessionCommandFingerprint(currentCommand)
+    const legacyFingerprint = legacyVisualOnlyDarknessLiveCommandFingerprint(currentCommand)
+    let conflictKeys: LiveSessionConflictKey[]
+    try {
+      conflictKeys = deriveLiveSessionConflictKeys(currentCommand, snapshot)
+    } catch {
+      send(socket, {
+        code: 'INVALID_COMMAND',
+        commandId: commandId(command),
+        message: 'The live-session command cannot resolve its authoritative Scene.',
+        type: 'COMMAND_REJECTED'
+      })
+      return
+    }
     const accepted = this.#journal.acceptCommand({
       actorRole: attachment.role,
       actorUserId: attachment.userId,
       commandId: commandId(command),
-      conflictKeys: deriveLiveSessionConflictKeys(command, snapshot),
+      conflictKeys,
       fingerprint: payloadJson,
       originSocketId: attachment.socketId,
       payloadJson
     })
-    if (accepted.fingerprint !== payloadJson || accepted.actorUserId !== attachment.userId) {
+    if (
+      (accepted.fingerprint !== payloadJson && accepted.fingerprint !== legacyFingerprint) ||
+      accepted.actorUserId !== attachment.userId
+    ) {
       send(socket, {
         code: 'INVALID_COMMAND',
         commandId: commandId(command),
@@ -563,7 +765,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     const authorityId = this.#authorityId
     try {
       const payload = JSON.parse(command.payloadJson) as unknown
-      const parsedCommand = liveSessionCommandDtoSchema.parse(payload)
+      const parsedCommand = parsePersistedLiveSessionCommand(payload)
       const meta = this.#journal.loadMeta()
       if (!meta) throw new Error('The live-session room has not been initialized.')
       const snapshot = this.#snapshot
@@ -621,26 +823,74 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
         const completed = this.#journal.listCompleted()
         const deliverable = completed.find((command) => {
           if (!command.resultJson) return false
-          const execution = liveSessionExecutorCommandResultDtoSchema.parse(
+          const execution = parsePersistedLiveSessionExecutorCommandResult(
             JSON.parse(command.resultJson)
           )
-          const current = versionFor(currentSnapshot, execution)
-          return current !== null && execution.version <= current + 1
+          if (execution.replayed) return true
+          return changedAggregatesFor(execution).every((changed) => {
+            const current = versionForAggregate(currentSnapshot, changed, execution)
+            return current !== null && transitionStart(changed) <= current
+          })
         })
         if (!deliverable?.resultJson) break
-        const execution = liveSessionExecutorCommandResultDtoSchema.parse(
+        const execution = parsePersistedLiveSessionExecutorCommandResult(
           JSON.parse(deliverable.resultJson)
         )
-        const currentVersion = versionFor(currentSnapshot, execution)
-        if (currentVersion === null) throw new Error('The command aggregate was not loaded.')
-        const alreadyApplied = execution.version <= currentVersion
-        let beforeScene: EncounterSceneState | null = null
-        let afterScene: EncounterSceneState | null = null
+        const changedAggregates = changedAggregatesFor(execution)
+        const currentVersions = changedAggregates.map((changed) => ({
+          changed,
+          current: versionForAggregate(currentSnapshot, changed, execution)
+        }))
+        const rootsAlreadyRepresented =
+          currentVersions.length === 0 ||
+          currentVersions.every(
+            ({ changed, current }) => current !== null && changed.version <= current
+          )
+        let replayCatchUp = false
+        if (execution.replayed && !rootsAlreadyRepresented) {
+          currentSnapshot = await this.#synchronizeReplayedExecution(execution, currentSnapshot)
+          replayCatchUp = true
+        }
+        const reconciledVersions = changedAggregates.map((changed) => ({
+          changed,
+          current: versionForAggregate(currentSnapshot, changed, execution)
+        }))
+        if (reconciledVersions.some(({ current }) => current === null)) {
+          throw new Error('A changed live-session aggregate was not loaded.')
+        }
+        const alreadyApplied =
+          execution.replayed ||
+          (reconciledVersions.length > 0 &&
+            reconciledVersions.every(({ changed, current }) => changed.version <= (current ?? -1)))
+        if (
+          !alreadyApplied &&
+          reconciledVersions.some(({ changed, current }) => current !== transitionStart(changed))
+        ) {
+          throw new Error('Live-session aggregate transition start is stale.')
+        }
+        let beforeScene: CampaignSceneState | null = null
+        let afterScene: CampaignSceneState | null = null
         let nextSnapshot: LiveSessionCoordinatorSnapshotDto = currentSnapshot
 
+        if (
+          (!alreadyApplied || (execution.replayed && !replayCatchUp)) &&
+          'occurrenceBindingUpdate' in execution &&
+          execution.occurrenceBindingUpdate
+        ) {
+          nextSnapshot = withOccurrenceBindingUpdate(
+            nextSnapshot,
+            execution.occurrenceBindingUpdate
+          )
+        }
+
         if (!alreadyApplied) {
-          nextSnapshot = withAggregateVersion(nextSnapshot, execution)
-          if (execution.aggregateKind === 'CHARACTER') {
+          nextSnapshot = withAggregateVersions(nextSnapshot, changedAggregates)
+          const primaryChanged = changedAggregates.some(
+            (changed) =>
+              changed.aggregateKind === execution.aggregateKind &&
+              changed.aggregateId === execution.aggregateId
+          )
+          if (primaryChanged && execution.aggregateKind === 'CHARACTER') {
             nextSnapshot = {
               ...nextSnapshot,
               characterVisions: [
@@ -650,24 +900,10 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
                 execution.characterVision
               ].sort((left, right) => left.characterId.localeCompare(right.characterId))
             }
-          } else if (execution.aggregateKind === 'ENCOUNTER') {
-            const bindings = nextSnapshot.encounterCharacterBindings.filter(
-              (binding) => binding.encounterId !== execution.aggregateId
-            )
-            for (const actor of execution.response.projection.actors) {
-              if (actor.kind === 'CHARACTER' && actor.sourceId) {
-                bindings.push({
-                  actorId: actor.id,
-                  characterId: actor.sourceId,
-                  encounterId: execution.aggregateId
-                })
-              }
-            }
-            nextSnapshot = { ...nextSnapshot, encounterCharacterBindings: bindings }
-          } else if (execution.aggregateKind === 'SCENE') {
+          } else if (primaryChanged && execution.aggregateKind === 'SCENE') {
             beforeScene =
               nextSnapshot.sceneStates.find((scene) => scene.id === execution.aggregateId) ?? null
-            if (execution.response === null) {
+            if (execution.response === null || execution.response.delta === null) {
               afterScene = execution.state
             } else {
               if (!beforeScene) throw new Error('The committed live scene was not loaded.')
@@ -687,6 +923,24 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
               ]
             }
           }
+          if ('spatialRefresh' in execution && execution.spatialRefresh) {
+            nextSnapshot = withSpatialRefresh(nextSnapshot, execution.spatialRefresh)
+            if (
+              execution.aggregateKind === 'SCENE' &&
+              execution.spatialRefresh.sceneState.id === execution.aggregateId
+            ) {
+              afterScene = execution.spatialRefresh.sceneState
+            }
+          }
+          if (execution.aggregateKind === 'ENCOUNTER' && execution.bindingRefresh) {
+            nextSnapshot = withEncounterBindingRefresh(nextSnapshot, execution.bindingRefresh)
+          }
+          if (execution.aggregateKind === 'SESSION') {
+            nextSnapshot = {
+              ...nextSnapshot,
+              sceneStates: execution.sceneState ? [execution.sceneState] : []
+            }
+          }
         }
 
         const deliverySequence = (this.#journal.loadMeta()?.deliverySequence ?? 0) + 1
@@ -702,6 +956,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
           execution,
           deliverySequence,
           alreadyApplied,
+          replayCatchUp,
           beforeScene,
           afterScene
         )
@@ -711,22 +966,89 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     }
   }
 
+  async #synchronizeReplayedExecution(
+    execution: LiveSessionExecutorCommandResultDto,
+    currentSnapshot: LiveSessionCoordinatorSnapshotDto
+  ): Promise<LiveSessionCoordinatorSnapshotDto> {
+    return this.#withAuthorityTransition(async () => {
+      const meta = this.#journal.loadMeta()
+      if (!meta?.authorityUserId) {
+        throw new Error('The live-session room has no current authority for replay recovery.')
+      }
+      const renewal = await callLiveSessionExecutor(this.env, {
+        authorityId: this.#authorityId,
+        campaignId: meta.campaignId,
+        operation: 'RENEW',
+        sessionId: meta.sessionId,
+        userId: meta.authorityUserId
+      })
+      if (renewal.operation !== 'RENEW') {
+        throw new Error('Live-session executor returned the wrong replay renewal response.')
+      }
+      const authorityUserId = this.#reauthorizeSockets(renewal.memberships) ?? meta.authorityUserId
+      const snapshotResponse = await callLiveSessionExecutor(this.env, {
+        authorityId: this.#authorityId,
+        campaignId: meta.campaignId,
+        operation: 'SNAPSHOT',
+        sessionId: meta.sessionId,
+        userId: authorityUserId
+      })
+      if (snapshotResponse.operation !== 'SNAPSHOT') {
+        throw new Error('Live-session executor returned the wrong replay snapshot response.')
+      }
+      if (
+        hasAggregateVersionRegression(
+          snapshotResponse.snapshot.aggregateVersions,
+          currentSnapshot.aggregateVersions
+        )
+      ) {
+        throw new Error('The replay snapshot regressed a loaded live-session aggregate.')
+      }
+      for (const changed of changedAggregatesFor(execution)) {
+        const current = versionForAggregate(snapshotResponse.snapshot, changed, execution)
+        if (current === null || current < changed.version) {
+          throw new Error('The replay snapshot did not include the recorded aggregate version.')
+        }
+      }
+      this.#journal.hydrateAuthority({
+        renewalAt: Date.now() + LIVE_SESSION_COMMAND_LEASE_RENEWAL_MS,
+        snapshotJson: JSON.stringify(snapshotResponse.snapshot),
+        userId: authorityUserId
+      })
+      this.#snapshot = snapshotResponse.snapshot
+      this.#movementIndexes.clear()
+      return snapshotResponse.snapshot
+    })
+  }
+
+  #encounterCommittedResponse(
+    execution: Extract<LiveSessionExecutorCommandResultDto, { aggregateKind: 'ENCOUNTER' }>,
+    attachment: SocketAttachment,
+    isRequester: boolean,
+    isFresh: boolean
+  ) {
+    if (attachment.role === 'OWNER') return execution.response
+    return isRequester && isFresh ? execution.response : null
+  }
+
   #broadcastCommitted(
     command: LiveSessionJournalCommand,
     execution: LiveSessionExecutorCommandResultDto,
     deliverySequence: number,
     alreadyApplied: boolean,
-    beforeScene: EncounterSceneState | null,
-    afterScene: EncounterSceneState | null
+    replayCatchUp: boolean,
+    beforeScene: CampaignSceneState | null,
+    afterScene: CampaignSceneState | null
   ): void {
     for (const socket of this.ctx.getWebSockets()) {
       const attachment = parseAttachment(socket)
       if (!attachment) continue
       const isRequester = attachment.userId === command.actorUserId
-      if (alreadyApplied && !isRequester) continue
+      if (alreadyApplied && !replayCatchUp && !isRequester) continue
       const base = {
         acceptedSequence: command.acceptedSequence,
         aggregateId: execution.aggregateId,
+        changedAggregates: execution.changedAggregates,
         deliverySequence,
         originCommandId: execution.commandId,
         replayed: execution.replayed || alreadyApplied,
@@ -738,20 +1060,41 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
           ...base,
           ...hostTiming,
           aggregateKind: 'CHARACTER',
-          response: isRequester ? execution.response : null,
+          response:
+            attachment.role === 'OWNER' || (isRequester && !alreadyApplied)
+              ? execution.response
+              : null,
           sceneSnapshots: this.#sceneSnapshotsForCharacter(attachment, execution.aggregateId),
           type: 'COMMAND_COMMITTED'
         })
       } else if (execution.aggregateKind === 'ENCOUNTER') {
+        const sceneId = this.#snapshot?.encounterSceneBindings.find(
+          (binding) => binding.encounterId === execution.aggregateId
+        )?.sceneId
         send(socket, {
           ...base,
           ...hostTiming,
           aggregateKind: 'ENCOUNTER',
-          response: isRequester && attachment.role === 'OWNER' ? execution.response : null,
-          sceneSnapshots: this.#sceneSnapshots(
+          encounterActorTokenBindings: this.#visibleEncounterActorTokenBindings(attachment),
+          encounterSceneBindings: this.#visibleEncounterSceneBindings(attachment),
+          response: this.#encounterCommittedResponse(
+            execution,
             attachment,
-            (scene) => scene.encounterId === execution.aggregateId
+            isRequester,
+            !alreadyApplied
           ),
+          sceneSnapshots: sceneId
+            ? this.#sceneSnapshots(attachment, (scene) => scene.id === sceneId)
+            : [],
+          type: 'COMMAND_COMMITTED'
+        })
+      } else if (execution.aggregateKind === 'SESSION') {
+        send(socket, {
+          ...base,
+          ...hostTiming,
+          aggregateKind: 'SESSION',
+          response: execution.response,
+          sceneSnapshots: this.#sceneSnapshots(attachment),
           type: 'COMMAND_COMMITTED'
         })
       } else {
@@ -761,9 +1104,12 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
           (scene) => scene.id === execution.aggregateId
         )
         const sendSnapshot =
-          attachment.role !== 'OWNER' || execution.response === null || alreadyApplied
+          attachment.role !== 'OWNER' ||
+          execution.response === null ||
+          execution.response.delta === null ||
+          alreadyApplied
         const delta =
-          !sendSnapshot && resolvedBefore && resolvedAfter && execution.response
+          !sendSnapshot && resolvedBefore && resolvedAfter && execution.response?.delta
             ? projectSceneDeltaForViewer(
                 resolvedBefore,
                 resolvedAfter,
@@ -802,12 +1148,11 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
       return
     }
     if (command.status !== 'COMMITTED' || !command.resultJson || !command.deliverySequence) return
-    const execution = liveSessionExecutorCommandResultDtoSchema.parse(
-      JSON.parse(command.resultJson)
-    )
+    const execution = parsePersistedLiveSessionExecutorCommandResult(JSON.parse(command.resultJson))
     const base = {
       acceptedSequence: command.acceptedSequence,
       aggregateId: execution.aggregateId,
+      changedAggregates: execution.changedAggregates,
       deliverySequence: command.deliverySequence,
       originCommandId: execution.commandId,
       replayed: true,
@@ -820,7 +1165,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
         ...base,
         ...hostTiming,
         aggregateKind: 'CHARACTER',
-        response: execution.response,
+        response: attachment?.role === 'OWNER' ? execution.response : null,
         sceneSnapshots: attachment
           ? this.#sceneSnapshotsForCharacter(attachment, execution.aggregateId)
           : [],
@@ -832,10 +1177,33 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
         ...base,
         ...hostTiming,
         aggregateKind: 'ENCOUNTER',
-        response: attachment?.role === 'OWNER' ? execution.response : null,
-        sceneSnapshots: attachment
-          ? this.#sceneSnapshots(attachment, (scene) => scene.encounterId === execution.aggregateId)
+        encounterActorTokenBindings: attachment
+          ? this.#visibleEncounterActorTokenBindings(attachment)
           : [],
+        encounterSceneBindings: attachment ? this.#visibleEncounterSceneBindings(attachment) : [],
+        response: attachment
+          ? this.#encounterCommittedResponse(execution, attachment, true, false)
+          : null,
+        sceneSnapshots: attachment
+          ? (() => {
+              const sceneId = this.#snapshot?.encounterSceneBindings.find(
+                (binding) => binding.encounterId === execution.aggregateId
+              )?.sceneId
+              return sceneId
+                ? this.#sceneSnapshots(attachment, (scene) => scene.id === sceneId)
+                : []
+            })()
+          : [],
+        type: 'COMMAND_COMMITTED'
+      })
+    } else if (execution.aggregateKind === 'SESSION') {
+      const attachment = parseAttachment(socket)
+      send(socket, {
+        ...base,
+        ...hostTiming,
+        aggregateKind: 'SESSION',
+        response: execution.response,
+        sceneSnapshots: attachment ? this.#sceneSnapshots(attachment) : [],
         type: 'COMMAND_COMMITTED'
       })
     } else {
@@ -917,7 +1285,10 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
         nextPath.at(-1)?.x === envelope.position.x && nextPath.at(-1)?.y === envelope.position.y
       const nextAttachment = {
         ...attachment,
-        transientSequences: { ...attachment.transientSequences, [streamKey]: envelope.sequence },
+        transientSequences: {
+          ...attachment.transientSequences,
+          [streamKey]: envelope.sequence
+        },
         transientTokenPaths: {
           ...attachment.transientTokenPaths,
           [pathKey]: nextPath
@@ -985,7 +1356,10 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     }
     const nextAttachment = {
       ...attachment,
-      transientSequences: { ...attachment.transientSequences, [streamKey]: envelope.sequence }
+      transientSequences: {
+        ...attachment.transientSequences,
+        [streamKey]: envelope.sequence
+      }
     }
     origin.serializeAttachment(nextAttachment)
     const message = {
@@ -1020,7 +1394,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     return this.ctx.getWebSockets().some((socket) => socket.readyState === WebSocket.OPEN)
   }
 
-  #movementIndex(scene: EncounterSceneState): SceneBarrierIndex {
+  #movementIndex(scene: CampaignSceneState): SceneBarrierIndex {
     const cached = this.#movementIndexes.get(scene.id)
     if (cached?.barriers === scene.barriers) return cached.index
     const index = new SceneBarrierIndex(scene.barriers)
@@ -1131,8 +1505,10 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     const connectedAuthorityUserId = this.#reauthorizeSockets(response.memberships)
     const authorityUserId = connectedAuthorityUserId ?? candidateUserId
     const renewalAt = Date.now() + LIVE_SESSION_COMMAND_LEASE_RENEWAL_MS
+    const currentAggregateVersions = this.#snapshot?.aggregateVersions ?? []
     if (
-      aggregateVersionsEqual(this.#snapshot?.aggregateVersions ?? [], response.aggregateVersions)
+      aggregateVersionsEqual(currentAggregateVersions, response.aggregateVersions) ||
+      !hasNewerAggregateVersion(response.aggregateVersions, currentAggregateVersions)
     ) {
       this.#journal.setRenewedAuthority(authorityUserId, renewalAt)
       return { available: true, refreshed: false }
@@ -1147,8 +1523,21 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     if (snapshotResponse.operation !== 'SNAPSHOT') {
       throw new Error('Live-session executor returned the wrong refresh response.')
     }
+    if (
+      hasAggregateVersionRegression(
+        snapshotResponse.snapshot.aggregateVersions,
+        currentAggregateVersions
+      )
+    ) {
+      this.#journal.setRenewedAuthority(authorityUserId, renewalAt)
+      return { available: true, refreshed: false }
+    }
     const snapshotJson = JSON.stringify(snapshotResponse.snapshot)
-    this.#journal.hydrateAuthority({ renewalAt, snapshotJson, userId: authorityUserId })
+    this.#journal.hydrateAuthority({
+      renewalAt,
+      snapshotJson,
+      userId: authorityUserId
+    })
     this.#snapshot = snapshotResponse.snapshot
     this.#movementIndexes.clear()
     this.#broadcastReady()
@@ -1223,6 +1612,7 @@ export class LiveSessionRoom extends DurableObject<SessionWorkerEnvironment> {
     const renewalAt =
       meta?.authorityRenewalAt !== null &&
       meta?.authorityRenewalAt !== undefined &&
+      (activeWorkCount === 0 || meta.authorityRenewalBlocked) &&
       this.#shouldMaintainAuthority(meta)
         ? meta.authorityRenewalAt
         : null

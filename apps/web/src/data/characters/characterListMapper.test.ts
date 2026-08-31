@@ -12,7 +12,7 @@ describe('character list mapper', () => {
   it('maps active and draft-only characters into authored list rows', () => {
     const items = mapCharacterListToAuthoredItems(characterListFixture)
 
-    expect(items.find((item) => item.id === 'character-owned')).toMatchObject({
+    expect(items.find((item) => item.id === characterListFixture.items[0].id)).toMatchObject({
       name: 'Astra Vale',
       statusLabel: 'Active',
       filterValues: {
@@ -34,7 +34,7 @@ describe('character list mapper', () => {
   it('splits draft-only character rows out of the active panel', () => {
     expect(
       mapCharacterListToActiveAuthoredItems(characterListFixture).map((item) => item.id)
-    ).toEqual(['character-owned'])
+    ).toEqual([characterListFixture.items[0].id])
     expect(
       mapCharacterListToDraftAuthoredItems(characterListFixture).map((item) => item.id)
     ).toEqual(['character-draft'])

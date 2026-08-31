@@ -20,7 +20,8 @@ async function getAuthoringStepsNavigation(canvasElement: HTMLElement) {
   if (existing) return existing
 
   const showSteps = page.queryByRole('button', { name: /^show steps$/i })
-  if (!showSteps) throw new Error('Unable to find the Authoring steps navigation or its reveal control.')
+  if (!showSteps)
+    throw new Error('Unable to find the Authoring steps navigation or its reveal control.')
 
   await userEvent.click(showSteps)
   return await page.findByRole('navigation', { name: /^authoring steps$/i })

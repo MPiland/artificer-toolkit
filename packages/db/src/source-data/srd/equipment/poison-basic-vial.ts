@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { EquipmentAuthored, ManifestBehaviorAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 
@@ -10,7 +11,7 @@ const poisonedHitBehavior = (bucket: number): ManifestBehaviorAuthored => ({
     savingThrow: {
       id: S.equipmentChildId(S.equipId(364), bucket + 1, 1),
       dcMethod: 'FIXED_DC',
-      ability: S.ABILITY_CODE.CONSTITUTION,
+      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
       baseDc: 10
     },
     range: {

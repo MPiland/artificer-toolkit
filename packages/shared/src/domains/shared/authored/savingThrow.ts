@@ -1,10 +1,10 @@
-import type { AbilityCode, SAVING_THROW_DC_BONUS_KIND, SAVING_THROW_DC_METHOD } from '#core'
+import type { SAVING_THROW_DC_BONUS_KIND, SAVING_THROW_DC_METHOD } from '#core'
 
 export type SavingThrowDcBonusAuthored =
   | {
       id: string
       bonusKind: typeof SAVING_THROW_DC_BONUS_KIND.ABILITY_MODIFIER
-      ability: AbilityCode
+      abilityDefinitionId: string
     }
   | {
       id: string
@@ -19,19 +19,19 @@ export type SavingThrowDcBonusAuthored =
 export type SavingThrowAuthored =
   | {
       id: string
-      ability: AbilityCode
+      abilityDefinitionId: string
       dcMethod: typeof SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
     }
   | {
       id: string
-      ability: AbilityCode
+      abilityDefinitionId: string
       dcMethod: typeof SAVING_THROW_DC_METHOD.FIXED_DC
       baseDc: number
       bonuses?: SavingThrowDcBonusAuthored[]
     }
   | {
       id: string
-      ability: AbilityCode
+      abilityDefinitionId: string
       dcMethod: typeof SAVING_THROW_DC_METHOD.DERIVED_DC
       baseDc: number
       bonuses: SavingThrowDcBonusAuthored[]

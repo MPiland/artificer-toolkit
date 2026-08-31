@@ -368,7 +368,7 @@ describe('authored nonnegative magnitudes', () => {
     const payload = (amount: number) => ({
       id: 'save-1',
       dcMethod: 'FIXED_DC',
-      ability: 'DEXTERITY',
+      abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
       baseDc: 10,
       bonuses: [{ id: 'save-bonus-1', bonusKind: 'STATIC_BONUS', amount }]
     })

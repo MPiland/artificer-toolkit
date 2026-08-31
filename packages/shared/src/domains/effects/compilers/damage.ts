@@ -114,14 +114,17 @@ export type CompiledDamageEffect<S extends ScalingSource = ScalingSource> = {
 } & CompiledDamageValue<S>
 
 export function compileDamageBonuses(authored: DamageBonusAuthored): CompiledDamageBonus {
+  const optionalBounds = {
+    ...(authored.min === undefined ? {} : { min: authored.min }),
+    ...(authored.max === undefined ? {} : { max: authored.max }),
+    ...(authored.multiplier === undefined ? {} : { multiplier: authored.multiplier })
+  }
   switch (authored.bonusKind) {
     case DAMAGE_BONUS_KIND.PROFICIENCY_BONUS:
       return {
         bonusKind: DAMAGE_BONUS_KIND.PROFICIENCY_BONUS,
         order: authored.order,
-        min: authored.min,
-        max: authored.max,
-        multiplier: authored.multiplier
+        ...optionalBounds
       }
 
     case DAMAGE_BONUS_KIND.ABILITY_BONUS:
@@ -129,9 +132,7 @@ export function compileDamageBonuses(authored: DamageBonusAuthored): CompiledDam
         bonusKind: DAMAGE_BONUS_KIND.ABILITY_BONUS,
         ability: authored.ability,
         order: authored.order,
-        min: authored.min,
-        max: authored.max,
-        multiplier: authored.multiplier
+        ...optionalBounds
       }
 
     case DAMAGE_BONUS_KIND.SKILL_BONUS:
@@ -139,9 +140,7 @@ export function compileDamageBonuses(authored: DamageBonusAuthored): CompiledDam
         bonusKind: DAMAGE_BONUS_KIND.SKILL_BONUS,
         skillId: authored.skillId,
         order: authored.order,
-        min: authored.min,
-        max: authored.max,
-        multiplier: authored.multiplier
+        ...optionalBounds
       }
 
     default:
@@ -150,10 +149,14 @@ export function compileDamageBonuses(authored: DamageBonusAuthored): CompiledDam
 }
 
 export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEffect[] {
-  const bonuses =
+  const bonusFields =
     authored.bonuses && authored.bonuses.length
-      ? authored.bonuses.map(compileDamageBonuses)
-      : undefined
+      ? { bonuses: authored.bonuses.map(compileDamageBonuses) }
+      : {}
+  const presentationFields = {
+    ...(authored.amountKind === undefined ? {} : { amountKind: authored.amountKind }),
+    ...(authored.multiplier === undefined ? {} : { multiplier: authored.multiplier })
+  }
 
   switch (authored.scalingKind) {
     case SCALING.NONE: {
@@ -165,9 +168,8 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
               effectKind: EFFECT_KIND.DAMAGE,
               damageTypeId: authored.damageTypeId,
               valueKind: DAMAGE_VALUE_KIND.FIXED,
-              bonuses,
-              amountKind: authored.amountKind,
-              multiplier: authored.multiplier,
+              ...bonusFields,
+              ...presentationFields,
               scalingKind: SCALING.NONE,
               amount: authored.amount
             }
@@ -182,9 +184,8 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
               damageTypeId: authored.damageTypeId,
               valueKind: authored.valueKind,
               dice: authored.diceConfig,
-              bonuses,
-              amountKind: authored.amountKind,
-              multiplier: authored.multiplier,
+              ...bonusFields,
+              ...presentationFields,
               scalingKind: authored.scalingKind
             }
           ]
@@ -198,9 +199,8 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
               damageTypeId: authored.damageTypeId,
               valueKind: authored.valueKind,
               amount: authored.amount,
-              bonuses,
-              amountKind: authored.amountKind,
-              multiplier: authored.multiplier,
+              ...bonusFields,
+              ...presentationFields,
               scalingKind: authored.scalingKind
             }
           ]
@@ -223,9 +223,8 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
               level: entry.level,
               order: entry.order,
               amount: entry.amount,
-              bonuses,
-              amountKind: authored.amountKind,
-              multiplier: authored.multiplier,
+              ...bonusFields,
+              ...presentationFields,
               scalingKind: SCALING.PER_LEVEL,
               scalingSource: authored.scalingSource,
               ...(authored.scalingSource === SCALING_SOURCE.CLASS_LEVEL
@@ -244,9 +243,8 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
               level: entry.level,
               order: entry.order,
               dice: entry.diceConfig,
-              bonuses,
-              amountKind: authored.amountKind,
-              multiplier: authored.multiplier,
+              ...bonusFields,
+              ...presentationFields,
               scalingKind: SCALING.PER_LEVEL,
               scalingSource: authored.scalingSource,
               ...(authored.scalingSource === SCALING_SOURCE.CLASS_LEVEL
@@ -262,12 +260,11 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
               effectKind: EFFECT_KIND.DAMAGE,
               damageTypeId: authored.damageTypeId,
               valueKind: DAMAGE_VALUE_KIND.POOL,
-              min: authored.min,
-              max: authored.max,
+              ...(authored.min === undefined ? {} : { min: authored.min }),
+              ...(authored.max === undefined ? {} : { max: authored.max }),
               amount: authored.amount,
-              multiplier: authored.multiplier,
-              bonuses,
-              amountKind: authored.amountKind,
+              ...presentationFields,
+              ...bonusFields,
               scalingKind: SCALING.PER_LEVEL,
               scalingSource: authored.scalingSource,
               ...(authored.scalingSource === SCALING_SOURCE.CLASS_LEVEL
@@ -292,9 +289,8 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
               level: entry.level,
               order: entry.order,
               amount: entry.value.amount,
-              bonuses,
-              amountKind: authored.amountKind,
-              multiplier: authored.multiplier,
+              ...bonusFields,
+              ...presentationFields,
               scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
               scalingSource: authored.scalingSource,
               ...(authored.scalingSource === SCALING_SOURCE.CLASS_LEVEL
@@ -313,9 +309,8 @@ export function compileDamageEffect(authored: DamageAuthored): CompiledDamageEff
               level: entry.level,
               order: entry.order,
               dice: entry.value.diceConfig,
-              bonuses,
-              amountKind: authored.amountKind,
-              multiplier: authored.multiplier,
+              ...bonusFields,
+              ...presentationFields,
               scalingKind: SCALABLE_SCALING_KIND.BREAKPOINTS,
               scalingSource: authored.scalingSource,
               ...(authored.scalingSource === SCALING_SOURCE.CLASS_LEVEL

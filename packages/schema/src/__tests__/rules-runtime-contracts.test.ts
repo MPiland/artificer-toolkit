@@ -1,14 +1,26 @@
 import { describe, expect, it } from 'vitest'
 
 import * as publicRulesRuntime from '../api/rulesRuntime.js'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
+  activeRuleEffectStateDtoSchema,
+  MAX_MAINTENANCE_CLEANUP_CHARACTER_TRANSITIONS,
+  MAX_MAINTENANCE_CLEANUP_REMOVED_EFFECTS,
+  MAX_MAINTENANCE_CLEANUP_TERMINATED_STATES,
   serverPublishedRuleDefinitionDtoSchema,
-  serverRuleExecutionInputDtoSchema
+  serverRuleExecutionCorrelationIdDtoSchema,
+  serverRuleExecutionApplicationOutputsDtoSchema,
+  serverRuleExecutionPendingApplicationContextDtoSchema,
+  serverRuleExecutionInputDtoSchema,
+  serverRuleExecutionReceiptCommandMetadataDtoSchema,
+  storedRuleExecutionResultDtoSchema,
+  type StoredRuleExecutionResultDto
 } from '../shared/rulesExecution.js'
 
 const SYSTEM_ID = '11111111-1111-4111-8111-111111111111'
+const SEEDED_SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
 const DEFINITION_ID = '22222222-2222-4222-8222-222222222222'
-const { gameSystemCapabilityDtoSchema, ruleGraphDefinitionDtoSchema } = publicRulesRuntime
+const { gameSystemRuleCapabilityDtoSchema, ruleGraphDefinitionDtoSchema } = publicRulesRuntime
 
 const definition = {
   schemaVersion: 1,
@@ -30,10 +42,903 @@ const definition = {
   }
 } as const
 
+const turnBatchIds = {
+  occurrence: '00000000-0000-4000-8000-000000000201',
+  encounter: '00000000-0000-4000-8000-000000000202',
+  character: '00000000-0000-4000-8000-000000000203',
+  actor: '00000000-0000-4000-8000-000000000204',
+  effect: '00000000-0000-4000-8000-000000000205',
+  condition: '00000000-0000-4000-8000-000000000206',
+  source: '00000000-0000-4000-8000-000000000207',
+  entry: '00000000-0000-4000-8000-000000000208'
+}
+
+type TurnBatchResult = Extract<
+  StoredRuleExecutionResultDto,
+  { status: 'BATCH_COMPLETE'; batchKind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS' }
+>
+
+function turnBatchResult(): TurnBatchResult {
+  const before = {
+    currentHitPoints: 10,
+    temporaryHitPoints: 0,
+    maximumHitPoints: 10,
+    conditionIds: []
+  }
+  const after = { ...before, conditionIds: [turnBatchIds.condition] }
+  const application = {
+    ordinal: 0,
+    kind: 'CONDITION_APPLY' as const,
+    conditionId: turnBatchIds.condition,
+    beforePresent: false,
+    afterPresent: true as const,
+    applied: true,
+    sourceNodeId: 'effect-node',
+    sourceOperationKey: 'effect.apply',
+    authoredPath: null,
+    resolvedPath: 'START_OF_TURN'
+  }
+  return {
+    status: 'BATCH_COMPLETE' as const,
+    batchKind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS' as const,
+    schemaVersion: 1 as const,
+    occurrenceId: turnBatchIds.occurrence,
+    occurrenceVersion: 0,
+    encounterId: turnBatchIds.encounter,
+    commandType: 'START' as const,
+    initiative: null,
+    initiativeAdvance: null,
+    rechargeExecutions: [],
+    executions: [
+      {
+        ordinal: 0,
+        boundaryOrdinal: 0,
+        stage: 'START_OF_TURN' as const,
+        targetActorId: turnBatchIds.actor,
+        owner: { kind: 'CHARACTER', characterId: turnBatchIds.character },
+        activeEffectId: turnBatchIds.effect,
+        createdOrdinal: 1,
+        beforeVersion: 1,
+        definition: {
+          authoredEffectId: turnBatchIds.source,
+          compiledEntryId: turnBatchIds.entry,
+          frozenGraphNodeId: 'effect-node',
+          frozenSourceChecksum: 'a'.repeat(64),
+          capabilityContractVersion: 1,
+          definitionChecksum: 'b'.repeat(64)
+        },
+        execution: {
+          status: 'COMPLETE' as const,
+          outputs: {},
+          movementInterruption: null,
+          evidence: {
+            source: {
+              definitionId: turnBatchIds.source,
+              gameSystemId: SYSTEM_ID,
+              definitionFamilyKey: 'effect',
+              checksum: 'a'.repeat(64)
+            },
+            capabilityContractVersion: 1,
+            facts: {},
+            sourceEntryBindings: [{ sourceEntryId: turnBatchIds.entry, nodeId: 'effect-node' }],
+            trace: [
+              {
+                nodeId: 'effect-node',
+                operation: { key: 'effect.apply', contractVersion: 1 },
+                inputs: {},
+                outputs: {
+                  targetActorId: turnBatchIds.actor,
+                  conditionId: turnBatchIds.condition,
+                  resolvedPath: 'START_OF_TURN',
+                  applicationCandidate: true,
+                  authorized: true,
+                  targetStateChecksum: 'c'.repeat(64)
+                }
+              }
+            ],
+            outputs: {}
+          }
+        },
+        d20: null,
+        targetTransition: { checksum: 'c'.repeat(64), before, after },
+        applications: [application],
+        lifecycle: {
+          kind: 'EXPIRE' as const,
+          expectedVersion: 1,
+          beforeRemainingTicks: 1,
+          afterRemainingTicks: 0 as const,
+          beforeLifecycleChecksum: 'd'.repeat(64)
+        }
+      }
+    ],
+    encounterActorTransitions: [],
+    characterTransitions: [
+      {
+        characterId: turnBatchIds.character,
+        targetActorId: turnBatchIds.actor,
+        beforeStreamVersion: 4,
+        afterStreamVersion: 5,
+        before,
+        after
+      }
+    ]
+  }
+}
+
+function recurringSaveBatchResult(outcome: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'): TurnBatchResult {
+  const result = structuredClone(turnBatchResult())
+  const execution = result.executions[0]!
+  const sourceTrace = execution.execution.evidence.trace[0]!
+  const before = execution.targetTransition.before
+  const contributors = [
+    { sourceId: 'Z!', grantId: null, domainKey: 'domain:one', influence: 'ADVANTAGE' as const },
+    { sourceId: 'a', grantId: 'grant.two', domainKey: null, influence: 'DISADVANTAGE' as const },
+    {
+      sourceId: 'a:source',
+      grantId: 'grant:two',
+      domainKey: '[]',
+      influence: 'DISADVANTAGE' as const
+    },
+    { sourceId: 'é', grantId: null, domainKey: null, influence: 'ADVANTAGE' as const }
+  ]
+  const contributorChecksum = checksumRuleDocument(contributors)
+  execution.d20 = {
+    requestId: 'recurring-save-d20',
+    rollMode: 'NORMAL',
+    rawFaces: [12],
+    selectedNatural: 12,
+    contributors,
+    contributorChecksum,
+    modifier: 3,
+    total: 15,
+    defenseOrDc: 10,
+    resultPath: outcome
+  }
+  execution.execution.outputs = {
+    targetActorId: turnBatchIds.actor,
+    naturalD20: 12,
+    total: 15,
+    resultPath: outcome,
+    contributorChecksum
+  }
+  execution.execution.evidence.outputs = {
+    targetActorId: turnBatchIds.actor,
+    naturalD20: 12,
+    total: 15,
+    resultPath: outcome,
+    contributorChecksum
+  }
+  sourceTrace.outputs = {
+    targetActorId: turnBatchIds.actor,
+    resolvedPath: outcome,
+    applicationCandidate: true,
+    authorized: outcome === 'ON_SAVE_FAIL',
+    targetStateChecksum: execution.targetTransition.checksum,
+    ...(outcome === 'ON_SAVE_FAIL' ? { conditionId: turnBatchIds.condition } : {})
+  }
+  execution.execution.evidence.trace.push(
+    {
+      nodeId: 'roll',
+      operation: { key: 'evidence.integer-range', contractVersion: 1 },
+      inputs: { min: 1, max: 20 },
+      outputs: {},
+      evidence: {
+        kind: 'INTEGER_RANGE',
+        requestId: 'recurring-save-d20',
+        value: 12
+      }
+    },
+    {
+      nodeId: 'save',
+      operation: { key: 'dnd5e.saving-throw', contractVersion: 1 },
+      inputs: {
+        naturalD20: 12,
+        modifier: 3,
+        threshold: 10,
+        contributorChecksum
+      },
+      outputs: {
+        targetActorId: turnBatchIds.actor,
+        contributorChecksum,
+        total: 15,
+        resultPath: outcome
+      }
+    }
+  )
+  if (outcome === 'ON_SAVE_FAIL') {
+    execution.applications = [
+      {
+        ordinal: 0,
+        kind: 'CONDITION_APPLY',
+        conditionId: turnBatchIds.condition,
+        beforePresent: false,
+        afterPresent: true,
+        applied: true,
+        sourceNodeId: 'effect-node',
+        sourceOperationKey: 'effect.apply',
+        authoredPath: null,
+        resolvedPath: outcome
+      }
+    ]
+    execution.targetTransition.after = { ...before, conditionIds: [turnBatchIds.condition] }
+    result.characterTransitions[0]!.after = execution.targetTransition.after
+  } else {
+    execution.applications = []
+  }
+  return result
+}
+
+function turnPendingContext() {
+  const candidate = (ordinal: number, effectId: string) => ({
+    ordinal,
+    boundaryOrdinal: 0,
+    stage: 'START_OF_TURN' as const,
+    targetActorId: turnBatchIds.actor,
+    owner: {
+      kind: 'CHARACTER' as const,
+      characterId: turnBatchIds.character,
+      streamVersion: 4,
+      projectionChecksum: 'a'.repeat(64),
+      mechanicalContextChecksum: 'b'.repeat(64)
+    },
+    activeEffectId: effectId,
+    createdOrdinal: ordinal + 1,
+    effectVersion: 1,
+    definitionChecksum: 'c'.repeat(64),
+    lifecycleChecksum: 'd'.repeat(64),
+    targetStateChecksum: 'e'.repeat(64),
+    d20Policy: null
+  })
+  return {
+    kind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS' as const,
+    schemaVersion: 1 as const,
+    root: {
+      rootCommandId: turnBatchIds.occurrence,
+      commandFingerprint: 'f'.repeat(64),
+      commandType: 'START' as const,
+      initiatorUserId: turnBatchIds.character,
+      correlationId: null,
+      expectedEncounterVersion: 3,
+      proposedTerminalTransition: {
+        status: 'ACTIVE' as const,
+        round: 1,
+        currentActorId: turnBatchIds.actor
+      },
+      stagedLegendaryActionRefreshes: [
+        {
+          ordinal: 0,
+          actorId: turnBatchIds.actor,
+          actorCurrentnessChecksum: '2'.repeat(64),
+          ownerFeatureId: turnBatchIds.source,
+          chargeId: turnBatchIds.entry,
+          lifecycleDefinitionId: DEFINITION_ID,
+          lifecycleDefinitionVersion: 1,
+          lifecycleDefinitionChecksum: '3'.repeat(64),
+          beforeUsed: 2,
+          afterUsed: 0
+        }
+      ]
+    },
+    selectionChecksum: '1'.repeat(64),
+    currentCandidate: candidate(0, turnBatchIds.effect),
+    completedExecutions: [],
+    remainingCandidates: [] as ReturnType<typeof candidate>[]
+  }
+}
+
+function maintainedCharacterReceipt() {
+  type PriorState = {
+    id: string
+    version: number
+    maintenanceDefinitionId: string
+    descriptorChecksum: string
+    sourceActionId: string
+    sourceOccurrenceId: string
+    sourceActorId: string
+  }
+  type RemovedDependentEffect = {
+    kind: 'CHARACTER' | 'ENCOUNTER_ACTOR'
+    characterId?: string
+    targetActorId?: string
+    activeEffectId: string
+    createdOrdinal: number
+    expectedVersion: number
+    definitionChecksum: string
+    lifecycleChecksum: string
+  }
+  const before = {
+    currentHitPoints: 10,
+    temporaryHitPoints: 0,
+    maximumHitPoints: 10,
+    conditionIds: []
+  }
+  const activeEffectId = '00000000-0000-4000-8000-000000000301'
+  const maintainedStateId = '00000000-0000-4000-8000-000000000302'
+  const maintenanceDefinitionId = '00000000-0000-4000-8000-000000000303'
+  return {
+    kind: 'CHARACTER_MECHANICS_BATCH' as const,
+    schemaVersion: 1 as const,
+    occurrenceId: turnBatchIds.occurrence,
+    sourceActorId: turnBatchIds.actor,
+    sourceCharacterId: turnBatchIds.character,
+    targetActorId: turnBatchIds.actor,
+    sourceCharacterStreamVersion: null,
+    targetCharacterStreamVersion: 5,
+    resourceConsumption: null,
+    activeEffectTransitions: [
+      {
+        kind: 'CREATE' as const,
+        activeEffectId,
+        characterId: turnBatchIds.character,
+        sourceEncounterId: turnBatchIds.encounter,
+        createdOrdinal: 1,
+        afterVersion: 1,
+        authoredEffectId: turnBatchIds.source,
+        compiledEntryId: turnBatchIds.entry,
+        frozenGraphNodeId: 'effect-node',
+        definitionChecksum: 'a'.repeat(64),
+        lifecycleChecksum: 'b'.repeat(64),
+        frozenSourceChecksum: 'c'.repeat(64),
+        capabilityContractVersion: 1,
+        recurrenceStage: 'START_OF_TURN' as const,
+        remainingTicks: 2,
+        maintainedEffectStateId: maintainedStateId as string | null
+      }
+    ],
+    maintenanceTransition: {
+      kind: 'REPLACE_SAME_DEFINITION' as const,
+      priorState: null as PriorState | null,
+      removedDependentEffects: [] as RemovedDependentEffect[],
+      createdState: {
+        id: maintainedStateId,
+        version: 1,
+        maintenanceDefinitionId,
+        descriptorChecksum: 'd'.repeat(64),
+        definitionChecksum: 'e'.repeat(64),
+        sourceActionId: 'action-id',
+        sourceOccurrenceId: turnBatchIds.occurrence,
+        sourceActorId: turnBatchIds.actor
+      },
+      characterOwnerTransitions: [] as Array<{
+        characterId: string
+        beforeStreamVersion: number
+        afterStreamVersion: number
+      }>,
+      createdDependentEffectIds: [activeEffectId]
+    },
+    d20: null,
+    targetTransition: { checksum: 'f'.repeat(64), before, after: before },
+    applications: []
+  }
+}
+
 describe('rules runtime contracts', () => {
+  it('accepts only bounded canonical turn active-effect pending contexts', () => {
+    const pending = turnPendingContext()
+    expect(serverRuleExecutionPendingApplicationContextDtoSchema.parse(pending)).toMatchObject({
+      kind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS',
+      root: { stagedLegendaryActionRefreshes: [{ afterUsed: 0 }] }
+    })
+    const completed = turnBatchResult().executions[0]!
+    const chained = {
+      ...pending,
+      currentCandidate: {
+        ...pending.currentCandidate,
+        ordinal: 1,
+        activeEffectId: turnBatchIds.source,
+        createdOrdinal: 2
+      },
+      completedExecutions: [completed],
+      remainingCandidates: [
+        {
+          ...pending.currentCandidate,
+          ordinal: 2,
+          activeEffectId: turnBatchIds.entry,
+          createdOrdinal: 3
+        }
+      ]
+    }
+    expect(serverRuleExecutionPendingApplicationContextDtoSchema.parse(chained)).toMatchObject({
+      kind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS'
+    })
+    for (const invalid of [
+      { ...chained, currentCandidate: { ...chained.currentCandidate, ordinal: 3 } },
+      { ...chained, remainingCandidates: [{ ...chained.remainingCandidates[0]!, ordinal: 1 }] },
+      {
+        ...chained,
+        remainingCandidates: [
+          {
+            ...chained.remainingCandidates[0]!,
+            activeEffectId: chained.currentCandidate.activeEffectId
+          }
+        ]
+      },
+      {
+        ...pending,
+        currentCandidate: {
+          ...pending.currentCandidate,
+          owner: { kind: 'CHARACTER', characterId: turnBatchIds.character }
+        }
+      },
+      { ...pending, graph: { arbitrary: true } },
+      {
+        ...pending,
+        remainingCandidates: Array.from({ length: 129 }, (_, ordinal) => ({
+          ...pending.currentCandidate,
+          ordinal: ordinal + 1,
+          activeEffectId: `00000000-0000-4000-8000-${String(ordinal + 500).padStart(12, '0')}`
+        }))
+      }
+    ]) {
+      expect(() => serverRuleExecutionPendingApplicationContextDtoSchema.parse(invalid)).toThrow()
+    }
+  })
+
+  it('requires a complete frozen actor-rule source identity when a turn batch retains one', () => {
+    const pending = turnPendingContext()
+    const frozen = {
+      ...pending,
+      root: {
+        ...pending.root,
+        frozenActorRuleRevisionId: turnBatchIds.source,
+        frozenActorRuleRevisionChecksum: 'a'.repeat(64),
+        frozenActorRuleSnapshotChecksum: 'b'.repeat(64)
+      }
+    }
+    expect(serverRuleExecutionPendingApplicationContextDtoSchema.parse(frozen)).toMatchObject({
+      root: { frozenActorRuleRevisionId: turnBatchIds.source }
+    })
+    for (const malformed of [
+      { ...frozen, root: { ...frozen.root, frozenActorRuleRevisionChecksum: null } },
+      { ...frozen, root: { ...frozen.root, frozenActorRuleSnapshotChecksum: null } },
+      { ...frozen, root: { ...frozen.root, frozenActorRuleRevisionId: null } }
+    ]) {
+      expect(() => serverRuleExecutionPendingApplicationContextDtoSchema.parse(malformed)).toThrow()
+    }
+  })
+
+  it('retains only canonical server d20 policy facts beside a paused turn candidate', () => {
+    const pending = turnPendingContext()
+    const policy = {
+      requestNodeId: 'd20',
+      rollMode: 'ADVANTAGE' as const,
+      contributors: [
+        {
+          sourceId: 'grant:one',
+          grantId: null,
+          domainKey: null,
+          influence: 'ADVANTAGE' as const
+        }
+      ],
+      contributorChecksum: 'a'.repeat(64),
+      modifier: 3,
+      dc: 15
+    }
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...pending,
+        currentCandidate: { ...pending.currentCandidate, d20Policy: policy }
+      })
+    ).toMatchObject({ kind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS' })
+    expect(() =>
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...pending,
+        currentCandidate: {
+          ...pending.currentCandidate,
+          d20Policy: { ...policy, contributors: [...policy.contributors, policy.contributors[0]] }
+        }
+      })
+    ).toThrow()
+  })
+
+  it('retains a bounded Character-to-Encounter-actor action pause without Character-target pins', () => {
+    const pending = {
+      kind: 'ENCOUNTER_ACTOR_RULE_ACTION' as const,
+      schemaVersion: 1 as const,
+      actionId: 'action:fire-bolt',
+      sourceActorId: turnBatchIds.actor,
+      targetActorId: '00000000-0000-4000-8000-000000000301',
+      sourceCharacterId: turnBatchIds.character,
+      sourceCharacterStreamVersion: 4,
+      sourceProjectionChecksum: 'a'.repeat(64),
+      sourceMechanicalContextChecksum: 'b'.repeat(64),
+      targetCurrentnessChecksum: 'c'.repeat(64),
+      publishedDefinitionId: DEFINITION_ID,
+      publishedDefinitionChecksum: 'd'.repeat(64),
+      phase: {
+        kind: 'ACTION_EVIDENCE' as const,
+        d20: {
+          rollMode: 'NORMAL' as const,
+          contributors: [],
+          contributorChecksum: 'e'.repeat(64),
+          modifier: 5,
+          defenseOrDc: 14
+        }
+      }
+    }
+    expect(serverRuleExecutionPendingApplicationContextDtoSchema.parse(pending)).toMatchObject({
+      kind: 'ENCOUNTER_ACTOR_RULE_ACTION',
+      targetActorId: pending.targetActorId,
+      twoPhase: null
+    })
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...pending,
+        twoPhase: {
+          phase: 'TEST',
+          compilerSourceChecksum: 'f'.repeat(64),
+          testTemplateChecksum: 'a'.repeat(64),
+          boundFactsChecksum: 'b'.repeat(64)
+        }
+      })
+    ).toMatchObject({
+      kind: 'ENCOUNTER_ACTOR_RULE_ACTION',
+      twoPhase: { phase: 'TEST' }
+    })
+    const testExecution = turnBatchResult().executions[0]!.execution
+    const testExecutionChecksum = checksumRuleDocument(testExecution)
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...pending,
+        twoPhase: {
+          phase: 'OUTCOME',
+          compilerSourceChecksum: 'f'.repeat(64),
+          testTemplateChecksum: 'a'.repeat(64),
+          outcomeTemplateChecksum: 'b'.repeat(64),
+          boundFactsChecksum: 'c'.repeat(64),
+          testExecution,
+          testExecutionChecksum,
+          testRollEvidence: {
+            requestId: 'test-roll',
+            rollMode: 'NORMAL',
+            rawFaces: [12],
+            selectedNatural: 12
+          }
+        }
+      })
+    ).toMatchObject({
+      kind: 'ENCOUNTER_ACTOR_RULE_ACTION',
+      twoPhase: { phase: 'OUTCOME', testExecutionChecksum }
+    })
+    expect(() =>
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...pending,
+        targetCurrentnessChecksum: 'not-a-checksum'
+      })
+    ).toThrow()
+  })
+
+  it('accepts only bounded canonical concentration pending and terminal receipt contexts', () => {
+    const application = {
+      ordinal: 0,
+      sourceNodeId: 'damage',
+      sourceOperationKey: 'dnd5e.damage-proposal',
+      targetActorId: turnBatchIds.actor,
+      appliedAmount: 12,
+      damageTypeId: turnBatchIds.condition
+    }
+    const pending = {
+      kind: 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' as const,
+      schemaVersion: 1 as const,
+      parentOccurrenceId: turnBatchIds.occurrence,
+      parentCommandFingerprint: 'a'.repeat(64),
+      finalizedDamageEnvelopeChecksum: 'b'.repeat(64),
+      application,
+      maintainedState: {
+        id: '00000000-0000-4000-8000-000000000304',
+        version: 1,
+        maintenanceDefinitionId: '00000000-0000-4000-8000-000000000305',
+        descriptorChecksum: 'c'.repeat(64)
+      },
+      concentrationDefinition: {
+        id: '00000000-0000-4000-8000-0000000000c2',
+        checksum: 'd'.repeat(64)
+      },
+      save: {
+        savingThrowAbilityDefinitionId: '00000000-0000-0000-0011-000300000000',
+        modifier: 3,
+        rollMode: 'NORMAL',
+        contributors: [],
+        contributorChecksum: 'e'.repeat(64)
+      },
+      targetCharacter: {
+        streamVersion: 4,
+        baseProjectionChecksum: 'f'.repeat(64),
+        campaignOverlayChecksum: '1'.repeat(64),
+        mechanicalContextChecksum: '2'.repeat(64)
+      },
+      systemVocabularySnapshot: {
+        id: '00000000-0000-4000-8000-000000000307',
+        version: 2,
+        checksum: '3'.repeat(64)
+      },
+      contextChecksum: '4'.repeat(64),
+      remaining: []
+    }
+    expect(serverRuleExecutionPendingApplicationContextDtoSchema.parse(pending)).toMatchObject({
+      kind: 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK'
+    })
+    expect(
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        kind: 'CONCENTRATION_CHECK',
+        schemaVersion: 1,
+        occurrenceId: '00000000-0000-4000-8000-000000000306',
+        parentOccurrenceId: turnBatchIds.occurrence,
+        concentrationDefinition: pending.concentrationDefinition,
+        savingThrowAbilityDefinitionId: pending.save.savingThrowAbilityDefinitionId,
+        targetCharacter: pending.targetCharacter,
+        systemVocabularySnapshot: pending.systemVocabularySnapshot,
+        application: { ...application, maintainedStateId: pending.maintainedState.id },
+        outcome: 'SAVE_SUCCESS',
+        d20: {
+          requestId: 'concentration-d20',
+          rollMode: 'NORMAL',
+          rawFaces: [12],
+          selectedNatural: 12,
+          modifier: 3,
+          total: 15,
+          dc: 10,
+          contributors: pending.save.contributors,
+          contributorChecksum: pending.save.contributorChecksum
+        },
+        contextChecksum: pending.contextChecksum,
+        cleanup: null,
+        nextOccurrenceId: null,
+        skipped: []
+      })
+    ).toMatchObject({ kind: 'CONCENTRATION_CHECK', outcome: 'SAVE_SUCCESS' })
+    const canonicalContributors = [
+      { sourceId: 'Z!', grantId: null, domainKey: 'domain:one', influence: 'ADVANTAGE' as const },
+      { sourceId: 'a', grantId: 'grant.two', domainKey: null, influence: 'DISADVANTAGE' as const },
+      {
+        sourceId: 'a:source',
+        grantId: 'grant:two',
+        domainKey: '[]',
+        influence: 'DISADVANTAGE' as const
+      },
+      { sourceId: 'é', grantId: null, domainKey: null, influence: 'ADVANTAGE' as const }
+    ]
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...pending,
+        save: { ...pending.save, contributors: canonicalContributors }
+      })
+    ).toMatchObject({ kind: 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' })
+    expect(() =>
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...pending,
+        save: { ...pending.save, contributors: [...canonicalContributors].reverse() }
+      })
+    ).toThrow('canonical order')
+    expect(() =>
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...pending,
+        save: {
+          ...pending.save,
+          contributors: [canonicalContributors[0], canonicalContributors[0]]
+        }
+      })
+    ).toThrow('canonical order')
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        kind: 'CONCENTRATION_CHECK',
+        schemaVersion: 1,
+        occurrenceId: '00000000-0000-4000-8000-000000000306',
+        parentOccurrenceId: turnBatchIds.occurrence,
+        concentrationDefinition: pending.concentrationDefinition,
+        savingThrowAbilityDefinitionId: pending.save.savingThrowAbilityDefinitionId,
+        targetCharacter: pending.targetCharacter,
+        systemVocabularySnapshot: pending.systemVocabularySnapshot,
+        application: { ...application, maintainedStateId: pending.maintainedState.id },
+        outcome: 'SAVE_SUCCESS',
+        d20: {
+          requestId: 'concentration-d20',
+          rollMode: 'NORMAL',
+          rawFaces: [12],
+          selectedNatural: 12,
+          modifier: 3,
+          total: 15,
+          dc: 10,
+          contributors: [],
+          contributorChecksum: pending.save.contributorChecksum
+        },
+        contextChecksum: 'tampered',
+        cleanup: null,
+        nextOccurrenceId: null,
+        skipped: []
+      })
+    ).toThrow()
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        kind: 'CONCENTRATION_CHECK',
+        schemaVersion: 1,
+        occurrenceId: '00000000-0000-4000-8000-000000000306',
+        parentOccurrenceId: turnBatchIds.occurrence,
+        concentrationDefinition: pending.concentrationDefinition,
+        savingThrowAbilityDefinitionId: pending.save.savingThrowAbilityDefinitionId,
+        targetCharacter: pending.targetCharacter,
+        systemVocabularySnapshot: pending.systemVocabularySnapshot,
+        application: { ...application, maintainedStateId: pending.maintainedState.id },
+        outcome: 'SAVE_FAILURE',
+        d20: {
+          requestId: 'concentration-d20',
+          rollMode: 'NORMAL',
+          rawFaces: [2],
+          selectedNatural: 2,
+          modifier: 3,
+          total: 5,
+          dc: 10,
+          contributors: pending.save.contributors,
+          contributorChecksum: pending.save.contributorChecksum
+        },
+        contextChecksum: pending.contextChecksum,
+        cleanup: null,
+        nextOccurrenceId: null,
+        skipped: []
+      })
+    ).toThrow()
+  })
+  it('requires immutable active-effect identity/configuration and matching mutable ticks', () => {
+    const authoredEffectId = '00000000-0000-4000-8000-000000000011'
+    const compiledEntryId = '00000000-0000-4000-8000-000000000012'
+    const activeState = {
+      definition: {
+        schemaVersion: 1,
+        origin: {
+          kind: 'CHARACTER',
+          sourceAggregateId: '00000000-0000-4000-8000-000000000013',
+          sourceOccurrenceId: '00000000-0000-4000-8000-000000000014',
+          rootCommandId: '00000000-0000-4000-8000-000000000015'
+        },
+        authoredEffectId,
+        compiledEntryId,
+        frozenGraphNodeId: 'entry',
+        frozenGraph: {
+          schemaVersion: 1,
+          source: {
+            definitionId: authoredEffectId,
+            gameSystemId: '00000000-0000-4000-8000-000000000016',
+            definitionFamilyKey: 'effect',
+            checksum: 'a'.repeat(64)
+          },
+          capabilityContractVersion: 1,
+          factContracts: [],
+          nodes: [
+            {
+              id: 'entry',
+              operation: { key: 'comparison', contractVersion: 1 },
+              inputs: {}
+            }
+          ],
+          sourceEntryBindings: [{ sourceEntryId: compiledEntryId, nodeId: 'entry' }],
+          outputs: { result: { kind: 'LITERAL', value: true } }
+        },
+        adapterFacts: { active: true },
+        perceptionContributions: [],
+        recurrence: {
+          recurrenceStage: 'START_OF_TURN',
+          consumeOnFirstEvent: null,
+          endOnEvents: ['ON_ATTACK_ROLL'],
+          expiration: {
+            kind: 'TICKS',
+            initialRemaining: 2,
+            decrementStage: 'END_OF_TURN'
+          },
+          lifetimeScope: 'OWNER'
+        }
+      },
+      lifecycle: { schemaVersion: 1, remainingTicks: 2 }
+    }
+    expect(activeRuleEffectStateDtoSchema.parse(activeState)).toMatchObject(activeState)
+    const foreignSenseDocument = {
+      schemaVersion: 1 as const,
+      kind: 'SENSE' as const,
+      id: '00000000-0000-4000-8000-000000000017',
+      gameSystemId: '00000000-0000-4000-8000-000000000018',
+      capabilities: [
+        {
+          channel: 'VISUAL' as const,
+          accessGrade: 'PRECISE' as const,
+          satisfies: ['SEE' as const],
+          illuminationAccess: 'BRIGHT_ONLY' as const,
+          obscurementAccess: 'NONE' as const,
+          perceivesInvisible: false,
+          physicalConstraints: []
+        }
+      ]
+    }
+    expect(() =>
+      activeRuleEffectStateDtoSchema.parse({
+        ...activeState,
+        definition: {
+          ...activeState.definition,
+          perceptionContributions: [
+            {
+              id: '00000000-0000-4000-8000-000000000019',
+              order: 0,
+              kind: 'SENSE_GRANT',
+              senseDefinitionId: foreignSenseDocument.id,
+              definitionVersion: 1,
+              definitionContractVersion: 1,
+              definitionChecksum: checksumRuleDocument(foreignSenseDocument),
+              document: foreignSenseDocument,
+              range: null
+            }
+          ]
+        }
+      })
+    ).toThrow('Game System')
+    expect(compiledEntryId).not.toBe(authoredEffectId)
+    expect(() =>
+      activeRuleEffectStateDtoSchema.parse({
+        ...activeState,
+        definition: {
+          ...activeState.definition,
+          authoredEffectId: compiledEntryId
+        }
+      })
+    ).toThrow()
+    expect(() =>
+      activeRuleEffectStateDtoSchema.parse({
+        ...activeState,
+        definition: {
+          ...activeState.definition,
+          frozenGraph: {
+            ...activeState.definition.frozenGraph,
+            sourceEntryBindings: [
+              { sourceEntryId: compiledEntryId, nodeId: 'entry' },
+              {
+                sourceEntryId: '00000000-0000-4000-8000-000000000099',
+                nodeId: 'entry'
+              }
+            ]
+          }
+        }
+      })
+    ).toThrow()
+    expect(() =>
+      activeRuleEffectStateDtoSchema.parse({
+        ...activeState,
+        definition: {
+          ...activeState.definition,
+          frozenGraph: {
+            ...activeState.definition.frozenGraph,
+            sourceEntryBindings: [{ sourceEntryId: compiledEntryId, nodeId: 'missing' }]
+          }
+        }
+      })
+    ).toThrow()
+    expect(() =>
+      activeRuleEffectStateDtoSchema.parse({
+        ...activeState,
+        definition: {
+          ...activeState.definition,
+          frozenGraphNodeId: 'missing'
+        }
+      })
+    ).toThrow()
+    expect(() =>
+      activeRuleEffectStateDtoSchema.parse({
+        ...activeState,
+        lifecycle: { schemaVersion: 1, remainingTicks: null }
+      })
+    ).toThrow()
+    expect(() =>
+      activeRuleEffectStateDtoSchema.parse({
+        ...activeState,
+        definition: {
+          ...activeState.definition,
+          recurrence: {
+            ...activeState.definition.recurrence,
+            endOnEvents: ['ON_ATTACK_ROLL', 'ON_ATTACK_ROLL']
+          }
+        }
+      })
+    ).toThrow()
+  })
   it('accepts a bounded UUID-backed definition and System capability', () => {
     expect(
-      gameSystemCapabilityDtoSchema.parse({
+      gameSystemRuleCapabilityDtoSchema.parse({
         gameSystemId: SYSTEM_ID,
         contractVersion: 1,
         authoredRootKinds: ['action'],
@@ -43,6 +948,32 @@ describe('rules runtime contracts', () => {
       })
     ).toMatchObject({ gameSystemId: SYSTEM_ID })
     expect(ruleGraphDefinitionDtoSchema.parse(definition)).toEqual(definition)
+    expect(() =>
+      ruleGraphDefinitionDtoSchema.parse({
+        ...definition,
+        sourceEntryBindings: [
+          {
+            sourceEntryId: '00000000-0000-4000-8000-000000000098',
+            nodeId: 'threshold'
+          },
+          {
+            sourceEntryId: '00000000-0000-4000-8000-000000000099',
+            nodeId: 'threshold'
+          }
+        ]
+      })
+    ).toThrow()
+    expect(
+      gameSystemRuleCapabilityDtoSchema.parse({
+        gameSystemId: SEEDED_SYSTEM_ID,
+        contractVersion: 1,
+        authoredRootKinds: ['action'],
+        definitionFamilyKeys: ['test-resolution'],
+        factContracts: [],
+        operationContracts: [{ key: 'number.compare-threshold', contractVersion: 1 }]
+      }).gameSystemId
+    ).toBe(SEEDED_SYSTEM_ID)
+    expect(publicRulesRuntime).not.toHaveProperty('gameSystemCapabilityDtoSchema')
   })
 
   it('rejects invalid identities, arbitrary operation keys, and unbounded graph inputs', () => {
@@ -67,13 +998,24 @@ describe('rules runtime contracts', () => {
   })
 
   it('accepts runtime facts separately from the published definition', () => {
+    const parsed = serverRuleExecutionInputDtoSchema.parse({
+      definitionId: DEFINITION_ID.toUpperCase(),
+      occurrenceId: '44444444-4444-4444-8444-444444444444'.toUpperCase(),
+      facts: { 'actor.value': 12 }
+    })
+    expect(parsed).toMatchObject({
+      definitionId: DEFINITION_ID,
+      occurrenceId: '44444444-4444-4444-8444-444444444444',
+      facts: { 'actor.value': 12 }
+    })
+  })
+
+  it('normalizes trusted correlation identity before it reaches a receipt', () => {
     expect(
-      serverRuleExecutionInputDtoSchema.parse({
-        definitionId: DEFINITION_ID,
-        occurrenceId: '44444444-4444-4444-8444-444444444444',
-        facts: { 'actor.value': 12 }
-      }).facts
-    ).toEqual({ 'actor.value': 12 })
+      serverRuleExecutionCorrelationIdDtoSchema.parse('AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA')
+    ).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+    expect(serverRuleExecutionCorrelationIdDtoSchema.parse(null)).toBeNull()
+    expect(() => serverRuleExecutionCorrelationIdDtoSchema.parse('not-a-uuid')).toThrow()
   })
 
   it('keeps the published source envelope distinct from a runtime invocation', () => {
@@ -87,5 +1029,946 @@ describe('rules runtime contracts', () => {
       })
     ).toMatchObject({ id: DEFINITION_ID, definition })
     expect(publicRulesRuntime).not.toHaveProperty('serverCompletedRuleExecutionDtoSchema')
+  })
+
+  it('retains only closed, non-executable receipt metadata and results', () => {
+    expect(
+      serverRuleExecutionReceiptCommandMetadataDtoSchema.parse({
+        schemaVersion: 1,
+        transition: 'START',
+        definitionId: DEFINITION_ID,
+        expectedAggregateVersion: 2,
+        factsChecksum: 'a'.repeat(64)
+      })
+    ).toMatchObject({ transition: 'START' })
+    expect(() =>
+      serverRuleExecutionReceiptCommandMetadataDtoSchema.parse({
+        schemaVersion: 1,
+        transition: 'RESUME',
+        expectedAggregateVersion: 2,
+        expectedOccurrenceVersion: 1,
+        response: { requestId: 'request-1', value: 14 },
+        continuation: { graph: {} }
+      })
+    ).toThrow()
+    expect(() =>
+      storedRuleExecutionResultDtoSchema.parse({
+        status: 'PAUSED',
+        occurrenceId: '44444444-4444-4444-8444-444444444444',
+        occurrenceVersion: 0,
+        request: {
+          requestId: 'request-1',
+          kind: 'INTEGER_RANGE',
+          nodeId: 'roll',
+          ordinal: 0,
+          min: 1,
+          max: 20
+        },
+        continuation: { graph: {} }
+      })
+    ).toThrow()
+  })
+
+  it('requires exact settlement or advancement evidence for initiative completion', () => {
+    const base = {
+      status: 'INITIATIVE_COMPLETE' as const,
+      schemaVersion: 1 as const,
+      occurrenceId: turnBatchIds.occurrence,
+      occurrenceVersion: 0,
+      encounterId: turnBatchIds.encounter,
+      commandType: 'ADVANCE_TURN' as const,
+      initiative: null
+    }
+    expect(
+      storedRuleExecutionResultDtoSchema.parse({
+        ...base,
+        initiativeAdvance: {
+          kind: 'SAME_ROUND',
+          round: 1,
+          stateChecksum: 'a'.repeat(64),
+          currentActorId: turnBatchIds.actor,
+          nextActorId: turnBatchIds.source
+        }
+      })
+    ).toMatchObject({ status: 'INITIATIVE_COMPLETE', initiative: null })
+    expect(() =>
+      storedRuleExecutionResultDtoSchema.parse({ ...base, initiativeAdvance: null })
+    ).toThrow('Initiative completion requires settlement or advancement evidence.')
+  })
+
+  it('accepts each-round reordering only when the sealed actor cohort is unchanged', () => {
+    const initiativeAdvance = {
+      kind: 'ROUND_WRAP' as const,
+      round: 1,
+      nextRound: 2,
+      cadence: 'EACH_ROUND' as const,
+      stateChecksum: 'a'.repeat(64),
+      currentActorId: turnBatchIds.actor,
+      firstActorId: null,
+      orderedActorIds: [turnBatchIds.actor, turnBatchIds.source],
+      orderedSideIds: []
+    }
+    const result = {
+      status: 'TURN_LIFECYCLE_COMPLETE' as const,
+      schemaVersion: 1 as const,
+      occurrenceId: turnBatchIds.occurrence,
+      occurrenceVersion: 1,
+      encounterId: turnBatchIds.encounter,
+      commandType: 'ADVANCE_TURN' as const,
+      initiativeAdvance,
+      initiative: {
+        round: 2,
+        procedure: 'ACTOR_SCORE' as const,
+        cadence: 'EACH_ROUND' as const,
+        policySnapshotChecksum: 'b'.repeat(64),
+        orderedActorIds: [turnBatchIds.source, turnBatchIds.actor],
+        orderedSideIds: [],
+        evidence: {
+          primaryResults: [
+            {
+              entity: { kind: 'ACTOR' as const, id: turnBatchIds.actor },
+              result: { kind: 'FACTS_UNAVAILABLE' as const }
+            },
+            {
+              entity: { kind: 'ACTOR' as const, id: turnBatchIds.source },
+              result: { kind: 'FACTS_UNAVAILABLE' as const }
+            }
+          ],
+          tieAttempts: [],
+          orderChoices: []
+        }
+      },
+      outgoingTurn: { kind: 'NONE' as const, selectionChecksum: null },
+      incomingTurn: { kind: 'NONE' as const, selectionChecksum: null }
+    }
+
+    expect(storedRuleExecutionResultDtoSchema.parse(result)).toMatchObject({
+      status: 'TURN_LIFECYCLE_COMPLETE',
+      initiative: { orderedActorIds: [turnBatchIds.source, turnBatchIds.actor] },
+      legendaryActions: []
+    })
+    expect(() =>
+      storedRuleExecutionResultDtoSchema.parse({
+        ...result,
+        initiative: {
+          ...result.initiative,
+          orderedActorIds: [turnBatchIds.actor, turnBatchIds.effect]
+        }
+      })
+    ).toThrow('Turn initiative settlement must match its sealed advancement.')
+  })
+
+  it('validates ordered actor-removal maintenance cleanup receipts', () => {
+    const result = {
+      status: 'MAINTENANCE_COMPLETE' as const,
+      schemaVersion: 1 as const,
+      occurrenceId: turnBatchIds.occurrence,
+      occurrenceVersion: 0,
+      encounterId: turnBatchIds.encounter,
+      removedActorId: turnBatchIds.actor,
+      reason: 'ACTOR_REMOVED' as const,
+      terminatedStates: [
+        {
+          id: turnBatchIds.effect,
+          ownerActorId: turnBatchIds.actor,
+          maintenanceDefinitionId: turnBatchIds.source,
+          expectedVersion: 1,
+          descriptorChecksum: 'a'.repeat(64)
+        }
+      ],
+      removedEffects: [
+        {
+          kind: 'CHARACTER' as const,
+          ownerId: turnBatchIds.character,
+          activeEffectId: turnBatchIds.effect,
+          createdOrdinal: 1,
+          expectedVersion: 1,
+          definitionChecksum: 'b'.repeat(64),
+          lifecycleChecksum: 'c'.repeat(64)
+        }
+      ],
+      characterOwnerTransitions: [
+        {
+          characterId: turnBatchIds.character,
+          beforeStreamVersion: 1,
+          afterStreamVersion: 2
+        }
+      ]
+    }
+    expect(storedRuleExecutionResultDtoSchema.parse(result)).toMatchObject({
+      status: 'MAINTENANCE_COMPLETE'
+    })
+    expect(() =>
+      storedRuleExecutionResultDtoSchema.parse({
+        ...result,
+        characterOwnerTransitions: [
+          { ...result.characterOwnerTransitions[0], afterStreamVersion: 3 }
+        ]
+      })
+    ).toThrow()
+  })
+
+  it('accepts exact maintenance cleanup bounds and rejects one additional row', () => {
+    const id = (ordinal: number) =>
+      `00000000-0000-4000-8000-${ordinal.toString().padStart(12, '0')}`
+    const result = {
+      status: 'MAINTENANCE_COMPLETE' as const,
+      schemaVersion: 1 as const,
+      occurrenceId: turnBatchIds.occurrence,
+      occurrenceVersion: 0,
+      encounterId: turnBatchIds.encounter,
+      removedActorId: turnBatchIds.actor,
+      reason: 'ACTOR_REMOVED' as const,
+      terminatedStates: Array.from(
+        { length: MAX_MAINTENANCE_CLEANUP_TERMINATED_STATES },
+        (_, index) => ({
+          id: id(index + 1),
+          ownerActorId: turnBatchIds.actor,
+          maintenanceDefinitionId: turnBatchIds.source,
+          expectedVersion: 1,
+          descriptorChecksum: 'a'.repeat(64)
+        })
+      ),
+      removedEffects: Array.from(
+        { length: MAX_MAINTENANCE_CLEANUP_REMOVED_EFFECTS },
+        (_, index) => ({
+          kind: 'CHARACTER' as const,
+          ownerId: turnBatchIds.character,
+          activeEffectId: id(index + 200),
+          createdOrdinal: index + 1,
+          expectedVersion: 1,
+          definitionChecksum: 'b'.repeat(64),
+          lifecycleChecksum: 'c'.repeat(64)
+        })
+      ),
+      characterOwnerTransitions: Array.from(
+        { length: MAX_MAINTENANCE_CLEANUP_CHARACTER_TRANSITIONS },
+        (_, index) => ({
+          characterId: id(index + 400),
+          beforeStreamVersion: 1,
+          afterStreamVersion: 2
+        })
+      )
+    }
+    expect(storedRuleExecutionResultDtoSchema.parse(result)).toMatchObject({
+      status: 'MAINTENANCE_COMPLETE'
+    })
+    expect(() =>
+      storedRuleExecutionResultDtoSchema.parse({
+        ...result,
+        removedEffects: [
+          ...result.removedEffects,
+          {
+            ...result.removedEffects.at(-1)!,
+            activeEffectId: id(999),
+            createdOrdinal: MAX_MAINTENANCE_CLEANUP_REMOVED_EFFECTS + 1
+          }
+        ]
+      })
+    ).toThrow()
+  })
+
+  it('validates complete turn-effect receipts and rejects malformed batch evidence', () => {
+    expect(storedRuleExecutionResultDtoSchema.parse(turnBatchResult())).toMatchObject({
+      status: 'BATCH_COMPLETE'
+    })
+    const invalid = (mutate: (result: ReturnType<typeof turnBatchResult>) => void) => {
+      const result = structuredClone(turnBatchResult())
+      mutate(result)
+      expect(() => storedRuleExecutionResultDtoSchema.parse(result)).toThrow()
+    }
+    invalid((result) => {
+      Reflect.set(result, 'commandType', 'ADVANCE_TURN')
+    })
+    invalid((result) => {
+      result.executions[0]!.ordinal = 1
+    })
+    invalid((result) => {
+      result.executions[0]!.lifecycle = {
+        ...result.executions[0]!.lifecycle,
+        beforeRemainingTicks: 2
+      }
+    })
+    invalid((result) => {
+      result.executions[0]!.execution.evidence.sourceEntryBindings = []
+    })
+    invalid((result) => {
+      Reflect.set(result.executions[0]!.execution.evidence.trace[0]!.outputs, 'authorized', false)
+    })
+    invalid((result) => {
+      result.executions[0]!.execution.evidence.trace.push(
+        structuredClone(result.executions[0]!.execution.evidence.trace[0]!)
+      )
+    })
+    invalid((result) => {
+      Reflect.set(
+        result.executions[0]!.execution.evidence.trace[0]!.outputs,
+        'targetStateChecksum',
+        'd'.repeat(64)
+      )
+    })
+    invalid((result) => {
+      Reflect.set(result.executions[0]!.execution, 'outputs', { result: true })
+    })
+    invalid((result) => {
+      Reflect.set(result.executions[0]!, 'applications', [])
+    })
+    invalid((result) => {
+      const extra = structuredClone(result.executions[0]!.execution.evidence.trace[0]!)
+      Reflect.set(extra, 'nodeId', 'unbound-candidate-node')
+      Reflect.set(extra.outputs, 'targetStateChecksum', 'd'.repeat(64))
+      result.executions[0]!.execution.evidence.trace.push(extra)
+    })
+    invalid((result) => {
+      result.executions[0]!.applications[0]!.sourceNodeId = 'other-node'
+    })
+    invalid((result) => {
+      const application = result.executions[0]!.applications[0]!
+      if (application.kind !== 'CONDITION_APPLY') throw new Error('Expected condition fixture.')
+      application.applied = false
+    })
+    invalid((result) => {
+      result.characterTransitions[0]!.targetActorId = turnBatchIds.effect
+    })
+    for (const mutate of [
+      (result: ReturnType<typeof turnBatchResult>) =>
+        Reflect.set(result.executions[0]!, 'd20', {
+          requestId: 'turn-effect-d20',
+          rollMode: 'NORMAL',
+          rawFaces: [14],
+          selectedNatural: 14,
+          contributors: [],
+          contributorChecksum: 'a'.repeat(64),
+          modifier: 2,
+          total: 16,
+          defenseOrDc: 12,
+          resultPath: 'ON_SAVE_SUCCESS'
+        }),
+      (result: ReturnType<typeof turnBatchResult>) =>
+        Reflect.set(result.executions[0]!, 'd20', {
+          requestId: 'turn-effect-d20',
+          rollMode: 'ADVANTAGE',
+          rawFaces: [14],
+          selectedNatural: 14,
+          contributors: [],
+          contributorChecksum: 'a'.repeat(64),
+          modifier: 2,
+          total: 16,
+          defenseOrDc: 12,
+          resultPath: 'ON_SAVE_SUCCESS'
+        }),
+      (result: ReturnType<typeof turnBatchResult>) =>
+        Reflect.set(result.executions[0]!, 'd20', {
+          requestId: 'turn-effect-d20',
+          rollMode: 'NORMAL',
+          rawFaces: [14],
+          selectedNatural: 13,
+          contributors: [],
+          contributorChecksum: 'a'.repeat(64),
+          modifier: 2,
+          total: 15,
+          defenseOrDc: 12,
+          resultPath: 'ON_SAVE_SUCCESS'
+        }),
+      (result: ReturnType<typeof turnBatchResult>) =>
+        Reflect.set(result.executions[0]!, 'd20', {
+          requestId: 'wrong-request',
+          rollMode: 'NORMAL',
+          rawFaces: [14],
+          selectedNatural: 14,
+          contributors: [],
+          contributorChecksum: 'a'.repeat(64),
+          modifier: 2,
+          total: 16,
+          defenseOrDc: 12,
+          resultPath: 'ON_SAVE_SUCCESS'
+        })
+    ])
+      invalid(mutate)
+
+    const suppressed = () => {
+      const result = structuredClone(turnBatchResult())
+      Reflect.set(result.executions[0]!, 'applications', [])
+      Reflect.set(result.executions[0]!.execution.evidence.trace[0]!.outputs, 'authorized', false)
+      return result
+    }
+    expect(storedRuleExecutionResultDtoSchema.parse(suppressed())).toMatchObject({
+      status: 'BATCH_COMPLETE'
+    })
+    for (const mutate of [
+      (result: ReturnType<typeof suppressed>) =>
+        Reflect.set(
+          result.executions[0]!.execution.evidence.trace[0]!.outputs,
+          'conditionId',
+          'not-a-uuid'
+        ),
+      (result: ReturnType<typeof suppressed>) =>
+        Reflect.deleteProperty(
+          result.executions[0]!.execution.evidence.trace[0]!.outputs,
+          'conditionId'
+        ),
+      (result: ReturnType<typeof suppressed>) =>
+        Reflect.set(
+          result.executions[0]!.execution.evidence.trace[0]!.outputs,
+          'targetActorId',
+          turnBatchIds.effect
+        ),
+      (result: ReturnType<typeof suppressed>) =>
+        Reflect.set(
+          result.executions[0]!.execution.evidence.trace[0]!.outputs,
+          'targetStateChecksum',
+          'd'.repeat(64)
+        ),
+      (result: ReturnType<typeof suppressed>) => {
+        const extra = structuredClone(result.executions[0]!.execution.evidence.trace[0]!)
+        Reflect.set(extra.outputs, 'authorized', true)
+        result.executions[0]!.execution.evidence.trace.push(extra)
+      }
+    ]) {
+      const result = suppressed()
+      mutate(result)
+      expect(() => storedRuleExecutionResultDtoSchema.parse(result)).toThrow()
+    }
+  })
+
+  it('accepts recurring-save terminal failures and successes with canonical d20 evidence', () => {
+    expect(
+      storedRuleExecutionResultDtoSchema.parse(recurringSaveBatchResult('ON_SAVE_FAIL'))
+    ).toMatchObject({
+      status: 'BATCH_COMPLETE',
+      executions: [{ applications: [expect.any(Object)], d20: { selectedNatural: 12 } }]
+    })
+    expect(
+      storedRuleExecutionResultDtoSchema.parse(recurringSaveBatchResult('ON_SAVE_SUCCESS'))
+    ).toMatchObject({
+      status: 'BATCH_COMPLETE',
+      executions: [{ applications: [], d20: { selectedNatural: 12 } }]
+    })
+
+    const invalid = (mutate: (result: ReturnType<typeof recurringSaveBatchResult>) => void) => {
+      const result = structuredClone(recurringSaveBatchResult('ON_SAVE_SUCCESS'))
+      mutate(result)
+      expect(() => storedRuleExecutionResultDtoSchema.parse(result)).toThrow()
+    }
+    invalid((result) => {
+      result.executions[0]!.execution.evidence.trace[0]!.outputs.targetActorId = turnBatchIds.effect
+    })
+    invalid((result) => {
+      result.executions[0]!.d20!.selectedNatural = 11
+    })
+    invalid((result) => {
+      result.executions[0]!.d20!.total = 14
+    })
+    invalid((result) => {
+      result.executions[0]!.d20!.resultPath = 'ON_SAVE_FAIL'
+    })
+    invalid((result) => {
+      result.executions[0]!.d20!.contributorChecksum = 'b'.repeat(64)
+    })
+    invalid((result) => {
+      result.executions[0]!.execution.evidence.trace[0]!.outputs.resolvedPath = 'ON_SAVE_FAIL'
+    })
+    const tamperedOutputs = {
+      targetActorId: turnBatchIds.effect,
+      naturalD20: 11,
+      total: 14,
+      resultPath: 'ON_SAVE_FAIL',
+      contributorChecksum: 'b'.repeat(64)
+    } as const
+    for (const field of Object.keys(tamperedOutputs) as (keyof typeof tamperedOutputs)[]) {
+      invalid((result) => {
+        delete result.executions[0]!.execution.outputs[field]
+        delete result.executions[0]!.execution.evidence.outputs[field]
+      })
+      invalid((result) => {
+        result.executions[0]!.execution.outputs[field] = tamperedOutputs[field]
+        result.executions[0]!.execution.evidence.outputs[field] = tamperedOutputs[field]
+      })
+    }
+  })
+
+  it('rejects under-applied persisted Character mechanics outcomes', () => {
+    const before = {
+      currentHitPoints: 8,
+      temporaryHitPoints: 2,
+      maximumHitPoints: 10,
+      conditionIds: []
+    }
+    const envelope = (application: Record<string, unknown>, after: typeof before) => ({
+      kind: 'CHARACTER_MECHANICS_BATCH' as const,
+      schemaVersion: 1 as const,
+      occurrenceId: turnBatchIds.occurrence,
+      sourceActorId: turnBatchIds.actor,
+      targetActorId: turnBatchIds.actor,
+      sourceCharacterStreamVersion: null,
+      targetCharacterStreamVersion: 1,
+      resourceConsumption: null,
+      activeEffectTransitions: [],
+      d20: null,
+      targetTransition: { checksum: 'a'.repeat(64), before, after },
+      applications: [{ ordinal: 0, ...application }]
+    })
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse(
+        envelope(
+          {
+            kind: 'HEAL',
+            requestedAmount: 3,
+            resolvedAmount: 3,
+            appliedAmount: 1,
+            beforeCurrentHitPoints: 8,
+            afterCurrentHitPoints: 9,
+            beforeTemporaryHitPoints: 2,
+            afterTemporaryHitPoints: 2,
+            maximumHitPoints: 10,
+            sourceNodeId: 'effect-node',
+            sourceOperationKey: 'effect.apply',
+            authoredPath: null,
+            resolvedPath: null
+          },
+          { ...before, currentHitPoints: 9 }
+        )
+      )
+    ).toThrow()
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse(
+        envelope(
+          {
+            kind: 'DAMAGE',
+            requestedAmount: 4,
+            resolvedAmount: 4,
+            appliedAmount: 4,
+            beforeCurrentHitPoints: 8,
+            afterCurrentHitPoints: 4,
+            beforeTemporaryHitPoints: 2,
+            afterTemporaryHitPoints: 2,
+            maximumHitPoints: 10,
+            damageTypeId: turnBatchIds.condition,
+            damageDisposition: 'NORMAL',
+            sourceNodeId: 'effect-node',
+            sourceOperationKey: 'effect.apply',
+            authoredPath: null,
+            resolvedPath: null
+          },
+          { ...before, currentHitPoints: 4 }
+        )
+      )
+    ).toThrow()
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse(
+        envelope(
+          {
+            kind: 'TEMPORARY_HIT_POINTS',
+            requestedAmount: 5,
+            resolvedAmount: 5,
+            appliedAmount: 5,
+            beforeCurrentHitPoints: 8,
+            afterCurrentHitPoints: 8,
+            beforeTemporaryHitPoints: 2,
+            afterTemporaryHitPoints: 7,
+            maximumHitPoints: 10,
+            sourceNodeId: 'effect-node',
+            sourceOperationKey: 'effect.apply',
+            authoredPath: null,
+            resolvedPath: null
+          },
+          { ...before, temporaryHitPoints: 7 }
+        )
+      )
+    ).toThrow()
+  })
+
+  it('rejects malformed maintained Character receipt replacement invariants', () => {
+    expect(
+      serverRuleExecutionApplicationOutputsDtoSchema.parse(maintainedCharacterReceipt())
+    ).toMatchObject({ kind: 'CHARACTER_MECHANICS_BATCH' })
+    const invalid = (mutate: (receipt: ReturnType<typeof maintainedCharacterReceipt>) => void) => {
+      const receipt = structuredClone(maintainedCharacterReceipt())
+      mutate(receipt)
+      expect(() => serverRuleExecutionApplicationOutputsDtoSchema.parse(receipt)).toThrow()
+    }
+    invalid((receipt) => {
+      receipt.maintenanceTransition.removedDependentEffects.push({
+        kind: 'CHARACTER',
+        characterId: turnBatchIds.character,
+        activeEffectId: turnBatchIds.effect,
+        createdOrdinal: 1,
+        expectedVersion: 1,
+        definitionChecksum: 'a'.repeat(64),
+        lifecycleChecksum: 'b'.repeat(64)
+      })
+    })
+    invalid((receipt) => {
+      receipt.maintenanceTransition.priorState = {
+        id: turnBatchIds.effect,
+        version: 1,
+        maintenanceDefinitionId: turnBatchIds.effect,
+        descriptorChecksum: 'a'.repeat(64),
+        sourceActionId: 'prior-action',
+        sourceOccurrenceId: turnBatchIds.source,
+        sourceActorId: turnBatchIds.effect
+      }
+      receipt.maintenanceTransition.removedDependentEffects.push({
+        kind: 'CHARACTER',
+        characterId: turnBatchIds.character,
+        activeEffectId: turnBatchIds.effect,
+        createdOrdinal: 1,
+        expectedVersion: 1,
+        definitionChecksum: 'a'.repeat(64),
+        lifecycleChecksum: 'b'.repeat(64)
+      })
+      receipt.maintenanceTransition.characterOwnerTransitions.push({
+        characterId: turnBatchIds.character,
+        beforeStreamVersion: 3,
+        afterStreamVersion: 4
+      })
+    })
+    invalid((receipt) => {
+      const removed = receipt.maintenanceTransition.removedDependentEffects
+      removed.push(
+        {
+          kind: 'CHARACTER',
+          characterId: turnBatchIds.character,
+          activeEffectId: turnBatchIds.effect,
+          createdOrdinal: 2,
+          expectedVersion: 1,
+          definitionChecksum: 'a'.repeat(64),
+          lifecycleChecksum: 'b'.repeat(64)
+        },
+        {
+          kind: 'CHARACTER',
+          characterId: turnBatchIds.character,
+          activeEffectId: turnBatchIds.source,
+          createdOrdinal: 1,
+          expectedVersion: 1,
+          definitionChecksum: 'a'.repeat(64),
+          lifecycleChecksum: 'b'.repeat(64)
+        }
+      )
+      receipt.maintenanceTransition.priorState = {
+        id: turnBatchIds.entry,
+        version: 1,
+        maintenanceDefinitionId: receipt.maintenanceTransition.createdState.maintenanceDefinitionId,
+        descriptorChecksum: 'a'.repeat(64),
+        sourceActionId: 'prior-action',
+        sourceOccurrenceId: turnBatchIds.source,
+        sourceActorId: turnBatchIds.actor
+      }
+      receipt.maintenanceTransition.characterOwnerTransitions.push(
+        { characterId: turnBatchIds.character, beforeStreamVersion: 3, afterStreamVersion: 4 },
+        { characterId: turnBatchIds.character, beforeStreamVersion: 3, afterStreamVersion: 4 }
+      )
+    })
+    invalid((receipt) => {
+      receipt.maintenanceTransition.priorState = {
+        id: turnBatchIds.entry,
+        version: 1,
+        maintenanceDefinitionId: receipt.maintenanceTransition.createdState.maintenanceDefinitionId,
+        descriptorChecksum: 'a'.repeat(64),
+        sourceActionId: 'prior-action',
+        sourceOccurrenceId: turnBatchIds.source,
+        sourceActorId: turnBatchIds.actor
+      }
+      receipt.maintenanceTransition.removedDependentEffects.push({
+        kind: 'CHARACTER',
+        characterId: turnBatchIds.character,
+        activeEffectId: turnBatchIds.effect,
+        createdOrdinal: 1,
+        expectedVersion: 1,
+        definitionChecksum: 'a'.repeat(64),
+        lifecycleChecksum: 'b'.repeat(64)
+      })
+    })
+    invalid((receipt) => {
+      receipt.activeEffectTransitions[0]!.maintainedEffectStateId = turnBatchIds.effect
+    })
+  })
+
+  it('retains one Character owner transition for multiple removed maintained dependents', () => {
+    const receipt = structuredClone(maintainedCharacterReceipt())
+    receipt.maintenanceTransition.priorState = {
+      id: '00000000-0000-4000-8000-000000000304',
+      version: 1,
+      maintenanceDefinitionId: receipt.maintenanceTransition.createdState.maintenanceDefinitionId,
+      descriptorChecksum: 'a'.repeat(64),
+      sourceActionId: 'prior-action',
+      sourceOccurrenceId: turnBatchIds.source,
+      sourceActorId: turnBatchIds.actor
+    }
+    receipt.maintenanceTransition.removedDependentEffects.push(
+      {
+        kind: 'CHARACTER',
+        characterId: turnBatchIds.character,
+        activeEffectId: '00000000-0000-4000-8000-000000000305',
+        createdOrdinal: 1,
+        expectedVersion: 1,
+        definitionChecksum: 'a'.repeat(64),
+        lifecycleChecksum: 'b'.repeat(64)
+      },
+      {
+        kind: 'CHARACTER',
+        characterId: turnBatchIds.character,
+        activeEffectId: '00000000-0000-4000-8000-000000000306',
+        createdOrdinal: 2,
+        expectedVersion: 1,
+        definitionChecksum: 'a'.repeat(64),
+        lifecycleChecksum: 'b'.repeat(64)
+      }
+    )
+    receipt.maintenanceTransition.characterOwnerTransitions.push({
+      characterId: turnBatchIds.character,
+      beforeStreamVersion: 3,
+      afterStreamVersion: 4
+    })
+
+    expect(serverRuleExecutionApplicationOutputsDtoSchema.parse(receipt)).toMatchObject({
+      kind: 'CHARACTER_MECHANICS_BATCH',
+      maintenanceTransition: {
+        characterOwnerTransitions: [
+          {
+            characterId: turnBatchIds.character,
+            beforeStreamVersion: 3,
+            afterStreamVersion: 4
+          }
+        ]
+      }
+    })
+  })
+
+  it('records only exact, non-overlapping Encounter Feature resource consumption', () => {
+    const receipt = {
+      kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' as const,
+      schemaVersion: 1 as const,
+      occurrenceId: turnBatchIds.occurrence,
+      sourceActorId: turnBatchIds.actor,
+      targetActorId: turnBatchIds.effect,
+      sourceCharacterStreamVersion: null,
+      resourceConsumption: null,
+      featureResourceConsumption: {
+        ownerActorId: turnBatchIds.actor,
+        ownerFeatureId: 'feature-id',
+        chargeId: 'feature-charge',
+        cost: 1,
+        beforeUsed: 0,
+        afterUsed: 1,
+        beforeRemaining: 2,
+        afterRemaining: 1
+      },
+      d20: null,
+      targetTransition: {
+        checksum: 'a'.repeat(64),
+        before: {
+          currentHitPoints: 10,
+          temporaryHitPoints: 0,
+          maximumHitPoints: 10,
+          conditionIds: []
+        },
+        after: {
+          currentHitPoints: 10,
+          temporaryHitPoints: 0,
+          maximumHitPoints: 10,
+          conditionIds: []
+        }
+      },
+      applications: []
+    }
+    expect(serverRuleExecutionApplicationOutputsDtoSchema.parse(receipt)).toMatchObject({
+      featureResourceConsumption: { ownerFeatureId: 'feature-id', afterUsed: 1 }
+    })
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...receipt,
+        featureResourceConsumption: {
+          ...receipt.featureResourceConsumption,
+          ownerActorId: turnBatchIds.effect
+        }
+      })
+    ).toThrow('feature resource receipt')
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...receipt,
+        featureResourceConsumption: {
+          ...receipt.featureResourceConsumption,
+          afterRemaining: 2
+        }
+      })
+    ).toThrow('feature resource receipt')
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...receipt,
+        resourceConsumption: {
+          poolId: 'pool',
+          chargeId: 'charge',
+          cost: 1,
+          beforeUsed: 0,
+          afterUsed: 1,
+          beforeRemaining: 1,
+          afterRemaining: 0
+        }
+      })
+    ).toThrow('mutually exclusive')
+  })
+
+  it('binds Legendary Resistance choice evidence to one exact target Feature charge', () => {
+    const execution = structuredClone(
+      recurringSaveBatchResult('ON_SAVE_FAIL').executions[0]!.execution
+    )
+    const originalD20 = structuredClone(
+      recurringSaveBatchResult('ON_SAVE_FAIL').executions[0]!.d20!
+    )
+    const originalExecutionChecksum = checksumRuleDocument(execution)
+    const choiceExecution = structuredClone(execution)
+    choiceExecution.outputs = { use: true }
+    choiceExecution.evidence.outputs = { use: true }
+    choiceExecution.evidence.source = {
+      ...choiceExecution.evidence.source,
+      definitionId: turnBatchIds.actor,
+      checksum: 'b'.repeat(64)
+    }
+    const receipt = {
+      kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' as const,
+      schemaVersion: 1 as const,
+      occurrenceId: turnBatchIds.occurrence,
+      sourceActorId: turnBatchIds.actor,
+      targetActorId: turnBatchIds.effect,
+      sourceCharacterStreamVersion: null,
+      resourceConsumption: null,
+      featureResourceConsumption: null,
+      targetFeatureResourceConsumption: {
+        ownerActorId: turnBatchIds.effect,
+        ownerFeatureId: 'feature:legendary-resistance',
+        chargeId: 'charge:legendary-resistance',
+        cost: 1,
+        beforeUsed: 2,
+        afterUsed: 3,
+        beforeRemaining: 3,
+        afterRemaining: 2
+      },
+      legendaryResistance: {
+        selectedIndex: 1 as const,
+        use: true,
+        ownerFeatureId: 'feature:legendary-resistance',
+        chargeId: 'charge:legendary-resistance',
+        featureCost: 1,
+        lifecycle: {
+          definitionId: turnBatchIds.effect,
+          definitionVersion: 1,
+          definitionChecksum: 'a'.repeat(64),
+          choiceGraphDefinitionId: turnBatchIds.actor,
+          choiceGraphDefinitionVersion: 1,
+          choiceGraphDefinitionChecksum: 'b'.repeat(64),
+          useOutput: 'use',
+          interruptedStage: 'AFTER_FAILED_SAVE_BEFORE_OUTCOME' as const,
+          replacement: 'SAVE_SUCCESS' as const
+        },
+        execution: choiceExecution,
+        originalExecution: execution,
+        originalExecutionChecksum,
+        originalD20
+      },
+      d20: originalD20,
+      targetTransition: {
+        checksum: 'c'.repeat(64),
+        before: {
+          currentHitPoints: 10,
+          temporaryHitPoints: 0,
+          maximumHitPoints: 10,
+          conditionIds: []
+        },
+        after: {
+          currentHitPoints: 10,
+          temporaryHitPoints: 0,
+          maximumHitPoints: 10,
+          conditionIds: []
+        }
+      },
+      applications: []
+    }
+    expect(serverRuleExecutionApplicationOutputsDtoSchema.parse(receipt)).toMatchObject({
+      legendaryResistance: { selectedIndex: 1, use: true }
+    })
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...receipt,
+        legendaryResistance: { ...receipt.legendaryResistance, selectedIndex: 0 }
+      })
+    ).toThrow('Legendary Resistance')
+    const terminal = {
+      status: 'COMPLETE' as const,
+      occurrenceId: turnBatchIds.occurrence,
+      occurrenceVersion: 0,
+      outputs: execution.outputs,
+      evidence: execution.evidence,
+      applicationOutputs: receipt
+    }
+    expect(storedRuleExecutionResultDtoSchema.parse(terminal)).toMatchObject({
+      status: 'COMPLETE',
+      applicationOutputs: { legendaryResistance: { use: true } }
+    })
+    expect(() =>
+      storedRuleExecutionResultDtoSchema.parse({
+        ...terminal,
+        outputs: choiceExecution.outputs,
+        evidence: choiceExecution.evidence
+      })
+    ).toThrow('terminal action binding')
+    for (const d20 of [
+      { ...originalD20, modifier: 4, total: 16 },
+      { ...originalD20, defenseOrDc: 11 },
+      { ...originalD20, contributorChecksum: 'e'.repeat(64) },
+      { ...originalD20, total: 16 }
+    ])
+      expect(() =>
+        storedRuleExecutionResultDtoSchema.parse({
+          ...terminal,
+          applicationOutputs: {
+            ...receipt,
+            d20,
+            legendaryResistance: { ...receipt.legendaryResistance, originalD20: d20 }
+          }
+        })
+      ).toThrow('terminal action binding')
+    expect(() =>
+      storedRuleExecutionResultDtoSchema.parse({
+        ...terminal,
+        applicationOutputs: {
+          ...receipt,
+          d20: { ...originalD20, selectedNatural: 13, rawFaces: [13] }
+        }
+      })
+    ).toThrow('terminal action binding')
+    expect(() =>
+      storedRuleExecutionResultDtoSchema.parse({
+        ...terminal,
+        applicationOutputs: {
+          ...receipt,
+          legendaryResistance: {
+            ...receipt.legendaryResistance,
+            execution: {
+              ...choiceExecution,
+              evidence: {
+                ...choiceExecution.evidence,
+                source: { ...choiceExecution.evidence.source, checksum: 'f'.repeat(64) }
+              }
+            }
+          }
+        }
+      })
+    ).toThrow('terminal action binding')
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...receipt,
+        targetFeatureResourceConsumption: null
+      })
+    ).toThrow('Legendary Resistance')
+    expect(() =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...receipt,
+        targetFeatureResourceConsumption: {
+          ...receipt.targetFeatureResourceConsumption,
+          chargeId: 'other-charge'
+        }
+      })
+    ).toThrow('Legendary Resistance')
   })
 })

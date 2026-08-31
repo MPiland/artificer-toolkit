@@ -47,6 +47,7 @@ export const lich: CreatureAuthored = {
   features: [
     {
       id: S.featureId(183, 1),
+      ruleDefinitionIds: [S.DND5E_LEGENDARY_RESISTANCE_LIFECYCLE_DEFINITION_ID],
       label: 'Legendary Resistance (3/Day)',
       description:
         'Legendary Resistance (3/Day). If the lich fails a saving throw, it can choose to succeed instead.',
@@ -282,6 +283,68 @@ export const lich: CreatureAuthored = {
     },
     {
       id: S.featureId(183, 6),
+      options: [
+        {
+          id: '00000000-0005-00c9-0070-00b700000000',
+          label: 'Cantrip',
+          description: 'The lich casts a cantrip.',
+          order: 1,
+          effects: [
+            {
+              id: '00000000-0005-01f5-0070-00b700000000',
+              order: 1,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: 'ACTIVATED',
+                range: { id: '00000000-0005-0259-0070-00b700000000', rangeKind: 'SELF' },
+                targeting: { selectionKind: 'SELF' }
+              },
+              paths: [
+                {
+                  id: 'd99a4013-9722-5059-9fc4-f5d293916568',
+                  order: 1,
+                  pathCode: 'ON_USE',
+                  groupType: 'SINGLE',
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: '1589ba07-cdd9-5441-b353-c302a71a96e3',
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: '94dbd78f-d8ea-5491-8c45-c131a3de303e',
+                        effectKind: 'CLOSED_RULE',
+                        ruleKind: 'CREATURE_LICH_LEGENDARY_ACTIONS'
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: '00000000-0005-00ca-0070-00b700000000',
+          label: 'Paralyzing Touch (Costs 2 Actions)',
+          description: 'The lich uses its Paralyzing Touch.',
+          order: 2
+        },
+        {
+          id: '00000000-0005-00cb-0070-00b700000000',
+          label: 'Frightening Gaze (Costs 2 Actions)',
+          description:
+            "The lich fixes its gaze on one creature it can see within 10 feet of it. The target must succeed on a DC 18 Wisdom saving throw against this magic or become frightened for 1 minute. The frightened target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success. If a target's saving throw is successful or the effect ends for it, the target is immune to the lich's gaze for the next 24 hours.",
+          order: 3
+        },
+        {
+          id: '00000000-0005-00cc-0070-00b700000000',
+          label: 'Disrupt Life (Costs 3 Actions)',
+          description:
+            'Each non-undead creature within 20 feet of the lich must make a DC 18 Constitution saving throw against this magic, taking 21 (6d6) necrotic damage on a failed save, or half as much damage on a successful one.',
+          order: 4
+        }
+      ],
+      ruleDefinitionIds: [S.DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID],
       label: 'Legendary Actions',
       section: 'LEGENDARY_ACTION',
       description:
@@ -294,18 +357,6 @@ export const lich: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 3
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.legendaryActionId(183, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.legendaryActionId(183, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LICH_LEGENDARY_ACTIONS
-        })
-      ],
       order: 6
     }
   ]

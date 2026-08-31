@@ -17,6 +17,7 @@ export type SpellReferenceOption = {
 
 export type SpellReferenceData = {
   systemId: string
+  abilities: SpellReferenceOption[]
   magicSchools: SpellReferenceOption[]
   classes: SpellReferenceOption[]
   damageTypes: SpellReferenceOption[]
@@ -29,7 +30,9 @@ export type SpellReferenceData = {
 export type SpellDetailReferenceData = Pick<
   SpellReferenceData,
   'magicSchools' | 'classes' | 'damageTypes' | 'conditionTypes'
->
+> & {
+  abilities?: SpellReferenceOption[]
+}
 
 type SpellListMetaGroup = {
   id: string | number
@@ -43,6 +46,12 @@ type SpellListMeta = {
 
 function toVocabularyOptions(items: Array<{ id: string; label: string }>): SpellReferenceOption[] {
   return items.map((item) => ({ value: item.id, label: item.label }))
+}
+
+function hasAbilityVocabulary(
+  system: SystemAuthoredDto
+): system is SystemAuthoredDto & { abilities: Array<{ id: string; label: string }> } {
+  return 'abilities' in system && Array.isArray(system.abilities)
 }
 
 function toContentOptions(
@@ -122,6 +131,9 @@ export function getSpellReferenceData(client: Api = api) {
 
       return {
         systemId: resolvedSystem.id,
+        abilities: hasAbilityVocabulary(resolvedSystem)
+          ? toVocabularyOptions(resolvedSystem.abilities)
+          : [],
         magicSchools: toVocabularyOptions(resolvedSystem.magicSchools),
         classes: toContentOptions(classes),
         damageTypes: effectReferences.damageTypes,
@@ -152,6 +164,9 @@ export function getSpellDetailReferenceData(client: Api = api) {
       const resolvedSystem = system ?? emptySystem()
 
       return {
+        abilities: hasAbilityVocabulary(resolvedSystem)
+          ? toVocabularyOptions(resolvedSystem.abilities)
+          : [],
         magicSchools: toVocabularyOptions(resolvedSystem.magicSchools),
         classes: toContentOptions(classes),
         damageTypes: toVocabularyOptions(resolvedSystem.damageTypes),

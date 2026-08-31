@@ -61,8 +61,29 @@ export const integerRangeEvidenceRuleOperation = {
   }
 } satisfies RuleOperationContract
 
+/**
+ * Requests one index from an application-owned, frozen option list. The
+ * application context owns option identities, labels, authority, and
+ * redaction; the portable kernel only validates and records the bounded
+ * selection.
+ */
+export const boundedChoiceIndexEvidenceRuleOperation = {
+  key: 'evidence.bounded-choice-index',
+  contractVersion: 1,
+  inputs: { minIndex: RULE_VALUE_KIND.NUMBER, maxIndex: RULE_VALUE_KIND.NUMBER },
+  outputs: { selectedIndex: RULE_VALUE_KIND.NUMBER },
+  executionKind: 'EVIDENCE',
+  evidence: {
+    kind: 'INTEGER_RANGE',
+    minInput: 'minIndex',
+    maxInput: 'maxIndex',
+    valueOutput: 'selectedIndex'
+  }
+} satisfies RuleOperationContract
+
 export const coreRuleOperations = [
   addNumbersRuleOperation,
   compareThresholdRuleOperation,
-  integerRangeEvidenceRuleOperation
+  integerRangeEvidenceRuleOperation,
+  boundedChoiceIndexEvidenceRuleOperation
 ] as const satisfies readonly RuleOperationContract[]

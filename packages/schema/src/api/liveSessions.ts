@@ -8,8 +8,11 @@ import {
 } from './characterSheetCommands.js'
 import { encounterCommandInputDtoSchema, encounterCommandResultDtoSchema } from './encounters.js'
 import {
-  attachEncounterSceneInputDtoSchema,
-  encounterSceneStateDtoSchema,
+  bindEncounterToPresentedSceneInputDtoSchema,
+  bindEncounterToPresentedSceneResultDtoSchema,
+  campaignSceneStateDtoSchema,
+  encounterSceneActorTokenBindingDtoSchema,
+  removeEncounterSceneActorTokenBindingInputDtoSchema,
   sceneBarrierDtoSchema,
   sceneFogLayerDtoSchema,
   scenePointDtoSchema,
@@ -17,7 +20,10 @@ import {
   sceneCommandResultDtoSchema,
   sceneSnapshotDtoSchema,
   sceneTokenDtoSchema,
-  sceneTransientEnvelopeDtoSchema
+  sceneTransientEnvelopeDtoSchema,
+  setCampaignLiveScenePresentationInputDtoSchema,
+  setCampaignLiveScenePresentationResultDtoSchema,
+  setEncounterSceneActorTokenBindingInputDtoSchema
 } from './vttScenes.js'
 
 const uuidSchema = z.string().uuid()
@@ -66,17 +72,28 @@ export const liveSessionCommandDtoSchema = z.discriminatedUnion('aggregateKind',
   }),
   z.strictObject({
     aggregateKind: z.literal('ENCOUNTER'),
-    command: encounterCommandInputDtoSchema
+    command: z.union([
+      encounterCommandInputDtoSchema,
+      bindEncounterToPresentedSceneInputDtoSchema,
+      setEncounterSceneActorTokenBindingInputDtoSchema,
+      removeEncounterSceneActorTokenBindingInputDtoSchema
+    ])
+  }),
+  z.strictObject({
+    aggregateKind: z.literal('SESSION'),
+    command: setCampaignLiveScenePresentationInputDtoSchema
   }),
   z.strictObject({
     aggregateKind: z.literal('SCENE'),
-    command: z.union([attachEncounterSceneInputDtoSchema, sceneCommandInputDtoSchema])
+    command: sceneCommandInputDtoSchema
   })
 ])
 
 export const liveSessionAggregateVersionDtoSchema = z.strictObject({
-  aggregateKind: z.enum(['CAMPAIGN', 'CHARACTER', 'ENCOUNTER', 'SCENE']),
+  aggregateKind: z.enum(['CAMPAIGN', 'CHARACTER', 'ENCOUNTER', 'SCENE', 'SESSION']),
   aggregateId: uuidSchema,
+  /** Exact command transition start when this value describes a mutation. */
+  beforeVersion: versionSchema.optional(),
   version: versionSchema
 })
 
@@ -93,8 +110,47 @@ export const liveSessionCharacterVisionDtoSchema: z.ZodType<SceneCharacterVision
 const liveSessionEncounterCharacterBindingDtoSchema = z.strictObject({
   actorId: uuidSchema,
   characterId: uuidSchema,
-  encounterId: uuidSchema
+  encounterId: uuidSchema,
+  tokenId: uuidSchema
 })
+
+const liveSessionEncounterSceneBindingDtoSchema = z.strictObject({
+  encounterId: uuidSchema,
+  sceneId: uuidSchema
+})
+
+export const liveSessionEncounterRuleOccurrenceBindingDtoSchema = z.discriminatedUnion(
+  'executionKind',
+  [
+    z.strictObject({
+      encounterId: uuidSchema,
+      executionKind: z.literal('SPATIAL'),
+      occurrenceId: uuidSchema,
+      sceneId: uuidSchema
+    }),
+    z.strictObject({
+      encounterId: uuidSchema,
+      executionKind: z.literal('NON_SPATIAL'),
+      occurrenceId: uuidSchema,
+      sceneId: z.null()
+    })
+  ]
+)
+
+export const liveSessionEncounterRuleOccurrenceBindingUpdateDtoSchema = z
+  .strictObject({
+    binding: liveSessionEncounterRuleOccurrenceBindingDtoSchema.nullable(),
+    encounterId: uuidSchema
+  })
+  .superRefine((value, context) => {
+    if (value.binding && value.binding.encounterId !== value.encounterId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['binding', 'encounterId'],
+        message: 'The occurrence binding update must belong to its Encounter.'
+      })
+    }
+  })
 
 export const liveSessionSceneVisionContextDtoSchema = z.strictObject({
   characterVisions: z.array(liveSessionCharacterVisionDtoSchema).max(10_000),
@@ -142,6 +198,7 @@ const liveSessionCommittedMessageBaseDtoSchema = z.strictObject({
   deliverySequence: z.number().int().positive(),
   originCommandId: uuidSchema,
   replayed: z.boolean(),
+  changedAggregates: z.array(liveSessionAggregateVersionDtoSchema).max(10_000),
   version: versionSchema
 })
 
@@ -155,6 +212,8 @@ export const liveSessionWebSocketServerMessageDtoSchema = z.union([
     aggregateVersions: z.array(liveSessionAggregateVersionDtoSchema).max(10_000),
     campaignId: uuidSchema,
     deliverySequence: versionSchema,
+    encounterActorTokenBindings: z.array(encounterSceneActorTokenBindingDtoSchema).max(10_000),
+    encounterSceneBindings: z.array(liveSessionEncounterSceneBindingDtoSchema).max(10_000),
     sceneSnapshots: z.array(sceneSnapshotDtoSchema).max(100),
     sessionId: uuidSchema,
     type: z.literal('READY')
@@ -173,7 +232,18 @@ export const liveSessionWebSocketServerMessageDtoSchema = z.union([
   }),
   liveSessionCommittedMessageBaseDtoSchema.extend({
     aggregateKind: z.literal('ENCOUNTER'),
-    response: encounterCommandResultDtoSchema.nullable(),
+    encounterActorTokenBindings: z.array(encounterSceneActorTokenBindingDtoSchema).max(10_000),
+    encounterSceneBindings: z.array(liveSessionEncounterSceneBindingDtoSchema).max(10_000),
+    response: z
+      .union([encounterCommandResultDtoSchema, bindEncounterToPresentedSceneResultDtoSchema])
+      .nullable(),
+    sceneSnapshots: z.array(sceneSnapshotDtoSchema).max(100).optional(),
+    hostTiming: liveSessionHostTimingDtoSchema.optional(),
+    type: z.literal('COMMAND_COMMITTED')
+  }),
+  liveSessionCommittedMessageBaseDtoSchema.extend({
+    aggregateKind: z.literal('SESSION'),
+    response: setCampaignLiveScenePresentationResultDtoSchema,
     sceneSnapshots: z.array(sceneSnapshotDtoSchema).max(100).optional(),
     hostTiming: liveSessionHostTimingDtoSchema.optional(),
     type: z.literal('COMMAND_COMMITTED')
@@ -212,38 +282,85 @@ export const liveSessionExecutorRequestDtoSchema = z.discriminatedUnion('operati
 export const liveSessionCoordinatorSnapshotDtoSchema = z.strictObject({
   aggregateVersions: z.array(liveSessionAggregateVersionDtoSchema).max(10_000),
   characterVisions: z.array(liveSessionCharacterVisionDtoSchema).max(10_000),
+  encounterActorTokenBindings: z
+    .array(encounterSceneActorTokenBindingDtoSchema)
+    .max(10_000)
+    .default([]),
   encounterCharacterBindings: z.array(liveSessionEncounterCharacterBindingDtoSchema).max(10_000),
-  sceneStates: z.array(encounterSceneStateDtoSchema).max(100)
+  encounterSceneBindings: z
+    .array(liveSessionEncounterSceneBindingDtoSchema)
+    .max(10_000)
+    .default([]),
+  encounterRuleOccurrenceBindings: z
+    .array(liveSessionEncounterRuleOccurrenceBindingDtoSchema)
+    .max(10_000)
+    .default([]),
+  sceneStates: z.array(campaignSceneStateDtoSchema).max(100)
+})
+
+export const liveSessionEncounterBindingRefreshDtoSchema = z.strictObject({
+  encounterActorTokenBindings: z.array(encounterSceneActorTokenBindingDtoSchema).max(1_000),
+  encounterCharacterBindings: z.array(liveSessionEncounterCharacterBindingDtoSchema).max(1_000),
+  encounterId: uuidSchema,
+  encounterSceneBinding: liveSessionEncounterSceneBindingDtoSchema.nullable()
+})
+
+export const liveSessionExecutorSpatialRefreshDtoSchema = z.strictObject({
+  characterVisions: z.array(liveSessionCharacterVisionDtoSchema).max(10_000),
+  sceneState: campaignSceneStateDtoSchema
 })
 
 export const liveSessionExecutorCommandResultDtoSchema = z.discriminatedUnion('aggregateKind', [
   z.strictObject({
     aggregateId: uuidSchema,
     aggregateKind: z.literal('CHARACTER'),
+    changedAggregates: z.array(liveSessionAggregateVersionDtoSchema).max(10_000),
     commandId: uuidSchema,
     characterVision: liveSessionCharacterVisionDtoSchema,
     replayed: z.boolean(),
     hostTiming: liveSessionHostTimingDtoSchema,
     response: characterSheetCommandResponseDtoSchema.nullable(),
+    spatialRefresh: liveSessionExecutorSpatialRefreshDtoSchema.optional(),
     version: versionSchema
   }),
   z.strictObject({
     aggregateId: uuidSchema,
     aggregateKind: z.literal('ENCOUNTER'),
+    changedAggregates: z.array(liveSessionAggregateVersionDtoSchema).max(10_000),
+    bindingRefresh: liveSessionEncounterBindingRefreshDtoSchema.optional(),
+    commandId: uuidSchema,
+    hostTiming: liveSessionHostTimingDtoSchema,
+    occurrenceBindingUpdate: liveSessionEncounterRuleOccurrenceBindingUpdateDtoSchema.optional(),
+    replayed: z.boolean(),
+    response: z.union([
+      encounterCommandResultDtoSchema,
+      bindEncounterToPresentedSceneResultDtoSchema
+    ]),
+    spatialRefresh: liveSessionExecutorSpatialRefreshDtoSchema.optional(),
+    version: versionSchema
+  }),
+  z.strictObject({
+    aggregateId: uuidSchema,
+    aggregateKind: z.literal('SESSION'),
+    changedAggregates: z.array(liveSessionAggregateVersionDtoSchema).max(10_000),
     commandId: uuidSchema,
     hostTiming: liveSessionHostTimingDtoSchema,
     replayed: z.boolean(),
-    response: encounterCommandResultDtoSchema,
+    response: setCampaignLiveScenePresentationResultDtoSchema,
+    sceneState: campaignSceneStateDtoSchema.nullable(),
     version: versionSchema
   }),
   z.strictObject({
     aggregateId: uuidSchema,
     aggregateKind: z.literal('SCENE'),
+    changedAggregates: z.array(liveSessionAggregateVersionDtoSchema).max(10_000),
     commandId: uuidSchema,
     hostTiming: liveSessionHostTimingDtoSchema,
+    occurrenceBindingUpdate: liveSessionEncounterRuleOccurrenceBindingUpdateDtoSchema.optional(),
     replayed: z.boolean(),
     response: sceneCommandResultDtoSchema.nullable(),
-    state: encounterSceneStateDtoSchema,
+    spatialRefresh: liveSessionExecutorSpatialRefreshDtoSchema.optional(),
+    state: campaignSceneStateDtoSchema,
     version: versionSchema
   })
 ])
@@ -297,6 +414,15 @@ export type LiveSessionSceneVisionContextDto = z.infer<
 >
 export type LiveSessionCoordinatorSnapshotDto = z.infer<
   typeof liveSessionCoordinatorSnapshotDtoSchema
+>
+export type LiveSessionEncounterRuleOccurrenceBindingDto = z.infer<
+  typeof liveSessionEncounterRuleOccurrenceBindingDtoSchema
+>
+export type LiveSessionEncounterRuleOccurrenceBindingUpdateDto = z.infer<
+  typeof liveSessionEncounterRuleOccurrenceBindingUpdateDtoSchema
+>
+export type LiveSessionExecutorSpatialRefreshDto = z.infer<
+  typeof liveSessionExecutorSpatialRefreshDtoSchema
 >
 export type LiveSessionExecutorCommandResultDto = z.infer<
   typeof liveSessionExecutorCommandResultDtoSchema

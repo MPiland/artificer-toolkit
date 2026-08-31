@@ -177,45 +177,33 @@ export function buildContentApi(client: TrpcClient) {
       FeatResponseDto,
       FeatAuthoringInputDto,
       FeatListRequestDto
-    >(
-      'content.feats',
-      featListRequestDtoSchema,
-      featListResponseDtoSchema,
-      featResponseDtoSchema,
-      {
-        activate: (input) => client.content.feats.activate.mutate(input),
-        activateDraft: (id) => client.content.feats.activateDraft.mutate({ id }),
-        deleteActive: (id) => client.content.feats.deleteActive.mutate({ id }),
-        discardDraft: (id) => client.content.feats.discardDraft.mutate({ id }),
-        duplicate: (id) => client.content.feats.duplicate.mutate({ id }),
-        get: (input) => client.content.feats.get.query(input),
-        getDraft: (id) => client.content.feats.getDraft.query({ id }),
-        list: (input) => client.content.feats.list.query(input),
-        saveDraft: (input) => client.content.feats.saveDraft.mutate(input)
-      }
-    ),
+    >('content.feats', featListRequestDtoSchema, featListResponseDtoSchema, featResponseDtoSchema, {
+      activate: (input) => client.content.feats.activate.mutate(input),
+      activateDraft: (id) => client.content.feats.activateDraft.mutate({ id }),
+      deleteActive: (id) => client.content.feats.deleteActive.mutate({ id }),
+      discardDraft: (id) => client.content.feats.discardDraft.mutate({ id }),
+      duplicate: (id) => client.content.feats.duplicate.mutate({ id }),
+      get: (input) => client.content.feats.get.query(input),
+      getDraft: (id) => client.content.feats.getDraft.query({ id }),
+      list: (input) => client.content.feats.list.query(input),
+      saveDraft: (input) => client.content.feats.saveDraft.mutate(input)
+    }),
     races: contentDomain<
       RaceListResponseDto,
       RaceResponseDto,
       RaceAuthoringInputDto,
       RaceListRequestDto
-    >(
-      'content.races',
-      raceListRequestDtoSchema,
-      raceListResponseDtoSchema,
-      raceResponseDtoSchema,
-      {
-        activate: (input) => client.content.races.activate.mutate(input),
-        activateDraft: (id) => client.content.races.activateDraft.mutate({ id }),
-        deleteActive: (id) => client.content.races.deleteActive.mutate({ id }),
-        discardDraft: (id) => client.content.races.discardDraft.mutate({ id }),
-        duplicate: (id) => client.content.races.duplicate.mutate({ id }),
-        get: (input) => client.content.races.get.query(input),
-        getDraft: (id) => client.content.races.getDraft.query({ id }),
-        list: (input) => client.content.races.list.query(input),
-        saveDraft: (input) => client.content.races.saveDraft.mutate(input)
-      }
-    ),
+    >('content.races', raceListRequestDtoSchema, raceListResponseDtoSchema, raceResponseDtoSchema, {
+      activate: (input) => client.content.races.activate.mutate(input),
+      activateDraft: (id) => client.content.races.activateDraft.mutate({ id }),
+      deleteActive: (id) => client.content.races.deleteActive.mutate({ id }),
+      discardDraft: (id) => client.content.races.discardDraft.mutate({ id }),
+      duplicate: (id) => client.content.races.duplicate.mutate({ id }),
+      get: (input) => client.content.races.get.query(input),
+      getDraft: (id) => client.content.races.getDraft.query({ id }),
+      list: (input) => client.content.races.list.query(input),
+      saveDraft: (input) => client.content.races.saveDraft.mutate(input)
+    }),
     spells: contentDomain<
       SpellListResponseDto,
       SpellResponseDto,

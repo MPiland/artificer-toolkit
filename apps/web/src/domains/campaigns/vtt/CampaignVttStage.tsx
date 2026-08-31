@@ -8,17 +8,22 @@ import {
   Text,
   Tooltip
 } from '@mantine/core'
-import { useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery } from '@tanstack/react-query'
 import { Crosshair, Gamepad2, SlidersHorizontal, Undo2, ZoomIn, ZoomOut } from 'lucide-react'
-import { Fragment, useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import type { SceneCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { ImageLookupInput } from '@artificer-toolkit/schema/api/media'
 import {
   createSceneFogAreaPatch,
   createUniformSceneFogLayer,
   projectSceneForViewer,
   type ScenePoint
 } from '@artificer-toolkit/shared/vtt'
-import { getCampaignEncounters } from '#app/data/encounters/queries'
+import {
+  getCampaignEncounters,
+  getPendingEncounterRuleOccurrence
+} from '#app/data/encounters/queries'
+import { getCharacterSheet } from '#app/data/characters/queries'
 import { api, type CampaignDetailDto, type CampaignSessionDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { CampaignChatDrawer } from '../components/CampaignChatDrawer'
@@ -30,13 +35,15 @@ import {
   createSceneLight,
   createSceneToken,
   editTools,
-  findSceneForEncounter,
+  findPresentedScene,
   nudgeSceneToken,
   playTools,
   type CampaignVttToolDefinition,
   type SceneTokenNudgeDirection
 } from './CampaignVttStage.model'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
+import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
+import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
 import { CampaignLiveSceneObjectEditor } from './CampaignLiveSceneObjectEditor'
 import * as styles from './CampaignVttStage.css'
 import { useCampaignLiveSession } from './useCampaignLiveSession'
@@ -49,6 +56,7 @@ import {
   type VttSceneRendererUpdate
 } from './vttSceneRenderer'
 import { formatSceneMeasurement } from './vttSceneRenderer.model'
+import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 
 export function CampaignVttStage({
   campaign,
@@ -63,15 +71,31 @@ export function CampaignVttStage({
   const activeEncounter = encounters.data?.find(
     (encounter) => encounter.sessionId === session.id && encounter.status === 'ACTIVE'
   )
+  const currentActor = activeEncounter?.actors.find(
+    (actor) => actor.id === activeEncounter.currentActorId
+  )
+  const actionCharacterId =
+    currentActor?.kind === 'CHARACTER' &&
+    currentActor.sourceId &&
+    (campaign.role === 'OWNER' || campaign.assignedCharacter?.id === currentActor.sourceId)
+      ? currentActor.sourceId
+      : null
+  const actionSheet = useQuery({
+    ...getCharacterSheet(actionCharacterId ?? 'unavailable'),
+    enabled: Boolean(actionCharacterId)
+  })
+  const pendingOccurrence = useQuery({
+    ...getPendingEncounterRuleOccurrence(activeEncounter?.id ?? 'unavailable'),
+    enabled: Boolean(activeEncounter)
+  })
   const renderer = useRef<VttSceneRenderer | null>(null)
   const rendererHost = useRef<HTMLDivElement | null>(null)
   const rendererUpdateRef = useRef<VttSceneRendererUpdate | null>(null)
-  const sceneRef = useRef<ReturnType<typeof findSceneForEncounter>>(undefined)
+  const sceneRef = useRef<ReturnType<typeof findPresentedScene>>(undefined)
   const transientSequence = useRef(0)
   const transientSentAt = useRef(new Map<string, number>())
   const [mode, setMode] = useState<CampaignVttMode>('PLAY')
   const [mapLoadStatus, setMapLoadStatus] = useState<VttMapLoadStatus | null>(null)
-  const [selectedDefinitionId, setSelectedDefinitionId] = useState<string | null>(null)
   const [tool, setTool] = useState<CampaignVttTool>('SELECT')
   const [fogOwnerUserId, setFogOwnerUserId] = useState<string | null>(null)
   const [gmPreviewUserId, setGmPreviewUserId] = useState<string | null>(null)
@@ -80,24 +104,63 @@ export function CampaignVttStage({
 
   const live = useCampaignLiveSession({
     campaignId: campaign.id,
-    enabled: Boolean(activeEncounter),
+    enabled: true,
     onTransient: (message) => renderer.current?.applyTransient(message),
     sessionId: session.id
   })
-  const scene = findSceneForEncounter(live.state.scenes, activeEncounter?.id)
+  const liveScenes = useQuery({
+    enabled: campaign.role === 'OWNER',
+    queryFn: () => api.campaigns.scenes.listLive(campaign.id),
+    queryKey: queryKeys.campaigns.liveScenes(campaign.id),
+    staleTime: 30_000
+  })
+  const scene = findPresentedScene(live.state.scenes)
   sceneRef.current = scene
   const effectiveMode = campaign.role === 'OWNER' && !gmPreviewUserId ? mode : 'PLAY'
   const tools = effectiveMode === 'EDIT' ? editTools : playTools
 
-  const definitions = useQuery({
-    enabled: campaign.role === 'OWNER' && Boolean(activeEncounter) && !scene,
-    queryFn: () => api.campaigns.scenes.list(campaign.id),
-    queryKey: queryKeys.campaigns.scenes(campaign.id)
-  })
-  useEffect(() => {
-    if (selectedDefinitionId || !definitions.data?.[0]) return
-    setSelectedDefinitionId(definitions.data[0].id)
-  }, [definitions.data, selectedDefinitionId])
+  const actorIdByTokenId = useMemo(
+    () =>
+      new Map(
+        live.state.encounterActorTokenBindings
+          .filter(
+            (binding) =>
+              binding.encounterId === activeEncounter?.id && binding.sceneId === scene?.id
+          )
+          .map((binding) => [binding.tokenId, binding.actorId])
+      ),
+    [activeEncounter?.id, live.state.encounterActorTokenBindings, scene?.id]
+  )
+  const activeEncounterSceneBinding = live.state.encounterSceneBindings.find(
+    (binding) => binding.encounterId === activeEncounter?.id
+  )
+  const scenePresentationControl =
+    campaign.role === 'OWNER' ? (
+      <Select
+        aria-label='Presented campaign scene'
+        clearable
+        data={(liveScenes.data ?? []).map((candidate) => ({
+          label: candidate.name,
+          value: candidate.id
+        }))}
+        disabled={live.status !== 'CONNECTED' || liveScenes.isPending}
+        placeholder='Present a scene'
+        size='xs'
+        value={scene?.id ?? null}
+        onChange={(sceneId) =>
+          live.sendCommand({
+            aggregateKind: 'SESSION',
+            command: {
+              commandId: crypto.randomUUID(),
+              expectedPresentationVersion: live.getAggregateVersion('SESSION', session.id),
+              sceneId,
+              sessionId: session.id,
+              type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
+            }
+          })
+        }
+      />
+    ) : null
 
   const mapDelivery = useQuery({
     enabled: Boolean(scene?.map.assetId),
@@ -117,6 +180,68 @@ export function CampaignVttStage({
     scene && campaign.role === 'OWNER' && gmPreviewUserId
       ? projectSceneForViewer(scene, { role: 'PLAYER', userId: gmPreviewUserId })
       : scene
+  const tokenImageLookups = useMemo(
+    () =>
+      (renderedScene?.tokens ?? []).flatMap((token) => {
+        const actorId = actorIdByTokenId.get(token.id)
+        const actor = activeEncounter?.actors.find((candidate) => candidate.id === actorId)
+        if (!actor?.sourceId || (actor.kind !== 'CHARACTER' && actor.kind !== 'CREATURE')) return []
+        const target: ImageLookupInput['target'] =
+          actor.kind === 'CHARACTER'
+            ? { characterId: actor.sourceId, type: 'CHARACTER_PORTRAIT' }
+            : {
+                scope: 'ACTIVE',
+                subjectId: actor.sourceId,
+                subjectKind: 'CREATURE',
+                type: 'AUTHORED_IMAGE'
+              }
+        return [{ target, tokenAssetId: token.assetId, tokenId: token.id }]
+      }),
+    [activeEncounter?.actors, actorIdByTokenId, renderedScene?.tokens]
+  )
+  const tokenImageQueries = useQueries({
+    queries: tokenImageLookups.map((lookup) => ({
+      queryFn: () => api.media.getImage({ target: lookup.target, variantKind: 'THUMBNAIL' }),
+      queryKey: ['media', lookup.target, 'THUMBNAIL'] as const,
+      refetchOnReconnect: 'always' as const,
+      refetchOnWindowFocus: false,
+      staleTime: 4 * 60_000
+    }))
+  })
+  const tokenArtUrls = useMemo(
+    () =>
+      Object.fromEntries(
+        tokenImageLookups.flatMap((lookup, index) => {
+          const image = tokenImageQueries[index]?.data
+          return image && (!lookup.tokenAssetId || lookup.tokenAssetId === image.assetId)
+            ? [[lookup.tokenId, image.url]]
+            : []
+        })
+      ),
+    [tokenImageLookups, tokenImageQueries]
+  )
+  const tokenPresentations = useMemo(
+    () =>
+      renderedScene && activeEncounter
+        ? buildVttTokenPresentations({
+            actorIdByTokenId,
+            artUrls: tokenArtUrls,
+            currentUserId: gmPreviewUserId ?? currentUserId,
+            encounter: activeEncounter,
+            pending: pendingOccurrence.data ?? null,
+            scene: renderedScene
+          })
+        : undefined,
+    [
+      activeEncounter,
+      actorIdByTokenId,
+      currentUserId,
+      gmPreviewUserId,
+      pendingOccurrence.data,
+      renderedScene,
+      tokenArtUrls
+    ]
+  )
   rendererUpdateRef.current = renderedScene
     ? {
         currentUserId: gmPreviewUserId ?? currentUserId,
@@ -124,6 +249,7 @@ export function CampaignVttStage({
         mode: effectiveMode,
         role: gmPreviewUserId ? 'PLAYER' : campaign.role,
         scene: renderedScene,
+        tokenPresentations,
         tool
       }
     : null
@@ -199,7 +325,6 @@ export function CampaignVttStage({
         dispatchRef.current({
           annotation: createSceneAnnotation(current.annotations.length, position),
           commandId: crypto.randomUUID(),
-          encounterId: current.encounterId,
           expectedSceneVersion: current.version,
           sceneId: current.id,
           type: 'UPSERT_SCENE_ANNOTATION'
@@ -211,7 +336,6 @@ export function CampaignVttStage({
         dispatchRef.current({
           barrier: createSceneBarrier(kind, a, b),
           commandId: crypto.randomUUID(),
-          encounterId: current.encounterId,
           expectedSceneVersion: current.version,
           sceneId: current.id,
           type: 'UPSERT_SCENE_BARRIER'
@@ -223,7 +347,6 @@ export function CampaignVttStage({
         if (!current || campaign.role !== 'OWNER' || !zone) return
         dispatchRef.current({
           commandId: crypto.randomUUID(),
-          encounterId: current.encounterId,
           expectedSceneVersion: current.version,
           sceneId: current.id,
           type: 'UPSERT_SCENE_DARKNESS',
@@ -235,7 +358,6 @@ export function CampaignVttStage({
         if (!current || campaign.role !== 'OWNER') return
         dispatchRef.current({
           commandId: crypto.randomUUID(),
-          encounterId: current.encounterId,
           expectedSceneVersion: current.version,
           light: createSceneLight(position),
           sceneId: current.id,
@@ -247,7 +369,6 @@ export function CampaignVttStage({
         if (!current || campaign.role !== 'OWNER') return
         dispatchRef.current({
           commandId: crypto.randomUUID(),
-          encounterId: current.encounterId,
           expectedSceneVersion: current.version,
           sceneId: current.id,
           token: createSceneToken(current.grid, current.tokens.length, position),
@@ -301,6 +422,7 @@ export function CampaignVttStage({
     live.error,
     mapDelivery.data,
     scene,
+    tokenPresentations,
     tool
   ])
 
@@ -320,7 +442,6 @@ export function CampaignVttStage({
     if (!current || path.length < 2) return
     dispatchRef.current({
       commandId: crypto.randomUUID(),
-      encounterId: current.encounterId,
       expectedSceneVersion: current.version,
       measurement: {
         createdByUserId: currentUserId,
@@ -336,10 +457,17 @@ export function CampaignVttStage({
   function commitTokenMove(tokenId: string, path: ScenePoint[]): void {
     const current = sceneRef.current
     if (!current || path.length < 2) return
+    const encounterBinding = live.state.encounterSceneBindings.find(
+      (binding) => binding.encounterId === activeEncounter?.id && binding.sceneId === current.id
+    )
+    const mechanicsEncounter = encounterBinding ? activeEncounter : null
+    if (campaign.role === 'PLAYER' && !mechanicsEncounter) return
     dispatchRef.current({
       commandId: crypto.randomUUID(),
-      encounterId: current.encounterId,
+      correlationId: null,
+      expectedEncounterVersion: mechanicsEncounter?.version ?? null,
       expectedSceneVersion: current.version,
+      movementKind: 'VOLUNTARY',
       path,
       sceneId: current.id,
       tokenId,
@@ -352,7 +480,6 @@ export function CampaignVttStage({
     if (!current) return
     dispatchRef.current({
       commandId: crypto.randomUUID(),
-      encounterId: current.encounterId,
       expectedSceneVersion: current.version,
       measurementId,
       sceneId: current.id,
@@ -365,7 +492,6 @@ export function CampaignVttStage({
     if (!current) return
     dispatchRef.current({
       commandId: crypto.randomUUID(),
-      encounterId: current.encounterId,
       expectedSceneVersion: current.version,
       layer: createUniformSceneFogLayer(current, { explored, ownerUserId }),
       sceneId: current.id,
@@ -382,7 +508,6 @@ export function CampaignVttStage({
     if (!layer) return
     dispatchRef.current({
       commandId: crypto.randomUUID(),
-      encounterId: current.encounterId,
       expectedSceneVersion: current.version,
       layer,
       sceneId: current.id,
@@ -396,7 +521,6 @@ export function CampaignVttStage({
     dispatchRef.current({
       barrierId,
       commandId: crypto.randomUUID(),
-      encounterId: current.encounterId,
       expectedSceneVersion: current.version,
       sceneId: current.id,
       state,
@@ -409,7 +533,6 @@ export function CampaignVttStage({
     if (!current || campaign.role !== 'OWNER') return
     dispatchRef.current({
       commandId: crypto.randomUUID(),
-      encounterId: current.encounterId,
       expectedSceneVersion: current.version,
       sceneId: current.id,
       type: 'UNDO_LAST_SCENE_MOVE'
@@ -419,72 +542,27 @@ export function CampaignVttStage({
   if (encounters.isPending) {
     return <VttEmpty title='Loading live map…' />
   }
-  if (!activeEncounter) {
-    return (
-      <VttEmpty
-        title='No active encounter'
-        body={
-          campaign.role === 'OWNER'
-            ? 'Start an encounter to open its live scene.'
-            : 'The GM has not started a live encounter yet.'
-        }
-      />
-    )
-  }
   if (!scene) {
-    if (campaign.role === 'PLAYER') {
-      return (
-        <VttEmpty
-          title='The live map is being prepared'
-          body='It will appear here automatically.'
-        />
-      )
-    }
     return (
-      <div className={styles.empty}>
-        <div>
-          <Text fw={650}>Attach a scene</Text>
-          <Text c='dimmed' size='sm'>
-            Choose a reusable Campaign scene for {activeEncounter.name}.
-          </Text>
-        </div>
-        <div className={styles.attachControls}>
-          <Select
-            data={(definitions.data ?? []).map((definition) => ({
-              label: definition.name,
-              value: definition.id
-            }))}
-            disabled={definitions.isPending}
-            label='Campaign scene'
-            placeholder={definitions.isPending ? 'Loading scenes…' : 'Choose a scene'}
-            value={selectedDefinitionId}
-            onChange={setSelectedDefinitionId}
-          />
-          <Button
-            disabled={!selectedDefinitionId || live.status !== 'CONNECTED'}
-            onClick={() => {
-              if (!selectedDefinitionId) return
-              live.sendCommand({
-                aggregateKind: 'SCENE',
-                command: {
-                  commandId: crypto.randomUUID(),
-                  encounterId: activeEncounter.id,
-                  sceneDefinitionId: selectedDefinitionId,
-                  type: 'ATTACH_SCENE'
-                }
-              })
-            }}
-          >
-            Open live scene
-          </Button>
-        </div>
-        {definitions.isSuccess && definitions.data.length === 0 ? (
-          <Text c='dimmed' size='sm'>
-            Create a Campaign scene before attaching one to this encounter.
-          </Text>
+      <section className={styles.shell} aria-label='Campaign tabletop'>
+        {scenePresentationControl ? (
+          <div className={styles.header}>
+            <div className={styles.identity}>
+              <Gamepad2 aria-hidden size={20} />
+              <span className={styles.title}>Campaign tabletop</span>
+            </div>
+            <div className={styles.headerActions}>{scenePresentationControl}</div>
+          </div>
         ) : null}
-        {live.error ? <Alert color='red'>{live.error}</Alert> : null}
-      </div>
+        <VttEmpty
+          title='No scene is being presented'
+          body={
+            campaign.role === 'OWNER'
+              ? 'Choose a Campaign scene to show at the table.'
+              : 'The GM has not presented a scene yet.'
+          }
+        />
+      </section>
     )
   }
 
@@ -503,6 +581,7 @@ export function CampaignVttStage({
           </Text>
         </div>
         <div className={styles.headerActions}>
+          {scenePresentationControl}
           {campaign.role === 'OWNER' ? (
             <>
               <Select
@@ -539,7 +618,6 @@ export function CampaignVttStage({
                   if (!current) return
                   dispatchRef.current({
                     commandId: crypto.randomUUID(),
-                    encounterId: current.encounterId,
                     expectedSceneVersion: current.version,
                     mode: value,
                     sceneId: current.id,
@@ -573,13 +651,56 @@ export function CampaignVttStage({
               />
             </>
           ) : null}
-          <CampaignTabletopEncounterDrawer
-            connected={live.status === 'CONNECTED'}
-            encounter={activeEncounter}
-            pending={live.encounterCommandPending}
-            role={campaign.role}
-            onCommand={(command) => live.sendCommand({ aggregateKind: 'ENCOUNTER', command })}
-          />
+          {campaign.role === 'OWNER' && activeEncounter && !activeEncounterSceneBinding ? (
+            <Button
+              disabled={live.status !== 'CONNECTED'}
+              size='xs'
+              variant='light'
+              onClick={() =>
+                live.sendCommand({
+                  aggregateKind: 'ENCOUNTER',
+                  command: {
+                    commandId: crypto.randomUUID(),
+                    encounterId: activeEncounter.id,
+                    type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE'
+                  }
+                })
+              }
+            >
+              Use this scene for combat
+            </Button>
+          ) : null}
+          {activeEncounter ? (
+            <CampaignTabletopEncounterDrawer
+              actorIdByTokenId={actorIdByTokenId}
+              connected={live.status === 'CONNECTED'}
+              encounter={activeEncounter}
+              pending={live.encounterCommandPending}
+              role={campaign.role}
+              scene={activeEncounterSceneBinding?.sceneId === scene.id ? scene : null}
+              onCommand={(command) => live.sendCommand({ aggregateKind: 'ENCOUNTER', command })}
+            />
+          ) : null}
+          {actionCharacterId && activeEncounter ? (
+            <CampaignTabletopActionDrawer
+              actions={actionSheet.data?.actions.items ?? []}
+              connected={live.status === 'CONNECTED'}
+              encounter={activeEncounter}
+              pending={live.encounterCommandPending}
+              scene={scene}
+              actorIdByTokenId={actorIdByTokenId}
+              onResolve={(command) => live.executeCommand({ aggregateKind: 'ENCOUNTER', command })}
+            />
+          ) : null}
+          {pendingOccurrence.data && activeEncounter ? (
+            <CampaignTabletopDecisionDrawer
+              connected={live.status === 'CONNECTED'}
+              encounter={activeEncounter}
+              pending={pendingOccurrence.data}
+              submitting={live.encounterCommandPending}
+              onResolve={(command) => live.executeCommand({ aggregateKind: 'ENCOUNTER', command })}
+            />
+          ) : null}
           {campaign.capabilities.readTableChat ? (
             <CampaignChatDrawer
               campaignId={campaign.id}
@@ -693,7 +814,7 @@ export function CampaignVttStage({
         </div>
         <div className={styles.canvasFrame} ref={rendererHost}>
           <div className={styles.overlay} aria-hidden>
-            <span className={styles.overlayPill}>{activeEncounter.name}</span>
+            <span className={styles.overlayPill}>{activeEncounter?.name ?? 'Campaign scene'}</span>
             <span className={styles.overlayPill}>
               {scene.grid.kind === 'SQUARE' ? 'Square grid' : 'Gridless'}
             </span>
@@ -778,7 +899,7 @@ function SceneObjectMenu({
   onTokenMove: (tokenId: string, position: ScenePoint) => void
   renderer: RefObject<VttSceneRenderer | null>
   role: 'OWNER' | 'PLAYER'
-  scene: NonNullable<ReturnType<typeof findSceneForEncounter>>
+  scene: NonNullable<ReturnType<typeof findPresentedScene>>
 }) {
   const [measurementOriginId, setMeasurementOriginId] = useState<string | null>(null)
   const [measurementAnnouncement, setMeasurementAnnouncement] = useState('')

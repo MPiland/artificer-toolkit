@@ -33,6 +33,17 @@ import {
   type RouteIdentityBySubjectRequestDto,
   type RouteIdentityResolveRequestDto
 } from '@artificer-toolkit/schema/api/routeIds'
+import { gameSystemRuleCapabilityDtoSchema } from '@artificer-toolkit/schema/api/rulesRuntime'
+import {
+  createReusableDefinitionInputDtoSchema,
+  publishReusableDefinitionDraftInputDtoSchema,
+  reusableDefinitionSummaryDtoSchema,
+  reusableDefinitionWorkspaceDtoSchema,
+  saveReusableDefinitionDraftInputDtoSchema,
+  type CreateReusableDefinitionInputDto,
+  type PublishReusableDefinitionDraftInputDto,
+  type SaveReusableDefinitionDraftInputDto
+} from '@artificer-toolkit/schema/api/reusableDefinitions'
 import {
   systemListResponseDtoSchema,
   systemResponseDtoSchema
@@ -58,18 +69,24 @@ export function buildPlatformApi(client: TrpcClient) {
         request('rolls.history', rollHistoryResponseDtoSchema, () => client.rolls.history.query())
     },
     encounters: {
-      templates: {
-        list: (campaignId: string) =>
+      blueprints: {
+        list: (gameSystemId: string) =>
           request(
-            'encounters.templates.list',
-            encounterContracts.encounterTemplateListDtoSchema,
-            () => client.encounters.templates.list.query({ campaignId })
+            'encounters.blueprints.list',
+            encounterContracts.encounterBlueprintListDtoSchema,
+            () => client.encounters.blueprints.list.query({ gameSystemId })
           ),
-        create: (input: encounterContracts.CreateEncounterTemplateInputDto) =>
+        create: (input: encounterContracts.CreateEncounterBlueprintInputDto) =>
           request(
-            'encounters.templates.create',
-            encounterContracts.encounterTemplateDtoSchema,
-            () => client.encounters.templates.create.mutate(input)
+            'encounters.blueprints.create',
+            encounterContracts.encounterBlueprintDtoSchema,
+            () => client.encounters.blueprints.create.mutate(input)
+          ),
+        update: (input: encounterContracts.UpdateEncounterBlueprintInputDto) =>
+          request(
+            'encounters.blueprints.update',
+            encounterContracts.encounterBlueprintDtoSchema,
+            () => client.encounters.blueprints.update.mutate(input)
           )
       },
       create: (input: encounterContracts.CreateEncounterInputDto) =>
@@ -90,6 +107,12 @@ export function buildPlatformApi(client: TrpcClient) {
         request('encounters.list', encounterContracts.encounterProjectionListDtoSchema, () =>
           client.encounters.list.query({ campaignId })
         ),
+      pendingRuleOccurrence: (encounterId: string) =>
+        request(
+          'encounters.pendingRuleOccurrence',
+          encounterContracts.pendingEncounterRuleOccurrenceSummaryDtoSchema.nullable(),
+          () => client.encounters.pendingRuleOccurrence.query({ encounterId })
+        ),
       command: (input: encounterContracts.EncounterCommandInputDto) =>
         request('encounters.command', encounterContracts.encounterCommandResultDtoSchema, () =>
           client.encounters.command.mutate(input)
@@ -102,6 +125,38 @@ export function buildPlatformApi(client: TrpcClient) {
         )
     },
     systems: {
+      capability: (id: string) =>
+        request('systems.capability', gameSystemRuleCapabilityDtoSchema.nullable(), () =>
+          client.systems.capability.query({ id })
+        ),
+      definitions: {
+        create: (input: CreateReusableDefinitionInputDto) =>
+          request('systems.definitions.create', reusableDefinitionWorkspaceDtoSchema, () =>
+            client.systems.definitions.create.mutate(
+              createReusableDefinitionInputDtoSchema.parse(input)
+            )
+          ),
+        get: (definitionId: string) =>
+          request('systems.definitions.get', reusableDefinitionWorkspaceDtoSchema, () =>
+            client.systems.definitions.get.query({ definitionId })
+          ),
+        list: (gameSystemId: string) =>
+          request('systems.definitions.list', reusableDefinitionSummaryDtoSchema.array(), () =>
+            client.systems.definitions.list.query({ gameSystemId })
+          ),
+        publish: (input: PublishReusableDefinitionDraftInputDto) =>
+          request('systems.definitions.publish', reusableDefinitionWorkspaceDtoSchema, () =>
+            client.systems.definitions.publish.mutate(
+              publishReusableDefinitionDraftInputDtoSchema.parse(input)
+            )
+          ),
+        saveDraft: (input: SaveReusableDefinitionDraftInputDto) =>
+          request('systems.definitions.saveDraft', reusableDefinitionWorkspaceDtoSchema, () =>
+            client.systems.definitions.saveDraft.mutate(
+              saveReusableDefinitionDraftInputDtoSchema.parse(input)
+            )
+          )
+      },
       get: (id: string) =>
         request('systems.get', systemResponseDtoSchema, () => client.systems.get.query({ id })),
       list: () =>

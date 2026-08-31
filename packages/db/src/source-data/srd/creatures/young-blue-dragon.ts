@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const youngBlueDragon: CreatureAuthored = {
@@ -205,6 +206,9 @@ export const youngBlueDragon: CreatureAuthored = {
     },
     {
       id: S.featureId(302, 4),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(302, 4)),
       label: 'Lightning Breath (Recharge 5-6)',
       description:
         'Lightning Breath (Recharge 5-6). The dragon exhales lightning in an 60-foot line that is 5 feet wide. Each creature in that line must make a DC 16 Dexterity saving throw, taking 55 (10d10) lightning damage on a failed save, or half as much damage on a successful one.',
@@ -218,7 +222,7 @@ export const youngBlueDragon: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(302, 14),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.DEXTERITY,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
               baseDc: 16
             },
             activation: {

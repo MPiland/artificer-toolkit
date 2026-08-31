@@ -1,0 +1,337 @@
+import { describe, expect, it } from 'vitest'
+
+import {
+  spatialEffectInstanceDtoSchema,
+  spatialMovementCandidateInputDtoSchema,
+  spatialRuleEffectCurrentStateDtoSchema,
+  spatialRuleEffectPlacementDtoSchema,
+  spatialRuleEffectStateDtoSchema
+} from '../shared/spatial.js'
+import { VTT_SCENE_LIMITS, VTT_SPATIAL_LIMITS } from '@artificer-toolkit/shared/vtt'
+
+const ids = {
+  effect: '00000000-0000-4000-8000-000000000001',
+  actor: '00000000-0000-4000-8000-000000000002',
+  source: '00000000-0000-4000-8000-000000000003',
+  moving: '00000000-0000-4000-8000-000000000004'
+}
+
+function effect() {
+  return {
+    anchorKind: 'TOKEN' as const,
+    effectId: ids.effect,
+    geometry: {
+      frame: 'TOKEN_LOCAL' as const,
+      shape: { kind: 'CIRCLE' as const, center: { x: 0, y: 0 }, radius: 10 }
+    },
+    movementKinds: ['VOLUNTARY' as const],
+    sourceActorId: ids.actor,
+    sourceTokenId: ids.source,
+    triggerModes: ['ENTER' as const]
+  }
+}
+
+function placement() {
+  return {
+    schemaVersion: 1 as const,
+    anchorKind: 'TOKEN' as const,
+    sourceTokenId: ids.source,
+    geometry: {
+      frame: 'TOKEN_LOCAL' as const,
+      shape: { kind: 'CIRCLE' as const, center: { x: 0, y: 0 }, radius: 10 }
+    },
+    triggerModes: ['ENTER' as const, 'EXIT' as const],
+    movementKinds: ['VOLUNTARY' as const, 'FORCED' as const],
+    activation: 'REPEATABLE' as const,
+    visibility: 'HIDDEN' as const,
+    revealOnTrigger: true
+  }
+}
+
+function effectDefinition() {
+  return {
+    schemaVersion: 1 as const,
+    origin: {
+      kind: 'ENCOUNTER' as const,
+      sourceAggregateId: ids.effect,
+      sourceOccurrenceId: ids.source,
+      rootCommandId: ids.moving,
+      sourceActorId: ids.actor
+    },
+    authoredEffectId: ids.effect,
+    compiledEntryId: ids.source,
+    frozenGraphNodeId: 'entry',
+    frozenGraph: {
+      schemaVersion: 1 as const,
+      source: {
+        definitionId: ids.effect,
+        gameSystemId: ids.actor,
+        definitionFamilyKey: 'effect',
+        checksum: 'a'.repeat(64)
+      },
+      capabilityContractVersion: 1,
+      factContracts: [],
+      nodes: [{ id: 'entry', operation: { key: 'comparison', contractVersion: 1 }, inputs: {} }],
+      sourceEntryBindings: [{ sourceEntryId: ids.source, nodeId: 'entry' }],
+      outputs: { result: { kind: 'LITERAL', value: true } }
+    },
+    adapterFacts: {},
+    recurrence: {
+      recurrenceStage: 'NONE' as const,
+      consumeOnFirstEvent: null,
+      endOnEvents: [],
+      lifetimeScope: 'ENCOUNTER' as const,
+      expiration: { kind: 'INDEFINITE' as const }
+    }
+  }
+}
+
+describe('spatial contracts', () => {
+  it('accepts bounded UUID-backed token-local spatial descriptors', () => {
+    expect(spatialEffectInstanceDtoSchema.parse(effect())).toMatchObject({ anchorKind: 'TOKEN' })
+    expect(
+      spatialMovementCandidateInputDtoSchema.parse({
+        effects: [effect()],
+        movementKind: 'VOLUNTARY',
+        movingTokenId: ids.moving,
+        path: [
+          { x: -1, y: 0 },
+          { x: 1, y: 0 }
+        ],
+        tokens: [
+          { id: ids.source, actorId: ids.actor, position: { x: 0, y: 0 }, width: 1, height: 1 },
+          { id: ids.moving, actorId: ids.actor, position: { x: -1, y: 0 }, width: 1, height: 1 }
+        ]
+      })
+    ).toMatchObject({ movementKind: 'VOLUNTARY' })
+  })
+
+  it('persists canonical fixed or token placement without silently reordering triggers', () => {
+    expect(spatialRuleEffectPlacementDtoSchema.parse(placement())).toMatchObject({
+      anchorKind: 'TOKEN',
+      triggerModes: ['ENTER', 'EXIT']
+    })
+    expect(
+      spatialRuleEffectPlacementDtoSchema.parse({
+        ...placement(),
+        anchorKind: 'FIXED',
+        sourceTokenId: null,
+        geometry: {
+          frame: 'SCENE_ABSOLUTE',
+          shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 10 }
+        },
+        visibility: 'PUBLIC',
+        revealOnTrigger: false
+      })
+    ).toMatchObject({ anchorKind: 'FIXED', visibility: 'PUBLIC' })
+    expect(spatialRuleEffectStateDtoSchema.parse({ schemaVersion: 1, revealed: false })).toEqual({
+      schemaVersion: 1,
+      revealed: false
+    })
+  })
+
+  it('rejects noncanonical placement order, anchor mismatches, and public hidden-reveal behavior', () => {
+    expect(
+      spatialRuleEffectPlacementDtoSchema.safeParse({
+        ...placement(),
+        triggerModes: ['EXIT', 'ENTER']
+      }).success
+    ).toBe(false)
+    expect(
+      spatialRuleEffectPlacementDtoSchema.safeParse({
+        ...placement(),
+        movementKinds: ['FORCED', 'VOLUNTARY']
+      }).success
+    ).toBe(false)
+    expect(
+      spatialRuleEffectPlacementDtoSchema.safeParse({
+        ...placement(),
+        anchorKind: 'FIXED',
+        sourceTokenId: null
+      }).success
+    ).toBe(false)
+    expect(
+      spatialRuleEffectPlacementDtoSchema.safeParse({
+        ...placement(),
+        visibility: 'PUBLIC',
+        revealOnTrigger: true
+      }).success
+    ).toBe(false)
+    expect(
+      spatialRuleEffectCurrentStateDtoSchema.safeParse({
+        definition: effectDefinition(),
+        lifecycle: { schemaVersion: 1, remainingTicks: null },
+        placement: {
+          ...placement(),
+          visibility: 'PUBLIC',
+          revealOnTrigger: false
+        },
+        spatialState: { schemaVersion: 1, revealed: false }
+      }).success
+    ).toBe(false)
+  })
+
+  it('rejects invalid anchor/frame/source combinations, malformed geometry, and duplicate identities', () => {
+    expect(
+      spatialEffectInstanceDtoSchema.safeParse({ ...effect(), anchorKind: 'FIXED' }).success
+    ).toBe(false)
+    expect(
+      spatialEffectInstanceDtoSchema.safeParse({
+        ...effect(),
+        geometry: {
+          frame: 'TOKEN_LOCAL',
+          shape: {
+            kind: 'POLYGON',
+            points: [
+              { x: 0, y: 0 },
+              { x: 4, y: 4 },
+              { x: 0, y: 4 },
+              { x: 4, y: 0 },
+              { x: 4, y: -2 }
+            ]
+          }
+        }
+      }).success
+    ).toBe(false)
+    expect(
+      spatialEffectInstanceDtoSchema.safeParse({
+        ...effect(),
+        geometry: {
+          frame: 'TOKEN_LOCAL',
+          shape: {
+            kind: 'POLYGON',
+            points: [
+              { x: 0, y: 0 },
+              { x: 4, y: 0 },
+              { x: 4, y: 4 },
+              { x: 1, y: 0 },
+              { x: 3, y: 0 },
+              { x: 0, y: 4 }
+            ]
+          }
+        }
+      }).success
+    ).toBe(false)
+    expect(
+      spatialEffectInstanceDtoSchema.safeParse({
+        ...effect(),
+        geometry: {
+          frame: 'TOKEN_LOCAL',
+          shape: {
+            kind: 'POLYGON',
+            points: [
+              { x: 0, y: 0 },
+              { x: 1, y: 1 },
+              { x: 2, y: 2 }
+            ]
+          }
+        }
+      }).success
+    ).toBe(false)
+    expect(
+      spatialEffectInstanceDtoSchema.safeParse({
+        ...effect(),
+        geometry: {
+          frame: 'TOKEN_LOCAL',
+          shape: {
+            kind: 'CIRCLE',
+            center: { x: 0, y: 0 },
+            radius: VTT_SPATIAL_LIMITS.minimumDistance / 2
+          }
+        }
+      }).success
+    ).toBe(false)
+    expect(
+      spatialMovementCandidateInputDtoSchema.safeParse({
+        effects: [effect()],
+        movementKind: 'VOLUNTARY',
+        movingTokenId: ids.moving,
+        path: [
+          { x: -1, y: 0 },
+          { x: 1, y: 0 }
+        ],
+        tokens: [
+          { id: ids.source, actorId: ids.actor, position: { x: 0, y: 0 }, width: 1, height: 1 },
+          {
+            id: ids.moving,
+            actorId: ids.actor,
+            position: { x: -1, y: 0 },
+            width: VTT_SPATIAL_LIMITS.minimumDistance / 2,
+            height: 1
+          }
+        ]
+      }).success
+    ).toBe(false)
+    expect(
+      spatialMovementCandidateInputDtoSchema.safeParse({
+        effects: [effect(), effect()],
+        movementKind: 'VOLUNTARY',
+        movingTokenId: ids.moving,
+        path: [
+          { x: 0, y: 0 },
+          { x: 1, y: 0 }
+        ],
+        tokens: [
+          { id: ids.moving, actorId: ids.actor, position: { x: 0, y: 0 }, width: 1, height: 1 }
+        ]
+      }).success
+    ).toBe(false)
+    expect(
+      spatialMovementCandidateInputDtoSchema.safeParse({
+        effects: [effect()],
+        movementKind: 'VOLUNTARY',
+        movingTokenId: ids.moving,
+        path: [
+          { x: 0, y: 0 },
+          { x: 1, y: 0 }
+        ],
+        tokens: [
+          {
+            id: ids.moving,
+            actorId: ids.actor,
+            position: { x: 0, y: 0 },
+            width: 1,
+            height: 1
+          }
+        ]
+      }).success
+    ).toBe(false)
+    expect(
+      spatialMovementCandidateInputDtoSchema.safeParse({
+        effects: [effect()],
+        movementKind: 'VOLUNTARY',
+        movingTokenId: ids.moving,
+        path: [
+          { x: -1, y: 0 },
+          { x: VTT_SCENE_LIMITS.coordinateMagnitude + 1, y: 0 }
+        ],
+        tokens: [
+          { id: ids.source, actorId: ids.actor, position: { x: 0, y: 0 }, width: 1, height: 1 },
+          {
+            id: ids.moving,
+            actorId: ids.actor,
+            position: { x: -1, y: 0 },
+            width: VTT_SCENE_LIMITS.coordinateMagnitude + 1,
+            height: 1
+          }
+        ]
+      }).success
+    ).toBe(false)
+    expect(
+      spatialMovementCandidateInputDtoSchema.safeParse({
+        effects: [effect()],
+        movementKind: 'TELEPORT',
+        movingTokenId: ids.moving,
+        path: [
+          { x: -1, y: 0 },
+          { x: 0, y: 0 },
+          { x: 1, y: 0 }
+        ],
+        tokens: [
+          { id: ids.source, actorId: ids.actor, position: { x: 0, y: 0 }, width: 1, height: 1 },
+          { id: ids.moving, actorId: ids.actor, position: { x: -1, y: 0 }, width: 1, height: 1 }
+        ]
+      }).success
+    ).toBe(false)
+  })
+})

@@ -4,6 +4,7 @@ import { HttpResponse, delay, http } from 'msw'
 import { expect, userEvent, within } from 'storybook/test'
 import type { CharacterRestPreviewRequestDto, CharacterSheetPanelDto } from '#app/lib/api'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import type { CharacterPreparationOptionsResponseDto } from '@artificer-toolkit/schema/api/characterPreparationOptions'
 import { createCharacterRestPreviewFixture } from './characterRest.fixtures'
 import { characterSheetFixture } from './characterSheet.fixtures'
 import { CharacterSheetView } from '../core/CharacterSheetView'
@@ -12,6 +13,18 @@ import { companionPanelFixture, vehiclePanelFixture } from '../inspector/inspect
 export function panelHandler(panel: CharacterSheetPanelDto) {
   return http.get('*/api/trpc/characters.panel', () =>
     HttpResponse.json([{ result: { data: panel } }])
+  )
+}
+
+export function spellsPanelHandler(panel: Extract<CharacterSheetPanelDto, { kind: 'SPELLS' }>) {
+  const preparationOptions = {
+    characterId: panel.characterId,
+    streamVersion: characterSheetFixture.meta.streamVersion,
+    classes: []
+  } satisfies CharacterPreparationOptionsResponseDto
+
+  return http.get('*/api/trpc/characters.panel,characters.preparationOptions', () =>
+    HttpResponse.json([{ result: { data: panel } }, { result: { data: preparationOptions } }])
   )
 }
 
@@ -299,12 +312,18 @@ export const openProficienciesInspector: CharacterSheetStory['play'] = async ({
   await expectInspectorReady(canvasElement, 'Proficiencies', 'Training entries')
 }
 
-export const openSpellInspector: CharacterSheetStory['play'] = async ({ canvas, canvasElement }) => {
+export const openSpellInspector: CharacterSheetStory['play'] = async ({
+  canvas,
+  canvasElement
+}) => {
   await userEvent.click(canvas.getByRole('button', { name: /^Open details for Magic Missile/ }))
   await expectInspectorReady(canvasElement, 'Magic Missile', 'Spell source')
 }
 
-export const openSpellsInspector: CharacterSheetStory['play'] = async ({ canvas, canvasElement }) => {
+export const openSpellsInspector: CharacterSheetStory['play'] = async ({
+  canvas,
+  canvasElement
+}) => {
   await userEvent.click(canvas.getByRole('button', { name: 'Manage Spells' }))
   await expectInspectorReady(canvasElement, 'Manage Spells', 'Spell slots')
 }

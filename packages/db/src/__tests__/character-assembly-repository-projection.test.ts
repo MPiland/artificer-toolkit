@@ -107,6 +107,7 @@ function featureRows(): RowMap {
     modifier_grants: [
       {
         id: 'modifier-active',
+        system_id: 'system-1',
         sort_order: 1,
         selection_kind: 'GRANTED',
         count: null,
@@ -120,12 +121,13 @@ function featureRows(): RowMap {
     modifier_grant_domain_params: [
       {
         modifier_grant_id: 'modifier-active',
+        system_id: 'system-1',
         value_domain_code: 'ATTACK_ROLL',
         attack_domain_code: 'MELEE',
         ability_code: null,
         skill_id: null,
         speed_id: null,
-        sense_code: null,
+        sense_definition_id: null,
         spell_level: null,
         condition_type_id: null
       }

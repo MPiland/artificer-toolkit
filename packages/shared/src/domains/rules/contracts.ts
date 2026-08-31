@@ -29,7 +29,8 @@ export interface RuleOperationReference {
   contractVersion: number
 }
 
-export interface GameSystemCapabilityContract {
+/** Rules Runtime's typed sub-contract within a platform Game System capability module. */
+export interface GameSystemRuleCapabilityContract {
   gameSystemId: string
   contractVersion: number
   authoredRootKinds: readonly string[]
@@ -59,6 +60,18 @@ export interface RuleGraphNodeDefinition {
   inputs: Readonly<Record<string, RuleInputBinding>>
 }
 
+/** Binds an authored UUID-backed result identity to one code-owned graph node. */
+export interface RuleGraphSourceEntryBinding {
+  sourceEntryId: string
+  nodeId: string
+}
+
+/** Exact System-vocabulary identities pinned by a published graph definition. */
+export interface RuleGraphVocabularyBinding {
+  kind: 'ABILITY'
+  definitionId: string
+}
+
 export interface RuleGraphDefinition {
   schemaVersion: 1
   id: string
@@ -66,6 +79,8 @@ export interface RuleGraphDefinition {
   definitionFamilyKey: string
   nodes: readonly RuleGraphNodeDefinition[]
   outputs: Readonly<Record<string, RuleInputBinding>>
+  sourceEntryBindings?: readonly RuleGraphSourceEntryBinding[]
+  vocabularyBindings?: readonly RuleGraphVocabularyBinding[]
 }
 
 export interface RuleGraphSourceIdentity {
@@ -82,6 +97,8 @@ export interface CompiledRuleGraph {
   factContracts: readonly RuleFactContract[]
   nodes: readonly RuleGraphNodeDefinition[]
   outputs: Readonly<Record<string, RuleInputBinding>>
+  sourceEntryBindings?: readonly RuleGraphSourceEntryBinding[]
+  vocabularyBindings?: readonly RuleGraphVocabularyBinding[]
 }
 
 export interface RuleExecutionTraceEntry {
@@ -102,6 +119,8 @@ export interface RuleExecutionEvidence {
   facts: Readonly<Record<string, RuleValue>>
   trace: readonly RuleExecutionTraceEntry[]
   outputs: Readonly<Record<string, RuleValue>>
+  sourceEntryBindings?: readonly RuleGraphSourceEntryBinding[]
+  vocabularyBindings?: readonly RuleGraphVocabularyBinding[]
 }
 
 export interface CompletedRuleExecution {

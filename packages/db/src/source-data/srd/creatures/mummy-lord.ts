@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
@@ -246,7 +247,7 @@ export const mummyLord: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(202, 605),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.WISDOM,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
               baseDc: 16
             },
             range: {
@@ -292,22 +293,89 @@ export const mummyLord: CreatureAuthored = {
     },
     {
       id: S.featureId(202, 7),
+      options: [
+        {
+          id: '00000000-0005-00c9-0070-00ca00000000',
+          label: 'Attack',
+          description:
+            'The mummy lord makes one attack with its rotting fist or uses its Dreadful Glare.',
+          order: 1,
+          effects: [
+            {
+              id: '00000000-0005-01f5-0070-00ca00000000',
+              order: 1,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: 'ACTIVATED',
+                range: { id: '00000000-0005-0259-0070-00ca00000000', rangeKind: 'SELF' },
+                targeting: { selectionKind: 'SELF' }
+              },
+              paths: [
+                {
+                  id: '26411519-d154-55cb-aa9d-0a472058259c',
+                  order: 1,
+                  pathCode: 'ON_USE',
+                  groupType: 'SINGLE',
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: 'fcd75b85-3ee6-5d18-9c6d-89b5f0e11b9e',
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: '7adef054-858c-51e4-8820-abc73cac8a72',
+                        effectKind: 'CLOSED_RULE',
+                        ruleKind: 'CREATURE_MUMMY_LORD_LEGENDARY_ACTIONS'
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: '00000000-0005-00ca-0070-00ca00000000',
+          label: 'Blinding Dust',
+          description:
+            "Blinding dust and sand swirls magically around the mummy lord. Each creature within 5 feet of the mummy lord must succeed on a DC 16 Constitution saving throw or be blinded until the end of the creature's next turn.",
+          order: 2
+        },
+        {
+          id: '00000000-0005-00cb-0070-00ca00000000',
+          label: 'Blasphemous Word (Costs 2 Actions)',
+          description:
+            "The mummy lord utters a blasphemous word. Each non-undead creature within 10 feet of the mummy lord that can hear the magical utterance must succeed on a DC 16 Constitution saving throw or be stunned until the end of the mummy lord's next turn.",
+          order: 3
+        },
+        {
+          id: '00000000-0005-00cc-0070-00ca00000000',
+          label: 'Channel Negative Energy (Costs 2 Actions)',
+          description:
+            "The mummy lord magically unleashes negative energy. Creatures within 60 feet of the mummy lord, including ones behind barriers and around corners, can't regain hit points until the end of the mummy lord's next turn.",
+          order: 4
+        },
+        {
+          id: '00000000-0005-00cd-0070-00ca00000000',
+          label: 'Whirlwind of Sand (Costs 2 Actions)',
+          description:
+            'The mummy lord magically transforms into a whirlwind of sand, moves up to 60 feet, and reverts to its normal form.',
+          order: 5
+        }
+      ],
+      ruleDefinitionIds: [S.DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID],
       label: 'Legendary Actions',
       section: 'LEGENDARY_ACTION',
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
       description:
         "The mummy lord can take 3 legendary actions, choosing from the options below. Only one legendary action option can be used at a time and only at the end of another creature's turn. The mummy lord regains spent legendary actions at the start of its turn. Attack. The mummy lord makes one attack with its rotting fist or uses its Dreadful Glare. Blinding Dust. Blinding dust and sand swirls magically around the mummy lord. Each creature within 5 feet of the mummy lord must succeed on a DC 16 Constitution saving throw or be blinded until the end of the creature's next turn. Blasphemous Word (Costs 2 Actions). The mummy lord utters a blasphemous word. Each non-undead creature within 10 feet of the mummy lord that can hear the magical utterance must succeed on a DC 16 Constitution saving throw or be stunned until the end of the mummy lord's next turn. Channel Negative Energy (Costs 2 Actions). The mummy lord magically unleashes negative energy. Creatures within 60 feet of the mummy lord, including ones behind barriers and around corners, can't regain hit points until the end of the mummy lord's next turn. Whirlwind of Sand (Costs 2 Actions). The mummy lord magically transforms into a whirlwind of sand, moves up to 60 feet, and reverts to its normal form. While in whirlwind form, the mummy lord is immune to all damage, and it can't be grappled, petrified, knocked prone, restrained, or stunned. Equipment worn or carried by the mummy lord remain in its possession.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.legendaryActionId(202, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.legendaryActionId(202, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MUMMY_LORD_LEGENDARY_ACTIONS
-        })
-      ],
+      charges: {
+        id: S.legendaryActionId(202, 500),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: S.SCALING.NONE,
+        resetKind: S.CHARGE_RESET_KIND.MANUAL,
+        amount: 3
+      },
       order: 7
     }
   ]

@@ -3,7 +3,10 @@ import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
-import type { CharacterMovementDisplayPreference, CharacterSheetAdjustment } from '@artificer-toolkit/shared/character'
+import type {
+  CharacterMovementDisplayPreference,
+  CharacterSheetAdjustment
+} from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import type { CharacterBuilderContext } from './builderService.js'
@@ -39,6 +42,8 @@ export function createCommittedCharacterRuleEvaluation(input: {
     snapshot: assembled.snapshot,
     registry: assembled.registry,
     facts: input.rulePolicy?.input ?? input.mechanics.rulePolicyInput,
+    discoveredActionCapabilities: [],
+    compiledActionEntryPoints: input.mechanics.compiledActionEntryPoints,
     output: input.rulePolicy?.output ?? input.mechanics.rulePolicyOutput,
     evaluation: {
       revisionId: input.mechanics.ruleRevisionId,

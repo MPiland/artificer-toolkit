@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const assassin: CreatureAuthored = {
@@ -215,7 +216,7 @@ export const assassin: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(29, 113),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
               baseDc: 15
             },
             activation: { code: S.ACTIVATION_CODE.FREE },
@@ -342,7 +343,7 @@ export const assassin: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(29, 121),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
               baseDc: 15
             },
             activation: { code: S.ACTIVATION_CODE.FREE },

@@ -663,9 +663,15 @@ export async function getVttMapDelivery(
   if (!isOwner) {
     const attachment = await sql<{ attached: boolean }>`
       select exists(
-        select 1 from encounter_scenes scene
-        join encounters encounter on encounter.id = scene.encounter_id
-        where encounter.campaign_id = ${campaignId}::uuid
+        select 1 from campaign_live_scenes scene
+        join campaign_session_scene_presentations presentation
+          on presentation.scene_id = scene.id
+          and presentation.campaign_id = scene.campaign_id
+        join campaign_sessions session
+          on session.id = presentation.session_id
+          and session.campaign_id = presentation.campaign_id
+          and session.status = 'OPEN'
+        where scene.campaign_id = ${campaignId}::uuid
           and (
             scene.definition_snapshot #>> '{map,assetId}' = ${assetId}
             or scene.projection #>> '{map,assetId}' = ${assetId}

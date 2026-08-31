@@ -18,6 +18,8 @@ describe('import contracts', () => {
     expect(
       importBatchInputDtoSchema.parse({
         source: 'DND_BEYOND',
+        systemId: '00000000-0000-4000-8000-000000000001',
+        primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
         entries: [{ entryId: 'character-1', url: 'https://www.dndbeyond.com/characters/74476867' }]
       })
     ).toMatchObject({ source: 'DND_BEYOND' })
@@ -25,6 +27,8 @@ describe('import contracts', () => {
     expect(
       importBatchInputDtoSchema.parse({
         source: 'FOUNDRY_DND5E',
+        systemId: '00000000-0000-4000-8000-000000000001',
+        primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
         entries: [{ entryId: 'actor-1', name: 'actor.json', text: '{}' }]
       })
     ).toMatchObject({ source: 'FOUNDRY_DND5E' })
@@ -55,6 +59,8 @@ describe('import contracts', () => {
       importCommitRequestDtoSchema.parse({
         batch: {
           source: 'DND_BEYOND',
+          systemId: '00000000-0000-4000-8000-000000000001',
+          primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
           entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/1' }]
         },
         selectedEntryIds: ['missing'],
@@ -68,6 +74,8 @@ describe('import contracts', () => {
       importCommitRequestDtoSchema.parse({
         batch: {
           source: 'DND_BEYOND',
+          systemId: '00000000-0000-4000-8000-000000000001',
+          primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
           entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/1' }]
         },
         selectedEntryIds: ['one'],
@@ -83,6 +91,8 @@ describe('import contracts', () => {
     const request = {
       batch: {
         source: 'DND_BEYOND' as const,
+        systemId: '00000000-0000-4000-8000-000000000001',
+        primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
         entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/1' }]
       },
       selectedEntryIds: ['one'],
@@ -105,6 +115,8 @@ describe('import contracts', () => {
       importCommitRequestDtoSchema.parse({
         batch: {
           source: 'DND_BEYOND',
+          systemId: '00000000-0000-4000-8000-000000000001',
+          primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
           entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/1' }]
         },
         selectedEntryIds: ['one'],

@@ -131,6 +131,7 @@ function createDraft(overrides: Partial<AuthoredDraft> = {}): AuthoredDraft {
     subjectId: 'spell-1',
     userId: 'user-1',
     systemId: 'system-1',
+    contentSourceId: '00000000-0000-4000-8000-000000000302',
     label: 'Draft Spell',
     status: 'DRAFT',
     payload: {
@@ -154,6 +155,7 @@ function createActive(overrides: Partial<AuthoredActiveMetadata> = {}): Authored
     subjectId: 'spell-1',
     ownerUserId: 'user-1',
     systemId: 'system-1',
+    contentSourceId: '00000000-0000-4000-8000-000000000302',
     label: 'Active Spell',
     isMaster: false,
     hasDraft: true,

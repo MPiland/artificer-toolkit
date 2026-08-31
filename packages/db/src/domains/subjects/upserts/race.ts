@@ -14,6 +14,7 @@ import { normalizeSubjectStatus } from '../status.js'
 type RaceRow = {
   id: string
   system_id: string
+  content_source_id: string
   user_id: string
   label: string
   quote: string | null
@@ -93,7 +94,7 @@ function requireMeasurementUnit(
   return value as BaseRaceAuthored['speeds'][number]['unit']
 }
 
-function mapRaceRow(json_data: RaceAuthored): RaceRow {
+function mapRaceRow(json_data: RaceAuthored, contentSourceId: string): RaceRow {
   const category = requireRaceCategory(json_data.id, json_data.category)
 
   if (json_data.category === RACE_CATEGORY_CODE.BASE) {
@@ -102,6 +103,7 @@ function mapRaceRow(json_data: RaceAuthored): RaceRow {
     return {
       id: baseData.id,
       system_id: baseData.systemId,
+      content_source_id: contentSourceId,
       user_id: baseData.userId,
       label: baseData.label,
       quote: baseData.quote ?? null,
@@ -119,6 +121,7 @@ function mapRaceRow(json_data: RaceAuthored): RaceRow {
   return {
     id: subraceData.id,
     system_id: subraceData.systemId,
+    content_source_id: contentSourceId,
     user_id: subraceData.userId,
     label: subraceData.label,
     quote: subraceData.quote ?? null,
@@ -131,7 +134,12 @@ function mapRaceRow(json_data: RaceAuthored): RaceRow {
   }
 }
 
-export async function upsertRace(db: DBLike, json_data: RaceAuthored, _systemId: string) {
+export async function upsertRace(
+  db: DBLike,
+  json_data: RaceAuthored,
+  _systemId: string,
+  contentSourceId: string
+) {
   const baseData: BaseRaceAuthored | null =
     json_data.category === RACE_CATEGORY_CODE.BASE ? json_data : null
   const ancestryData = baseData?.ancestry
@@ -183,10 +191,11 @@ export async function upsertRace(db: DBLike, json_data: RaceAuthored, _systemId:
   return withTransaction(db, async (trx) => {
     await trx
       .insertInto('races')
-      .values(mapRaceRow(json_data))
+      .values(mapRaceRow(json_data, contentSourceId))
       .onConflict((oc) =>
         oc.column('id').doUpdateSet((eb) => ({
           system_id: eb.ref('excluded.system_id'),
+          content_source_id: eb.ref('races.content_source_id'),
           user_id: eb.ref('excluded.user_id'),
           label: eb.ref('excluded.label'),
           quote: eb.ref('excluded.quote'),

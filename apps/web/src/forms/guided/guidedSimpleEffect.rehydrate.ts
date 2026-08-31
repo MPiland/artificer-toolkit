@@ -37,8 +37,10 @@ export function rehydrateGuidedSpell(
     effect.invocation.range.rangeKind === 'SELF'
       ? 'SELF'
       : 'CREATURE'
-  const saveAbility =
-    effect.invocation.triggerCode === 'SAVING_THROW' ? effect.invocation.savingThrow.ability : ''
+  const saveAbilityDefinitionId =
+    effect.invocation.triggerCode === 'SAVING_THROW'
+      ? effect.invocation.savingThrow.abilityDefinitionId
+      : ''
   const damageDice =
     outcome.effectKind === 'DAMAGE' &&
     outcome.valueKind === 'DICE' &&
@@ -83,7 +85,7 @@ export function rehydrateGuidedSpell(
       target,
       targetDistance:
         effect.invocation.range.rangeKind === 'DISTANCE' ? effect.invocation.range.amount : 60,
-      saveAbility,
+      saveAbilityDefinitionId,
       damageDice,
       damageTypeId: outcome.effectKind === 'DAMAGE' ? outcome.damageTypeId : '',
       conditionTypeId,

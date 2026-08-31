@@ -6,7 +6,7 @@ import {
   applySceneEvent,
   createSceneFogAreaPatch,
   isSceneFogCellExplored,
-  materializeEncounterScene,
+  materializeCampaignScene,
   projectSceneForViewer,
   replaySceneEvents,
   segmentsIntersect,
@@ -40,10 +40,10 @@ describe('VTT scene properties', () => {
           sceneId: ids.scene,
           version: index + 1
         }))
-        const replayed = replaySceneEvents(definition(), ids.encounter, ids.scene, events)
+        const replayed = replaySceneEvents(definition(), ids.scene, events)
         const reduced = events.reduce(
           (state, event) => applySceneEvent(state, event),
-          materializeEncounterScene(definition(), ids.encounter, ids.scene)
+          materializeCampaignScene(definition(), ids.scene)
         )
 
         expect(replayed).toEqual(reduced)
@@ -65,7 +65,7 @@ describe('VTT scene properties', () => {
   it('never exposes hidden tokens and never expands a player projection', () => {
     fc.assert(
       fc.property(fc.array(fc.boolean(), { maxLength: 100 }), (hiddenValues) => {
-        const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+        const state = materializeCampaignScene(definition(), ids.scene)
         state.tokens = hiddenValues.map((hidden, index) => ({
           ...state.tokens[0]!,
           controlledByUserIds: [ids.player],
@@ -102,7 +102,7 @@ describe('VTT scene properties', () => {
           { maxLength: 32 }
         ),
         (x1, y1, x2, y2, x3, y3, x4, y4, sampledCells) => {
-          const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+          const state = materializeCampaignScene(definition(), ids.scene)
           const patch = createSceneFogAreaPatch(state, {
             explored: true,
             ownerUserId: ids.player,
@@ -150,6 +150,7 @@ function definition(): SceneDefinition {
         visibility: 'GM_ONLY'
       }
     ],
+    ambientIllumination: 'BRIGHT',
     barriers: [],
     campaignId: ids.campaign,
     darknessZones: [],
@@ -168,7 +169,6 @@ function definition(): SceneDefinition {
     name: 'Property scene',
     tokens: [
       {
-        actorId: null,
         assetId: null,
         controlledByUserIds: [ids.player],
         height: 1,

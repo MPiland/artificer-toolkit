@@ -16,14 +16,191 @@ const document: RulePackDocumentDto = {
   fixtures: []
 }
 
+const ACTION_EFFECT_ID = '00000000-0000-4000-8000-0000000000c1'
+const FIRE_EFFECT_ID = '00000000-0000-4000-8000-0000000000c2'
+const CONDITION_ID = '00000000-0000-4000-8000-0000000000c3'
+const DEXTERITY_ABILITY_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d1'
+const WISDOM_ABILITY_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d2'
+
+function saveActionInput(params: { abilityDefinitionId: string; abilityDefinitions: unknown[] }) {
+  return characterActionModelInputSchema.parse({
+    abilityDefinitions: params.abilityDefinitions,
+    candidates: [
+      {
+        sequence: 0,
+        actionId: 'feature:ACTION:save',
+        effectId: ACTION_EFFECT_ID,
+        sourceId: 'feature',
+        source: { kind: 'SYSTEM', systemId: 'dnd5e2014' },
+        mechanicsOwner: { kind: 'FEATURE', id: 'feature' },
+        activationSourceKind: 'ACTIVE_SOURCE',
+        equipment: null,
+        resourceUse: null,
+        mechanicFacts: {
+          invocation: {
+            triggerCode: 'SAVING_THROW',
+            activation: { code: 'ACTION', amount: 1 },
+            range: { rangeKind: 'SELF', amount: null, unit: null },
+            reactionMovementTrigger: null,
+            savingThrow: {
+              dcMethod: 'FIXED_DC',
+              abilityDefinitionId: params.abilityDefinitionId,
+              baseDc: 12,
+              bonuses: []
+            }
+          },
+          outcomes: []
+        }
+      }
+    ],
+    activeSourceIds: ['feature'],
+    activeEquipmentInstanceIds: [],
+    resources: [],
+    totalLevel: 1,
+    classLevels: [],
+    proficiencyBonus: 2,
+    abilities: [],
+    skills: [],
+    spellcasting: null,
+    attackRollModes: {
+      MELEE: 'NORMAL',
+      RANGED: 'NORMAL',
+      SPELL: 'NORMAL',
+      UNARMED: 'NORMAL'
+    }
+  })
+}
+
 describe('D&D 5e 2014 Character action model', () => {
-  it('resolves save, damage, healing, and provenance in one native evaluation', async () => {
+  it('fails closed when a save references an ability definition absent from frozen facts', async () => {
+    const input = saveActionInput({
+      abilityDefinitionId: DEXTERITY_ABILITY_DEFINITION_ID,
+      abilityDefinitions: []
+    })
+
+    const result = characterActionModelOutputSchema.parse(
+      (
+        await evaluateZenRuleModel({
+          document,
+          modelKey: CHARACTER_ACTION_MODEL_KEY,
+          context: input
+        })
+      ).result
+    )
+
+    expect(result.actionDecisions[0]?.mechanic.save).toBeNull()
+  })
+
+  it('rejects duplicate frozen ability definitions before D&D action evaluation', () => {
+    expect(() =>
+      saveActionInput({
+        abilityDefinitionId: DEXTERITY_ABILITY_DEFINITION_ID,
+        abilityDefinitions: [
+          { id: DEXTERITY_ABILITY_DEFINITION_ID, code: 'DEXTERITY' },
+          { id: DEXTERITY_ABILITY_DEFINITION_ID, code: 'DEX' }
+        ]
+      })
+    ).toThrow('Action ability definition IDs must be unique.')
+  })
+
+  it('resolves a weapon attack from authored source modifiers and exact proficiency facts', async () => {
     const input = characterActionModelInputSchema.parse({
       candidates: [
         {
           sequence: 0,
+          actionId: 'weapon-source:ACTION:attack',
+          effectId: ACTION_EFFECT_ID,
+          sourceId: 'weapon-source',
+          source: {
+            kind: 'EQUIPMENT_INSTANCE',
+            equipmentId: 'quarterstaff',
+            itemInstanceId: 'staff-1'
+          },
+          mechanicsOwner: { kind: 'EQUIPMENT', id: 'quarterstaff' },
+          activationSourceKind: 'ACTIVE_EQUIPMENT',
+          equipment: {
+            itemInstanceId: 'staff-1',
+            equipmentId: 'quarterstaff',
+            category: 'WEAPON',
+            properties: ['SIMPLE', 'MELEE'],
+            equipped: true,
+            attuned: false,
+            requiresAttunement: false,
+            requiresEquipped: true,
+            requiresAttuned: false
+          },
+          resourceUse: null,
+          mechanicFacts: {
+            invocation: {
+              triggerCode: 'MELEE_WEAPON_ATTACK',
+              activation: { code: 'ACTION', amount: 1 },
+              range: { rangeKind: 'DISTANCE', amount: 5, unit: 'FEET' },
+              reactionMovementTrigger: null,
+              savingThrow: null
+            },
+            outcomes: []
+          }
+        }
+      ],
+      activeSourceIds: [],
+      activeEquipmentInstanceIds: ['staff-1'],
+      resources: [],
+      proficiencies: [
+        {
+          kind: 'EQUIPMENT_PROPERTY',
+          subjectId: 'SIMPLE',
+          scaling: 'FULL',
+          category: 'WEAPON'
+        }
+      ],
+      modifierGroups: [
+        {
+          domainKey: 'ATTACK_ROLL:ABILITY_MODIFIER_BONUS|attackDomain=MELEE',
+          contributions: [{ sourceId: 'weapon-source', value: 3, state: 'APPLIED' }]
+        }
+      ],
+      itemAttackAdjustments: [{ itemInstanceId: 'staff-1', bonus: 1, override: null }],
+      totalLevel: 1,
+      classLevels: [],
+      proficiencyBonus: 2,
+      abilities: [{ abilityId: 'STRENGTH', modifier: 3 }],
+      skills: [],
+      spellcasting: null,
+      attackRollModes: {
+        MELEE: 'NORMAL',
+        RANGED: 'NORMAL',
+        SPELL: 'NORMAL',
+        UNARMED: 'NORMAL'
+      }
+    })
+
+    const result = characterActionModelOutputSchema.parse(
+      (
+        await evaluateZenRuleModel({
+          document,
+          modelKey: CHARACTER_ACTION_MODEL_KEY,
+          context: input
+        })
+      ).result
+    )
+
+    expect(result.actionDecisions[0]?.mechanic).toMatchObject({
+      attackBonus: 6,
+      attackRollMode: 'NORMAL'
+    })
+  })
+
+  it('resolves save, damage, healing, and provenance in one native evaluation', async () => {
+    const input = characterActionModelInputSchema.parse({
+      abilityDefinitions: [
+        { id: DEXTERITY_ABILITY_DEFINITION_ID, code: 'DEXTERITY' },
+        { id: WISDOM_ABILITY_DEFINITION_ID, code: 'WISDOM' }
+      ],
+      candidates: [
+        {
+          sequence: 0,
           actionId: 'feature:ACTION:effect',
-          effectId: 'effect',
+          effectId: ACTION_EFFECT_ID,
           sourceId: 'feature',
           source: { kind: 'SYSTEM', systemId: 'dnd5e2014' },
           mechanicsOwner: { kind: 'FEATURE', id: 'feature' },
@@ -35,12 +212,16 @@ describe('D&D 5e 2014 Character action model', () => {
               triggerCode: 'SAVING_THROW',
               activation: { code: 'ACTION', amount: 1 },
               range: { rangeKind: 'SELF', amount: null, unit: null },
+              reactionMovementTrigger: null,
               savingThrow: {
                 dcMethod: 'DERIVED_DC',
-                ability: 'DEX',
+                abilityDefinitionId: DEXTERITY_ABILITY_DEFINITION_ID,
                 baseDc: 8,
                 bonuses: [
-                  { bonusKind: 'ABILITY_MODIFIER', ability: 'WIS' },
+                  {
+                    bonusKind: 'ABILITY_MODIFIER',
+                    abilityDefinitionId: WISDOM_ABILITY_DEFINITION_ID
+                  },
                   { bonusKind: 'PROFICIENCY_BONUS' },
                   { bonusKind: 'STATIC_BONUS', amount: 1 }
                 ]
@@ -118,7 +299,7 @@ describe('D&D 5e 2014 Character action model', () => {
                   }
                 ]
               },
-              { kind: 'CONDITION', pathCode: 'ON_FAILURE', conditionId: 'prone' }
+              { kind: 'CONDITION', pathCode: 'ON_FAILURE', conditionId: CONDITION_ID }
             ]
           }
         }
@@ -151,7 +332,7 @@ describe('D&D 5e 2014 Character action model', () => {
         {
           sequence: 0,
           actionId: 'feature:ACTION:effect',
-          effectId: 'effect',
+          effectId: ACTION_EFFECT_ID,
           sourceId: 'feature',
           source: { kind: 'SYSTEM', systemId: 'dnd5e2014' },
           mechanicsOwner: { kind: 'FEATURE', id: 'feature' },
@@ -160,7 +341,7 @@ describe('D&D 5e 2014 Character action model', () => {
           resourcePoolId: null,
           resourceCost: null,
           mechanic: {
-            effectId: 'effect',
+            effectId: ACTION_EFFECT_ID,
             trigger: 'SAVING_THROW',
             activation: { kind: 'ACTION', amount: 1 },
             rangeLabel: 'Self',
@@ -182,7 +363,7 @@ describe('D&D 5e 2014 Character action model', () => {
                 temporary: false,
                 scaling: []
               },
-              { kind: 'CONDITION', pathCode: 'ON_FAILURE', conditionId: 'prone' }
+              { kind: 'CONDITION', pathCode: 'ON_FAILURE', conditionId: CONDITION_ID }
             ]
           }
         }
@@ -219,12 +400,13 @@ describe('D&D 5e 2014 Character action model', () => {
           spellId: 'fire-spell',
           effects: [
             {
-              effectId: 'fire-effect',
+              effectId: FIRE_EFFECT_ID,
               mechanicFacts: {
                 invocation: {
                   triggerCode: 'SPELL_ATTACK',
                   activation: { code: 'ACTION', amount: 1 },
                   range: { rangeKind: 'DISTANCE', amount: 120, unit: 'FEET' },
+                  reactionMovementTrigger: null,
                   savingThrow: null
                 },
                 outcomes: [
@@ -302,7 +484,7 @@ describe('D&D 5e 2014 Character action model', () => {
           castLevel: 3,
           mechanics: [
             {
-              effectId: 'fire-effect',
+              effectId: FIRE_EFFECT_ID,
               trigger: 'SPELL_ATTACK',
               activation: { kind: 'ACTION', amount: 1 },
               rangeLabel: '120 ft',
@@ -328,7 +510,7 @@ describe('D&D 5e 2014 Character action model', () => {
           spellId: 'fire-spell',
           mechanics: [
             {
-              effectId: 'fire-effect',
+              effectId: FIRE_EFFECT_ID,
               trigger: 'SPELL_ATTACK',
               activation: { kind: 'ACTION', amount: 1 },
               rangeLabel: '120 ft',

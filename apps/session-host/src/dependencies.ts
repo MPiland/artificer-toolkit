@@ -1,4 +1,8 @@
-import { createDb, withUserContext } from '@artificer-toolkit/db'
+import {
+  createDb,
+  createReusableDefinitionRepository,
+  withUserContext
+} from '@artificer-toolkit/db'
 import {
   claimLiveSessionRoomCommandAuthority,
   executeLiveSessionCommand,
@@ -8,6 +12,13 @@ import {
   type LiveSessionCommandExecution,
   type LiveSessionRoomSnapshot
 } from '@artificer-toolkit/functions/services'
+import {
+  createPlatformRulesRuntime,
+  createReusableDefinitionRuntimeSource,
+  deriveRulesRuntimeContinuationIntegrityKey
+} from '@artificer-toolkit/functions/services/rules'
+import { type RulesRuntimeService } from '@artificer-toolkit/functions/services/rules'
+import { resolveSessionHostTicketSecret } from './config.js'
 import type {
   LiveSessionActiveMembershipDto,
   LiveSessionAggregateVersionDto,
@@ -51,7 +62,8 @@ export interface LiveSessionRoomDependencies {
     authorityId: string,
     sceneVisionContext: LiveSessionSceneVisionContextDto,
     committedRuleSnapshot?: CharacterSheetCommittedRuleSnapshot,
-    committedEncounterRuleSnapshot?: EncounterActorRuleSnapshot
+    committedEncounterRuleSnapshot?: EncounterActorRuleSnapshot,
+    rulesRuntime?: RulesRuntimeService
   ): Promise<LiveSessionCommandExecution>
   dispose?(): Promise<void>
 }
@@ -72,6 +84,8 @@ export interface LiveSessionSceneCommandTiming {
 }
 
 export interface CreateLiveSessionRoomDependenciesOptions {
+  ticketSecret?: string
+  rulesRuntime?: RulesRuntimeService
   onCharacterCommandTiming?: (timing: LiveSessionCharacterCommandTiming) => void
   onEncounterCommandTiming?: (timing: LiveSessionEncounterCommandTiming) => void
   onSceneCommandTiming?: (timing: LiveSessionSceneCommandTiming) => void
@@ -81,6 +95,14 @@ export function createLiveSessionRoomDependencies(
   options: CreateLiveSessionRoomDependenciesOptions = {}
 ): LiveSessionRoomDependencies {
   const db = createDb()
+  const rulesRuntime =
+    options.rulesRuntime ??
+    createPlatformRulesRuntime({
+      continuationIntegrityKey: deriveRulesRuntimeContinuationIntegrityKey(
+        resolveSessionHostTicketSecret(options.ticketSecret)
+      ),
+      definitions: createReusableDefinitionRuntimeSource(createReusableDefinitionRepository(db))
+    })
   return {
     loadSnapshot: (userId, options) =>
       withUserContext(db, userId, (scopedDb) =>
@@ -105,7 +127,8 @@ export function createLiveSessionRoomDependencies(
       authorityId,
       sceneVisionContext,
       committedRuleSnapshot,
-      committedEncounterRuleSnapshot
+      committedEncounterRuleSnapshot,
+      injectedRulesRuntime
     ) => {
       const startedAt = command.aggregateKind === 'SCENE' ? performance.now() : null
       return withUserContext(db, userId, (scopedDb) =>
@@ -127,7 +150,8 @@ export function createLiveSessionRoomDependencies(
             options.onEncounterCommandTiming?.({
               commandId: command.command.commandId,
               service
-            })
+            }),
+          injectedRulesRuntime ?? rulesRuntime
         )
       ).finally(() => {
         if (startedAt !== null) {

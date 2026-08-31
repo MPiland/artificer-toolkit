@@ -1,24 +1,65 @@
 import { z } from 'zod'
 
+import { automationModeDtoSchema, manualReminderModeDtoSchema } from './campaignSettings.js'
 import { characterSheetCommandInputDtoSchema } from './characters.js'
 import { featureDtoSchema } from '../features/feature.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { movementReactionChoiceSelectionDtoSchema } from '../shared/reaction.js'
+import { encounterInitiativePolicySummaryDtoSchema } from '../shared/initiativePolicySnapshot.js'
+import { encounterOptionalCombatSummaryDtoSchema } from '../shared/optionalCombat.js'
+import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/rulesExecution.js'
+import { sizeCodeSchema } from '../shared/enums.js'
+import {
+  encounterRuleOccurrenceSummaryDtoSchema,
+  pendingEncounterRuleOccurrenceSummaryDtoSchema,
+  type EncounterRuleOccurrenceSummaryDto,
+  type PendingEncounterRuleOccurrenceSummaryDto
+} from '../shared/encounterRuleOccurrence.js'
 import { AUTHORED_LIMITS } from '../shared/authoredLimits.js'
 import { rollRecordDtoSchema } from './rolls.js'
-import {
-  ruleModelKeyDtoSchema,
-  ruleOutcomeKindDtoSchema,
-  ruleOutcomeOverrideDtoSchema,
-  ruleResolutionEvidenceDtoSchema
-} from './rules.js'
+import { ruleOutcomeKindDtoSchema, ruleResolutionEvidenceDtoSchema } from './rules.js'
 
 const uuidSchema = z.string().uuid()
 const versionSchema = z.number().int().nonnegative()
 const timestampSchema = z.string().datetime()
 const jsonSchema = z.json()
+const speedFactorActionFactorDtoSchema = z.enum([
+  'MELEE_HEAVY',
+  'MELEE_LIGHT_OR_FINESSE',
+  'MELEE_TWO_HANDED',
+  'RANGED_LOADING'
+])
+const initiativeDeclarationSelectionDtoSchema = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.enum(['CHARACTER_ACTION', 'CHARACTER_SPELL_CAST', 'CREATURE_FEATURE_ACTION']),
+    optionId: z.string().trim().min(1).max(1_000)
+  }),
+  z
+    .strictObject({
+      kind: z.literal('GM_ADJUDICATED'),
+      optionId: z.literal('GM_ADJUDICATED'),
+      actorSize: sizeCodeSchema,
+      actionFactors: z.array(speedFactorActionFactorDtoSchema).max(4),
+      spellLevel: z.number().int().min(0).max(99).nullable()
+    })
+    .superRefine((value, context) => {
+      if (new Set(value.actionFactors).size !== value.actionFactors.length) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['actionFactors'],
+          message: 'GM-adjudicated action factors must be unique.'
+        })
+      }
+    })
+])
+export {
+  automationModeDtoSchema as encounterAutomationModeDtoSchema,
+  manualReminderModeDtoSchema as encounterManualReminderModeDtoSchema
+}
 
 export const encounterStatusDtoSchema = z.enum(['PREPARED', 'ACTIVE', 'COMPLETED'])
 export const encounterActorKindDtoSchema = z.enum(['CHARACTER', 'CREATURE', 'CUSTOM'])
+export const MAX_ENCOUNTER_ACTORS = AUTHORED_LIMITS.nestedCollectionItems
 export const encounterHealthBandDtoSchema = z.enum([
   'HEALTHY',
   'WOUNDED',
@@ -55,7 +96,7 @@ export const encounterFeatureReferenceDtoSchema = featureDtoSchema
     resource: z
       .strictObject({
         used: z.number().int().nonnegative(),
-        maximum: z.number().int().positive(),
+        maximum: z.number().int().nonnegative(),
         remaining: z.number().int().nonnegative(),
         resetKind: z.enum(['DAILY', 'DAWN', 'DUSK', 'LONG_REST', 'SHORT_REST', 'MANUAL'])
       })
@@ -90,15 +131,20 @@ export const encounterPlayerProjectionDtoSchema = z.strictObject({
   id: uuidSchema,
   campaignId: uuidSchema,
   sessionId: uuidSchema,
-  templateId: uuidSchema,
-  templateVersion: versionSchema,
+  gameSystemId: postgresUuidSchema,
+  blueprintId: postgresUuidSchema,
+  blueprintVersion: z.number().int().positive(),
+  blueprintChecksum: z.string().regex(/^[a-f0-9]{64}$/),
   name: z.string().trim().min(1).max(160),
   status: encounterStatusDtoSchema,
+  automationMode: automationModeDtoSchema,
   rulePackRevisionId: uuidSchema.nullable().default(null),
-  version: versionSchema,
+  initiativePolicy: encounterInitiativePolicySummaryDtoSchema.nullable().default(null),
+  optionalCombatRules: z.array(encounterOptionalCombatSummaryDtoSchema).max(14).default([]),
+  version: z.number().int().nonnegative(),
   round: z.number().int().nonnegative(),
   currentActorId: uuidSchema.nullable(),
-  actors: z.array(encounterPlayerActorDtoSchema),
+  actors: z.array(encounterPlayerActorDtoSchema).max(MAX_ENCOUNTER_ACTORS),
   createdAt: timestampSchema,
   updatedAt: timestampSchema
 })
@@ -107,15 +153,21 @@ export const encounterGmProjectionDtoSchema = z.strictObject({
   id: uuidSchema,
   campaignId: uuidSchema,
   sessionId: uuidSchema,
-  templateId: uuidSchema,
-  templateVersion: versionSchema,
+  gameSystemId: postgresUuidSchema,
+  blueprintId: postgresUuidSchema,
+  blueprintVersion: z.number().int().positive(),
+  blueprintChecksum: z.string().regex(/^[a-f0-9]{64}$/),
   name: z.string().trim().min(1).max(160),
   status: encounterStatusDtoSchema,
+  automationMode: automationModeDtoSchema,
+  manualReminderMode: manualReminderModeDtoSchema,
   rulePackRevisionId: uuidSchema.nullable().default(null),
-  version: versionSchema,
+  initiativePolicy: encounterInitiativePolicySummaryDtoSchema.nullable().default(null),
+  optionalCombatRules: z.array(encounterOptionalCombatSummaryDtoSchema).max(14).default([]),
+  version: z.number().int().nonnegative(),
   round: z.number().int().nonnegative(),
   currentActorId: uuidSchema.nullable(),
-  actors: z.array(encounterGmActorDtoSchema),
+  actors: z.array(encounterGmActorDtoSchema).max(MAX_ENCOUNTER_ACTORS),
   reminders: z
     .array(
       z.strictObject({
@@ -134,10 +186,13 @@ export const encounterGmProjectionDtoSchema = z.strictObject({
   updatedAt: timestampSchema
 })
 
+export { encounterRuleOccurrenceSummaryDtoSchema, pendingEncounterRuleOccurrenceSummaryDtoSchema }
+
 export const encounterCommandResultDtoSchema = z.strictObject({
-  projection: encounterGmProjectionDtoSchema,
+  projection: z.union([encounterGmProjectionDtoSchema, encounterPlayerProjectionDtoSchema]),
   roll: rollRecordDtoSchema.nullable(),
-  resolution: ruleResolutionEvidenceDtoSchema.nullable().default(null)
+  resolution: ruleResolutionEvidenceDtoSchema.nullable().default(null),
+  occurrence: encounterRuleOccurrenceSummaryDtoSchema.nullable().default(null)
 })
 
 export const encounterTimelineResolutionSummaryDtoSchema = z.strictObject({
@@ -184,7 +239,7 @@ const encounterEnemySnapshotDtoSchema = z.strictObject({
   snapshot: jsonSchema
 })
 
-const encounterTemplateEnemyInputDtoSchema = z.discriminatedUnion('kind', [
+const encounterBlueprintEnemyInputDtoSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('CREATURE'),
     sourceId: postgresUuidSchema
@@ -196,30 +251,29 @@ const encounterTemplateEnemyInputDtoSchema = z.discriminatedUnion('kind', [
   })
 ])
 
-export const encounterTemplateDtoSchema = z.strictObject({
-  id: uuidSchema,
-  campaignId: uuidSchema,
+export const encounterBlueprintDtoSchema = z.strictObject({
+  id: postgresUuidSchema,
+  gameSystemId: postgresUuidSchema,
   name: z.string().trim().min(1).max(160),
   version: versionSchema,
   enemies: z.array(encounterEnemySnapshotDtoSchema),
   createdAt: timestampSchema,
-  updatedAt: timestampSchema
+  updatedAt: timestampSchema,
+  setupChecksum: z.string().regex(/^[a-f0-9]{64}$/)
 })
-export const encounterTemplateListDtoSchema = z.array(encounterTemplateDtoSchema)
-export const createEncounterTemplateInputDtoSchema = z.strictObject({
-  campaignId: uuidSchema,
+export const encounterBlueprintListDtoSchema = z.array(encounterBlueprintDtoSchema)
+export const createEncounterBlueprintInputDtoSchema = z.strictObject({
+  gameSystemId: postgresUuidSchema,
   name: z.string().trim().min(1).max(160),
-  enemies: z
-    .array(encounterTemplateEnemyInputDtoSchema)
-    .min(1)
-    .max(AUTHORED_LIMITS.nestedCollectionItems),
-  commandId: uuidSchema
+  enemies: z.array(encounterBlueprintEnemyInputDtoSchema).min(1).max(MAX_ENCOUNTER_ACTORS),
+  commandId: postgresUuidSchema
 })
-export const addEncounterTemplateInputDtoSchema = z.strictObject({
-  campaignId: uuidSchema,
-  sessionId: uuidSchema,
-  templateId: uuidSchema,
-  commandId: uuidSchema
+export const updateEncounterBlueprintInputDtoSchema = z.strictObject({
+  blueprintId: postgresUuidSchema,
+  expectedVersion: z.number().int().positive(),
+  name: z.string().trim().min(1).max(160),
+  enemies: z.array(encounterBlueprintEnemyInputDtoSchema).min(1).max(MAX_ENCOUNTER_ACTORS),
+  commandId: postgresUuidSchema
 })
 
 export const updateEncounterActorInputDtoSchema = commandBaseDtoSchema.extend({
@@ -272,6 +326,10 @@ export const setEncounterCurrentActorInputDtoSchema = commandBaseDtoSchema.exten
 export const setEncounterRoundInputDtoSchema = commandBaseDtoSchema.extend({
   type: z.literal('SET_ROUND'),
   round: z.number().int().positive()
+})
+export const replaceEncounterOptionalCombatRulesInputDtoSchema = commandBaseDtoSchema.extend({
+  type: z.literal('REPLACE_OPTIONAL_COMBAT_RULES'),
+  definitionIds: z.array(uuidSchema).max(14)
 })
 export const adjustEncounterFeatureResourceInputDtoSchema = commandBaseDtoSchema.extend({
   type: z.literal('ADJUST_FEATURE_RESOURCE'),
@@ -326,24 +384,61 @@ export const upgradeEncounterRulePackInputDtoSchema = commandBaseDtoSchema.exten
   type: z.literal('UPGRADE_RULE_PACK'),
   revisionId: uuidSchema
 })
-export const resolveEncounterActionInputDtoSchema = commandBaseDtoSchema
-  .extend({
-    type: z.literal('RESOLVE_ACTION'),
-    actorId: uuidSchema,
-    modelKey: ruleModelKeyDtoSchema,
-    targetActorIds: z.array(uuidSchema).max(50),
-    selections: jsonSchema,
-    visibility: z.enum(['PRIVATE', 'TABLE']),
-    override: ruleOutcomeOverrideDtoSchema.optional()
-  })
-  .superRefine(({ targetActorIds }, context) => {
-    if (new Set(targetActorIds).size !== targetActorIds.length)
-      context.addIssue({
-        code: 'custom',
-        path: ['targetActorIds'],
-        message: 'Target actor IDs must be unique.'
-      })
-  })
+export const resolveEncounterActionInputDtoSchema = commandBaseDtoSchema.extend({
+  type: z.literal('RESOLVE_ACTION'),
+  actorId: uuidSchema,
+  actionId: z.string().trim().min(1).max(240),
+  targetActorId: uuidSchema,
+  /**
+   * Required only by action policies that consume exact Scene position. The
+   * server locks and validates this dependency before it constructs facts.
+   */
+  sceneContext: z
+    .strictObject({
+      sceneId: uuidSchema,
+      expectedSceneVersion: versionSchema,
+      sourceTokenId: uuidSchema,
+      targetTokenId: uuidSchema
+    })
+    .nullable()
+    .optional()
+    .default(null)
+})
+
+export const resolveRuleOccurrenceInputDtoSchema = commandBaseDtoSchema.extend({
+  type: z.literal('RESOLVE_RULE_OCCURRENCE'),
+  correlationId: serverRuleExecutionCorrelationIdDtoSchema.optional().default(null),
+  occurrenceId: uuidSchema,
+  expectedOccurrenceVersion: versionSchema,
+  resolution: z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('ENTER_DICE'),
+      requestId: z.string().trim().min(1).max(256),
+      rawFaces: z.array(z.number().int().min(1).max(20)).min(1).max(2)
+    }),
+    z.strictObject({
+      kind: z.literal('SYSTEM_ROLL'),
+      requestId: z.string().trim().min(1).max(256)
+    }),
+    z.strictObject({
+      kind: z.literal('ENTER_INTEGER'),
+      requestId: z.string().trim().min(1).max(256),
+      value: z.number().int()
+    }),
+    z.strictObject({
+      kind: z.literal('INITIATIVE_ENTITY'),
+      requestId: z.string().trim().min(1).max(256),
+      entityId: uuidSchema
+    }),
+    z.strictObject({
+      kind: z.literal('INITIATIVE_DECLARATION'),
+      requestId: z.string().trim().min(1).max(256),
+      primary: initiativeDeclarationSelectionDtoSchema,
+      bonus: initiativeDeclarationSelectionDtoSchema.nullable()
+    }),
+    ...movementReactionChoiceSelectionDtoSchema.options
+  ])
+})
 
 export const encounterCommandInputDtoSchema = z.discriminatedUnion('type', [
   updateEncounterActorInputDtoSchema,
@@ -356,25 +451,33 @@ export const encounterCommandInputDtoSchema = z.discriminatedUnion('type', [
   previousEncounterTurnInputDtoSchema,
   setEncounterCurrentActorInputDtoSchema,
   setEncounterRoundInputDtoSchema,
+  replaceEncounterOptionalCombatRulesInputDtoSchema,
   adjustEncounterFeatureResourceInputDtoSchema,
   upsertEncounterReminderInputDtoSchema,
   removeEncounterReminderInputDtoSchema,
   rollEncounterEnemyActionInputDtoSchema,
   completeEncounterInputDtoSchema,
   upgradeEncounterRulePackInputDtoSchema,
-  resolveEncounterActionInputDtoSchema
+  resolveEncounterActionInputDtoSchema,
+  resolveRuleOccurrenceInputDtoSchema
 ])
-export const getEncounterInputDtoSchema = z.strictObject({ encounterId: uuidSchema })
-export const getCampaignEncounterInputDtoSchema = z.strictObject({ campaignId: uuidSchema })
+export const getEncounterInputDtoSchema = z.strictObject({
+  encounterId: uuidSchema
+})
+export const getPendingEncounterRuleOccurrenceInputDtoSchema = z.strictObject({
+  encounterId: uuidSchema
+})
+export const getCampaignEncounterInputDtoSchema = z.strictObject({
+  campaignId: uuidSchema
+})
 export const createEncounterInputDtoSchema = z.strictObject({
   campaignId: uuidSchema,
   sessionId: uuidSchema,
-  templateId: uuidSchema,
-  systemId: postgresUuidSchema.optional(),
+  blueprintId: postgresUuidSchema,
   commandId: uuidSchema
 })
-export const getCampaignEncounterTemplatesInputDtoSchema = z.strictObject({
-  campaignId: uuidSchema
+export const getEncounterBlueprintsInputDtoSchema = z.strictObject({
+  gameSystemId: postgresUuidSchema
 })
 export const getEncounterTimelineInputDtoSchema = z.strictObject({
   encounterId: uuidSchema,
@@ -391,11 +494,16 @@ export type EncounterPlayerProjectionDto = z.infer<typeof encounterPlayerProject
 export type EncounterGmProjectionDto = z.infer<typeof encounterGmProjectionDtoSchema>
 export type EncounterGmActorDto = z.infer<typeof encounterGmActorDtoSchema>
 export type EncounterCommandResultDto = z.infer<typeof encounterCommandResultDtoSchema>
+export type { EncounterRuleOccurrenceSummaryDto, PendingEncounterRuleOccurrenceSummaryDto }
 export type EncounterTimelineDto = z.infer<typeof encounterTimelineDtoSchema>
 export type CreateEncounterInputDto = z.infer<typeof createEncounterInputDtoSchema>
-export type EncounterTemplateDto = z.infer<typeof encounterTemplateDtoSchema>
-export type CreateEncounterTemplateInputDto = z.infer<typeof createEncounterTemplateInputDtoSchema>
-export type AddEncounterTemplateInputDto = z.infer<typeof addEncounterTemplateInputDtoSchema>
+export type EncounterBlueprintDto = z.infer<typeof encounterBlueprintDtoSchema>
+export type CreateEncounterBlueprintInputDto = z.infer<
+  typeof createEncounterBlueprintInputDtoSchema
+>
+export type UpdateEncounterBlueprintInputDto = z.infer<
+  typeof updateEncounterBlueprintInputDtoSchema
+>
 export type UpdateEncounterActorInputDto = z.infer<typeof updateEncounterActorInputDtoSchema>
 export type RemoveEncounterActorInputDto = z.infer<typeof removeEncounterActorInputDtoSchema>
 export type SetEncounterInitiativeInputDto = z.infer<typeof setEncounterInitiativeInputDtoSchema>
@@ -405,4 +513,5 @@ export type UpgradeEncounterRulePackInputDto = z.infer<
   typeof upgradeEncounterRulePackInputDtoSchema
 >
 export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActionInputDtoSchema>
+export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type EncounterCommandInputDto = z.infer<typeof encounterCommandInputDtoSchema>

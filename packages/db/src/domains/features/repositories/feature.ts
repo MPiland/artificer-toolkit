@@ -188,7 +188,8 @@ function orderedFeatureRows(rows: readonly FeatureRow[], ids: readonly string[])
 async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
   db: DBLike,
   ids: readonly string[],
-  options: FeatureRepositoryReadOptions = {}
+  options: FeatureRepositoryReadOptions = {},
+  expectedSystemId?: string
 ): Promise<Map<string, FeatureAuthored<N>>> {
   const distinctIds = uniqueIds(ids)
   if (distinctIds.length === 0) {
@@ -298,7 +299,7 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
   const proficiencyGrantRepository = createProficiencyGrantRepository(db)
   const senseGrantRepository = createSenseGrantRepository(db)
   const spellGrantRepository = createSpellGrantRepository(db)
-  const optionRepository = createOptionRepository<NodeSubjectCode>(db)
+  const optionRepository = createOptionRepository<NodeSubjectCode>(db, expectedSystemId)
 
   const [
     chargesById,
@@ -323,7 +324,9 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
     ),
     options.includeEffects === false
       ? Promise.resolve(new Map<string, EffectAuthored>())
-      : createEffectRepository(db).findByIds(effectLinks.map((link) => link.effect_id)),
+      : createEffectRepository(db, expectedSystemId).findByIds(
+          effectLinks.map((link) => link.effect_id)
+        ),
     detailRepository.findByIds(detailLinks.map((link) => link.detail_id)),
     featGrantRepository.findByIds(featGrantLinks.map((link) => link.feat_grant_id)),
     modifierGrantRepository.findByIds(modifierGrantLinks.map((link) => link.modifier_grant_id)),
@@ -476,18 +479,20 @@ async function hydrateFeaturesByIds<N extends NodeSubjectCode>(
 export async function hydrateFeatureById(
   db: DBLike,
   id: string,
-  options: FeatureRepositoryReadOptions = {}
+  options: FeatureRepositoryReadOptions = {},
+  expectedSystemId?: string
 ): Promise<FeatureAuthored | null> {
-  const featuresById = await hydrateFeaturesByIds(db, [id], options)
+  const featuresById = await hydrateFeaturesByIds(db, [id], options, expectedSystemId)
   return featuresById.get(id) ?? null
 }
 
 async function hydrateFeatureByIdTyped<N extends NodeSubjectCode>(
   db: DBLike,
   id: string,
-  options: FeatureRepositoryReadOptions = {}
+  options: FeatureRepositoryReadOptions = {},
+  expectedSystemId?: string
 ): Promise<FeatureAuthored<N> | null> {
-  return hydrateFeatureById(db, id, options) as Promise<FeatureAuthored<N> | null>
+  return hydrateFeatureById(db, id, options, expectedSystemId) as Promise<FeatureAuthored<N> | null>
 }
 
 export function createFeatureRepository<N extends NodeSubjectCode = NodeSubjectCode>(
@@ -500,11 +505,11 @@ export function createFeatureRepository<N extends NodeSubjectCode = NodeSubjectC
     },
 
     async findById(id, filter) {
-      return hydrateFeatureByIdTyped<N>(db, id, filter)
+      return hydrateFeatureByIdTyped<N>(db, id, filter, defaultSystemId)
     },
 
     async findByIds(ids, filter) {
-      return hydrateFeaturesByIds<N>(db, ids, filter)
+      return hydrateFeaturesByIds<N>(db, ids, filter, defaultSystemId)
     },
 
     async findAll() {
@@ -514,7 +519,9 @@ export function createFeatureRepository<N extends NodeSubjectCode = NodeSubjectC
         rows.map((row) => row.id),
         await hydrateFeaturesByIds<N>(
           db,
-          rows.map((row) => row.id)
+          rows.map((row) => row.id),
+          {},
+          defaultSystemId
         )
       )
     }

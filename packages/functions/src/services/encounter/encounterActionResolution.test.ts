@@ -12,7 +12,7 @@ import {
   encounterActorRuleOutputSchema
 } from '@artificer-toolkit/schema/api/encounterActorRules'
 
-import { checksumRuleDocument } from '../rules/ruleChecksum.js'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { RULE_MODEL_CONTRACT_VERSION } from '../rules/ruleModelContracts.js'
 import { dnd5e2014EncounterActorModel } from '../rules/systems/dnd5e/2014/encounterActorSource.js'
 
@@ -25,10 +25,36 @@ const ids = {
   revision: '00000000-0000-4000-8000-000000000006',
   session: '00000000-0000-4000-8000-000000000007',
   system: '00000000-0000-4000-8000-000000000008',
-  template: '00000000-0000-4000-8000-000000000009'
+  template: '00000000-0000-4000-8000-000000000009',
+  damageType: '00000000-0000-4000-8000-000000000010',
+  condition: '00000000-0000-4000-8000-000000000011'
 }
 
 const mocks = vi.hoisted(() => ({ getRevision: vi.fn(), updateActor: vi.fn() }))
+
+const damageProtectionCases: Array<
+  [
+    string,
+    Array<{ kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'; damageTypeId: string }>,
+    number
+  ]
+> = [
+  ['immunity prevents typed damage', [{ kind: 'IMMUNITY', damageTypeId: ids.damageType }], 10],
+  ['resistance halves typed damage', [{ kind: 'RESISTANCE', damageTypeId: ids.damageType }], 9],
+  [
+    'vulnerability doubles typed damage',
+    [{ kind: 'VULNERABILITY', damageTypeId: ids.damageType }],
+    4
+  ],
+  [
+    'resistance and vulnerability cancel',
+    [
+      { kind: 'RESISTANCE', damageTypeId: ids.damageType },
+      { kind: 'VULNERABILITY', damageTypeId: ids.damageType }
+    ],
+    7
+  ]
+]
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@artificer-toolkit/db')>()),
@@ -38,7 +64,15 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => ({
 
 import { resolveEncounterAction } from './encounterActionResolution.js'
 
-function graph(targetActorId: string) {
+function graph(
+  targetActorId: string,
+  outcome: Record<string, unknown> = {
+    kind: 'DAMAGE',
+    targetActorId,
+    amount: 3,
+    damageTypeId: null
+  }
+) {
   return {
     contentType: 'application/vnd.gorules.decision',
     edges: [
@@ -85,14 +119,7 @@ function graph(targetActorId: string) {
               allowed: 'true',
               reason: '"ALLOWED"',
               rolls: '[]',
-              outcomes: JSON.stringify([
-                {
-                  kind: 'DAMAGE',
-                  targetActorId,
-                  amount: 3,
-                  damageTypeId: null
-                }
-              ])
+              outcomes: JSON.stringify([outcome])
             },
             {
               _id: 'empty',
@@ -110,6 +137,32 @@ function graph(targetActorId: string) {
   }
 }
 
+function actorRules(
+  input: {
+    defenses?: Array<{ kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'; damageTypeId: string }>
+    conditionImmunityIds?: string[]
+    status?: 'NORMALIZED' | 'NOT_NORMALIZED'
+  } = {}
+) {
+  return encounterActorRuleOutputSchema.parse({
+    actors: [
+      {
+        actorId: ids.actor,
+        initiativeModifier: 0,
+        featureResources: [],
+        targetProtection:
+          input.status === 'NOT_NORMALIZED'
+            ? { status: 'NOT_NORMALIZED' }
+            : {
+                status: 'NORMALIZED',
+                defenses: input.defenses ?? [],
+                conditionImmunityIds: input.conditionImmunityIds ?? []
+              }
+      }
+    ]
+  })
+}
+
 function fixture() {
   const document = rulePackDocumentDtoSchema.parse({
     schemaVersion: 1,
@@ -123,9 +176,13 @@ function fixture() {
     id: ids.encounter,
     campaignId: ids.campaign,
     sessionId: ids.session,
-    templateId: ids.template,
-    templateVersion: 1,
+    gameSystemId: ids.system,
+    blueprintId: ids.template,
+    blueprintVersion: 1,
+    blueprintChecksum: 'a'.repeat(64),
     rulePackRevisionId: ids.revision,
+    automationMode: 'ASSISTED',
+    manualReminderMode: 'OFF',
     name: 'Rule test',
     status: 'ACTIVE',
     version: 1,
@@ -198,9 +255,7 @@ describe('Encounter action resolution', () => {
       encounter,
       pack,
       revision,
-      actorRules: encounterActorRuleOutputSchema.parse({
-        actors: [{ actorId: ids.actor, initiativeModifier: 0, featureResources: [] }]
-      }),
+      actorRules: actorRules(),
       command: {
         encounterId: encounter.id,
         commandId: ids.command,
@@ -237,9 +292,7 @@ describe('Encounter action resolution', () => {
         encounter,
         pack,
         revision,
-        actorRules: encounterActorRuleOutputSchema.parse({
-          actors: [{ actorId: ids.actor, initiativeModifier: 0, featureResources: [] }]
-        }),
+        actorRules: actorRules(),
         command: {
           encounterId: encounter.id,
           commandId: ids.command,
@@ -254,5 +307,187 @@ describe('Encounter action resolution', () => {
       })
     ).rejects.toMatchObject({ name: 'EncounterValidationError', message: 'NO_CHARGES' })
     expect(mocks.updateActor).not.toHaveBeenCalled()
+  })
+
+  it.each(damageProtectionCases)('%s', async (_name, defenses, expectedHitPoints) => {
+    const { encounter, pack, revision } = fixture()
+    const document = rulePackDocumentDtoSchema.parse({
+      schemaVersion: 1,
+      models: {
+        'resolve-action': graph(ids.actor, {
+          kind: 'DAMAGE',
+          targetActorId: ids.actor,
+          amount: 3,
+          damageTypeId: ids.damageType
+        }),
+        [ENCOUNTER_ACTOR_MODEL_KEY]: dnd5e2014EncounterActorModel
+      },
+      fixtures: []
+    })
+    revision.document = document
+    revision.checksum = checksumRuleDocument(document)
+
+    await resolveEncounterAction({
+      db: {} as DBLike,
+      userId: ids.actor,
+      encounter,
+      pack,
+      revision,
+      actorRules: actorRules({ defenses }),
+      command: {
+        encounterId: encounter.id,
+        commandId: ids.command,
+        expectedVersion: encounter.version,
+        type: 'RESOLVE_ACTION',
+        actorId: ids.actor,
+        modelKey: 'resolve-action',
+        targetActorIds: [ids.actor],
+        selections: { remainingCharges: 1 },
+        visibility: 'TABLE'
+      }
+    })
+
+    if (expectedHitPoints === 10) {
+      expect(mocks.updateActor).not.toHaveBeenCalled()
+    } else {
+      expect(mocks.updateActor).toHaveBeenCalledWith(
+        expect.objectContaining({ currentHitPoints: expectedHitPoints })
+      )
+    }
+  })
+
+  it('suppresses an exactly matching normalized condition immunity without mutating the actor', async () => {
+    const { encounter, pack, revision } = fixture()
+    const document = rulePackDocumentDtoSchema.parse({
+      schemaVersion: 1,
+      models: {
+        'resolve-action': graph(ids.actor, {
+          kind: 'CONDITION',
+          targetActorId: ids.actor,
+          conditionId: ids.condition,
+          operation: 'APPLY'
+        }),
+        [ENCOUNTER_ACTOR_MODEL_KEY]: dnd5e2014EncounterActorModel
+      },
+      fixtures: []
+    })
+    revision.document = document
+    revision.checksum = checksumRuleDocument(document)
+
+    await resolveEncounterAction({
+      db: {} as DBLike,
+      userId: ids.actor,
+      encounter,
+      pack,
+      revision,
+      actorRules: actorRules({ conditionImmunityIds: [ids.condition] }),
+      command: {
+        encounterId: encounter.id,
+        commandId: ids.command,
+        expectedVersion: encounter.version,
+        type: 'RESOLVE_ACTION',
+        actorId: ids.actor,
+        modelKey: 'resolve-action',
+        targetActorIds: [ids.actor],
+        selections: { remainingCharges: 1 },
+        visibility: 'TABLE'
+      }
+    })
+
+    expect(mocks.updateActor).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [
+      'DAMAGE',
+      { kind: 'DAMAGE', targetActorId: ids.actor, amount: 3, damageTypeId: ids.damageType }
+    ],
+    [
+      'CONDITION',
+      {
+        kind: 'CONDITION',
+        targetActorId: ids.actor,
+        conditionId: ids.condition,
+        operation: 'APPLY'
+      }
+    ]
+  ])('rejects %s for a non-normalized Creature target before mutation', async (_name, outcome) => {
+    const { encounter, pack, revision } = fixture()
+    const document = rulePackDocumentDtoSchema.parse({
+      schemaVersion: 1,
+      models: {
+        'resolve-action': graph(ids.actor, outcome),
+        [ENCOUNTER_ACTOR_MODEL_KEY]: dnd5e2014EncounterActorModel
+      },
+      fixtures: []
+    })
+    revision.document = document
+    revision.checksum = checksumRuleDocument(document)
+
+    await expect(
+      resolveEncounterAction({
+        db: {} as DBLike,
+        userId: ids.actor,
+        encounter,
+        pack,
+        revision,
+        actorRules: actorRules({ status: 'NOT_NORMALIZED' }),
+        command: {
+          encounterId: encounter.id,
+          commandId: ids.command,
+          expectedVersion: encounter.version,
+          type: 'RESOLVE_ACTION',
+          actorId: ids.actor,
+          modelKey: 'resolve-action',
+          targetActorIds: [ids.actor],
+          selections: { remainingCharges: 1 },
+          visibility: 'TABLE'
+        }
+      })
+    ).rejects.toMatchObject({ name: 'EncounterValidationError' })
+
+    expect(mocks.updateActor).not.toHaveBeenCalled()
+  })
+
+  it('allows healing a non-normalized Creature target because no protection fact is needed', async () => {
+    const { encounter, pack, revision } = fixture()
+    encounter.actors[0] = { ...encounter.actors[0], currentHitPoints: 6 }
+    const document = rulePackDocumentDtoSchema.parse({
+      schemaVersion: 1,
+      models: {
+        'resolve-action': graph(ids.actor, {
+          kind: 'HEAL',
+          targetActorId: ids.actor,
+          amount: 3,
+          temporary: false
+        }),
+        [ENCOUNTER_ACTOR_MODEL_KEY]: dnd5e2014EncounterActorModel
+      },
+      fixtures: []
+    })
+    revision.document = document
+    revision.checksum = checksumRuleDocument(document)
+
+    await resolveEncounterAction({
+      db: {} as DBLike,
+      userId: ids.actor,
+      encounter,
+      pack,
+      revision,
+      actorRules: actorRules({ status: 'NOT_NORMALIZED' }),
+      command: {
+        encounterId: encounter.id,
+        commandId: ids.command,
+        expectedVersion: encounter.version,
+        type: 'RESOLVE_ACTION',
+        actorId: ids.actor,
+        modelKey: 'resolve-action',
+        targetActorIds: [ids.actor],
+        selections: { remainingCharges: 1 },
+        visibility: 'TABLE'
+      }
+    })
+
+    expect(mocks.updateActor).toHaveBeenCalledWith(expect.objectContaining({ currentHitPoints: 9 }))
   })
 })

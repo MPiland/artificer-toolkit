@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const youngBlackDragon: CreatureAuthored = {
@@ -199,6 +200,9 @@ export const youngBlackDragon: CreatureAuthored = {
     },
     {
       id: S.featureId(301, 5),
+      ruleDefinitionIds: [S.DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: S.rechargeFeatureCharge(S.featureId(301, 5)),
       label: 'Acid Breath (Recharge 5-6)',
       description:
         'The dragon exhales acid in a 30-foot line that is 5 feet wide. Each creature in that line must make a DC 14 Dexterity saving throw, taking 49 (11d8) acid damage on a failed save, or half as much damage on a successful one.',
@@ -212,7 +216,7 @@ export const youngBlackDragon: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(301, 14),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.DEXTERITY,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
               baseDc: 14
             },
             activation: {

@@ -3,12 +3,55 @@ import { z } from 'zod'
 import { characterMechanicSourceSchema } from './characterGrantFoldRules.js'
 import { characterResourcesSchema } from './characterResourceRules.js'
 import { abilityCodeSchema } from '../shared/enums.js'
+import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { reactionMovementTriggerBindingDtoSchema } from '../shared/reaction.js'
 
 const identitySchema = z.string().trim().min(1).max(240)
 const spellCandidateIdentitySchema = z.string().trim().min(1).max(1_000)
+const actionAbilityDefinitionSchema = z.strictObject({
+  id: postgresUuidSchema,
+  code: identitySchema
+})
+const actionAbilityDefinitionsSchema = z
+  .array(actionAbilityDefinitionSchema)
+  .max(32)
+  .superRefine((definitions, context) => {
+    const ids = new Set<string>()
+    const codes = new Set<string>()
+    for (const [index, definition] of definitions.entries()) {
+      if (ids.has(definition.id)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index, 'id'],
+          message: 'Action ability definition IDs must be unique.'
+        })
+      }
+      if (codes.has(definition.code)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index, 'code'],
+          message: 'Action ability definition codes must be unique.'
+        })
+      }
+      ids.add(definition.id)
+      codes.add(definition.code)
+    }
+  })
+  .transform((definitions) =>
+    [...definitions].sort((left, right) => left.id.localeCompare(right.id))
+  )
+const canonicalConditionDefinitionIdSchema = z
+  .string()
+  .regex(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    'Condition definition identity must be a canonical lowercase PostgreSQL UUID.'
+  )
 
 const actionEquipmentStateSchema = z.strictObject({
   itemInstanceId: identitySchema,
+  equipmentId: identitySchema.nullable().optional(),
+  category: identitySchema.nullable().optional(),
+  properties: z.array(identitySchema).max(100).optional(),
   equipped: z.boolean(),
   attuned: z.boolean(),
   requiresAttunement: z.boolean(),
@@ -138,7 +181,10 @@ const actionHealFactSchema = z.strictObject({
 })
 
 const actionSavingThrowBonusSchema = z.discriminatedUnion('bonusKind', [
-  z.strictObject({ bonusKind: z.literal('ABILITY_MODIFIER'), ability: identitySchema }),
+  z.strictObject({
+    bonusKind: z.literal('ABILITY_MODIFIER'),
+    abilityDefinitionId: postgresUuidSchema
+  }),
   z.strictObject({ bonusKind: z.literal('PROFICIENCY_BONUS') }),
   z.strictObject({ bonusKind: z.literal('STATIC_BONUS'), amount: z.number().int() })
 ])
@@ -156,11 +202,12 @@ const actionInvocationFactSchema = z.strictObject({
   savingThrow: z
     .strictObject({
       dcMethod: z.enum(['SOURCE_SAVE_DC', 'FIXED_DC', 'DERIVED_DC']),
-      ability: identitySchema,
+      abilityDefinitionId: postgresUuidSchema,
       baseDc: z.number().int().nullable(),
       bonuses: z.array(actionSavingThrowBonusSchema).max(100)
     })
-    .nullable()
+    .nullable(),
+  reactionMovementTrigger: reactionMovementTriggerBindingDtoSchema.nullable()
 })
 
 export const characterActionMechanicFactSchema = z.strictObject({
@@ -173,7 +220,7 @@ export const characterActionMechanicFactSchema = z.strictObject({
         z.strictObject({
           kind: z.literal('CONDITION'),
           pathCode: identitySchema,
-          conditionId: identitySchema
+          conditionId: canonicalConditionDefinitionIdSchema
         }),
         z.strictObject({
           kind: z.literal('EFFECT'),
@@ -191,8 +238,34 @@ const actionOutcomeScalingSchema = z.strictObject({
   expression: z.string().trim().min(1).max(500)
 })
 
+const actionProficiencySchema = z.strictObject({
+  kind: identitySchema,
+  subjectId: identitySchema,
+  scaling: z.enum(['HALF', 'FULL', 'DOUBLE']),
+  category: identitySchema.nullable()
+})
+
+const actionModifierGroupSchema = z.strictObject({
+  domainKey: identitySchema,
+  contributions: z
+    .array(
+      z.strictObject({
+        sourceId: identitySchema,
+        value: z.number().finite(),
+        state: z.enum(['APPLIED', 'SUPPRESSED'])
+      })
+    )
+    .max(1_000)
+})
+
+const actionItemAttackAdjustmentSchema = z.strictObject({
+  itemInstanceId: identitySchema,
+  bonus: z.number().finite(),
+  override: z.number().finite().nullable()
+})
+
 export const characterResolvedActionMechanicSchema = z.strictObject({
-  effectId: identitySchema,
+  effectId: postgresUuidSchema,
   trigger: identitySchema,
   activation: z
     .strictObject({ kind: identitySchema, amount: z.number().int().positive() })
@@ -239,7 +312,7 @@ export const characterActionCandidatesSchema = z
     z.strictObject({
       sequence: z.number().int().min(0).max(9_999),
       actionId: identitySchema,
-      effectId: identitySchema,
+      effectId: postgresUuidSchema,
       sourceId: identitySchema,
       source: characterMechanicSourceSchema,
       mechanicsOwner: actionMechanicsOwnerSchema,
@@ -291,7 +364,7 @@ export const characterActionDecisionsSchema = z
     z.strictObject({
       sequence: z.number().int().min(0).max(9_999),
       actionId: identitySchema,
-      effectId: identitySchema,
+      effectId: postgresUuidSchema,
       sourceId: identitySchema,
       source: characterMechanicSourceSchema,
       mechanicsOwner: actionMechanicsOwnerSchema,
@@ -366,7 +439,7 @@ export const characterSpellActionFactsSchema = z
       effects: z
         .array(
           z.strictObject({
-            effectId: identitySchema,
+            effectId: postgresUuidSchema,
             mechanicFacts: characterActionMechanicFactSchema
           })
         )
@@ -583,6 +656,8 @@ export const CHARACTER_ACTION_MODEL_KEY = 'character-action-resolve'
 
 export const characterActionModelInputSchema = z.strictObject({
   candidates: characterActionCandidatesSchema,
+  /** Exact ability definitions carried from the Character's frozen System snapshot. */
+  abilityDefinitions: actionAbilityDefinitionsSchema.default([]),
   spellCandidates: characterSpellCastCandidatesSchema.default([]),
   spellSlots: characterSpellCastSlotsSchema.default([]),
   spellEffects: characterSpellActionFactsSchema.default([]),
@@ -590,6 +665,9 @@ export const characterActionModelInputSchema = z.strictObject({
   activeSourceIds: z.array(identitySchema).max(10_000),
   activeEquipmentInstanceIds: z.array(identitySchema).max(1_000),
   resources: characterResourcesSchema,
+  proficiencies: z.array(actionProficiencySchema).max(1_000).default([]),
+  modifierGroups: z.array(actionModifierGroupSchema).max(1_000).default([]),
+  itemAttackAdjustments: z.array(actionItemAttackAdjustmentSchema).max(500).default([]),
   totalLevel: z.number().int().min(0).max(20),
   classLevels: z
     .array(z.strictObject({ classId: identitySchema, level: z.number().int().min(0).max(20) }))

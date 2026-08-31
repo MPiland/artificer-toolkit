@@ -1705,8 +1705,8 @@ async function buildCharacterSheetBundleInternal(
         value: formatCodeLabel(defense.kind)
       })),
       senses: ruleProjection.senses.map((sense) => ({
-        senseId: sense.senseCode,
-        label: senseLabels.get(sense.senseCode) ?? 'Unknown sense',
+        senseId: sense.senseDefinitionId,
+        label: senseLabels.get(sense.senseDefinitionId) ?? 'Unknown sense',
         value: formatSenseRange(sense),
         range: sense.range
       })),

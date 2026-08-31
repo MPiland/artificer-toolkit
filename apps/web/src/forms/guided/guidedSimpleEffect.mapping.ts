@@ -27,14 +27,14 @@ export function mapGuidedSpellEffect(
         }
   const targeting =
     draft.target === 'SELF' ? createTargeting('SELF') : createTargeting('CHOSEN_CREATURES')
-  const invocation = draft.saveAbility
+  const invocation = draft.saveAbilityDefinitionId
     ? {
         kind: 'ACTION' as const,
         triggerCode: 'SAVING_THROW' as const,
         savingThrow: {
           id: ids.savingThrowId,
           dcMethod: 'SOURCE_SAVE_DC' as const,
-          ability: draft.saveAbility
+          abilityDefinitionId: draft.saveAbilityDefinitionId
         },
         activation: { code: 'ACTION' as const, amount: 1 },
         range,

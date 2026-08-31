@@ -127,6 +127,35 @@ describe('authored closed-vocabulary contracts', () => {
     ).toBe(false)
   })
 
+  it('normalizes bounded canonical Feature reusable-definition IDs', () => {
+    const first = '11111111-1111-4111-8111-111111111111'
+    const second = '22222222-2222-4222-8222-222222222222'
+    expect(
+      featureBaseDtoSchema.parse({
+        id: 'feature-1',
+        label: 'Feature',
+        description: 'Feature description.',
+        order: 0,
+        ruleDefinitionIds: [first.toUpperCase(), second]
+      }).ruleDefinitionIds
+    ).toEqual([first, second])
+    for (const ruleDefinitionIds of [
+      [second, first],
+      [first, first],
+      Array.from({ length: 17 }, () => first)
+    ]) {
+      expect(() =>
+        featureBaseDtoSchema.parse({
+          id: 'feature-1',
+          label: 'Feature',
+          description: 'Feature description.',
+          order: 0,
+          ruleDefinitionIds
+        })
+      ).toThrow()
+    }
+  })
+
   it('rejects non-measurement speed units', () => {
     expect(
       raceAuthoredDtoSchema.safeParse({

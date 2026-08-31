@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { characterRulePolicyInputSchema } from '@artificer-toolkit/schema/api/characterRules'
+import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import { CHARACTER_ABILITY_GENERATION_METHOD } from '@artificer-toolkit/shared/core'
 
 import { createEmptyCharacterAuthored } from './builderService.js'
@@ -28,11 +29,48 @@ function context() {
   }
 }
 
+const vocabularySnapshot = systemVocabularySnapshotSchema.parse({
+  snapshotId: 'vocabulary-snapshot-1',
+  systemId: 'dnd5e2014',
+  snapshotVersion: 1,
+  schemaVersion: 2,
+  checksum: 'a'.repeat(64),
+  document: {
+    id: 'dnd5e2014',
+    label: 'D&D 5e 2014',
+    rulesetCode: 'DND5E',
+    rulesetVersion: '2014',
+    userId: 'system-owner',
+    schemaVersion: 2,
+    abilities: [
+      { id: '00000000-0000-4000-8000-0000000000d2', code: 'WISDOM', label: 'Wisdom' },
+      { id: '00000000-0000-4000-8000-0000000000d1', code: 'DEXTERITY', label: 'Dexterity' }
+    ],
+    alignments: [],
+    challengeRatings: [],
+    conditionTypes: [],
+    creatureTypes: [],
+    currencies: [],
+    damageTypes: [],
+    heritages: [],
+    languages: [],
+    lifestyles: [],
+    magicSchools: [],
+    passives: [],
+    rarities: [],
+    senses: [],
+    skills: [],
+    speeds: [],
+    terrains: []
+  }
+})
+
 describe('composeCharacterRulePolicyFacts', () => {
   it('composes a complete schema-valid fact set from raw character context', () => {
     const character = createEmptyCharacterAuthored({
       id: 'character-1',
       systemId: 'dnd5e2014',
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       userId: 'user-1'
     })
     character.intent.abilities = {
@@ -76,10 +114,30 @@ describe('composeCharacterRulePolicyFacts', () => {
     ])
   })
 
+  it('pins exact ability definitions from the System vocabulary snapshot', () => {
+    const character = createEmptyCharacterAuthored({
+      id: 'character-1',
+      systemId: 'dnd5e2014',
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
+      userId: 'user-1'
+    })
+
+    const result = composeCharacterRulePolicyFacts({
+      character,
+      context: { ...context(), vocabularySnapshot }
+    })
+
+    expect(result.facts.abilityDefinitions).toEqual([
+      { id: '00000000-0000-4000-8000-0000000000d1', code: 'DEXTERITY' },
+      { id: '00000000-0000-4000-8000-0000000000d2', code: 'WISDOM' }
+    ])
+  })
+
   it('fails closed for unsupported persisted spell slot keys', () => {
     const character = createEmptyCharacterAuthored({
       id: 'character-1',
       systemId: 'dnd5e2014',
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       userId: 'user-1'
     })
     character.state.spellSlots = [{ slotKey: 'STANDARD:10', used: 1 }]
@@ -93,6 +151,7 @@ describe('composeCharacterRulePolicyFacts', () => {
     const character = createEmptyCharacterAuthored({
       id: 'character-1',
       systemId: 'dnd5e2014',
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       userId: 'user-1'
     })
     character.state.spellSlots = [

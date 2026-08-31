@@ -15,11 +15,22 @@ import { buildCharacterDerivedRuleFacts } from '../../../../character/characterD
 import { dnd5e2014CharacterPolicyDocument } from './characterPolicy.js'
 import { evaluateZenRuleModel } from '../../../zenRuleEngine.js'
 
+const damageTypeIds = {
+  acid: '00000000-0000-4000-8000-000000000101',
+  cold: '00000000-0000-4000-8000-000000000102',
+  fire: '00000000-0000-4000-8000-000000000103',
+  lightning: '00000000-0000-4000-8000-000000000104'
+}
+
 function defenseModifier(
   id: string,
-  valueDomainCode: 'DAMAGE_RESISTANCE' | 'DAMAGE_IMMUNITY' | 'DAMAGE_VULNERABILITY',
+  valueDomainCode:
+    | 'DAMAGE_RESISTANCE'
+    | 'DAMAGE_IMMUNITY'
+    | 'DAMAGE_VULNERABILITY'
+    | 'CONDITION_IMMUNITY',
   modifierKind: 'ADD_OPTION' | 'REMOVE_OPTION',
-  damageTypeId?: string
+  identity?: string
 ) {
   return {
     id,
@@ -30,7 +41,12 @@ function defenseModifier(
     domain: {},
     modifierKind,
     scope: 'GLOBAL',
-    payload: damageTypeId === undefined ? {} : { damageTypeId }
+    payload:
+      identity === undefined
+        ? {}
+        : valueDomainCode === 'CONDITION_IMMUNITY'
+          ? { conditionTypeId: identity }
+          : { damageTypeId: identity }
   }
 }
 
@@ -96,19 +112,19 @@ async function evaluate(snapshot: CharacterBuildSnapshot, records: CharacterAsse
     modelKey: 'character-policy',
     context: input
   })
-  return characterRulePolicyOutputSchema.parse(result.result).defenses
+  return characterRulePolicyOutputSchema.parse(result.result)
 }
 
 describe('D&D 5e 2014 Character defense policy', () => {
-  it('preserves authored ordering, removal, and manual replacement', async () => {
+  it('deduplicates and canonically orders UUID-backed defenses after removal and manual replacement', async () => {
     const modifiers = [
-      defenseModifier('add-fire-a', 'DAMAGE_RESISTANCE', 'ADD_OPTION', 'fire'),
-      defenseModifier('add-fire-b', 'DAMAGE_RESISTANCE', 'ADD_OPTION', 'fire'),
-      defenseModifier('remove-cold', 'DAMAGE_RESISTANCE', 'REMOVE_OPTION', 'cold'),
-      defenseModifier('add-cold', 'DAMAGE_RESISTANCE', 'ADD_OPTION', 'cold'),
-      defenseModifier('add-acid', 'DAMAGE_RESISTANCE', 'ADD_OPTION', 'acid'),
-      defenseModifier('remove-acid', 'DAMAGE_RESISTANCE', 'REMOVE_OPTION', 'acid'),
-      defenseModifier('add-fire-immunity', 'DAMAGE_IMMUNITY', 'ADD_OPTION', 'fire'),
+      defenseModifier('add-fire-a', 'DAMAGE_RESISTANCE', 'ADD_OPTION', damageTypeIds.fire),
+      defenseModifier('add-fire-b', 'DAMAGE_RESISTANCE', 'ADD_OPTION', damageTypeIds.fire),
+      defenseModifier('remove-cold', 'DAMAGE_RESISTANCE', 'REMOVE_OPTION', damageTypeIds.cold),
+      defenseModifier('add-cold', 'DAMAGE_RESISTANCE', 'ADD_OPTION', damageTypeIds.cold),
+      defenseModifier('add-acid', 'DAMAGE_RESISTANCE', 'ADD_OPTION', damageTypeIds.acid),
+      defenseModifier('remove-acid', 'DAMAGE_RESISTANCE', 'REMOVE_OPTION', damageTypeIds.acid),
+      defenseModifier('add-fire-immunity', 'DAMAGE_IMMUNITY', 'ADD_OPTION', damageTypeIds.fire),
       defenseModifier('malformed', 'DAMAGE_VULNERABILITY', 'ADD_OPTION'),
       defenseModifier('empty-damage-type', 'DAMAGE_VULNERABILITY', 'ADD_OPTION', '')
     ]
@@ -117,7 +133,7 @@ describe('D&D 5e 2014 Character defense policy', () => {
         id: 'manual-fire',
         family: 'DEFENSE',
         defenseKind: 'RESISTANCE',
-        damageTypeId: 'fire',
+        damageTypeId: damageTypeIds.fire,
         field: 'ADDITION',
         value: true
       },
@@ -125,35 +141,53 @@ describe('D&D 5e 2014 Character defense policy', () => {
         id: 'manual-lightning',
         family: 'DEFENSE',
         defenseKind: 'VULNERABILITY',
-        damageTypeId: 'lightning',
+        damageTypeId: damageTypeIds.lightning,
         field: 'ADDITION',
         value: true
       }
     ])
     const records = registry(modifiers)
 
-    await expect(evaluate(snapshot, records)).resolves.toEqual([
-      {
-        kind: 'RESISTANCE',
-        damageTypeId: 'fire',
-        source: { kind: 'MANUAL_ADJUSTMENT', adjustmentId: 'manual-fire' }
-      },
-      expect.objectContaining({ kind: 'RESISTANCE', damageTypeId: 'cold' }),
-      expect.objectContaining({ kind: 'IMMUNITY', damageTypeId: 'fire' }),
-      {
-        kind: 'VULNERABILITY',
-        damageTypeId: 'lightning',
-        source: { kind: 'MANUAL_ADJUSTMENT', adjustmentId: 'manual-lightning' }
-      }
-    ])
+    await expect(evaluate(snapshot, records)).resolves.toMatchObject({
+      defenses: [
+        expect.objectContaining({ kind: 'RESISTANCE', damageTypeId: damageTypeIds.cold }),
+        expect.objectContaining({ kind: 'IMMUNITY', damageTypeId: damageTypeIds.fire }),
+        {
+          kind: 'RESISTANCE',
+          damageTypeId: damageTypeIds.fire,
+          source: { kind: 'MANUAL_ADJUSTMENT', adjustmentId: 'manual-fire' }
+        },
+        {
+          kind: 'VULNERABILITY',
+          damageTypeId: damageTypeIds.lightning,
+          source: { kind: 'MANUAL_ADJUSTMENT', adjustmentId: 'manual-lightning' }
+        }
+      ]
+    })
   })
 
-  it('ignores whitespace-only authored damage types before the typed output boundary', async () => {
+  it('rejects non-UUID authored damage identities at the automatic policy boundary', async () => {
     const modifiers = [
-      defenseModifier('whitespace-damage-type', 'DAMAGE_VULNERABILITY', 'ADD_OPTION', '   ')
+      defenseModifier('non-uuid-damage-type', 'DAMAGE_VULNERABILITY', 'ADD_OPTION', 'fire')
     ]
     const snapshot = character(modifiers)
 
-    await expect(evaluate(snapshot, registry(modifiers))).resolves.toEqual([])
+    await expect(evaluate(snapshot, registry(modifiers))).rejects.toThrow()
+  })
+
+  it('resolves UUID-backed condition immunities with set semantics', async () => {
+    const poisoned = '00000000-0000-4000-8000-000000000101'
+    const charmed = '00000000-0000-4000-8000-000000000102'
+    const modifiers = [
+      defenseModifier('immune-poisoned-a', 'CONDITION_IMMUNITY', 'ADD_OPTION', poisoned),
+      defenseModifier('immune-poisoned-b', 'CONDITION_IMMUNITY', 'ADD_OPTION', poisoned),
+      defenseModifier('remove-charmed', 'CONDITION_IMMUNITY', 'REMOVE_OPTION', charmed),
+      defenseModifier('immune-charmed', 'CONDITION_IMMUNITY', 'ADD_OPTION', charmed),
+      defenseModifier('remove-poisoned', 'CONDITION_IMMUNITY', 'REMOVE_OPTION', poisoned)
+    ]
+
+    await expect(evaluate(character(modifiers), registry(modifiers))).resolves.toMatchObject({
+      conditionImmunityIds: [charmed]
+    })
   })
 })

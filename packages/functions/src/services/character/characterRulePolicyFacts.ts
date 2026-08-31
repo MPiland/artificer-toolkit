@@ -40,6 +40,8 @@ export interface CharacterRulePolicyFactsInput extends CharacterRuleSnapshotInpu
 
 export interface CharacterRulePolicyFactsResult extends CharacterRuleSnapshotResult {
   facts: CharacterRulePolicyInput
+  /** Server-only exact authored action entries. Never included in policy facts. */
+  actionEntryPoints: ReturnType<typeof buildCharacterActionRuleFacts>['entryPoints']
 }
 
 export interface CharacterRulePolicyFactsPreparation {
@@ -83,8 +85,19 @@ export function composeCharacterRulePolicyFacts(
     resourcePoolCandidates: resourceFacts.resourcePoolCandidates
   })
 
+  const actionFacts = buildCharacterActionRuleFacts({
+    snapshot,
+    registry,
+    grantFoldFacts,
+    resourcePoolCandidates: resourceFacts.resourcePoolCandidates
+  })
+  const abilityDefinitions =
+    context.vocabularySnapshot && 'abilities' in context.vocabularySnapshot.document
+      ? context.vocabularySnapshot.document.abilities.map(({ id, code }) => ({ id, code }))
+      : []
   const facts = characterRulePolicyInputSchema.parse({
     contractVersion: 4,
+    abilityDefinitions,
     grantFoldFacts,
     totalLevel: snapshot.totalLevel,
     derivedBaseFacts: buildCharacterDerivedRuleFacts(snapshot, registry),
@@ -112,12 +125,7 @@ export function composeCharacterRulePolicyFacts(
       return { kind: 'STANDARD' as const, spellLevel: Number(match[1]), rawUsed: slot.used }
     }),
     ...resourceFacts,
-    ...buildCharacterActionRuleFacts({
-      snapshot,
-      registry,
-      grantFoldFacts,
-      resourcePoolCandidates: resourceFacts.resourcePoolCandidates
-    }),
+    actionCandidates: actionFacts.actionCandidates,
     eligibilityFacets: input.eligibilityFacets ?? [],
     rest: {
       totalHitDice: totalHitDice(character),
@@ -130,5 +138,5 @@ export function composeCharacterRulePolicyFacts(
     }
   })
 
-  return { ...assembled, facts }
+  return { ...assembled, facts, actionEntryPoints: actionFacts.entryPoints }
 }

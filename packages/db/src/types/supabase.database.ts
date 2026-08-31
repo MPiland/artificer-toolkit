@@ -9,6 +9,50 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ability_definitions: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          short: string | null
+          system_id: string
+          tooltip: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id: string
+          label: string
+          short?: string | null
+          system_id: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          short?: string | null
+          system_id?: string
+          tooltip?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ability_definitions_system_id_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_entitlements: {
         Row: {
           created_at: string
@@ -101,6 +145,7 @@ export type Database = {
       authored_drafts: {
         Row: {
           base_active_updated_at: string | null
+          content_source_id: string
           created_at: string
           label: string
           payload: Json
@@ -112,6 +157,7 @@ export type Database = {
         }
         Insert: {
           base_active_updated_at?: string | null
+          content_source_id: string
           created_at?: string
           label: string
           payload: Json
@@ -123,6 +169,7 @@ export type Database = {
         }
         Update: {
           base_active_updated_at?: string | null
+          content_source_id?: string
           created_at?: string
           label?: string
           payload?: Json
@@ -133,6 +180,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "authored_drafts_content_source_system_fk"
+            columns: ["content_source_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "content_sources"
+            referencedColumns: ["id", "game_system_id"]
+          },
           {
             foreignKeyName: "authored_drafts_system_id_fkey"
             columns: ["system_id"]
@@ -412,6 +466,7 @@ export type Database = {
       backgrounds: {
         Row: {
           active_version_id: string | null
+          content_source_id: string
           created_at: string
           description: string | null
           id: string
@@ -425,6 +480,7 @@ export type Database = {
         }
         Insert: {
           active_version_id?: string | null
+          content_source_id: string
           created_at?: string
           description?: string | null
           id?: string
@@ -438,6 +494,7 @@ export type Database = {
         }
         Update: {
           active_version_id?: string | null
+          content_source_id?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -458,6 +515,13 @@ export type Database = {
             referencedColumns: ["background_id", "id"]
           },
           {
+            foreignKeyName: "backgrounds_content_source_system_fk"
+            columns: ["content_source_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "content_sources"
+            referencedColumns: ["id", "game_system_id"]
+          },
+          {
             foreignKeyName: "backgrounds_starting_equipment_id_fkey"
             columns: ["starting_equipment_id"]
             isOneToOne: false
@@ -470,6 +534,42 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "systems"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_additional_rules_catalogues: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          game_system_id: string
+          rules_catalogue_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          game_system_id: string
+          rules_catalogue_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          game_system_id?: string
+          rules_catalogue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_additional_rules_cat_rules_catalogue_id_game_syst_fkey"
+            columns: ["rules_catalogue_id", "game_system_id"]
+            isOneToOne: false
+            referencedRelation: "rules_catalogues"
+            referencedColumns: ["id", "game_system_id"]
+          },
+          {
+            foreignKeyName: "campaign_additional_rules_catal_campaign_id_game_system_id_fkey"
+            columns: ["campaign_id", "game_system_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id", "game_system_id"]
           },
         ]
       }
@@ -1296,6 +1396,69 @@ export type Database = {
           },
         ]
       }
+      campaign_live_scenes: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          definition_id: string | null
+          definition_snapshot: Json
+          definition_version: number
+          id: string
+          materialization_command_fingerprint: string
+          materialization_command_id: string
+          projection: Json
+          projection_checksum: string
+          projection_schema_version: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          definition_id?: string | null
+          definition_snapshot: Json
+          definition_version: number
+          id?: string
+          materialization_command_fingerprint: string
+          materialization_command_id: string
+          projection: Json
+          projection_checksum: string
+          projection_schema_version: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          definition_id?: string | null
+          definition_snapshot?: Json
+          definition_version?: number
+          id?: string
+          materialization_command_fingerprint?: string
+          materialization_command_id?: string
+          projection?: Json
+          projection_checksum?: string
+          projection_schema_version?: number
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_live_scenes_campaign_fk"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_live_scenes_definition_fk"
+            columns: ["definition_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_scene_definitions"
+            referencedColumns: ["id", "campaign_id"]
+          },
+        ]
+      }
       campaign_memberships: {
         Row: {
           access_started_at: string
@@ -1429,13 +1592,18 @@ export type Database = {
         Row: {
           absent_character_policy: string | null
           allowed_content_rules: string | null
+          automation_mode: string
           campaign_id: string
           content_boundaries: string | null
           content_guidance: string | null
           created_at: string
           expected_duration_minutes: number | null
+          initiative_policy_definition_id: string | null
+          initiative_tie_definition_id: string | null
           live_safety_method: string | null
+          manual_reminder_mode: string
           normal_cadence_days: number | null
+          optional_combat_rule_definition_ids: string[]
           quorum: number | null
           safety_practices: string[]
           table_conduct: string | null
@@ -1445,13 +1613,18 @@ export type Database = {
         Insert: {
           absent_character_policy?: string | null
           allowed_content_rules?: string | null
+          automation_mode?: string
           campaign_id: string
           content_boundaries?: string | null
           content_guidance?: string | null
           created_at?: string
           expected_duration_minutes?: number | null
+          initiative_policy_definition_id?: string | null
+          initiative_tie_definition_id?: string | null
           live_safety_method?: string | null
+          manual_reminder_mode?: string
           normal_cadence_days?: number | null
+          optional_combat_rule_definition_ids?: string[]
           quorum?: number | null
           safety_practices?: string[]
           table_conduct?: string | null
@@ -1461,13 +1634,18 @@ export type Database = {
         Update: {
           absent_character_policy?: string | null
           allowed_content_rules?: string | null
+          automation_mode?: string
           campaign_id?: string
           content_boundaries?: string | null
           content_guidance?: string | null
           created_at?: string
           expected_duration_minutes?: number | null
+          initiative_policy_definition_id?: string | null
+          initiative_tie_definition_id?: string | null
           live_safety_method?: string | null
+          manual_reminder_mode?: string
           normal_cadence_days?: number | null
+          optional_combat_rule_definition_ids?: string[]
           quorum?: number | null
           safety_practices?: string[]
           table_conduct?: string | null
@@ -1480,6 +1658,20 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: true
             referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_play_settings_initiative_policy_definition_fk"
+            columns: ["initiative_policy_definition_id"]
+            isOneToOne: false
+            referencedRelation: "reusable_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_play_settings_initiative_tie_definition_fk"
+            columns: ["initiative_tie_definition_id"]
+            isOneToOne: false
+            referencedRelation: "reusable_definitions"
             referencedColumns: ["id"]
           },
         ]
@@ -1518,6 +1710,53 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_scene_events: {
+        Row: {
+          actor_user_id: string
+          command_fingerprint: string
+          command_id: string
+          command_type: string
+          created_at: string
+          delta: Json
+          encounter_id: string | null
+          id: string
+          scene_id: string
+          version: number
+        }
+        Insert: {
+          actor_user_id: string
+          command_fingerprint: string
+          command_id: string
+          command_type: string
+          created_at?: string
+          delta: Json
+          encounter_id?: string | null
+          id?: string
+          scene_id: string
+          version: number
+        }
+        Update: {
+          actor_user_id?: string
+          command_fingerprint?: string
+          command_id?: string
+          command_type?: string
+          created_at?: string
+          delta?: Json
+          encounter_id?: string | null
+          id?: string
+          scene_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_scene_events_scene_fk"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_live_scenes"
             referencedColumns: ["id"]
           },
         ]
@@ -1729,6 +1968,75 @@ export type Database = {
           },
         ]
       }
+      campaign_session_scene_presentations: {
+        Row: {
+          campaign_id: string
+          command_fingerprint: string
+          command_id: string
+          created_at: string
+          scene_id: string | null
+          session_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          campaign_id: string
+          command_fingerprint: string
+          command_id: string
+          created_at?: string
+          scene_id?: string | null
+          session_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          campaign_id?: string
+          command_fingerprint?: string
+          command_id?: string
+          created_at?: string
+          scene_id?: string | null
+          session_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_session_scene_presentation_session_id_campaign_id_fkey"
+            columns: ["session_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_sessions"
+            referencedColumns: ["id", "campaign_id"]
+          },
+          {
+            foreignKeyName: "campaign_session_scene_presentations_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_session_scene_presentations_scene_id_campaign_id_fkey"
+            columns: ["scene_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_live_scenes"
+            referencedColumns: ["id", "campaign_id"]
+          },
+          {
+            foreignKeyName: "campaign_session_scene_presentations_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_live_scenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_session_scene_presentations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "campaign_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_sessions: {
         Row: {
           campaign_id: string
@@ -1834,9 +2142,11 @@ export type Database = {
           created_at: string
           description: string | null
           format: string
+          game_system_id: string
           id: string
           name: string
           owner_user_id: string
+          primary_rules_catalogue_id: string
           status: string
           tone_details: string | null
           tone_tags: string[]
@@ -1849,9 +2159,11 @@ export type Database = {
           created_at?: string
           description?: string | null
           format: string
+          game_system_id: string
           id?: string
           name: string
           owner_user_id: string
+          primary_rules_catalogue_id: string
           status?: string
           tone_details?: string | null
           tone_tags: string[]
@@ -1864,16 +2176,26 @@ export type Database = {
           created_at?: string
           description?: string | null
           format?: string
+          game_system_id?: string
           id?: string
           name?: string
           owner_user_id?: string
+          primary_rules_catalogue_id?: string
           status?: string
           tone_details?: string | null
           tone_tags?: string[]
           updated_at?: string
           version?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_primary_catalogue_system_fk"
+            columns: ["primary_rules_catalogue_id", "game_system_id"]
+            isOneToOne: false
+            referencedRelation: "rules_catalogues"
+            referencedColumns: ["id", "game_system_id"]
+          },
+        ]
       }
       challenge_ratings: {
         Row: {
@@ -2228,6 +2550,66 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "characters"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_active_rule_effects: {
+        Row: {
+          character_id: string
+          created_at: string
+          created_ordinal: number
+          definition: Json
+          definition_checksum: string
+          id: string
+          lifecycle: Json
+          lifecycle_checksum: string
+          maintained_effect_state_id: string | null
+          source_encounter_id: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          created_ordinal: number
+          definition: Json
+          definition_checksum: string
+          id?: string
+          lifecycle: Json
+          lifecycle_checksum: string
+          maintained_effect_state_id?: string | null
+          source_encounter_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          created_ordinal?: number
+          definition?: Json
+          definition_checksum?: string
+          id?: string
+          lifecycle?: Json
+          lifecycle_checksum?: string
+          maintained_effect_state_id?: string | null
+          source_encounter_id?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_active_rule_effects_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_active_rule_effects_maintained_state_encounter_fkey"
+            columns: ["maintained_effect_state_id", "source_encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_maintained_effect_states"
+            referencedColumns: ["id", "encounter_id"]
           },
         ]
       }
@@ -3448,32 +3830,44 @@ export type Database = {
         Row: {
           actor_id: string
           character_id: string
+          command_fingerprint: string | null
           command_id: string
+          correlation_id: string | null
           event_data: Json
           event_id: string
           event_type: string
           occurred_at: string
+          result_payload: Json | null
           schema_version: number
+          stream_version: number | null
         }
         Insert: {
           actor_id: string
           character_id: string
+          command_fingerprint?: string | null
           command_id: string
+          correlation_id?: string | null
           event_data: Json
           event_id?: string
           event_type: string
           occurred_at?: string
+          result_payload?: Json | null
           schema_version?: number
+          stream_version?: number | null
         }
         Update: {
           actor_id?: string
           character_id?: string
+          command_fingerprint?: string | null
           command_id?: string
+          correlation_id?: string | null
           event_data?: Json
           event_id?: string
           event_type?: string
           occurred_at?: string
+          result_payload?: Json | null
           schema_version?: number
+          stream_version?: number | null
         }
         Relationships: [
           {
@@ -4017,9 +4411,12 @@ export type Database = {
           command_lane_checksum: string
           command_state: Json
           command_state_checksum: string
+          compiled_action_entry_points: Json
           evaluator_version: string
+          initiative_actor_facts: Json
           model_contract_version: number
           normalized_facts: Json
+          pinned_sense_definitions: Json
           projection_checksum: string
           projection_schema_version: number
           rule_pack_checksum: string
@@ -4037,9 +4434,12 @@ export type Database = {
           command_lane_checksum: string
           command_state: Json
           command_state_checksum: string
+          compiled_action_entry_points?: Json
           evaluator_version: string
+          initiative_actor_facts?: Json
           model_contract_version: number
           normalized_facts: Json
+          pinned_sense_definitions?: Json
           projection_checksum: string
           projection_schema_version: number
           rule_pack_checksum: string
@@ -4057,9 +4457,12 @@ export type Database = {
           command_lane_checksum?: string
           command_state?: Json
           command_state_checksum?: string
+          compiled_action_entry_points?: Json
           evaluator_version?: string
+          initiative_actor_facts?: Json
           model_contract_version?: number
           normalized_facts?: Json
+          pinned_sense_definitions?: Json
           projection_checksum?: string
           projection_schema_version?: number
           rule_pack_checksum?: string
@@ -4604,6 +5007,116 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "character_resource_grants"
             referencedColumns: ["character_id", "id"]
+          },
+        ]
+      }
+      character_rule_occurrences: {
+        Row: {
+          character_id: string
+          completed_at: string | null
+          created_at: string
+          expected_stream_version: number
+          id: string
+          pending_snapshot: Json | null
+          pending_snapshot_checksum: string | null
+          root_command_id: string
+          state: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          character_id: string
+          completed_at?: string | null
+          created_at?: string
+          expected_stream_version: number
+          id?: string
+          pending_snapshot?: Json | null
+          pending_snapshot_checksum?: string | null
+          root_command_id: string
+          state: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          character_id?: string
+          completed_at?: string | null
+          created_at?: string
+          expected_stream_version?: number
+          id?: string
+          pending_snapshot?: Json | null
+          pending_snapshot_checksum?: string | null
+          root_command_id?: string
+          state?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_rule_occurrences_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_rule_receipts: {
+        Row: {
+          actor_user_id: string
+          character_id: string
+          command_fingerprint: string
+          command_id: string
+          command_metadata: Json
+          command_type: string
+          correlation_id: string | null
+          created_at: string
+          id: string
+          occurrence_id: string
+          result_payload: Json
+          stream_version: number
+        }
+        Insert: {
+          actor_user_id: string
+          character_id: string
+          command_fingerprint: string
+          command_id: string
+          command_metadata: Json
+          command_type: string
+          correlation_id?: string | null
+          created_at?: string
+          id?: string
+          occurrence_id: string
+          result_payload: Json
+          stream_version: number
+        }
+        Update: {
+          actor_user_id?: string
+          character_id?: string
+          command_fingerprint?: string
+          command_id?: string
+          command_metadata?: Json
+          command_type?: string
+          correlation_id?: string | null
+          created_at?: string
+          id?: string
+          occurrence_id?: string
+          result_payload?: Json
+          stream_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_rule_receipts_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_rule_receipts_occurrence_id_character_id_fkey"
+            columns: ["occurrence_id", "character_id"]
+            isOneToOne: false
+            referencedRelation: "character_rule_occurrences"
+            referencedColumns: ["id", "character_id"]
           },
         ]
       }
@@ -5435,6 +5948,7 @@ export type Database = {
           inspiration: boolean
           label: string
           portrait_asset_id: string | null
+          primary_rules_catalogue_id: string
           rule_pack_revision_id: string | null
           status: string
           stream_version: number
@@ -5449,6 +5963,7 @@ export type Database = {
           inspiration?: boolean
           label: string
           portrait_asset_id?: string | null
+          primary_rules_catalogue_id: string
           rule_pack_revision_id?: string | null
           status?: string
           stream_version?: number
@@ -5463,6 +5978,7 @@ export type Database = {
           inspiration?: boolean
           label?: string
           portrait_asset_id?: string | null
+          primary_rules_catalogue_id?: string
           rule_pack_revision_id?: string | null
           status?: string
           stream_version?: number
@@ -5477,6 +5993,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "media_assets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "characters_primary_catalogue_system_fk"
+            columns: ["primary_rules_catalogue_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "rules_catalogues"
+            referencedColumns: ["id", "game_system_id"]
           },
           {
             foreignKeyName: "characters_rule_pack_revision_id_fkey"
@@ -6348,6 +6871,7 @@ export type Database = {
         Row: {
           active_version_id: string | null
           category: string
+          content_source_id: string
           created_at: string
           description: string | null
           id: string
@@ -6364,6 +6888,7 @@ export type Database = {
         Insert: {
           active_version_id?: string | null
           category: string
+          content_source_id: string
           created_at?: string
           description?: string | null
           id: string
@@ -6380,6 +6905,7 @@ export type Database = {
         Update: {
           active_version_id?: string | null
           category?: string
+          content_source_id?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -6400,6 +6926,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "class_versions"
             referencedColumns: ["class_id", "id"]
+          },
+          {
+            foreignKeyName: "classes_content_source_system_fk"
+            columns: ["content_source_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "content_sources"
+            referencedColumns: ["id", "game_system_id"]
           },
           {
             foreignKeyName: "classes_parent_system_fk"
@@ -6493,6 +7026,50 @@ export type Database = {
             columns: ["condition_type_id"]
             isOneToOne: false
             referencedRelation: "condition_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_sources: {
+        Row: {
+          code: string | null
+          created_at: string
+          description: string | null
+          game_system_id: string
+          id: string
+          kind: string
+          label: string
+          owner_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          game_system_id: string
+          id?: string
+          kind: string
+          label: string
+          owner_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          game_system_id?: string
+          id?: string
+          kind?: string
+          label?: string
+          owner_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_sources_game_system_id_fkey"
+            columns: ["game_system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
             referencedColumns: ["id"]
           },
         ]
@@ -6876,6 +7453,7 @@ export type Database = {
           category: string
           challenge_rating_id: string | null
           companion_profile: Json | null
+          content_source_id: string
           cost: Json | null
           created_at: string
           creature_type_id: string | null
@@ -6913,6 +7491,7 @@ export type Database = {
           category: string
           challenge_rating_id?: string | null
           companion_profile?: Json | null
+          content_source_id: string
           cost?: Json | null
           created_at?: string
           creature_type_id?: string | null
@@ -6950,6 +7529,7 @@ export type Database = {
           category?: string
           challenge_rating_id?: string | null
           companion_profile?: Json | null
+          content_source_id?: string
           cost?: Json | null
           created_at?: string
           creature_type_id?: string | null
@@ -6997,6 +7577,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "challenge_ratings"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creatures_content_source_system_fk"
+            columns: ["content_source_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "content_sources"
+            referencedColumns: ["id", "game_system_id"]
           },
           {
             foreignKeyName: "creatures_creature_type_id_fkey"
@@ -7758,6 +8345,73 @@ export type Database = {
         }
         Relationships: []
       }
+      encounter_active_rule_effects: {
+        Row: {
+          created_at: string
+          created_ordinal: number
+          definition: Json
+          definition_checksum: string
+          encounter_id: string
+          id: string
+          lifecycle: Json
+          lifecycle_checksum: string
+          maintained_effect_state_id: string | null
+          target_actor_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_ordinal: number
+          definition: Json
+          definition_checksum: string
+          encounter_id: string
+          id?: string
+          lifecycle: Json
+          lifecycle_checksum: string
+          maintained_effect_state_id?: string | null
+          target_actor_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_ordinal?: number
+          definition?: Json
+          definition_checksum?: string
+          encounter_id?: string
+          id?: string
+          lifecycle?: Json
+          lifecycle_checksum?: string
+          maintained_effect_state_id?: string | null
+          target_actor_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_active_rule_effects_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encounter_active_rule_effects_maintained_effect_state_id_e_fkey"
+            columns: ["maintained_effect_state_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_maintained_effect_states"
+            referencedColumns: ["id", "encounter_id"]
+          },
+          {
+            foreignKeyName: "encounter_active_rule_effects_target_actor_id_encounter_id_fkey"
+            columns: ["target_actor_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_actors"
+            referencedColumns: ["id", "encounter_id"]
+          },
+        ]
+      }
       encounter_actors: {
         Row: {
           conditions: Json
@@ -7773,6 +8427,7 @@ export type Database = {
           max_hit_points: number
           public: boolean
           resources: Json
+          side_id: string
           snapshot: Json
           source_id: string | null
           source_revision: number | null
@@ -7795,6 +8450,7 @@ export type Database = {
           max_hit_points?: number
           public?: boolean
           resources?: Json
+          side_id: string
           snapshot: Json
           source_id?: string | null
           source_revision?: number | null
@@ -7817,6 +8473,7 @@ export type Database = {
           max_hit_points?: number
           public?: boolean
           resources?: Json
+          side_id?: string
           snapshot?: Json
           source_id?: string | null
           source_revision?: number | null
@@ -7831,6 +8488,110 @@ export type Database = {
             columns: ["encounter_id"]
             isOneToOne: false
             referencedRelation: "encounters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encounter_actors_side_fk"
+            columns: ["side_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_sides"
+            referencedColumns: ["id", "encounter_id"]
+          },
+        ]
+      }
+      encounter_blueprint_events: {
+        Row: {
+          actor_user_id: string
+          blueprint_id: string
+          blueprint_version: number
+          command_fingerprint: string
+          command_id: string
+          command_type: string
+          created_at: string
+          id: string
+          owner_user_id: string
+          result_payload: Json
+        }
+        Insert: {
+          actor_user_id: string
+          blueprint_id: string
+          blueprint_version: number
+          command_fingerprint: string
+          command_id: string
+          command_type: string
+          created_at?: string
+          id?: string
+          owner_user_id: string
+          result_payload: Json
+        }
+        Update: {
+          actor_user_id?: string
+          blueprint_id?: string
+          blueprint_version?: number
+          command_fingerprint?: string
+          command_id?: string
+          command_type?: string
+          created_at?: string
+          id?: string
+          owner_user_id?: string
+          result_payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_blueprint_events_blueprint_id_owner_user_id_fkey"
+            columns: ["blueprint_id", "owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_blueprints"
+            referencedColumns: ["id", "owner_user_id"]
+          },
+        ]
+      }
+      encounter_blueprints: {
+        Row: {
+          command_fingerprint: string
+          command_id: string
+          created_at: string
+          enemies: Json
+          game_system_id: string
+          id: string
+          name: string
+          owner_user_id: string
+          setup_checksum: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          command_fingerprint: string
+          command_id: string
+          created_at?: string
+          enemies: Json
+          game_system_id: string
+          id?: string
+          name: string
+          owner_user_id: string
+          setup_checksum: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          command_fingerprint?: string
+          command_id?: string
+          created_at?: string
+          enemies?: Json
+          game_system_id?: string
+          id?: string
+          name?: string
+          owner_user_id?: string
+          setup_checksum?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_blueprints_system_fk"
+            columns: ["game_system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
             referencedColumns: ["id"]
           },
         ]
@@ -7930,6 +8691,277 @@ export type Database = {
           },
         ]
       }
+      encounter_initiative_participants: {
+        Row: {
+          actor_id: string
+          created_at: string
+          declaration: Json | null
+          declaration_checksum: string | null
+          encounter_id: string
+          evaluation_occurrence_id: string | null
+          evaluation_result_checksum: string | null
+          initiative_score: number | null
+          round: number
+          side_id: string
+          status: string
+          tie_occurrence_id: string | null
+          tie_result_checksum: string | null
+          turn_order_ordinal: number | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          declaration?: Json | null
+          declaration_checksum?: string | null
+          encounter_id: string
+          evaluation_occurrence_id?: string | null
+          evaluation_result_checksum?: string | null
+          initiative_score?: number | null
+          round: number
+          side_id: string
+          status: string
+          tie_occurrence_id?: string | null
+          tie_result_checksum?: string | null
+          turn_order_ordinal?: number | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          declaration?: Json | null
+          declaration_checksum?: string | null
+          encounter_id?: string
+          evaluation_occurrence_id?: string | null
+          evaluation_result_checksum?: string | null
+          initiative_score?: number | null
+          round?: number
+          side_id?: string
+          status?: string
+          tie_occurrence_id?: string | null
+          tie_result_checksum?: string | null
+          turn_order_ordinal?: number | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_initiative_particip_evaluation_occurrence_id_enc_fkey"
+            columns: ["evaluation_occurrence_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_rule_occurrences"
+            referencedColumns: ["id", "encounter_id"]
+          },
+          {
+            foreignKeyName: "encounter_initiative_particip_tie_occurrence_id_encounter__fkey"
+            columns: ["tie_occurrence_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_rule_occurrences"
+            referencedColumns: ["id", "encounter_id"]
+          },
+          {
+            foreignKeyName: "encounter_initiative_participants_actor_id_encounter_id_fkey"
+            columns: ["actor_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_actors"
+            referencedColumns: ["id", "encounter_id"]
+          },
+          {
+            foreignKeyName: "encounter_initiative_participants_encounter_id_round_fkey"
+            columns: ["encounter_id", "round"]
+            isOneToOne: false
+            referencedRelation: "encounter_initiative_rounds"
+            referencedColumns: ["encounter_id", "round"]
+          },
+          {
+            foreignKeyName: "encounter_initiative_participants_side_id_encounter_id_fkey"
+            columns: ["side_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_sides"
+            referencedColumns: ["id", "encounter_id"]
+          },
+        ]
+      }
+      encounter_initiative_rounds: {
+        Row: {
+          cadence: string
+          created_at: string
+          encounter_id: string
+          next_turn_order_ordinal: number
+          policy_snapshot_checksum: string | null
+          procedure: string
+          round: number
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          cadence: string
+          created_at?: string
+          encounter_id: string
+          next_turn_order_ordinal?: number
+          policy_snapshot_checksum?: string | null
+          procedure: string
+          round: number
+          status: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          cadence?: string
+          created_at?: string
+          encounter_id?: string
+          next_turn_order_ordinal?: number
+          policy_snapshot_checksum?: string | null
+          procedure?: string
+          round?: number
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_initiative_rounds_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      encounter_initiative_sides: {
+        Row: {
+          created_at: string
+          encounter_id: string
+          evaluation_occurrence_id: string | null
+          evaluation_result_checksum: string | null
+          initiative_score: number | null
+          procedure: string
+          round: number
+          side_id: string
+          side_order_ordinal: number | null
+          status: string
+          tie_occurrence_id: string | null
+          tie_result_checksum: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          encounter_id: string
+          evaluation_occurrence_id?: string | null
+          evaluation_result_checksum?: string | null
+          initiative_score?: number | null
+          procedure?: string
+          round: number
+          side_id: string
+          side_order_ordinal?: number | null
+          status: string
+          tie_occurrence_id?: string | null
+          tie_result_checksum?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          encounter_id?: string
+          evaluation_occurrence_id?: string | null
+          evaluation_result_checksum?: string | null
+          initiative_score?: number | null
+          procedure?: string
+          round?: number
+          side_id?: string
+          side_order_ordinal?: number | null
+          status?: string
+          tie_occurrence_id?: string | null
+          tie_result_checksum?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_initiative_sides_encounter_id_round_procedure_fkey"
+            columns: ["encounter_id", "round", "procedure"]
+            isOneToOne: false
+            referencedRelation: "encounter_initiative_rounds"
+            referencedColumns: ["encounter_id", "round", "procedure"]
+          },
+          {
+            foreignKeyName: "encounter_initiative_sides_evaluation_occurrence_id_encoun_fkey"
+            columns: ["evaluation_occurrence_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_rule_occurrences"
+            referencedColumns: ["id", "encounter_id"]
+          },
+          {
+            foreignKeyName: "encounter_initiative_sides_side_id_encounter_id_fkey"
+            columns: ["side_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_sides"
+            referencedColumns: ["id", "encounter_id"]
+          },
+          {
+            foreignKeyName: "encounter_initiative_sides_tie_occurrence_id_encounter_id_fkey"
+            columns: ["tie_occurrence_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_rule_occurrences"
+            referencedColumns: ["id", "encounter_id"]
+          },
+        ]
+      }
+      encounter_maintained_effect_states: {
+        Row: {
+          created_at: string
+          descriptor: Json
+          descriptor_checksum: string
+          encounter_id: string
+          id: string
+          maintenance_definition_id: string
+          owner_actor_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          descriptor: Json
+          descriptor_checksum: string
+          encounter_id: string
+          id?: string
+          maintenance_definition_id: string
+          owner_actor_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          descriptor?: Json
+          descriptor_checksum?: string
+          encounter_id?: string
+          id?: string
+          maintenance_definition_id?: string
+          owner_actor_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_maintained_effect_st_owner_actor_id_encounter_id_fkey"
+            columns: ["owner_actor_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_actors"
+            referencedColumns: ["id", "encounter_id"]
+          },
+          {
+            foreignKeyName: "encounter_maintained_effect_states_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       encounter_reminders: {
         Row: {
           actor_id: string | null
@@ -7981,112 +9013,52 @@ export type Database = {
           },
         ]
       }
-      encounter_scene_events: {
+      encounter_rule_occurrences: {
         Row: {
-          actor_user_id: string
-          command_fingerprint: string
-          command_id: string
-          command_type: string
-          created_at: string
-          delta: Json
-          encounter_id: string
-          id: string
-          scene_id: string
-          version: number
-        }
-        Insert: {
-          actor_user_id: string
-          command_fingerprint: string
-          command_id: string
-          command_type: string
-          created_at?: string
-          delta: Json
-          encounter_id: string
-          id?: string
-          scene_id: string
-          version: number
-        }
-        Update: {
-          actor_user_id?: string
-          command_fingerprint?: string
-          command_id?: string
-          command_type?: string
-          created_at?: string
-          delta?: Json
-          encounter_id?: string
-          id?: string
-          scene_id?: string
-          version?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "encounter_scene_events_scene_id_encounter_id_fkey"
-            columns: ["scene_id", "encounter_id"]
-            isOneToOne: false
-            referencedRelation: "encounter_scenes"
-            referencedColumns: ["id", "encounter_id"]
-          },
-        ]
-      }
-      encounter_scenes: {
-        Row: {
-          attach_command_fingerprint: string
-          attach_command_id: string
           campaign_id: string
+          completed_at: string | null
           created_at: string
-          definition_id: string
-          definition_snapshot: Json
-          definition_version: number
           encounter_id: string
+          expected_encounter_version: number
           id: string
-          projection: Json
-          projection_checksum: string
-          projection_schema_version: number
+          pending_snapshot: Json | null
+          pending_snapshot_checksum: string | null
+          root_command_id: string
+          state: string
           updated_at: string
           version: number
         }
         Insert: {
-          attach_command_fingerprint: string
-          attach_command_id: string
           campaign_id: string
+          completed_at?: string | null
           created_at?: string
-          definition_id: string
-          definition_snapshot: Json
-          definition_version: number
           encounter_id: string
+          expected_encounter_version: number
           id?: string
-          projection: Json
-          projection_checksum: string
-          projection_schema_version: number
+          pending_snapshot?: Json | null
+          pending_snapshot_checksum?: string | null
+          root_command_id: string
+          state: string
           updated_at?: string
           version?: number
         }
         Update: {
-          attach_command_fingerprint?: string
-          attach_command_id?: string
           campaign_id?: string
+          completed_at?: string | null
           created_at?: string
-          definition_id?: string
-          definition_snapshot?: Json
-          definition_version?: number
           encounter_id?: string
+          expected_encounter_version?: number
           id?: string
-          projection?: Json
-          projection_checksum?: string
-          projection_schema_version?: number
+          pending_snapshot?: Json | null
+          pending_snapshot_checksum?: string | null
+          root_command_id?: string
+          state?: string
           updated_at?: string
           version?: number
         }
         Relationships: [
           {
-            foreignKeyName: "encounter_scenes_definition_id_campaign_id_fkey"
-            columns: ["definition_id", "campaign_id"]
-            isOneToOne: false
-            referencedRelation: "campaign_scene_definitions"
-            referencedColumns: ["id", "campaign_id"]
-          },
-          {
-            foreignKeyName: "encounter_scenes_encounter_id_campaign_id_fkey"
+            foreignKeyName: "encounter_rule_occurrences_encounter_id_campaign_id_fkey"
             columns: ["encounter_id", "campaign_id"]
             isOneToOne: false
             referencedRelation: "encounters"
@@ -8094,103 +9066,421 @@ export type Database = {
           },
         ]
       }
-      encounter_templates: {
+      encounter_rule_receipts: {
+        Row: {
+          actor_user_id: string
+          campaign_id: string
+          command_fingerprint: string
+          command_id: string
+          command_metadata: Json
+          command_type: string
+          correlation_id: string | null
+          created_at: string
+          encounter_id: string
+          encounter_version: number
+          id: string
+          occurrence_id: string
+          result_payload: Json
+        }
+        Insert: {
+          actor_user_id: string
+          campaign_id: string
+          command_fingerprint: string
+          command_id: string
+          command_metadata: Json
+          command_type: string
+          correlation_id?: string | null
+          created_at?: string
+          encounter_id: string
+          encounter_version: number
+          id?: string
+          occurrence_id: string
+          result_payload: Json
+        }
+        Update: {
+          actor_user_id?: string
+          campaign_id?: string
+          command_fingerprint?: string
+          command_id?: string
+          command_metadata?: Json
+          command_type?: string
+          correlation_id?: string | null
+          created_at?: string
+          encounter_id?: string
+          encounter_version?: number
+          id?: string
+          occurrence_id?: string
+          result_payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_rule_receipts_encounter_id_campaign_id_fkey"
+            columns: ["encounter_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "encounters"
+            referencedColumns: ["id", "campaign_id"]
+          },
+          {
+            foreignKeyName: "encounter_rule_receipts_occurrence_id_encounter_id_fkey"
+            columns: ["occurrence_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_rule_occurrences"
+            referencedColumns: ["id", "encounter_id"]
+          },
+        ]
+      }
+      encounter_scene_actor_token_bindings: {
+        Row: {
+          actor_id: string
+          created_at: string
+          encounter_id: string
+          scene_id: string
+          token_id: string
+          updated_at: string
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          encounter_id: string
+          scene_id: string
+          token_id: string
+          updated_at?: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          encounter_id?: string
+          scene_id?: string
+          token_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_scene_actor_token_bindings_actor_id_encounter_id_fkey"
+            columns: ["actor_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_actors"
+            referencedColumns: ["id", "encounter_id"]
+          },
+          {
+            foreignKeyName: "encounter_scene_actor_token_bindings_encounter_id_scene_id_fkey"
+            columns: ["encounter_id", "scene_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_scene_bindings"
+            referencedColumns: ["encounter_id", "scene_id"]
+          },
+        ]
+      }
+      encounter_scene_bindings: {
         Row: {
           campaign_id: string
           command_fingerprint: string
           command_id: string
           created_at: string
-          enemies: Json
-          id: string
-          name: string
+          encounter_id: string
+          scene_id: string
           updated_at: string
-          version: number
         }
         Insert: {
           campaign_id: string
           command_fingerprint: string
           command_id: string
           created_at?: string
-          enemies: Json
-          id?: string
-          name: string
+          encounter_id: string
+          scene_id: string
           updated_at?: string
-          version?: number
         }
         Update: {
           campaign_id?: string
           command_fingerprint?: string
           command_id?: string
           created_at?: string
-          enemies?: Json
+          encounter_id?: string
+          scene_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_scene_bindings_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encounter_scene_bindings_encounter_id_campaign_id_fkey"
+            columns: ["encounter_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "encounters"
+            referencedColumns: ["id", "campaign_id"]
+          },
+          {
+            foreignKeyName: "encounter_scene_bindings_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: true
+            referencedRelation: "encounters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encounter_scene_bindings_scene_id_campaign_id_fkey"
+            columns: ["scene_id", "campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_live_scenes"
+            referencedColumns: ["id", "campaign_id"]
+          },
+          {
+            foreignKeyName: "encounter_scene_bindings_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_live_scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      encounter_side_relationships: {
+        Row: {
+          created_at: string
+          encounter_id: string
+          first_side_id: string
+          relationship_kind: string
+          second_side_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          encounter_id: string
+          first_side_id: string
+          relationship_kind: string
+          second_side_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          encounter_id?: string
+          first_side_id?: string
+          relationship_kind?: string
+          second_side_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_side_relationships_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encounter_side_relationships_first_side_id_encounter_id_fkey"
+            columns: ["first_side_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_sides"
+            referencedColumns: ["id", "encounter_id"]
+          },
+          {
+            foreignKeyName: "encounter_side_relationships_second_side_id_encounter_id_fkey"
+            columns: ["second_side_id", "encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_sides"
+            referencedColumns: ["id", "encounter_id"]
+          },
+        ]
+      }
+      encounter_sides: {
+        Row: {
+          created_at: string
+          encounter_id: string
+          id: string
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          encounter_id: string
           id?: string
-          name?: string
+          label: string
+          sort_order: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          encounter_id?: string
+          id?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "encounter_sides_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      encounter_spatial_rule_effects: {
+        Row: {
+          created_at: string
+          created_ordinal: number
+          definition: Json
+          definition_checksum: string
+          encounter_id: string
+          id: string
+          lifecycle: Json
+          lifecycle_checksum: string
+          placement: Json
+          placement_checksum: string
+          scene_id: string
+          spatial_state: Json
+          spatial_state_checksum: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_ordinal: number
+          definition: Json
+          definition_checksum: string
+          encounter_id: string
+          id?: string
+          lifecycle: Json
+          lifecycle_checksum: string
+          placement: Json
+          placement_checksum: string
+          scene_id: string
+          spatial_state: Json
+          spatial_state_checksum: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_ordinal?: number
+          definition?: Json
+          definition_checksum?: string
+          encounter_id?: string
+          id?: string
+          lifecycle?: Json
+          lifecycle_checksum?: string
+          placement?: Json
+          placement_checksum?: string
+          scene_id?: string
+          spatial_state?: Json
+          spatial_state_checksum?: string
           updated_at?: string
           version?: number
         }
         Relationships: [
           {
-            foreignKeyName: "encounter_templates_campaign_id_fkey"
-            columns: ["campaign_id"]
+            foreignKeyName: "encounter_spatial_rule_effects_binding_fk"
+            columns: ["encounter_id", "scene_id"]
             isOneToOne: false
-            referencedRelation: "campaigns"
+            referencedRelation: "encounter_scene_bindings"
+            referencedColumns: ["encounter_id", "scene_id"]
+          },
+          {
+            foreignKeyName: "encounter_spatial_rule_effects_encounter_id_fkey"
+            columns: ["encounter_id"]
+            isOneToOne: false
+            referencedRelation: "encounters"
             referencedColumns: ["id"]
           },
         ]
       }
       encounters: {
         Row: {
+          automation_mode: string
+          blueprint_checksum: string
+          blueprint_id: string
+          blueprint_version: number
           campaign_id: string
           created_at: string
           current_actor_id: string | null
+          game_system_id: string
           id: string
+          initiative_policy_snapshot: Json | null
+          initiative_policy_snapshot_checksum: string | null
+          manual_reminder_mode: string
           name: string
+          optional_combat_snapshot: Json | null
+          optional_combat_snapshot_checksum: string | null
           round: number
           rule_pack_revision_id: string | null
           session_id: string
           status: string
-          template_id: string
-          template_version: number
           updated_at: string
           version: number
         }
         Insert: {
+          automation_mode?: string
+          blueprint_checksum: string
+          blueprint_id: string
+          blueprint_version: number
           campaign_id: string
           created_at?: string
           current_actor_id?: string | null
+          game_system_id: string
           id?: string
+          initiative_policy_snapshot?: Json | null
+          initiative_policy_snapshot_checksum?: string | null
+          manual_reminder_mode?: string
           name: string
+          optional_combat_snapshot?: Json | null
+          optional_combat_snapshot_checksum?: string | null
           round?: number
           rule_pack_revision_id?: string | null
           session_id: string
           status?: string
-          template_id: string
-          template_version: number
           updated_at?: string
           version?: number
         }
         Update: {
+          automation_mode?: string
+          blueprint_checksum?: string
+          blueprint_id?: string
+          blueprint_version?: number
           campaign_id?: string
           created_at?: string
           current_actor_id?: string | null
+          game_system_id?: string
           id?: string
+          initiative_policy_snapshot?: Json | null
+          initiative_policy_snapshot_checksum?: string | null
+          manual_reminder_mode?: string
           name?: string
+          optional_combat_snapshot?: Json | null
+          optional_combat_snapshot_checksum?: string | null
           round?: number
           rule_pack_revision_id?: string | null
           session_id?: string
           status?: string
-          template_id?: string
-          template_version?: number
           updated_at?: string
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "encounters_blueprint_system_fk"
+            columns: ["blueprint_id", "game_system_id"]
+            isOneToOne: false
+            referencedRelation: "encounter_blueprints"
+            referencedColumns: ["id", "game_system_id"]
+          },
           {
             foreignKeyName: "encounters_campaign_id_fkey"
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "campaigns"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "encounters_campaign_system_fk"
+            columns: ["campaign_id", "game_system_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id", "game_system_id"]
           },
           {
             foreignKeyName: "encounters_current_actor_fk"
@@ -8213,13 +9503,6 @@ export type Database = {
             referencedRelation: "campaign_sessions"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "encounters_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "encounter_templates"
-            referencedColumns: ["id"]
-          },
         ]
       }
       equipment: {
@@ -8230,6 +9513,7 @@ export type Database = {
           capacity_unit: string | null
           category: string
           charge_id: string | null
+          content_source_id: string
           cost_amount: number | null
           cost_currency_id: string | null
           created_at: string
@@ -8258,6 +9542,7 @@ export type Database = {
           capacity_unit?: string | null
           category: string
           charge_id?: string | null
+          content_source_id: string
           cost_amount?: number | null
           cost_currency_id?: string | null
           created_at?: string
@@ -8286,6 +9571,7 @@ export type Database = {
           capacity_unit?: string | null
           category?: string
           charge_id?: string | null
+          content_source_id?: string
           cost_amount?: number | null
           cost_currency_id?: string | null
           created_at?: string
@@ -8321,6 +9607,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "charges"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_content_source_system_fk"
+            columns: ["content_source_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "content_sources"
+            referencedColumns: ["id", "game_system_id"]
           },
           {
             foreignKeyName: "equipment_cost_currency_id_fkey"
@@ -10578,6 +11871,7 @@ export type Database = {
         Row: {
           active_version_id: string | null
           charge_id: string | null
+          content_source_id: string
           created_at: string
           description: string
           id: string
@@ -10592,6 +11886,7 @@ export type Database = {
         Insert: {
           active_version_id?: string | null
           charge_id?: string | null
+          content_source_id: string
           created_at?: string
           description: string
           id?: string
@@ -10606,6 +11901,7 @@ export type Database = {
         Update: {
           active_version_id?: string | null
           charge_id?: string | null
+          content_source_id?: string
           created_at?: string
           description?: string
           id?: string
@@ -10631,6 +11927,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "charges"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feats_content_source_system_fk"
+            columns: ["content_source_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "content_sources"
+            referencedColumns: ["id", "game_system_id"]
           },
           {
             foreignKeyName: "feats_prerequisite_id_fkey"
@@ -11649,10 +12952,11 @@ export type Database = {
           condition_type_id: string | null
           created_at: string
           modifier_grant_id: string
-          sense_code: string | null
+          sense_definition_id: string | null
           skill_id: string | null
           speed_id: string | null
           spell_level: number | null
+          system_id: string
           updated_at: string
           value_domain_code: string
         }
@@ -11662,10 +12966,11 @@ export type Database = {
           condition_type_id?: string | null
           created_at?: string
           modifier_grant_id: string
-          sense_code?: string | null
+          sense_definition_id?: string | null
           skill_id?: string | null
           speed_id?: string | null
           spell_level?: number | null
+          system_id: string
           updated_at?: string
           value_domain_code: string
         }
@@ -11675,10 +12980,11 @@ export type Database = {
           condition_type_id?: string | null
           created_at?: string
           modifier_grant_id?: string
-          sense_code?: string | null
+          sense_definition_id?: string | null
           skill_id?: string | null
           speed_id?: string | null
           spell_level?: number | null
+          system_id?: string
           updated_at?: string
           value_domain_code?: string
         }
@@ -11696,6 +13002,20 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "modifier_grants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "modifier_grant_domain_params_parent_system_fkey"
+            columns: ["modifier_grant_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "modifier_grants"
+            referencedColumns: ["id", "system_id"]
+          },
+          {
+            foreignKeyName: "modifier_grant_domain_params_sense_definition_fkey"
+            columns: ["sense_definition_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "senses"
+            referencedColumns: ["id", "system_id"]
           },
           {
             foreignKeyName: "modifier_grant_domain_params_skill_id_fkey"
@@ -13029,6 +14349,7 @@ export type Database = {
         Row: {
           active_version_id: string | null
           category: string
+          content_source_id: string
           created_at: string
           description: string | null
           id: string
@@ -13046,6 +14367,7 @@ export type Database = {
         Insert: {
           active_version_id?: string | null
           category: string
+          content_source_id: string
           created_at?: string
           description?: string | null
           id: string
@@ -13063,6 +14385,7 @@ export type Database = {
         Update: {
           active_version_id?: string | null
           category?: string
+          content_source_id?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -13084,6 +14407,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "race_versions"
             referencedColumns: ["race_id", "id"]
+          },
+          {
+            foreignKeyName: "races_content_source_system_fk"
+            columns: ["content_source_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "content_sources"
+            referencedColumns: ["id", "game_system_id"]
           },
           {
             foreignKeyName: "races_parent_system_fk"
@@ -13142,6 +14472,109 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "systems"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      reusable_definition_drafts: {
+        Row: {
+          author_user_id: string
+          base_definition_version: number
+          checksum: string
+          created_at: string
+          definition_id: string
+          document: Json
+          game_system_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          author_user_id: string
+          base_definition_version: number
+          checksum: string
+          created_at?: string
+          definition_id: string
+          document: Json
+          game_system_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          author_user_id?: string
+          base_definition_version?: number
+          checksum?: string
+          created_at?: string
+          definition_id?: string
+          document?: Json
+          game_system_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reusable_definition_drafts_definition_id_game_system_id_fkey"
+            columns: ["definition_id", "game_system_id"]
+            isOneToOne: false
+            referencedRelation: "reusable_definitions"
+            referencedColumns: ["id", "game_system_id"]
+          },
+        ]
+      }
+      reusable_definitions: {
+        Row: {
+          content_source_id: string
+          created_at: string
+          current_checksum: string | null
+          current_contract_version: number | null
+          current_document: Json | null
+          definition_family_key: string
+          description: string | null
+          game_system_id: string
+          id: string
+          label: string
+          published_at: string | null
+          published_by: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          content_source_id: string
+          created_at?: string
+          current_checksum?: string | null
+          current_contract_version?: number | null
+          current_document?: Json | null
+          definition_family_key: string
+          description?: string | null
+          game_system_id: string
+          id?: string
+          label: string
+          published_at?: string | null
+          published_by?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          content_source_id?: string
+          created_at?: string
+          current_checksum?: string | null
+          current_contract_version?: number | null
+          current_document?: Json | null
+          definition_family_key?: string
+          description?: string | null
+          game_system_id?: string
+          id?: string
+          label?: string
+          published_at?: string | null
+          published_by?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reusable_definitions_content_source_id_game_system_id_fkey"
+            columns: ["content_source_id", "game_system_id"]
+            isOneToOne: false
+            referencedRelation: "content_sources"
+            referencedColumns: ["id", "game_system_id"]
           },
         ]
       }
@@ -13236,38 +14669,129 @@ export type Database = {
           },
         ]
       }
+      rules_catalogue_content_sources: {
+        Row: {
+          catalogue_id: string
+          content_source_id: string
+          created_at: string
+          game_system_id: string
+        }
+        Insert: {
+          catalogue_id: string
+          content_source_id: string
+          created_at?: string
+          game_system_id: string
+        }
+        Update: {
+          catalogue_id?: string
+          content_source_id?: string
+          created_at?: string
+          game_system_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rules_catalogue_content_sourc_content_source_id_game_syste_fkey"
+            columns: ["content_source_id", "game_system_id"]
+            isOneToOne: false
+            referencedRelation: "content_sources"
+            referencedColumns: ["id", "game_system_id"]
+          },
+          {
+            foreignKeyName: "rules_catalogue_content_source_catalogue_id_game_system_id_fkey"
+            columns: ["catalogue_id", "game_system_id"]
+            isOneToOne: false
+            referencedRelation: "rules_catalogues"
+            referencedColumns: ["id", "game_system_id"]
+          },
+        ]
+      }
+      rules_catalogues: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          game_system_id: string
+          id: string
+          label: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          game_system_id: string
+          id?: string
+          label: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          game_system_id?: string
+          id?: string
+          label?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rules_catalogues_game_system_id_fkey"
+            columns: ["game_system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saving_throw_dc_bonuses: {
         Row: {
-          ability_code: string | null
+          ability_definition_id: string | null
           amount: number | null
           bonus_kind: string
           created_at: string
           id: string
           saving_throw_id: string
           sort_order: number
+          system_id: string
           updated_at: string
         }
         Insert: {
-          ability_code?: string | null
+          ability_definition_id?: string | null
           amount?: number | null
           bonus_kind: string
           created_at?: string
           id: string
           saving_throw_id: string
           sort_order: number
+          system_id: string
           updated_at?: string
         }
         Update: {
-          ability_code?: string | null
+          ability_definition_id?: string | null
           amount?: number | null
           bonus_kind?: string
           created_at?: string
           id?: string
           saving_throw_id?: string
           sort_order?: number
+          system_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "saving_throw_dc_bonuses_ability_definition_fkey"
+            columns: ["ability_definition_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "ability_definitions"
+            referencedColumns: ["id", "system_id"]
+          },
+          {
+            foreignKeyName: "saving_throw_dc_bonuses_parent_system_fkey"
+            columns: ["saving_throw_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "saving_throws"
+            referencedColumns: ["id", "system_id"]
+          },
           {
             foreignKeyName: "saving_throw_dc_bonuses_saving_throw_id_fkey"
             columns: ["saving_throw_id"]
@@ -13279,30 +14803,48 @@ export type Database = {
       }
       saving_throws: {
         Row: {
-          ability_code: string
+          ability_definition_id: string
           base_dc: number | null
           created_at: string
           dc_method: string
           id: string
+          system_id: string
           updated_at: string
         }
         Insert: {
-          ability_code: string
+          ability_definition_id: string
           base_dc?: number | null
           created_at?: string
           dc_method: string
           id: string
+          system_id: string
           updated_at?: string
         }
         Update: {
-          ability_code?: string
+          ability_definition_id?: string
           base_dc?: number | null
           created_at?: string
           dc_method?: string
           id?: string
+          system_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "saving_throws_ability_definition_fkey"
+            columns: ["ability_definition_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "ability_definitions"
+            referencedColumns: ["id", "system_id"]
+          },
+          {
+            foreignKeyName: "saving_throws_system_fkey"
+            columns: ["system_id"]
+            isOneToOne: false
+            referencedRelation: "systems"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sense_grant_scaling_level_senses: {
         Row: {
@@ -13528,6 +15070,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "senses_reusable_definition_identity_fkey"
+            columns: ["id", "system_id"]
+            isOneToOne: true
+            referencedRelation: "reusable_definitions"
+            referencedColumns: ["id", "game_system_id"]
+          },
           {
             foreignKeyName: "senses_system_id_fkey"
             columns: ["system_id"]
@@ -14518,6 +16067,7 @@ export type Database = {
           active_version_id: string | null
           casting_time_amount: number
           casting_time_unit: string
+          content_source_id: string
           created_at: string
           description: string
           id: string
@@ -14535,6 +16085,7 @@ export type Database = {
           active_version_id?: string | null
           casting_time_amount: number
           casting_time_unit: string
+          content_source_id: string
           created_at?: string
           description: string
           id?: string
@@ -14552,6 +16103,7 @@ export type Database = {
           active_version_id?: string | null
           casting_time_amount?: number
           casting_time_unit?: string
+          content_source_id?: string
           created_at?: string
           description?: string
           id?: string
@@ -14572,6 +16124,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "spell_versions"
             referencedColumns: ["spell_id", "id"]
+          },
+          {
+            foreignKeyName: "spells_content_source_system_fk"
+            columns: ["content_source_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "content_sources"
+            referencedColumns: ["id", "game_system_id"]
           },
           {
             foreignKeyName: "spells_magic_school_id_fkey"
@@ -15170,6 +16729,7 @@ export type Database = {
           armor_class: number | null
           cargo_capacity: string | null
           category: string
+          content_source_id: string
           cost: Json | null
           created_at: string
           crew_max: number | null
@@ -15196,6 +16756,7 @@ export type Database = {
           armor_class?: number | null
           cargo_capacity?: string | null
           category: string
+          content_source_id: string
           cost?: Json | null
           created_at?: string
           crew_max?: number | null
@@ -15222,6 +16783,7 @@ export type Database = {
           armor_class?: number | null
           cargo_capacity?: string | null
           category?: string
+          content_source_id?: string
           cost?: Json | null
           created_at?: string
           crew_max?: number | null
@@ -15250,6 +16812,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vehicle_versions"
             referencedColumns: ["vehicle_id", "id"]
+          },
+          {
+            foreignKeyName: "vehicles_content_source_system_fk"
+            columns: ["content_source_id", "system_id"]
+            isOneToOne: false
+            referencedRelation: "content_sources"
+            referencedColumns: ["id", "game_system_id"]
           },
           {
             foreignKeyName: "vehicles_system_id_fkey"

@@ -14,7 +14,8 @@ export const systemListFixture: SystemListResponseDto = [
     description: 'Default system fixture for Equipment authoring stories and tests.',
     rulesetCode: 'dnd5e',
     rulesetVersion: '2014',
-    userId: 'master'
+    userId: 'master',
+    rulesCatalogues: []
   }
 ]
 

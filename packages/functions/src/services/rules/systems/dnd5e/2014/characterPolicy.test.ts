@@ -28,6 +28,15 @@ import { evaluateZenRuleModel } from '../../../zenRuleEngine.js'
 
 type SpellLimits = NonNullable<CompiledClass['spellcasting']>['spellLimits']
 
+const ACTION_EFFECT_IDS = {
+  action: '00000000-0000-4000-8000-0000000000d1',
+  available: '00000000-0000-4000-8000-0000000000d2',
+  missing: '00000000-0000-4000-8000-0000000000d3',
+  unequipped: '00000000-0000-4000-8000-0000000000d4',
+  unattuned: '00000000-0000-4000-8000-0000000000d5',
+  inactive: '00000000-0000-4000-8000-0000000000d6'
+} as const
+
 function spellcastingClass(
   id: string,
   resetKind: typeof CHARGE_RESET_KIND.LONG_REST | typeof CHARGE_RESET_KIND.SHORT_REST,
@@ -119,7 +128,8 @@ function emptyActionMechanicFacts() {
       triggerCode: 'ACTIVATED' as const,
       activation: { code: 'ACTION', amount: 1 },
       range: { rangeKind: 'SELF', amount: null, unit: null },
-      savingThrow: null
+      savingThrow: null,
+      reactionMovementTrigger: null
     },
     outcomes: []
   }
@@ -241,7 +251,7 @@ describe('D&D 5e 2014 Character policy', () => {
             {
               sequence: 0,
               actionId: 'legacy-fixture:ACTION:effect',
-              effectId: 'effect',
+              effectId: ACTION_EFFECT_IDS.action,
               sourceId,
               source: { kind: 'SYSTEM', systemId: 'dnd5e2014' },
               mechanicsOwner: { kind: 'FEATURE', id: 'feature' },
@@ -302,7 +312,7 @@ describe('D&D 5e 2014 Character policy', () => {
           {
             sequence: 0,
             actionId: 'available',
-            effectId: 'available',
+            effectId: ACTION_EFFECT_IDS.available,
             sourceId: 'legacy-fixture',
             source: { kind: 'SYSTEM', systemId: 'dnd5e2014' },
             mechanicsOwner: { kind: 'FEATURE', id: 'available' },
@@ -314,7 +324,7 @@ describe('D&D 5e 2014 Character policy', () => {
           {
             sequence: 1,
             actionId: 'missing',
-            effectId: 'missing',
+            effectId: ACTION_EFFECT_IDS.missing,
             sourceId: 'legacy-fixture',
             source: { kind: 'SYSTEM', systemId: 'dnd5e2014' },
             mechanicsOwner: { kind: 'FEATURE', id: 'missing' },
@@ -326,7 +336,7 @@ describe('D&D 5e 2014 Character policy', () => {
           {
             sequence: 2,
             actionId: 'unequipped',
-            effectId: 'unequipped',
+            effectId: ACTION_EFFECT_IDS.unequipped,
             sourceId: 'item-1',
             source: { kind: 'EQUIPMENT_INSTANCE', equipmentId: 'wand', itemInstanceId: 'item-1' },
             mechanicsOwner: { kind: 'EQUIPMENT', id: 'wand' },
@@ -345,7 +355,7 @@ describe('D&D 5e 2014 Character policy', () => {
           {
             sequence: 3,
             actionId: 'unattuned',
-            effectId: 'unattuned',
+            effectId: ACTION_EFFECT_IDS.unattuned,
             sourceId: 'item-2',
             source: { kind: 'EQUIPMENT_INSTANCE', equipmentId: 'wand', itemInstanceId: 'item-2' },
             mechanicsOwner: { kind: 'EQUIPMENT', id: 'wand' },
@@ -364,7 +374,7 @@ describe('D&D 5e 2014 Character policy', () => {
           {
             sequence: 4,
             actionId: 'inactive',
-            effectId: 'inactive',
+            effectId: ACTION_EFFECT_IDS.inactive,
             sourceId: 'inactive-source',
             source: { kind: 'SYSTEM', systemId: 'dnd5e2014' },
             mechanicsOwner: { kind: 'FEATURE', id: 'inactive' },
@@ -928,7 +938,12 @@ describe('D&D 5e 2014 Character policy', () => {
         }
       ]
     })
-    const { grantFold: _grantFold, rollModes, ...policyResult } = parsed
+    const {
+      grantFold: _grantFold,
+      rollModes,
+      rollContributorEvidence: _rollContributorEvidence,
+      ...policyResult
+    } = parsed
     expect(rollModes.initiative).toBe('NORMAL')
     expect(policyResult).toEqual({
       proficiencies: [],
@@ -938,7 +953,9 @@ describe('D&D 5e 2014 Character policy', () => {
       movement: { speeds: [], primaryMovementSpeedId: null },
       senses: [],
       companions: [],
+      conditionImmunityIds: [],
       actionDecisions: [],
+      savingThrowDefinitions: [],
       abilityModifiers: [
         { ability: 'STR', value: -1 },
         { ability: 'DEX', value: 4 }
@@ -1221,9 +1238,7 @@ describe('D&D 5e 2014 Character policy', () => {
       expect(result.rest.hitDiceRecoveredAfterLongRest).toBe(
         Math.max(1, Math.floor(totalLevel / 2))
       )
-      expect(result.rest.exhaustionAfterLongRest).toBe(
-        Math.max(0, Math.min(index, 6) - 1)
-      )
+      expect(result.rest.exhaustionAfterLongRest).toBe(Math.max(0, Math.min(index, 6) - 1))
       expect(result.rest.attunementSlotLimit).toBe(3)
       expect(result.modifierGroups.map(({ effective }) => effective)).toEqual([3, 2, 1])
       expect(result.modifierGroups[1]?.contributions.map(({ state }) => state)).toEqual([

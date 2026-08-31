@@ -338,8 +338,7 @@ describe('D&D 5e 2014 Character spell policy', () => {
       {
         sequence: 1,
         accessId: 'SUBCLASS:school-of-evocation:wizard:school-spells:arctic-spells:fog-cloud',
-        sourceInstanceId:
-          'SUBCLASS:school-of-evocation:wizard:school-spells:arctic-spells',
+        sourceInstanceId: 'SUBCLASS:school-of-evocation:wizard:school-spells:arctic-spells',
         spellId: 'fog-cloud',
         sourceFeatureId: 'school-spells',
         grantId: 'arctic-spells',

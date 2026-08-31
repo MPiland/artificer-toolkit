@@ -16,6 +16,7 @@ type SystemScopedTableName = {
 }[TableName]
 
 const systemScopedTableNames = [
+  'ability_definitions',
   'alignments',
   'backgrounds',
   'challenge_ratings',
@@ -39,6 +40,10 @@ const systemScopedTableNames = [
 ] as const satisfies readonly SystemScopedTableName[]
 
 const systemScopedTables: ReadonlySet<string> = new Set(systemScopedTableNames)
+
+export function isSystemScopedNodeRuntimeTable(tableName: string): boolean {
+  return systemScopedTables.has(tableName)
+}
 
 export async function selectNodeRuntimeRows(
   db: DBLike,
@@ -71,7 +76,7 @@ export async function selectNodeRuntimeRows(
 }
 
 function getSystemPredicate(tableName: string, systemId: string): RawBuilder<unknown> | undefined {
-  if (systemScopedTables.has(tableName)) {
+  if (isSystemScopedNodeRuntimeTable(tableName)) {
     return sql`${sql.ref('system_id')} = ${systemId}`
   }
 

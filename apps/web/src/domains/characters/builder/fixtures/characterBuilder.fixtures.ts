@@ -11,7 +11,7 @@ import type {
 import type { CharacterAuthoredDto } from '@artificer-toolkit/schema/subjects/character'
 
 export const characterFixture = {
-  id: 'character-owned',
+  id: '00000000-0000-4000-8000-000000000101',
   label: 'Astra Vale',
   description: '<p>A careful explorer with a dangerous curiosity.</p>',
   status: AUTHORED_RECORD_STATUS.ACTIVE,
@@ -95,7 +95,8 @@ export const characterFixture = {
       hitDice: [{ die: 6, total: 1, used: 0 }]
     }
   },
-  systemId: 'system-5e',
+  primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
+  systemId: '00000000-0000-4000-8000-000000000501',
   userId: 'user-1'
 } satisfies CharacterAuthoredDto
 

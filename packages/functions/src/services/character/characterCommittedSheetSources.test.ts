@@ -7,6 +7,7 @@ import type { CharacterMechanicsProjection } from '@artificer-toolkit/schema/pro
 import {
   assertCharacterCommittedSheetSourceIdentity,
   CharacterCommittedSheetSourcesError,
+  createCharacterCommittedSheetContext,
   pruneCharacterCommittedSheetSourcesRoots
 } from './characterCommittedSheetSources.js'
 
@@ -165,6 +166,16 @@ describe('Character committed Sheet sources', () => {
         vocabularySnapshot
       })
     ).not.toThrow()
+  })
+
+  it('retains the exact pinned vocabulary snapshot in committed Sheet contexts', () => {
+    const context = createCharacterCommittedSheetContext({
+      mechanics: { ...mechanics, authoredVersionVector: [] },
+      recordsByRoot: new Map(),
+      vocabularySnapshot
+    })
+
+    expect(context.vocabularySnapshot).toBe(vocabularySnapshot)
   })
 
   it('fails closed when a compiled authored dependency is absent from the mechanics vector', () => {

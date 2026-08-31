@@ -80,3 +80,14 @@ export const controlButtons = style({
     }
   }
 })
+
+export const bindingControls = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: foundationVars.space[3],
+      paddingBlockStart: foundationVars.space[2],
+      borderBlockStart: `1px solid ${foundationVars.color.border.subtle}`
+    }
+  }
+})

@@ -23,6 +23,7 @@ export type CompiledFeatureBase = {
   restrictions?: FacetAuthored
   effects?: CompiledEffectGroup[]
   rollDefinitions?: FeatureRollDefinitionAuthored[]
+  ruleDefinitionIds?: string[]
   charges?: CompiledChargeUse
   feats?: CompiledFeatGrant[]
   modifiers?: CompiledModifierGrant[]
@@ -62,6 +63,7 @@ export function compileFeatureBase(authored: FeatureBaseAuthored): CompiledFeatu
     restrictions: authored.restrictions,
     effects,
     rollDefinitions: authored.rollDefinitions,
+    ruleDefinitionIds: authored.ruleDefinitionIds,
     charges,
     feats,
     modifiers,

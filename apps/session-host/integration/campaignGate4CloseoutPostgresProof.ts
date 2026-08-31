@@ -96,7 +96,9 @@ function taggedConnectionString(connectionString: string, label: string): string
 }
 
 function createTaggedDb(connectionString: string, label: string) {
-  return createDb({ connectionString: taggedConnectionString(connectionString, label) })
+  return createDb({
+    connectionString: taggedConnectionString(connectionString, label)
+  })
 }
 
 async function withTimeout<T>(label: string, operation: Promise<T>): Promise<T> {
@@ -539,7 +541,9 @@ async function createFillerCampaign(
     name: `Gate 4 filler ${label} ${options.runId}`,
     format: 'ONE_SHOT',
     toneTags: ['HEROIC'],
-    contentMaturity: 'STANDARD'
+    contentMaturity: 'STANDARD',
+    gameSystemId: options.systemId,
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301'
   })
   options.onCampaignCreated(campaign.id)
   return campaign.id
@@ -737,13 +741,33 @@ export async function proveGate4CloseoutPostgresSemantics(
     await proveCampaignCopy(db, options, listingId, vehicle)
 
     console.log(
-      JSON.stringify({ gate4Result: 7, result: 'campaign-copy-direct-share', status: 'PASS' })
+      JSON.stringify({
+        gate4Result: 7,
+        result: 'campaign-copy-direct-share',
+        status: 'PASS'
+      })
     )
-    console.log(JSON.stringify({ gate4Result: 8, result: 'social-retained', status: 'PASS' }))
     console.log(
-      JSON.stringify({ gate4Result: 9, result: 'notifications-retained', status: 'PASS' })
+      JSON.stringify({
+        gate4Result: 8,
+        result: 'social-retained',
+        status: 'PASS'
+      })
     )
-    console.log(JSON.stringify({ gate4Result: 10, result: 'media-retained', status: 'PASS' }))
+    console.log(
+      JSON.stringify({
+        gate4Result: 9,
+        result: 'notifications-retained',
+        status: 'PASS'
+      })
+    )
+    console.log(
+      JSON.stringify({
+        gate4Result: 10,
+        result: 'media-retained',
+        status: 'PASS'
+      })
+    )
   } finally {
     await db.destroy()
   }

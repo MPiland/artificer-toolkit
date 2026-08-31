@@ -49,6 +49,38 @@ const {
   resolveCharacterSceneVisionDimRangeFeet
 } = await import('./characterLiveSessionSnapshot.js')
 
+function visionPin(amount: number, unit: 'FEET' | 'YARDS' = 'FEET') {
+  return {
+    senseDefinitionId: '00000000-0000-4000-8000-000000000010',
+    definitionVersion: 1,
+    definitionContractVersion: 1,
+    definitionChecksum: 'a'.repeat(64),
+    document: {
+      schemaVersion: 1 as const,
+      kind: 'SENSE' as const,
+      id: '00000000-0000-4000-8000-000000000010',
+      gameSystemId: '00000000-0000-4000-8000-000000000011',
+      capabilities: [
+        {
+          channel: 'VISUAL' as const,
+          accessGrade: 'PRECISE' as const,
+          satisfies: ['SEE' as const],
+          illuminationAccess: 'ORDINARY_DARKNESS' as const,
+          obscurementAccess: 'NONE' as const,
+          perceivesInvisible: false,
+          physicalConstraints: []
+        }
+      ]
+    },
+    range: {
+      id: 'range-1',
+      amount,
+      unit,
+      calculation: { base: amount, effective: amount, override: null, contributions: [] }
+    }
+  }
+}
+
 describe('live-session Character rule snapshots', () => {
   beforeEach(() => {
     vi.resetAllMocks()
@@ -64,8 +96,8 @@ describe('live-session Character rule snapshots', () => {
       userId: '00000000-0000-4000-8000-000000000004'
     })
     mocks.requireCurrentCampaignMechanics.mockResolvedValue({
-      projectionChecksum: 'c'.repeat(64),
-      rulePolicyOutput: { senses: [{ senseCode: 'DARKVISION', range: { amount: 60, unit: 'FEET' } }] }
+      kind: 'BASE_REFERENCE',
+      projectionChecksum: 'c'.repeat(64)
     })
     mocks.resolveRuleContext.mockResolvedValue({
       adjustments: [],
@@ -75,9 +107,12 @@ describe('live-session Character rule snapshots', () => {
     mocks.checksumRuleContext.mockReturnValue(null)
     mocks.assembleBundle.mockResolvedValue({
       bundle: { ruleEvaluation: { output: { senses: [] } } },
+      campaignMechanics: { kind: 'BASE_REFERENCE' },
       mechanics: {
         projectionChecksum: 'a'.repeat(64),
         commandLaneChecksum: 'b'.repeat(64),
+        pinnedSenseDefinitions: [],
+        rulePolicyOutput: { senses: [] }
       },
       resolution: { selections: {} }
     })
@@ -88,13 +123,9 @@ describe('live-session Character rule snapshots', () => {
 
   it('derives scene vision from the committed mechanics projection', async () => {
     mocks.requireCurrentMechanics.mockResolvedValue({
+      pinnedSenseDefinitions: [visionPin(60)],
       rulePolicyOutput: {
-        senses: [
-          {
-            senseCode: 'DARKVISION',
-            range: { amount: 60, unit: 'FEET' }
-          }
-        ]
+        senses: [{ senseDefinitionId: visionPin(60).senseDefinitionId, range: visionPin(60).range }]
       }
     })
 
@@ -113,56 +144,36 @@ describe('live-session Character rule snapshots', () => {
     expect(mocks.assembleBundle).not.toHaveBeenCalled()
   })
 
-  it('applies the Campaign darkvision range override without hydrating a rule bundle', () => {
-    expect(
-      resolveCharacterSceneVisionDimRangeFeet(
-        [
-          {
-            senseCode: 'DARKVISION',
-            range: {
-              id: 'darkvision-120',
-              amount: 120,
-              unit: 'FEET',
-              calculation: { base: 120, effective: 120, override: null, contributions: [] }
-            }
-          }
-        ],
-        [
-          {
-            id: 'adjustment-1',
-            characterId: ids.character,
-            family: 'SENSE',
-            senseId: 'DARKVISION',
-            field: 'RANGE_OVERRIDE',
-            value: 30,
-            createdBy: 'user-1',
-            updatedBy: 'user-1',
-            createdAt: '2026-01-01T00:00:00.000Z',
-            updatedAt: '2026-01-01T00:00:00.000Z'
-          }
-        ]
-      )
-    ).toBe(30)
+  it('derives a darkness-capable visual range from the pinned capability document', () => {
+    expect(resolveCharacterSceneVisionDimRangeFeet([visionPin(120)])).toBe(120)
   })
 
   it('rebuilds scene vision when a prior Campaign context was removed', async () => {
     mocks.checksumRuleContext.mockReturnValue('c'.repeat(64))
     mocks.requireCurrentMechanics.mockResolvedValue({
+      pinnedSenseDefinitions: [visionPin(60)],
       rulePolicyOutput: {
-        senses: [{ senseCode: 'DARKVISION', range: { amount: 120, unit: 'FEET' } }]
+        senses: [
+          { senseDefinitionId: visionPin(60).senseDefinitionId, range: visionPin(120).range }
+        ]
       }
     })
     mocks.assembleBundle.mockResolvedValue({
       bundle: {
         ruleEvaluation: {
           output: {
-            senses: [{ senseCode: 'DARKVISION', range: { amount: 60, unit: 'FEET' } }]
+            senses: [
+              { senseDefinitionId: visionPin(60).senseDefinitionId, range: visionPin(60).range }
+            ]
           }
         }
       },
+      campaignMechanics: { kind: 'BASE_REFERENCE' },
       mechanics: {
         projectionChecksum: 'a'.repeat(64),
         commandLaneChecksum: 'b'.repeat(64),
+        pinnedSenseDefinitions: [],
+        rulePolicyOutput: { senses: [] }
       },
       resolution: { selections: {} }
     })
@@ -172,42 +183,14 @@ describe('live-session Character rule snapshots', () => {
         id: ids.campaign,
         attunementSlotOverride: 4
       })
-    ).resolves.toEqual({ streamVersion: 12, dimRangeFeet: 60 })
+    ).resolves.toEqual({ streamVersion: 12, dimRangeFeet: 120 })
     expect(mocks.findAuthoredById).not.toHaveBeenCalled()
     expect(mocks.assembleBundle).not.toHaveBeenCalled()
     expect(mocks.requireCurrentCampaignMechanics).toHaveBeenCalled()
   })
 
-  it('converts a Campaign override using the existing darkvision range unit', () => {
-    expect(
-      resolveCharacterSceneVisionDimRangeFeet(
-        [
-          {
-            senseCode: 'DARKVISION',
-            range: {
-              id: 'darkvision-yards',
-              amount: 40,
-              unit: 'YARDS',
-              calculation: { base: 40, effective: 40, override: null, contributions: [] }
-            }
-          }
-        ],
-        [
-          {
-            id: 'adjustment-yards',
-            characterId: ids.character,
-            family: 'SENSE',
-            senseId: 'DARKVISION',
-            field: 'RANGE_OVERRIDE',
-            value: 30,
-            createdBy: 'user-1',
-            updatedBy: 'user-1',
-            createdAt: '2026-01-01T00:00:00.000Z',
-            updatedAt: '2026-01-01T00:00:00.000Z'
-          }
-        ]
-      )
-    ).toBe(90)
+  it('converts a pinned qualifying vision range to feet', () => {
+    expect(resolveCharacterSceneVisionDimRangeFeet([visionPin(40, 'YARDS')])).toBe(120)
   })
 
   it('assembles the pinned active Character with its admitted Campaign context', async () => {

@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 
@@ -189,7 +190,7 @@ export const hornedDevil: CreatureAuthored = {
                     savingThrow: {
                       id: S.actionId(167, 221),
                       dcMethod: 'FIXED_DC',
-                      ability: S.ABILITY_CODE.CONSTITUTION,
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
                       baseDc: 17
                     },
                     attempts: { kind: 'ONCE' },

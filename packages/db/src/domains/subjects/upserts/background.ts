@@ -9,6 +9,7 @@ import { normalizeSubjectStatus } from '../status.js'
 type BackgroundRow = {
   id: string
   system_id: string
+  content_source_id: string
   user_id: string
   label: string
   description: string | null
@@ -34,10 +35,11 @@ type BackgroundFeatureRow = {
   sort_order: number
 }
 
-function mapBackgroundRow(json_data: BackgroundAuthored): BackgroundRow {
+function mapBackgroundRow(json_data: BackgroundAuthored, contentSourceId: string): BackgroundRow {
   return {
     id: json_data.id,
     system_id: json_data.systemId,
+    content_source_id: contentSourceId,
     user_id: json_data.userId,
     label: json_data.label,
     description: json_data.description ?? null,
@@ -49,7 +51,8 @@ function mapBackgroundRow(json_data: BackgroundAuthored): BackgroundRow {
 export async function upsertBackground(
   db: DBLike,
   json_data: BackgroundAuthored,
-  _systemId: string
+  _systemId: string,
+  contentSourceId: string
 ) {
   return withTransaction(db, async (trx) => {
     if (json_data.startingEquipment) {
@@ -58,10 +61,11 @@ export async function upsertBackground(
 
     await trx
       .insertInto('backgrounds')
-      .values(mapBackgroundRow(json_data))
+      .values(mapBackgroundRow(json_data, contentSourceId))
       .onConflict((oc) =>
         oc.column('id').doUpdateSet((eb) => ({
           system_id: eb.ref('excluded.system_id'),
+          content_source_id: eb.ref('backgrounds.content_source_id'),
           user_id: eb.ref('excluded.user_id'),
           label: eb.ref('excluded.label'),
           description: eb.ref('excluded.description'),

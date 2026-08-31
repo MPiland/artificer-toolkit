@@ -44,7 +44,7 @@ const {
   saveRulePackDraft,
   simulateRulePack
 } = await import('./rulePackService.js')
-const { checksumRuleDocument } = await import('./ruleChecksum.js')
+const { checksumRuleDocument } = await import('@artificer-toolkit/shared/rules')
 const { RuleConformanceError } = await import('./ruleConformance.js')
 
 function document(expectedAllowed = false): RulePackDocumentDto {

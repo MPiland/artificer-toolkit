@@ -11,6 +11,7 @@ import {
 import type { CharacterSheetCommandInputDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
+import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 import {
   appliedRuleOutcomeDtoSchema,
   type AppliedRuleOutcomeDto,
@@ -25,7 +26,10 @@ import {
   snapshotFeatureDefinitions,
   withFeatureChargeUsed
 } from './encounterActorState.js'
-import { findEncounterFeatureResource } from './encounterActorRuleEvaluation.js'
+import {
+  findEncounterFeatureResource,
+  requireEncounterActorRuleResult
+} from './encounterActorRuleEvaluation.js'
 import { EncounterValidationError } from './encounterErrors.js'
 
 type JsonValue = z.infer<ReturnType<typeof z.json>>
@@ -76,6 +80,48 @@ function enemyConditionIds(actor: EncounterActorRecord): string[] {
   return actor.conditions.filter((condition): condition is string => typeof condition === 'string')
 }
 
+function requireNormalizedEnemyTargetProtection(
+  actor: EncounterActorRecord,
+  actorRules: EncounterActorRuleOutput
+) {
+  const actorRule = requireEncounterActorRuleResult(actorRules, actor.id)
+  if (actorRule.targetProtection.status !== 'NORMALIZED') {
+    throw new EncounterValidationError(
+      `Enemy "${actor.label}" target protections are not normalized for automatic resolution.`
+    )
+  }
+  return actorRule.targetProtection
+}
+
+function resolveEnemyDamageAmount(input: {
+  actor: EncounterActorRecord
+  amount: number
+  damageTypeId: string | null
+  actorRules: EncounterActorRuleOutput
+}): number {
+  const protection = requireNormalizedEnemyTargetProtection(input.actor, input.actorRules)
+  if (input.damageTypeId === null) return input.amount
+  const damageTypeId = serverUuidIdentityDtoSchema.safeParse(input.damageTypeId)
+  if (!damageTypeId.success) {
+    throw new EncounterValidationError(
+      'Automatic damage requires a canonical damage type identity.'
+    )
+  }
+  const defenses = protection.defenses.filter(
+    (defense) => defense.damageTypeId === damageTypeId.data
+  )
+  const immune = defenses.some((defense) => defense.kind === 'IMMUNITY')
+  const resistant = defenses.some((defense) => defense.kind === 'RESISTANCE')
+  const vulnerable = defenses.some((defense) => defense.kind === 'VULNERABILITY')
+  if (immune) return 0
+  if (resistant === vulnerable) return input.amount
+  if (resistant) return Math.floor(input.amount / 2)
+  if (!Number.isSafeInteger(input.amount * 2)) {
+    throw new EncounterValidationError('Automatic vulnerable damage exceeds the supported range.')
+  }
+  return vulnerable ? input.amount * 2 : input.amount
+}
+
 function applyEnemyOutcome(
   actor: EncounterActorRecord,
   outcome: Exclude<ProposedRuleOutcomeDto, { kind: 'MANUAL' }>,
@@ -83,11 +129,18 @@ function applyEnemyOutcome(
 ): EncounterActorRecord {
   switch (outcome.kind) {
     case 'DAMAGE': {
-      const absorbed = Math.min(actor.tempHitPoints, outcome.amount)
+      const amount = resolveEnemyDamageAmount({
+        actor,
+        amount: outcome.amount,
+        damageTypeId: outcome.damageTypeId,
+        actorRules
+      })
+      if (amount === 0) return actor
+      const absorbed = Math.min(actor.tempHitPoints, amount)
       return {
         ...actor,
         tempHitPoints: actor.tempHitPoints - absorbed,
-        currentHitPoints: Math.max(actor.currentHitPoints - (outcome.amount - absorbed), 0)
+        currentHitPoints: Math.max(actor.currentHitPoints - (amount - absorbed), 0)
       }
     }
     case 'HEAL':
@@ -99,12 +152,25 @@ function applyEnemyOutcome(
           }
     case 'CONDITION': {
       const conditions = enemyConditionIds(actor)
+      const protection = requireNormalizedEnemyTargetProtection(actor, actorRules)
+      const conditionId = serverUuidIdentityDtoSchema.safeParse(outcome.conditionId)
+      if (!conditionId.success) {
+        throw new EncounterValidationError(
+          'Automatic conditions require a canonical condition identity.'
+        )
+      }
+      if (
+        outcome.operation === 'APPLY' &&
+        protection.conditionImmunityIds.includes(conditionId.data)
+      ) {
+        return actor
+      }
       return {
         ...actor,
         conditions:
           outcome.operation === 'APPLY'
-            ? [...new Set([...conditions, outcome.conditionId])]
-            : conditions.filter((conditionId) => conditionId !== outcome.conditionId)
+            ? [...new Set([...conditions, conditionId.data])]
+            : conditions.filter((candidateId) => candidateId !== conditionId.data)
       }
     }
     case 'RESOURCE': {
@@ -297,7 +363,9 @@ export async function applyEncounterRuleOutcomes(input: {
 
     const before = actorState(actor)
     const next = applyEnemyOutcome(actor, outcome, input.actorRules)
-    await repository.updateActor(next)
+    if (next !== actor) {
+      await repository.updateActor(next)
+    }
     actors.set(actor.id, next)
     results.set(
       index,

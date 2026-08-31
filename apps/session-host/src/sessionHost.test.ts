@@ -6,14 +6,15 @@ import {
   LIVE_SESSION_TICKET_PROTOCOL_PREFIX,
   LIVE_SESSION_TICKET_VERSION,
   LIVE_SESSION_WEBSOCKET_PROTOCOL,
+  liveSessionCoordinatorSnapshotDtoSchema,
   liveSessionWebSocketServerMessageDtoSchema,
   type LiveSessionWebSocketClientMessageDto,
   type LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
 import {
   applySceneEvent,
-  materializeEncounterScene,
-  type EncounterSceneState
+  materializeCampaignScene,
+  type CampaignSceneState
 } from '@artificer-toolkit/shared/vtt'
 import { SignJWT } from 'jose'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -51,8 +52,8 @@ afterEach(() => {
   for (const socket of sockets.splice(0)) socket.terminate()
 })
 
-function sceneState(): EncounterSceneState {
-  return materializeEncounterScene(
+function sceneState(): CampaignSceneState {
+  return materializeCampaignScene(
     {
       annotations: [
         {
@@ -62,6 +63,7 @@ function sceneState(): EncounterSceneState {
           visibility: 'GM_ONLY'
         }
       ],
+      ambientIllumination: 'BRIGHT',
       barriers: [],
       campaignId: CAMPAIGN_ID,
       darknessZones: [],
@@ -73,7 +75,6 @@ function sceneState(): EncounterSceneState {
       name: 'Live scene',
       tokens: [
         {
-          actorId: null,
           assetId: null,
           controlledByUserIds: [PLAYER_ID],
           height: 1,
@@ -87,7 +88,6 @@ function sceneState(): EncounterSceneState {
           width: 1
         },
         {
-          actorId: null,
           assetId: null,
           controlledByUserIds: [],
           height: 1,
@@ -104,7 +104,6 @@ function sceneState(): EncounterSceneState {
       version: 1,
       visionRevealMode: 'ON_DRAG'
     },
-    ENCOUNTER_ID,
     SCENE_ID
   )
 }
@@ -112,19 +111,42 @@ function sceneState(): EncounterSceneState {
 function dependencies(
   overrides: Partial<LiveSessionRoomDependencies> = {}
 ): LiveSessionRoomDependencies {
+  const { loadSnapshot: loadSnapshotOverride, ...remainingOverrides } = overrides
+  const loadSnapshot: LiveSessionRoomDependencies['loadSnapshot'] =
+    loadSnapshotOverride ??
+    (async () => ({
+      aggregateVersions: [],
+      characterRuleSnapshots: [],
+      characterVisions: [],
+      encounterActorTokenBindings: [],
+      encounterCharacterBindings: [],
+      encounterRuleOccurrenceBindings: [],
+      encounterRuleSnapshots: [],
+      encounterSceneBindings: [],
+      sceneStates: []
+    }))
+
   return {
     claimAuthority: async () => undefined,
     execute: async () => {
       throw new Error('Not used by this bootstrap test.')
     },
-    loadSnapshot: async () => ({
-      aggregateVersions: [],
-      characterRuleSnapshots: [],
-      characterVisions: [],
-      encounterCharacterBindings: [],
-      encounterRuleSnapshots: [],
-      sceneStates: []
-    }),
+    loadSnapshot: async (...args) => {
+      const snapshot = await loadSnapshot(...args)
+      const coordinatorSnapshot = liveSessionCoordinatorSnapshotDtoSchema.parse({
+        aggregateVersions: snapshot.aggregateVersions,
+        characterVisions: snapshot.characterVisions,
+        encounterActorTokenBindings: snapshot.encounterActorTokenBindings,
+        encounterCharacterBindings: snapshot.encounterCharacterBindings,
+        encounterRuleOccurrenceBindings: snapshot.encounterRuleOccurrenceBindings,
+        encounterSceneBindings: snapshot.encounterSceneBindings,
+        sceneStates: snapshot.sceneStates
+      })
+      return {
+        ...snapshot,
+        ...coordinatorSnapshot
+      }
+    },
     releaseAuthority: async () => undefined,
     renewAuthority: async (userId) => ({
       aggregateVersions: [],
@@ -135,7 +157,7 @@ function dependencies(
         }
       ]
     }),
-    ...overrides
+    ...remainingOverrides
   }
 }
 
@@ -334,6 +356,8 @@ describe('native local session host', () => {
         aggregateVersions: [{ aggregateId: ENCOUNTER_ID, aggregateKind: 'ENCOUNTER', version: 7 }],
         campaignId: CAMPAIGN_ID,
         deliverySequence: 0,
+        encounterActorTokenBindings: [],
+        encounterSceneBindings: [],
         sceneSnapshots: [],
         sessionId: SESSION_ID,
         type: 'READY'
@@ -442,6 +466,9 @@ describe('native local session host', () => {
       return {
         aggregateId: SCENE_ID,
         aggregateKind: 'SCENE',
+        changedAggregates: [
+          { aggregateId: SCENE_ID, aggregateKind: 'SCENE', version: state.version }
+        ],
         commandId: command.command.commandId,
         replayed: false,
         response: {
@@ -487,7 +514,6 @@ describe('native local session host', () => {
             visibility: 'GM_ONLY'
           },
           commandId,
-          encounterId: ENCOUNTER_ID,
           expectedSceneVersion,
           sceneId: SCENE_ID,
           type: 'UPSERT_SCENE_ANNOTATION'
@@ -684,6 +710,9 @@ describe('native local session host', () => {
       return {
         aggregateId: SCENE_ID,
         aggregateKind: 'SCENE',
+        changedAggregates: [
+          { aggregateId: SCENE_ID, aggregateKind: 'SCENE', version: initialVersion + 3 }
+        ],
         commandId,
         replayed: false,
         response: {
@@ -756,7 +785,6 @@ describe('native local session host', () => {
               visibility: 'GM_ONLY'
             },
             commandId,
-            encounterId: ENCOUNTER_ID,
             expectedSceneVersion: initialVersion + 2,
             sceneId: SCENE_ID,
             type: 'UPSERT_SCENE_ANNOTATION'
@@ -1073,6 +1101,9 @@ describe('native local session host', () => {
       return {
         aggregateId: SCENE_ID,
         aggregateKind: 'SCENE',
+        changedAggregates: [
+          { aggregateId: SCENE_ID, aggregateKind: 'SCENE', version: state.version }
+        ],
         commandId: command.command.commandId,
         replayed: false,
         response: {
@@ -1158,7 +1189,6 @@ describe('native local session host', () => {
               visibility: 'GM_ONLY'
             },
             commandId,
-            encounterId: ENCOUNTER_ID,
             expectedSceneVersion: 0,
             sceneId: SCENE_ID,
             type: 'UPSERT_SCENE_ANNOTATION'
@@ -1577,6 +1607,9 @@ describe('native local session host', () => {
           return {
             aggregateId: SCENE_ID,
             aggregateKind: 'SCENE',
+            changedAggregates: [
+              { aggregateId: SCENE_ID, aggregateKind: 'SCENE', version: committedState.version }
+            ],
             commandId: command.command.commandId,
             replayed: false,
             response: null,
@@ -1634,8 +1667,10 @@ describe('native local session host', () => {
           aggregateKind: 'SCENE',
           command: {
             commandId,
-            encounterId: ENCOUNTER_ID,
+            correlationId: null,
+            expectedEncounterVersion: 0,
             expectedSceneVersion: state.version,
+            movementKind: 'VOLUNTARY',
             path: [
               { x: state.tokens[0]!.position.x, y: state.tokens[0]!.position.y },
               { x: 15, y: 15 }
@@ -1649,6 +1684,32 @@ describe('native local session host', () => {
       })
       await expect(ownerCommitted).resolves.toMatchObject({ originCommandId: commandId })
       await expect(observedBroadcast).resolves.toMatchObject({ originCommandId: commandId })
+
+      const foreignReplayRejected = waitForMessage(
+        otherPlayer.socket,
+        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
+      )
+      send(otherPlayer.socket, {
+        command: {
+          aggregateKind: 'SCENE',
+          command: {
+            commandId,
+            correlationId: null,
+            expectedEncounterVersion: 0,
+            expectedSceneVersion: state.version,
+            movementKind: 'VOLUNTARY',
+            path: [
+              { x: state.tokens[0]!.position.x, y: state.tokens[0]!.position.y },
+              { x: 15, y: 15 }
+            ],
+            sceneId: SCENE_ID,
+            tokenId: TOKEN_ID,
+            type: 'MOVE_SCENE_TOKEN'
+          }
+        },
+        type: 'COMMAND'
+      })
+      await expect(foreignReplayRejected).resolves.toMatchObject({ code: 'UNAUTHORIZED' })
 
       const otherReady = waitForMessage(otherPlayer.socket, (message) => message.type === 'READY')
       const otherReceipt = expectNoMessage(otherPlayer.socket, 100, ['READY'])
@@ -1679,19 +1740,568 @@ describe('native local session host', () => {
     }
   })
 
-  it('attaches a scene once and broadcasts a private full snapshot', async () => {
-    const state = sceneState()
-    const execute: LiveSessionRoomDependencies['execute'] = async (_userId, _options, command) => {
-      if (command.aggregateKind !== 'SCENE' || command.command.type !== 'ATTACH_SCENE') {
-        throw new Error('Expected an attach scene command.')
+  it('refreshes and broadcasts a persisted spatial replay when the room cache missed its commit', async () => {
+    const initialState = sceneState()
+    const commandId = '00000000-0000-4000-8000-000000000180'
+    const delta = {
+      kind: 'TOKEN_MOVED' as const,
+      position: { x: 15, y: 15 },
+      tokenId: TOKEN_ID
+    }
+    const committedState = applySceneEvent(initialState, {
+      actorUserId: USER_ID,
+      commandId,
+      delta,
+      sceneId: SCENE_ID,
+      version: initialState.version + 1
+    })
+    const initialVersions = [
+      { aggregateId: ENCOUNTER_ID, aggregateKind: 'ENCOUNTER' as const, version: 1 },
+      { aggregateId: SCENE_ID, aggregateKind: 'SCENE' as const, version: initialState.version }
+    ]
+    const committedVersions = [
+      { aggregateId: ENCOUNTER_ID, aggregateKind: 'ENCOUNTER' as const, version: 2 },
+      { aggregateId: SCENE_ID, aggregateKind: 'SCENE' as const, version: committedState.version }
+    ]
+    let snapshotCount = 0
+    const loadSnapshot = vi.fn(async () => {
+      snapshotCount += 1
+      const current = snapshotCount === 1 ? initialState : committedState
+      return {
+        aggregateVersions: snapshotCount === 1 ? initialVersions : committedVersions,
+        characterRuleSnapshots: [],
+        characterVisions: [],
+        encounterCharacterBindings: [],
+        encounterRuleSnapshots: [],
+        sceneStates: [current]
       }
+    })
+    let commandExecuted = false
+    const execute = vi.fn<LiveSessionRoomDependencies['execute']>(async () => {
+      commandExecuted = true
       return {
         aggregateId: SCENE_ID,
         aggregateKind: 'SCENE',
+        changedAggregates: committedVersions,
+        commandId,
+        replayed: true,
+        response: {
+          commandId,
+          delta,
+          occurrence: null,
+          replayed: true,
+          sceneId: SCENE_ID,
+          version: committedState.version
+        },
+        state: committedState,
+        version: committedState.version
+      }
+    })
+    const server = createSessionHostServer(
+      dependencies({
+        execute,
+        loadSnapshot,
+        renewAuthority: async () => ({
+          aggregateVersions: commandExecuted ? committedVersions : initialVersions,
+          memberships: [
+            { role: 'OWNER', userId: USER_ID },
+            { role: 'PLAYER', userId: PLAYER_ID }
+          ]
+        })
+      }),
+      { ticketSecret: TICKET_SECRET }
+    )
+    await server.listen(0)
+    const port = (server.httpServer.address() as AddressInfo).port
+    try {
+      const owner = await connect(
+        port,
+        await issueTicket({ jti: '00000000-0000-4000-8000-000000000181' })
+      )
+      const player = await connect(
+        port,
+        await issueTicket({
+          jti: '00000000-0000-4000-8000-000000000182',
+          role: 'PLAYER',
+          userId: PLAYER_ID
+        })
+      )
+      const command = {
+        command: {
+          aggregateKind: 'SCENE' as const,
+          command: {
+            commandId,
+            correlationId: null,
+            expectedEncounterVersion: 1,
+            expectedSceneVersion: initialState.version,
+            movementKind: 'VOLUNTARY' as const,
+            path: [initialState.tokens[0]!.position, delta.position],
+            sceneId: SCENE_ID,
+            tokenId: TOKEN_ID,
+            type: 'MOVE_SCENE_TOKEN' as const
+          }
+        },
+        type: 'COMMAND' as const
+      }
+      const ownerCommit = waitForMessage(
+        owner.socket,
+        (message) => message.type === 'COMMAND_COMMITTED' && message.originCommandId === commandId
+      )
+      const playerCommit = waitForMessage(
+        player.socket,
+        (message) => message.type === 'COMMAND_COMMITTED' && message.originCommandId === commandId
+      )
+      send(owner.socket, command)
+      await expect(ownerCommit).resolves.toMatchObject({
+        changedAggregates: committedVersions,
+        originCommandId: commandId,
+        replayed: true,
+        snapshot: { scene: { version: committedState.version } },
+        type: 'COMMAND_COMMITTED'
+      })
+      await expect(playerCommit).resolves.toMatchObject({
+        changedAggregates: committedVersions,
+        originCommandId: commandId,
+        replayed: true,
+        snapshot: { scene: { version: committedState.version } },
+        type: 'COMMAND_COMMITTED'
+      })
+
+      const duplicate = waitForMessage(
+        owner.socket,
+        (message) => message.type === 'COMMAND_COMMITTED' && message.originCommandId === commandId
+      )
+      const noPeerDuplicate = expectNoMessage(player.socket, 100)
+      send(owner.socket, command)
+      await expect(duplicate).resolves.toMatchObject({ replayed: true })
+      await noPeerDuplicate
+      expect(execute).toHaveBeenCalledTimes(1)
+      expect(loadSnapshot).toHaveBeenCalledTimes(2)
+    } finally {
+      await server.gracefullyShutdown(false)
+    }
+  })
+
+  it('rejects a replay refresh that would regress an unrelated cached aggregate', async () => {
+    const initialState = sceneState()
+    const commandId = '00000000-0000-4000-8000-000000000186'
+    const delta = {
+      kind: 'TOKEN_MOVED' as const,
+      position: { x: 16, y: 16 },
+      tokenId: TOKEN_ID
+    }
+    const committedState = applySceneEvent(initialState, {
+      actorUserId: USER_ID,
+      commandId,
+      delta,
+      sceneId: SCENE_ID,
+      version: initialState.version + 1
+    })
+    const initialVersions = [
+      { aggregateId: PLAYER_ID, aggregateKind: 'CHARACTER' as const, version: 5 },
+      { aggregateId: ENCOUNTER_ID, aggregateKind: 'ENCOUNTER' as const, version: 1 },
+      { aggregateId: SCENE_ID, aggregateKind: 'SCENE' as const, version: initialState.version }
+    ]
+    const incompleteRefreshVersions = [
+      { aggregateId: ENCOUNTER_ID, aggregateKind: 'ENCOUNTER' as const, version: 2 },
+      { aggregateId: SCENE_ID, aggregateKind: 'SCENE' as const, version: committedState.version }
+    ]
+    let snapshotCount = 0
+    const loadSnapshot = vi.fn(async () => {
+      snapshotCount += 1
+      return {
+        aggregateVersions: snapshotCount === 1 ? initialVersions : incompleteRefreshVersions,
+        characterRuleSnapshots: [],
+        characterVisions: [],
+        encounterCharacterBindings: [],
+        encounterRuleOccurrenceBindings: [],
+        encounterRuleSnapshots: [],
+        sceneStates: [snapshotCount === 1 ? initialState : committedState]
+      }
+    })
+    let exposeIncompleteRefresh = false
+    const execute = vi.fn<LiveSessionRoomDependencies['execute']>(async () => {
+      exposeIncompleteRefresh = true
+      return {
+        aggregateId: SCENE_ID,
+        aggregateKind: 'SCENE',
+        changedAggregates: incompleteRefreshVersions,
+        commandId,
+        replayed: true,
+        response: {
+          commandId,
+          delta,
+          occurrence: null,
+          replayed: true,
+          sceneId: SCENE_ID,
+          version: committedState.version
+        },
+        state: committedState,
+        version: committedState.version
+      }
+    })
+    const server = createSessionHostServer(
+      dependencies({
+        execute,
+        loadSnapshot,
+        renewAuthority: async () => ({
+          aggregateVersions: exposeIncompleteRefresh ? incompleteRefreshVersions : initialVersions,
+          memberships: [
+            { role: 'OWNER', userId: USER_ID },
+            { role: 'PLAYER', userId: PLAYER_ID }
+          ]
+        })
+      }),
+      { ticketSecret: TICKET_SECRET }
+    )
+    await server.listen(0)
+    const port = (server.httpServer.address() as AddressInfo).port
+    try {
+      const owner = await connect(
+        port,
+        await issueTicket({ jti: '00000000-0000-4000-8000-000000000187' })
+      )
+      const player = await connect(
+        port,
+        await issueTicket({
+          jti: '00000000-0000-4000-8000-000000000188',
+          role: 'PLAYER',
+          userId: PLAYER_ID
+        })
+      )
+      const rejected = waitForMessage(
+        owner.socket,
+        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
+      )
+      const noPlayerCommit = expectNoMessage(player.socket, 100)
+      send(owner.socket, {
+        command: {
+          aggregateKind: 'SCENE',
+          command: {
+            commandId,
+            correlationId: null,
+            expectedEncounterVersion: 1,
+            expectedSceneVersion: initialState.version,
+            movementKind: 'VOLUNTARY',
+            path: [initialState.tokens[0]!.position, delta.position],
+            sceneId: SCENE_ID,
+            tokenId: TOKEN_ID,
+            type: 'MOVE_SCENE_TOKEN'
+          }
+        },
+        type: 'COMMAND'
+      })
+      await expect(rejected).resolves.toMatchObject({ code: 'COMMAND_FAILED' })
+      await noPlayerCommit
+      exposeIncompleteRefresh = false
+
+      const retainedReady = waitForMessage(owner.socket, (message) => message.type === 'READY')
+      send(owner.socket, {
+        lastSeenDeliverySequence: 0,
+        pendingCommandIds: [],
+        type: 'RESUME'
+      })
+      await expect(retainedReady).resolves.toMatchObject({
+        aggregateVersions: expect.arrayContaining([
+          { aggregateId: PLAYER_ID, aggregateKind: 'CHARACTER', version: 5 }
+        ]),
+        type: 'READY'
+      })
+      expect(execute).toHaveBeenCalledOnce()
+      expect(loadSnapshot).toHaveBeenCalledTimes(2)
+    } finally {
+      await server.gracefullyShutdown(false)
+    }
+  })
+
+  it('restores a zero-root spatial occurrence binding from persisted replay before resolution', async () => {
+    const initialState = sceneState()
+    const pauseCommandId = '00000000-0000-4000-8000-000000000190'
+    const resolutionCommandId = '00000000-0000-4000-8000-000000000191'
+    const occurrenceId = '00000000-0000-4000-8000-000000000192'
+    let resolutionReachedExecutor = false
+    const execute = vi.fn<LiveSessionRoomDependencies['execute']>(
+      async (_userId, _options, command) => {
+        if (command.command.type === 'MOVE_SCENE_TOKEN') {
+          return {
+            aggregateId: SCENE_ID,
+            aggregateKind: 'SCENE',
+            changedAggregates: [],
+            commandId: pauseCommandId,
+            occurrenceBindingUpdate: {
+              binding: {
+                encounterId: ENCOUNTER_ID,
+                executionKind: 'SPATIAL',
+                occurrenceId,
+                sceneId: SCENE_ID
+              },
+              encounterId: ENCOUNTER_ID
+            },
+            replayed: true,
+            response: {
+              commandId: pauseCommandId,
+              delta: null,
+              occurrence: {
+                occurrenceId,
+                occurrenceVersion: 0,
+                outcome: null,
+                pending: {
+                  kind: 'D20_EVIDENCE',
+                  allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL'],
+                  encounterVersion: 1,
+                  occurrenceId,
+                  occurrenceVersion: 0,
+                  request: {
+                    max: 20,
+                    min: 1,
+                    requestId: 'spatial-request',
+                    rollMode: 'NORMAL'
+                  }
+                },
+                status: 'PENDING'
+              },
+              replayed: true,
+              sceneId: SCENE_ID,
+              version: initialState.version
+            },
+            state: initialState,
+            version: initialState.version
+          }
+        }
+        if (command.command.type === 'RESOLVE_RULE_OCCURRENCE') {
+          resolutionReachedExecutor = true
+          throw new Error('Expected resolution executor stop.')
+        }
+        throw new Error(`Unexpected command: ${command.command.type}`)
+      }
+    )
+    const server = createSessionHostServer(
+      dependencies({
+        execute,
+        loadSnapshot: async () => ({
+          aggregateVersions: [
+            { aggregateId: ENCOUNTER_ID, aggregateKind: 'ENCOUNTER', version: 1 },
+            { aggregateId: SCENE_ID, aggregateKind: 'SCENE', version: initialState.version }
+          ],
+          characterRuleSnapshots: [],
+          characterVisions: [],
+          encounterCharacterBindings: [],
+          encounterRuleOccurrenceBindings: [],
+          encounterRuleSnapshots: [],
+          sceneStates: [initialState]
+        }),
+        renewAuthority: async () => ({
+          aggregateVersions: [
+            { aggregateId: ENCOUNTER_ID, aggregateKind: 'ENCOUNTER', version: 1 },
+            { aggregateId: SCENE_ID, aggregateKind: 'SCENE', version: initialState.version }
+          ],
+          memberships: [{ role: 'OWNER', userId: USER_ID }]
+        })
+      }),
+      { ticketSecret: TICKET_SECRET }
+    )
+    await server.listen(0)
+    const port = (server.httpServer.address() as AddressInfo).port
+    try {
+      const owner = await connect(
+        port,
+        await issueTicket({ jti: '00000000-0000-4000-8000-000000000193' })
+      )
+      const pauseCommitted = waitForMessage(
+        owner.socket,
+        (message) =>
+          message.type === 'COMMAND_COMMITTED' && message.originCommandId === pauseCommandId
+      )
+      send(owner.socket, {
+        command: {
+          aggregateKind: 'SCENE',
+          command: {
+            commandId: pauseCommandId,
+            correlationId: null,
+            expectedEncounterVersion: 1,
+            expectedSceneVersion: initialState.version,
+            movementKind: 'VOLUNTARY',
+            path: [initialState.tokens[0]!.position, { x: 15, y: 10 }],
+            sceneId: SCENE_ID,
+            tokenId: TOKEN_ID,
+            type: 'MOVE_SCENE_TOKEN'
+          }
+        },
+        type: 'COMMAND'
+      })
+      await expect(pauseCommitted).resolves.toMatchObject({ replayed: true })
+
+      const resolutionRejected = waitForMessage(
+        owner.socket,
+        (message) =>
+          message.type === 'COMMAND_REJECTED' && message.commandId === resolutionCommandId
+      )
+      send(owner.socket, {
+        command: {
+          aggregateKind: 'ENCOUNTER',
+          command: {
+            commandId: resolutionCommandId,
+            correlationId: null,
+            encounterId: ENCOUNTER_ID,
+            expectedOccurrenceVersion: 0,
+            expectedVersion: 1,
+            occurrenceId,
+            resolution: { kind: 'SYSTEM_ROLL', requestId: 'spatial-request' },
+            type: 'RESOLVE_RULE_OCCURRENCE'
+          }
+        },
+        type: 'COMMAND'
+      })
+      await resolutionRejected
+      expect(resolutionReachedExecutor).toBe(true)
+      expect(execute).toHaveBeenCalledTimes(2)
+    } finally {
+      await server.gracefullyShutdown(false)
+    }
+  })
+
+  it('returns a fresh authorized Encounter response but suppresses its cached player replay', async () => {
+    const commandId = '00000000-0000-4000-8000-000000000183'
+    const projection = {
+      actors: [],
+      automationMode: 'ASSISTED' as const,
+      blueprintChecksum: 'a'.repeat(64),
+      blueprintId: ENCOUNTER_ID,
+      blueprintVersion: 1,
+      campaignId: CAMPAIGN_ID,
+      createdAt: '2026-08-27T00:00:00.000Z',
+      currentActorId: null,
+      gameSystemId: ENCOUNTER_ID,
+      id: ENCOUNTER_ID,
+      name: 'Encounter response privacy',
+      round: 1,
+      rulePackRevisionId: null,
+      sessionId: SESSION_ID,
+      status: 'ACTIVE' as const,
+      updatedAt: '2026-08-27T00:00:00.000Z',
+      version: 2
+    }
+    const execute = vi.fn<LiveSessionRoomDependencies['execute']>(async () => ({
+      aggregateId: ENCOUNTER_ID,
+      aggregateKind: 'ENCOUNTER',
+      changedAggregates: [{ aggregateId: ENCOUNTER_ID, aggregateKind: 'ENCOUNTER', version: 2 }],
+      commandId,
+      occurrenceBindingUpdate: { binding: null, encounterId: ENCOUNTER_ID },
+      replayed: false,
+      response: { occurrence: null, projection, resolution: null, roll: null },
+      version: 2
+    }))
+    const server = createSessionHostServer(
+      dependencies({
+        execute,
+        loadSnapshot: async () => ({
+          aggregateVersions: [
+            { aggregateId: ENCOUNTER_ID, aggregateKind: 'ENCOUNTER', version: 1 }
+          ],
+          characterRuleSnapshots: [],
+          characterVisions: [],
+          encounterCharacterBindings: [],
+          encounterRuleSnapshots: [],
+          sceneStates: []
+        }),
+        renewAuthority: async () => ({
+          aggregateVersions: [
+            { aggregateId: ENCOUNTER_ID, aggregateKind: 'ENCOUNTER', version: 2 }
+          ],
+          memberships: [
+            { role: 'OWNER', userId: USER_ID },
+            { role: 'PLAYER', userId: PLAYER_ID }
+          ]
+        })
+      }),
+      { ticketSecret: TICKET_SECRET }
+    )
+    await server.listen(0)
+    const port = (server.httpServer.address() as AddressInfo).port
+    try {
+      const owner = await connect(
+        port,
+        await issueTicket({ jti: '00000000-0000-4000-8000-000000000185' })
+      )
+      const player = await connect(
+        port,
+        await issueTicket({
+          jti: '00000000-0000-4000-8000-000000000184',
+          role: 'PLAYER',
+          userId: PLAYER_ID
+        })
+      )
+      const command = {
+        command: {
+          aggregateKind: 'ENCOUNTER' as const,
+          command: {
+            commandId,
+            encounterId: ENCOUNTER_ID,
+            expectedVersion: 1,
+            type: 'ADVANCE_TURN' as const
+          }
+        },
+        type: 'COMMAND' as const
+      }
+      const fresh = waitForMessage(
+        player.socket,
+        (message) => message.type === 'COMMAND_COMMITTED' && message.originCommandId === commandId
+      )
+      const ownerFresh = waitForMessage(
+        owner.socket,
+        (message) => message.type === 'COMMAND_COMMITTED' && message.originCommandId === commandId
+      )
+      send(player.socket, command)
+      await expect(fresh).resolves.toMatchObject({
+        aggregateKind: 'ENCOUNTER',
+        response: { projection: { id: ENCOUNTER_ID, version: 2 } }
+      })
+      await expect(ownerFresh).resolves.toMatchObject({
+        aggregateKind: 'ENCOUNTER',
+        response: { projection: { id: ENCOUNTER_ID, version: 2 } }
+      })
+
+      const cachedReplay = waitForMessage(
+        player.socket,
+        (message) => message.type === 'COMMAND_COMMITTED' && message.originCommandId === commandId
+      )
+      send(player.socket, command)
+      await expect(cachedReplay).resolves.toMatchObject({
+        aggregateKind: 'ENCOUNTER',
+        replayed: true,
+        response: null
+      })
+      expect(execute).toHaveBeenCalledTimes(1)
+    } finally {
+      await server.gracefullyShutdown(false)
+    }
+  })
+
+  it('presents a Campaign scene and broadcasts a private full snapshot', async () => {
+    const state = sceneState()
+    const execute: LiveSessionRoomDependencies['execute'] = async (_userId, _options, command) => {
+      if (
+        command.aggregateKind !== 'SESSION' ||
+        command.command.type !== 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
+      ) {
+        throw new Error('Expected a Session Scene presentation command.')
+      }
+      return {
+        aggregateId: SESSION_ID,
+        aggregateKind: 'SESSION',
+        changedAggregates: [
+          { aggregateId: SESSION_ID, aggregateKind: 'SESSION', version: state.version }
+        ],
         commandId: command.command.commandId,
         replayed: false,
-        response: null,
-        state,
+        response: {
+          commandId: command.command.commandId,
+          replayed: false,
+          sceneId: SCENE_ID,
+          sessionId: SESSION_ID,
+          version: state.version
+        },
+        sceneState: state,
         version: state.version
       }
     }
@@ -1702,8 +2312,10 @@ describe('native local session host', () => {
           aggregateVersions: [],
           characterRuleSnapshots: [],
           characterVisions: [],
+          encounterActorTokenBindings: [],
           encounterCharacterBindings: [],
           encounterRuleSnapshots: [],
+          encounterSceneBindings: [],
           sceneStates: []
         }),
         renewAuthority: async () => ({
@@ -1749,12 +2361,13 @@ describe('native local session host', () => {
       )
       send(owner.socket, {
         command: {
-          aggregateKind: 'SCENE',
+          aggregateKind: 'SESSION',
           command: {
             commandId,
-            encounterId: ENCOUNTER_ID,
-            sceneDefinitionId: SCENE_ID,
-            type: 'ATTACH_SCENE'
+            expectedPresentationVersion: null,
+            sceneId: SCENE_ID,
+            sessionId: SESSION_ID,
+            type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
           }
         },
         type: 'COMMAND'
@@ -1764,22 +2377,20 @@ describe('native local session host', () => {
       const ownerResult = await ownerCommitted
       const playerResult = await playerCommitted
       expect(ownerResult).toMatchObject({
-        aggregateKind: 'SCENE',
-        delta: null,
-        snapshot: { scene: { id: SCENE_ID, version: 0 } },
+        aggregateKind: 'SESSION',
+        sceneSnapshots: [{ scene: { id: SCENE_ID, version: 0 } }],
         type: 'COMMAND_COMMITTED'
       })
       expect(playerResult).toMatchObject({
-        aggregateKind: 'SCENE',
-        delta: null,
-        snapshot: { scene: { annotations: [], id: SCENE_ID, version: 0 } },
+        aggregateKind: 'SESSION',
+        sceneSnapshots: [{ scene: { annotations: [], id: SCENE_ID, version: 0 } }],
         type: 'COMMAND_COMMITTED'
       })
-      if (ownerResult.aggregateKind !== 'SCENE' || playerResult.aggregateKind !== 'SCENE') {
-        throw new Error('Expected Scene commit messages.')
+      if (ownerResult.aggregateKind !== 'SESSION' || playerResult.aggregateKind !== 'SESSION') {
+        throw new Error('Expected Session commit messages.')
       }
-      expect(ownerResult.snapshot?.scene.annotations).toHaveLength(1)
-      expect(playerResult.snapshot?.scene.annotations).toEqual([])
+      expect(ownerResult.sceneSnapshots?.[0]?.scene.annotations).toHaveLength(1)
+      expect(playerResult.sceneSnapshots?.[0]?.scene.annotations).toEqual([])
     } finally {
       await server.gracefullyShutdown(false)
     }

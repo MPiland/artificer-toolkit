@@ -71,7 +71,7 @@ function getSpellFacts(
         references.magicSchools
       )
     },
-    { label: 'Attack/Save', value: formatSpellAttackSave(spell) },
+    { label: 'Attack/Save', value: formatSpellAttackSave(spell, references) },
     { label: 'Damage/Effect', value: formatSpellDamageEffect(spell, references) }
   ]
 }
@@ -165,7 +165,10 @@ function formatSpellDuration(spell: SpellAuthoredDto): string {
   return duration
 }
 
-function formatSpellAttackSave(spell: SpellAuthoredDto): string {
+function formatSpellAttackSave(
+  spell: SpellAuthoredDto,
+  references: SpellDetailReferenceData
+): string {
   const invocation = spell.effects?.[0]?.invocation
 
   if (!invocation) {
@@ -173,7 +176,10 @@ function formatSpellAttackSave(spell: SpellAuthoredDto): string {
   }
 
   if ('savingThrow' in invocation) {
-    return `${formatEnumLabel(invocation.savingThrow.ability)} save`
+    const abilityLabel = references.abilities?.find(
+      (option) => option.value === invocation.savingThrow.abilityDefinitionId
+    )?.label
+    return abilityLabel ? `${abilityLabel} save` : 'Saving throw'
   }
 
   if (invocation.triggerCode === 'SPELL_ATTACK') {

@@ -417,6 +417,168 @@ export const unicorn: CreatureAuthored = {
     },
     {
       id: S.featureId(276, 11),
+      options: [
+        {
+          id: '00000000-0005-00c9-0070-011400000000',
+          label: 'Hooves',
+          description: 'The unicorn makes one attack with its hooves.',
+          order: 1,
+          effects: [
+            {
+              id: '00000000-0005-0002-0070-011400000000',
+              order: 1,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'MELEE_WEAPON_ATTACK',
+                activation: { code: 'FREE' },
+                range: {
+                  id: '00000000-0005-0004-0070-011400000000',
+                  rangeKind: 'DISTANCE',
+                  amount: 5,
+                  unit: 'FEET'
+                },
+                targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
+                resourceUse: { chargeId: '00000000-0005-0001-0070-011400000000', cost: 1 }
+              },
+              paths: [
+                {
+                  id: '00000000-0005-0005-0070-011400000000',
+                  order: 1,
+                  pathCode: 'ON_HIT',
+                  groupType: 'SINGLE',
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: '00000000-0005-0005-0070-011400000000__result',
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: '00000000-0005-0005-0070-011400000000',
+                        effectKind: 'DAMAGE',
+                        damageTypeId: '00000000-0000-0000-0004-000200000000',
+                        valueKind: 'DICE',
+                        scalingKind: 'NONE',
+                        diceConfig: '2d6',
+                        bonuses: [
+                          {
+                            id: '00000000-0005-000f-0070-011400000000',
+                            bonusKind: 'ABILITY_BONUS',
+                            ability: 'STRENGTH',
+                            order: 1
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: '00000000-0005-00ca-0070-011400000000',
+          label: 'Shimmering Shield (Costs 2 Actions)',
+          description:
+            "The unicorn creates a shimmering, magical field around itself or another creature it can see within 60 feet of it. The target gains a +2 bonus to AC until the end of the unicorn's next turn.",
+          order: 2,
+          effects: [
+            {
+              id: '00000000-0005-0006-0070-011400000000',
+              order: 2,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'ACTIVATED',
+                activation: { code: 'FREE' },
+                range: { id: '00000000-0005-0007-0070-011400000000', rangeKind: 'SPECIAL' },
+                resourceUse: { chargeId: '00000000-0005-0001-0070-011400000000', cost: 1 }
+              },
+              paths: [
+                {
+                  id: '00000000-0005-0008-0070-011400000000',
+                  order: 1,
+                  pathCode: 'ON_USE',
+                  groupType: 'SINGLE',
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: '00000000-0005-0008-0070-011400000000__result',
+                    resultKind: 'SINGLE',
+                    duration: {
+                      id: '00000000-0005-0010-0070-011400000000',
+                      durationKind: 'ROUND',
+                      amount: 1
+                    },
+                    outcomes: [
+                      {
+                        id: '00000000-0005-0008-0070-011400000000',
+                        effectKind: 'APPLY_GRANT',
+                        grants: {
+                          modifiers: [
+                            {
+                              id: '00000000-0005-0011-0070-011400000000',
+                              grantKind: 'MODIFIER_GRANT',
+                              valueDomainCode: 'ARMOR_CLASS',
+                              domain: {},
+                              modifierKind: 'BONUS',
+                              scope: 'GLOBAL',
+                              selectionKind: 'GRANTED',
+                              payload: { valueKind: 'FIXED', amount: 2 },
+                              order: 1
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: '00000000-0005-00cb-0070-011400000000',
+          label: 'Heal Self (Costs 3 Actions)',
+          description: 'The unicorn magically regains 11 (2d8 + 2) hit points.',
+          order: 3,
+          effects: [
+            {
+              id: '00000000-0005-0009-0070-011400000000',
+              order: 3,
+              invocation: {
+                kind: 'ACTION',
+                triggerCode: 'ACTIVATED',
+                activation: { code: 'FREE' },
+                range: { id: '00000000-0005-000a-0070-011400000000', rangeKind: 'SPECIAL' },
+                resourceUse: { chargeId: '00000000-0005-0001-0070-011400000000', cost: 1 }
+              },
+              paths: [
+                {
+                  id: '00000000-0005-000b-0070-011400000000',
+                  order: 1,
+                  pathCode: 'ON_USE',
+                  groupType: 'SINGLE',
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: '00000000-0005-000b-0070-011400000000__result',
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: '00000000-0005-000b-0070-011400000000',
+                        effectKind: 'HEAL',
+                        valueKind: 'FIXED',
+                        amount: 11,
+                        scalingKind: 'NONE'
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      ruleDefinitionIds: [S.DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID],
       label: 'Legendary Actions',
       section: 'LEGENDARY_ACTION',
       description:
@@ -429,157 +591,6 @@ export const unicorn: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 3
       },
-      effects: [
-        {
-          id: S.legendaryActionId(276, 2),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: {
-              code: S.ACTIVATION_CODE.FREE
-            },
-            range: {
-              id: S.legendaryActionId(276, 4),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.legendaryActionId(276, 5),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.legendaryActionId(276, 5) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.legendaryActionId(276, 5),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('BLUDGEONING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d6',
-                    bonuses: [
-                      {
-                        id: S.legendaryActionId(276, 15),
-                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                        ability: S.ABILITY_CODE.STRENGTH,
-                        order: 1
-                      }
-                    ]
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          id: S.legendaryActionId(276, 6),
-          order: 2,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.FREE
-            },
-            range: {
-              id: S.legendaryActionId(276, 7),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
-          },
-          paths: [
-            {
-              id: S.legendaryActionId(276, 8),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.legendaryActionId(276, 8) + '__result',
-                resultKind: 'SINGLE' as const,
-                duration: {
-                  id: S.legendaryActionId(276, 16),
-                  durationKind: 'ROUND',
-                  amount: 1
-                },
-                outcomes: [
-                  {
-                    id: S.legendaryActionId(276, 8),
-                    effectKind: S.EFFECT_KIND.APPLY_GRANT,
-                    grants: {
-                      modifiers: [
-                        {
-                          id: S.legendaryActionId(276, 17),
-                          grantKind: 'MODIFIER_GRANT',
-                          valueDomainCode: 'ARMOR_CLASS',
-                          domain: {},
-                          modifierKind: 'BONUS',
-                          scope: 'GLOBAL',
-                          selectionKind: 'GRANTED',
-                          payload: {
-                            valueKind: 'FIXED',
-                            amount: 2
-                          },
-                          order: 1
-                        }
-                      ]
-                    }
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          id: S.legendaryActionId(276, 9),
-          order: 3,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.FREE
-            },
-            range: {
-              id: S.legendaryActionId(276, 10),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
-          },
-          paths: [
-            {
-              id: S.legendaryActionId(276, 11),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.legendaryActionId(276, 11) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.legendaryActionId(276, 11),
-                    effectKind: S.EFFECT_KIND.HEAL,
-                    valueKind: 'FIXED',
-                    amount: 11,
-                    scalingKind: S.SCALING.NONE
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ],
       order: 11
     }
   ]

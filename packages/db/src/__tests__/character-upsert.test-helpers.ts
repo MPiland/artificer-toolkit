@@ -65,6 +65,7 @@ export function buildCharacter(): CharacterAuthored {
       notes: 'Carries a weathered journal.'
     },
     systemId: 'system-1',
+    primaryRulesCatalogueId: 'catalogue-1',
     userId: 'user-1',
     intent: {
       advancement: {

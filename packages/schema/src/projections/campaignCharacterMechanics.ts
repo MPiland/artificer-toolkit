@@ -44,8 +44,7 @@ export type CampaignCharacterMechanicsProjection = z.infer<
   typeof campaignCharacterMechanicsProjectionSchema
 >
 
-export type ResolvedCampaignCharacterMechanicsProjection =
-  CampaignCharacterMechanicsProjection & {
-    rulePolicyInput: z.infer<typeof characterRulePolicyInputSchema>
-    rulePolicyOutput: z.infer<typeof characterRulePolicyOutputSchema>
-  }
+export type ResolvedCampaignCharacterMechanicsProjection = CampaignCharacterMechanicsProjection & {
+  rulePolicyInput: z.infer<typeof characterRulePolicyInputSchema>
+  rulePolicyOutput: z.infer<typeof characterRulePolicyOutputSchema>
+}

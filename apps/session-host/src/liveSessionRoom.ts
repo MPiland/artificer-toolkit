@@ -16,7 +16,7 @@ import {
   projectSceneTokenPreviewForViewer,
   resolveSceneCharacterVision,
   SceneBarrierIndex,
-  type EncounterSceneState,
+  type CampaignSceneState,
   type ScenePoint,
   type SceneCharacterVision,
   type SceneViewer
@@ -67,7 +67,7 @@ export interface LiveSessionClient {
 interface LiveSessionReceipt {
   acceptedSequence: number
   actorUserId: string
-  beforeScene: EncounterSceneState | null
+  beforeScene: CampaignSceneState | null
   deliverySequence: number
   execution: LiveSessionCommandExecution
 }
@@ -98,6 +98,20 @@ function aggregateVersionsEqual(
       candidate.version === version.version
     )
   })
+}
+
+function aggregateVersionsCover(
+  current: readonly LiveSessionAggregateVersionDto[],
+  required: readonly LiveSessionAggregateVersionDto[]
+): boolean {
+  const currentByAggregate = new Map(
+    current.map((version) => [`${version.aggregateKind}:${version.aggregateId}`, version.version])
+  )
+  return required.every(
+    (version) =>
+      (currentByAggregate.get(`${version.aggregateKind}:${version.aggregateId}`) ?? -1) >=
+      version.version
+  )
 }
 
 function commandFailure(error: unknown, commandId: string | null) {
@@ -164,10 +178,10 @@ class LiveSessionRuntime {
   readonly #commandRequesters = new Map<string, Set<string>>()
   readonly #encounterRuleSnapshots = new Map<string, EncounterActorRuleSnapshot>()
   readonly #receipts = new Map<string, LiveSessionReceipt>()
-  readonly #sceneStates = new Map<string, EncounterSceneState>()
+  readonly #sceneStates = new Map<string, CampaignSceneState>()
   readonly #movementIndexes = new Map<
     string,
-    { barriers: EncounterSceneState['barriers']; index: SceneBarrierIndex }
+    { barriers: CampaignSceneState['barriers']; index: SceneBarrierIndex }
   >()
   readonly #transientSequences = new Map<string, Map<string, number>>()
   readonly #transientTokenPaths = new Map<string, Map<string, ScenePoint[]>>()
@@ -184,7 +198,12 @@ class LiveSessionRuntime {
   #closed = false
   #coordinator: LiveSessionCommandCoordinator<LiveSessionCommandExecution> | null = null
   #deliverySequence = 0
+  #encounterActorTokenBindings: LiveSessionCoordinatorSnapshotDto['encounterActorTokenBindings'] =
+    []
   #encounterCharacterBindings: LiveSessionCoordinatorSnapshotDto['encounterCharacterBindings'] = []
+  #encounterRuleOccurrenceBindings: LiveSessionCoordinatorSnapshotDto['encounterRuleOccurrenceBindings'] =
+    []
+  #encounterSceneBindings: LiveSessionCoordinatorSnapshotDto['encounterSceneBindings'] = []
   #expiry: ReturnType<typeof setTimeout> | null = null
   #hydration: Promise<void> = Promise.resolve()
 
@@ -289,6 +308,8 @@ class LiveSessionRuntime {
       aggregateVersions: coordinator.aggregateVersions,
       campaignId: this.options.campaignId,
       deliverySequence: this.#deliverySequence,
+      encounterActorTokenBindings: this.#visibleEncounterActorTokenBindings(client),
+      encounterSceneBindings: this.#visibleEncounterSceneBindings(client),
       sceneSnapshots: this.#sceneSnapshots(client),
       sessionId: this.options.sessionId,
       type: 'READY'
@@ -317,6 +338,9 @@ class LiveSessionRuntime {
       this.#encounterRuleSnapshots.set(encounterId, ruleSnapshot)
     }
     this.#encounterCharacterBindings = snapshot.encounterCharacterBindings
+    this.#encounterActorTokenBindings = snapshot.encounterActorTokenBindings
+    this.#encounterRuleOccurrenceBindings = snapshot.encounterRuleOccurrenceBindings ?? []
+    this.#encounterSceneBindings = snapshot.encounterSceneBindings
     for (const state of snapshot.sceneStates) this.#sceneStates.set(state.id, state)
   }
 
@@ -412,7 +436,7 @@ class LiveSessionRuntime {
     return connectedAuthorityUserId
   }
 
-  #resolvedScene(scene: EncounterSceneState): EncounterSceneState {
+  #resolvedScene(scene: CampaignSceneState): CampaignSceneState {
     return resolveSceneCharacterVision(scene, this.#encounterCharacterBindings, [
       ...this.#characterVisions.values()
     ])
@@ -420,7 +444,7 @@ class LiveSessionRuntime {
 
   #sceneSnapshots(
     client: LiveSessionClient,
-    predicate: (scene: EncounterSceneState) => boolean = () => true
+    predicate: (scene: CampaignSceneState) => boolean = () => true
   ) {
     return [...this.#sceneStates.values()].filter(predicate).map((scene) => ({
       campaignId: this.options.campaignId,
@@ -435,7 +459,26 @@ class LiveSessionRuntime {
         .filter((binding) => binding.characterId === characterId)
         .map((binding) => binding.encounterId)
     )
-    return this.#sceneSnapshots(client, (scene) => encounterIds.has(scene.encounterId))
+    const sceneIds = new Set(
+      this.#encounterSceneBindings
+        .filter((binding) => encounterIds.has(binding.encounterId))
+        .map((binding) => binding.sceneId)
+    )
+    return this.#sceneSnapshots(client, (scene) => sceneIds.has(scene.id))
+  }
+
+  #visibleEncounterSceneBindings(client: LiveSessionClient) {
+    const sceneIds = new Set(this.#sceneSnapshots(client).map((snapshot) => snapshot.scene.id))
+    return this.#encounterSceneBindings.filter((binding) => sceneIds.has(binding.sceneId))
+  }
+
+  #visibleEncounterActorTokenBindings(client: LiveSessionClient) {
+    const tokenIds = new Set(
+      this.#sceneSnapshots(client).flatMap((snapshot) =>
+        snapshot.scene.tokens.map((token) => token.id)
+      )
+    )
+    return this.#encounterActorTokenBindings.filter((binding) => tokenIds.has(binding.tokenId))
   }
 
   #viewer(client: LiveSessionClient): SceneViewer {
@@ -489,7 +532,7 @@ class LiveSessionRuntime {
     for (const commandId of pendingCommandIds) {
       const receipt = this.#receipts.get(commandId)
       if (receipt?.actorUserId === client.auth.userId) {
-        this.#sendCommitted(client, receipt, true, true)
+        this.#sendCommitted(client, receipt, true, true, false)
       } else {
         const acceptedSequence = this.#acceptedSequences.get(commandId)
         if (
@@ -635,15 +678,33 @@ class LiveSessionRuntime {
     }
     const priorReceipt = this.#receipts.get(id)
     if (priorReceipt) {
+      if (priorReceipt.actorUserId !== client.auth.userId) {
+        send(client, {
+          code: 'UNAUTHORIZED',
+          commandId: id,
+          message: 'The command receipt belongs to another user.',
+          type: 'COMMAND_REJECTED'
+        })
+        return
+      }
       send(client, {
         acceptedSequence: priorReceipt.acceptedSequence,
         commandId: id,
         type: 'COMMAND_ACCEPTED'
       })
-      this.#sendCommitted(client, priorReceipt, true, true)
+      this.#sendCommitted(client, priorReceipt, true, true, false)
       return
     }
     if (priorFingerprint) {
+      if (this.#acceptedUserIds.get(id) !== client.auth.userId) {
+        send(client, {
+          code: 'UNAUTHORIZED',
+          commandId: id,
+          message: 'The pending command belongs to another user.',
+          type: 'COMMAND_REJECTED'
+        })
+        return
+      }
       this.#commandRequesters.get(id)?.add(client.id)
       const acceptedSequence = this.#acceptedSequences.get(id)
       if (acceptedSequence !== undefined) {
@@ -675,25 +736,30 @@ class LiveSessionRuntime {
           : undefined
       const committedEncounterRuleSnapshot =
         command.aggregateKind === 'ENCOUNTER' &&
+        'expectedVersion' in command.command &&
         encounterSnapshot?.encounterVersion === command.command.expectedVersion
           ? encounterSnapshot
           : undefined
       const aggregate =
         command.aggregateKind === 'CHARACTER'
           ? { aggregateKind: 'CHARACTER' as const, aggregateId: command.characterId }
-          : command.aggregateKind === 'SCENE'
-            ? {
-                aggregateKind: 'SCENE' as const,
-                aggregateId:
-                  command.command.type === 'ATTACH_SCENE' ? null : command.command.sceneId
-              }
-            : {
-                aggregateKind: 'ENCOUNTER' as const,
-                aggregateId: command.command.encounterId
-              }
+          : command.aggregateKind === 'SESSION'
+            ? { aggregateKind: 'SESSION' as const, aggregateId: command.command.sessionId }
+            : command.aggregateKind === 'SCENE'
+              ? {
+                  aggregateKind: 'SCENE' as const,
+                  aggregateId: command.command.sceneId
+                }
+              : {
+                  aggregateKind: 'ENCOUNTER' as const,
+                  aggregateId: command.command.encounterId
+                }
       const liveSnapshot = {
         characterVisions: [...this.#characterVisions.values()],
+        encounterActorTokenBindings: this.#encounterActorTokenBindings,
         encounterCharacterBindings: this.#encounterCharacterBindings,
+        encounterRuleOccurrenceBindings: this.#encounterRuleOccurrenceBindings,
+        encounterSceneBindings: this.#encounterSceneBindings,
         sceneStates: [...this.#sceneStates.values()]
       }
       const coordinated = await coordinator.enqueue(
@@ -713,8 +779,13 @@ class LiveSessionRuntime {
       const execution = coordinated.execution
       const stored = this.#receipts.get(id)
       if (coordinated.replayed && stored) {
-        this.#sendCommitted(client, stored, true, true)
+        this.#sendCommitted(client, stored, true, true, false)
         return
+      }
+
+      if (coordinated.refreshRequired) {
+        await this.#refreshAfterPersistedReplay(client, coordinator, execution.changedAggregates)
+        if (this.#closed) return
       }
 
       const beforeScene =
@@ -722,7 +793,45 @@ class LiveSessionRuntime {
           ? (this.#sceneStates.get(execution.aggregateId) ?? null)
           : null
 
+      if (
+        !coordinated.refreshRequired &&
+        'occurrenceBindingUpdate' in execution &&
+        execution.occurrenceBindingUpdate
+      ) {
+        this.#encounterRuleOccurrenceBindings = this.#encounterRuleOccurrenceBindings.filter(
+          (binding) => binding.encounterId !== execution.occurrenceBindingUpdate!.encounterId
+        )
+        if (execution.occurrenceBindingUpdate.binding) {
+          this.#encounterRuleOccurrenceBindings.push(execution.occurrenceBindingUpdate.binding)
+        }
+      }
+
       if (!coordinated.replayed) {
+        if ('spatialRefresh' in execution && execution.spatialRefresh) {
+          for (const { characterId, snapshot } of execution.spatialRefresh.characterRuleSnapshots) {
+            this.#characterRuleSnapshots.set(characterId, snapshot)
+          }
+          for (const vision of execution.spatialRefresh.characterVisions) {
+            this.#characterVisions.set(vision.characterId, vision)
+          }
+          if (execution.spatialRefresh.encounterRuleSnapshot) {
+            const encounterId =
+              execution.aggregateKind === 'ENCOUNTER'
+                ? execution.aggregateId
+                : this.#encounterSceneBindings.find(
+                    (binding) => binding.sceneId === execution.spatialRefresh!.sceneState.id
+                  )?.encounterId
+            if (!encounterId) throw new Error('Spatial refresh requires its Encounter binding.')
+            this.#encounterRuleSnapshots.set(
+              encounterId,
+              execution.spatialRefresh.encounterRuleSnapshot
+            )
+          }
+          this.#sceneStates.set(
+            execution.spatialRefresh.sceneState.id,
+            execution.spatialRefresh.sceneState
+          )
+        }
         if (execution.aggregateKind === 'CHARACTER') {
           if (execution.ruleSnapshot) {
             this.#characterRuleSnapshots.set(execution.aggregateId, execution.ruleSnapshot)
@@ -737,6 +846,32 @@ class LiveSessionRuntime {
         } else if (execution.aggregateKind === 'ENCOUNTER' && execution.ruleSnapshot) {
           this.#encounterRuleSnapshots.set(execution.aggregateId, execution.ruleSnapshot)
         }
+        if (execution.aggregateKind === 'ENCOUNTER' && execution.bindingRefresh) {
+          const refresh = execution.bindingRefresh
+          this.#encounterActorTokenBindings = [
+            ...this.#encounterActorTokenBindings.filter(
+              (binding) => binding.encounterId !== refresh.encounterId
+            ),
+            ...refresh.encounterActorTokenBindings
+          ]
+          this.#encounterCharacterBindings = [
+            ...this.#encounterCharacterBindings.filter(
+              (binding) => binding.encounterId !== refresh.encounterId
+            ),
+            ...refresh.encounterCharacterBindings
+          ]
+          this.#encounterSceneBindings = [
+            ...this.#encounterSceneBindings.filter(
+              (binding) => binding.encounterId !== refresh.encounterId
+            ),
+            ...(refresh.encounterSceneBinding ? [refresh.encounterSceneBinding] : [])
+          ]
+        }
+        if (execution.aggregateKind === 'SESSION') {
+          this.#sceneStates.clear()
+          if (execution.sceneState)
+            this.#sceneStates.set(execution.sceneState.id, execution.sceneState)
+        }
         if (execution.aggregateKind === 'SCENE') {
           this.#sceneStates.set(execution.aggregateId, execution.state)
         }
@@ -750,12 +885,19 @@ class LiveSessionRuntime {
         execution
       }
       this.#rememberReceipt(id, receipt)
-      if (coordinated.replayed) {
-        this.#sendCommitted(client, receipt, true, true)
+      if (coordinated.replayed && !coordinated.refreshRequired) {
+        this.#sendCommitted(client, receipt, true, true, false)
       } else {
         const requesters = this.#commandRequesters.get(id) ?? new Set<string>()
         for (const peer of this.#clients.values()) {
-          this.#sendCommitted(peer, receipt, false, requesters.has(peer.id))
+          const isRequester = requesters.has(peer.id)
+          this.#sendCommitted(
+            peer,
+            receipt,
+            coordinated.replayed,
+            isRequester,
+            !coordinated.replayed && isRequester && peer.auth.userId === client.auth.userId
+          )
         }
       }
     } catch (error) {
@@ -773,7 +915,33 @@ class LiveSessionRuntime {
     }
   }
 
-  #movementIndex(scene: EncounterSceneState): SceneBarrierIndex {
+  async #refreshAfterPersistedReplay(
+    client: LiveSessionClient,
+    coordinator: LiveSessionCommandCoordinator<LiveSessionCommandExecution>,
+    requiredVersions: readonly LiveSessionAggregateVersionDto[]
+  ): Promise<void> {
+    await this.#withAuthorityTransition(async () => {
+      await coordinator.drain()
+      const renewal = await this.dependencies.renewAuthority(
+        client.auth.userId,
+        this.options,
+        this.#authorityId
+      )
+      const authorityUserId = this.#reauthorizeClients(renewal.memberships) ?? client.auth.userId
+      const snapshot = await this.dependencies.loadSnapshot(authorityUserId, this.options)
+      if (
+        !aggregateVersionsCover(snapshot.aggregateVersions, coordinator.aggregateVersions) ||
+        !aggregateVersionsCover(snapshot.aggregateVersions, requiredVersions)
+      ) {
+        throw new Error('The authoritative live-session snapshot is behind the persisted replay.')
+      }
+      if (this.#closed) return
+      this.#authorityUserId = authorityUserId
+      this.#applySnapshot(snapshot)
+    })
+  }
+
+  #movementIndex(scene: CampaignSceneState): SceneBarrierIndex {
     const cached = this.#movementIndexes.get(scene.id)
     if (cached?.barriers === scene.barriers) return cached.index
     const index = new SceneBarrierIndex(scene.barriers)
@@ -785,7 +953,8 @@ class LiveSessionRuntime {
     client: LiveSessionClient,
     receipt: LiveSessionReceipt,
     replayed: boolean,
-    includeResponse: boolean
+    includeResponse: boolean,
+    currentAuthorityVerified: boolean
   ): void {
     const base = {
       acceptedSequence: receipt.acceptedSequence,
@@ -793,6 +962,7 @@ class LiveSessionRuntime {
       deliverySequence: receipt.deliverySequence,
       originCommandId: receipt.execution.commandId,
       replayed,
+      changedAggregates: receipt.execution.changedAggregates,
       type: 'COMMAND_COMMITTED' as const,
       version: receipt.execution.version
     }
@@ -800,20 +970,37 @@ class LiveSessionRuntime {
       send(client, {
         ...base,
         aggregateKind: 'CHARACTER',
-        response: includeResponse ? receipt.execution.response : null,
+        response:
+          client.auth.role === 'OWNER' || (includeResponse && currentAuthorityVerified)
+            ? receipt.execution.response
+            : null,
         sceneSnapshots: this.#sceneSnapshotsForCharacter(client, receipt.execution.aggregateId)
       })
       return
     }
     if (receipt.execution.aggregateKind === 'ENCOUNTER') {
+      const sceneId = this.#encounterSceneBindings.find(
+        (binding) => binding.encounterId === receipt.execution.aggregateId
+      )?.sceneId
       send(client, {
         ...base,
         aggregateKind: 'ENCOUNTER',
-        response: includeResponse ? receipt.execution.response : null,
-        sceneSnapshots: this.#sceneSnapshots(
-          client,
-          (scene) => scene.encounterId === receipt.execution.aggregateId
-        )
+        encounterActorTokenBindings: this.#visibleEncounterActorTokenBindings(client),
+        encounterSceneBindings: this.#visibleEncounterSceneBindings(client),
+        response:
+          client.auth.role === 'OWNER' || (includeResponse && currentAuthorityVerified)
+            ? receipt.execution.response
+            : null,
+        sceneSnapshots: sceneId ? this.#sceneSnapshots(client, (scene) => scene.id === sceneId) : []
+      })
+      return
+    }
+    if (receipt.execution.aggregateKind === 'SESSION') {
+      send(client, {
+        ...base,
+        aggregateKind: 'SESSION',
+        response: receipt.execution.response,
+        sceneSnapshots: this.#sceneSnapshots(client)
       })
       return
     }
@@ -824,7 +1011,10 @@ class LiveSessionRuntime {
       ...base,
       aggregateKind: 'SCENE',
       delta:
-        !sendSnapshot && receipt.beforeScene && receipt.execution.response
+        !sendSnapshot &&
+        receipt.beforeScene &&
+        receipt.execution.response &&
+        receipt.execution.response.delta
           ? projectSceneDeltaForViewer(
               this.#resolvedScene(receipt.beforeScene),
               this.#resolvedScene(receipt.execution.state),

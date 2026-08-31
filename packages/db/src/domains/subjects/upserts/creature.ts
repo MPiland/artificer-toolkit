@@ -15,6 +15,7 @@ import { normalizeSubjectStatus } from '../status.js'
 type CreatureRow = {
   id: string
   system_id: string
+  content_source_id: string
   user_id: string
   label: string
   quote: string | null
@@ -106,10 +107,11 @@ function requireMeasurementUnit(creatureId: string, value?: string | null): stri
   return value
 }
 
-function buildBaseRow(jsonData: CreatureAuthored): CreatureRow {
+function buildBaseRow(jsonData: CreatureAuthored, contentSourceId: string): CreatureRow {
   return {
     id: jsonData.id,
     system_id: jsonData.systemId,
+    content_source_id: contentSourceId,
     user_id: jsonData.userId,
     label: jsonData.label,
     quote: jsonData.quote ?? null,
@@ -148,11 +150,13 @@ function buildBaseRow(jsonData: CreatureAuthored): CreatureRow {
   }
 }
 
-function buildCreatureRow(jsonData: CreatureAuthored): CreatureRow {
-  return buildBaseRow(jsonData)
+function buildCreatureRow(jsonData: CreatureAuthored, contentSourceId: string): CreatureRow {
+  return buildBaseRow(jsonData, contentSourceId)
 }
 
-function buildCreatureUpdateRow(row: CreatureRow): Omit<CreatureRow, 'is_master'> {
+function buildCreatureUpdateRow(
+  row: CreatureRow
+): Omit<CreatureRow, 'is_master' | 'content_source_id'> {
   return {
     id: row.id,
     system_id: row.system_id,
@@ -188,8 +192,13 @@ function buildCreatureUpdateRow(row: CreatureRow): Omit<CreatureRow, 'is_master'
   }
 }
 
-export async function upsertCreature(db: DBLike, jsonData: CreatureAuthored, _systemId: string) {
-  const creatureRow = buildCreatureRow(jsonData)
+export async function upsertCreature(
+  db: DBLike,
+  jsonData: CreatureAuthored,
+  _systemId: string,
+  contentSourceId: string
+) {
+  const creatureRow = buildCreatureRow(jsonData, contentSourceId)
 
   const detailRows: CreatureDetailRow[] = (jsonData.details ?? []).map((detail) => ({
     creature_id: jsonData.id,
@@ -252,7 +261,12 @@ export async function upsertCreature(db: DBLike, jsonData: CreatureAuthored, _sy
     await trx
       .insertInto('creatures')
       .values(creatureRow)
-      .onConflict((oc) => oc.column('id').doUpdateSet(buildCreatureUpdateRow(creatureRow)))
+      .onConflict((oc) =>
+        oc.column('id').doUpdateSet((eb) => ({
+          ...buildCreatureUpdateRow(creatureRow),
+          content_source_id: eb.ref('creatures.content_source_id')
+        }))
+      )
       .execute()
 
     await trx.deleteFrom('creature_details').where('creature_id', '=', jsonData.id).execute()

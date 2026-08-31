@@ -42,24 +42,35 @@ export interface AuthoredRepository<TAuthored, TFilter = RepositoryFindAllOption
   findAll(filter?: TFilter): Promise<TAuthored[]>
 }
 
-export type BackgroundRepository = AuthoredRepository<BackgroundAuthored>
-export type ClassRepository = AuthoredRepository<ClassAuthored>
-export type CreatureRepository = AuthoredRepository<CreatureAuthored>
+export type ContentSourceUpsertOptions = { contentSourceId: string }
+
+export interface ContentSourcedAuthoredRepository<
+  TAuthored,
+  TFilter = RepositoryFindAllOptions
+> extends Omit<AuthoredRepository<TAuthored, TFilter>, 'upsert'> {
+  upsert(entity: TAuthored, options: ContentSourceUpsertOptions): Promise<void>
+}
+
+export type BackgroundRepository = ContentSourcedAuthoredRepository<BackgroundAuthored>
+export type ClassRepository = ContentSourcedAuthoredRepository<ClassAuthored>
+export type CreatureRepository = ContentSourcedAuthoredRepository<CreatureAuthored>
 export type DetailRepository = AuthoredRepository<DetailAuthored, void>
-export interface EquipmentRepository extends AuthoredRepository<
+export interface EquipmentRepository extends ContentSourcedAuthoredRepository<
   EquipmentAuthored | EquipmentVariantAuthored
 > {
   findResolvedById(id: string, filter?: RepositoryFindAllOptions): Promise<ResolvedEquipment | null>
   findResolvedAll(filter?: RepositoryFindAllOptions): Promise<ResolvedEquipment[]>
 }
-export type FeatRepository = AuthoredRepository<FeatAuthored>
-export interface RaceRepository extends AuthoredRepository<RaceAuthored> {
+export type FeatRepository = ContentSourcedAuthoredRepository<FeatAuthored>
+export interface RaceRepository extends ContentSourcedAuthoredRepository<RaceAuthored> {
   findResolvedById(id: string, filter?: RepositoryFindAllOptions): Promise<ResolvedRace | null>
   findResolvedAll(filter?: RepositoryFindAllOptions): Promise<ResolvedRace[]>
 }
-export type SpellRepository = AuthoredRepository<SpellAuthored>
-export type SystemRepository = AuthoredRepository<SystemSeedRecord>
-export type VehicleRepository = AuthoredRepository<VehicleAuthored>
+export type SpellRepository = ContentSourcedAuthoredRepository<SpellAuthored>
+export interface SystemRepository extends AuthoredRepository<SystemSeedRecord> {
+  hasRulesCatalogue(input: { gameSystemId: string; rulesCatalogueId: string }): Promise<boolean>
+}
+export type VehicleRepository = ContentSourcedAuthoredRepository<VehicleAuthored>
 
 export type FeatureRepository<N extends NodeSubjectCode = NodeSubjectCode> = AuthoredRepository<
   FeatureAuthored<N>

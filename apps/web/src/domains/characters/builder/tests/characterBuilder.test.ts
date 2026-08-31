@@ -61,7 +61,7 @@ describe('character builder utilities', () => {
     const values = toCharacterFormValues(characterBuilderPayloadFixture)
 
     expect(normalizeCharacterForDraft(values)).toMatchObject({
-      id: 'character-owned',
+      id: characterBuilderPayloadFixture.character.id,
       status: 'DRAFT',
       intent: {
         abilities: {
@@ -70,7 +70,7 @@ describe('character builder utilities', () => {
       }
     })
     expect(normalizeCharacterForCommit(values)).toMatchObject({
-      id: 'character-owned',
+      id: characterBuilderPayloadFixture.character.id,
       status: 'ACTIVE'
     })
   })

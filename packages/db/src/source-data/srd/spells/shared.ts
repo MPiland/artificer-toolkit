@@ -58,3 +58,4 @@ export function spellChildId(spellId: string, bucket: number, index: number): st
 }
 
 export { SRD_SYSTEM_ID, SRD_USER_ID }
+export { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'

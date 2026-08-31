@@ -1,6 +1,5 @@
 import type { SavingThrowAuthored, SavingThrowDcBonusAuthored } from '#authored'
 import {
-  ABILITY_OPTIONS,
   SAVING_THROW_DC_BONUS_KIND,
   SAVING_THROW_DC_BONUS_OPTIONS,
   SAVING_THROW_DC_METHOD,
@@ -13,9 +12,10 @@ const savingThrow = buildNodeMap<SavingThrowAuthored>()
 
 const SAVING_THROW_DC_BONUS_NODE_MAP = savingThrowDcBonus.define(
   'savingThrowDcBonus',
-  ({ map, cond, nodes }) => {
+  ({ map, cond, nodes, data }) => {
     const { selectSingle, number } = nodes
     const local = cond.local()
+    const { table } = data
 
     map
       .set(
@@ -34,13 +34,13 @@ const SAVING_THROW_DC_BONUS_NODE_MAP = savingThrowDcBonus.define(
         )
       )
       .set(
-        'ability',
+        'abilityDefinitionId',
         selectSingle(
-          ['ability'],
+          ['abilityDefinitionId'],
           'DC Ability',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_OPTIONS
+            kind: 'DATA',
+            relationship: table('ability_definitions', { selectColumns: ['id', 'label'] })
           },
           {
             order: 2,
@@ -63,10 +63,11 @@ const SAVING_THROW_DC_BONUS_NODE_MAP = savingThrowDcBonus.define(
 
 export const SAVING_THROW_NODE_MAP = savingThrow.define(
   'savingThrow',
-  ({ map, cond, nodes, logic }) => {
+  ({ map, cond, nodes, logic, data }) => {
     const { selectSingle, number, groupArray } = nodes
     const { or } = logic
     const local = cond.local()
+    const { table } = data
 
     map
       .set(
@@ -85,13 +86,13 @@ export const SAVING_THROW_NODE_MAP = savingThrow.define(
         )
       )
       .set(
-        'ability',
+        'abilityDefinitionId',
         selectSingle(
-          ['ability'],
+          ['abilityDefinitionId'],
           'Save Ability',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_OPTIONS
+            kind: 'DATA',
+            relationship: table('ability_definitions', { selectColumns: ['id', 'label'] })
           },
           {
             order: 2,

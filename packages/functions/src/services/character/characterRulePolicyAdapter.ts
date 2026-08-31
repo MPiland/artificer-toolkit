@@ -165,16 +165,16 @@ export function projectCharacterRulePolicyToSheetProjection(
   })
   const senses = output.senses.map((sense) => {
     const folded = output.grantFold.senses.find(
-      (candidate) => candidate.senseCode === sense.senseCode
+      (candidate) => candidate.senseDefinitionId === sense.senseDefinitionId
     )
     if (!sense.range && folded?.range) {
       const foldedRange = rangeDtoSchema.parse(folded.range)
       if (foldedRange.rangeKind !== 'DISTANCE')
-        return { senseCode: sense.senseCode, range: foldedRange }
+        return { senseDefinitionId: sense.senseDefinitionId, range: foldedRange }
     }
     return sense.range
       ? {
-          senseCode: sense.senseCode,
+          senseDefinitionId: sense.senseDefinitionId,
           range: {
             id: sense.range.id,
             rangeKind: 'DISTANCE' as const,
@@ -182,7 +182,7 @@ export function projectCharacterRulePolicyToSheetProjection(
             unit: sense.range.unit
           }
         }
-      : { senseCode: sense.senseCode }
+      : { senseDefinitionId: sense.senseDefinitionId }
   })
   const resources = snapshot.classes.flatMap((classEntry) => {
     const owners = [
@@ -324,7 +324,9 @@ export function projectCharacterRulePolicyToSheetProjection(
       ),
       senseRanges: Object.fromEntries(
         output.senses.flatMap((entry) =>
-          entry.range ? [[entry.senseCode, calculation(entry.range.calculation)] as const] : []
+          entry.range
+            ? [[entry.senseDefinitionId, calculation(entry.range.calculation)] as const]
+            : []
         )
       ),
       initiative: calculation(output.derivedStats.initiative),

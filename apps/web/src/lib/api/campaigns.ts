@@ -27,6 +27,12 @@ export function buildCampaignsApi(client: TrpcClient) {
         request('campaigns.playSettings.get', campaignContracts.campaignPlaySettingsDtoSchema, () =>
           client.campaigns.playSettings.get.query({ campaignId })
         ),
+      options: (campaignId: string) =>
+        request(
+          'campaigns.playSettings.options',
+          campaignContracts.campaignPlaySettingsOptionsDtoSchema,
+          () => client.campaigns.playSettings.options.query({ campaignId })
+        ),
       save: (input: campaignContracts.SaveCampaignPlaySettingsInput) =>
         request(
           'campaigns.playSettings.save',
@@ -350,10 +356,6 @@ export function buildCampaignsApi(client: TrpcClient) {
       }
     },
     scenes: {
-      attach: (input: SchemaInput<typeof sceneContracts.attachEncounterSceneInputDtoSchema>) =>
-        request('campaigns.scenes.attach', sceneContracts.attachEncounterSceneResultDtoSchema, () =>
-          client.campaigns.scenes.attach.mutate(input)
-        ),
       create: (input: SchemaInput<typeof sceneContracts.createSceneDefinitionInputDtoSchema>) =>
         request('campaigns.scenes.create', sceneContracts.sceneDefinitionDtoSchema, () =>
           client.campaigns.scenes.create.mutate(input)
@@ -373,9 +375,11 @@ export function buildCampaignsApi(client: TrpcClient) {
         request('campaigns.scenes.list', sceneContracts.sceneDefinitionDtoSchema.array(), () =>
           client.campaigns.scenes.list.query({ campaignId })
         ),
-      projection: (encounterId: string) =>
-        request('campaigns.scenes.projection', sceneContracts.encounterSceneStateDtoSchema, () =>
-          client.campaigns.scenes.projection.query({ encounterId })
+      listLive: (campaignId: string) =>
+        request(
+          'campaigns.scenes.listLive',
+          sceneContracts.campaignLiveSceneSummaryDtoSchema.array(),
+          () => client.campaigns.scenes.listLive.query({ campaignId })
         ),
       update: (input: SchemaInput<typeof sceneContracts.updateSceneDefinitionInputDtoSchema>) =>
         request('campaigns.scenes.update', sceneContracts.sceneDefinitionDtoSchema, () =>

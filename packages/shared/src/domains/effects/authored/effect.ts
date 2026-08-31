@@ -7,6 +7,7 @@ import type {
   TargetingAuthored
 } from '#authored'
 import type { ACTIVATION_CODE, ActivationCode, Trigger } from '#core'
+import type { PathCode } from '../core/path.js'
 
 export const EFFECT_INVOCATION_KIND = {
   ACTION: 'ACTION',
@@ -29,7 +30,27 @@ export type ResourceUseAuthored = {
   cost: number
 }
 
-export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
+export type ReactionMovementTriggerBindingAuthored = {
+  kind: 'MOVEMENT'
+  stage: 'BEFORE_LEAVE_REACH' | 'ENTER_REACH'
+  perceptionRequirement: 'DETECT' | 'LOCATE' | 'PRECISE' | 'SEE' | null
+  eligibilityDefinitionId: string
+  movementInterruption?: null | { kind: 'STOP'; whenResultPath: PathCode }
+}
+
+type ReactionActivationAuthored = {
+  code: typeof ACTIVATION_CODE.REACTION
+  amount: number
+}
+
+type ActionReactionMovementTriggerBindingAuthored =
+  | { reactionMovementTrigger?: never }
+  | {
+      activation: ReactionActivationAuthored
+      reactionMovementTrigger: ReactionMovementTriggerBindingAuthored
+    }
+
+export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> = (
   | {
       kind?: typeof EFFECT_INVOCATION_KIND.ACTION
       triggerCode: Extract<TTrigger, 'SAVING_THROW'>
@@ -49,6 +70,8 @@ export type ActionEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
       shape?: ShapeAuthored
       targeting?: TargetingAuthored
     }
+) &
+  ActionReactionMovementTriggerBindingAuthored
 
 export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> =
   | {

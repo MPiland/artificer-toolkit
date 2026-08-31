@@ -173,7 +173,8 @@ describe('dispatchCommandForUser', () => {
       commandLaneChecksum: 'mechanics-lane-checksum',
       ruleSnapshot: { characterId: '00000000-0000-4000-8000-000000000001' },
       rulePolicyInput: {},
-      rulePolicyOutput: {},
+      rulePolicyOutput: { senses: [] },
+      pinnedSenseDefinitions: [],
       ruleRegistry: {}
     })
     mocks.listAdjustments.mockResolvedValue([])
@@ -221,7 +222,8 @@ describe('dispatchCommandForUser', () => {
         commandLaneChecksum: 'mechanics-lane-checksum',
         ruleSnapshot: { characterId: '00000000-0000-4000-8000-000000000001' },
         rulePolicyInput: {},
-        rulePolicyOutput: {},
+        rulePolicyOutput: { senses: [] },
+        pinnedSenseDefinitions: [],
         ruleRegistry: {}
       },
       campaignMechanics: null,
@@ -423,7 +425,8 @@ describe('dispatchCommandForUser', () => {
         commandLaneChecksum: 'mechanics-lane-checksum',
         ruleSnapshot: { characterId },
         rulePolicyInput: {},
-        rulePolicyOutput: {},
+        rulePolicyOutput: { senses: [] },
+        pinnedSenseDefinitions: [],
         ruleRegistry: {}
       },
       campaignMechanics: null,
@@ -483,7 +486,8 @@ describe('dispatchCommandForUser', () => {
         commandLaneChecksum: 'mechanics-lane-checksum',
         ruleSnapshot: { characterId },
         rulePolicyInput: {},
-        rulePolicyOutput: {},
+        rulePolicyOutput: { senses: [] },
+        pinnedSenseDefinitions: [],
         ruleRegistry: {}
       },
       campaignMechanics: null,
@@ -568,7 +572,8 @@ describe('dispatchCommandForUser', () => {
         commandLaneChecksum: 'mechanics-lane-checksum',
         ruleSnapshot: { characterId },
         rulePolicyInput: {},
-        rulePolicyOutput: {},
+        rulePolicyOutput: { senses: [] },
+        pinnedSenseDefinitions: [],
         ruleRegistry: {}
       },
       campaignMechanics: null,

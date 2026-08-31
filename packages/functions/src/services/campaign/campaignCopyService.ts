@@ -58,6 +58,9 @@ export async function copyCampaign(
     const tier = await createAccountEntitlementsRepository(trx).lockTier(userId)
     const source = await repository.lockCampaign(input.campaignId)
     if (!source) throw new CampaignNotFoundError()
+    if (!source.gameSystemId || !source.primaryRulesCatalogueId) {
+      throw new CampaignConflictError('Campaign is missing its Rules Catalogue binding.')
+    }
     const authority = await resolveCampaignAuthority(trx, input.campaignId, userId)
     assertCampaignOwner(authority)
     const lockedReceipt = copiedCampaignIdFromReceipt(
@@ -81,7 +84,15 @@ export async function copyCampaign(
       tone_tags: source.toneTags,
       tone_details: source.toneDetails,
       content_maturity: source.contentMaturity,
+      game_system_id: source.gameSystemId,
+      primary_rules_catalogue_id: source.primaryRulesCatalogueId,
       attunement_slot_override: source.attunementSlotOverride
+    })
+    await repository.insertAdditionalRulesCatalogues({
+      campaignId: copied.id,
+      gameSystemId: source.gameSystemId,
+      primaryRulesCatalogueId: source.primaryRulesCatalogueId,
+      additionalRulesCatalogueIds: source.additionalRulesCatalogueIds ?? []
     })
     await repository.insertOwnerMembership(copied.id, userId)
     await createCampaignCollaborationRepository(trx).copyCampaignNoteSections(

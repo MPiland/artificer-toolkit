@@ -19,6 +19,7 @@ function createCharacter(): CharacterAuthored {
     status: 'ACTIVE',
     profile: {},
     systemId: 'dnd5e2014',
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
     userId: 'user-1',
     intent: {
       advancement: { method: 'MILESTONE' },

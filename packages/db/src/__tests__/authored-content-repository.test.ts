@@ -138,12 +138,14 @@ describe('authored content repository', () => {
         subject_kind: 'SPELL',
         owner_user_id: 'user-1',
         system_id: 'system-1',
+        content_source_id: 'content-source-1',
         label: 'Harm',
         is_master: false,
         has_draft: false,
         created_at: '2026-01-01T00:00:00.000Z',
         updated_at: '2026-01-02T00:00:00.123456Z'
       },
+      { id: 'content-source-1' },
       undefined,
       {
         subject_id: '00000000-0000-0000-0000-000000000001',
@@ -169,8 +171,8 @@ describe('authored content repository', () => {
     })
 
     expect(sqlState.statements[0]).toContain('pg_advisory_xact_lock')
-    expect(sqlState.statements[3]).toContain('select root.updated_at')
-    expect(sqlState.statements[3]).toContain('where authored_drafts.user_id = excluded.user_id')
+    expect(sqlState.statements[4]).toContain('select root.updated_at')
+    expect(sqlState.statements[4]).toContain('where authored_drafts.user_id = excluded.user_id')
   })
 
   it('checks the owned root limit after locking the existing creation counter', async () => {
@@ -178,6 +180,7 @@ describe('authored content repository', () => {
       undefined,
       undefined,
       undefined,
+      { id: 'content-source-1' },
       undefined,
       { minute_count: 0, hour_count: 0 },
       { count: 20 }
@@ -195,9 +198,9 @@ describe('authored content repository', () => {
       })
     ).rejects.toMatchObject({ name: 'EntitlementLimitError', resource: 'homebrewRoots' })
 
-    expect(sqlState.statements[4]).toContain('from authored_creation_rate_limits')
-    expect(sqlState.statements[4]).toContain('for update')
-    expect(sqlState.statements[5]).toContain('owned_roots')
+    expect(sqlState.statements[5]).toContain('from authored_creation_rate_limits')
+    expect(sqlState.statements[5]).toContain('for update')
+    expect(sqlState.statements[6]).toContain('owned_roots')
   })
 
   it('checks draft freshness with exact PostgreSQL timestamp equality', async () => {

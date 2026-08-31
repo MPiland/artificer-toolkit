@@ -235,13 +235,13 @@ describe('projectCharacterRulePolicyToSheetProjection', () => {
     }
     const targeted = characterRulePolicyOutputSchema.parse({
       ...output,
-      senses: [{ senseCode: 'SPECIAL_SENSE', range: null }],
+      senses: [{ senseDefinitionId: '00000000-0000-4000-8000-000000000010', range: null }],
       grantFold: {
         ...output.grantFold,
         activeEquipmentInstanceIds: ['item-instance'],
         senses: [
           {
-            senseCode: 'SPECIAL_SENSE',
+            senseDefinitionId: '00000000-0000-4000-8000-000000000010',
             range: { id: 'sense-self', rangeKind: 'SELF' },
             acceptedSenseIndex: 0,
             grantId: 'sense-grant',
@@ -284,7 +284,10 @@ describe('projectCharacterRulePolicyToSheetProjection', () => {
       output: targeted
     })
     expect(adapted.senses).toEqual([
-      { senseCode: 'SPECIAL_SENSE', range: { id: 'sense-self', rangeKind: 'SELF' } }
+      {
+        senseDefinitionId: '00000000-0000-4000-8000-000000000010',
+        range: { id: 'sense-self', rangeKind: 'SELF' }
+      }
     ])
     expect(adapted.activeItemContributions).toEqual([
       {

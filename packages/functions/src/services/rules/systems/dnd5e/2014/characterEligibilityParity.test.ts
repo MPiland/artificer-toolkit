@@ -535,14 +535,17 @@ const failingCaseLabels = new Set([
 ])
 
 describe('Character eligibility parity', () => {
-  it.each(cases)('matches the explicit eligibility golden for $label', async ({ label, condition }) => {
-    const authored = facet(condition)
-    const raw = await evaluateRawEligibility(authored)
+  it.each(cases)(
+    'matches the explicit eligibility golden for $label',
+    async ({ label, condition }) => {
+      const authored = facet(condition)
+      const raw = await evaluateRawEligibility(authored)
 
-    expect(raw.passed, `${JSON.stringify(raw)} for ${condition.kind}`).toBe(
-      !failingCaseLabels.has(label)
-    )
-  })
+      expect(raw.passed, `${JSON.stringify(raw)} for ${condition.kind}`).toBe(
+        !failingCaseLabels.has(label)
+      )
+    }
+  )
 
   it.each([
     {

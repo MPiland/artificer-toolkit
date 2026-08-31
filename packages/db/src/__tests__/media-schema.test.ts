@@ -14,6 +14,7 @@ describe('media image persistence schema', () => {
   const migration = read('supabase/migrations/20260805120000_media_image_foundation.sql')
   const hardening = read('supabase/migrations/20260805130000_media_image_hardening.sql')
   const vttMigration = read('supabase/migrations/20260815212103_phase_08_vtt_scenes.sql')
+  const campaignSceneCutover = read('supabase/migrations/20260830090000_campaign_live_scenes.sql')
   const sceneReferenceOptimization = read(
     'supabase/migrations/20260820010000_avoid_unchanged_encounter_scene_map_writes.sql'
   )
@@ -107,6 +108,22 @@ describe('media image persistence schema', () => {
       expect(source).toContain('media_assets_protect_referenced_vtt_map_delete_trigger')
       expect(source).toContain('sync_vtt_scene_map_reference')
       expect(source).toContain('campaign_scene_definitions_sync_vtt_map_reference_trigger')
+    }
+
+    for (const source of [encounterTables, generated]) {
+      expect(source).toContain('sync_campaign_live_scene_map_reference')
+      expect(source).toContain('campaign_live_scenes_sync_vtt_map_reference_trigger')
+    }
+
+    expect(campaignSceneCutover).toContain('sync_campaign_live_scene_map_reference')
+    expect(campaignSceneCutover).toContain('campaign_live_scenes scene')
+    expect(campaignSceneCutover).not.toContain('FROM public.encounter_scenes scene')
+    expect(campaignSceneCutover).toContain('ADD CONSTRAINT campaign_live_scenes_campaign_fk')
+    expect(campaignSceneCutover).toContain(
+      'FOREIGN KEY (campaign_id) REFERENCES public.campaigns (id) ON DELETE CASCADE'
+    )
+
+    for (const source of [vttMigration]) {
       expect(source).toContain('sync_encounter_scene_map_reference')
       expect(source).toContain('encounter_scenes_sync_vtt_map_reference_trigger')
     }

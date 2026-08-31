@@ -13,10 +13,7 @@ type AuthoredCatalogRequest = {
   limit: number
 }
 
-export async function loadPagedAuthoredCatalogItems<
-  TItem,
-  TRequest extends AuthoredCatalogRequest
->(
+export async function loadPagedAuthoredCatalogItems<TItem, TRequest extends AuthoredCatalogRequest>(
   list: (input: TRequest) => Promise<AuthoredCatalogPage<TItem>>,
   request: TRequest
 ): Promise<TItem[]> {

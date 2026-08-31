@@ -28,8 +28,93 @@ import {
   measurementUnitCodeSchema,
   sizeCodeSchema
 } from '../shared/enums.js'
+import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
+import { serverUuidIdentityDtoSchema } from '../shared/rulesExecution.js'
 
 const boundedIdentitySchema = z.string().trim().min(1).max(240)
+
+const characterAbilityDefinitionFactSchema = z.strictObject({
+  id: serverUuidIdentityDtoSchema,
+  code: boundedIdentitySchema
+})
+
+const characterAbilityDefinitionsSchema = z
+  .array(characterAbilityDefinitionFactSchema)
+  .max(32)
+  .superRefine((definitions, context) => {
+    const ids = new Set<string>()
+    const codes = new Set<string>()
+    for (const [index, definition] of definitions.entries()) {
+      if (ids.has(definition.id)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index, 'id'],
+          message: 'Character ability definition IDs must be unique.'
+        })
+      }
+      if (codes.has(definition.code)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index, 'code'],
+          message: 'Character ability definition codes must be unique.'
+        })
+      }
+      ids.add(definition.id)
+      codes.add(definition.code)
+    }
+  })
+  .transform((definitions) =>
+    [...definitions].sort((left, right) => left.id.localeCompare(right.id))
+  )
+
+const characterTargetDefenseSchema = z.strictObject({
+  kind: z.enum(['RESISTANCE', 'IMMUNITY', 'VULNERABILITY']),
+  damageTypeId: serverUuidIdentityDtoSchema,
+  source: characterMechanicSourceSchema
+})
+
+const canonicalCharacterTargetDefensesSchema = z
+  .array(characterTargetDefenseSchema)
+  .max(100)
+  .superRefine((defenses, ctx) => {
+    const keys = new Set<string>()
+    defenses.forEach((defense, index) => {
+      const key = `${defense.kind}:${defense.damageTypeId}`
+      if (keys.has(key)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Character target defenses must be unique.',
+          path: [index]
+        })
+      }
+      keys.add(key)
+    })
+  })
+  .transform((defenses) =>
+    [...defenses].sort((left, right) =>
+      left.damageTypeId === right.damageTypeId
+        ? left.kind.localeCompare(right.kind)
+        : left.damageTypeId.localeCompare(right.damageTypeId)
+    )
+  )
+
+const canonicalConditionImmunityIdsSchema = z
+  .array(serverUuidIdentityDtoSchema)
+  .max(100)
+  .superRefine((conditionIds, ctx) => {
+    const seen = new Set<string>()
+    conditionIds.forEach((conditionId, index) => {
+      if (seen.has(conditionId)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Character condition immunities must be unique.',
+          path: [index]
+        })
+      }
+      seen.add(conditionId)
+    })
+  })
+  .transform((conditionIds) => [...conditionIds].sort())
 
 const characterRuleContributionInputSchema = z.strictObject({
   sourceId: boundedIdentitySchema,
@@ -60,7 +145,7 @@ const characterSenseFactsSchema = z.strictObject({
   overrides: z
     .array(
       z.strictObject({
-        senseCode: boundedIdentitySchema,
+        senseDefinitionId: serverUuidIdentityDtoSchema,
         sourceId: boundedIdentitySchema,
         value: z.number().finite()
       })
@@ -591,10 +676,10 @@ const characterDefenseFactsSchema = z.strictObject({
           adjustmentId: boundedIdentitySchema
         }),
         kind: z.enum(['RESISTANCE', 'IMMUNITY', 'VULNERABILITY']),
-        damageTypeId: boundedIdentitySchema
+        damageTypeId: serverUuidIdentityDtoSchema
       })
     )
-    .max(1_000)
+    .max(100)
 })
 
 const characterProficiencyFactsSchema = z.strictObject({
@@ -675,6 +760,8 @@ const characterSpellPreparationRequestReasonSchema = z.enum([
 
 export const characterRulePolicyInputSchema = z.strictObject({
   contractVersion: z.literal(4),
+  /** Exact System vocabulary frozen with the Character source snapshot. */
+  abilityDefinitions: characterAbilityDefinitionsSchema.default([]),
   grantFoldFacts: characterGrantFoldInputSchema,
   totalLevel: z.number().int().min(0).max(20),
   derivedBaseFacts: characterDerivedBaseFactsSchema,
@@ -822,6 +909,18 @@ const characterDerivedProficiencyCalculationSchema = z.strictObject({
 })
 
 const characterRollModeSchema = z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])
+export const characterRuleSenseRangeSchema = z
+  .strictObject({
+    id: boundedIdentitySchema,
+    amount: z.number().finite(),
+    unit: measurementUnitCodeSchema,
+    calculation: characterDerivedNumericCalculationSchema
+  })
+  .nullable()
+export const characterRuleSenseSchema = z.strictObject({
+  senseDefinitionId: serverUuidIdentityDtoSchema,
+  range: characterRuleSenseRangeSchema
+})
 const characterAbilityRollModesSchema = z.strictObject({
   STRENGTH: characterRollModeSchema,
   DEXTERITY: characterRollModeSchema,
@@ -829,6 +928,86 @@ const characterAbilityRollModesSchema = z.strictObject({
   INTELLIGENCE: characterRollModeSchema,
   WISDOM: characterRollModeSchema,
   CHARISMA: characterRollModeSchema
+})
+
+const characterRollContributorSchema = z.strictObject({
+  sourceId: boundedIdentitySchema,
+  source: characterMechanicSourceSchema,
+  grantId: boundedIdentitySchema,
+  domainKey: boundedIdentitySchema,
+  influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
+})
+
+const characterRollContributorsSchema = z.array(characterRollContributorSchema).max(500)
+const canonicalCharacterRollContributorsSchema = characterRollContributorsSchema.superRefine(
+  (contributors, context) => {
+    let priorKey: string | null = null
+    for (const [index, contributor] of contributors.entries()) {
+      const prior = contributors[index - 1]
+      if (priorKey !== null && prior && compareCanonicalD20Contributors(prior, contributor) >= 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index],
+          message: 'Roll contributors must be strictly sorted and unique.'
+        })
+      }
+      priorKey = 'set'
+    }
+  }
+)
+const characterRollContributorRecordSchema = z
+  .record(boundedIdentitySchema, characterRollContributorsSchema)
+  .refine((record) => Object.keys(record).length <= 100, {
+    message: 'Roll contributor records support at most 100 test keys.'
+  })
+
+const characterRollContributorEvidenceSchema = z.strictObject({
+  initiative: characterRollContributorsSchema,
+  abilityChecks: z.strictObject({
+    STRENGTH: characterRollContributorsSchema,
+    DEXTERITY: characterRollContributorsSchema,
+    CONSTITUTION: characterRollContributorsSchema,
+    INTELLIGENCE: characterRollContributorsSchema,
+    WISDOM: characterRollContributorsSchema,
+    CHARISMA: characterRollContributorsSchema
+  }),
+  savingThrows: z.strictObject({
+    STRENGTH: characterRollContributorsSchema,
+    DEXTERITY: characterRollContributorsSchema,
+    CONSTITUTION: characterRollContributorsSchema,
+    INTELLIGENCE: characterRollContributorsSchema,
+    WISDOM: characterRollContributorsSchema,
+    CHARISMA: characterRollContributorsSchema
+  }),
+  skillChecks: characterRollContributorRecordSchema,
+  attacks: z.strictObject({
+    MELEE: characterRollContributorsSchema,
+    RANGED: characterRollContributorsSchema,
+    SPELL: characterRollContributorsSchema,
+    UNARMED: characterRollContributorsSchema
+  })
+})
+
+const emptyCharacterRollContributors = () => ({
+  initiative: [],
+  abilityChecks: {
+    STRENGTH: [],
+    DEXTERITY: [],
+    CONSTITUTION: [],
+    INTELLIGENCE: [],
+    WISDOM: [],
+    CHARISMA: []
+  },
+  savingThrows: {
+    STRENGTH: [],
+    DEXTERITY: [],
+    CONSTITUTION: [],
+    INTELLIGENCE: [],
+    WISDOM: [],
+    CHARISMA: []
+  },
+  skillChecks: {},
+  attacks: { MELEE: [], RANGED: [], SPELL: [], UNARMED: [] }
 })
 
 export const characterRulePolicyOutputSchema = z.strictObject({
@@ -869,13 +1048,23 @@ export const characterRulePolicyOutputSchema = z.strictObject({
       UNARMED: characterRollModeSchema
     })
   }),
-  defenses: z.array(
-    z.strictObject({
-      kind: z.enum(['RESISTANCE', 'IMMUNITY', 'VULNERABILITY']),
-      damageTypeId: boundedIdentitySchema,
-      source: characterMechanicSourceSchema
-    })
+  rollContributorEvidence: characterRollContributorEvidenceSchema.default(
+    emptyCharacterRollContributors
   ),
+  /** UUID-backed System-policy records for authored rules that select saves. */
+  savingThrowDefinitions: z
+    .array(
+      z.strictObject({
+        abilityDefinitionId: serverUuidIdentityDtoSchema,
+        modifier: z.number().int(),
+        rollMode: characterRollModeSchema,
+        contributors: canonicalCharacterRollContributorsSchema
+      })
+    )
+    .max(16)
+    .default([]),
+  defenses: canonicalCharacterTargetDefensesSchema,
+  conditionImmunityIds: canonicalConditionImmunityIdsSchema.default([]),
   movement: z
     .strictObject({
       speeds: z
@@ -891,22 +1080,7 @@ export const characterRulePolicyOutputSchema = z.strictObject({
       primaryMovementSpeedId: boundedIdentitySchema.nullable()
     })
     .default({ speeds: [], primaryMovementSpeedId: null }),
-  senses: z
-    .array(
-      z.strictObject({
-        senseCode: boundedIdentitySchema,
-        range: z
-          .strictObject({
-            id: boundedIdentitySchema,
-            amount: z.number().finite(),
-            unit: measurementUnitCodeSchema,
-            calculation: characterDerivedNumericCalculationSchema
-          })
-          .nullable()
-      })
-    )
-    .max(100)
-    .default([]),
+  senses: z.array(characterRuleSenseSchema).max(100).default([]),
   hitPointProgression: z
     .array(
       z.strictObject({

@@ -1,4 +1,5 @@
 import { Alert, Stack } from '@mantine/core'
+import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import {
   type ImportCommitRequestDto,
@@ -8,6 +9,7 @@ import {
 } from '@artificer-toolkit/schema/api/imports'
 import { commitImport, previewImport } from '#app/data/imports/importClient'
 import { PageHeader } from '#app/shell/Shell'
+import { getSystemList } from '#app/data/systems/queries'
 import {
   getDefaultImportCustomContentChoice,
   getImportCustomContentKey,
@@ -21,6 +23,7 @@ import { buildBatch, parseLinks } from './libraryImport.model'
 type ImportStage = 'input' | 'preview' | 'result'
 
 export function LibraryImportPage() {
+  const systems = useQuery(getSystemList())
   const [source, setSource] = useState<ImportSourceDto>('DND_BEYOND')
   const [links, setLinks] = useState('')
   const [files, setFiles] = useState<File[]>([])
@@ -37,6 +40,14 @@ export function LibraryImportPage() {
   >({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [gameSystemId, setGameSystemId] = useState('')
+  const [primaryRulesCatalogueId, setPrimaryRulesCatalogueId] = useState('')
+  const onlySystem = systems.data?.length === 1 ? systems.data[0] : undefined
+  const effectiveGameSystemId = gameSystemId || onlySystem?.id || ''
+  const selectedSystem = systems.data?.find((system) => system.id === effectiveGameSystemId)
+  const effectivePrimaryRulesCatalogueId =
+    primaryRulesCatalogueId ||
+    (selectedSystem?.rulesCatalogues.length === 1 ? selectedSystem.rulesCatalogues[0]!.id : '')
 
   const inputSummary = useMemo(
     () =>
@@ -50,7 +61,17 @@ export function LibraryImportPage() {
     setError(null)
     setLoading(true)
     try {
-      const batch = await buildBatch(source, links, files)
+      const batch = await buildBatch(
+        source,
+        links,
+        files,
+        source === 'ARTIFICER_JSON' || !effectiveGameSystemId || !effectivePrimaryRulesCatalogueId
+          ? undefined
+          : {
+              systemId: effectiveGameSystemId,
+              primaryRulesCatalogueId: effectivePrimaryRulesCatalogueId
+            }
+      )
       const nextPreview = await previewImport(batch)
       setPreview(nextPreview)
       setResolutions(
@@ -90,7 +111,17 @@ export function LibraryImportPage() {
     setError(null)
     setLoading(true)
     try {
-      const batch = await buildBatch(source, links, files)
+      const batch = await buildBatch(
+        source,
+        links,
+        files,
+        source === 'ARTIFICER_JSON' || !effectiveGameSystemId || !effectivePrimaryRulesCatalogueId
+          ? undefined
+          : {
+              systemId: effectiveGameSystemId,
+              primaryRulesCatalogueId: effectivePrimaryRulesCatalogueId
+            }
+      )
       const commit: ImportCommitRequestDto = {
         batch,
         selectedEntryIds: preview.items
@@ -159,9 +190,17 @@ export function LibraryImportPage() {
           links={links}
           loading={loading}
           source={source}
+          systems={systems.data ?? []}
+          gameSystemId={effectiveGameSystemId}
+          primaryRulesCatalogueId={effectivePrimaryRulesCatalogueId}
           onFilesChange={setFiles}
           onLinksChange={setLinks}
           onPreview={() => void onPreview()}
+          onGameSystemChange={(value) => {
+            setGameSystemId(value)
+            setPrimaryRulesCatalogueId('')
+          }}
+          onPrimaryRulesCatalogueChange={setPrimaryRulesCatalogueId}
           onSourceChange={(value) => {
             setSource(value)
             setFiles([])

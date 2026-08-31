@@ -6,7 +6,7 @@
 - **Scope:** live VTT coordination, local hosting, remote hosting, and the deployment boundary around Zen
 - **Update when:** session authority, native WebSocket protocol, command scheduling, local packaging, remote deployment, or VTT synchronization changes
 - **Verification:** Worker workerd tests; session-host build and authenticated local join, replay, reconnect, persistence, broadcast, and latency gates
-- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaces command-time Character reconstruction at the authoritative executor seam; ADRs [0023](0023-shared-rules-kernel-and-system-capabilities.md)-[0025](0025-game-system-catalogues-and-encounter-blueprints.md) replace rule pins with current capability discovery and frozen occurrence snapshots. Transport and journal ownership remain unchanged.
+- **Amended:** [ADR 0022](0022-versioned-domain-documents-and-correctness-projections.md) replaces command-time Character reconstruction at the authoritative executor seam; ADRs [0023](0023-shared-rules-kernel-and-system-capabilities.md)-[0025](0025-game-system-catalogues-and-encounter-blueprints.md) replace rule pins with current capability discovery and frozen occurrence snapshots. [ADR 0027](0027-campaign-scenes-and-encounter-bindings.md) replaces Encounter-owned live Scene materialization with Campaign-owned live Scenes plus optional Encounter bindings. Transport, authority, journal, and renderer ownership remain unchanged.
 
 ## Context
 
@@ -47,7 +47,12 @@ occurrence contracts, reducers, and persistence services. It invokes the same au
 runtime and Supabase directly instead of taking the remote DO-to-Netlify hop. A future launcher may
 start it invisibly; Docker is not required for local play.
 
-Campaign scene definitions remain renderer-neutral shared contracts. Attaching a definition to an Encounter materializes its exact version; Encounter scene events and projection own live tokens, doors, fog, measurements, and geometry overrides. React owns accessible controls and surrounding UI. One imperative PixiJS canvas boundary owns frame-rate rendering only. PixiJS, React, WebSocket, DOM, and database types do not enter scene contracts.
+Campaign Scene definitions remain renderer-neutral shared authoring contracts. A Campaign-owned live
+Scene materializes an exact definition version and owns live tokens, doors, fog, measurements, and
+geometry overrides. A Campaign Session presents the live Scene independently from combat; an optional
+Encounter binding supplies combat actors and mechanics without taking ownership of the Scene. React
+owns accessible controls and surrounding UI. One imperative PixiJS canvas boundary owns frame-rate
+rendering only. PixiJS, React, WebSocket, DOM, and database types do not enter Scene contracts.
 
 The authenticated tabletop runs in a dedicated reusable browser window launched from the Campaign Session workspace or from a Character Sheet's latest open Session. The originating application surface remains open independently. The tabletop does not launch or navigate back to those work surfaces. GMs can use Play and Edit modes while live; players receive only Play controls and authorized interactive elements. Structural choices such as door swing angle belong to the scene definition and GM editor.
 

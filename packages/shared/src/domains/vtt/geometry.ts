@@ -4,7 +4,7 @@ import { orient2d } from 'robust-predicates'
 
 import {
   VTT_SCENE_LIMITS,
-  type EncounterSceneState,
+  type CampaignSceneState,
   type SceneBarrier,
   type SceneDoorState,
   type SceneGrid,
@@ -114,7 +114,7 @@ export function movementCrossesBlockingBarrier(
 }
 
 export function canMoveBetween(
-  state: Pick<EncounterSceneState, 'barriers' | 'doorStates'>,
+  state: Pick<CampaignSceneState, 'barriers' | 'doorStates'>,
   from: ScenePoint,
   to: ScenePoint,
   index = new SceneBarrierIndex(state.barriers)
@@ -130,7 +130,7 @@ export function canMoveBetween(
  * storing pointer-event noise.
  */
 export function extendSceneMovementPath(
-  state: Pick<EncounterSceneState, 'barriers' | 'doorStates'>,
+  state: Pick<CampaignSceneState, 'barriers' | 'doorStates'>,
   path: readonly ScenePoint[],
   position: ScenePoint,
   index = new SceneBarrierIndex(state.barriers)
@@ -149,7 +149,7 @@ export function extendSceneMovementPath(
 }
 
 export function isSceneMovementPathValid(
-  state: Pick<EncounterSceneState, 'barriers' | 'doorStates'>,
+  state: Pick<CampaignSceneState, 'barriers' | 'doorStates'>,
   path: readonly ScenePoint[],
   index = new SceneBarrierIndex(state.barriers)
 ): boolean {
@@ -157,6 +157,15 @@ export function isSceneMovementPathValid(
     (point, pathIndex) =>
       pathIndex === 0 || canMoveBetween(state, path[pathIndex - 1]!, point, index)
   )
+}
+
+export function lightCrossesBlockingBarrier(
+  from: ScenePoint,
+  to: ScenePoint,
+  barrier: SceneBarrier,
+  doorStates: Readonly<Record<string, SceneDoorState>>
+): boolean {
+  return segmentsIntersect(from, to, barrier.a, barrier.b) && blocksLight(barrier, doorStates)
 }
 
 function blocksLight(
@@ -173,6 +182,31 @@ function blocksLight(
     case 'TERRAIN':
       return false
   }
+}
+
+export function canLightPassBetween(
+  state: Pick<CampaignSceneState, 'barriers' | 'doorStates'>,
+  from: ScenePoint,
+  to: ScenePoint,
+  index = new SceneBarrierIndex(state.barriers)
+): boolean {
+  return !index
+    .search(from, to)
+    .some((barrier) => lightCrossesBlockingBarrier(from, to, barrier, state.doorStates))
+}
+
+/** Inclusive point-in-polygon predicate for authoritative Scene zones. */
+export function scenePointInPolygon(point: ScenePoint, polygon: ScenePolygon): boolean {
+  let inside = false
+  for (let index = 0; index < polygon.points.length; index += 1) {
+    const from = polygon.points[index]!
+    const to = polygon.points[(index + 1) % polygon.points.length]!
+    if (segmentsIntersect(point, point, from, to)) return true
+    if (from.y > point.y === to.y > point.y) continue
+    const crossing = ((to.x - from.x) * (point.y - from.y)) / (to.y - from.y) + from.x
+    if (point.x <= crossing) inside = !inside
+  }
+  return inside
 }
 
 function visibleOccludersWithinRange(

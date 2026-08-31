@@ -12,7 +12,7 @@ import {
   type SimulateRulePackResultDto
 } from '@artificer-toolkit/schema/api/rules'
 
-import { checksumRuleDocument } from './ruleChecksum.js'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { validateRulePackDocument } from './ruleDocumentValidation.js'
 
 overrideConfig({ functionTimeoutMillis: 50 })
@@ -61,10 +61,7 @@ function evictIdleZenRuntimes(): void {
   }
 }
 
-function acquirePinnedZenRuntime(input: {
-  checksum: string
-  document: unknown
-}): ZenRuntime {
+function acquirePinnedZenRuntime(input: { checksum: string; document: unknown }): ZenRuntime {
   const cached = cachedRuntimes.get(input.checksum)
   if (cached) {
     cachedRuntimes.delete(input.checksum)

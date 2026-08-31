@@ -1,5 +1,5 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
@@ -40,7 +40,7 @@ export const meteorSwarm: SpellAuthored = {
         savingThrow: {
           id: spellChildId(SPELL_IDS.METEOR_SWARM, 0x214, 1),
           dcMethod: 'SOURCE_SAVE_DC',
-          ability: ABILITY_CODE.DEXTERITY
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY
         },
         activation: {
           code: ACTIVATION_CODE.ACTION,

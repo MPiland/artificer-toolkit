@@ -1,4 +1,6 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseEnv } from 'node:util'
 
@@ -9,6 +11,8 @@ const localAppOrigin = 'http://127.0.0.1:3000'
 const localWorkerOrigin = 'http://127.0.0.1:8787'
 const localExecutorOrigin = 'http://127.0.0.1:8888'
 const loopbackHosts = new Set(['127.0.0.1', 'localhost', '::1'])
+const localWorkerPersistencePath = mkdtempSync(join(tmpdir(), 'artificer-local-vtt-'))
+process.once('exit', () => rmSync(localWorkerPersistencePath, { force: true, recursive: true }))
 
 function localEnvironmentFile(path: string): Record<string, string> {
   if (!existsSync(path)) return {}
@@ -124,6 +128,7 @@ export default defineConfig({
       env: sharedEnvironment,
       name: 'local-vtt-web',
       reuseExistingServer: false,
+      timeout: 120_000,
       url: localAppOrigin
     },
     {
@@ -136,7 +141,7 @@ export default defineConfig({
       url: `${localExecutorOrigin}/health`
     },
     {
-      command: 'yarn workspace @artificer-toolkit/session-worker dev --ip 127.0.0.1 --port 8787',
+      command: `yarn workspace @artificer-toolkit/session-worker dev --ip 127.0.0.1 --port 8787 --persist-to "${localWorkerPersistencePath}"`,
       cwd: repoRoot,
       env: sharedEnvironment,
       name: 'local-vtt-worker',

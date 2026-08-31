@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   ABILITY_CODE,
@@ -511,7 +512,7 @@ export const monk: ClassAuthored = {
             triggerCode: TRIGGER.SAVING_THROW,
             savingThrow: {
               id: classRowId(M, 0x6e, 13),
-              ability: ABILITY_CODE.DEXTERITY,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
               dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
             },
             range: { id: classRowId(M, 0x69, 13), rangeKind: RANGE_KIND.SELF },
@@ -679,7 +680,7 @@ export const monk: ClassAuthored = {
             activation: { code: ACTIVATION_CODE.FREE },
             savingThrow: {
               id: classRowId(M, 0x78, index + 1),
-              ability,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS[ability],
               dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
             },
             range: {

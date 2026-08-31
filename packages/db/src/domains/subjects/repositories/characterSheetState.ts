@@ -426,6 +426,7 @@ export async function patchCharacterSheetState(
       .values({
         id: row.id,
         system_id: row.system_id,
+        primary_rules_catalogue_id: row.primary_rules_catalogue_id,
         user_id: row.user_id,
         label: row.label,
         description: row.description,

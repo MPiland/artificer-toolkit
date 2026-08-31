@@ -80,7 +80,12 @@ export const characterSheetHitDiceDtoSchema = z.object({
 })
 
 export const characterSheetConditionDtoSchema = z.object({
-  conditionTypeId: z.string(),
+  conditionTypeId: z
+    .string()
+    .regex(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      'Condition definition identity must be a canonical lowercase PostgreSQL UUID.'
+    ),
   label: z.string(),
   description: z.string().optional(),
   notes: z.string().optional()
@@ -608,5 +613,9 @@ export const characterSheetResponseDtoSchema = z.object({
 
 export type CharacterSheetResponseDto = z.infer<typeof characterSheetResponseDtoSchema>
 export type CharacterSheetExtrasDto = z.infer<typeof characterSheetExtrasDtoSchema>
-export type CharacterSheetExtraCatalogInputDto = z.infer<typeof characterSheetExtraCatalogInputDtoSchema>
-export type CharacterSheetExtraCatalogResponseDto = z.infer<typeof characterSheetExtraCatalogResponseDtoSchema>
+export type CharacterSheetExtraCatalogInputDto = z.infer<
+  typeof characterSheetExtraCatalogInputDtoSchema
+>
+export type CharacterSheetExtraCatalogResponseDto = z.infer<
+  typeof characterSheetExtraCatalogResponseDtoSchema
+>

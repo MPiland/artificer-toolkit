@@ -39,6 +39,7 @@ import {
   SRD_DAMAGE_TYPES,
   SRD_SKILLS,
   SRD_SPEEDS,
+  SRD_ABILITY_DEFINITION_IDS,
   SRD_SYSTEM_ID,
   SRD_USER_ID
 } from '../vocabulary.js'
@@ -68,7 +69,8 @@ export {
   TRIGGER,
   VALUE_DOMAIN_CODE,
   SRD_SYSTEM_ID,
-  SRD_USER_ID
+  SRD_USER_ID,
+  SRD_ABILITY_DEFINITION_IDS
 }
 export function equipId(index: number): string {
   const hex = index.toString(16).padStart(4, '0')

@@ -59,8 +59,9 @@ describe('live-session contracts', () => {
         aggregateKind: 'SCENE',
         command: {
           commandId: ids.command,
-          encounterId: ids.encounter,
+          expectedEncounterVersion: 4,
           expectedSceneVersion: 4,
+          movementKind: 'VOLUNTARY',
           path: [
             { x: 10, y: 10 },
             { x: 11, y: 11 }
@@ -73,15 +74,26 @@ describe('live-session contracts', () => {
     ).toBe('SCENE')
     expect(
       liveSessionCommandDtoSchema.parse({
-        aggregateKind: 'SCENE',
+        aggregateKind: 'ENCOUNTER',
         command: {
           commandId: ids.command,
           encounterId: ids.encounter,
-          sceneDefinitionId: ids.scene,
-          type: 'ATTACH_SCENE'
+          type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE'
         }
       }).command.type
-    ).toBe('ATTACH_SCENE')
+    ).toBe('BIND_ENCOUNTER_TO_PRESENTED_SCENE')
+    expect(
+      liveSessionCommandDtoSchema.parse({
+        aggregateKind: 'SESSION',
+        command: {
+          commandId: ids.command,
+          expectedPresentationVersion: null,
+          sceneId: ids.scene,
+          sessionId: ids.session,
+          type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
+        }
+      }).aggregateKind
+    ).toBe('SESSION')
   })
 
   it('defines a short-lived room-ticket identity and a provider-only executor envelope', () => {
@@ -142,6 +154,7 @@ describe('live-session contracts', () => {
   it('distinguishes committed native WebSocket messages by aggregate kind', () => {
     const base = {
       acceptedSequence: 1,
+      changedAggregates: [],
       deliverySequence: 1,
       originCommandId: ids.command,
       replayed: false,
@@ -160,7 +173,21 @@ describe('live-session contracts', () => {
           ...base,
           aggregateId: ids.encounter,
           aggregateKind: 'ENCOUNTER',
+          encounterActorTokenBindings: [],
+          encounterSceneBindings: [],
           response: null
+        }),
+        liveSessionWebSocketServerMessageDtoSchema.parse({
+          ...base,
+          aggregateId: ids.session,
+          aggregateKind: 'SESSION',
+          response: {
+            commandId: ids.command,
+            replayed: false,
+            sceneId: ids.scene,
+            sessionId: ids.session,
+            version: 1
+          }
         }),
         liveSessionWebSocketServerMessageDtoSchema.parse({
           ...base,
@@ -170,6 +197,6 @@ describe('live-session contracts', () => {
           snapshot: null
         })
       ].map((message) => (message.type === 'COMMAND_COMMITTED' ? message.aggregateKind : null))
-    ).toEqual(['CHARACTER', 'ENCOUNTER', 'SCENE'])
+    ).toEqual(['CHARACTER', 'ENCOUNTER', 'SESSION', 'SCENE'])
   })
 })

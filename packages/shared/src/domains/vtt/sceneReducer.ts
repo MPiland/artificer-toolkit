@@ -1,5 +1,5 @@
 import type {
-  EncounterSceneState,
+  CampaignSceneState,
   SceneAtomicDelta,
   SceneCharacterVision,
   SceneDefinition,
@@ -32,11 +32,11 @@ function fogLayerKey(layer: SceneFogLayer): string {
   return layer.ownerUserId ?? 'SHARED_PARTY'
 }
 
-function dimRangeInSceneUnits(
-  vision: SceneCharacterVision,
-  grid: EncounterSceneState['grid']
+/** Convert a typed length into authoritative Scene units; unsupported dimensions fail closed. */
+export function lengthMeasurementInSceneUnits(
+  range: SceneCharacterVision['dimRange'],
+  grid: CampaignSceneState['grid']
 ): number | null {
-  const range = vision.dimRange
   if (!range) return null
   const feet =
     range.unit === 'INCHES'
@@ -48,22 +48,38 @@ function dimRangeInSceneUnits(
           : range.unit === 'MILES'
             ? range.amount * 5_280
             : null
-  if (feet === null || feet <= 0) return null
+  if (feet === null)
+    throw new Error(`Measurement unit ${range.unit} is not a supported Scene length unit.`)
+  if (!Number.isFinite(feet)) throw new Error('Scene length conversion overflowed.')
+  if (feet <= 0) return 0
   if (grid.unit === 'FEET') return feet
-  if (grid.unit === 'METERS') return feet * 0.3048
-  return null
+  if (grid.unit === 'METERS') {
+    const meters = feet * 0.3048
+    if (!Number.isFinite(meters)) throw new Error('Scene length conversion overflowed.')
+    return meters
+  }
+  throw new Error('A typed length cannot be converted into an uncalibrated SQUARES Scene.')
+}
+
+function dimRangeInSceneUnits(
+  vision: SceneCharacterVision,
+  grid: CampaignSceneState['grid']
+): number | null {
+  try {
+    return lengthMeasurementInSceneUnits(vision.dimRange, grid)
+  } catch {
+    return null
+  }
 }
 
 /** Apply pinned Character vision only where the scene token has no explicit vision override. */
 export function resolveSceneCharacterVision(
-  state: EncounterSceneState,
-  bindings: readonly { actorId: string; characterId: string; encounterId: string }[],
+  state: CampaignSceneState,
+  bindings: readonly { actorId: string; characterId: string; tokenId: string }[],
   characterVisions: readonly SceneCharacterVision[]
-): EncounterSceneState {
-  const characterIdByActorId = new Map(
-    bindings
-      .filter((binding) => binding.encounterId === state.encounterId)
-      .map((binding) => [binding.actorId, binding.characterId])
+): CampaignSceneState {
+  const characterIdByTokenId = new Map(
+    bindings.map((binding) => [binding.tokenId, binding.characterId])
   )
   const visionByCharacterId = new Map(
     characterVisions.map((vision) => [vision.characterId, vision])
@@ -71,11 +87,11 @@ export function resolveSceneCharacterVision(
   return {
     ...state,
     tokens: state.tokens.map((token) => {
-      if (token.vision || !token.actorId) return token
-      const characterId = characterIdByActorId.get(token.actorId)
+      if (token.vision) return token
+      const characterId = characterIdByTokenId.get(token.id)
       const characterVision = characterId ? visionByCharacterId.get(characterId) : undefined
       const dimRange = characterVision ? dimRangeInSceneUnits(characterVision, state.grid) : null
-      return dimRange === null
+      return dimRange === null || dimRange <= 0
         ? token
         : {
             ...token,
@@ -93,6 +109,8 @@ export function resolveSceneCharacterVision(
 
 function sceneAtomicDeltaConflictKey(delta: SceneAtomicDelta): string {
   switch (delta.kind) {
+    case 'AMBIENT_ILLUMINATION_SET':
+      return 'ENVIRONMENT:AMBIENT_ILLUMINATION'
     case 'TOKEN_UPSERTED':
       return `TOKEN:${delta.token.id}`
     case 'TOKEN_REMOVED':
@@ -140,13 +158,13 @@ export function sceneDeltaConflictKeys(delta: SceneDelta): string[] {
   return [sceneAtomicDeltaConflictKey(delta)]
 }
 
-export function materializeEncounterScene(
+export function materializeCampaignScene(
   definition: SceneDefinition,
-  encounterId: string,
   sceneId: string
-): EncounterSceneState {
+): CampaignSceneState {
   return {
     annotations: definition.annotations.map((annotation) => ({ ...annotation })),
+    ambientIllumination: definition.ambientIllumination,
     barriers: definition.barriers.map((barrier) => ({ ...barrier })),
     campaignId: definition.campaignId,
     darknessZones: definition.darknessZones.map((zone) => ({
@@ -160,7 +178,6 @@ export function materializeEncounterScene(
         .filter((barrier) => barrier.kind === 'DOOR')
         .map((barrier) => [barrier.id, barrier.initialState])
     ),
-    encounterId,
     fogLayers: [],
     fogMode: definition.fogMode,
     grid: structuredClone(definition.grid),
@@ -180,11 +197,10 @@ export function materializeEncounterScene(
   }
 }
 
-function applyAtomicDelta(
-  state: EncounterSceneState,
-  delta: SceneAtomicDelta
-): EncounterSceneState {
+function applyAtomicDelta(state: CampaignSceneState, delta: SceneAtomicDelta): CampaignSceneState {
   switch (delta.kind) {
+    case 'AMBIENT_ILLUMINATION_SET':
+      return { ...state, ambientIllumination: delta.illumination }
     case 'TOKEN_UPSERTED':
       return { ...state, tokens: upsertById(state.tokens, delta.token) }
     case 'TOKEN_REMOVED':
@@ -304,7 +320,7 @@ function applyAtomicDelta(
   }
 }
 
-function assertSceneLimits(state: EncounterSceneState): void {
+function assertSceneLimits(state: CampaignSceneState): void {
   const counts = [
     ['annotations', state.annotations.length, VTT_SCENE_LIMITS.annotations],
     ['barriers', state.barriers.length, VTT_SCENE_LIMITS.barriers],
@@ -322,19 +338,16 @@ function assertSceneLimits(state: EncounterSceneState): void {
   }
 }
 
-export function applySceneEvent(
-  state: EncounterSceneState,
-  event: SceneEvent
-): EncounterSceneState {
+export function applySceneEvent(state: CampaignSceneState, event: SceneEvent): CampaignSceneState {
   if (event.sceneId !== state.id) throw new Error('Scene event targets a different scene.')
   return applySceneDelta(state, event.delta, event.version)
 }
 
 export function applySceneDelta(
-  state: EncounterSceneState,
+  state: CampaignSceneState,
   delta: SceneDelta,
   version: number
-): EncounterSceneState {
+): CampaignSceneState {
   if (version <= state.version) return state
   if (version !== state.version + 1) {
     throw new Error('Scene events must be applied in contiguous version order.')
@@ -350,20 +363,19 @@ export function applySceneDelta(
 
 export function replaySceneEvents(
   definition: SceneDefinition,
-  encounterId: string,
   sceneId: string,
   events: readonly SceneEvent[]
-): EncounterSceneState {
+): CampaignSceneState {
   return events.reduce(
     (state, event) => applySceneEvent(state, event),
-    materializeEncounterScene(definition, encounterId, sceneId)
+    materializeCampaignScene(definition, sceneId)
   )
 }
 
 export function projectSceneForViewer(
-  state: EncounterSceneState,
+  state: CampaignSceneState,
   viewer: SceneViewer
-): EncounterSceneState {
+): CampaignSceneState {
   if (viewer.role === 'GM') return structuredClone(state)
   const barriers = state.barriers.filter((barrier) =>
     isSceneSegmentExplored(state, viewer.userId, barrier.a, barrier.b)
@@ -395,7 +407,7 @@ export function projectSceneForViewer(
 
 /** Build a recipient-specific transient reveal without exposing the complete scene. */
 export function projectSceneTokenPreviewForViewer(
-  state: EncounterSceneState,
+  state: CampaignSceneState,
   options: { path: readonly ScenePoint[]; tokenId: string; viewer: SceneViewer }
 ): { reveal: SceneTransientReveal; visionLayers: SceneFogLayer[] } {
   if (state.visionRevealMode === 'ON_DROP') {
@@ -428,7 +440,7 @@ export function projectSceneTokenPreviewForViewer(
 
 /** Lightweight token visibility check for private snapshots, deltas, and transient fanout. */
 export function isSceneTokenVisibleToViewer(
-  state: EncounterSceneState,
+  state: CampaignSceneState,
   viewer: SceneViewer,
   tokenId: string
 ) {
@@ -442,12 +454,12 @@ export function isSceneTokenVisibleToViewer(
   )
 }
 
-function visibleToken(state: EncounterSceneState, viewer: SceneViewer, tokenId: string) {
+function visibleToken(state: CampaignSceneState, viewer: SceneViewer, tokenId: string) {
   const token = state.tokens.find((candidate) => candidate.id === tokenId)
   return isSceneTokenVisibleToViewer(state, viewer, tokenId) ? token : undefined
 }
 
-function visibleAnnotation(state: EncounterSceneState, viewer: SceneViewer, annotationId: string) {
+function visibleAnnotation(state: CampaignSceneState, viewer: SceneViewer, annotationId: string) {
   const annotation = state.annotations.find((candidate) => candidate.id === annotationId)
   return viewer.role === 'GM' ||
     (annotation?.visibility === 'TABLE' &&
@@ -457,8 +469,8 @@ function visibleAnnotation(state: EncounterSceneState, viewer: SceneViewer, anno
 }
 
 function projectAtomicSceneDeltaForViewer(
-  before: EncounterSceneState,
-  after: EncounterSceneState,
+  before: CampaignSceneState,
+  after: CampaignSceneState,
   viewer: SceneViewer,
   rawDelta: SceneAtomicDelta
 ): SceneAtomicDelta | null {
@@ -572,8 +584,8 @@ function projectAtomicSceneDeltaForViewer(
 }
 
 export function projectSceneDeltaForViewer(
-  before: EncounterSceneState,
-  after: EncounterSceneState,
+  before: CampaignSceneState,
+  after: CampaignSceneState,
   viewer: SceneViewer,
   rawDelta: SceneDelta
 ): SceneDelta | null {

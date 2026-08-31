@@ -11,7 +11,7 @@ import {
   extendSceneMovementPath,
   isSceneTokenVisibleToViewer,
   isSceneFogCellExplored,
-  materializeEncounterScene,
+  materializeCampaignScene,
   projectSceneDeltaForViewer,
   projectSceneTokenPreviewForViewer,
   measureSceneDistance,
@@ -57,6 +57,7 @@ function definition(): SceneDefinition {
         visibility: 'GM_ONLY'
       }
     ],
+    ambientIllumination: 'BRIGHT',
     barriers: [
       {
         a: { x: 10, y: 0 },
@@ -94,7 +95,6 @@ function definition(): SceneDefinition {
     name: 'Test scene',
     tokens: [
       {
-        actorId: null,
         assetId: null,
         controlledByUserIds: [ids.player],
         height: 1,
@@ -129,16 +129,21 @@ describe('VTT scene conflict keys', () => {
       })
     ).toEqual([`TOKEN:${ids.token}`, `FOG:${ids.player}`])
   })
+
+  it('uses one conflict key for authoritative ambient illumination', () => {
+    expect(
+      sceneDeltaConflictKeys({ kind: 'AMBIENT_ILLUMINATION_SET', illumination: 'DIM' })
+    ).toEqual(['ENVIRONMENT:AMBIENT_ILLUMINATION'])
+  })
 })
 
 describe('VTT scene replay and projection', () => {
   it('applies pinned Character vision without replacing an explicit scene override', () => {
-    const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
-    state.tokens[0] = { ...state.tokens[0]!, actorId: ids.user }
+    const state = materializeCampaignScene(definition(), ids.scene)
 
     const resolved = resolveSceneCharacterVision(
       state,
-      [{ actorId: ids.user, characterId: ids.player, encounterId: ids.encounter }],
+      [{ actorId: ids.user, characterId: ids.player, tokenId: ids.token }],
       [{ characterId: ids.player, dimRange: { amount: 60, unit: 'FEET' } }]
     )
 
@@ -161,17 +166,16 @@ describe('VTT scene replay and projection', () => {
     expect(
       resolveSceneCharacterVision(
         state,
-        [{ actorId: ids.user, characterId: ids.player, encounterId: ids.encounter }],
+        [{ actorId: ids.user, characterId: ids.player, tokenId: ids.token }],
         [{ characterId: ids.player, dimRange: { amount: 120, unit: 'FEET' } }]
       ).tokens[0]?.vision
     ).toEqual(explicitVision)
   })
 
   it('converts pinned Character vision to scene units and rejects non-distance units', () => {
-    const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+    const state = materializeCampaignScene(definition(), ids.scene)
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 5, unit: 'METERS' }
-    state.tokens[0] = { ...state.tokens[0]!, actorId: ids.user }
-    const bindings = [{ actorId: ids.user, characterId: ids.player, encounterId: ids.encounter }]
+    const bindings = [{ actorId: ids.user, characterId: ids.player, tokenId: ids.token }]
 
     expect(
       resolveSceneCharacterVision(state, bindings, [
@@ -212,10 +216,10 @@ describe('VTT scene replay and projection', () => {
       }
     ]
 
-    const replayed = replaySceneEvents(definition(), ids.encounter, ids.scene, events)
+    const replayed = replaySceneEvents(definition(), ids.scene, events)
     const manuallyApplied = events.reduce(
       (state, event) => applySceneEvent(state, event),
-      materializeEncounterScene(definition(), ids.encounter, ids.scene)
+      materializeCampaignScene(definition(), ids.scene)
     )
 
     expect(JSON.stringify(replayed)).toBe(JSON.stringify(manuallyApplied))
@@ -228,8 +232,50 @@ describe('VTT scene replay and projection', () => {
     )
   })
 
+  it('materializes and replays authoritative ambient and zone mechanics without fog substitution', () => {
+    const source = {
+      ...definition(),
+      ambientIllumination: 'ORDINARY_DARKNESS' as const,
+      darknessZones: [
+        {
+          id: ids.command1,
+          mechanicalIllumination: 'MAGICAL_DARKNESS' as const,
+          mechanicalObscurement: 'HEAVY' as const,
+          opacity: 0.6,
+          polygon: {
+            points: [
+              { x: 0, y: 0 },
+              { x: 1, y: 0 },
+              { x: 0, y: 1 }
+            ]
+          }
+        }
+      ]
+    }
+    const materialized = materializeCampaignScene(source, ids.scene)
+    const replayed = replaySceneEvents(source, ids.scene, [
+      {
+        actorUserId: ids.user,
+        commandId: ids.command2,
+        delta: { kind: 'AMBIENT_ILLUMINATION_SET', illumination: 'DIM' },
+        sceneId: ids.scene,
+        version: 1
+      }
+    ])
+
+    expect(materialized.ambientIllumination).toBe('ORDINARY_DARKNESS')
+    expect(materialized.darknessZones[0]).toMatchObject({
+      mechanicalIllumination: 'MAGICAL_DARKNESS',
+      mechanicalObscurement: 'HEAVY'
+    })
+    expect(replayed.ambientIllumination).toBe('DIM')
+    expect(
+      projectSceneForViewer(replayed, { role: 'PLAYER', userId: ids.player }).ambientIllumination
+    ).toBe('DIM')
+  })
+
   it('withholds hidden entities, GM annotations, and other players fog', () => {
-    const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+    const state = materializeCampaignScene(definition(), ids.scene)
     state.tokens.push({ ...state.tokens[0]!, id: ids.command1, hidden: true })
     state.tokens.push({
       ...state.tokens[0]!,
@@ -253,7 +299,7 @@ describe('VTT scene replay and projection', () => {
   })
 
   it('uses the snapshot token predicate for lightweight recipient visibility checks', () => {
-    const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+    const state = materializeCampaignScene(definition(), ids.scene)
     state.tokens.push({ ...state.tokens[0]!, id: ids.command1, hidden: true })
     state.tokens.push({
       ...state.tokens[0]!,
@@ -279,7 +325,7 @@ describe('VTT scene replay and projection', () => {
   })
 
   it('converts private scene changes into visible upserts, removals, or no delta', () => {
-    const before = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+    const before = materializeCampaignScene(definition(), ids.scene)
     const hiddenToken = { ...before.tokens[0]!, hidden: true }
     const afterHidden = applySceneEvent(before, {
       actorUserId: ids.user,
@@ -343,7 +389,7 @@ describe('VTT scene replay and projection', () => {
   })
 
   it('removes orphan door state when a door is replaced and enforces projection limits', () => {
-    const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+    const state = materializeCampaignScene(definition(), ids.scene)
     const replaced = applySceneEvent(state, {
       actorUserId: ids.user,
       commandId: ids.command1,
@@ -397,7 +443,7 @@ describe('VTT scene replay and projection', () => {
 
 describe('VTT scene geometry', () => {
   it('limits barrier exploration work to tokens whose vision reaches the changed segment', () => {
-    const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+    const state = materializeCampaignScene(definition(), ids.scene)
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' }
     state.tokens[0] = {
       ...state.tokens[0]!,
@@ -438,7 +484,7 @@ describe('VTT scene geometry', () => {
   })
 
   it('derives monotonic, occlusion-aware exploration chunks for the correct player', () => {
-    const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+    const state = materializeCampaignScene(definition(), ids.scene)
     state.map = { ...state.map, height: 100, width: 100 }
     state.fogMode = 'SHARED_PARTY'
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' }
@@ -503,7 +549,7 @@ describe('VTT scene geometry', () => {
   })
 
   it('retains a legal routed drag path and rejects a segment through a wall', () => {
-    const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+    const state = materializeCampaignScene(definition(), ids.scene)
     state.map = { ...state.map, height: 100, width: 100 }
     state.barriers = [
       {
@@ -526,7 +572,7 @@ describe('VTT scene geometry', () => {
   })
 
   it('derives path exploration and recipient-private drag reveals only in on-drag mode', () => {
-    const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+    const state = materializeCampaignScene(definition(), ids.scene)
     state.map = { ...state.map, height: 100, width: 100 }
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' }
     state.fogMode = 'PER_PLAYER'
@@ -587,7 +633,7 @@ describe('VTT scene geometry', () => {
   })
 
   it('restores fog by replacement and withholds another player’s undo fog delta', () => {
-    const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+    const state = materializeCampaignScene(definition(), ids.scene)
     const layer = createUniformSceneFogLayer(
       { ...state, fogMode: 'PER_PLAYER' },
       { explored: true, ownerUserId: ids.player }
@@ -614,7 +660,7 @@ describe('VTT scene geometry', () => {
   })
 
   it('builds complete shared and per-player manual fog replacements', () => {
-    const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+    const state = materializeCampaignScene(definition(), ids.scene)
     state.map = { ...state.map, height: 100, width: 120 }
     state.fogMode = 'SHARED_PARTY'
     const revealed = createUniformSceneFogLayer(state, {
@@ -641,7 +687,7 @@ describe('VTT scene geometry', () => {
   })
 
   it('patches only the changed bounded fog chunks for reveal and hide', () => {
-    const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+    const state = materializeCampaignScene(definition(), ids.scene)
     state.map = { ...state.map, height: 100, width: 100 }
     state.fogMode = 'SHARED_PARTY'
     const revealed = createSceneFogAreaPatch(state, {
@@ -676,7 +722,7 @@ describe('VTT scene geometry', () => {
   })
 
   it('respects directional token vision when deriving exploration', () => {
-    const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+    const state = materializeCampaignScene(definition(), ids.scene)
     state.map = { ...state.map, height: 100, width: 100 }
     state.grid = { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' }
     state.fogMode = 'PER_PLAYER'
@@ -702,7 +748,7 @@ describe('VTT scene geometry', () => {
   })
 
   it('uses open door state for collision while the wall remains blocking', () => {
-    const state = materializeEncounterScene(definition(), ids.encounter, ids.scene)
+    const state = materializeCampaignScene(definition(), ids.scene)
     const index = new SceneBarrierIndex(state.barriers)
     expect(canMoveBetween(state, { x: 0, y: 10 }, { x: 15, y: 10 }, index)).toBe(false)
     state.doorStates[ids.door] = 'OPEN'

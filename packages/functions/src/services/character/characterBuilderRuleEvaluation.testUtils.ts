@@ -96,6 +96,8 @@ export async function evaluateCharacterBuilderTestPolicy(
     snapshot: factsResult.snapshot,
     registry: factsResult.registry,
     facts: factsResult.facts,
+    discoveredActionCapabilities: [],
+    compiledActionEntryPoints: [],
     output,
     evaluation: {
       revisionId,

@@ -18,6 +18,7 @@ import { normalizeSubjectStatus } from '../status.js'
 type FeatRow = {
   id: string
   system_id: string
+  content_source_id: string
   user_id: string
   label: string
   description: string
@@ -62,10 +63,11 @@ type FeatModifierGrantRow = {
   sort_order: number
 }
 
-function mapFeatRow(json_data: FeatAuthored): FeatRow {
+function mapFeatRow(json_data: FeatAuthored, contentSourceId: string): FeatRow {
   return {
     id: json_data.id,
     system_id: json_data.systemId,
+    content_source_id: contentSourceId,
     user_id: json_data.userId,
     label: json_data.label,
     description: json_data.description,
@@ -75,7 +77,12 @@ function mapFeatRow(json_data: FeatAuthored): FeatRow {
   }
 }
 
-export async function upsertFeat(db: DBLike, json_data: FeatAuthored, _systemId: string) {
+export async function upsertFeat(
+  db: DBLike,
+  json_data: FeatAuthored,
+  systemId: string,
+  contentSourceId: string
+) {
   const detailRows: FeatDetailRow[] = (json_data.details ?? []).map((detail) => ({
     feat_id: json_data.id,
     detail_id: detail.id,
@@ -106,10 +113,11 @@ export async function upsertFeat(db: DBLike, json_data: FeatAuthored, _systemId:
 
     await trx
       .insertInto('feats')
-      .values(mapFeatRow(json_data))
+      .values(mapFeatRow(json_data, contentSourceId))
       .onConflict((oc) =>
         oc.column('id').doUpdateSet((eb) => ({
           system_id: eb.ref('excluded.system_id'),
+          content_source_id: eb.ref('feats.content_source_id'),
           user_id: eb.ref('excluded.user_id'),
           label: eb.ref('excluded.label'),
           description: eb.ref('excluded.description'),
@@ -146,7 +154,7 @@ export async function upsertFeat(db: DBLike, json_data: FeatAuthored, _systemId:
     }
 
     for (const effect of authoredEffects) {
-      await upsertEffect(trx, effect)
+      await upsertEffect(trx, effect, systemId)
     }
 
     for (const detail of json_data.details ?? []) {

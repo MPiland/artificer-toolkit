@@ -5,7 +5,7 @@ import {
 import { z } from 'zod'
 
 import { executeDiceConfiguration } from '../rolls/rollService.js'
-import { equalCanonicalJson } from './ruleChecksum.js'
+import { equalCanonicalJson } from '@artificer-toolkit/shared/rules'
 import { validateActivatableRulePackDocument } from './ruleDocumentValidation.js'
 import { getRuleModelContract } from './ruleModelContracts.js'
 import { evaluateZenRuleModel } from './zenRuleEngine.js'

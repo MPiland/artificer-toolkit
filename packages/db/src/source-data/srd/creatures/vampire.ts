@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { type CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 
@@ -60,6 +61,7 @@ export const vampire: CreatureAuthored = {
     },
     {
       id: S.featureId(277, 2),
+      ruleDefinitionIds: [S.DND5E_LEGENDARY_RESISTANCE_LIFECYCLE_DEFINITION_ID],
       label: 'Legendary Resistance (3/Day)',
       description:
         'Legendary Resistance (3/Day). If the vampire fails a saving throw, it can choose to succeed instead.',
@@ -471,7 +473,7 @@ export const vampire: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(277, 238),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.WISDOM,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
               baseDc: 17
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
@@ -521,6 +523,60 @@ export const vampire: CreatureAuthored = {
     },
     {
       id: S.featureId(277, 17),
+      options: [
+        {
+          id: '00000000-0005-00c9-0070-011500000000',
+          label: 'Move',
+          description: 'The vampire moves up to its speed without provoking opportunity attacks.',
+          order: 1,
+          effects: [
+            {
+              id: '00000000-0002-00f2-0070-011500000000',
+              order: 1,
+              invocation: {
+                kind: 'PASSIVE',
+                triggerCode: 'ACTIVATED',
+                range: { id: '00000000-0002-00f3-0070-011500000000', rangeKind: 'SELF' },
+                targeting: { selectionKind: 'SELF' }
+              },
+              paths: [
+                {
+                  id: 'a03087f7-4b7a-5625-aa5a-2e362b2abd64',
+                  order: 1,
+                  pathCode: 'ON_USE',
+                  groupType: 'SINGLE',
+                  originKind: 'SOURCE',
+                  selectionKind: 'FIXED',
+                  resultBlock: {
+                    id: '3b3a1bca-0c50-5b30-87cd-c365ed4127a4',
+                    resultKind: 'SINGLE',
+                    outcomes: [
+                      {
+                        id: 'a77e2c4b-23ac-5184-a2a2-e84830299a92',
+                        effectKind: 'CLOSED_RULE',
+                        ruleKind: 'CREATURE_VAMPIRE_LEGENDARY_ACTIONS'
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: '00000000-0005-00ca-0070-011500000000',
+          label: 'Unarmed Strike',
+          description: 'The vampire makes one unarmed strike.',
+          order: 2
+        },
+        {
+          id: '00000000-0005-00cb-0070-011500000000',
+          label: 'Bite (Costs 2 Actions)',
+          description: 'The vampire makes one bite attack.',
+          order: 3
+        }
+      ],
+      ruleDefinitionIds: [S.DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID],
       label: 'Legendary Actions',
       section: 'LEGENDARY_ACTION',
       description:
@@ -533,18 +589,6 @@ export const vampire: CreatureAuthored = {
         resetKind: S.CHARGE_RESET_KIND.MANUAL,
         amount: 3
       },
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(277, 242),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(277, 243), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_LEGENDARY_ACTIONS
-        })
-      ],
       order: 17
     }
   ]

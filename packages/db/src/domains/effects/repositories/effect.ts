@@ -82,8 +82,9 @@ type DamageBonusRow = {
 type SavingThrowDcBonusRow = {
   id: string
   saving_throw_id: string
+  system_id: string
   bonus_kind: string
-  ability_code: string | null
+  ability_definition_id: string | null
   amount: DbNumeric | null
   sort_order: number
 }
@@ -138,7 +139,11 @@ function readRollTableRepeatConfig(
         `Effect "${effectId}" roll row "${rowId}" reroll value ${index + 1} is invalid.`
       )
     }
-    return { id: entry.id, order: entry.order as number, value: entry.value as number }
+    return {
+      id: entry.id,
+      order: entry.order as number,
+      value: entry.value as number
+    }
   })
 
   return { count: count as number, rerollValues: parsedRerollValues }
@@ -686,12 +691,9 @@ function buildSavingThrowDcBonus(row: SavingThrowDcBonusRow): SavingThrowDcBonus
     return {
       id: row.id,
       bonusKind,
-      ability: requireAbilityCode(
-        row.id,
-        requireLinkedRecord(
-          row.ability_code,
-          `Saving throw DC bonus "${row.id}" is missing ability_code.`
-        )
+      abilityDefinitionId: requireLinkedRecord(
+        row.ability_definition_id,
+        `Saving throw DC bonus "${row.id}" is missing ability_definition_id.`
       )
     }
   }
@@ -717,14 +719,26 @@ function buildSavingThrowDcBonus(row: SavingThrowDcBonusRow): SavingThrowDcBonus
 
 async function hydrateSavingThrowBonusesBySavingThrowIds(
   db: DBLike,
-  ids: readonly string[]
+  ids: readonly string[],
+  expectedSystemId: string | undefined
 ): Promise<Map<string, SavingThrowDcBonusAuthored[]>> {
+  if (!expectedSystemId) {
+    throw new Error('Saving throw hydration requires an authoritative parent System.')
+  }
   const distinctIds = uniqueIds(ids)
   const rows =
     distinctIds.length > 0
       ? ((await db
           .selectFrom('saving_throw_dc_bonuses')
-          .select(['id', 'saving_throw_id', 'bonus_kind', 'ability_code', 'amount', 'sort_order'])
+          .select([
+            'id',
+            'saving_throw_id',
+            'system_id',
+            'bonus_kind',
+            'ability_definition_id',
+            'amount',
+            'sort_order'
+          ])
           .where('saving_throw_id', 'in', distinctIds)
           .orderBy('sort_order')
           .execute()) as SavingThrowDcBonusRow[])
@@ -733,35 +747,51 @@ async function hydrateSavingThrowBonusesBySavingThrowIds(
   const bonuses = new Map<string, SavingThrowDcBonusAuthored[]>()
 
   for (const id of distinctIds) {
-    bonuses.set(id, (groupedRows.get(id) ?? []).map(buildSavingThrowDcBonus))
+    const savingThrowBonuses = groupedRows.get(id) ?? []
+    const foreignBonus = savingThrowBonuses.find((row) => row.system_id !== expectedSystemId)
+    if (foreignBonus) {
+      throw new Error(
+        `Saving throw DC bonus "${foreignBonus.id}" does not match authoritative System "${expectedSystemId}".`
+      )
+    }
+    bonuses.set(id, savingThrowBonuses.map(buildSavingThrowDcBonus))
   }
 
   return bonuses
 }
 
-async function hydrateSavingThrowById(db: DBLike, id: string) {
+async function hydrateSavingThrowById(
+  db: DBLike,
+  id: string,
+  expectedSystemId: string | undefined
+) {
+  if (!expectedSystemId) {
+    throw new Error(`Saving throw "${id}" hydration requires an authoritative parent System.`)
+  }
   const [row, bonusesBySavingThrowId] = await Promise.all([
     db
       .selectFrom('saving_throws')
-      .select(['dc_method', 'ability_code', 'base_dc'])
+      .select(['dc_method', 'ability_definition_id', 'base_dc', 'system_id'])
       .where('id', '=', id)
       .executeTakeFirst(),
-    hydrateSavingThrowBonusesBySavingThrowIds(db, [id])
+    hydrateSavingThrowBonusesBySavingThrowIds(db, [id], expectedSystemId)
   ])
 
   const savingThrow = requireLinkedRecord(row, `Saving throw "${id}" is missing.`)
+  if (savingThrow.system_id !== expectedSystemId) {
+    throw new Error(
+      `Saving throw "${id}" does not match authoritative System "${expectedSystemId}".`
+    )
+  }
   const dcMethod = requireSavingThrowDcMethod(id, savingThrow.dc_method)
 
   if (dcMethod === SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC) {
     return {
       id,
       dcMethod,
-      ability: requireAbilityCode(
-        id,
-        requireLinkedRecord(
-          savingThrow.ability_code,
-          `Saving throw "${id}" is missing ability_code.`
-        )
+      abilityDefinitionId: requireLinkedRecord(
+        savingThrow.ability_definition_id,
+        `Saving throw "${id}" is missing ability_definition_id.`
       )
     }
   }
@@ -771,9 +801,9 @@ async function hydrateSavingThrowById(db: DBLike, id: string) {
   return {
     id,
     dcMethod,
-    ability: requireAbilityCode(
-      id,
-      requireLinkedRecord(savingThrow.ability_code, `Saving throw "${id}" is missing ability_code.`)
+    abilityDefinitionId: requireLinkedRecord(
+      savingThrow.ability_definition_id,
+      `Saving throw "${id}" is missing ability_definition_id.`
     ),
     baseDc: requireLinkedRecord(savingThrow.base_dc, `Saving throw "${id}" is missing base_dc.`),
     bonuses:
@@ -1002,18 +1032,22 @@ async function hydrateShapesByIds(
 
 async function hydrateSavingThrowsByIds(
   db: DBLike,
-  ids: readonly string[]
+  ids: readonly string[],
+  expectedSystemId: string | undefined
 ): Promise<Map<string, SavingThrowAuthored>> {
+  if (!expectedSystemId) {
+    throw new Error('Saving throw hydration requires an authoritative parent System.')
+  }
   const distinctIds = uniqueIds(ids)
   const [rows, bonusesBySavingThrowId] =
     distinctIds.length > 0
       ? await Promise.all([
           db
             .selectFrom('saving_throws')
-            .select(['id', 'dc_method', 'ability_code', 'base_dc'])
+            .select(['id', 'dc_method', 'ability_definition_id', 'base_dc', 'system_id'])
             .where('id', 'in', distinctIds)
             .execute(),
-          hydrateSavingThrowBonusesBySavingThrowIds(db, distinctIds)
+          hydrateSavingThrowBonusesBySavingThrowIds(db, distinctIds, expectedSystemId)
         ])
       : ([[], new Map<string, SavingThrowDcBonusAuthored[]>()] as const)
   const savingThrows = new Map<string, SavingThrowAuthored>()
@@ -1024,6 +1058,11 @@ async function hydrateSavingThrowsByIds(
       `Saving throw "${id}" is missing.`
     )
     const dcMethod = requireSavingThrowDcMethod(id, row.dc_method)
+    if (row.system_id !== expectedSystemId) {
+      throw new Error(
+        `Saving throw "${id}" does not match authoritative System "${expectedSystemId}".`
+      )
+    }
     const bonuses = bonusesBySavingThrowId.get(id) ?? []
 
     savingThrows.set(
@@ -1032,17 +1071,17 @@ async function hydrateSavingThrowsByIds(
         ? {
             id,
             dcMethod,
-            ability: requireAbilityCode(
-              id,
-              requireLinkedRecord(row.ability_code, `Saving throw "${id}" is missing ability_code.`)
+            abilityDefinitionId: requireLinkedRecord(
+              row.ability_definition_id,
+              `Saving throw "${id}" is missing ability_definition_id.`
             )
           }
         : ({
             id,
             dcMethod,
-            ability: requireAbilityCode(
-              id,
-              requireLinkedRecord(row.ability_code, `Saving throw "${id}" is missing ability_code.`)
+            abilityDefinitionId: requireLinkedRecord(
+              row.ability_definition_id,
+              `Saving throw "${id}" is missing ability_definition_id.`
             ),
             baseDc: requireLinkedRecord(row.base_dc, `Saving throw "${id}" is missing base_dc.`),
             bonuses:
@@ -1994,7 +2033,11 @@ async function hydrateNativePaths(
   return paths
 }
 
-async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored | null> {
+async function hydrateEffectById(
+  db: DBLike,
+  id: string,
+  expectedSystemId?: string
+): Promise<EffectAuthored | null> {
   const row = await db
     .selectFrom('effects')
     .select(['id', 'sort_order'])
@@ -2034,7 +2077,7 @@ async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored
       ? hydrateShapeById(db, invocation.shape_characteristic_id)
       : Promise.resolve(undefined),
     invocation.saving_throw_id
-      ? hydrateSavingThrowById(db, invocation.saving_throw_id)
+      ? hydrateSavingThrowById(db, invocation.saving_throw_id, expectedSystemId)
       : Promise.resolve(undefined),
     hydrateNativePaths(db, id, triggerCode)
   ])
@@ -2129,7 +2172,8 @@ async function hydrateEffectById(db: DBLike, id: string): Promise<EffectAuthored
 
 async function hydrateSimpleFixedEffectsByIds(
   db: DBLike,
-  ids: readonly string[]
+  ids: readonly string[],
+  expectedSystemId?: string
 ): Promise<Map<string, EffectAuthored> | null> {
   const distinctIds = uniqueIds(ids)
 
@@ -2260,7 +2304,8 @@ async function hydrateSimpleFixedEffectsByIds(
     ),
     hydrateSavingThrowsByIds(
       db,
-      invocationRows.flatMap((row) => (row.saving_throw_id ? [row.saving_throw_id] : []))
+      invocationRows.flatMap((row) => (row.saving_throw_id ? [row.saving_throw_id] : [])),
+      expectedSystemId
     )
   ])
   const outcomeRowsByResultBlockId = groupRowsByKey(outcomeRows, (row) => row.result_block_id)
@@ -2464,20 +2509,20 @@ async function hydrateSimpleFixedEffectsByIds(
   return effects
 }
 
-export function createEffectRepository(db: DBLike): EffectRepository {
+export function createEffectRepository(db: DBLike, defaultSystemId?: string): EffectRepository {
   return {
     async upsert(entity) {
-      await upsertEffect(db, entity)
+      await upsertEffect(db, entity, defaultSystemId)
     },
 
     async findById(id) {
-      return hydrateEffectById(db, id)
+      return hydrateEffectById(db, id, defaultSystemId)
     },
 
     async findByIds(ids) {
       return (
-        (await hydrateSimpleFixedEffectsByIds(db, ids)) ??
-        hydrateByIds(ids, (id) => hydrateEffectById(db, id))
+        (await hydrateSimpleFixedEffectsByIds(db, ids, defaultSystemId)) ??
+        hydrateByIds(ids, (id) => hydrateEffectById(db, id, defaultSystemId))
       )
     },
 
@@ -2488,7 +2533,7 @@ export function createEffectRepository(db: DBLike): EffectRepository {
         rows.map((row) => row.id),
         await hydrateByIds(
           rows.map((row) => row.id),
-          (id) => hydrateEffectById(db, id)
+          (id) => hydrateEffectById(db, id, defaultSystemId)
         )
       )
     }

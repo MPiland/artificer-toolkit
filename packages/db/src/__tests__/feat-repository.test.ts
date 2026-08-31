@@ -365,6 +365,7 @@ describe('createFeatRepository', () => {
         modifier_grants: [
           {
             id: 'modifier-1',
+            system_id: 'system-1',
             sort_order: 1,
             selection_kind: 'GRANTED',
             count: null,
@@ -377,13 +378,15 @@ describe('createFeatRepository', () => {
         modifier_grant_domain_params: [
           {
             modifier_grant_id: 'modifier-1',
+            system_id: 'system-1',
             value_domain_code: 'ATTACK_ROLL',
             attack_domain_code: 'MELEE',
             ability_code: null,
             skill_id: null,
             speed_id: null,
-            sense_code: null,
-            spell_level: null
+            sense_definition_id: null,
+            spell_level: null,
+            condition_type_id: null
           }
         ],
         modifier_grant_payloads: [
@@ -466,56 +469,59 @@ describe('createFeatRepository', () => {
   it('round-trips supported feat effects through the typed effect repository', async () => {
     const db = new InMemoryDb()
     const repository = createFeatRepository(db as never)
-    await repository.upsert({
-      id: 'feat-effects-1',
-      label: 'Blazing Initiate',
-      description: 'Carries a direct effect.',
-      effects: [
-        {
-          id: 'feat-effect-1',
-          order: 1,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: 'SPELL_ATTACK',
-            activation: {
-              code: 'ACTION',
-              amount: 1
-            },
-            range: {
-              id: 'feat-range-1',
-              rangeKind: 'DISTANCE',
-              amount: 30,
-              unit: 'FEET'
-            }
-          },
-          paths: [
-            {
-              id: 'feat-PATH_CODE-1',
-              order: 1,
-              pathCode: 'ON_HIT',
-              groupType: 'SINGLE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: 'feat-PATH_CODE-1',
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: 'feat-PATH_CODE-1',
-                    effectKind: 'DAMAGE',
-                    damageTypeId: 'fire',
-                    valueKind: 'FIXED',
-                    scalingKind: 'NONE',
-                    amount: 6
-                  }
-                ]
+    await repository.upsert(
+      {
+        id: 'feat-effects-1',
+        label: 'Blazing Initiate',
+        description: 'Carries a direct effect.',
+        effects: [
+          {
+            id: 'feat-effect-1',
+            order: 1,
+            invocation: {
+              kind: 'ACTION',
+              triggerCode: 'SPELL_ATTACK',
+              activation: {
+                code: 'ACTION',
+                amount: 1
+              },
+              range: {
+                id: 'feat-range-1',
+                rangeKind: 'DISTANCE',
+                amount: 30,
+                unit: 'FEET'
               }
-            }
-          ]
-        }
-      ],
-      userId: 'user-1',
-      systemId: 'system-1'
-    })
+            },
+            paths: [
+              {
+                id: 'feat-PATH_CODE-1',
+                order: 1,
+                pathCode: 'ON_HIT',
+                groupType: 'SINGLE',
+                selectionKind: 'FIXED',
+                resultBlock: {
+                  id: 'feat-PATH_CODE-1',
+                  resultKind: 'SINGLE',
+                  outcomes: [
+                    {
+                      id: 'feat-PATH_CODE-1',
+                      effectKind: 'DAMAGE',
+                      damageTypeId: 'fire',
+                      valueKind: 'FIXED',
+                      scalingKind: 'NONE',
+                      amount: 6
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        userId: 'user-1',
+        systemId: 'system-1'
+      },
+      { contentSourceId: 'content-source-1' }
+    )
     await expect(repository.findById('feat-effects-1')).resolves.toMatchObject({
       id: 'feat-effects-1',
       label: 'Blazing Initiate',

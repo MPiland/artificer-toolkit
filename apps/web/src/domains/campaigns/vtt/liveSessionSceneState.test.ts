@@ -1,11 +1,10 @@
 import type { LiveSessionWebSocketServerMessageDto } from '@artificer-toolkit/schema/api/liveSessions'
-import type { EncounterSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { describe, expect, it } from 'vitest'
 import { applyLiveSessionServerMessage, emptyLiveSessionSceneState } from './liveSessionSceneState'
 
 const campaignId = '00000000-0000-4000-8000-000000000001'
 const sessionId = '00000000-0000-4000-8000-000000000002'
-const encounterId = '00000000-0000-4000-8000-000000000003'
 const sceneId = '00000000-0000-4000-8000-000000000004'
 const definitionId = '00000000-0000-4000-8000-000000000005'
 const mapAssetId = '00000000-0000-4000-8000-000000000006'
@@ -17,16 +16,16 @@ type SceneCommittedMessage = Extract<
   { aggregateKind: 'SCENE' }
 >
 
-function scene(version = 0): EncounterSceneStateDto {
+function scene(version = 0): CampaignSceneStateDto {
   return {
     annotations: [],
+    ambientIllumination: 'BRIGHT',
     barriers: [],
     campaignId,
     darknessZones: [],
     definitionId,
     definitionVersion: 1,
     doorStates: {},
-    encounterId,
     fogLayers: [],
     fogMode: 'SHARED_PARTY',
     visionRevealMode: 'ON_DROP',
@@ -38,7 +37,6 @@ function scene(version = 0): EncounterSceneStateDto {
     name: 'Test map',
     tokens: [
       {
-        actorId: null,
         assetId: null,
         controlledByUserIds: [],
         height: 1,
@@ -61,6 +59,7 @@ function committed(version: number, delta: SceneCommittedMessage['delta']): Scen
     acceptedSequence: version,
     aggregateId: sceneId,
     aggregateKind: 'SCENE',
+    changedAggregates: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version }],
     deliverySequence: version,
     delta,
     originCommandId: commandId,
@@ -77,6 +76,8 @@ describe('live-session scene state', () => {
       aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 0 }],
       campaignId,
       deliverySequence: 0,
+      encounterActorTokenBindings: [],
+      encounterSceneBindings: [],
       sceneSnapshots: [{ campaignId, scene: scene(), sessionId }],
       sessionId,
       type: 'READY'
@@ -99,6 +100,34 @@ describe('live-session scene state', () => {
     expect(next.scenes[0]?.tokens[0]?.position).toEqual({ x: 10, y: 10 })
   })
 
+  it('replaces the presented Campaign Scene from a Session commit', () => {
+    const replacement = { ...scene(3), id: '00000000-0000-4000-8000-000000000010' }
+    const next = applyLiveSessionServerMessage(
+      { ...emptyLiveSessionSceneState, scenes: [scene()] },
+      {
+        acceptedSequence: 1,
+        aggregateId: sessionId,
+        aggregateKind: 'SESSION',
+        changedAggregates: [{ aggregateId: sessionId, aggregateKind: 'SESSION', version: 1 }],
+        deliverySequence: 1,
+        originCommandId: commandId,
+        replayed: false,
+        response: {
+          commandId,
+          replayed: false,
+          sceneId: replacement.id,
+          sessionId,
+          version: 1
+        },
+        sceneSnapshots: [{ campaignId, scene: replacement, sessionId }],
+        type: 'COMMAND_COMMITTED',
+        version: 1
+      }
+    )
+
+    expect(next.scenes).toEqual([replacement])
+  })
+
   it('refreshes private scenes after a Character rule change without reloading the page', () => {
     const state = { ...emptyLiveSessionSceneState, scenes: [scene()] }
     const refreshed = scene()
@@ -116,6 +145,7 @@ describe('live-session scene state', () => {
       acceptedSequence: 1,
       aggregateId: characterId,
       aggregateKind: 'CHARACTER',
+      changedAggregates: [{ aggregateId: characterId, aggregateKind: 'CHARACTER', version: 1 }],
       deliverySequence: 1,
       originCommandId: commandId,
       replayed: false,
@@ -136,6 +166,7 @@ describe('live-session scene state', () => {
     historical.tokens[0] = { ...historical.tokens[0]!, position: { x: 30, y: 20 } }
     const next = applyLiveSessionServerMessage(
       {
+        ...emptyLiveSessionSceneState,
         aggregateVersions: [{ aggregateId: sceneId, aggregateKind: 'SCENE', version: 2 }],
         deliverySequence: 2,
         scenes: [current]

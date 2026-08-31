@@ -134,7 +134,8 @@ vi.mock('./characterCommittedSheetSources.js', async (importOriginal) => {
   }
 })
 
-vi.mock('./characterMechanicsCompiler.js', () => ({
+vi.mock('./characterMechanicsCompiler.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./characterMechanicsCompiler.js')>()),
   compileCharacterMechanicsProjection: mocks.compileMechanicsProjection
 }))
 
@@ -172,6 +173,7 @@ function createCharacter(overrides: Partial<CharacterAuthored> = {}): CharacterA
     status: 'ACTIVE',
     profile: {},
     systemId: 'system-1',
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000302',
     userId: 'user-1',
     intent: {
       advancement: { method: 'MILESTONE' },
@@ -351,7 +353,8 @@ describe('character sheet rest policy', () => {
       vocabularySnapshot: {
         checksum: 'a'.repeat(64),
         snapshotId: 'vocabulary-snapshot-1',
-        snapshotVersion: 1
+        snapshotVersion: 1,
+        document: { abilities: [] }
       }
     })
     mocks.requireCurrentMechanics.mockImplementation(async () => ({
@@ -363,8 +366,9 @@ describe('character sheet rest policy', () => {
       evaluatorVersion: 'test-evaluator',
       modelContractVersion: 1,
       projectionChecksum: 'c'.repeat(64),
-      rulePolicyInput: {},
-      rulePolicyOutput: {},
+      rulePolicyInput: { spellPreparationClasses: [] },
+      rulePolicyOutput: { senses: [] },
+      pinnedSenseDefinitions: [],
       ruleRegistry: {},
       ruleRevisionChecksum: 'd'.repeat(64),
       ruleRevisionId: 'revision-1',
@@ -383,7 +387,11 @@ describe('character sheet rest policy', () => {
         characterStreamVersion: input.characterStreamVersion,
         commandLaneChecksum: 'b'.repeat(64),
         commandState: input.characterCommandState,
-        projectionChecksum: 'c'.repeat(64)
+        projectionChecksum: 'c'.repeat(64),
+        rulePolicyInput: { spellPreparationClasses: [] },
+        rulePolicyOutput: { senses: [] },
+        pinnedSenseDefinitions: [],
+        compiledActionEntryPoints: []
       })
     )
     mocks.loadCharacterBuilderContext.mockResolvedValue({

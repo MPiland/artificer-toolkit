@@ -11,6 +11,9 @@ const mocks = vi.hoisted(() => ({
     listActiveMemberships: vi.fn(),
     createCampaign: vi.fn(),
     updateCampaign: vi.fn(),
+    requireRulesCatalogues: vi.fn(),
+    clearAdditionalRulesCatalogues: vi.fn(),
+    insertAdditionalRulesCatalogues: vi.fn(),
     archiveCampaign: vi.fn(),
     deleteCampaign: vi.fn(),
     insertOwnerMembership: vi.fn(),
@@ -25,6 +28,10 @@ const mocks = vi.hoisted(() => ({
     deleteAssignmentByCharacter: vi.fn(),
     insertAssignment: vi.fn(),
     listAssignmentCharacterIds: vi.fn(),
+    listAssignmentPrimaryRulesCatalogueIds: vi.fn(),
+    listContentSourceIdsMissingFromRulesCatalogues: vi.fn(),
+    listActiveEncounterInitiativeContentSourceIds: vi.fn(),
+    listOptionalCombatContentSourceIdsRequiredByCampaign: vi.fn(),
     findInviteRecipientByUsername: vi.fn(),
     insertInvite: vi.fn(),
     lockInvite: vi.fn(),
@@ -44,8 +51,10 @@ const mocks = vi.hoisted(() => ({
   shares: { listByAuthor: vi.fn() },
   character: { findAuthoredById: vi.fn(), findById: vi.fn() },
   mechanics: { requireCurrent: vi.fn() },
+  campaignSettings: { find: vi.fn() },
   campaignMechanics: { publish: vi.fn(), requireCurrent: vi.fn(), lockAssignment: vi.fn() },
   prepareCampaignMechanics: vi.fn(),
+  resolveInitiativeSources: vi.fn(),
   events: { insertCampaignEvent: vi.fn() },
   reconcileCharacter: vi.fn(),
   reconcileCurrency: vi.fn(),
@@ -67,6 +76,7 @@ const mocks = vi.hoisted(() => ({
   acceptSocialAdmission: vi.fn(),
   requireActiveSocialProfile: vi.fn(),
   consumeSocialRateLimit: vi.fn(),
+  lockCharacterAssignmentAuthority: vi.fn(),
   notifications: {
     enqueueApplicationSubmittedCancellations: vi.fn(),
     enqueueInvitationDecisionNotifications: vi.fn(),
@@ -82,6 +92,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   return {
     ...actual,
     createCampaignRepository: () => mocks.repository,
+    createCampaignSettingsRepository: () => mocks.campaignSettings,
     createCampaignContentShareRepository: () => mocks.shares,
     createCampaignAdjustmentsRepository: () => mocks.events,
     createCharacterRepository: () => mocks.character,
@@ -96,6 +107,9 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
 
 vi.mock('../character/campaignCharacterReconciliation.js', () => ({
   reconcileCharacterAfterCampaignContentRemoval: mocks.reconcileCharacter
+}))
+vi.mock('../character/characterAssignmentAuthority.js', () => ({
+  lockCharacterAssignmentAuthority: mocks.lockCharacterAssignmentAuthority
 }))
 
 vi.mock('../character/campaignCharacterSheet.js', async (importOriginal) => {
@@ -131,6 +145,11 @@ vi.mock('./campaignInventoryService.js', () => ({
   reconcileCampaignCurrencyDeparture: mocks.reconcileCurrency
 }))
 
+vi.mock('../rules/initiativePolicySourceAccess.js', () => ({
+  InitiativePolicySourceError: class InitiativePolicySourceError extends Error {},
+  resolveEffectiveInitiativePolicySources: mocks.resolveInitiativeSources
+}))
+
 vi.mock('./campaignContentShareRemoval.js', () => ({
   findCampaignContentRemovalReceipt: mocks.findRemovalReceipt,
   removeCampaignContentSharesAndReconcileInTransaction: mocks.removeShares
@@ -140,6 +159,7 @@ vi.mock('./realtimeService.js', () => ({ broadcastCampaignInvalidation: vi.fn() 
 
 const {
   CampaignConflictError,
+  CampaignValidationError,
   acceptCampaignInvite,
   acceptCampaignOwnershipTransfer,
   assignCampaignCharacter,
@@ -166,6 +186,9 @@ const campaign = {
   toneTags: ['HEROIC' as const],
   toneDetails: null,
   contentMaturity: 'STANDARD' as const,
+  gameSystemId: '00000000-0000-4000-8000-000000000301',
+  primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000302',
+  additionalRulesCatalogueIds: [],
   attunementSlotOverride: null,
   status: 'ACTIVE' as const,
   version: 3,
@@ -210,6 +233,15 @@ describe('Campaign lifecycle service', () => {
     mocks.lockTier.mockResolvedValue('FREE')
     mocks.repository.countActiveOwned.mockResolvedValue(0)
     mocks.repository.listAssignmentCharacterIds.mockResolvedValue([])
+    mocks.repository.listAssignmentPrimaryRulesCatalogueIds.mockResolvedValue([])
+    mocks.repository.listContentSourceIdsMissingFromRulesCatalogues.mockResolvedValue([])
+    mocks.repository.listActiveEncounterInitiativeContentSourceIds.mockResolvedValue([])
+    mocks.repository.listOptionalCombatContentSourceIdsRequiredByCampaign.mockResolvedValue([])
+    mocks.campaignSettings.find.mockResolvedValue({
+      initiativePolicyDefinitionId: null,
+      initiativeTieDefinitionId: null
+    })
+    mocks.resolveInitiativeSources.mockResolvedValue(null)
     mocks.shares.listByAuthor.mockResolvedValue([])
     mocks.findRemovalReceipt.mockResolvedValue(null)
     mocks.removeShares.mockResolvedValue({
@@ -688,7 +720,8 @@ describe('Campaign lifecycle service', () => {
     mocks.repository.findCharacter.mockResolvedValue({
       id: newCharacterId,
       userId: '00000000-0000-4000-8000-000000000020',
-      systemId: 'system',
+      systemId: campaign.gameSystemId,
+      primaryRulesCatalogueId: campaign.primaryRulesCatalogueId,
       label: 'New character'
     })
     mocks.repository.findAssignmentForUser.mockResolvedValue({ characterId: oldCharacterId })
@@ -704,6 +737,13 @@ describe('Campaign lifecycle service', () => {
       )
     ).resolves.toEqual({ characterId: newCharacterId })
 
+    expect(mocks.lockCharacterAssignmentAuthority).toHaveBeenCalledWith(
+      mocks.transaction,
+      newCharacterId
+    )
+    expect(mocks.lockCharacterAssignmentAuthority.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.repository.findAuthority.mock.invocationCallOrder[0] ?? 0
+    )
     expect(mocks.reconcileCurrency.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.repository.deleteAssignmentForUser.mock.invocationCallOrder[0] ?? 0
     )
@@ -713,6 +753,52 @@ describe('Campaign lifecycle service', () => {
     expect(mocks.reconcileCharacter.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.repository.insertAssignment.mock.invocationCallOrder[0] ?? 0
     )
+  })
+
+  it('rejects a Character from another System before writing an assignment', async () => {
+    const characterId = '00000000-0000-4000-8000-000000000022'
+    mocks.repository.findCharacter.mockResolvedValue({
+      id: characterId,
+      userId: '00000000-0000-4000-8000-000000000020',
+      systemId: '00000000-0000-4000-8000-000000000399',
+      primaryRulesCatalogueId: campaign.primaryRulesCatalogueId,
+      label: 'Other-system character'
+    })
+    mocks.repository.findAssignmentForUser.mockResolvedValue(null)
+
+    await expect(
+      assignCampaignCharacter(
+        {} as DBLike,
+        '00000000-0000-4000-8000-000000000020',
+        campaign.id,
+        characterId
+      )
+    ).rejects.toThrow('different game system')
+
+    expect(mocks.repository.insertAssignment).not.toHaveBeenCalled()
+  })
+
+  it('rejects a Character whose primary catalogue is not enabled before writing an assignment', async () => {
+    const characterId = '00000000-0000-4000-8000-000000000022'
+    mocks.repository.findCharacter.mockResolvedValue({
+      id: characterId,
+      userId: '00000000-0000-4000-8000-000000000020',
+      systemId: campaign.gameSystemId,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000399',
+      label: 'Unavailable catalogue character'
+    })
+    mocks.repository.findAssignmentForUser.mockResolvedValue(null)
+
+    await expect(
+      assignCampaignCharacter(
+        {} as DBLike,
+        '00000000-0000-4000-8000-000000000020',
+        campaign.id,
+        characterId
+      )
+    ).rejects.toThrow('not enabled')
+
+    expect(mocks.repository.insertAssignment).not.toHaveBeenCalled()
   })
 
   it('reconciles the recipient character before promoting them to owner', async () => {
@@ -842,6 +928,110 @@ describe('Campaign lifecycle service', () => {
     })
   })
 
+  it('swaps primary and additional catalogues through the locked transaction', async () => {
+    const primaryRulesCatalogueId = '00000000-0000-4000-8000-000000000303'
+    const additionalRulesCatalogueIds = [campaign.primaryRulesCatalogueId]
+    mocks.repository.findAuthority.mockImplementation(
+      async (_campaignId: string, userId: string) => ({
+        ...authority(userId, userId === campaign.ownerUserId ? 'OWNER' : 'PLAYER'),
+        campaign: {
+          ...campaign,
+          additionalRulesCatalogueIds: [primaryRulesCatalogueId]
+        }
+      })
+    )
+    mocks.repository.updateCampaign.mockResolvedValue({
+      ...campaign,
+      primaryRulesCatalogueId,
+      additionalRulesCatalogueIds
+    })
+
+    await updateCampaign({} as DBLike, campaign.ownerUserId, {
+      campaignId: campaign.id,
+      primaryRulesCatalogueId,
+      additionalRulesCatalogueIds,
+      expectedVersion: campaign.version
+    })
+
+    expect(mocks.repository.requireRulesCatalogues).toHaveBeenCalledWith({
+      gameSystemId: campaign.gameSystemId,
+      primaryRulesCatalogueId,
+      additionalRulesCatalogueIds
+    })
+    expect(mocks.repository.updateCampaign).toHaveBeenCalledWith(campaign.id, campaign.version, {
+      primary_rules_catalogue_id: primaryRulesCatalogueId
+    })
+    expect(mocks.repository.clearAdditionalRulesCatalogues).toHaveBeenCalledWith(campaign.id)
+    expect(mocks.repository.insertAdditionalRulesCatalogues).toHaveBeenCalledWith({
+      campaignId: campaign.id,
+      gameSystemId: campaign.gameSystemId,
+      primaryRulesCatalogueId,
+      additionalRulesCatalogueIds
+    })
+    expect(
+      mocks.repository.clearAdditionalRulesCatalogues.mock.invocationCallOrder[0]
+    ).toBeLessThan(mocks.repository.updateCampaign.mock.invocationCallOrder[0] ?? 0)
+    expect(mocks.repository.updateCampaign.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.repository.insertAdditionalRulesCatalogues.mock.invocationCallOrder[0] ?? 0
+    )
+  })
+
+  it('propagates a final catalogue insert failure so the outer transaction rolls back', async () => {
+    const primaryRulesCatalogueId = '00000000-0000-4000-8000-000000000303'
+    const additionalRulesCatalogueIds = [campaign.primaryRulesCatalogueId]
+    mocks.repository.findAuthority.mockImplementation(
+      async (_campaignId: string, userId: string) => ({
+        ...authority(userId, userId === campaign.ownerUserId ? 'OWNER' : 'PLAYER'),
+        campaign: {
+          ...campaign,
+          additionalRulesCatalogueIds: [primaryRulesCatalogueId]
+        }
+      })
+    )
+    mocks.repository.updateCampaign.mockResolvedValue({
+      ...campaign,
+      primaryRulesCatalogueId,
+      additionalRulesCatalogueIds
+    })
+    mocks.repository.insertAdditionalRulesCatalogues.mockRejectedValue(
+      new Error('final additional catalogue insert failed')
+    )
+
+    await expect(
+      updateCampaign({} as DBLike, campaign.ownerUserId, {
+        campaignId: campaign.id,
+        primaryRulesCatalogueId,
+        additionalRulesCatalogueIds,
+        expectedVersion: campaign.version
+      })
+    ).rejects.toThrow('final additional catalogue insert failed')
+
+    expect(
+      mocks.repository.clearAdditionalRulesCatalogues.mock.invocationCallOrder[0]
+    ).toBeLessThan(mocks.repository.updateCampaign.mock.invocationCallOrder[0] ?? 0)
+    expect(mocks.repository.updateCampaign.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.repository.insertAdditionalRulesCatalogues.mock.invocationCallOrder[0] ?? 0
+    )
+  })
+
+  it('rejects a catalogue update that removes an assigned Character primary catalogue before writes', async () => {
+    mocks.repository.listAssignmentPrimaryRulesCatalogueIds.mockResolvedValue([
+      campaign.primaryRulesCatalogueId
+    ])
+
+    await expect(
+      updateCampaign({} as DBLike, campaign.ownerUserId, {
+        campaignId: campaign.id,
+        primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000303',
+        expectedVersion: campaign.version
+      })
+    ).rejects.toBeInstanceOf(CampaignValidationError)
+
+    expect(mocks.repository.updateCampaign).not.toHaveBeenCalled()
+    expect(mocks.repository.clearAdditionalRulesCatalogues).not.toHaveBeenCalled()
+    expect(mocks.repository.insertAdditionalRulesCatalogues).not.toHaveBeenCalled()
+  })
+
   it('synchronizes a name-only listing projection without expiring pending admission', async () => {
     const listing = {
       id: '00000000-0000-4000-8000-000000000040',
@@ -969,6 +1159,71 @@ describe('Campaign lifecycle service', () => {
         expectedVersion: campaign.version
       })
     ).rejects.toThrow('read-only')
+    expect(mocks.repository.updateCampaign).not.toHaveBeenCalled()
+  })
+
+  it('rejects a catalogue update that removes an active combat-policy dependency before writes', async () => {
+    const contentSourceId = '00000000-0000-4000-8000-000000000390'
+    mocks.resolveInitiativeSources.mockResolvedValue({ contentSourceIds: [contentSourceId] })
+    mocks.repository.listContentSourceIdsMissingFromRulesCatalogues.mockResolvedValue([
+      contentSourceId
+    ])
+
+    await expect(
+      updateCampaign({} as DBLike, campaign.ownerUserId, {
+        campaignId: campaign.id,
+        primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000303',
+        expectedVersion: campaign.version
+      })
+    ).rejects.toThrow('Campaign Rules Catalogues cannot remove an active combat-policy dependency.')
+
+    expect(mocks.repository.updateCampaign).not.toHaveBeenCalled()
+    expect(mocks.repository.listContentSourceIdsMissingFromRulesCatalogues).toHaveBeenCalledWith({
+      rulesCatalogueIds: ['00000000-0000-4000-8000-000000000303'],
+      contentSourceIds: [contentSourceId]
+    })
+  })
+
+  it('protects initiative sources frozen by a prepared or active Encounter', async () => {
+    const contentSourceId = '00000000-0000-4000-8000-000000000391'
+    mocks.repository.listActiveEncounterInitiativeContentSourceIds.mockResolvedValue([
+      contentSourceId
+    ])
+    mocks.repository.listContentSourceIdsMissingFromRulesCatalogues.mockResolvedValue([
+      contentSourceId
+    ])
+
+    await expect(
+      updateCampaign({} as DBLike, campaign.ownerUserId, {
+        campaignId: campaign.id,
+        primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000303',
+        expectedVersion: campaign.version
+      })
+    ).rejects.toThrow('Campaign Rules Catalogues cannot remove an active combat-policy dependency.')
+
+    expect(mocks.repository.updateCampaign).not.toHaveBeenCalled()
+  })
+
+  it('protects selected and prepared-or-active frozen optional combat sources from catalogue removal', async () => {
+    const contentSourceId = '00000000-0000-4000-8000-000000000392'
+    mocks.repository.listOptionalCombatContentSourceIdsRequiredByCampaign.mockResolvedValue([
+      contentSourceId
+    ])
+    mocks.repository.listContentSourceIdsMissingFromRulesCatalogues.mockResolvedValue([
+      contentSourceId
+    ])
+
+    await expect(
+      updateCampaign({} as DBLike, campaign.ownerUserId, {
+        campaignId: campaign.id,
+        primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000303',
+        expectedVersion: campaign.version
+      })
+    ).rejects.toThrow('Campaign Rules Catalogues cannot remove an active combat-policy dependency.')
+
+    expect(
+      mocks.repository.listOptionalCombatContentSourceIdsRequiredByCampaign
+    ).toHaveBeenCalledWith(campaign.id)
     expect(mocks.repository.updateCampaign).not.toHaveBeenCalled()
   })
 })

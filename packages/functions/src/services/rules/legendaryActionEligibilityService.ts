@@ -1,0 +1,104 @@
+import {
+  legendaryActionEligibilityOutputDtoSchema,
+  type LegendaryActionEligibilityOutputDto
+} from '@artificer-toolkit/schema/shared/encounterLifecycle'
+import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
+import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+
+import type { RulesRuntimeService } from './rulesRuntimeService.js'
+
+export interface LegendaryActionEligibilitySource {
+  ownerActorId: string
+  ownerFeatureId: string
+  actionId: string
+  gameSystemId: string
+  lifecycle: {
+    definitionId: string
+    definitionVersion: number
+    definitionChecksum: string
+    eligibilityGraphDefinitionId: string
+    eligibilityGraphDefinitionVersion: number
+    eligibilityGraphDefinitionChecksum: string
+    eligibleOutput: string
+  }
+}
+
+export interface LegendaryActionEligibilityFacts {
+  capabilityState: ResolvedRuleCapabilityStateDto
+  outgoingActorId: string
+  poolRemaining: number
+  windowUsed: boolean
+}
+
+export interface EvaluatedLegendaryActionCandidate<
+  TSource extends LegendaryActionEligibilitySource = LegendaryActionEligibilitySource
+> {
+  source: TSource
+  policy: LegendaryActionEligibilityOutputDto
+  evidence: ServerCompletedRuleExecutionDto['evidence']
+}
+
+export interface LegendaryActionEligibilityAdapter {
+  gameSystemId: string
+  requiredCapabilityDefinitionIds: readonly string[]
+  evaluate(input: {
+    runtime: RulesRuntimeService
+    occurrenceId: string
+    source: LegendaryActionEligibilitySource
+    facts: LegendaryActionEligibilityFacts
+  }): Promise<{
+    policy: unknown
+    evidence: ServerCompletedRuleExecutionDto['evidence']
+  }>
+}
+
+/**
+ * Runs an exact Feature-bound Legendary Action policy. The caller discovers
+ * immutable Features and owns current resource/turn facts; this seam only
+ * maps those frozen facts through the selected System graph.
+ */
+export function createLegendaryActionEligibilityService(
+  adapters: readonly LegendaryActionEligibilityAdapter[]
+) {
+  const adaptersBySystemId = new Map<string, LegendaryActionEligibilityAdapter>()
+  for (const adapter of adapters) {
+    if (adaptersBySystemId.has(adapter.gameSystemId)) {
+      throw new Error(`Duplicate Legendary Action eligibility adapter: ${adapter.gameSystemId}.`)
+    }
+    adaptersBySystemId.set(adapter.gameSystemId, adapter)
+  }
+  return async function evaluateLegendaryActionEligibility<
+    TSource extends LegendaryActionEligibilitySource
+  >(input: {
+    runtime: RulesRuntimeService
+    occurrenceId: string
+    candidates: readonly { source: TSource; facts: LegendaryActionEligibilityFacts }[]
+  }): Promise<readonly EvaluatedLegendaryActionCandidate<TSource>[]> {
+    const evaluated: EvaluatedLegendaryActionCandidate<TSource>[] = []
+    for (const entry of input.candidates) {
+      if (entry.source.gameSystemId !== entry.facts.capabilityState.gameSystemId) {
+        throw new Error('Legendary Action source does not match its resolved capability System.')
+      }
+      const adapter = adaptersBySystemId.get(entry.source.gameSystemId)
+      if (!adapter) continue
+      const result = await adapter.evaluate({
+        runtime: input.runtime,
+        occurrenceId: input.occurrenceId,
+        ...entry
+      })
+      if (
+        result.evidence.source.definitionId !==
+          entry.source.lifecycle.eligibilityGraphDefinitionId ||
+        result.evidence.source.gameSystemId !== entry.source.gameSystemId
+      ) {
+        throw new Error('Legendary Action eligibility evidence does not match its exact graph pin.')
+      }
+      evaluated.push({
+        source: entry.source,
+        policy: legendaryActionEligibilityOutputDtoSchema.parse(result.policy),
+        evidence: result.evidence
+      })
+    }
+    return evaluated
+  }
+}

@@ -59,7 +59,11 @@ test('retains the 8K scene renderer correctness and diagnostic load evidence', a
     const reportDetails = `VTT report: ${JSON.stringify(report)}`
 
     await testInfo.attach(`vtt-load-${mode.toLowerCase()}`, {
-      body: JSON.stringify({ gestureProbes, heapGrowthBytes, peakHeapGrowthBytes, report }, null, 2),
+      body: JSON.stringify(
+        { gestureProbes, heapGrowthBytes, peakHeapGrowthBytes, report },
+        null,
+        2
+      ),
       contentType: 'application/json'
     })
     console.info(
@@ -87,8 +91,14 @@ test('retains the 8K scene renderer correctness and diagnostic load evidence', a
       expect(report.maxForegroundFrameGapMs, reportDetails).toBeLessThanOrEqual(100)
       expect(report.maxLongTaskMs, reportDetails).toBeLessThanOrEqual(100)
       expect(gestureProbes, reportDetails).not.toHaveLength(0)
-      expect(gestureProbes.every((probe) => probe.foreground), reportDetails).toBe(true)
-      expect(Math.max(...gestureProbes.map((probe) => probe.elapsedWallMs)), reportDetails).toBeLessThanOrEqual(100)
+      expect(
+        gestureProbes.every((probe) => probe.foreground),
+        reportDetails
+      ).toBe(true)
+      expect(
+        Math.max(...gestureProbes.map((probe) => probe.elapsedWallMs)),
+        reportDetails
+      ).toBeLessThanOrEqual(100)
     }
     if (testInfo.project.name === 'storybook-vtt-hardware' && mode === 'FULL') {
       expect(report.webglRenderer, reportDetails).not.toBeNull()

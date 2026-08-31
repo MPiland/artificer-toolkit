@@ -17,6 +17,7 @@ const SPELL_COMPONENT_CODES: Record<NonNullable<SpellAuthored['components']>[num
 type SpellRow = {
   id: string
   system_id: string
+  content_source_id: string
   user_id: string
   label: string
   description: string
@@ -72,10 +73,11 @@ function requireSpellComponent(
   return value as NonNullable<SpellAuthored['components']>[number]
 }
 
-function mapSpellRow(json_data: SpellAuthored): SpellRow {
+function mapSpellRow(json_data: SpellAuthored, contentSourceId: string): SpellRow {
   return {
     id: json_data.id,
     system_id: json_data.systemId,
+    content_source_id: contentSourceId,
     user_id: json_data.userId,
     label: json_data.label,
     description: json_data.description,
@@ -88,7 +90,12 @@ function mapSpellRow(json_data: SpellAuthored): SpellRow {
   }
 }
 
-export async function upsertSpell(db: DBLike, json_data: SpellAuthored, _systemId: string) {
+export async function upsertSpell(
+  db: DBLike,
+  json_data: SpellAuthored,
+  systemId: string,
+  contentSourceId: string
+) {
   const attributeRows: SpellAttributeRow[] = (json_data.attributes ?? []).map(
     (attribute, index) => ({
       spell_id: json_data.id,
@@ -124,15 +131,16 @@ export async function upsertSpell(db: DBLike, json_data: SpellAuthored, _systemI
       .execute()
 
     for (const effect of authoredEffects) {
-      await upsertEffect(trx, effect)
+      await upsertEffect(trx, effect, systemId)
     }
 
     await trx
       .insertInto('spells')
-      .values(mapSpellRow(json_data))
+      .values(mapSpellRow(json_data, contentSourceId))
       .onConflict((oc) =>
         oc.column('id').doUpdateSet((eb) => ({
           system_id: eb.ref('excluded.system_id'),
+          content_source_id: eb.ref('spells.content_source_id'),
           user_id: eb.ref('excluded.user_id'),
           label: eb.ref('excluded.label'),
           description: eb.ref('excluded.description'),

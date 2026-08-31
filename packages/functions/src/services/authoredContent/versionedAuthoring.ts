@@ -14,18 +14,15 @@ import {
   authoredDocumentVersionSchema,
   type CompiledAuthoredProjection
 } from '@artificer-toolkit/schema/projections/authoredContent'
-import type {
-  AuthoredSubjectKind,
-  JsonValue
-} from '@artificer-toolkit/schema/projections/identity'
+import type { AuthoredSubjectKind, JsonValue } from '@artificer-toolkit/schema/projections/identity'
 import {
   equipmentAuthoredDtoSchema,
   raceAuthoredDtoSchema,
   spellAuthoredDtoSchema
 } from '@artificer-toolkit/schema/subjects'
 import {
-  compileEquipment,
-  compileRace,
+  assertCompiledSubjectMechanicsIndex,
+  compileSubjectWithMechanicsIndex,
   resolveEquipmentAuthored,
   resolveRaceAuthored
 } from '@artificer-toolkit/shared/subjects/compilers'
@@ -46,7 +43,6 @@ function requireProjectionRecord(value: unknown): Record<string, JsonValue> {
 
 async function prepareCompilation(input: {
   authored: { id: string; systemId: string }
-  compiled: unknown
   db: DBLike
   subjectKind: AuthoredSubjectKind
 }): Promise<{
@@ -57,7 +53,12 @@ async function prepareCompilation(input: {
     case 'RACE': {
       const race = raceAuthoredDtoSchema.parse(input.authored) as unknown as RaceAuthored
       if (race.category !== 'SUBRACE') {
-        return { authoredDependencies: [], compiled: input.compiled }
+        const compiled = compileSubjectWithMechanicsIndex({
+          subjectKind: input.subjectKind,
+          authored: race
+        })
+        assertCompiledSubjectMechanicsIndex(compiled.mechanicsIndex)
+        return { authoredDependencies: [], compiled: compiled.compiled }
       }
 
       const parent = await createAuthoredVersionRepository(input.db).findActive({
@@ -69,7 +70,9 @@ async function prepareCompilation(input: {
           `Cannot activate subrace "${race.id}" without an active parent race version.`
         )
       }
-      const parentRace = raceAuthoredDtoSchema.parse(parent.authored.document) as unknown as RaceAuthored
+      const parentRace = raceAuthoredDtoSchema.parse(
+        parent.authored.document
+      ) as unknown as RaceAuthored
 
       return {
         authoredDependencies: [
@@ -81,17 +84,30 @@ async function prepareCompilation(input: {
             checksum: parent.authored.checksum
           }
         ],
-        compiled: compileRace(
-          resolveRaceAuthored(race, (raceId) =>
-            raceId === parent.authored.subjectId ? parentRace : null
-          )
-        )
+        compiled: (() => {
+          const compilation = compileSubjectWithMechanicsIndex({
+            subjectKind: input.subjectKind,
+            authored: race,
+            effectiveAuthored: resolveRaceAuthored(race, (raceId) =>
+              raceId === parent.authored.subjectId ? parentRace : null
+            )
+          })
+          assertCompiledSubjectMechanicsIndex(compilation.mechanicsIndex)
+          return compilation.compiled
+        })()
       }
     }
     case 'EQUIPMENT': {
-      const equipment = equipmentAuthoredDtoSchema.parse(input.authored) as unknown as EquipmentAuthored
+      const equipment = equipmentAuthoredDtoSchema.parse(
+        input.authored
+      ) as unknown as EquipmentAuthored
       if (equipment.category !== 'VARIANT') {
-        return { authoredDependencies: [], compiled: input.compiled }
+        const compiled = compileSubjectWithMechanicsIndex({
+          subjectKind: input.subjectKind,
+          authored: equipment
+        })
+        assertCompiledSubjectMechanicsIndex(compiled.mechanicsIndex)
+        return { authoredDependencies: [], compiled: compiled.compiled }
       }
 
       const parent = await createAuthoredVersionRepository(input.db).findActive({
@@ -117,15 +133,27 @@ async function prepareCompilation(input: {
             checksum: parent.authored.checksum
           }
         ],
-        compiled: compileEquipment(
-          resolveEquipmentAuthored(equipment, (equipmentId) =>
-            equipmentId === parent.authored.subjectId ? parentEquipment : null
-          )
-        )
+        compiled: (() => {
+          const compilation = compileSubjectWithMechanicsIndex({
+            subjectKind: input.subjectKind,
+            authored: equipment,
+            effectiveAuthored: resolveEquipmentAuthored(equipment, (equipmentId) =>
+              equipmentId === parent.authored.subjectId ? parentEquipment : null
+            )
+          })
+          assertCompiledSubjectMechanicsIndex(compilation.mechanicsIndex)
+          return compilation.compiled
+        })()
       }
     }
-    default:
-      return { authoredDependencies: [], compiled: input.compiled }
+    default: {
+      const compiled = compileSubjectWithMechanicsIndex({
+        subjectKind: input.subjectKind,
+        authored: input.authored
+      })
+      assertCompiledSubjectMechanicsIndex(compiled.mechanicsIndex)
+      return { authoredDependencies: [], compiled: compiled.compiled }
+    }
   }
 }
 
@@ -134,7 +162,7 @@ export async function publishVersionedAuthoredAggregate(input: {
     id: string
     systemId: string
   }
-  compiled: unknown
+  contentSourceId: string
   db: DBLike
   subjectKind: AuthoredSubjectKind
 }): Promise<AuthoredVersionRecord> {
@@ -164,11 +192,13 @@ export async function publishVersionedAuthoredAggregate(input: {
       document: authoredDocument
     })
     await upsertAuthoredRootEnvelope(db, {
+      contentSourceId: input.contentSourceId,
       document: authored.document,
       subjectKind: input.subjectKind
     })
     const published = await createAuthoredVersionRepository(db).publish({
       subjectKind: authored.subjectKind,
+      contentSourceId: input.contentSourceId,
       subjectId: authored.subjectId,
       versionId: authored.versionId,
       documentSchemaVersion: authored.documentSchemaVersion,

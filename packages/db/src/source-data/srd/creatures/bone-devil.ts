@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
@@ -246,7 +247,7 @@ export const boneDevil: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(52, 106),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.CONSTITUTION,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
               baseDc: 14
             },
             activation: { code: S.ACTIVATION_CODE.FREE },
@@ -290,7 +291,7 @@ export const boneDevil: CreatureAuthored = {
                     savingThrow: {
                       id: S.actionId(52, 112),
                       dcMethod: 'FIXED_DC',
-                      ability: S.ABILITY_CODE.CONSTITUTION,
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
                       baseDc: 14
                     },
                     attempts: { kind: 'ONCE', repeatOnFailure: true },

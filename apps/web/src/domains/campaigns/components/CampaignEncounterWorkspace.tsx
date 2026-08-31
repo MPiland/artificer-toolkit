@@ -17,9 +17,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { IconDotsVertical, IconTrash } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { useEffect, useState } from 'react'
-import type {
-  EncounterCommandInputDto,
-  EncounterGmProjectionDto
+import {
+  encounterGmProjectionDtoSchema,
+  type EncounterCommandInputDto,
+  type EncounterGmProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignDetailDto } from '#app/lib/api'
 import { api } from '#app/lib/api'
@@ -67,7 +68,7 @@ export function CampaignEncounterWorkspace({
   const command = useMutation({
     mutationFn: (input: EncounterCommandInputDto) => api.encounters.command(input),
     onSuccess: (result) => {
-      const updated = result.projection
+      const updated = encounterGmProjectionDtoSchema.parse(result.projection)
       if (result.roll) {
         notifications.show({
           color: 'orange',

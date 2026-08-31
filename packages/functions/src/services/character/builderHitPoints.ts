@@ -1,7 +1,4 @@
-import {
-  CLASS_CATEGORY,
-  HITPOINT_CALCULATION_METHOD_CODE
-} from '@artificer-toolkit/shared/core'
+import { CLASS_CATEGORY, HITPOINT_CALCULATION_METHOD_CODE } from '@artificer-toolkit/shared/core'
 import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
 import type {
   CharacterAuthored,
@@ -101,8 +98,7 @@ export function prepareCharacterHitpointProgression(
       : null
     const abilityIndex = normalizedHitpointAbility
       ? abilityIds.findIndex(
-          (abilityId) =>
-            (resolveAbilityAlias(abilityId) ?? abilityId) === normalizedHitpointAbility
+          (abilityId) => (resolveAbilityAlias(abilityId) ?? abilityId) === normalizedHitpointAbility
         )
       : -1
     const key = `${orderedLevel.classId}:${orderedLevel.classLevel}`
@@ -147,9 +143,7 @@ export function prepareCharacterHitpointProgression(
       abilityIndex: abilityIndex < 0 ? null : abilityIndex,
       fallbackValue: orderedLevel.value,
       rollValue: roll?.value ?? null,
-      legacyOverrideValue: persistedLegacyOverride
-        ? (submitted?.value ?? persisted.value)
-        : null
+      legacyOverrideValue: persistedLegacyOverride ? (submitted?.value ?? persisted.value) : null
     }
   })
 

@@ -297,6 +297,30 @@ function compositeFixture({ duplicateFeat = false } = {}) {
 }
 
 describe('buildCharacterActionRuleFacts', () => {
+  it('retains exact compiled Effects server-side without adding them to serialized rule facts', () => {
+    const fixture = compositeFixture()
+    const result = buildCharacterActionRuleFacts({
+      ...fixture,
+      resourcePoolCandidates: []
+    })
+    const candidate = result.actionCandidates[0]
+    const entryPoint = result.entryPoints[0]
+
+    expect(candidate).toBeDefined()
+    expect(entryPoint).toBeDefined()
+    expect(entryPoint).toMatchObject({
+      actionId: candidate?.actionId,
+      effectId: candidate?.effectId,
+      sourceId: candidate?.sourceId,
+      source: candidate?.source,
+      mechanicsOwner: candidate?.mechanicsOwner,
+      activationSourceKind: candidate?.activationSourceKind
+    })
+    expect(entryPoint?.compiledEffect.id).toBe(candidate?.effectId)
+    expect(Object.hasOwn(candidate ?? {}, 'compiledEffect')).toBe(false)
+    expect(JSON.stringify(result.actionCandidates)).not.toContain('compiledEffect')
+  })
+
   it('normalizes authored invocation, damage, and healing into JSON-safe mechanics facts', () => {
     const feature = compileFeature({
       id: 'mechanic-feature',
@@ -313,10 +337,14 @@ describe('buildCharacterActionRuleFacts', () => {
             savingThrow: {
               id: 'mechanic-save',
               dcMethod: 'DERIVED_DC',
-              ability: 'DEXTERITY',
+              abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
               baseDc: 8,
               bonuses: [
-                { id: 'save-wisdom', bonusKind: 'ABILITY_MODIFIER', ability: 'WISDOM' },
+                {
+                  id: 'save-wisdom',
+                  bonusKind: 'ABILITY_MODIFIER',
+                  abilityDefinitionId: '00000000-0000-0000-0011-000500000000'
+                },
                 { id: 'save-proficiency', bonusKind: 'PROFICIENCY_BONUS' }
               ]
             },
@@ -418,12 +446,16 @@ describe('buildCharacterActionRuleFacts', () => {
         triggerCode: 'SAVING_THROW',
         activation: { code: 'ACTION', amount: 1 },
         range: { rangeKind: 'DISTANCE', amount: 30, unit: 'FEET' },
+        reactionMovementTrigger: null,
         savingThrow: {
           dcMethod: 'DERIVED_DC',
-          ability: 'DEXTERITY',
+          abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
           baseDc: 8,
           bonuses: [
-            { bonusKind: 'ABILITY_MODIFIER', ability: 'WISDOM' },
+            {
+              bonusKind: 'ABILITY_MODIFIER',
+              abilityDefinitionId: '00000000-0000-0000-0011-000500000000'
+            },
             { bonusKind: 'PROFICIENCY_BONUS' }
           ]
         }
@@ -496,6 +528,92 @@ describe('buildCharacterActionRuleFacts', () => {
       ]
     })
     expect(JSON.stringify(candidate?.mechanicFacts)).not.toContain('undefined')
+  })
+
+  it('preserves a bound reaction movement trigger and leaves unbound actions explicitly null', () => {
+    const reactionFeature = compileFeature({
+      id: 'reaction-feature',
+      label: 'Reaction feature',
+      description: '',
+      order: 1,
+      effects: [
+        {
+          id: 'reaction-effect',
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+            range: { id: 'reaction-range', rangeKind: RANGE_KIND.SELF },
+            reactionMovementTrigger: {
+              kind: 'MOVEMENT',
+              stage: 'BEFORE_LEAVE_REACH',
+              perceptionRequirement: 'SEE',
+              eligibilityDefinitionId: 'aaaaaaaa-0000-4000-8000-000000000001'
+            }
+          },
+          paths: [actionPath('reaction')]
+        },
+        {
+          id: 'unbound-reaction-effect',
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+            range: { id: 'unbound-reaction-range', rangeKind: RANGE_KIND.SELF }
+          },
+          paths: [actionPath('unbound-reaction')]
+        }
+      ]
+    })
+    const snapshot = {
+      characterId: 'character-1',
+      systemId: 'dnd5e2014',
+      totalLevel: 1,
+      classes: [],
+      abilities: {},
+      hitpoints: [],
+      features: [
+        {
+          featureId: reactionFeature.id,
+          source: { kind: 'FEATURE', featureId: reactionFeature.id },
+          timing: { kind: 'IMMEDIATE' }
+        }
+      ],
+      equipmentItems: []
+    } satisfies CharacterBuildSnapshot
+    const registry: CharacterAssemblyRegistry = {
+      backgrounds: {},
+      features: { [reactionFeature.id]: reactionFeature },
+      classes: {},
+      feats: {},
+      races: {},
+      equipment: {},
+      spells: {}
+    }
+    const facts = buildCharacterActionRuleFacts({
+      snapshot,
+      registry,
+      grantFoldFacts: compileCharacterGrantFoldRuleFacts({ snapshot, registry }),
+      resourcePoolCandidates: []
+    })
+
+    expect(facts.actionCandidates[0]?.mechanicFacts.invocation.reactionMovementTrigger).toEqual({
+      kind: 'MOVEMENT',
+      stage: 'BEFORE_LEAVE_REACH',
+      perceptionRequirement: 'SEE',
+      eligibilityDefinitionId: 'aaaaaaaa-0000-4000-8000-000000000001',
+      movementInterruption: null
+    })
+    expect(facts.actionCandidates[0]?.mechanicFacts.invocation.activation).toEqual({
+      code: 'REACTION',
+      amount: 1
+    })
+    expect(
+      facts.actionCandidates.find((candidate) => candidate.effectId === 'unbound-reaction-effect')
+        ?.mechanicFacts.invocation.reactionMovementTrigger
+    ).toBeNull()
   })
 
   it('builds ordered mechanics owners, ignores passive effects, and preserves source-isolation and restrictions', () => {

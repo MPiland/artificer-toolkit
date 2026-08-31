@@ -127,6 +127,34 @@ export function createCharacterBuilderDraftRepository(db: DBLike) {
       return mapDraft(row)
     },
 
+    async lockByCharacter(params: {
+      characterId: string
+      userId: string
+    }): Promise<CharacterBuilderDraft | null> {
+      const result = await sql<CharacterBuilderDraftRow>`
+        select
+          id,
+          character_id,
+          user_id,
+          system_id,
+          label,
+          status,
+          mode,
+          payload,
+          base_active_updated_at::text as base_active_updated_at,
+          created_at::text as created_at,
+          updated_at::text as updated_at,
+          ${activeExistsProjection()} as active_exists
+        from character_builder_drafts
+        where character_id = ${params.characterId}
+          and user_id = ${params.userId}
+        limit 1
+        for update
+      `.execute(db)
+      const row = result.rows[0]
+      return row ? mapDraft(row) : null
+    },
+
     async listByUser(userId: string): Promise<CharacterBuilderDraft[]> {
       const result = await sql<CharacterBuilderDraftRow>`
         select

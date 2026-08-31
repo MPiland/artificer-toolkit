@@ -21,6 +21,8 @@ describe('media repository cleanup contracts', () => {
     expect(source).toContain(
       'not exists (select 1 from authored_image_slots where asset_id = asset.id)'
     )
+    expect(source).toContain('select 1 from campaign_live_scenes scene')
+    expect(source).not.toContain('select 1 from encounter_scenes scene')
     expect(source).toContain('with claimed as')
     expect(source).toContain("set status = 'DELETED'")
   })

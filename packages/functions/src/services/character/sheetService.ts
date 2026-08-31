@@ -1,7 +1,6 @@
 import {
   ConcurrencyError,
   createCampaignCharacterMechanicsProjectionRepository,
-  createCampaignContentShareRepository,
   createCharacterEventRepository,
   createCharacterMechanicsProjectionRepository,
   createCharacterRepository,
@@ -76,6 +75,7 @@ import {
   type SheetResource
 } from './sheetCommandReducer.js'
 import { buildCharacterSheetBundle } from './sheetProjection.js'
+import { lockAssignedCharacterSheetCampaignCommandAccess } from './characterRuleExecutionCommandContext.js'
 import { assembleCharacterSheetBundleForRuleContext } from './characterSheetBundleAssembly.js'
 import {
   createCharacterCommittedSheetExtras,
@@ -94,9 +94,11 @@ import { loadCampaignCharacterContentOverlay } from './campaignCharacterContent.
 import { createCommittedCharacterRuleEvaluation } from './characterCommittedRuleEvaluation.js'
 import {
   advanceCharacterMechanicsProjectionCommandState,
+  carryPinnedCharacterSenseDefinitions,
   compileCharacterMechanicsProjection
 } from './characterMechanicsCompiler.js'
 import { deriveCharacterSceneVision } from './characterSceneVision.js'
+import type { SceneCharacterVision } from '@artificer-toolkit/shared/vtt'
 import {
   applyCompletedCharacterRest,
   buildCharacterRestPreview,
@@ -113,26 +115,6 @@ import {
   validateSpellMechanicCustomization,
   validateSpellSource
 } from './sheetCommandValidation.js'
-
-async function lockAssignedCampaignCommandAccess(
-  db: DBLike,
-  input: { campaignId: string; characterId: string; userId: string }
-): Promise<void> {
-  const access = await createCampaignContentShareRepository(db).lockCampaignMemberForContentRead({
-    campaignId: input.campaignId,
-    userId: input.userId
-  })
-  if (!access.campaignExists || !access.memberActive) {
-    throw createNamedError(
-      'CampaignContentShareUnavailableError',
-      `Campaign access is unavailable for Character "${input.characterId}".`
-    )
-  }
-  await createCampaignCharacterMechanicsProjectionRepository(db).lockAssignment({
-    campaignId: input.campaignId,
-    characterId: input.characterId
-  })
-}
 
 export interface CharacterSheetCommandServiceTiming {
   ruleResponsibility: CharacterSheetCommandRuleResponsibility
@@ -411,17 +393,38 @@ export interface ExecuteCharacterSheetCommandParams {
 }
 
 export interface CharacterSheetCommittedRuleSnapshot {
+  effectiveSceneVision: SceneCharacterVision
   campaignMechanicalContextChecksum: string | null
   campaignMechanicsProjectionChecksum: string | null
   mechanicsCommandLaneChecksum: string
   mechanicsProjectionChecksum: string
   mechanicsPayload: Pick<
     CharacterMechanicsProjection,
-    'ruleSnapshot' | 'rulePolicyInput' | 'rulePolicyOutput' | 'ruleRegistry'
+    | 'ruleSnapshot'
+    | 'rulePolicyInput'
+    | 'rulePolicyOutput'
+    | 'initiativeActorFacts'
+    | 'pinnedSenseDefinitions'
+    | 'ruleRegistry'
+    | 'compiledActionEntryPoints'
   >
   streamVersion: number
   evaluation: CharacterRuleEvaluationResult
   resolution: CharacterBuilderResolution
+}
+
+function deriveEffectiveCharacterSceneVision(
+  characterId: string,
+  mechanics: Pick<CharacterMechanicsProjection, 'pinnedSenseDefinitions' | 'rulePolicyOutput'>,
+  effectiveSenses = mechanics.rulePolicyOutput.senses
+): SceneCharacterVision {
+  return deriveCharacterSceneVision(
+    characterId,
+    carryPinnedCharacterSenseDefinitions({
+      prior: mechanics.pinnedSenseDefinitions,
+      senses: effectiveSenses
+    })
+  )
 }
 
 function reconstituteCommittedSnapshotMechanics(input: {
@@ -432,7 +435,11 @@ function reconstituteCommittedSnapshotMechanics(input: {
   // projections; each command still verifies metadata identity below.
   return {
     ...input.metadata,
-    ...input.payload
+    ...input.payload,
+    initiativeActorFacts: input.payload.initiativeActorFacts ?? {
+      effectiveSize: null,
+      equippedItems: []
+    }
   }
 }
 
@@ -513,10 +520,27 @@ export async function executeCompactLiveCharacterHitPointCommand(
       expectedRuleRevisionId: row.rule_pack_revision_id,
       expectedStreamVersion: row.stream_version
     })
+    const replayCampaignMechanics = campaignContext.campaignId
+      ? await createCampaignCharacterMechanicsProjectionRepository(params.db).requireCurrent({
+          campaignId: campaignContext.campaignId,
+          characterId: params.characterId,
+          expectedBaseMechanicsProjectionChecksum: mechanics.projectionChecksum,
+          expectedCharacterStreamVersion: row.stream_version,
+          expectedMechanicalContextChecksum: checksumCampaignCharacterMechanicalContext({
+            adjustments: campaignContext.adjustments,
+            attunementSlotOverride: campaignContext.attunementSlotOverride
+          }),
+          expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
+          baseMechanicsProjection: mechanics
+        })
+      : null
     return {
-      characterVision: deriveCharacterSceneVision(
+      characterVision: deriveEffectiveCharacterSceneVision(
         params.characterId,
-        mechanics.rulePolicyOutput.senses
+        mechanics,
+        replayCampaignMechanics?.kind === 'MATERIALIZED'
+          ? replayCampaignMechanics.rulePolicyOutput.senses
+          : undefined
       ),
       replayed: true,
       version: priorEvent.committedStreamVersion
@@ -639,13 +663,16 @@ export async function executeCompactLiveCharacterHitPointCommand(
   let version: number
   try {
     version = await repository.patchLiveHitPoints(params.characterId, {
-      expected: { current: projectedHitPoints.current, temp: projectedHitPoints.temp },
+      expected: {
+        current: projectedHitPoints.current,
+        temp: projectedHitPoints.temp
+      },
       next: nextHitPoints,
       expectedStreamVersion: command.expectedVersion,
       ...(campaignContext.campaignId
         ? {
             beforeCharacterLock: (trx) =>
-              lockAssignedCampaignCommandAccess(trx, {
+              lockAssignedCharacterSheetCampaignCommandAccess(trx, {
                 campaignId: campaignContext.campaignId as string,
                 characterId: params.characterId,
                 userId: params.userId
@@ -682,21 +709,34 @@ export async function executeCompactLiveCharacterHitPointCommand(
     throw error
   }
   return {
-    characterVision: deriveCharacterSceneVision(
+    characterVision: deriveEffectiveCharacterSceneVision(
       params.characterId,
-      effectiveRulePolicyOutput.senses
+      nextMechanics,
+      nextCampaignMechanics?.kind === 'MATERIALIZED'
+        ? nextCampaignMechanics.rulePolicyOutput.senses
+        : undefined
     ),
     replayed: false,
     ...(matchingCommittedRuleSnapshot
       ? {
           ruleSnapshot: {
+            effectiveSceneVision: deriveEffectiveCharacterSceneVision(
+              params.characterId,
+              nextMechanics,
+              nextCampaignMechanics?.kind === 'MATERIALIZED'
+                ? nextCampaignMechanics.rulePolicyOutput.senses
+                : undefined
+            ),
             mechanicsProjectionChecksum: nextMechanics.projectionChecksum,
             mechanicsCommandLaneChecksum: nextMechanics.commandLaneChecksum,
             mechanicsPayload: {
               ruleSnapshot: nextMechanics.ruleSnapshot,
               rulePolicyInput: nextMechanics.rulePolicyInput,
               rulePolicyOutput: nextMechanics.rulePolicyOutput,
-              ruleRegistry: nextMechanics.ruleRegistry
+              initiativeActorFacts: nextMechanics.initiativeActorFacts,
+              pinnedSenseDefinitions: nextMechanics.pinnedSenseDefinitions,
+              ruleRegistry: nextMechanics.ruleRegistry,
+              compiledActionEntryPoints: nextMechanics.compiledActionEntryPoints
             },
             campaignMechanicalContextChecksum,
             campaignMechanicsProjectionChecksum: nextCampaignMechanics?.projectionChecksum ?? null,
@@ -726,7 +766,10 @@ export async function executeCompactLiveMaximumHitPointModifierCommand(
   params: CompactLiveMaximumHitPointModifierCommandParams
 ): Promise<CompactLiveCharacterHitPointCommandExecution | null> {
   return withTransaction(params.db, (db) =>
-    executeCompactLiveMaximumHitPointModifierCommandInTransaction({ ...params, db })
+    executeCompactLiveMaximumHitPointModifierCommandInTransaction({
+      ...params,
+      db
+    })
   )
 }
 
@@ -780,9 +823,12 @@ async function executeCompactLiveMaximumHitPointModifierCommandInTransaction(
       )
     }
     return {
-      characterVision: deriveCharacterSceneVision(
+      characterVision: deriveEffectiveCharacterSceneVision(
         params.characterId,
-        context.mechanics.rulePolicyOutput.senses
+        context.mechanics,
+        context.overlay?.kind === 'MATERIALIZED'
+          ? context.overlay.rulePolicyOutput.senses
+          : undefined
       ),
       replayed: true,
       version: priorEvent.committedStreamVersion
@@ -825,7 +871,10 @@ async function executeCompactLiveMaximumHitPointModifierCommandInTransaction(
   const nextManualMaximumModifier = nextAdjustment
     ? {
         sourceId: nextAdjustment.id,
-        source: { kind: 'MANUAL_ADJUSTMENT' as const, adjustmentId: nextAdjustment.id },
+        source: {
+          kind: 'MANUAL_ADJUSTMENT' as const,
+          adjustmentId: nextAdjustment.id
+        },
         value: nextAdjustment.value
       }
     : null
@@ -992,7 +1041,11 @@ async function executeCompactLiveMaximumHitPointModifierCommandInTransaction(
     context,
     event,
     nextAdjustment: nextAdjustment
-      ? { actorId: nextAdjustment.actorId, id: nextAdjustment.id, value: nextAdjustment.value }
+      ? {
+          actorId: nextAdjustment.actorId,
+          id: nextAdjustment.id,
+          value: nextAdjustment.value
+        }
       : null,
     nextHitPoints,
     nextCharacterCommandState,
@@ -1009,7 +1062,11 @@ async function executeCompactLiveMaximumHitPointModifierCommandInTransaction(
           : null
   })
   return {
-    characterVision: deriveCharacterSceneVision(params.characterId, effectiveOutput.senses),
+    characterVision: deriveEffectiveCharacterSceneVision(
+      params.characterId,
+      mechanics,
+      nextCampaignPolicy?.rulePolicyOutput.senses
+    ),
     replayed: false,
     version
   }
@@ -1357,13 +1414,21 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
       replayed: true,
       response,
       ruleSnapshot: {
+        effectiveSceneVision: deriveEffectiveCharacterSceneVision(
+          params.characterId,
+          mechanics,
+          campaignMechanics?.rulePolicyOutput.senses
+        ),
         mechanicsProjectionChecksum: mechanics.projectionChecksum,
         mechanicsCommandLaneChecksum: mechanics.commandLaneChecksum,
         mechanicsPayload: {
           ruleSnapshot: mechanics.ruleSnapshot,
           rulePolicyInput: mechanics.rulePolicyInput,
           rulePolicyOutput: mechanics.rulePolicyOutput,
-          ruleRegistry: mechanics.ruleRegistry
+          initiativeActorFacts: mechanics.initiativeActorFacts,
+          pinnedSenseDefinitions: mechanics.pinnedSenseDefinitions,
+          ruleRegistry: mechanics.ruleRegistry,
+          compiledActionEntryPoints: mechanics.compiledActionEntryPoints
         },
         campaignMechanicalContextChecksum,
         campaignMechanicsProjectionChecksum: campaignMechanics?.projectionChecksum ?? null,
@@ -1377,7 +1442,10 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
   const committedSourceLoadStartedAt = performance.now()
   const committedSources =
     committedMechanics && !canReuseCommittedSnapshotSources
-      ? await loadCharacterCommittedSheetSources({ db: params.db, mechanics: committedMechanics })
+      ? await loadCharacterCommittedSheetSources({
+          db: params.db,
+          mechanics: committedMechanics
+        })
       : null
   const committedSourceLoadMs = performance.now() - committedSourceLoadStartedAt
   let nextCommittedSources = committedSources
@@ -1401,7 +1469,10 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
       campaignContentOverlay,
       db: params.db,
       sources: nextCommittedSources,
-      roots: command.spellIds.map((subjectId) => ({ subjectKind: 'SPELL' as const, subjectId })),
+      roots: command.spellIds.map((subjectId) => ({
+        subjectKind: 'SPELL' as const,
+        subjectId
+      })),
       systemId: character.systemId,
       userId: character.userId
     })
@@ -1412,7 +1483,10 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
     }
   }
   let committedResolution = nextCommittedSources
-    ? createCharacterCommittedSheetResolution({ character, sources: nextCommittedSources })
+    ? createCharacterCommittedSheetResolution({
+        character,
+        sources: nextCommittedSources
+      })
     : canReuseCommittedSnapshotSources
       ? matchingCommittedRuleSnapshot.resolution
       : null
@@ -1456,7 +1530,10 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
     }
   }
   const committedExtras = nextCommittedSources
-    ? createCharacterCommittedSheetExtras({ character, sources: nextCommittedSources })
+    ? createCharacterCommittedSheetExtras({
+        character,
+        sources: nextCommittedSources
+      })
     : undefined
   const pinnedSpellsById = nextCommittedSources
     ? createCharacterCommittedSheetSpells(nextCommittedSources)
@@ -1469,11 +1546,16 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
     committedResolution
       ? Promise.resolve({
           catalog: committedResolution.catalog,
-          registry: committedResolution.sourceRegistry
+          registry: committedResolution.sourceRegistry,
+          vocabularySnapshot:
+            nextCommittedSources?.vocabularySnapshot ??
+            matchingCommittedRuleEvaluation?.vocabularySnapshot
         })
       : matchingCommittedRuleEvaluation && canReuseCommittedMechanicsOutput
         ? Promise.resolve(matchingCommittedRuleEvaluation.context)
-        : loadCharacterBuilderContext(params.db, character, [], { includeEffects: true }),
+        : loadCharacterBuilderContext(params.db, character, [], {
+            includeEffects: true
+          }),
     sheetStateInputs
   ])
   const inputHydrationMs = performance.now() - inputHydrationWaitStartedAt
@@ -1905,7 +1987,10 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
   const removedAuthoredRoot = removedVehicle
     ? { subjectKind: 'VEHICLE' as const, subjectId: removedVehicle.vehicleId }
     : removedCreature
-      ? { subjectKind: 'CREATURE' as const, subjectId: removedCreature.creatureId }
+      ? {
+          subjectKind: 'CREATURE' as const,
+          subjectId: removedCreature.creatureId
+        }
       : undefined
   let nextCharacter =
     completedRest?.character ??
@@ -1954,7 +2039,9 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
   if (shouldPersistHitPointClamp) {
     const prospectiveContext = committedResolution
       ? context
-      : await loadCharacterBuilderContext(params.db, nextCharacter, [], { includeEffects: true })
+      : await loadCharacterBuilderContext(params.db, nextCharacter, [], {
+          includeEffects: true
+        })
     const prospectiveResolution =
       committedResolution ??
       (await resolveCharacterBuilder(
@@ -2025,7 +2112,8 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
   let nextExactContext = nextCommittedResolution
     ? {
         catalog: nextCommittedResolution.catalog,
-        registry: nextCommittedResolution.sourceRegistry
+        registry: nextCommittedResolution.sourceRegistry,
+        vocabularySnapshot: nextCommittedSources?.vocabularySnapshot ?? context.vocabularySnapshot
       }
     : context
   let resourceUsageUpdate: { resource: SheetResource; used: number } | undefined
@@ -2241,7 +2329,8 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
     nextPinnedSpellsById = createCharacterCommittedSheetSpells(nextCommittedSources)
     nextExactContext = {
       catalog: nextCommittedResolution.catalog,
-      registry: nextCommittedResolution.sourceRegistry
+      registry: nextCommittedResolution.sourceRegistry,
+      vocabularySnapshot: nextCommittedSources.vocabularySnapshot
     }
     rebuildResponseFromReducedSources = true
   }
@@ -2260,6 +2349,11 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
           ruleBinding: nextBaseRuleEvaluation.binding,
           rulePolicyInput: nextBaseRuleEvaluation.facts,
           rulePolicyOutput: nextBaseRuleEvaluation.output,
+          pinnedSenseDefinitions: carryPinnedCharacterSenseDefinitions({
+            prior: committedMechanics.pinnedSenseDefinitions,
+            senses: nextBaseRuleEvaluation.output.senses
+          }),
+          compiledActionEntryPoints: nextBaseRuleEvaluation.compiledActionEntryPoints,
           ruleRegistry: nextBaseRuleEvaluation.registry,
           ruleSnapshot: nextBaseRuleEvaluation.snapshot,
           authoredVersionVector:
@@ -2276,7 +2370,9 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
     )
   }
   let nextStreamVersion: number
-  const campaignPublication: { mechanics: CampaignCharacterMechanicsProjection | null } = {
+  const campaignPublication: {
+    mechanics: CampaignCharacterMechanicsProjection | null
+  } = {
     mechanics: null
   }
   let mechanicsProjectionPublication: CharacterMechanicsProjectionPublicationTiming | undefined
@@ -2306,7 +2402,7 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
                 })
               }
               if (campaignId) {
-                await lockAssignedCampaignCommandAccess(trx, {
+                await lockAssignedCharacterSheetCampaignCommandAccess(trx, {
                   campaignId,
                   characterId: params.characterId,
                   userId: params.userId
@@ -2886,10 +2982,20 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
     historyEntry,
     ...(commandResult ? { result: commandResult } : {})
   }
+  const effectiveCampaignMechanics =
+    assembledNextBundle?.campaignMechanics ??
+    (preparedCampaignMatchesContext ? nextCampaignMechanics : null)
   return {
     replayed: false,
     response,
     ruleSnapshot: {
+      effectiveSceneVision: deriveEffectiveCharacterSceneVision(
+        params.characterId,
+        nextMechanicsProjection,
+        effectiveCampaignMechanics?.kind === 'MATERIALIZED'
+          ? effectiveCampaignMechanics.rulePolicyOutput.senses
+          : undefined
+      ),
       mechanicsProjectionChecksum:
         assembledNextBundle?.mechanics.projectionChecksum ??
         nextMechanicsProjection.projectionChecksum,
@@ -2900,7 +3006,10 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
         ruleSnapshot: nextMechanicsProjection.ruleSnapshot,
         rulePolicyInput: nextMechanicsProjection.rulePolicyInput,
         rulePolicyOutput: nextMechanicsProjection.rulePolicyOutput,
-        ruleRegistry: nextMechanicsProjection.ruleRegistry
+        initiativeActorFacts: nextMechanicsProjection.initiativeActorFacts,
+        pinnedSenseDefinitions: nextMechanicsProjection.pinnedSenseDefinitions,
+        ruleRegistry: nextMechanicsProjection.ruleRegistry,
+        compiledActionEntryPoints: nextMechanicsProjection.compiledActionEntryPoints
       },
       campaignMechanicalContextChecksum: nextCampaignContext.campaignId
         ? checksumCampaignCharacterMechanicalContext({
@@ -2908,9 +3017,7 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
             attunementSlotOverride: nextCampaignContext.attunementSlotOverride
           })
         : null,
-      campaignMechanicsProjectionChecksum:
-        assembledNextBundle?.campaignMechanics?.projectionChecksum ??
-        (preparedCampaignMatchesContext ? nextCampaignMechanics.projectionChecksum : null),
+      campaignMechanicsProjectionChecksum: effectiveCampaignMechanics?.projectionChecksum ?? null,
       streamVersion: nextStreamVersion,
       evaluation: nextBundle.ruleEvaluation,
       resolution: responseResolution

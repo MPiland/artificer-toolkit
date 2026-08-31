@@ -36,7 +36,8 @@ import {
   openSpellsInspector,
   openStrengthInspector,
   openStrengthSaveInspector,
-  panelHandler
+  panelHandler,
+  spellsPanelHandler
 } from '../fixtures/characterSheetStory.fixture'
 
 const meta = {
@@ -309,7 +310,7 @@ export const SpellsInspector: Story = {
     initialTab: 'spells'
   },
   parameters: {
-    msw: { handlers: [panelHandler(spellsPanelFixture)] }
+    msw: { handlers: [spellsPanelHandler(spellsPanelFixture)] }
   },
   play: openSpellsInspector
 }
@@ -317,7 +318,7 @@ export const SpellsInspector: Story = {
 export const SpellsInspectorMobile: Story = {
   ...SpellsInspector,
   parameters: {
-    msw: { handlers: [panelHandler(spellsPanelFixture)] },
+    msw: { handlers: [spellsPanelHandler(spellsPanelFixture)] },
     viewport: { defaultViewport: 'mobile1' }
   }
 }

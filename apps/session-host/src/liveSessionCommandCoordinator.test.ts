@@ -2,7 +2,48 @@ import { describe, expect, it } from 'vitest'
 
 import { LiveSessionCommandCoordinator } from './liveSessionCommandCoordinator.js'
 
+function changedAggregate(
+  aggregateKind: 'CHARACTER' | 'ENCOUNTER' | 'SCENE',
+  aggregateId: string,
+  version: number,
+  beforeVersion?: number
+) {
+  return [
+    {
+      aggregateId,
+      aggregateKind,
+      ...(beforeVersion === undefined ? {} : { beforeVersion }),
+      version
+    }
+  ]
+}
+
 describe('LiveSessionCommandCoordinator', () => {
+  it('accepts one exact command transition that advances an aggregate more than once', async () => {
+    const aggregateId = '00000000-0000-4000-8000-000000000001'
+    const coordinator = new LiveSessionCommandCoordinator([
+      { aggregateKind: 'CHARACTER', aggregateId, version: 1 }
+    ])
+
+    await expect(
+      coordinator.enqueue(
+        { aggregateKind: 'CHARACTER', aggregateId },
+        [`character:${aggregateId}`],
+        async () => ({
+          aggregateKind: 'CHARACTER' as const,
+          aggregateId,
+          changedAggregates: changedAggregate('CHARACTER', aggregateId, 3, 1),
+          commandId: '00000000-0000-4000-8000-000000000002',
+          replayed: false,
+          version: 3
+        })
+      )
+    ).resolves.toMatchObject({ replayed: false, roomVersion: 1 })
+    expect(coordinator.aggregateVersions).toEqual([
+      { aggregateKind: 'CHARACTER', aggregateId, version: 3 }
+    ])
+  })
+
   it('serializes durable commands and advances room versions only after execution succeeds', async () => {
     const coordinator = new LiveSessionCommandCoordinator([
       {
@@ -32,6 +73,7 @@ describe('LiveSessionCommandCoordinator', () => {
       return {
         aggregateKind: 'CHARACTER' as const,
         aggregateId: '00000000-0000-4000-8000-000000000001',
+        changedAggregates: changedAggregate('CHARACTER', '00000000-0000-4000-8000-000000000001', 4),
         commandId: '00000000-0000-4000-8000-000000000002',
         replayed: false,
         version: 4
@@ -42,6 +84,7 @@ describe('LiveSessionCommandCoordinator', () => {
       return {
         aggregateKind: 'CHARACTER' as const,
         aggregateId: '00000000-0000-4000-8000-000000000001',
+        changedAggregates: changedAggregate('CHARACTER', '00000000-0000-4000-8000-000000000001', 5),
         commandId: '00000000-0000-4000-8000-000000000003',
         replayed: false,
         version: 5
@@ -81,6 +124,11 @@ describe('LiveSessionCommandCoordinator', () => {
         return {
           aggregateKind: 'CHARACTER' as const,
           aggregateId: '00000000-0000-4000-8000-000000000001',
+          changedAggregates: changedAggregate(
+            'CHARACTER',
+            '00000000-0000-4000-8000-000000000001',
+            1
+          ),
           commandId: '00000000-0000-4000-8000-000000000002',
           replayed: false,
           version: 1
@@ -98,6 +146,11 @@ describe('LiveSessionCommandCoordinator', () => {
         return {
           aggregateKind: 'ENCOUNTER' as const,
           aggregateId: '00000000-0000-4000-8000-000000000003',
+          changedAggregates: changedAggregate(
+            'ENCOUNTER',
+            '00000000-0000-4000-8000-000000000003',
+            1
+          ),
           commandId: '00000000-0000-4000-8000-000000000004',
           replayed: false,
           version: 1
@@ -128,6 +181,11 @@ describe('LiveSessionCommandCoordinator', () => {
         return {
           aggregateKind: 'ENCOUNTER' as const,
           aggregateId: '00000000-0000-4000-8000-000000000001',
+          changedAggregates: changedAggregate(
+            'ENCOUNTER',
+            '00000000-0000-4000-8000-000000000001',
+            1
+          ),
           commandId: '00000000-0000-4000-8000-000000000002',
           replayed: false,
           version: 1
@@ -153,6 +211,7 @@ describe('LiveSessionCommandCoordinator', () => {
     const execute = async () => ({
       aggregateKind: 'ENCOUNTER' as const,
       aggregateId: '00000000-0000-4000-8000-000000000001',
+      changedAggregates: changedAggregate('ENCOUNTER', '00000000-0000-4000-8000-000000000001', 7),
       commandId: '00000000-0000-4000-8000-000000000002',
       replayed: persisted,
       version: 7
@@ -169,9 +228,35 @@ describe('LiveSessionCommandCoordinator', () => {
     })
     persisted = true
     await expect(coordinator.enqueue(aggregate, conflictKeys, execute)).resolves.toMatchObject({
+      refreshRequired: false,
       replayed: true,
       roomVersion: 1
     })
+  })
+
+  it('requires an authoritative refresh when a persisted replay is ahead of the room cache', async () => {
+    const aggregateId = '00000000-0000-4000-8000-000000000001'
+    const coordinator = new LiveSessionCommandCoordinator([
+      { aggregateKind: 'ENCOUNTER', aggregateId, version: 6 }
+    ])
+
+    await expect(
+      coordinator.enqueue(
+        { aggregateKind: 'ENCOUNTER', aggregateId },
+        [`encounter:${aggregateId}`],
+        async () => ({
+          aggregateKind: 'ENCOUNTER',
+          aggregateId,
+          changedAggregates: changedAggregate('ENCOUNTER', aggregateId, 7),
+          commandId: '00000000-0000-4000-8000-000000000002',
+          replayed: true,
+          version: 7
+        })
+      )
+    ).resolves.toMatchObject({ refreshRequired: true, replayed: true, roomVersion: 0 })
+    expect(coordinator.aggregateVersions).toEqual([
+      { aggregateKind: 'ENCOUNTER', aggregateId, version: 6 }
+    ])
   })
 
   it('accepts a persisted replay after later commands advanced the aggregate', async () => {
@@ -185,6 +270,7 @@ describe('LiveSessionCommandCoordinator', () => {
     await coordinator.enqueue(aggregate, conflictKeys, async () => ({
       aggregateKind: 'ENCOUNTER',
       aggregateId,
+      changedAggregates: changedAggregate('ENCOUNTER', aggregateId, 8),
       commandId: '00000000-0000-4000-8000-000000000002',
       replayed: false,
       version: 8
@@ -192,6 +278,7 @@ describe('LiveSessionCommandCoordinator', () => {
     await coordinator.enqueue(aggregate, conflictKeys, async () => ({
       aggregateKind: 'ENCOUNTER',
       aggregateId,
+      changedAggregates: changedAggregate('ENCOUNTER', aggregateId, 9),
       commandId: '00000000-0000-4000-8000-000000000003',
       replayed: false,
       version: 9
@@ -201,11 +288,12 @@ describe('LiveSessionCommandCoordinator', () => {
       coordinator.enqueue(aggregate, conflictKeys, async () => ({
         aggregateKind: 'ENCOUNTER',
         aggregateId,
+        changedAggregates: changedAggregate('ENCOUNTER', aggregateId, 8),
         commandId: '00000000-0000-4000-8000-000000000002',
         replayed: true,
         version: 8
       }))
-    ).resolves.toMatchObject({ replayed: true, roomVersion: 2 })
+    ).resolves.toMatchObject({ refreshRequired: false, replayed: true, roomVersion: 2 })
     expect(coordinator.aggregateVersions).toEqual([
       { aggregateKind: 'ENCOUNTER', aggregateId, version: 9 }
     ])
@@ -222,6 +310,7 @@ describe('LiveSessionCommandCoordinator', () => {
         async () => ({
           aggregateId: sceneId,
           aggregateKind: 'SCENE' as const,
+          changedAggregates: changedAggregate('SCENE', sceneId, 0),
           commandId: '00000000-0000-4000-8000-000000000012',
           replayed: false,
           version: 0
@@ -252,6 +341,7 @@ describe('LiveSessionCommandCoordinator', () => {
         return {
           aggregateKind: 'SCENE' as const,
           aggregateId: sceneId,
+          changedAggregates: changedAggregate('SCENE', sceneId, 1),
           commandId: '00000000-0000-4000-8000-000000000002',
           replayed: false,
           version: 1
@@ -266,6 +356,7 @@ describe('LiveSessionCommandCoordinator', () => {
         return {
           aggregateKind: 'SCENE' as const,
           aggregateId: sceneId,
+          changedAggregates: changedAggregate('SCENE', sceneId, 2),
           commandId: '00000000-0000-4000-8000-000000000003',
           replayed: false,
           version: 2
@@ -284,6 +375,31 @@ describe('LiveSessionCommandCoordinator', () => {
     await expect(second).resolves.toMatchObject({ roomVersion: 2 })
   })
 
+  it('commits a fresh zero-root pause without fabricating an aggregate advance', async () => {
+    const encounterId = '00000000-0000-4000-8000-000000000001'
+    const coordinator = new LiveSessionCommandCoordinator([
+      { aggregateKind: 'ENCOUNTER', aggregateId: encounterId, version: 3 }
+    ])
+
+    await expect(
+      coordinator.enqueue(
+        { aggregateKind: 'ENCOUNTER', aggregateId: encounterId },
+        [`encounter:${encounterId}`],
+        async () => ({
+          aggregateId: encounterId,
+          aggregateKind: 'ENCOUNTER' as const,
+          changedAggregates: [],
+          commandId: '00000000-0000-4000-8000-000000000005',
+          replayed: false,
+          version: 3
+        })
+      )
+    ).resolves.toMatchObject({ replayed: false, roomVersion: 1 })
+    expect(coordinator.aggregateVersions).toEqual([
+      { aggregateKind: 'ENCOUNTER', aggregateId: encounterId, version: 3 }
+    ])
+  })
+
   it('still rejects an older version that was not a persisted replay', async () => {
     const aggregateId = '00000000-0000-4000-8000-000000000001'
     const coordinator = new LiveSessionCommandCoordinator([
@@ -297,6 +413,7 @@ describe('LiveSessionCommandCoordinator', () => {
         async () => ({
           aggregateKind: 'ENCOUNTER',
           aggregateId,
+          changedAggregates: changedAggregate('ENCOUNTER', aggregateId, 8),
           commandId: '00000000-0000-4000-8000-000000000004',
           replayed: false,
           version: 8

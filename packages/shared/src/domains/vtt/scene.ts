@@ -1,8 +1,13 @@
 import type { MeasurementUnitCode } from '../core/measurement.js'
+import type {
+  CombatPerceptionIllumination,
+  CombatPerceptionObscurement
+} from '../rules/combatPerception.js'
 
 export const VTT_SCENE_LIMITS = {
   annotations: 1_000,
   barriers: 10_000,
+  coordinateMagnitude: 1_000_000,
   darknessZones: 1_000,
   fogCellsPerSide: 512,
   lights: 2_000,
@@ -64,7 +69,6 @@ export interface SceneCharacterVision {
 }
 
 export interface SceneToken {
-  actorId: string | null
   assetId: string | null
   controlledByUserIds: string[]
   height: number
@@ -76,6 +80,12 @@ export interface SceneToken {
   rotationDegrees: number
   vision: SceneTokenVision | null
   width: number
+}
+
+/** Encounter-local association. It is never persisted on a Campaign Scene token. */
+export interface SceneActorTokenBinding {
+  actorId: string
+  tokenId: string
 }
 
 interface SceneBarrierBase {
@@ -134,6 +144,8 @@ export type SceneLight =
 
 export interface SceneDarknessZone {
   id: string
+  mechanicalIllumination: Exclude<CombatPerceptionIllumination, 'BRIGHT'> | null
+  mechanicalObscurement: Exclude<CombatPerceptionObscurement, 'NONE'> | null
   opacity: number
   polygon: ScenePolygon
 }
@@ -150,6 +162,7 @@ export type SceneVisionRevealMode = 'ON_DRAG' | 'ON_DROP'
 
 export interface SceneDefinition {
   annotations: SceneAnnotation[]
+  ambientIllumination: CombatPerceptionIllumination
   barriers: SceneBarrier[]
   campaignId: string
   darknessZones: SceneDarknessZone[]
@@ -194,15 +207,15 @@ export interface SceneMeasurement {
   path: ScenePoint[]
 }
 
-export interface EncounterSceneState {
+export interface CampaignSceneState {
   annotations: SceneAnnotation[]
+  ambientIllumination: CombatPerceptionIllumination
   barriers: SceneBarrier[]
   campaignId: string
   darknessZones: SceneDarknessZone[]
   definitionId: string
   definitionVersion: number
   doorStates: Record<string, SceneDoorState>
-  encounterId: string
   fogLayers: SceneFogLayer[]
   fogMode: SceneFogMode
   grid: SceneGrid
@@ -217,6 +230,7 @@ export interface EncounterSceneState {
 }
 
 export type SceneAtomicDelta =
+  | { kind: 'AMBIENT_ILLUMINATION_SET'; illumination: CombatPerceptionIllumination }
   | { kind: 'TOKEN_UPSERTED'; token: SceneToken }
   | { kind: 'TOKEN_REMOVED'; tokenId: string }
   | { kind: 'TOKEN_MOVED'; position: ScenePoint; tokenId: string }
@@ -257,7 +271,7 @@ export interface SceneEvent {
 
 export interface SceneSnapshot {
   campaignId: string
-  scene: EncounterSceneState
+  scene: CampaignSceneState
   sessionId: string
 }
 

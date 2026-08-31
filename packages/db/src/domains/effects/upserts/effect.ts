@@ -84,7 +84,19 @@ async function upsertResultBlock(
   }
 }
 
-export async function upsertEffect(db: DBLike, json_data: EffectAuthored): Promise<void> {
+export async function upsertEffect(
+  db: DBLike,
+  json_data: EffectAuthored,
+  systemId?: string
+): Promise<void> {
+  const savingThrowContext = (() => {
+    if (!('savingThrow' in json_data.invocation)) return null
+    if (!systemId) {
+      throw new Error(`Effect "${json_data.id}" saving throw requires an owning System.`)
+    }
+    return { savingThrow: json_data.invocation.savingThrow, systemId }
+  })()
+
   return withTransaction(db, async (trx) => {
     await deleteEffectById(trx, json_data.id)
     const paths = json_data.paths ?? []
@@ -95,8 +107,8 @@ export async function upsertEffect(db: DBLike, json_data: EffectAuthored): Promi
       await upsertShape(trx, json_data.invocation.shape)
     }
 
-    if ('savingThrow' in json_data.invocation) {
-      await upsertSavingThrow(trx, json_data.invocation.savingThrow)
+    if (savingThrowContext) {
+      await upsertSavingThrow(trx, savingThrowContext.savingThrow, savingThrowContext.systemId)
     }
 
     await trx.insertInto('effects').values(mapEffectRow(json_data)).execute()

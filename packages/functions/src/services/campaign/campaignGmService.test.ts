@@ -41,7 +41,9 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createCampaignRepository: () => mocks.campaign,
     createCampaignAdjustmentsRepository: () => mocks.adjustments,
     createCharacterRepository: () => mocks.character,
-    createCharacterMechanicsProjectionRepository: () => ({ requireCurrent: mocks.requireMechanics }),
+    createCharacterMechanicsProjectionRepository: () => ({
+      requireCurrent: mocks.requireMechanics
+    }),
     createCampaignCharacterMechanicsProjectionRepository: () => mocks.campaignMechanics,
     withTransaction: (_db: DBLike, callback: (trx: DBLike) => Promise<unknown>) =>
       callback(mocks.transaction as unknown as DBLike)

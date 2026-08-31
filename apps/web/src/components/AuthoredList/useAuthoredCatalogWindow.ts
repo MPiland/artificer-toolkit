@@ -30,10 +30,7 @@ interface AuthoredCatalogQueryResult<TPage extends AuthoredCatalogPageShape> {
   isPending: boolean
 }
 
-export function useAuthoredCatalogWindow<
-  TPage extends AuthoredCatalogPageShape,
-  TRequest
->(input: {
+export function useAuthoredCatalogWindow<TPage extends AuthoredCatalogPageShape, TRequest>(input: {
   buildFilters: (page: TPage) => AuthoredListFilter[]
   buildRequest: (state: {
     filterValues: AuthoredListFilterValues

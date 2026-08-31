@@ -5,10 +5,7 @@ import {
   type DBLike
 } from '@artificer-toolkit/db'
 import type { AuthoredVersionVector } from '@artificer-toolkit/schema/projections/identity'
-import type {
-  EquipmentAuthored,
-  RaceAuthored
-} from '@artificer-toolkit/shared/subjects/authored'
+import type { EquipmentAuthored, RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   resolveEquipmentAuthored,
   resolveRaceAuthored,

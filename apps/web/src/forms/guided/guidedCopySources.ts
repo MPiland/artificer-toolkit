@@ -74,13 +74,19 @@ export async function getGuidedCopySources(
 ): Promise<GuidedCopySourceList> {
   switch (domain) {
     case 'background':
-      return { items: await loadPagedAuthoredCatalogItems(api.content.backgrounds.list, backgroundRequest) }
+      return {
+        items: await loadPagedAuthoredCatalogItems(api.content.backgrounds.list, backgroundRequest)
+      }
     case 'class':
       return { items: await loadPagedAuthoredCatalogItems(api.content.classes.list, classRequest) }
     case 'creature':
-      return { items: await loadPagedAuthoredCatalogItems(api.content.creatures.list, creatureRequest) }
+      return {
+        items: await loadPagedAuthoredCatalogItems(api.content.creatures.list, creatureRequest)
+      }
     case 'equipment':
-      return { items: await loadPagedAuthoredCatalogItems(api.content.equipment.list, equipmentRequest) }
+      return {
+        items: await loadPagedAuthoredCatalogItems(api.content.equipment.list, equipmentRequest)
+      }
     case 'feat':
       return { items: await loadPagedAuthoredCatalogItems(api.content.feats.list, featRequest) }
     case 'race':
@@ -88,7 +94,9 @@ export async function getGuidedCopySources(
     case 'spell':
       return { items: await loadPagedAuthoredCatalogItems(api.content.spells.list, spellRequest) }
     case 'vehicle':
-      return { items: await loadPagedAuthoredCatalogItems(api.content.vehicles.list, vehicleRequest) }
+      return {
+        items: await loadPagedAuthoredCatalogItems(api.content.vehicles.list, vehicleRequest)
+      }
   }
 }
 

@@ -1,4 +1,8 @@
-import { getCampaignPlaySettings, saveCampaignPlaySettings } from '@artificer-toolkit/functions'
+import {
+  getCampaignPlaySettings,
+  getCampaignPlaySettingsOptions,
+  saveCampaignPlaySettings
+} from '@artificer-toolkit/functions'
 import * as campaignContracts from '@artificer-toolkit/schema/api/campaigns'
 import { withExplicitAuthorityDb } from './dbContext.js'
 import { authenticatedProcedure, createTRPCRouter } from './procedures.js'
@@ -10,6 +14,14 @@ export const campaignPlaySettingsRouter = createTRPCRouter({
     .query(({ ctx, input }) =>
       withExplicitAuthorityDb(ctx, (db, userId) =>
         getCampaignPlaySettings(db, userId, input.campaignId)
+      )
+    ),
+  options: authenticatedProcedure
+    .input(campaignContracts.getCampaignPlaySettingsInputSchema)
+    .output(campaignContracts.campaignPlaySettingsOptionsDtoSchema)
+    .query(({ ctx, input }) =>
+      withExplicitAuthorityDb(ctx, (db, userId) =>
+        getCampaignPlaySettingsOptions(db, userId, input.campaignId)
       )
     ),
   save: authenticatedProcedure

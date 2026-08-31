@@ -1,19 +1,24 @@
 import type {
   LiveSessionAggregateVersionDto,
+  LiveSessionCoordinatorSnapshotDto,
   LiveSessionWebSocketServerMessageDto
 } from '@artificer-toolkit/schema/api/liveSessions'
-import type { EncounterSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { applySceneDelta } from '@artificer-toolkit/shared/vtt'
 
 export interface LiveSessionSceneState {
   aggregateVersions: LiveSessionAggregateVersionDto[]
   deliverySequence: number
-  scenes: EncounterSceneStateDto[]
+  encounterActorTokenBindings: LiveSessionCoordinatorSnapshotDto['encounterActorTokenBindings']
+  encounterSceneBindings: LiveSessionCoordinatorSnapshotDto['encounterSceneBindings']
+  scenes: CampaignSceneStateDto[]
 }
 
 export const emptyLiveSessionSceneState: LiveSessionSceneState = {
   aggregateVersions: [],
   deliverySequence: 0,
+  encounterActorTokenBindings: [],
+  encounterSceneBindings: [],
   scenes: []
 }
 
@@ -48,16 +53,22 @@ export function applyLiveSessionServerMessage(
     return {
       aggregateVersions: message.aggregateVersions,
       deliverySequence: message.deliverySequence,
+      encounterActorTokenBindings: message.encounterActorTokenBindings,
+      encounterSceneBindings: message.encounterSceneBindings,
       scenes: message.sceneSnapshots.map((snapshot) => snapshot.scene)
     }
   }
   if (message.type !== 'COMMAND_COMMITTED') return state
 
-  const aggregateVersions = withLiveSessionAggregateVersion(
-    state.aggregateVersions,
-    message.aggregateKind,
-    message.aggregateId,
-    message.version
+  const aggregateVersions = message.changedAggregates.reduce(
+    (versions, aggregate) =>
+      withLiveSessionAggregateVersion(
+        versions,
+        aggregate.aggregateKind,
+        aggregate.aggregateId,
+        aggregate.version
+      ),
+    state.aggregateVersions
   )
   if (message.aggregateKind !== 'SCENE') {
     const refreshedScenes = message.sceneSnapshots ?? []
@@ -65,17 +76,28 @@ export function applyLiveSessionServerMessage(
       ...state,
       aggregateVersions,
       deliverySequence: Math.max(state.deliverySequence, message.deliverySequence),
-      scenes: refreshedScenes.reduce<EncounterSceneStateDto[]>(
-        (scenes, snapshot) => [
-          ...scenes.filter((scene) => scene.id !== snapshot.scene.id),
-          snapshot.scene
-        ],
-        state.scenes
-      )
+      encounterActorTokenBindings:
+        message.aggregateKind === 'ENCOUNTER'
+          ? message.encounterActorTokenBindings
+          : state.encounterActorTokenBindings,
+      encounterSceneBindings:
+        message.aggregateKind === 'ENCOUNTER'
+          ? message.encounterSceneBindings
+          : state.encounterSceneBindings,
+      scenes:
+        message.aggregateKind === 'SESSION'
+          ? refreshedScenes.map((snapshot) => snapshot.scene)
+          : refreshedScenes.reduce<CampaignSceneStateDto[]>(
+              (scenes, snapshot) => [
+                ...scenes.filter((scene) => scene.id !== snapshot.scene.id),
+                snapshot.scene
+              ],
+              state.scenes
+            )
     }
   }
   const current = state.scenes.find((scene) => scene.id === message.aggregateId)
-  let next: EncounterSceneStateDto | null = message.snapshot?.scene ?? current ?? null
+  let next: CampaignSceneStateDto | null = message.snapshot?.scene ?? current ?? null
   if (current && !message.snapshot) {
     next = message.delta
       ? applySceneDelta(current, message.delta, message.version)
@@ -87,6 +109,7 @@ export function applyLiveSessionServerMessage(
     if (!next) throw new Error('Live scene versions must remain contiguous.')
   }
   return {
+    ...state,
     aggregateVersions,
     deliverySequence: Math.max(state.deliverySequence, message.deliverySequence),
     scenes: next ? [...state.scenes.filter((scene) => scene.id !== next.id), next] : state.scenes

@@ -1,6 +1,6 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ATTACK_DOMAIN_CODE,
-  ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
   PATH_CODE,
@@ -47,7 +47,7 @@ export const viciousMockery: SpellAuthored = {
         savingThrow: {
           id: spellChildId(SPELL_IDS.VICIOUS_MOCKERY, 0x211, 1),
           dcMethod: 'SOURCE_SAVE_DC',
-          ability: ABILITY_CODE.WISDOM
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
         },
         activation: {
           code: ACTIVATION_CODE.ACTION,

@@ -38,6 +38,9 @@ vi.mock('@artificer-toolkit/db', () => ({
     findExactVersions: async () => new Map()
   }),
   createSystemRepository: () => ({ findById: async () => createSystem() }),
+  createSystemVocabularySnapshotRepository: () => ({
+    findActive: async () => ({ document: createSystem() })
+  }),
   createRaceRepository: () => ({
     findResolvedAll: async () => repositoryState.races,
     findResolvedById: async (id: string) =>
@@ -215,6 +218,7 @@ function createCharacter(selectedOptionIds: string[]) {
   const character = createEmptyCharacterAuthored({
     id: 'character-1',
     systemId: 'system-1',
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
     userId: 'user-1'
   })
   character.intent.race = { raceId: 'half-elf' }

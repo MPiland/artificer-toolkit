@@ -2,7 +2,7 @@ import { Alert, Button, Drawer, Group, Modal, Select, Stack, Text } from '@manti
 import { Pencil, RotateCcw, Save, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState, type RefObject } from 'react'
 import type {
-  EncounterSceneStateDto,
+  CampaignSceneStateDto,
   SceneCommandInputDto,
   SceneDefinitionDto
 } from '@artificer-toolkit/schema/api/vttScenes'
@@ -30,7 +30,7 @@ export function CampaignLiveSceneObjectEditor({
   memberships: CampaignDetailDto['memberships']
   onCommand: (command: SceneCommandInputDto) => boolean
   renderer: RefObject<VttSceneRenderer | null>
-  scene: EncounterSceneStateDto
+  scene: CampaignSceneStateDto
 }) {
   const options = useMemo(() => listLiveSceneObjectOptions(scene), [scene])
   const [opened, setOpened] = useState(false)
@@ -101,6 +101,7 @@ export function CampaignLiveSceneObjectEditor({
 
   const creationDraft: SceneDefinitionDto = {
     annotations: scene.annotations,
+    ambientIllumination: scene.ambientIllumination,
     barriers: scene.barriers,
     campaignId: scene.campaignId,
     darknessZones: scene.darknessZones,

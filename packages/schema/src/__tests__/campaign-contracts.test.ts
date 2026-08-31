@@ -26,6 +26,7 @@ import {
   updateCampaignNotebookSectionInputSchema,
   updateCampaignInputSchema
 } from '../api/campaigns.js'
+import { characterDraftRequestDtoSchema } from '../api/characterBuilder.js'
 
 const id = 'f3e3a390-5b22-4a1f-8a0b-bf7f184bd7c9'
 
@@ -72,6 +73,48 @@ describe('campaign contracts', () => {
         systemId: '00000000-0000-0000-0000-000000000001'
       }).success
     ).toBe(true)
+  })
+
+  it('normalizes catalogue bindings before Campaign uniqueness and Character storage', () => {
+    const upperSystemId = 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB'
+    const lowerSystemId = upperSystemId.toLowerCase()
+    const upperCatalogueId = 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA'
+    const lowerCatalogueId = upperCatalogueId.toLowerCase()
+    const base = {
+      name: 'Catalogue test',
+      format: 'ONE_SHOT' as const,
+      toneTags: ['HEROIC'],
+      contentMaturity: 'STANDARD' as const,
+      gameSystemId: id
+    }
+
+    expect(
+      createCampaignInputSchema.safeParse({
+        ...base,
+        primaryRulesCatalogueId: upperCatalogueId,
+        additionalRulesCatalogueIds: [lowerCatalogueId]
+      }).success
+    ).toBe(false)
+    expect(
+      createCampaignInputSchema.parse({
+        ...base,
+        primaryRulesCatalogueId: upperCatalogueId
+      }).primaryRulesCatalogueId
+    ).toBe(lowerCatalogueId)
+    const characterBinding = characterDraftRequestDtoSchema.parse({
+      id,
+      systemId: upperSystemId,
+      primaryRulesCatalogueId: upperCatalogueId
+    })
+    expect(characterBinding.systemId).toBe(lowerSystemId)
+    expect(characterBinding.primaryRulesCatalogueId).toBe(lowerCatalogueId)
+    expect(
+      characterDraftRequestDtoSchema.parse({
+        id,
+        systemId: '00000000-0000-0000-0000-000000000001',
+        primaryRulesCatalogueId: upperCatalogueId
+      }).systemId
+    ).toBe('00000000-0000-0000-0000-000000000001')
   })
 
   it('requires read-only USD tier pricing metadata', () => {
@@ -310,7 +353,9 @@ describe('campaign contracts', () => {
     const metadata = {
       format: 'ONGOING',
       toneTags: ['HEROIC'],
-      contentMaturity: 'STANDARD'
+      contentMaturity: 'STANDARD',
+      gameSystemId: id,
+      primaryRulesCatalogueId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
     } as const
     expect(
       createCampaignInputSchema.safeParse({ name: 'x'.repeat(100), ...metadata }).success

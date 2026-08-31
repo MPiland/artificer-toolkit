@@ -1,10 +1,7 @@
 import type { LiveSessionExecutorRequestDto } from '@artificer-toolkit/schema/api/liveSessions'
 import { afterEach, expect, it, vi } from 'vitest'
 
-import {
-  callLiveSessionExecutor,
-  LiveSessionExecutorRequestError
-} from '../src/executorClient.js'
+import { callLiveSessionExecutor, LiveSessionExecutorRequestError } from '../src/executorClient.js'
 
 const environment = {
   LIVE_SESSION_EXECUTOR_SECRET: 'test-secret-that-contains-at-least-thirty-two-bytes',
@@ -18,8 +15,10 @@ const commandRequest = {
     aggregateKind: 'SCENE',
     command: {
       commandId: '00000000-0000-4000-8000-000000000110',
-      encounterId: '00000000-0000-4000-8000-000000000105',
+      correlationId: null,
+      expectedEncounterVersion: 1,
       expectedSceneVersion: 0,
+      movementKind: 'VOLUNTARY',
       path: [
         { x: 20, y: 20 },
         { x: 25, y: 20 }
@@ -60,7 +59,9 @@ it('keeps one authoritative command request alive beyond the short control timeo
     })
   })
 
-  const outcome = callLiveSessionExecutor(environment, commandRequest).catch((error: unknown) => error)
+  const outcome = callLiveSessionExecutor(environment, commandRequest).catch(
+    (error: unknown) => error
+  )
   await vi.advanceTimersByTimeAsync(10_001)
   expect(aborted).toBe(false)
   expect(fetchCalls).toBe(1)
@@ -75,9 +76,7 @@ it('keeps one authoritative command request alive beyond the short control timeo
 
 it('clears a completed executor timeout so the room can hibernate immediately', async () => {
   vi.useFakeTimers()
-  vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-    Response.json({ ok: true, operation: 'CLAIM' })
-  )
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ ok: true, operation: 'CLAIM' }))
 
   await callLiveSessionExecutor(environment, {
     authorityId: commandRequest.authorityId,
@@ -99,6 +98,7 @@ it('accepts a compact Character command result without a presentation response',
         aggregateId: characterId,
         aggregateKind: 'CHARACTER',
         characterVision: { characterId, dimRange: null },
+        changedAggregates: [{ aggregateId: characterId, aggregateKind: 'CHARACTER', version: 1 }],
         commandId,
         hostTiming: { category: 'RULE_BOUND', durationMs: 12 },
         replayed: false,

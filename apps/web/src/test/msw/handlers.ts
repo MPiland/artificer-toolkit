@@ -20,8 +20,18 @@ export const handlers = [
   http.get('*/api/trpc/systems.list', () =>
     trpcJson([
       {
-        id: 'dnd5e-2014',
-        label: 'D&D 5e (2014)'
+        id: '00000000-0000-4000-8000-000000000101',
+        label: 'D&D 5e (2014)',
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '2014',
+        userId: 'master',
+        rulesCatalogues: [
+          {
+            id: '00000000-0000-4000-8000-000000000301',
+            label: '2014 SRD',
+            description: 'Core 2014 System Reference Document rules.'
+          }
+        ]
       }
     ])
   ),

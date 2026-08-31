@@ -30,6 +30,9 @@ vi.mock('@artificer-toolkit/db', () => ({
     findExactVersions: async () => new Map()
   }),
   createSystemRepository: () => ({ findById: async () => null }),
+  createSystemVocabularySnapshotRepository: () => ({
+    findActive: async () => ({ document: { abilities: [] } })
+  }),
   createRaceRepository: () => ({
     findResolvedAll: async () => [],
     findResolvedById: async () => null
@@ -114,6 +117,7 @@ function createCharacter(classLevel: number, subclassId?: string) {
   const character = createEmptyCharacterAuthored({
     id: 'character-1',
     systemId: 'system-1',
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
     userId: 'user-1'
   })
   character.intent.classes = [{ classId: 'fighter', classLevel, subclassId }]

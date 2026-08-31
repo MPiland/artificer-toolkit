@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const huntingTrap: EquipmentAuthored = {
@@ -62,7 +63,7 @@ export const huntingTrap: EquipmentAuthored = {
                           savingThrow: {
                             id: S.equipmentChildId(S.equipId(143), 0x222, 1),
                             dcMethod: 'FIXED_DC' as const,
-                            ability: S.ABILITY_CODE.DEXTERITY,
+                            abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
                             baseDc: 13
                           },
                           range: {

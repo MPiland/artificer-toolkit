@@ -547,7 +547,7 @@ export async function activateAuthoredDomainDraft(
       .prepare(normalizeActivatedAuthoringInput(normalizedBody, userId))
     const published = await publishVersionedAuthoredAggregate({
       authored: result.authored,
-      compiled: result.compiled,
+      contentSourceId: draft.contentSourceId,
       db: trx,
       subjectKind: config.subjectKind
     })
@@ -597,7 +597,7 @@ export async function activateAuthoredDomainInput<TInput extends AuthoredContent
     })
     await saveAuthoredDraft(trx, buildDraftRequest(config.subjectKind, normalizedBody), userId)
     const repository = createAuthoredContentRepository(trx)
-    await repository.lockDraftForActivation({
+    const draft = await repository.lockDraftForActivation({
       subjectKind: config.subjectKind,
       subjectId: normalizedBody.id,
       userId
@@ -608,7 +608,7 @@ export async function activateAuthoredDomainInput<TInput extends AuthoredContent
       .prepare(normalizeActivatedAuthoringInput(normalizedBody, userId))
     const published = await publishVersionedAuthoredAggregate({
       authored: result.authored,
-      compiled: result.compiled,
+      contentSourceId: draft.contentSourceId,
       db: trx,
       subjectKind: config.subjectKind
     })

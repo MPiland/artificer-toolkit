@@ -1,5 +1,4 @@
-import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
-import type { CharacterSheetAdjustment } from '@artificer-toolkit/shared/character'
+import type { PinnedSenseDefinition } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { SceneCharacterVision } from '@artificer-toolkit/shared/vtt'
 
 function toFeet(range: { amount: number; unit: string }): number | null {
@@ -17,34 +16,33 @@ function toFeet(range: { amount: number; unit: string }): number | null {
   }
 }
 
+function supportsOrdinaryDarknessVision(pin: PinnedSenseDefinition): boolean {
+  return pin.document.capabilities.some(
+    (capability) =>
+      capability.channel === 'VISUAL' &&
+      capability.accessGrade === 'PRECISE' &&
+      capability.satisfies.includes('SEE') &&
+      ['ORDINARY_DARKNESS', 'MAGICAL_DARKNESS', 'IGNORE'].includes(capability.illuminationAccess)
+  )
+}
+
+/** Presentation-only scalar; combat eligibility uses the shared perception resolver. */
 export function resolveCharacterSceneVisionDimRangeFeet(
-  senses: CharacterRulePolicyOutput['senses'],
-  adjustments: readonly CharacterSheetAdjustment[] = []
+  pinnedSenseDefinitions: readonly PinnedSenseDefinition[]
 ): number | null {
-  const baseRange = senses.reduce<number | null>((maximum, sense) => {
-    if (sense.senseCode.toUpperCase() !== 'DARKVISION' || !sense.range) return maximum
-    const feet = toFeet(sense.range)
+  return pinnedSenseDefinitions.reduce<number | null>((maximum, pin) => {
+    if (!supportsOrdinaryDarknessVision(pin) || !pin.range) return maximum
+    const feet = toFeet(pin.range)
     if (feet === null) return maximum
     return maximum === null ? feet : Math.max(maximum, feet)
   }, null)
-  const override = adjustments.find(
-    (adjustment) =>
-      adjustment.family === 'SENSE' &&
-      adjustment.field === 'RANGE_OVERRIDE' &&
-      adjustment.senseId.toUpperCase() === 'DARKVISION'
-  )
-  if (!override || typeof override.value !== 'number') return baseRange
-  const baseDarkvisionRange = senses.find(
-    (sense) => sense.senseCode.toUpperCase() === 'DARKVISION'
-  )?.range
-  return toFeet({ amount: override.value, unit: baseDarkvisionRange?.unit ?? 'FEET' })
 }
 
 export function deriveCharacterSceneVision(
   characterId: string,
-  senses: CharacterRulePolicyOutput['senses']
+  pinnedSenseDefinitions: readonly PinnedSenseDefinition[]
 ): SceneCharacterVision {
-  const dimRange = resolveCharacterSceneVisionDimRangeFeet(senses)
+  const dimRange = resolveCharacterSceneVisionDimRangeFeet(pinnedSenseDefinitions)
   return {
     characterId,
     dimRange: dimRange !== null && dimRange > 0 ? { amount: dimRange, unit: 'FEET' } : null

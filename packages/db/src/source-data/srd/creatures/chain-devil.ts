@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 
@@ -193,7 +194,8 @@ export const chainDevil: CreatureAuthored = {
               rangeKind: S.RANGE_KIND.DISTANCE,
               amount: 60,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
-            }
+            },
+            resourceUse: { chargeId: S.actionId(61, 12), cost: 1 }
           },
           paths: [
             {
@@ -249,7 +251,7 @@ export const chainDevil: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(61, 123),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.WISDOM,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
               baseDc: 14
             },
             range: {

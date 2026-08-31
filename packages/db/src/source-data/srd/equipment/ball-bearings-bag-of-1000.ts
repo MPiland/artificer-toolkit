@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const ballBearingsBagOf1000: EquipmentAuthored = {
@@ -68,7 +69,7 @@ export const ballBearingsBagOf1000: EquipmentAuthored = {
                           savingThrow: {
                             id: S.equipmentChildId(S.equipId(122), 0x223, 1),
                             dcMethod: 'FIXED_DC' as const,
-                            ability: S.ABILITY_CODE.DEXTERITY,
+                            abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
                             baseDc: 10
                           },
                           range: {

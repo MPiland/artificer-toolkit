@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { normalizeSql } from './helpers/normalize-sql.js'
 
-const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8')
+const read = (path: string) => normalizeSql(readFileSync(join(process.cwd(), path), 'utf8'))
 const canonical = read('packages/db/src/domains/rules/tables/rule_packs.sql')
 const migration = read('supabase/migrations/20260813010000_phase_07_rule_packs.sql')
 const convergenceMigration = read('supabase/migrations/20260813020000_rule_revision_metadata.sql')
@@ -70,7 +71,7 @@ describe('rule pack persistence schema', () => {
     }
   )
 
-  it('pins encounters to an optional immutable rule-pack revision', () => {
+  it('retains the legacy Encounter pin only for compatibility with historical commands', () => {
     expect(encounters).toContain(
       'rule_pack_revision_id uuid REFERENCES public.rule_pack_revisions (id) ON DELETE RESTRICT'
     )

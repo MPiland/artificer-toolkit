@@ -36,12 +36,10 @@ describe('CampaignLiveSceneObjectEditor model', () => {
       })
 
       expect(upsert).toMatchObject({
-        encounterId: scene.encounterId,
         expectedSceneVersion: 17,
         sceneId: scene.id
       })
       expect(remove).toMatchObject({
-        encounterId: scene.encounterId,
         expectedSceneVersion: 17,
         sceneId: scene.id
       })
@@ -81,7 +79,6 @@ describe('CampaignLiveSceneObjectEditor model', () => {
           scene
         })
       ).toMatchObject({
-        encounterId: scene.encounterId,
         expectedSceneVersion: scene.version,
         sceneId: scene.id,
         type: expectedType
@@ -93,6 +90,7 @@ describe('CampaignLiveSceneObjectEditor model', () => {
 function sceneDefinition(): SceneDefinitionDto {
   return {
     annotations: scene.annotations,
+    ambientIllumination: scene.ambientIllumination,
     barriers: scene.barriers,
     campaignId: scene.campaignId,
     darknessZones: scene.darknessZones,

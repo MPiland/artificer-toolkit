@@ -103,6 +103,10 @@ async function hydrateSpellRows(
   db: DBLike,
   rows: readonly SpellRow[]
 ): Promise<Map<string, SpellAuthored>> {
+  const expectedSystemId =
+    rows.length > 0 && rows.every((row) => row.system_id === rows[0]?.system_id)
+      ? rows[0]?.system_id
+      : undefined
   const spellIds = rows.map((row) => row.id)
   if (spellIds.length === 0) {
     return new Map()
@@ -128,7 +132,7 @@ async function hydrateSpellRows(
       .orderBy('class_id')
       .execute()
   ])
-  const effectRepository = createEffectRepository(db)
+  const effectRepository = createEffectRepository(db, expectedSystemId)
   const effectsById = await effectRepository.findByIds(effectLinks.map((link) => link.effect_id))
   const effectLinksBySpell = groupSpellRows(effectLinks)
   const attributesBySpell = groupSpellRows(attributes)
@@ -220,8 +224,8 @@ async function hydrateSpellsByIds(
 
 export function createSpellRepository(db: DBLike): SpellRepository {
   return {
-    async upsert(entity) {
-      await upsertSpell(db, entity, entity.systemId)
+    async upsert(entity, options) {
+      await upsertSpell(db, entity, entity.systemId, options.contentSourceId)
     },
 
     async findById(id) {

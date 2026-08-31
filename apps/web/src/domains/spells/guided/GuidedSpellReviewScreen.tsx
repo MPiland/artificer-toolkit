@@ -1,7 +1,6 @@
 import { Alert, Stack, Text } from '@mantine/core'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import {
-  GUIDED_ABILITY_OPTIONS,
   GUIDED_DURATION_OPTIONS,
   type GuidedSpellDraft
 } from '#forms/guided/guidedSimpleEffect.types'
@@ -28,9 +27,10 @@ export function GuidedSpellReviewScreen({
   )?.label
   const targetLabel =
     draft.target === 'SELF' ? 'Self' : `One creature within ${draft.targetDistance} feet`
-  const saveLabel = draft.saveAbility
-    ? (GUIDED_ABILITY_OPTIONS.find((item) => item.value === draft.saveAbility)?.label ??
-      draft.saveAbility)
+  const saveLabel = draft.saveAbilityDefinitionId
+    ? (('abilities' in system
+        ? system.abilities.find((item) => item.id === draft.saveAbilityDefinitionId)?.label
+        : undefined) ?? 'Configured ability')
     : 'No saving throw'
 
   const outcome =

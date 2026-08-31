@@ -90,12 +90,16 @@ export const importBatchInputDtoSchema = z.discriminatedUnion('source', [
   z
     .strictObject({
       source: z.literal('DND_BEYOND'),
+      systemId: z.string().uuid(),
+      primaryRulesCatalogueId: z.string().uuid(),
       entries: z.array(dndBeyondImportEntryDtoSchema).min(1).max(IMPORT_MAX_ENTRIES)
     })
     .superRefine(({ entries }, context) => validateEntries(entries, context)),
   z
     .strictObject({
       source: z.literal('FOUNDRY_DND5E'),
+      systemId: z.string().uuid(),
+      primaryRulesCatalogueId: z.string().uuid(),
       entries: z.array(jsonImportEntryDtoSchema).min(1).max(IMPORT_MAX_ENTRIES)
     })
     .superRefine(({ entries }, context) => validateJsonEntries(entries, context)),

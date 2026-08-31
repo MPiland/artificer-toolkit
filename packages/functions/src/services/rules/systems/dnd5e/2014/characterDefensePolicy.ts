@@ -7,6 +7,12 @@ const validDefenseModifier =
 const defenseKind =
   'candidate.modifier.grant.valueDomainCode == "DAMAGE_RESISTANCE" ? "RESISTANCE" : candidate.modifier.grant.valueDomainCode == "DAMAGE_IMMUNITY" ? "IMMUNITY" : "VULNERABILITY"'
 
+const sameConditionImmunity = (left: string, right: string) =>
+  `${left}.conditionId == ${right}.conditionId`
+
+const validConditionImmunityModifier =
+  '(candidate.modifier.modifierKind == "ADD_OPTION" or candidate.modifier.modifierKind == "REMOVE_OPTION") and candidate.modifier.grant.valueDomainCode == "CONDITION_IMMUNITY" and candidate.modifier.grant.payload.conditionTypeId != null and type(candidate.modifier.grant.payload.conditionTypeId) == "string" and trim(candidate.modifier.grant.payload.conditionTypeId) != ""'
+
 const selectedAuthoredDefense = (operation: string) =>
   `(filter($.defenseModifierOperations as candidate, ${sameDefense('candidate', operation)} and candidate.operation == "ADD_OPTION" and candidate.acceptedModifierIndex >= ${operation}.acceptedModifierIndex)[len(filter($.defenseModifierOperations as candidate, ${sameDefense('candidate', operation)} and candidate.operation == "ADD_OPTION" and candidate.acceptedModifierIndex >= ${operation}.acceptedModifierIndex)) - 1])`
 
@@ -31,6 +37,16 @@ export const dnd5e2014CharacterDefensePolicyExpressions = [
     id: 'defenses',
     key: 'defenses',
     value: `merge([map($.resolvedAuthoredDefenses as defense, { kind: defense.kind, damageTypeId: defense.damageTypeId, source: len(filter($.defenseManualAdditions as manual, ${sameDefense('manual', 'defense')})) == 0 ? defense.source : filter($.defenseManualAdditions as manual, ${sameDefense('manual', 'defense')})[len(filter($.defenseManualAdditions as manual, ${sameDefense('manual', 'defense')})) - 1].source }), map(filter($.defenseManualAdditions as manual, !some($.resolvedAuthoredDefenses as defense, ${sameDefense('defense', 'manual')}) and !some($.defenseManualAdditions as earlier, ${sameDefense('earlier', 'manual')} and earlier.sequence < manual.sequence)) as manual, { kind: manual.kind, damageTypeId: manual.damageTypeId, source: filter($.defenseManualAdditions as candidate, ${sameDefense('candidate', 'manual')})[len(filter($.defenseManualAdditions as candidate, ${sameDefense('candidate', 'manual')})) - 1].source })])`
+  },
+  {
+    id: 'condition-immunity-modifier-operations',
+    key: 'conditionImmunityModifierOperations',
+    value: `map(filter(map(keys(grantFold.modifiers) as acceptedModifierIndex, { acceptedModifierIndex: acceptedModifierIndex, modifier: grantFold.modifiers[acceptedModifierIndex] }) as candidate, ${validConditionImmunityModifier}) as candidate, { acceptedModifierIndex: candidate.acceptedModifierIndex, operation: candidate.modifier.modifierKind, conditionId: candidate.modifier.grant.payload.conditionTypeId })`
+  },
+  {
+    id: 'condition-immunity-ids',
+    key: 'conditionImmunityIds',
+    value: `map(filter($.conditionImmunityModifierOperations as operation, operation.operation == "ADD_OPTION" and !some($.conditionImmunityModifierOperations as laterRemoval, ${sameConditionImmunity('laterRemoval', 'operation')} and laterRemoval.operation == "REMOVE_OPTION" and laterRemoval.acceptedModifierIndex > operation.acceptedModifierIndex) and !some($.conditionImmunityModifierOperations as earlierAdd, ${sameConditionImmunity('earlierAdd', 'operation')} and earlierAdd.operation == "ADD_OPTION" and earlierAdd.acceptedModifierIndex < operation.acceptedModifierIndex and !some($.conditionImmunityModifierOperations as interveningRemoval, ${sameConditionImmunity('interveningRemoval', 'operation')} and interveningRemoval.operation == "REMOVE_OPTION" and interveningRemoval.acceptedModifierIndex > earlierAdd.acceptedModifierIndex and interveningRemoval.acceptedModifierIndex < operation.acceptedModifierIndex))) as operation, operation.conditionId)`
   }
 ]
 
@@ -38,4 +54,10 @@ export const dnd5e2014CharacterDefensePolicyOutputExpression = {
   id: 'defenses',
   key: 'defenses',
   value: 'defenses'
+}
+
+export const dnd5e2014CharacterConditionImmunityPolicyOutputExpression = {
+  id: 'condition-immunity-ids',
+  key: 'conditionImmunityIds',
+  value: 'conditionImmunityIds'
 }

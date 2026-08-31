@@ -10,6 +10,7 @@ import {
 import { chargeUseDtoSchema } from '../shared/charge.js'
 import { detailDtoSchema } from '../shared/detail.js'
 import { facetDtoSchema } from '../shared/facet.js'
+import { serverUuidIdentityDtoSchema } from '../shared/rulesExecution.js'
 import { featureAttributeSchema } from '../shared/enums.js'
 import { effectDtoSchema } from '../effects/effect.js'
 import { diceExpressionDtoSchema } from '../shared/dice.js'
@@ -28,6 +29,21 @@ const featureGrantsDtoSchemaBase = z.object({
   senses: authoredNestedCollectionSchema(senseGrantDtoSchema).optional(),
   spells: authoredNestedCollectionSchema(spellGrantDtoSchema).optional()
 })
+
+const ruleDefinitionIdsDtoSchema = z
+  .array(serverUuidIdentityDtoSchema)
+  .max(16)
+  .superRefine((definitionIds, context) => {
+    for (let index = 1; index < definitionIds.length; index += 1) {
+      if (definitionIds[index - 1] >= definitionIds[index]) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [index],
+          message: 'Rule definition IDs must be unique and in canonical ascending UUID order.'
+        })
+      }
+    }
+  })
 
 export const featureRollDefinitionDtoSchema = z.strictObject({
   id: authoredIdentifierSchema,
@@ -52,6 +68,7 @@ const featureBaseDtoSchemaBase = z.object({
   details: authoredNestedCollectionSchema(detailDtoSchema).optional(),
   effects: authoredNestedCollectionSchema(effectDtoSchema).optional(),
   rollDefinitions: authoredNestedCollectionSchema(featureRollDefinitionDtoSchema).optional(),
+  ruleDefinitionIds: ruleDefinitionIdsDtoSchema.optional(),
   charges: chargeUseDtoSchema.optional(),
   grants: featureGrantsDtoSchema.optional(),
   restrictions: facetDtoSchema.optional(),

@@ -27,7 +27,8 @@ describe('versioned baseline projections', () => {
     const racesById = new Map(srdBaselineContent.subjects.races.map((race) => [race.id, race]))
     const race = requireFixture(srdBaselineContent.subjects.races, 'race')
     const compile = [
-      () => compileBackground(requireFixture(srdBaselineContent.subjects.backgrounds, 'background')),
+      () =>
+        compileBackground(requireFixture(srdBaselineContent.subjects.backgrounds, 'background')),
       () => compileClass(requireFixture(srdBaselineContent.subjects.classes, 'class')),
       () => compileCreature(requireFixture(srdBaselineContent.subjects.creatures, 'creature')),
       () => compileEquipment(requireFixture(srdBaselineContent.subjects.equipment, 'equipment')),

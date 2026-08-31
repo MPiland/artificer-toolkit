@@ -12,7 +12,11 @@ import {
   checksumCampaignCharacterMechanicalContext,
   resolveCharacterLiveSessionRuleContext
 } from './campaignCharacterSheet.js'
-import { resolveCharacterSceneVisionDimRangeFeet } from './characterSceneVision.js'
+import {
+  deriveCharacterSceneVision,
+  resolveCharacterSceneVisionDimRangeFeet
+} from './characterSceneVision.js'
+import { carryPinnedCharacterSenseDefinitions } from './characterMechanicsCompiler.js'
 import { CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION } from '../campaign/campaignCharacterMechanicsProjection.js'
 export { resolveCharacterSceneVisionDimRangeFeet } from './characterSceneVision.js'
 
@@ -39,7 +43,9 @@ export async function loadCharacterSceneVisionForLiveSessionCampaign(
     expectedStreamVersion: row.stream_version,
     expectedRuleRevisionId: row.rule_pack_revision_id
   })
-  const campaignMechanics = await createCampaignCharacterMechanicsProjectionRepository(db).requireCurrent({
+  const campaignMechanics = await createCampaignCharacterMechanicsProjectionRepository(
+    db
+  ).requireCurrent({
     campaignId: campaign.id,
     characterId,
     expectedBaseMechanicsProjectionChecksum: mechanics.projectionChecksum,
@@ -51,7 +57,15 @@ export async function loadCharacterSceneVisionForLiveSessionCampaign(
     expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
     baseMechanicsProjection: mechanics
   })
-  const dimRangeFeet = resolveCharacterSceneVisionDimRangeFeet(campaignMechanics.rulePolicyOutput.senses)
+  const dimRangeFeet = resolveCharacterSceneVisionDimRangeFeet(
+    carryPinnedCharacterSenseDefinitions({
+      prior: mechanics.pinnedSenseDefinitions,
+      senses:
+        campaignMechanics.kind === 'MATERIALIZED'
+          ? campaignMechanics.rulePolicyOutput.senses
+          : mechanics.rulePolicyOutput.senses
+    })
+  )
   return { streamVersion: row.stream_version, dimRangeFeet }
 }
 
@@ -81,23 +95,42 @@ export async function loadCharacterRuleSnapshotForLiveSessionCampaign(
     error.name = 'CharacterRuleBindingError'
     throw error
   }
-  const { bundle, campaignMechanics, mechanics, resolution } = await assembleCharacterSheetBundleForRuleContext({
-    db,
-    character,
-    campaignId: campaign.id,
-    row,
-    revisionId: row.rule_pack_revision_id,
-    ruleContext
-  })
+  const { bundle, campaignMechanics, mechanics, resolution } =
+    await assembleCharacterSheetBundleForRuleContext({
+      db,
+      character,
+      campaignId: campaign.id,
+      row,
+      revisionId: row.rule_pack_revision_id,
+      ruleContext
+    })
+  if (!campaignMechanics) {
+    throw new Error(
+      `Active Campaign Character "${characterId}" has no committed mechanics overlay.`
+    )
+  }
 
   return {
+    effectiveSceneVision: deriveCharacterSceneVision(
+      characterId,
+      carryPinnedCharacterSenseDefinitions({
+        prior: mechanics.pinnedSenseDefinitions,
+        senses:
+          campaignMechanics.kind === 'MATERIALIZED'
+            ? campaignMechanics.rulePolicyOutput.senses
+            : mechanics.rulePolicyOutput.senses
+      })
+    ),
     mechanicsProjectionChecksum: mechanics.projectionChecksum,
     mechanicsCommandLaneChecksum: mechanics.commandLaneChecksum,
     mechanicsPayload: {
       ruleSnapshot: mechanics.ruleSnapshot,
       rulePolicyInput: mechanics.rulePolicyInput,
       rulePolicyOutput: mechanics.rulePolicyOutput,
-      ruleRegistry: mechanics.ruleRegistry
+      initiativeActorFacts: mechanics.initiativeActorFacts,
+      pinnedSenseDefinitions: mechanics.pinnedSenseDefinitions,
+      ruleRegistry: mechanics.ruleRegistry,
+      compiledActionEntryPoints: mechanics.compiledActionEntryPoints
     },
     campaignMechanicalContextChecksum: checksumCampaignCharacterMechanicalContext({
       adjustments: ruleContext.adjustments,

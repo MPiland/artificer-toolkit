@@ -1,23 +1,19 @@
 import { z } from 'zod'
 
-import { encounterSceneStateDtoSchema } from '../api/vttScenes.js'
-import {
-  projectionChecksumSchema,
-  projectionIdentifierSchema,
-  projectionSchemaVersionSchema
-} from './identity.js'
+import { campaignSceneStateDtoSchema } from '../api/vttScenes.js'
+import { projectionChecksumSchema, projectionIdentifierSchema } from './identity.js'
 
 const nonNegativeStreamVersionSchema = z.number().int().min(0)
 
-export const SCENE_CURRENT_PROJECTION_SCHEMA_VERSION = 1
+export const SCENE_CURRENT_PROJECTION_SCHEMA_VERSION = 2
 
 export const sceneCurrentProjectionSchema = z
   .strictObject({
     sceneId: projectionIdentifierSchema,
     streamVersion: nonNegativeStreamVersionSchema,
-    projectionSchemaVersion: projectionSchemaVersionSchema,
+    projectionSchemaVersion: z.literal(SCENE_CURRENT_PROJECTION_SCHEMA_VERSION),
     projectionChecksum: projectionChecksumSchema,
-    projection: encounterSceneStateDtoSchema
+    projection: campaignSceneStateDtoSchema
   })
   .superRefine((value, context) => {
     if (value.projection.id !== value.sceneId) {

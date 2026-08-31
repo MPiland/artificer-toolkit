@@ -1,8 +1,4 @@
-import {
-  canonicalizeJson,
-  checksumCanonicalJson,
-  equalCanonicalJson
-} from '@artificer-toolkit/db'
+import { canonicalizeJson, checksumCanonicalJson, equalCanonicalJson } from '@artificer-toolkit/db'
 
 export function canonicalizeProjectionJson(value: unknown): string {
   return canonicalizeJson(value)

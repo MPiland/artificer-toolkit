@@ -1,4 +1,5 @@
 import type { ModifierGrantAuthored } from '@artificer-toolkit/shared'
+import { sql } from 'kysely'
 import {
   ABILITY_CODE,
   ATTACK_DOMAIN_CODE,
@@ -21,6 +22,7 @@ import { hydrateByIds, orderedHydratedRecords, uniqueIds } from '../../../reposi
 
 type ModifierGrantRow = {
   id: string
+  system_id: string
   sort_order: number
   selection_kind: string
   count: number | null
@@ -33,14 +35,42 @@ type ModifierGrantRow = {
 
 type ModifierGrantDomainRow = {
   modifier_grant_id: string
+  system_id: string
   value_domain_code: string
   attack_domain_code: string | null
   ability_code: string | null
   skill_id: string | null
   speed_id: string | null
-  sense_code: string | null
+  sense_definition_id: string | null
   spell_level: number | null
   condition_type_id: string | null
+}
+
+function parseModifierGrantDomainRow(row: {
+  modifier_grant_id: string
+  system_id?: unknown
+  value_domain_code: string
+  attack_domain_code: string | null
+  ability_code: string | null
+  skill_id: string | null
+  speed_id: string | null
+  sense_definition_id?: unknown
+  spell_level: number | null
+  condition_type_id: string | null
+}): ModifierGrantDomainRow {
+  if (typeof row.system_id !== 'string' || row.system_id.length === 0) {
+    throw new Error(`Modifier grant "${row.modifier_grant_id}" is missing domain system_id.`)
+  }
+  if (row.sense_definition_id !== null && typeof row.sense_definition_id !== 'string') {
+    throw new Error(
+      `Modifier grant "${row.modifier_grant_id}" has an invalid domain sense_definition_id.`
+    )
+  }
+  return {
+    ...row,
+    system_id: row.system_id,
+    sense_definition_id: row.sense_definition_id
+  }
 }
 
 type DbNumeric = number | string
@@ -367,11 +397,11 @@ function hydrateDomain(
 
     case 'SENSE_RANGE': {
       const persisted = requireDomainRow(row.id, domainRow)
-      if (!persisted.sense_code) {
-        throw new Error(`Modifier grant "${row.id}" is missing domain sense_code.`)
+      if (!persisted.sense_definition_id) {
+        throw new Error(`Modifier grant "${row.id}" is missing domain sense_definition_id.`)
       }
 
-      return { senseCode: persisted.sense_code }
+      return { senseDefinitionId: persisted.sense_definition_id }
     }
 
     case 'SPELL_SLOT_COUNT': {
@@ -747,6 +777,7 @@ export async function hydrateModifierGrantById(
     .selectFrom('modifier_grants')
     .select([
       'id',
+      'system_id',
       'sort_order',
       'selection_kind',
       'count',
@@ -766,17 +797,19 @@ export async function hydrateModifierGrantById(
       .selectFrom('modifier_grant_domain_params')
       .select([
         'modifier_grant_id',
+        sql.ref('system_id').as('system_id'),
         'value_domain_code',
         'attack_domain_code',
         'ability_code',
         'skill_id',
         'speed_id',
-        'sense_code',
+        sql.ref('sense_definition_id').as('sense_definition_id'),
         'spell_level',
         'condition_type_id'
       ] as const)
       .where('modifier_grant_id', '=', id)
-      .executeTakeFirst() as Promise<ModifierGrantDomainRow | undefined>,
+      .executeTakeFirst()
+      .then((row) => (row ? parseModifierGrantDomainRow(row) : undefined)),
     db
       .selectFrom('modifier_grant_payloads')
       .select([
@@ -861,84 +894,88 @@ async function hydrateModifierGrantsByIds(
     return new Map()
   }
 
-  const [roots, domainRows, payloadRows, chargeLevels, optionalAbilities] = await Promise.all([
-    db
-      .selectFrom('modifier_grants')
-      .select([
-        'id',
-        'sort_order',
-        'selection_kind',
-        'count',
-        'selection_duplicate_policy',
-        'value_domain_code',
-        'modifier_kind',
-        'scope',
-        'restriction_id'
-      ])
-      .where('id', 'in', distinctIds)
-      .execute() as Promise<ModifierGrantRow[]>,
-    db
-      .selectFrom('modifier_grant_domain_params')
-      .select([
-        'modifier_grant_id',
-        'value_domain_code',
-        'attack_domain_code',
-        'ability_code',
-        'skill_id',
-        'speed_id',
-        'sense_code',
-        'spell_level',
-        'condition_type_id'
-      ] as const)
-      .where('modifier_grant_id', 'in', distinctIds)
-      .execute() as Promise<ModifierGrantDomainRow[]>,
-    db
-      .selectFrom('modifier_grant_payloads')
-      .select([
-        'modifier_grant_id',
-        'modifier_kind',
-        'value_domain_code',
-        'numeric_value_kind',
-        'numeric_amount',
-        'numeric_multiplier',
-        'numeric_ability_code',
-        'numeric_min',
-        'numeric_max',
-        'numeric_skill_id',
-        'numeric_class_id',
-        'set_amount',
-        'charge_limit_kind',
-        'charge_scaling_kind',
-        'charge_amount',
-        'charge_multiplier',
-        'charge_min',
-        'charge_max',
-        'dice',
-        'damage_type_id',
-        'condition_type_id',
-        'movement_mode_id',
-        'attribute_id',
-        'range_kind',
-        'duration_kind',
-        'shape_kind',
-        'reset_kind'
-      ])
-      .where('modifier_grant_id', 'in', distinctIds)
-      .execute() as Promise<ModifierGrantPayloadRow[]>,
-    db
-      .selectFrom('modifier_grant_charge_levels')
-      .select(['id', 'modifier_grant_id', 'level', 'amount', 'sort_order'])
-      .where('modifier_grant_id', 'in', distinctIds)
-      .orderBy('sort_order')
-      .execute() as Promise<ModifierGrantChargeLevelRow[]>,
-    db
-      .selectFrom('modifier_grant_optional_abilities')
-      .select(['modifier_grant_id', 'ability_code', 'sort_order'])
-      .where('modifier_grant_id', 'in', distinctIds)
-      .orderBy('modifier_grant_id')
-      .orderBy('sort_order')
-      .execute() as Promise<ModifierGrantOptionalAbilityRow[]>
-  ])
+  const [roots, persistedDomainRows, payloadRows, chargeLevels, optionalAbilities] =
+    await Promise.all([
+      db
+        .selectFrom('modifier_grants')
+        .select([
+          'id',
+          'system_id',
+          'sort_order',
+          'selection_kind',
+          'count',
+          'selection_duplicate_policy',
+          'value_domain_code',
+          'modifier_kind',
+          'scope',
+          'restriction_id'
+        ])
+        .where('id', 'in', distinctIds)
+        .execute() as Promise<ModifierGrantRow[]>,
+      db
+        .selectFrom('modifier_grant_domain_params')
+        .select([
+          'modifier_grant_id',
+          sql.ref('system_id').as('system_id'),
+          'value_domain_code',
+          'attack_domain_code',
+          'ability_code',
+          'skill_id',
+          'speed_id',
+          sql.ref('sense_definition_id').as('sense_definition_id'),
+          'spell_level',
+          'condition_type_id'
+        ] as const)
+        .where('modifier_grant_id', 'in', distinctIds)
+        .execute(),
+      db
+        .selectFrom('modifier_grant_payloads')
+        .select([
+          'modifier_grant_id',
+          'modifier_kind',
+          'value_domain_code',
+          'numeric_value_kind',
+          'numeric_amount',
+          'numeric_multiplier',
+          'numeric_ability_code',
+          'numeric_min',
+          'numeric_max',
+          'numeric_skill_id',
+          'numeric_class_id',
+          'set_amount',
+          'charge_limit_kind',
+          'charge_scaling_kind',
+          'charge_amount',
+          'charge_multiplier',
+          'charge_min',
+          'charge_max',
+          'dice',
+          'damage_type_id',
+          'condition_type_id',
+          'movement_mode_id',
+          'attribute_id',
+          'range_kind',
+          'duration_kind',
+          'shape_kind',
+          'reset_kind'
+        ])
+        .where('modifier_grant_id', 'in', distinctIds)
+        .execute() as Promise<ModifierGrantPayloadRow[]>,
+      db
+        .selectFrom('modifier_grant_charge_levels')
+        .select(['id', 'modifier_grant_id', 'level', 'amount', 'sort_order'])
+        .where('modifier_grant_id', 'in', distinctIds)
+        .orderBy('sort_order')
+        .execute() as Promise<ModifierGrantChargeLevelRow[]>,
+      db
+        .selectFrom('modifier_grant_optional_abilities')
+        .select(['modifier_grant_id', 'ability_code', 'sort_order'])
+        .where('modifier_grant_id', 'in', distinctIds)
+        .orderBy('modifier_grant_id')
+        .orderBy('sort_order')
+        .execute() as Promise<ModifierGrantOptionalAbilityRow[]>
+    ])
+  const domainRows = persistedDomainRows.map(parseModifierGrantDomainRow)
   const rootsById = new Map(roots.map((row) => [row.id, row]))
   const domainRowsByGrantId = new Map(domainRows.map((row) => [row.modifier_grant_id, row]))
   const payloadRowsByGrantId = new Map(payloadRows.map((row) => [row.modifier_grant_id, row]))

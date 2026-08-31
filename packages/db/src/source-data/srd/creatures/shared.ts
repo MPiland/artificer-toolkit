@@ -33,6 +33,7 @@ import {
   type CreatureAuthored,
   type FeatureAuthored
 } from '@artificer-toolkit/shared'
+import { v5 as uuidv5 } from 'uuid'
 import { CREATURE_IDS } from '../ids.js'
 export { SPELL_IDS } from '../ids.js'
 import {
@@ -46,7 +47,29 @@ import {
   SRD_USER_ID
 } from '../vocabulary.js'
 
+export { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+
 export { closedRuleEffect } from '../closed-rule-effect.js'
+
+export {
+  DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID,
+  DND5E_LEGENDARY_RESISTANCE_LIFECYCLE_DEFINITION_ID,
+  DND5E_RECHARGE_4_LIFECYCLE_DEFINITION_ID,
+  DND5E_RECHARGE_5_LIFECYCLE_DEFINITION_ID,
+  DND5E_RECHARGE_6_LIFECYCLE_DEFINITION_ID
+} from '@artificer-toolkit/schema/shared/encounterLifecycle'
+
+const SRD_RECHARGE_CHARGE_NAMESPACE = '2b7463a4-0980-4e55-8f3d-1b5704d06856'
+
+export function rechargeFeatureCharge(featureId: string) {
+  return {
+    id: uuidv5(`${featureId}:recharge-charge`, SRD_RECHARGE_CHARGE_NAMESPACE),
+    limitKind: 'FIXED_AMOUNT' as const,
+    scalingKind: SCALING.NONE,
+    resetKind: CHARGE_RESET_KIND.MANUAL,
+    amount: 1
+  }
+}
 
 function vocabularyId<TCode extends string>(
   entries: readonly { code: TCode; id: string }[],

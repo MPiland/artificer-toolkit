@@ -1,10 +1,13 @@
-import { gameSystemCapabilityDtoSchema } from '@artificer-toolkit/schema/api/rulesRuntime'
+import { gameSystemRuleCapabilityDtoSchema } from '@artificer-toolkit/schema/api/rulesRuntime'
 import {
+  compiledRuleGraphDtoSchema,
   serverRuleExecutionContinuationDtoSchema,
   serverRuleExecutionResumeInputDtoSchema,
   serverRuleExecutionResultDtoSchema,
   serverPublishedRuleDefinitionDtoSchema,
   serverRuleExecutionInputDtoSchema,
+  type ServerPublishedRuleDefinitionDto,
+  type ServerRuleExecutionInputDto,
   type ServerRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import {
@@ -13,11 +16,13 @@ import {
   createRuleOperationRegistry,
   executeRuleGraph,
   resumeRuleGraph,
+  validateCompiledRuleGraph,
+  type CompiledRuleGraph,
   type RuleExecutionContinuation,
   type RuleOperationContract
 } from '@artificer-toolkit/shared/rules'
 
-import { canonicalizeRuleDocument, checksumRuleDocument } from './ruleChecksum.js'
+import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 export class RuleRuntimeConfigurationError extends Error {
   constructor(message: string) {
@@ -27,7 +32,11 @@ export class RuleRuntimeConfigurationError extends Error {
 }
 
 export class RuleDefinitionCompilationError extends Error {
-  readonly diagnostics: readonly { code: string; message: string; path?: string[] }[]
+  readonly diagnostics: readonly {
+    code: string
+    message: string
+    path?: string[]
+  }[]
 
   constructor(diagnostics: readonly { code: string; message: string; path?: string[] }[]) {
     super(diagnostics.map((entry) => `${entry.code}: ${entry.message}`).join('\n'))
@@ -49,7 +58,40 @@ export interface PublishedRuleDefinitionSource {
 
 export interface RulesRuntimeService {
   execute(input: unknown): Promise<ServerRuleExecutionResultDto>
+  /**
+   * Server-only execution for a source already resolved by an authorized
+   * domain service. The supplied envelope is still parsed and validated here.
+   */
+  executeResolved(input: {
+    command: ServerRuleExecutionInputDto
+    published: ServerPublishedRuleDefinitionDto
+  }): Promise<ServerRuleExecutionResultDto>
+  /** Server-only: preserves the exact compiled graph used for terminal application. */
+  executeResolvedWithGraph?(input: {
+    command: ServerRuleExecutionInputDto
+    published: ServerPublishedRuleDefinitionDto
+  }): Promise<{
+    result: ServerRuleExecutionResultDto
+    graph: CompiledRuleGraph
+  }>
+  /**
+   * Server-only execution of an already-persisted compiled graph. This never
+   * resolves a current authored definition or recompiles source data.
+   */
+  executeFrozen(input: {
+    graph: CompiledRuleGraph
+    occurrenceId: string
+    facts: Readonly<Record<string, import('@artificer-toolkit/shared/rules').RuleValue>>
+  }): Promise<{
+    result: ServerRuleExecutionResultDto
+    graph: CompiledRuleGraph
+  }>
   resume(input: unknown): Promise<ServerRuleExecutionResultDto>
+  /** Server-only: preserves the sealed graph that was resumed. */
+  resumeWithGraph?(input: unknown): Promise<{
+    result: ServerRuleExecutionResultDto
+    graph: CompiledRuleGraph
+  }>
 }
 
 function continuationSeal(candidate: unknown, integrityKey: Uint8Array): string {
@@ -64,7 +106,10 @@ function sealContinuation(candidate: unknown, integrityKey: Uint8Array) {
     seal: '0'.repeat(64)
   })
   const { seal: _seal, ...continuation } = parsed
-  return { ...continuation, seal: continuationSeal(continuation, integrityKey) }
+  return {
+    ...continuation,
+    seal: continuationSeal(continuation, integrityKey)
+  }
 }
 
 function unsealContinuation(
@@ -95,7 +140,7 @@ export function createRulesRuntimeService(input: {
   const continuationIntegrityKey = Uint8Array.from(input.continuationIntegrityKey)
   const capabilities = new Map(
     input.capabilities.map((candidate) => {
-      const capability = gameSystemCapabilityDtoSchema.parse(candidate)
+      const capability = gameSystemRuleCapabilityDtoSchema.parse(candidate)
       return [capability.gameSystemId, capability] as const
     })
   )
@@ -107,60 +152,143 @@ export function createRulesRuntimeService(input: {
 
   const operations = createRuleOperationRegistry(input.operations ?? coreRuleOperations)
 
-  return {
-    async execute(candidate) {
-      const command = serverRuleExecutionInputDtoSchema.parse(candidate)
-      const published = serverPublishedRuleDefinitionDtoSchema.parse(
-        await input.definitions.requireCurrent(command.definitionId)
+  function compileCurrent(
+    commandCandidate: unknown,
+    publishedCandidate: unknown
+  ): {
+    command: ServerRuleExecutionInputDto
+    published: ServerPublishedRuleDefinitionDto
+    graph: CompiledRuleGraph
+  } {
+    const command = serverRuleExecutionInputDtoSchema.parse(commandCandidate)
+    const published = serverPublishedRuleDefinitionDtoSchema.parse(publishedCandidate)
+    if (published.id !== command.definitionId || published.definition.id !== published.id) {
+      throw new RuleRuntimeSourceIntegrityError(
+        'Published rule definition identity does not match the requested definition.'
       )
-      if (published.id !== command.definitionId || published.definition.id !== published.id) {
-        throw new RuleRuntimeSourceIntegrityError(
-          'Published rule definition identity does not match the requested definition.'
-        )
-      }
-      if (
-        published.definition.gameSystemId !== published.gameSystemId ||
-        published.definition.definitionFamilyKey !== published.definitionFamilyKey
-      ) {
-        throw new RuleRuntimeSourceIntegrityError(
-          'Published rule definition does not match its Game System or definition-family envelope.'
-        )
-      }
-      if (checksumRuleDocument(published.definition) !== published.checksum) {
-        throw new RuleRuntimeSourceIntegrityError(
-          'Published rule definition checksum does not match its canonical document.'
-        )
-      }
+    }
+    if (
+      published.definition.gameSystemId !== published.gameSystemId ||
+      published.definition.definitionFamilyKey !== published.definitionFamilyKey
+    ) {
+      throw new RuleRuntimeSourceIntegrityError(
+        'Published rule definition does not match its Game System or definition-family envelope.'
+      )
+    }
+    if (checksumRuleDocument(published.definition) !== published.checksum) {
+      throw new RuleRuntimeSourceIntegrityError(
+        'Published rule definition checksum does not match its canonical document.'
+      )
+    }
 
-      const capability = capabilities.get(published.gameSystemId)
-      if (!capability) {
-        throw new RuleRuntimeConfigurationError(
-          `No capability contract is registered for Game System "${published.gameSystemId}".`
-        )
-      }
+    const capability = capabilities.get(published.gameSystemId)
+    if (!capability) {
+      throw new RuleRuntimeConfigurationError(
+        `No capability contract is registered for Game System "${published.gameSystemId}".`
+      )
+    }
 
-      const compiled = compileRuleGraph({
-        definition: published.definition,
-        sourceChecksum: published.checksum,
-        capability,
-        operations
-      })
-      if (!compiled.ok) throw new RuleDefinitionCompilationError(compiled.diagnostics)
+    const compiled = compileRuleGraph({
+      definition: published.definition,
+      sourceChecksum: published.checksum,
+      capability,
+      operations
+    })
+    if (!compiled.ok) throw new RuleDefinitionCompilationError(compiled.diagnostics)
 
-      const result = executeRuleGraph({
-        graph: compiled.value,
-        occurrenceId: command.occurrenceId,
-        facts: command.facts,
-        operations
-      })
-      return serverRuleExecutionResultDtoSchema.parse(
+    return { command, published, graph: compiled.value }
+  }
+
+  function executeCurrent(
+    commandCandidate: unknown,
+    publishedCandidate: unknown
+  ): { result: ServerRuleExecutionResultDto; graph: CompiledRuleGraph } {
+    const { command, graph } = compileCurrent(commandCandidate, publishedCandidate)
+
+    const result = executeRuleGraph({
+      graph,
+      occurrenceId: command.occurrenceId,
+      facts: command.facts,
+      operations
+    })
+    return {
+      result: serverRuleExecutionResultDtoSchema.parse(
         result.status === 'PAUSED'
           ? {
               status: 'PAUSED',
               continuation: sealContinuation(result.continuation, continuationIntegrityKey)
             }
           : result
+      ),
+      graph
+    }
+  }
+
+  function executeFrozen(input: {
+    graph: CompiledRuleGraph
+    occurrenceId: string
+    facts: Readonly<Record<string, import('@artificer-toolkit/shared/rules').RuleValue>>
+  }): { result: ServerRuleExecutionResultDto; graph: CompiledRuleGraph } {
+    const graph = compiledRuleGraphDtoSchema.parse(input.graph) as CompiledRuleGraph
+    const command = serverRuleExecutionInputDtoSchema.parse({
+      definitionId: graph.source.definitionId,
+      occurrenceId: input.occurrenceId,
+      facts: input.facts
+    })
+    const capability = capabilities.get(graph.source.gameSystemId)
+    if (!capability) {
+      throw new RuleRuntimeConfigurationError(
+        `No capability contract is registered for frozen Game System "${graph.source.gameSystemId}".`
       )
+    }
+    if (capability.contractVersion !== graph.capabilityContractVersion) {
+      throw new RuleRuntimeSourceIntegrityError(
+        'Frozen rule graph capability contract version is not registered for its Game System.'
+      )
+    }
+    const validation = validateCompiledRuleGraph({
+      graph,
+      capability,
+      operations
+    })
+    if (!validation.ok) {
+      throw new RuleRuntimeSourceIntegrityError(
+        validation.diagnostics.map((entry) => `${entry.code}: ${entry.message}`).join('\n')
+      )
+    }
+    const result = executeRuleGraph({
+      graph,
+      occurrenceId: command.occurrenceId,
+      facts: command.facts,
+      operations
+    })
+    return {
+      result: serverRuleExecutionResultDtoSchema.parse(
+        result.status === 'PAUSED'
+          ? {
+              status: 'PAUSED',
+              continuation: sealContinuation(result.continuation, continuationIntegrityKey)
+            }
+          : result
+      ),
+      graph
+    }
+  }
+
+  return {
+    async execute(candidate) {
+      const command = serverRuleExecutionInputDtoSchema.parse(candidate)
+      const published = await input.definitions.requireCurrent(command.definitionId)
+      return executeCurrent(command, published).result
+    },
+    async executeResolved(resolved) {
+      return executeCurrent(resolved.command, resolved.published).result
+    },
+    async executeResolvedWithGraph(resolved) {
+      return executeCurrent(resolved.command, resolved.published)
+    },
+    async executeFrozen(frozen) {
+      return executeFrozen(frozen)
     },
     async resume(candidate) {
       const command = serverRuleExecutionResumeInputDtoSchema.parse(candidate)
@@ -175,6 +303,26 @@ export function createRulesRuntimeService(input: {
             }
           : result
       )
+    },
+    async resumeWithGraph(candidate) {
+      const command = serverRuleExecutionResumeInputDtoSchema.parse(candidate)
+      const continuation = unsealContinuation(command.continuation, continuationIntegrityKey)
+      const result = resumeRuleGraph({
+        continuation,
+        response: command.response,
+        operations
+      })
+      return {
+        result: serverRuleExecutionResultDtoSchema.parse(
+          result.status === 'PAUSED'
+            ? {
+                status: 'PAUSED',
+                continuation: sealContinuation(result.continuation, continuationIntegrityKey)
+              }
+            : result
+        ),
+        graph: continuation.graph
+      }
     }
   }
 }

@@ -1,5 +1,5 @@
 import type { SignedVttMapDeliveryDto } from '@artificer-toolkit/schema/api/media'
-import type { EncounterSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 
 const mapSize = 8_192
 const tileSize = 1_024
@@ -55,6 +55,7 @@ const walls = Array.from({ length: 190 }, (_, index) => ({
 
 export const vttLoadFixtureScene = {
   annotations: [],
+  ambientIllumination: 'BRIGHT' as const,
   barriers: [...doors, ...walls],
   campaignId: fixtureUuid(4),
   darknessZones: Array.from({ length: 8 }, (_, index) => {
@@ -62,6 +63,8 @@ export const vttLoadFixtureScene = {
     const y = Math.floor(index / 4) * 3_700 + 280
     return {
       id: fixtureUuid(500 + index),
+      mechanicalIllumination: null,
+      mechanicalObscurement: null,
       opacity: 0.3 + (index % 3) * 0.15,
       polygon: {
         points: [
@@ -76,7 +79,6 @@ export const vttLoadFixtureScene = {
   definitionId: fixtureUuid(5),
   definitionVersion: 1,
   doorStates: Object.fromEntries(doors.map((door) => [door.id, door.initialState])),
-  encounterId: fixtureUuid(6),
   fogLayers: [
     {
       chunks: [
@@ -133,7 +135,6 @@ export const vttLoadFixtureScene = {
   })),
   name: 'Eight-K Performance Fixture',
   tokens: Array.from({ length: 100 }, (_, index) => ({
-    actorId: null,
     assetId: null,
     controlledByUserIds: index === 0 ? [fixtureUserId] : [],
     height: 52,
@@ -148,7 +149,7 @@ export const vttLoadFixtureScene = {
   })),
   visionRevealMode: 'ON_DROP',
   version: 1
-} satisfies EncounterSceneStateDto
+} satisfies CampaignSceneStateDto
 
 export const vttLoadFixtureMapDelivery = {
   assetId: loadFixtureMapAssetId,
@@ -194,9 +195,9 @@ export function vttLoadFixtureExerciseMode(search: string): VttLoadFixtureExerci
 }
 
 export function moveLoadFixtureScene(
-  scene: EncounterSceneStateDto,
+  scene: CampaignSceneStateDto,
   updateNumber: number
-): EncounterSceneStateDto {
+): CampaignSceneStateDto {
   const firstToken = scene.tokens[0]!
   const firstDoor = doors[0]!
   return {

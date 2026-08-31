@@ -1,6 +1,7 @@
 import { sql } from 'kysely'
 import type { DBLike, Json } from '#types'
 import { withTransaction } from '../../../utils/index.js'
+import { requireDefaultUserContentSource } from '../../../repositories/contentSources.js'
 import {
   createAccountEntitlementsRepository,
   EntitlementLimitError
@@ -23,6 +24,7 @@ export interface AuthoredActiveMetadata {
   subjectKind: AuthoredSubjectKind
   ownerUserId: string | null
   systemId: string
+  contentSourceId: string
   label: string
   isMaster: boolean
   hasDraft: boolean
@@ -35,6 +37,7 @@ export interface AuthoredDraft {
   subjectId: string
   userId: string
   systemId: string
+  contentSourceId: string
   label: string
   status: 'DRAFT'
   payload: Json
@@ -59,6 +62,7 @@ interface AuthoredActiveRow {
   subject_kind: AuthoredSubjectKind
   owner_user_id: string | null
   system_id: string
+  content_source_id: string
   label: string
   is_master: boolean
   has_draft: boolean
@@ -75,6 +79,7 @@ interface AuthoredDraftRow {
   subject_id: string
   user_id: string
   system_id: string
+  content_source_id: string
   label: string
   payload: Json
   base_active_updated_at: Date | string | null
@@ -120,28 +125,28 @@ const tableBySubjectKind = {
 
 const activeRoots = sql`
   select 'BACKGROUND'::text as subject_kind, id as subject_id, user_id as owner_user_id,
-    system_id, label, coalesce(is_master, false) as is_master, created_at, updated_at
+    system_id, content_source_id, label, coalesce(is_master, false) as is_master, created_at, updated_at
   from backgrounds where status = 'ACTIVE'
   union all
-  select 'CLASS', id, user_id, system_id, label, coalesce(is_master, false), created_at, updated_at
+  select 'CLASS', id, user_id, system_id, content_source_id, label, coalesce(is_master, false), created_at, updated_at
   from classes where status = 'ACTIVE'
   union all
-  select 'CREATURE', id, user_id, system_id, label, coalesce(is_master, false), created_at, updated_at
+  select 'CREATURE', id, user_id, system_id, content_source_id, label, coalesce(is_master, false), created_at, updated_at
   from creatures where status = 'ACTIVE'
   union all
-  select 'EQUIPMENT', id, user_id, system_id, label, coalesce(is_master, false), created_at, updated_at
+  select 'EQUIPMENT', id, user_id, system_id, content_source_id, label, coalesce(is_master, false), created_at, updated_at
   from equipment where status = 'ACTIVE'
   union all
-  select 'FEAT', id, user_id, system_id, label, coalesce(is_master, false), created_at, updated_at
+  select 'FEAT', id, user_id, system_id, content_source_id, label, coalesce(is_master, false), created_at, updated_at
   from feats where status = 'ACTIVE'
   union all
-  select 'RACE', id, user_id, system_id, label, coalesce(is_master, false), created_at, updated_at
+  select 'RACE', id, user_id, system_id, content_source_id, label, coalesce(is_master, false), created_at, updated_at
   from races where status = 'ACTIVE'
   union all
-  select 'SPELL', id, user_id, system_id, label, coalesce(is_master, false), created_at, updated_at
+  select 'SPELL', id, user_id, system_id, content_source_id, label, coalesce(is_master, false), created_at, updated_at
   from spells where status = 'ACTIVE'
   union all
-  select 'VEHICLE', id, user_id, system_id, label, coalesce(is_master, false), created_at, updated_at
+  select 'VEHICLE', id, user_id, system_id, content_source_id, label, coalesce(is_master, false), created_at, updated_at
   from vehicles where status = 'ACTIVE'
 `
 
@@ -165,6 +170,7 @@ function mapActive(row: AuthoredActiveRow): AuthoredActiveMetadata {
     subjectKind: row.subject_kind,
     ownerUserId: row.owner_user_id,
     systemId: row.system_id,
+    contentSourceId: row.content_source_id,
     label: row.label,
     isMaster: row.is_master,
     hasDraft: row.has_draft,
@@ -179,6 +185,7 @@ function mapDraft(row: AuthoredDraftRow): AuthoredDraft {
     subjectId: row.subject_id,
     userId: row.user_id,
     systemId: row.system_id,
+    contentSourceId: row.content_source_id,
     label: row.label,
     status: 'DRAFT',
     payload: row.payload,
@@ -197,6 +204,7 @@ function activeRowForUpdate(db: DBLike, subjectKind: AuthoredSubjectKind, subjec
       root.id as subject_id,
       root.user_id as owner_user_id,
       root.system_id,
+      root.content_source_id,
       root.label,
       coalesce(root.is_master, false) as is_master,
       exists (
@@ -281,6 +289,7 @@ async function findDraftBySubject(
       draft.subject_id,
       draft.user_id,
       draft.system_id,
+      draft.content_source_id,
       draft.label,
       draft.payload,
       draft.base_active_updated_at::text,
@@ -314,6 +323,7 @@ async function saveDraft(db: DBLike, input: SaveAuthoredDraftInput): Promise<Aut
         subject_id,
         user_id,
         system_id,
+        content_source_id,
         label,
         payload,
         base_active_updated_at::text,
@@ -329,6 +339,7 @@ async function saveDraft(db: DBLike, input: SaveAuthoredDraftInput): Promise<Aut
     const existingDraft = existingDraftResult.rows[0]
     const activeResult = await activeRowForUpdate(trx, input.subjectKind, input.subjectId)
     const active = activeResult.rows[0]
+    const contentSourceId = await requireDefaultUserContentSource(trx, input.systemId, input.userId)
 
     if (existingDraft && existingDraft.user_id !== input.userId) {
       throw new Error(`Authored draft "${input.subjectId}" is not writable by this owner.`)
@@ -341,6 +352,12 @@ async function saveDraft(db: DBLike, input: SaveAuthoredDraftInput): Promise<Aut
     }
     if (active && active.system_id !== input.systemId) {
       throw new Error(`Active authored content "${input.subjectId}" cannot change rules system.`)
+    }
+    if (existingDraft && existingDraft.content_source_id !== contentSourceId) {
+      throw new Error(`Authored draft "${input.subjectId}" cannot change Content Source.`)
+    }
+    if (active && active.content_source_id !== contentSourceId) {
+      throw new Error(`Active authored content "${input.subjectId}" cannot change Content Source.`)
     }
 
     if (!existingDraft && !active) {
@@ -362,6 +379,7 @@ async function saveDraft(db: DBLike, input: SaveAuthoredDraftInput): Promise<Aut
         subject_id,
         user_id,
         system_id,
+        content_source_id,
         label,
         payload,
         base_active_updated_at
@@ -370,6 +388,7 @@ async function saveDraft(db: DBLike, input: SaveAuthoredDraftInput): Promise<Aut
         ${input.subjectId},
         ${input.userId},
         ${input.systemId},
+        ${contentSourceId},
         ${input.label},
         ${JSON.stringify(input.payload)}::jsonb,
         ${baseActiveUpdatedAt}
@@ -381,6 +400,7 @@ async function saveDraft(db: DBLike, input: SaveAuthoredDraftInput): Promise<Aut
         updated_at = now()
       where authored_drafts.user_id = excluded.user_id
         and authored_drafts.system_id = excluded.system_id
+        and authored_drafts.content_source_id = excluded.content_source_id
     `.execute(trx)
 
     const saved = await findDraftBySubject(trx, {
@@ -515,6 +535,7 @@ export function createAuthoredContentRepository(db: DBLike) {
           draft.subject_id,
           draft.user_id,
           draft.system_id,
+          draft.content_source_id,
           draft.label,
           draft.payload,
           draft.base_active_updated_at::text,
@@ -553,6 +574,7 @@ export function createAuthoredContentRepository(db: DBLike) {
           draft.subject_id,
           draft.user_id,
           draft.system_id,
+          draft.content_source_id,
           draft.label,
           draft.payload,
           draft.base_active_updated_at::text,
@@ -585,6 +607,7 @@ export function createAuthoredContentRepository(db: DBLike) {
           subject_id,
           user_id,
           system_id,
+          content_source_id,
           label,
           payload,
           base_active_updated_at::text,

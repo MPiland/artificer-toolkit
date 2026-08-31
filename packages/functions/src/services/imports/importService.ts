@@ -53,11 +53,7 @@ import {
   type ExternalContentReference,
   type ParsedExternalCharacter
 } from './importParsers.js'
-import {
-  DndBeyondImportError,
-  fetchDndBeyondCharacter,
-  findDnd5e2014SystemId
-} from './dndBeyondClient.js'
+import { DndBeyondImportError, fetchDndBeyondCharacter } from './dndBeyondClient.js'
 import {
   collectPortableReferences,
   isCompleteExternalCustomContent,
@@ -152,6 +148,7 @@ interface PreparedBatch {
   source: ImportSourceDto
   items: PreparedItem[]
   defaultSystemId?: string
+  primaryRulesCatalogueId?: string
 }
 
 export async function previewImports(
@@ -263,11 +260,29 @@ export async function commitImports(
       }
 
       if (item.kind === 'CHARACTER') {
-        if (!prepared.defaultSystemId) {
+        if (!prepared.defaultSystemId || !prepared.primaryRulesCatalogueId) {
           throw namedError('ImportConfigurationError', 'D&D 5e 2014 is not configured.')
         }
+        if (
+          !(await createSystemRepository(trx).hasRulesCatalogue({
+            gameSystemId: prepared.defaultSystemId,
+            rulesCatalogueId: prepared.primaryRulesCatalogueId
+          }))
+        ) {
+          throw namedError(
+            'ImportConfigurationError',
+            'The selected Rules Catalogue is unavailable.'
+          )
+        }
         results.push(
-          await commitCharacterImport(trx, item, userId, prepared.defaultSystemId, createId)
+          await commitCharacterImport(
+            trx,
+            item,
+            userId,
+            prepared.defaultSystemId,
+            prepared.primaryRulesCatalogueId,
+            createId
+          )
         )
         continue
       }
@@ -358,7 +373,7 @@ async function prepareImportBatch(
   const createId = dependencies.createId ?? (() => crypto.randomUUID())
 
   if (input.source === 'DND_BEYOND') {
-    const defaultSystemId = await findDnd5e2014SystemId(db)
+    const defaultSystemId = input.systemId
     const items: PreparedItem[] = []
     const responseBudget = { remainingBytes: IMPORT_MAX_BATCH_BYTES }
     for (const entry of input.entries) {
@@ -417,7 +432,12 @@ async function prepareImportBatch(
         )
       )
     }
-    return { source: input.source, items, defaultSystemId }
+    return {
+      source: input.source,
+      items,
+      defaultSystemId,
+      primaryRulesCatalogueId: input.primaryRulesCatalogueId
+    }
   }
 
   if (input.source === 'FOUNDRY_DND5E') {
@@ -474,7 +494,7 @@ async function prepareImportBatch(
       }
     }
 
-    const defaultSystemId = await findDnd5e2014SystemId(db)
+    const defaultSystemId = input.systemId
     const items = await Promise.all(
       parsedEntries.map(async (parsedEntry): Promise<PreparedItem> => {
         if (!('parsed' in parsedEntry)) return parsedEntry.failure
@@ -492,7 +512,12 @@ async function prepareImportBatch(
         )
       })
     )
-    return { source: input.source, items, defaultSystemId }
+    return {
+      source: input.source,
+      items,
+      defaultSystemId,
+      primaryRulesCatalogueId: input.primaryRulesCatalogueId
+    }
   }
 
   const parsedEntries = input.entries.map((entry) => ({
@@ -825,6 +850,7 @@ async function commitCharacterImport(
   item: PreparedCharacterItem,
   userId: string,
   systemId: string,
+  primaryRulesCatalogueId: string,
   createId: () => string
 ): Promise<ImportResultItemDto> {
   for (const custom of item.customContent) {
@@ -865,7 +891,35 @@ async function commitCharacterImport(
   }
 
   const existingActive = await createCharacterRepository(db).findAuthoredById(item.targetId)
-  const character = buildImportedCharacter(item, userId, systemId, createId)
+  if (
+    existingActive &&
+    (existingActive.systemId !== systemId ||
+      existingActive.primaryRulesCatalogueId !== primaryRulesCatalogueId)
+  ) {
+    return {
+      entryId: item.entryId,
+      name: item.name,
+      label: item.label,
+      outcome: 'FAILED',
+      issues: [
+        ...item.issues,
+        issue(
+          'ERROR',
+          'CHARACTER_RULE_BINDING_MISMATCH',
+          'The imported Character does not match the existing Character System and Rules Catalogue.',
+          [],
+          true
+        )
+      ]
+    }
+  }
+  const character = buildImportedCharacter(
+    item,
+    userId,
+    systemId,
+    existingActive?.primaryRulesCatalogueId ?? primaryRulesCatalogueId,
+    createId
+  )
   const baseActiveUpdatedAt = existingActive
     ? await createCharacterRepository(db).findUpdatedAtById(item.targetId)
     : null
@@ -988,9 +1042,15 @@ function buildImportedCharacter(
   item: PreparedCharacterItem,
   userId: string,
   systemId: string,
+  primaryRulesCatalogueId: string,
   createId: () => string
 ): CharacterAuthored {
-  const character = createEmptyCharacterAuthored({ id: item.targetId, systemId, userId })
+  const character = createEmptyCharacterAuthored({
+    id: item.targetId,
+    primaryRulesCatalogueId,
+    systemId,
+    userId
+  })
   character.label = item.label
   character.description = item.parsed.description
   character.profile = item.parsed.profile

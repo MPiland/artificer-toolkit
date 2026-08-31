@@ -3,17 +3,23 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
-import { tabletopGmEncounter, tabletopPlayerEncounter } from './CampaignTabletop.stories.fixtures'
+import {
+  tabletopGmEncounter,
+  tabletopLiveScene,
+  tabletopPlayerEncounter
+} from './CampaignTabletop.stories.fixtures'
 
 describe('CampaignTabletopEncounterDrawer', () => {
   it('shows the private player turn order without GM controls', async () => {
     const user = userEvent.setup()
     renderWithAppProviders(
       <CampaignTabletopEncounterDrawer
+        actorIdByTokenId={new Map()}
         connected
         encounter={tabletopPlayerEncounter}
         pending={false}
         role='PLAYER'
+        scene={tabletopLiveScene}
         onCommand={() => undefined}
       />
     )
@@ -32,10 +38,12 @@ describe('CampaignTabletopEncounterDrawer', () => {
     const onCommand = vi.fn()
     renderWithAppProviders(
       <CampaignTabletopEncounterDrawer
+        actorIdByTokenId={new Map()}
         connected
         encounter={tabletopGmEncounter}
         pending={false}
         role='OWNER'
+        scene={tabletopLiveScene}
         onCommand={onCommand}
       />
     )
@@ -51,14 +59,48 @@ describe('CampaignTabletopEncounterDrawer', () => {
     })
   })
 
+  it('binds an Encounter actor to an available Campaign Scene token', async () => {
+    const user = userEvent.setup()
+    const onCommand = vi.fn()
+    renderWithAppProviders(
+      <CampaignTabletopEncounterDrawer
+        actorIdByTokenId={new Map()}
+        connected
+        encounter={tabletopGmEncounter}
+        pending={false}
+        role='OWNER'
+        scene={tabletopLiveScene}
+        onCommand={onCommand}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+    await user.click(screen.getByLabelText("Scene token for Ember's Wake"))
+    const [emberOption] = await screen.findAllByRole('option', { hidden: true, name: 'Ember' })
+    expect(emberOption).toBeDefined()
+    await user.click(emberOption!)
+
+    expect(onCommand).toHaveBeenCalledWith({
+      actorId: tabletopGmEncounter.actors[0]!.id,
+      commandId: expect.any(String),
+      encounterId: tabletopGmEncounter.id,
+      expectedEncounterVersion: tabletopGmEncounter.version,
+      sceneId: tabletopLiveScene.id,
+      tokenId: tabletopLiveScene.tokens[0]!.id,
+      type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
+    })
+  })
+
   it('keeps commands unavailable while the live session reconnects', async () => {
     const user = userEvent.setup()
     renderWithAppProviders(
       <CampaignTabletopEncounterDrawer
+        actorIdByTokenId={new Map()}
         connected={false}
         encounter={tabletopGmEncounter}
         pending={false}
         role='OWNER'
+        scene={tabletopLiveScene}
         onCommand={() => undefined}
       />
     )

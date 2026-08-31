@@ -269,6 +269,7 @@ describe('authored Campaign mutation reconciliation', () => {
     const draftCharacter = createEmptyCharacterAuthored({
       id: ids.draftCharacter,
       userId: ids.author,
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
       systemId: '00000000-0000-4000-8000-000000000009'
     })
     draftCharacter.intent.background.backgroundId = ids.spell

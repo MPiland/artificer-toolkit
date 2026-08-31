@@ -150,80 +150,83 @@ describe('createSpellRepository', () => {
     const db = new InMemoryDb()
     const repository = createSpellRepository(db as never)
 
-    await repository.upsert({
-      kind: 'SPELL',
-      id: 'spell-effects-1',
-      label: 'Flame Lash',
-      description: 'A spell with an effect.',
-      status: 'DRAFT',
-      components: ['VERBAL', 'SOMATIC'],
-      castingTime: {
-        unit: 'ROUND',
-        amount: 1
-      },
-      level: 1,
-      classIds: ['wizard'],
-      magicSchoolId: 'evocation',
-      effects: [
-        {
-          id: 'spell-effect-1',
-          order: 1,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: 'SPELL_ATTACK',
-            activation: {
-              code: 'ACTION',
-              amount: 1
-            },
-            range: {
-              id: 'spell-range-1',
-              rangeKind: 'DISTANCE',
-              amount: 90,
-              unit: 'FEET'
-            }
-          },
-          paths: [
-            {
-              id: 'spell-PATH_CODE-1',
-              order: 1,
-              pathCode: 'ON_HIT',
-              groupType: 'SINGLE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: 'spell-PATH_CODE-1__result',
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: 'spell-PATH_CODE-1',
-                    effectKind: 'DAMAGE',
-                    damageTypeId: 'fire',
-                    valueKind: 'DICE',
-                    scalingKind: 'PER_LEVEL',
-                    scalingSource: 'SPELL_CAST_LEVEL',
-                    levels: [
-                      {
-                        id: 'spell-PATH_CODE-1-level-1',
-                        level: 1,
-                        order: 1,
-                        diceConfig: '3d6'
-                      },
-                      {
-                        id: 'spell-PATH_CODE-1-level-2',
-                        level: 2,
-                        order: 2,
-                        diceConfig: '4d6'
-                      }
-                    ]
-                  }
-                ]
+    await repository.upsert(
+      {
+        kind: 'SPELL',
+        id: 'spell-effects-1',
+        label: 'Flame Lash',
+        description: 'A spell with an effect.',
+        status: 'DRAFT',
+        components: ['VERBAL', 'SOMATIC'],
+        castingTime: {
+          unit: 'ROUND',
+          amount: 1
+        },
+        level: 1,
+        classIds: ['wizard'],
+        magicSchoolId: 'evocation',
+        effects: [
+          {
+            id: 'spell-effect-1',
+            order: 1,
+            invocation: {
+              kind: 'ACTION',
+              triggerCode: 'SPELL_ATTACK',
+              activation: {
+                code: 'ACTION',
+                amount: 1
+              },
+              range: {
+                id: 'spell-range-1',
+                rangeKind: 'DISTANCE',
+                amount: 90,
+                unit: 'FEET'
               }
-            }
-          ]
-        }
-      ],
-      userId: 'user-1',
-      systemId: 'system-1'
-    })
+            },
+            paths: [
+              {
+                id: 'spell-PATH_CODE-1',
+                order: 1,
+                pathCode: 'ON_HIT',
+                groupType: 'SINGLE',
+                selectionKind: 'FIXED',
+                resultBlock: {
+                  id: 'spell-PATH_CODE-1__result',
+                  resultKind: 'SINGLE',
+                  outcomes: [
+                    {
+                      id: 'spell-PATH_CODE-1',
+                      effectKind: 'DAMAGE',
+                      damageTypeId: 'fire',
+                      valueKind: 'DICE',
+                      scalingKind: 'PER_LEVEL',
+                      scalingSource: 'SPELL_CAST_LEVEL',
+                      levels: [
+                        {
+                          id: 'spell-PATH_CODE-1-level-1',
+                          level: 1,
+                          order: 1,
+                          diceConfig: '3d6'
+                        },
+                        {
+                          id: 'spell-PATH_CODE-1-level-2',
+                          level: 2,
+                          order: 2,
+                          diceConfig: '4d6'
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        userId: 'user-1',
+        systemId: 'system-1'
+      },
+      { contentSourceId: 'content-source-1' }
+    )
 
     await expect(repository.findById('spell-effects-1')).resolves.toMatchObject({
       kind: 'SPELL',

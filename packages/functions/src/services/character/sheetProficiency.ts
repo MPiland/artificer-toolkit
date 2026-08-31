@@ -1,7 +1,4 @@
-import {
-  EQUIPMENT_CATEGORY_CODE,
-  EQUIPMENT_PROPERTY_CODE
-} from '@artificer-toolkit/shared/core'
+import { EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE } from '@artificer-toolkit/shared/core'
 
 import type { CharacterBuilderResolution } from './builderService.js'
 import type { CharacterRuleProficiency } from './characterSheetRuleProjection.js'

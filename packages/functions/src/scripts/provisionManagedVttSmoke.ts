@@ -10,6 +10,7 @@ import {
   createCampaignRepository,
   createDb,
   createMediaRepository,
+  createVttSceneRepository,
   srdBaselineContent
 } from '@artificer-toolkit/db'
 import { createUniformSceneFogLayer } from '@artificer-toolkit/shared/vtt'
@@ -19,13 +20,14 @@ import { assignCampaignCharacter, createCampaign } from '../services/campaign/ca
 import { createCampaignSession } from '../services/campaign/campaignSessionService.js'
 import {
   createEncounter,
-  createEncounterTemplate,
+  createEncounterBlueprint,
   executeEncounterCommand
 } from '../services/encounter/encounterService.js'
 import {
-  attachEncounterScene,
+  bindEncounterToPresentedScene,
   createCampaignSceneDefinition,
-  executeEncounterSceneCommand
+  executeEncounterSceneCommand,
+  setCampaignLiveScenePresentation
 } from '../services/encounter/vttSceneService.js'
 import { proveFixtureLifecycle } from './characterLifecycleIntegrationBuilderProof.js'
 import {
@@ -241,7 +243,9 @@ async function main(): Promise<void> {
       name: CAMPAIGN_NAME,
       format: 'ONE_SHOT',
       toneTags: ['HEROIC'],
-      contentMaturity: 'STANDARD'
+      contentMaturity: 'STANDARD',
+      gameSystemId: '00000000-0000-0000-0000-000000000001',
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301'
     })
     await createCampaignRepository(db).activatePlayerMembership(
       campaign.id,
@@ -281,8 +285,8 @@ async function main(): Promise<void> {
         )
       ) ?? false
     assert.ok(hasChargedFeature, 'The canonical Acolyte must include a charged creature feature.')
-    const encounterTemplate = await createEncounterTemplate(db, gm.id, {
-      campaignId: campaign.id,
+    const encounterBlueprint = await createEncounterBlueprint(db, gm.id, {
+      gameSystemId: encounterCreature.systemId,
       name: 'Managed VTT smoke encounter',
       enemies: [{ kind: 'CREATURE', sourceId: encounterCreature.id }],
       commandId: randomUUID()
@@ -290,8 +294,7 @@ async function main(): Promise<void> {
     const encounter = await createEncounter(db, gm.id, {
       campaignId: campaign.id,
       sessionId: session.id,
-      templateId: encounterTemplate.id,
-      systemId: encounterCreature.systemId,
+      blueprintId: encounterBlueprint.id,
       commandId: randomUUID()
     })
     const mapAssetId = randomUUID()
@@ -384,6 +387,7 @@ async function main(): Promise<void> {
           openAngleDegrees: 90
         }
       ],
+      ambientIllumination: 'BRIGHT',
       campaignId: campaign.id,
       darknessZones: [],
       fogMode: 'SHARED_PARTY',
@@ -400,7 +404,6 @@ async function main(): Promise<void> {
       name: 'Managed VTT smoke scene',
       tokens: [
         {
-          actorId: null,
           assetId: null,
           controlledByUserIds: [player.id],
           height: 1,
@@ -414,7 +417,6 @@ async function main(): Promise<void> {
           width: 1
         },
         {
-          actorId: null,
           assetId: null,
           controlledByUserIds: [player2.id],
           height: 1,
@@ -428,7 +430,6 @@ async function main(): Promise<void> {
           width: 1
         },
         {
-          actorId: null,
           assetId: null,
           controlledByUserIds: [],
           height: 1,
@@ -444,21 +445,30 @@ async function main(): Promise<void> {
       ],
       visionRevealMode: 'ON_DROP'
     })
-    const attachedScene = await attachEncounterScene(db, gm.id, {
+    const liveScene = (await createVttSceneRepository(db).listLiveScenes(campaign.id)).find(
+      (candidate) => candidate.state.definitionId === sceneDefinition.id
+    )
+    assert.ok(liveScene, 'Creating a Campaign Scene definition must materialize its live Scene.')
+    await setCampaignLiveScenePresentation(db, gm.id, {
+      commandId: randomUUID(),
+      expectedPresentationVersion: null,
+      sceneId: liveScene.state.id,
+      sessionId: session.id,
+      type: 'SET_CAMPAIGN_LIVE_SCENE_PRESENTATION'
+    })
+    await bindEncounterToPresentedScene(db, gm.id, {
       commandId: randomUUID(),
       encounterId: encounter.id,
-      sceneDefinitionId: sceneDefinition.id,
-      type: 'ATTACH_SCENE'
+      type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE'
     })
     await executeEncounterSceneCommand(db, gm.id, {
       commandId: randomUUID(),
-      encounterId: attachedScene.scene.encounterId,
-      expectedSceneVersion: attachedScene.scene.version,
-      layer: createUniformSceneFogLayer(attachedScene.scene, {
+      expectedSceneVersion: liveScene.state.version,
+      layer: createUniformSceneFogLayer(liveScene.state, {
         explored: true,
         ownerUserId: null
       }),
-      sceneId: attachedScene.scene.id,
+      sceneId: liveScene.state.id,
       type: 'PATCH_SCENE_FOG'
     })
     await executeEncounterCommand(db, gm.id, {
@@ -480,7 +490,7 @@ async function main(): Promise<void> {
         mapAssetId,
         playerEmail: player.email,
         player2Email: player2.email,
-        sceneId: attachedScene.scene.id,
+        sceneId: liveScene.state.id,
         sessionId: session.id,
         tabletopPath: `/tabletop/campaigns/${encodeURIComponent(campaign.publicId)}/sessions/${session.sessionNumber}`
       })

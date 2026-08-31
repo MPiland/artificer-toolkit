@@ -202,7 +202,7 @@ describe('createCreatureRepository', () => {
     )
 
     for (const creature of sourceDragons) {
-      await repository.upsert(creature)
+      await repository.upsert(creature, { contentSourceId: 'content-source-1' })
     }
 
     for (const creature of sourceDragons) {
@@ -245,7 +245,7 @@ describe('createCreatureRepository', () => {
       damageVulnerabilities: ['damage-radiant', 'damage-force']
     }
 
-    await repository.upsert(creature)
+    await repository.upsert(creature, { contentSourceId: 'content-source-1' })
 
     expect(db.snapshot('creature_damage_resistances')).toEqual([
       { creature_id: creature.id, damage_type_id: 'damage-cold', sort_order: 1 },

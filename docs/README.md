@@ -40,6 +40,7 @@ Keep intent at the interface it explains. Cross-module flows belong in architect
 - [Media lifecycle and delivery](architecture/media.md)
 - [Engine](architecture/engine.md)
 - [Shared rules runtime](architecture/rules-runtime.md) — canonical rebaseline target
+- [D&D 2014 optional combat](architecture/dnd5e-optional-combat.md) — canonical optional-combat target boundary
 - [Rules runtime domain ERDs](architecture/rules-runtime-erd.md)
 - [Live-session host](architecture/live-sessions.md)
 - [Versioned documents and correctness projections](architecture/versioned-projections.md) — transitional record; its rules/content pinning target is superseded by ADRs 0023-0025

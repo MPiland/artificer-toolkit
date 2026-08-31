@@ -2,6 +2,9 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_user_id uuid NOT NULL REFERENCES auth.users (id)
     ON DELETE RESTRICT,
+  game_system_id uuid NOT NULL REFERENCES public.systems (id)
+    ON DELETE RESTRICT,
+  primary_rules_catalogue_id uuid NOT NULL,
   name text NOT NULL CHECK (char_length(btrim(name)) BETWEEN 1 AND 100),
   description text CHECK (
     description IS NULL
@@ -36,6 +39,131 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.campaigns
+ADD CONSTRAINT campaigns_id_game_system_key UNIQUE (id, game_system_id);
+ALTER TABLE public.campaigns
+ADD CONSTRAINT campaigns_primary_catalogue_system_fk
+  FOREIGN KEY (
+    primary_rules_catalogue_id,
+    game_system_id
+  ) REFERENCES public.rules_catalogues (id, game_system_id)
+    ON DELETE RESTRICT;
+
+CREATE TABLE IF NOT EXISTS public.campaign_additional_rules_catalogues (
+  campaign_id uuid NOT NULL,
+  rules_catalogue_id uuid NOT NULL,
+  game_system_id uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (campaign_id, rules_catalogue_id),
+  FOREIGN KEY (campaign_id, game_system_id) REFERENCES public.campaigns (
+    id,
+    game_system_id
+  )
+    ON DELETE CASCADE,
+  FOREIGN KEY (
+    rules_catalogue_id,
+    game_system_id
+  ) REFERENCES public.rules_catalogues (id, game_system_id)
+    ON DELETE RESTRICT
+);
+
+CREATE OR REPLACE FUNCTION public.validate_campaign_additional_rules_catalogue()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public
+AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  IF TG_OP = 'UPDATE' THEN
+    RAISE EXCEPTION 'Campaign additional Rules Catalogue ownership is immutable.';
+  END IF;
+
+  PERFORM 1 FROM public.campaigns campaign
+  WHERE campaign.id = NEW.campaign_id
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Campaign additional Rules Catalogue requires an existing Campaign.';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.campaigns campaign
+    WHERE campaign.id = NEW.campaign_id
+      AND campaign.game_system_id = NEW.game_system_id
+      AND campaign.primary_rules_catalogue_id = NEW.rules_catalogue_id
+  ) THEN
+    RAISE EXCEPTION 'Campaign primary Rules Catalogue must not be stored as an additional catalogue.';
+  END IF;
+  IF (
+    SELECT count(*)
+    FROM public.campaign_additional_rules_catalogues additional
+    WHERE additional.campaign_id = NEW.campaign_id
+  ) >= 31 THEN
+    RAISE EXCEPTION 'Campaign may enable at most 31 additional Rules Catalogues.';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS campaign_additional_catalogues_validate ON public.campaign_additional_rules_catalogues;
+DROP TRIGGER IF EXISTS campaign_additional_catalogues_reject_primary ON public.campaign_additional_rules_catalogues;
+CREATE TRIGGER campaign_additional_catalogues_validate
+BEFORE INSERT OR UPDATE OR DELETE ON public.campaign_additional_rules_catalogues
+FOR EACH ROW
+EXECUTE FUNCTION public.validate_campaign_additional_rules_catalogue();
+
+ALTER TABLE public.campaign_additional_rules_catalogues
+ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.campaign_additional_rules_catalogues
+FORCE ROW LEVEL SECURITY;
+REVOKE ALL
+ON TABLE public.campaign_additional_rules_catalogues
+FROM anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.reject_campaign_primary_catalogue_duplicate()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public
+AS $$
+BEGIN
+  IF NEW.primary_rules_catalogue_id IS DISTINCT FROM OLD.primary_rules_catalogue_id
+    AND EXISTS (
+      SELECT 1 FROM public.campaign_additional_rules_catalogues additional
+      WHERE additional.campaign_id = NEW.id
+        AND additional.rules_catalogue_id = NEW.primary_rules_catalogue_id
+    ) THEN
+    RAISE EXCEPTION 'Campaign primary Rules Catalogue must not be stored as an additional catalogue.';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS campaigns_reject_additional_primary ON public.campaigns;
+CREATE TRIGGER campaigns_reject_additional_primary
+BEFORE UPDATE OF primary_rules_catalogue_id ON public.campaigns
+FOR EACH ROW
+EXECUTE FUNCTION public.reject_campaign_primary_catalogue_duplicate();
+
+CREATE OR REPLACE FUNCTION public.prevent_campaign_game_system_change()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public
+AS $$
+BEGIN
+  IF NEW.game_system_id IS DISTINCT FROM OLD.game_system_id THEN
+    RAISE EXCEPTION 'Campaign Game System is immutable.';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS campaigns_prevent_game_system_change ON public.campaigns;
+CREATE TRIGGER campaigns_prevent_game_system_change
+BEFORE UPDATE ON public.campaigns
+FOR EACH ROW
+EXECUTE FUNCTION public.prevent_campaign_game_system_change();
 
 CREATE INDEX IF NOT EXISTS campaigns_owner_status_idx ON public.campaigns (
   owner_user_id,
@@ -86,9 +214,24 @@ CREATE TABLE IF NOT EXISTS public.campaign_play_settings (
     live_safety_method IS NULL
     OR char_length(btrim(live_safety_method)) BETWEEN 1 AND 500
   ),
+  automation_mode text NOT NULL DEFAULT 'ASSISTED' CHECK (
+    automation_mode IN ('AUTOMATIC', 'ASSISTED', 'MANUAL')
+  ),
+  manual_reminder_mode text NOT NULL DEFAULT 'OFF' CHECK (
+    manual_reminder_mode IN ('OFF', 'SUBTLE')
+  ),
+  initiative_policy_definition_id uuid,
+  initiative_tie_definition_id uuid,
+  optional_combat_rule_definition_ids uuid[] NOT NULL DEFAULT '{}'::uuid[] CHECK (
+    cardinality(optional_combat_rule_definition_ids) <= 14
+  ),
   version INTEGER NOT NULL DEFAULT 0 CHECK (version >= 0),
   created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (
+    initiative_tie_definition_id IS NULL
+    OR initiative_policy_definition_id IS NOT NULL
+  )
 );
 ALTER TABLE public.campaign_play_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.campaign_play_settings FORCE ROW LEVEL SECURITY;

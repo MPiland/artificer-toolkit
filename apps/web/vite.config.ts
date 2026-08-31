@@ -47,6 +47,7 @@ export default defineConfig(({ mode }) => {
       : []
 
   return {
+    cacheDir: 'node_modules/.vite/app',
     envDir: repoRoot,
     optimizeDeps: {
       include: [

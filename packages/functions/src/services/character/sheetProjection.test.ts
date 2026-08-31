@@ -631,7 +631,7 @@ describe('character sheet projection', () => {
         availableAtLevel: 1,
         effects: [
           {
-            id: 'recover-superiority-dice',
+            id: '00000000-0000-4000-8000-000000000201',
             order: 1,
             invocation: {
               kind: 'ACTION',
@@ -663,14 +663,14 @@ describe('character sheet projection', () => {
           sectionCode: 'ACTION',
           availableAtLevel: 3,
           chargeId: null,
-          effectId: 'recover-superiority-dice',
+          effectId: '00000000-0000-4000-8000-000000000201',
           ownerEffectOrder: 1,
           effectOrder: 1
         }
       ],
       effect_invocations: [
         {
-          effectId: 'recover-superiority-dice',
+          effectId: '00000000-0000-4000-8000-000000000201',
           triggerCode: 'ACTIVATED',
           activationType: 'OTHER',
           activationValue: 1,
@@ -692,7 +692,7 @@ describe('character sheet projection', () => {
       effect_paths: [
         {
           pathId: 'recover-superiority-dice-path',
-          effectId: 'recover-superiority-dice',
+          effectId: '00000000-0000-4000-8000-000000000201',
           order: 1,
           pathCode: 'ON_USE',
           groupType: 'SINGLE',
@@ -805,7 +805,7 @@ describe('character sheet projection', () => {
         order: 1,
         effects: [
           {
-            id: 'warping-strike-effect',
+            id: '00000000-0000-4000-8000-000000000202',
             order: 1,
             invocation: {
               kind: 'ACTION',
@@ -845,14 +845,14 @@ describe('character sheet projection', () => {
             sectionCode: 'ACTION',
             availableAtLevel: 1,
             chargeId: 'astral-tear-warping-strike-charges',
-            effectId: 'warping-strike-effect',
+            effectId: '00000000-0000-4000-8000-000000000202',
             ownerEffectOrder: 1,
             effectOrder: 1
           }
         ],
         effect_invocations: [
           {
-            effectId: 'warping-strike-effect',
+            effectId: '00000000-0000-4000-8000-000000000202',
             triggerCode: 'ACTIVATED',
             activationType: 'ACTION',
             activationValue: 1,
@@ -880,13 +880,13 @@ describe('character sheet projection', () => {
     const actions = sheet.actions.items.filter(({ label }) => label === 'Warping Strike')
     expect(actions).toEqual([
       expect.objectContaining({
-        id: 'EQUIPMENT_INSTANCE:astral-tear:astral-tear-one:FEATURE:astral-tear-warping-strike:ACTION:warping-strike-effect',
+        id: 'EQUIPMENT_INSTANCE:astral-tear:astral-tear-one:FEATURE:astral-tear-warping-strike:ACTION:00000000-0000-4000-8000-000000000202',
         resourceGrantId: 'ITEM_INSTANCE:astral-tear-one:astral-tear-charges',
         resourceCost: 2,
         sourceLabel: 'Vyrre’s Blade #1'
       }),
       expect.objectContaining({
-        id: 'EQUIPMENT_INSTANCE:astral-tear:astral-tear-two:FEATURE:astral-tear-warping-strike:ACTION:warping-strike-effect',
+        id: 'EQUIPMENT_INSTANCE:astral-tear:astral-tear-two:FEATURE:astral-tear-warping-strike:ACTION:00000000-0000-4000-8000-000000000202',
         resourceGrantId: 'ITEM_INSTANCE:astral-tear-two:astral-tear-charges',
         resourceCost: 2,
         sourceLabel: 'Vyrre’s Blade #2'
@@ -1432,6 +1432,7 @@ describe('character sheet projection extras', () => {
       status: 'ACTIVE',
       profile: {},
       systemId: 'system-1',
+      primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000302',
       userId: 'user-1',
       intent: {
         advancement: { method: 'MILESTONE' },

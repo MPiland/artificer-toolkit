@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const sprite: CreatureAuthored = {
@@ -46,7 +47,7 @@ export const sprite: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(260, 201),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.CHARISMA,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CHARISMA,
               baseDc: 10
             },
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },

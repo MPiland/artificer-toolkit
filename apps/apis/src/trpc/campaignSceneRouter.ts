@@ -1,21 +1,18 @@
 import {
-  attachEncounterScene,
   createCampaignSceneDefinition,
   deleteCampaignSceneDefinition,
   getCampaignSceneDefinition,
-  getEncounterSceneProjection,
+  listCampaignLiveScenes,
   listCampaignSceneDefinitions,
   updateCampaignSceneDefinition
 } from '@artificer-toolkit/functions'
 import {
-  attachEncounterSceneInputDtoSchema,
-  attachEncounterSceneResultDtoSchema,
+  campaignLiveSceneSummaryDtoSchema,
   createSceneDefinitionInputDtoSchema,
   deleteSceneDefinitionInputDtoSchema,
-  encounterSceneStateDtoSchema,
   getCampaignSceneDefinitionsInputDtoSchema,
-  getEncounterSceneInputDtoSchema,
   getSceneDefinitionInputDtoSchema,
+  listCampaignLiveScenesInputDtoSchema,
   sceneDefinitionDtoSchema,
   updateSceneDefinitionInputDtoSchema
 } from '@artificer-toolkit/schema/api/vttScenes'
@@ -24,12 +21,6 @@ import { withExplicitAuthorityDb } from './dbContext.js'
 import { authenticatedProcedure, createTRPCRouter, okResponseSchema } from './procedures.js'
 
 export const campaignSceneRouter = createTRPCRouter({
-  attach: authenticatedProcedure
-    .input(attachEncounterSceneInputDtoSchema)
-    .output(attachEncounterSceneResultDtoSchema)
-    .mutation(({ ctx, input }) =>
-      withExplicitAuthorityDb(ctx, (db, userId) => attachEncounterScene(db, userId, input))
-    ),
   create: authenticatedProcedure
     .input(createSceneDefinitionInputDtoSchema)
     .output(sceneDefinitionDtoSchema)
@@ -59,11 +50,13 @@ export const campaignSceneRouter = createTRPCRouter({
         listCampaignSceneDefinitions(db, userId, input.campaignId)
       )
     ),
-  projection: authenticatedProcedure
-    .input(getEncounterSceneInputDtoSchema)
-    .output(encounterSceneStateDtoSchema)
+  listLive: authenticatedProcedure
+    .input(listCampaignLiveScenesInputDtoSchema)
+    .output(campaignLiveSceneSummaryDtoSchema.array())
     .query(({ ctx, input }) =>
-      withExplicitAuthorityDb(ctx, (db, userId) => getEncounterSceneProjection(db, userId, input))
+      withExplicitAuthorityDb(ctx, (db, userId) =>
+        listCampaignLiveScenes(db, userId, input.campaignId)
+      )
     ),
   update: authenticatedProcedure
     .input(updateSceneDefinitionInputDtoSchema)

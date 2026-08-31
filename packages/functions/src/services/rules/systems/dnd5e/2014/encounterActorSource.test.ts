@@ -51,6 +51,11 @@ describe('dnd5e/2014 Encounter actor policy', () => {
           {
             actorId: '00000000-0000-4000-8000-000000000001',
             abilityScores: {},
+            targetProtection: {
+              status: 'NORMALIZED',
+              defenses: [],
+              conditionImmunityIds: []
+            },
             featureResources: [
               {
                 featureId: 'fixed',
@@ -72,6 +77,17 @@ describe('dnd5e/2014 Encounter actor policy', () => {
                   cost: 1
                 },
                 used: 0
+              },
+              {
+                featureId: 'zero',
+                charge: {
+                  id: 'zero-charge',
+                  resetKind: 'DAILY',
+                  limitKind: 'FIXED_AMOUNT',
+                  scalingKind: 'NONE',
+                  amount: 0
+                },
+                used: 0
               }
             ]
           }
@@ -84,24 +100,94 @@ describe('dnd5e/2014 Encounter actor policy', () => {
         {
           actorId: '00000000-0000-4000-8000-000000000001',
           initiativeModifier: 0,
+          targetProtection: {
+            status: 'NORMALIZED',
+            defenses: [],
+            conditionImmunityIds: []
+          },
           featureResources: [
             {
               featureId: 'fixed',
               maximum: 2,
+              reconciliationPolicy: 'CLAMP_USED_TO_MAXIMUM',
               rawUsed: 4,
-              used: 2,
+              used: 4,
               remaining: 0,
               resetKind: 'LONG_REST'
             },
             {
               featureId: 'source',
               maximum: null,
+              reconciliationPolicy: null,
               rawUsed: 0,
               used: 0,
               remaining: null,
               resetKind: null
+            },
+            {
+              featureId: 'zero',
+              maximum: 0,
+              reconciliationPolicy: 'CLAMP_USED_TO_MAXIMUM',
+              rawUsed: 0,
+              used: 0,
+              remaining: 0,
+              resetKind: 'DAILY'
             }
           ]
+        }
+      ]
+    })
+  })
+
+  it('preserves normalized and fail-closed target-protection statuses exactly', async () => {
+    const document = rulePackDocumentDtoSchema.parse({
+      schemaVersion: 1,
+      models: { [ENCOUNTER_ACTOR_MODEL_KEY]: dnd5e2014EncounterActorModel },
+      fixtures: []
+    })
+    const result = await evaluateZenRuleModel({
+      document,
+      modelKey: ENCOUNTER_ACTOR_MODEL_KEY,
+      context: {
+        contractVersion: 1,
+        actors: [
+          {
+            actorId: '00000000-0000-4000-8000-000000000111',
+            abilityScores: {},
+            targetProtection: {
+              status: 'NORMALIZED',
+              defenses: [
+                {
+                  kind: 'IMMUNITY',
+                  damageTypeId: '00000000-0000-4000-8000-000000000112'
+                }
+              ],
+              conditionImmunityIds: ['00000000-0000-4000-8000-000000000113']
+            },
+            featureResources: []
+          },
+          {
+            actorId: '00000000-0000-4000-8000-000000000114',
+            abilityScores: {},
+            targetProtection: { status: 'NOT_NORMALIZED' },
+            featureResources: []
+          }
+        ]
+      }
+    })
+    expect(result.result).toMatchObject({
+      actors: [
+        {
+          actorId: '00000000-0000-4000-8000-000000000111',
+          targetProtection: {
+            status: 'NORMALIZED',
+            defenses: [{ kind: 'IMMUNITY', damageTypeId: '00000000-0000-4000-8000-000000000112' }],
+            conditionImmunityIds: ['00000000-0000-4000-8000-000000000113']
+          }
+        },
+        {
+          actorId: '00000000-0000-4000-8000-000000000114',
+          targetProtection: { status: 'NOT_NORMALIZED' }
         }
       ]
     })

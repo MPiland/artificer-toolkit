@@ -13,9 +13,7 @@ describe('Campaign text policy', () => {
       maskStandardPlainText(
         'A shit plan in a shitstorm near a shitake mushroom with sexual content.'
       )
-    ).toBe(
-      'A **** plan in a ****storm near a shitake mushroom with sexual content.'
-    )
+    ).toBe('A **** plan in a ****storm near a shitake mushroom with sexual content.')
   })
 
   it('preserves rich-text markup and attributes while masking visible text', () => {

@@ -1,27 +1,326 @@
 import { describe, expect, it } from 'vitest'
 import {
-  createEncounterTemplateInputDtoSchema,
+  MAX_ENCOUNTER_ACTORS,
+  createEncounterBlueprintInputDtoSchema,
   createEncounterInputDtoSchema,
   encounterCommandInputDtoSchema,
+  encounterCommandResultDtoSchema,
   encounterGmProjectionDtoSchema,
   encounterProjectionListDtoSchema,
-  encounterPlayerProjectionDtoSchema
+  encounterPlayerProjectionDtoSchema,
+  resolveRuleOccurrenceInputDtoSchema
 } from '../api/encounters.js'
 import { proposedRuleOutcomeDtoSchema, ruleOutcomeOverrideDtoSchema } from '../api/rules.js'
-import { AUTHORED_LIMITS } from '../shared/authoredLimits.js'
+import { serverRuleExecutionPendingApplicationContextDtoSchema } from '../shared/rulesExecution.js'
 
 const encounterId = '00000000-0000-4000-8000-000000000001'
 const commandId = '00000000-0000-4000-8000-000000000002'
 
 describe('encounter contracts', () => {
-  it('requires a Session and template for each Encounter run', () => {
+  it('closes initiative occurrence prompts, responses, and persisted phase context', () => {
+    const secondEntityId = '00000000-0000-4000-8000-000000000003'
+    const baseOccurrence = {
+      occurrenceId: encounterId,
+      occurrenceVersion: 5,
+      status: 'PENDING' as const,
+      outcome: null
+    }
+    const evidencePending = {
+      ...baseOccurrence,
+      pending: {
+        kind: 'INITIATIVE_EVIDENCE' as const,
+        occurrenceId: encounterId,
+        occurrenceVersion: 5,
+        encounterVersion: 8,
+        request: { requestId: 'initiative-score', min: -10, max: 50 },
+        allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL'] as const
+      }
+    }
+    const orderPending = {
+      ...baseOccurrence,
+      pending: {
+        kind: 'INITIATIVE_ORDER' as const,
+        occurrenceId: encounterId,
+        occurrenceVersion: 5,
+        encounterVersion: 8,
+        requestId: 'initiative-order',
+        entityKind: 'ACTOR' as const,
+        optionIds: [commandId, secondEntityId],
+        allowedResponses: ['INITIATIVE_ENTITY'] as const
+      }
+    }
+
+    expect(
+      encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse(evidencePending)
+    ).toMatchObject(evidencePending)
+    expect(
+      encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse(orderPending)
+    ).toMatchObject(orderPending)
+    expect(
+      resolveRuleOccurrenceInputDtoSchema.parse({
+        commandId,
+        encounterId,
+        expectedVersion: 8,
+        expectedOccurrenceVersion: 5,
+        occurrenceId: encounterId,
+        resolution: {
+          kind: 'ENTER_INTEGER',
+          requestId: 'initiative-score',
+          value: 17
+        },
+        type: 'RESOLVE_RULE_OCCURRENCE'
+      }).resolution
+    ).toEqual({ kind: 'ENTER_INTEGER', requestId: 'initiative-score', value: 17 })
+    expect(
+      resolveRuleOccurrenceInputDtoSchema.parse({
+        commandId,
+        encounterId,
+        expectedVersion: 8,
+        expectedOccurrenceVersion: 5,
+        occurrenceId: encounterId,
+        resolution: {
+          kind: 'INITIATIVE_ENTITY',
+          requestId: 'initiative-order',
+          entityId: secondEntityId
+        },
+        type: 'RESOLVE_RULE_OCCURRENCE'
+      }).resolution
+    ).toEqual({
+      kind: 'INITIATIVE_ENTITY',
+      requestId: 'initiative-order',
+      entityId: secondEntityId
+    })
+
+    const applicationContext = {
+      kind: 'ENCOUNTER_INITIATIVE' as const,
+      schemaVersion: 1 as const,
+      root: {
+        rootCommandId: commandId,
+        commandFingerprint: 'a'.repeat(64),
+        commandType: 'START' as const,
+        initiatorUserId: secondEntityId,
+        correlationId: null,
+        expectedEncounterVersion: 8,
+        round: 1,
+        policySnapshotChecksum: 'b'.repeat(64),
+        initiativeBeforePin: {
+          kind: 'INITIAL_START' as const,
+          actorIds: [encounterId, secondEntityId]
+        },
+        stagedInitiativeRoundState: {
+          round: {
+            encounterId,
+            round: 1,
+            procedure: 'ACTOR_ROLL' as const,
+            cadence: 'ENCOUNTER_START' as const,
+            status: 'PREPARING' as const,
+            policySnapshotChecksum: 'b'.repeat(64),
+            nextTurnOrderOrdinal: 0,
+            version: 0
+          },
+          participants: [
+            {
+              encounterId,
+              round: 1,
+              actorId: encounterId,
+              sideId: '00000000-0000-4000-8000-000000000004',
+              status: 'UNRESOLVED' as const,
+              initiativeScore: null,
+              declaration: null,
+              declarationChecksum: null,
+              evaluation: { occurrenceId: null, resultChecksum: null },
+              tie: { occurrenceId: null, resultChecksum: null },
+              turnOrderOrdinal: null,
+              version: 0
+            },
+            {
+              encounterId,
+              round: 1,
+              actorId: secondEntityId,
+              sideId: '00000000-0000-4000-8000-000000000005',
+              status: 'UNRESOLVED' as const,
+              initiativeScore: null,
+              declaration: null,
+              declarationChecksum: null,
+              evaluation: { occurrenceId: null, resultChecksum: null },
+              tie: { occurrenceId: null, resultChecksum: null },
+              turnOrderOrdinal: null,
+              version: 0
+            }
+          ],
+          sides: []
+        }
+      },
+      phase: {
+        kind: 'PRIMARY_SCORE' as const,
+        scoreBatch: {
+          completed: [],
+          current: { kind: 'ACTOR' as const, id: encounterId },
+          remaining: [{ kind: 'ACTOR' as const, id: secondEntityId }]
+        }
+      }
+    }
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse(applicationContext)
+    ).toMatchObject(applicationContext)
+
+    expect(() =>
+      encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse({
+        ...evidencePending,
+        pending: {
+          ...evidencePending.pending,
+          request: { ...evidencePending.pending.request, min: 2, max: 1 }
+        }
+      })
+    ).toThrow()
+    expect(() =>
+      resolveRuleOccurrenceInputDtoSchema.parse({
+        commandId,
+        encounterId,
+        expectedVersion: 8,
+        expectedOccurrenceVersion: 5,
+        occurrenceId: encounterId,
+        resolution: {
+          kind: 'INITIATIVE_ENTITY',
+          requestId: 'initiative-order',
+          entityId: 'foreign-entity'
+        },
+        type: 'RESOLVE_RULE_OCCURRENCE'
+      })
+    ).toThrow()
+    expect(() =>
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...applicationContext,
+        phase: {
+          ...applicationContext.phase,
+          scoreBatch: { ...applicationContext.phase.scoreBatch, continuation: {} }
+        }
+      })
+    ).toThrow()
+  })
+
+  it('binds pending occurrence identity to its outer summary and canonicalizes resolution correlation', () => {
+    const pending = {
+      occurrenceId: encounterId,
+      occurrenceVersion: 2,
+      status: 'PENDING' as const,
+      outcome: null,
+      pending: {
+        kind: 'D20_EVIDENCE' as const,
+        occurrenceId: encounterId,
+        occurrenceVersion: 2,
+        encounterVersion: 3,
+        request: {
+          requestId: 'd20',
+          min: 1 as const,
+          max: 20 as const,
+          rollMode: 'NORMAL' as const
+        },
+        allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL'] as const
+      }
+    }
+    expect(encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse(pending)).toMatchObject(
+      pending
+    )
+    expect(() =>
+      encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse({
+        ...pending,
+        pending: { ...pending.pending, occurrenceVersion: 1 }
+      })
+    ).toThrow()
+    expect(() =>
+      encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse({
+        ...pending,
+        status: 'COMPLETE',
+        pending: pending.pending
+      })
+    ).toThrow()
+    expect(
+      resolveRuleOccurrenceInputDtoSchema.parse({
+        commandId,
+        correlationId: 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA',
+        encounterId,
+        expectedVersion: 3,
+        expectedOccurrenceVersion: 2,
+        occurrenceId: encounterId,
+        resolution: { kind: 'SYSTEM_ROLL', requestId: 'd20' },
+        type: 'RESOLVE_RULE_OCCURRENCE'
+      }).correlationId
+    ).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+  })
+
+  it('exposes only the closed movement-reaction choice projection and accepts its issued selection', () => {
+    const optionId = 'a'.repeat(64)
+    const pendingInput = {
+      occurrenceId: encounterId,
+      occurrenceVersion: 4,
+      status: 'PENDING' as const,
+      outcome: null,
+      pending: {
+        kind: 'MOVEMENT_REACTION' as const,
+        occurrenceId: encounterId,
+        occurrenceVersion: 4,
+        encounterVersion: 7,
+        choice: {
+          pathDistance: 10,
+          reactorActorId: encounterId,
+          reactorTokenId: commandId,
+          options: [
+            {
+              optionId,
+              actionId: 'reaction-action',
+              actionSourceKind: 'CHARACTER_ACTION' as const
+            }
+          ]
+        },
+        allowedResponses: ['DECLINE', 'OPTION'] as const
+      }
+    }
+    const pending = encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse(pendingInput)
+    if (!pending || pending.pending?.kind !== 'MOVEMENT_REACTION')
+      throw new Error('Expected a movement-reaction pending summary.')
+    expect(pending.pending).toMatchObject({
+      kind: 'MOVEMENT_REACTION',
+      choice: { options: [{ optionId, actionId: 'reaction-action' }] }
+    })
+    expect(
+      resolveRuleOccurrenceInputDtoSchema.parse({
+        commandId,
+        encounterId,
+        expectedVersion: 7,
+        expectedOccurrenceVersion: 4,
+        occurrenceId: encounterId,
+        resolution: { kind: 'OPTION', optionId },
+        type: 'RESOLVE_RULE_OCCURRENCE'
+      }).resolution
+    ).toEqual({ kind: 'OPTION', optionId })
+    expect(() =>
+      encounterCommandResultDtoSchema.shape.occurrence.unwrap().parse({
+        ...pendingInput,
+        pending: {
+          ...pendingInput.pending,
+          choice: {
+            ...pendingInput.pending.choice,
+            options: [
+              {
+                ...pendingInput.pending.choice.options[0],
+                actionSourceCurrentnessChecksum: 'b'.repeat(64)
+              }
+            ]
+          }
+        }
+      })
+    ).toThrow()
+  })
+
+  it('requires a Session and Blueprint for each Encounter run', () => {
     expect(
       createEncounterInputDtoSchema.parse({
         campaignId: encounterId,
         sessionId: encounterId,
-        templateId: encounterId,
+        blueprintId: encounterId,
         commandId
-      }).templateId
+      }).blueprintId
     ).toBe(encounterId)
     expect(() =>
       createEncounterInputDtoSchema.parse({
@@ -32,16 +331,15 @@ describe('encounter contracts', () => {
     ).toThrow()
   })
 
-  it('accepts an explicit system when a custom-only run needs rule-pack identity', () => {
-    expect(
+  it('rejects legacy system and template fields on Run creation', () => {
+    expect(() =>
       createEncounterInputDtoSchema.parse({
         campaignId: encounterId,
         sessionId: encounterId,
         templateId: encounterId,
-        systemId: encounterId,
         commandId
-      }).systemId
-    ).toBe(encounterId)
+      })
+    ).toThrow()
     expect(
       encounterCommandInputDtoSchema.parse({
         encounterId,
@@ -53,25 +351,36 @@ describe('encounter contracts', () => {
     ).toMatchObject({ type: 'START', systemId: encounterId })
   })
 
-  it('caps the number of enemies in a saved template', () => {
+  it('caps the number of enemies in a saved Blueprint', () => {
     expect(() =>
-      createEncounterTemplateInputDtoSchema.parse({
-        campaignId: encounterId,
+      createEncounterBlueprintInputDtoSchema.parse({
+        gameSystemId: encounterId,
         commandId,
         name: 'Unbounded horde',
-        enemies: Array.from({ length: AUTHORED_LIMITS.nestedCollectionItems + 1 }, () => ({
+        enemies: Array.from({ length: MAX_ENCOUNTER_ACTORS + 1 }, () => ({
           kind: 'CREATURE',
           sourceId: encounterId
         }))
       })
     ).toThrow()
+    expect(
+      createEncounterBlueprintInputDtoSchema.parse({
+        gameSystemId: encounterId,
+        commandId,
+        name: 'Maximum horde',
+        enemies: Array.from({ length: MAX_ENCOUNTER_ACTORS }, () => ({
+          kind: 'CREATURE' as const,
+          sourceId: encounterId
+        }))
+      }).enemies
+    ).toHaveLength(MAX_ENCOUNTER_ACTORS)
   })
 
   it('accepts enemy source references and custom stat rows, not forged snapshots', () => {
     const seededCreatureId = '00000000-0000-0000-0070-009200000000'
     expect(
-      createEncounterTemplateInputDtoSchema.parse({
-        campaignId: encounterId,
+      createEncounterBlueprintInputDtoSchema.parse({
+        gameSystemId: encounterId,
         commandId,
         name: 'Goblin ambush',
         enemies: [
@@ -81,15 +390,15 @@ describe('encounter contracts', () => {
       }).name
     ).toBe('Goblin ambush')
     expect(() =>
-      createEncounterTemplateInputDtoSchema.parse({
-        campaignId: encounterId,
+      createEncounterBlueprintInputDtoSchema.parse({
+        gameSystemId: encounterId,
         commandId,
         name: 'Goblin ambush',
         enemies: []
       })
     ).toThrow()
     expect(() =>
-      createEncounterTemplateInputDtoSchema.parse({
+      createEncounterBlueprintInputDtoSchema.parse({
         campaignId: encounterId,
         commandId,
         name: 'Forged goblin',
@@ -111,10 +420,13 @@ describe('encounter contracts', () => {
       id: encounterId,
       campaignId: commandId,
       sessionId: encounterId,
-      templateId: commandId,
-      templateVersion: 1,
+      gameSystemId: encounterId,
+      blueprintId: commandId,
+      blueprintVersion: 1,
+      blueprintChecksum: 'a'.repeat(64),
       name: 'Goblin ambush',
       status: 'ACTIVE' as const,
+      automationMode: 'ASSISTED' as const,
       rulePackRevisionId: null,
       version: 1,
       round: 1,
@@ -143,6 +455,7 @@ describe('encounter contracts', () => {
     expect(
       encounterGmProjectionDtoSchema.parse({
         ...base,
+        manualReminderMode: 'OFF',
         actors: [
           {
             ...base.actors[0],
@@ -173,6 +486,27 @@ describe('encounter contracts', () => {
       }).actors[0].currentHitPoints
     ).toBe(4)
     expect(encounterProjectionListDtoSchema.parse([base])).toHaveLength(1)
+    expect(
+      encounterGmProjectionDtoSchema.parse({
+        ...base,
+        manualReminderMode: 'OFF',
+        version: 0,
+        actors: [
+          {
+            ...base.actors[0],
+            systemId: null,
+            stableTieKey: commandId,
+            currentHitPoints: 4,
+            maxHitPoints: 7,
+            tempHitPoints: 0,
+            resources: {},
+            gmNotes: null,
+            statBlock: null,
+            features: []
+          }
+        ]
+      }).version
+    ).toBe(0)
   })
 
   it('accepts a positive manual round correction', () => {
@@ -216,10 +550,13 @@ describe('encounter contracts', () => {
         id: encounterId,
         campaignId: commandId,
         sessionId: encounterId,
-        templateId: commandId,
-        templateVersion: 1,
+        gameSystemId: encounterId,
+        blueprintId: commandId,
+        blueprintVersion: 1,
+        blueprintChecksum: 'a'.repeat(64),
         name: 'Legacy encounter',
         status: 'PREPARED',
+        automationMode: 'ASSISTED',
         rulePackRevisionId: null,
         version: 0,
         round: 0,
@@ -231,7 +568,18 @@ describe('encounter contracts', () => {
     ).toBeNull()
   })
 
-  it('requires unique resolve targets and parses only strict proposed outcomes', () => {
+  it('accepts the closed single-target action command and rejects legacy action inputs', () => {
+    expect(
+      encounterCommandInputDtoSchema.parse({
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        type: 'RESOLVE_ACTION',
+        actorId: encounterId,
+        actionId: 'attack',
+        targetActorId: commandId
+      })
+    ).toMatchObject({ type: 'RESOLVE_ACTION', actionId: 'attack', targetActorId: commandId })
     expect(() =>
       encounterCommandInputDtoSchema.parse({
         encounterId,
@@ -255,5 +603,185 @@ describe('encounter contracts', () => {
       })
     ).toThrow()
     expect(() => ruleOutcomeOverrideDtoSchema.parse({ reason: '   ', outcomes: [] })).toThrow()
+  })
+
+  it('accepts only bounded physical concentration dice without a client-selected total', () => {
+    expect(
+      encounterCommandInputDtoSchema.parse({
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        correlationId: null,
+        occurrenceId: encounterId,
+        expectedOccurrenceVersion: 0,
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: 'concentration-d20',
+          rawFaces: [4, 17]
+        }
+      })
+    ).toMatchObject({
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      resolution: {
+        kind: 'ENTER_DICE',
+        requestId: 'concentration-d20',
+        rawFaces: [4, 17]
+      }
+    })
+    expect(() =>
+      encounterCommandInputDtoSchema.parse({
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        occurrenceId: encounterId,
+        expectedOccurrenceVersion: 0,
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: 'concentration-d20',
+          rawFaces: [4, 17, 20]
+        }
+      })
+    ).toThrow()
+    expect(() =>
+      encounterCommandInputDtoSchema.parse({
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        occurrenceId: encounterId,
+        expectedOccurrenceVersion: 0,
+        resolution: {
+          kind: 'ENTER_DIE',
+          requestId: 'concentration-d20',
+          value: 17
+        }
+      })
+    ).toThrow()
+  })
+
+  it('accepts only closed GM-adjudicated Speed Factor selections', () => {
+    expect(
+      encounterCommandInputDtoSchema.parse({
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        occurrenceId: encounterId,
+        expectedOccurrenceVersion: 0,
+        resolution: {
+          kind: 'INITIATIVE_DECLARATION',
+          requestId: 'speed-factor',
+          primary: {
+            kind: 'GM_ADJUDICATED',
+            optionId: 'GM_ADJUDICATED',
+            actorSize: 'TINY',
+            actionFactors: ['MELEE_HEAVY', 'RANGED_LOADING'],
+            spellLevel: 3
+          },
+          bonus: null
+        }
+      })
+    ).toMatchObject({
+      resolution: { kind: 'INITIATIVE_DECLARATION', primary: { kind: 'GM_ADJUDICATED' } }
+    })
+    expect(() =>
+      encounterCommandInputDtoSchema.parse({
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        occurrenceId: encounterId,
+        expectedOccurrenceVersion: 0,
+        resolution: {
+          kind: 'INITIATIVE_DECLARATION',
+          requestId: 'speed-factor',
+          primary: {
+            kind: 'GM_ADJUDICATED',
+            optionId: 'GM_ADJUDICATED',
+            actorSize: 'TINY',
+            actionFactors: ['MELEE_HEAVY', 'MELEE_HEAVY'],
+            spellLevel: 3
+          },
+          bonus: null
+        }
+      })
+    ).toThrow()
+  })
+
+  it('exposes only a compact authorized pending concentration summary', () => {
+    const projection = encounterPlayerProjectionDtoSchema.parse({
+      id: encounterId,
+      campaignId: commandId,
+      sessionId: encounterId,
+      gameSystemId: encounterId,
+      blueprintId: encounterId,
+      blueprintVersion: 1,
+      blueprintChecksum: 'a'.repeat(64),
+      name: 'Encounter',
+      status: 'ACTIVE',
+      automationMode: 'ASSISTED',
+      version: 2,
+      round: 1,
+      currentActorId: null,
+      actors: [],
+      createdAt: '2026-08-07T00:00:00.000Z',
+      updatedAt: '2026-08-07T00:00:00.000Z'
+    })
+    const parsed = encounterCommandResultDtoSchema.parse({
+      projection,
+      roll: null,
+      resolution: null,
+      occurrence: {
+        occurrenceId: encounterId,
+        occurrenceVersion: 0,
+        status: 'PENDING',
+        outcome: null,
+        pending: {
+          kind: 'D20_EVIDENCE',
+          occurrenceId: encounterId,
+          occurrenceVersion: 0,
+          encounterVersion: 2,
+          request: {
+            requestId: 'issued-d20',
+            min: 1,
+            max: 20,
+            rollMode: 'ADVANTAGE'
+          },
+          allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+        }
+      }
+    })
+    expect(parsed.occurrence?.pending).toMatchObject({
+      request: { requestId: 'issued-d20', rollMode: 'ADVANTAGE' }
+    })
+    expect(() =>
+      encounterCommandResultDtoSchema.parse({
+        projection,
+        roll: null,
+        resolution: null,
+        occurrence: {
+          occurrenceId: encounterId,
+          occurrenceVersion: 0,
+          status: 'PENDING',
+          outcome: null,
+          pending: {
+            kind: 'D20_EVIDENCE',
+            occurrenceId: encounterId,
+            occurrenceVersion: 0,
+            encounterVersion: 2,
+            request: {
+              requestId: 'issued-d20',
+              min: 1,
+              max: 20,
+              rollMode: 'NORMAL'
+            },
+            allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL'],
+            contextChecksum: 'a'.repeat(64)
+          }
+        }
+      })
+    ).toThrow()
   })
 })

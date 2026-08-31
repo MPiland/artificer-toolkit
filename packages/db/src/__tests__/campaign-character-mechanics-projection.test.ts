@@ -19,7 +19,7 @@ function projectionCandidate() {
     mechanicalContextChecksum: checksum('b'),
     manualMaximumModifierOwner: null,
     projectionSchemaVersion: 3,
-    projectionChecksum: checksum('c'),
+    projectionChecksum: checksum('c')
   }
 }
 
@@ -28,9 +28,9 @@ describe('Campaign Character mechanics projection checksum', () => {
     const candidate = projectionCandidate()
     const projectionChecksum = checksumCampaignCharacterMechanicsProjection(candidate)
 
-    expect(
-      checksumCampaignCharacterMechanicsProjection({ ...candidate, projectionChecksum })
-    ).toBe(projectionChecksum)
+    expect(checksumCampaignCharacterMechanicsProjection({ ...candidate, projectionChecksum })).toBe(
+      projectionChecksum
+    )
     expect(
       checksumCampaignCharacterMechanicsProjection({
         ...candidate,
@@ -108,5 +108,4 @@ describe('Campaign Character mechanics projection checksum', () => {
       })
     ).toThrow(CampaignCharacterMechanicsProjectionMismatchError)
   })
-
 })

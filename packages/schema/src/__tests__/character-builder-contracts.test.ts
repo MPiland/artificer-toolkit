@@ -49,7 +49,8 @@ const baseRequest = {
         hitDice: []
       }
     },
-    systemId: 'system-1',
+    systemId: '00000000-0000-4000-8000-000000000001',
+    primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000002',
     userId: 'user-1'
   },
   mode: 'create'

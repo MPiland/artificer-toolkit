@@ -6,7 +6,7 @@ import {
 } from '../../utils/compileResult.js'
 import {
   type CompiledRuleGraph,
-  type GameSystemCapabilityContract,
+  type GameSystemRuleCapabilityContract,
   type RuleFactContract,
   type RuleGraphDefinition,
   type RuleGraphNodeDefinition,
@@ -18,7 +18,9 @@ import {
 } from './contracts.js'
 import type { RuleOperationContract, RuleOperationRegistry } from './operationRegistry.js'
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+// PostgreSQL UUID identity permits deterministic seeded values without an RFC version nibble.
+// Runtime-generated occurrence IDs remain strict UUIDs in the execution kernel.
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const CAPABILITY_KEY_PATTERN = /^[a-z][a-z0-9.-]{0,79}$/
 const LOCAL_NODE_ID_PATTERN = /^[a-z][a-z0-9_-]{0,79}$/
 const PORT_NAME_PATTERN = /^[a-z][a-zA-Z0-9_]{0,79}$/
@@ -178,7 +180,7 @@ function topologicalNodes(
 export function compileRuleGraph(input: {
   definition: RuleGraphDefinition
   sourceChecksum: string
-  capability: GameSystemCapabilityContract
+  capability: GameSystemRuleCapabilityContract
   operations: RuleOperationRegistry
 }): CompileResult<CompiledRuleGraph> {
   const diagnostics: CompileDiagnostic[] = []
@@ -368,6 +370,56 @@ export function compileRuleGraph(input: {
   for (const duplicate of duplicateKeys(nodeIds)) {
     diagnostics.push(diagnostic('RULE_DUPLICATE_NODE', `Duplicate rule node "${duplicate}".`))
   }
+  const sourceEntryBindings = definition.sourceEntryBindings ?? []
+  if (sourceEntryBindings.length > RULE_GRAPH_LIMITS.NODES) {
+    diagnostics.push(
+      diagnostic(
+        'RULE_SOURCE_ENTRY_BINDING_BOUNDS',
+        `Rule graphs support at most ${RULE_GRAPH_LIMITS.NODES} source-entry bindings.`,
+        ['sourceEntryBindings']
+      )
+    )
+  }
+  const boundSourceEntryIds = new Set<string>()
+  const boundNodeIds = new Set<string>()
+  const boundPairs = new Set<string>()
+  for (const [index, binding] of sourceEntryBindings.entries()) {
+    if (!UUID_PATTERN.test(binding.sourceEntryId)) {
+      diagnostics.push(
+        diagnostic(
+          'RULE_INVALID_SOURCE_ENTRY_ID',
+          'Rule source-entry binding identity must be a UUID.',
+          ['sourceEntryBindings', String(index), 'sourceEntryId']
+        )
+      )
+    }
+    if (!LOCAL_NODE_ID_PATTERN.test(binding.nodeId) || !nodeIds.includes(binding.nodeId)) {
+      diagnostics.push(
+        diagnostic(
+          'RULE_SOURCE_ENTRY_NODE_MISSING',
+          'Rule source-entry binding must reference an existing local graph node.',
+          ['sourceEntryBindings', String(index), 'nodeId']
+        )
+      )
+    }
+    const pair = `${binding.sourceEntryId}:${binding.nodeId}`
+    if (
+      boundPairs.has(pair) ||
+      boundSourceEntryIds.has(binding.sourceEntryId) ||
+      boundNodeIds.has(binding.nodeId)
+    ) {
+      diagnostics.push(
+        diagnostic(
+          'RULE_DUPLICATE_SOURCE_ENTRY_BINDING',
+          'Rule source-entry bindings must form a one-to-one source-entry to node relation.',
+          ['sourceEntryBindings', String(index)]
+        )
+      )
+    }
+    boundPairs.add(pair)
+    boundSourceEntryIds.add(binding.sourceEntryId)
+    boundNodeIds.add(binding.nodeId)
+  }
 
   const nodes = new Map<
     string,
@@ -421,7 +473,10 @@ export function compileRuleGraph(input: {
       continue
     }
     try {
-      nodes.set(node.id, { definition: node, operation: input.operations.require(node.operation) })
+      nodes.set(node.id, {
+        definition: node,
+        operation: input.operations.require(node.operation)
+      })
     } catch (error) {
       diagnostics.push(
         diagnostic(
@@ -525,6 +580,101 @@ export function compileRuleGraph(input: {
     })),
     outputs: Object.fromEntries(
       Object.entries(definition.outputs).map(([output, binding]) => [output, copyBinding(binding)])
-    )
+    ),
+    ...(sourceEntryBindings.length > 0
+      ? {
+          sourceEntryBindings: sourceEntryBindings.map((binding) => ({
+            ...binding
+          }))
+        }
+      : {}),
+    ...(definition.vocabularyBindings && definition.vocabularyBindings.length > 0
+      ? {
+          vocabularyBindings: definition.vocabularyBindings.map((binding) => ({ ...binding }))
+        }
+      : {})
   })
+}
+
+/**
+ * Verifies a persisted compiled graph against the same generic admission
+ * rules used at compile time. It never rebuilds or reorders the supplied
+ * graph; callers continue to execute the exact persisted graph on success.
+ */
+export function validateCompiledRuleGraph(input: {
+  graph: CompiledRuleGraph
+  capability: GameSystemRuleCapabilityContract
+  operations: RuleOperationRegistry
+}): CompileResult<CompiledRuleGraph> {
+  const { graph } = input
+  const admitted = compileRuleGraph({
+    definition: {
+      schemaVersion: graph.schemaVersion,
+      id: graph.source.definitionId,
+      gameSystemId: graph.source.gameSystemId,
+      definitionFamilyKey: graph.source.definitionFamilyKey,
+      nodes: graph.nodes,
+      outputs: graph.outputs,
+      ...(graph.sourceEntryBindings ? { sourceEntryBindings: graph.sourceEntryBindings } : {}),
+      ...(graph.vocabularyBindings ? { vocabularyBindings: graph.vocabularyBindings } : {})
+    },
+    sourceChecksum: graph.source.checksum,
+    capability: input.capability,
+    operations: input.operations
+  })
+  if (!admitted.ok) return admitted
+
+  const diagnostics: CompileDiagnostic[] = []
+  if (graph.capabilityContractVersion !== input.capability.contractVersion) {
+    diagnostics.push(
+      diagnostic(
+        'RULE_FROZEN_CAPABILITY_VERSION_MISMATCH',
+        'Frozen rule graph capability version does not match its registered Game System.'
+      )
+    )
+  }
+  if (
+    graph.factContracts.length !== input.capability.factContracts.length ||
+    graph.factContracts.some(
+      (fact, index) =>
+        fact.key !== input.capability.factContracts[index]?.key ||
+        fact.valueKind !== input.capability.factContracts[index]?.valueKind
+    )
+  ) {
+    diagnostics.push(
+      diagnostic(
+        'RULE_FROZEN_FACT_CONTRACT_MISMATCH',
+        'Frozen rule graph facts do not match its registered Game System capability contract.'
+      )
+    )
+  }
+  if (
+    graph.nodes.length !== admitted.value.nodes.length ||
+    graph.nodes.some((node, index) => node.id !== admitted.value.nodes[index]?.id)
+  ) {
+    diagnostics.push(
+      diagnostic(
+        'RULE_FROZEN_NODE_ORDER_INVALID',
+        'Frozen rule graph node order is not the compiler-admitted topological order.'
+      )
+    )
+  }
+  const frozenBindings = graph.sourceEntryBindings ?? []
+  const admittedBindings = admitted.value.sourceEntryBindings ?? []
+  if (
+    frozenBindings.length !== admittedBindings.length ||
+    frozenBindings.some(
+      (binding, index) =>
+        binding.sourceEntryId !== admittedBindings[index]?.sourceEntryId ||
+        binding.nodeId !== admittedBindings[index]?.nodeId
+    )
+  ) {
+    diagnostics.push(
+      diagnostic(
+        'RULE_FROZEN_SOURCE_ENTRY_BINDING_MISMATCH',
+        'Frozen rule graph source-entry bindings are not compiler-admitted.'
+      )
+    )
+  }
+  return diagnostics.length > 0 ? compileFailure(diagnostics) : compileSuccess(graph)
 }

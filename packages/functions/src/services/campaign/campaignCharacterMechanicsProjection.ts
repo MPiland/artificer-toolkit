@@ -105,7 +105,8 @@ export async function prepareCampaignCharacterMechanicsProjection(input: {
     character: input.character,
     context: {
       catalog: resolution.catalog,
-      registry: resolution.sourceRegistry
+      registry: resolution.sourceRegistry,
+      vocabularySnapshot: sources.vocabularySnapshot
     },
     adjustments: mergeCampaignSheetAdjustments(characterAdjustments, input.campaignAdjustments),
     movementDisplayPreference,

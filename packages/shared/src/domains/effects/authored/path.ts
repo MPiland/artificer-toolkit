@@ -32,6 +32,8 @@ export type PathLifecycleAuthored = {
 export type ResultBlockAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthored> = {
   id: string
   resultKind: 'SINGLE' | 'SEQUENCE'
+  /** UUID-backed System maintenance definition, when this result creates a maintained effect. */
+  maintenanceDefinitionId?: string
   duration?: DurationAuthored
   lifecycle?: PathLifecycleAuthored
   outcomes: TOutcome[]

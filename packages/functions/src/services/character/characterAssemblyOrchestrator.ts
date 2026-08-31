@@ -326,12 +326,7 @@ export async function loadCharacterAssemblyRegistry(params: {
       params.system === undefined
         ? createSystemRepository(db).findById(character.systemId)
         : Promise.resolve(params.system),
-      resolveActiveCharacterRaces(
-        db,
-        selectedRaceIds,
-        character.systemId,
-        character.userId
-      ),
+      resolveActiveCharacterRaces(db, selectedRaceIds, character.systemId, character.userId),
       loadActiveCharacterSources<ClassAuthored>(
         db,
         'CLASS',
@@ -356,12 +351,7 @@ export async function loadCharacterAssemblyRegistry(params: {
       activeAcquiredFeatureIds.length > 0
         ? featureRepository.findByIds(activeAcquiredFeatureIds, { includeEffects })
         : Promise.resolve(new Map<string, FeatureAuthored>()),
-      resolveActiveCharacterEquipment(
-        db,
-        ownedEquipmentIds,
-        character.systemId,
-        character.userId
-      )
+      resolveActiveCharacterEquipment(db, ownedEquipmentIds, character.systemId, character.userId)
     ])
 
   return {

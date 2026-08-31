@@ -1,5 +1,5 @@
-import { Alert, Button, Group, Text, TextInput, Title } from '@mantine/core'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Alert, Button, Group, Select, Text, TextInput, Title } from '@mantine/core'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { type SubmitEvent, useState } from 'react'
 import type {
@@ -8,6 +8,7 @@ import type {
   CampaignToneTagDto
 } from '@artificer-toolkit/schema/api/campaigns'
 import { api } from '#app/lib/api'
+import { getSystemList } from '#app/data/systems/queries'
 import { queryKeys } from '#app/lib/queryKeys'
 import { buildCampaignRouteParams } from '#app/routing/authoredRouteParams'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
@@ -17,12 +18,16 @@ import * as sharedStyles from './campaigns.css'
 export function CampaignCreatePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const systems = useQuery(getSystemList())
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [format, setFormat] = useState<CampaignFormatDto>('ONGOING')
   const [toneTags, setToneTags] = useState<CampaignToneTagDto[]>(['HEROIC'])
   const [toneDetails, setToneDetails] = useState('')
   const [contentMaturity, setContentMaturity] = useState<CampaignContentMaturityDto>('STANDARD')
+  const [gameSystemId, setGameSystemId] = useState('')
+  const [primaryRulesCatalogueId, setPrimaryRulesCatalogueId] = useState('')
+  const selectedSystem = systems.data?.find((system) => system.id === gameSystemId)
   const createCampaign = useMutation({
     mutationFn: () =>
       api.campaigns.create({
@@ -31,7 +36,10 @@ export function CampaignCreatePage() {
         format,
         toneTags,
         toneDetails: toneDetails.trim() || null,
-        contentMaturity
+        contentMaturity,
+        gameSystemId,
+        primaryRulesCatalogueId,
+        additionalRulesCatalogueIds: []
       }),
     onSuccess: async (campaign) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.list() })
@@ -44,6 +52,7 @@ export function CampaignCreatePage() {
 
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
+    if (!gameSystemId || !primaryRulesCatalogueId) return
     createCampaign.mutate()
   }
 
@@ -57,6 +66,11 @@ export function CampaignCreatePage() {
         {createCampaign.error ? (
           <Alert color='red' title='Campaign not created'>
             {createCampaign.error.message}
+          </Alert>
+        ) : null}
+        {systems.isError ? (
+          <Alert color='red' title='Game Systems unavailable'>
+            Campaign creation needs an available Game System and Rules Catalogue.
           </Alert>
         ) : null}
         <TextInput
@@ -85,8 +99,35 @@ export function CampaignCreatePage() {
           onToneDetailsChange={setToneDetails}
           onToneTagsChange={setToneTags}
         />
+        <Select
+          data={(systems.data ?? []).map((system) => ({ value: system.id, label: system.label }))}
+          disabled={systems.isPending}
+          label='Game System'
+          onChange={(value) => {
+            setGameSystemId(value ?? '')
+            setPrimaryRulesCatalogueId('')
+          }}
+          required
+          searchable
+          value={gameSystemId || null}
+        />
+        <Select
+          data={(selectedSystem?.rulesCatalogues ?? []).map((catalogue) => ({
+            value: catalogue.id,
+            label: catalogue.label
+          }))}
+          disabled={!selectedSystem}
+          label='Primary Rules Catalogue'
+          onChange={(value) => setPrimaryRulesCatalogueId(value ?? '')}
+          required
+          value={primaryRulesCatalogueId || null}
+        />
         <Group className={sharedStyles.createActions}>
-          <Button loading={createCampaign.isPending} type='submit'>
+          <Button
+            disabled={!gameSystemId || !primaryRulesCatalogueId || systems.isError}
+            loading={createCampaign.isPending}
+            type='submit'
+          >
             Create Campaign
           </Button>
           <Button component={Link} to='/campaigns' variant='default'>

@@ -1,12 +1,6 @@
 {
   "version": 2,
-  "statusVocabulary": [
-    "NOT_STARTED",
-    "IN_PROGRESS",
-    "READY_FOR_ACCEPTANCE",
-    "ACCEPTED",
-    "BLOCKED"
-  ],
+  "statusVocabulary": ["NOT_STARTED", "IN_PROGRESS", "READY_FOR_ACCEPTANCE", "ACCEPTED", "BLOCKED"],
   "proofTiers": {
     "FOCUSED": "Focused contract/unit/property tests plus affected package typecheck/build and diff checks.",
     "REVIEW": "FOCUSED evidence plus independent targeted review of the complete scenario seam.",
@@ -21,9 +15,61 @@
       "title": "Rules foundation",
       "fixedTotal": 12,
       "cases": [
-        { "id": "G1-SYSTEM-CAPABILITIES", "title": "Game System capability isolation", "proofTier": "REVIEW", "status": "IN_PROGRESS" },
-        { "id": "G1-CATALOGUE-BINDING", "title": "Rules Catalogue and Content Source binding", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G1-UUID-INTEGRITY", "title": "UUID identity and same-System reference integrity", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        {
+          "id": "G1-SYSTEM-CAPABILITIES",
+          "title": "Game System capability isolation",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-25",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "792855f889e1bb7605a03bc7070ef7e4530728d9",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate1-system-capability-focused-tests.log",
+            "build": ".codex/validation/rules-runtime-rebaseline/gate1-system-capability-functions-build.log",
+            "lint": ".codex/validation/rules-runtime-rebaseline/gate1-system-capability-lint.log",
+            "format": ".codex/validation/rules-runtime-rebaseline/gate1-system-capability-format.log",
+            "diffCheck": ".codex/validation/rules-runtime-rebaseline/gate1-system-capability-diff-check.log",
+            "review": ".impeccable/review/gate1-system-capability-review.md"
+          }
+        },
+        {
+          "id": "G1-CATALOGUE-BINDING",
+          "title": "Rules Catalogue and Content Source binding",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-25",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-tests.log",
+            "schemaBuild": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-schema-build.log",
+            "databaseBuild": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-db-build.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-functions-build.log",
+            "seed": ".codex/validation/rules-runtime-rebaseline/gate1-binding-system-uuid-final-seed.log",
+            "audit": ".codex/validation/rules-runtime-rebaseline/gate1-binding-system-uuid-final-audit.log",
+            "migrationParity": ".codex/validation/rules-runtime-rebaseline/gate1-binding-local-migration-parity.log",
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/gate1-binding-system-uuid-final-postgres-proof.log",
+            "review": ".impeccable/review/gate1-binding-final-review.md"
+          }
+        },
+        {
+          "id": "G1-UUID-INTEGRITY",
+          "title": "UUID identity and same-System reference integrity",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-25",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-tests.log",
+            "schemaBuild": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-schema-build.log",
+            "databaseBuild": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-db-build.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-functions-build.log",
+            "seed": ".codex/validation/rules-runtime-rebaseline/gate1-binding-system-uuid-final-seed.log",
+            "audit": ".codex/validation/rules-runtime-rebaseline/gate1-binding-system-uuid-final-audit.log",
+            "migrationParity": ".codex/validation/rules-runtime-rebaseline/gate1-binding-local-migration-parity.log",
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/gate1-binding-system-uuid-final-postgres-proof.log",
+            "review": ".impeccable/review/gate1-binding-final-review.md"
+          }
+        },
         {
           "id": "G1-GRAPH-VALIDATION",
           "title": "Bounded typed graph validation and rejection",
@@ -39,56 +85,429 @@
             "review": ".codex/validation/rules-runtime-rebaseline/gate1-tracer-review.md"
           }
         },
-        { "id": "G1-PUBLISH-LIFECYCLE", "title": "Draft, Publish, and current-active lifecycle", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G1-CAPABILITY-DISCOVERY", "title": "Runtime capability discovery", "proofTier": "REVIEW", "status": "IN_PROGRESS" },
+        {
+          "id": "G1-PUBLISH-LIFECYCLE",
+          "title": "Draft, Publish, and current-active lifecycle",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-25",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-tests.log",
+            "databaseBuild": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-db-build.log",
+            "seed": ".codex/validation/rules-runtime-rebaseline/gate1-binding-system-uuid-final-seed.log",
+            "audit": ".codex/validation/rules-runtime-rebaseline/gate1-binding-system-uuid-final-audit.log",
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/gate1-binding-system-uuid-final-postgres-proof.log",
+            "review": ".impeccable/review/gate1-binding-final-review.md"
+          }
+        },
+        {
+          "id": "G1-CAPABILITY-DISCOVERY",
+          "title": "Runtime capability discovery",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-25",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate1-effect-entrypoint-uuid-focused-tests.log",
+            "schemaBuild": ".codex/validation/rules-runtime-rebaseline/gate1-effect-entrypoint-uuid-schema-build.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate1-effect-entrypoint-uuid-functions-build.log",
+            "review": ".impeccable/review/gate1-capability-discovery-final-review.md"
+          }
+        },
         {
           "id": "G1-EXECUTION-LIFECYCLE",
           "title": "Runtime execution, continuation, and receipt lifecycle",
           "proofTier": "DATABASE",
-          "status": "IN_PROGRESS",
-          "implementationEvidence": {
-            "sourceCommit": "9c4bc299",
-            "tests": ".codex/validation/rules-runtime-rebaseline/gate1-continuation-focused-tests.log",
-            "schemaBuild": ".codex/validation/rules-runtime-rebaseline/gate1-continuation-schema-build.log",
-            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate1-continuation-functions-build.log",
-            "lint": ".codex/validation/rules-runtime-rebaseline/gate1-continuation-lint.log",
-            "format": ".codex/validation/rules-runtime-rebaseline/gate1-continuation-format.log",
-            "review": ".codex/validation/rules-runtime-rebaseline/gate1-continuation-review.md"
-          },
-          "remainingProof": [
-            "aggregate-owned continuation persistence",
-            "authorization and occurrence ownership binding",
-            "idempotent receipt replay",
-            "transaction rollback and cleanup",
-            "concurrent resume settlement"
-          ]
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-25",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate1-occurrence-revalidated-focused-tests.log",
+            "builds": ".codex/validation/rules-runtime-rebaseline/gate1-occurrence-revalidated-builds.log",
+            "localReset": ".codex/validation/rules-runtime-rebaseline/gate1-occurrence-local-reset.log",
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/gate1-rule-occurrence-postgres-proof.log",
+            "review": ".impeccable/review/gate1-occurrence-final-review.md"
+          }
         },
-        { "id": "G1-LIVE-UPDATES", "title": "Live source updates with frozen occurrences", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G1-AUTHORING-INTENT", "title": "Override, Edit Source, and Create New separation", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "G1-CAMPAIGN-COMPATIBILITY", "title": "Campaign and Character compatibility enforcement", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G1-BLUEPRINT-RUN", "title": "Reusable Encounter Blueprint and independent Encounter Run persistence", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G1-PORTABILITY-DOCS", "title": "Neutral portability tracers plus canonical documentation and ERDs", "proofTier": "REVIEW", "status": "IN_PROGRESS" }
+        {
+          "id": "G1-LIVE-UPDATES",
+          "title": "Live source updates with frozen occurrences",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-25",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "integrationTypecheck": ".codex/validation/rules-runtime-rebaseline/gate1-live-updates-integration-typecheck-final.log",
+            "build": ".codex/validation/rules-runtime-rebaseline/gate1-live-updates-session-host-build-final.log",
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/gate1-live-updates-postgres-proof.log",
+            "review": ".impeccable/review/gate1-live-updates-final-review.md"
+          }
+        },
+        {
+          "id": "G1-AUTHORING-INTENT",
+          "title": "Override, Edit Source, and Create New separation",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-25",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "review": ".impeccable/review/gate1-authoring-intent-final-review.md"
+          }
+        },
+        {
+          "id": "G1-CAMPAIGN-COMPATIBILITY",
+          "title": "Campaign and Character compatibility enforcement",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-25",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-tests.log",
+            "schemaBuild": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-schema-build.log",
+            "databaseBuild": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-db-build.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-functions-build.log",
+            "seed": ".codex/validation/rules-runtime-rebaseline/gate1-binding-system-uuid-final-seed.log",
+            "audit": ".codex/validation/rules-runtime-rebaseline/gate1-binding-system-uuid-final-audit.log",
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/gate1-binding-system-uuid-final-postgres-proof.log",
+            "review": ".impeccable/review/gate1-binding-final-review.md"
+          }
+        },
+        {
+          "id": "G1-BLUEPRINT-RUN",
+          "title": "Reusable Encounter Blueprint and independent Encounter Run persistence",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-25",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate1-blueprint-final-focused-tests-numeric-journal-2.log",
+            "integrationTypecheck": ".codex/validation/rules-runtime-rebaseline/gate1-blueprint-harness-integration-typecheck-numeric-journal-final.log",
+            "seed": ".codex/validation/rules-runtime-rebaseline/gate1-blueprint-local-seed-final.log",
+            "expectedMigrationFailure": ".codex/validation/rules-runtime-rebaseline/gate1-blueprint-migration-unsafe-integer-expected-failure-final.log",
+            "migration": ".codex/validation/rules-runtime-rebaseline/gate1-blueprint-migration-numeric-parity-success-final.log",
+            "generatedTypes": ".codex/validation/rules-runtime-rebaseline/gate1-blueprint-gen-types-numeric-final.log",
+            "bootstrap": ".codex/validation/rules-runtime-rebaseline/gate1-blueprint-bootstrap-numeric-final.log",
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/gate1-blueprint-verify-post-numeric-journal-final.log",
+            "review": ".impeccable/review/gate1-blueprint-run-final-review.md"
+          }
+        },
+        {
+          "id": "G1-PORTABILITY-DOCS",
+          "title": "Neutral portability tracers plus canonical documentation and ERDs",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-25",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate1-portability-current-focused-tests.log",
+            "schemaBuild": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-schema-build.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate1-binding-review-fixes-system-uuid-functions-build.log",
+            "review": ".impeccable/review/gate1-portability-docs-review.md"
+          }
+        }
       ]
     },
     {
       "gate": 2,
       "title": "Authoritative mechanics",
       "fixedTotal": 14,
+      "acceptanceEvidence": {
+        "localDatabaseReset": ".codex/validation/rules-runtime-rebaseline/gate2-local-db-reset.log",
+        "localSeed": ".codex/validation/rules-runtime-rebaseline/gate2-srd-local-seed.log",
+        "sourceAudit": ".codex/validation/rules-runtime-rebaseline/gate2-srd-audit-green.log",
+        "manifestVerification": ".codex/validation/rules-runtime-rebaseline/gate2-srd-manifest-verify-after-seed.log",
+        "sharedOccurrencePostgres": ".codex/validation/rules-runtime-rebaseline/gate2-occurrence-postgres-proof-green.log",
+        "actionStatePostgres": ".codex/validation/rules-runtime-rebaseline/gate2-state-persistence-postgres-proof.log",
+        "reactionStatePostgres": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-state-postgres-proof.log",
+        "crossCaseFocused": ".codex/validation/rules-runtime-rebaseline/gate2-schedule6-cross-case-focused.log",
+        "scheduleMap": ".codex/validation/rules-runtime-rebaseline/gate2-postgres-schedule-map.md"
+      },
       "cases": [
-        { "id": "G2-AUTOMATION-MODES", "title": "Automatic, Assisted, Manual, and sanitized reminder behavior", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G2-RANDOM-CONTRIBUTORS", "title": "Random evidence, d20 contributors, cancellation, and supported tests", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G2-ACTION-AUTHORITY", "title": "Action authorization, selections, targets, and cross-owner outcomes", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G2-TEST-RESOLUTION", "title": "Attacks, criticals, saving throws, and checks", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G2-OUTCOMES", "title": "Damage, healing, temporary hit points, conditions, and resources", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G2-STATE-RECONCILIATION", "title": "Grants, modifiers, aggregate state, and rules-based reconciliation", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G2-EFFECT-LIFECYCLE", "title": "Active and passive effects, recurrence, duration, and expiry", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G2-CONCENTRATION", "title": "Concentration start, replacement, checks, cleanup, and privacy", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G2-SPATIAL-PERCEPTION", "title": "Movement, spatial geometry, perception, auras, and traps", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G2-REACTIONS", "title": "Reactions, durable choices, interruption, reconnect, and resource use", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G2-TURN-INITIATIVE", "title": "Turn lifecycle and every approved initiative mode", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G2-LEGENDARY-RECHARGE", "title": "Legendary resources, actions, resistance, and recharge", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G2-OPTIONAL-COMBAT", "title": "Every approved 2014 DMG optional combat rule", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "G2-SRD-MANIFEST", "title": "Exhaustive 2014 SRD path classification and seed/homebrew parity", "proofTier": "DATABASE", "status": "NOT_STARTED" }
+        {
+          "id": "G2-AUTOMATION-MODES",
+          "title": "Automatic, Assisted, Manual, and sanitized reminder behavior",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "occurrenceTests": ".codex/validation/rules-runtime-rebaseline/gate2-manual-direct-action-occurrence.log",
+            "encounterTests": ".codex/validation/rules-runtime-rebaseline/gate2-manual-direct-action-encounter.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-manual-direct-action-functions-build.log",
+            "functionsTypecheck": ".codex/validation/rules-runtime-rebaseline/gate2-manual-direct-action-functions-typecheck.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/gate2-direct-action-automation-review.md",
+            "automaticEvidenceRegression": ".codex/validation/rules-runtime-rebaseline/automatic-two-phase-evidence-focused-test.log",
+            "functionsBuildFinal": ".codex/validation/rules-runtime-rebaseline/automatic-two-phase-evidence-functions-build.log",
+            "postgresSchedule": ".codex/validation/rules-runtime-rebaseline/gate2-action-modes-postgres-proof.log"
+          }
+        },
+        {
+          "id": "G2-RANDOM-CONTRIBUTORS",
+          "title": "Random evidence, d20 contributors, cancellation, and supported tests",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-focused-final.log",
+            "schemaBuild": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-schema-build-final.log",
+            "databaseBuild": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-db-build-final.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-functions-build-final.log",
+            "functionsTypecheck": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-functions-typecheck-final.log",
+            "databaseTypecheck": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-db-typecheck-final.log",
+            "postgresTracer": ".codex/validation/rules-runtime-rebaseline/gate2-action-modes-postgres-proof.log"
+          }
+        },
+        {
+          "id": "G2-ACTION-AUTHORITY",
+          "title": "Action authorization, selections, targets, and cross-owner outcomes",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate2-manual-direct-action-encounter.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-manual-direct-action-functions-build.log",
+            "functionsTypecheck": ".codex/validation/rules-runtime-rebaseline/gate2-manual-direct-action-functions-typecheck.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/gate2-direct-action-automation-review.md",
+            "postgresTracer": ".codex/validation/rules-runtime-rebaseline/gate2-action-modes-postgres-proof.log"
+          }
+        },
+        {
+          "id": "G2-TEST-RESOLUTION",
+          "title": "Attacks, criticals, saving throws, and checks",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-focused-final.log",
+            "uuidSavingThrowTests": ".codex/validation/rules-runtime-rebaseline/gate2-saving-throw-uuid-final-focused-tests.log",
+            "schemaBuild": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-schema-build-final.log",
+            "recursiveEffectSchemaBuild": ".codex/validation/rules-runtime-rebaseline/gate2-recursive-effect-shape-schema-build.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-functions-build-final.log",
+            "recursiveEffectFunctionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-recursive-effect-shape-functions-build.log",
+            "functionsTypecheck": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-functions-typecheck-final.log",
+            "uuidSavingThrowReview": ".impeccable/review/gate2-saving-throw-uuid-final-review.md",
+            "postgresTracer": ".codex/validation/rules-runtime-rebaseline/gate2-action-modes-postgres-proof.log"
+          }
+        },
+        {
+          "id": "G2-OUTCOMES",
+          "title": "Damage, healing, temporary hit points, conditions, and resources",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-focused-final.log",
+            "schemaBuild": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-schema-build-final.log",
+            "databaseBuild": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-db-build-final.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-functions-build-final.log",
+            "functionsTypecheck": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-functions-typecheck-final.log",
+            "databaseTypecheck": ".codex/validation/rules-runtime-rebaseline/gate2-ordered-receipts-review-db-typecheck-final.log",
+            "postgresTracer": ".codex/validation/rules-runtime-rebaseline/gate2-action-modes-postgres-proof.log"
+          }
+        },
+        {
+          "id": "G2-STATE-RECONCILIATION",
+          "title": "Grants, modifiers, aggregate state, and rules-based reconciliation",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "ruleStateTests": ".codex/validation/rules-runtime-rebaseline/gate2-rule-capability-state-focused.log",
+            "reactionStateTests": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-rule-state-focused.log",
+            "schemaBuild": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-rule-state-schema-build.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-rule-state-functions-build.log"
+          }
+        },
+        {
+          "id": "G2-EFFECT-LIFECYCLE",
+          "title": "Active and passive effects, recurrence, duration, and expiry",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "persistenceTests": ".codex/validation/rules-runtime-rebaseline/gate2-active-effect-persistence-focused-tests.log",
+            "creationTests": ".codex/validation/rules-runtime-rebaseline/gate2-active-effect-creation-focused-tests-serial.log",
+            "schemaBuild": ".codex/validation/rules-runtime-rebaseline/gate2-active-effect-creation-schema-build.log",
+            "databaseBuild": ".codex/validation/rules-runtime-rebaseline/gate2-active-effect-persistence-db-build.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-active-effect-creation-functions-build.log",
+            "functionsTypecheck": ".codex/validation/rules-runtime-rebaseline/gate2-active-effect-creation-functions-typecheck.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/gate2-active-effect-creation-review.md",
+            "currentFocused": ".codex/validation/rules-runtime-rebaseline/gate2-schedule3-current-focused.log",
+            "localDatabaseReset": ".codex/validation/rules-runtime-rebaseline/gate2-local-db-reset.log",
+            "sharedOccurrencePostgres": ".codex/validation/rules-runtime-rebaseline/gate2-occurrence-postgres-proof-green.log",
+            "statePersistencePostgres": ".codex/validation/rules-runtime-rebaseline/gate2-state-persistence-postgres-proof.log"
+          }
+        },
+        {
+          "id": "G2-CONCENTRATION",
+          "title": "Concentration start, replacement, checks, cleanup, and privacy",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "review": ".codex/validation/rules-runtime-rebaseline/gate2-concentration-policy-review.md",
+            "focused": ".codex/validation/rules-runtime-rebaseline/gate2-concentration-contract-foundation-focused.log",
+            "currentFocused": ".codex/validation/rules-runtime-rebaseline/gate2-schedule3-current-focused.log",
+            "localDatabaseReset": ".codex/validation/rules-runtime-rebaseline/gate2-local-db-reset.log",
+            "sharedOccurrencePostgres": ".codex/validation/rules-runtime-rebaseline/gate2-occurrence-postgres-proof-green.log"
+          }
+        },
+        {
+          "id": "G2-SPATIAL-PERCEPTION",
+          "title": "Movement, spatial geometry, perception, auras, and traps",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "focusedTests": ".codex/validation/rules-runtime-rebaseline/gate2-spatial-occurrence-binding-focused-dev-3.log",
+            "hostTests": ".codex/validation/rules-runtime-rebaseline/gate2-spatial-zero-root-replay-host.log",
+            "workerTests": ".codex/validation/rules-runtime-rebaseline/gate2-spatial-zero-root-replay-worker-2.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-spatial-occurrence-binding-functions-build-final-2.log",
+            "hostTypecheck": ".codex/validation/rules-runtime-rebaseline/gate2-spatial-zero-root-replay-host-typecheck.log",
+            "workerTypecheck": ".codex/validation/rules-runtime-rebaseline/gate2-spatial-zero-root-replay-worker-typecheck.log",
+            "scenePerceptionTests": ".codex/validation/rules-runtime-rebaseline/gate2-scene-perception-review-fix-focused.log",
+            "scenePerceptionSharedBuild": ".codex/validation/rules-runtime-rebaseline/gate2-scene-perception-review-fix-shared-build.log",
+            "scenePerceptionFunctionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-scene-perception-review-fix-functions-build.log",
+            "scenePerceptionLint": ".codex/validation/rules-runtime-rebaseline/gate2-scene-perception-lint.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/gate2-scene-perception-review.md",
+            "currentFocused": ".codex/validation/rules-runtime-rebaseline/gate2-schedule3-current-focused.log",
+            "localDatabaseReset": ".codex/validation/rules-runtime-rebaseline/gate2-local-db-reset.log",
+            "sharedOccurrencePostgres": ".codex/validation/rules-runtime-rebaseline/gate2-occurrence-postgres-proof-green.log"
+          }
+        },
+        {
+          "id": "G2-REACTIONS",
+          "title": "Reactions, durable choices, interruption, reconnect, and resource use",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceDiscoveryTests": ".codex/validation/rules-runtime-rebaseline/gate2-movement-reaction-source-focused-tests-final.log",
+            "sourceDiscoveryBuild": ".codex/validation/rules-runtime-rebaseline/gate2-movement-reaction-source-functions-build-final.log",
+            "actionCompilerTests": ".codex/validation/rules-runtime-rebaseline/gate2-movement-reaction-action-compiler-focused-final.log",
+            "actionCompilerBuild": ".codex/validation/rules-runtime-rebaseline/gate2-movement-reaction-action-compiler-functions-build-final-2.log",
+            "sideRelationshipTests": ".codex/validation/rules-runtime-rebaseline/gate2-encounter-sides-focused-tests.log",
+            "sideRelationshipDatabaseBuild": ".codex/validation/rules-runtime-rebaseline/gate2-encounter-sides-db-build.log",
+            "sideRelationshipFunctionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-encounter-sides-functions-build-final.log",
+            "ruleStateTests": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-rule-state-focused.log",
+            "ruleStateSchemaBuild": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-rule-state-schema-build.log",
+            "ruleStateFunctionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-rule-state-functions-build.log",
+            "factBindingTests": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-fact-binding-focused.log",
+            "factBindingFunctionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-fact-binding-functions-build.log",
+            "choiceTransportSchemaBuild": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-choice-transport-schema-build.log",
+            "choiceTransportSchemaTests": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-choice-transport-schema-tests.log",
+            "choiceTransportFunctionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-choice-transport-functions-build.log",
+            "choiceSummaryTests": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-choice-scene-summary-tests.log",
+            "movementResolutionHistoryTests": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-remainder-focused-tests.log",
+            "declineSettlementTests": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-decline-service-tests.log",
+            "declineSettlementBuild": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-decline-functions-build.log",
+            "encounterFeatureActionTests": ".codex/validation/rules-runtime-rebaseline/g2-encounter-feature-reaction-focused.log",
+            "encounterFeatureActionBuild": ".codex/validation/rules-runtime-rebaseline/g2-encounter-feature-reaction-functions-build.log",
+            "actionSettlementCoreTests": ".codex/validation/rules-runtime-rebaseline/g2-action-settlement-core-focused.log",
+            "actionSettlementCoreBuild": ".codex/validation/rules-runtime-rebaseline/g2-action-settlement-core-functions-build.log",
+            "currentFocusedTests": ".codex/validation/rules-runtime-rebaseline/gate2-schedule4-unaffected-focused.log",
+            "currentFocusedCorrections": ".codex/validation/rules-runtime-rebaseline/gate2-schedule4-corrections-focused.log",
+            "localDatabaseReset": ".codex/validation/rules-runtime-rebaseline/gate2-local-db-reset.log",
+            "sharedOccurrencePostgres": ".codex/validation/rules-runtime-rebaseline/gate2-occurrence-postgres-proof-green.log",
+            "reactionStatePostgres": ".codex/validation/rules-runtime-rebaseline/gate2-reaction-state-postgres-proof.log"
+          }
+        },
+        {
+          "id": "G2-TURN-INITIATIVE",
+          "title": "Turn lifecycle and every approved initiative mode",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "schemaTests": ".codex/validation/rules-runtime-rebaseline/gate2-initiative-lifecycle-schema-tests.log",
+            "databaseTests": ".codex/validation/rules-runtime-rebaseline/gate2-initiative-lifecycle-db-tests.log",
+            "serviceTests": ".codex/validation/rules-runtime-rebaseline/gate2-initiative-lifecycle-service-tests.log",
+            "activeEffectLockingTests": ".codex/validation/rules-runtime-rebaseline/gate2-initiative-active-effect-locking-tests.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/gate2-initiative-lifecycle-functions-build.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/gate2-initiative-lifecycle-review.md",
+            "stagedAtomicityTests": ".codex/validation/rules-runtime-rebaseline/gate2-staged-turn-initiative-focused-final.log",
+            "stagedAtomicityBuild": ".codex/validation/rules-runtime-rebaseline/gate2-staged-turn-initiative-build-final.log",
+            "pendingReceiptTests": ".codex/validation/rules-runtime-rebaseline/gate2-recharge-pending-receipts-focused-final.log",
+            "currentFocusedTests": ".codex/validation/rules-runtime-rebaseline/gate2-schedule5-initiative-legendary-focused.log",
+            "localDatabaseReset": ".codex/validation/rules-runtime-rebaseline/gate2-local-db-reset.log",
+            "sharedOccurrencePostgres": ".codex/validation/rules-runtime-rebaseline/gate2-occurrence-postgres-proof-green.log",
+            "statePersistencePostgres": ".codex/validation/rules-runtime-rebaseline/gate2-state-persistence-postgres-proof.log"
+          }
+        },
+        {
+          "id": "G2-LEGENDARY-RECHARGE",
+          "title": "Legendary resources, actions, resistance, and recharge",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "contractTests": ".codex/validation/rules-runtime-rebaseline/g2-legendary-recharge-focused-tests.log",
+            "schemaBuild": ".codex/validation/rules-runtime-rebaseline/g2-legendary-recharge-schema-build.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/g2-legendary-recharge-functions-build.log",
+            "rechargeLifecycleTests": ".codex/validation/rules-runtime-rebaseline/g2-recharge-lifecycle-focused.log",
+            "stagedTurnTests": ".codex/validation/rules-runtime-rebaseline/gate2-staged-turn-initiative-focused-final.log",
+            "pendingReceiptTests": ".codex/validation/rules-runtime-rebaseline/gate2-recharge-pending-receipts-focused-final.log",
+            "featureResourceTests": ".codex/validation/rules-runtime-rebaseline/g2-feature-resource-settlement-focused.log",
+            "featureResourceReceiptTests": ".codex/validation/rules-runtime-rebaseline/g2-feature-resource-receipt-focused.log",
+            "featureResourceSchemaBuild": ".codex/validation/rules-runtime-rebaseline/g2-feature-resource-receipt-schema-build.log",
+            "featureResourceFunctionsBuild": ".codex/validation/rules-runtime-rebaseline/g2-feature-resource-receipt-functions-build.log",
+            "legendaryActionDiscoveryTests": ".codex/validation/rules-runtime-rebaseline/g2-legendary-action-focused.log",
+            "legendaryActionSchemaBuild": ".codex/validation/rules-runtime-rebaseline/g2-legendary-action-schema-build.log",
+            "legendaryActionFunctionsBuild": ".codex/validation/rules-runtime-rebaseline/g2-legendary-action-functions-build.log",
+            "pendingSnapshotRefactorTests": ".codex/validation/rules-runtime-rebaseline/gate1-pending-snapshot-refactor-focused.log",
+            "pendingSnapshotInvariantTests": ".codex/validation/rules-runtime-rebaseline/gate1-pending-snapshot-invariant-test.log",
+            "pendingSnapshotSchemaBuild": ".codex/validation/rules-runtime-rebaseline/gate1-pending-snapshot-invariant-schema-build.log",
+            "databaseBuild": ".codex/validation/rules-runtime-rebaseline/gate2-staged-turn-initiative-db-build.log",
+            "functionsBuildFinal": ".codex/validation/rules-runtime-rebaseline/gate2-recharge-pending-receipts-build-final.log",
+            "currentFocusedTests": ".codex/validation/rules-runtime-rebaseline/gate2-schedule5-initiative-legendary-focused.log",
+            "localDatabaseReset": ".codex/validation/rules-runtime-rebaseline/gate2-local-db-reset.log",
+            "sharedOccurrencePostgres": ".codex/validation/rules-runtime-rebaseline/gate2-occurrence-postgres-proof-green.log"
+          }
+        },
+        {
+          "id": "G2-OPTIONAL-COMBAT",
+          "title": "Every approved 2014 DMG optional combat rule",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "architectureGuide": "docs/architecture/dnd5e-optional-combat.md",
+            "coverageManifest": "docs/roadmap/08-vtt-optional-combat-coverage.json",
+            "coverageVerifier": "packages/functions/src/services/rules/systems/dnd5e/optionalCombatCoverage.test.ts",
+            "alternatingDiagonalsTests": ".codex/validation/rules-runtime-rebaseline/gate2-alternating-diagonals-ledger-focused.log",
+            "currentFocusedTests": ".codex/validation/rules-runtime-rebaseline/gate2-schedule5-optional-combat-focused.log",
+            "localDatabaseReset": ".codex/validation/rules-runtime-rebaseline/gate2-local-db-reset.log",
+            "sharedOccurrencePostgres": ".codex/validation/rules-runtime-rebaseline/gate2-occurrence-postgres-proof-green.log",
+            "statePersistencePostgres": ".codex/validation/rules-runtime-rebaseline/gate2-state-persistence-postgres-proof.log"
+          }
+        },
+        {
+          "id": "G2-SRD-MANIFEST",
+          "title": "Exhaustive 2014 SRD path classification and seed/homebrew parity",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceManifest": "packages/db/src/source-data/srd/rule-path-manifest.json",
+            "focusedTests": ".codex/validation/rules-runtime-rebaseline/srd-manifest-core-focused-green.log",
+            "databaseBuild": ".codex/validation/rules-runtime-rebaseline/srd-manifest-parity-db-build.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/srd-manifest-core-functions-build-green.log",
+            "manifestGeneration": ".codex/validation/rules-runtime-rebaseline/srd-damage-arithmetic-manifest-generate.log",
+            "manifestVerification": ".codex/validation/rules-runtime-rebaseline/gate2-srd-manifest-verify-after-seed.log",
+            "localDatabaseReset": ".codex/validation/rules-runtime-rebaseline/gate2-local-db-reset.log",
+            "localSeed": ".codex/validation/rules-runtime-rebaseline/gate2-srd-local-seed.log",
+            "localAudit": ".codex/validation/rules-runtime-rebaseline/gate2-srd-audit-green.log",
+            "artifactShape": "1046 roots / 11021 leaves / 373 execution pins / 0 duplicate roots or leaves"
+          }
+        }
       ]
     },
     {
@@ -96,16 +515,148 @@
       "title": "Authoring and VTT workflows",
       "fixedTotal": 10,
       "cases": [
-        { "id": "G3-SYSTEM-SHELL", "title": "System-aware application shell and capability-driven navigation", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G3-DEFINITION-AUTHORING", "title": "Guided and Advanced typed definition authoring", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G3-DOMAIN-AUTHORING", "title": "Guided and Advanced domain-item authoring", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G3-AUTHORING-WORKFLOWS", "title": "Override, source-editing, and new-content workflows", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G3-CAMPAIGN-SETTINGS", "title": "Campaign System, catalogue, automation, and optional-rule settings", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G3-BLUEPRINT-AUTHORING", "title": "Encounter Blueprint authoring and Encounter Run creation", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G3-ACTIONS-TARGETS", "title": "Action discovery, selection, targeting, and outcome presentation", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G3-MOVEMENT", "title": "Straight and waypoint movement, preview, and commit", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G3-LIVE-DECISIONS", "title": "Rolls, reactions, decisions, initiative, GM control, and reconnect", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G3-EVIDENCE-A11Y", "title": "Evidence, conflicts, privacy, keyboard, screen-reader, and selector coverage", "proofTier": "BROWSER", "status": "NOT_STARTED" }
+        {
+          "id": "G3-SYSTEM-SHELL",
+          "title": "System-aware application shell and capability-driven navigation",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "47ed293e98dfbcbbceb791baa5c041a27edcf2004855b8648f799f30da726c48",
+            "apiBuild": ".codex/validation/rules-runtime-rebaseline/gate3-system-shell-api-build.log",
+            "webTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-system-shell-web-typecheck.log",
+            "storyTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-system-definition-story-typecheck.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate3-system-definition-browser-green.log"
+          }
+        },
+        {
+          "id": "G3-DEFINITION-AUTHORING",
+          "title": "Guided and Advanced typed definition authoring",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "47ed293e98dfbcbbceb791baa5c041a27edcf2004855b8648f799f30da726c48",
+            "schemaBuild": ".codex/validation/rules-runtime-rebaseline/gate3-definition-authoring-schema-build.log",
+            "apiBuild": ".codex/validation/rules-runtime-rebaseline/gate3-definition-authoring-api-build.log",
+            "webTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-definition-authoring-web-typecheck.log",
+            "contracts": ".codex/validation/rules-runtime-rebaseline/gate3-definition-authoring-contract-tests.log",
+            "storyTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-system-definition-story-typecheck.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate3-system-definition-browser-green.log"
+          }
+        },
+        {
+          "id": "G3-DOMAIN-AUTHORING",
+          "title": "Guided and Advanced domain-item authoring",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "dbd3d5c89603320d6d0b95d4912501351157fbb2e1994f5342beafe583e8d359",
+            "webTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-definition-authoring-web-typecheck.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate3-domain-authoring-browser.log"
+          }
+        },
+        {
+          "id": "G3-AUTHORING-WORKFLOWS",
+          "title": "Override, source-editing, and new-content workflows",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "dbd3d5c89603320d6d0b95d4912501351157fbb2e1994f5342beafe583e8d359",
+            "webTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-definition-authoring-web-typecheck.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate3-domain-authoring-browser.log"
+          }
+        },
+        {
+          "id": "G3-CAMPAIGN-SETTINGS",
+          "title": "Campaign System, catalogue, automation, and optional-rule settings",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "48669accae9bf561c491ce9e6009a9f109330867326b04daed7d88c99a4dfab2",
+            "apiBuild": ".codex/validation/rules-runtime-rebaseline/gate3-campaign-settings-options-api-build.log",
+            "webTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-campaign-settings-options-web-typecheck.log",
+            "contracts": ".codex/validation/rules-runtime-rebaseline/gate3-campaign-settings-options-focused-tests.log",
+            "storyTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-campaign-settings-story-typecheck.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate3-campaign-settings-browser.log"
+          }
+        },
+        {
+          "id": "G3-BLUEPRINT-AUTHORING",
+          "title": "Encounter Blueprint authoring and Encounter Run creation",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "4aac5604bb14e603e1cbd5b728cd3c6385ce738b1f366746603c8bd6e5793cdb",
+            "storyTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-blueprint-authoring-story-typecheck.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate3-blueprint-authoring-browser.log"
+          }
+        },
+        {
+          "id": "G3-ACTIONS-TARGETS",
+          "title": "Action discovery, selection, targeting, and outcome presentation",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "2fd704a77cc9a3d2999e3c12763e0b62aeefc33d6db1845d3a2546e1355f383b",
+            "webTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-actions-targets-web-typecheck.log",
+            "storyTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-actions-targets-story-typecheck.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate3-actions-targets-browser.log"
+          }
+        },
+        {
+          "id": "G3-MOVEMENT",
+          "title": "Straight and waypoint movement, preview, and commit",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "6729e15f31d644b0f4bdc9de4cef40a5d25c54b82fb9ccfc087affa658597782",
+            "storyTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-movement-story-typecheck.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate3-movement-browser.log"
+          }
+        },
+        {
+          "id": "G3-LIVE-DECISIONS",
+          "title": "Rolls, reactions, decisions, initiative, GM control, and reconnect",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "bec7affd173f1cd1d7858ed2514304978479f6d947167be58e94ac7b35a05e0b",
+            "webTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-live-decisions-web-typecheck.log",
+            "storyTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-live-decisions-story-typecheck.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate3-live-decisions-browser.log"
+          }
+        },
+        {
+          "id": "G3-EVIDENCE-A11Y",
+          "title": "Evidence, conflicts, privacy, keyboard, screen-reader, and selector coverage",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "b32746491be59936a92a356ac4d57b1f4a8992f6d34687ccb1592c7633a243d1",
+            "storyTypecheck": ".codex/validation/rules-runtime-rebaseline/gate3-evidence-a11y-story-typecheck.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate3-evidence-a11y-browser-green.log",
+            "movementBrowser": ".codex/validation/rules-runtime-rebaseline/gate3-movement-browser.log"
+          }
+        }
       ]
     },
     {
@@ -113,14 +664,114 @@
       "title": "Scene and token presentation",
       "fixedTotal": 8,
       "cases": [
-        { "id": "G4-TOKEN-IDENTITY", "title": "Token art, identity, and deterministic colour precedence", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G4-STATUS-PRESENTATION", "title": "Conditions, effects, halos, ordering, and overflow", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G4-FOOTPRINTS", "title": "Full footprints, large tokens, containment, dragging, and rotation", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G4-FACING", "title": "Facing, arcs, marks, and positional cues", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G4-PREVIEWS", "title": "Range, target, path, aura, and trap previews", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G4-PERCEPTION", "title": "Light, darkness, obscurement, senses, and hidden-information rendering", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G4-SYSTEM-STATE", "title": "Injuries, morale, reactions, and System-driven state presentation", "proofTier": "BROWSER", "status": "NOT_STARTED" },
-        { "id": "G4-ACCESSIBILITY-PERFORMANCE", "title": "Low zoom, performance, responsiveness, and non-colour accessibility", "proofTier": "BROWSER", "status": "NOT_STARTED" }
+        {
+          "id": "G4-TOKEN-IDENTITY",
+          "title": "Token art, identity, and deterministic colour precedence",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "e6530c356925454cadcd49e8bde69919e63c1b078776e3af4affc829e877519c",
+            "modelTests": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-model-tests.log",
+            "webTypecheck": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-web-typecheck-final.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-browser-final.log"
+          }
+        },
+        {
+          "id": "G4-STATUS-PRESENTATION",
+          "title": "Conditions, effects, halos, ordering, and overflow",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "e6530c356925454cadcd49e8bde69919e63c1b078776e3af4affc829e877519c",
+            "modelTests": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-model-tests.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-browser-final.log"
+          }
+        },
+        {
+          "id": "G4-FOOTPRINTS",
+          "title": "Full footprints, large tokens, containment, dragging, and rotation",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "e6530c356925454cadcd49e8bde69919e63c1b078776e3af4affc829e877519c",
+            "modelTests": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-model-tests.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-browser-final.log",
+            "movementBrowser": ".codex/validation/rules-runtime-rebaseline/gate3-movement-browser.log"
+          }
+        },
+        {
+          "id": "G4-FACING",
+          "title": "Facing, arcs, marks, and positional cues",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "e6530c356925454cadcd49e8bde69919e63c1b078776e3af4affc829e877519c",
+            "webTypecheck": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-web-typecheck-arc.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-browser-final.log"
+          }
+        },
+        {
+          "id": "G4-PREVIEWS",
+          "title": "Range, target, path, aura, and trap previews",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "e6530c356925454cadcd49e8bde69919e63c1b078776e3af4affc829e877519c",
+            "storyTypecheck": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-story-typecheck.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-browser-final.log",
+            "movementBrowser": ".codex/validation/rules-runtime-rebaseline/gate3-movement-browser.log"
+          }
+        },
+        {
+          "id": "G4-PERCEPTION",
+          "title": "Light, darkness, obscurement, senses, and hidden-information rendering",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "e6530c356925454cadcd49e8bde69919e63c1b078776e3af4affc829e877519c",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-browser-final.log",
+            "privacyBrowser": ".codex/validation/rules-runtime-rebaseline/gate3-evidence-a11y-browser-green.log"
+          }
+        },
+        {
+          "id": "G4-SYSTEM-STATE",
+          "title": "Injuries, morale, reactions, and System-driven state presentation",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "e6530c356925454cadcd49e8bde69919e63c1b078776e3af4affc829e877519c",
+            "modelTests": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-model-tests.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-browser-final.log"
+          }
+        },
+        {
+          "id": "G4-ACCESSIBILITY-PERFORMANCE",
+          "title": "Low zoom, performance, responsiveness, and non-colour accessibility",
+          "proofTier": "BROWSER",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "sourceHead": "c923d7a650ee565f8e87bb1067a02fb3f6b07a0b",
+            "implementationDigest": "e6530c356925454cadcd49e8bde69919e63c1b078776e3af4affc829e877519c",
+            "modelTests": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-model-tests.log",
+            "storyTypecheck": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-story-typecheck.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate4-presentation-browser-final.log"
+          }
+        }
       ]
     },
     {
@@ -128,16 +779,122 @@
       "title": "Complete local acceptance",
       "fixedTotal": 10,
       "cases": [
-        { "id": "G5-RELEASE-MANIFEST", "title": "Final source identity, documentation, and release manifest", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
-        { "id": "G5-CODE-LIFECYCLE", "title": "Complete build, test, typecheck, format, and lint lifecycle", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
-        { "id": "G5-DATABASE-LIFECYCLE", "title": "Migration, generated-type, canonical-SQL, seed, and audit parity", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
-        { "id": "G5-SRD-PARITY", "title": "Complete 2014 SRD manifest and seed/homebrew equivalence", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
-        { "id": "G5-AUTOMATIC-JOURNEY", "title": "Three-user Automatic Encounter journey", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
-        { "id": "G5-ASSISTED-MANUAL-JOURNEY", "title": "Assisted and Manual decisions, rolls, reconnect, and GM control", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
-        { "id": "G5-LIFECYCLE-JOURNEY", "title": "Effects, spatial movement, reactions, concentration, and turn lifecycle", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
-        { "id": "G5-OPTIONAL-JOURNEY", "title": "Initiative and optional-combat representative combinations", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
-        { "id": "G5-RESILIENCE", "title": "WebSocket, privacy, replay, rollback, concurrency, and performance", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
-        { "id": "G5-CLEANUP-ACCEPTANCE", "title": "Exact cleanup and final architect acceptance", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" }
+        {
+          "id": "G5-RELEASE-MANIFEST",
+          "title": "Final source identity, documentation, and release manifest",
+          "proofTier": "LOCAL_E2E",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "releaseManifest": ".codex/validation/rules-runtime-rebaseline/phase8-final-release-manifest.json",
+            "documentation": "docs/roadmap/08-vtt-acceptance.md"
+          }
+        },
+        {
+          "id": "G5-CODE-LIFECYCLE",
+          "title": "Complete build, test, typecheck, format, and lint lifecycle",
+          "proofTier": "LOCAL_E2E",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "build": ".codex/validation/rules-runtime-rebaseline/gate5-final-current-build.log",
+            "format": ".codex/validation/rules-runtime-rebaseline/gate5-final-current-format-green.log",
+            "lint": ".codex/validation/rules-runtime-rebaseline/gate5-final-current-lint-green.log",
+            "typecheck": ".codex/validation/rules-runtime-rebaseline/gate5-final-current-typecheck.log",
+            "tests": ".codex/validation/rules-runtime-rebaseline/gate5-final-current-tests-serial.log"
+          }
+        },
+        {
+          "id": "G5-DATABASE-LIFECYCLE",
+          "title": "Migration, generated-type, canonical-SQL, seed, and audit parity",
+          "proofTier": "LOCAL_E2E",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "bootstrap": ".codex/validation/rules-runtime-rebaseline/gate5-final-bootstrap-bundle-3.log",
+            "reset": ".codex/validation/rules-runtime-rebaseline/gate5-final-db-reset-3.log",
+            "types": ".codex/validation/rules-runtime-rebaseline/gate5-final-db-types-3.log"
+          }
+        },
+        {
+          "id": "G5-SRD-PARITY",
+          "title": "Complete 2014 SRD manifest and seed/homebrew equivalence",
+          "proofTier": "LOCAL_E2E",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "seed": ".codex/validation/rules-runtime-rebaseline/gate5-final-srd-seed-3.log",
+            "audit": ".codex/validation/rules-runtime-rebaseline/gate5-final-srd-audit-3.log",
+            "manifest": ".codex/validation/rules-runtime-rebaseline/gate5-final-rule-manifest-verify-3.log"
+          }
+        },
+        {
+          "id": "G5-AUTOMATIC-JOURNEY",
+          "title": "Three-user Automatic Encounter journey",
+          "proofTier": "LOCAL_E2E",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "localHost": ".codex/validation/rules-runtime-rebaseline/gate5-final-local-session-host-green-5.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate5-final-web-vtt-local-green.log"
+          }
+        },
+        {
+          "id": "G5-ASSISTED-MANUAL-JOURNEY",
+          "title": "Assisted and Manual decisions, rolls, reconnect, and GM control",
+          "proofTier": "LOCAL_E2E",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "localHost": ".codex/validation/rules-runtime-rebaseline/gate5-final-local-session-host-green-5.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate5-final-web-vtt-local-green.log"
+          }
+        },
+        {
+          "id": "G5-LIFECYCLE-JOURNEY",
+          "title": "Effects, spatial movement, reactions, concentration, and turn lifecycle",
+          "proofTier": "LOCAL_E2E",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "mechanicsTests": ".codex/validation/rules-runtime-rebaseline/gate5-final-current-non-web-tests-green.log",
+            "localHost": ".codex/validation/rules-runtime-rebaseline/gate5-final-local-session-host-green-5.log"
+          }
+        },
+        {
+          "id": "G5-OPTIONAL-JOURNEY",
+          "title": "Initiative and optional-combat representative combinations",
+          "proofTier": "LOCAL_E2E",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "mechanicsTests": ".codex/validation/rules-runtime-rebaseline/gate5-final-current-non-web-tests-green.log",
+            "localHost": ".codex/validation/rules-runtime-rebaseline/gate5-final-local-session-host-green-5.log"
+          }
+        },
+        {
+          "id": "G5-RESILIENCE",
+          "title": "WebSocket, privacy, replay, rollback, concurrency, and performance",
+          "proofTier": "LOCAL_E2E",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "localHost": ".codex/validation/rules-runtime-rebaseline/gate5-final-local-session-host-green-5.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate5-final-web-vtt-local-green.log"
+          }
+        },
+        {
+          "id": "G5-CLEANUP-ACCEPTANCE",
+          "title": "Exact cleanup and final architect acceptance",
+          "proofTier": "LOCAL_E2E",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "databaseReset": ".codex/validation/rules-runtime-rebaseline/gate5-final-db-reset-3.log",
+            "localHost": ".codex/validation/rules-runtime-rebaseline/gate5-final-local-session-host-green-5.log",
+            "browser": ".codex/validation/rules-runtime-rebaseline/gate5-final-web-vtt-local-green.log"
+          }
+        }
       ]
     }
   ]

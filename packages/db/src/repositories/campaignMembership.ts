@@ -210,9 +210,10 @@ export function createCampaignMembershipRepository(db: DBLike) {
         user_id: string
         label: string
         system_id: string
+        primary_rules_catalogue_id: string
         status: string
       }>`
-        select character.id, route.public_id, character.user_id, character.label, character.system_id, character.status
+        select character.id, route.public_id, character.user_id, character.label, character.system_id, character.primary_rules_catalogue_id, character.status
         from characters character
         join authored_route_ids route on route.subject_kind = 'CHARACTER' and route.subject_id = character.id
         where character.id = ${characterId}::uuid
@@ -225,6 +226,7 @@ export function createCampaignMembershipRepository(db: DBLike) {
             userId: row.user_id,
             label: row.label,
             systemId: row.system_id,
+            primaryRulesCatalogueId: row.primary_rules_catalogue_id,
             status: row.status
           }
         : null

@@ -18,10 +18,71 @@ import {
 } from './campaignTypes.js'
 
 export function createCampaignLifecycleRepository(db: DBLike) {
+  const mapStoredCampaign = (row: Record<string, unknown>, publicId: string): CampaignRecord =>
+    mapCampaign({
+      ...(row as unknown as RawCampaignRow),
+      game_system_id: String(row.game_system_id),
+      primary_rules_catalogue_id: String(row.primary_rules_catalogue_id),
+      additional_rules_catalogue_ids: [],
+      public_id: publicId,
+      status: row.status as CampaignStatus
+    })
+  const requireRulesCatalogues = async (input: {
+    gameSystemId: string
+    primaryRulesCatalogueId: string
+    additionalRulesCatalogueIds: readonly string[]
+  }): Promise<void> => {
+    if (input.additionalRulesCatalogueIds.length > 31) {
+      throw new Error('A Campaign may enable at most 31 additional Rules Catalogues.')
+    }
+    const catalogueIds = [input.primaryRulesCatalogueId, ...input.additionalRulesCatalogueIds]
+    if (new Set(catalogueIds).size !== catalogueIds.length) {
+      throw new Error('Campaign Rules Catalogues must be unique.')
+    }
+    const result = await sql<{ count: string | number }>`
+      SELECT count(*) AS count FROM public.rules_catalogues
+      WHERE game_system_id = ${input.gameSystemId}::uuid
+        AND id IN (${sql.join(catalogueIds.map((id) => sql`${id}::uuid`))})
+    `.execute(db)
+    if (Number(result.rows[0]?.count ?? 0) !== catalogueIds.length) {
+      throw new Error('Rules Catalogues must exist and belong to the Campaign Game System.')
+    }
+  }
+  const listAdditionalRulesCatalogueIds = async (campaignId: string): Promise<string[]> => {
+    const result = await sql<{ rules_catalogue_id: string }>`
+      SELECT rules_catalogue_id
+      FROM public.campaign_additional_rules_catalogues
+      WHERE campaign_id = ${campaignId}::uuid
+      ORDER BY rules_catalogue_id
+    `.execute(db)
+    return result.rows.map((row) => row.rules_catalogue_id)
+  }
+  const listMissingContentSourceIds = async (input: {
+    rulesCatalogueIds: readonly string[]
+    contentSourceIds: readonly string[]
+  }): Promise<string[]> => {
+    const sourceIds = [...new Set(input.contentSourceIds)].sort((left, right) =>
+      left.localeCompare(right)
+    )
+    if (sourceIds.length === 0) return []
+    if (input.rulesCatalogueIds.length === 0) return sourceIds
+    const result = await sql<{ content_source_id: string }>`
+      SELECT DISTINCT content_source_id
+      FROM public.rules_catalogue_content_sources
+      WHERE catalogue_id IN (${sql.join(
+        input.rulesCatalogueIds.map((catalogueId) => sql`${catalogueId}::uuid`)
+      )})
+        AND content_source_id IN (${sql.join(sourceIds.map((sourceId) => sql`${sourceId}::uuid`))})
+      ORDER BY content_source_id
+    `.execute(db)
+    const enabled = new Set(result.rows.map((row) => row.content_source_id))
+    return sourceIds.filter((sourceId) => !enabled.has(sourceId))
+  }
   return {
     async listForActiveMember(userId: string): Promise<CampaignListRecord[]> {
       const result = await sql<RawCampaignListRow>`
         select campaign.*, campaign_route.public_id,
+          coalesce((select array_agg(additional.rules_catalogue_id order by additional.rules_catalogue_id) from campaign_additional_rules_catalogues additional where additional.campaign_id = campaign.id), '{}'::uuid[]) as additional_rules_catalogue_ids,
           membership.role,
           character.id as character_id,
           route.public_id as character_public_id,
@@ -82,6 +143,7 @@ export function createCampaignLifecycleRepository(db: DBLike) {
         }
       >`
         select campaign.*, campaign_route.public_id,
+          coalesce((select array_agg(additional.rules_catalogue_id order by additional.rules_catalogue_id) from campaign_additional_rules_catalogues additional where additional.campaign_id = campaign.id), '{}'::uuid[]) as additional_rules_catalogue_ids,
           membership.role as membership_role, membership.status as membership_status,
           membership.access_started_at, membership.joined_at, membership.left_at,
           character.id as character_id, route.public_id as character_public_id,
@@ -137,13 +199,13 @@ export function createCampaignLifecycleRepository(db: DBLike) {
             subjectId: campaignId
           })
         : null
-      return row && route
-        ? mapCampaign({
-            ...row,
-            public_id: route.publicId,
-            status: row.status as CampaignStatus
-          })
-        : null
+      if (!row || !route) return null
+      return mapCampaign({
+        ...(row as unknown as RawCampaignRow),
+        additional_rules_catalogue_ids: await listAdditionalRulesCatalogueIds(campaignId),
+        public_id: route.publicId,
+        status: row.status as CampaignStatus
+      })
     },
     async countActiveOwned(userId: string): Promise<number> {
       const result = await sql<{
@@ -152,6 +214,114 @@ export function createCampaignLifecycleRepository(db: DBLike) {
         db
       )
       return Number(result.rows[0]?.count ?? 0)
+    },
+    async requireRulesCatalogues(input: {
+      gameSystemId: string
+      primaryRulesCatalogueId: string
+      additionalRulesCatalogueIds: readonly string[]
+    }): Promise<void> {
+      await requireRulesCatalogues(input)
+    },
+    async listContentSourceIdsMissingFromRulesCatalogues(input: {
+      rulesCatalogueIds: readonly string[]
+      contentSourceIds: readonly string[]
+    }): Promise<string[]> {
+      return listMissingContentSourceIds(input)
+    },
+    async listContentSourceIdsNotEnabledForCampaign(input: {
+      campaignId: string
+      contentSourceIds: readonly string[]
+    }): Promise<string[]> {
+      const campaignResult = await sql<{ primary_rules_catalogue_id: string }>`
+        SELECT primary_rules_catalogue_id
+        FROM public.campaigns
+        WHERE id = ${input.campaignId}::uuid
+      `.execute(db)
+      const primary = campaignResult.rows[0]?.primary_rules_catalogue_id
+      if (!primary) return [...new Set(input.contentSourceIds)]
+      return listMissingContentSourceIds({
+        rulesCatalogueIds: [primary, ...(await listAdditionalRulesCatalogueIds(input.campaignId))],
+        contentSourceIds: input.contentSourceIds
+      })
+    },
+    async listActiveEncounterInitiativeContentSourceIds(campaignId: string): Promise<string[]> {
+      const result = await sql<{ content_source_id: string }>`
+        SELECT DISTINCT source.content_source_id
+        FROM public.encounters encounter
+        CROSS JOIN LATERAL (
+          VALUES
+            (encounter.initiative_policy_snapshot #>> '{policy,contentSourceId}'),
+            (encounter.initiative_policy_snapshot #>> '{evaluationGraph,contentSourceId}'),
+            (encounter.initiative_policy_snapshot #>> '{orderChoiceGraph,contentSourceId}'),
+            (encounter.initiative_policy_snapshot #>> '{tieResolver,contentSourceId}')
+        ) AS source(content_source_id)
+        WHERE encounter.campaign_id = ${campaignId}::uuid
+          AND encounter.status IN ('PREPARED', 'ACTIVE')
+          AND source.content_source_id IS NOT NULL
+        ORDER BY source.content_source_id
+      `.execute(db)
+      return result.rows.map((row) => row.content_source_id)
+    },
+    async listOptionalCombatContentSourceIdsRequiredByCampaign(
+      campaignId: string
+    ): Promise<string[]> {
+      const result = await sql<{ content_source_id: string }>`
+        SELECT DISTINCT definition.content_source_id
+        FROM public.campaign_play_settings settings
+        JOIN public.reusable_definitions definition
+          ON definition.id = ANY(settings.optional_combat_rule_definition_ids)
+        WHERE settings.campaign_id = ${campaignId}::uuid
+        UNION
+        SELECT DISTINCT definition.value->>'contentSourceId'
+        FROM public.encounters encounter
+        CROSS JOIN LATERAL jsonb_array_elements(
+          COALESCE(encounter.optional_combat_snapshot->'definitions', '[]'::jsonb)
+        ) AS definition(value)
+        WHERE encounter.campaign_id = ${campaignId}::uuid
+          AND encounter.status IN ('PREPARED', 'ACTIVE')
+          AND definition.value->>'contentSourceId' IS NOT NULL
+        ORDER BY content_source_id
+      `.execute(db)
+      return result.rows.map((row) => row.content_source_id)
+    },
+    async clearAdditionalRulesCatalogues(campaignId: string): Promise<void> {
+      await sql`
+        DELETE FROM public.campaign_additional_rules_catalogues
+        WHERE campaign_id = ${campaignId}::uuid
+      `.execute(db)
+    },
+    async insertAdditionalRulesCatalogues(input: {
+      campaignId: string
+      gameSystemId: string
+      primaryRulesCatalogueId: string
+      additionalRulesCatalogueIds: readonly string[]
+    }): Promise<void> {
+      if (input.additionalRulesCatalogueIds.includes(input.primaryRulesCatalogueId)) {
+        throw new Error('The Campaign primary Rules Catalogue cannot be additional.')
+      }
+      await requireRulesCatalogues(input)
+      if (input.additionalRulesCatalogueIds.length === 0) return
+      await sql`
+        INSERT INTO public.campaign_additional_rules_catalogues (
+          campaign_id, rules_catalogue_id, game_system_id
+        ) VALUES ${sql.join(
+          input.additionalRulesCatalogueIds.map(
+            (catalogueId) => sql`(
+          ${input.campaignId}::uuid, ${catalogueId}::uuid, ${input.gameSystemId}::uuid
+        )`
+          )
+        )}
+      `.execute(db)
+    },
+    async listAssignmentPrimaryRulesCatalogueIds(campaignId: string): Promise<string[]> {
+      const result = await sql<{ primary_rules_catalogue_id: string }>`
+        SELECT DISTINCT character.primary_rules_catalogue_id
+        FROM public.campaign_character_assignments assignment
+        JOIN public.characters character ON character.id = assignment.character_id
+        WHERE assignment.campaign_id = ${campaignId}::uuid
+        ORDER BY character.primary_rules_catalogue_id
+      `.execute(db)
+      return result.rows.map((row) => row.primary_rules_catalogue_id)
     },
     async createCampaign(
       ownerUserId: string,
@@ -162,6 +332,8 @@ export function createCampaignLifecycleRepository(db: DBLike) {
         tone_tags: CampaignToneTag[]
         tone_details: string | null
         content_maturity: CampaignContentMaturity
+        game_system_id: string
+        primary_rules_catalogue_id: string
         attunement_slot_override?: number | null
       }
     ): Promise<CampaignRecord> {
@@ -174,11 +346,7 @@ export function createCampaignLifecycleRepository(db: DBLike) {
         subjectKind: 'CAMPAIGN',
         subjectId: row.id
       })
-      return mapCampaign({
-        ...row,
-        public_id: route.publicId,
-        status: row.status as CampaignStatus
-      })
+      return mapStoredCampaign(row, route.publicId)
     },
     async updateCampaign(
       campaignId: string,
@@ -191,6 +359,7 @@ export function createCampaignLifecycleRepository(db: DBLike) {
         tone_details?: string | null
         content_maturity?: CampaignContentMaturity
         attunement_slot_override?: number | null
+        primary_rules_catalogue_id?: string
       }
     ): Promise<CampaignRecord | null> {
       const row = await db
@@ -206,13 +375,7 @@ export function createCampaignLifecycleRepository(db: DBLike) {
             subjectId: campaignId
           })
         : null
-      return row && route
-        ? mapCampaign({
-            ...row,
-            public_id: route.publicId,
-            status: row.status as CampaignStatus
-          })
-        : null
+      return row && route ? mapStoredCampaign(row, route.publicId) : null
     },
     async advanceCampaignVersion(
       campaignId: string,
@@ -234,9 +397,7 @@ export function createCampaignLifecycleRepository(db: DBLike) {
             subjectId: campaignId
           })
         : null
-      return row && route
-        ? mapCampaign({ ...row, public_id: route.publicId, status: row.status as CampaignStatus })
-        : null
+      return row && route ? mapStoredCampaign(row, route.publicId) : null
     },
     async archiveCampaign(
       campaignId: string,
@@ -283,13 +444,7 @@ export function createCampaignLifecycleRepository(db: DBLike) {
             and invite.listing_id = listing.id and invite.status = 'PENDING'
         `.execute(db)
       }
-      return row && route
-        ? mapCampaign({
-            ...row,
-            public_id: route.publicId,
-            status: row.status as CampaignStatus
-          })
-        : null
+      return row && route ? mapStoredCampaign(row, route.publicId) : null
     },
     async deleteCampaign(campaignId: string, expectedVersion: number): Promise<boolean> {
       const result = await db

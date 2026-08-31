@@ -1,3 +1,4 @@
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const balor: CreatureAuthored = {
@@ -133,7 +134,7 @@ export const balor: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(36, 109),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.DEXTERITY,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
               baseDc: 20
             },
             range: {
@@ -389,7 +390,7 @@ export const balor: CreatureAuthored = {
             savingThrow: {
               id: S.actionId(36, 120),
               dcMethod: 'FIXED_DC',
-              ability: S.ABILITY_CODE.STRENGTH,
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
               baseDc: 20
             },
             activation: { code: S.ACTIVATION_CODE.FREE },

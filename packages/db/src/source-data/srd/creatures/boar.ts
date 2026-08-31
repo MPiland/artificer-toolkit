@@ -42,6 +42,14 @@ export const boar: CreatureAuthored = {
       label: 'Relentless (Recharges after a Short or Long Rest)',
       description:
         'Relentless (Recharges after a Short or Long Rest). If the boar takes 7 damage or less that would reduce it to 0 hit points, it is reduced to 1 hit point instead.',
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: S.actionId(51, 502),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: S.SCALING.NONE,
+        resetKind: S.CHARGE_RESET_KIND.SHORT_REST,
+        amount: 1
+      },
       order: 2
     },
     {

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { authoredRecordStatusSchema } from '../shared/enums.js'
+import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { characterIntentDtoSchema, characterProfileAuthoredDtoSchema } from './characterIntent.js'
 import { characterStateDtoSchema } from './characterState.js'
 
@@ -16,7 +17,8 @@ const characterAuthoredDtoSchemaRaw = z.object({
   profile: characterProfileAuthoredDtoSchema,
   intent: characterIntentDtoSchema,
   state: characterStateDtoSchema,
-  systemId: z.string(),
+  systemId: postgresUuidSchema,
+  primaryRulesCatalogueId: postgresUuidSchema,
   userId: z.string()
 })
 

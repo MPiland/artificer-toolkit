@@ -32,7 +32,6 @@ describe('CampaignLiveSceneObjectEditor', () => {
     expect(onCommand).toHaveBeenCalledTimes(1)
     expect(onCommand).toHaveBeenCalledWith({
       commandId: expect.any(String),
-      encounterId: tabletopLiveScene.encounterId,
       expectedSceneVersion: tabletopLiveScene.version,
       sceneId: tabletopLiveScene.id,
       token: expect.objectContaining({ label: expect.stringContaining(' edited') }),
@@ -68,7 +67,6 @@ describe('CampaignLiveSceneObjectEditor', () => {
     expect(onCommand).toHaveBeenCalledWith({
       barrier: expect.objectContaining({ kind: 'WALL' }),
       commandId: expect.any(String),
-      encounterId: emptyScene.encounterId,
       expectedSceneVersion: emptyScene.version,
       sceneId: emptyScene.id,
       type: 'UPSERT_SCENE_BARRIER'

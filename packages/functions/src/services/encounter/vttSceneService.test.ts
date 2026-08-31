@@ -1,21 +1,23 @@
+import { createHash } from 'node:crypto'
+
 import { describe, expect, it } from 'vitest'
 
 import { canonicalizeJson } from '@artificer-toolkit/db'
 import type { SceneCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   applySceneEvent,
-  materializeEncounterScene,
+  materializeCampaignScene,
   replaySceneEvents,
-  type EncounterSceneState,
+  type CampaignSceneState,
   type SceneDefinition,
   type SceneEvent
 } from '@artificer-toolkit/shared/vtt'
 
 import { EncounterValidationError } from './encounterErrors.js'
 import {
-  assertEncounterSceneProjectionReplay,
+  assertCampaignSceneProjectionReplay,
   compileSceneCurrentProjection,
-  replayEncounterSceneProjection
+  replayCampaignSceneProjection
 } from './sceneProjectionReplay.js'
 import { vttSceneServiceInternals } from './vttSceneService.js'
 
@@ -29,9 +31,10 @@ const ids = {
   user: '00000000-0000-4000-8000-000000000007'
 }
 
-function scene(): EncounterSceneState {
+function scene(): CampaignSceneState {
   return {
     annotations: [],
+    ambientIllumination: 'BRIGHT',
     barriers: [
       {
         a: { x: 50, y: 0 },
@@ -49,7 +52,6 @@ function scene(): EncounterSceneState {
     definitionId: ids.scene,
     definitionVersion: 1,
     doorStates: { [ids.barrier]: 'CLOSED' },
-    encounterId: ids.encounter,
     fogLayers: [],
     fogMode: 'SHARED_PARTY',
     grid: { kind: 'GRIDLESS', pixelsPerUnit: 5, unit: 'FEET' },
@@ -65,7 +67,6 @@ function scene(): EncounterSceneState {
     name: 'Test scene',
     tokens: [
       {
-        actorId: null,
         assetId: null,
         controlledByUserIds: [ids.user],
         height: 1,
@@ -88,6 +89,7 @@ function definition(): SceneDefinition {
   const state = scene()
   return {
     annotations: state.annotations,
+    ambientIllumination: state.ambientIllumination,
     barriers: state.barriers,
     campaignId: state.campaignId,
     darknessZones: state.darknessZones,
@@ -107,8 +109,10 @@ describe('VTT scene command helpers', () => {
   it('maps a durable movement command to its renderer-neutral delta', () => {
     const input: SceneCommandInputDto = {
       commandId: ids.command,
-      encounterId: ids.encounter,
+      expectedEncounterVersion: 0,
       expectedSceneVersion: 0,
+      correlationId: null,
+      movementKind: 'VOLUNTARY',
       path: [
         { x: 20, y: 20 },
         { x: 25, y: 20 }
@@ -123,6 +127,91 @@ describe('VTT scene command helpers', () => {
       position: { x: 25, y: 20 },
       tokenId: ids.token
     })
+  })
+
+  it('maps owner-authored ambient illumination to a renderer-neutral delta', () => {
+    const input = {
+      commandId: ids.command,
+      expectedSceneVersion: 0,
+      illumination: 'DIM',
+      sceneId: ids.scene,
+      type: 'SET_SCENE_AMBIENT_ILLUMINATION'
+    } satisfies Extract<SceneCommandInputDto, { type: 'SET_SCENE_AMBIENT_ILLUMINATION' }>
+
+    expect(vttSceneServiceInternals.commandToDelta(input)).toEqual({
+      illumination: 'DIM',
+      kind: 'AMBIENT_ILLUMINATION_SET'
+    })
+    expect(() =>
+      vttSceneServiceInternals.assertPlayerCommand(
+        scene(),
+        ids.user,
+        vttSceneServiceInternals.commandToDelta(input)
+      )
+    ).toThrow('Only the Campaign owner can make this scene change.')
+  })
+
+  it('preserves exact legacy darkness replay identity without changing current fingerprints', () => {
+    const input: SceneCommandInputDto = {
+      commandId: ids.command,
+      expectedSceneVersion: 0,
+      sceneId: ids.scene,
+      type: 'UPSERT_SCENE_DARKNESS',
+      zone: {
+        id: ids.token,
+        mechanicalIllumination: null,
+        mechanicalObscurement: null,
+        opacity: 0.5,
+        polygon: {
+          points: [
+            { x: 0, y: 0 },
+            { x: 1, y: 0 },
+            { x: 0, y: 1 }
+          ]
+        }
+      }
+    }
+    const marked: SceneCommandInputDto = {
+      ...input,
+      legacyReplayKind: 'VISUAL_ONLY_DARKNESS_V0'
+    }
+    const { mechanicalIllumination, mechanicalObscurement, ...legacyZone } = input.zone
+    const expectedLegacyFingerprint = createHash('sha256')
+      .update(JSON.stringify({ ...input, zone: legacyZone }))
+      .digest('hex')
+
+    expect(mechanicalIllumination).toBeNull()
+    expect(mechanicalObscurement).toBeNull()
+    expect(vttSceneServiceInternals.sceneCommandFingerprint(marked)).toBe(
+      vttSceneServiceInternals.sceneCommandFingerprint(input)
+    )
+    expect(vttSceneServiceInternals.legacyVisualOnlyDarknessFingerprint(input)).toBe(
+      expectedLegacyFingerprint
+    )
+    expect(
+      vttSceneServiceInternals.legacyVisualOnlyDarknessFingerprint({
+        ...input,
+        zone: { ...input.zone, mechanicalIllumination: 'ORDINARY_DARKNESS' }
+      })
+    ).toBeNull()
+  })
+
+  it('slices a committed movement prefix by distance without position lookup', () => {
+    const path = [
+      { x: 0, y: 0 },
+      { x: 5, y: 0 },
+      { x: 5, y: 5 },
+      { x: 0, y: 0 }
+    ]
+    expect(vttSceneServiceInternals.sliceMovementPath(path, 0, 5)).toEqual([
+      { x: 0, y: 0 },
+      { x: 5, y: 0 }
+    ])
+    expect(vttSceneServiceInternals.sliceMovementPath(path, 3, 7)).toEqual([
+      { x: 3, y: 0 },
+      { x: 5, y: 0 },
+      { x: 5, y: 2 }
+    ])
   })
 
   it('allows a player to move their unlocked token without crossing a door', () => {
@@ -159,7 +248,6 @@ describe('VTT scene command helpers', () => {
     const state = scene()
     state.tokens[0] = {
       ...state.tokens[0]!,
-      actorId: ids.barrier,
       position: { x: 25, y: 20 },
       vision: null
     }
@@ -174,7 +262,12 @@ describe('VTT scene command helpers', () => {
       {
         characterVisions: [{ characterId: ids.user, dimRange: { amount: 10, unit: 'FEET' } }],
         encounterCharacterBindings: [
-          { actorId: ids.barrier, characterId: ids.user, encounterId: ids.encounter }
+          {
+            actorId: ids.barrier,
+            characterId: ids.user,
+            encounterId: ids.encounter,
+            tokenId: ids.token
+          }
         ]
       }
     )
@@ -205,6 +298,12 @@ describe('VTT scene command helpers', () => {
     expect(() => vttSceneServiceInternals.assertSceneCommandVersion(81, 82, moveToken, [])).toThrow(
       'Scene version is ahead of the authoritative state.'
     )
+    const ambient = { kind: 'AMBIENT_ILLUMINATION_SET' as const, illumination: 'DIM' as const }
+    expect(() =>
+      vttSceneServiceInternals.assertSceneCommandVersion(81, 80, ambient, [
+        { kind: 'AMBIENT_ILLUMINATION_SET', illumination: 'ORDINARY_DARKNESS' }
+      ])
+    ).toThrow('Scene target changed before this command completed.')
   })
 
   it('rejects a stale fog edit when a later batch derived that same fog layer', () => {
@@ -283,7 +382,7 @@ describe('VTT scene command helpers', () => {
       { commandType: 'MOVE_SCENE_TOKEN', event: move },
       { commandType: 'SET_SCENE_DOOR_STATE', event: door }
     ]
-    const current = replaySceneEvents(sceneDefinition, ids.encounter, ids.scene, [move, door])
+    const current = replaySceneEvents(sceneDefinition, ids.scene, [move, door])
     const undoDelta = vttSceneServiceInternals.createUndoLastMoveDelta(
       current,
       sceneDefinition,
@@ -318,7 +417,7 @@ describe('VTT scene command helpers', () => {
       sceneId: ids.scene,
       version: 1
     }
-    const moved = replaySceneEvents(sceneDefinition, ids.encounter, ids.scene, [move])
+    const moved = replaySceneEvents(sceneDefinition, ids.scene, [move])
     const undoDelta = vttSceneServiceInternals.createUndoLastMoveDelta(moved, sceneDefinition, [
       { commandType: 'MOVE_SCENE_TOKEN', event: move }
     ])
@@ -337,9 +436,9 @@ describe('VTT scene command helpers', () => {
         { commandType: 'UNDO_LAST_SCENE_MOVE', event: undo }
       ])
     ).toThrow('There is no committed token move to undo.')
-    expect(
-      materializeEncounterScene(sceneDefinition, ids.encounter, ids.scene).tokens[0]?.position
-    ).toEqual(restored.tokens[0]?.position)
+    expect(materializeCampaignScene(sceneDefinition, ids.scene).tokens[0]?.position).toEqual(
+      restored.tokens[0]?.position
+    )
   })
 
   it('rebuilds the current scene projection byte-equivalently from its event stream', () => {
@@ -360,10 +459,9 @@ describe('VTT scene command helpers', () => {
         version: 2
       }
     ]
-    const projection = replaySceneEvents(sceneDefinition, ids.encounter, ids.scene, events)
-    const rebuilt = assertEncounterSceneProjectionReplay({
+    const projection = replaySceneEvents(sceneDefinition, ids.scene, events)
+    const rebuilt = assertCampaignSceneProjectionReplay({
       definition: sceneDefinition,
-      encounterId: ids.encounter,
       events,
       projection,
       sceneId: ids.scene
@@ -372,9 +470,8 @@ describe('VTT scene command helpers', () => {
     expect(canonicalizeJson(rebuilt)).toBe(canonicalizeJson(projection))
     expect(
       canonicalizeJson(
-        replayEncounterSceneProjection({
+        replayCampaignSceneProjection({
           definition: sceneDefinition,
-          encounterId: ids.encounter,
           events,
           sceneId: ids.scene
         })
@@ -383,7 +480,7 @@ describe('VTT scene command helpers', () => {
 
     const committedProjection = compileSceneCurrentProjection(projection)
     expect(committedProjection).toMatchObject({
-      projectionSchemaVersion: 1,
+      projectionSchemaVersion: 2,
       sceneId: ids.scene,
       streamVersion: projection.version
     })

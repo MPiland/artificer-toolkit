@@ -22,7 +22,8 @@ function createReferenceApi(): NonNullable<Parameters<typeof loadAuthoredContent
           label: 'System 1',
           rulesetCode: 'dnd5e',
           rulesetVersion: '2014',
-          userId: 'master'
+          userId: 'master',
+          rulesCatalogues: []
         }
       ],
       get: async () => ({

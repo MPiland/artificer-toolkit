@@ -8,15 +8,17 @@ import {
 export const MAX_LOCAL_AUTHORITATIVE_COMMANDS_IN_FLIGHT = 8
 
 export interface LiveSessionVersionedExecution {
-  aggregateKind: 'CHARACTER' | 'ENCOUNTER' | 'SCENE'
+  aggregateKind: 'CHARACTER' | 'ENCOUNTER' | 'SCENE' | 'SESSION'
   aggregateId: string
   commandId: string
   replayed: boolean
   version: number
+  changedAggregates: readonly LiveSessionAggregateVersionDto[]
 }
 
 export interface LiveSessionCoordinatedExecution<T extends LiveSessionVersionedExecution> {
   execution: T
+  refreshRequired: boolean
   replayed: boolean
   roomVersion: number
 }
@@ -45,10 +47,14 @@ function aggregateKey(
   return `${execution.aggregateKind}:${execution.aggregateId}`
 }
 
+function transitionStart(version: LiveSessionAggregateVersionDto): number {
+  return version.beforeVersion ?? version.version - 1
+}
+
 export class LiveSessionCommandCoordinator<T extends LiveSessionVersionedExecution> {
   readonly #activeKeys = new Set<LiveSessionConflictKey>()
   readonly #aggregateVersions = new Map<string, LiveSessionAggregateVersionDto>()
-  readonly #completedByAggregate = new Map<string, Map<number, CompletedCommand<T>>>()
+  readonly #completed = new Map<number, CompletedCommand<T>>()
   readonly #operations = new Set<Promise<void>>()
   readonly #pending: PendingCommand<T>[] = []
   #nextSequence = 0
@@ -56,7 +62,11 @@ export class LiveSessionCommandCoordinator<T extends LiveSessionVersionedExecuti
 
   constructor(initialVersions: readonly LiveSessionAggregateVersionDto[]) {
     for (const version of initialVersions) {
-      this.#aggregateVersions.set(aggregateKey(version), version)
+      this.#aggregateVersions.set(aggregateKey(version), {
+        aggregateKind: version.aggregateKind,
+        aggregateId: version.aggregateId,
+        version: version.version
+      })
     }
   }
 
@@ -71,11 +81,7 @@ export class LiveSessionCommandCoordinator<T extends LiveSessionVersionedExecuti
   }
 
   async drain(): Promise<void> {
-    while (
-      this.#pending.length > 0 ||
-      this.#operations.size > 0 ||
-      this.#completedByAggregate.size > 0
-    ) {
+    while (this.#pending.length > 0 || this.#operations.size > 0 || this.#completed.size > 0) {
       if (this.#operations.size === 0) {
         throw new Error('Live-session commands are queued without runnable work.')
       }
@@ -147,12 +153,18 @@ export class LiveSessionCommandCoordinator<T extends LiveSessionVersionedExecuti
       ) {
         throw new Error('Live-session command returned a different aggregate identity.')
       }
+      const changed = this.#changedAggregates(execution)
       if (execution.replayed) {
-        const current = this.#aggregateVersions.get(aggregateKey(execution))
-        if (!current || execution.version > current.version) {
-          throw new Error('Live-session command returned an invalid persisted replay version.')
-        }
-        command.resolve({ execution, replayed: true, roomVersion: this.#roomVersion })
+        const refreshRequired = changed.some(
+          (version) =>
+            version.version > (this.#aggregateVersions.get(aggregateKey(version))?.version ?? -1)
+        )
+        command.resolve({
+          execution,
+          refreshRequired,
+          replayed: true,
+          roomVersion: this.#roomVersion
+        })
         return
       }
       this.#queueCompleted(command, execution)
@@ -161,50 +173,87 @@ export class LiveSessionCommandCoordinator<T extends LiveSessionVersionedExecuti
     }
   }
 
+  #validateChangedAggregates(versions: readonly LiveSessionAggregateVersionDto[]) {
+    const sorted = [...versions].sort((left, right) =>
+      aggregateKey(left).localeCompare(aggregateKey(right))
+    )
+    if (
+      sorted.some(
+        (version, index) => index > 0 && aggregateKey(version) === aggregateKey(sorted[index - 1]!)
+      ) ||
+      sorted.some((version) => transitionStart(version) >= version.version)
+    ) {
+      throw new Error('Live-session changed aggregates must be unique.')
+    }
+    return sorted
+  }
+
+  #changedAggregates(execution: T) {
+    return this.#validateChangedAggregates(execution.changedAggregates)
+  }
+
   #queueCompleted(command: PendingCommand<T>, execution: T): void {
-    const key = aggregateKey(execution)
-    const current = this.#aggregateVersions.get(key)
-    if (current && execution.version <= current.version) {
-      command.reject(new Error('Live-session aggregate version did not advance.'))
-      return
-    }
-    const completed = this.#completedByAggregate.get(key) ?? new Map<number, CompletedCommand<T>>()
-    if (completed.has(execution.version)) {
-      command.reject(new Error('Live-session aggregate returned a duplicate committed version.'))
-      return
-    }
-    completed.set(execution.version, {
+    const sequence = command.sequence
+    this.#completed.set(sequence, {
       execution,
       reject: command.reject,
       resolve: command.resolve
     })
-    this.#completedByAggregate.set(key, completed)
-    this.#flushCompleted(key)
+    this.#flushCompleted()
   }
 
-  #flushCompleted(key: string): void {
-    const completed = this.#completedByAggregate.get(key)
-    if (!completed || completed.size === 0) return
-    let current = this.#aggregateVersions.get(key)
-    let nextVersion = current ? current.version + 1 : Math.min(...completed.keys())
-    while (completed.has(nextVersion)) {
-      const command = completed.get(nextVersion)
-      if (!command) break
-      completed.delete(nextVersion)
-      current = {
-        aggregateId: command.execution.aggregateId,
-        aggregateKind: command.execution.aggregateKind,
-        version: command.execution.version
+  #flushCompleted(): void {
+    let progressed = true
+    while (progressed) {
+      progressed = false
+      for (const [sequence, command] of [...this.#completed]) {
+        const changed = this.#changedAggregates(command.execution)
+        if (
+          changed.some(
+            (version) =>
+              version.version <= (this.#aggregateVersions.get(aggregateKey(version))?.version ?? -1)
+          )
+        ) {
+          this.#completed.delete(sequence)
+          command.reject(new Error('Live-session aggregate version did not advance.'))
+          continue
+        }
+        if (
+          changed.some((version) => {
+            const current =
+              this.#aggregateVersions.get(aggregateKey(version))?.version ??
+              transitionStart(version)
+            return current > transitionStart(version)
+          })
+        ) {
+          this.#completed.delete(sequence)
+          command.reject(new Error('Live-session aggregate transition start is stale.'))
+          continue
+        }
+        if (
+          changed.some(
+            (version) =>
+              (this.#aggregateVersions.get(aggregateKey(version))?.version ??
+                transitionStart(version)) !== transitionStart(version)
+          )
+        )
+          continue
+        this.#completed.delete(sequence)
+        for (const version of changed)
+          this.#aggregateVersions.set(aggregateKey(version), {
+            aggregateKind: version.aggregateKind,
+            aggregateId: version.aggregateId,
+            version: version.version
+          })
+        this.#roomVersion += 1
+        command.resolve({
+          execution: command.execution,
+          refreshRequired: false,
+          replayed: false,
+          roomVersion: this.#roomVersion
+        })
+        progressed = true
       }
-      this.#aggregateVersions.set(key, current)
-      this.#roomVersion += 1
-      command.resolve({
-        execution: command.execution,
-        replayed: false,
-        roomVersion: this.#roomVersion
-      })
-      nextVersion = current.version + 1
     }
-    if (completed.size === 0) this.#completedByAggregate.delete(key)
   }
 }

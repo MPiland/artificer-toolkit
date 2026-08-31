@@ -11,6 +11,7 @@ import { srdVehicles } from './vehicles/index.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 
 export { SRD_SYSTEM_ID }
+export { readSrdSemanticLedgerEntries, type SrdSemanticLedgerEntry } from './semanticLedger.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 

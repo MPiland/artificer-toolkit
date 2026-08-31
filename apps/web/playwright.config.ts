@@ -9,6 +9,7 @@ const appWebServer = {
   command: `yarn exec vite dev --host ${appUrl.hostname} --port ${appPort}`,
   url: appBaseURL,
   reuseExistingServer: !process.env.CI,
+  timeout: 120_000,
   cwd: '.'
 }
 
@@ -17,6 +18,7 @@ const storybookWebServer = {
   command: 'yarn exec storybook dev --port 6006 --ci --host 127.0.0.1',
   url: 'http://127.0.0.1:6006',
   reuseExistingServer: !process.env.CI,
+  timeout: 120_000,
   cwd: '.'
 }
 

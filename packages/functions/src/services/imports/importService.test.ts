@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   findImportRef: vi.fn(),
   findSystemAll: vi.fn(),
   findSystemById: vi.fn(),
+  hasRulesCatalogue: vi.fn(),
   upsertImportRef: vi.fn(),
   saveAuthoredInputDraft: vi.fn(),
   activateAuthoredInput: vi.fn(),
@@ -35,7 +36,8 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     }),
     createSystemRepository: () => ({
       findAll: mocks.findSystemAll,
-      findById: mocks.findSystemById
+      findById: mocks.findSystemById,
+      hasRulesCatalogue: mocks.hasRulesCatalogue
     }),
     createCharacterRepository: () => ({
       findAuthoredById: mocks.findCharacterById,
@@ -76,6 +78,7 @@ describe('import service', () => {
     mocks.findImportRef.mockReset().mockResolvedValue(null)
     mocks.findSystemAll.mockReset().mockRejectedValue(new Error('should not load D&D systems'))
     mocks.findSystemById.mockReset().mockResolvedValue({ id: 'system-1' })
+    mocks.hasRulesCatalogue.mockReset().mockResolvedValue(true)
     mocks.upsertImportRef.mockReset().mockResolvedValue({})
     mocks.activateAuthoredInput.mockReset().mockResolvedValue({})
     mocks.findCharacterById.mockReset().mockResolvedValue(null)
@@ -142,6 +145,8 @@ describe('import service', () => {
       {} as DBLike,
       {
         source: 'DND_BEYOND',
+        systemId: '00000000-0000-4000-8000-000000000001',
+        primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
         entries: [
           {
             entryId: 'one',
@@ -168,6 +173,8 @@ describe('import service', () => {
       {} as DBLike,
       {
         source: 'DND_BEYOND',
+        systemId: '00000000-0000-4000-8000-000000000001',
+        primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
         entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/74476867' }]
       },
       'user-1',
@@ -198,6 +205,8 @@ describe('import service', () => {
         {} as DBLike,
         {
           source: 'DND_BEYOND',
+          systemId: '00000000-0000-4000-8000-000000000001',
+          primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
           entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/74476867' }]
         },
         'user-1',
@@ -231,7 +240,12 @@ describe('import service', () => {
 
     const response = await previewImports(
       {} as DBLike,
-      { source: 'FOUNDRY_DND5E', entries: batchEntries },
+      {
+        source: 'FOUNDRY_DND5E',
+        systemId: '00000000-0000-4000-8000-000000000001',
+        primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
+        entries: batchEntries
+      },
       'user-1'
     )
 
@@ -315,6 +329,8 @@ describe('import service', () => {
       {} as DBLike,
       {
         source: 'DND_BEYOND',
+        systemId: '00000000-0000-4000-8000-000000000001',
+        primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
         entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/74476867' }]
       },
       'user-1',
@@ -368,6 +384,8 @@ describe('import service', () => {
       {} as DBLike,
       {
         source: 'DND_BEYOND',
+        systemId: '00000000-0000-4000-8000-000000000001',
+        primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
         entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/74476867' }]
       },
       'user-1',
@@ -411,6 +429,8 @@ describe('import service', () => {
       {} as DBLike,
       {
         source: 'DND_BEYOND',
+        systemId: '00000000-0000-4000-8000-000000000001',
+        primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
         entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/74476867' }]
       },
       'user-1',
@@ -452,6 +472,8 @@ describe('import service', () => {
       {} as DBLike,
       {
         source: 'DND_BEYOND',
+        systemId: '00000000-0000-4000-8000-000000000001',
+        primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
         entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/74476867' }]
       },
       'user-1',
@@ -493,6 +515,8 @@ describe('import service', () => {
       {
         batch: {
           source: 'DND_BEYOND',
+          systemId: '00000000-0000-4000-8000-000000000001',
+          primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
           entries: [{ entryId: 'one', url: 'https://www.dndbeyond.com/characters/74476867' }]
         },
         selectedEntryIds: ['one'],
@@ -553,6 +577,8 @@ describe('import service', () => {
       {
         batch: {
           source: 'DND_BEYOND',
+          systemId: '00000000-0000-4000-8000-000000000001',
+          primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
           entries: [
             {
               entryId: 'one',
@@ -599,6 +625,8 @@ describe('import service', () => {
       {
         batch: {
           source: 'FOUNDRY_DND5E',
+          systemId: '00000000-0000-4000-8000-000000000001',
+          primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
           entries: [
             {
               entryId: 'one',
