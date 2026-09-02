@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import {
+  movementRuleResolutionCommandDtoSchema,
   serverRuleExecutionPendingApplicationContextDtoSchema,
   serverRuleExecutionReceiptCommandMetadataDtoSchema,
   storedRuleExecutionResultDtoSchema
@@ -121,6 +122,76 @@ function resolutionCommand(commandId: string, expectedOccurrenceVersion: number)
   }
 }
 
+function passageTerminalCommand() {
+  const optionId = checksum('7')
+  return {
+    commandId: ids.command,
+    commandFingerprint: checksum('6'),
+    actorUserId: ids.user,
+    correlationId: null,
+    expectedOccurrenceVersion: 0,
+    kind: 'PASSAGE_OPTION' as const,
+    optionId,
+    passageContest: {
+      actionKind: 'OVERRUN' as const,
+      optionId,
+      outcome: 'SUCCESS' as const,
+      initiator: {
+        rollMode: 'NORMAL' as const,
+        rawFaces: [15],
+        selectedNatural: 15,
+        modifier: 0,
+        total: 15
+      },
+      defender: {
+        rollMode: 'NORMAL' as const,
+        rawFaces: [10],
+        selectedNatural: 10,
+        modifier: 0,
+        total: 10
+      },
+      actionEconomy: {
+        definitionId: ids.effect,
+        definitionVersion: 1,
+        definitionChecksum: checksum('8'),
+        maximum: 1,
+        beforeUsed: 0,
+        afterUsed: 1
+      },
+      audit: {
+        optionalCombat: {
+          definitionId: ids.entry,
+          definitionVersion: 1,
+          definitionChecksum: checksum('9'),
+          moduleKey: 'optional-combat.overrun',
+          moduleContractVersion: 1
+        },
+        sourceActorId: ids.source,
+        sourceTokenId: ids.token,
+        blockerActorId: ids.actor,
+        blockerTokenId: ids.effect,
+        contact: { x: 2, y: 0 },
+        contactPathDistance: 2,
+        blockerCurrentnessChecksum: checksum('a'),
+        selectionContractChecksum: checksum('b'),
+        resolvedSelectionChecksum: checksum('c'),
+        spatialSelectionChecksum: checksum('d'),
+        spatialCurrentnessChecksum: checksum('e'),
+        originalPath: path,
+        pathChecksum: checksumRuleDocument(path),
+        terminalPassageStop: {
+          blockerActorId: ids.actorTwo,
+          blockerTokenId: ids.commandTwo,
+          contact: { x: 6, y: 0 },
+          contactPathDistance: 6,
+          blockerCurrentnessChecksum: checksum('f')
+        },
+        terminalPosition: { x: 6, y: 0 }
+      }
+    }
+  }
+}
+
 function completedExecution(
   ordinal = 0,
   pathDistance = 5,
@@ -206,6 +277,47 @@ function spatialEffectTransition(effectId: string = ids.effect) {
 }
 
 describe('spatial movement rule contracts', () => {
+  it('rejects corrupted self-contained terminal passage path evidence', () => {
+    const command = passageTerminalCommand()
+    expect(movementRuleResolutionCommandDtoSchema.safeParse(command).success).toBe(true)
+
+    const audit = command.passageContest.audit
+    expect(
+      movementRuleResolutionCommandDtoSchema.safeParse({
+        ...command,
+        passageContest: {
+          ...command.passageContest,
+          audit: { ...audit, pathChecksum: checksum('0') }
+        }
+      }).success
+    ).toBe(false)
+    expect(
+      movementRuleResolutionCommandDtoSchema.safeParse({
+        ...command,
+        passageContest: {
+          ...command.passageContest,
+          audit: {
+            ...audit,
+            terminalPassageStop: {
+              ...audit.terminalPassageStop,
+              contact: { x: 6, y: 1 }
+            },
+            terminalPosition: { x: 6, y: 1 }
+          }
+        }
+      }).success
+    ).toBe(false)
+    expect(
+      movementRuleResolutionCommandDtoSchema.safeParse({
+        ...command,
+        passageContest: {
+          ...command.passageContest,
+          audit: { ...audit, terminalPosition: { x: 7, y: 0 } }
+        }
+      }).success
+    ).toBe(false)
+  })
+
   it('retains a sealed, canonical pending path/contact context only while paused', () => {
     expect(
       serverRuleExecutionPendingApplicationContextDtoSchema.parse(pendingContext())

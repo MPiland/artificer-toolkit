@@ -661,16 +661,22 @@ describe('buildCharacterActionRuleFacts', () => {
     expect(effectOrder).toContain('nested-c-action')
 
     expect(featureCandidate).toMatchObject({
-      mechanicsOwner: { kind: 'FEATURE', id: 'feature-root' }
+      mechanicsOwner: { kind: 'FEATURE', id: 'feature-root' },
+      label: 'Feature root'
     })
     expect(optionCandidate).toMatchObject({
-      mechanicsOwner: { kind: 'FEATURE_OPTION', id: 'selected-option' }
+      mechanicsOwner: { kind: 'FEATURE_OPTION', id: 'selected-option' },
+      label: 'Selected option'
     })
     expect(featCandidates).toHaveLength(1)
-    expect(featCandidates[0]).toMatchObject({ mechanicsOwner: { kind: 'FEAT', id: 'feat-1' } })
+    expect(featCandidates[0]).toMatchObject({
+      mechanicsOwner: { kind: 'FEAT', id: 'feat-1' },
+      label: 'Feat root'
+    })
     expect(equipmentCandidate).toMatchObject({
       mechanicsOwner: { kind: 'EQUIPMENT', id: 'mysterious-item' },
-      activationSourceKind: 'ACTIVE_EQUIPMENT'
+      activationSourceKind: 'ACTIVE_EQUIPMENT',
+      label: 'Equipment action'
     })
     expect(
       actionCandidates.find((candidate) => candidate.effectId === 'root-passive')
@@ -683,6 +689,7 @@ describe('buildCharacterActionRuleFacts', () => {
 
     expect(nestedEquippedCandidate).toMatchObject({
       mechanicsOwner: { kind: 'FEATURE', id: 'nested-feature-b' },
+      label: 'Nested sibling',
       equipment: {
         requiresEquipped: true,
         requiresAttuned: false

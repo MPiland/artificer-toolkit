@@ -18,13 +18,16 @@ describe('media image persistence schema', () => {
   const sceneReferenceOptimization = read(
     'supabase/migrations/20260820010000_avoid_unchanged_encounter_scene_map_writes.sql'
   )
+  const r2Migration = read('supabase/migrations/20260902165313_vtt_map_r2_storage.sql')
 
   it('keeps canonical, bootstrap, and migration media constraints aligned', () => {
     for (const source of [canonical, generated, migration]) {
       expect(source).toContain('CREATE TABLE IF NOT EXISTS public.media_assets')
       expect(source).toContain('CREATE TABLE IF NOT EXISTS public.media_variants')
       expect(source).toContain('CREATE TABLE IF NOT EXISTS public.authored_image_slots')
-      expect(source).toContain("'ACCOUNT_AVATAR', 'CHARACTER_PORTRAIT', 'AUTHORED_IMAGE'")
+      for (const profile of ['ACCOUNT_AVATAR', 'CHARACTER_PORTRAIT', 'AUTHORED_IMAGE']) {
+        expect(source).toContain(`'${profile}'`)
+      }
       expect(source).toContain("'PENDING_UPLOAD', 'PROCESSING', 'READY', 'REJECTED', 'DELETED'")
       expect(source).toContain("'SOURCE', 'DISPLAY', 'THUMBNAIL'")
       expect(source).toContain('media_assets_owner_idempotency_unique')
@@ -58,7 +61,17 @@ describe('media image persistence schema', () => {
         /asset_id uuid\s+REFERENCES public\.media_assets \(id\)\s+ON DELETE CASCADE/
       )
       expect(source).toContain('6291456')
+      expect(source).toContain("storage_provider text NOT NULL DEFAULT 'SUPABASE'")
+      expect(source).toContain('storage_upload_id text')
+      expect(source).toContain('media_assets_storage_provider_chk')
+      expect(source).toContain('media_assets_storage_upload_chk')
+      expect(source).toContain('PRIMARY KEY (storage_provider, object_key)')
     }
+
+    expect(r2Migration).toContain('ADD COLUMN storage_provider')
+    expect(r2Migration).toContain('ADD COLUMN storage_upload_id')
+    expect(r2Migration).toContain('ADD PRIMARY KEY (storage_provider, object_key)')
+    expect(r2Migration).toContain('VALUES (OLD.storage_provider, OLD.raw_object_key)')
 
     expect(migration).toMatch(
       /asset_id uuid\s+REFERENCES public\.media_assets \(id\)\s+ON DELETE SET NULL/

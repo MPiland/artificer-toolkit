@@ -64,6 +64,97 @@ describe('subject owned bridge upserts', () => {
     ])
   })
 
+  it('rejects malformed Creature equipment loadout input before persistence', async () => {
+    const db = createDb()
+    const creature = {
+      id: 'creature-loadout-invalid',
+      label: 'Invalid Loadout Creature',
+      userId,
+      systemId,
+      category: 'MONSTER',
+      creatureTypeId: 'creature-type-1',
+      size: 'MEDIUM',
+      abilityScores: {
+        STRENGTH: 10,
+        DEXTERITY: 10,
+        CONSTITUTION: 10,
+        INTELLIGENCE: 10,
+        WISDOM: 10,
+        CHARISMA: 10
+      },
+      armorClass: 10,
+      hitPoints: 1,
+      speeds: [],
+      equipmentLoadout: [
+        {
+          id: '00000000-0000-4000-8000-000000000001',
+          equipmentId: 'invalid-equipment-id',
+          quantity: 0,
+          useState: 'CARRIED' as const,
+          attuned: false,
+          actionFeatureIds: []
+        }
+      ]
+    } satisfies Parameters<typeof upsertCreature>[1]
+
+    await expect(upsertCreature(db, creature, systemId, contentSourceId)).rejects.toThrow()
+    expect(db.snapshot('creatures')).toEqual([])
+  })
+
+  it.each([
+    [
+      'an unknown loadout entry key',
+      [
+        {
+          id: '00000000-0000-4000-8000-000000000011',
+          equipmentId: '00000000-0000-4000-8000-000000000012',
+          quantity: 1,
+          useState: 'CARRIED',
+          attuned: false,
+          actionFeatureIds: [],
+          unexpected: true
+        }
+      ]
+    ],
+    [
+      'an over-limit loadout',
+      Array.from({ length: 101 }, (_, index) => ({
+        id: `00000000-0000-4000-8000-${String(index + 100).padStart(12, '0')}`,
+        equipmentId: `00000000-0000-4000-8000-${String(index + 300).padStart(12, '0')}`,
+        quantity: 1,
+        useState: 'CARRIED',
+        attuned: false,
+        actionFeatureIds: []
+      }))
+    ]
+  ])('rejects %s before a Creature loadout write', async (_name, equipmentLoadout) => {
+    const db = createDb()
+    const creature = {
+      id: 'creature-loadout-schema-invalid',
+      label: 'Invalid Loadout Creature',
+      userId,
+      systemId,
+      category: 'MONSTER',
+      creatureTypeId: 'creature-type-1',
+      size: 'MEDIUM',
+      abilityScores: {
+        STRENGTH: 10,
+        DEXTERITY: 10,
+        CONSTITUTION: 10,
+        INTELLIGENCE: 10,
+        WISDOM: 10,
+        CHARISMA: 10
+      },
+      armorClass: 10,
+      hitPoints: 1,
+      speeds: [],
+      equipmentLoadout
+    } as unknown as Parameters<typeof upsertCreature>[1]
+
+    await expect(upsertCreature(db, creature, systemId, contentSourceId)).rejects.toThrow()
+    expect(db.snapshot('creatures')).toEqual([])
+  })
+
   it('keeps feat-owned features after a repeat upsert', async () => {
     const db = createDb()
     const feat = {

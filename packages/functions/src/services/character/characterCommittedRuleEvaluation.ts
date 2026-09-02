@@ -44,6 +44,7 @@ export function createCommittedCharacterRuleEvaluation(input: {
     facts: input.rulePolicy?.input ?? input.mechanics.rulePolicyInput,
     discoveredActionCapabilities: [],
     compiledActionEntryPoints: input.mechanics.compiledActionEntryPoints,
+    spellsWithEffects: [],
     output: input.rulePolicy?.output ?? input.mechanics.rulePolicyOutput,
     evaluation: {
       revisionId: input.mechanics.ruleRevisionId,

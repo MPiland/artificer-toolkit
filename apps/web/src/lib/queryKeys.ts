@@ -111,6 +111,7 @@ export const queryKeys = {
 
   characters: {
     all: () => ['characters'] as const,
+    actions: (id: string) => ['characters', 'actions', id] as const,
     list: () => ['characters', 'list'] as const,
     detail: (id: string) => ['characters', 'detail', id] as const,
     draft: (id: string) => ['characters', 'draft', id] as const,

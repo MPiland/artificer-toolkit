@@ -6,7 +6,7 @@
 
 The former product-notification dispatcher and Novu Bridge have moved out of Netlify. Product notification execution now lives under `supabase/functions`; see the [Supabase notification delivery runbook](../docs/runbooks/supabase-notification-delivery.md).
 
-Set `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, `AUTH_EMAIL_FROM`, `SITE_URL`, and `SUPABASE_URL` as server-only environment variables in Netlify. `SITE_URL` is the canonical public app origin used to validate authentication email redirects. Never prefix these values with `VITE_`.
+Set `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, `AUTH_EMAIL_FROM`, `SITE_URL`, and `SUPABASE_URL` as server-only environment variables in Netlify. VTT map storage additionally requires `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and `R2_VTT_MAP_BUCKET`; see the [R2 runbook](../docs/runbooks/vtt-map-r2.md). `SITE_URL` is the canonical public app origin used to validate authentication email redirects. Never prefix these values with `VITE_`.
 
 `live-session-executor.mts` is the private Durable Object command boundary. Set independent, randomly generated `LIVE_SESSION_TICKET_SECRET` and `LIVE_SESSION_EXECUTOR_SECRET` values of at least 32 bytes in both applicable providers. The browser obtains a 60-second room ticket through the authenticated Campaign-session API; only the Cloudflare Worker may call the executor with `LIVE_SESSION_EXECUTOR_SECRET`. Never expose either value through a `VITE_` variable.
 

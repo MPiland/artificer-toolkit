@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type {
+  ServerKernelRuleExecutionPendingSnapshotDto,
+  ServerRuleExecutionContinuationDto
+} from '@artificer-toolkit/schema/shared/rulesExecution'
 
 import type { PendingEncounterInitiativeLifecycle } from './encounterInitiativeLifecycle.js'
 import {
@@ -140,7 +143,7 @@ function continuation(
 }
 
 describe('Encounter initiative occurrence state', () => {
-  it('seals and projects a declaration choice without exposing option labels or contracts', () => {
+  it('seals and projects the exact sanitized declaration options', () => {
     const pendingSnapshot = createEncounterInitiativeDeclarationPendingSnapshot({
       occurrenceId,
       root,
@@ -167,6 +170,7 @@ describe('Encounter initiative occurrence state', () => {
             selectionContract: checksum
           }
         ],
+        adjudicationFields: [],
         controllerUserId: userId,
         sourceOptionsChecksum: checksum
       }
@@ -186,19 +190,80 @@ describe('Encounter initiative occurrence state', () => {
       encounterVersion: 3,
       actorId: actorA,
       requestId: 'speed-factor-declaration',
-      primaryOptionIds: ['action:longsword'],
-      bonusOptionIds: ['spell:misty-step'],
+      primaryOptions: [
+        {
+          kind: 'CHARACTER_ACTION',
+          optionId: 'action:longsword',
+          label: 'Longsword',
+          selectionContract: checksum
+        }
+      ],
+      bonusOptions: [
+        {
+          kind: 'CHARACTER_SPELL_CAST',
+          optionId: 'spell:misty-step',
+          label: 'Misty Step',
+          selectionContract: checksum
+        }
+      ],
+      adjudicationFields: [],
       allowedResponses: ['INITIATIVE_DECLARATION']
     })
-    expect(
-      JSON.stringify(
-        projectEncounterInitiativePendingSummary({
-          pendingSnapshot,
-          occurrenceVersion: 2,
-          encounterVersion: 3
-        })
-      )
-    ).not.toContain('Longsword')
+  })
+
+  it('projects the exact sealed declaration options from a kernel phase', () => {
+    const primaryOptions = [
+      {
+        kind: 'CHARACTER_ACTION' as const,
+        optionId: 'action:longsword',
+        label: 'Longsword',
+        selectionContract: checksum
+      }
+    ]
+    const bonusOptions = [
+      {
+        kind: 'CREATURE_FEATURE_ACTION' as const,
+        optionId: 'feature:second-wind',
+        label: 'Second Wind',
+        selectionContract: checksum
+      }
+    ]
+    const kernelSnapshot: ServerKernelRuleExecutionPendingSnapshotDto = {
+      ...continuation('kernel-declaration', 0, 1),
+      snapshotKind: 'KERNEL_EVIDENCE',
+      optionalCombatSnapshotChecksum: null,
+      applicationContext: {
+        kind: 'ENCOUNTER_INITIATIVE',
+        schemaVersion: 1,
+        root,
+        phase: {
+          kind: 'INITIATIVE_DECLARATION',
+          actorId: actorA,
+          participantVersion: 4,
+          requestId: 'kernel-speed-factor-declaration',
+          primaryOptions,
+          bonusOptions,
+          adjudicationFields: []
+        }
+      }
+    }
+
+    const pendingSummary = projectEncounterInitiativePendingSummary({
+      pendingSnapshot: kernelSnapshot,
+      occurrenceVersion: 4,
+      encounterVersion: 5
+    })
+    expect(pendingSummary).toMatchObject({
+      kind: 'INITIATIVE_DECLARATION',
+      occurrenceId,
+      occurrenceVersion: 4,
+      encounterVersion: 5,
+      actorId: actorA,
+      requestId: 'kernel-speed-factor-declaration',
+      primaryOptions,
+      bonusOptions,
+      adjudicationFields: []
+    })
   })
 
   it('round-trips a primary score pause without persisting fact bindings', () => {
@@ -213,7 +278,10 @@ describe('Encounter initiative occurrence state', () => {
         continuation: continuation('initiative-score', 1, 20)
       }
     }
-    const pendingSnapshot = createEncounterInitiativePendingSnapshot({ root, pending })
+    const pendingSnapshot = {
+      ...createEncounterInitiativePendingSnapshot({ root, pending }),
+      optionalCombatSnapshotChecksum: 'a'.repeat(64)
+    }
 
     expect(JSON.stringify(pendingSnapshot.applicationContext)).not.toContain('binding')
     expect(JSON.stringify(pendingSnapshot.applicationContext)).not.toContain('continuation')

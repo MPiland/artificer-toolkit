@@ -27,6 +27,7 @@ import type {
   CharacterAssemblyRegistry,
   CharacterBuildSnapshot
 } from '@artificer-toolkit/shared/core'
+import { normalizeAbilityKey } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type {
@@ -55,6 +56,8 @@ export interface CharacterMechanicsCompilerInput {
   rulePolicyInput: CharacterRulePolicyInput
   rulePolicyOutput: CharacterRulePolicyOutput
   compiledActionEntryPoints: readonly CompiledActionEntryPoint[]
+  /** Additional v4 spell-cast entries sealed by the caller's exact authored vector. */
+  compiledSpellActionEntryPoints?: readonly CompiledActionEntryPoint[]
   ruleRegistry: CharacterAssemblyRegistry | CharacterMechanicsProjection['ruleRegistry']
   ruleSnapshot: CharacterBuildSnapshot | CharacterMechanicsProjection['ruleSnapshot']
   pinnedSenseDefinitions?: readonly PinnedSenseDefinition[]
@@ -160,14 +163,69 @@ function toCharacterMechanicsRuleSnapshot(
 function toCharacterInitiativeActorFacts(input: {
   snapshot: CharacterBuildSnapshot | CharacterMechanicsProjection['ruleSnapshot']
   registry: CharacterAssemblyRegistry | CharacterMechanicsProjection['ruleRegistry']
+  rulePolicyOutput: CharacterRulePolicyOutput
 }): CharacterInitiativeActorFacts {
   if (!('totalLevel' in input.snapshot)) {
     // Historical compact rule snapshots intentionally do not carry the
     // source facts. They remain readable but cannot authorize declared-action
     // initiative without a freshly compiled Character projection.
-    return { effectiveSize: null, equippedItems: [] }
+    return { effectiveSize: null, checkTotals: {}, equippedItems: [] }
   }
   const registry = input.registry as CharacterAssemblyRegistry
+  const checkTotals: Record<string, number> = {}
+  if (registry.system?.schemaVersion === 4) {
+    const skillsById = new Map<
+      string,
+      CharacterRulePolicyOutput['derivedStats']['skills'][number]
+    >()
+    for (const skill of input.rulePolicyOutput.derivedStats.skills) {
+      if (skillsById.has(skill.skillId)) {
+        throw new Error(`Character rule policy produced duplicate skill "${skill.skillId}".`)
+      }
+      skillsById.set(skill.skillId, skill)
+    }
+    const abilitiesById = new Map<string, string>()
+    for (const ability of registry.system.abilities ?? []) {
+      const abilityCode = normalizeAbilityKey(ability.code)
+      if (!abilityCode || abilitiesById.has(ability.id)) {
+        throw new Error(`System ability definition "${ability.id}" is ambiguous.`)
+      }
+      abilitiesById.set(ability.id, abilityCode)
+    }
+    const checkIds = new Set<string>()
+    const checkSkillIds = new Set<string>()
+    for (const check of [...(registry.system.skills ?? [])].sort((left, right) =>
+      left.id.localeCompare(right.id)
+    )) {
+      if (check.governingAbilityDefinitionId === null) continue
+      if (!check.governingAbilityDefinitionId) {
+        throw new Error(`System check definition "${check.id}" has no governing ability.`)
+      }
+      const governingAbility = abilitiesById.get(check.governingAbilityDefinitionId)
+      const skillId = check.code?.toLowerCase().trim().replace(/_/g, '-').replace(/\s+/g, '-')
+      const skill = skillId ? skillsById.get(skillId) : undefined
+      if (
+        !skillId ||
+        !skill ||
+        !governingAbility ||
+        checkIds.has(check.id) ||
+        checkSkillIds.has(skillId) ||
+        skill.governingAbility.effective !== governingAbility
+      ) {
+        throw new Error(
+          `System check definition "${check.id}" does not match Character rule policy.`
+        )
+      }
+      checkIds.add(check.id)
+      checkSkillIds.add(skillId)
+      checkTotals[check.id] = skill.total.effective
+    }
+    if (checkSkillIds.size !== skillsById.size) {
+      throw new Error(
+        'Character rule policy skills do not map one-to-one to System check definitions.'
+      )
+    }
+  }
   const raceId = input.snapshot.subraceId ?? input.snapshot.raceId
   const effectiveSize = raceId ? (registry.races[raceId]?.size ?? null) : null
   const equippedItems = input.snapshot.equipmentItems
@@ -178,7 +236,7 @@ function toCharacterInitiativeActorFacts(input: {
       properties: [...new Set(item.compiledItem.properties ?? [])].sort()
     }))
     .sort((left, right) => left.itemInstanceId.localeCompare(right.itemInstanceId))
-  return { effectiveSize, equippedItems }
+  return { effectiveSize, checkTotals, equippedItems }
 }
 
 function sortAuthoredVersionVector(
@@ -404,10 +462,14 @@ export function compileCharacterMechanicsProjection(
     rulePolicyOutput: input.rulePolicyOutput,
     initiativeActorFacts: toCharacterInitiativeActorFacts({
       snapshot: input.ruleSnapshot,
-      registry: input.ruleRegistry
+      registry: input.ruleRegistry,
+      rulePolicyOutput: input.rulePolicyOutput
     }),
     pinnedSenseDefinitions: input.pinnedSenseDefinitions ?? [],
-    compiledActionEntryPoints: input.compiledActionEntryPoints,
+    compiledActionEntryPoints: [
+      ...input.compiledActionEntryPoints,
+      ...(input.compiledSpellActionEntryPoints ?? [])
+    ],
     ruleRegistry: normalizeCanonicalJson(input.ruleRegistry)
   } as const
   const candidate = characterMechanicsProjectionSchema.parse({

@@ -8,6 +8,7 @@ import {
   DETAIL_NODE_MAP
 } from '#maps'
 import { AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
+import { FEATURE_ROLL_DEFINITION_NODE_MAP } from './rollDefinition.js'
 
 const option = buildNodeMap<OptionAuthored>()
 
@@ -82,6 +83,14 @@ export const OPTION_NODE_MAP = option.define('option', ({ map, nodes, cond }) =>
       groupArray(['effects'], 'Effects', () => EFFECT_NODE_MAP, {
         presentation: 'branch',
         section: OPTION_SECTIONS.effects,
+        order: 10
+      })
+    )
+    .set(
+      'rollDefinitions',
+      groupArray(['rollDefinitions'], 'Rolls', () => FEATURE_ROLL_DEFINITION_NODE_MAP, {
+        presentation: 'inline',
+        section: OPTION_SECTIONS.usage,
         order: 10
       })
     )

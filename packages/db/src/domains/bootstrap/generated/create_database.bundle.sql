@@ -6999,7 +6999,7 @@ CREATE INDEX IF NOT EXISTS idx_class_specializations_class ON public.class_speci
  *   creatures → damage_resistances/immunities/vulnerabilities (owned)
  *   creatures → condition_immunities (owned)
  *   Optional profiles stored as jsonb (tightly owned, rarely queried):
- *     mount_profile, companion_profile, npc_profile
+ *     mount_profile, companion_profile, npc_profile, equipment_loadout
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.creatures (
@@ -7049,6 +7049,7 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   mount_profile jsonb, -- CreatureMountProfile | null
   companion_profile jsonb, -- CreatureCompanionProfile | null
   npc_profile jsonb, -- CreatureNpcProfile | null
+  equipment_loadout jsonb, -- CreatureEquipmentLoadoutEntry[] | null; authored source only
   is_master BOOLEAN,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -11714,9 +11715,8 @@ ALTER TABLE public.authored_route_ids ENABLE ROW LEVEL SECURITY;
 /* --------------------------------------------------------------------------
  * MEDIA
  *
- * Private, service-owned image metadata. Storage object operations use the
- * Supabase Storage API through signed URLs; browser roles receive no direct
- * object-table access.
+ * Private, service-owned media metadata. The persisted provider selects the
+ * private object store; browser roles receive no direct object-table access.
  * -------------------------------------------------------------------------- */
 
 CREATE TABLE IF NOT EXISTS public.media_assets (
@@ -11730,6 +11730,8 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
   original_file_name text NOT NULL,
   declared_mime_type text NOT NULL,
   declared_bytes BIGINT NOT NULL,
+  storage_provider text NOT NULL DEFAULT 'SUPABASE',
+  storage_upload_id text,
   raw_object_key text NOT NULL UNIQUE,
   verified_mime_type text,
   verified_bytes BIGINT,
@@ -11748,7 +11750,14 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT media_assets_profile_chk
     CHECK (
-      profile IN ('ACCOUNT_AVATAR', 'CHARACTER_PORTRAIT', 'AUTHORED_IMAGE', 'CAMPAIGN_FILE', 'CAMPAIGN_HANDOUT_MAP', 'VTT_MAP')
+      profile IN (
+        'ACCOUNT_AVATAR',
+        'CHARACTER_PORTRAIT',
+        'AUTHORED_IMAGE',
+        'CAMPAIGN_FILE',
+        'CAMPAIGN_HANDOUT_MAP',
+        'VTT_MAP'
+      )
     ),
   CONSTRAINT media_assets_target_key_chk CHECK (length(btrim(target_key)) > 0),
   CONSTRAINT media_assets_status_chk
@@ -11756,16 +11765,50 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
       status IN ('PENDING_UPLOAD', 'PROCESSING', 'READY', 'REJECTED', 'DELETED')
     ),
   CONSTRAINT media_assets_declared_mime_type_chk
-    CHECK (declared_mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'text/plain') AND (profile NOT IN ('CAMPAIGN_HANDOUT_MAP', 'VTT_MAP') OR declared_mime_type <> 'text/plain')),
+    CHECK (
+      declared_mime_type IN (
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'text/plain'
+      )
+      AND (
+        profile NOT IN ('CAMPAIGN_HANDOUT_MAP', 'VTT_MAP')
+        OR declared_mime_type != 'text/plain'
+      )
+    ),
   CONSTRAINT media_assets_verified_mime_type_chk
     CHECK (
       verified_mime_type IS NULL
-      OR (verified_mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'text/plain') AND (profile NOT IN ('CAMPAIGN_HANDOUT_MAP', 'VTT_MAP') OR verified_mime_type <> 'text/plain'))
+      OR (
+        verified_mime_type IN (
+          'image/jpeg',
+          'image/png',
+          'image/webp',
+          'text/plain'
+        )
+        AND (
+          profile NOT IN ('CAMPAIGN_HANDOUT_MAP', 'VTT_MAP')
+          OR verified_mime_type != 'text/plain'
+        )
+      )
     ),
   CONSTRAINT media_assets_original_file_name_chk
     CHECK (length(btrim(original_file_name)) BETWEEN 1 AND 255),
   CONSTRAINT media_assets_declared_bytes_chk
-    CHECK (declared_bytes BETWEEN 1 AND CASE WHEN profile = 'VTT_MAP' THEN 26214400 ELSE 6291456 END),
+    CHECK (
+      declared_bytes BETWEEN 1 AND CASE
+        WHEN profile = 'VTT_MAP' THEN 26214400
+        ELSE 6291456
+      END
+    ),
+  CONSTRAINT media_assets_storage_provider_chk
+    CHECK (
+      storage_provider IN ('SUPABASE', 'R2')
+      AND (storage_provider != 'R2' OR profile = 'VTT_MAP')
+    ),
+  CONSTRAINT media_assets_storage_upload_chk
+    CHECK (storage_upload_id IS NULL OR storage_provider = 'R2'),
   CONSTRAINT media_assets_verified_bytes_chk
     CHECK (verified_bytes IS NULL OR verified_bytes > 0),
   CONSTRAINT media_assets_dimensions_chk
@@ -11798,8 +11841,18 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
       OR (
         verified_mime_type IS NOT NULL
         AND verified_bytes IS NOT NULL
-        AND ((verified_mime_type = 'text/plain' AND width IS NULL AND height IS NULL)
-          OR (verified_mime_type <> 'text/plain' AND width IS NOT NULL AND height IS NOT NULL))
+        AND (
+          (
+            verified_mime_type = 'text/plain'
+            AND width IS NULL
+            AND height IS NULL
+          )
+          OR (
+            verified_mime_type != 'text/plain'
+            AND width IS NOT NULL
+            AND height IS NOT NULL
+          )
+        )
         AND ready_at IS NOT NULL
       )
     ),
@@ -11816,8 +11869,12 @@ CREATE INDEX IF NOT EXISTS idx_media_assets_owner_status ON public.media_assets 
 ALTER TABLE public.media_assets ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.media_object_deletions (
-  object_key text PRIMARY KEY,
-  created_at timestamptz NOT NULL DEFAULT now()
+  storage_provider text NOT NULL DEFAULT 'SUPABASE' CHECK (
+    storage_provider IN ('SUPABASE', 'R2')
+  ),
+  object_key text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (storage_provider, object_key)
 );
 
 ALTER TABLE public.media_object_deletions ENABLE ROW LEVEL SECURITY;
@@ -11827,21 +11884,21 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  INSERT INTO public.media_object_deletions (object_key)
-  VALUES (OLD.raw_object_key)
-  ON CONFLICT (object_key) DO NOTHING;
+  INSERT INTO public.media_object_deletions (storage_provider, object_key)
+  VALUES (OLD.storage_provider, OLD.raw_object_key)
+  ON CONFLICT (storage_provider, object_key) DO NOTHING;
 
-  INSERT INTO public.media_object_deletions (object_key)
-  SELECT object_key
+  INSERT INTO public.media_object_deletions (storage_provider, object_key)
+  SELECT OLD.storage_provider, object_key
   FROM public.media_variants
   WHERE asset_id = OLD.id
-  ON CONFLICT (object_key) DO NOTHING;
+  ON CONFLICT (storage_provider, object_key) DO NOTHING;
 
-  INSERT INTO public.media_object_deletions (object_key)
-  SELECT object_key
+  INSERT INTO public.media_object_deletions (storage_provider, object_key)
+  SELECT OLD.storage_provider, object_key
   FROM public.vtt_map_tiles
   WHERE asset_id = OLD.id
-  ON CONFLICT (object_key) DO NOTHING;
+  ON CONFLICT (storage_provider, object_key) DO NOTHING;
 
   RETURN OLD;
 END;
@@ -11867,22 +11924,29 @@ CREATE TABLE IF NOT EXISTS public.media_variants (
   CONSTRAINT media_variants_kind_chk
     CHECK (kind IN ('SOURCE', 'DISPLAY', 'THUMBNAIL')),
   CONSTRAINT media_variants_mime_type_chk
-    CHECK (mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'text/plain')),
+    CHECK (
+      mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'text/plain')
+    ),
   CONSTRAINT media_variants_size_chk CHECK (byte_size > 0),
-  CONSTRAINT media_variants_dimensions_chk CHECK ((mime_type = 'text/plain' AND width IS NULL AND height IS NULL) OR (mime_type <> 'text/plain' AND width > 0 AND height > 0)),
+  CONSTRAINT media_variants_dimensions_chk
+    CHECK (
+      (mime_type = 'text/plain' AND width IS NULL AND height IS NULL)
+      OR (mime_type != 'text/plain' AND width > 0 AND height > 0)
+    ),
   CONSTRAINT media_variants_asset_kind_unique UNIQUE (asset_id, kind)
 );
 
 ALTER TABLE public.media_variants ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.vtt_map_tiles (
-  asset_id uuid NOT NULL REFERENCES public.media_assets (id) ON DELETE CASCADE,
-  row_index integer NOT NULL CHECK (row_index >= 0),
-  column_index integer NOT NULL CHECK (column_index >= 0),
+  asset_id uuid NOT NULL REFERENCES public.media_assets (id)
+    ON DELETE CASCADE,
+  row_index INTEGER NOT NULL CHECK (row_index >= 0),
+  column_index INTEGER NOT NULL CHECK (column_index >= 0),
   object_key text NOT NULL UNIQUE,
-  byte_size bigint NOT NULL CHECK (byte_size > 0),
-  width integer NOT NULL CHECK (width BETWEEN 1 AND 1024),
-  height integer NOT NULL CHECK (height BETWEEN 1 AND 1024),
+  byte_size BIGINT NOT NULL CHECK (byte_size > 0),
+  width INTEGER NOT NULL CHECK (width BETWEEN 1 AND 1024),
+  height INTEGER NOT NULL CHECK (height BETWEEN 1 AND 1024),
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (asset_id, row_index, column_index)
 );

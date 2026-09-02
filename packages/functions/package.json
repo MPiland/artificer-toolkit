@@ -56,6 +56,7 @@
     "@artificer-toolkit/shared": "workspace:^",
     "@gorules/zen-engine": "0.54.0",
     "@supabase/supabase-js": "^2.108.2",
+    "aws4fetch": "1.0.20",
     "jose": "^6.2.4",
     "sharp": "^0.35.3",
     "zod": "^4.4.3",
@@ -63,7 +64,6 @@
   },
   "devDependencies": {
     "tsx": "^4.22.4",
-    "tus-js-client": "4.3.1",
     "typescript": "^7.0.2"
   }
 }

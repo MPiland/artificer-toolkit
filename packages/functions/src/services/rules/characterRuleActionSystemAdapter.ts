@@ -10,8 +10,11 @@ import type { CombatPerceptionContributionsDto } from '@artificer-toolkit/schema
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
 import type { CompiledRuleGraph, RuleValue } from '@artificer-toolkit/shared/rules'
 import type { SceneGrid, ScenePoint } from '@artificer-toolkit/shared/vtt'
+import type { CombatPerceptionCapabilityInstance } from '@artificer-toolkit/shared/rules'
+import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
+import type { ActorRelationshipModuleAuthored } from '@artificer-toolkit/shared/authored'
 
 /**
  * A System-owned, bounded recurrence declaration. The Encounter coordinator
@@ -22,8 +25,33 @@ export interface CharacterRuleActionActiveEffectPlan {
   authoredEffectId: string
   compiledEntryId: string
   frozenGraphNodeId: string
-  recurrenceStage: 'START_OF_TURN' | 'END_OF_TURN'
-  initialRemaining: number
+  /**
+   * The independently compiled recurrence graph. It is distinct from the
+   * originating action graph whenever the authored lifecycle needs a later
+   * evaluation, and is persisted verbatim with the active effect.
+   */
+  frozenGraph: ServerPublishedRuleDefinitionDto
+  capabilityContractVersion: number
+  recurrenceStage: 'NONE' | 'START_OF_TURN' | 'END_OF_TURN'
+  /** null means the System owns an indefinite terminal condition. */
+  initialRemaining: number | null
+  /**
+   * The source-bound condition this effect owns. The aggregate records the
+   * pre-existing baseline when it creates the active-effect row; adapters do
+   * not infer condition ownership from labels or later mutable state.
+   */
+  conditionContribution?: null | { conditionId: string }
+  /** Target-owned relationship state selected by the System from the exact action outcome. */
+  actorRelationshipContribution?: null | {
+    relationshipOutcomeId: string
+    modules: readonly ActorRelationshipModuleAuthored[]
+    /** Concrete state selected at settlement; conditional state is omitted unless evidenced. */
+    conditionIds: readonly string[]
+    capabilitySuppressions: readonly {
+      contributionId: string
+      capabilityDefinitionIds: readonly string[]
+    }[]
+  }
   adapterFacts: Readonly<Record<string, RuleValue>>
   /** Exact System-authored perception contributions carried into the frozen effect definition. */
   perceptionContributions: CombatPerceptionContributionsDto
@@ -118,9 +146,81 @@ export interface CharacterConditionApplyOutcomeApplication {
   targetActorId: string
 }
 
+/** A System-authorized removal of an exact normalized condition. */
+export interface CharacterConditionRemoveOutcomeApplication {
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  kind: 'CONDITION_REMOVE'
+  conditionId: string
+  sourceActiveEffectId: string
+  targetActorId: string
+}
+
+/** A System-authorized removal of one exact normalized condition. */
+/**
+ * A System-authorized reduction sourced from an earlier interpreted damage
+ * application. Aggregate mutation and recovery ownership remain outside the
+ * adapter so this carries only the pinned mechanical application facts.
+ */
+export interface CharacterHitPointMaximumReductionApplication {
+  kind: 'HIT_POINT_MAXIMUM_REDUCTION'
+  targetActorId: string
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  sourceDamageNodeId: string
+  sourceDamageOperationKey: string
+  sourceDamageOutcomeId: string
+  reductionAmount: number
+  recoveryTags: readonly ['RESTORE_HIT_POINT_MAXIMUM']
+}
+
+/** One UUID-backed scalar reduction selected by a pinned System graph. */
+export interface CharacterScalarReductionApplication {
+  kind: 'SCALAR_REDUCTION'
+  targetActorId: string
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  valueDefinitionId: string
+  reductionAmount: number
+  stacking: 'ADDITIVE'
+  floor: 0
+  recoveryTriggers: readonly ('SHORT_REST' | 'LONG_REST')[]
+  terminalConsequence: 'TARGET_DIED'
+  sourceOutcomeId: string
+}
+
 export type CharacterRuleActionApplication =
   | CharacterHitPointOutcomeApplication
   | CharacterConditionApplyOutcomeApplication
+  | CharacterConditionRemoveOutcomeApplication
+  | CharacterHitPointMaximumReductionApplication
+  | CharacterScalarReductionApplication
+
+/**
+ * A sealed System proposal for later authoritative Scene settlement. It is
+ * deliberately separate from Character state applications: this adapter
+ * selects a movement consequence but never moves a token or consumes state.
+ */
+export interface CharacterRuleActionSpatialDirective {
+  kind: 'FORCED_MOVEMENT'
+  targetActorId: string
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  direction: 'AWAY_FROM_SOURCE' | 'TOWARD_SOURCE' | 'CHOICE'
+  distanceMode: 'UP_TO_SPEED' | 'FIXED_DISTANCE'
+  amount: number | null
+  unit: string | null
+  actionEconomy: 'NONE' | 'REACTION'
+  targetStateChecksum: string
+}
 
 /**
  * A System-owned replacement of an already evidenced failed saving throw.
@@ -185,6 +285,25 @@ export interface CharacterRuleActionSystemAdapter {
     optionalCombatSnapshot: unknown
     optionalCombatSnapshotChecksum: string | null
   }): readonly string[]
+  /**
+   * System policy may provide ordinary, non-authored perception capabilities.
+   * The Encounter supplies only an exact observer identity; the returned
+   * capability remains a sealed mechanical fact, not homebrew source data.
+   */
+  combatPerceptionBaselineCapabilities?(input: {
+    observerActorId: string
+  }): readonly CombatPerceptionCapabilityInstance[]
+  /**
+   * Reads one immutable recurring-effect perception dependency. The System
+   * owns adapter-fact interpretation; application code never parses it.
+   */
+  activeEffectPerceptionRequirement?(input: {
+    definition: ActiveRuleEffectDefinitionDto
+    lifecycle: ActiveRuleEffectLifecycleDto
+  }): {
+    requirement: CombatPerceptionRequirementDto
+    influence: 'ADVANTAGE' | 'DISADVANTAGE'
+  } | null
   bindFacts(input: {
     /** Exact current source mechanic selected under the aggregate lock. */
     actionMechanic: Readonly<Record<string, unknown>>
@@ -199,6 +318,8 @@ export interface CharacterRuleActionSystemAdapter {
     currentHitPoints: number
     temporaryHitPoints: number
     maximumHitPoints: number
+    /** Exact locked effective scalar state keyed by authored value-definition UUID. */
+    targetScalarValues: Readonly<Record<string, number>>
     defenses: readonly {
       kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'
       damageTypeId: string
@@ -253,6 +374,7 @@ export interface CharacterRuleActionSystemAdapter {
    * not resolve current authored content.
    */
   bindActiveEffectFacts?(input: {
+    activeEffectId: string
     definition: ActiveRuleEffectDefinitionDto
     lifecycle: ActiveRuleEffectLifecycleDto
     targetActorId: string
@@ -261,11 +383,19 @@ export interface CharacterRuleActionSystemAdapter {
     currentHitPoints: number
     temporaryHitPoints: number
     maximumHitPoints: number
+    /** Exact locked effective scalar state keyed by authored value-definition UUID. */
+    targetScalarValues: Readonly<Record<string, number>>
     defenses: readonly {
       kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /** Current, server-derived result for an authored recurring perception dependency. */
+    perception?: {
+      requirement: CombatPerceptionRequirementDto
+      satisfied: boolean
+      checksum: string
+    } | null
   }): {
     facts: Readonly<Record<string, RuleValue>>
     evidencePolicy: ServerRuleExecutionD20PolicyDto | null
@@ -289,6 +419,13 @@ export interface CharacterRuleActionSystemAdapter {
     }[]
     conditionImmunityIds?: readonly string[]
   }): readonly CharacterRuleActionApplication[]
+  /** Returns sealed spatial proposals only; Scene settlement remains aggregate-owned. */
+  interpretSpatial?(input: {
+    execution: Extract<ServerRuleExecutionResultDto, { status: 'COMPLETE' }>
+    occurrenceId: string
+    published: ServerPublishedRuleDefinitionDto
+    targetActorId: string
+  }): readonly CharacterRuleActionSpatialDirective[]
   /**
    * Applies an exact System-authorized successful-save branch from immutable
    * failed-save evidence. It must never issue a new roll or mutate that evidence.
@@ -312,7 +449,9 @@ export interface CharacterRuleActionSystemAdapter {
   interpretActiveEffect?(input: {
     execution: Extract<ServerRuleExecutionResultDto, { status: 'COMPLETE' }>
     occurrenceId: string
+    activeEffectId: string
     definition: ActiveRuleEffectDefinitionDto
+    lifecycle: ActiveRuleEffectLifecycleDto
     graph: CompiledRuleGraph
     targetActorId: string
     currentHitPoints: number
@@ -323,7 +462,13 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
-  }): readonly CharacterRuleActionApplication[]
+  }): {
+    applications: readonly CharacterRuleActionApplication[]
+    /** Sealed from the exact frozen graph result, never command input. */
+    terminal: boolean
+    /** A retained recurring effect may resolve an authorized no-op branch. */
+    emptyApplicationAllowed?: boolean
+  }
 }
 
 export interface CharacterRuleActionPositionalTokenFact {

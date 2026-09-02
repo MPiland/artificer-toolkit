@@ -22,6 +22,7 @@ const creatureDetailMeta = [
   'conditionTypes',
   'creatureTypes',
   'damageTypes',
+  'equipment',
   'speeds'
 ]
 
@@ -57,12 +58,18 @@ export const Route = createFileRoute('/_authed/creatures/$creaturePublicId/$crea
     const draft = response?.draft ?? null
     const references: Pick<
       AuthoredContentReferenceData,
-      'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'speeds'
+      | 'challengeRatings'
+      | 'conditionTypes'
+      | 'creatureTypes'
+      | 'damageTypes'
+      | 'equipment'
+      | 'speeds'
     > = {
       challengeRatings: response?.meta?.challengeRatings ?? [],
       conditionTypes: response?.meta?.conditionTypes ?? [],
       creatureTypes: response?.meta?.creatureTypes ?? [],
       damageTypes: response?.meta?.damageTypes ?? [],
+      equipment: response?.meta?.equipment ?? [],
       speeds: response?.meta?.speeds ?? []
     }
     const routeSubject = getAuthoredRouteSubject(creatureId, response, draft)

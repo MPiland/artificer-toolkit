@@ -1,5 +1,6 @@
 import {
   attachImage,
+  completeVttMapMultipartUpload,
   createCampaignFileUploadIntent,
   createImageUploadIntent,
   createVttMapUploadIntent,
@@ -12,6 +13,7 @@ import {
 } from '@artificer-toolkit/functions'
 import {
   attachImageInputSchema,
+  completeVttMapMultipartUploadInputSchema,
   createCampaignFileUploadIntentInputSchema,
   createImageUploadIntentInputSchema,
   createImageUploadIntentOutputSchema,
@@ -50,6 +52,14 @@ export const mediaRouter = createTRPCRouter({
     .mutation(({ ctx, input }) => {
       const userId = requireUserId(ctx)
       return withDb(ctx, (db) => createVttMapUploadIntent(db, userId, input))
+    }),
+  completeVttMapUpload: authenticatedProcedure
+    .input(completeVttMapMultipartUploadInputSchema)
+    .output(okResponseSchema)
+    .mutation(async ({ ctx, input }) => {
+      const userId = requireUserId(ctx)
+      await withDb(ctx, (db) => completeVttMapMultipartUpload(db, userId, input))
+      return { ok: true as const }
     }),
   finalizeVttMapUpload: authenticatedProcedure
     .input(finalizeImageUploadInputSchema)

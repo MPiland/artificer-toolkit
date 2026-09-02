@@ -98,6 +98,7 @@ export async function evaluateCharacterBuilderTestPolicy(
     facts: factsResult.facts,
     discoveredActionCapabilities: [],
     compiledActionEntryPoints: [],
+    spellsWithEffects,
     output,
     evaluation: {
       revisionId,

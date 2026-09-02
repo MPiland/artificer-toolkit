@@ -20,6 +20,7 @@ import type {
   CharacterRuleActionPositionalCandidateFact,
   CharacterRuleActionPositionalFacts
 } from '../rules/characterRuleActionSystemAdapter.js'
+import { characterRuleActionSystemAdapterRegistry } from '../rules/characterRuleActionSystemAdapterRegistry.js'
 import { resolveEncounterRuleCapabilityStates } from './encounterRuleCapabilityState.js'
 import { resolveEncounterCombatPerception } from './encounterCombatPerception.js'
 import type { LockedCombatPerceptionEffect } from './encounterCombatPerceptionContributions.js'
@@ -62,7 +63,11 @@ function activeEffectOwner(encounterId: string, actor: EncounterActorRecord) {
       throw new EncounterValidationError('Encounter Character perception source is incomplete.')
     return { kind: 'CHARACTER' as const, characterId: actor.sourceId }
   }
-  return { kind: 'ENCOUNTER_ACTOR' as const, encounterId, targetActorId: actor.id }
+  return {
+    kind: 'ENCOUNTER_ACTOR' as const,
+    encounterId,
+    targetActorId: actor.id
+  }
 }
 
 function combatPerceptionEffect(input: {
@@ -156,6 +161,7 @@ export async function lockEncounterActionPositionalFacts(input: {
   const capabilityStates = await resolveEncounterRuleCapabilityStates({
     encounter: input.encounter,
     lockedCharacters: input.targets.lockedCharacters,
+    activeEffectsByActorId: input.targets.activeEffectsByActorId,
     definitions: {
       requireCurrent: (definitionId) =>
         createReusableDefinitionRepository(input.trx).requireCurrent(definitionId)
@@ -205,8 +211,14 @@ export async function lockEncounterActionPositionalFacts(input: {
       )
       return (
         geometry !== null &&
-        (spatialGeometryIntersectsTokenFootprint({ geometry, token: observerToken }) ||
-          spatialGeometryIntersectsTokenFootprint({ geometry, token: targetToken }))
+        (spatialGeometryIntersectsTokenFootprint({
+          geometry,
+          token: observerToken
+        }) ||
+          spatialGeometryIntersectsTokenFootprint({
+            geometry,
+            token: targetToken
+          }))
       )
     })
     const result = resolveEncounterCombatPerception({
@@ -216,7 +228,18 @@ export async function lockEncounterActionPositionalFacts(input: {
       sceneGrid: input.sceneContext!.grid,
       observerToken,
       subjectToken: targetToken,
-      pinnedSenseDefinitions: characterSenses({ actor: observer, targets: input.targets }),
+      baselineCapabilities:
+        (observer.systemId
+          ? characterRuleActionSystemAdapterRegistry
+              .get(observer.systemId)
+              ?.combatPerceptionBaselineCapabilities?.({
+                observerActorId: observer.id
+              })
+          : undefined) ?? [],
+      pinnedSenseDefinitions: characterSenses({
+        actor: observer,
+        targets: input.targets
+      }),
       observerEffects: activeEffectsByActor.get(observer.id) ?? [],
       subjectEffects: activeEffectsByActor.get(targetActor.id) ?? [],
       localAreaEffects: localAreaEffects.map(spatialEffect),

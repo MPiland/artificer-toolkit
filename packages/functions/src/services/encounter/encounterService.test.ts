@@ -1,20 +1,49 @@
 import { createHash } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { checksumCanonicalJson, type DBLike } from '@artificer-toolkit/db'
+import {
+  checksumCanonicalJson,
+  srdBaselineContent,
+  type DBLike,
+  type EncounterRecord
+} from '@artificer-toolkit/db'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/api/encounters'
+import type { InitiativeDeclarationAdjudicationFieldDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type {
+  ServerKernelRuleExecutionPendingSnapshotDto,
+  ServerOptionalCombatContestPendingApplicationContextDto
+} from '@artificer-toolkit/schema/shared/rulesExecution'
+import {
+  checksumRuleDocument,
+  compileRuleGraph,
+  coreRuleOperations,
+  createRuleOperationRegistry,
+  executeRuleGraph,
+  resumeRuleGraph
+} from '@artificer-toolkit/shared/rules'
 import { createCreature } from '../character/sheetTestFixtures.js'
 import { createRuleExecutionCommandFingerprint } from '../rules/ruleExecutionOccurrenceService.js'
-import { createEncounterInitiativePendingSnapshot } from './encounterInitiativeOccurrence.js'
+import {
+  createEncounterInitiativeDeclarationPendingSnapshot,
+  createEncounterInitiativePendingSnapshot
+} from './encounterInitiativeOccurrence.js'
 import { createEncounterActionStartIntent } from './encounterActionSceneContext.js'
+import { createEncounterMovementPassageChoice } from './encounterMovementPassageChoice.js'
 import { projectGm } from './encounterProjection.js'
+import { DND5E_SYSTEM_ID } from '../rules/systems/dnd5e/characterActionCapabilityDiscovery.js'
+import {
+  createDnd5eOptionalCombatContestGraph,
+  dnd5eOptionalCombatContestCapabilityContribution,
+  DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY,
+  DND5E_OPTIONAL_COMBAT_CONTEST_TARGET_MODIFIER_FACT_KEY
+} from '../rules/systems/dnd5e/optionalCombatContestGraph.js'
 
 const ids = {
   campaign: '00000000-0000-4000-8000-000000000001',
   owner: '00000000-0000-4000-8000-000000000002',
   creature: '00000000-0000-4000-8000-000000000003',
-  system: '00000000-0000-4000-8000-000000000004',
+  system: DND5E_SYSTEM_ID,
   template: '00000000-0000-4000-8000-000000000005',
   command: '00000000-0000-4000-8000-000000000006',
   updateCommand: '00000000-0000-4000-8000-000000000007',
@@ -64,6 +93,7 @@ const mocks = vi.hoisted(() => ({
   authoredVersions: { findActiveByIds: vi.fn() },
   campaign: { lockCampaign: vi.fn() },
   campaignSettings: { find: vi.fn() },
+  systemVocabulary: { findActive: vi.fn() },
   occurrences: {
     appendReceipt: vi.fn(),
     advancePending: vi.fn(),
@@ -93,6 +123,9 @@ const mocks = vi.hoisted(() => ({
   resolveReactionChoice: vi.fn(),
   reactionRemainder: vi.fn(),
   prepareReactionAction: vi.fn(),
+  preparePassageContest: vi.fn(),
+  executePassageContest: vi.fn(),
+  lockActiveEffectTargets: vi.fn(),
   refreshActiveEffectTargets: vi.fn(),
   executeReactionAction: vi.fn(),
   settleReactionAction: vi.fn(),
@@ -110,6 +143,8 @@ const mocks = vi.hoisted(() => ({
   parsedReplay: vi.fn(),
   sqlRows: vi.fn(),
   actorEvaluation: vi.fn(),
+  stageActionEconomyRefreshes: vi.fn(),
+  applyActionEconomyRefreshes: vi.fn(),
   activeRulePack: vi.fn(),
   initiativePolicy: vi.fn(),
   optionalCombat: vi.fn(),
@@ -121,6 +156,7 @@ const mocks = vi.hoisted(() => ({
   executeLegendaryAction: vi.fn(),
   settleLegendaryAction: vi.fn(),
   startInitiativeCommand: vi.fn(),
+  resumeInitiativeDeclaration: vi.fn(),
   resumeInitiativeCommand: vi.fn(),
   applyInitiativeAdvance: vi.fn(),
   applyStagedInitiative: vi.fn(),
@@ -146,6 +182,8 @@ const mocks = vi.hoisted(() => ({
     setSideRelationship: vi.fn(),
     addActor: vi.fn(),
     updateActor: vi.fn(),
+    lockSide: vi.fn(),
+    replaceCreatureActorSnapshot: vi.fn(),
     replaceOptionalCombatSnapshot: vi.fn(),
     publishCurrentProjection: vi.fn(),
     appendEvent: vi.fn(),
@@ -159,6 +197,22 @@ vi.mock('kysely', () => ({
   })
 }))
 
+vi.mock('@artificer-toolkit/schema/shared/rulesExecution', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@artificer-toolkit/schema/shared/rulesExecution')>()
+  return {
+    ...actual,
+    isServerKernelRuleExecutionPendingSnapshot: (snapshot: unknown) =>
+      actual.isServerKernelRuleExecutionPendingSnapshot(
+        snapshot as ServerKernelRuleExecutionPendingSnapshotDto
+      ) ||
+      (typeof snapshot === 'object' &&
+        snapshot !== null &&
+        (snapshot as { applicationContext?: { kind?: unknown } }).applicationContext?.kind ===
+          'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK')
+  }
+})
+
 vi.mock('@artificer-toolkit/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@artificer-toolkit/db')>()
   return {
@@ -167,6 +221,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createAuthoredVersionRepository: () => mocks.authoredVersions,
     createCampaignRepository: () => mocks.campaign,
     createCampaignSettingsRepository: () => mocks.campaignSettings,
+    createSystemVocabularySnapshotRepository: () => mocks.systemVocabulary,
     createRuleOccurrenceRepository: () => mocks.occurrences,
     createSpatialRuleEffectRepository: () => mocks.spatialRuleEffects,
     createVttSceneRepository: () => mocks.scene,
@@ -243,8 +298,22 @@ vi.mock('./encounterMovementReactionActionSettlement.js', () => ({
   settleEncounterMovementReactionAction: mocks.settleReactionAction
 }))
 
+vi.mock('./encounterMovementPassageContestPreparation.js', () => ({
+  prepareEncounterMovementPassageContest: mocks.preparePassageContest
+}))
+
+vi.mock('./encounterMovementPassageContest.js', () => ({
+  executeEncounterMovementPassageContest: mocks.executePassageContest
+}))
+
 vi.mock('./encounterActiveEffectTargetState.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./encounterActiveEffectTargetState.js')>()),
+  lockEncounterActiveEffectTargets: async (input: { encounter: { name?: string } }) =>
+    input.encounter.name === 'Passage proof'
+      ? mocks.lockActiveEffectTargets(input)
+      : (
+          await importOriginal<typeof import('./encounterActiveEffectTargetState.js')>()
+        ).lockEncounterActiveEffectTargets(input as never),
   refreshLockedEncounterActiveEffectTargets: mocks.refreshActiveEffectTargets
 }))
 
@@ -256,6 +325,12 @@ vi.mock('../rules/movementReactionChoice.js', async (importOriginal) => ({
 vi.mock('./encounterActorRuleEvaluation.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./encounterActorRuleEvaluation.js')>()),
   evaluateEncounterActorRuleSnapshot: mocks.actorEvaluation
+}))
+
+vi.mock('./encounterActionEconomyRefresh.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./encounterActionEconomyRefresh.js')>()),
+  stageEncounterActionEconomyRefreshes: mocks.stageActionEconomyRefreshes,
+  applyStagedActionEconomyRefreshes: mocks.applyActionEconomyRefreshes
 }))
 
 vi.mock('./encounterRuleIdentity.js', async (importOriginal) => ({
@@ -273,6 +348,7 @@ vi.mock('./encounterOptionalCombatPolicy.js', () => ({
 
 vi.mock('./encounterInitiativeCommandCoordinator.js', () => ({
   startEncounterInitiativeCommand: mocks.startInitiativeCommand,
+  resumeEncounterInitiativeDeclarationCommand: mocks.resumeInitiativeDeclaration,
   resumeEncounterInitiativeCommand: mocks.resumeInitiativeCommand,
   applyEncounterInitiativeAdvanceCommand: mocks.applyInitiativeAdvance,
   applyStagedInitiativeState: mocks.applyStagedInitiative,
@@ -320,6 +396,7 @@ import {
   createEncounter,
   createEncounterBlueprint,
   executeEncounterCommandWithRuleSnapshot,
+  getPendingEncounterRuleOccurrence,
   getEncounterProjection,
   updateEncounterBlueprint
 } from './encounterService.js'
@@ -370,6 +447,8 @@ beforeEach(() => {
   mocks.encounter.setSideRelationship.mockResolvedValue(undefined)
   mocks.encounter.addActor.mockResolvedValue(undefined)
   mocks.encounter.updateActor.mockResolvedValue(undefined)
+  mocks.encounter.lockSide.mockResolvedValue(true)
+  mocks.encounter.replaceCreatureActorSnapshot.mockResolvedValue(true)
   mocks.encounter.publishCurrentProjection.mockImplementation(async (projection) => projection)
   mocks.encounter.appendEvent.mockResolvedValue(undefined)
   mocks.campaign.lockCampaign.mockResolvedValue({
@@ -378,6 +457,18 @@ beforeEach(() => {
     status: 'ACTIVE'
   })
   mocks.campaignSettings.find.mockResolvedValue(null)
+  const system = srdBaselineContent.vocabulary.systems.find(
+    (candidate) => candidate.id === ids.system
+  )
+  if (!system) throw new Error('D&D System fixture is unavailable.')
+  mocks.systemVocabulary.findActive.mockResolvedValue({
+    snapshotId: ids.template,
+    systemId: ids.system,
+    snapshotVersion: 1,
+    schemaVersion: 4,
+    checksum: 'd'.repeat(64),
+    document: { ...system, schemaVersion: 4 }
+  })
   mocks.occurrences.createCompleted.mockResolvedValue(undefined)
   mocks.occurrences.createPending.mockImplementation(async (input) => ({
     id: input.occurrenceId,
@@ -475,6 +566,11 @@ beforeEach(() => {
     actorUpdates: [],
     zenEvaluationMs: 0
   }))
+  mocks.stageActionEconomyRefreshes.mockResolvedValue({
+    refreshes: [],
+    refreshedActor: null
+  })
+  mocks.applyActionEconomyRefreshes.mockResolvedValue([])
   const creature = createCreature({
     id: ids.creature,
     systemId: ids.system,
@@ -854,6 +950,165 @@ describe('encounter Blueprint authority', () => {
     expect(created.setupChecksum).toBe(
       checksumCanonicalJson({ name: created.name, enemies: created.enemies })
     )
+  })
+
+  it('pins every loadout-bound base Equipment source into the immutable Creature snapshot', async () => {
+    const club = srdBaselineContent.subjects.equipment.find(
+      (candidate) => candidate.label === 'Club'
+    )
+    if (!club) throw new Error('Missing SRD Club fixture.')
+    const loadoutEntryId = '00000000-0000-4000-8000-000000000010'
+    const featureId = '00000000-0000-4000-8000-000000000011'
+    const creature = {
+      ...createCreature({
+        id: ids.creature,
+        systemId: ids.system,
+        userId: ids.owner,
+        status: 'ACTIVE',
+        hitPoints: 8
+      }),
+      features: [
+        {
+          id: featureId,
+          label: 'Club',
+          description: '',
+          order: 1,
+          effects: club.effects
+        }
+      ],
+      equipmentLoadout: [
+        {
+          id: loadoutEntryId,
+          equipmentId: club.id,
+          quantity: 1,
+          useState: 'HELD' as const,
+          attuned: false,
+          actionFeatureIds: [featureId]
+        }
+      ]
+    }
+    const equipment = { ...club, systemId: ids.system, userId: ids.owner }
+    const equipmentChecksum = checksumRuleDocument(equipment)
+    mocks.authoredVersions.findActiveByIds.mockImplementation(async (input) =>
+      input.subjectKind === 'CREATURE'
+        ? new Map([
+            [
+              creature.id,
+              {
+                authored: {
+                  document: creature,
+                  versionId: ids.creature,
+                  version: 2,
+                  checksum: 'a'.repeat(64)
+                }
+              }
+            ]
+          ])
+        : new Map([
+            [
+              equipment.id,
+              {
+                authored: {
+                  document: equipment,
+                  versionId: ids.template,
+                  version: 3,
+                  checksum: equipmentChecksum
+                }
+              }
+            ]
+          ])
+    )
+
+    await createEncounterBlueprint({} as DBLike, ids.owner, {
+      gameSystemId: ids.system,
+      name: 'Dryad grove',
+      enemies: [{ kind: 'CREATURE', sourceId: creature.id }],
+      commandId: ids.command
+    })
+
+    expect(mocks.authoredVersions.findActiveByIds).toHaveBeenNthCalledWith(2, {
+      subjectKind: 'EQUIPMENT',
+      subjectIds: [equipment.id],
+      userId: ids.owner,
+      includeMaster: true
+    })
+    const created = mocks.encounter.createBlueprint.mock.calls[0]?.[0]
+    expect(created.enemies[0].snapshot).toMatchObject({
+      equipmentSources: [
+        {
+          loadoutEntryId: creature.equipmentLoadout?.[0]?.id,
+          equipmentId: equipment.id,
+          sourceRevision: 3,
+          sourceVersionId: ids.template,
+          sourceChecksum: equipmentChecksum,
+          payload: { id: equipment.id, systemId: ids.system }
+        }
+      ]
+    })
+  })
+
+  it('rejects a loadout-bound Creature when its exact Equipment source is unavailable', async () => {
+    const club = srdBaselineContent.subjects.equipment.find(
+      (candidate) => candidate.label === 'Club'
+    )
+    if (!club) throw new Error('Missing SRD Club fixture.')
+    const featureId = '00000000-0000-4000-8000-000000000031'
+    const creature = {
+      ...createCreature({
+        id: ids.creature,
+        systemId: ids.system,
+        userId: ids.owner,
+        status: 'ACTIVE',
+        hitPoints: 8
+      }),
+      features: [
+        {
+          id: featureId,
+          label: 'Club',
+          description: '',
+          order: 1,
+          effects: club.effects
+        }
+      ],
+      equipmentLoadout: [
+        {
+          id: '00000000-0000-4000-8000-000000000030',
+          equipmentId: club.id,
+          quantity: 1,
+          useState: 'HELD' as const,
+          attuned: false,
+          actionFeatureIds: [featureId]
+        }
+      ]
+    }
+    mocks.authoredVersions.findActiveByIds.mockImplementation(async (input) =>
+      input.subjectKind === 'CREATURE'
+        ? new Map([
+            [
+              creature.id,
+              {
+                authored: {
+                  document: creature,
+                  versionId: ids.creature,
+                  version: 2,
+                  checksum: 'a'.repeat(64)
+                }
+              }
+            ]
+          ])
+        : new Map()
+    )
+
+    await expect(
+      createEncounterBlueprint({} as DBLike, ids.owner, {
+        gameSystemId: ids.system,
+        name: 'Incomplete grove',
+        enemies: [{ kind: 'CREATURE', sourceId: creature.id }],
+        commandId: ids.command
+      })
+    ).rejects.toMatchObject({ name: 'EncounterValidationError' })
+
+    expect(mocks.encounter.createBlueprint).not.toHaveBeenCalled()
   })
 
   it('pins the Blueprint System into Custom actor snapshots', async () => {
@@ -1370,7 +1625,11 @@ describe('encounter Blueprint authority', () => {
         request: { requestId: 'next-concentration-roll', rollMode: 'ADVANTAGE' }
       }
     })
-    expect(mocks.occurrences.lockOccurrence).not.toHaveBeenCalled()
+    expect(mocks.occurrences.lockOccurrence).toHaveBeenCalledWith(
+      'ENCOUNTER',
+      ids.command,
+      occurrenceId
+    )
   })
 
   it('replays the stored GM Legendary Resistance choice without the cleared pending context', async () => {
@@ -1497,6 +1756,229 @@ describe('Encounter projection reads', () => {
       expectedStreamVersion: 7
     })
     expect(mocks.encounter.find).not.toHaveBeenCalled()
+  })
+
+  it('reads pending choices without claiming the live-session command lease', async () => {
+    mocks.lockedContext.mockResolvedValue({
+      encounter: {
+        id: ids.command,
+        campaignId: ids.campaign,
+        version: 7,
+        actors: []
+      } as unknown as EncounterRecord,
+      context: {
+        campaignId: ids.campaign,
+        encounterId: ids.command,
+        role: 'OWNER',
+        assignedCharacterId: null,
+        currentVersion: 7
+      }
+    })
+
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, ids.owner, ids.command)
+    ).resolves.toBeNull()
+
+    expect(mocks.lockedContext).toHaveBeenCalledTimes(2)
+    for (const [, input] of mocks.lockedContext.mock.calls) {
+      expect(input).toMatchObject({ encounterId: ids.command, readOnly: true })
+    }
+  })
+})
+
+describe('Encounter actor prospective side correction', () => {
+  const originalSideId = '00000000-0000-4000-8000-000000000030'
+  const correctedSideId = '00000000-0000-4000-8000-000000000031'
+  const actor = {
+    id: ids.creature,
+    encounterId: ids.command,
+    sideId: originalSideId,
+    kind: 'CUSTOM' as const,
+    sourceId: null,
+    sourceRevision: null,
+    label: 'Corrected actor',
+    systemId: ids.system,
+    stableTieKey: 'corrected-actor',
+    public: true,
+    currentHitPoints: 8,
+    maxHitPoints: 8,
+    tempHitPoints: 0,
+    conditions: [],
+    resources: {},
+    gmNotes: null,
+    initiative: null,
+    manualOrder: 0,
+    snapshot: {},
+    createdAt: '2026-08-29T00:00:00.000Z',
+    updatedAt: '2026-08-29T00:00:00.000Z'
+  }
+  const currentRound = {
+    round: {
+      encounterId: ids.command,
+      round: 1,
+      procedure: 'SIDE_ROLL' as const,
+      cadence: 'EACH_ROUND' as const,
+      status: 'ORDERED' as const,
+      policySnapshotChecksum: 'a'.repeat(64),
+      nextTurnOrderOrdinal: 1,
+      version: 2
+    },
+    participants: [
+      {
+        encounterId: ids.command,
+        round: 1,
+        actorId: ids.creature,
+        sideId: originalSideId,
+        status: 'ACTIVE' as const,
+        initiativeScore: 14,
+        evaluation: { occurrenceId: null, resultChecksum: null },
+        tie: { occurrenceId: null, resultChecksum: null },
+        declaration: null,
+        declarationChecksum: null,
+        turnOrderOrdinal: 0,
+        version: 1
+      }
+    ],
+    sides: [
+      {
+        encounterId: ids.command,
+        round: 1,
+        procedure: 'SIDE_ROLL' as const,
+        sideId: originalSideId,
+        status: 'ACTIVE' as const,
+        initiativeScore: 14,
+        evaluation: { occurrenceId: null, resultChecksum: null },
+        tie: { occurrenceId: null, resultChecksum: null },
+        sideOrderOrdinal: 0,
+        version: 1
+      }
+    ]
+  }
+  const encounter = {
+    id: ids.command,
+    campaignId: ids.campaign,
+    sessionId: ids.template,
+    gameSystemId: ids.system,
+    blueprintId: ids.template,
+    blueprintVersion: 1,
+    blueprintChecksum: 'a'.repeat(64),
+    rulePackRevisionId: ids.template,
+    initiativePolicySnapshot: null,
+    initiativePolicySnapshotChecksum: null,
+    optionalCombatSnapshot: null,
+    optionalCombatSnapshotChecksum: null,
+    automationMode: 'ASSISTED' as const,
+    manualReminderMode: 'OFF' as const,
+    name: 'Side correction',
+    status: 'ACTIVE' as const,
+    version: 3,
+    round: 1,
+    currentActorId: ids.creature,
+    initiativeRoundState: currentRound,
+    actors: [actor],
+    reminders: [],
+    createdAt: '2026-08-29T00:00:00.000Z',
+    updatedAt: '2026-08-29T00:00:00.000Z'
+  }
+
+  function input(sideId = correctedSideId, commandId = ids.updateCommand) {
+    return {
+      type: 'UPDATE_ACTOR' as const,
+      encounterId: ids.command,
+      expectedVersion: 3,
+      commandId,
+      actorId: ids.creature,
+      sideId
+    }
+  }
+
+  beforeEach(() => {
+    mocks.lockedContext.mockResolvedValue({
+      encounter,
+      context: { role: 'OWNER', campaignId: ids.campaign, assignedCharacterId: null }
+    })
+    mocks.encounter.find.mockResolvedValue({
+      ...encounter,
+      version: 4,
+      actors: [{ ...actor, sideId: correctedSideId }],
+      initiativeRoundState: currentRound
+    })
+    mocks.actorEvaluation.mockImplementation(
+      async ({ encounter: evaluatedEncounter }: { encounter: EncounterRecord }) => ({
+        snapshot: {
+          encounterVersion: evaluatedEncounter.version,
+          revisionId: evaluatedEncounter.rulePackRevisionId,
+          facts: { contractVersion: 1, actors: [] },
+          output: {
+            actors: evaluatedEncounter.actors.map((candidate) => ({
+              actorId: candidate.id,
+              initiativeModifier: 0,
+              targetProtection: { status: 'NOT_NORMALIZED' },
+              featureResources: []
+            }))
+          }
+        },
+        reconciledEncounter: evaluatedEncounter,
+        actorUpdates: [],
+        zenEvaluationMs: 0
+      })
+    )
+  })
+
+  it('updates only the actor side and retains the current normalized round snapshot', async () => {
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input())
+    ).resolves.toMatchObject({ replayed: false })
+
+    expect(mocks.lockedContext).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ authority: 'OWNER' })
+    )
+    expect(mocks.encounter.lockSide).toHaveBeenCalledWith(ids.command, correctedSideId)
+    expect(mocks.encounter.updateActor).toHaveBeenCalledWith(
+      expect.objectContaining({ id: ids.creature, sideId: correctedSideId })
+    )
+    expect(mocks.encounter.lockInitiativeRound).not.toHaveBeenCalled()
+    expect(mocks.encounter.find).toHaveBeenCalledWith(ids.command)
+    expect(currentRound.participants[0]?.sideId).toBe(originalSideId)
+    expect(currentRound.sides[0]?.sideId).toBe(originalSideId)
+  })
+
+  it('rejects a missing or foreign side before actor or aggregate mutation', async () => {
+    mocks.encounter.lockSide.mockResolvedValue(false)
+
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input())
+    ).rejects.toThrow('side was not found')
+
+    expect(mocks.encounter.updateActor).not.toHaveBeenCalled()
+    expect(mocks.encounter.update).not.toHaveBeenCalled()
+    expect(mocks.encounter.appendEvent).not.toHaveBeenCalled()
+  })
+
+  it('replays an exact correction without revalidating or mutating its side', async () => {
+    const command = input()
+    const commandFingerprint = createHash('sha256').update(JSON.stringify(command)).digest('hex')
+    mocks.encounter.findEventByCampaignCommand.mockResolvedValue({
+      encounterId: ids.command,
+      commandFingerprint,
+      commandType: 'UPDATE_ACTOR',
+      version: 4,
+      resultPayload: {}
+    })
+    mocks.parsedReplay.mockReturnValue({
+      command: { projection: { id: ids.command, version: 4 } },
+      currentProjection: { ruleSnapshot: null },
+      ruleReceipt: null
+    })
+
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, command)
+    ).resolves.toMatchObject({ replayed: true })
+
+    expect(mocks.encounter.lockSide).not.toHaveBeenCalled()
+    expect(mocks.encounter.updateActor).not.toHaveBeenCalled()
+    expect(mocks.encounter.update).not.toHaveBeenCalled()
   })
 })
 
@@ -1633,6 +2115,365 @@ describe('optional combat Encounter override', () => {
   })
 })
 
+describe('Creature equipment replacement', () => {
+  const loadoutEntryId = '00000000-0000-4000-8000-000000000040'
+  const replacementEquipmentId = '00000000-0000-4000-8000-000000000041'
+
+  function fixture(status: 'PREPARED' | 'ACTIVE' | 'COMPLETED' = 'PREPARED') {
+    const club = srdBaselineContent.subjects.equipment.find(
+      (candidate) => candidate.label === 'Club'
+    )
+    if (!club) throw new Error('Missing SRD Club fixture.')
+    const originalEquipment = { ...club, systemId: ids.system, userId: ids.owner }
+    const replacementEquipment = {
+      ...originalEquipment,
+      id: replacementEquipmentId,
+      label: 'Replacement club'
+    }
+    const source = {
+      loadoutEntryId,
+      equipmentId: originalEquipment.id,
+      sourceRevision: 2,
+      sourceVersionId: ids.template,
+      sourceChecksum: checksumRuleDocument(originalEquipment),
+      payload: originalEquipment
+    }
+    const actor = {
+      id: ids.creature,
+      encounterId: ids.command,
+      kind: 'CREATURE' as const,
+      sourceId: ids.creature,
+      sourceRevision: 1,
+      label: 'Club wielder',
+      systemId: ids.system,
+      stableTieKey: 'club-wielder',
+      public: true,
+      currentHitPoints: 8,
+      maxHitPoints: 8,
+      tempHitPoints: 2,
+      conditions: { poisoned: false },
+      resources: { charges: 1 },
+      gmNotes: 'unchanged',
+      initiative: 11,
+      manualOrder: 0,
+      snapshot: {
+        kind: 'CREATURE',
+        id: ids.creature,
+        systemId: ids.system,
+        sourceRevision: 1,
+        sourceVersionId: ids.creature,
+        sourceChecksum: 'a'.repeat(64),
+        payload: {
+          id: ids.creature,
+          systemId: ids.system,
+          features: [
+            {
+              id: ids.otherSystem,
+              label: 'Club',
+              description: '',
+              order: 0,
+              effects: originalEquipment.effects
+            }
+          ],
+          equipmentLoadout: [
+            {
+              id: loadoutEntryId,
+              equipmentId: originalEquipment.id,
+              quantity: 1,
+              useState: 'HELD',
+              attuned: false,
+              actionFeatureIds: [ids.otherSystem]
+            },
+            {
+              id: '00000000-0000-4000-8000-000000000042',
+              equipmentId: originalEquipment.id,
+              quantity: 2,
+              useState: 'CARRIED',
+              attuned: false,
+              actionFeatureIds: []
+            }
+          ]
+        },
+        ruleFacts: { exact: 'unchanged' },
+        equipmentSources: [
+          source,
+          { ...source, loadoutEntryId: '00000000-0000-4000-8000-000000000042' }
+        ]
+      },
+      createdAt: '2026-08-29T00:00:00.000Z',
+      updatedAt: '2026-08-29T00:00:00.000Z'
+    }
+    const encounter = {
+      id: ids.command,
+      campaignId: ids.campaign,
+      sessionId: ids.template,
+      gameSystemId: ids.system,
+      blueprintId: ids.template,
+      blueprintVersion: 1,
+      blueprintChecksum: 'a'.repeat(64),
+      rulePackRevisionId: ids.template,
+      initiativePolicySnapshot: null,
+      initiativePolicySnapshotChecksum: null,
+      optionalCombatSnapshot: null,
+      optionalCombatSnapshotChecksum: null,
+      automationMode: 'ASSISTED' as const,
+      manualReminderMode: 'OFF' as const,
+      name: 'Equipment proof',
+      status,
+      version: 3,
+      round: 1,
+      currentActorId: null,
+      actors: [actor],
+      reminders: [],
+      createdAt: '2026-08-29T00:00:00.000Z',
+      updatedAt: '2026-08-29T00:00:00.000Z'
+    }
+    const input = {
+      type: 'REPLACE_CREATURE_EQUIPMENT' as const,
+      encounterId: ids.command,
+      commandId: ids.updateCommand,
+      expectedVersion: 3,
+      actorId: actor.id,
+      loadoutEntryId,
+      equipmentId: replacementEquipmentId
+    }
+    return { actor, encounter, input, replacementEquipment }
+  }
+
+  beforeEach(() => {
+    const { encounter, replacementEquipment } = fixture()
+    mocks.lockedContext.mockResolvedValue({
+      encounter,
+      context: { role: 'OWNER', campaignId: ids.campaign, assignedCharacterId: null }
+    })
+    mocks.authoredVersions.findActiveByIds.mockResolvedValue(
+      new Map([
+        [
+          replacementEquipment.id,
+          {
+            authored: {
+              document: replacementEquipment,
+              versionId: '00000000-0000-4000-8000-000000000043',
+              version: 4,
+              checksum: checksumRuleDocument(replacementEquipment)
+            }
+          }
+        ]
+      ])
+    )
+    mocks.encounter.find.mockResolvedValue({ ...encounter, version: 4 })
+    mocks.actorEvaluation.mockImplementation(
+      async ({ encounter: evaluatedEncounter }: { encounter: EncounterRecord }) => ({
+        snapshot: {
+          encounterVersion: evaluatedEncounter.version,
+          revisionId: evaluatedEncounter.rulePackRevisionId,
+          facts: { contractVersion: 1, actors: [] },
+          output: {
+            actors: evaluatedEncounter.actors.map((candidate) => ({
+              actorId: candidate.id,
+              initiativeModifier: 0,
+              targetProtection: { status: 'NOT_NORMALIZED' },
+              featureResources: []
+            }))
+          }
+        },
+        reconciledEncounter: evaluatedEncounter,
+        actorUpdates: [],
+        zenEvaluationMs: 0
+      })
+    )
+  })
+
+  it.each(['PREPARED', 'ACTIVE'] as const)(
+    'replaces exactly one pinned entry for a %s Encounter and records private provenance',
+    async (status) => {
+      const { encounter, input, replacementEquipment } = fixture(status)
+      mocks.lockedContext.mockResolvedValue({
+        encounter,
+        context: { role: 'OWNER', campaignId: ids.campaign, assignedCharacterId: null }
+      })
+      mocks.encounter.find.mockResolvedValue({ ...encounter, version: 4 })
+
+      await expect(
+        executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input)
+      ).resolves.toMatchObject({ replayed: false })
+
+      expect(mocks.lockedContext).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ authority: 'OWNER' })
+      )
+      const snapshot = mocks.encounter.replaceCreatureActorSnapshot.mock.calls[0]?.[0]?.snapshot
+      expect(snapshot).toMatchObject({
+        payload: encounter.actors[0]!.snapshot.payload,
+        ruleFacts: { exact: 'unchanged' },
+        equipmentLoadoutOverride: [
+          { id: loadoutEntryId, equipmentId: replacementEquipment.id },
+          {
+            id: '00000000-0000-4000-8000-000000000042',
+            equipmentId: encounter.actors[0]!.snapshot.payload.equipmentLoadout[1].equipmentId
+          }
+        ]
+      })
+      expect(snapshot.equipmentSources[1]).toEqual(
+        encounter.actors[0]!.snapshot.equipmentSources[1]
+      )
+      expect(mocks.encounter.updateActor).not.toHaveBeenCalled()
+      expect(mocks.encounter.appendEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          resultPayload: expect.objectContaining({
+            creatureEquipmentReplacement: {
+              actorId: ids.creature,
+              loadoutEntryId,
+              equipmentId: replacementEquipment.id,
+              sourceRevision: 4,
+              sourceVersionId: '00000000-0000-4000-8000-000000000043',
+              sourceChecksum: checksumRuleDocument(replacementEquipment)
+            }
+          })
+        })
+      )
+    }
+  )
+
+  it('short-circuits completed, stale, pending, and replayed commands before source resolution', async () => {
+    const { encounter, input } = fixture('COMPLETED')
+    mocks.lockedContext.mockResolvedValue({ encounter, context: { role: 'OWNER' } })
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input)
+    ).rejects.toThrow('Completed')
+    expect(mocks.authoredVersions.findActiveByIds).not.toHaveBeenCalled()
+
+    mocks.lockedContext.mockResolvedValue({
+      encounter: { ...fixture().encounter, version: 4 },
+      context: { role: 'OWNER' }
+    })
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input)
+    ).rejects.toThrow('stale')
+    expect(mocks.authoredVersions.findActiveByIds).not.toHaveBeenCalled()
+
+    mocks.lockedContext.mockResolvedValue({
+      encounter: fixture().encounter,
+      context: { role: 'OWNER' }
+    })
+    mocks.occurrences.lockPendingEncounter.mockResolvedValue({ pendingSnapshot: null })
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input)
+    ).rejects.toThrow('Rule occurrence is unavailable')
+    expect(mocks.authoredVersions.findActiveByIds).not.toHaveBeenCalled()
+
+    mocks.occurrences.lockPendingEncounter.mockResolvedValue(null)
+    mocks.encounter.findEventByCampaignCommand.mockResolvedValue({
+      encounterId: ids.command,
+      commandFingerprint: createHash('sha256').update(JSON.stringify(input)).digest('hex'),
+      commandType: input.type,
+      version: 4,
+      resultPayload: {}
+    })
+    mocks.parsedReplay.mockReturnValue({
+      command: { projection: { id: ids.command, version: 4 } },
+      currentProjection: { ruleSnapshot: null },
+      ruleReceipt: null
+    })
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input)
+    ).resolves.toMatchObject({ replayed: true })
+    expect(mocks.authoredVersions.findActiveByIds).not.toHaveBeenCalled()
+    expect(mocks.encounter.replaceCreatureActorSnapshot).not.toHaveBeenCalled()
+  })
+
+  it('rejects incompatible replacement composition or a stale snapshot row before appending an event', async () => {
+    const { input, replacementEquipment } = fixture()
+    const incompatible = { ...replacementEquipment, effects: [] }
+    mocks.authoredVersions.findActiveByIds.mockResolvedValue(
+      new Map([
+        [
+          incompatible.id,
+          {
+            authored: {
+              document: incompatible,
+              versionId: '00000000-0000-4000-8000-000000000043',
+              version: 4,
+              checksum: checksumRuleDocument(incompatible)
+            }
+          }
+        ]
+      ])
+    )
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input)
+    ).rejects.toThrow('incompatible')
+    expect(mocks.encounter.replaceCreatureActorSnapshot).not.toHaveBeenCalled()
+    expect(mocks.encounter.appendEvent).not.toHaveBeenCalled()
+
+    const valid = fixture()
+    mocks.authoredVersions.findActiveByIds.mockResolvedValue(
+      new Map([
+        [
+          valid.replacementEquipment.id,
+          {
+            authored: {
+              document: valid.replacementEquipment,
+              versionId: '00000000-0000-4000-8000-000000000043',
+              version: 4,
+              checksum: checksumRuleDocument(valid.replacementEquipment)
+            }
+          }
+        ]
+      ])
+    )
+    mocks.encounter.replaceCreatureActorSnapshot.mockResolvedValueOnce(false)
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, valid.input)
+    ).rejects.toThrow('changed before replacement')
+    expect(mocks.encounter.appendEvent).not.toHaveBeenCalled()
+  })
+
+  it('maps only the replacement source failure while preserving frozen-snapshot corruption', async () => {
+    const { input } = fixture()
+    mocks.authoredVersions.findActiveByIds.mockResolvedValue(new Map())
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input)
+    ).rejects.toMatchObject({
+      name: 'EncounterValidationError',
+      message: 'Creature Equipment source is unavailable.'
+    })
+
+    const corrupt = fixture()
+    mocks.authoredVersions.findActiveByIds.mockResolvedValue(
+      new Map([
+        [
+          corrupt.replacementEquipment.id,
+          {
+            authored: {
+              document: corrupt.replacementEquipment,
+              versionId: '00000000-0000-4000-8000-000000000043',
+              version: 4,
+              checksum: checksumRuleDocument(corrupt.replacementEquipment)
+            }
+          }
+        ]
+      ])
+    )
+    mocks.lockedContext.mockResolvedValue({
+      encounter: {
+        ...corrupt.encounter,
+        actors: [
+          {
+            ...corrupt.actor,
+            snapshot: { ...corrupt.actor.snapshot, equipmentSources: null }
+          }
+        ]
+      },
+      context: { role: 'OWNER', campaignId: ids.campaign, assignedCharacterId: null }
+    })
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, corrupt.input)
+    ).rejects.toThrow(/snapshot/i)
+    expect(mocks.encounter.replaceCreatureActorSnapshot).not.toHaveBeenCalled()
+  })
+})
+
 describe('Encounter turn rule-receipt replay', () => {
   const turnActor = {
     id: ids.creature,
@@ -1692,7 +2533,8 @@ describe('Encounter turn rule-receipt replay', () => {
       currentHitPoints: 10,
       temporaryHitPoints: 0,
       maximumHitPoints: 10,
-      conditionIds: []
+      conditionIds: [],
+      scalarValues: {}
     }
     const after = { ...before, conditionIds: [ids.updateCommand] }
     return {
@@ -2709,7 +3551,8 @@ describe('Encounter turn rule-receipt replay', () => {
       currentHitPoints: 8,
       temporaryHitPoints: 0,
       maximumHitPoints: 8,
-      conditionIds: []
+      conditionIds: [],
+      scalarValues: {}
     }
     const application = {
       kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' as const,
@@ -2731,7 +3574,11 @@ describe('Encounter turn rule-receipt replay', () => {
       },
       targetFeatureResourceConsumption: null,
       d20: null,
+      nestedD20: null,
       legendaryResistance: null,
+      spellCastConsumption: null,
+      activeEffectTransitions: [],
+      stateEffectTransitions: [],
       targetTransition: {
         checksum: 'f'.repeat(64),
         before: targetState,
@@ -3044,6 +3891,667 @@ describe('Encounter turn rule-receipt replay', () => {
     expect(mocks.encounter.update).not.toHaveBeenCalled()
     expect(mocks.encounter.publishCurrentProjection).not.toHaveBeenCalled()
     expect(mocks.encounter.appendEvent).not.toHaveBeenCalled()
+  })
+
+  it('projects a sealed initiative declaration only to the current Character controller', async () => {
+    const formerController = '00000000-0000-4000-8000-000000000097'
+    const currentController = '00000000-0000-4000-8000-000000000098'
+    const unrelatedPlayer = '00000000-0000-4000-8000-000000000099'
+    const occurrenceId = '00000000-0000-4000-8000-000000000096'
+    const policyChecksum = 'e'.repeat(64)
+    const pendingSnapshot = createEncounterInitiativeDeclarationPendingSnapshot({
+      occurrenceId,
+      root: {
+        rootCommandId: ids.command,
+        commandFingerprint: policyChecksum,
+        commandType: 'START',
+        initiatorUserId: ids.owner,
+        correlationId: null,
+        expectedEncounterVersion: turnEncounter.version,
+        round: 1,
+        policySnapshotChecksum: policyChecksum,
+        initiativeBeforePin: { kind: 'INITIAL_START', actorIds: [turnActor.id] },
+        stagedInitiativeRoundState: stagedInitiativeRound({
+          round: 1,
+          cadence: 'ENCOUNTER_START',
+          checksum: policyChecksum
+        }),
+        startSystemId: null,
+        resolutionCommands: []
+      },
+      request: {
+        requestId: 'speed-factor-declaration',
+        kind: 'INITIATIVE_DECLARATION',
+        encounterId: turnEncounter.id,
+        round: 1,
+        actorId: turnActor.id,
+        participantExpectedVersion: 0,
+        primaryOptions: [
+          {
+            kind: 'CHARACTER_ACTION',
+            optionId: 'action:longsword',
+            label: 'Longsword',
+            selectionContract: policyChecksum
+          }
+        ],
+        bonusOptions: [],
+        adjudicationFields: [],
+        controllerUserId: formerController,
+        sourceOptionsChecksum: policyChecksum
+      }
+    })
+    mocks.occurrences.lockPendingEncounter.mockResolvedValue({
+      id: occurrenceId,
+      aggregateKind: 'ENCOUNTER',
+      aggregateId: turnEncounter.id,
+      rootCommandId: ids.command,
+      rootCommandFingerprint: policyChecksum,
+      commandType: 'START',
+      actorUserId: ids.owner,
+      correlationId: null,
+      expectedAggregateVersion: turnEncounter.version,
+      version: 0,
+      state: 'PENDING',
+      pendingSnapshot,
+      createdAt: '2026-08-28T00:00:00.000Z',
+      updatedAt: '2026-08-28T00:00:00.000Z',
+      completedAt: null
+    })
+    mocks.sqlRows.mockResolvedValue({ rows: [{ user_id: currentController }] })
+    const lockAs = (userId: string, role: 'OWNER' | 'PLAYER', assignedCharacterId: string | null) =>
+      mocks.lockedContext.mockResolvedValue({
+        encounter: turnEncounter,
+        context: {
+          campaignId: ids.campaign,
+          role,
+          assignedCharacterId,
+          attunementSlotOverride: null
+        }
+      })
+
+    lockAs(ids.owner, 'OWNER', null)
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, ids.owner, turnEncounter.id)
+    ).resolves.toMatchObject({ kind: 'INITIATIVE_DECLARATION', actorId: turnActor.id })
+
+    lockAs(currentController, 'PLAYER', turnActor.sourceId)
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, currentController, turnEncounter.id)
+    ).resolves.toMatchObject({
+      kind: 'INITIATIVE_DECLARATION',
+      primaryOptions: [{ optionId: 'action:longsword', label: 'Longsword' }]
+    })
+
+    lockAs(formerController, 'PLAYER', turnActor.sourceId)
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, formerController, turnEncounter.id)
+    ).resolves.toBeNull()
+
+    lockAs(unrelatedPlayer, 'PLAYER', ids.updateCommand)
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, unrelatedPlayer, turnEncounter.id)
+    ).resolves.toBeNull()
+  })
+
+  it('projects an optional-contest roll only to the current participant controller or GM', async () => {
+    const initiatorController = '00000000-0000-4000-8000-000000000097'
+    const defenderController = '00000000-0000-4000-8000-000000000098'
+    const unrelatedPlayer = '00000000-0000-4000-8000-000000000099'
+    const initiatorCharacter = turnActor.sourceId
+    const defenderCharacter = '00000000-0000-4000-8000-000000000096'
+    const occurrenceId = '00000000-0000-4000-8000-000000000095'
+    const checksum = 'e'.repeat(64)
+    const context: ServerOptionalCombatContestPendingApplicationContextDto = {
+      kind: 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST',
+      schemaVersion: 1,
+      actionKind: 'SHOVE_ASIDE',
+      actionId: ids.template,
+      sourceActorId: turnActor.id,
+      targetActorId: ids.updateCommand,
+      initiatorControllerCharacterId: initiatorCharacter,
+      sceneContext: {
+        sceneId: ids.template,
+        sceneVersion: 1,
+        sourceTokenId: ids.creature,
+        targetTokenId: ids.updateCommand
+      },
+      positionalDependencyChecksum: checksum,
+      optionalCombat: {
+        snapshotChecksum: checksum,
+        definitionId: ids.template,
+        definitionVersion: 1,
+        definitionChecksum: checksum,
+        moduleKey: 'd20.action.shove-aside',
+        moduleContractVersion: 1
+      },
+      contestGraph: { definitionId: ids.otherSystem, checksum, identityChecksum: checksum },
+      optionId: checksum,
+      selectionContractChecksum: checksum,
+      resolvedSelectionChecksum: checksum,
+      source: {
+        kind: 'OPTIONAL_COMBAT_DEFINITION',
+        definitionId: ids.template,
+        definitionVersion: 1,
+        definitionChecksum: checksum,
+        moduleKey: 'd20.action.shove-aside',
+        moduleContractVersion: 1
+      },
+      target: { kind: 'ENCOUNTER_ACTOR', currentnessChecksum: checksum },
+      initiator: {
+        actorId: turnActor.id,
+        requestNodeId: 'initiator_d20',
+        rollMode: 'NORMAL',
+        contributors: [],
+        contributorChecksum: checksumRuleDocument([]),
+        modifier: 3
+      },
+      defender: {
+        actorId: ids.updateCommand,
+        requestNodeId: 'target_d20',
+        rollMode: 'NORMAL',
+        contributors: [],
+        contributorChecksum: checksumRuleDocument([]),
+        modifier: 2,
+        checkDefinitionId: ids.otherSystem
+      },
+      rollEvidence: { initiator: null, defender: null },
+      selection: {
+        kind: 'SHOVE_ASIDE',
+        defenderCheckDefinitionId: ids.otherSystem,
+        destination: { x: 10, y: 5 },
+        displacement: { amount: 5, unit: 'FEET', sceneUnits: 5 },
+        sceneId: ids.template,
+        sceneVersion: 1,
+        targetTokenId: ids.updateCommand,
+        stateChecksum: checksum
+      },
+      actionEconomy: null
+    }
+    const snapshot = (requestNodeId: 'initiator_d20' | 'target_d20') =>
+      ({
+        schemaVersion: 1,
+        occurrenceId,
+        graph: {
+          schemaVersion: 1,
+          source: {
+            definitionId: ids.template,
+            gameSystemId: ids.system,
+            definitionFamilyKey: 'optional-combat',
+            checksum
+          },
+          capabilityContractVersion: 1,
+          factContracts: [],
+          nodes: [],
+          outputs: {}
+        },
+        facts: {},
+        nextNodeIndex: 0,
+        nodeOutputs: {},
+        trace: [],
+        request: {
+          requestId: requestNodeId,
+          kind: 'INTEGER_RANGE',
+          nodeId: requestNodeId,
+          ordinal: 0,
+          min: 1,
+          max: 20
+        },
+        authority: 'APPLICATION_SERVICE',
+        redaction: 'SERVER_ONLY',
+        seal: checksum,
+        snapshotKind: 'KERNEL_EVIDENCE',
+        optionalCombatSnapshotChecksum: checksum,
+        applicationContext: context
+      }) as ServerKernelRuleExecutionPendingSnapshotDto
+    const occurrence = (pendingSnapshot: ServerKernelRuleExecutionPendingSnapshotDto) => ({
+      id: occurrenceId,
+      aggregateKind: 'ENCOUNTER' as const,
+      aggregateId: turnEncounter.id,
+      rootCommandId: ids.command,
+      rootCommandFingerprint: checksum,
+      commandType: 'RESOLVE_ACTION',
+      actorUserId: ids.owner,
+      correlationId: null,
+      expectedAggregateVersion: turnEncounter.version,
+      version: 0,
+      state: 'PENDING' as const,
+      pendingSnapshot,
+      createdAt: '2026-08-31T00:00:00.000Z',
+      updatedAt: '2026-08-31T00:00:00.000Z',
+      completedAt: null
+    })
+    const defenderActor = {
+      ...turnActor,
+      id: context.targetActorId,
+      sourceId: defenderCharacter,
+      label: 'Defender'
+    }
+    const encounterWithDefender = {
+      ...turnEncounter,
+      actors: [...turnEncounter.actors, defenderActor]
+    }
+    const lockAs = (role: 'OWNER' | 'PLAYER', assignedCharacterId: string | null) =>
+      mocks.lockedContext.mockResolvedValue({
+        encounter: encounterWithDefender,
+        context: {
+          campaignId: ids.campaign,
+          role,
+          assignedCharacterId,
+          attunementSlotOverride: null
+        }
+      })
+
+    mocks.sqlRows.mockResolvedValue({ rows: [] })
+    mocks.occurrences.lockPendingEncounter.mockResolvedValue(occurrence(snapshot('initiator_d20')))
+    lockAs('OWNER', null)
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, ids.owner, turnEncounter.id)
+    ).resolves.toMatchObject({ kind: 'D20_EVIDENCE', request: { requestId: 'initiator_d20' } })
+
+    lockAs('PLAYER', initiatorCharacter)
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, initiatorController, turnEncounter.id)
+    ).resolves.toMatchObject({ kind: 'D20_EVIDENCE', request: { requestId: 'initiator_d20' } })
+
+    lockAs('PLAYER', defenderCharacter)
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, defenderController, turnEncounter.id)
+    ).resolves.toBeNull()
+
+    lockAs('PLAYER', unrelatedPlayer)
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, unrelatedPlayer, turnEncounter.id)
+    ).resolves.toBeNull()
+
+    lockAs('PLAYER', ids.otherSystem)
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, initiatorController, turnEncounter.id)
+    ).resolves.toBeNull()
+
+    mocks.occurrences.lockPendingEncounter.mockResolvedValue(occurrence(snapshot('target_d20')))
+    lockAs('PLAYER', defenderCharacter)
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, defenderController, turnEncounter.id)
+    ).resolves.toMatchObject({ kind: 'D20_EVIDENCE', request: { requestId: 'target_d20' } })
+  })
+
+  it('reconnects kernel-phase declarations only to the current Character controller', async () => {
+    const formerController = '00000000-0000-4000-8000-000000000097'
+    const currentController = '00000000-0000-4000-8000-000000000098'
+    const unrelatedPlayer = '00000000-0000-4000-8000-000000000099'
+    const occurrenceId = '00000000-0000-4000-8000-000000000096'
+    const policyChecksum = 'e'.repeat(64)
+    const primaryOptions = [
+      {
+        kind: 'CHARACTER_ACTION' as const,
+        optionId: 'action:longsword',
+        label: 'Longsword',
+        selectionContract: policyChecksum
+      }
+    ]
+    const adjudicationFields: InitiativeDeclarationAdjudicationFieldDto[] = [
+      {
+        kind: 'SELECT' as const,
+        key: 'actorSize',
+        required: true,
+        label: 'Actor size',
+        options: [{ value: 'MEDIUM', label: 'Medium' }]
+      }
+    ]
+    const pendingSnapshot: ServerKernelRuleExecutionPendingSnapshotDto = {
+      schemaVersion: 1,
+      occurrenceId,
+      graph: {
+        schemaVersion: 1,
+        source: {
+          definitionId: ids.template,
+          gameSystemId: ids.system,
+          definitionFamilyKey: 'initiative-score',
+          checksum: policyChecksum
+        },
+        capabilityContractVersion: 1,
+        factContracts: [],
+        nodes: [
+          {
+            id: 'resolve',
+            operation: { key: 'initiative.resolve', contractVersion: 1 },
+            inputs: {}
+          }
+        ],
+        outputs: { result: { kind: 'NODE_OUTPUT', nodeId: 'resolve', port: 'result' } }
+      },
+      facts: {},
+      nextNodeIndex: 0,
+      nodeOutputs: {},
+      trace: [],
+      request: {
+        requestId: 'kernel-declaration',
+        kind: 'INTEGER_RANGE',
+        nodeId: 'resolve',
+        ordinal: 0,
+        min: 0,
+        max: 1
+      },
+      authority: 'APPLICATION_SERVICE',
+      redaction: 'SERVER_ONLY',
+      seal: 'b'.repeat(64),
+      snapshotKind: 'KERNEL_EVIDENCE',
+      optionalCombatSnapshotChecksum: null,
+      applicationContext: {
+        kind: 'ENCOUNTER_INITIATIVE',
+        schemaVersion: 1,
+        root: {
+          rootCommandId: ids.command,
+          commandFingerprint: policyChecksum,
+          commandType: 'START',
+          initiatorUserId: ids.owner,
+          correlationId: null,
+          expectedEncounterVersion: turnEncounter.version,
+          round: 1,
+          policySnapshotChecksum: policyChecksum,
+          initiativeBeforePin: { kind: 'INITIAL_START', actorIds: [turnActor.id] },
+          stagedInitiativeRoundState: stagedInitiativeRound({
+            round: 1,
+            cadence: 'ENCOUNTER_START',
+            checksum: policyChecksum
+          }),
+          startSystemId: null,
+          resolutionCommands: []
+        },
+        phase: {
+          kind: 'INITIATIVE_DECLARATION',
+          actorId: turnActor.id,
+          participantVersion: 0,
+          requestId: 'kernel-declaration',
+          primaryOptions,
+          bonusOptions: [],
+          adjudicationFields
+        }
+      }
+    }
+    mocks.occurrences.lockPendingEncounter.mockResolvedValue({
+      id: occurrenceId,
+      aggregateKind: 'ENCOUNTER',
+      aggregateId: turnEncounter.id,
+      rootCommandId: ids.command,
+      rootCommandFingerprint: policyChecksum,
+      commandType: 'START',
+      actorUserId: ids.owner,
+      correlationId: null,
+      expectedAggregateVersion: turnEncounter.version,
+      version: 0,
+      state: 'PENDING',
+      pendingSnapshot,
+      createdAt: '2026-08-28T00:00:00.000Z',
+      updatedAt: '2026-08-28T00:00:00.000Z',
+      completedAt: null
+    })
+    mocks.sqlRows.mockResolvedValue({ rows: [{ user_id: currentController }] })
+    const lockAs = (userId: string, role: 'OWNER' | 'PLAYER', assignedCharacterId: string | null) =>
+      mocks.lockedContext.mockResolvedValue({
+        encounter: turnEncounter,
+        context: {
+          campaignId: ids.campaign,
+          role,
+          assignedCharacterId,
+          attunementSlotOverride: null
+        }
+      })
+
+    lockAs(ids.owner, 'OWNER', null)
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, ids.owner, turnEncounter.id)
+    ).resolves.toMatchObject({
+      kind: 'INITIATIVE_DECLARATION',
+      primaryOptions,
+      adjudicationFields
+    })
+
+    lockAs(currentController, 'PLAYER', turnActor.sourceId)
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, currentController, turnEncounter.id)
+    ).resolves.toMatchObject({
+      kind: 'INITIATIVE_DECLARATION',
+      primaryOptions,
+      adjudicationFields
+    })
+
+    lockAs(formerController, 'PLAYER', turnActor.sourceId)
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, formerController, turnEncounter.id)
+    ).resolves.toBeNull()
+
+    lockAs(unrelatedPlayer, 'PLAYER', ids.updateCommand)
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, unrelatedPlayer, turnEncounter.id)
+    ).resolves.toBeNull()
+  })
+
+  it('hides the next declaration from the prior controller after a declaration transition', async () => {
+    const controllerA = '00000000-0000-4000-8000-000000000097'
+    const controllerB = '00000000-0000-4000-8000-000000000098'
+    const occurrenceId = '00000000-0000-4000-8000-000000000096'
+    const policyChecksum = 'e'.repeat(64)
+    const actorB = {
+      ...turnActor,
+      id: ids.updateCommand,
+      sourceId: ids.updateCommand,
+      label: 'Second Hero',
+      manualOrder: 1
+    }
+    const encounter = { ...turnEncounter, actors: [turnActor, actorB] }
+    const transitionRoundState = {
+      ...stagedInitiativeRound({ round: 1, cadence: 'ENCOUNTER_START', checksum: policyChecksum }),
+      round: {
+        ...stagedInitiativeRound({ round: 1, cadence: 'ENCOUNTER_START', checksum: policyChecksum })
+          .round,
+        procedure: 'DECLARED_ACTION_ROLL' as const
+      },
+      participants: [
+        ...stagedInitiativeRound({ round: 1, cadence: 'ENCOUNTER_START', checksum: policyChecksum })
+          .participants,
+        {
+          ...stagedInitiativeRound({
+            round: 1,
+            cadence: 'ENCOUNTER_START',
+            checksum: policyChecksum
+          }).participants[0]!,
+          actorId: actorB.id,
+          version: 1
+        }
+      ]
+    }
+    const pendingSnapshot = createEncounterInitiativeDeclarationPendingSnapshot({
+      occurrenceId,
+      root: {
+        rootCommandId: ids.command,
+        commandFingerprint: policyChecksum,
+        commandType: 'START',
+        initiatorUserId: ids.owner,
+        correlationId: null,
+        expectedEncounterVersion: encounter.version,
+        round: 1,
+        policySnapshotChecksum: policyChecksum,
+        initiativeBeforePin: { kind: 'INITIAL_START', actorIds: [turnActor.id, actorB.id] },
+        stagedInitiativeRoundState: transitionRoundState,
+        startSystemId: null,
+        resolutionCommands: []
+      },
+      request: {
+        requestId: 'declaration-a',
+        kind: 'INITIATIVE_DECLARATION',
+        encounterId: encounter.id,
+        round: 1,
+        actorId: turnActor.id,
+        participantExpectedVersion: 0,
+        primaryOptions: [
+          {
+            kind: 'CHARACTER_ACTION',
+            optionId: 'action:longsword',
+            label: 'Longsword',
+            selectionContract: policyChecksum
+          }
+        ],
+        bonusOptions: [],
+        adjudicationFields: [],
+        controllerUserId: controllerA,
+        sourceOptionsChecksum: policyChecksum
+      }
+    })
+    const occurrence = {
+      id: occurrenceId,
+      aggregateKind: 'ENCOUNTER' as const,
+      aggregateId: encounter.id,
+      rootCommandId: ids.command,
+      rootCommandFingerprint: policyChecksum,
+      commandType: 'START',
+      actorUserId: ids.owner,
+      correlationId: null,
+      expectedAggregateVersion: encounter.version,
+      version: 0,
+      state: 'PENDING' as const,
+      pendingSnapshot,
+      createdAt: '2026-08-28T00:00:00.000Z',
+      updatedAt: '2026-08-28T00:00:00.000Z',
+      completedAt: null
+    }
+    const nextSource = {
+      kind: 'CHARACTER' as const,
+      actor: actorB,
+      characterId: actorB.sourceId,
+      systemId: ids.system,
+      streamVersion: 1,
+      mechanics: {
+        rulePolicyInput: {
+          actionCandidates: [
+            {
+              actionId: 'action:shield',
+              label: 'Shield',
+              mechanicFacts: { invocation: { activation: { code: 'ACTION' } } }
+            }
+          ],
+          spellCastCandidates: []
+        },
+        rulePolicyOutput: { spellCastMechanics: [] },
+        compiledActionEntryPoints: [
+          {
+            actionId: 'action:shield',
+            schemaVersion: 4,
+            compilation: {
+              kind: 'COMPILED',
+              executionPlan: {
+                kind: 'SINGLE_GRAPH',
+                published: { checksum: policyChecksum }
+              }
+            }
+          }
+        ]
+      }
+    }
+    const nextState = {
+      round: transitionRoundState.round,
+      participants: transitionRoundState.participants.map((participant) =>
+        participant.actorId === turnActor.id
+          ? {
+              ...participant,
+              declaration: {
+                actorSize: 'MEDIUM',
+                primary: {
+                  kind: 'GM_ADJUDICATED',
+                  optionId: 'GM_ADJUDICATED',
+                  actorId: turnActor.id,
+                  actionFactors: [],
+                  spellLevel: null
+                },
+                bonus: null
+              },
+              declarationChecksum: policyChecksum,
+              version: 1
+            }
+          : participant
+      ),
+      sides: []
+    }
+    const pauseHolder: { value: typeof occurrence | null } = { value: null }
+    mocks.lockedContext.mockResolvedValue({
+      encounter,
+      context: {
+        campaignId: ids.campaign,
+        role: 'PLAYER',
+        assignedCharacterId: turnActor.sourceId,
+        attunementSlotOverride: null
+      }
+    })
+    mocks.occurrences.lockOccurrence.mockResolvedValue(occurrence)
+    mocks.occurrences.findReceipt.mockResolvedValue(null)
+    mocks.encounter.requireCurrentProjection.mockResolvedValue({
+      projection: projectGm(encounter, { actors: [] })
+    })
+    mocks.sqlRows
+      .mockResolvedValueOnce({ rows: [{ user_id: controllerA }] })
+      .mockResolvedValueOnce({ rows: [{ user_id: controllerB }] })
+      .mockResolvedValueOnce({ rows: [{ user_id: controllerB }] })
+    mocks.resumeInitiativeDeclaration.mockResolvedValue({
+      kind: 'DECLARATION_PENDING',
+      state: nextState,
+      actorId: actorB.id,
+      source: nextSource
+    })
+    mocks.serializeStagedInitiative.mockImplementation(() => nextState)
+    mocks.occurrences.advancePending.mockImplementation(async (input) => {
+      pauseHolder.value = { ...occurrence, version: 1, pendingSnapshot: input.pendingSnapshot }
+      return pauseHolder.value
+    })
+
+    const result = await executeEncounterCommandWithRuleSnapshot(
+      {} as DBLike,
+      controllerA,
+      {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: encounter.id,
+        expectedVersion: encounter.version,
+        commandId: '00000000-0000-4000-8000-000000000095',
+        correlationId: null,
+        occurrenceId,
+        expectedOccurrenceVersion: 0,
+        resolution: {
+          kind: 'INITIATIVE_DECLARATION',
+          requestId: 'declaration-a',
+          primary: { kind: 'CHARACTER_ACTION', optionId: 'action:longsword' },
+          bonus: null
+        }
+      },
+      { rulesRuntime: {} as never }
+    )
+
+    const settledOccurrence = result.response.occurrence
+    if (!settledOccurrence) throw new Error('Expected settled occurrence.')
+    expect(settledOccurrence.pending).toBeNull()
+    const paused = pauseHolder.value
+    if (!paused) throw new Error('Expected paused occurrence.')
+    expect(paused.pendingSnapshot.applicationContext).toMatchObject({
+      kind: 'ENCOUNTER_INITIATIVE_DECLARATION',
+      request: { actorId: actorB.id }
+    })
+
+    mocks.lockedContext.mockResolvedValue({
+      encounter,
+      context: {
+        campaignId: ids.campaign,
+        role: 'PLAYER',
+        assignedCharacterId: actorB.sourceId,
+        attunementSlotOverride: null
+      }
+    })
+    mocks.occurrences.lockPendingEncounter.mockResolvedValue(paused)
+    mocks.sqlRows.mockResolvedValue({ rows: [{ user_id: controllerB }] })
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, controllerB, encounter.id)
+    ).resolves.toMatchObject({
+      kind: 'INITIATIVE_DECLARATION',
+      actorId: actorB.id,
+      primaryOptions: [{ optionId: 'action:shield', label: 'Shield' }]
+    })
   })
 
   it('keeps START prepared and version-stable while initiative evidence is pending', async () => {
@@ -3377,6 +4885,24 @@ describe('Encounter turn rule-receipt replay', () => {
       round: 2,
       currentActorId: ids.creature
     }
+    const refreshedActor = {
+      ...pendingEncounter.actors[0]!,
+      resources: { ruleUsage: { [ids.updateCommand]: 0 } }
+    }
+    mocks.stageActionEconomyRefreshes.mockResolvedValue({
+      refreshes: [
+        {
+          ordinal: 0,
+          actorId: ids.creature,
+          capabilityDefinitionId: ids.updateCommand,
+          definitionVersion: 1,
+          definitionChecksum: 'f'.repeat(64),
+          beforeUsed: 1,
+          afterUsed: 0
+        }
+      ],
+      refreshedActor
+    })
     mocks.lockedContext.mockResolvedValue({
       encounter: pendingEncounter,
       context: {
@@ -3453,6 +4979,7 @@ describe('Encounter turn rule-receipt replay', () => {
       })
     )
     expect(mocks.applyInitiativeAdvance).not.toHaveBeenCalled()
+    expect(mocks.encounter.updateActor).toHaveBeenCalledWith(refreshedActor)
     expect(mocks.occurrences.appendReceipt).toHaveBeenCalledWith(
       expect.objectContaining({
         resultPayload: expect.objectContaining({
@@ -4152,6 +5679,121 @@ describe('Encounter turn rule-receipt replay', () => {
     }
     return { occurrenceId, result }
   }
+
+  function pendingConcentrationOccurrence(targetActorId = ids.creature) {
+    return {
+      id: '00000000-0000-4000-8000-000000000098',
+      aggregateKind: 'ENCOUNTER' as const,
+      aggregateId: ids.command,
+      rootCommandId: '00000000-0000-4000-8000-000000000097',
+      expectedAggregateVersion: 3,
+      version: 0,
+      state: 'PENDING' as const,
+      pendingSnapshot: {
+        snapshotKind: 'KERNEL_EVIDENCE' as const,
+        applicationContext: {
+          kind: 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' as const,
+          application: { targetActorId },
+          maintainedState: { id: ids.template }
+        }
+      }
+    }
+  }
+
+  function concentrationRemovalCleanup() {
+    return {
+      result: {
+        terminatedStates: [
+          {
+            id: ids.template,
+            ownerActorId: ids.creature,
+            maintenanceDefinitionId: ids.updateCommand,
+            expectedVersion: 0,
+            descriptorChecksum: 'a'.repeat(64)
+          }
+        ],
+        removedEffects: [],
+        characterOwnerTransitions: []
+      },
+      changedCharacterActors: []
+    }
+  }
+
+  it('allows only removal of the exact pending concentration subject and terminally records cleanup', async () => {
+    const input = removalInput('00000000-0000-4000-8000-000000000096')
+    const encounter = {
+      ...turnEncounter,
+      status: 'ACTIVE' as const,
+      round: 1,
+      currentActorId: ids.creature
+    }
+    mocks.encounter.find.mockResolvedValue({
+      ...encounter,
+      actors: [],
+      currentActorId: null,
+      version: 4
+    })
+    mocks.occurrences.lockPendingEncounter.mockResolvedValue(pendingConcentrationOccurrence())
+    mocks.maintenanceCleanup.mockResolvedValue(concentrationRemovalCleanup())
+    mocks.encounter.removeActor.mockResolvedValue(true)
+
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input)
+    ).resolves.toMatchObject({ replayed: false })
+
+    expect(mocks.maintenanceCleanup).toHaveBeenCalledWith(
+      expect.objectContaining({ removedActorId: ids.creature })
+    )
+    expect(mocks.encounter.removeActor).toHaveBeenCalledWith(ids.command, ids.creature)
+    expect(mocks.occurrences.complete).toHaveBeenCalledWith({
+      aggregateKind: 'ENCOUNTER',
+      aggregateId: ids.command,
+      occurrenceId: '00000000-0000-4000-8000-000000000098',
+      expectedOccurrenceVersion: 0,
+      expectedAggregateVersion: 3,
+      nextAggregateVersion: 4
+    })
+    expect(mocks.occurrences.createCompleted).not.toHaveBeenCalled()
+    expect(mocks.occurrences.appendReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        occurrenceId: '00000000-0000-4000-8000-000000000098',
+        aggregateVersion: 4,
+        commandMetadata: expect.objectContaining({ expectedOccurrenceVersion: 0 }),
+        commandType: 'REMOVE_ACTOR'
+      })
+    )
+    expect(mocks.encounter.appendEvent).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the pending-occurrence gate closed when removal targets another actor', async () => {
+    const input = removalInput('00000000-0000-4000-8000-000000000096')
+    mocks.occurrences.lockPendingEncounter.mockResolvedValue(
+      pendingConcentrationOccurrence(ids.template)
+    )
+
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input)
+    ).rejects.toThrow('awaiting resolution')
+
+    expect(mocks.maintenanceCleanup).not.toHaveBeenCalled()
+    expect(mocks.encounter.removeActor).not.toHaveBeenCalled()
+    expect(mocks.occurrences.complete).not.toHaveBeenCalled()
+    expect(mocks.encounter.appendEvent).not.toHaveBeenCalled()
+  })
+
+  it('rolls back exact concentration removal before actor mutation when cleanup is incomplete', async () => {
+    const input = removalInput('00000000-0000-4000-8000-000000000096')
+    mocks.occurrences.lockPendingEncounter.mockResolvedValue(pendingConcentrationOccurrence())
+
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input)
+    ).rejects.toThrow('did not terminate')
+
+    expect(mocks.encounter.removeActor).not.toHaveBeenCalled()
+    expect(mocks.occurrences.complete).not.toHaveBeenCalled()
+    expect(mocks.occurrences.appendReceipt).not.toHaveBeenCalled()
+    expect(mocks.encounter.appendEvent).not.toHaveBeenCalled()
+  })
 
   it('replays an exact actor-removal maintenance receipt before cleanup or mutation', async () => {
     const input = removalInput()
@@ -5641,5 +7283,1148 @@ describe('Encounter rule-occurrence dispatch authority', () => {
       })
     )
     expect(mocks.settleReactionAction).not.toHaveBeenCalled()
+  })
+
+  function passageFixture(
+    automationMode: 'AUTOMATIC' | 'ASSISTED' = 'AUTOMATIC',
+    withPriorReaction = false,
+    withLaterBlocker = false,
+    blockerCharacterId: string | null = null
+  ) {
+    const occurrenceId = '00000000-0000-4000-8000-0000000000b1'
+    const sceneId = '00000000-0000-4000-8000-0000000000b2'
+    const moverActorId = '00000000-0000-4000-8000-0000000000b3'
+    const blockerActorId = '00000000-0000-4000-8000-0000000000b4'
+    const moverTokenId = '00000000-0000-4000-8000-0000000000b5'
+    const blockerTokenId = '00000000-0000-4000-8000-0000000000b6'
+    const laterBlockerActorId = '00000000-0000-4000-8000-0000000000c1'
+    const laterBlockerTokenId = '00000000-0000-4000-8000-0000000000c2'
+    const allowanceDefinitionId = '00000000-0000-4000-8000-0000000000b7'
+    const createdAt = '2026-09-01T00:00:00.000Z'
+    const actor = (id: string, label: string) => ({
+      id,
+      encounterId: ids.command,
+      kind: 'CUSTOM' as const,
+      sourceId: null,
+      sourceRevision: null,
+      label,
+      systemId: ids.system,
+      stableTieKey: label.toLowerCase(),
+      public: true,
+      currentHitPoints: 10,
+      maxHitPoints: 10,
+      tempHitPoints: 0,
+      conditions: [],
+      resources: {},
+      gmNotes: null,
+      initiative: 10,
+      manualOrder: 0,
+      snapshot: { kind: 'CUSTOM', systemId: ids.system },
+      createdAt,
+      updatedAt: createdAt
+    })
+    const mover = actor(moverActorId, 'Mover')
+    const blocker = blockerCharacterId
+      ? {
+          ...actor(blockerActorId, 'Blocker'),
+          kind: 'CHARACTER' as const,
+          sourceId: blockerCharacterId,
+          snapshot: { kind: 'CHARACTER' as const, characterId: blockerCharacterId }
+        }
+      : actor(blockerActorId, 'Blocker')
+    const laterBlocker = actor(laterBlockerActorId, 'Later blocker')
+    const encounter = {
+      id: ids.command,
+      campaignId: ids.campaign,
+      sessionId: ids.template,
+      gameSystemId: ids.system,
+      blueprintId: ids.template,
+      blueprintVersion: 1,
+      blueprintChecksum: '1'.repeat(64),
+      rulePackRevisionId: ids.template,
+      automationMode,
+      manualReminderMode: 'OFF' as const,
+      name: 'Passage proof',
+      status: 'ACTIVE' as const,
+      version: 3,
+      round: 1,
+      currentActorId: moverActorId,
+      optionalCombatSnapshot: null,
+      optionalCombatSnapshotChecksum: '2'.repeat(64),
+      initiativePolicySnapshot: null,
+      initiativePolicySnapshotChecksum: null,
+      actors: [mover, blocker, ...(withLaterBlocker ? [laterBlocker] : [])],
+      reminders: [],
+      createdAt,
+      updatedAt: createdAt
+    }
+    const movingToken = {
+      id: moverTokenId,
+      actorId: moverActorId,
+      position: { x: 1, y: 0 },
+      width: 1,
+      height: 1
+    }
+    const blockerToken = {
+      id: blockerTokenId,
+      actorId: blockerActorId,
+      position: { x: 2, y: 0 },
+      width: 1,
+      height: 1
+    }
+    const laterBlockerToken = {
+      id: laterBlockerTokenId,
+      actorId: laterBlockerActorId,
+      position: { x: 3.5, y: 0 },
+      width: 1,
+      height: 1
+    }
+    const priorReactionExecution = {
+      ordinal: 0,
+      sourceCommandId: '00000000-0000-4000-8000-0000000000b8',
+      option: {
+        optionId: 'a'.repeat(64),
+        contactSourceId: 'b'.repeat(64),
+        actionId: 'prior-passage-reaction',
+        actionSourceKind: 'ENCOUNTER_FEATURE' as const,
+        actionSourceCurrentnessChecksum: 'c'.repeat(64),
+        candidate: {
+          contact: { x: 0.5, y: 0 },
+          movingActorId: moverActorId,
+          pathDistance: 0.5,
+          reactorActorId: blockerActorId,
+          reactorTokenId: blockerTokenId,
+          sourceId: 'b'.repeat(64),
+          stage: 'BEFORE_LEAVE_REACH' as const
+        },
+        binding: {
+          kind: 'MOVEMENT' as const,
+          stage: 'BEFORE_LEAVE_REACH' as const,
+          perceptionRequirement: null,
+          eligibilityDefinitionId: ids.template,
+          movementInterruption: null
+        },
+        policy: {
+          eligible: true,
+          allowanceDefinitionId: allowanceDefinitionId,
+          allowanceMaximum: 1,
+          allowanceRefreshBoundary: 'START_OF_TURN' as const,
+          selectionPolicy: 'AUTOMATIC' as const,
+          choiceDefinitionId: null,
+          targetPolicy: 'MOVER' as const
+        },
+        eligibilityEvidenceChecksum: 'd'.repeat(64),
+        authority: { kind: 'GM' as const },
+        visibility: 'GM_ONLY' as const
+      },
+      allowance: {
+        definitionId: allowanceDefinitionId,
+        maximum: 1,
+        beforeUsed: 0,
+        afterUsed: 1
+      },
+      execution: {
+        status: 'COMPLETE' as const,
+        outputs: {},
+        evidence: {
+          source: {
+            definitionId: ids.template,
+            gameSystemId: ids.system,
+            definitionFamilyKey: 'reaction',
+            checksum: 'e'.repeat(64)
+          },
+          capabilityContractVersion: 1,
+          facts: {},
+          trace: [],
+          outputs: {}
+        }
+      },
+      application: { kind: 'NONE' as const },
+      legendaryResistance: null,
+      characterTransitions: []
+    }
+    const movement = {
+      root: {
+        commandId: '00000000-0000-4000-8000-0000000000b8',
+        commandFingerprint: '3'.repeat(64),
+        initiatorUserId: ids.owner,
+        correlationId: null,
+        encounterId: ids.command,
+        sceneId,
+        tokenId: moverTokenId,
+        expectedEncounterVersion: 3,
+        expectedSceneVersion: 0,
+        movementKind: 'VOLUNTARY' as const,
+        originalPath: [
+          { x: 0, y: 0 },
+          { x: 3, y: 0 }
+        ],
+        pathChecksum: checksumRuleDocument([
+          { x: 0, y: 0 },
+          { x: 3, y: 0 }
+        ]),
+        pathStartDistance: 1,
+        currentPosition: { x: 1, y: 0 },
+        currentSceneVersion: 1,
+        resolutionCommands: []
+      },
+      blockerActorId,
+      blockerTokenId,
+      contact: { x: 1, y: 0 },
+      contactPathDistance: 1,
+      blockerCurrentnessChecksum: checksumRuleDocument({
+        actorId: blockerActorId,
+        tokenId: blockerTokenId,
+        footprint: blockerToken
+      }),
+      ...(withLaterBlocker
+        ? {
+            nextPassageStop: {
+              blockerActorId: laterBlockerActorId,
+              blockerTokenId: laterBlockerTokenId,
+              contact: { x: 2.5, y: 0 },
+              pathDistance: 2.5,
+              blockerCurrentnessChecksum: checksumRuleDocument({
+                actorId: laterBlockerActorId,
+                tokenId: laterBlockerTokenId,
+                footprint: laterBlockerToken
+              })
+            }
+          }
+        : {}),
+      spatialSelectionChecksum: '4'.repeat(64),
+      spatialCurrentnessChecksum: '5'.repeat(64),
+      completedSpatialExecutions: [],
+      appliedSpatialPrefix: null,
+      completedReactionExecutions: withPriorReaction ? [priorReactionExecution] : [],
+      remainingSpatialCandidates: [],
+      reactionTimeline: []
+    }
+    const choice = createEncounterMovementPassageChoice({
+      movement,
+      sourceActorId: moverActorId,
+      sourceControllerCharacterId: null,
+      options: [
+        {
+          ruleKind: 'OVERRUN',
+          economy: 'ACTION',
+          definitionId: '00000000-0000-4000-8000-0000000000b9',
+          definitionVersion: 1,
+          definitionChecksum: '6'.repeat(64),
+          moduleKey: 'optional-combat.overrun',
+          moduleContractVersion: 1
+        }
+      ]
+    })
+    const pendingPassageContest = (
+      actionEconomy: NonNullable<
+        ServerOptionalCombatContestPendingApplicationContextDto['actionEconomy']
+      >
+    ): ServerOptionalCombatContestPendingApplicationContextDto => ({
+      kind: 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST',
+      schemaVersion: 1,
+      actionKind: 'OVERRUN',
+      actionId: choice.options[0]!.optionId,
+      sourceActorId: moverActorId,
+      targetActorId: blockerActorId,
+      initiatorControllerCharacterId: null,
+      sceneContext: {
+        sceneId,
+        sceneVersion: 1,
+        sourceTokenId: moverTokenId,
+        targetTokenId: blockerTokenId
+      },
+      positionalDependencyChecksum: checksumRuleDocument(movement),
+      optionalCombat: {
+        snapshotChecksum: encounter.optionalCombatSnapshotChecksum!,
+        definitionId: choice.options[0]!.definitionId,
+        definitionVersion: choice.options[0]!.definitionVersion,
+        definitionChecksum: choice.options[0]!.definitionChecksum,
+        moduleKey: choice.options[0]!.moduleKey,
+        moduleContractVersion: choice.options[0]!.moduleContractVersion
+      },
+      contestGraph: {
+        definitionId: ids.template,
+        checksum: '8'.repeat(64),
+        identityChecksum: '9'.repeat(64)
+      },
+      optionId: choice.options[0]!.optionId,
+      selectionContractChecksum: checksumRuleDocument(choice.options[0]),
+      resolvedSelectionChecksum: checksumRuleDocument({ optionId: choice.options[0]!.optionId }),
+      source: {
+        kind: 'OPTIONAL_COMBAT_DEFINITION',
+        definitionId: choice.options[0]!.definitionId,
+        definitionVersion: choice.options[0]!.definitionVersion,
+        definitionChecksum: choice.options[0]!.definitionChecksum,
+        moduleKey: choice.options[0]!.moduleKey,
+        moduleContractVersion: choice.options[0]!.moduleContractVersion
+      },
+      target: {
+        kind: 'ENCOUNTER_ACTOR',
+        currentnessChecksum: movement.blockerCurrentnessChecksum
+      },
+      initiator: {
+        actorId: moverActorId,
+        requestNodeId: 'initiator_d20',
+        rollMode: 'NORMAL',
+        contributors: [],
+        contributorChecksum: checksumRuleDocument([]),
+        modifier: 0
+      },
+      defender: {
+        actorId: blockerActorId,
+        requestNodeId: 'target_d20',
+        rollMode: 'NORMAL',
+        contributors: [],
+        contributorChecksum: checksumRuleDocument([]),
+        modifier: 0,
+        checkDefinitionId: ids.otherSystem
+      },
+      rollEvidence: { initiator: null, defender: null },
+      selection: {
+        kind: 'OVERRUN',
+        economy: choice.options[0]!.economy,
+        defenderCheckDefinitionId: ids.otherSystem
+      },
+      actionEconomy,
+      movementContinuation: movement
+    })
+    const contestGraph = createDnd5eOptionalCombatContestGraph({
+      definitionId: choice.options[0]!.definitionId,
+      definitionVersion: choice.options[0]!.definitionVersion,
+      definitionChecksum: choice.options[0]!.definitionChecksum,
+      moduleKey: choice.options[0]!.moduleKey,
+      moduleContractVersion: choice.options[0]!.moduleContractVersion
+    })
+    const operations = createRuleOperationRegistry(coreRuleOperations)
+    const compiledContest = compileRuleGraph({
+      definition: contestGraph.published.definition,
+      sourceChecksum: contestGraph.published.checksum,
+      capability: {
+        gameSystemId: DND5E_SYSTEM_ID,
+        contractVersion: 1,
+        authoredRootKinds: [],
+        ...dnd5eOptionalCombatContestCapabilityContribution
+      },
+      operations
+    })
+    if (!compiledContest.ok) throw new Error('Expected passage contest graph to compile.')
+    const initiatorPending = executeRuleGraph({
+      graph: compiledContest.value,
+      occurrenceId,
+      facts: {
+        [DND5E_OPTIONAL_COMBAT_CONTEST_INITIATOR_MODIFIER_FACT_KEY]: 0,
+        [DND5E_OPTIONAL_COMBAT_CONTEST_TARGET_MODIFIER_FACT_KEY]: 0
+      },
+      operations
+    })
+    if (initiatorPending.status !== 'PAUSED')
+      throw new Error('Expected an initiator passage request.')
+    const defenderPending = resumeRuleGraph({
+      continuation: initiatorPending.continuation,
+      response: { requestId: initiatorPending.continuation.request.requestId, value: 15 },
+      operations
+    })
+    if (defenderPending.status !== 'PAUSED') throw new Error('Expected a defender passage request.')
+    const pendingSnapshot = {
+      snapshotKind: 'AGGREGATE_CHOICE' as const,
+      schemaVersion: 1 as const,
+      occurrenceId,
+      optionalCombatSnapshotChecksum: encounter.optionalCombatSnapshotChecksum,
+      applicationContext: choice
+    }
+    const occurrence = {
+      id: occurrenceId,
+      aggregateKind: 'ENCOUNTER' as const,
+      aggregateId: ids.command,
+      rootCommandId: movement.root.commandId,
+      rootCommandFingerprint: movement.root.commandFingerprint,
+      commandType: 'MOVE_SCENE_TOKEN',
+      actorUserId: ids.owner,
+      correlationId: null,
+      expectedAggregateVersion: 3,
+      version: 0,
+      state: 'PENDING' as const,
+      pendingSnapshot,
+      createdAt,
+      updatedAt: createdAt,
+      completedAt: null
+    }
+    const sceneState = {
+      id: sceneId,
+      version: 1,
+      tokens: [movingToken, blockerToken, ...(withLaterBlocker ? [laterBlockerToken] : [])]
+    }
+    const actorRules = {
+      actors: [mover, blocker, ...(withLaterBlocker ? [laterBlocker] : [])].map((candidate) => ({
+        actorId: candidate.id,
+        initiativeModifier: 0,
+        targetProtection: { status: 'NOT_NORMALIZED' as const },
+        featureResources: []
+      }))
+    }
+    const updatedEncounter = { ...encounter, version: 4 }
+    const advanceVersion = vi.fn().mockResolvedValue(4)
+    mocks.lockedContext.mockResolvedValue({
+      encounter,
+      context: {
+        role: 'OWNER',
+        campaignId: ids.campaign,
+        assignedCharacterId: null,
+        attunementSlotOverride: null,
+        currentVersion: 3,
+        advanceVersion
+      }
+    })
+    mocks.occurrences.lockOccurrence.mockResolvedValue(occurrence)
+    mocks.scene.findEncounterBinding.mockResolvedValue({ sceneId })
+    mocks.scene.listActorTokenBindings.mockResolvedValue([
+      { actorId: moverActorId, tokenId: moverTokenId },
+      { actorId: blockerActorId, tokenId: blockerTokenId },
+      ...(withLaterBlocker ? [{ actorId: laterBlockerActorId, tokenId: laterBlockerTokenId }] : [])
+    ])
+    mocks.scene.lockLiveScene.mockResolvedValue({ definitionSnapshot: {}, state: sceneState })
+    mocks.spatialRuleEffects.lockScope.mockResolvedValue({})
+    mocks.lockActiveEffectTargets.mockResolvedValue({
+      characterIds: [],
+      encounterActorIds: [
+        moverActorId,
+        blockerActorId,
+        ...(withLaterBlocker ? [laterBlockerActorId] : [])
+      ],
+      lockedCharacters: new Map(),
+      encounterActors: new Map([
+        [moverActorId, mover],
+        [blockerActorId, blocker],
+        ...(withLaterBlocker ? ([[laterBlockerActorId, laterBlocker]] as const) : [])
+      ]),
+      activeEffectsByActorId: new Map(),
+      baseScalarValuesByActorId: new Map(),
+      effectiveScalarValuesByActorId: new Map(),
+      encounterActorRules: actorRules
+    })
+    mocks.encounter.find.mockResolvedValue(updatedEncounter)
+    mocks.actorEvaluation.mockResolvedValue({
+      snapshot: {
+        encounterVersion: 4,
+        revisionId: ids.template,
+        facts: { contractVersion: 1, actors: [] },
+        output: actorRules
+      },
+      reconciledEncounter: updatedEncounter,
+      actorUpdates: [],
+      zenEvaluationMs: 0
+    })
+    mocks.encounter.requireCurrentProjection.mockResolvedValue({
+      projection: projectGm(updatedEncounter, actorRules)
+    })
+    mocks.occurrences.complete.mockResolvedValue({
+      ...occurrence,
+      version: 1,
+      state: 'COMPLETED',
+      pendingSnapshot: null,
+      completedAt: createdAt
+    })
+    return {
+      advanceVersion,
+      allowanceDefinitionId,
+      actorRules,
+      blocker,
+      laterBlocker,
+      laterBlockerToken,
+      choice,
+      encounter,
+      mover,
+      movement,
+      occurrence,
+      pendingPassageContest,
+      passageContinuations: {
+        initiator: { ...initiatorPending.continuation, seal: 'a'.repeat(64) },
+        defender: { ...defenderPending.continuation, seal: 'b'.repeat(64) }
+      },
+      priorReactionExecution,
+      sceneState,
+      updatedEncounter
+    }
+  }
+
+  it('declines a sealed movement passage without rolling, consuming economy, or advancing the token', async () => {
+    const fixture = passageFixture()
+    mocks.commitSpatialMovement.mockResolvedValue({
+      state: fixture.sceneState,
+      version: fixture.sceneState.version,
+      delta: null
+    })
+    const input = {
+      ...occurrenceInput,
+      occurrenceId: fixture.occurrence.id,
+      resolution: { kind: 'PASSAGE_DECLINE' as const }
+    }
+
+    const result = await executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input, {
+      rulesRuntime: {} as never
+    })
+
+    expect(result).toMatchObject({
+      replayed: false,
+      response: { occurrence: { occurrenceId: fixture.occurrence.id, status: 'COMPLETE' } }
+    })
+    expect(mocks.preparePassageContest).not.toHaveBeenCalled()
+    expect(mocks.executePassageContest).not.toHaveBeenCalled()
+    expect(mocks.encounter.updateActor).not.toHaveBeenCalled()
+    expect(mocks.spatialEvaluation).not.toHaveBeenCalled()
+    expect(mocks.commitSpatialMovement).toHaveBeenCalledWith(
+      expect.objectContaining({ startDistance: 1, endDistance: 1 })
+    )
+    expect(mocks.occurrences.complete).toHaveBeenCalledWith(
+      expect.objectContaining({ occurrenceId: fixture.occurrence.id })
+    )
+    expect(mocks.occurrences.appendReceipt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        commandId: input.commandId,
+        commandMetadata: expect.objectContaining({
+          resolutionCommands: [expect.objectContaining({ kind: 'PASSAGE_DECLINE' })]
+        })
+      })
+    )
+  })
+
+  it('reconnects a passage choice only to its controller with compact public options', async () => {
+    const fixture = passageFixture('ASSISTED')
+    const controllerCharacterId = '00000000-0000-4000-8000-0000000000c0'
+    const pendingOccurrence = {
+      ...fixture.occurrence,
+      pendingSnapshot: {
+        ...fixture.occurrence.pendingSnapshot,
+        applicationContext: {
+          ...fixture.choice,
+          sourceControllerCharacterId: controllerCharacterId
+        }
+      }
+    }
+    mocks.occurrences.lockPendingEncounter.mockResolvedValue(pendingOccurrence)
+    mocks.lockedContext.mockResolvedValue({
+      encounter: fixture.encounter,
+      context: {
+        role: 'PLAYER',
+        campaignId: fixture.encounter.campaignId,
+        assignedCharacterId: controllerCharacterId,
+        attunementSlotOverride: null
+      }
+    })
+
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, ids.owner, fixture.encounter.id)
+    ).resolves.toEqual({
+      kind: 'MOVEMENT_PASSAGE_CHOICE',
+      occurrenceId: fixture.occurrence.id,
+      occurrenceVersion: fixture.occurrence.version,
+      encounterVersion: fixture.encounter.version,
+      sourceActorId: fixture.choice.sourceActorId,
+      options: fixture.choice.options.map(({ economy, optionId, ruleKind }) => ({
+        economy,
+        optionId,
+        ruleKind
+      })),
+      allowedResponses: ['DECLINE', 'OPTION']
+    })
+
+    mocks.lockedContext.mockResolvedValue({
+      encounter: fixture.encounter,
+      context: {
+        role: 'PLAYER',
+        campaignId: fixture.encounter.campaignId,
+        assignedCharacterId: ids.otherSystem,
+        attunementSlotOverride: null
+      }
+    })
+    await expect(
+      getPendingEncounterRuleOccurrence({} as DBLike, ids.otherSystem, fixture.encounter.id)
+    ).resolves.toBeNull()
+  })
+
+  it.each([['SUCCESS', true] as const, ['TIE_OR_FAILURE', false] as const])(
+    'settles automatic Overrun %s on the same occurrence and consumes its allowance once',
+    async (outcome, continues) => {
+      const fixture = passageFixture('AUTOMATIC', !continues)
+      const actionEconomy = {
+        definitionId: fixture.allowanceDefinitionId,
+        definitionVersion: 1,
+        definitionChecksum: '7'.repeat(64),
+        maximum: 1,
+        beforeUsed: 0
+      }
+      mocks.preparePassageContest.mockResolvedValue(fixture.pendingPassageContest(actionEconomy))
+      mocks.executePassageContest.mockResolvedValue({
+        kind: 'COMPLETE',
+        outcome,
+        evidence: {
+          initiatorRawFaces: [15],
+          defenderRawFaces: [continues ? 10 : 15],
+          initiatorTotal: 15,
+          defenderTotal: continues ? 10 : 15
+        }
+      })
+      mocks.commitSpatialMovement.mockResolvedValue({
+        state: {
+          ...fixture.sceneState,
+          version: continues ? 2 : 1,
+          tokens: fixture.sceneState.tokens.map((token) =>
+            token.id === fixture.movement.root.tokenId && continues
+              ? { ...token, position: { x: 3, y: 0 } }
+              : token
+          )
+        },
+        version: continues ? 2 : 1,
+        delta: continues ? { kind: 'TOKEN_MOVED', tokenId: fixture.movement.root.tokenId } : null
+      })
+      if (continues) {
+        mocks.spatialEvaluation.mockImplementation(async ({ frozenReactionRemainder }) => ({
+          kind: 'TERMINAL',
+          result: {
+            status: 'MOVEMENT_COMPLETE',
+            schemaVersion: 1,
+            occurrenceId: fixture.occurrence.id,
+            occurrenceVersion: 1,
+            encounterId: ids.command,
+            encounterVersion: 4,
+            sceneId: fixture.sceneState.id,
+            sceneVersion: 2,
+            tokenId: fixture.movement.root.tokenId,
+            movementKind: 'VOLUNTARY',
+            reactionExecutions: [],
+            terminalPosition: { x: 3, y: 0 }
+          },
+          movementIntent: { tokenId: fixture.movement.root.tokenId, position: { x: 3, y: 0 } },
+          resolutionCommands: [...frozenReactionRemainder.root.resolutionCommands],
+          selectionChecksum: fixture.movement.spatialSelectionChecksum,
+          currentnessChecksum: fixture.movement.spatialCurrentnessChecksum
+        }))
+      }
+      const input = {
+        ...occurrenceInput,
+        occurrenceId: fixture.occurrence.id,
+        resolution: {
+          kind: 'PASSAGE_OPTION' as const,
+          optionId: fixture.choice.options[0]!.optionId
+        }
+      }
+
+      await expect(
+        executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input, {
+          rulesRuntime: {} as never
+        })
+      ).resolves.toMatchObject({
+        replayed: false,
+        response: { occurrence: { occurrenceId: fixture.occurrence.id, status: 'COMPLETE' } }
+      })
+
+      expect(mocks.preparePassageContest).toHaveBeenCalledWith(
+        expect.objectContaining({ optionId: fixture.choice.options[0]!.optionId })
+      )
+      expect(mocks.executePassageContest).toHaveBeenCalledTimes(1)
+      expect(mocks.encounter.updateActor).toHaveBeenCalledTimes(1)
+      expect(mocks.encounter.updateActor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: fixture.mover.id,
+          resources: { ruleUsage: { [fixture.allowanceDefinitionId]: 1 } }
+        })
+      )
+      expect(mocks.occurrences.appendReceipt).toHaveBeenCalledWith(
+        expect.objectContaining({
+          commandId: input.commandId,
+          commandMetadata: expect.objectContaining({
+            resolutionCommands: [
+              expect.objectContaining({
+                kind: 'PASSAGE_OPTION',
+                optionId: fixture.choice.options[0]!.optionId,
+                passageContest: expect.objectContaining({
+                  actionKind: 'OVERRUN',
+                  outcome,
+                  actionEconomy: expect.objectContaining({ beforeUsed: 0, afterUsed: 1 }),
+                  audit: expect.objectContaining({
+                    optionalCombat: {
+                      definitionId: fixture.choice.options[0]!.definitionId,
+                      definitionVersion: fixture.choice.options[0]!.definitionVersion,
+                      definitionChecksum: fixture.choice.options[0]!.definitionChecksum,
+                      moduleKey: fixture.choice.options[0]!.moduleKey,
+                      moduleContractVersion: fixture.choice.options[0]!.moduleContractVersion
+                    },
+                    sourceActorId: fixture.mover.id,
+                    sourceTokenId: fixture.movement.root.tokenId,
+                    blockerActorId: fixture.blocker.id,
+                    blockerTokenId: fixture.movement.blockerTokenId,
+                    contact: fixture.movement.contact,
+                    contactPathDistance: fixture.movement.contactPathDistance,
+                    blockerCurrentnessChecksum: fixture.movement.blockerCurrentnessChecksum,
+                    spatialSelectionChecksum: fixture.movement.spatialSelectionChecksum,
+                    spatialCurrentnessChecksum: fixture.movement.spatialCurrentnessChecksum
+                  })
+                })
+              })
+            ]
+          })
+        })
+      )
+      const storedPassageCommand = mocks.occurrences.appendReceipt.mock.calls
+        .at(-1)![0]
+        .commandMetadata.resolutionCommands.at(-1)
+      expect(movementRuleResolutionCommandDtoSchema.parse(storedPassageCommand)).toMatchObject({
+        passageContest: {
+          audit: expect.objectContaining({
+            sourceActorId: fixture.mover.id,
+            sourceTokenId: fixture.movement.root.tokenId,
+            blockerActorId: fixture.blocker.id,
+            blockerTokenId: fixture.movement.blockerTokenId,
+            contact: fixture.movement.contact,
+            contactPathDistance: fixture.movement.contactPathDistance,
+            blockerCurrentnessChecksum: fixture.movement.blockerCurrentnessChecksum,
+            spatialSelectionChecksum: fixture.movement.spatialSelectionChecksum,
+            spatialCurrentnessChecksum: fixture.movement.spatialCurrentnessChecksum
+          })
+        }
+      })
+      if (continues) {
+        expect(mocks.spatialEvaluation).toHaveBeenCalledWith(
+          expect.objectContaining({
+            frozenReactionRemainder: expect.objectContaining({
+              root: expect.objectContaining({ pathStartDistance: 1 }),
+              remainingSpatialCandidates: fixture.movement.remainingSpatialCandidates,
+              reactionTimeline: fixture.movement.reactionTimeline
+            })
+          })
+        )
+        expect(mocks.commitSpatialMovement).toHaveBeenCalledWith(
+          expect.objectContaining({ startDistance: 1, endDistance: 3 })
+        )
+      } else {
+        expect(mocks.spatialEvaluation).not.toHaveBeenCalled()
+        expect(mocks.commitSpatialMovement).toHaveBeenCalledWith(
+          expect.objectContaining({ startDistance: 1, endDistance: 1 })
+        )
+        expect(mocks.occurrences.appendReceipt).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            resultPayload: expect.objectContaining({
+              reactionExecutions: [fixture.priorReactionExecution]
+            })
+          })
+        )
+      }
+    }
+  )
+
+  it('stops at the next hostile blocker after one successful passage attempt', async () => {
+    const fixture = passageFixture('AUTOMATIC', false, true)
+    const actionEconomy = {
+      definitionId: fixture.allowanceDefinitionId,
+      definitionVersion: 1,
+      definitionChecksum: '7'.repeat(64),
+      maximum: 1,
+      beforeUsed: 0
+    }
+    mocks.preparePassageContest.mockResolvedValue(fixture.pendingPassageContest(actionEconomy))
+    mocks.executePassageContest.mockResolvedValue({
+      kind: 'COMPLETE',
+      outcome: 'SUCCESS',
+      evidence: {
+        initiatorRawFaces: [15],
+        defenderRawFaces: [10],
+        initiatorTotal: 15,
+        defenderTotal: 10
+      }
+    })
+    mocks.spatialEvaluation.mockImplementation(async ({ frozenReactionRemainder }) => ({
+      kind: 'REACTION_BOUNDARY',
+      boundaryDistance: 2.5,
+      boundaryPosition: { x: 2.5, y: 0 },
+      movementIntent: { tokenId: fixture.movement.root.tokenId, position: { x: 2.5, y: 0 } },
+      completedExecutions: [],
+      appliedPrefix: null,
+      completedReactionExecutions: [],
+      remainingCandidates: [],
+      resolutionCommands: [...frozenReactionRemainder.root.resolutionCommands],
+      selectionChecksum: fixture.movement.spatialSelectionChecksum,
+      currentnessChecksum: fixture.movement.spatialCurrentnessChecksum
+    }))
+    mocks.commitSpatialMovement.mockResolvedValue({
+      state: {
+        ...fixture.sceneState,
+        version: 2,
+        tokens: fixture.sceneState.tokens.map((token) =>
+          token.id === fixture.movement.root.tokenId
+            ? { ...token, position: { x: 2.5, y: 0 } }
+            : token
+        )
+      },
+      version: 2,
+      delta: { kind: 'TOKEN_MOVED', tokenId: fixture.movement.root.tokenId }
+    })
+
+    const result = await executeEncounterCommandWithRuleSnapshot(
+      {} as DBLike,
+      ids.owner,
+      {
+        ...occurrenceInput,
+        occurrenceId: fixture.occurrence.id,
+        resolution: {
+          kind: 'PASSAGE_OPTION',
+          optionId: fixture.choice.options[0]!.optionId
+        }
+      },
+      { rulesRuntime: {} as never }
+    )
+    expect(result).toMatchObject({
+      replayed: false,
+      response: { occurrence: { status: 'COMPLETE', pending: null } }
+    })
+
+    expect(mocks.spatialEvaluation).toHaveBeenCalledWith(
+      expect.objectContaining({ interruptAfterPathDistance: 2.5 })
+    )
+    expect(mocks.spatialEvaluation).toHaveBeenCalledTimes(1)
+    expect(mocks.startReactionBoundary).not.toHaveBeenCalled()
+    expect(mocks.commitSpatialMovement).toHaveBeenCalledWith(
+      expect.objectContaining({ startDistance: 1, endDistance: 2.5 })
+    )
+    expect(mocks.occurrences.appendReceipt).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        resultPayload: expect.objectContaining({ terminalPosition: { x: 2.5, y: 0 } })
+      })
+    )
+    expect(mocks.occurrences.complete).toHaveBeenCalledTimes(1)
+    const terminalCommand = mocks.occurrences.appendReceipt.mock.calls
+      .at(-1)![0]
+      .commandMetadata.resolutionCommands.at(-1)
+    expect(movementRuleResolutionCommandDtoSchema.parse(terminalCommand)).toMatchObject({
+      kind: 'PASSAGE_OPTION',
+      passageContest: {
+        outcome: 'SUCCESS',
+        audit: {
+          terminalPassageStop: {
+            blockerActorId: fixture.movement.nextPassageStop!.blockerActorId,
+            blockerTokenId: fixture.movement.nextPassageStop!.blockerTokenId,
+            contact: fixture.movement.nextPassageStop!.contact,
+            contactPathDistance: fixture.movement.nextPassageStop!.pathDistance,
+            blockerCurrentnessChecksum: fixture.movement.nextPassageStop!.blockerCurrentnessChecksum
+          }
+        }
+      }
+    })
+  })
+
+  it('keeps an Assisted Overrun on one occurrence, replays its option safely, and resumes the frozen suffix after both rolls', async () => {
+    const defenderCharacterId = '00000000-0000-4000-8000-0000000000d1'
+    const defenderControllerId = '00000000-0000-4000-8000-0000000000d2'
+    const fixture = passageFixture('ASSISTED', false, false, defenderCharacterId)
+    const actionEconomy = {
+      definitionId: fixture.allowanceDefinitionId,
+      definitionVersion: 1,
+      definitionChecksum: '7'.repeat(64),
+      maximum: 1,
+      beforeUsed: 0
+    }
+    const pending = fixture.pendingPassageContest(actionEconomy)
+    mocks.preparePassageContest.mockImplementation(async ({ choice }) => ({
+      ...pending,
+      movementContinuation: choice.movement
+    }))
+    mocks.executePassageContest.mockResolvedValueOnce({
+      kind: 'PENDING',
+      continuation: fixture.passageContinuations.initiator,
+      submittedEvidence: null
+    })
+    const optionInput = {
+      ...occurrenceInput,
+      occurrenceId: fixture.occurrence.id,
+      commandId: '00000000-0000-4000-8000-0000000000c1',
+      resolution: {
+        kind: 'PASSAGE_OPTION' as const,
+        optionId: fixture.choice.options[0]!.optionId
+      }
+    }
+
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, optionInput, {
+        rulesRuntime: {} as never
+      })
+    ).resolves.toMatchObject({
+      replayed: false,
+      response: {
+        occurrence: {
+          occurrenceId: fixture.occurrence.id,
+          occurrenceVersion: 1,
+          status: 'PENDING'
+        }
+      }
+    })
+    expect(mocks.encounter.updateActor).not.toHaveBeenCalled()
+    expect(mocks.spatialEvaluation).not.toHaveBeenCalled()
+    const optionAdvance = mocks.occurrences.advancePending.mock.calls.at(-1)![0]
+    expect(optionAdvance.pendingSnapshot).toMatchObject({
+      snapshotKind: 'KERNEL_EVIDENCE',
+      request: { requestId: fixture.passageContinuations.initiator.request.requestId },
+      applicationContext: {
+        kind: 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST',
+        movementContinuation: {
+          root: {
+            resolutionCommands: [
+              expect.objectContaining({
+                kind: 'PASSAGE_OPTION',
+                optionId: fixture.choice.options[0]!.optionId
+              })
+            ]
+          }
+        }
+      }
+    })
+
+    const optionReceipt = mocks.occurrences.appendReceipt.mock.calls.at(-1)![0]
+    const pausedAfterOption = {
+      ...fixture.occurrence,
+      version: 1,
+      pendingSnapshot: optionAdvance.pendingSnapshot
+    }
+    mocks.occurrences.lockOccurrence.mockResolvedValue(pausedAfterOption)
+    mocks.occurrences.findReceipt.mockResolvedValueOnce(optionReceipt)
+    const prepareCallsBeforeReplay = mocks.preparePassageContest.mock.calls.length
+    const executeCallsBeforeReplay = mocks.executePassageContest.mock.calls.length
+
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, optionInput, {
+        rulesRuntime: {} as never
+      })
+    ).resolves.toMatchObject({ replayed: true })
+    expect(mocks.preparePassageContest).toHaveBeenCalledTimes(prepareCallsBeforeReplay)
+    expect(mocks.executePassageContest).toHaveBeenCalledTimes(executeCallsBeforeReplay)
+    expect(mocks.encounter.updateActor).not.toHaveBeenCalled()
+
+    mocks.occurrences.findReceipt.mockResolvedValue(null)
+    mocks.executePassageContest.mockResolvedValueOnce({
+      kind: 'PENDING',
+      continuation: fixture.passageContinuations.defender,
+      submittedEvidence: {
+        participant: 'INITIATOR',
+        requestId: fixture.passageContinuations.initiator.request.requestId,
+        rawFaces: [15]
+      }
+    })
+    const initiatorInput = {
+      ...occurrenceInput,
+      occurrenceId: fixture.occurrence.id,
+      commandId: '00000000-0000-4000-8000-0000000000c2',
+      expectedOccurrenceVersion: 1,
+      resolution: {
+        kind: 'ENTER_DICE' as const,
+        requestId: fixture.passageContinuations.initiator.request.requestId,
+        rawFaces: [15]
+      }
+    }
+
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, initiatorInput, {
+        rulesRuntime: {} as never
+      })
+    ).resolves.toMatchObject({
+      replayed: false,
+      response: { occurrence: { occurrenceVersion: 2, status: 'PENDING' } }
+    })
+    expect(mocks.encounter.updateActor).not.toHaveBeenCalled()
+    const initiatorAdvance = mocks.occurrences.advancePending.mock.calls.at(-1)![0]
+    expect(initiatorAdvance.pendingSnapshot).toMatchObject({
+      request: { requestId: fixture.passageContinuations.defender.request.requestId },
+      applicationContext: {
+        rollEvidence: {
+          initiator: {
+            requestId: fixture.passageContinuations.initiator.request.requestId,
+            rawFaces: [15]
+          },
+          defender: null
+        }
+      }
+    })
+
+    mocks.occurrences.lockOccurrence.mockResolvedValue({
+      ...fixture.occurrence,
+      version: 2,
+      pendingSnapshot: initiatorAdvance.pendingSnapshot
+    })
+    mocks.occurrences.complete.mockResolvedValue({
+      ...fixture.occurrence,
+      version: 3,
+      state: 'COMPLETED',
+      pendingSnapshot: null,
+      completedAt: fixture.occurrence.createdAt
+    })
+    mocks.executePassageContest.mockResolvedValueOnce({
+      kind: 'COMPLETE',
+      outcome: 'SUCCESS',
+      evidence: {
+        initiatorRawFaces: [15],
+        defenderRawFaces: [10],
+        initiatorTotal: 15,
+        defenderTotal: 10
+      }
+    })
+    mocks.commitSpatialMovement.mockResolvedValue({
+      state: {
+        ...fixture.sceneState,
+        version: 2,
+        tokens: fixture.sceneState.tokens.map((token) =>
+          token.id === fixture.movement.root.tokenId
+            ? { ...token, position: { x: 3, y: 0 } }
+            : token
+        )
+      },
+      version: 2,
+      delta: { kind: 'TOKEN_MOVED', tokenId: fixture.movement.root.tokenId }
+    })
+    mocks.spatialEvaluation.mockImplementation(async ({ frozenReactionRemainder }) => ({
+      kind: 'TERMINAL',
+      result: {
+        status: 'MOVEMENT_COMPLETE',
+        schemaVersion: 1,
+        occurrenceId: fixture.occurrence.id,
+        occurrenceVersion: 3,
+        encounterId: ids.command,
+        encounterVersion: 4,
+        sceneId: fixture.sceneState.id,
+        sceneVersion: 2,
+        tokenId: fixture.movement.root.tokenId,
+        movementKind: 'VOLUNTARY',
+        reactionExecutions: [],
+        terminalPosition: { x: 3, y: 0 }
+      },
+      movementIntent: { tokenId: fixture.movement.root.tokenId, position: { x: 3, y: 0 } },
+      resolutionCommands: [...frozenReactionRemainder.root.resolutionCommands],
+      selectionChecksum: fixture.movement.spatialSelectionChecksum,
+      currentnessChecksum: fixture.movement.spatialCurrentnessChecksum
+    }))
+    const defenderInput = {
+      ...occurrenceInput,
+      occurrenceId: fixture.occurrence.id,
+      commandId: '00000000-0000-4000-8000-0000000000c3',
+      expectedOccurrenceVersion: 2,
+      resolution: {
+        kind: 'ENTER_DICE' as const,
+        requestId: fixture.passageContinuations.defender.request.requestId,
+        rawFaces: [10]
+      }
+    }
+    mocks.lockedContext.mockResolvedValue({
+      encounter: fixture.encounter,
+      context: {
+        role: 'PLAYER',
+        campaignId: fixture.encounter.campaignId,
+        assignedCharacterId: defenderCharacterId,
+        attunementSlotOverride: null,
+        currentVersion: fixture.encounter.version,
+        advanceVersion: fixture.advanceVersion
+      }
+    })
+    mocks.sqlRows.mockResolvedValue({ rows: [{ user_id: defenderControllerId }] })
+
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, defenderControllerId, defenderInput, {
+        rulesRuntime: {} as never
+      })
+    ).resolves.toMatchObject({
+      replayed: false,
+      response: { occurrence: { occurrenceVersion: 3, status: 'COMPLETE' } }
+    })
+    expect(mocks.encounter.updateActor).toHaveBeenCalledTimes(1)
+    expect(mocks.sqlRows).toHaveBeenCalled()
+    expect(mocks.spatialEvaluation).toHaveBeenCalledTimes(1)
+    expect(mocks.occurrences.appendReceipt).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        commandId: defenderInput.commandId,
+        commandMetadata: expect.objectContaining({
+          resolutionCommands: [
+            expect.objectContaining({ kind: 'PASSAGE_OPTION' }),
+            expect.objectContaining({
+              kind: 'ENTER_DICE',
+              requestId: initiatorInput.resolution.requestId
+            }),
+            expect.objectContaining({
+              kind: 'ENTER_DICE',
+              requestId: defenderInput.resolution.requestId,
+              passageContest: expect.objectContaining({
+                outcome: 'SUCCESS',
+                initiator: expect.objectContaining({ rawFaces: [15], total: 15 }),
+                defender: expect.objectContaining({ rawFaces: [10], total: 10 }),
+                actionEconomy: expect.objectContaining({ beforeUsed: 0, afterUsed: 1 })
+              })
+            })
+          ]
+        })
+      })
+    )
+  })
+
+  it('rejects a private passage choice before contest preparation or mutation', async () => {
+    const fixture = passageFixture('ASSISTED')
+    mocks.lockedContext.mockResolvedValue({
+      encounter: fixture.encounter,
+      context: {
+        role: 'PLAYER',
+        campaignId: ids.campaign,
+        assignedCharacterId: ids.creature,
+        attunementSlotOverride: null,
+        currentVersion: 3,
+        advanceVersion: fixture.advanceVersion
+      }
+    })
+    const input = {
+      ...occurrenceInput,
+      occurrenceId: fixture.occurrence.id,
+      commandId: '00000000-0000-4000-8000-0000000000c4',
+      resolution: {
+        kind: 'PASSAGE_OPTION' as const,
+        optionId: fixture.choice.options[0]!.optionId
+      }
+    }
+
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input, {
+        rulesRuntime: {} as never
+      })
+    ).rejects.toThrow('Movement passage authority is unavailable.')
+    expect(mocks.preparePassageContest).not.toHaveBeenCalled()
+    expect(mocks.executePassageContest).not.toHaveBeenCalled()
+    expect(mocks.encounter.updateActor).not.toHaveBeenCalled()
+    expect(mocks.commitSpatialMovement).not.toHaveBeenCalled()
+  })
+
+  it('rejects a passage choice after its optional-combat snapshot changes', async () => {
+    const fixture = passageFixture('ASSISTED')
+    mocks.lockedContext.mockResolvedValue({
+      encounter: { ...fixture.encounter, optionalCombatSnapshotChecksum: 'f'.repeat(64) },
+      context: {
+        role: 'OWNER',
+        campaignId: ids.campaign,
+        assignedCharacterId: null,
+        attunementSlotOverride: null,
+        currentVersion: 3,
+        advanceVersion: fixture.advanceVersion
+      }
+    })
+    const input = {
+      ...occurrenceInput,
+      occurrenceId: fixture.occurrence.id,
+      commandId: '00000000-0000-4000-8000-0000000000c5',
+      resolution: {
+        kind: 'PASSAGE_OPTION' as const,
+        optionId: fixture.choice.options[0]!.optionId
+      }
+    }
+
+    await expect(
+      executeEncounterCommandWithRuleSnapshot({} as DBLike, ids.owner, input, {
+        rulesRuntime: {} as never
+      })
+    ).rejects.toThrow('Rule occurrence is unavailable.')
+    expect(mocks.preparePassageContest).not.toHaveBeenCalled()
+    expect(mocks.executePassageContest).not.toHaveBeenCalled()
+    expect(mocks.encounter.updateActor).not.toHaveBeenCalled()
+    expect(mocks.commitSpatialMovement).not.toHaveBeenCalled()
   })
 })

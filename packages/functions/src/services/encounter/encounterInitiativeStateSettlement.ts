@@ -291,8 +291,15 @@ export async function applyEncounterInitiativeAdvance(input: {
       })
     )
   }
-  if (input.plan.kind === 'SAME_ROUND' && currentSide?.sideId !== nextSideId && nextSideId) {
-    const nextSide = sides.get(nextSideId)!
+  if (
+    input.plan.kind === 'SAME_ROUND' &&
+    input.state.round.procedure === 'SIDE_ROLL' &&
+    currentSide?.sideId !== nextSideId &&
+    nextSideId
+  ) {
+    const nextSide = sides.get(nextSideId)
+    if (!nextSide)
+      throw new Error('The normalized initiative side changed before turn advancement.')
     sides.set(
       nextSide.sideId,
       await input.repository.updateInitiativeSide({

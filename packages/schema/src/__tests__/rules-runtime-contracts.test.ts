@@ -9,6 +9,7 @@ import {
   MAX_MAINTENANCE_CLEANUP_TERMINATED_STATES,
   serverPublishedRuleDefinitionDtoSchema,
   serverRuleExecutionCorrelationIdDtoSchema,
+  serverRuleExecutionD20EvidenceDtoSchema,
   serverRuleExecutionApplicationOutputsDtoSchema,
   serverRuleExecutionPendingApplicationContextDtoSchema,
   serverRuleExecutionInputDtoSchema,
@@ -63,6 +64,7 @@ function turnBatchResult(): TurnBatchResult {
     currentHitPoints: 10,
     temporaryHitPoints: 0,
     maximumHitPoints: 10,
+    scalarValues: {},
     conditionIds: []
   }
   const after = { ...before, conditionIds: [turnBatchIds.condition] }
@@ -317,6 +319,17 @@ function turnPendingContext() {
           beforeUsed: 2,
           afterUsed: 0
         }
+      ],
+      stagedActionEconomyRefreshes: [
+        {
+          ordinal: 0,
+          actorId: turnBatchIds.actor,
+          capabilityDefinitionId: DEFINITION_ID,
+          definitionVersion: 1,
+          definitionChecksum: '4'.repeat(64),
+          beforeUsed: 1,
+          afterUsed: 0
+        }
       ]
     },
     selectionChecksum: '1'.repeat(64),
@@ -350,6 +363,7 @@ function maintainedCharacterReceipt() {
     currentHitPoints: 10,
     temporaryHitPoints: 0,
     maximumHitPoints: 10,
+    scalarValues: {},
     conditionIds: []
   }
   const activeEffectId = '00000000-0000-4000-8000-000000000301'
@@ -417,7 +431,10 @@ describe('rules runtime contracts', () => {
     const pending = turnPendingContext()
     expect(serverRuleExecutionPendingApplicationContextDtoSchema.parse(pending)).toMatchObject({
       kind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS',
-      root: { stagedLegendaryActionRefreshes: [{ afterUsed: 0 }] }
+      root: {
+        stagedLegendaryActionRefreshes: [{ afterUsed: 0 }],
+        stagedActionEconomyRefreshes: [{ afterUsed: 0 }]
+      }
     })
     const completed = turnBatchResult().executions[0]!
     const chained = {
@@ -600,6 +617,78 @@ describe('rules runtime contracts', () => {
       kind: 'ENCOUNTER_ACTOR_RULE_ACTION',
       twoPhase: { phase: 'OUTCOME', testExecutionChecksum }
     })
+    const nestedContributors = [
+      {
+        sourceId: 'nested-save-test',
+        grantId: null,
+        domainKey: 'nested-save-test',
+        influence: 'ADVANTAGE' as const
+      }
+    ]
+    const nestedOutcomeD20 = {
+      requestNodeId: 'nested-save-d20',
+      rollMode: 'ADVANTAGE' as const,
+      contributors: nestedContributors,
+      contributorChecksum: checksumRuleDocument(nestedContributors),
+      modifier: 2,
+      dc: 13
+    }
+    const nestedOutcomeD20Evidence = {
+      requestNodeId: nestedOutcomeD20.requestNodeId,
+      requestId: 'nested-save-request',
+      rollMode: nestedOutcomeD20.rollMode,
+      rawFaces: [3, 17],
+      selectedNatural: 17,
+      contributors: nestedContributors,
+      contributorChecksum: nestedOutcomeD20.contributorChecksum,
+      modifier: nestedOutcomeD20.modifier,
+      total: 19,
+      defenseOrDc: nestedOutcomeD20.dc,
+      resultPath: 'ON_SAVE_SUCCESS'
+    }
+    const nestedPending = {
+      ...pending,
+      twoPhase: {
+        phase: 'OUTCOME' as const,
+        compilerSourceChecksum: 'f'.repeat(64),
+        testTemplateChecksum: 'a'.repeat(64),
+        outcomeTemplateChecksum: 'b'.repeat(64),
+        boundFactsChecksum: 'c'.repeat(64),
+        testExecution,
+        testExecutionChecksum,
+        testRollEvidence: {
+          requestId: 'test-roll',
+          rollMode: 'NORMAL' as const,
+          rawFaces: [12],
+          selectedNatural: 12
+        },
+        nestedOutcomeD20,
+        nestedOutcomeD20Evidence
+      }
+    }
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse(nestedPending)
+    ).toMatchObject({
+      twoPhase: { nestedOutcomeD20Evidence }
+    })
+    expect(() =>
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...nestedPending,
+        twoPhase: {
+          ...nestedPending.twoPhase,
+          nestedOutcomeD20Evidence: {
+            ...nestedOutcomeD20Evidence,
+            requestNodeId: 'different-nested-save-d20'
+          }
+        }
+      })
+    ).toThrow()
+    expect(() =>
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...nestedPending,
+        twoPhase: { ...nestedPending.twoPhase, nestedOutcomeD20: null }
+      })
+    ).toThrow()
     expect(() =>
       serverRuleExecutionPendingApplicationContextDtoSchema.parse({
         ...pending,
@@ -1069,6 +1158,37 @@ describe('rules runtime contracts', () => {
     ).toThrow()
   })
 
+  it('rejects malformed ordinary d20 evidence', () => {
+    const contributors = [
+      {
+        sourceId: 'ordinary-d20-test',
+        grantId: null,
+        domainKey: 'ordinary-d20-test',
+        influence: 'ADVANTAGE' as const
+      }
+    ]
+    const evidence = {
+      requestId: 'ordinary-d20-request',
+      rollMode: 'ADVANTAGE' as const,
+      rawFaces: [3, 17],
+      selectedNatural: 17,
+      contributors,
+      contributorChecksum: checksumRuleDocument(contributors),
+      modifier: 4,
+      total: 21,
+      defenseOrDc: 15,
+      resultPath: 'ON_HIT'
+    }
+    expect(serverRuleExecutionD20EvidenceDtoSchema.parse(evidence)).toMatchObject(evidence)
+    for (const invalid of [
+      { ...evidence, rawFaces: [17] },
+      { ...evidence, selectedNatural: 3 },
+      { ...evidence, total: 22 },
+      { ...evidence, contributorChecksum: 'a'.repeat(64) }
+    ])
+      expect(() => serverRuleExecutionD20EvidenceDtoSchema.parse(invalid)).toThrow()
+  })
+
   it('requires exact settlement or advancement evidence for initiative completion', () => {
     const base = {
       status: 'INITIATIVE_COMPLETE' as const,
@@ -1286,7 +1406,7 @@ describe('rules runtime contracts', () => {
     invalid((result) => {
       result.executions[0]!.lifecycle = {
         ...result.executions[0]!.lifecycle,
-        beforeRemainingTicks: 2
+        beforeRemainingTicks: 0
       }
     })
     invalid((result) => {
@@ -1492,6 +1612,7 @@ describe('rules runtime contracts', () => {
       currentHitPoints: 8,
       temporaryHitPoints: 2,
       maximumHitPoints: 10,
+      scalarValues: {},
       conditionIds: []
     }
     const envelope = (application: Record<string, unknown>, after: typeof before) => ({

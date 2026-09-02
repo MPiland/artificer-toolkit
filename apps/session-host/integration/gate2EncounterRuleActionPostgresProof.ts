@@ -251,6 +251,7 @@ export async function proveGate2EncounterRuleActionPostgresSemantics(
           ownerUserId: gm.id,
           profile: 'VTT_MAP',
           rawObjectKey: `gate2-action/${options.runId}/map-original.png`,
+          storageProvider: 'SUPABASE',
           targetKey: `VTT_MAP:${campaign.id}`
         })
         assert.ok(await media.claimForProcessing(mapAssetId, gm.id))

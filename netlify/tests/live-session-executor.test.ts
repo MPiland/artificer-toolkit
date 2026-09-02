@@ -103,7 +103,6 @@ describe('live-session Netlify executor', () => {
         aggregateKind: 'SCENE',
         command: {
           commandId: '00000000-0000-4000-8000-000000000010',
-          encounterId: '00000000-0000-4000-8000-000000000011',
           expectedEncounterVersion: 0,
           expectedSceneVersion: 0,
           movementKind: 'VOLUNTARY',

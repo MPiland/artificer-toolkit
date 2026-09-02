@@ -1,4 +1,4 @@
-import type { ConditionIfExpr, IdRef } from './nodeDefinition.js'
+import type { ConditionIfExpr, IdRef, NodeLocalCollectionSource } from './nodeDefinition.js'
 
 export type RuntimePath = readonly (string | number)[]
 
@@ -23,6 +23,27 @@ export function getValueAtPath(source: unknown, path: RuntimePath): unknown {
 
     return isRuntimeRecord(current) ? current[segment] : undefined
   }, source)
+}
+
+export function resolveLocalCollectionOptions(
+  source: NodeLocalCollectionSource,
+  scope: NodeRuntimeScope
+): Array<{ value: string; label: string }> {
+  const root = scope.ancestors?.at(-1) ?? scope.values
+  const collection = getValueAtPath(root, source.rootCollectionPath)
+  if (!Array.isArray(collection)) return []
+
+  const options: Array<{ value: string; label: string }> = []
+  for (const item of collection) {
+    if (!isRuntimeRecord(item)) return []
+
+    const value = getValueAtPath(item, source.valuePath)
+    const label = getValueAtPath(item, source.labelPath)
+    if (typeof value !== 'string' || typeof label !== 'string') return []
+    options.push({ value, label })
+  }
+
+  return options
 }
 
 export function resolveIdRef(ref: IdRef, scope: NodeRuntimeScope): unknown {

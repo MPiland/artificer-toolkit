@@ -203,63 +203,131 @@ export const dryad: CreatureAuthored = {
       label: 'Club',
       description:
         'Melee Weapon Attack: +2 to hit (+6 to hit with shillelagh), reach 5 ft., one target. Hit: 2 (1d4) bludgeoning damage, or 8 (1d8 + 4) bludgeoning damage with shillelagh.',
-      effects: [
+      options: [
         {
-          id: S.actionId(90, 1),
+          id: S.actionId(90, 401),
+          label: 'Club',
+          description: '',
           order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(90, 2),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
+          rollDefinitions: [
             {
-              id: S.actionId(90, 3),
+              id: S.actionId(90, 450),
+              label: 'Club attack',
+              kind: 'ATTACK',
+              expression: { count: 1, die: 20, modifier: 2 },
+              rollMode: 'NORMAL',
+              chargeCost: null,
+              order: 1
+            }
+          ],
+          effects: [
+            {
+              id: S.actionId(90, 1),
               order: 1,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(90, 3) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(90, 3),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('BLUDGEONING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '1d4'
+              invocation: {
+                kind: 'ACTION' as const,
+                triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+                activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+                range: {
+                  id: S.actionId(90, 2),
+                  rangeKind: S.RANGE_KIND.DISTANCE,
+                  amount: 5,
+                  unit: S.MEASUREMENT_UNIT_CODE.FEET
+                },
+                targeting: {
+                  selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+                }
+              },
+              paths: [
+                {
+                  id: S.actionId(90, 3),
+                  order: 1,
+                  pathCode: S.PATH_CODE.ON_HIT,
+                  groupType: S.PATH_GROUP_TYPE.SINGLE,
+                  originKind: 'SOURCE' as const,
+                  selectionKind: 'FIXED' as const,
+                  resultBlock: {
+                    id: S.actionId(90, 3) + '__result',
+                    resultKind: 'SINGLE' as const,
+                    outcomes: [
+                      {
+                        id: S.actionId(90, 3),
+                        effectKind: S.EFFECT_KIND.DAMAGE,
+                        damageTypeId: S.damageTypeId('BLUDGEONING'),
+                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                        scalingKind: S.SCALING.NONE,
+                        diceConfig: '1d4'
+                      }
+                    ]
                   }
-                ]
-              }
+                }
+              ]
             }
           ]
         },
-        S.closedRuleEffect({
-          id: S.actionId(90, 205),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: S.actionId(90, 1205), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRYAD_SHILLELAGH_CLUB_DAMAGE
-        })
+        {
+          id: S.actionId(90, 402),
+          label: 'Club (Shillelagh)',
+          description: '',
+          order: 2,
+          rollDefinitions: [
+            {
+              id: S.actionId(90, 451),
+              label: 'Shillelagh club attack',
+              kind: 'ATTACK',
+              expression: { count: 1, die: 20, modifier: 6 },
+              rollMode: 'NORMAL',
+              chargeCost: null,
+              order: 1
+            }
+          ],
+          effects: [
+            {
+              id: S.actionId(90, 405),
+              order: 1,
+              invocation: {
+                kind: 'ACTION' as const,
+                triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+                activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+                range: {
+                  id: S.actionId(90, 406),
+                  rangeKind: S.RANGE_KIND.DISTANCE,
+                  amount: 5,
+                  unit: S.MEASUREMENT_UNIT_CODE.FEET
+                },
+                targeting: {
+                  selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+                  dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+                }
+              },
+              paths: [
+                {
+                  id: S.actionId(90, 407),
+                  order: 1,
+                  pathCode: S.PATH_CODE.ON_HIT,
+                  groupType: S.PATH_GROUP_TYPE.SINGLE,
+                  originKind: 'SOURCE' as const,
+                  selectionKind: 'FIXED' as const,
+                  resultBlock: {
+                    id: S.actionId(90, 407) + '__result',
+                    resultKind: 'SINGLE' as const,
+                    outcomes: [
+                      {
+                        id: S.actionId(90, 407),
+                        effectKind: S.EFFECT_KIND.DAMAGE,
+                        damageTypeId: S.damageTypeId('BLUDGEONING'),
+                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                        scalingKind: S.SCALING.NONE,
+                        diceConfig: '1d8+4'
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
       ],
       order: 5
     },

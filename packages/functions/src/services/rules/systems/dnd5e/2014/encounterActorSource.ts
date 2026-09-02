@@ -49,12 +49,18 @@ export const handler = async (input) => {
     actors: input.actors.map((actor) => ({
       actorId: actor.actorId,
       initiativeModifier:
-        actor.abilityScores.DEXTERITY == null
+        actor.initiativeAbilityDefinitionId == null || actor.abilityScores[actor.initiativeAbilityDefinitionId] == null
           ? 0
-          : abilityModifier(actor.abilityScores.DEXTERITY),
+          : abilityModifier(actor.abilityScores[actor.initiativeAbilityDefinitionId]),
+      savingThrowDefinitions: Object.entries(actor.abilityScores).sort(([left], [right]) => left.localeCompare(right)).map(([abilityDefinitionId, score]) => ({
+        abilityDefinitionId,
+        modifier: abilityModifier(score),
+        rollMode: 'NORMAL',
+        contributors: []
+      })),
       targetProtection: actor.targetProtection,
       featureResources: actor.featureResources.map((feature) => {
-        const maximum = resolveMaximum(feature.charge, actor.abilityScores);
+        const maximum = resolveMaximum(feature.charge, actor.resourceAbilityScores ?? {});
         const used = maximum == null ? 0 : feature.used;
         return {
           featureId: feature.featureId,
@@ -118,7 +124,13 @@ export const dnd5e2014EncounterActorFixture: RulePackDocumentDto['fixtures'][num
     actors: [
       {
         actorId: '00000000-0000-4000-8000-000000000001',
-        abilityScores: { DEXTERITY: 14, CHARISMA: 18 },
+        abilityScores: {
+          '00000000-0000-0000-0011-000200000000': 14,
+          '00000000-0000-0000-0011-000600000000': 18
+        },
+        checkTotals: {},
+        resourceAbilityScores: { DEXTERITY: 14, CHARISMA: 18 },
+        initiativeAbilityDefinitionId: '00000000-0000-0000-0011-000200000000',
         targetProtection: {
           status: 'NORMALIZED',
           defenses: [],
@@ -153,6 +165,20 @@ export const dnd5e2014EncounterActorFixture: RulePackDocumentDto['fixtures'][num
       {
         actorId: '00000000-0000-4000-8000-000000000001',
         initiativeModifier: 2,
+        savingThrowDefinitions: [
+          {
+            abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
+            modifier: 2,
+            rollMode: 'NORMAL',
+            contributors: []
+          },
+          {
+            abilityDefinitionId: '00000000-0000-0000-0011-000600000000',
+            modifier: 4,
+            rollMode: 'NORMAL',
+            contributors: []
+          }
+        ],
         targetProtection: {
           status: 'NORMALIZED',
           defenses: [],

@@ -245,6 +245,60 @@ describe('getAuthoredDomain', () => {
     })
   })
 
+  it('returns only referenced Creature loadout equipment detail metadata', async () => {
+    const selectFrom = vi.fn()
+    const query = {
+      select: vi.fn(),
+      where: vi.fn(),
+      orderBy: vi.fn(),
+      execute: vi.fn(async () => [{ value: 'equipment-1', label: 'Longsword' }])
+    }
+    query.select.mockReturnValue(query)
+    query.where.mockReturnValue(query)
+    query.orderBy.mockReturnValue(query)
+    selectFrom.mockReturnValue(query)
+    const detailDb = { ...db, selectFrom } as unknown as DBLike
+
+    mocks.contentRepository.findActiveByRoute.mockResolvedValue({
+      ...createActive({ subjectKind: 'CREATURE', subjectId: 'creature-1' }),
+      publicId: 'creature-public'
+    })
+    mocks.authoredVersionRepository.findActive.mockResolvedValue({
+      authored: {
+        document: {
+          id: 'creature-1',
+          label: 'Guard',
+          requiredText: 'Valid',
+          systemId: 'system-1',
+          userId: 'user-1',
+          equipmentLoadout: [
+            { equipmentId: 'equipment-1' },
+            { equipmentId: 'equipment-1' },
+            { equipmentId: 'equipment-2' }
+          ]
+        }
+      }
+    })
+
+    const response = await getAuthoredDomain(
+      detailDb,
+      createRuntimeConfig({
+        mapId: 'creature',
+        meta: authoredDomainConfigs.creatures.meta,
+        subjectKind: 'CREATURE',
+        table: 'creatures'
+      }),
+      { id: 'creature-public', meta: ['equipment'] },
+      'user-1'
+    )
+
+    expect(response && 'meta' in response ? response.meta : null).toEqual({
+      equipment: [{ value: 'equipment-1', label: 'Longsword' }]
+    })
+    expect(selectFrom).toHaveBeenCalledWith('equipment')
+    expect(query.where).toHaveBeenCalledWith('id', 'in', ['equipment-1', 'equipment-2'])
+  })
+
   it('returns draft validation issues without writing when the draft view is incomplete', async () => {
     mocks.contentRepository.findDraftByRoute.mockResolvedValue({
       ...createDraft({

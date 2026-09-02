@@ -59,6 +59,7 @@ const state = vi.hoisted(() => {
     findMaintainedState: vi.fn(),
     listDependentEffects: vi.fn(),
     lockDependentEffects: vi.fn(),
+    lockActiveEffects: vi.fn(),
     lockMaintainedState: vi.fn(),
     lockMaintainedStateById: vi.fn(),
     requireMaintenanceDefinition: vi.fn(),
@@ -139,7 +140,7 @@ const state = vi.hoisted(() => {
       projectionChecksum: string
       rulePolicyInput: Record<string, unknown>
       rulePolicyOutput: {
-        derivedStats: { maxHitPoints: { effective: number } }
+        derivedStats: { abilities: unknown[]; maxHitPoints: { effective: number } }
         defenses: Array<{
           damageTypeId: string
           kind: 'IMMUNITY' | 'RESISTANCE' | 'VULNERABILITY'
@@ -157,7 +158,7 @@ const state = vi.hoisted(() => {
       projectionChecksum: string
       rulePolicyInput: Record<string, unknown>
       rulePolicyOutput: {
-        derivedStats: { maxHitPoints: { effective: number } }
+        derivedStats: { abilities: unknown[]; maxHitPoints: { effective: number } }
         defenses: Array<{
           damageTypeId: string
           kind: 'IMMUNITY' | 'RESISTANCE' | 'VULNERABILITY'
@@ -175,7 +176,7 @@ const state = vi.hoisted(() => {
       projectionChecksum: string
       rulePolicyInput: Record<string, unknown>
       rulePolicyOutput: {
-        derivedStats: { maxHitPoints: { effective: number } }
+        derivedStats: { abilities: unknown[]; maxHitPoints: { effective: number } }
         defenses: Array<{
           damageTypeId: string
           kind: 'IMMUNITY' | 'RESISTANCE' | 'VULNERABILITY'
@@ -298,6 +299,7 @@ vi.mock('@artificer-toolkit/db', () => {
       lockMaintainedStateById: state.calls.lockMaintainedStateById,
       listDependentEffects: state.calls.listDependentEffects,
       lockDependentEffects: state.calls.lockDependentEffects,
+      lockByOwner: state.calls.lockActiveEffects,
       createMaintainedState: state.calls.createMaintainedState,
       deleteCas: state.calls.deleteActiveRuleEffect,
       deleteMaintainedStateCas: state.calls.deleteMaintainedState,
@@ -439,6 +441,11 @@ vi.mock('../campaign/campaignCharacterMechanicsProjection.js', () => ({
 vi.mock('./encounterActorRuleEvaluation.js', () => ({
   refreshEncounterActorRuleSnapshot: (snapshot: unknown) => snapshot
 }))
+vi.mock('../rules/actionEconomyCapabilityRegistry.default.js', () => ({
+  actionEconomyCapabilityRegistry: {
+    resolveActionEconomyCapability: () => ({ kind: 'NONE' as const })
+  }
+}))
 vi.mock('./encounterProjection.js', () => ({
   compileEncounterCurrentProjection: (projection: unknown) => projection,
   projectGm: (encounter: unknown) => encounter
@@ -449,6 +456,7 @@ vi.mock('@artificer-toolkit/schema/projections/encounter', () => ({
 
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
+import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 import {
   ACTIVATION_CODE,
   EFFECT_KIND,
@@ -790,6 +798,7 @@ function reset({
   state.assignmentLocks.length = 0
   state.characterVersions.clear()
   Object.values(state.calls).forEach((mock) => mock.mockClear())
+  state.calls.lockActiveEffects.mockResolvedValue([])
   state.calls.listResourceUsage.mockResolvedValue([])
   state.calls.requireMaintenanceDefinition.mockResolvedValue({
     gameSystemId: ids.system,
@@ -891,7 +900,7 @@ function reset({
     snapshotVersion: 1,
     checksum: 'c'.repeat(64),
     document: {
-      abilities: [{ id: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID }]
+      abilities: [{ id: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID, code: 'CONSTITUTION' }]
     }
   }
   state.vocabularySnapshots.clear()
@@ -959,7 +968,10 @@ function reset({
           }
         ]
       : [],
-    rulePolicyInput: { actionCandidates: [candidate] },
+    rulePolicyInput: {
+      abilityDefinitions: [{ id: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID, code: 'CONSTITUTION' }],
+      actionCandidates: [candidate]
+    },
     rulePolicyOutput: { actionDecisions: [decision], resources: [] }
   }
   state.overlay = {
@@ -968,9 +980,20 @@ function reset({
     projectionChecksum: 'e'.repeat(64),
     mechanicalContextChecksum: 'a'.repeat(64),
     manualMaximumModifierOwner: null,
-    rulePolicyInput: { actionCandidates: [candidate] },
+    rulePolicyInput: {
+      ...state.mechanics.rulePolicyInput,
+      actionCandidates: [candidate]
+    },
     rulePolicyOutput: {
-      derivedStats: { maxHitPoints: { effective: maximum } },
+      derivedStats: {
+        abilities: [
+          {
+            abilityId: 'CONSTITUTION',
+            score: { effective: 10 }
+          }
+        ],
+        maxHitPoints: { effective: maximum }
+      },
       defenses: [],
       actionDecisions: [decision],
       resources: [],
@@ -1281,8 +1304,10 @@ function configureRecurringActiveEffect(
             authoredEffectId: ids.effect,
             compiledEntryId: '00000000-0000-4000-8000-000000000010',
             frozenGraphNodeId: 'heal',
+            capabilityContractVersion: 1,
             recurrenceStage: 'START_OF_TURN',
             initialRemaining: 2,
+            frozenGraph: entry.compilation.published,
             adapterFacts: {},
             perceptionContributions: contributions
           }
@@ -1400,7 +1425,10 @@ function configureUnlimitedSingleCharacterTarget() {
     projectionChecksum: 'g'.repeat(64),
     rulePolicyOutput: {
       ...state.overlay.rulePolicyOutput,
-      derivedStats: { maxHitPoints: { effective: 12 } }
+      derivedStats: {
+        ...state.overlay.rulePolicyOutput.derivedStats,
+        maxHitPoints: { effective: 12 }
+      }
     }
   }
   state.encounter.actors.push({
@@ -1696,7 +1724,10 @@ function configureResourceBoundAction() {
         }
       }
     ],
-    rulePolicyInput: { actionCandidates: [candidate] },
+    rulePolicyInput: {
+      ...state.mechanics.rulePolicyInput,
+      actionCandidates: [candidate]
+    },
     rulePolicyOutput: { actionDecisions: [decision], resources: [resource] }
   }
   state.overlay = {
@@ -1749,6 +1780,7 @@ function configureV4TestOutcomeAction(input: {
   readonly conditionId?: string
   readonly critical?: boolean
   readonly diceConfig?: '1d8' | '2d8'
+  readonly nestedSave?: boolean
 }) {
   const diceConfig = input.diceConfig ?? '1d8'
   const actionId = `${ids.effect}:ACTION:${ids.action}`
@@ -1820,14 +1852,20 @@ function configureV4TestOutcomeAction(input: {
           triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
           activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
           range: { id: 'range-id', rangeKind: RANGE_KIND.UNLIMITED },
-          targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const }
+          targeting: {
+            selectionKind: 'SINGLE_TARGET' as const,
+            dispositionKind: 'ANY' as const
+          }
         }
       : {
           kind: 'ACTION' as const,
           triggerCode: TRIGGER.SAVING_THROW,
           activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
           range: { id: 'range-id', rangeKind: RANGE_KIND.UNLIMITED },
-          targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const },
+          targeting: {
+            selectionKind: 'SINGLE_TARGET' as const,
+            dispositionKind: 'ANY' as const
+          },
           savingThrow: {
             id: 'save-id',
             abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
@@ -1844,11 +1882,11 @@ function configureV4TestOutcomeAction(input: {
         id: '00000000-0000-4000-8000-000000000013',
         order: 1,
         pathCode: input.kind === 'ATTACK' ? PATH_CODE.ON_HIT : PATH_CODE.ON_SAVE_FAIL,
-        groupType: PATH_GROUP_TYPE.SINGLE,
+        groupType: input.nestedSave ? PATH_GROUP_TYPE.SEQUENTIAL : PATH_GROUP_TYPE.SINGLE,
         selectionKind: 'FIXED',
         resultBlock: {
           id: '00000000-0000-4000-8000-000000000014',
-          resultKind: 'SINGLE',
+          resultKind: input.nestedSave ? ('SEQUENCE' as const) : ('SINGLE' as const),
           outcomes: [
             input.conditionId
               ? {
@@ -1863,7 +1901,54 @@ function configureV4TestOutcomeAction(input: {
                   valueKind: 'DICE',
                   scalingKind: 'NONE',
                   diceConfig
-                }
+                },
+            ...(input.nestedSave
+              ? [
+                  {
+                    id: '00000000-0000-4000-8000-000000000023',
+                    effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'IMMEDIATE' as const,
+                    savingThrow: {
+                      id: '00000000-0000-4000-8000-000000000024',
+                      dcMethod: 'FIXED_DC' as const,
+                      abilityDefinitionId: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
+                      baseDc: 13
+                    },
+                    attempts: { kind: 'ONCE' as const },
+                    onFailure: {
+                      kind: 'OUTCOMES' as const,
+                      endCurrent: false,
+                      resultKind: 'SINGLE' as const,
+                      outcomes: [
+                        {
+                          id: '00000000-0000-4000-8000-000000000025',
+                          effectKind: EFFECT_KIND.DAMAGE,
+                          damageTypeId: ids.effect,
+                          valueKind: 'DICE' as const,
+                          scalingKind: 'NONE' as const,
+                          diceConfig: '7d8'
+                        }
+                      ]
+                    },
+                    onSuccess: {
+                      kind: 'OUTCOMES' as const,
+                      endCurrent: false,
+                      resultKind: 'SINGLE' as const,
+                      outcomes: [
+                        {
+                          id: '00000000-0000-4000-8000-000000000026',
+                          effectKind: EFFECT_KIND.DAMAGE,
+                          damageTypeId: ids.effect,
+                          valueKind: 'DICE' as const,
+                          scalingKind: 'NONE' as const,
+                          diceConfig: '7d8',
+                          multiplier: 0.5
+                        }
+                      ]
+                    }
+                  }
+                ]
+              : [])
           ]
         }
       },
@@ -1926,7 +2011,8 @@ function configureV4TestOutcomeAction(input: {
     entry.compilation.kind !== 'COMPILED' ||
     entry.compilation.executionPlan.kind !== 'TEST_OUTCOME'
   ) {
-    throw new Error('Expected a v4 TEST_OUTCOME entry.')
+    const actual = entry?.compilation.kind === 'MANUAL' ? entry.compilation.reasonCode : 'UNKNOWN'
+    throw new Error(`Expected a v4 TEST_OUTCOME entry, received ${actual}.`)
   }
   const decision = {
     sequence: 0,
@@ -1965,7 +2051,10 @@ function configureV4TestOutcomeAction(input: {
   state.mechanics = {
     ...state.mechanics,
     compiledActionEntryPoints: [entry],
-    rulePolicyInput: { actionCandidates: [candidate] },
+    rulePolicyInput: {
+      ...state.mechanics.rulePolicyInput,
+      actionCandidates: [candidate]
+    },
     rulePolicyOutput: { actionDecisions: [decision], resources: [] }
   }
   state.overlay = {
@@ -1982,10 +2071,13 @@ function configureV4TestOutcomeAction(input: {
     ;(state.targetOverlay!.rulePolicyOutput.derivedStats as Record<string, unknown>).armorClass = {
       effective: 15
     }
-  } else {
+  }
+  if (input.kind === 'SAVE' || input.nestedSave) {
     ;(state.targetOverlay!.rulePolicyOutput as Record<string, unknown>).savingThrowDefinitions = [
       {
-        abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
+        abilityDefinitionId: input.nestedSave
+          ? DND5E_CONSTITUTION_ABILITY_DEFINITION_ID
+          : '00000000-0000-0000-0011-000200000000',
         modifier: 0,
         rollMode: 'NORMAL',
         contributors: []
@@ -2098,7 +2190,9 @@ describe('executeEncounterCharacterRuleAction', () => {
       })
     const runtime = createDnd5eCharacterActionRuntime({
       continuationIntegrityKey: new Uint8Array(32).fill(28),
-      definitions: { requireCurrent: async () => requireV4TestOutcomePlan(entry).test.published }
+      definitions: {
+        requireCurrent: async () => requireV4TestOutcomePlan(entry).test.published
+      }
     })
 
     try {
@@ -2130,7 +2224,9 @@ describe('executeEncounterCharacterRuleAction', () => {
     configureV4ConditionVocabularies()
     const runtime = createDnd5eCharacterActionRuntime({
       continuationIntegrityKey: new Uint8Array(32).fill(25),
-      definitions: { requireCurrent: async () => requireV4TestOutcomePlan(entry).test.published }
+      definitions: {
+        requireCurrent: async () => requireV4TestOutcomePlan(entry).test.published
+      }
     })
 
     await expect(
@@ -2143,7 +2239,10 @@ describe('executeEncounterCharacterRuleAction', () => {
     ).resolves.toMatchObject({
       status: 'COMPLETE',
       applications: expect.arrayContaining([
-        expect.objectContaining({ outcomeKind: 'CONDITION_APPLY', applied: true })
+        expect.objectContaining({
+          outcomeKind: 'CONDITION_APPLY',
+          applied: true
+        })
       ])
     })
     expect(state.calls.patchSheetState).toHaveBeenCalledTimes(1)
@@ -2164,15 +2263,23 @@ describe('executeEncounterCharacterRuleAction', () => {
     const { source, target } = configureV4ConditionVocabularies()
     if (failure === 'SOURCE_MISSING') state.vocabularySnapshots.delete(source.snapshotId)
     if (failure === 'SOURCE_STALE') {
-      state.vocabularySnapshots.set(source.snapshotId, { ...source, checksum: 'e'.repeat(64) })
+      state.vocabularySnapshots.set(source.snapshotId, {
+        ...source,
+        checksum: 'e'.repeat(64)
+      })
     }
     if (failure === 'TARGET_MISSING') state.vocabularySnapshots.delete(target.snapshotId)
     if (failure === 'TARGET_STALE') {
-      state.vocabularySnapshots.set(target.snapshotId, { ...target, checksum: 'f'.repeat(64) })
+      state.vocabularySnapshots.set(target.snapshotId, {
+        ...target,
+        checksum: 'f'.repeat(64)
+      })
     }
     const runtime = createDnd5eCharacterActionRuntime({
       continuationIntegrityKey: new Uint8Array(32).fill(26),
-      definitions: { requireCurrent: async () => requireV4TestOutcomePlan(entry).test.published }
+      definitions: {
+        requireCurrent: async () => requireV4TestOutcomePlan(entry).test.published
+      }
     })
     const rollD20 = vi.fn(() => 20)
 
@@ -2206,11 +2313,16 @@ describe('executeEncounterCharacterRuleAction', () => {
     async (_label, mutate) => {
       const { actionId } = reset()
       state.encounter = { ...state.encounter, automationMode: 'ASSISTED' }
-      const entry = configureV4TestOutcomeAction({ kind: 'ATTACK', diceConfig: '2d8' })
+      const entry = configureV4TestOutcomeAction({
+        kind: 'ATTACK',
+        diceConfig: '2d8'
+      })
       const rollInteger = vi.fn(() => 4)
       const runtime = createDnd5eCharacterActionRuntime({
         continuationIntegrityKey: new Uint8Array(32).fill(27),
-        definitions: { requireCurrent: async () => requireV4TestOutcomePlan(entry).test.published }
+        definitions: {
+          requireCurrent: async () => requireV4TestOutcomePlan(entry).test.published
+        }
       })
       const initial = await executeEncounterCharacterRuleAction({
         db: {} as never,
@@ -2270,10 +2382,15 @@ describe('executeEncounterCharacterRuleAction', () => {
   it('persists TEST roll evidence through sequential Assisted v4 outcome requests', async () => {
     const { actionId } = reset()
     state.encounter = { ...state.encounter, automationMode: 'ASSISTED' }
-    const entry = configureV4TestOutcomeAction({ kind: 'ATTACK', diceConfig: '2d8' })
+    const entry = configureV4TestOutcomeAction({
+      kind: 'ATTACK',
+      diceConfig: '2d8'
+    })
     const runtime = createDnd5eCharacterActionRuntime({
       continuationIntegrityKey: new Uint8Array(32).fill(22),
-      definitions: { requireCurrent: async () => requireV4TestOutcomePlan(entry).test.published }
+      definitions: {
+        requireCurrent: async () => requireV4TestOutcomePlan(entry).test.published
+      }
     })
     const initial = await executeEncounterCharacterRuleAction({
       db: {} as never,
@@ -2361,10 +2478,348 @@ describe('executeEncounterCharacterRuleAction', () => {
         d20: expect.objectContaining({ rawFaces: [15], selectedNatural: 15 }),
         applications: [expect.objectContaining({ requestedAmount: 9, appliedAmount: 4 })],
         targetTransition: expect.objectContaining({
-          after: expect.objectContaining({ currentHitPoints: 0, temporaryHitPoints: 0 })
+          after: expect.objectContaining({
+            currentHitPoints: 0,
+            temporaryHitPoints: 0
+          })
         })
       })
     })
+  })
+
+  it('resolves an Assisted nested save after primary damage and replays without mutation', async () => {
+    const { actionId } = reset({ current: 100, maximum: 100 })
+    state.encounter = { ...state.encounter, automationMode: 'ASSISTED' }
+    const entry = configureV4TestOutcomeAction({
+      kind: 'ATTACK',
+      nestedSave: true
+    })
+    state.targetMechanics!.commandState.state.hitpoints = {
+      current: 100,
+      temp: 0
+    }
+    ;(state.targetOverlay!.rulePolicyOutput.derivedStats as Record<string, unknown>).maxHitPoints =
+      {
+        effective: 100
+      }
+    state.encounter.actors = state.encounter.actors.map((actor) =>
+      actor.id === ids.targetActor
+        ? {
+            ...actor,
+            currentHitPoints: 100,
+            tempHitPoints: 0,
+            maxHitPoints: 100
+          }
+        : actor
+    )
+    const savingThrowDefinitions = (
+      state.targetOverlay!.rulePolicyOutput as {
+        savingThrowDefinitions: Array<{
+          rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+          contributors: Array<{
+            sourceId: string
+            grantId: null
+            domainKey: string
+            influence: 'ADVANTAGE' | 'DISADVANTAGE'
+          }>
+        }>
+      }
+    ).savingThrowDefinitions
+    savingThrowDefinitions[0]!.rollMode = 'ADVANTAGE'
+    savingThrowDefinitions[0]!.contributors = [
+      {
+        sourceId: ids.effect,
+        grantId: null,
+        domainKey: 'nested-save-test',
+        influence: 'ADVANTAGE'
+      }
+    ]
+    const runtime = createDnd5eCharacterActionRuntime({
+      continuationIntegrityKey: new Uint8Array(32).fill(28),
+      definitions: {
+        requireCurrent: async () => requireV4TestOutcomePlan(entry).test.published
+      }
+    })
+    const initial = await executeEncounterCharacterRuleAction({
+      db: {} as never,
+      runtime,
+      command: command(actionId, { targetActorId: ids.targetActor })
+    })
+    if (initial.status !== 'PENDING') throw new Error('Expected an Assisted TEST pause.')
+    let commandOrdinal = 500
+    const nextCommandId = () =>
+      `00000000-0000-4000-8000-${String(++commandOrdinal).padStart(12, '0')}`
+    const primaryDamage = await resumeEncounterCharacterRuleAction({
+      db: {} as never,
+      runtime,
+      command: {
+        actorUserId: ids.user,
+        commandId: nextCommandId(),
+        correlationId: null,
+        encounterId: ids.encounter,
+        expectedEncounterVersion: 5,
+        expectedOccurrenceVersion: initial.occurrenceVersion,
+        occurrenceId: initial.occurrenceId,
+        resolution: {
+          kind: 'PHYSICAL',
+          requestId: assistedD20Request(initial).requestId,
+          rawFaces: [15]
+        }
+      }
+    })
+    const primaryDamagePause = requireOutcomeEvidencePause(primaryDamage)
+    const nestedSave = await resumeEncounterCharacterRuleAction({
+      db: {} as never,
+      runtime,
+      command: {
+        actorUserId: ids.user,
+        commandId: nextCommandId(),
+        correlationId: null,
+        encounterId: ids.encounter,
+        expectedEncounterVersion: 5,
+        expectedOccurrenceVersion: primaryDamagePause.occurrenceVersion,
+        occurrenceId: primaryDamagePause.occurrenceId,
+        resolution: {
+          kind: 'PHYSICAL_OUTCOME',
+          values: [{ requestId: primaryDamagePause.requests[0]!.requestId, value: 4 }]
+        }
+      }
+    })
+    if (nestedSave.status !== 'PENDING' || !('request' in nestedSave)) {
+      throw new Error('Expected the nested d20 pause.')
+    }
+    expect(nestedSave).toMatchObject({
+      rollMode: 'ADVANTAGE',
+      controls: ['SYSTEM', 'PHYSICAL']
+    })
+    savingThrowDefinitions[0]!.rollMode = 'DISADVANTAGE'
+    savingThrowDefinitions[0]!.contributors = [
+      {
+        sourceId: ids.effect,
+        grantId: null,
+        domainKey: 'nested-save-test',
+        influence: 'DISADVANTAGE'
+      }
+    ]
+    await expect(
+      resumeEncounterCharacterRuleAction({
+        db: {} as never,
+        runtime,
+        command: {
+          actorUserId: ids.user,
+          commandId: nextCommandId(),
+          correlationId: null,
+          encounterId: ids.encounter,
+          expectedEncounterVersion: 5,
+          expectedOccurrenceVersion: nestedSave.occurrenceVersion,
+          occurrenceId: nestedSave.occurrenceId,
+          resolution: {
+            kind: 'PHYSICAL',
+            requestId: nestedSave.request.requestId,
+            rawFaces: [3, 17]
+          }
+        }
+      })
+    ).rejects.toThrow('nested save policy changed before resume')
+    savingThrowDefinitions[0]!.rollMode = 'ADVANTAGE'
+    savingThrowDefinitions[0]!.contributors = [
+      {
+        sourceId: ids.effect,
+        grantId: null,
+        domainKey: 'nested-save-test',
+        influence: 'ADVANTAGE'
+      }
+    ]
+    await expect(
+      resumeEncounterCharacterRuleAction({
+        db: {} as never,
+        runtime,
+        command: {
+          actorUserId: ids.user,
+          commandId: nextCommandId(),
+          correlationId: null,
+          encounterId: ids.encounter,
+          expectedEncounterVersion: 5,
+          expectedOccurrenceVersion: nestedSave.occurrenceVersion,
+          occurrenceId: nestedSave.occurrenceId,
+          resolution: {
+            kind: 'PHYSICAL',
+            requestId: `${nestedSave.request.requestId}:wrong`,
+            rawFaces: [3, 17]
+          }
+        }
+      })
+    ).rejects.toThrow('nested save request does not match')
+    let current = await resumeEncounterCharacterRuleAction({
+      db: {} as never,
+      runtime,
+      command: {
+        actorUserId: ids.user,
+        commandId: nextCommandId(),
+        correlationId: null,
+        encounterId: ids.encounter,
+        expectedEncounterVersion: 5,
+        expectedOccurrenceVersion: nestedSave.occurrenceVersion,
+        occurrenceId: nestedSave.occurrenceId,
+        resolution: {
+          kind: 'PHYSICAL',
+          requestId: nestedSave.request.requestId,
+          rawFaces: [3, 17]
+        }
+      }
+    })
+    let finalReplayInput: Parameters<typeof resumeEncounterCharacterRuleAction>[0] | null = null
+    for (let index = 0; index < 7; index += 1) {
+      const damagePause = requireOutcomeEvidencePause(current)
+      const resumeInput = {
+        db: {} as never,
+        runtime,
+        command: {
+          actorUserId: ids.user,
+          commandId: nextCommandId(),
+          correlationId: null,
+          encounterId: ids.encounter,
+          expectedEncounterVersion: 5,
+          expectedOccurrenceVersion: damagePause.occurrenceVersion,
+          occurrenceId: damagePause.occurrenceId,
+          resolution: {
+            kind: 'PHYSICAL_OUTCOME' as const,
+            values: [{ requestId: damagePause.requests[0]!.requestId, value: 4 }]
+          }
+        }
+      }
+      if (index === 6) finalReplayInput = resumeInput
+      current = await resumeEncounterCharacterRuleAction(resumeInput)
+    }
+    expect(current).toMatchObject({
+      status: 'COMPLETE',
+      applications: [
+        expect.objectContaining({ outcomeKind: 'DAMAGE', appliedAmount: 4 }),
+        expect.objectContaining({ outcomeKind: 'DAMAGE', appliedAmount: 14 })
+      ]
+    })
+    if (!finalReplayInput) throw new Error('Expected a terminal replay input.')
+    expect(
+      state.receipts.get(`${ids.encounter}:${finalReplayInput.command.commandId}`)?.resultPayload
+    ).toMatchObject({
+      applicationOutputs: {
+        nestedD20: {
+          requestNodeId: 'nested-save-d20',
+          rawFaces: [3, 17],
+          selectedNatural: 17,
+          rollMode: 'ADVANTAGE',
+          modifier: 0,
+          defenseOrDc: 13,
+          resultPath: 'ON_SAVE_SUCCESS'
+        }
+      }
+    })
+    const nestedReceipt = structuredClone(
+      state.receipts.get(`${ids.encounter}:${finalReplayInput.command.commandId}`)?.resultPayload
+    ) as Record<string, unknown>
+    const phaseReceipts = nestedReceipt.phaseReceipts as Array<Record<string, unknown>>
+    const outcomeReceipt = phaseReceipts.find((receipt) => receipt.phase === 'OUTCOME')
+    const outcomeExecution = outcomeReceipt?.execution as Record<string, unknown>
+    const outcomeEvidence = outcomeExecution.evidence as Record<string, unknown>
+    const nestedRequest = (outcomeEvidence.trace as Array<Record<string, unknown>>).find(
+      (trace) => trace.nodeId === 'nested-save-d20'
+    )
+    if (!nestedRequest) throw new Error('Expected nested save request trace.')
+    // It retains the same d20 value but is now an unrelated nested damage request.
+    nestedRequest.nodeId = 'nested-save-damage-d20'
+    expect(() => storedRuleExecutionResultDtoSchema.parse(nestedReceipt)).toThrow()
+    const mutationCount = state.calls.patchSheetState.mock.calls.length
+    await expect(resumeEncounterCharacterRuleAction(finalReplayInput)).resolves.toEqual(current)
+    expect(state.calls.patchSheetState).toHaveBeenCalledTimes(mutationCount)
+  })
+
+  it('resolves the same nested save automatically and replays without rerolling', async () => {
+    const { actionId } = reset({ current: 100, maximum: 100 })
+    const entry = configureV4TestOutcomeAction({
+      kind: 'ATTACK',
+      nestedSave: true
+    })
+    state.targetMechanics!.commandState.state.hitpoints = {
+      current: 100,
+      temp: 0
+    }
+    ;(state.targetOverlay!.rulePolicyOutput.derivedStats as Record<string, unknown>).maxHitPoints =
+      {
+        effective: 100
+      }
+    state.encounter.actors = state.encounter.actors.map((actor) =>
+      actor.id === ids.targetActor
+        ? {
+            ...actor,
+            currentHitPoints: 100,
+            tempHitPoints: 0,
+            maxHitPoints: 100
+          }
+        : actor
+    )
+    const savingThrowDefinitions = (
+      state.targetOverlay!.rulePolicyOutput as {
+        savingThrowDefinitions: Array<{
+          rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+          contributors: Array<{
+            sourceId: string
+            grantId: null
+            domainKey: string
+            influence: 'ADVANTAGE' | 'DISADVANTAGE'
+          }>
+        }>
+      }
+    ).savingThrowDefinitions
+    savingThrowDefinitions[0]!.rollMode = 'ADVANTAGE'
+    savingThrowDefinitions[0]!.contributors = [
+      {
+        sourceId: ids.effect,
+        grantId: null,
+        domainKey: 'nested-save-test',
+        influence: 'ADVANTAGE'
+      }
+    ]
+    const runtime = createDnd5eCharacterActionRuntime({
+      continuationIntegrityKey: new Uint8Array(32).fill(29),
+      definitions: {
+        requireCurrent: async () => requireV4TestOutcomePlan(entry).test.published
+      }
+    })
+    const rollD20 = vi.fn().mockReturnValueOnce(15).mockReturnValueOnce(3).mockReturnValueOnce(17)
+    const rollInteger = vi.fn(() => 4)
+    const input = {
+      db: {} as never,
+      runtime,
+      rollD20,
+      rollInteger,
+      command: command(actionId, { targetActorId: ids.targetActor })
+    }
+    const completed = await executeEncounterCharacterRuleAction(input)
+    expect(completed).toMatchObject({
+      status: 'COMPLETE',
+      applications: [
+        expect.objectContaining({ outcomeKind: 'DAMAGE', appliedAmount: 4 }),
+        expect.objectContaining({ outcomeKind: 'DAMAGE', appliedAmount: 14 })
+      ]
+    })
+    expect(rollD20).toHaveBeenCalledTimes(3)
+    expect(rollInteger).toHaveBeenCalledTimes(8)
+    expect(state.receipts.get(`${ids.encounter}:${ids.command}`)?.resultPayload).toMatchObject({
+      applicationOutputs: {
+        nestedD20: {
+          requestNodeId: 'nested-save-d20',
+          rawFaces: [3, 17],
+          selectedNatural: 17,
+          rollMode: 'ADVANTAGE',
+          resultPath: 'ON_SAVE_SUCCESS'
+        }
+      }
+    })
+    const mutationCount = state.calls.patchSheetState.mock.calls.length
+    await expect(executeEncounterCharacterRuleAction(input)).resolves.toEqual(completed)
+    expect(rollD20).toHaveBeenCalledTimes(3)
+    expect(rollInteger).toHaveBeenCalledTimes(8)
+    expect(state.calls.patchSheetState).toHaveBeenCalledTimes(mutationCount)
   })
 
   it('creates an Assisted concentration occurrence without child RNG or cleanup', async () => {
@@ -2622,7 +3077,11 @@ describe('executeEncounterCharacterRuleAction', () => {
           expectedEncounterVersion: 6,
           expectedOccurrenceVersion: 0,
           occurrenceId: String(occurrence.id),
-          resolution: { kind: 'PHYSICAL', requestId: 'request', rawFaces: [20] }
+          resolution: {
+            kind: 'PHYSICAL',
+            requestId: 'request',
+            rawFaces: [20]
+          }
         }
       })
     ).rejects.toThrow('invalid application context')
@@ -3776,7 +4235,13 @@ describe('executeEncounterCharacterRuleAction', () => {
     expect(state.calls.createActiveRuleEffect).toHaveBeenCalledWith(
       expect.objectContaining({
         id: '00000000-0000-4000-8000-000000000011',
-        owner: { kind: 'CHARACTER', characterId: ids.character }
+        owner: { kind: 'CHARACTER', characterId: ids.character },
+        definition: expect.objectContaining({
+          frozenGraph: expect.objectContaining({
+            source: expect.objectContaining({ checksum: published.checksum }),
+            nodes: published.definition.nodes
+          })
+        })
       })
     )
     expect(state.receipts.get(`${ids.encounter}:${ids.command}`)?.resultPayload).toMatchObject({
@@ -4395,7 +4860,10 @@ describe('executeEncounterCharacterRuleAction', () => {
       expectedEncounterVersion: 5,
       expectedOccurrenceVersion: pending.occurrenceVersion,
       occurrenceId: pending.occurrenceId,
-      resolution: { kind: 'SYSTEM', requestId: assistedD20Request(pending).requestId }
+      resolution: {
+        kind: 'SYSTEM',
+        requestId: assistedD20Request(pending).requestId
+      }
     }
     const complete = await resumeEncounterCharacterRuleAction({
       db: {} as never,
@@ -4594,7 +5062,10 @@ describe('executeEncounterCharacterRuleAction', () => {
           expectedEncounterVersion: 5,
           expectedOccurrenceVersion: pending.occurrenceVersion,
           occurrenceId: pending.occurrenceId,
-          resolution: { kind: 'SYSTEM', requestId: assistedD20Request(pending).requestId }
+          resolution: {
+            kind: 'SYSTEM',
+            requestId: assistedD20Request(pending).requestId
+          }
         }
       })
     ).rejects.toThrow()
@@ -4813,7 +5284,10 @@ describe('executeEncounterCharacterRuleAction', () => {
       mechanic: {
         attackBonus: null,
         attackRollMode: null,
-        save: { abilityDefinitionId: '00000000-0000-0000-0011-000200000000', dc: 15 }
+        save: {
+          abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
+          dc: 15
+        }
       }
     }
     ;(
@@ -4927,7 +5401,10 @@ describe('executeEncounterCharacterRuleAction', () => {
       mechanic: {
         attackBonus: null,
         attackRollMode: null,
-        save: { abilityDefinitionId: '00000000-0000-0000-0011-000200000000', dc: 15 }
+        save: {
+          abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
+          dc: 15
+        }
       }
     }
     ;(
@@ -5002,7 +5479,10 @@ describe('executeEncounterCharacterRuleAction', () => {
       mechanic: {
         attackBonus: null,
         attackRollMode: null,
-        save: { abilityDefinitionId: '00000000-0000-0000-0011-000200000000', dc: 15 }
+        save: {
+          abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
+          dc: 15
+        }
       }
     }
     ;(

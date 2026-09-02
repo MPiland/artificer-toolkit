@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
 import type { CombatPerceptionContributionDto } from '@artificer-toolkit/schema/shared/combatPerception'
+import type { PinnedConditionRuleStateDefinitionDto } from '@artificer-toolkit/schema/shared/ruleState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import {
   deriveCombatPerceptionContributionPartitions,
+  deriveConditionCombatPerceptionContributions,
   type LockedCombatPerceptionEffect
 } from './encounterCombatPerceptionContributions.js'
 
@@ -98,14 +100,60 @@ describe('Encounter combat-perception contribution partitioning', () => {
     }).observerContributions
 
     expect(once).toEqual(reordered)
-    expect(once.map((source) => source.activeEffectId)).toEqual([secondEffectId, effectId])
+    expect(once.map((source) => source.source)).toEqual([
+      expect.objectContaining({ activeEffectId: secondEffectId }),
+      expect.objectContaining({ activeEffectId: effectId })
+    ])
     expect(new Set(once.map((source) => source.instanceId)).size).toBe(2)
     expect(once[0]).toMatchObject({
-      activeEffectVersion: 2,
-      activeEffectDefinitionChecksum: 'a'.repeat(64),
-      createdOrdinal: 1,
+      source: {
+        kind: 'ACTIVE_EFFECT',
+        activeEffectVersion: 2,
+        activeEffectDefinitionChecksum: 'a'.repeat(64)
+      },
+      sourceOrdinal: 1,
       contribution: repeated
     })
+  })
+
+  it('keeps UUID-backed condition revision identity distinct from active effects', () => {
+    const condition: PinnedConditionRuleStateDefinitionDto = {
+      conditionDefinitionId: '44444444-4444-4444-8444-444444444444',
+      definitionVersion: 3,
+      definitionContractVersion: 1,
+      definitionChecksum: 'b'.repeat(64),
+      document: {
+        schemaVersion: 1,
+        kind: 'CONDITION_RULE_STATE',
+        id: '44444444-4444-4444-8444-444444444444',
+        gameSystemId: '66666666-6666-4666-8666-666666666666',
+        capabilitySuppressions: [],
+        perceptionContributions: [contribution('SENSE_SUPPRESS')]
+      }
+    }
+    const observer = deriveConditionCombatPerceptionContributions({
+      conditionDefinitions: [condition],
+      relation: 'OBSERVER',
+      sceneGrid
+    })
+    expect(observer).toEqual([
+      expect.objectContaining({
+        source: {
+          kind: 'CONDITION_DEFINITION',
+          conditionDefinitionId: condition.conditionDefinitionId,
+          conditionDefinitionVersion: 3,
+          conditionDefinitionChecksum: 'b'.repeat(64)
+        },
+        contribution: expect.objectContaining({ kind: 'SENSE_SUPPRESS' })
+      })
+    ])
+    expect(
+      deriveConditionCombatPerceptionContributions({
+        conditionDefinitions: [condition],
+        relation: 'SUBJECT',
+        sceneGrid
+      })
+    ).toEqual([])
   })
 
   it('converts sense-grant ranges to Scene units and rejects a non-length unit', () => {

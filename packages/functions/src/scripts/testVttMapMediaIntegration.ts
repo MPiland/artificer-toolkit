@@ -1,17 +1,21 @@
 import assert from 'node:assert/strict'
 import { randomBytes, randomUUID } from 'node:crypto'
-import { pathToFileURL } from 'node:url'
+import { existsSync, readFileSync } from 'node:fs'
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { parseEnv } from 'node:util'
 
 import { createClient } from '@supabase/supabase-js'
 import { createDb, createMediaRepository, type DBLike } from '@artificer-toolkit/db'
+import type { CreateVttMapUploadIntentOutput } from '@artificer-toolkit/schema/api/media'
 import type { CreateSceneDefinitionInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { sql } from 'kysely'
 import sharp from 'sharp'
-import { Upload } from 'tus-js-client'
 
 import { createCampaign } from '../services/campaign/campaignService.js'
 import { createCampaignSceneDefinition } from '../services/encounter/vttSceneService.js'
 import {
+  completeVttMapMultipartUpload,
   createVttMapUploadIntent,
   finalizeVttMapUpload,
   getVttMapDelivery
@@ -21,6 +25,7 @@ const LOCAL_HOSTS = new Set(['127.0.0.1', '::1', 'localhost'])
 const SIX_MIB = 6 * 1024 * 1024
 const MAP_WIDTH = 3_000
 const MAP_HEIGHT = 2_100
+const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url))
 
 interface LocalEnvironment {
   databaseConnectionString: string
@@ -28,39 +33,148 @@ interface LocalEnvironment {
   supabaseUrl: string
 }
 
-interface UploadIntent {
-  assetId: string
-  bucket: 'media'
-  objectKey: string
-  resumable: { chunkBytes: number; protocol: 'TUS' }
-  token: string
+class LocalR2Server {
+  readonly #objects = new Map<string, Buffer>()
+  readonly #uploads = new Map<
+    string,
+    { objectKey: string; parts: Map<number, { body: Buffer; etag: string }> }
+  >()
+  readonly #server = createServer((request, response) => {
+    void this.#handle(request, response).catch((error: unknown) => {
+      response.statusCode = 500
+      response.end(error instanceof Error ? error.message : 'Local R2 failure.')
+    })
+  })
+
+  async start(): Promise<string> {
+    await new Promise<void>((resolve, reject) => {
+      this.#server.once('error', reject)
+      this.#server.listen(0, '127.0.0.1', () => resolve())
+    })
+    const address = this.#server.address()
+    if (!address || typeof address === 'string') throw new Error('Local R2 did not bind a port.')
+    return `http://127.0.0.1:${address.port}`
+  }
+
+  async close(): Promise<void> {
+    await new Promise<void>((resolve, reject) =>
+      this.#server.close((error) => (error ? reject(error) : resolve()))
+    )
+  }
+
+  remove(objectKeys: readonly string[]): void {
+    for (const objectKey of objectKeys) this.#objects.delete(objectKey)
+  }
+
+  async #handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    const url = new URL(request.url ?? '/', 'http://127.0.0.1')
+    const path = url.pathname
+      .split('/')
+      .filter(Boolean)
+      .map((segment) => decodeURIComponent(segment))
+    if (path.shift() !== 'vtt-map-local') {
+      response.statusCode = 404
+      response.end()
+      return
+    }
+    const objectKey = path.join('/')
+    const body = await readRequestBody(request)
+    const uploadId = url.searchParams.get('uploadId')
+
+    if (request.method === 'POST' && url.searchParams.has('uploads')) {
+      const createdUploadId = randomUUID()
+      this.#uploads.set(createdUploadId, { objectKey, parts: new Map() })
+      response.setHeader('content-type', 'application/xml')
+      response.end(
+        `<InitiateMultipartUploadResult><UploadId>${createdUploadId}</UploadId></InitiateMultipartUploadResult>`
+      )
+      return
+    }
+    if (request.method === 'PUT' && uploadId) {
+      const upload = this.#uploads.get(uploadId)
+      const partNumber = Number(url.searchParams.get('partNumber'))
+      if (!upload || upload.objectKey !== objectKey || !Number.isInteger(partNumber)) {
+        response.statusCode = 404
+        response.end()
+        return
+      }
+      const etag = `&quot;part-${partNumber}-${body.byteLength}&quot;`
+      upload.parts.set(partNumber, { body, etag })
+      response.setHeader('etag', etag.replaceAll('&quot;', '"'))
+      response.end()
+      return
+    }
+    if (request.method === 'POST' && uploadId) {
+      const upload = this.#uploads.get(uploadId)
+      if (!upload || upload.objectKey !== objectKey) {
+        response.statusCode = 404
+        response.end()
+        return
+      }
+      const partNumbers = [
+        ...body.toString('utf8').matchAll(/<PartNumber>(\d+)<\/PartNumber>/g)
+      ].map((match) => Number(match[1]))
+      const parts = partNumbers.map((partNumber) => upload.parts.get(partNumber)?.body)
+      if (parts.some((part) => !part)) {
+        response.statusCode = 400
+        response.end('Missing multipart part.')
+        return
+      }
+      this.#objects.set(objectKey, Buffer.concat(parts as Buffer[]))
+      this.#uploads.delete(uploadId)
+      response.end('<CompleteMultipartUploadResult />')
+      return
+    }
+    if (request.method === 'DELETE' && uploadId) {
+      this.#uploads.delete(uploadId)
+      response.statusCode = 204
+      response.end()
+      return
+    }
+    if (request.method === 'GET' && url.searchParams.get('list-type') === '2') {
+      const prefix = url.searchParams.get('prefix') ?? ''
+      const contents = [...this.#objects.keys()]
+        .filter((key) => key.startsWith(prefix))
+        .sort()
+        .map((key) => `<Contents><Key>${escapeXml(key)}</Key></Contents>`)
+        .join('')
+      response.setHeader('content-type', 'application/xml')
+      response.end(`<ListBucketResult>${contents}</ListBucketResult>`)
+      return
+    }
+    if (request.method === 'PUT') {
+      this.#objects.set(objectKey, body)
+      response.end()
+      return
+    }
+    if (request.method === 'DELETE') {
+      this.#objects.delete(objectKey)
+      response.statusCode = 204
+      response.end()
+      return
+    }
+    const object = this.#objects.get(objectKey)
+    if (!object) {
+      response.statusCode = 404
+      response.end()
+      return
+    }
+    response.statusCode = 200
+    response.setHeader('content-length', object.byteLength)
+    if (request.method === 'HEAD') response.end()
+    else response.end(object)
+  }
 }
 
-type UploadUrlStorage = NonNullable<ConstructorParameters<typeof Upload>[1]['urlStorage']>
-type PreviousUpload = Awaited<ReturnType<Upload['findPreviousUploads']>>[number]
+async function readRequestBody(request: IncomingMessage): Promise<Buffer> {
+  const chunks: Buffer[] = []
+  for await (const chunk of request)
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+  return Buffer.concat(chunks)
+}
 
-class MemoryUrlStorage implements UploadUrlStorage {
-  readonly #uploads = new Map<string, { fingerprint: string; upload: PreviousUpload }>()
-
-  async addUpload(fingerprint: string, upload: PreviousUpload): Promise<string> {
-    const key = randomUUID()
-    this.#uploads.set(key, { fingerprint, upload: { ...upload, urlStorageKey: key } })
-    return key
-  }
-
-  async findAllUploads(): Promise<PreviousUpload[]> {
-    return [...this.#uploads.values()].map(({ upload }) => upload)
-  }
-
-  async findUploadsByFingerprint(fingerprint: string): Promise<PreviousUpload[]> {
-    return [...this.#uploads.values()]
-      .filter((entry) => entry.fingerprint === fingerprint)
-      .map(({ upload }) => upload)
-  }
-
-  async removeUpload(urlStorageKey: string): Promise<void> {
-    this.#uploads.delete(urlStorageKey)
-  }
+function escapeXml(value: string): string {
+  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 }
 
 function requireLoopbackUrl(name: string, value: string | undefined): string {
@@ -79,6 +193,17 @@ function requireLoopbackUrl(name: string, value: string | undefined): string {
   return value
 }
 
+function loadLocalEnvironment(): void {
+  const environmentPath = `${repoRoot}/.env.local`
+  if (!existsSync(environmentPath)) {
+    throw new Error('Root .env.local is required for the local VTT map integration gate.')
+  }
+  for (const [key, value] of Object.entries(parseEnv(readFileSync(environmentPath, 'utf8')))) {
+    if (key.startsWith('PROD_') || key.startsWith('STAGING_')) continue
+    process.env[key] = value
+  }
+}
+
 function requireLocalEnvironment(): LocalEnvironment {
   const databaseConnectionString = requireLoopbackUrl(
     'DATABASE_CONNECTION_STRING',
@@ -90,10 +215,6 @@ function requireLocalEnvironment(): LocalEnvironment {
     throw new Error('SUPABASE_SECRET_KEY is required for the local VTT map integration gate.')
   }
   return { databaseConnectionString, supabaseSecretKey, supabaseUrl }
-}
-
-function resolveTusEndpoint(supabaseUrl: string): string {
-  return new URL('/storage/v1/upload/resumable/sign', supabaseUrl).toString()
 }
 
 function createSceneInput(campaignId: string, assetId: string): CreateSceneDefinitionInputDto {
@@ -127,7 +248,7 @@ async function createNoisyPng(): Promise<Buffer> {
   })
     .png({ compressionLevel: 0 })
     .toBuffer()
-  assert.ok(png.byteLength > SIX_MIB, 'Fixture PNG must exceed the 6 MiB TUS chunk size.')
+  assert.ok(png.byteLength > SIX_MIB, 'Fixture PNG must exceed one multipart chunk.')
   assert.ok(png.byteLength <= 25 * 1024 * 1024, 'Fixture PNG must fit the VTT map byte limit.')
   return png
 }
@@ -140,113 +261,32 @@ async function createOversizedPng(): Promise<Buffer> {
     .toBuffer()
 }
 
-function uploadOptions(
-  intent: UploadIntent,
-  urlStorage: UploadUrlStorage,
-  fingerprint: string,
-  callbacks: Pick<
-    NonNullable<ConstructorParameters<typeof Upload>[1]>,
-    'onChunkComplete' | 'onError' | 'onSuccess'
-  >
-) {
-  return {
-    ...callbacks,
-    chunkSize: intent.resumable.chunkBytes,
-    endpoint: resolveTusEndpoint(requireLocalEnvironment().supabaseUrl),
-    fingerprint: async () => fingerprint,
-    headers: { 'x-signature': intent.token },
-    metadata: {
-      bucketName: intent.bucket,
-      cacheControl: '3600',
-      contentType: 'image/png',
-      objectName: intent.objectKey
-    },
-    removeFingerprintOnSuccess: true,
-    retryDelays: [0, 100, 250],
-    uploadDataDuringCreation: true,
-    urlStorage
+async function uploadParts(
+  source: Buffer,
+  intent: CreateVttMapUploadIntentOutput,
+  partNumbers: readonly number[] = intent.resumable.parts.map((part) => part.partNumber)
+): Promise<{ etag: string; partNumber: number }[]> {
+  const requested = new Set(partNumbers)
+  const completed: { etag: string; partNumber: number }[] = []
+  for (const part of intent.resumable.parts) {
+    if (!requested.has(part.partNumber)) continue
+    const start = (part.partNumber - 1) * intent.resumable.chunkBytes
+    const body = Uint8Array.from(
+      source.subarray(start, Math.min(source.byteLength, start + intent.resumable.chunkBytes))
+    )
+    const response = await fetch(part.url, { body, method: 'PUT' })
+    assert.ok(response.ok, `Local R2 part upload failed with HTTP ${response.status}.`)
+    const etag = response.headers.get('etag')
+    assert.ok(etag, 'Local R2 part upload did not return an ETag.')
+    completed.push({ etag, partNumber: part.partNumber })
   }
-}
-
-async function interruptAfterFirstAcceptedChunk(
-  source: Buffer,
-  intent: UploadIntent,
-  urlStorage: UploadUrlStorage,
-  fingerprint: string
-): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
-    let upload: Upload | undefined
-    let stopped = false
-    upload = new Upload(
-      source,
-      uploadOptions(intent, urlStorage, fingerprint, {
-        onChunkComplete: (_chunkSize, bytesAccepted) => {
-          if (stopped || bytesAccepted < SIX_MIB || !upload?.url) return
-          stopped = true
-          const uploadUrl = upload.url
-          void upload.abort().then(() => resolve(uploadUrl), reject)
-        },
-        onError: reject,
-        onSuccess: () => reject(new Error('The resumable upload completed before interruption.'))
-      })
-    )
-    upload.start()
-  })
-}
-
-async function resumeAndComplete(
-  source: Buffer,
-  intent: UploadIntent,
-  urlStorage: UploadUrlStorage,
-  fingerprint: string,
-  expectedUploadUrl: string
-): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const upload = new Upload(
-      source,
-      uploadOptions(intent, urlStorage, fingerprint, {
-        onError: reject,
-        onSuccess: () => resolve()
-      })
-    )
-    void upload.findPreviousUploads().then((previous) => {
-      assert.equal(previous.length, 1, 'Expected exactly one interrupted TUS upload.')
-      assert.equal(previous[0]?.uploadUrl, expectedUploadUrl, 'TUS resumed a different upload URL.')
-      const prior = previous[0]
-      if (!prior) throw new Error('Interrupted TUS upload metadata was unavailable.')
-      upload.resumeFromPreviousUpload(prior)
-      upload.start()
-    }, reject)
-  })
-  const remaining = await urlStorage.findUploadsByFingerprint(fingerprint)
-  assert.equal(remaining.length, 0, 'Successful upload must remove its resumable fingerprint.')
-}
-
-async function completeUpload(
-  source: Buffer,
-  intent: UploadIntent,
-  urlStorage: UploadUrlStorage,
-  fingerprint: string
-): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const upload = new Upload(
-      source,
-      uploadOptions(intent, urlStorage, fingerprint, {
-        onError: reject,
-        onSuccess: () => resolve()
-      })
-    )
-    upload.start()
-  })
+  return completed
 }
 
 async function assertDeliveryUrls(urls: readonly string[]): Promise<void> {
   for (const value of urls) {
     const url = new URL(value)
-    assert.ok(
-      LOCAL_HOSTS.has(url.hostname.toLowerCase()),
-      'Signed delivery escaped local Supabase.'
-    )
+    assert.ok(LOCAL_HOSTS.has(url.hostname.toLowerCase()), 'Signed delivery escaped local R2.')
     const response = await fetch(url)
     assert.ok(response.ok, `Signed map delivery failed with HTTP ${response.status}.`)
     await response.arrayBuffer()
@@ -273,18 +313,27 @@ async function cleanupAsset(
   if (objectKeys.length > 0) {
     await removeObjects(objectKeys)
     await sql`
-      delete from media_object_deletions where object_key = any(${sql.val(objectKeys)}::text[])
+      delete from media_object_deletions
+      where storage_provider = 'R2' and object_key = any(${sql.val(objectKeys)}::text[])
     `.execute(db)
   }
   await createMediaRepository(db).deleteAsset(assetId)
 }
 
 async function main(): Promise<void> {
+  loadLocalEnvironment()
   const environment = requireLocalEnvironment()
   const db = createDb({ connectionString: environment.databaseConnectionString })
   const supabase = createClient(environment.supabaseUrl, environment.supabaseSecretKey, {
     auth: { autoRefreshToken: false, persistSession: false }
   })
+  const localR2 = new LocalR2Server()
+  const r2Endpoint = await localR2.start()
+  process.env.R2_ACCOUNT_ID = 'local'
+  process.env.R2_ACCESS_KEY_ID = 'local-access-key'
+  process.env.R2_SECRET_ACCESS_KEY = 'local-secret-key'
+  process.env.R2_VTT_MAP_BUCKET = 'vtt-map-local'
+  process.env.R2_S3_ENDPOINT = r2Endpoint
   const assetIds: string[] = []
   let campaignId: string | undefined
   let sceneId: string | undefined
@@ -327,27 +376,43 @@ async function main(): Promise<void> {
     assert.ok(entitlement.rows[0], 'Campaign creation did not establish a local entitlement row.')
 
     const map = await createNoisyPng()
-    const intent = await createVttMapUploadIntent(db, userId, {
+    const uploadInput = {
       declaredBytes: map.byteLength,
       declaredMimeType: 'image/png',
       idempotencyKey: randomUUID(),
       originalFileName: 'vtt-map-integration.png',
-      profile: 'VTT_MAP',
+      profile: 'VTT_MAP' as const,
       target: { campaignId, type: 'VTT_MAP' }
-    })
+    } as const
+    const intent = await createVttMapUploadIntent(db, userId, uploadInput)
     assetIds.push(intent.assetId)
     assert.equal(intent.resumable.chunkBytes, SIX_MIB)
-    assert.equal(intent.resumable.protocol, 'TUS')
+    assert.equal(intent.resumable.protocol, 'R2_MULTIPART')
+    assert.ok(intent.resumable.parts.length > 1, 'Fixture must exercise multipart resumption.')
 
-    const fingerprint = `vtt-map-integration:${intent.bucket}:${intent.objectKey}`
-    const urlStorage = new MemoryUrlStorage()
-    const interruptedUrl = await interruptAfterFirstAcceptedChunk(
-      map,
-      intent,
-      urlStorage,
-      fingerprint
+    const retainedParts = await uploadParts(map, intent, [1])
+    const resumedIntent = await createVttMapUploadIntent(db, userId, uploadInput)
+    assert.equal(resumedIntent.assetId, intent.assetId)
+    assert.equal(resumedIntent.objectKey, intent.objectKey)
+    assert.equal(
+      new URL(resumedIntent.resumable.parts[0]!.url).searchParams.get('uploadId'),
+      new URL(intent.resumable.parts[0]!.url).searchParams.get('uploadId'),
+      'Retry must retain the same R2 multipart upload.'
     )
-    await resumeAndComplete(map, intent, urlStorage, fingerprint, interruptedUrl)
+    const remainingParts = await uploadParts(
+      map,
+      resumedIntent,
+      resumedIntent.resumable.parts.slice(1).map((part) => part.partNumber)
+    )
+    const completedParts = [...retainedParts, ...remainingParts]
+    await completeVttMapMultipartUpload(db, userId, {
+      assetId: intent.assetId,
+      parts: completedParts
+    })
+    await completeVttMapMultipartUpload(db, userId, {
+      assetId: intent.assetId,
+      parts: completedParts
+    })
 
     const finalized = await finalizeVttMapUpload(db, userId, intent.assetId)
     assert.equal(finalized.status, 'READY')
@@ -397,12 +462,10 @@ async function main(): Promise<void> {
       target: { campaignId, type: 'VTT_MAP' }
     })
     assetIds.push(oversizedIntent.assetId)
-    await completeUpload(
-      oversized,
-      oversizedIntent,
-      new MemoryUrlStorage(),
-      `vtt-map-integration:${oversizedIntent.bucket}:${oversizedIntent.objectKey}`
-    )
+    await completeVttMapMultipartUpload(db, userId, {
+      assetId: oversizedIntent.assetId,
+      parts: await uploadParts(oversized, oversizedIntent)
+    })
     const rejected = await finalizeVttMapUpload(db, userId, oversizedIntent.assetId)
     assert.equal(rejected.status, 'REJECTED')
 
@@ -412,7 +475,7 @@ async function main(): Promise<void> {
           assetId: intent.assetId,
           deliveryUrlsFetched: delivery.tiles.length + 1,
           dimensions: { height: MAP_HEIGHT, width: MAP_WIDTH },
-          resumedTusUrl: true,
+          resumedMultipartUpload: true,
           sceneDeletionProtection: true,
           tileCount: delivery.tiles.length,
           oversizedMapRejected: true
@@ -440,10 +503,7 @@ async function main(): Promise<void> {
     }
     for (const assetId of assetIds) {
       try {
-        await cleanupAsset(db, assetId, async (objectKeys) => {
-          const { error } = await supabase.storage.from('media').remove(objectKeys)
-          if (error) throw new Error(`Unable to clean local VTT map objects: ${error.message}`)
-        })
+        await cleanupAsset(db, assetId, async (objectKeys) => localR2.remove(objectKeys))
       } catch (error) {
         cleanupFailures.push(error)
       }
@@ -458,6 +518,11 @@ async function main(): Promise<void> {
     }
     try {
       await db.destroy()
+    } catch (error) {
+      cleanupFailures.push(error)
+    }
+    try {
+      await localR2.close()
     } catch (error) {
       cleanupFailures.push(error)
     }

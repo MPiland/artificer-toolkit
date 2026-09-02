@@ -596,6 +596,7 @@ describe('authored domain detail pages', () => {
           conditionTypes: [],
           creatureTypes: [{ value: 'dragon', label: 'Dragon' }],
           damageTypes: [],
+          equipment: [],
           speeds: [
             { value: 'walk', label: 'Walking Speed' },
             { value: 'fly', label: 'Flying Speed' }
@@ -664,6 +665,7 @@ describe('authored domain detail pages', () => {
           conditionTypes: [],
           creatureTypes: [{ value: 'dragon', label: 'Dragon' }],
           damageTypes: [],
+          equipment: [],
           speeds: []
         }}
         response={response}

@@ -363,6 +363,64 @@ describe('subject schema parsing', () => {
     ).toThrow()
   })
 
+  it('requires v4 check definitions to be UUID-backed and governed by a local ability', () => {
+    const abilityId = '00000000-0000-0000-0011-000300000000'
+    const v4 = {
+      id: 'dnd-5e-srd',
+      label: 'D&D 5e SRD',
+      rulesetCode: 'dnd5e',
+      rulesetVersion: '2014',
+      alignments: [],
+      abilities: [{ id: abilityId, code: 'CONSTITUTION', label: 'Constitution' }],
+      challengeRatings: [],
+      conditionTypes: [],
+      creatureTypes: [],
+      currencies: [],
+      damageTypes: [],
+      heritages: [],
+      languages: [],
+      lifestyles: [],
+      magicSchools: [],
+      passives: [],
+      rarities: [],
+      senses: [],
+      skills: [
+        {
+          id: '00000000-0000-0000-000b-000100000000',
+          code: 'ATHLETICS',
+          label: 'Athletics',
+          governingAbilityDefinitionId: abilityId
+        }
+      ],
+      speeds: [],
+      terrains: [],
+      userId: 'master',
+      schemaVersion: 4 as const
+    }
+    expect(systemAuthoredDtoSchema.parse(v4)).toMatchObject({ schemaVersion: 4 })
+    expect(() =>
+      systemAuthoredDtoSchema.parse({
+        ...v4,
+        skills: [
+          {
+            ...v4.skills[0],
+            governingAbilityDefinitionId: '00000000-0000-0000-0011-000400000000'
+          }
+        ]
+      })
+    ).toThrow()
+    expect(() =>
+      systemAuthoredDtoSchema.parse({ ...v4, skills: [v4.skills[0], v4.skills[0]] })
+    ).toThrow()
+    expect(
+      systemAuthoredDtoSchema.parse({
+        ...v4,
+        abilities: [],
+        skills: [{ ...v4.skills[0], governingAbilityDefinitionId: null }]
+      })
+    ).toMatchObject({ schemaVersion: 4 })
+  })
+
   it('parses feat prerequisites authored on CHARACTER facets', () => {
     const feat = featAuthoredDtoSchema.parse({
       id: 'feat-elven-accuracy',

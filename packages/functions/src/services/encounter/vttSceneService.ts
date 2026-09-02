@@ -16,6 +16,10 @@ import {
   type RuleOccurrenceReceipt,
   type RuleOccurrenceRecord
 } from '@artificer-toolkit/db'
+import {
+  activeOptionalCombatDefinitions,
+  encounterOptionalCombatSnapshotDtoSchema
+} from '@artificer-toolkit/schema/shared/optionalCombat'
 import type {
   BindEncounterToPresentedSceneInputDto,
   BindEncounterToPresentedSceneResultDto,
@@ -117,6 +121,10 @@ import {
   type MovementCommandTransition,
   type MovementChangedAggregate
 } from './encounterMovementChangedAggregates.js'
+import { discoverEncounterMovementPassageContact } from './encounterMovementPassageContacts.js'
+import { createEncounterMovementPassageChoice } from './encounterMovementPassageChoice.js'
+import { prepareEncounterMovementPassageContest } from './encounterMovementPassageContestPreparation.js'
+import { prepareActionEconomyConsumption } from './encounterActionSettlementCore.js'
 
 export interface LiveSceneCommandContext {
   authorityId: string
@@ -370,6 +378,129 @@ function currentMovementReactionDistance(timeline: MovementReactionTimelineDto):
   return entry.kind === 'AUTOMATIC_ACTION'
     ? entry.option.candidate.pathDistance
     : entry.group.pathDistance
+}
+
+function nextMovementTimelineBoundaryDistance(
+  timeline: MovementReactionTimelineDto,
+  pendingPassageDistance: number | null
+): number | null {
+  const reactionDistance = currentMovementReactionDistance(timeline)
+  return reactionDistance === null
+    ? pendingPassageDistance
+    : pendingPassageDistance === null
+      ? reactionDistance
+      : Math.min(reactionDistance, pendingPassageDistance)
+}
+
+async function filterExecutableMovementPassageOptions<T>(input: {
+  options: readonly T[]
+  prepare: (option: T) => Promise<void>
+}): Promise<T[]> {
+  const executable: T[] = []
+  for (const option of input.options) {
+    try {
+      await input.prepare(option)
+      executable.push(option)
+    } catch {
+      // Missing authoritative contest facts make this option unavailable.
+    }
+  }
+  return executable
+}
+
+async function availableMovementPassageChoice(input: {
+  encounter: Awaited<ReturnType<typeof lockEncounterRuleExecutionCommandContext>>['encounter']
+  movement: Parameters<typeof createEncounterMovementPassageChoice>[0]['movement']
+  sourceActorId: string
+  sourceControllerCharacterId: string | null
+  targets: Awaited<ReturnType<typeof lockEncounterActiveEffectTargets>>
+  db: DBLike
+}) {
+  if (input.encounter.automationMode === 'MANUAL') return null
+  const sourceActor = input.encounter.actors.find((actor) => actor.id === input.sourceActorId)
+  if (!sourceActor || !input.encounter.optionalCombatSnapshotChecksum) return null
+  const snapshot = encounterOptionalCombatSnapshotDtoSchema.safeParse(
+    input.encounter.optionalCombatSnapshot
+  )
+  if (!snapshot.success) return null
+  const definitions = activeOptionalCombatDefinitions({
+    automationMode: input.encounter.automationMode,
+    snapshot: snapshot.data
+  })
+  const economies = await Promise.all(
+    (['ACTION', 'BONUS_ACTION'] as const).map(async (economy) => {
+      try {
+        const prepared = await prepareActionEconomyConsumption({
+          db: input.db,
+          encounter: input.encounter,
+          activation: { code: economy, amount: 1 },
+          gameSystemId: input.encounter.gameSystemId,
+          sourceActor,
+          targets: input.targets
+        })
+        return prepared ? economy : null
+      } catch {
+        return null
+      }
+    })
+  )
+  const options = definitions.flatMap((definition) => {
+    const ruleKind = definition.document.kind
+    if (ruleKind !== 'OVERRUN' && ruleKind !== 'TUMBLE') return []
+    return economies.flatMap((economy) =>
+      economy
+        ? [
+            {
+              ruleKind,
+              economy,
+              definitionId: definition.definitionId,
+              definitionVersion: definition.definitionVersion,
+              definitionChecksum: definition.definitionChecksum,
+              moduleKey: definition.document.module.policyModuleKey,
+              moduleContractVersion: definition.document.module.contractVersion
+            }
+          ]
+        : []
+    )
+  })
+  if (options.length === 0) return null
+  const provisional = createEncounterMovementPassageChoice({
+    movement: input.movement,
+    sourceActorId: input.sourceActorId,
+    sourceControllerCharacterId: input.sourceControllerCharacterId,
+    options
+  })
+  const executableIssuedOptions = await filterExecutableMovementPassageOptions({
+    options: provisional.options,
+    prepare: async (option) => {
+      await prepareEncounterMovementPassageContest({
+        choice: provisional,
+        db: input.db,
+        encounter: input.encounter,
+        optionId: option.optionId,
+        targets: input.targets
+      })
+    }
+  })
+  const executableOptionIds = new Set(executableIssuedOptions.map((option) => option.optionId))
+  const executableOptions = options.filter((candidate) =>
+    provisional.options.some(
+      (option) =>
+        executableOptionIds.has(option.optionId) &&
+        candidate.definitionId === option.definitionId &&
+        candidate.definitionVersion === option.definitionVersion &&
+        candidate.economy === option.economy &&
+        candidate.ruleKind === option.ruleKind
+    )
+  )
+  return executableOptions.length === 0
+    ? null
+    : createEncounterMovementPassageChoice({
+        movement: input.movement,
+        sourceActorId: input.sourceActorId,
+        sourceControllerCharacterId: input.sourceControllerCharacterId,
+        options: executableOptions
+      })
 }
 
 /**
@@ -1698,6 +1829,7 @@ export async function executeEncounterSceneCommandWithState(
                   tokens: scene.state.tokens,
                   actorIdByTokenId,
                   lockedCharacters: lockedActors.lockedCharacters,
+                  activeEffectsByActorId: lockedActors.activeEffectsByActorId,
                   encounterFeatureCapabilities,
                   definitions: createReusableDefinitionRepository(trx),
                   runtime: options.rulesRuntime,
@@ -1724,6 +1856,60 @@ export async function executeEncounterSceneCommandWithState(
           movementKind: input.movementKind,
           originalPath: input.path
         } satisfies SpatialMovementRuleRoot
+        const movingActorId = actorIdByTokenId.get(input.tokenId)!
+        const passageDiscovery =
+          automationMode !== 'MANUAL'
+            ? await (async () => {
+                const relationships = new Map<string, 'ALLIED' | 'NEUTRAL' | 'HOSTILE'>()
+                for (const actorId of actorIdByTokenId.values()) {
+                  if (actorId === movingActorId) continue
+                  const relationship = await createEncounterRepository(trx).lockActorRelationship({
+                    encounterId,
+                    firstActorId: movingActorId,
+                    secondActorId: actorId
+                  })
+                  if (relationship) relationships.set(actorId, relationship)
+                }
+                return discoverEncounterMovementPassageContact({
+                  actorIdByTokenId,
+                  isHostile: ({ blockerActorId }) =>
+                    relationships.get(blockerActorId) === 'HOSTILE',
+                  movementKind: input.movementKind,
+                  movingTokenId: input.tokenId,
+                  path: input.path,
+                  tokens: scene.state.tokens
+                })
+              })()
+            : { kind: 'NONE' as const }
+        if (passageDiscovery.kind === 'ENDPOINT_OCCUPIED') {
+          throw new EncounterValidationError(
+            'Voluntary movement cannot end inside a hostile occupied footprint.'
+          )
+        }
+        let pendingPassageContact =
+          passageDiscovery.kind === 'CROSSING' ? passageDiscovery.contact : null
+        const nextPassageStop =
+          passageDiscovery.kind === 'CROSSING' && passageDiscovery.laterContacts[0]
+            ? (() => {
+                const contact = passageDiscovery.laterContacts[0]!
+                const token = scene.state.tokens.find(
+                  (candidate) => candidate.id === contact.blockerTokenId
+                )
+                return {
+                  ...contact,
+                  blockerCurrentnessChecksum: checksumRuleDocument({
+                    actorId: contact.blockerActorId,
+                    tokenId: contact.blockerTokenId,
+                    footprint: token
+                  })
+                }
+              })()
+            : null
+        const nextMovementBoundaryDistance = (timeline: MovementReactionTimelineDto) =>
+          nextMovementTimelineBoundaryDistance(
+            timeline,
+            pendingPassageContact?.pathDistance ?? null
+          )
         let currentEncounter = lockedEncounterContext.encounter
         const refreshMovementTargets = async () => {
           const refreshedEncounter = await createEncounterRepository(trx).find(encounterId)
@@ -1760,23 +1946,143 @@ export async function executeEncounterSceneCommandWithState(
           attunementSlotOverride: lockedEncounterContext.context.attunementSlotOverride,
           getEncounterActorSnapshot,
           lockedTargets: lockedActors,
-          ...(reactionTimeline[0]
-            ? {
-                interruptAfterPathDistance:
-                  reactionTimeline[0].kind === 'AUTOMATIC_ACTION'
-                    ? reactionTimeline[0].option.candidate.pathDistance
-                    : reactionTimeline[0].group.pathDistance
-              }
-            : {}),
+          ...(nextMovementBoundaryDistance(reactionTimeline) === null
+            ? {}
+            : { interruptAfterPathDistance: nextMovementBoundaryDistance(reactionTimeline)! }),
           ...(options.rollD20 ? { rollD20: options.rollD20 } : {})
         })
         let pendingReactionTimeline = reactionTimeline
         let stagedSceneState = scene.state
         const commandTransitions: MovementCommandTransition[] = []
-        while (
+        const passageChoiceAtCurrentBoundary = async () =>
+          pendingPassageContact &&
           spatial.kind === 'REACTION_BOUNDARY' &&
-          pendingReactionTimeline[0]?.kind === 'AUTOMATIC_ACTION'
-        ) {
+          Math.abs(spatial.boundaryDistance - pendingPassageContact.pathDistance) <= 1e-8 &&
+          !spatial.completedExecutions.some(
+            (execution) => execution.execution.movementInterruption?.kind === 'STOP'
+          )
+            ? availableMovementPassageChoice({
+                db: trx,
+                encounter: currentEncounter,
+                movement: {
+                  root: {
+                    ...movementRoot,
+                    currentSceneVersion: scene.state.version + 1,
+                    pathChecksum: checksumRuleDocument(movementRoot.originalPath),
+                    pathStartDistance: spatial.boundaryDistance,
+                    currentPosition: spatial.boundaryPosition,
+                    resolutionCommands: [...spatial.resolutionCommands]
+                  },
+                  blockerActorId: pendingPassageContact.blockerActorId,
+                  blockerTokenId: pendingPassageContact.blockerTokenId,
+                  contact: pendingPassageContact.contact,
+                  contactPathDistance: pendingPassageContact.pathDistance,
+                  blockerCurrentnessChecksum: checksumRuleDocument({
+                    actorId: pendingPassageContact.blockerActorId,
+                    tokenId: pendingPassageContact.blockerTokenId,
+                    footprint: scene.state.tokens.find(
+                      (token) => token.id === pendingPassageContact!.blockerTokenId
+                    )
+                  }),
+                  nextPassageStop,
+                  spatialSelectionChecksum: spatial.selectionChecksum,
+                  spatialCurrentnessChecksum: spatial.currentnessChecksum,
+                  completedSpatialExecutions: [...spatial.completedExecutions],
+                  appliedSpatialPrefix: spatial.appliedPrefix,
+                  completedReactionExecutions: [...spatial.completedReactionExecutions],
+                  remainingSpatialCandidates: [...spatial.remainingCandidates],
+                  reactionTimeline: pendingReactionTimeline
+                },
+                sourceActorId: movingActorId,
+                sourceControllerCharacterId:
+                  currentEncounter.actors.find((actor) => actor.id === movingActorId)?.kind ===
+                  'CHARACTER'
+                    ? (currentEncounter.actors.find((actor) => actor.id === movingActorId)
+                        ?.sourceId ?? null)
+                    : null,
+                targets: lockedActors
+              })
+            : null
+        type SpatialReactionBoundary = Extract<
+          Awaited<ReturnType<typeof evaluateEncounterSpatialMovementRuleBatch>>,
+          { kind: 'REACTION_BOUNDARY' }
+        >
+        const resumeAfterBoundary = async (
+          boundary: SpatialReactionBoundary,
+          completedReaction?: SpatialReactionBoundary['completedReactionExecutions'][number]
+        ) => {
+          const remainder = {
+            root: {
+              ...movementRoot,
+              currentSceneVersion: scene.state.version,
+              pathChecksum: checksumRuleDocument(movementRoot.originalPath),
+              pathStartDistance: boundary.boundaryDistance,
+              currentPosition: boundary.boundaryPosition,
+              resolutionCommands: [...boundary.resolutionCommands]
+            },
+            spatialSelectionChecksum: boundary.selectionChecksum,
+            spatialCurrentnessChecksum: boundary.currentnessChecksum,
+            completedSpatialExecutions: [...boundary.completedExecutions],
+            appliedSpatialPrefix: boundary.appliedPrefix,
+            completedReactionExecutions: [
+              ...boundary.completedReactionExecutions,
+              ...(completedReaction ? [completedReaction] : [])
+            ],
+            currentSpatialCandidate: null,
+            remainingSpatialCandidates: [...boundary.remainingCandidates],
+            reactionTimeline: pendingReactionTimeline
+          }
+          const nextBoundaryDistance = nextMovementBoundaryDistance(pendingReactionTimeline)
+          return evaluateEncounterSpatialMovementRuleBatch({
+            trx,
+            actorUserId: userId,
+            encounter: currentEncounter,
+            sceneId: scene.state.id,
+            sceneVersion: scene.state.version,
+            actorIdByTokenId,
+            sceneTokens: stagedSceneState.tokens,
+            spatialScope,
+            root: movementRoot,
+            currentPosition: boundary.boundaryPosition,
+            occurrenceId,
+            executionCommandId: input.commandId,
+            runtime: options.rulesRuntime,
+            attunementSlotOverride: lockedEncounterContext.context.attunementSlotOverride,
+            getEncounterActorSnapshot: async () => {
+              const snapshot = await evaluateEncounterActorRuleSnapshot({
+                db: trx,
+                encounter: currentEncounter
+              })
+              return { rules: snapshot.snapshot.output, encounter: snapshot.reconciledEncounter }
+            },
+            lockedTargets: lockedActors,
+            frozenReactionRemainder: remainder,
+            ...(nextBoundaryDistance === null
+              ? {}
+              : { interruptAfterPathDistance: nextBoundaryDistance }),
+            ...(options.rollD20 ? { rollD20: options.rollD20 } : {})
+          })
+        }
+        let passageChoice = null as Awaited<ReturnType<typeof availableMovementPassageChoice>>
+        while (spatial.kind === 'REACTION_BOUNDARY') {
+          const currentBoundary = spatial
+          const passageAtBoundary =
+            pendingPassageContact !== null &&
+            Math.abs(currentBoundary.boundaryDistance - pendingPassageContact.pathDistance) <= 1e-8
+          passageChoice = await passageChoiceAtCurrentBoundary()
+          if (passageChoice) break
+          if (passageAtBoundary) pendingPassageContact = null
+
+          const reactionDistance = currentMovementReactionDistance(pendingReactionTimeline)
+          const reactionAtBoundary =
+            reactionDistance !== null &&
+            Math.abs(currentBoundary.boundaryDistance - reactionDistance) <= 1e-8
+          const nextReaction = pendingReactionTimeline[0]
+          if (!reactionAtBoundary || !nextReaction) {
+            spatial = await resumeAfterBoundary(currentBoundary)
+            continue
+          }
+          if (nextReaction.kind !== 'AUTOMATIC_ACTION') break
           if (!options.rulesRuntime) {
             throw new EncounterValidationError(
               'Automatic movement reactions require the rules runtime.'
@@ -1785,7 +2091,7 @@ export async function executeEncounterSceneCommandWithState(
           stagedSceneState = stageSceneTokenPosition(
             stagedSceneState,
             input.tokenId,
-            spatial.boundaryPosition
+            currentBoundary.boundaryPosition
           )
           const automatic = await executeAutomaticEncounterMovementReaction({
             db: trx,
@@ -1797,8 +2103,8 @@ export async function executeEncounterSceneCommandWithState(
             movementKind: input.movementKind,
             occurrenceId,
             commandId: input.commandId,
-            ordinal: spatial.completedReactionExecutions.length,
-            option: pendingReactionTimeline[0].option,
+            ordinal: currentBoundary.completedReactionExecutions.length,
+            option: nextReaction.option,
             runtime: options.rulesRuntime,
             attunementSlotOverride: lockedEncounterContext.context.attunementSlotOverride,
             spatialScope,
@@ -1810,133 +2116,76 @@ export async function executeEncounterSceneCommandWithState(
               kind: 'PENDING',
               movementIntent: {
                 tokenId: input.tokenId,
-                position: spatial.boundaryPosition
+                position: currentBoundary.boundaryPosition
               },
               pendingSnapshot: startEncounterAutomaticMovementReactionEvidenceAtBoundary({
                 continuation: automatic.continuation.continuation,
                 root: movementRoot,
                 currentSceneVersion: scene.state.version,
-                boundary: spatial,
+                boundary: currentBoundary,
                 reactionTimeline: pendingReactionTimeline,
-                selectedOptionId: pendingReactionTimeline[0].option.optionId,
+                selectedOptionId: nextReaction.option.optionId,
                 d20Policy: automatic.continuation.d20Policy
               })
             }
-          } else {
-            commandTransitions.push({
-              kind: 'REACTION',
-              execution: automatic.settled.reactionExecution
-            })
-            await refreshMovementTargets()
-            if (
-              automatic.settled.reactionExecution.execution.movementInterruption?.kind === 'STOP'
-            ) {
-              const terminalPosition = stagedSceneState.tokens.find(
-                (token) => token.id === input.tokenId
-              )!.position
-              const stoppedCandidate = spatial.appliedPrefix
-                ? storedRuleExecutionResultDtoSchema.parse({
-                    ...spatial.appliedPrefix,
-                    reactionExecutions: [
-                      ...spatial.completedReactionExecutions,
-                      automatic.settled.reactionExecution
-                    ],
-                    terminalPosition
-                  })
-                : storedRuleExecutionResultDtoSchema.parse({
-                    status: 'MOVEMENT_COMPLETE',
-                    schemaVersion: 1,
-                    occurrenceId,
-                    occurrenceVersion: 0,
-                    encounterId,
-                    encounterVersion: lockedEncounterContext.encounter.version + 1,
-                    sceneId: scene.state.id,
-                    sceneVersion: scene.state.version + 1,
-                    tokenId: input.tokenId,
-                    movementKind: input.movementKind,
-                    reactionExecutions: [
-                      ...spatial.completedReactionExecutions,
-                      automatic.settled.reactionExecution
-                    ],
-                    terminalPosition
-                  })
-              if (
-                stoppedCandidate.status !== 'MOVEMENT_COMPLETE' &&
-                !(
-                  stoppedCandidate.status === 'BATCH_COMPLETE' &&
-                  stoppedCandidate.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT'
-                )
-              ) {
-                throw new EncounterConflictError('The stopped movement result is unavailable.')
-              }
-              spatial = {
-                kind: 'TERMINAL',
-                result: stoppedCandidate,
-                movementIntent: { tokenId: input.tokenId, position: terminalPosition },
-                resolutionCommands: spatial.resolutionCommands,
-                selectionChecksum: spatial.selectionChecksum,
-                currentnessChecksum: spatial.currentnessChecksum
-              }
-            } else {
-              pendingReactionTimeline = pendingReactionTimeline.slice(1)
-              const remainder = {
-                root: {
-                  ...movementRoot,
-                  currentSceneVersion: scene.state.version,
-                  pathChecksum: checksumRuleDocument(movementRoot.originalPath),
-                  pathStartDistance: spatial.boundaryDistance,
-                  currentPosition: spatial.boundaryPosition,
-                  resolutionCommands: [...spatial.resolutionCommands]
-                },
-                spatialSelectionChecksum: spatial.selectionChecksum,
-                spatialCurrentnessChecksum: spatial.currentnessChecksum,
-                completedSpatialExecutions: [...spatial.completedExecutions],
-                appliedSpatialPrefix: spatial.appliedPrefix,
-                completedReactionExecutions: [
-                  ...spatial.completedReactionExecutions,
-                  automatic.settled.reactionExecution
-                ],
-                currentSpatialCandidate: null,
-                remainingSpatialCandidates: [...spatial.remainingCandidates],
-                reactionTimeline: pendingReactionTimeline
-              }
-              spatial = await evaluateEncounterSpatialMovementRuleBatch({
-                trx,
-                actorUserId: userId,
-                encounter: currentEncounter,
-                sceneId: scene.state.id,
-                sceneVersion: scene.state.version,
-                actorIdByTokenId,
-                sceneTokens: stagedSceneState.tokens,
-                spatialScope,
-                root: movementRoot,
-                currentPosition: spatial.boundaryPosition,
-                occurrenceId,
-                executionCommandId: input.commandId,
-                runtime: options.rulesRuntime,
-                attunementSlotOverride: lockedEncounterContext.context.attunementSlotOverride,
-                getEncounterActorSnapshot: async () => {
-                  const snapshot = await evaluateEncounterActorRuleSnapshot({
-                    db: trx,
-                    encounter: currentEncounter
-                  })
-                  return {
-                    rules: snapshot.snapshot.output,
-                    encounter: snapshot.reconciledEncounter
-                  }
-                },
-                lockedTargets: lockedActors,
-                frozenReactionRemainder: remainder,
-                ...(currentMovementReactionDistance(pendingReactionTimeline) === null
-                  ? {}
-                  : {
-                      interruptAfterPathDistance:
-                        currentMovementReactionDistance(pendingReactionTimeline)!
-                    }),
-                ...(options.rollD20 ? { rollD20: options.rollD20 } : {})
-              })
-            }
+            break
           }
+          commandTransitions.push({
+            kind: 'REACTION',
+            execution: automatic.settled.reactionExecution
+          })
+          await refreshMovementTargets()
+          if (automatic.settled.reactionExecution.execution.movementInterruption?.kind === 'STOP') {
+            const terminalPosition = stagedSceneState.tokens.find(
+              (token) => token.id === input.tokenId
+            )!.position
+            const stoppedCandidate = currentBoundary.appliedPrefix
+              ? storedRuleExecutionResultDtoSchema.parse({
+                  ...currentBoundary.appliedPrefix,
+                  reactionExecutions: [
+                    ...currentBoundary.completedReactionExecutions,
+                    automatic.settled.reactionExecution
+                  ],
+                  terminalPosition
+                })
+              : storedRuleExecutionResultDtoSchema.parse({
+                  status: 'MOVEMENT_COMPLETE',
+                  schemaVersion: 1,
+                  occurrenceId,
+                  occurrenceVersion: 0,
+                  encounterId,
+                  encounterVersion: lockedEncounterContext.encounter.version + 1,
+                  sceneId: scene.state.id,
+                  sceneVersion: scene.state.version + 1,
+                  tokenId: input.tokenId,
+                  movementKind: input.movementKind,
+                  reactionExecutions: [
+                    ...currentBoundary.completedReactionExecutions,
+                    automatic.settled.reactionExecution
+                  ],
+                  terminalPosition
+                })
+            if (
+              stoppedCandidate.status !== 'MOVEMENT_COMPLETE' &&
+              !(
+                stoppedCandidate.status === 'BATCH_COMPLETE' &&
+                stoppedCandidate.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT'
+              )
+            ) {
+              throw new EncounterConflictError('The stopped movement result is unavailable.')
+            }
+            spatial = {
+              kind: 'TERMINAL',
+              result: stoppedCandidate,
+              movementIntent: { tokenId: input.tokenId, position: terminalPosition },
+              resolutionCommands: currentBoundary.resolutionCommands,
+              selectionChecksum: currentBoundary.selectionChecksum,
+              currentnessChecksum: currentBoundary.currentnessChecksum
+            }
+            break
+          }
+          pendingReactionTimeline = pendingReactionTimeline.slice(1)
+          spatial = await resumeAfterBoundary(currentBoundary, automatic.settled.reactionExecution)
         }
         if (
           spatial.kind === 'PENDING' ||
@@ -1990,6 +2239,25 @@ export async function executeEncounterSceneCommandWithState(
             const pendingSnapshot =
               spatial.kind === 'REACTION_BOUNDARY'
                 ? await (async () => {
+                    if (passageChoice) {
+                      return {
+                        snapshotKind: 'AGGREGATE_CHOICE' as const,
+                        schemaVersion: 1 as const,
+                        occurrenceId,
+                        optionalCombatSnapshotChecksum:
+                          lockedEncounterContext.encounter.optionalCombatSnapshotChecksum,
+                        applicationContext: {
+                          ...passageChoice,
+                          movement: {
+                            ...passageChoice.movement,
+                            root: {
+                              ...passageChoice.movement.root,
+                              currentSceneVersion: committed.version
+                            }
+                          }
+                        }
+                      }
+                    }
                     const firstEntry = pendingReactionTimeline[0]
                     if (
                       !firstEntry ||
@@ -2352,6 +2620,8 @@ export const vttSceneServiceInternals = {
   createUndoLastMoveDelta,
   explorationDeltasFor,
   legacyVisualOnlyDarknessFingerprint,
+  filterExecutableMovementPassageOptions,
+  nextMovementTimelineBoundaryDistance,
   sceneCommandFingerprint,
   sliceMovementPath
 }

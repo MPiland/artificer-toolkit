@@ -37,9 +37,9 @@ authority.
 - Allow one admitted user to connect from multiple devices without one connection replacing another. Keep camera, zoom, selected tool, Play/Edit mode, and open panels local to each connection while all committed gameplay uses the same room authority. Treat tablet landscape as a first-class map surface with collapsible GM tools; make phone play Character-Sheet-first while retaining a focused player map for controlled-token movement, navigation, measurement, and authorized interactions.
 - Let GMs switch between Play and Edit tools while a scene is live. Players receive only Play controls and authorized interactive scene elements. Door swing angle and other structural behavior are authored by the GM/editor, never selected by a player during play.
 - Render the locally dragged token immediately without waiting for a network round trip. Broadcast bounded transient positions separately, interpolate them for remote viewers, and validate every path segment against authoritative barriers before a preview is relayed. The GM chooses `Reveal while dragging` (default) or `Reveal on drop`; on-drag vision is a private, server-derived transient projection and only the final path/fog batch is persisted. A stale or rejected transient position can never replace a newer committed position.
-- Maps and token assets reuse Phase 02 ready-asset identity, opaque object keys, authorized Supabase Storage paths, and API-owned metadata. A Cloudflare R2/provider move is deferred until VTT storage needs justify it; stable asset IDs keep Campaign and scene references portable.
+- Maps and token assets reuse Phase 02 ready-asset identity, opaque object keys, and API-owned metadata. New `VTT_MAP` bytes use private Cloudflare R2 while ordinary media and existing map bytes remain in Supabase Storage; persisted provider identity keeps Campaign and scene references portable.
 - `VTT_MAP` has separate byte, dimension, pixel-count, quota, transfer, and processing rules from ordinary Campaign attachments and handout maps.
-- Large map transfers use the resumable Phase 02 path. `VTT_MAP` accepts JPEG, PNG, and WebP up to 25 MiB, 8192 px per side, and 64 MP; Sharp generates renderer tiles without creating a second upload authorization model.
+- Large map transfers use bounded R2 multipart upload. `VTT_MAP` accepts JPEG, PNG, and WebP up to 25 MiB, 8192 px per side, and 64 MP; Sharp generates renderer tiles without changing stable asset identity.
 - Manual fog is explicit Encounter/scene state with GM-only mutation in v1. Advanced lighting includes wall occlusion, point/cone lights, darkness polygons, and server/client-consistent exploration.
 - Every durable action is idempotent, versioned, authorized, replayable, and reconcilable after reconnect.
 - Recheck active Campaign membership roles on each 10-second authority renewal. Remove revoked or stale-role sockets without interrupting unaffected players.
@@ -140,9 +140,8 @@ If the gate fails, retain the scene model and command contracts and simplify or 
   general environment/object/material simulation, epic progression, Adventure Module Packages, 3D,
   physics, voice/video, AI, marketplace asset sales, offline-first persistence, peer-authoritative
   state, map-art creation, procedural generation, texture painting, public plugin APIs,
-  Redis/multi-region orchestration, and premature storage-provider abstraction. Local hosting is
-  supported but cannot become required for managed online play. Revisit R2 only when VTT map volume
-  or egress evidence requires it.
+  Redis/multi-region orchestration, and a generic storage-provider framework. Local hosting is
+  supported but cannot become required for managed online play.
 
 ## Concerns and expansions
 

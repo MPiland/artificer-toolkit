@@ -8,15 +8,136 @@ import {
   encounterGmProjectionDtoSchema,
   encounterProjectionListDtoSchema,
   encounterPlayerProjectionDtoSchema,
+  optionalCombatActionIntentDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
 } from '../api/encounters.js'
 import { proposedRuleOutcomeDtoSchema, ruleOutcomeOverrideDtoSchema } from '../api/rules.js'
 import { serverRuleExecutionPendingApplicationContextDtoSchema } from '../shared/rulesExecution.js'
+import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
 
 const encounterId = '00000000-0000-4000-8000-000000000001'
 const commandId = '00000000-0000-4000-8000-000000000002'
 
 describe('encounter contracts', () => {
+  it('retains only exact post-action Cleaving trigger facts on a paused Character action', () => {
+    const pending = {
+      kind: 'ENCOUNTER_CHARACTER_RULE_ACTION' as const,
+      schemaVersion: 1 as const,
+      actionId: 'action:longsword',
+      sceneContext: null,
+      positionalDependencyChecksum: null,
+      sourceActorId: encounterId,
+      targetActorId: commandId,
+      sourceCharacterId: encounterId,
+      targetCharacterId: commandId,
+      sourceCharacterStreamVersion: 4,
+      targetCharacterStreamVersion: 9,
+      sourceProjectionChecksum: 'a'.repeat(64),
+      targetProjectionChecksum: 'b'.repeat(64),
+      sourceMechanicalContextChecksum: 'c'.repeat(64),
+      targetMechanicalContextChecksum: 'd'.repeat(64),
+      publishedDefinitionId: encounterId,
+      publishedDefinitionChecksum: 'e'.repeat(64),
+      postActionTriggerFacts: {
+        attackKind: 'MELEE' as const,
+        range: { id: 'weapon-reach', rangeKind: 'DISTANCE' as const, amount: 5, unit: 'FEET' }
+      },
+      actionEconomy: null,
+      twoPhase: null,
+      targetStateChecksum: 'f'.repeat(64),
+      d20: null
+    }
+
+    expect(serverRuleExecutionPendingApplicationContextDtoSchema.parse(pending)).toMatchObject(
+      pending
+    )
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+        ...pending,
+        postActionTriggerFacts: undefined
+      })
+    ).toMatchObject({ postActionTriggerFacts: null })
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.safeParse({
+        ...pending,
+        postActionTriggerFacts: {
+          ...pending.postActionTriggerFacts,
+          range: { id: 'display-label', rangeKind: 'DISTANCE', amount: 5 }
+        }
+      }).success
+    ).toBe(false)
+  })
+
+  it('projects only closed sanitized initiative declaration options', () => {
+    const prompt = {
+      kind: 'INITIATIVE_DECLARATION' as const,
+      occurrenceId: encounterId,
+      occurrenceVersion: 1,
+      encounterVersion: 2,
+      actorId: commandId,
+      requestId: 'speed-factor',
+      primaryOptions: [
+        {
+          kind: 'CHARACTER_ACTION' as const,
+          optionId: 'action:longsword',
+          label: 'Longsword',
+          selectionContract: 'a'.repeat(64)
+        }
+      ],
+      bonusOptions: [],
+      adjudicationFields: [
+        {
+          kind: 'SELECT' as const,
+          key: 'actorSize' as const,
+          label: 'Actor size',
+          required: true as const,
+          options: [{ value: 'MEDIUM', label: 'Medium' }]
+        },
+        {
+          kind: 'MULTI_SELECT' as const,
+          key: 'actionFactors' as const,
+          label: 'Action factors',
+          minimumSelections: 0,
+          maximumSelections: 4,
+          options: []
+        },
+        {
+          kind: 'NULLABLE_INTEGER' as const,
+          key: 'spellLevel' as const,
+          label: 'Spell level',
+          minimum: 0,
+          maximum: 12
+        }
+      ],
+      allowedResponses: ['INITIATIVE_DECLARATION'] as const
+    }
+    expect(pendingEncounterRuleOccurrenceSummaryDtoSchema.safeParse(prompt).success).toBe(true)
+    expect(
+      pendingEncounterRuleOccurrenceSummaryDtoSchema.safeParse({
+        ...prompt,
+        primaryOptions: [{ ...prompt.primaryOptions[0], kind: 'UNKNOWN' }]
+      }).success
+    ).toBe(false)
+    expect(
+      pendingEncounterRuleOccurrenceSummaryDtoSchema.safeParse({
+        ...prompt,
+        adjudicationFields: [{ ...prompt.adjudicationFields[0], key: 'unknown' }]
+      }).success
+    ).toBe(false)
+    expect(
+      pendingEncounterRuleOccurrenceSummaryDtoSchema.safeParse({
+        ...prompt,
+        primaryOptions: [{ ...prompt.primaryOptions[0], label: '' }]
+      }).success
+    ).toBe(false)
+    expect(
+      pendingEncounterRuleOccurrenceSummaryDtoSchema.safeParse({
+        ...prompt,
+        primaryOptions: [{ ...prompt.primaryOptions[0], selectionContract: 'not-a-checksum' }]
+      }).success
+    ).toBe(false)
+  })
+
   it('closes initiative occurrence prompts, responses, and persisted phase context', () => {
     const secondEntityId = '00000000-0000-4000-8000-000000000003'
     const baseOccurrence = {
@@ -530,6 +651,29 @@ describe('encounter contracts', () => {
     ).toThrow()
   })
 
+  it('accepts only an optional UUID-backed prospective actor-side correction', () => {
+    expect(
+      encounterCommandInputDtoSchema.parse({
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        type: 'UPDATE_ACTOR',
+        actorId: encounterId,
+        sideId: commandId
+      })
+    ).toMatchObject({ type: 'UPDATE_ACTOR', actorId: encounterId, sideId: commandId })
+    expect(() =>
+      encounterCommandInputDtoSchema.parse({
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        type: 'UPDATE_ACTOR',
+        actorId: encounterId,
+        sideId: 'not-a-uuid'
+      })
+    ).toThrow()
+  })
+
   it('accepts an authoritative enemy feature charge adjustment', () => {
     expect(
       encounterCommandInputDtoSchema.parse({
@@ -603,6 +747,65 @@ describe('encounter contracts', () => {
       })
     ).toThrow()
     expect(() => ruleOutcomeOverrideDtoSchema.parse({ reason: '   ', outcomes: [] })).toThrow()
+  })
+
+  it('accepts only closed optional combat action intent selections', () => {
+    const fieldId = 'a'.repeat(64)
+    const positionFieldId = 'b'.repeat(64)
+    const definitionId = '00000000-0000-4000-8000-0000000000AB'
+    const entityId = '00000000-0000-4000-8000-0000000000CD'
+    const intent = optionalCombatActionIntentDtoSchema.parse({
+      optionId: 'c'.repeat(64),
+      definitionId,
+      selectionContract: 'd'.repeat(64),
+      selections: [
+        { fieldId, value: { kind: 'ENTITY', entityId } },
+        {
+          fieldId: positionFieldId,
+          value: { kind: 'POSITION', position: { x: 12, y: -5 } }
+        }
+      ]
+    })
+
+    expect(intent.definitionId).toBe(definitionId.toLowerCase())
+    expect(intent.selections[0]).toMatchObject({ value: { entityId: entityId.toLowerCase() } })
+    expect(intent.selections[1]).toMatchObject({ value: { position: { x: 12, y: -5 } } })
+
+    expect(() =>
+      optionalCombatActionIntentDtoSchema.parse({
+        ...intent,
+        selections: [intent.selections[1], intent.selections[0]]
+      })
+    ).toThrow(/ascending/)
+    expect(() =>
+      optionalCombatActionIntentDtoSchema.parse({
+        ...intent,
+        selections: [intent.selections[0], intent.selections[0]]
+      })
+    ).toThrow(/unique and ascending/)
+    expect(() =>
+      optionalCombatActionIntentDtoSchema.parse({
+        ...intent,
+        unexpected: true
+      })
+    ).toThrow()
+    expect(() =>
+      optionalCombatActionIntentDtoSchema.parse({
+        ...intent,
+        definitionId: 'not-a-uuid'
+      })
+    ).toThrow()
+    expect(() =>
+      optionalCombatActionIntentDtoSchema.parse({
+        ...intent,
+        selections: [
+          {
+            fieldId,
+            value: { kind: 'POSITION', position: { x: Number.POSITIVE_INFINITY, y: 0 } }
+          }
+        ]
+      })
+    ).toThrow()
   })
 
   it('accepts only bounded physical concentration dice without a client-selected total', () => {
@@ -781,6 +984,45 @@ describe('encounter contracts', () => {
             contextChecksum: 'a'.repeat(64)
           }
         }
+      })
+    ).toThrow()
+  })
+
+  it('closes Creature equipment replacement commands to exact identifiers', () => {
+    const loadoutEntryId = '00000000-0000-4000-8000-000000000009'
+    const equipmentId = '00000000-0000-4000-8000-000000000010'
+    expect(
+      encounterCommandInputDtoSchema.parse({
+        type: 'REPLACE_CREATURE_EQUIPMENT',
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        actorId: encounterId,
+        loadoutEntryId,
+        equipmentId
+      })
+    ).toMatchObject({ type: 'REPLACE_CREATURE_EQUIPMENT', loadoutEntryId, equipmentId })
+    expect(() =>
+      encounterCommandInputDtoSchema.parse({
+        type: 'REPLACE_CREATURE_EQUIPMENT',
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        actorId: encounterId,
+        loadoutEntryId,
+        equipmentId,
+        replacementPayload: {}
+      })
+    ).toThrow()
+    expect(() =>
+      encounterCommandInputDtoSchema.parse({
+        type: 'REPLACE_CREATURE_EQUIPMENT',
+        encounterId,
+        commandId,
+        expectedVersion: 2,
+        actorId: encounterId,
+        loadoutEntryId: 'not-a-uuid',
+        equipmentId
       })
     ).toThrow()
   })

@@ -1,6 +1,83 @@
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+
+function weaponAttackOption(input: {
+  optionId: number
+  effectId: number
+  rangeId: number
+  pathId: number
+  label: string
+  order: number
+  triggerCode: typeof S.TRIGGER.MELEE_WEAPON_ATTACK | typeof S.TRIGGER.RANGED_WEAPON_ATTACK
+  range: number
+  diceConfig: string
+  attackBonus: number
+}) {
+  return {
+    id: S.actionId(91, input.optionId),
+    label: input.label,
+    description: '',
+    order: input.order,
+    rollDefinitions: [
+      {
+        id: S.actionId(3450, input.optionId + 1000),
+        label: `${input.label} attack`,
+        kind: 'ATTACK' as const,
+        expression: { count: 1, die: 20, modifier: input.attackBonus },
+        rollMode: 'NORMAL' as const,
+        chargeCost: null,
+        order: 1
+      }
+    ],
+    effects: [
+      {
+        id: S.actionId(3450, input.effectId),
+        order: 1,
+        invocation: {
+          kind: 'ACTION' as const,
+          triggerCode: input.triggerCode,
+          activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+          range: {
+            id: S.actionId(3450, input.rangeId),
+            rangeKind: S.RANGE_KIND.DISTANCE,
+            amount: input.range,
+            unit: S.MEASUREMENT_UNIT_CODE.FEET
+          },
+          targeting: {
+            selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+            dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+          }
+        },
+        paths: [
+          {
+            id: S.actionId(3450, input.pathId),
+            order: 1,
+            pathCode: S.PATH_CODE.ON_HIT,
+            groupType: S.PATH_GROUP_TYPE.SINGLE,
+            originKind: 'SOURCE' as const,
+            selectionKind: 'FIXED' as const,
+            resultBlock: {
+              id: S.actionId(3450, input.pathId) + '__result',
+              resultKind: 'SINGLE' as const,
+              outcomes: [
+                {
+                  id: S.actionId(3450, input.pathId),
+                  effectKind: S.EFFECT_KIND.DAMAGE,
+                  damageTypeId: S.damageTypeId('PIERCING'),
+                  valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                  scalingKind: S.SCALING.NONE,
+                  diceConfig: input.diceConfig
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+
 export const duergar: CreatureAuthored = {
   id: S.CREATURE_IDS.DUERGAR,
   label: 'Duergar',
@@ -136,62 +213,30 @@ export const duergar: CreatureAuthored = {
       label: 'War Pick',
       description:
         'War Pick. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 6 (1d8 + 2) piercing damage, or 11 (2d8 + 2) piercing damage while enlarged.',
-      effects: [
-        {
-          id: S.actionId(3450, 4),
+      options: [
+        weaponAttackOption({
+          optionId: 404,
+          effectId: 4,
+          rangeId: 5,
+          pathId: 6,
+          label: 'War Pick',
           order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(3450, 5),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(3450, 6),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(3450, 6) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(3450, 6),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('PIERCING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '1d8+2'
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        S.closedRuleEffect({
-          id: S.actionId(91, 204),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: S.actionId(91, 1204), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DUERGAR_ENLARGED_WAR_PICK_DAMAGE
+          triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+          range: 5,
+          diceConfig: '1d8+2',
+          attackBonus: 4
+        }),
+        weaponAttackOption({
+          optionId: 405,
+          effectId: 104,
+          rangeId: 105,
+          pathId: 106,
+          label: 'War Pick (Enlarged)',
+          order: 2,
+          triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+          range: 5,
+          diceConfig: '2d8+2',
+          attackBonus: 4
         })
       ],
       order: 4
@@ -201,108 +246,54 @@ export const duergar: CreatureAuthored = {
       label: 'Javelin',
       description:
         'Javelin. Melee or Ranged Weapon Attack: +4 to hit, reach 5 ft. or range 30/120 ft., one target. Hit: 5 (1d6 + 2) piercing damage, or 9 (2d6 + 2) piercing damage while enlarged.',
-      effects: [
-        {
-          id: S.actionId(3450, 7),
+      options: [
+        weaponAttackOption({
+          optionId: 406,
+          effectId: 7,
+          rangeId: 8,
+          pathId: 9,
+          label: 'Javelin (Melee)',
           order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(3450, 8),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(3450, 9),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(3450, 9) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(3450, 9),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('PIERCING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '1d6+2'
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          id: S.actionId(3450, 10),
+          triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+          range: 5,
+          diceConfig: '1d6+2',
+          attackBonus: 4
+        }),
+        weaponAttackOption({
+          optionId: 407,
+          effectId: 10,
+          rangeId: 11,
+          pathId: 12,
+          label: 'Javelin (Ranged)',
           order: 2,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(3450, 11),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 120,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(3450, 12),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(3450, 12) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(3450, 12),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('PIERCING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '1d6+2'
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        S.closedRuleEffect({
-          id: S.actionId(91, 205),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
-            range: { id: S.actionId(91, 1205), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DUERGAR_ENLARGED_JAVELIN_DAMAGE
+          triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
+          range: 120,
+          diceConfig: '1d6+2',
+          attackBonus: 4
+        }),
+        weaponAttackOption({
+          optionId: 408,
+          effectId: 107,
+          rangeId: 108,
+          pathId: 109,
+          label: 'Javelin (Melee, Enlarged)',
+          order: 3,
+          triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+          range: 5,
+          diceConfig: '2d6+2',
+          attackBonus: 4
+        }),
+        weaponAttackOption({
+          optionId: 409,
+          effectId: 110,
+          rangeId: 111,
+          pathId: 112,
+          label: 'Javelin (Ranged, Enlarged)',
+          order: 4,
+          triggerCode: S.TRIGGER.RANGED_WEAPON_ATTACK,
+          range: 120,
+          diceConfig: '2d6+2',
+          attackBonus: 4
         })
       ],
       order: 5

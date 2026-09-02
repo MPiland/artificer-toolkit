@@ -171,6 +171,10 @@ export function validateRuleOccurrenceReceiptEnvelope(
     (result.status === 'BATCH_COMPLETE' && result.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT')
   const cleanupMetadata = metadata.transition === 'MAINTENANCE_CLEANUP'
   const cleanupResult = result.status === 'MAINTENANCE_COMPLETE'
+  const cleavingMetadata = metadata.transition === 'OPTIONAL_COMBAT_CLEAVING'
+  const cleavingResult =
+    result.status === 'AGGREGATE_CHOICE_COMPLETE' &&
+    result.applicationOutputs.kind === 'CLEAVING_DAMAGE'
   if (
     !turnMetadata &&
     !turnResult &&
@@ -178,9 +182,33 @@ export function validateRuleOccurrenceReceiptEnvelope(
     !spatialMetadata &&
     !spatialResult &&
     !cleanupMetadata &&
-    !cleanupResult
+    !cleanupResult &&
+    !cleavingMetadata &&
+    !cleavingResult
   )
     return receipt
+  if (cleavingMetadata || cleavingResult) {
+    if (
+      receipt.aggregateKind !== 'ENCOUNTER' ||
+      metadata.transition !== 'OPTIONAL_COMBAT_CLEAVING' ||
+      result.status !== 'AGGREGATE_CHOICE_COMPLETE' ||
+      result.applicationOutputs.kind !== 'CLEAVING_DAMAGE' ||
+      receipt.commandType !== 'RESOLVE_RULE_OCCURRENCE' ||
+      metadata.commandType !== receipt.commandType ||
+      receipt.aggregateVersion !== metadata.expectedAggregateVersion + 1 ||
+      result.occurrenceId !== receipt.occurrenceId ||
+      result.applicationOutputs.occurrenceId !== receipt.occurrenceId ||
+      result.occurrenceVersion !== metadata.expectedOccurrenceVersion + 1 ||
+      result.applicationOutputs.parentOccurrenceId === receipt.occurrenceId ||
+      (metadata.response.kind === 'DECLINE'
+        ? result.applicationOutputs.outcome !== 'DECLINED' ||
+          result.applicationOutputs.selectedOptionId !== null
+        : result.applicationOutputs.outcome !== 'APPLIED' ||
+          result.applicationOutputs.selectedOptionId !== metadata.response.optionId)
+    )
+      throw new Error('Optional-combat Cleaving rule receipt is invalid.')
+    return receipt
+  }
   if (cleanupMetadata || cleanupResult) {
     if (
       receipt.aggregateKind !== 'ENCOUNTER' ||
@@ -192,7 +220,8 @@ export function validateRuleOccurrenceReceiptEnvelope(
       result.occurrenceId !== receipt.occurrenceId ||
       result.removedActorId !== metadata.removedActorId ||
       receipt.aggregateVersion !== metadata.expectedAggregateVersion + 1 ||
-      result.occurrenceVersion !== 0
+      result.occurrenceVersion !==
+        (metadata.expectedOccurrenceVersion === null ? 0 : metadata.expectedOccurrenceVersion + 1)
     )
       throw new Error('Maintenance cleanup rule receipt is invalid.')
     return receipt

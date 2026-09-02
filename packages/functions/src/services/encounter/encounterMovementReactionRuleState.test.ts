@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type { EncounterActorRecord } from '@artificer-toolkit/db'
+import type { ActiveRuleEffectRecord, EncounterActorRecord } from '@artificer-toolkit/db'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
@@ -19,6 +19,8 @@ const CONDITION_ID = '55555555-5555-4555-8555-555555555555'
 const CONTRIBUTION_ID = '66666666-6666-4666-8666-666666666666'
 const SOURCE_ID = '77777777-7777-4777-8777-777777777777'
 const USER_ID = '88888888-8888-4888-8888-888888888888'
+const ACTIVE_EFFECT_ID = '99999999-9999-4999-8999-999999999999'
+const RELATIONSHIP_CONTRIBUTION_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 
 function actor(input: {
   id: string
@@ -145,6 +147,10 @@ describe('Encounter movement reaction rule state', () => {
       lockedCharacters: new Map([
         [CHARACTER_ID, { actor: character, activeConditionDefinitionIds: [CONDITION_ID] }]
       ]),
+      activeEffectsByActorId: new Map([
+        [CREATURE_ACTOR_ID, []],
+        [CHARACTER_ACTOR_ID, []]
+      ]),
       definitions: { requireCurrent }
     })
 
@@ -173,6 +179,7 @@ describe('Encounter movement reaction rule state', () => {
       resolveEncounterMovementReactionRuleStates({
         encounter: { actors: [character], gameSystemId: DND5E_SYSTEM_ID },
         lockedCharacters: new Map(),
+        activeEffectsByActorId: new Map([[CHARACTER_ACTOR_ID, []]]),
         definitions: {
           async requireCurrent() {
             throw new Error('unused')
@@ -191,6 +198,7 @@ describe('Encounter movement reaction rule state', () => {
       resolveEncounterMovementReactionRuleStates({
         encounter: { actors: [creature], gameSystemId: DND5E_SYSTEM_ID },
         lockedCharacters: new Map(),
+        activeEffectsByActorId: new Map([[CREATURE_ACTOR_ID, []]]),
         definitions: {
           async requireCurrent() {
             throw new Error('unused')
@@ -198,5 +206,113 @@ describe('Encounter movement reaction rule state', () => {
         }
       })
     ).rejects.toThrow('not normalized')
+  })
+
+  it('retains exact relationship suppression provenance and clears only the removed effect', async () => {
+    const character = actor({
+      id: CHARACTER_ACTOR_ID,
+      kind: 'CHARACTER',
+      sourceId: CHARACTER_ID
+    })
+    const byId = new Map(definitions.map((definition) => [definition.id, definition]))
+    const common = {
+      encounter: { actors: [character], gameSystemId: DND5E_SYSTEM_ID },
+      lockedCharacters: new Map([
+        [CHARACTER_ID, { actor: character, activeConditionDefinitionIds: [CONDITION_ID] }]
+      ]),
+      definitions: {
+        async requireCurrent(definitionId: string) {
+          const definition = byId.get(definitionId)
+          if (!definition) throw new Error('missing')
+          return definition
+        }
+      }
+    }
+    const relationshipEffect = {
+      id: ACTIVE_EFFECT_ID,
+      definition: {
+        schemaVersion: 2,
+        stateContributions: [
+          {
+            kind: 'ACTOR_RELATIONSHIP',
+            capabilitySuppressions: [
+              {
+                contributionId: RELATIONSHIP_CONTRIBUTION_ID,
+                capabilityDefinitionIds: [DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID]
+              }
+            ]
+          }
+        ]
+      }
+    } as unknown as ActiveRuleEffectRecord
+    const withRelationship = await resolveEncounterMovementReactionRuleStates({
+      ...common,
+      activeEffectsByActorId: new Map([[CHARACTER_ACTOR_ID, [relationshipEffect]]])
+    })
+    const actorActionWithRelationship = withRelationship
+      .get(CHARACTER_ACTOR_ID)!
+      .capabilityState.capabilities.find(
+        (entry) =>
+          entry.capability.capabilityDefinitionId === DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID
+      )!
+    expect(actorActionWithRelationship).toMatchObject({
+      available: false,
+      suppressingConditionDefinitionIds: [CONDITION_ID],
+      suppressingActiveEffectIds: [ACTIVE_EFFECT_ID],
+      activeEffectSuppressions: [
+        {
+          activeEffectId: ACTIVE_EFFECT_ID,
+          contributionId: RELATIONSHIP_CONTRIBUTION_ID
+        }
+      ],
+      contributionIds: [RELATIONSHIP_CONTRIBUTION_ID, CONTRIBUTION_ID]
+    })
+    expect(withRelationship.get(CHARACTER_ACTOR_ID)?.capabilityState.checksum).toBe(
+      checksumRuleDocument({
+        schemaVersion: 1,
+        gameSystemId: DND5E_SYSTEM_ID,
+        conditionDefinitions:
+          withRelationship.get(CHARACTER_ACTOR_ID)!.capabilityState.conditionDefinitions,
+        capabilities: withRelationship.get(CHARACTER_ACTOR_ID)!.capabilityState.capabilities
+      })
+    )
+
+    const afterRemoval = await resolveEncounterMovementReactionRuleStates({
+      ...common,
+      activeEffectsByActorId: new Map([[CHARACTER_ACTOR_ID, []]])
+    })
+    const actorActionAfterRemoval = afterRemoval
+      .get(CHARACTER_ACTOR_ID)!
+      .capabilityState.capabilities.find(
+        (entry) =>
+          entry.capability.capabilityDefinitionId === DND5E_ACTOR_ACTION_CAPABILITY_DEFINITION_ID
+      )!
+    expect(actorActionAfterRemoval).toMatchObject({
+      available: false,
+      suppressingConditionDefinitionIds: [CONDITION_ID],
+      suppressingActiveEffectIds: [],
+      activeEffectSuppressions: [],
+      contributionIds: [CONTRIBUTION_ID]
+    })
+  })
+
+  it('fails closed when an actor active-effect lock row is missing', async () => {
+    const creature = actor({
+      id: CREATURE_ACTOR_ID,
+      kind: 'CREATURE',
+      sourceId: SOURCE_ID
+    })
+    await expect(
+      resolveEncounterMovementReactionRuleStates({
+        encounter: { actors: [creature], gameSystemId: DND5E_SYSTEM_ID },
+        lockedCharacters: new Map(),
+        activeEffectsByActorId: new Map(),
+        definitions: {
+          async requireCurrent() {
+            throw new Error('must not evaluate definitions')
+          }
+        }
+      })
+    ).rejects.toThrow('active-effect state was not locked')
   })
 })

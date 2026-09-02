@@ -14,7 +14,10 @@ import type {
 import type { EncounterFeatureActionCapabilityDescriptor } from '../rules/encounterFeatureActionCapabilityDiscovery.js'
 import type { RulesRuntimeService } from '../rules/rulesRuntimeService.js'
 import type { CurrentReusableDefinitionSource } from '../rules/ruleCapabilityStateService.js'
-import type { LockedEncounterActiveEffectCharacter } from './encounterActiveEffectTargetState.js'
+import type {
+  LockedEncounterActiveEffectCharacter,
+  LockedEncounterActiveEffectTargets
+} from './encounterActiveEffectTargetState.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import {
   collectEncounterMovementReactionContacts,
@@ -54,6 +57,7 @@ export async function discoverEncounterMovementReactionChoices(input: {
   actorIdByTokenId: ReadonlyMap<string, string>
   tokens: readonly Pick<SceneToken, 'height' | 'id' | 'position' | 'width'>[]
   lockedCharacters: ReadonlyMap<string, LockedEncounterActiveEffectCharacter>
+  activeEffectsByActorId: LockedEncounterActiveEffectTargets['activeEffectsByActorId']
   encounterFeatureCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
   definitions: CurrentReusableDefinitionSource
   runtime?: RulesRuntimeService
@@ -90,6 +94,7 @@ export async function discoverEncounterMovementReactionChoices(input: {
   const actorRuleStates = await resolveEncounterMovementReactionRuleStates({
     encounter: input.encounter,
     lockedCharacters: input.lockedCharacters,
+    activeEffectsByActorId: input.activeEffectsByActorId,
     definitions: input.definitions
   })
   const evaluated = await evaluateEncounterMovementReactionContacts({
@@ -127,6 +132,7 @@ export async function revalidateEncounterMovementReactionOption(input: {
   actorIdByTokenId: ReadonlyMap<string, string>
   tokens: readonly Pick<SceneToken, 'height' | 'id' | 'position' | 'width'>[]
   lockedCharacters: ReadonlyMap<string, LockedEncounterActiveEffectCharacter>
+  activeEffectsByActorId: LockedEncounterActiveEffectTargets['activeEffectsByActorId']
   encounterFeatureCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
   definitions: CurrentReusableDefinitionSource
   runtime: RulesRuntimeService
@@ -167,6 +173,7 @@ export async function revalidateEncounterMovementReactionOption(input: {
   const actorRuleStates = await resolveEncounterMovementReactionRuleStates({
     encounter: input.encounter,
     lockedCharacters: input.lockedCharacters,
+    activeEffectsByActorId: input.activeEffectsByActorId,
     definitions: input.definitions
   })
   const evaluated = await evaluateEncounterMovementReactionContacts({

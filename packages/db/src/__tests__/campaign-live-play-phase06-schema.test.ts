@@ -54,7 +54,8 @@ describe('Phase 06 Campaign play persistence', () => {
       expect(source).toContain('campaign_attachments_validate_ready')
       expect(source).toContain('media_assets_protect_campaign_reference')
     }
-    expect(media).toContain("'CAMPAIGN_FILE', 'CAMPAIGN_HANDOUT_MAP'")
+    expect(media).toContain("'CAMPAIGN_FILE'")
+    expect(media).toContain("'CAMPAIGN_HANDOUT_MAP'")
     expect(media).toContain("'image/jpeg', 'image/png', 'image/webp', 'text/plain'")
   })
 

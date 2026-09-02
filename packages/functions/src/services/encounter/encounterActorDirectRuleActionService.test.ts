@@ -26,10 +26,15 @@ const state = vi.hoisted(() => {
     compileProjection: vi.fn((value: unknown) => value),
     evaluateSnapshot: vi.fn(),
     lockContext: vi.fn(),
+    lockMaintainedState: vi.fn(),
+    lockDependentEffects: vi.fn(),
     lockTargets: vi.fn(),
     occurrenceFactory: vi.fn(),
+    persistCleaving: vi.fn(),
     prepare: vi.fn(),
     discoverLegendaryResistance: vi.fn(),
+    discoverFeatureActions: vi.fn(),
+    vocabulary: vi.fn(),
     startLegendaryResistance: vi.fn(),
     publishProjection: vi.fn(),
     settle: vi.fn(),
@@ -39,7 +44,7 @@ const state = vi.hoisted(() => {
     calls,
     currentEncounter: null as unknown,
     d20: null as null | { rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE' },
-    executeMode: 'COMPLETE' as 'COMPLETE' | 'PAUSE' | 'BAD_PAUSE' | 'LR_PAUSE',
+    executeMode: 'COMPLETE' as 'COMPLETE' | 'PAUSE' | 'BAD_PAUSE' | 'LR_PAUSE' | 'OUTCOME_PAUSE',
     legendaryResistanceUse: false,
     pendingApplicationContext: null as unknown,
     replay: null as unknown,
@@ -48,12 +53,20 @@ const state = vi.hoisted(() => {
 })
 
 vi.mock('@artificer-toolkit/db', () => ({
+  createActiveRuleEffectRepository: () => ({
+    lockMaintainedState: state.calls.lockMaintainedState,
+    lockDependentEffects: state.calls.lockDependentEffects
+  }),
   createReusableDefinitionRepository: () => ({}),
+  createSystemVocabularySnapshotRepository: () => ({ findActive: state.calls.vocabulary }),
   createEncounterRepository: () => ({
     appendEvent: state.calls.appendEvent,
     publishCurrentProjection: state.calls.publishProjection,
     updateActor: state.calls.updateActor
   })
+}))
+vi.mock('../rules/encounterFeatureActionCapabilityDiscoveryRegistry.js', () => ({
+  discoverEncounterFeatureActionCapabilities: state.calls.discoverFeatureActions
 }))
 vi.mock('./encounterRuleExecutionCommandContext.js', () => ({
   lockEncounterRuleExecutionCommandContext: state.calls.lockContext
@@ -110,6 +123,10 @@ vi.mock('./encounterMovementReactionActionExecution.js', () => ({
   resolveEncounterActionD20Faces: () => [15],
   selectEncounterActionD20Natural: () => 15
 }))
+vi.mock('./encounterCleavingChoice.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  persistEncounterCleavingChoice: state.calls.persistCleaving
+}))
 vi.mock('@artificer-toolkit/schema/projections/encounter', () => ({
   encounterProjectionEventSchema: { parse: <T>(value: T) => value }
 }))
@@ -124,13 +141,20 @@ import {
 
 const sourceActor = {
   id: ids.actor,
-  kind: 'CHARACTER',
+  kind: 'CHARACTER' as const,
   sourceId: ids.character,
   sourceRevision: 1,
   resources: {},
   conditions: []
 }
-const creatureActor = {
+const creatureActor: {
+  id: string
+  kind: 'CREATURE'
+  sourceId: string | null
+  sourceRevision: number
+  resources: Record<string, never>
+  conditions: never[]
+} = {
   id: ids.creature,
   kind: 'CREATURE',
   sourceId: null,
@@ -138,23 +162,41 @@ const creatureActor = {
   resources: {},
   conditions: []
 }
+const creatureSourceActor = {
+  ...creatureActor,
+  id: ids.actor,
+  sourceId: ids.creature,
+  systemId: '00000000-0000-4000-8000-000000000013',
+  snapshot: { payload: { abilityScores: { STRENGTH: 17 } } }
+}
 const customActor = { ...creatureActor, id: ids.custom, kind: 'CUSTOM' as const }
+const characterActorWithoutSource = {
+  ...creatureActor,
+  kind: 'CHARACTER' as const,
+  sourceId: null
+}
+type DirectActionTargetActor =
+  | typeof creatureActor
+  | typeof customActor
+  | typeof sourceActor
+  | typeof characterActorWithoutSource
 const testDb = {} as DBLike
 const testRuntime = {} as RulesRuntimeService
 
 function encounter(
-  target = creatureActor,
-  automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL' = 'AUTOMATIC'
+  target: DirectActionTargetActor = creatureActor,
+  automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL' = 'AUTOMATIC',
+  source: typeof sourceActor | typeof creatureSourceActor = sourceActor
 ) {
   return {
     id: ids.encounter,
     campaignId: ids.campaign,
     version: 4,
     status: 'ACTIVE',
-    currentActorId: ids.actor,
+    currentActorId: source.id,
     automationMode,
     manualReminderMode: 'SUBTLE',
-    actors: [sourceActor, target]
+    actors: [source, target]
   }
 }
 
@@ -165,6 +207,30 @@ function published() {
     gameSystemId: '00000000-0000-4000-8000-000000000013',
     definitionFamilyKey: 'action',
     definition: {}
+  }
+}
+
+function cloakerBiteCapability() {
+  return {
+    kind: 'ENCOUNTER_FEATURE' as const,
+    actionId: ids.action,
+    creatureSourceId: ids.creature,
+    sourceRevision: 1,
+    sourceVersionId: '00000000-0000-4000-8000-000000000014',
+    sourceChecksum: '9'.repeat(64),
+    ownerFeatureId: '00000000-0000-4000-8000-000000000015',
+    featureOptionId: null,
+    effectId: ids.definition,
+    authoredEffectChecksum: '8'.repeat(64),
+    compiledEffectChecksum: '7'.repeat(64),
+    mechanicFacts: { kind: 'CLOAKER_BITE', damageExpression: '2d6+3' },
+    compiledEffect: {
+      invocation: {
+        range: { rangeKind: 'UNLIMITED' },
+        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
+        shape: null
+      }
+    }
   }
 }
 
@@ -192,9 +258,9 @@ function legendaryResistanceCandidate() {
 }
 
 function setup(
-  target = creatureActor,
+  target: DirectActionTargetActor = creatureActor,
   automationMode: 'AUTOMATIC' | 'ASSISTED' | 'MANUAL' = 'AUTOMATIC',
-  options: { twoPhase?: boolean } = {}
+  options: { characterActionRange?: boolean; twoPhase?: boolean; spellCast?: boolean } = {}
 ) {
   Object.values(state.calls).forEach((call) => call.mockReset())
   state.d20 = null
@@ -213,51 +279,28 @@ function setup(
   })
   const failPublished = outcomePublished(ids.outcomeFail, '3'.repeat(64))
   const successPublished = outcomePublished(ids.outcomeSuccess, '4'.repeat(64))
-  const entry = state.twoPhase
+  const entry = options.spellCast
     ? {
         actionId: ids.action,
         effectId: ids.definition,
         schemaVersion: 4,
+        kind: 'CHARACTER_SPELL_CAST',
+        spell: {
+          spellId: ids.definition,
+          versionId: ids.definition,
+          version: 1,
+          checksum: '9'.repeat(64),
+          sourceKind: 'CLASS',
+          sourceInstanceId: ids.action,
+          castLevel: 1,
+          castMode: 'SPELL_SLOT',
+          slotKey: 'STANDARD:1',
+          resourceOwnerKey: null
+        },
         compilation: {
           kind: 'COMPILED',
-          resourceBinding: null,
           activeEffectPlan: null,
-          executionPlan: {
-            kind: 'TEST_OUTCOME',
-            compilerSource: {
-              effectId: ids.definition,
-              compilerSourceChecksum: '5'.repeat(64)
-            },
-            test: {
-              published: testPublished,
-              template: {
-                definitionId: testPublished.id,
-                gameSystemId: testPublished.gameSystemId,
-                definitionFamilyKey: testPublished.definitionFamilyKey,
-                checksum: testPublished.checksum
-              }
-            },
-            outcomes: [
-              {
-                pathCode: 'ON_SAVE_FAIL',
-                template: {
-                  definitionId: failPublished.id,
-                  gameSystemId: failPublished.gameSystemId,
-                  definitionFamilyKey: failPublished.definitionFamilyKey,
-                  checksum: failPublished.checksum
-                }
-              },
-              {
-                pathCode: 'ON_SAVE_SUCCESS',
-                template: {
-                  definitionId: successPublished.id,
-                  gameSystemId: successPublished.gameSystemId,
-                  definitionFamilyKey: successPublished.definitionFamilyKey,
-                  checksum: successPublished.checksum
-                }
-              }
-            ]
-          }
+          executionPlan: { kind: 'SINGLE_GRAPH', published: published() }
         },
         targetPolicy: {
           range: { rangeKind: 'UNLIMITED' },
@@ -266,18 +309,71 @@ function setup(
           pathOverrides: []
         }
       }
-    : {
-        actionId: ids.action,
-        effectId: ids.definition,
-        schemaVersion: 1,
-        compilation: { kind: 'COMPILED', published: published() },
-        targetPolicy: {
-          range: { rangeKind: 'UNLIMITED' },
-          targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
-          shape: null,
-          pathOverrides: []
+    : state.twoPhase
+      ? {
+          actionId: ids.action,
+          effectId: ids.definition,
+          schemaVersion: 4,
+          compilation: {
+            kind: 'COMPILED',
+            resourceBinding: null,
+            activeEffectPlan: null,
+            executionPlan: {
+              kind: 'TEST_OUTCOME',
+              compilerSource: {
+                effectId: ids.definition,
+                compilerSourceChecksum: '5'.repeat(64)
+              },
+              test: {
+                published: testPublished,
+                template: {
+                  definitionId: testPublished.id,
+                  gameSystemId: testPublished.gameSystemId,
+                  definitionFamilyKey: testPublished.definitionFamilyKey,
+                  checksum: testPublished.checksum
+                }
+              },
+              outcomes: [
+                {
+                  pathCode: 'ON_SAVE_FAIL',
+                  template: {
+                    definitionId: failPublished.id,
+                    gameSystemId: failPublished.gameSystemId,
+                    definitionFamilyKey: failPublished.definitionFamilyKey,
+                    checksum: failPublished.checksum
+                  }
+                },
+                {
+                  pathCode: 'ON_SAVE_SUCCESS',
+                  template: {
+                    definitionId: successPublished.id,
+                    gameSystemId: successPublished.gameSystemId,
+                    definitionFamilyKey: successPublished.definitionFamilyKey,
+                    checksum: successPublished.checksum
+                  }
+                }
+              ]
+            }
+          },
+          targetPolicy: {
+            range: { rangeKind: 'UNLIMITED' },
+            targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
+            shape: null,
+            pathOverrides: []
+          }
         }
-      }
+      : {
+          actionId: ids.action,
+          effectId: ids.definition,
+          schemaVersion: 1,
+          compilation: { kind: 'COMPILED', published: published() },
+          targetPolicy: {
+            range: { rangeKind: 'UNLIMITED' },
+            targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
+            shape: null,
+            pathOverrides: []
+          }
+        }
   const character = {
     id: ids.character,
     actor: sourceActor,
@@ -286,7 +382,60 @@ function setup(
       characterStreamVersion: 1,
       projectionChecksum: 'b'.repeat(64),
       compiledActionEntryPoints: [entry],
-      rulePolicyInput: { actionCandidates: [{ actionId: ids.action, effectId: ids.definition }] }
+      rulePolicyInput: {
+        actionCandidates: options.spellCast
+          ? []
+          : [
+              {
+                actionId: ids.action,
+                effectId: ids.definition,
+                ...(options.characterActionRange
+                  ? {
+                      mechanicFacts: {
+                        invocation: {
+                          range: {
+                            id: 'range-id',
+                            rangeKind: 'DISTANCE',
+                            amount: 5,
+                            unit: 'FEET'
+                          }
+                        }
+                      }
+                    }
+                  : {})
+              }
+            ],
+        spellCastCandidates: options.spellCast
+          ? [
+              {
+                candidateId: ids.action,
+                spellId: ids.definition,
+                source: {
+                  spellId: ids.definition,
+                  sourceKind: 'CLASS',
+                  sourceInstanceId: ids.action
+                },
+                castLevel: 1,
+                castMode: 'SPELL_SLOT',
+                resourceOwnerKey: null
+              }
+            ]
+          : []
+      },
+      rulePolicyOutput: {
+        spellCastDecisions: options.spellCast
+          ? [{ candidateId: ids.action, status: 'AVAILABLE', slotKey: 'STANDARD:1' }]
+          : [],
+        spellCastMechanics: options.spellCast
+          ? [
+              {
+                candidateId: ids.action,
+                spellId: ids.definition,
+                mechanics: [{ effectId: ids.definition }]
+              }
+            ]
+          : []
+      }
     },
     overlay: { mechanicalContextChecksum: 'c'.repeat(64) }
   }
@@ -321,25 +470,62 @@ function setup(
     },
     encounter: state.currentEncounter
   }))
-  state.calls.evaluateSnapshot.mockImplementation(async () => ({
-    snapshot: { revisionId: 'revision', output: {} },
-    reconciledEncounter: state.currentEncounter,
-    actorUpdates: []
-  }))
-  state.calls.lockTargets.mockResolvedValue(targets)
+  state.calls.evaluateSnapshot.mockImplementation(
+    async ({ encounter: evaluatedEncounter }: { encounter: ReturnType<typeof encounter> }) => ({
+      snapshot: { revisionId: 'revision', output: {} },
+      reconciledEncounter: evaluatedEncounter,
+      actorUpdates: []
+    })
+  )
+  state.calls.lockTargets.mockImplementation(
+    async ({ encounter: lockedEncounter }: { encounter: ReturnType<typeof encounter> }) => {
+      const sourceVersion =
+        lockedEncounter.actors.find((actor) => actor.id === ids.actor)?.sourceRevision ?? 1
+      return {
+        ...targets,
+        lockedCharacters: new Map([
+          [
+            ids.character,
+            {
+              ...character,
+              streamVersion: sourceVersion,
+              mechanics: {
+                ...character.mechanics,
+                characterStreamVersion: sourceVersion
+              }
+            }
+          ]
+        ])
+      }
+    }
+  )
+  state.calls.lockMaintainedState.mockResolvedValue(null)
+  state.calls.lockDependentEffects.mockResolvedValue([])
+  state.calls.persistCleaving.mockResolvedValue(null)
   state.calls.discoverLegendaryResistance.mockResolvedValue(legendaryResistanceCandidate())
+  state.calls.vocabulary.mockResolvedValue({
+    document: { schemaVersion: 2, conditionTypes: [], abilities: [] }
+  })
+  state.calls.discoverFeatureActions.mockReturnValue([])
   state.calls.startLegendaryResistance.mockResolvedValue({
     request: { requestId: ids.request, kind: 'INTEGER_RANGE', min: 0, max: 1, nodeId: 'choice' }
   })
   state.calls.prepare.mockImplementation(async (input: Record<string, unknown>) => ({
     ...input,
-    sourceActor,
+    sourceActor:
+      (input.encounter as { actors: (typeof sourceActor)[] }).actors.find(
+        (actor) => actor.id === (input.actionSource as { actorId?: string }).actorId
+      ) ?? sourceActor,
     targetActor:
       (input.encounter as { actors: (typeof creatureActor)[] }).actors.find(
         (actor) => actor.id === input.targetActorId
       ) ?? target,
     targets,
     actionSource: input.actionSource,
+    executionPlan:
+      state.twoPhase && (input.actionSource as { kind?: string }).kind === 'ENCOUNTER_FEATURE'
+        ? (entry as { compilation: { executionPlan: unknown } }).compilation.executionPlan
+        : undefined,
     resourceConsumption: { resourceId: 'resource', before: 1, after: 2 },
     action: {
       published: published(),
@@ -389,34 +575,68 @@ function setup(
   Object.assign(testRuntime, {
     executeResolvedWithGraph: vi.fn(
       async ({ published: selected }: { published: { id: string } }) => ({
-        result: {
-          status: 'COMPLETE' as const,
-          outputs: { outcomeDefinitionId: selected.id },
-          evidence: { source: {}, trace: [], outputs: { outcomeDefinitionId: selected.id } }
-        },
+        result:
+          state.executeMode === 'OUTCOME_PAUSE' && selected.id === ids.outcomeFail
+            ? {
+                status: 'PAUSED' as const,
+                continuation: {
+                  request: {
+                    requestId: `${ids.request}-outcome`,
+                    kind: 'INTEGER_RANGE' as const,
+                    min: 1,
+                    max: 6,
+                    nodeId: 'outcome-d6'
+                  }
+                }
+              }
+            : {
+                status: 'COMPLETE' as const,
+                outputs: { outcomeDefinitionId: selected.id },
+                evidence: { source: {}, trace: [], outputs: { outcomeDefinitionId: selected.id } }
+              },
         graph: {}
       })
     )
   })
-  state.calls.settle.mockImplementation(async () => ({
-    application: {
-      kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
-      schemaVersion: 1,
-      occurrenceId: ids.occurrence,
-      sourceActorId: ids.actor,
-      targetActorId: target.id,
-      sourceCharacterStreamVersion: 2,
-      resourceConsumption: null,
-      featureResourceConsumption: null,
-      targetFeatureResourceConsumption: null,
-      d20: null,
-      targetTransition: { before: {}, after: {}, checksum: 'd'.repeat(64) },
-      applications: []
-    },
-    sourceActor: { ...sourceActor, sourceRevision: 2 },
-    targetActor: target,
-    characterTransitions: []
-  }))
+  state.calls.settle.mockImplementation(
+    async (input: {
+      prepared: { actionSource: { kind: string }; targetActor: { kind: string } }
+    }) => ({
+      application: {
+        kind:
+          input.prepared.targetActor.kind === 'CHARACTER'
+            ? 'CHARACTER_MECHANICS_BATCH'
+            : 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
+        schemaVersion: 1,
+        occurrenceId: ids.occurrence,
+        sourceActorId: ids.actor,
+        targetActorId: target.id,
+        sourceCharacterStreamVersion: 2,
+        resourceConsumption: null,
+        spellCastConsumption:
+          input.prepared.actionSource.kind === 'CHARACTER_SPELL_CAST'
+            ? {
+                spellId: ids.definition,
+                spellVersionId: ids.definition,
+                spellVersion: 1,
+                spellChecksum: '9'.repeat(64),
+                candidateId: ids.action,
+                slotKey: 'STANDARD:1',
+                beforeUsed: 0,
+                afterUsed: 1
+              }
+            : null,
+        featureResourceConsumption: null,
+        targetFeatureResourceConsumption: null,
+        d20: null,
+        targetTransition: { before: {}, after: {}, checksum: 'd'.repeat(64) },
+        applications: []
+      },
+      sourceActor: { ...sourceActor, sourceRevision: 2 },
+      targetActor: target,
+      characterTransitions: []
+    })
+  )
 }
 
 function command(targetActorId = ids.creature) {
@@ -493,6 +713,26 @@ function installOccurrenceSeam() {
         })
         if (resolved.manualReceipt) {
           return { status: 'MANUAL', occurrenceId: ids.occurrence, occurrenceVersion: 0 }
+        }
+        if (state.twoPhase && state.executeMode === 'PAUSE') {
+          resolved.validatePausedExecution({
+            continuation: { request: { kind: 'INTEGER_RANGE', min: 1, max: 20, nodeId: 'roll' } },
+            applicationContext: resolved.pendingApplicationContext
+          })
+          state.pendingApplicationContext = resolved.pendingApplicationContext
+          return {
+            status: 'PAUSED',
+            occurrenceId: ids.occurrence,
+            occurrenceVersion: 0,
+            request: {
+              requestId: ids.request,
+              kind: 'INTEGER_RANGE',
+              min: 1,
+              max: 20,
+              nodeId: 'roll'
+            },
+            pending: resolved.pendingResult
+          }
         }
         if (state.twoPhase) {
           await resolved.resolveAutomaticEvidence({
@@ -675,9 +915,21 @@ function installOccurrenceSeam() {
       if (JSON.stringify(resolved.pendingApplicationContext) !== JSON.stringify(context)) {
         throw new Error('Direct Encounter action pending currentness changed.')
       }
+      const outcomePending =
+        (context.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+          context.kind === 'ENCOUNTER_CREATURE_RULE_ACTION') &&
+        (context as { twoPhase?: { phase?: string } }).twoPhase?.phase === 'OUTCOME'
       await resumeCommand.deriveResponse({
         applicationContext: context,
-        request: { kind: 'INTEGER_RANGE', min: 1, max: 20, nodeId: 'roll', requestId: ids.request }
+        request: outcomePending
+          ? {
+              kind: 'INTEGER_RANGE',
+              min: 1,
+              max: 6,
+              nodeId: 'outcome-d6',
+              requestId: `${ids.request}-outcome`
+            }
+          : { kind: 'INTEGER_RANGE', min: 1, max: 20, nodeId: 'roll', requestId: ids.request }
       })
       if (state.executeMode === 'LR_PAUSE') {
         const transition = await resolved.postCompletedExecution({
@@ -732,7 +984,7 @@ function installOccurrenceSeam() {
       }
       const choiceExecution = {
         status: 'COMPLETE' as const,
-        outputs: state.legendaryResistanceUse ? { use: true } : {},
+        outputs: state.legendaryResistanceUse ? { use: true } : { resultPath: 'ON_SAVE_FAIL' },
         evidence: { source: {}, trace: [], outputs: {} }
       }
       const transition = state.twoPhase
@@ -783,6 +1035,290 @@ function resumeCommand(resolution: unknown = { kind: 'SYSTEM', requestId: ids.re
 }
 
 describe('encounter actor direct rule actions', () => {
+  it('resolves an exact compiled spell-cast source through the direct-action lane', async () => {
+    setup(creatureActor, 'AUTOMATIC', { spellCast: true })
+    installOccurrenceSeam()
+
+    await expect(
+      executeEncounterActorDirectRuleAction({
+        db: testDb,
+        runtime: testRuntime,
+        command: command()
+      })
+    ).resolves.toMatchObject({ status: 'COMPLETE', occurrenceId: ids.occurrence })
+
+    expect(state.calls.prepare).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionSource: expect.objectContaining({
+          kind: 'CHARACTER_SPELL_CAST',
+          entry: expect.objectContaining({
+            actionId: ids.action,
+            spell: expect.objectContaining({ slotKey: 'STANDARD:1' })
+          })
+        })
+      })
+    )
+    expect(state.calls.settle).toHaveBeenCalledTimes(1)
+  })
+
+  it('settles a terminal spell cast once with a sealed slot receipt', async () => {
+    setup(creatureActor, 'AUTOMATIC', { spellCast: true })
+    installOccurrenceSeam()
+
+    const result = await executeEncounterActorDirectRuleAction({
+      db: testDb,
+      runtime: testRuntime,
+      command: command()
+    })
+
+    expect(result).toMatchObject({
+      status: 'COMPLETE',
+      occurrenceId: ids.occurrence,
+      application: {
+        spellCastConsumption: {
+          candidateId: ids.action,
+          slotKey: 'STANDARD:1',
+          beforeUsed: 0,
+          afterUsed: 1
+        }
+      }
+    })
+    expect(state.calls.settle).toHaveBeenCalledTimes(1)
+    expect(state.calls.appendEvent).toHaveBeenCalledTimes(1)
+  })
+
+  it('pauses an Assisted spell cast without consuming a slot, then consumes it once at terminal resume', async () => {
+    setup(creatureActor, 'ASSISTED', { spellCast: true })
+    state.d20 = { rollMode: 'NORMAL' }
+    state.executeMode = 'PAUSE'
+    installOccurrenceSeam()
+
+    const paused = await executeEncounterActorDirectRuleAction({
+      db: testDb,
+      runtime: testRuntime,
+      command: command()
+    })
+    expect(paused).toMatchObject({ status: 'PENDING', occurrenceId: ids.occurrence })
+    expect(state.calls.settle).not.toHaveBeenCalled()
+    expect(state.calls.appendEvent).not.toHaveBeenCalled()
+
+    state.executeMode = 'COMPLETE'
+    const completed = await resumeEncounterActorDirectRuleAction({
+      db: testDb,
+      runtime: testRuntime,
+      command: resumeCommand()
+    })
+
+    expect(completed).toMatchObject({
+      status: 'COMPLETE',
+      occurrenceId: ids.occurrence,
+      application: {
+        spellCastConsumption: {
+          slotKey: 'STANDARD:1',
+          beforeUsed: 0,
+          afterUsed: 1
+        }
+      }
+    })
+    expect(state.calls.settle).toHaveBeenCalledTimes(1)
+    expect(state.calls.appendEvent).toHaveBeenCalledTimes(1)
+  })
+
+  it('replays a terminal spell-cast receipt without a second slot consumption', async () => {
+    setup(creatureActor, 'AUTOMATIC', { spellCast: true })
+    installOccurrenceSeam()
+
+    const completed = await executeEncounterActorDirectRuleAction({
+      db: testDb,
+      runtime: testRuntime,
+      command: command()
+    })
+    state.replay = completeResult(
+      completed.status === 'COMPLETE' ? completed.application : { kind: 'UNREACHABLE' }
+    )
+    const replay = await executeEncounterActorDirectRuleAction({
+      db: testDb,
+      runtime: testRuntime,
+      command: command()
+    })
+
+    expect(replay).toEqual(completed)
+    expect(state.calls.settle).toHaveBeenCalledTimes(1)
+    expect(state.calls.appendEvent).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects stale Assisted spell-cast target currentness before slot consumption or receipt', async () => {
+    setup(creatureActor, 'ASSISTED', { spellCast: true })
+    state.d20 = { rollMode: 'NORMAL' }
+    state.executeMode = 'PAUSE'
+    installOccurrenceSeam()
+    await executeEncounterActorDirectRuleAction({
+      db: testDb,
+      runtime: testRuntime,
+      command: command()
+    })
+    state.currentEncounter = encounter({ ...creatureActor, sourceRevision: 2 }, 'ASSISTED')
+    state.executeMode = 'COMPLETE'
+    await expect(
+      resumeEncounterActorDirectRuleAction({
+        db: testDb,
+        runtime: testRuntime,
+        command: resumeCommand()
+      })
+    ).rejects.toThrow('pending currentness changed')
+    expect(state.calls.settle).not.toHaveBeenCalled()
+    expect(state.calls.appendEvent).not.toHaveBeenCalled()
+  })
+
+  it('uses one immutable Creature feature source lane for Character and Encounter targets', async () => {
+    const capability = cloakerBiteCapability()
+    const characterTarget = { ...sourceActor, id: ids.character }
+    setup(characterTarget)
+    state.calls.discoverFeatureActions.mockReturnValue([capability])
+    state.currentEncounter = encounter(characterTarget, 'AUTOMATIC', creatureSourceActor)
+    installOccurrenceSeam()
+
+    const characterResult = await executeEncounterActorDirectRuleAction({
+      db: testDb,
+      runtime: testRuntime,
+      command: command(ids.character)
+    })
+    expect(characterResult).toMatchObject({
+      status: 'COMPLETE',
+      application: { kind: 'CHARACTER_MECHANICS_BATCH' }
+    })
+    if (characterResult.status !== 'COMPLETE') {
+      throw new Error('Expected the automatic Creature action to complete.')
+    }
+    expect(characterResult.application).not.toHaveProperty('legendaryResistance')
+    expect(state.calls.prepare).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionSource: expect.objectContaining({
+          kind: 'ENCOUNTER_FEATURE',
+          capability: expect.objectContaining({
+            creatureSourceId: ids.creature,
+            compiledEffectChecksum: capability.compiledEffectChecksum
+          })
+        })
+      })
+    )
+    const prepareCalls = state.calls.prepare.mock.calls.length
+    state.replay = completeResult(characterResult.application)
+    await expect(
+      executeEncounterActorDirectRuleAction({
+        db: testDb,
+        runtime: testRuntime,
+        command: command(ids.character)
+      })
+    ).resolves.toMatchObject({ status: 'COMPLETE' })
+    expect(state.calls.prepare).toHaveBeenCalledTimes(prepareCalls)
+
+    setup(creatureActor)
+    state.calls.discoverFeatureActions.mockReturnValue([capability])
+    state.currentEncounter = encounter(creatureActor, 'AUTOMATIC', creatureSourceActor)
+    installOccurrenceSeam()
+    const actorResult = await executeEncounterActorDirectRuleAction({
+      db: testDb,
+      runtime: testRuntime,
+      command: command(ids.creature)
+    })
+    expect(actorResult).toMatchObject({
+      status: 'COMPLETE',
+      application: { kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' }
+    })
+    if (actorResult.status !== 'COMPLETE') {
+      throw new Error('Expected the automatic Creature action to complete.')
+    }
+  })
+
+  it('seals Character Cleaving currentness from the post-resource stream version', async () => {
+    setup(creatureActor, 'AUTOMATIC', { characterActionRange: true })
+    state.calls.settle.mockResolvedValue({
+      application: {
+        kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH',
+        schemaVersion: 1,
+        occurrenceId: ids.occurrence,
+        sourceActorId: ids.actor,
+        targetActorId: ids.creature,
+        sourceCharacterStreamVersion: 2,
+        resourceConsumption: { resourceId: 'resource', before: 1, after: 2 },
+        featureResourceConsumption: null,
+        targetFeatureResourceConsumption: null,
+        d20: null,
+        targetTransition: { before: {}, after: {}, checksum: 'd'.repeat(64) },
+        applications: []
+      },
+      sourceActor: { ...sourceActor, sourceRevision: 2 },
+      targetActor: creatureActor,
+      characterTransitions: [
+        {
+          characterId: ids.character,
+          beforeStreamVersion: 1,
+          afterStreamVersion: 2
+        }
+      ]
+    })
+    installOccurrenceSeam()
+
+    await expect(
+      executeEncounterActorDirectRuleAction({
+        db: testDb,
+        runtime: testRuntime,
+        command: command()
+      })
+    ).resolves.toMatchObject({ status: 'COMPLETE' })
+
+    expect(state.calls.lockTargets).toHaveBeenCalledTimes(2)
+    expect(state.calls.persistCleaving).toHaveBeenCalledWith(
+      expect.objectContaining({
+        encounter: expect.objectContaining({
+          actors: expect.arrayContaining([
+            expect.objectContaining({ id: ids.actor, sourceRevision: 2 })
+          ])
+        }),
+        sourceCurrentness: expect.objectContaining({
+          kind: 'CHARACTER',
+          characterId: ids.character,
+          streamVersion: 2
+        })
+      })
+    )
+  })
+
+  it('seals Assisted Creature evidence and rejects a changed immutable capability', async () => {
+    const capability = cloakerBiteCapability()
+    setup(creatureActor, 'ASSISTED')
+    state.calls.discoverFeatureActions.mockReturnValue([capability])
+    state.currentEncounter = encounter(creatureActor, 'ASSISTED', creatureSourceActor)
+    state.d20 = { rollMode: 'NORMAL' }
+    state.executeMode = 'PAUSE'
+    installOccurrenceSeam()
+
+    await expect(
+      executeEncounterActorDirectRuleAction({
+        db: testDb,
+        runtime: testRuntime,
+        command: command(ids.creature)
+      })
+    ).resolves.toMatchObject({ status: 'PENDING' })
+    expect(state.pendingApplicationContext).toMatchObject({
+      kind: 'ENCOUNTER_CREATURE_RULE_ACTION',
+      sourceChecksum: capability.sourceChecksum
+    })
+
+    state.calls.discoverFeatureActions.mockReturnValue([
+      { ...capability, sourceChecksum: '6'.repeat(64) }
+    ])
+    await expect(
+      resumeEncounterActorDirectRuleAction({
+        db: testDb,
+        runtime: testRuntime,
+        command: resumeCommand()
+      })
+    ).rejects.toThrow('Creature action source is stale')
+    expect(state.calls.settle).not.toHaveBeenCalled()
+  })
+
   it.each([
     ['Creature', creatureActor, ids.creature],
     ['Custom', customActor, ids.custom]
@@ -861,6 +1397,102 @@ describe('encounter actor direct rule actions', () => {
     expect(state.calls.settle).toHaveBeenCalledTimes(1)
   })
 
+  it('runs an immutable Creature TEST/OUTCOME action through the sealed OUTCOME exactly once', async () => {
+    const capability = cloakerBiteCapability()
+    setup(creatureActor, 'AUTOMATIC', { twoPhase: true })
+    state.currentEncounter = encounter(creatureActor, 'AUTOMATIC', creatureSourceActor)
+    state.calls.discoverFeatureActions.mockReturnValue([capability])
+    state.d20 = { rollMode: 'NORMAL' }
+    state.calls.discoverLegendaryResistance.mockResolvedValue(null)
+    installOccurrenceSeam()
+
+    await expect(
+      executeEncounterActorDirectRuleAction({
+        db: testDb,
+        runtime: testRuntime,
+        command: command()
+      })
+    ).resolves.toMatchObject({ status: 'COMPLETE' })
+    expect(testRuntime.executeResolvedWithGraph).toHaveBeenCalledWith(
+      expect.objectContaining({ published: expect.objectContaining({ id: ids.outcomeFail }) })
+    )
+    expect(state.calls.settle).toHaveBeenCalledTimes(1)
+  })
+
+  it('resumes Assisted Creature TEST evidence into an OUTCOME d6 pause, then settles and replays', async () => {
+    const capability = cloakerBiteCapability()
+    setup(creatureActor, 'ASSISTED', { twoPhase: true })
+    state.currentEncounter = encounter(creatureActor, 'ASSISTED', creatureSourceActor)
+    state.calls.discoverFeatureActions.mockReturnValue([capability])
+    state.d20 = { rollMode: 'NORMAL' }
+    state.calls.discoverLegendaryResistance.mockResolvedValue(null)
+    state.executeMode = 'PAUSE'
+    installOccurrenceSeam()
+
+    await expect(
+      executeEncounterActorDirectRuleAction({
+        db: testDb,
+        runtime: testRuntime,
+        command: command()
+      })
+    ).resolves.toMatchObject({ status: 'PENDING' })
+    expect(state.pendingApplicationContext).toMatchObject({
+      kind: 'ENCOUNTER_CREATURE_RULE_ACTION',
+      twoPhase: { phase: 'TEST' }
+    })
+
+    state.executeMode = 'OUTCOME_PAUSE'
+    const outcomePause = await resumeEncounterActorDirectRuleAction({
+      db: testDb,
+      runtime: testRuntime,
+      command: resumeCommand({ kind: 'PHYSICAL', requestId: ids.request, rawFaces: [17] })
+    })
+    expect(outcomePause).toMatchObject({
+      status: 'PENDING',
+      phase: 'OUTCOME',
+      requests: [expect.objectContaining({ min: 1, max: 6 })]
+    })
+    expect(state.pendingApplicationContext).toMatchObject({
+      kind: 'ENCOUNTER_CREATURE_RULE_ACTION',
+      twoPhase: { phase: 'OUTCOME' }
+    })
+
+    state.executeMode = 'COMPLETE'
+    const completed = await resumeEncounterActorDirectRuleAction({
+      db: testDb,
+      runtime: testRuntime,
+      command: resumeCommand({
+        kind: 'PHYSICAL_OUTCOME',
+        values: [{ requestId: `${ids.request}-outcome`, value: 4 }]
+      })
+    })
+    expect(completed).toMatchObject({ status: 'COMPLETE' })
+    if (completed.status !== 'COMPLETE') {
+      throw new Error('Expected the Creature OUTCOME to complete.')
+    }
+    expect(state.calls.settle).toHaveBeenCalledTimes(1)
+    const runtimeCalls = (testRuntime.executeResolvedWithGraph as ReturnType<typeof vi.fn>).mock
+      .calls.length
+    const settleCalls = state.calls.settle.mock.calls.length
+    state.replay = completeResult(completed.application)
+    await expect(
+      resumeEncounterActorDirectRuleAction({
+        db: testDb,
+        runtime: testRuntime,
+        command: resumeCommand({
+          kind: 'PHYSICAL_OUTCOME',
+          values: [{ requestId: `${ids.request}-outcome`, value: 4 }]
+        })
+      })
+    ).resolves.toMatchObject({ status: 'COMPLETE' })
+    expect(
+      (testRuntime.executeResolvedWithGraph as ReturnType<typeof vi.fn>).mock.calls
+    ).toHaveLength(runtimeCalls)
+    expect(state.calls.settle).toHaveBeenCalledTimes(settleCalls)
+    expect(state.calls.appendEvent).toHaveBeenCalledTimes(1)
+    expect(state.calls.publishProjection).toHaveBeenCalledTimes(1)
+  })
+
   it('carries Legendary Resistance through the sealed success OUTCOME and consumes once', async () => {
     setup(creatureActor, 'AUTOMATIC', { twoPhase: true })
     state.d20 = { rollMode: 'NORMAL' }
@@ -900,6 +1532,40 @@ describe('encounter actor direct rule actions', () => {
         })
       })
     )
+  })
+
+  it('opens and settles the existing Legendary Resistance choice for a Creature source', async () => {
+    const capability = cloakerBiteCapability()
+    setup(creatureActor, 'AUTOMATIC', { twoPhase: true })
+    state.currentEncounter = encounter(creatureActor, 'AUTOMATIC', creatureSourceActor)
+    state.calls.discoverFeatureActions.mockReturnValue([capability])
+    state.d20 = { rollMode: 'NORMAL' }
+    installOccurrenceSeam()
+
+    await expect(
+      executeEncounterActorDirectRuleAction({
+        db: testDb,
+        runtime: testRuntime,
+        command: command()
+      })
+    ).resolves.toMatchObject({ status: 'PENDING' })
+    expect(state.pendingApplicationContext).toMatchObject({
+      kind: 'ENCOUNTER_CREATURE_RULE_ACTION',
+      phase: { kind: 'LEGENDARY_RESISTANCE_CHOICE' }
+    })
+
+    state.legendaryResistanceUse = true
+    await expect(
+      resumeEncounterActorDirectRuleAction({
+        db: testDb,
+        runtime: testRuntime,
+        command: resumeCommand({ kind: 'LEGENDARY_RESISTANCE', selection: 'USE' })
+      })
+    ).resolves.toMatchObject({
+      status: 'COMPLETE',
+      application: { legendaryResistance: { use: true } }
+    })
+    expect(state.calls.settle).toHaveBeenCalledTimes(1)
   })
 
   it('rejects a mismatched Assisted d20 request before settlement', async () => {
@@ -1187,7 +1853,7 @@ describe('encounter actor direct rule actions', () => {
   })
 
   it('rejects Character targets, unauthorized sources, and invalid paused evidence before settlement', async () => {
-    setup({ ...creatureActor, kind: 'CHARACTER', sourceId: null })
+    setup(characterActorWithoutSource)
     installOccurrenceSeam()
     await expect(
       executeEncounterActorDirectRuleAction({

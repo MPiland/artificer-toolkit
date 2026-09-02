@@ -1,8 +1,10 @@
 import { randomInt, randomUUID } from 'node:crypto'
 
 import {
+  createActiveRuleEffectRepository,
   createEncounterRepository,
   createReusableDefinitionRepository,
+  createSystemVocabularySnapshotRepository,
   type DBLike,
   type EncounterActorRecord,
   type EncounterRecord,
@@ -10,13 +12,19 @@ import {
 } from '@artificer-toolkit/db'
 import type {
   ServerRuleExecutionApplicationOutputsDto,
+  ServerCompletedRuleExecutionDto,
+  ServerRuleExecutionNestedD20EvidenceDto,
   ServerRuleExecutionD20PolicyDto,
-  ServerRuleExecutionPendingApplicationContextDto
+  ServerRuleExecutionPendingApplicationContextDto,
+  ServerPublishedRuleDefinitionDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { serverRuleExecutionD20PolicyDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/rulesExecution'
+import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 import { encounterProjectionEventSchema } from '@artificer-toolkit/schema/projections/encounter'
+import type { OptionalCombatActionIntentDto } from '@artificer-toolkit/schema/api/encounters'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
+import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   lengthMeasurementInSceneUnits,
@@ -33,6 +41,8 @@ import { resolveActionPhaseExecution } from '../rules/actionPhaseExecution.js'
 import type { LiveSessionCommandAuthority } from '../campaign/liveSessionCommandAuthority.js'
 import type { RulesRuntimeService } from '../rules/rulesRuntimeService.js'
 import type { CharacterRuleActionApplication } from '../rules/characterRuleActionSystemAdapter.js'
+import { characterRuleActionSystemAdapterRegistry } from '../rules/characterRuleActionSystemAdapterRegistry.js'
+import { buildCompiledActionCompilerSource } from '../rules/characterActionEntryPointCompiler.js'
 import {
   evaluateEncounterActorRuleSnapshot,
   refreshEncounterActorRuleSnapshot,
@@ -46,8 +56,14 @@ import {
   prepareEncounterActionSettlementCore,
   settleEncounterActionSettlementCore,
   withTargetEncounterFeatureResourceConsumption,
-  type PreparedEncounterActionSettlementCore
+  type PreparedEncounterActionSettlementCore,
+  type EncounterDirectActionSource
 } from './encounterActionSettlementCore.js'
+import {
+  maintainedDependentSnapshot,
+  startEncounterConcentrationDamageChecks,
+  type ConcentrationPreflight
+} from './encounterConcentrationState.js'
 import { findEncounterFeatureResource } from './encounterActorRuleEvaluation.js'
 import {
   discoverEncounterLegendaryResistanceCandidate,
@@ -56,6 +72,8 @@ import {
 import { startEncounterLegendaryResistanceChoice } from './encounterLegendaryResistanceChoice.js'
 import {
   buildEncounterActionD20Evidence,
+  buildEncounterSaveD20Evidence,
+  requireEncounterSaveD20EvidenceTrace,
   resolveEncounterActionD20Faces,
   selectEncounterActionD20Natural
 } from './encounterMovementReactionActionExecution.js'
@@ -70,16 +88,125 @@ import {
   type LockedEncounterActionSceneContext
 } from './encounterActionSceneContext.js'
 import { compileEncounterCurrentProjection, projectGm } from './encounterProjection.js'
+import { persistEncounterCleavingChoice } from './encounterCleavingChoice.js'
 import { lockEncounterActionPositionalFacts } from './encounterActionPositionalFacts.js'
+import { settleEncounterActionForcedMovement } from './encounterActionForcedMovement.js'
+import { discoverEncounterFeatureActionCapabilities } from '../rules/encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import type { EncounterFeatureActionCapabilityDescriptor } from '../rules/encounterFeatureActionCapabilityDiscovery.js'
+import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '../rules/systems/dnd5e/concentrationPolicy.js'
 
 type CompiledCharacterActionEntry = Extract<
   CompiledActionEntryPoint,
-  { compilation: { kind: 'COMPILED' } }
+  { kind: 'CHARACTER_ACTION'; compilation: { kind: 'COMPILED' } }
 >
-type ActorDirectPendingContext = Extract<
+type CompiledCharacterSpellCastEntry = Extract<
+  CompiledActionEntryPoint,
+  { kind: 'CHARACTER_SPELL_CAST'; compilation: { kind: 'COMPILED' } }
+>
+type CharacterActorDirectPendingContext = Extract<
   ServerRuleExecutionPendingApplicationContextDto,
   { kind: 'ENCOUNTER_ACTOR_RULE_ACTION' }
 >
+type CharacterSpellActorDirectPendingContext = Extract<
+  ServerRuleExecutionPendingApplicationContextDto,
+  { kind: 'ENCOUNTER_ACTOR_SPELL_CAST' }
+>
+type CreatureActorDirectPendingContext = Extract<
+  ServerRuleExecutionPendingApplicationContextDto,
+  { kind: 'ENCOUNTER_CREATURE_RULE_ACTION' }
+>
+type ActorDirectPendingContext =
+  | CharacterActorDirectPendingContext
+  | CharacterSpellActorDirectPendingContext
+  | CreatureActorDirectPendingContext
+
+async function lockDirectActionConcentrationPreflight(input: {
+  db: DBLike
+  encounter: EncounterRecord
+  targetActor: EncounterActorRecord
+}): Promise<ConcentrationPreflight | null> {
+  if (
+    (input.encounter.automationMode !== 'AUTOMATIC' &&
+      input.encounter.automationMode !== 'ASSISTED') ||
+    input.targetActor.kind !== 'CHARACTER'
+  ) {
+    return null
+  }
+  const activeEffects = createActiveRuleEffectRepository(input.db)
+  const state = await activeEffects.lockMaintainedState({
+    encounterId: input.encounter.id,
+    ownerActorId: input.targetActor.id,
+    maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
+  })
+  if (!state) return null
+  const dependents = await activeEffects.lockDependentEffects({
+    stateId: state.id,
+    encounterId: input.encounter.id
+  })
+  return {
+    id: state.id,
+    version: state.version,
+    ownerActorId: state.ownerActorId,
+    maintenanceDefinitionId: state.maintenanceDefinitionId,
+    descriptorChecksum: state.descriptorChecksum,
+    dependents: dependents.map(maintainedDependentSnapshot)
+  }
+}
+
+function isDirectActionContext(
+  context: ServerRuleExecutionPendingApplicationContextDto
+): context is ActorDirectPendingContext {
+  return (
+    context.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+    context.kind === 'ENCOUNTER_ACTOR_SPELL_CAST' ||
+    context.kind === 'ENCOUNTER_CREATURE_RULE_ACTION'
+  )
+}
+
+function initialPublishedForDirectSource(source: ResolvedDirectActionSource) {
+  if (source.kind === 'CHARACTER') return initialPublishedDefinition(source.action.entry)
+  if (source.kind === 'CHARACTER_SPELL_CAST') {
+    const plan = source.action.entry.compilation.executionPlan
+    return plan.kind === 'SINGLE_GRAPH' ? plan.published : plan.test.published
+  }
+  const adapter = characterRuleActionSystemAdapterRegistry.get(
+    source.action.capability.gameSystemId
+  )
+  if (!adapter)
+    throw new EncounterValidationError('The Creature Game System cannot execute this action.')
+  const plan = adapter.compileExecutionPlan?.({
+    action: source.action.capability,
+    compilerSource: buildCompiledActionCompilerSource(source.action.capability)
+  }) ?? {
+    kind: 'SINGLE_GRAPH' as const,
+    published: adapter.compile({ action: source.action.capability })
+  }
+  return plan.kind === 'SINGLE_GRAPH' ? plan.published : plan.test.published
+}
+
+function nestedOutcomeD20ForTerminal(input: {
+  applicationContext: ActorDirectPendingContext
+  execution: ServerCompletedRuleExecutionDto
+}): ServerRuleExecutionNestedD20EvidenceDto | null {
+  const twoPhase =
+    input.applicationContext.twoPhase?.phase === 'OUTCOME'
+      ? input.applicationContext.twoPhase
+      : null
+  if (!twoPhase?.nestedOutcomeD20) {
+    if (twoPhase?.nestedOutcomeD20Evidence)
+      throw new EncounterValidationError('The Encounter action nested save evidence has no policy.')
+    return null
+  }
+  const evidence = twoPhase.nestedOutcomeD20Evidence
+  if (!evidence)
+    throw new EncounterValidationError('The Encounter action nested save evidence is unavailable.')
+  requireEncounterSaveD20EvidenceTrace({
+    execution: input.execution,
+    policy: twoPhase.nestedOutcomeD20,
+    evidence
+  })
+  return evidence
+}
 
 const actionResolutionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('SYSTEM'), requestId: z.string().min(1) }),
@@ -113,6 +240,7 @@ export interface ExecuteEncounterActorDirectRuleActionInput {
   correlationId: string | null
   encounterId: string
   expectedEncounterVersion: number
+  optionalCombatIntent?: OptionalCombatActionIntentDto | null
   sceneContext?: LockedEncounterActionSceneContext | null
   liveSessionAuthority?: LiveSessionCommandAuthority
   targetActorId: string
@@ -160,7 +288,7 @@ export type EncounterActorDirectRuleActionResult =
       occurrenceVersion: number
       application: Extract<
         ServerRuleExecutionApplicationOutputsDto,
-        { kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' }
+        { kind: 'CHARACTER_MECHANICS_BATCH' | 'ENCOUNTER_ACTOR_MECHANICS_BATCH' }
       >
     }
   | { status: 'MANUAL'; occurrenceId: string; occurrenceVersion: number }
@@ -187,6 +315,24 @@ function requireCommittedAction(input: {
   return entry as CompiledCharacterActionEntry
 }
 
+function requireCommittedSpellCast(input: {
+  actionId: string
+  entries: readonly CompiledActionEntryPoint[]
+}): CompiledCharacterSpellCastEntry {
+  const entry = input.entries.find(
+    (candidate) =>
+      candidate.kind === 'CHARACTER_SPELL_CAST' && candidate.actionId === input.actionId
+  )
+  if (!entry || entry.compilation.kind !== 'COMPILED')
+    throw new EncounterValidationError('The selected Character spell cast is not executable.')
+  if (
+    !('executionPlan' in entry.compilation) ||
+    entry.compilation.executionPlan.kind !== 'SINGLE_GRAPH'
+  )
+    throw new EncounterValidationError('The selected Character spell cast is not normalized.')
+  return entry as CompiledCharacterSpellCastEntry
+}
+
 function initialPublishedDefinition(entry: CompiledCharacterActionEntry) {
   if (entry.schemaVersion === 4) {
     return entry.compilation.executionPlan.kind === 'SINGLE_GRAPH'
@@ -205,12 +351,12 @@ function actionTestOutcomePlan(entry: CompiledCharacterActionEntry) {
 
 function targetPolicyPermitsEncounterActor(input: {
   actorId: string
-  entry: CompiledCharacterActionEntry
+  targetPolicy: CompiledActionTargetPolicy
   sceneContext: LockedEncounterActionSceneContext | null
   targetActorId: string
 }): boolean {
-  const policy = input.entry.targetPolicy
-  if (!policy || policy.shape !== null || policy.pathOverrides.length !== 0) return false
+  const policy = input.targetPolicy
+  if (policy.shape !== null || policy.pathOverrides.length !== 0) return false
   if (policy.range.rangeKind === 'SELF') return input.targetActorId === input.actorId
   if (
     policy.range.rangeKind === 'DISTANCE' &&
@@ -280,6 +426,137 @@ function sourceAction(input: {
   }
 }
 
+function sourceSpellCast(input: {
+  actionId: string
+  actor: EncounterActorRecord
+  targets: LockedEncounterActiveEffectTargets
+}): Extract<EncounterDirectActionSource, { kind: 'CHARACTER_SPELL_CAST' }> {
+  if (input.actor.kind !== 'CHARACTER' || !input.actor.sourceId)
+    throw new EncounterValidationError('Direct Encounter spell casts require a Character source.')
+  const character = input.targets.lockedCharacters.get(input.actor.sourceId)
+  if (!character || character.actor.id !== input.actor.id)
+    throw new EncounterConflictError('The Encounter Character spell source is stale.')
+  const entry = requireCommittedSpellCast({
+    actionId: input.actionId,
+    entries: character.mechanics.compiledActionEntryPoints
+  })
+  const candidate = character.mechanics.rulePolicyInput.spellCastCandidates.find(
+    (value) => value.candidateId === input.actionId
+  )
+  const decision = character.mechanics.rulePolicyOutput.spellCastDecisions.find(
+    (value) => value.candidateId === input.actionId
+  )
+  const mechanics = character.mechanics.rulePolicyOutput.spellCastMechanics.find(
+    (value) => value.candidateId === input.actionId
+  )
+  const mechanic = mechanics?.mechanics.find((value) => value.effectId === entry.effectId)
+  if (
+    !candidate ||
+    !decision ||
+    decision.status !== 'AVAILABLE' ||
+    !mechanics ||
+    !mechanic ||
+    mechanics.mechanics.length !== 1 ||
+    candidate.spellId !== entry.spell.spellId ||
+    mechanics.spellId !== entry.spell.spellId ||
+    candidate.castLevel !== entry.spell.castLevel ||
+    candidate.castMode !== entry.spell.castMode ||
+    decision.slotKey !== entry.spell.slotKey ||
+    candidate.resourceOwnerKey !== entry.spell.resourceOwnerKey ||
+    candidate.resourceOwnerKey !== null
+  )
+    throw new EncounterConflictError('The selected Character spell cast is stale.')
+  return {
+    kind: 'CHARACTER_SPELL_CAST',
+    actorId: input.actor.id,
+    characterId: character.id,
+    characterStreamVersion: character.streamVersion,
+    entry,
+    mechanic
+  }
+}
+
+function featureTargetPolicy(
+  capability: EncounterFeatureActionCapabilityDescriptor
+): CompiledActionTargetPolicy {
+  const invocation = capability.compiledEffect.invocation
+  return {
+    range: invocation.range,
+    targeting: invocation.targeting ?? null,
+    shape: invocation.shape ?? null,
+    pathOverrides: []
+  }
+}
+
+type ResolvedDirectActionSource =
+  | {
+      kind: 'CHARACTER'
+      action: Extract<EncounterMovementReactionActionSource, { kind: 'CHARACTER_ACTION' }>
+      targetPolicy: CompiledActionTargetPolicy
+    }
+  | {
+      kind: 'CHARACTER_SPELL_CAST'
+      action: Extract<EncounterDirectActionSource, { kind: 'CHARACTER_SPELL_CAST' }>
+      targetPolicy: CompiledActionTargetPolicy
+    }
+  | {
+      kind: 'CREATURE_FEATURE'
+      action: Extract<EncounterMovementReactionActionSource, { kind: 'ENCOUNTER_FEATURE' }>
+      targetPolicy: CompiledActionTargetPolicy
+    }
+
+/** Resolves exact locked sources without using labels or client-provided mechanics. */
+async function resolveDirectActionSource(input: {
+  db: DBLike
+  actionId: string
+  actor: EncounterActorRecord
+  targets: LockedEncounterActiveEffectTargets
+}): Promise<ResolvedDirectActionSource> {
+  if (input.actor.kind === 'CHARACTER') {
+    const matchingEntry = input.targets.lockedCharacters
+      .get(input.actor.sourceId ?? '')
+      ?.mechanics.compiledActionEntryPoints.find((entry) => entry.actionId === input.actionId)
+    if (matchingEntry?.kind === 'CHARACTER_SPELL_CAST') {
+      const action = sourceSpellCast(input)
+      return { kind: 'CHARACTER_SPELL_CAST', action, targetPolicy: action.entry.targetPolicy }
+    }
+    const action = sourceAction(input)
+    if (!action.entry.targetPolicy) {
+      throw new EncounterValidationError(
+        'The selected Character action target policy is unavailable.'
+      )
+    }
+    return { kind: 'CHARACTER', action, targetPolicy: action.entry.targetPolicy }
+  }
+  if (input.actor.kind !== 'CREATURE' || !input.actor.systemId) {
+    throw new EncounterValidationError(
+      'Direct Encounter actions require a Character or Creature source.'
+    )
+  }
+  const vocabulary = await createSystemVocabularySnapshotRepository(input.db).findActive(
+    input.actor.systemId
+  )
+  if (!vocabulary) throw new EncounterValidationError('Creature System vocabulary is unavailable.')
+  const capability = discoverEncounterFeatureActionCapabilities({
+    actor: input.actor,
+    conditionDefinitionIds: vocabulary.document.conditionTypes.map((condition) => condition.id),
+    abilityDefinitions:
+      'abilities' in vocabulary.document
+        ? vocabulary.document.abilities.map((ability) => ({ id: ability.id, code: ability.code }))
+        : []
+  }).find((candidate) => candidate.actionId === input.actionId)
+  if (!capability) throw new EncounterConflictError('The selected Creature action source is stale.')
+  const targetPolicy = featureTargetPolicy(capability)
+  if (targetPolicy.shape !== null || targetPolicy.pathOverrides.length !== 0) {
+    throw new EncounterValidationError('The selected Creature action target policy is unsupported.')
+  }
+  return {
+    kind: 'CREATURE_FEATURE',
+    action: { kind: 'ENCOUNTER_FEATURE', actorId: input.actor.id, capability },
+    targetPolicy
+  }
+}
+
 function targetCurrentnessChecksum(input: {
   target: EncounterActorRecord
   targets: LockedEncounterActiveEffectTargets
@@ -289,6 +566,19 @@ function targetCurrentnessChecksum(input: {
   )
   if (!rule) throw new EncounterConflictError('The Encounter target rule state is stale.')
   return checksumRuleDocument({ actor: input.target, rule })
+}
+
+function actionEconomyPendingReceipt(input: PreparedEncounterActionSettlementCore) {
+  const consumption = input.actionEconomyConsumption ?? null
+  return consumption === null
+    ? null
+    : {
+        definitionId: consumption.definitionId,
+        definitionVersion: consumption.definitionVersion,
+        definitionChecksum: consumption.definitionChecksum,
+        maximum: consumption.maximum,
+        beforeUsed: consumption.beforeUsed
+      }
 }
 
 function actionPendingContext(input: {
@@ -307,12 +597,73 @@ function actionPendingContext(input: {
   twoPhase?: ActorDirectPendingContext['twoPhase']
 }): ActorDirectPendingContext {
   const source = input.prepared.actionSource
-  if (source.kind !== 'CHARACTER_ACTION') {
-    throw new EncounterValidationError('Direct Encounter-actor actions require a Character source.')
+  const phase = {
+    kind: 'ACTION_EVIDENCE' as const,
+    d20: input.d20
+      ? {
+          rollMode: input.d20.rollMode,
+          contributors: [...input.d20.contributors],
+          contributorChecksum: input.d20.contributorChecksum,
+          modifier: input.d20.modifier,
+          defenseOrDc: input.d20.defenseOrDc
+        }
+      : null
+  }
+  if (source.kind === 'ENCOUNTER_FEATURE') {
+    const capability = source.capability
+    return {
+      kind: 'ENCOUNTER_CREATURE_RULE_ACTION',
+      schemaVersion: 1,
+      actionId: input.actionId,
+      sceneContext: input.sceneContext,
+      positionalDependencyChecksum: input.positionalDependencyChecksum,
+      sourceActorId: input.prepared.sourceActor.id,
+      targetActorId: input.prepared.targetActor.id,
+      creatureSourceId: capability.creatureSourceId,
+      sourceRevision: capability.sourceRevision,
+      sourceVersionId: capability.sourceVersionId,
+      sourceChecksum: capability.sourceChecksum,
+      ownerFeatureId: capability.ownerFeatureId,
+      featureOptionId: capability.featureOptionId,
+      effectId: capability.effectId,
+      authoredEffectChecksum: capability.authoredEffectChecksum,
+      compiledEffectChecksum: capability.compiledEffectChecksum,
+      targetCurrentnessChecksum: checksumRuleDocument(input.prepared.action.target),
+      publishedDefinitionId: input.published.id,
+      publishedDefinitionChecksum: input.published.checksum,
+      actionEconomy: actionEconomyPendingReceipt(input.prepared),
+      twoPhase: input.twoPhase ?? null,
+      phase
+    }
   }
   const character = input.prepared.targets.lockedCharacters.get(source.characterId)
   if (!character)
     throw new EncounterConflictError('The Encounter Character action source is stale.')
+  if (source.kind === 'CHARACTER_SPELL_CAST') {
+    return {
+      kind: 'ENCOUNTER_ACTOR_SPELL_CAST' as const,
+      schemaVersion: 1 as const,
+      actionId: input.actionId,
+      sceneContext: input.sceneContext,
+      positionalDependencyChecksum: input.positionalDependencyChecksum,
+      sourceActorId: input.prepared.sourceActor.id,
+      targetActorId: input.prepared.targetActor.id,
+      sourceCharacterId: source.characterId,
+      sourceCharacterStreamVersion: character.streamVersion,
+      sourceProjectionChecksum: character.mechanics.projectionChecksum,
+      sourceMechanicalContextChecksum: character.overlay.mechanicalContextChecksum,
+      targetCurrentnessChecksum: targetCurrentnessChecksum({
+        target: input.prepared.targetActor,
+        targets: input.prepared.targets
+      }),
+      publishedDefinitionId: input.published.id,
+      publishedDefinitionChecksum: input.published.checksum,
+      actionEconomy: actionEconomyPendingReceipt(input.prepared),
+      twoPhase: input.twoPhase ?? null,
+      spell: { ...source.entry.spell, effectId: source.entry.effectId },
+      phase
+    }
+  }
   return {
     kind: 'ENCOUNTER_ACTOR_RULE_ACTION' as const,
     schemaVersion: 1 as const,
@@ -331,19 +682,83 @@ function actionPendingContext(input: {
     }),
     publishedDefinitionId: input.published.id,
     publishedDefinitionChecksum: input.published.checksum,
+    actionEconomy: actionEconomyPendingReceipt(input.prepared),
     twoPhase: input.twoPhase ?? null,
-    phase: {
-      kind: 'ACTION_EVIDENCE' as const,
-      d20: input.d20
-        ? {
-            rollMode: input.d20.rollMode,
-            contributors: [...input.d20.contributors],
-            contributorChecksum: input.d20.contributorChecksum,
-            modifier: input.d20.modifier,
-            defenseOrDc: input.d20.defenseOrDc
-          }
-        : null
+    phase
+  }
+}
+
+/** Re-resolve exactly the sealed action source before applying new evidence. */
+function requirePendingSourceCurrent(input: {
+  context: ActorDirectPendingContext
+  source: ResolvedDirectActionSource
+  prepared: PreparedEncounterActionSettlementCore
+}): void {
+  if (
+    input.context.sourceActorId !== input.prepared.sourceActor.id ||
+    input.context.targetActorId !== input.prepared.targetActor.id
+  ) {
+    throw new EncounterConflictError('The selected Encounter action is not current.')
+  }
+  if (input.source.kind !== 'CREATURE_FEATURE') {
+    const expectedKind =
+      input.source.kind === 'CHARACTER_SPELL_CAST'
+        ? 'ENCOUNTER_ACTOR_SPELL_CAST'
+        : 'ENCOUNTER_ACTOR_RULE_ACTION'
+    if (input.context.kind !== expectedKind) {
+      throw new EncounterConflictError('The selected Encounter action source changed.')
     }
+    const current = actionPendingContext({
+      prepared: input.prepared,
+      actionId: input.context.actionId,
+      sceneContext: input.context.sceneContext,
+      positionalDependencyChecksum: input.context.positionalDependencyChecksum,
+      d20: null,
+      published: input.prepared.action.published
+    })
+    if (
+      current.kind !== expectedKind ||
+      current.sourceCharacterId !== input.context.sourceCharacterId ||
+      current.sourceCharacterStreamVersion !== input.context.sourceCharacterStreamVersion ||
+      current.sourceProjectionChecksum !== input.context.sourceProjectionChecksum ||
+      current.sourceMechanicalContextChecksum !== input.context.sourceMechanicalContextChecksum ||
+      current.targetCurrentnessChecksum !== input.context.targetCurrentnessChecksum ||
+      JSON.stringify(current.actionEconomy) !== JSON.stringify(input.context.actionEconomy) ||
+      (input.context.kind === 'ENCOUNTER_ACTOR_SPELL_CAST' &&
+        (current.kind !== 'ENCOUNTER_ACTOR_SPELL_CAST' ||
+          JSON.stringify(current.spell) !== JSON.stringify(input.context.spell))) ||
+      (input.context.twoPhase?.phase !== 'OUTCOME' &&
+        (current.publishedDefinitionId !== input.context.publishedDefinitionId ||
+          current.publishedDefinitionChecksum !== input.context.publishedDefinitionChecksum))
+    ) {
+      throw new EncounterConflictError('Direct Encounter action pending currentness changed.')
+    }
+    return
+  }
+  if (input.context.kind !== 'ENCOUNTER_CREATURE_RULE_ACTION') {
+    throw new EncounterConflictError('The selected Encounter action source changed.')
+  }
+  const capability = input.source.action.capability
+  if (
+    input.context.actionId !== capability.actionId ||
+    input.context.creatureSourceId !== capability.creatureSourceId ||
+    input.context.sourceRevision !== capability.sourceRevision ||
+    input.context.sourceVersionId !== capability.sourceVersionId ||
+    input.context.sourceChecksum !== capability.sourceChecksum ||
+    input.context.ownerFeatureId !== capability.ownerFeatureId ||
+    input.context.featureOptionId !== capability.featureOptionId ||
+    input.context.effectId !== capability.effectId ||
+    input.context.authoredEffectChecksum !== capability.authoredEffectChecksum ||
+    input.context.compiledEffectChecksum !== capability.compiledEffectChecksum ||
+    input.context.targetCurrentnessChecksum !==
+      checksumRuleDocument(input.prepared.action.target) ||
+    JSON.stringify(actionEconomyPendingReceipt(input.prepared)) !==
+      JSON.stringify(input.context.actionEconomy) ||
+    (input.context.twoPhase?.phase !== 'OUTCOME' &&
+      (input.context.publishedDefinitionId !== input.prepared.action.published.id ||
+        input.context.publishedDefinitionChecksum !== input.prepared.action.published.checksum))
+  ) {
+    throw new EncounterConflictError('The selected Creature action source is stale.')
   }
 }
 
@@ -366,6 +781,43 @@ function d20PolicyForRequest(input: {
     requestNodeId: input.request.nodeId,
     rollMode: input.d20.rollMode,
     contributors: input.d20.contributors,
+    contributorChecksum: input.d20.contributorChecksum,
+    modifier: input.d20.modifier,
+    dc: input.d20.defenseOrDc
+  })
+}
+
+function nestedOutcomeD20Policy(input: {
+  published: ServerPublishedRuleDefinitionDto
+  d20: {
+    rollMode: ServerRuleExecutionD20PolicyDto['rollMode']
+    contributors: readonly ServerRuleExecutionD20PolicyDto['contributors'][number][]
+    contributorChecksum: string
+    modifier: number
+    defenseOrDc: number
+  } | null
+}): ServerRuleExecutionD20PolicyDto | null {
+  const requestNode = input.published.definition.nodes?.find(
+    (node) => node.id === 'nested-save-d20'
+  )
+  if (!requestNode) return null
+  const minimum = requestNode.inputs.min
+  const maximum = requestNode.inputs.max
+  if (
+    requestNode.operation.key !== 'evidence.integer-range' ||
+    requestNode.operation.contractVersion !== 1 ||
+    minimum?.kind !== 'LITERAL' ||
+    minimum.value !== 1 ||
+    maximum?.kind !== 'LITERAL' ||
+    maximum.value !== 20
+  ) {
+    throw new EncounterValidationError('The nested save request is invalid.')
+  }
+  if (!input.d20) throw new EncounterValidationError('The nested save policy is unavailable.')
+  return serverRuleExecutionD20PolicyDtoSchema.parse({
+    requestNodeId: requestNode.id,
+    rollMode: input.d20.rollMode,
+    contributors: [...input.d20.contributors],
     contributorChecksum: input.d20.contributorChecksum,
     modifier: input.d20.modifier,
     dc: input.d20.defenseOrDc
@@ -404,7 +856,7 @@ function validateLegendaryResistanceChoicePause(input: {
   applicationContext: ServerRuleExecutionPendingApplicationContextDto
 }): void {
   if (
-    input.applicationContext.kind !== 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+    !isDirectActionContext(input.applicationContext) ||
     input.applicationContext.phase.kind !== 'LEGENDARY_RESISTANCE_CHOICE' ||
     input.continuation.request.kind !== 'INTEGER_RANGE' ||
     input.continuation.request.nodeId !== 'choice' ||
@@ -513,11 +965,14 @@ function assertLegendaryResistanceActionCurrentness(input: {
     published: input.prepared.action.published
   })
   if (
-    current.sourceProjectionChecksum !== input.context.sourceProjectionChecksum ||
-    current.sourceMechanicalContextChecksum !== input.context.sourceMechanicalContextChecksum ||
+    current.kind !== input.context.kind ||
     current.publishedDefinitionId !== input.context.publishedDefinitionId ||
     current.publishedDefinitionChecksum !== input.context.publishedDefinitionChecksum ||
-    current.targetCurrentnessChecksum !== input.context.targetCurrentnessChecksum
+    current.targetCurrentnessChecksum !== input.context.targetCurrentnessChecksum ||
+    (current.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+      input.context.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+      (current.sourceProjectionChecksum !== input.context.sourceProjectionChecksum ||
+        current.sourceMechanicalContextChecksum !== input.context.sourceMechanicalContextChecksum))
   )
     throw new EncounterConflictError('Legendary Resistance action source is stale.')
 }
@@ -538,11 +993,33 @@ async function finalizeDirectAction(input: {
   originalEncounter: EncounterRecord
   prepared: PreparedEncounterActionSettlementCore
   settled: Awaited<ReturnType<typeof settleEncounterActionSettlementCore>>
+  sceneContext: LockedEncounterActionSceneContext | null
+  attunementSlotOverride: number | null
+  concentration: ConcentrationPreflight | null
+  createChildOccurrencePort: (() => RuleExecutionAggregatePort) | null
+  runtime: RulesRuntimeService
+  rollD20?: () => number
 }): Promise<(stored: StoredRuleExecutionResult) => Promise<void>> {
+  const finalCharacterVersions = new Map(
+    input.settled.characterTransitions.map((transition) => [
+      transition.characterId,
+      transition.afterStreamVersion
+    ])
+  )
   const finalActors = input.actorSnapshot.reconciledEncounter.actors.map((actor) => {
-    if (actor.id === input.settled.targetActor.id) return input.settled.targetActor
-    if (actor.id === input.settled.sourceActor.id) return input.settled.sourceActor
-    return actor
+    const settledActor =
+      actor.id === input.settled.targetActor.id
+        ? input.settled.targetActor
+        : actor.id === input.settled.sourceActor.id
+          ? input.settled.sourceActor
+          : actor
+    const finalCharacterVersion =
+      settledActor.kind === 'CHARACTER' && settledActor.sourceId
+        ? finalCharacterVersions.get(settledActor.sourceId)
+        : undefined
+    return finalCharacterVersion === undefined
+      ? settledActor
+      : { ...settledActor, sourceRevision: finalCharacterVersion }
   })
   const nextEncounter: EncounterRecord = {
     ...input.actorSnapshot.reconciledEncounter,
@@ -564,10 +1041,209 @@ async function finalizeDirectAction(input: {
   )
   await repository.publishCurrentProjection(projection)
   return async (stored) => {
+    let eventEncounter = nextEncounter
+    let eventSnapshot = snapshot
+    let eventProjection = projection
+    const actionRange =
+      input.prepared.actionSource.kind === 'CHARACTER_ACTION'
+        ? input.prepared.actionSource.candidate.mechanicFacts?.invocation?.range
+        : input.prepared.actionSource.kind === 'CHARACTER_SPELL_CAST'
+          ? null
+          : input.prepared.actionSource.capability.mechanicFacts?.invocation?.range
+    const parsedActionRange = rangeDtoSchema.safeParse(actionRange)
+    if (parsedActionRange.success) {
+      const postSettlementEvaluation = await evaluateEncounterActorRuleSnapshot({
+        db: input.db,
+        encounter: nextEncounter
+      })
+      const postSettlementTargets = await lockEncounterActiveEffectTargets({
+        trx: input.db,
+        encounter: postSettlementEvaluation.reconciledEncounter,
+        actors: postSettlementEvaluation.reconciledEncounter.actors,
+        attunementSlotOverride: input.attunementSlotOverride,
+        getEncounterActorSnapshot: async () => ({
+          rules: postSettlementEvaluation.snapshot.output,
+          encounter: postSettlementEvaluation.reconciledEncounter
+        })
+      })
+      const settledSourceActor = postSettlementEvaluation.reconciledEncounter.actors.find(
+        (actor) => actor.id === input.prepared.sourceActor.id
+      )
+      const settledTargetActor = postSettlementEvaluation.reconciledEncounter.actors.find(
+        (actor) => actor.id === input.prepared.targetActor.id
+      )
+      if (!settledSourceActor)
+        throw new EncounterConflictError('The Cleaving action source is unavailable.')
+      if (!settledTargetActor)
+        throw new EncounterConflictError('The Cleaving action target is unavailable.')
+      const sourceCurrentness =
+        input.prepared.actionSource.kind !== 'ENCOUNTER_FEATURE'
+          ? (() => {
+              const character = postSettlementTargets.lockedCharacters.get(
+                input.prepared.actionSource.characterId
+              )
+              if (!character)
+                throw new EncounterConflictError('The Cleaving Character source is unavailable.')
+              return {
+                kind: 'CHARACTER' as const,
+                actorId: settledSourceActor.id,
+                characterId: character.id,
+                streamVersion: character.streamVersion,
+                projectionChecksum: character.mechanics.projectionChecksum,
+                mechanicalContextChecksum: character.overlay.mechanicalContextChecksum
+              }
+            })()
+          : {
+              kind: 'ENCOUNTER_ACTOR' as const,
+              actorId: settledSourceActor.id,
+              sourceRevision: input.prepared.actionSource.capability.sourceRevision,
+              sourceVersionId: input.prepared.actionSource.capability.sourceVersionId,
+              sourceChecksum: input.prepared.actionSource.capability.sourceChecksum,
+              stateChecksum: checksumRuleDocument(settledSourceActor)
+            }
+      await persistEncounterCleavingChoice({
+        db: input.db,
+        encounter: postSettlementEvaluation.reconciledEncounter,
+        expectedEncounterVersion: input.proposedAggregateVersion,
+        parentOccurrenceId: input.occurrenceId,
+        sourceActor: settledSourceActor,
+        action: {
+          actionId:
+            input.prepared.actionSource.kind !== 'ENCOUNTER_FEATURE'
+              ? input.prepared.actionSource.entry.actionId
+              : input.prepared.actionSource.capability.effectId,
+          publishedDefinitionId: input.prepared.action.published.id,
+          publishedDefinitionChecksum: input.prepared.action.published.checksum,
+          attackKind:
+            input.prepared.action.actionMechanic.attackKind === 'MELEE'
+              ? 'MELEE'
+              : input.prepared.action.actionMechanic.attackKind === 'RANGED'
+                ? 'RANGED'
+                : 'OTHER',
+          range: parsedActionRange.data
+        },
+        sourceCurrentness,
+        targetActor: settledTargetActor,
+        targets: postSettlementTargets,
+        actionMechanic: input.prepared.action.actionMechanic,
+        result: stored,
+        sceneContext: input.sceneContext
+      })
+    }
+    if (
+      input.concentration &&
+      input.prepared.targetActor.kind === 'CHARACTER' &&
+      input.prepared.targetActor.sourceId &&
+      (input.settled.application.kind === 'CHARACTER_MECHANICS_BATCH' ||
+        input.settled.application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+    ) {
+      const applications = input.settled.application.applications
+        .filter(
+          (application): application is Extract<typeof application, { kind: 'DAMAGE' }> =>
+            application.kind === 'DAMAGE' && application.appliedAmount > 0
+        )
+        .map((application) => ({
+          ordinal: application.ordinal,
+          sourceNodeId: application.sourceNodeId,
+          sourceOperationKey: application.sourceOperationKey,
+          targetActorId: input.prepared.targetActor.id,
+          appliedAmount: application.appliedAmount,
+          damageTypeId: application.damageTypeId
+        }))
+      if (applications.length > 0) {
+        const automationMode = input.originalEncounter.automationMode
+        if (automationMode === 'MANUAL') {
+          throw new EncounterConflictError('Manual actions cannot start concentration checks.')
+        }
+        const postSettlementEvaluation = await evaluateEncounterActorRuleSnapshot({
+          db: input.db,
+          encounter: eventEncounter
+        })
+        const postSettlementTargets = await lockEncounterActiveEffectTargets({
+          trx: input.db,
+          encounter: postSettlementEvaluation.reconciledEncounter,
+          actors: postSettlementEvaluation.reconciledEncounter.actors,
+          attunementSlotOverride: input.attunementSlotOverride,
+          getEncounterActorSnapshot: async () => ({
+            rules: postSettlementEvaluation.snapshot.output,
+            encounter: postSettlementEvaluation.reconciledEncounter
+          })
+        })
+        const targetCharacter = postSettlementTargets.lockedCharacters.get(
+          input.prepared.targetActor.sourceId
+        )
+        if (!targetCharacter) {
+          throw new EncounterConflictError('The concentration Character target is unavailable.')
+        }
+        const vocabulary = await createSystemVocabularySnapshotRepository(input.db).findById(
+          targetCharacter.mechanics.systemVocabularySnapshotId
+        )
+        if (
+          !vocabulary ||
+          vocabulary.systemId !== targetCharacter.systemId ||
+          vocabulary.snapshotVersion !==
+            targetCharacter.mechanics.systemVocabularySnapshotVersion ||
+          vocabulary.checksum !== targetCharacter.mechanics.systemVocabularySnapshotChecksum
+        ) {
+          throw new EncounterConflictError('The concentration System vocabulary is unavailable.')
+        }
+        if (!input.createChildOccurrencePort) {
+          throw new EncounterConflictError(
+            'Direct Encounter child occurrence context is unavailable.'
+          )
+        }
+        const started = await startEncounterConcentrationDamageChecks({
+          db: input.db,
+          runtime: input.runtime,
+          encounter: postSettlementEvaluation.reconciledEncounter,
+          childOccurrencePort: input.createChildOccurrencePort(),
+          parentOccurrenceId: input.occurrenceId,
+          parentCommandFingerprint: input.commandFingerprint,
+          expectedEncounterVersion: input.proposedAggregateVersion,
+          targetCharacter: {
+            streamVersion: targetCharacter.streamVersion,
+            mechanics: targetCharacter.mechanics,
+            overlay: targetCharacter.overlay,
+            policyOutput:
+              targetCharacter.effectiveRulePolicyOutput ?? targetCharacter.overlay.rulePolicyOutput,
+            vocabularySnapshot: vocabulary
+          },
+          concentration: input.concentration,
+          applications,
+          automationMode,
+          attunementSlotOverride: input.attunementSlotOverride,
+          ...(input.rollD20 ? { rollD20: input.rollD20 } : {})
+        })
+        if (started.characterActorVersions.size > 0) {
+          const actors = eventEncounter.actors.map((actor) => {
+            if (actor.kind !== 'CHARACTER' || !actor.sourceId) return actor
+            const sourceRevision = started.characterActorVersions.get(actor.sourceId)
+            return sourceRevision === undefined ? actor : { ...actor, sourceRevision }
+          })
+          for (const actor of actors) {
+            const prior = eventEncounter.actors.find((candidate) => candidate.id === actor.id)
+            if (prior && JSON.stringify(prior) !== JSON.stringify(actor)) {
+              await repository.updateActor(actor)
+            }
+          }
+          eventEncounter = { ...eventEncounter, actors }
+          const refreshedSnapshot = refreshEncounterActorRuleSnapshot(eventSnapshot, eventEncounter)
+          if (!refreshedSnapshot) {
+            throw new EncounterConflictError('The Encounter projection rule identity is stale.')
+          }
+          eventSnapshot = refreshedSnapshot
+          eventProjection = compileEncounterCurrentProjection(
+            projectGm(eventEncounter, eventSnapshot.output),
+            eventSnapshot
+          )
+          await repository.publishCurrentProjection(eventProjection)
+        }
+      }
+    }
     await repository.appendEvent({
       id: randomUUID(),
-      encounterId: nextEncounter.id,
-      campaignId: nextEncounter.campaignId,
+      encounterId: eventEncounter.id,
+      campaignId: eventEncounter.campaignId,
       version: input.proposedAggregateVersion,
       commandId: input.commandId,
       commandType: 'RESOLVE_RULE_ACTION',
@@ -575,18 +1251,18 @@ async function finalizeDirectAction(input: {
       commandPayload: {
         actorId: input.prepared.sourceActor.id,
         actionId:
-          input.prepared.actionSource.kind === 'CHARACTER_ACTION'
+          input.prepared.actionSource.kind !== 'ENCOUNTER_FEATURE'
             ? input.prepared.actionSource.entry.actionId
             : null,
         targetActorId: input.prepared.targetActor.id
       },
       resultPayload: encounterProjectionEventSchema.parse({
         command: {
-          projection: projectGm(nextEncounter, snapshot.output),
+          projection: projectGm(eventEncounter, eventSnapshot.output),
           roll: null,
           resolution: null
         },
-        currentProjection: projection,
+        currentProjection: eventProjection,
         ruleReceipt: {
           occurrenceId: input.occurrenceId,
           resultChecksum: checksumStoredRuleExecutionResult(stored)
@@ -643,7 +1319,8 @@ function summarize(input: {
   }
   if (
     result.status !== 'COMPLETE' ||
-    result.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+    (result.applicationOutputs.kind !== 'CHARACTER_MECHANICS_BATCH' &&
+      result.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
   ) {
     throw new EncounterConflictError('Direct Encounter action occurrence did not settle.')
   }
@@ -672,11 +1349,15 @@ export async function executeEncounterActorDirectRuleAction(input: {
   let actorSnapshot: EncounterActorRuleEvaluationResult | null = null
   let originalEncounter: EncounterRecord | null = null
   let pendingD20: ServerRuleExecutionD20PolicyDto | null = null
+  let nestedOutcomeD20Evidence: ServerRuleExecutionNestedD20EvidenceDto | null = null
   let rawFaces: readonly number[] | null = null
   let requestId: string | null = null
   let exposeLegendaryResistance = false
   let selectedLegendaryResistance: 'DECLINE' | 'USE' | null = null
   let lockedSceneContext: LockedEncounterActionSceneContext | null = null
+  let attunementSlotOverride: number | null = null
+  let concentrationPreflight: ConcentrationPreflight | null = null
+  let createChildOccurrencePort: (() => RuleExecutionAggregatePort) | null = null
   const aggregatePort: RuleExecutionAggregatePort = {
     async withLockedAuthorized(transaction, run) {
       const locked = await lockEncounterRuleExecutionCommandContext(transaction, {
@@ -688,6 +1369,8 @@ export async function executeEncounterActorDirectRuleAction(input: {
           : {})
       })
       exposeLegendaryResistance = locked.context.role === 'OWNER'
+      attunementSlotOverride = locked.context.attunementSlotOverride
+      createChildOccurrencePort = () => locked.context.createReceiptOnlyChildOccurrencePort()
       return run({
         aggregateKind: 'ENCOUNTER',
         aggregateId: locked.context.encounterId,
@@ -716,7 +1399,8 @@ export async function executeEncounterActorDirectRuleAction(input: {
           throw new EncounterConflictError('Direct Encounter action preparation is unavailable.')
         let execution = completedExecution
         const outcomeTwoPhase =
-          pendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+          pendingApplicationContext &&
+          isDirectActionContext(pendingApplicationContext) &&
           pendingApplicationContext.twoPhase?.phase === 'OUTCOME'
             ? pendingApplicationContext.twoPhase
             : null
@@ -733,7 +1417,8 @@ export async function executeEncounterActorDirectRuleAction(input: {
         if (outcomeTwoPhase) {
           const testPolicy =
             outcomeLegendaryResistance?.d20 ??
-            (pendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+            (pendingApplicationContext &&
+            isDirectActionContext(pendingApplicationContext) &&
             pendingApplicationContext.phase.kind === 'ACTION_EVIDENCE'
               ? pendingApplicationContext.phase.d20
                 ? {
@@ -861,7 +1546,8 @@ export async function executeEncounterActorDirectRuleAction(input: {
             originalD20: d20
           }
         } else if (
-          pendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+          pendingApplicationContext &&
+          isDirectActionContext(pendingApplicationContext) &&
           pendingApplicationContext.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'
         ) {
           const phase = pendingApplicationContext.phase
@@ -970,12 +1656,28 @@ export async function executeEncounterActorDirectRuleAction(input: {
           }
           execution = phase.originalExecution
         }
+        const nestedD20 =
+          pendingApplicationContext && isDirectActionContext(pendingApplicationContext)
+            ? nestedOutcomeD20ForTerminal({
+                applicationContext: pendingApplicationContext,
+                execution
+              })
+            : null
         const actionExecution = {
           kind: 'COMPLETE' as const,
           execution,
           applications,
-          d20
+          d20,
+          nestedD20
         }
+        const spatialDirectives = legendaryResistance?.use
+          ? []
+          : (settlementPrepared.action.adapter.interpretSpatial?.({
+              execution,
+              occurrenceId,
+              published: settlementPrepared.action.published,
+              targetActorId: settlementPrepared.targetActor.id
+            }) ?? [])
         const settled = await settleEncounterActionSettlementCore({
           db,
           actorUserId: input.command.actorUserId,
@@ -987,12 +1689,28 @@ export async function executeEncounterActorDirectRuleAction(input: {
           prepared: settlementPrepared,
           execution: actionExecution
         })
+        await settleEncounterActionForcedMovement({
+          db,
+          encounter: originalEncounter,
+          sceneContext: lockedSceneContext,
+          actorUserId: input.command.actorUserId,
+          commandId,
+          commandFingerprint,
+          sourceActorId: settlementPrepared.sourceActor.id,
+          targetActorId: settlementPrepared.targetActor.id,
+          targetStateChecksum: checksumRuleDocument(settlementPrepared.action.target),
+          directives: spatialDirectives,
+          ...(input.command.liveSessionAuthority
+            ? { liveSessionAuthority: input.command.liveSessionAuthority }
+            : {})
+        })
         return {
-          applicationOutputs: {
-            ...settled.application,
-            legendaryResistance
-          },
-          ...(pendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+          applicationOutputs:
+            settled.application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+              ? { ...settled.application, legendaryResistance }
+              : settled.application,
+          ...(pendingApplicationContext &&
+          isDirectActionContext(pendingApplicationContext) &&
           pendingApplicationContext.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'
             ? { terminalExecution: execution }
             : {}),
@@ -1007,7 +1725,13 @@ export async function executeEncounterActorDirectRuleAction(input: {
             actorSnapshot,
             originalEncounter,
             prepared,
-            settled
+            settled,
+            sceneContext: lockedSceneContext,
+            attunementSlotOverride,
+            concentration: concentrationPreflight,
+            createChildOccurrencePort,
+            runtime: input.runtime,
+            ...(input.rollD20 ? { rollD20: input.rollD20 } : {})
           })
         }
       }
@@ -1020,6 +1744,7 @@ export async function executeEncounterActorDirectRuleAction(input: {
     intent: createEncounterActionStartIntent({
       actionId: input.command.actionId,
       actorId: input.command.actorId,
+      optionalCombatIntent: input.command.optionalCombatIntent,
       sceneContext: input.command.sceneContext ?? null,
       targetActorId: input.command.targetActorId
     }),
@@ -1058,17 +1783,6 @@ export async function executeEncounterActorDirectRuleAction(input: {
         targetActorId: input.command.targetActorId,
         dependency: toEncounterActionSceneDependency(input.command.sceneContext ?? null)
       })
-      if (targetActor.kind === 'CHARACTER') {
-        throw new EncounterValidationError(
-          'Character targets must use the established Character action lane.'
-        )
-      }
-      if (
-        locked.context.role !== 'OWNER' &&
-        locked.context.assignedCharacterId !== sourceActor.sourceId
-      ) {
-        throw new EncounterConflictError('The selected Character action source is unavailable.')
-      }
       const evaluatedActorSnapshot = await evaluateEncounterActorRuleSnapshot({
         db,
         encounter: locked.encounter
@@ -1084,11 +1798,29 @@ export async function executeEncounterActorDirectRuleAction(input: {
           encounter: evaluatedActorSnapshot.reconciledEncounter
         })
       })
-      const source = sourceAction({ actionId: input.command.actionId, actor: sourceActor, targets })
+      const source = await resolveDirectActionSource({
+        db,
+        actionId: input.command.actionId,
+        actor: sourceActor,
+        targets
+      })
+      if (source.kind === 'CHARACTER' && targetActor.kind === 'CHARACTER') {
+        throw new EncounterValidationError(
+          'Character targets must use the established Character action lane.'
+        )
+      }
+      if (
+        (source.kind === 'CHARACTER' &&
+          locked.context.role !== 'OWNER' &&
+          locked.context.assignedCharacterId !== source.action.characterId) ||
+        (source.kind === 'CREATURE_FEATURE' && locked.context.role !== 'OWNER')
+      ) {
+        throw new EncounterConflictError('The selected Encounter action source is unavailable.')
+      }
       if (
         !targetPolicyPermitsEncounterActor({
           actorId: sourceActor.id,
-          entry: source.entry,
+          targetPolicy: source.targetPolicy,
           sceneContext: lockedSceneContext,
           targetActorId: targetActor.id
         })
@@ -1097,10 +1829,15 @@ export async function executeEncounterActorDirectRuleAction(input: {
           'The selected Character action cannot target this Encounter actor.'
         )
       }
+      concentrationPreflight = await lockDirectActionConcentrationPreflight({
+        db,
+        encounter: evaluatedActorSnapshot.reconciledEncounter,
+        targetActor
+      })
       const current = evaluatedActorSnapshot.reconciledEncounter
       if (current.automationMode === 'MANUAL') {
         return {
-          published: initialPublishedDefinition(source.entry),
+          published: initialPublishedForDirectSource(source),
           facts: {},
           manualReceipt: {
             reminder:
@@ -1113,12 +1850,18 @@ export async function executeEncounterActorDirectRuleAction(input: {
         actorUserId: input.command.actorUserId,
         automationMode: current.automationMode === 'AUTOMATIC' ? 'AUTOMATIC' : 'ASSISTED',
         encounter: current,
-        actionSource: source,
+        actionSource: source.action,
         targetActorId: targetActor.id,
-        targets
+        targets,
+        enforceActionEconomy: true
       })
-      const testOutcomePlan = actionTestOutcomePlan(source.entry)
-      const phasePublished = initialPublishedDefinition(source.entry)
+      const testOutcomePlan =
+        source.kind === 'CHARACTER'
+          ? actionTestOutcomePlan(source.action.entry)
+          : prepared.executionPlan?.kind === 'TEST_OUTCOME'
+            ? prepared.executionPlan
+            : null
+      const phasePublished = prepared.action.published
       prepared.action.published = phasePublished
       const positionalFacts = await lockEncounterActionPositionalFacts({
         trx: db,
@@ -1142,6 +1885,9 @@ export async function executeEncounterActorDirectRuleAction(input: {
         currentHitPoints: prepared.action.target.currentHitPoints,
         temporaryHitPoints: prepared.action.target.temporaryHitPoints,
         maximumHitPoints: prepared.action.target.maximumHitPoints,
+        targetScalarValues:
+          prepared.targets.effectiveScalarValuesByActorId?.get(prepared.action.target.actorId) ??
+          {},
         defenses: prepared.action.target.defenses,
         conditionImmunityIds: prepared.action.target.conditionImmunityIds,
         sceneContext: lockedSceneContext,
@@ -1209,7 +1955,7 @@ export async function executeEncounterActorDirectRuleAction(input: {
             }
           : {}),
         validatePausedExecution: ({ continuation, applicationContext }) => {
-          if (applicationContext.kind !== 'ENCOUNTER_ACTOR_RULE_ACTION') {
+          if (!isDirectActionContext(applicationContext)) {
             throw new EncounterConflictError('Direct Encounter action occurrence is unavailable.')
           }
           validateDirectActionPause({ continuation, applicationContext })
@@ -1222,7 +1968,7 @@ export async function executeEncounterActorDirectRuleAction(input: {
             null
           if (
             testOutcomePlan &&
-            applicationContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+            isDirectActionContext(applicationContext) &&
             applicationContext.twoPhase?.phase === 'TEST' &&
             applicationContext.phase.kind === 'ACTION_EVIDENCE' &&
             execution.outputs.resultPath === 'ON_SAVE_FAIL' &&
@@ -1243,7 +1989,7 @@ export async function executeEncounterActorDirectRuleAction(input: {
           }
           if (
             testOutcomePlan &&
-            applicationContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+            isDirectActionContext(applicationContext) &&
             applicationContext.twoPhase?.phase === 'TEST' &&
             twoPhaseLegendaryResistanceCandidate === null
           ) {
@@ -1278,6 +2024,10 @@ export async function executeEncounterActorDirectRuleAction(input: {
               currentHitPoints: prepared.action.target.currentHitPoints,
               temporaryHitPoints: prepared.action.target.temporaryHitPoints,
               maximumHitPoints: prepared.action.target.maximumHitPoints,
+              targetScalarValues:
+                prepared.targets.effectiveScalarValuesByActorId?.get(
+                  prepared.action.target.actorId
+                ) ?? {},
               defenses: prepared.action.target.defenses,
               conditionImmunityIds: prepared.action.target.conditionImmunityIds,
               sceneContext: lockedSceneContext,
@@ -1308,6 +2058,19 @@ export async function executeEncounterActorDirectRuleAction(input: {
                 'The Encounter action TEST roll evidence is invalid.'
               )
             const selectedNatural = selectEncounterActionD20Natural(pendingD20.rollMode, rawFaces)
+            const nestedOutcomeD20 = nestedOutcomeD20Policy({
+              published: phaseResolution.outcome.published,
+              d20:
+                outcomeBound.d20RollMode && outcomeBound.d20Audit
+                  ? {
+                      rollMode: outcomeBound.d20RollMode,
+                      contributors: outcomeBound.d20Audit.contributors,
+                      contributorChecksum: outcomeBound.d20Audit.contributorChecksum,
+                      modifier: outcomeBound.d20Audit.modifier,
+                      defenseOrDc: outcomeBound.d20Audit.defenseOrDc
+                    }
+                  : null
+            })
             const nextContext = {
               ...applicationContext,
               publishedDefinitionId: phaseResolution.outcome.published.id,
@@ -1320,6 +2083,8 @@ export async function executeEncounterActorDirectRuleAction(input: {
                 boundFactsChecksum: checksumRuleDocument(bound.facts),
                 testExecution: execution,
                 testExecutionChecksum: checksumRuleDocument(execution),
+                nestedOutcomeD20,
+                nestedOutcomeD20Evidence: null,
                 legendaryResistance: null,
                 testRollEvidence: {
                   requestId,
@@ -1338,27 +2103,56 @@ export async function executeEncounterActorDirectRuleAction(input: {
               applicationContext: nextContext,
               ...(started.result.status === 'PAUSED'
                 ? {
-                    pendingResult: {
-                      kind: 'INTEGER_RANGE_EVIDENCE' as const,
-                      phase: 'OUTCOME' as const,
-                      requests: [
-                        {
-                          requestId: started.result.continuation.request.requestId,
-                          min: started.result.continuation.request.min,
-                          max: started.result.continuation.request.max
-                        }
-                      ],
-                      exactRequestSetChecksum: checksumRuleDocument([
-                        {
-                          requestId: started.result.continuation.request.requestId,
-                          min: started.result.continuation.request.min,
-                          max: started.result.continuation.request.max
-                        }
-                      ])
-                    },
+                    pendingResult:
+                      nestedOutcomeD20 &&
+                      started.result.continuation.request.nodeId === nestedOutcomeD20.requestNodeId
+                        ? {
+                            kind: 'D20_EVIDENCE' as const,
+                            rollMode: nestedOutcomeD20.rollMode
+                          }
+                        : {
+                            kind: 'INTEGER_RANGE_EVIDENCE' as const,
+                            phase: 'OUTCOME' as const,
+                            requests: [
+                              {
+                                requestId: started.result.continuation.request.requestId,
+                                min: started.result.continuation.request.min,
+                                max: started.result.continuation.request.max
+                              }
+                            ],
+                            exactRequestSetChecksum: checksumRuleDocument([
+                              {
+                                requestId: started.result.continuation.request.requestId,
+                                min: started.result.continuation.request.min,
+                                max: started.result.continuation.request.max
+                              }
+                            ])
+                          },
                     ...(current.automationMode === 'AUTOMATIC'
                       ? {
                           resolveAutomaticEvidence: async ({ request }) => {
+                            if (
+                              nestedOutcomeD20 &&
+                              request.nodeId === nestedOutcomeD20.requestNodeId
+                            ) {
+                              const faces = resolveEncounterActionD20Faces({
+                                policy: nestedOutcomeD20,
+                                resolution: { kind: 'SYSTEM_ROLL', requestId: request.requestId },
+                                rollD20: input.rollD20 ?? (() => randomInt(1, 21))
+                              })
+                              nestedOutcomeD20Evidence = buildEncounterSaveD20Evidence({
+                                policy: nestedOutcomeD20,
+                                requestId: request.requestId,
+                                faces
+                              })
+                              return {
+                                requestId: request.requestId,
+                                value: selectEncounterActionD20Natural(
+                                  nestedOutcomeD20.rollMode,
+                                  faces
+                                )
+                              }
+                            }
                             if (request.kind !== 'INTEGER_RANGE' || request.min >= request.max) {
                               throw new EncounterValidationError(
                                 'The Encounter action outcome requested unsupported evidence.'
@@ -1377,6 +2171,19 @@ export async function executeEncounterActorDirectRuleAction(input: {
                               )
                             }
                             return { requestId: request.requestId, value }
+                          },
+                          captureAutomaticEvidence: async ({ request, response }) => {
+                            const evidence = nestedOutcomeD20Evidence
+                            if (!evidence || request.requestId !== evidence.requestId) return null
+                            if (
+                              response.requestId !== evidence.requestId ||
+                              response.value !== evidence.selectedNatural
+                            ) {
+                              throw new EncounterValidationError(
+                                'The Encounter action nested save evidence is invalid.'
+                              )
+                            }
+                            return evidence
                           }
                         }
                       : {})
@@ -1391,7 +2198,7 @@ export async function executeEncounterActorDirectRuleAction(input: {
             }
           }
           if (
-            applicationContext.kind !== 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+            !isDirectActionContext(applicationContext) ||
             applicationContext.phase.kind !== 'ACTION_EVIDENCE' ||
             execution.outputs.resultPath !== 'ON_SAVE_FAIL' ||
             !pendingD20 ||
@@ -1488,12 +2295,16 @@ export async function resumeEncounterActorDirectRuleAction(input: {
   let actorSnapshot: EncounterActorRuleEvaluationResult | null = null
   let originalEncounter: EncounterRecord | null = null
   let pendingD20: ServerRuleExecutionD20PolicyDto | null = null
+  let nestedOutcomeD20Evidence: ServerRuleExecutionNestedD20EvidenceDto | null = null
   let rawFaces: readonly number[] | null = null
   let requestId: string | null = null
   let exposeLegendaryResistance = false
   let selectedLegendaryResistance: 'DECLINE' | 'USE' | null = null
   let currentLegendaryResistanceCandidate: EncounterLegendaryResistanceCandidate | null = null
   let lockedSceneContext: LockedEncounterActionSceneContext | null = null
+  let attunementSlotOverride: number | null = null
+  let concentrationPreflight: ConcentrationPreflight | null = null
+  let createChildOccurrencePort: (() => RuleExecutionAggregatePort) | null = null
   const aggregatePort: RuleExecutionAggregatePort = {
     async withLockedAuthorized(transaction, run) {
       const locked = await lockEncounterRuleExecutionCommandContext(transaction, {
@@ -1505,6 +2316,8 @@ export async function resumeEncounterActorDirectRuleAction(input: {
           : {})
       })
       exposeLegendaryResistance = locked.context.role === 'OWNER'
+      attunementSlotOverride = locked.context.attunementSlotOverride
+      createChildOccurrencePort = () => locked.context.createReceiptOnlyChildOccurrencePort()
       return run({
         aggregateKind: 'ENCOUNTER',
         aggregateId: locked.context.encounterId,
@@ -1532,7 +2345,8 @@ export async function resumeEncounterActorDirectRuleAction(input: {
         if (!prepared || !actorSnapshot || !originalEncounter)
           throw new EncounterConflictError('Direct Encounter action preparation is unavailable.')
         const outcomeTwoPhase =
-          pendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+          pendingApplicationContext &&
+          isDirectActionContext(pendingApplicationContext) &&
           pendingApplicationContext.twoPhase?.phase === 'OUTCOME'
             ? pendingApplicationContext.twoPhase
             : null
@@ -1541,7 +2355,8 @@ export async function resumeEncounterActorDirectRuleAction(input: {
           if (!outcomeTwoPhase) return null
           const testPolicy =
             outcomeLegendaryResistance?.d20 ??
-            (pendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+            (pendingApplicationContext &&
+            isDirectActionContext(pendingApplicationContext) &&
             pendingApplicationContext.phase.kind === 'ACTION_EVIDENCE' &&
             pendingApplicationContext.phase.d20
               ? {
@@ -1667,7 +2482,8 @@ export async function resumeEncounterActorDirectRuleAction(input: {
             originalD20: outcomeOriginalD20
           }
         } else if (
-          pendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+          pendingApplicationContext &&
+          isDirectActionContext(pendingApplicationContext) &&
           pendingApplicationContext.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'
         ) {
           const phase = pendingApplicationContext.phase
@@ -1776,10 +2592,26 @@ export async function resumeEncounterActorDirectRuleAction(input: {
                 requestId,
                 faces: rawFaces
               })
-            : pendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+            : pendingApplicationContext &&
+                isDirectActionContext(pendingApplicationContext) &&
                 pendingApplicationContext.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'
               ? pendingApplicationContext.phase.originalD20
               : null)
+        const nestedD20 =
+          pendingApplicationContext && isDirectActionContext(pendingApplicationContext)
+            ? nestedOutcomeD20ForTerminal({
+                applicationContext: pendingApplicationContext,
+                execution: actionExecution
+              })
+            : null
+        const spatialDirectives = legendaryResistance?.use
+          ? []
+          : (settlementPrepared.action.adapter.interpretSpatial?.({
+              execution: actionExecution,
+              occurrenceId,
+              published: settlementPrepared.action.published,
+              targetActorId: settlementPrepared.targetActor.id
+            }) ?? [])
         const settled = await settleEncounterActionSettlementCore({
           db,
           actorUserId: input.command.actorUserId,
@@ -1793,12 +2625,32 @@ export async function resumeEncounterActorDirectRuleAction(input: {
             kind: 'COMPLETE',
             execution: actionExecution,
             applications,
-            d20
+            d20,
+            nestedD20
           }
         })
+        await settleEncounterActionForcedMovement({
+          db,
+          encounter: originalEncounter,
+          sceneContext: lockedSceneContext,
+          actorUserId: input.command.actorUserId,
+          commandId,
+          commandFingerprint,
+          sourceActorId: settlementPrepared.sourceActor.id,
+          targetActorId: settlementPrepared.targetActor.id,
+          targetStateChecksum: checksumRuleDocument(settlementPrepared.action.target),
+          directives: spatialDirectives,
+          ...(input.command.liveSessionAuthority
+            ? { liveSessionAuthority: input.command.liveSessionAuthority }
+            : {})
+        })
         return {
-          applicationOutputs: { ...settled.application, legendaryResistance },
-          ...(pendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+          applicationOutputs:
+            settled.application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+              ? { ...settled.application, legendaryResistance }
+              : settled.application,
+          ...(pendingApplicationContext &&
+          isDirectActionContext(pendingApplicationContext) &&
           pendingApplicationContext.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'
             ? { terminalExecution: actionExecution }
             : {}),
@@ -1813,7 +2665,13 @@ export async function resumeEncounterActorDirectRuleAction(input: {
             actorSnapshot,
             originalEncounter,
             prepared,
-            settled
+            settled,
+            sceneContext: lockedSceneContext,
+            attunementSlotOverride,
+            concentration: concentrationPreflight,
+            createChildOccurrencePort,
+            runtime: input.runtime,
+            ...(input.rollD20 ? { rollD20: input.rollD20 } : {})
           })
         }
       }
@@ -1827,7 +2685,7 @@ export async function resumeEncounterActorDirectRuleAction(input: {
     occurrenceId: input.command.occurrenceId,
     resolutionIntent: resolution,
     async resolve({ db, aggregate, applicationContext }) {
-      if (applicationContext.kind !== 'ENCOUNTER_ACTOR_RULE_ACTION') {
+      if (!isDirectActionContext(applicationContext)) {
         throw new EncounterConflictError('Direct Encounter action occurrence is unavailable.')
       }
       const locked = await lockEncounterRuleExecutionCommandContext(db, {
@@ -1852,10 +2710,7 @@ export async function resumeEncounterActorDirectRuleAction(input: {
         locked.encounter.status !== 'ACTIVE' ||
         locked.encounter.currentActorId !== applicationContext.sourceActorId ||
         !sourceActor ||
-        !targetActor ||
-        targetActor.kind === 'CHARACTER' ||
-        (locked.context.role !== 'OWNER' &&
-          locked.context.assignedCharacterId !== applicationContext.sourceCharacterId)
+        !targetActor
       ) {
         throw new EncounterConflictError('The selected Encounter action is not current.')
       }
@@ -1881,33 +2736,44 @@ export async function resumeEncounterActorDirectRuleAction(input: {
           encounter: evaluatedActorSnapshot.reconciledEncounter
         })
       })
-      const source = sourceAction({
+      const source = await resolveDirectActionSource({
+        db,
         actionId: applicationContext.actionId,
         actor: sourceActor,
         targets
       })
       let resumingLegendaryResistance = false
       if (
-        source.characterId !== applicationContext.sourceCharacterId ||
-        source.characterStreamVersion !== applicationContext.sourceCharacterStreamVersion ||
+        (source.kind === 'CHARACTER' && targetActor.kind === 'CHARACTER') ||
+        (source.kind === 'CHARACTER' &&
+          locked.context.role !== 'OWNER' &&
+          locked.context.assignedCharacterId !== source.action.characterId) ||
+        (source.kind === 'CREATURE_FEATURE' && locked.context.role !== 'OWNER') ||
         !targetPolicyPermitsEncounterActor({
           actorId: sourceActor.id,
-          entry: source.entry,
+          targetPolicy: source.targetPolicy,
           sceneContext: lockedSceneContext,
           targetActorId: targetActor.id
         })
       ) {
-        throw new EncounterConflictError('The selected Character action source is stale.')
+        throw new EncounterConflictError('The selected Encounter action is not current.')
       }
+      concentrationPreflight = await lockDirectActionConcentrationPreflight({
+        db,
+        encounter: evaluatedActorSnapshot.reconciledEncounter,
+        targetActor
+      })
       prepared = await prepareEncounterActionSettlementCore({
         db,
         actorUserId: input.command.actorUserId,
         automationMode: 'ASSISTED',
         encounter: evaluatedActorSnapshot.reconciledEncounter,
-        actionSource: source,
+        actionSource: source.action,
         targetActorId: targetActor.id,
-        targets
+        targets,
+        enforceActionEconomy: true
       })
+      requirePendingSourceCurrent({ context: applicationContext, source, prepared })
       if (applicationContext.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE') {
         if (locked.context.role !== 'OWNER')
           throw new EncounterConflictError('Legendary Resistance choice is unavailable.')
@@ -1989,6 +2855,9 @@ export async function resumeEncounterActorDirectRuleAction(input: {
         currentHitPoints: prepared.action.target.currentHitPoints,
         temporaryHitPoints: prepared.action.target.temporaryHitPoints,
         maximumHitPoints: prepared.action.target.maximumHitPoints,
+        targetScalarValues:
+          prepared.targets.effectiveScalarValuesByActorId?.get(prepared.action.target.actorId) ??
+          {},
         defenses: prepared.action.target.defenses,
         conditionImmunityIds: prepared.action.target.conditionImmunityIds,
         sceneContext: lockedSceneContext,
@@ -2004,7 +2873,12 @@ export async function resumeEncounterActorDirectRuleAction(input: {
               defenseOrDc: bound.d20Audit.defenseOrDc
             }
           : null
-      const testOutcomePlan = actionTestOutcomePlan(source.entry)
+      const testOutcomePlan =
+        source.kind === 'CHARACTER'
+          ? actionTestOutcomePlan(source.action.entry)
+          : prepared.executionPlan?.kind === 'TEST_OUTCOME'
+            ? prepared.executionPlan
+            : null
       const outcomeResumeTwoPhase =
         applicationContext.twoPhase?.phase === 'OUTCOME' ? applicationContext.twoPhase : null
       const outcomeResume = outcomeResumeTwoPhase !== null
@@ -2089,11 +2963,35 @@ export async function resumeEncounterActorDirectRuleAction(input: {
           currentHitPoints: prepared.action.target.currentHitPoints,
           temporaryHitPoints: prepared.action.target.temporaryHitPoints,
           maximumHitPoints: prepared.action.target.maximumHitPoints,
+          targetScalarValues:
+            prepared.targets.effectiveScalarValuesByActorId?.get(prepared.action.target.actorId) ??
+            {},
           defenses: prepared.action.target.defenses,
           conditionImmunityIds: prepared.action.target.conditionImmunityIds,
           sceneContext: lockedSceneContext,
           positionalFacts
         })
+        const currentNestedOutcomeD20 = nestedOutcomeD20Policy({
+          published: phasePublished,
+          d20:
+            bound.d20RollMode && bound.d20Audit
+              ? {
+                  rollMode: bound.d20RollMode,
+                  contributors: bound.d20Audit.contributors,
+                  contributorChecksum: bound.d20Audit.contributorChecksum,
+                  modifier: bound.d20Audit.modifier,
+                  defenseOrDc: bound.d20Audit.defenseOrDc
+                }
+              : null
+        })
+        if (
+          checksumRuleDocument(currentNestedOutcomeD20) !==
+          checksumRuleDocument(twoPhase.nestedOutcomeD20)
+        ) {
+          throw new EncounterConflictError(
+            'The pending Encounter action nested save policy changed before resume.'
+          )
+        }
         resumedOutcomePhasePlan = {
           initialPhase: 'OUTCOME',
           phase: 'OUTCOME',
@@ -2129,10 +3027,7 @@ export async function resumeEncounterActorDirectRuleAction(input: {
           ? { phasePlan: resumedOutcomePhasePlan ?? resumedTestPhasePlan! }
           : {}),
         validatePausedExecution: ({ continuation, applicationContext: nextContext }) => {
-          if (
-            nextContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
-            nextContext.twoPhase?.phase === 'OUTCOME'
-          ) {
+          if (isDirectActionContext(nextContext) && nextContext.twoPhase?.phase === 'OUTCOME') {
             if (
               continuation.request.kind !== 'INTEGER_RANGE' ||
               continuation.request.min === undefined ||
@@ -2159,7 +3054,7 @@ export async function resumeEncounterActorDirectRuleAction(input: {
           if (
             testOutcomePlan &&
             prepared &&
-            nextContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+            isDirectActionContext(nextContext) &&
             nextContext.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE' &&
             nextContext.twoPhase?.phase === 'TEST'
           ) {
@@ -2206,6 +3101,10 @@ export async function resumeEncounterActorDirectRuleAction(input: {
               currentHitPoints: prepared.action.target.currentHitPoints,
               temporaryHitPoints: prepared.action.target.temporaryHitPoints,
               maximumHitPoints: prepared.action.target.maximumHitPoints,
+              targetScalarValues:
+                prepared.targets.effectiveScalarValuesByActorId?.get(
+                  prepared.action.target.actorId
+                ) ?? {},
               defenses: prepared.action.target.defenses,
               conditionImmunityIds: prepared.action.target.conditionImmunityIds,
               sceneContext: lockedSceneContext,
@@ -2231,6 +3130,19 @@ export async function resumeEncounterActorDirectRuleAction(input: {
                   }),
                   graph: undefined
                 }
+            const nestedOutcomeD20 = nestedOutcomeD20Policy({
+              published: phaseResolution.outcome.published,
+              d20:
+                outcomeBound.d20RollMode && outcomeBound.d20Audit
+                  ? {
+                      rollMode: outcomeBound.d20RollMode,
+                      contributors: outcomeBound.d20Audit.contributors,
+                      contributorChecksum: outcomeBound.d20Audit.contributorChecksum,
+                      modifier: outcomeBound.d20Audit.modifier,
+                      defenseOrDc: outcomeBound.d20Audit.defenseOrDc
+                    }
+                  : null
+            })
             const nextApplicationContext = {
               ...nextContext,
               phase: {
@@ -2253,6 +3165,8 @@ export async function resumeEncounterActorDirectRuleAction(input: {
                 boundFactsChecksum: checksumRuleDocument(bound.facts),
                 testExecution: phase.originalExecution,
                 testExecutionChecksum: phase.originalExecutionChecksum,
+                nestedOutcomeD20,
+                nestedOutcomeD20Evidence: null,
                 legendaryResistance: {
                   choiceExecution: execution,
                   selection: use ? ('USE' as const) : ('DECLINE' as const),
@@ -2311,7 +3225,7 @@ export async function resumeEncounterActorDirectRuleAction(input: {
           if (
             testOutcomePlan &&
             prepared &&
-            nextContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+            isDirectActionContext(nextContext) &&
             nextContext.phase.kind === 'ACTION_EVIDENCE' &&
             nextContext.twoPhase?.phase === 'TEST' &&
             execution.outputs.resultPath === 'ON_SAVE_FAIL' &&
@@ -2333,7 +3247,7 @@ export async function resumeEncounterActorDirectRuleAction(input: {
           if (
             testOutcomePlan &&
             prepared &&
-            nextContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+            isDirectActionContext(nextContext) &&
             nextContext.twoPhase?.phase === 'TEST' &&
             twoPhaseLegendaryResistanceCandidate === null
           ) {
@@ -2372,6 +3286,10 @@ export async function resumeEncounterActorDirectRuleAction(input: {
               currentHitPoints: prepared.action.target.currentHitPoints,
               temporaryHitPoints: prepared.action.target.temporaryHitPoints,
               maximumHitPoints: prepared.action.target.maximumHitPoints,
+              targetScalarValues:
+                prepared.targets.effectiveScalarValuesByActorId?.get(
+                  prepared.action.target.actorId
+                ) ?? {},
               defenses: prepared.action.target.defenses,
               conditionImmunityIds: prepared.action.target.conditionImmunityIds,
               sceneContext: lockedSceneContext,
@@ -2398,6 +3316,19 @@ export async function resumeEncounterActorDirectRuleAction(input: {
                   graph: undefined
                 }
             const selectedNatural = selectEncounterActionD20Natural(pendingD20.rollMode, rawFaces)
+            const nestedOutcomeD20 = nestedOutcomeD20Policy({
+              published: phaseResolution.outcome.published,
+              d20:
+                outcomeBound.d20RollMode && outcomeBound.d20Audit
+                  ? {
+                      rollMode: outcomeBound.d20RollMode,
+                      contributors: outcomeBound.d20Audit.contributors,
+                      contributorChecksum: outcomeBound.d20Audit.contributorChecksum,
+                      modifier: outcomeBound.d20Audit.modifier,
+                      defenseOrDc: outcomeBound.d20Audit.defenseOrDc
+                    }
+                  : null
+            })
             const nextApplicationContext = {
               ...nextContext,
               publishedDefinitionId: phaseResolution.outcome.published.id,
@@ -2410,6 +3341,8 @@ export async function resumeEncounterActorDirectRuleAction(input: {
                 boundFactsChecksum: checksumRuleDocument(bound.facts),
                 testExecution: execution,
                 testExecutionChecksum: checksumRuleDocument(execution),
+                nestedOutcomeD20,
+                nestedOutcomeD20Evidence: null,
                 legendaryResistance: null,
                 testRollEvidence: {
                   requestId,
@@ -2457,7 +3390,7 @@ export async function resumeEncounterActorDirectRuleAction(input: {
             }
           }
           if (
-            nextContext.kind !== 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+            !isDirectActionContext(nextContext) ||
             nextContext.phase.kind !== 'ACTION_EVIDENCE' ||
             execution.outputs.resultPath !== 'ON_SAVE_FAIL' ||
             !pendingD20 ||
@@ -2539,7 +3472,7 @@ export async function resumeEncounterActorDirectRuleAction(input: {
     },
     async deriveResponse({ applicationContext, request }) {
       if (
-        applicationContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+        isDirectActionContext(applicationContext) &&
         applicationContext.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'
       ) {
         if (resolution.kind !== 'LEGENDARY_RESISTANCE')
@@ -2551,16 +3484,49 @@ export async function resumeEncounterActorDirectRuleAction(input: {
         }
       }
       if (
-        applicationContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+        isDirectActionContext(applicationContext) &&
         applicationContext.twoPhase?.phase === 'OUTCOME'
       ) {
         if (request.kind !== 'INTEGER_RANGE' || request.min >= request.max) {
           throw new EncounterConflictError('The pending Encounter action outcome is invalid.')
         }
-        if (resolution.kind === 'SYSTEM_OUTCOME') {
+        const nestedOutcomeD20 = applicationContext.twoPhase.nestedOutcomeD20
+        if (nestedOutcomeD20 && request.nodeId === nestedOutcomeD20.requestNodeId) {
           if (
-            resolution.requestIds.length !== 1 ||
-            resolution.requestIds[0] !== request.requestId
+            (resolution.kind !== 'SYSTEM' && resolution.kind !== 'PHYSICAL') ||
+            resolution.requestId !== request.requestId
+          ) {
+            throw new EncounterConflictError(
+              'The Encounter action nested save request does not match.'
+            )
+          }
+          const faces = resolveEncounterActionD20Faces({
+            policy: nestedOutcomeD20,
+            resolution:
+              resolution.kind === 'SYSTEM'
+                ? { kind: 'SYSTEM_ROLL', requestId: resolution.requestId }
+                : {
+                    kind: 'ENTER_DICE',
+                    requestId: resolution.requestId,
+                    rawFaces: resolution.rawFaces
+                  },
+            rollD20: input.rollD20 ?? (() => randomInt(1, 21))
+          })
+          nestedOutcomeD20Evidence = buildEncounterSaveD20Evidence({
+            policy: nestedOutcomeD20,
+            requestId: request.requestId,
+            faces
+          })
+          return {
+            requestId: request.requestId,
+            value: selectEncounterActionD20Natural(nestedOutcomeD20.rollMode, faces)
+          }
+        }
+        if (resolution.kind === 'SYSTEM' || resolution.kind === 'SYSTEM_OUTCOME') {
+          if (
+            resolution.kind === 'SYSTEM'
+              ? resolution.requestId !== request.requestId
+              : resolution.requestIds.length !== 1 || resolution.requestIds[0] !== request.requestId
           ) {
             throw new EncounterConflictError(
               'The Encounter action outcome roll request set does not match.'
@@ -2592,7 +3558,7 @@ export async function resumeEncounterActorDirectRuleAction(input: {
         )
       }
       if (
-        applicationContext.kind !== 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+        !isDirectActionContext(applicationContext) ||
         applicationContext.phase.kind !== 'ACTION_EVIDENCE' ||
         applicationContext.phase.d20 === null
       ) {
@@ -2631,9 +3597,20 @@ export async function resumeEncounterActorDirectRuleAction(input: {
         value: selectEncounterActionD20Natural(policy.rollMode, faces)
       }
     },
+    async captureDerivedResponseEvidence({ request, response }) {
+      const evidence = nestedOutcomeD20Evidence
+      if (!evidence || request.requestId !== evidence.requestId) return null
+      if (
+        response.requestId !== evidence.requestId ||
+        response.value !== evidence.selectedNatural
+      ) {
+        throw new EncounterValidationError('The Encounter action nested save evidence is invalid.')
+      }
+      return evidence
+    },
     async resumePreflight({ occurrence, applicationContext, response }) {
       if (
-        applicationContext.kind !== 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+        !isDirectActionContext(applicationContext) ||
         applicationContext.phase.kind !== 'LEGENDARY_RESISTANCE_CHOICE'
       )
         return

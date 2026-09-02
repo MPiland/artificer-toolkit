@@ -205,6 +205,11 @@ import { almsBox } from './alms-box.js'
 import { censer } from './censer.js'
 import { littleBagOfSand } from './little-bag-of-sand.js'
 import { smallKnife } from './small-knife.js'
+import { spikedBoneClub } from './spiked-bone-club.js'
+import { heavyClub } from './heavy-club.js'
+import { spikedShield } from './spiked-shield.js'
+import { ironGolemSword } from './iron-golem-sword.js'
+import { stormGiantRock } from './storm-giant-rock.js'
 import { arrowsPlus1 } from './arrows-plus-1.js'
 import { arrowsPlus2 } from './arrows-plus-2.js'
 import { arrowsPlus3 } from './arrows-plus-3.js'
@@ -573,6 +578,11 @@ export const srdEquipment = [
   censer,
   littleBagOfSand,
   smallKnife,
+  spikedBoneClub,
+  heavyClub,
+  spikedShield,
+  ironGolemSword,
+  stormGiantRock,
   arrowsPlus1,
   arrowsPlus2,
   arrowsPlus3,

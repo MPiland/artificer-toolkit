@@ -40,10 +40,10 @@ describe('media repository cleanup contracts', () => {
   })
 
   it('keeps replacement objects queued until their metadata is committed', () => {
-    expect(source).toContain('insert into media_object_deletions (object_key)')
-    expect(source).toContain(
-      'delete from media_object_deletions where object_key = ${variant.object_key}'
-    )
+    expect(source).toContain('insert into media_object_deletions (storage_provider, object_key)')
+    expect(source).toContain('where storage_provider = (select storage_provider from media_assets')
+    expect(source).toContain('and object_key = ${variant.object_key}')
+    expect(source).toContain('on conflict (storage_provider, object_key) do nothing')
     expect(source).toContain("created_at < now() - interval '15 minutes'")
   })
 })

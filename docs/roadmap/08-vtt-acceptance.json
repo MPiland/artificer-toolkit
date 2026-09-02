@@ -911,7 +911,9 @@
           "proofTier": "REVIEW",
           "status": "ACCEPTED",
           "acceptedAt": "2026-08-30",
-          "evidence": { "review": ".codex/validation/rules-runtime-rebaseline/phase81-current-packet-review.md" }
+          "evidence": {
+            "review": ".codex/validation/rules-runtime-rebaseline/phase81-current-packet-review.md"
+          }
         },
         {
           "id": "P81-CURRENT-OPTIONAL-ADMISSION",
@@ -919,7 +921,9 @@
           "proofTier": "REVIEW",
           "status": "ACCEPTED",
           "acceptedAt": "2026-08-30",
-          "evidence": { "review": ".codex/validation/rules-runtime-rebaseline/phase81-current-packet-review.md" }
+          "evidence": {
+            "review": ".codex/validation/rules-runtime-rebaseline/phase81-current-packet-review.md"
+          }
         },
         {
           "id": "P81-CURRENT-MIXED-HEALING",
@@ -927,7 +931,9 @@
           "proofTier": "REVIEW",
           "status": "ACCEPTED",
           "acceptedAt": "2026-08-30",
-          "evidence": { "review": ".codex/validation/rules-runtime-rebaseline/phase81-current-packet-review.md" }
+          "evidence": {
+            "review": ".codex/validation/rules-runtime-rebaseline/phase81-current-packet-review.md"
+          }
         },
         {
           "id": "P81-CURRENT-MULTI-DAMAGE",
@@ -935,7 +941,9 @@
           "proofTier": "REVIEW",
           "status": "ACCEPTED",
           "acceptedAt": "2026-08-30",
-          "evidence": { "review": ".codex/validation/rules-runtime-rebaseline/phase81-current-packet-review.md" }
+          "evidence": {
+            "review": ".codex/validation/rules-runtime-rebaseline/phase81-current-packet-review.md"
+          }
         },
         {
           "id": "P81-CURRENT-MANIFEST",
@@ -943,82 +951,749 @@
           "proofTier": "REVIEW",
           "status": "ACCEPTED",
           "acceptedAt": "2026-08-30",
-          "evidence": { "review": ".codex/validation/rules-runtime-rebaseline/phase81-current-packet-review.md" }
+          "evidence": {
+            "review": ".codex/validation/rules-runtime-rebaseline/phase81-current-packet-review.md"
+          }
         },
 
-        { "id": "P81-CREATURE-BALOR-WHIP", "title": "Balor Whip forced movement with save", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-CLAY-GOLEM-SLAM", "title": "Clay Golem Slam closed mechanic", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-CLOAKER-BITE", "title": "Cloaker Bite closed mechanic", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-DRYAD-SHILLELAGH", "title": "Dryad Shillelagh club damage", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-DUERGAR-WAR-PICK", "title": "Enlarged Duergar war pick damage", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-DUERGAR-JAVELIN", "title": "Enlarged Duergar javelin damage", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-KRAKEN-LIGHTNING", "title": "Kraken Lightning Storm", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-PURPLE-WORM-STINGER", "title": "Purple Worm Tail Stinger", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-QUASIT-CLAWS", "title": "Quasit Claws", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-QUASIT-SCARE", "title": "Quasit Scare", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-RUG-SMOTHER", "title": "Rug of Smothering Smother", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-SHADOW-DRAIN", "title": "Shadow Strength Drain", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-SPIRIT-NAGA-BITE", "title": "Spirit Naga Bite poison", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-GEAR-CONTRACT", "title": "UUID-backed Creature equipment/loadout authored contract", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-GEAR-SOURCE-AUDIT", "title": "SRD Creature mechanically relevant equipment source audit", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-GEAR-DERIVATION", "title": "Creature equipment uses shared modular equipment mechanics", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-GEAR-ENCOUNTER-PIN", "title": "Encounter Creature actor pins exact compiled loadout", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-CREATURE-GEAR-ACTOR-REPLACE", "title": "Audited GM replacement of one active Creature actor loadout", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        {
+          "id": "P81-CREATURE-BALOR-WHIP",
+          "title": "Balor Whip forced movement with save",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/balor-whip-final-focused.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/balor-whip-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-CLAY-GOLEM-SLAM",
+          "title": "Clay Golem Slam closed mechanic",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/clay-golem-production-vertical-tracer.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/clay-golem-slam-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-CLOAKER-BITE",
+          "title": "Cloaker Bite closed mechanic",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/creature-boundary-direct-service.log",
+            "compilerTests": ".codex/validation/rules-runtime-rebaseline/creature-boundary-effect-compiler.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/cloaker-rug-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-DRYAD-SHILLELAGH",
+          "title": "Dryad Shillelagh club damage",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/creature-loadout-attack-focused.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/creature-loadout-dryad-duergar-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-DUERGAR-WAR-PICK",
+          "title": "Enlarged Duergar war pick damage",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/creature-loadout-attack-focused.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/creature-loadout-dryad-duergar-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-DUERGAR-JAVELIN",
+          "title": "Enlarged Duergar javelin damage",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/creature-loadout-attack-kind-focused.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/creature-loadout-dryad-duergar-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-KRAKEN-LIGHTNING",
+          "title": "Kraken Lightning Storm",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "review": ".codex/validation/rules-runtime-rebaseline/creature-direct-damage-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-PURPLE-WORM-STINGER",
+          "title": "Purple Worm Tail Stinger",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "review": ".codex/validation/rules-runtime-rebaseline/creature-direct-damage-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-QUASIT-CLAWS",
+          "title": "Quasit Claws",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "review": ".codex/validation/rules-runtime-rebaseline/quasit-claws-scare-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-QUASIT-SCARE",
+          "title": "Quasit Scare",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "review": ".codex/validation/rules-runtime-rebaseline/quasit-claws-scare-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-RUG-SMOTHER",
+          "title": "Rug of Smothering Smother",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "sourceTests": ".codex/validation/rules-runtime-rebaseline/creature-boundary-db-source.log",
+            "settlementTests": ".codex/validation/rules-runtime-rebaseline/creature-boundary-settlement-relationship.log",
+            "compilerTests": ".codex/validation/rules-runtime-rebaseline/creature-boundary-effect-compiler.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/cloaker-rug-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-SHADOW-DRAIN",
+          "title": "Shadow Strength Drain",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "targetStateTests": ".codex/validation/rules-runtime-rebaseline/shadow-scalar-target-state-test.log",
+            "settlementTests": ".codex/validation/rules-runtime-rebaseline/shadow-scalar-settlement-test.log",
+            "compilerAndTurnTests": ".codex/validation/rules-runtime-rebaseline/shadow-closure-final-focused.log",
+            "diffCheck": ".codex/validation/rules-runtime-rebaseline/shadow-closure-final-diff-check.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/shadow-strength-drain-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-SPIRIT-NAGA-BITE",
+          "title": "Spirit Naga Bite poison",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "compilerTests": ".codex/validation/rules-runtime-rebaseline/spirit-naga-closure-compiler-tests.log",
+            "contractTests": ".codex/validation/rules-runtime-rebaseline/d20-evidence-final-schema-test.log",
+            "characterTests": ".codex/validation/rules-runtime-rebaseline/d20-evidence-final-character-test.log",
+            "actorIntegration": ".codex/validation/rules-runtime-rebaseline/d20-evidence-final-actor-test.log",
+            "functionsBuild": ".codex/validation/rules-runtime-rebaseline/d20-evidence-final-functions-build.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/spirit-naga-final-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-GEAR-CONTRACT",
+          "title": "UUID-backed Creature equipment/loadout authored contract",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "review": ".codex/validation/rules-runtime-rebaseline/creature-equipment-loadout-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-GEAR-SOURCE-AUDIT",
+          "title": "SRD Creature mechanically relevant equipment source audit",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-30",
+          "evidence": {
+            "review": ".codex/validation/rules-runtime-rebaseline/creature-equipment-source-audit-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-GEAR-DERIVATION",
+          "title": "Creature equipment uses shared modular equipment mechanics",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/creature-loadout-final-focused.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/creature-loadout-dryad-duergar-review.md"
+          }
+        },
+        {
+          "id": "P81-CREATURE-GEAR-ENCOUNTER-PIN",
+          "title": "Encounter Creature actor pins exact compiled loadout",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/creature-equipment-replacement-focused.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/creature-equipment-replacement-review.md",
+            "lifecycle": ".codex/validation/rules-runtime-rebaseline/phase81-final-lifecycle-20260901-resume-ledger/manifest.json"
+          }
+        },
+        {
+          "id": "P81-CREATURE-GEAR-ACTOR-REPLACE",
+          "title": "Audited GM replacement of one active Creature actor loadout",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "service": ".codex/validation/rules-runtime-rebaseline/creature-equipment-replacement-service-review.log",
+            "repository": ".codex/validation/rules-runtime-rebaseline/creature-equipment-replacement-repository-targeted.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/creature-equipment-replacement-review.md",
+            "lifecycle": ".codex/validation/rules-runtime-rebaseline/phase81-final-lifecycle-20260901-resume-ledger/manifest.json"
+          }
+        },
 
-        { "id": "P81-SPEED-DECLARATION", "title": "Speed Factor exact primary/bonus declaration", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-SPEED-ORDERING", "title": "Speed Factor authored action/weapon/spell/size modifiers and order", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-SPEED-TIES", "title": "Speed Factor base-Dexterity and reroll/table tie settlement", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-SPEED-ENFORCEMENT", "title": "Declared Speed Factor action enforced at execution", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        {
+          "id": "P81-SPEED-DECLARATION",
+          "title": "Speed Factor exact primary/bonus declaration",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/p81-speed-factor-review-focused.log",
+            "drawer": ".codex/validation/rules-runtime-rebaseline/p81-speed-factor-drawer-focused.log",
+            "authorization": ".codex/validation/rules-runtime-rebaseline/speed-factor-pending-authority-residual-focused.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/p81-speed-factor-declaration-review.md"
+          }
+        },
+        {
+          "id": "P81-SPEED-ORDERING",
+          "title": "Speed Factor authored action/weapon/spell/size modifiers and order",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/p81-speed-factor-review-focused.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/p81-speed-factor-declaration-review.md"
+          }
+        },
+        {
+          "id": "P81-SPEED-TIES",
+          "title": "Speed Factor base-Dexterity and reroll/table tie settlement",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/p81-speed-factor-review-focused.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/p81-speed-factor-declaration-review.md",
+            "lifecycle": ".codex/validation/rules-runtime-rebaseline/phase81-final-lifecycle-20260901-resume-ledger/manifest.json"
+          }
+        },
+        {
+          "id": "P81-SPEED-ENFORCEMENT",
+          "title": "Declared Speed Factor action enforced at execution",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/p81-speed-factor-review-focused.log",
+            "authorization": ".codex/validation/rules-runtime-rebaseline/speed-factor-pending-authority-residual-focused.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/p81-speed-factor-declaration-review.md",
+            "lifecycle": ".codex/validation/rules-runtime-rebaseline/phase81-final-lifecycle-20260901-resume-ledger/manifest.json"
+          }
+        },
 
-        { "id": "P81-DISARM-SOURCE", "title": "Disarm typed policy and bounded defender choice", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-DISARM-EXECUTION", "title": "Disarm state-only drop preserving ownership", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-OVERRUN-SOURCE", "title": "Overrun typed policy and path opportunity", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-OVERRUN-EXECUTION", "title": "Overrun contested execution and movement continuation", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-SHOVE-ASIDE-SOURCE", "title": "Shove Aside typed policy and defender choice", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-SHOVE-ASIDE-DESTINATION", "title": "Shove Aside pre-roll legal destination and movement", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-TUMBLE-SOURCE", "title": "Tumble typed policy and path opportunity", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-TUMBLE-EXECUTION", "title": "Tumble contested execution and movement continuation", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-CLEAVING-SOURCE", "title": "Cleaving typed policy and eligible target selection", "proofTier": "REVIEW", "status": "NOT_STARTED" },
-        { "id": "P81-CLEAVING-EXECUTION", "title": "Cleaving excess damage, defense-aware split, and no rider carry", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        {
+          "id": "P81-DISARM-SOURCE",
+          "title": "Disarm typed policy and bounded defender choice",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/p81-uuid-check-definition-source-focused.log",
+            "review": ".impeccable/review/p81-optional-combat-check-definition-review.md"
+          }
+        },
+        {
+          "id": "P81-DISARM-EXECUTION",
+          "title": "Disarm state-only drop preserving ownership",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/disarm-occurrence-integration-focused.log",
+            "correction": ".codex/validation/rules-runtime-rebaseline/disarm-occurrence-corrections-focused-tests.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/p81-disarm-occurrence-review.md",
+            "lifecycle": ".codex/validation/rules-runtime-rebaseline/phase81-final-lifecycle-20260901-resume-ledger/manifest.json"
+          }
+        },
+        {
+          "id": "P81-OVERRUN-SOURCE",
+          "title": "Overrun typed policy and path opportunity",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/p81-uuid-check-definition-source-focused.log",
+            "review": ".impeccable/review/p81-optional-combat-check-definition-review.md"
+          }
+        },
+        {
+          "id": "P81-OVERRUN-EXECUTION",
+          "title": "Overrun contested execution and movement continuation",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/passage-router-focused-final-2.log",
+            "timeline": ".codex/validation/rules-runtime-rebaseline/passage-deep-review-vtt-focused.log",
+            "audit": ".codex/validation/rules-runtime-rebaseline/passage-self-validating-audit-service-tests.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/p81-overrun-tumble-execution-review.md",
+            "lifecycle": ".codex/validation/rules-runtime-rebaseline/phase81-final-lifecycle-20260901-resume-ledger/manifest.json"
+          }
+        },
+        {
+          "id": "P81-SHOVE-ASIDE-SOURCE",
+          "title": "Shove Aside typed policy and defender choice",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/p81-uuid-check-definition-source-focused.log",
+            "review": ".impeccable/review/p81-optional-combat-check-definition-review.md"
+          }
+        },
+        {
+          "id": "P81-SHOVE-ASIDE-DESTINATION",
+          "title": "Shove Aside pre-roll legal destination and movement",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/shove-aside-review-closure-core.log",
+            "privacy": ".codex/validation/rules-runtime-rebaseline/shove-aside-review-closure-reconnect.log",
+            "effectiveGrid": ".codex/validation/rules-runtime-rebaseline/shove-aside-effective-grid-focused.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/p81-shove-aside-execution-review.md",
+            "lifecycle": ".codex/validation/rules-runtime-rebaseline/phase81-final-lifecycle-20260901-resume-ledger/manifest.json"
+          }
+        },
+        {
+          "id": "P81-TUMBLE-SOURCE",
+          "title": "Tumble typed policy and path opportunity",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/p81-uuid-check-definition-source-focused.log",
+            "review": ".impeccable/review/p81-optional-combat-check-definition-review.md"
+          }
+        },
+        {
+          "id": "P81-TUMBLE-EXECUTION",
+          "title": "Tumble contested execution and movement continuation",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/passage-router-focused-final-2.log",
+            "timeline": ".codex/validation/rules-runtime-rebaseline/passage-deep-review-vtt-focused.log",
+            "audit": ".codex/validation/rules-runtime-rebaseline/passage-self-validating-audit-service-tests.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/p81-overrun-tumble-execution-review.md",
+            "lifecycle": ".codex/validation/rules-runtime-rebaseline/phase81-final-lifecycle-20260901-resume-ledger/manifest.json"
+          }
+        },
+        {
+          "id": "P81-CLEAVING-SOURCE",
+          "title": "Cleaving typed policy and eligible target selection",
+          "proofTier": "REVIEW",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-08-31",
+          "evidence": {
+            "focused": ".codex/validation/rules-runtime-rebaseline/p81-optional-combat-source-fixes-focused.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/p81-optional-combat-source-review.md"
+          }
+        },
+        {
+          "id": "P81-CLEAVING-EXECUTION",
+          "title": "Cleaving excess damage, defense-aware split, and no rider carry",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "policy": ".codex/validation/rules-runtime-rebaseline/cleaving-policy-focused.log",
+            "chain": ".codex/validation/rules-runtime-rebaseline/cleaving-chain-focused.log",
+            "directAction": ".codex/validation/rules-runtime-rebaseline/cleaving-character-currentness-focused.log",
+            "characterAction": ".codex/validation/rules-runtime-rebaseline/cleaving-character-action-focused.log",
+            "schema": ".codex/validation/rules-runtime-rebaseline/cleaving-encounter-contract-focused.log",
+            "receipt": ".codex/validation/rules-runtime-rebaseline/cleaving-receipt-repository-focused.log",
+            "review": ".codex/validation/rules-runtime-rebaseline/p81-cleaving-execution-review.md",
+            "lifecycle": ".codex/validation/rules-runtime-rebaseline/phase81-final-lifecycle-20260901-resume-ledger/manifest.json"
+          }
+        },
 
-        { "id": "P81-PG-LIFECYCLE", "title": "Final PostgreSQL migration/reset/seed/audit lifecycle", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-PG-REPLAY", "title": "Final exact receipt and command replay schedules", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-PG-ROLLBACK", "title": "Final late-failure atomic rollback schedules", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-PG-CONCURRENCY", "title": "Final canonical-lock concurrency schedules", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-PG-PRIVACY", "title": "Final RLS, projection, hidden-evidence, and reconnect privacy schedules", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-PG-CLEANUP", "title": "Final exact fixture/event/lease/media cleanup", "proofTier": "DATABASE", "status": "NOT_STARTED" },
+        {
+          "id": "P81-PG-LIFECYCLE",
+          "title": "Final PostgreSQL migration/reset/seed/audit lifecycle",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "lifecycle": ".codex/validation/rules-runtime-rebaseline/phase81-final-lifecycle-20260901-resume-ledger/manifest.json"
+          }
+        },
+        {
+          "id": "P81-PG-REPLAY",
+          "title": "Final exact receipt and command replay schedules",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-replay-final.log"
+          }
+        },
+        {
+          "id": "P81-PG-ROLLBACK",
+          "title": "Final late-failure atomic rollback schedules",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-rollback-final.log"
+          }
+        },
+        {
+          "id": "P81-PG-CONCURRENCY",
+          "title": "Final canonical-lock concurrency schedules",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-PG-PRIVACY",
+          "title": "Final RLS, projection, hidden-evidence, and reconnect privacy schedules",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-privacy-final.log"
+          }
+        },
+        {
+          "id": "P81-PG-CLEANUP",
+          "title": "Final exact fixture/event/lease/media cleanup",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-cleanup-final.log"
+          }
+        },
 
-        { "id": "P81-MANAGED-RULE-LATENCY", "title": "Managed-host 250 ms rule-bound latency proof", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
-        { "id": "P81-MANAGED-SCENE-LATENCY", "title": "Managed-host Scene latency and delivery proof", "proofTier": "LOCAL_E2E", "status": "NOT_STARTED" },
+        {
+          "id": "P81-MANAGED-RULE-LATENCY",
+          "title": "Managed-host 250 ms rule-bound latency proof",
+          "proofTier": "LOCAL_E2E",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P81-MANAGED-SCENE-LATENCY",
+          "title": "Managed-host Scene latency and delivery proof",
+          "proofTier": "LOCAL_E2E",
+          "status": "NOT_STARTED"
+        },
 
-        { "id": "P81-RACE-ACTION-ADVANCE-ACTION-FIRST", "title": "Action versus turn advance: action wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-ACTION-ADVANCE-ADVANCE-FIRST", "title": "Action versus turn advance: advance wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-ACTION-MEMBER-ACTION-FIRST", "title": "Action versus membership revocation: action wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-ACTION-MEMBER-MEMBER-FIRST", "title": "Action versus membership revocation: revocation wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-ACTION-ASSIGNMENT-ACTION-FIRST", "title": "Action versus assignment change: action wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-ACTION-ASSIGNMENT-ASSIGNMENT-FIRST", "title": "Action versus assignment change: assignment wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-ACTION-LEASE-ACTION-FIRST", "title": "Action versus lease change: action wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-ACTION-LEASE-LEASE-FIRST", "title": "Action versus lease change: lease wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-DECISION-SUPERSEDE-RESOLVE-FIRST", "title": "Decision resolution versus supersession: resolution wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-DECISION-SUPERSEDE-SUPERSEDE-FIRST", "title": "Decision resolution versus supersession: supersession wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-MOVEMENT-REACTION-MOVE-FIRST", "title": "Movement versus reaction settlement: movement wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-MOVEMENT-REACTION-REACTION-FIRST", "title": "Movement versus reaction settlement: reaction wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-MOVEMENT-SCENE-MOVE-FIRST", "title": "Movement versus Scene version update: movement wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-MOVEMENT-SCENE-SCENE-FIRST", "title": "Movement versus Scene version update: Scene update wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-EFFECT-REMOVE-TICK-FIRST", "title": "Effect tick versus removal: tick wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-EFFECT-REMOVE-REMOVE-FIRST", "title": "Effect tick versus removal: removal wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-CONCENTRATION-CLEANUP-CHECK-FIRST", "title": "Concentration settlement versus cleanup: check wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-CONCENTRATION-CLEANUP-CLEANUP-FIRST", "title": "Concentration settlement versus cleanup: cleanup wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-INITIATIVE-REMOVE-SELECT-FIRST", "title": "Initiative selection versus actor removal: selection wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-INITIATIVE-REMOVE-REMOVE-FIRST", "title": "Initiative selection versus actor removal: removal wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-INITIATIVE-ALLEGIANCE-SELECT-FIRST", "title": "Initiative selection versus allegiance correction: selection wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-INITIATIVE-ALLEGIANCE-ALLEGIANCE-FIRST", "title": "Initiative selection versus allegiance correction: correction wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-OPTIONAL-DECISION-OVERRIDE-FIRST", "title": "Optional-rule override versus pending decision: override wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-OPTIONAL-DECISION-DECISION-FIRST", "title": "Optional-rule override versus pending decision: decision wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-LOADOUT-ACTION-REPLACE-FIRST", "title": "Creature loadout replacement versus action: replacement wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-LOADOUT-ACTION-ACTION-FIRST", "title": "Creature loadout replacement versus action: action wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-DUPLICATE-RETRY-FIRST", "title": "Duplicate command versus retry: original wins lock", "proofTier": "DATABASE", "status": "NOT_STARTED" },
-        { "id": "P81-RACE-DUPLICATE-DUPLICATE-FIRST", "title": "Duplicate command versus retry: duplicate reaches replay first", "proofTier": "DATABASE", "status": "NOT_STARTED" }
+        {
+          "id": "P81-RACE-ACTION-ADVANCE-ACTION-FIRST",
+          "title": "Action versus turn advance: action wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-ACTION-ADVANCE-ADVANCE-FIRST",
+          "title": "Action versus turn advance: advance wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-ACTION-MEMBER-ACTION-FIRST",
+          "title": "Action versus membership revocation: action wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-ACTION-MEMBER-MEMBER-FIRST",
+          "title": "Action versus membership revocation: revocation wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-ACTION-ASSIGNMENT-ACTION-FIRST",
+          "title": "Action versus assignment change: action wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-ACTION-ASSIGNMENT-ASSIGNMENT-FIRST",
+          "title": "Action versus assignment change: assignment wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-ACTION-LEASE-ACTION-FIRST",
+          "title": "Action versus lease change: action wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-ACTION-LEASE-LEASE-FIRST",
+          "title": "Action versus lease change: lease wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-DECISION-SUPERSEDE-RESOLVE-FIRST",
+          "title": "Decision resolution versus supersession: resolution wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-DECISION-SUPERSEDE-SUPERSEDE-FIRST",
+          "title": "Decision resolution versus supersession: supersession wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-MOVEMENT-REACTION-MOVE-FIRST",
+          "title": "Movement versus reaction settlement: movement wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-MOVEMENT-REACTION-REACTION-FIRST",
+          "title": "Movement versus reaction settlement: reaction wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-MOVEMENT-SCENE-MOVE-FIRST",
+          "title": "Movement versus Scene version update: movement wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-MOVEMENT-SCENE-SCENE-FIRST",
+          "title": "Movement versus Scene version update: Scene update wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-EFFECT-REMOVE-TICK-FIRST",
+          "title": "Effect tick versus removal: tick wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-EFFECT-REMOVE-REMOVE-FIRST",
+          "title": "Effect tick versus removal: removal wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-CONCENTRATION-CLEANUP-CHECK-FIRST",
+          "title": "Concentration settlement versus cleanup: check wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-CONCENTRATION-CLEANUP-CLEANUP-FIRST",
+          "title": "Concentration settlement versus cleanup: cleanup wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-INITIATIVE-REMOVE-SELECT-FIRST",
+          "title": "Initiative selection versus actor removal: selection wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-INITIATIVE-REMOVE-REMOVE-FIRST",
+          "title": "Initiative selection versus actor removal: removal wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-INITIATIVE-ALLEGIANCE-SELECT-FIRST",
+          "title": "Initiative selection versus allegiance correction: selection wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-INITIATIVE-ALLEGIANCE-ALLEGIANCE-FIRST",
+          "title": "Initiative selection versus allegiance correction: correction wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-OPTIONAL-DECISION-OVERRIDE-FIRST",
+          "title": "Optional-rule override versus pending decision: override wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-OPTIONAL-DECISION-DECISION-FIRST",
+          "title": "Optional-rule override versus pending decision: decision wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-LOADOUT-ACTION-REPLACE-FIRST",
+          "title": "Creature loadout replacement versus action: replacement wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-LOADOUT-ACTION-ACTION-FIRST",
+          "title": "Creature loadout replacement versus action: action wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-DUPLICATE-RETRY-FIRST",
+          "title": "Duplicate command versus retry: original wins lock",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        },
+        {
+          "id": "P81-RACE-DUPLICATE-DUPLICATE-FIRST",
+          "title": "Duplicate command versus retry: duplicate reaches replay first",
+          "proofTier": "DATABASE",
+          "status": "ACCEPTED",
+          "acceptedAt": "2026-09-01",
+          "evidence": {
+            "postgresProof": ".codex/validation/rules-runtime-rebaseline/phase81-postgres-concurrency-28-final.log"
+          }
+        }
       ]
     }
   ]

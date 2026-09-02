@@ -35,7 +35,9 @@ import { describe, expect, it } from 'vitest'
 
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '../source-data/srd/optionalCombat.js'
 import {
+  SRD_ACROBATICS_SKILL_ID,
   SRD_ABILITY_DEFINITION_IDS,
+  SRD_ATHLETICS_SKILL_ID,
   SRD_CONDITION_TYPES,
   SRD_SYSTEM_ID
 } from '../source-data/srd/vocabulary.js'
@@ -60,15 +62,42 @@ const expectedDefinitions = [
     kind: 'CLIMB_ONTO_LARGER_CREATURE',
     operationKey: DND5E_CLIMB_ONTO_LARGER_CREATURE_OPERATION_KEY
   },
-  { id: DND5E_DISARM_DEFINITION_ID, kind: 'DISARM', operationKey: DND5E_DISARM_OPERATION_KEY },
+  {
+    id: DND5E_DISARM_DEFINITION_ID,
+    kind: 'DISARM',
+    operationKey: DND5E_DISARM_OPERATION_KEY,
+    parameters: {
+      defenderCheckDefinitionIds: [SRD_ATHLETICS_SKILL_ID, SRD_ACROBATICS_SKILL_ID]
+    }
+  },
   { id: DND5E_MARK_DEFINITION_ID, kind: 'MARK', operationKey: DND5E_MARK_OPERATION_KEY },
-  { id: DND5E_OVERRUN_DEFINITION_ID, kind: 'OVERRUN', operationKey: DND5E_OVERRUN_OPERATION_KEY },
+  {
+    id: DND5E_OVERRUN_DEFINITION_ID,
+    kind: 'OVERRUN',
+    operationKey: DND5E_OVERRUN_OPERATION_KEY,
+    parameters: {
+      initiatorCheckDefinitionId: SRD_ATHLETICS_SKILL_ID,
+      targetCheckDefinitionId: SRD_ATHLETICS_SKILL_ID
+    }
+  },
   {
     id: DND5E_SHOVE_ASIDE_DEFINITION_ID,
     kind: 'SHOVE_ASIDE',
-    operationKey: DND5E_SHOVE_ASIDE_OPERATION_KEY
+    operationKey: DND5E_SHOVE_ASIDE_OPERATION_KEY,
+    parameters: {
+      initiatorCheckDefinitionId: SRD_ATHLETICS_SKILL_ID,
+      defenderCheckDefinitionIds: [SRD_ATHLETICS_SKILL_ID, SRD_ACROBATICS_SKILL_ID]
+    }
   },
-  { id: DND5E_TUMBLE_DEFINITION_ID, kind: 'TUMBLE', operationKey: DND5E_TUMBLE_OPERATION_KEY },
+  {
+    id: DND5E_TUMBLE_DEFINITION_ID,
+    kind: 'TUMBLE',
+    operationKey: DND5E_TUMBLE_OPERATION_KEY,
+    parameters: {
+      initiatorCheckDefinitionId: SRD_ACROBATICS_SKILL_ID,
+      targetCheckDefinitionId: SRD_ACROBATICS_SKILL_ID
+    }
+  },
   {
     id: DND5E_HITTING_COVER_DEFINITION_ID,
     kind: 'HITTING_COVER',

@@ -33,7 +33,13 @@ import {
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import { SRD_ABILITY_DEFINITION_IDS, SRD_CONDITION_TYPES, SRD_SYSTEM_ID } from './vocabulary.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_ACROBATICS_SKILL_ID,
+  SRD_ATHLETICS_SKILL_ID,
+  SRD_CONDITION_TYPES,
+  SRD_SYSTEM_ID
+} from './vocabulary.js'
 
 const optionalOutcome = <
   TKind extends
@@ -198,7 +204,10 @@ const disarmDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.pa
   id: DND5E_DISARM_DEFINITION_ID,
   gameSystemId: SRD_SYSTEM_ID,
   module: { policyModuleKey: DND5E_DISARM_OPERATION_KEY, contractVersion: 1 },
-  parameters: { kind: 'DISARM' },
+  parameters: {
+    kind: 'DISARM',
+    defenderCheckDefinitionIds: [SRD_ATHLETICS_SKILL_ID, SRD_ACROBATICS_SKILL_ID]
+  },
   mutuallyExclusiveGroup: null
 })
 
@@ -218,7 +227,11 @@ const overrunDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.p
   id: DND5E_OVERRUN_DEFINITION_ID,
   gameSystemId: SRD_SYSTEM_ID,
   module: { policyModuleKey: DND5E_OVERRUN_OPERATION_KEY, contractVersion: 1 },
-  parameters: { kind: 'OVERRUN' },
+  parameters: {
+    kind: 'OVERRUN',
+    initiatorCheckDefinitionId: SRD_ATHLETICS_SKILL_ID,
+    targetCheckDefinitionId: SRD_ATHLETICS_SKILL_ID
+  },
   mutuallyExclusiveGroup: null
 })
 
@@ -228,7 +241,11 @@ const shoveAsideDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchem
   id: DND5E_SHOVE_ASIDE_DEFINITION_ID,
   gameSystemId: SRD_SYSTEM_ID,
   module: { policyModuleKey: DND5E_SHOVE_ASIDE_OPERATION_KEY, contractVersion: 1 },
-  parameters: { kind: 'SHOVE_ASIDE' },
+  parameters: {
+    kind: 'SHOVE_ASIDE',
+    initiatorCheckDefinitionId: SRD_ATHLETICS_SKILL_ID,
+    defenderCheckDefinitionIds: [SRD_ATHLETICS_SKILL_ID, SRD_ACROBATICS_SKILL_ID]
+  },
   mutuallyExclusiveGroup: null
 })
 
@@ -238,7 +255,11 @@ const tumbleDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.pa
   id: DND5E_TUMBLE_DEFINITION_ID,
   gameSystemId: SRD_SYSTEM_ID,
   module: { policyModuleKey: DND5E_TUMBLE_OPERATION_KEY, contractVersion: 1 },
-  parameters: { kind: 'TUMBLE' },
+  parameters: {
+    kind: 'TUMBLE',
+    initiatorCheckDefinitionId: SRD_ACROBATICS_SKILL_ID,
+    targetCheckDefinitionId: SRD_ACROBATICS_SKILL_ID
+  },
   mutuallyExclusiveGroup: null
 })
 

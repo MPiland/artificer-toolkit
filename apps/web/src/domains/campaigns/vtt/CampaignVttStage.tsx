@@ -23,7 +23,7 @@ import {
   getCampaignEncounters,
   getPendingEncounterRuleOccurrence
 } from '#app/data/encounters/queries'
-import { getCharacterSheet } from '#app/data/characters/queries'
+import { getCharacterSheetActions } from '#app/data/characters/queries'
 import { api, type CampaignDetailDto, type CampaignSessionDto } from '#app/lib/api'
 import { queryKeys } from '#app/lib/queryKeys'
 import { CampaignChatDrawer } from '../components/CampaignChatDrawer'
@@ -67,7 +67,10 @@ export function CampaignVttStage({
   currentUserId: string
   session: CampaignSessionDto
 }) {
-  const encounters = useQuery(getCampaignEncounters(campaign.id))
+  const encounters = useQuery({
+    ...getCampaignEncounters(campaign.id),
+    refetchInterval: false
+  })
   const activeEncounter = encounters.data?.find(
     (encounter) => encounter.sessionId === session.id && encounter.status === 'ACTIVE'
   )
@@ -80,13 +83,14 @@ export function CampaignVttStage({
     (campaign.role === 'OWNER' || campaign.assignedCharacter?.id === currentActor.sourceId)
       ? currentActor.sourceId
       : null
-  const actionSheet = useQuery({
-    ...getCharacterSheet(actionCharacterId ?? 'unavailable'),
+  const actionChoices = useQuery({
+    ...getCharacterSheetActions(actionCharacterId ?? 'unavailable'),
     enabled: Boolean(actionCharacterId)
   })
   const pendingOccurrence = useQuery({
     ...getPendingEncounterRuleOccurrence(activeEncounter?.id ?? 'unavailable'),
-    enabled: Boolean(activeEncounter)
+    enabled: Boolean(activeEncounter),
+    refetchInterval: false
   })
   const renderer = useRef<VttSceneRenderer | null>(null)
   const rendererHost = useRef<HTMLDivElement | null>(null)
@@ -460,12 +464,17 @@ export function CampaignVttStage({
     const encounterBinding = live.state.encounterSceneBindings.find(
       (binding) => binding.encounterId === activeEncounter?.id && binding.sceneId === current.id
     )
-    const mechanicsEncounter = encounterBinding ? activeEncounter : null
+    const mechanicsEncounter =
+      encounterBinding && actorIdByTokenId.has(tokenId) ? activeEncounter : null
     if (campaign.role === 'PLAYER' && !mechanicsEncounter) return
+    const expectedEncounterVersion = mechanicsEncounter
+      ? live.getAggregateVersion('ENCOUNTER', mechanicsEncounter.id)
+      : null
+    if (mechanicsEncounter && expectedEncounterVersion === null) return
     dispatchRef.current({
       commandId: crypto.randomUUID(),
       correlationId: null,
-      expectedEncounterVersion: mechanicsEncounter?.version ?? null,
+      expectedEncounterVersion,
       expectedSceneVersion: current.version,
       movementKind: 'VOLUNTARY',
       path,
@@ -683,7 +692,7 @@ export function CampaignVttStage({
           ) : null}
           {actionCharacterId && activeEncounter ? (
             <CampaignTabletopActionDrawer
-              actions={actionSheet.data?.actions.items ?? []}
+              actions={actionChoices.data ?? []}
               connected={live.status === 'CONNECTED'}
               encounter={activeEncounter}
               pending={live.encounterCommandPending}

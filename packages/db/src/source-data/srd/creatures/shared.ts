@@ -196,6 +196,10 @@ export function proficiencyId(creatureIndex: number, localIndex: number) {
   return localId(7, creatureIndex, localIndex)
 }
 
+export function equipmentLoadoutId(creatureIndex: number, localIndex: number) {
+  return localId(8, creatureIndex, localIndex)
+}
+
 export function skillId(code: string) {
   const entry = SRD_SKILLS.find((skill) => skill.code === code)
   if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required.`)

@@ -5,6 +5,9 @@ import {
   gameSystemRuleCapabilityDtoSchema,
   type GameSystemRuleCapabilityDto
 } from '@artificer-toolkit/schema/api/rulesRuntime'
+import type { EncounterCreatureRuleFactsSnapshot } from '@artificer-toolkit/schema/api/encounterActorRules'
+import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
 import {
   createRulesRuntimeService,
@@ -23,6 +26,33 @@ import { dnd5eRulesRuntimeRegistration } from './systems/dnd5e/characterActionRu
  * selector. New Systems add one registration here.
  */
 const installedRuntimeModules = [dnd5eRulesRuntimeRegistration] as const
+
+export type InstalledCreatureRuleFactsCompiler = (input: {
+  creature: CreatureAuthored
+  vocabulary: SystemVocabularySnapshot
+}) => EncounterCreatureRuleFactsSnapshot
+
+/**
+ * Selects the installed System's compiler by immutable System identity. The
+ * Encounter service owns snapshot persistence, not System mechanics.
+ */
+export function compileInstalledCreatureRuleFacts(input: {
+  creature: CreatureAuthored
+  vocabulary: SystemVocabularySnapshot
+}): EncounterCreatureRuleFactsSnapshot {
+  if (input.creature.systemId !== input.vocabulary.systemId) {
+    throw new Error('Creature and System vocabulary identities do not match.')
+  }
+  const registration = installedRuntimeModules.find(
+    (module) => module.gameSystemId === input.vocabulary.systemId
+  )
+  if (!registration || !('compileCreatureRuleFacts' in registration)) {
+    throw new Error(
+      `No Creature rule-fact compiler is registered for Game System "${input.vocabulary.systemId}".`
+    )
+  }
+  return registration.compileCreatureRuleFacts(input)
+}
 
 export function requireInstalledGameSystemPolicyModule(input: {
   gameSystemId: string
@@ -93,13 +123,17 @@ export function createPlatformRulesRuntime(input: {
   })
 }
 
-export function createPlatformReusableDefinitionService(store: ReusableDefinitionStore) {
+export function createPlatformReusableDefinitionService(
+  store: ReusableDefinitionStore,
+  resolveSystemVocabulary?: (gameSystemId: string) => Promise<unknown>
+) {
   return createReusableDefinitionService({
     store,
     capabilities: installedRuntimeModules.flatMap((module) => module.capabilities),
     operations: [
       ...coreRuleOperations,
       ...installedRuntimeModules.flatMap((module) => module.operations)
-    ]
+    ],
+    resolveSystemVocabulary
   })
 }

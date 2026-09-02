@@ -26,6 +26,7 @@ const creatureDetailMeta = [
   'conditionTypes',
   'creatureTypes',
   'damageTypes',
+  'equipment',
   'speeds'
 ]
 const creatureCatalogueRequest = {

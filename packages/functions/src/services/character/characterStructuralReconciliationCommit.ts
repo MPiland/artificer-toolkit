@@ -32,6 +32,7 @@ import {
   compileCharacterMechanicsProjection
 } from './characterMechanicsCompiler.js'
 import { evaluateCharacterRulePolicy } from './characterRuleEvaluation.js'
+import { compileCharacterSpellCastEntryPoints } from '../rules/characterActionEntryPointCompiler.js'
 
 export type CharacterStructuralReconciliationResult =
   | {
@@ -283,6 +284,15 @@ export async function commitCharacterStructuralReconciliation(input: {
         senses: evaluation.output.senses
       }),
       compiledActionEntryPoints: evaluation.compiledActionEntryPoints,
+      compiledSpellActionEntryPoints: compileCharacterSpellCastEntryPoints({
+        gameSystemId: character.systemId,
+        candidates: evaluation.facts.spellCastCandidates,
+        decisions: evaluation.output.spellCastDecisions,
+        mechanics: evaluation.output.spellCastMechanics,
+        spellActionFacts: evaluation.facts.spellActionFacts,
+        spells: evaluation.spellsWithEffects,
+        authoredVersionVector: retainedSources.mechanics.authoredVersionVector
+      }),
       ruleRegistry: evaluation.registry,
       ruleSnapshot: evaluation.snapshot,
       authoredVersionVector: retainedSources.mechanics.authoredVersionVector

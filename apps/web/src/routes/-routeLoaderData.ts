@@ -62,7 +62,7 @@ export interface CreatureDetailLoaderData {
   draft: AuthoredDraftDto | null
   references: Pick<
     AuthoredContentReferenceData,
-    'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'speeds'
+    'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'equipment' | 'speeds'
   >
   response: CreatureResponseDto | null
   view: AuthoredRouteView

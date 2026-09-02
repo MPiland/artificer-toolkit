@@ -17,12 +17,16 @@ import {
   ruleValueDtoSchema
 } from '../api/rulesRuntime.js'
 import { postgresUuidSchema } from './postgresUuid.js'
+import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 import {
   stagedInitiativeRoundStateDtoSchema,
   type PausedInitiativeRoundStateDto as CanonicalStagedInitiativeRoundStateDto
 } from './initiativeState.js'
 import { AUTHORED_LIMITS, authoredIdentifierSchema } from './authoredLimits.js'
-import { encounterRuleOccurrenceSummaryDtoSchema } from './encounterRuleOccurrence.js'
+import {
+  encounterRuleOccurrenceSummaryDtoSchema,
+  initiativeDeclarationAdjudicationFieldDtoSchema
+} from './encounterRuleOccurrence.js'
 import {
   movementReactionChoiceOptionDtoSchema,
   movementReactionChoiceSelectionDtoSchema,
@@ -37,6 +41,7 @@ import {
   spatialMovementKindDtoSchema,
   spatialPointDtoSchema
 } from './spatialFacts.js'
+import { rangeDtoSchema, type RangeDto } from './range.js'
 
 /** Server-owned UUID identity. PostgreSQL UUID equality is case-insensitive, so command seams
  * canonicalize spelling before fingerprints, receipt lookup, or persistence. */
@@ -223,31 +228,97 @@ const activeEffectEndEventsSchema = z
   })
 
 /** Immutable provenance, compiled plan, and recurrence configuration for one active effect. */
-export const activeRuleEffectDefinitionDtoSchema = z
-  .strictObject({
-    schemaVersion: z.literal(1),
-    origin: activeEffectOriginDtoSchema,
-    authoredEffectId: uuidSchema,
-    compiledEntryId: uuidSchema,
-    frozenGraphNodeId: localNodeIdSchema,
-    frozenGraph: compiledRuleGraphDtoSchema,
-    adapterFacts: activeEffectFactsSchema,
-    perceptionContributions: combatPerceptionContributionsDtoSchema,
-    recurrence: z.strictObject({
-      recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
-      consumeOnFirstEvent: pathLifecycleConsumeEventSchema.nullable(),
-      endOnEvents: activeEffectEndEventsSchema,
-      lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
-      expiration: z.discriminatedUnion('kind', [
-        z.strictObject({ kind: z.literal('INDEFINITE') }),
-        z.strictObject({
-          kind: z.literal('TICKS'),
-          initialRemaining: z.number().int().min(1).max(10_000),
-          decrementStage: z.enum(['START_OF_TURN', 'END_OF_TURN'])
-        })
-      ])
-    })
+const activeRuleEffectDefinitionBaseDtoSchema = z.strictObject({
+  origin: activeEffectOriginDtoSchema,
+  authoredEffectId: uuidSchema,
+  compiledEntryId: uuidSchema,
+  frozenGraphNodeId: localNodeIdSchema,
+  frozenGraph: compiledRuleGraphDtoSchema,
+  adapterFacts: activeEffectFactsSchema,
+  perceptionContributions: combatPerceptionContributionsDtoSchema,
+  recurrence: z.strictObject({
+    recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
+    consumeOnFirstEvent: pathLifecycleConsumeEventSchema.nullable(),
+    endOnEvents: activeEffectEndEventsSchema,
+    lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
+    expiration: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('INDEFINITE') }),
+      z.strictObject({
+        kind: z.literal('TICKS'),
+        initialRemaining: z.number().int().min(1).max(10_000),
+        decrementStage: z.enum(['START_OF_TURN', 'END_OF_TURN'])
+      })
+    ])
   })
+})
+
+const activeRuleEffectStateContributionDtoSchema = z.strictObject({
+  kind: z.literal('HIT_POINT_MAXIMUM_REDUCTION'),
+  amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  sourceDamageOutcomeId: uuidSchema,
+  sourceDamageNodeId: z.string().trim().min(1).max(240),
+  sourceDamageOperationKey: z.string().trim().min(1).max(240),
+  recoveryTags: z.tuple([z.literal('RESTORE_HIT_POINT_MAXIMUM')])
+})
+const activeRuleEffectScalarReductionContributionDtoSchema = z.strictObject({
+  kind: z.literal('SCALAR_REDUCTION'),
+  valueDefinitionId: uuidSchema,
+  amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  stacking: z.literal('ADDITIVE'),
+  floor: z.literal(0),
+  recoveryTriggers: z
+    .array(z.enum(['SHORT_REST', 'LONG_REST']))
+    .min(1)
+    .max(2),
+  terminalConsequence: z.literal('TARGET_DIED'),
+  sourceOutcomeId: uuidSchema,
+  sourceNodeId: z.string().trim().min(1).max(240),
+  sourceOperationKey: z.string().trim().min(1).max(240)
+})
+const activeRuleEffectConditionContributionDtoSchema = z.strictObject({
+  kind: z.literal('CONDITION_OWNERSHIP'),
+  conditionId: uuidSchema,
+  baselinePresent: z.boolean()
+})
+const activeRuleEffectActorRelationshipContributionDtoSchema = z.strictObject({
+  kind: z.literal('ACTOR_RELATIONSHIP'),
+  relationshipOutcomeId: uuidSchema,
+  modules: z.array(actorRelationshipModuleDtoSchema).min(1).max(RULE_GRAPH_LIMITS.NODES),
+  conditionIds: z.array(uuidSchema).max(32),
+  capabilitySuppressions: z
+    .array(
+      z.strictObject({
+        contributionId: uuidSchema,
+        capabilityDefinitionIds: z.array(uuidSchema).min(1).max(32)
+      })
+    )
+    .max(32)
+})
+
+/**
+ * Version one is retained byte-faithfully for existing rows and receipts.
+ * Version two adds a bounded, immutable aggregate-state contribution list.
+ */
+export const activeRuleEffectDefinitionDtoSchema = z
+  .discriminatedUnion('schemaVersion', [
+    activeRuleEffectDefinitionBaseDtoSchema.extend({
+      schemaVersion: z.literal(1)
+    }),
+    activeRuleEffectDefinitionBaseDtoSchema.extend({
+      schemaVersion: z.literal(2),
+      stateContributions: z
+        .array(
+          z.discriminatedUnion('kind', [
+            activeRuleEffectStateContributionDtoSchema,
+            activeRuleEffectScalarReductionContributionDtoSchema,
+            activeRuleEffectConditionContributionDtoSchema,
+            activeRuleEffectActorRelationshipContributionDtoSchema
+          ])
+        )
+        .min(1)
+        .max(RULE_GRAPH_LIMITS.NODES)
+    })
+  ])
   .superRefine((definition, context) => {
     const sourceDefinitionId = definition.frozenGraph.source.definitionId
     if (definition.authoredEffectId !== sourceDefinitionId) {
@@ -378,6 +449,18 @@ export const serverRuleIntegerRangeRequestDtoSchema = z
   })
   .refine((request) => request.min <= request.max, 'Integer-range request bounds must be ordered.')
 
+const initiativeDeclarationOptionDtoSchema = z.strictObject({
+  kind: z.enum([
+    'CHARACTER_ACTION',
+    'CHARACTER_SPELL_CAST',
+    'CREATURE_FEATURE_ACTION',
+    'GM_ADJUDICATED'
+  ]),
+  optionId: z.string().trim().min(1).max(1_000),
+  label: z.string().trim().min(1).max(500),
+  selectionContract: checksumSchema
+})
+
 export const serverInitiativeDeclarationRequestDtoSchema = z
   .strictObject({
     requestId: z.string().min(1).max(256),
@@ -387,36 +470,11 @@ export const serverInitiativeDeclarationRequestDtoSchema = z
     actorId: uuidSchema,
     participantExpectedVersion: z.number().int().min(0),
     primaryOptions: z
-      .array(
-        z.strictObject({
-          kind: z.enum([
-            'CHARACTER_ACTION',
-            'CHARACTER_SPELL_CAST',
-            'CREATURE_FEATURE_ACTION',
-            'GM_ADJUDICATED'
-          ]),
-          optionId: z.string().trim().min(1).max(1_000),
-          label: z.string().trim().min(1).max(500),
-          selectionContract: checksumSchema
-        })
-      )
+      .array(initiativeDeclarationOptionDtoSchema)
       .min(1)
       .max(RULE_GRAPH_LIMITS.NODES),
-    bonusOptions: z
-      .array(
-        z.strictObject({
-          kind: z.enum([
-            'CHARACTER_ACTION',
-            'CHARACTER_SPELL_CAST',
-            'CREATURE_FEATURE_ACTION',
-            'GM_ADJUDICATED'
-          ]),
-          optionId: z.string().trim().min(1).max(1_000),
-          label: z.string().trim().min(1).max(500),
-          selectionContract: checksumSchema
-        })
-      )
-      .max(RULE_GRAPH_LIMITS.NODES),
+    bonusOptions: z.array(initiativeDeclarationOptionDtoSchema).max(RULE_GRAPH_LIMITS.NODES),
+    adjudicationFields: z.array(initiativeDeclarationAdjudicationFieldDtoSchema).max(3),
     controllerUserId: uuidSchema.nullable(),
     sourceOptionsChecksum: checksumSchema
   })
@@ -561,6 +619,16 @@ type TurnLegendaryActionRefreshDto = {
   afterUsed: number
 }
 
+type TurnActionEconomyRefreshDto = {
+  ordinal: number
+  actorId: string
+  capabilityDefinitionId: string
+  definitionVersion: number
+  definitionChecksum: string
+  beforeUsed: number
+  afterUsed: 0
+}
+
 const turnLegendaryActionRefreshDtoSchema: z.ZodType<TurnLegendaryActionRefreshDto> =
   z.strictObject({
     ordinal: z
@@ -578,6 +646,20 @@ const turnLegendaryActionRefreshDtoSchema: z.ZodType<TurnLegendaryActionRefreshD
     beforeUsed: z.number().int().positive(),
     afterUsed: z.literal(0)
   })
+
+const turnActionEconomyRefreshDtoSchema: z.ZodType<TurnActionEconomyRefreshDto> = z.strictObject({
+  ordinal: z
+    .number()
+    .int()
+    .min(0)
+    .max(RULE_GRAPH_LIMITS.NODES - 1),
+  actorId: uuidSchema,
+  capabilityDefinitionId: uuidSchema,
+  definitionVersion: z.number().int().positive(),
+  definitionChecksum: checksumSchema,
+  beforeUsed: z.number().int().positive(),
+  afterUsed: z.literal(0)
+})
 
 interface TurnLegendaryActionQueueDto {
   /** Frozen ordered owners; one decision opportunity is issued per owner at most. */
@@ -610,6 +692,8 @@ export interface TurnCoordinatorRootDto {
   completedLegendaryActions?: TurnLegendaryActionEvidenceDto[]
   /** Owner-start pool recoveries staged with the occurrence and persisted only at terminal commit. */
   stagedLegendaryActionRefreshes?: TurnLegendaryActionRefreshDto[]
+  /** System-owned aggregate usage refreshes staged at the authoritative turn boundary. */
+  stagedActionEconomyRefreshes?: TurnActionEconomyRefreshDto[]
   completedRechargePlan?: CompletedTurnRechargePlanDto | null
   proposedTerminalTransition: {
     status: 'ACTIVE' | 'COMPLETED'
@@ -737,6 +821,24 @@ const turnCoordinatorRootDtoSchema: z.ZodType<TurnCoordinatorRootDto> = z.strict
             code: z.ZodIssueCode.custom,
             path: [index],
             message: 'Legendary Action refreshes must be uniquely and deterministically ordered.'
+          })
+        }
+        identities.add(identity)
+      }
+    })
+    .optional(),
+  stagedActionEconomyRefreshes: z
+    .array(turnActionEconomyRefreshDtoSchema)
+    .max(RULE_GRAPH_LIMITS.NODES)
+    .superRefine((entries, context) => {
+      const identities = new Set<string>()
+      for (const [index, entry] of entries.entries()) {
+        const identity = `${entry.actorId}:${entry.capabilityDefinitionId}`
+        if (entry.ordinal !== index || identities.has(identity)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [index],
+            message: 'Action-economy refreshes must be uniquely and deterministically ordered.'
           })
         }
         identities.add(identity)
@@ -1286,6 +1388,138 @@ const spatialPendingCandidateDtoSchema = z
       })
   })
 
+const pendingD20FaceSchema = z.number().int().min(1).max(20)
+
+const movementPassageContestParticipantReceiptDtoSchema = z
+  .strictObject({
+    rollMode: z.enum(['ADVANTAGE', 'DISADVANTAGE', 'NORMAL']),
+    rawFaces: z.array(pendingD20FaceSchema).min(1).max(2),
+    selectedNatural: pendingD20FaceSchema,
+    modifier: z.number().int(),
+    total: z.number().int()
+  })
+  .superRefine((value, context) => {
+    const expectedFaces = value.rollMode === 'NORMAL' ? 1 : 2
+    const expectedNatural =
+      value.rollMode === 'ADVANTAGE'
+        ? Math.max(...value.rawFaces)
+        : value.rollMode === 'DISADVANTAGE'
+          ? Math.min(...value.rawFaces)
+          : value.rawFaces[0]
+    if (
+      value.rawFaces.length !== expectedFaces ||
+      value.selectedNatural !== expectedNatural ||
+      value.total !== value.selectedNatural + value.modifier
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Movement passage contest evidence must match its sealed d20 policy.'
+      })
+    }
+  })
+
+const movementPassageContestReceiptDtoSchema = z
+  .strictObject({
+    actionKind: z.enum(['OVERRUN', 'TUMBLE']),
+    optionId: checksumSchema,
+    outcome: z.enum(['SUCCESS', 'TIE_OR_FAILURE']),
+    initiator: movementPassageContestParticipantReceiptDtoSchema,
+    defender: movementPassageContestParticipantReceiptDtoSchema,
+    actionEconomy: z.strictObject({
+      definitionId: uuidSchema,
+      definitionVersion: z.number().int().positive(),
+      definitionChecksum: checksumSchema,
+      maximum: z.number().int().positive(),
+      beforeUsed: z.number().int().nonnegative(),
+      afterUsed: z.number().int().positive()
+    }),
+    audit: z.strictObject({
+      optionalCombat: z.strictObject({
+        definitionId: uuidSchema,
+        definitionVersion: z.number().int().positive(),
+        definitionChecksum: checksumSchema,
+        moduleKey: capabilityKeySchema,
+        moduleContractVersion: contractVersionSchema
+      }),
+      sourceActorId: uuidSchema,
+      sourceTokenId: uuidSchema,
+      blockerActorId: uuidSchema,
+      blockerTokenId: uuidSchema,
+      contact: spatialPointDtoSchema,
+      contactPathDistance: z.number().finite().nonnegative(),
+      blockerCurrentnessChecksum: checksumSchema,
+      selectionContractChecksum: checksumSchema,
+      resolvedSelectionChecksum: checksumSchema,
+      spatialSelectionChecksum: checksumSchema,
+      spatialCurrentnessChecksum: checksumSchema,
+      originalPath: z.array(spatialPointDtoSchema).min(2).max(MAX_SPATIAL_PATH_POINTS),
+      pathChecksum: checksumSchema,
+      terminalPassageStop: z
+        .strictObject({
+          blockerActorId: uuidSchema,
+          blockerTokenId: uuidSchema,
+          contact: spatialPointDtoSchema,
+          contactPathDistance: z.number().finite().nonnegative(),
+          blockerCurrentnessChecksum: checksumSchema
+        })
+        .optional(),
+      terminalPosition: spatialPointDtoSchema.optional()
+    })
+  })
+  .superRefine((value, context) => {
+    const success = value.initiator.total > value.defender.total
+    if (
+      value.actionEconomy.afterUsed !== value.actionEconomy.beforeUsed + 1 ||
+      value.actionEconomy.afterUsed > value.actionEconomy.maximum ||
+      (success ? value.outcome !== 'SUCCESS' : value.outcome !== 'TIE_OR_FAILURE')
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Movement passage settlement must match its contest and economy evidence.'
+      })
+    }
+    const auditedContact = spatialPathPointAtDistance(
+      value.audit.originalPath,
+      value.audit.contactPathDistance
+    )
+    if (
+      checksumRuleDocument(value.audit.originalPath) !== value.audit.pathChecksum ||
+      auditedContact === null ||
+      !spatialPointEquals(auditedContact, value.audit.contact)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['audit', 'originalPath'],
+        message: 'Movement passage audit contacts must bind the authoritative root path.'
+      })
+    }
+    const terminalPassageStop = value.audit.terminalPassageStop
+    const terminalPosition = value.audit.terminalPosition
+    const auditedTerminalContact = terminalPassageStop
+      ? spatialPathPointAtDistance(
+          value.audit.originalPath,
+          terminalPassageStop.contactPathDistance
+        )
+      : null
+    if (
+      (terminalPassageStop === undefined) !== (terminalPosition === undefined) ||
+      (terminalPassageStop !== undefined &&
+        (value.outcome !== 'SUCCESS' ||
+          terminalPassageStop.contactPathDistance <= value.audit.contactPathDistance + 1e-8 ||
+          auditedTerminalContact === null ||
+          !spatialPointEquals(auditedTerminalContact, terminalPassageStop.contact) ||
+          terminalPosition === undefined ||
+          !spatialPointEquals(terminalPosition, terminalPassageStop.contact)))
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['audit', 'terminalPassageStop'],
+        message:
+          'A terminal passage stop must follow a successful path-bound contact and match the terminal position.'
+      })
+    }
+  })
+
 export const spatialResolutionCommandDtoSchema = z.strictObject({
   commandId: uuidSchema,
   commandFingerprint: checksumSchema,
@@ -1293,7 +1527,8 @@ export const spatialResolutionCommandDtoSchema = z.strictObject({
   correlationId: uuidSchema.nullable(),
   expectedOccurrenceVersion: spatialAggregateVersionSchema,
   requestId: z.string().min(1).max(256),
-  kind: z.enum(['ENTER_DICE', 'SYSTEM_ROLL'])
+  kind: z.enum(['ENTER_DICE', 'SYSTEM_ROLL']),
+  passageContest: movementPassageContestReceiptDtoSchema.optional()
 })
 
 const movementResolutionCommandBaseShape = {
@@ -1315,6 +1550,20 @@ export const movementReactionResolutionCommandDtoSchema = z.discriminatedUnion('
   })
 ])
 
+/** A sealed response to the one movement-passage choice at an occupied contact. */
+export const movementPassageResolutionCommandDtoSchema = z.discriminatedUnion('kind', [
+  z.strictObject({
+    ...movementResolutionCommandBaseShape,
+    kind: z.literal('PASSAGE_DECLINE')
+  }),
+  z.strictObject({
+    ...movementResolutionCommandBaseShape,
+    kind: z.literal('PASSAGE_OPTION'),
+    optionId: checksumSchema,
+    passageContest: movementPassageContestReceiptDtoSchema.optional()
+  })
+])
+
 /**
  * One canonical version history for the complete movement occurrence. Spatial
  * evidence and reaction choices advance the same aggregate-owned occurrence;
@@ -1322,7 +1571,8 @@ export const movementReactionResolutionCommandDtoSchema = z.discriminatedUnion('
  */
 export const movementRuleResolutionCommandDtoSchema = z.union([
   spatialResolutionCommandDtoSchema,
-  movementReactionResolutionCommandDtoSchema
+  movementReactionResolutionCommandDtoSchema,
+  movementPassageResolutionCommandDtoSchema
 ])
 
 function validateCanonicalSpatialResolutionHistory(
@@ -1331,6 +1581,8 @@ function validateCanonicalSpatialResolutionHistory(
   path: readonly (string | number)[]
 ) {
   const commandIds = new Set<string>()
+  let passageOptionId: string | null = null
+  let passageContestRecorded = false
   for (const [index, command] of commands.entries()) {
     if (commandIds.has(command.commandId))
       context.addIssue({
@@ -1339,6 +1591,23 @@ function validateCanonicalSpatialResolutionHistory(
         message: 'Movement resolution command IDs must be unique.'
       })
     commandIds.add(command.commandId)
+    if (command.kind === 'PASSAGE_OPTION') passageOptionId = command.optionId
+    const passageContest = 'passageContest' in command ? command.passageContest : undefined
+    if (passageContest) {
+      if (
+        passageContestRecorded ||
+        passageOptionId === null ||
+        passageContest.optionId !== passageOptionId ||
+        (command.kind === 'PASSAGE_OPTION' && command.optionId !== passageContest.optionId)
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [...path, index, 'passageContest'],
+          message: 'Movement passage contest evidence must bind one prior issued option.'
+        })
+      }
+      passageContestRecorded = true
+    }
     if (command.expectedOccurrenceVersion !== index)
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -1389,6 +1658,14 @@ const compareSpatialPendingCandidates = (
   return keys.find((value) => value !== 0) ?? 0
 }
 
+const movementPassageStopDtoSchema = z.strictObject({
+  blockerActorId: uuidSchema,
+  blockerTokenId: uuidSchema,
+  contact: spatialPointDtoSchema,
+  pathDistance: z.number().finite().nonnegative(),
+  blockerCurrentnessChecksum: checksumSchema
+})
+
 const spatialMovementPendingRootDtoSchema = z.strictObject({
   commandId: uuidSchema,
   commandFingerprint: checksumSchema,
@@ -1406,6 +1683,7 @@ const spatialMovementPendingRootDtoSchema = z.strictObject({
   pathChecksum: checksumSchema,
   pathStartDistance: z.number().finite().nonnegative(),
   currentPosition: spatialPointDtoSchema,
+  terminalPassageStop: movementPassageStopDtoSchema.nullable().optional(),
   resolutionCommands: z.array(movementRuleResolutionCommandDtoSchema).max(MAX_SPATIAL_CANDIDATES)
 })
 
@@ -1444,6 +1722,22 @@ function validateSpatialMovementPendingRoot(
       message:
         'Spatial movement current position must be the authoritative path position at pathStartDistance.'
     })
+  if (root.terminalPassageStop) {
+    const stop = spatialPathPointAtDistance(
+      root.originalPath,
+      root.terminalPassageStop.pathDistance
+    )
+    if (
+      root.terminalPassageStop.pathDistance + 1e-8 < root.pathStartDistance ||
+      stop === null ||
+      !spatialPointEquals(stop, root.terminalPassageStop.contact)
+    )
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [...path, 'terminalPassageStop'],
+        message: 'A terminal passage stop must be at or after the committed path contact.'
+      })
+  }
 }
 
 const spatialPendingContextDtoSchema = z
@@ -2285,6 +2579,10 @@ const encounterInitiativePendingContextDtoSchema = z
         .array(turnLegendaryActionRefreshDtoSchema)
         .max(RULE_GRAPH_LIMITS.NODES)
         .optional(),
+      stagedActionEconomyRefreshes: z
+        .array(turnActionEconomyRefreshDtoSchema)
+        .max(RULE_GRAPH_LIMITS.NODES)
+        .optional(),
       completedRechargePlan: z
         .lazy(() => completedTurnRechargePlanDtoSchema)
         .nullable()
@@ -2300,13 +2598,12 @@ const encounterInitiativePendingContextDtoSchema = z
         actorId: uuidSchema,
         participantVersion: z.number().int().min(0),
         requestId: z.string().trim().min(1).max(256),
-        allowedPrimaryOptionIds: z
-          .array(z.string().trim().min(1).max(1_000))
+        primaryOptions: z
+          .array(initiativeDeclarationOptionDtoSchema)
           .min(1)
           .max(RULE_GRAPH_LIMITS.NODES),
-        allowedBonusOptionIds: z
-          .array(z.string().trim().min(1).max(1_000))
-          .max(RULE_GRAPH_LIMITS.NODES)
+        bonusOptions: z.array(initiativeDeclarationOptionDtoSchema).max(RULE_GRAPH_LIMITS.NODES),
+        adjudicationFields: z.array(initiativeDeclarationAdjudicationFieldDtoSchema).max(3)
       }),
       z.strictObject({
         kind: z.literal('PRIMARY_SCORE'),
@@ -2369,8 +2666,6 @@ const encounterInitiativePendingContextDtoSchema = z
       })
   })
 
-const pendingD20FaceSchema = z.number().int().min(1).max(20)
-
 /** Server-only interstitial control evidence retained when a failed TEST uses Legendary Resistance. */
 const directActionLegendaryResistanceOutcomeAuditDtoSchema = z.strictObject({
   choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
@@ -2398,91 +2693,540 @@ const directActionLegendaryResistanceOutcomeAuditDtoSchema = z.strictObject({
 })
 
 /** Server-sealed direct-action phase identity. Legacy pending actions retain null. */
-const directActionTwoPhaseDtoSchema = z.discriminatedUnion('phase', [
+const directActionTwoPhaseDtoSchema = z
+  .discriminatedUnion('phase', [
+    z.strictObject({
+      phase: z.literal('TEST'),
+      compilerSourceChecksum: checksumSchema,
+      testTemplateChecksum: checksumSchema,
+      boundFactsChecksum: checksumSchema
+    }),
+    z.strictObject({
+      phase: z.literal('OUTCOME'),
+      compilerSourceChecksum: checksumSchema,
+      testTemplateChecksum: checksumSchema,
+      outcomeTemplateChecksum: checksumSchema,
+      boundFactsChecksum: checksumSchema,
+      testExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+      testExecutionChecksum: checksumSchema,
+      /**
+       * The one exact nested save request allowed inside a direct-action OUTCOME.
+       * Dice evidence remains ungoverned by this d20 policy.
+       */
+      nestedOutcomeD20: z
+        .lazy(() => serverRuleExecutionD20PolicyDtoSchema)
+        .nullable()
+        .default(null),
+      /** Server-sealed evidence for the nested OUTCOME d20, retained through terminal replay. */
+      nestedOutcomeD20Evidence: z
+        .lazy(() => serverRuleExecutionNestedD20EvidenceDtoSchema)
+        .nullable()
+        .default(null),
+      /** Null unless an interstitial Legendary Resistance choice preceded this OUTCOME. */
+      legendaryResistance: directActionLegendaryResistanceOutcomeAuditDtoSchema
+        .nullable()
+        .default(null),
+      /** Server-sealed d20 evidence from the completed TEST phase. */
+      testRollEvidence: z
+        .strictObject({
+          requestId: z.string().min(1).max(256),
+          rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+          rawFaces: z.array(pendingD20FaceSchema).min(1).max(2),
+          selectedNatural: pendingD20FaceSchema
+        })
+        .superRefine((value, context) => {
+          const expectedFaces = value.rollMode === 'NORMAL' ? 1 : 2
+          const expectedSelected =
+            value.rollMode === 'ADVANTAGE'
+              ? Math.max(...value.rawFaces)
+              : value.rollMode === 'DISADVANTAGE'
+                ? Math.min(...value.rawFaces)
+                : value.rawFaces[0]
+          if (value.rawFaces.length !== expectedFaces || value.selectedNatural !== expectedSelected)
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'TEST roll evidence does not match its pinned roll mode.'
+            })
+        })
+    })
+  ])
+  .superRefine((value, context) => {
+    if (value.phase !== 'OUTCOME') return
+    const policy = value.nestedOutcomeD20
+    const evidence = value.nestedOutcomeD20Evidence
+    if (policy === null && evidence !== null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['nestedOutcomeD20Evidence'],
+        message: 'Nested OUTCOME d20 evidence requires a sealed policy.'
+      })
+      return
+    }
+    if (
+      policy !== null &&
+      evidence !== null &&
+      (evidence.requestNodeId !== policy.requestNodeId ||
+        evidence.rollMode !== policy.rollMode ||
+        evidence.contributorChecksum !== policy.contributorChecksum ||
+        evidence.modifier !== policy.modifier ||
+        evidence.defenseOrDc !== policy.dc)
+    )
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['nestedOutcomeD20Evidence'],
+        message: 'Nested OUTCOME d20 evidence does not match its sealed policy.'
+      })
+  })
+
+/**
+ * Immutable pending evidence context for an optional-combat contested action.
+ * It retains identities and currentness pins only; the executable contest graph
+ * is re-created from its sealed System policy pin when the request resumes.
+ */
+const optionalCombatContestD20ContributorDtoSchema = z.strictObject({
+  sourceId: z.string().trim().min(1).max(240),
+  grantId: z.string().trim().min(1).max(240).nullable(),
+  domainKey: z.string().trim().min(1).max(240).nullable(),
+  influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
+})
+
+const optionalCombatContestD20PolicyDtoSchema = z
+  .strictObject({
+    actorId: uuidSchema,
+    requestNodeId: localNodeIdSchema,
+    rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+    contributors: z
+      .array(optionalCombatContestD20ContributorDtoSchema)
+      .max(RULE_GRAPH_LIMITS.NODES),
+    contributorChecksum: checksumSchema,
+    modifier: z.number().int()
+  })
+  .superRefine((value, context) => {
+    if (
+      value.contributors.some(
+        (contributor, index) =>
+          index > 0 &&
+          compareCanonicalD20Contributors(value.contributors[index - 1]!, contributor) >= 0
+      )
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contributors'],
+        message: 'Optional-combat contest contributors must be strictly sorted and unique.'
+      })
+    }
+    if (checksumRuleDocument(value.contributors) !== value.contributorChecksum) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contributorChecksum'],
+        message: 'Optional-combat contest contributor checksum is invalid.'
+      })
+    }
+  })
+
+const optionalCombatContestActionEconomyReceiptDtoSchema = z
+  .strictObject({
+    definitionId: uuidSchema,
+    definitionVersion: z.number().int().positive(),
+    definitionChecksum: checksumSchema,
+    maximum: z.number().int().positive(),
+    beforeUsed: z.number().int().nonnegative()
+  })
+  .nullable()
+
+const optionalCombatContestRollEvidenceDtoSchema = z
+  .strictObject({
+    requestId: z.string().trim().min(1).max(256),
+    rawFaces: z.array(pendingD20FaceSchema).min(1).max(2)
+  })
+  .nullable()
+
+/**
+ * Frozen movement suffix retained while a selected Overrun or Tumble contest
+ * awaits evidence. It is factual continuation state, never executable graph
+ * data; the application resumes the existing spatial/reaction pipeline from it.
+ */
+const optionalCombatPassageContinuationDtoSchema = z
+  .strictObject({
+    root: spatialMovementPendingRootDtoSchema,
+    blockerActorId: uuidSchema,
+    blockerTokenId: uuidSchema,
+    contact: spatialPointDtoSchema,
+    contactPathDistance: z.number().finite().nonnegative(),
+    blockerCurrentnessChecksum: checksumSchema,
+    nextPassageStop: movementPassageStopDtoSchema.nullable().optional(),
+    spatialSelectionChecksum: checksumSchema,
+    spatialCurrentnessChecksum: checksumSchema,
+    completedSpatialExecutions: z
+      .array(z.lazy(() => spatialMovementExecutionDtoSchema))
+      .max(MAX_SPATIAL_CANDIDATES),
+    appliedSpatialPrefix: z.lazy(() => storedRuleExecutionResultDtoSchema).nullable(),
+    completedReactionExecutions: z
+      .array(movementReactionActionExecutionDtoSchema)
+      .max(RULE_GRAPH_LIMITS.NODES)
+      .default([]),
+    remainingSpatialCandidates: z
+      .array(spatialPendingCandidateDtoSchema)
+      .max(MAX_SPATIAL_CANDIDATES),
+    reactionTimeline: movementReactionTimelineDtoSchema
+  })
+  .superRefine((value, context) => {
+    validateSpatialMovementPendingRoot(value.root, context, ['root'])
+    if (Math.abs(value.root.pathStartDistance - value.contactPathDistance) > 1e-8) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contactPathDistance'],
+        message: 'Passage continuation must begin at its sealed contact distance.'
+      })
+    }
+    if (!spatialPointEquals(value.root.currentPosition, value.contact)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contact'],
+        message: 'Passage continuation contact must match the committed movement position.'
+      })
+    }
+    if (value.nextPassageStop) {
+      const stop = spatialPathPointAtDistance(
+        value.root.originalPath,
+        value.nextPassageStop.pathDistance
+      )
+      if (
+        value.nextPassageStop.pathDistance <= value.contactPathDistance + 1e-8 ||
+        stop === null ||
+        !spatialPointEquals(stop, value.nextPassageStop.contact)
+      )
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['nextPassageStop'],
+          message: 'A remaining hostile passage stop must retain canonical path order.'
+        })
+    }
+  })
+
+const optionalCombatPassageSelectionDtoSchema = z.discriminatedUnion('kind', [
   z.strictObject({
-    phase: z.literal('TEST'),
-    compilerSourceChecksum: checksumSchema,
-    testTemplateChecksum: checksumSchema,
-    boundFactsChecksum: checksumSchema
+    kind: z.literal('OVERRUN'),
+    economy: z.enum(['ACTION', 'BONUS_ACTION']),
+    defenderCheckDefinitionId: uuidSchema
   }),
   z.strictObject({
-    phase: z.literal('OUTCOME'),
-    compilerSourceChecksum: checksumSchema,
-    testTemplateChecksum: checksumSchema,
-    outcomeTemplateChecksum: checksumSchema,
-    boundFactsChecksum: checksumSchema,
-    testExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-    testExecutionChecksum: checksumSchema,
-    /** Null unless an interstitial Legendary Resistance choice preceded this OUTCOME. */
-    legendaryResistance: directActionLegendaryResistanceOutcomeAuditDtoSchema
-      .nullable()
-      .default(null),
-    /** Server-sealed d20 evidence from the completed TEST phase. */
-    testRollEvidence: z
-      .strictObject({
-        requestId: z.string().min(1).max(256),
-        rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-        rawFaces: z.array(pendingD20FaceSchema).min(1).max(2),
-        selectedNatural: pendingD20FaceSchema
-      })
-      .superRefine((value, context) => {
-        const expectedFaces = value.rollMode === 'NORMAL' ? 1 : 2
-        const expectedSelected =
-          value.rollMode === 'ADVANTAGE'
-            ? Math.max(...value.rawFaces)
-            : value.rollMode === 'DISADVANTAGE'
-              ? Math.min(...value.rawFaces)
-              : value.rawFaces[0]
-        if (value.rawFaces.length !== expectedFaces || value.selectedNatural !== expectedSelected)
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: 'TEST roll evidence does not match its pinned roll mode.'
-          })
-      })
+    kind: z.literal('TUMBLE'),
+    economy: z.enum(['ACTION', 'BONUS_ACTION']),
+    defenderCheckDefinitionId: uuidSchema
+  }),
+  z.strictObject({
+    kind: z.literal('DISARM'),
+    heldItemId: uuidSchema,
+    defenderCheckDefinitionId: uuidSchema,
+    heldItemStateChecksum: checksumSchema
+  }),
+  z.strictObject({
+    kind: z.literal('SHOVE_ASIDE'),
+    defenderCheckDefinitionId: uuidSchema,
+    destination: z.strictObject({ x: z.number().finite(), y: z.number().finite() }),
+    displacement: z.strictObject({
+      amount: z.literal(5),
+      unit: z.literal('FEET'),
+      sceneUnits: z.number().finite().positive()
+    }),
+    sceneId: uuidSchema,
+    sceneVersion: z.number().int().nonnegative(),
+    targetTokenId: uuidSchema,
+    stateChecksum: checksumSchema
   })
 ])
 
-export const serverRuleExecutionPendingApplicationContextDtoSchema = z
-  .discriminatedUnion('kind', [
-    z.strictObject({ kind: z.literal('NONE') }),
-    turnEffectPendingContextDtoSchema,
-    turnRechargePendingContextDtoSchema,
-    spatialPendingContextDtoSchema,
-    movementReactionPendingContextDtoSchema,
-    legendaryActionEvidencePendingContextDtoSchema,
-    encounterInitiativePendingContextDtoSchema,
-    z.strictObject({
-      kind: z.literal('ENCOUNTER_CHARACTER_RULE_ACTION'),
-      schemaVersion: z.literal(1),
-      actionId: z.string().trim().min(1).max(240),
-      /** Exact frozen Scene dependency when this action was positional. */
-      sceneContext: z
-        .strictObject({
-          sceneId: uuidSchema,
-          sceneVersion: z.number().int().nonnegative(),
-          sourceTokenId: uuidSchema,
-          targetTokenId: uuidSchema
+export const serverOptionalCombatContestPendingContextDtoSchema = z
+  .strictObject({
+    kind: z.literal('ENCOUNTER_OPTIONAL_COMBAT_CONTEST'),
+    schemaVersion: z.literal(1),
+    actionKind: z.enum(['DISARM', 'SHOVE_ASIDE', 'OVERRUN', 'TUMBLE']),
+    actionId: z.string().trim().min(1).max(240),
+    sourceActorId: uuidSchema,
+    targetActorId: uuidSchema,
+    /** Sealed controller identity for the initiator evidence request. */
+    initiatorControllerCharacterId: uuidSchema.nullable(),
+    sceneContext: z
+      .strictObject({
+        sceneId: uuidSchema,
+        sceneVersion: z.number().int().nonnegative(),
+        sourceTokenId: uuidSchema,
+        targetTokenId: uuidSchema
+      })
+      .nullable(),
+    positionalDependencyChecksum: checksumSchema.nullable(),
+    optionalCombat: z.strictObject({
+      snapshotChecksum: checksumSchema,
+      definitionId: uuidSchema,
+      definitionVersion: z.number().int().positive(),
+      definitionChecksum: checksumSchema,
+      moduleKey: capabilityKeySchema,
+      moduleContractVersion: contractVersionSchema
+    }),
+    contestGraph: z.strictObject({
+      definitionId: uuidSchema,
+      checksum: checksumSchema,
+      identityChecksum: checksumSchema
+    }),
+    optionId: checksumSchema,
+    selectionContractChecksum: checksumSchema,
+    resolvedSelectionChecksum: checksumSchema,
+    source: z.discriminatedUnion('kind', [
+      z.strictObject({
+        kind: z.literal('CHARACTER_ACTION'),
+        characterId: uuidSchema,
+        streamVersion: z.number().int().nonnegative(),
+        projectionChecksum: checksumSchema,
+        mechanicalContextChecksum: checksumSchema,
+        publishedDefinitionId: uuidSchema,
+        publishedDefinitionChecksum: checksumSchema
+      }),
+      z.strictObject({
+        kind: z.literal('ENCOUNTER_FEATURE'),
+        creatureSourceId: uuidSchema,
+        sourceRevision: z.number().int().positive(),
+        sourceVersionId: uuidSchema,
+        sourceChecksum: checksumSchema,
+        ownerFeatureId: uuidSchema,
+        featureOptionId: uuidSchema.nullable(),
+        effectId: uuidSchema,
+        authoredEffectChecksum: checksumSchema,
+        compiledEffectChecksum: checksumSchema,
+        publishedDefinitionId: uuidSchema,
+        publishedDefinitionChecksum: checksumSchema
+      }),
+      z.strictObject({
+        kind: z.literal('OPTIONAL_COMBAT_DEFINITION'),
+        definitionId: uuidSchema,
+        definitionVersion: z.number().int().positive(),
+        definitionChecksum: checksumSchema,
+        moduleKey: capabilityKeySchema,
+        moduleContractVersion: contractVersionSchema
+      })
+    ]),
+    target: z.discriminatedUnion('kind', [
+      z.strictObject({
+        kind: z.literal('CHARACTER'),
+        characterId: uuidSchema,
+        streamVersion: z.number().int().nonnegative(),
+        projectionChecksum: checksumSchema,
+        mechanicalContextChecksum: checksumSchema,
+        stateChecksum: checksumSchema
+      }),
+      z.strictObject({ kind: z.literal('ENCOUNTER_ACTOR'), currentnessChecksum: checksumSchema })
+    ]),
+    initiator: optionalCombatContestD20PolicyDtoSchema,
+    defender: optionalCombatContestD20PolicyDtoSchema.extend({ checkDefinitionId: uuidSchema }),
+    rollEvidence: z
+      .strictObject({
+        initiator: optionalCombatContestRollEvidenceDtoSchema.default(null),
+        defender: optionalCombatContestRollEvidenceDtoSchema.default(null)
+      })
+      .default({ initiator: null, defender: null }),
+    selection: optionalCombatPassageSelectionDtoSchema,
+    actionEconomy: optionalCombatContestActionEconomyReceiptDtoSchema,
+    movementContinuation: optionalCombatPassageContinuationDtoSchema.nullable().optional()
+  })
+  .superRefine((value, context) => {
+    if (value.sourceActorId === value.targetActorId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['targetActorId'],
+        message: 'Optional-combat contest participants must be distinct.'
+      })
+    }
+    if (
+      value.initiator.actorId !== value.sourceActorId ||
+      value.defender.actorId !== value.targetActorId
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['initiator', 'actorId'],
+        message: 'Optional-combat contest policy participants must match the selected actors.'
+      })
+    }
+    if (value.defender.checkDefinitionId !== value.selection.defenderCheckDefinitionId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['selection'],
+        message: 'Optional-combat contest selection does not match its sealed defender check.'
+      })
+    }
+    if (
+      (value.actionKind === 'DISARM' && value.selection.kind !== 'DISARM') ||
+      (value.actionKind === 'SHOVE_ASIDE' && value.selection.kind !== 'SHOVE_ASIDE') ||
+      (value.actionKind === 'OVERRUN' && value.selection.kind !== 'OVERRUN') ||
+      (value.actionKind === 'TUMBLE' && value.selection.kind !== 'TUMBLE')
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['selection'],
+        message: 'Optional-combat contest action and selection kinds must match.'
+      })
+    }
+    const passageAction = value.actionKind === 'OVERRUN' || value.actionKind === 'TUMBLE'
+    if (
+      passageAction !==
+      (value.movementContinuation !== null && value.movementContinuation !== undefined)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['movementContinuation'],
+        message: 'Only passage contests retain a frozen movement continuation.'
+      })
+    }
+    const requireRollEvidence = (
+      evidence: z.infer<typeof optionalCombatContestRollEvidenceDtoSchema>,
+      policy: z.infer<typeof optionalCombatContestD20PolicyDtoSchema>,
+      path: 'initiator' | 'defender'
+    ) => {
+      if (evidence === null) return
+      const expectedFaces = policy.rollMode === 'NORMAL' ? 1 : 2
+      if (evidence.rawFaces.length !== expectedFaces) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['rollEvidence', path, 'rawFaces'],
+          message: 'Optional-combat contest evidence does not match its sealed roll mode.'
         })
-        .nullable()
-        .optional()
-        .default(null),
-      /** Server-derived bounded positional currentness for a paused action. */
-      positionalDependencyChecksum: checksumSchema.nullable().optional().default(null),
-      sourceActorId: uuidSchema,
-      targetActorId: uuidSchema,
-      sourceCharacterId: uuidSchema,
-      targetCharacterId: uuidSchema,
-      sourceCharacterStreamVersion: z.number().int().min(0),
-      targetCharacterStreamVersion: z.number().int().min(0),
-      sourceProjectionChecksum: checksumSchema,
-      targetProjectionChecksum: checksumSchema,
-      sourceMechanicalContextChecksum: checksumSchema,
-      targetMechanicalContextChecksum: checksumSchema,
-      publishedDefinitionId: uuidSchema,
-      publishedDefinitionChecksum: checksumSchema,
-      /** Sealed TEST/OUTCOME identity for a v3 Character action; legacy actions retain null. */
-      twoPhase: directActionTwoPhaseDtoSchema.nullable().optional().default(null),
-      targetStateChecksum: checksumSchema,
+      }
+      if (evidence.requestId.length === 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['rollEvidence', path, 'requestId'],
+          message: 'Optional-combat contest evidence request is invalid.'
+        })
+      }
+    }
+    requireRollEvidence(value.rollEvidence.initiator, value.initiator, 'initiator')
+    requireRollEvidence(value.rollEvidence.defender, value.defender, 'defender')
+    if (value.rollEvidence.defender !== null && value.rollEvidence.initiator === null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['rollEvidence', 'defender'],
+        message: 'Optional-combat contest defender evidence requires initiator evidence.'
+      })
+    }
+  })
+
+const encounterCharacterRuleActionPendingContextDtoSchema = z.strictObject({
+  kind: z.literal('ENCOUNTER_CHARACTER_RULE_ACTION'),
+  schemaVersion: z.literal(1),
+  actionId: z.string().trim().min(1).max(240),
+  /** Exact frozen Scene dependency when this action was positional. */
+  sceneContext: z
+    .strictObject({
+      sceneId: uuidSchema,
+      sceneVersion: z.number().int().nonnegative(),
+      sourceTokenId: uuidSchema,
+      targetTokenId: uuidSchema
+    })
+    .nullable()
+    .optional()
+    .default(null),
+  /** Server-derived bounded positional currentness for a paused action. */
+  positionalDependencyChecksum: checksumSchema.nullable().optional().default(null),
+  sourceActorId: uuidSchema,
+  targetActorId: uuidSchema,
+  sourceCharacterId: uuidSchema,
+  targetCharacterId: uuidSchema,
+  sourceCharacterStreamVersion: z.number().int().min(0),
+  targetCharacterStreamVersion: z.number().int().min(0),
+  sourceProjectionChecksum: checksumSchema,
+  targetProjectionChecksum: checksumSchema,
+  sourceMechanicalContextChecksum: checksumSchema,
+  targetMechanicalContextChecksum: checksumSchema,
+  publishedDefinitionId: uuidSchema,
+  publishedDefinitionChecksum: checksumSchema,
+  /**
+   * Exact authored attack/range facts retained for post-action rules such
+   * as Cleaving. Legacy paused actions deliberately retain null.
+   */
+  postActionTriggerFacts: z
+    .strictObject({
+      attackKind: z.enum(['MELEE', 'RANGED', 'OTHER']),
+      range: rangeDtoSchema
+    })
+    .nullable()
+    .optional()
+    .default(null),
+  actionEconomy: z
+    .strictObject({
+      definitionId: uuidSchema,
+      definitionVersion: z.number().int().positive(),
+      definitionChecksum: checksumSchema,
+      maximum: z.number().int().positive(),
+      beforeUsed: z.number().int().nonnegative()
+    })
+    .nullable()
+    .default(null),
+  /** Sealed TEST/OUTCOME identity for a v3 Character action; legacy actions retain null. */
+  twoPhase: directActionTwoPhaseDtoSchema.nullable().optional().default(null),
+  targetStateChecksum: checksumSchema,
+  d20: z
+    .strictObject({
+      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      contributors: z
+        .array(
+          z.strictObject({
+            sourceId: z.string().trim().min(1).max(240),
+            grantId: z.string().trim().min(1).max(240).nullable(),
+            domainKey: z.string().trim().min(1).max(240).nullable(),
+            influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
+          })
+        )
+        .max(RULE_GRAPH_LIMITS.NODES),
+      contributorChecksum: checksumSchema,
+      modifier: z.number().int(),
+      defenseOrDc: z.number().int()
+    })
+    .nullable()
+})
+
+/**
+ * Character-authored direct action against a mutable Creature or Custom
+ * Encounter actor. Character targets retain the established Character lane.
+ */
+const encounterActorRuleActionPendingContextDtoSchema = z.strictObject({
+  kind: z.literal('ENCOUNTER_ACTOR_RULE_ACTION'),
+  schemaVersion: z.literal(1),
+  actionId: z.string().trim().min(1).max(240),
+  /** Exact frozen Scene dependency when this action was positional. */
+  sceneContext: z
+    .strictObject({
+      sceneId: uuidSchema,
+      sceneVersion: z.number().int().nonnegative(),
+      sourceTokenId: uuidSchema,
+      targetTokenId: uuidSchema
+    })
+    .nullable()
+    .optional()
+    .default(null),
+  /** Server-derived bounded positional currentness for a paused action. */
+  positionalDependencyChecksum: checksumSchema.nullable().optional().default(null),
+  sourceActorId: uuidSchema,
+  targetActorId: uuidSchema,
+  sourceCharacterId: uuidSchema,
+  sourceCharacterStreamVersion: z.number().int().min(0),
+  sourceProjectionChecksum: checksumSchema,
+  sourceMechanicalContextChecksum: checksumSchema,
+  targetCurrentnessChecksum: checksumSchema,
+  publishedDefinitionId: uuidSchema,
+  publishedDefinitionChecksum: checksumSchema,
+  actionEconomy: z
+    .strictObject({
+      definitionId: uuidSchema,
+      definitionVersion: z.number().int().positive(),
+      definitionChecksum: checksumSchema,
+      maximum: z.number().int().positive(),
+      beforeUsed: z.number().int().nonnegative()
+    })
+    .nullable()
+    .default(null),
+  twoPhase: directActionTwoPhaseDtoSchema.nullable().optional().default(null),
+  phase: z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('ACTION_EVIDENCE'),
       d20: z
         .strictObject({
           rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
@@ -2502,95 +3246,213 @@ export const serverRuleExecutionPendingApplicationContextDtoSchema = z
         })
         .nullable()
     }),
-    /**
-     * Character-authored direct action against a mutable Creature or Custom
-     * Encounter actor. Character targets retain the established Character lane.
-     */
     z.strictObject({
-      kind: z.literal('ENCOUNTER_ACTOR_RULE_ACTION'),
-      schemaVersion: z.literal(1),
-      actionId: z.string().trim().min(1).max(240),
-      /** Exact frozen Scene dependency when this action was positional. */
-      sceneContext: z
+      kind: z.literal('LEGENDARY_RESISTANCE_CHOICE'),
+      originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+      originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
+      /** Exact TEST policy retained for a later sealed OUTCOME continuation. */
+      d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
+      originalExecutionChecksum: checksumSchema,
+      targetStateChecksum: checksumSchema,
+      resistance: z.strictObject({
+        targetActorId: uuidSchema,
+        ownerFeatureId: authoredIdentifierSchema,
+        chargeId: authoredIdentifierSchema,
+        featureCost: z.number().int().positive(),
+        poolBefore: z.number().int().nonnegative(),
+        poolRemaining: z.number().int().nonnegative(),
+        definitionId: uuidSchema,
+        definitionVersion: z.number().int().positive(),
+        definitionChecksum: checksumSchema,
+        choiceGraphDefinitionId: uuidSchema,
+        choiceGraphDefinitionVersion: z.number().int().positive(),
+        choiceGraphDefinitionChecksum: checksumSchema,
+        useOutput: portNameSchema,
+        useOptionId: checksumSchema,
+        selectionChecksum: checksumSchema
+      })
+    })
+  ])
+})
+
+/**
+ * Sealed Character spell-cast source.  It deliberately does not reuse the
+ * Character-action arm: spell provenance and CAST_SPELL economy must survive
+ * an Assisted pause without becoming optional action fields.
+ */
+const encounterActorSpellCastPendingContextDtoSchema =
+  encounterActorRuleActionPendingContextDtoSchema.extend({
+    kind: z.literal('ENCOUNTER_ACTOR_SPELL_CAST'),
+    spell: z.strictObject({
+      spellId: uuidSchema,
+      versionId: uuidSchema,
+      version: z.number().int().positive(),
+      checksum: checksumSchema,
+      sourceKind: z.enum([
+        'BACKGROUND',
+        'CLASS',
+        'FEAT',
+        'FEATURE',
+        'ITEM',
+        'OPTION',
+        'RACE',
+        'SUBCLASS'
+      ]),
+      sourceInstanceId: uuidSchema,
+      castLevel: z.number().int().min(0).max(9),
+      castMode: z.enum(['SPELL_SLOT', 'AT_WILL', 'RITUAL', 'FIXED_LEVEL', 'LIMITED_USE']),
+      slotKey: z.string().trim().min(1).max(1_000).nullable(),
+      resourceOwnerKey: z.string().trim().min(1).max(1_000).nullable(),
+      effectId: uuidSchema
+    })
+  })
+
+/**
+ * Immutable Creature Feature action. This is intentionally distinct from
+ * ENCOUNTER_ACTOR_RULE_ACTION so existing Character occurrences retain
+ * their byte-compatible source/currentness contract.
+ */
+const encounterCreatureRuleActionPendingContextDtoSchema = z.strictObject({
+  kind: z.literal('ENCOUNTER_CREATURE_RULE_ACTION'),
+  schemaVersion: z.literal(1),
+  actionId: z.string().trim().min(1).max(240),
+  sceneContext: z
+    .strictObject({
+      sceneId: uuidSchema,
+      sceneVersion: z.number().int().nonnegative(),
+      sourceTokenId: uuidSchema,
+      targetTokenId: uuidSchema
+    })
+    .nullable()
+    .optional()
+    .default(null),
+  positionalDependencyChecksum: checksumSchema.nullable().optional().default(null),
+  sourceActorId: uuidSchema,
+  targetActorId: uuidSchema,
+  creatureSourceId: uuidSchema,
+  sourceRevision: z.number().int().positive(),
+  sourceVersionId: uuidSchema,
+  sourceChecksum: checksumSchema,
+  ownerFeatureId: uuidSchema,
+  featureOptionId: uuidSchema.nullable(),
+  effectId: uuidSchema,
+  authoredEffectChecksum: checksumSchema,
+  compiledEffectChecksum: checksumSchema,
+  targetCurrentnessChecksum: checksumSchema,
+  publishedDefinitionId: uuidSchema,
+  publishedDefinitionChecksum: checksumSchema,
+  actionEconomy: z
+    .strictObject({
+      definitionId: uuidSchema,
+      definitionVersion: z.number().int().positive(),
+      definitionChecksum: checksumSchema,
+      maximum: z.number().int().positive(),
+      beforeUsed: z.number().int().nonnegative()
+    })
+    .nullable()
+    .default(null),
+  twoPhase: directActionTwoPhaseDtoSchema.nullable().optional().default(null),
+  phase: z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('ACTION_EVIDENCE'),
+      d20: z
         .strictObject({
-          sceneId: uuidSchema,
-          sceneVersion: z.number().int().nonnegative(),
-          sourceTokenId: uuidSchema,
-          targetTokenId: uuidSchema
+          rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+          contributors: z
+            .array(
+              z.strictObject({
+                sourceId: z.string().trim().min(1).max(240),
+                grantId: z.string().trim().min(1).max(240).nullable(),
+                domainKey: z.string().trim().min(1).max(240).nullable(),
+                influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
+              })
+            )
+            .max(RULE_GRAPH_LIMITS.NODES),
+          contributorChecksum: checksumSchema,
+          modifier: z.number().int(),
+          defenseOrDc: z.number().int()
         })
         .nullable()
-        .optional()
-        .default(null),
-      /** Server-derived bounded positional currentness for a paused action. */
-      positionalDependencyChecksum: checksumSchema.nullable().optional().default(null),
-      sourceActorId: uuidSchema,
-      targetActorId: uuidSchema,
-      sourceCharacterId: uuidSchema,
-      sourceCharacterStreamVersion: z.number().int().min(0),
-      sourceProjectionChecksum: checksumSchema,
-      sourceMechanicalContextChecksum: checksumSchema,
-      targetCurrentnessChecksum: checksumSchema,
-      publishedDefinitionId: uuidSchema,
-      publishedDefinitionChecksum: checksumSchema,
-      twoPhase: directActionTwoPhaseDtoSchema.nullable().optional().default(null),
-      phase: z.discriminatedUnion('kind', [
-        z.strictObject({
-          kind: z.literal('ACTION_EVIDENCE'),
-          d20: z
-            .strictObject({
-              rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-              contributors: z
-                .array(
-                  z.strictObject({
-                    sourceId: z.string().trim().min(1).max(240),
-                    grantId: z.string().trim().min(1).max(240).nullable(),
-                    domainKey: z.string().trim().min(1).max(240).nullable(),
-                    influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
-                  })
-                )
-                .max(RULE_GRAPH_LIMITS.NODES),
-              contributorChecksum: checksumSchema,
-              modifier: z.number().int(),
-              defenseOrDc: z.number().int()
-            })
-            .nullable()
-        }),
-        z.strictObject({
-          kind: z.literal('LEGENDARY_RESISTANCE_CHOICE'),
-          originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
-          originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
-          /** Exact TEST policy retained for a later sealed OUTCOME continuation. */
-          d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
-          originalExecutionChecksum: checksumSchema,
-          targetStateChecksum: checksumSchema,
-          resistance: z.strictObject({
-            targetActorId: uuidSchema,
-            ownerFeatureId: authoredIdentifierSchema,
-            chargeId: authoredIdentifierSchema,
-            featureCost: z.number().int().positive(),
-            poolBefore: z.number().int().nonnegative(),
-            poolRemaining: z.number().int().nonnegative(),
-            definitionId: uuidSchema,
-            definitionVersion: z.number().int().positive(),
-            definitionChecksum: checksumSchema,
-            choiceGraphDefinitionId: uuidSchema,
-            choiceGraphDefinitionVersion: z.number().int().positive(),
-            choiceGraphDefinitionChecksum: checksumSchema,
-            useOutput: portNameSchema,
-            useOptionId: checksumSchema,
-            selectionChecksum: checksumSchema
-          })
-        })
-      ])
     }),
-    z
-      .strictObject({
-        kind: z.literal('ENCOUNTER_CONCENTRATION_DAMAGE_CHECK'),
-        schemaVersion: z.literal(1),
-        parentOccurrenceId: uuidSchema,
-        parentCommandFingerprint: checksumSchema,
-        finalizedDamageEnvelopeChecksum: checksumSchema,
-        application: z.strictObject({
+    z.strictObject({
+      kind: z.literal('LEGENDARY_RESISTANCE_CHOICE'),
+      originalExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
+      originalD20: z.lazy(() => serverRuleExecutionD20EvidenceDtoSchema),
+      d20: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema),
+      originalExecutionChecksum: checksumSchema,
+      targetStateChecksum: checksumSchema,
+      resistance: z.strictObject({
+        targetActorId: uuidSchema,
+        ownerFeatureId: authoredIdentifierSchema,
+        chargeId: authoredIdentifierSchema,
+        featureCost: z.number().int().positive(),
+        poolBefore: z.number().int().nonnegative(),
+        poolRemaining: z.number().int().nonnegative(),
+        definitionId: uuidSchema,
+        definitionVersion: z.number().int().positive(),
+        definitionChecksum: checksumSchema,
+        choiceGraphDefinitionId: uuidSchema,
+        choiceGraphDefinitionVersion: z.number().int().positive(),
+        choiceGraphDefinitionChecksum: checksumSchema,
+        useOutput: portNameSchema,
+        useOptionId: checksumSchema,
+        selectionChecksum: checksumSchema
+      })
+    })
+  ])
+})
+
+const encounterConcentrationDamageCheckPendingContextDtoSchema = z
+  .strictObject({
+    kind: z.literal('ENCOUNTER_CONCENTRATION_DAMAGE_CHECK'),
+    schemaVersion: z.literal(1),
+    parentOccurrenceId: uuidSchema,
+    parentCommandFingerprint: checksumSchema,
+    finalizedDamageEnvelopeChecksum: checksumSchema,
+    application: z.strictObject({
+      ordinal: z
+        .number()
+        .int()
+        .min(0)
+        .max(RULE_GRAPH_LIMITS.NODES - 1),
+      sourceNodeId: z.string().trim().min(1).max(240),
+      sourceOperationKey: z.string().trim().min(1).max(240),
+      targetActorId: uuidSchema,
+      appliedAmount: z.number().int().positive(),
+      damageTypeId: uuidSchema
+    }),
+    maintainedState: z.strictObject({
+      id: uuidSchema,
+      version: z.number().int().min(0),
+      maintenanceDefinitionId: uuidSchema,
+      descriptorChecksum: checksumSchema
+    }),
+    concentrationDefinition: z.strictObject({
+      id: uuidSchema,
+      checksum: checksumSchema
+    }),
+    save: z.strictObject({
+      savingThrowAbilityDefinitionId: uuidSchema,
+      modifier: z.number().int(),
+      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      contributors: canonicalConcentrationContributorsDtoSchema,
+      contributorChecksum: checksumSchema
+    }),
+    targetCharacter: z.strictObject({
+      streamVersion: z.number().int().min(0),
+      baseProjectionChecksum: checksumSchema,
+      campaignOverlayChecksum: checksumSchema,
+      mechanicalContextChecksum: checksumSchema
+    }),
+    systemVocabularySnapshot: z.strictObject({
+      id: uuidSchema,
+      version: z.number().int().min(1),
+      checksum: checksumSchema
+    }),
+    contextChecksum: checksumSchema,
+    remaining: z
+      .array(
+        z.strictObject({
           ordinal: z
             .number()
             .int()
@@ -2600,125 +3462,123 @@ export const serverRuleExecutionPendingApplicationContextDtoSchema = z
           sourceOperationKey: z.string().trim().min(1).max(240),
           targetActorId: uuidSchema,
           appliedAmount: z.number().int().positive(),
-          damageTypeId: uuidSchema
-        }),
-        maintainedState: z.strictObject({
-          id: uuidSchema,
-          version: z.number().int().min(0),
-          maintenanceDefinitionId: uuidSchema,
-          descriptorChecksum: checksumSchema
-        }),
-        concentrationDefinition: z.strictObject({
-          id: uuidSchema,
-          checksum: checksumSchema
-        }),
-        save: z.strictObject({
-          savingThrowAbilityDefinitionId: uuidSchema,
-          modifier: z.number().int(),
-          rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-          contributors: canonicalConcentrationContributorsDtoSchema,
-          contributorChecksum: checksumSchema
-        }),
-        targetCharacter: z.strictObject({
-          streamVersion: z.number().int().min(0),
-          baseProjectionChecksum: checksumSchema,
-          campaignOverlayChecksum: checksumSchema,
-          mechanicalContextChecksum: checksumSchema
-        }),
-        systemVocabularySnapshot: z.strictObject({
-          id: uuidSchema,
-          version: z.number().int().min(1),
-          checksum: checksumSchema
-        }),
-        contextChecksum: checksumSchema,
-        remaining: z
-          .array(
-            z.strictObject({
-              ordinal: z
-                .number()
-                .int()
-                .min(0)
-                .max(RULE_GRAPH_LIMITS.NODES - 1),
-              sourceNodeId: z.string().trim().min(1).max(240),
-              sourceOperationKey: z.string().trim().min(1).max(240),
-              targetActorId: uuidSchema,
-              appliedAmount: z.number().int().positive(),
-              damageTypeId: uuidSchema,
-              maintainedStateId: uuidSchema
-            })
-          )
-          .max(RULE_GRAPH_LIMITS.NODES)
-      })
-      .superRefine((value, context) => {
-        let prior = `${value.application.ordinal.toString().padStart(4, '0')}:${value.application.sourceNodeId}:${value.application.sourceOperationKey}`
-        for (const [index, remaining] of value.remaining.entries()) {
-          const current = `${remaining.ordinal.toString().padStart(4, '0')}:${remaining.sourceNodeId}:${remaining.sourceOperationKey}`
-          if (current <= prior)
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ['remaining', index],
-              message: 'Remaining concentration checks must use canonical application order.'
-            })
-          prior = current
-        }
-      })
-  ])
-  .superRefine((value, context) => {
-    if (
-      value.kind !== 'ENCOUNTER_ACTOR_RULE_ACTION' ||
-      value.phase.kind !== 'LEGENDARY_RESISTANCE_CHOICE'
-    )
-      return
-    const { originalExecution, originalD20, originalExecutionChecksum } = value.phase
-    const d20RequestTraces = originalExecution.evidence.trace.filter(
-      (trace) =>
-        trace.operation.key === 'evidence.integer-range' &&
-        trace.operation.contractVersion === 1 &&
-        trace.inputs.min === 1 &&
-        trace.inputs.max === 20 &&
-        trace.evidence?.kind === 'INTEGER_RANGE'
-    )
-    const d20ResultTraces = originalExecution.evidence.trace.filter(
-      (trace) =>
-        typeof trace.inputs.naturalD20 === 'number' &&
-        typeof trace.inputs.modifier === 'number' &&
-        typeof trace.inputs.threshold === 'number' &&
-        typeof trace.inputs.contributorChecksum === 'string' &&
-        typeof trace.outputs.contributorChecksum === 'string' &&
-        typeof trace.outputs.total === 'number' &&
-        typeof trace.outputs.resultPath === 'string'
-    )
-    const hasExactD20Evidence =
-      d20RequestTraces.length === 1 &&
-      d20ResultTraces.length === 1 &&
-      d20RequestTraces.filter(
-        (trace) =>
-          trace.evidence?.requestId === originalD20.requestId &&
-          trace.evidence.value === originalD20.selectedNatural
-      ).length === 1 &&
-      d20ResultTraces.filter(
-        (trace) =>
-          trace.inputs.naturalD20 === originalD20.selectedNatural &&
-          trace.inputs.modifier === originalD20.modifier &&
-          trace.inputs.threshold === originalD20.defenseOrDc &&
-          trace.inputs.contributorChecksum === originalD20.contributorChecksum &&
-          trace.outputs.contributorChecksum === originalD20.contributorChecksum &&
-          trace.outputs.total === originalD20.total &&
-          trace.outputs.resultPath === originalD20.resultPath
-      ).length === 1
-    if (
-      checksumRuleDocument(originalExecution) !== originalExecutionChecksum ||
-      originalExecution.outputs.resultPath !== 'ON_SAVE_FAIL' ||
-      originalExecution.evidence.outputs.resultPath !== 'ON_SAVE_FAIL' ||
-      originalD20.resultPath !== 'ON_SAVE_FAIL' ||
-      !hasExactD20Evidence
-    )
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['phase'],
-        message: 'Legendary Resistance pending action evidence is invalid.'
-      })
+          damageTypeId: uuidSchema,
+          maintainedStateId: uuidSchema
+        })
+      )
+      .max(RULE_GRAPH_LIMITS.NODES)
   })
+  .superRefine((value, context) => {
+    let prior = `${value.application.ordinal.toString().padStart(4, '0')}:${value.application.sourceNodeId}:${value.application.sourceOperationKey}`
+    for (const [index, remaining] of value.remaining.entries()) {
+      const current = `${remaining.ordinal.toString().padStart(4, '0')}:${remaining.sourceNodeId}:${remaining.sourceOperationKey}`
+      if (current <= prior)
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['remaining', index],
+          message: 'Remaining concentration checks must use canonical application order.'
+        })
+      prior = current
+    }
+  })
+
+const noPendingApplicationContextDtoSchema = z.strictObject({ kind: z.literal('NONE') })
+
+export type ServerRuleExecutionPendingApplicationContextDto =
+  | z.infer<typeof noPendingApplicationContextDtoSchema>
+  | z.infer<typeof turnEffectPendingContextDtoSchema>
+  | z.infer<typeof turnRechargePendingContextDtoSchema>
+  | z.infer<typeof spatialPendingContextDtoSchema>
+  | z.infer<typeof movementReactionPendingContextDtoSchema>
+  | z.infer<typeof legendaryActionEvidencePendingContextDtoSchema>
+  | z.infer<typeof encounterInitiativePendingContextDtoSchema>
+  | z.infer<typeof serverOptionalCombatContestPendingContextDtoSchema>
+  | z.infer<typeof encounterCharacterRuleActionPendingContextDtoSchema>
+  | z.infer<typeof encounterActorRuleActionPendingContextDtoSchema>
+  | z.infer<typeof encounterActorSpellCastPendingContextDtoSchema>
+  | z.infer<typeof encounterCreatureRuleActionPendingContextDtoSchema>
+  | z.infer<typeof encounterConcentrationDamageCheckPendingContextDtoSchema>
+
+const serverRuleExecutionPendingApplicationContextDtoSchemaImpl: z.ZodType<ServerRuleExecutionPendingApplicationContextDto> =
+  z
+    .discriminatedUnion('kind', [
+      noPendingApplicationContextDtoSchema,
+      turnEffectPendingContextDtoSchema,
+      turnRechargePendingContextDtoSchema,
+      spatialPendingContextDtoSchema,
+      movementReactionPendingContextDtoSchema,
+      legendaryActionEvidencePendingContextDtoSchema,
+      encounterInitiativePendingContextDtoSchema,
+      serverOptionalCombatContestPendingContextDtoSchema,
+      encounterCharacterRuleActionPendingContextDtoSchema,
+      encounterActorRuleActionPendingContextDtoSchema,
+      encounterActorSpellCastPendingContextDtoSchema,
+      encounterCreatureRuleActionPendingContextDtoSchema,
+      encounterConcentrationDamageCheckPendingContextDtoSchema
+    ])
+
+    .superRefine((value, context) => {
+      if (
+        (value.kind !== 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+          value.kind !== 'ENCOUNTER_ACTOR_SPELL_CAST' &&
+          value.kind !== 'ENCOUNTER_CREATURE_RULE_ACTION') ||
+        value.phase.kind !== 'LEGENDARY_RESISTANCE_CHOICE'
+      )
+        return
+      const { originalExecution, originalD20, originalExecutionChecksum } = value.phase
+      const d20RequestTraces = originalExecution.evidence.trace.filter(
+        (trace) =>
+          trace.operation.key === 'evidence.integer-range' &&
+          trace.operation.contractVersion === 1 &&
+          trace.inputs.min === 1 &&
+          trace.inputs.max === 20 &&
+          trace.evidence?.kind === 'INTEGER_RANGE'
+      )
+      const d20ResultTraces = originalExecution.evidence.trace.filter(
+        (trace) =>
+          typeof trace.inputs.naturalD20 === 'number' &&
+          typeof trace.inputs.modifier === 'number' &&
+          typeof trace.inputs.threshold === 'number' &&
+          typeof trace.inputs.contributorChecksum === 'string' &&
+          typeof trace.outputs.contributorChecksum === 'string' &&
+          typeof trace.outputs.total === 'number' &&
+          typeof trace.outputs.resultPath === 'string'
+      )
+      const hasExactD20Evidence =
+        d20RequestTraces.length === 1 &&
+        d20ResultTraces.length === 1 &&
+        d20RequestTraces.filter(
+          (trace) =>
+            trace.evidence?.requestId === originalD20.requestId &&
+            trace.evidence.value === originalD20.selectedNatural
+        ).length === 1 &&
+        d20ResultTraces.filter(
+          (trace) =>
+            trace.inputs.naturalD20 === originalD20.selectedNatural &&
+            trace.inputs.modifier === originalD20.modifier &&
+            trace.inputs.threshold === originalD20.defenseOrDc &&
+            trace.inputs.contributorChecksum === originalD20.contributorChecksum &&
+            trace.outputs.contributorChecksum === originalD20.contributorChecksum &&
+            trace.outputs.total === originalD20.total &&
+            trace.outputs.resultPath === originalD20.resultPath
+        ).length === 1
+      if (
+        checksumRuleDocument(originalExecution) !== originalExecutionChecksum ||
+        originalExecution.outputs.resultPath !== 'ON_SAVE_FAIL' ||
+        originalExecution.evidence.outputs.resultPath !== 'ON_SAVE_FAIL' ||
+        originalD20.resultPath !== 'ON_SAVE_FAIL' ||
+        !hasExactD20Evidence
+      )
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['phase'],
+          message: 'Legendary Resistance pending action evidence is invalid.'
+        })
+    })
+
+export const serverRuleExecutionPendingApplicationContextDtoSchema: z.ZodType<
+  z.infer<typeof serverRuleExecutionPendingApplicationContextDtoSchemaImpl>
+> = serverRuleExecutionPendingApplicationContextDtoSchemaImpl
 
 export type ServerKernelRuleExecutionPendingSnapshotDto = ServerRuleExecutionContinuationDto & {
   snapshotKind: 'KERNEL_EVIDENCE'
@@ -2757,6 +3617,217 @@ const initiativeDeclarationAggregateChoicePendingContextDtoSchema = z
     }
   })
 
+/**
+ * A completed action may expose one bounded, human-confirmed Cleaving step.
+ * It retains facts only: the original action receipt is terminal and neither
+ * executable graphs nor damage formulas cross this aggregate-choice boundary.
+ */
+type OptionalCombatCleavingChoicePendingContextDto = {
+  kind: 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING'
+  schemaVersion: 1
+  parentOccurrenceId: string
+  parentResultChecksum: string
+  sourceActorId: string
+  sourceControllerCharacterId: string | null
+  action: {
+    actionId: string
+    publishedDefinitionId: string
+    publishedDefinitionChecksum: string
+    attackKind: 'MELEE' | 'RANGED' | 'OTHER'
+    range: RangeDto
+  }
+  sourceCurrentness:
+    | {
+        kind: 'CHARACTER'
+        actorId: string
+        characterId: string
+        streamVersion: number
+        projectionChecksum: string
+        mechanicalContextChecksum: string
+      }
+    | {
+        kind: 'ENCOUNTER_ACTOR'
+        actorId: string
+        sourceRevision: number
+        sourceVersionId: string
+        sourceChecksum: string
+        stateChecksum: string
+      }
+  initialTargetActorId: string
+  chainStep: number
+  optionalCombat: { definitionId: string; definitionVersion: number; definitionChecksum: string }
+  scene: {
+    sceneId: string
+    sceneVersion: number
+    effectiveGridChecksum: string
+    sourceTokenId: string
+  }
+  originalAttack: { total: number; naturalRoll: number }
+  damage: {
+    sourceNodeId: string
+    sourceOperationKey: string
+    damageTypeId: string
+    resolvedAmount: number
+    appliedAmount: number
+    remainingAmount: number
+    envelopeChecksum: string
+  }
+  visitedTargetActorIds: string[]
+  options: {
+    optionId: string
+    targetActorId: string
+    targetTokenId: string
+    targetActorVersion: number
+    /** Exact mutable target state sealed when this option was offered. */
+    targetStateChecksum: string
+    armorClass: number
+    footprintChecksum: string
+  }[]
+}
+
+const optionalCombatCleavingChoicePendingContextDtoSchema = z
+  .strictObject({
+    kind: z.literal('ENCOUNTER_OPTIONAL_COMBAT_CLEAVING'),
+    schemaVersion: z.literal(1),
+    parentOccurrenceId: uuidSchema,
+    parentResultChecksum: checksumSchema,
+    sourceActorId: uuidSchema,
+    sourceControllerCharacterId: uuidSchema.nullable(),
+    /** Exact authored action facts revalidated before a Cleaving choice applies. */
+    action: z.strictObject({
+      actionId: z.string().trim().min(1).max(240),
+      publishedDefinitionId: uuidSchema,
+      publishedDefinitionChecksum: checksumSchema,
+      attackKind: z.enum(['MELEE', 'RANGED', 'OTHER']),
+      range: z.custom<RangeDto>((value) => rangeDtoSchema.safeParse(value).success)
+    }),
+    /**
+     * Source facts are deliberately separate from the offered target options:
+     * an old choice can never authorize a changed Character or Creature action.
+     */
+    sourceCurrentness: z.discriminatedUnion('kind', [
+      z.strictObject({
+        kind: z.literal('CHARACTER'),
+        actorId: uuidSchema,
+        characterId: uuidSchema,
+        streamVersion: z.number().int().nonnegative(),
+        projectionChecksum: checksumSchema,
+        mechanicalContextChecksum: checksumSchema
+      }),
+      z.strictObject({
+        kind: z.literal('ENCOUNTER_ACTOR'),
+        actorId: uuidSchema,
+        sourceRevision: z.number().int().positive(),
+        sourceVersionId: uuidSchema,
+        sourceChecksum: checksumSchema,
+        stateChecksum: checksumSchema
+      })
+    ]),
+    initialTargetActorId: uuidSchema,
+    chainStep: z
+      .number()
+      .int()
+      .min(1)
+      .max(RULE_GRAPH_LIMITS.NODES - 1),
+    optionalCombat: z.strictObject({
+      definitionId: uuidSchema,
+      definitionVersion: z.number().int().positive(),
+      definitionChecksum: checksumSchema
+    }),
+    scene: z.strictObject({
+      sceneId: uuidSchema,
+      sceneVersion: z.number().int().nonnegative(),
+      effectiveGridChecksum: checksumSchema,
+      sourceTokenId: uuidSchema
+    }),
+    originalAttack: z.strictObject({
+      total: z.number().int(),
+      naturalRoll: z.number().int().min(1).max(20)
+    }),
+    damage: z
+      .strictObject({
+        sourceNodeId: localNodeIdSchema,
+        sourceOperationKey: capabilityKeySchema,
+        damageTypeId: uuidSchema,
+        resolvedAmount: z.number().int().positive(),
+        appliedAmount: z.number().int().nonnegative(),
+        remainingAmount: z.number().int().positive(),
+        envelopeChecksum: checksumSchema
+      })
+      .superRefine((damage, context) => {
+        if (damage.resolvedAmount - damage.appliedAmount !== damage.remainingAmount) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['remainingAmount'],
+            message: 'Cleaving must retain the exact finalized excess damage.'
+          })
+        }
+      }),
+    visitedTargetActorIds: z
+      .array(uuidSchema)
+      .min(1)
+      .max(RULE_GRAPH_LIMITS.NODES - 1),
+    options: z
+      .array(
+        z.strictObject({
+          optionId: checksumSchema,
+          targetActorId: uuidSchema,
+          targetTokenId: uuidSchema,
+          targetActorVersion: z.number().int().nonnegative(),
+          targetStateChecksum: checksumSchema,
+          armorClass: z.number().int().nonnegative(),
+          footprintChecksum: checksumSchema
+        })
+      )
+      .min(1)
+      .max(RULE_GRAPH_LIMITS.NODES - 1)
+  })
+  .superRefine((value, context) => {
+    if (
+      value.sourceCurrentness.actorId !== value.sourceActorId ||
+      value.action.attackKind !== 'MELEE'
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['sourceCurrentness'],
+        message: 'Cleaving must retain the exact melee action source currentness.'
+      })
+    }
+    const visited = new Set<string>()
+    for (const [index, actorId] of value.visitedTargetActorIds.entries()) {
+      if (visited.has(actorId)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['visitedTargetActorIds', index],
+          message: 'Cleaving visited targets must be unique.'
+        })
+      }
+      visited.add(actorId)
+    }
+    if (value.visitedTargetActorIds[0] !== value.initialTargetActorId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['visitedTargetActorIds', 0],
+        message: 'Cleaving must retain its original defeated target as the chain root.'
+      })
+    }
+    const options = new Set<string>()
+    for (const [index, option] of value.options.entries()) {
+      if (
+        options.has(option.optionId) ||
+        visited.has(option.targetActorId) ||
+        option.targetActorId === value.sourceActorId
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['options', index],
+          message: 'Cleaving options must be unique, unvisited, and non-self targets.'
+        })
+      }
+      options.add(option.optionId)
+    }
+  })
+
 const serverKernelRuleExecutionPendingSnapshotDtoSchemaImpl: z.ZodType<ServerKernelRuleExecutionPendingSnapshotDto> =
   serverRuleExecutionContinuationDtoSchema
     .extend({
@@ -2782,7 +3853,8 @@ const serverKernelRuleExecutionPendingSnapshotDtoSchemaImpl: z.ZodType<ServerKer
       }
       const twoPhase =
         (snapshot.applicationContext.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION' ||
-          snapshot.applicationContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION') &&
+          snapshot.applicationContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+          snapshot.applicationContext.kind === 'ENCOUNTER_CREATURE_RULE_ACTION') &&
         snapshot.applicationContext.twoPhase?.phase === 'OUTCOME'
           ? snapshot.applicationContext.twoPhase
           : null
@@ -2804,20 +3876,85 @@ const serverKernelRuleExecutionPendingSnapshotDtoSchemaImpl: z.ZodType<ServerKer
         })
     })
 
-export const serverAggregateChoicePendingSnapshotDtoSchema = z.strictObject({
-  snapshotKind: z.literal('AGGREGATE_CHOICE'),
-  schemaVersion: z.literal(1),
-  occurrenceId: uuidSchema,
-  optionalCombatSnapshotChecksum: checksumSchema.nullable().optional(),
-  applicationContext: z.discriminatedUnion('kind', [
-    legendaryActionChoicePendingContextDtoSchema,
-    initiativeDeclarationAggregateChoicePendingContextDtoSchema
-  ])
+const optionalCombatPassageChoiceOptionDtoSchema = z.strictObject({
+  optionId: checksumSchema,
+  ruleKind: z.enum(['OVERRUN', 'TUMBLE']),
+  economy: z.enum(['ACTION', 'BONUS_ACTION']),
+  definitionId: uuidSchema,
+  definitionVersion: z.number().int().positive(),
+  definitionChecksum: checksumSchema,
+  moduleKey: capabilityKeySchema,
+  moduleContractVersion: contractVersionSchema
 })
 
-export type ServerAggregateChoicePendingSnapshotDto = z.infer<
-  typeof serverAggregateChoicePendingSnapshotDtoSchema
+const optionalCombatPassageChoicePendingContextDtoSchema = z
+  .strictObject({
+    kind: z.literal('ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'),
+    schemaVersion: z.literal(1),
+    movement: optionalCombatPassageContinuationDtoSchema,
+    sourceActorId: uuidSchema,
+    sourceTokenId: uuidSchema,
+    sourceControllerCharacterId: uuidSchema.nullable(),
+    options: z.array(optionalCombatPassageChoiceOptionDtoSchema).min(1).max(4),
+    optionsChecksum: checksumSchema
+  })
+  .superRefine((value, context) => {
+    if (value.movement.root.tokenId !== value.sourceTokenId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['sourceTokenId'],
+        message: 'Passage choice source token must own the sealed movement root.'
+      })
+    }
+    const ids = new Set<string>()
+    for (const [index, option] of value.options.entries()) {
+      if (ids.has(option.optionId)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['options', index, 'optionId'],
+          message: 'Passage choice options must have unique deterministic identities.'
+        })
+      }
+      ids.add(option.optionId)
+    }
+    if (checksumRuleDocument(value.options) !== value.optionsChecksum) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['optionsChecksum'],
+        message: 'Passage choice options checksum must bind the complete issued option set.'
+      })
+    }
+  })
+
+export type OptionalCombatPassageChoicePendingContextDto = z.infer<
+  typeof optionalCombatPassageChoicePendingContextDtoSchema
 >
+
+export type ServerAggregateChoicePendingSnapshotDto = {
+  snapshotKind: 'AGGREGATE_CHOICE'
+  schemaVersion: 1
+  occurrenceId: string
+  optionalCombatSnapshotChecksum?: string | null
+  applicationContext:
+    | z.infer<typeof legendaryActionChoicePendingContextDtoSchema>
+    | z.infer<typeof initiativeDeclarationAggregateChoicePendingContextDtoSchema>
+    | OptionalCombatCleavingChoicePendingContextDto
+    | OptionalCombatPassageChoicePendingContextDto
+}
+
+export const serverAggregateChoicePendingSnapshotDtoSchema: z.ZodType<ServerAggregateChoicePendingSnapshotDto> =
+  z.strictObject({
+    snapshotKind: z.literal('AGGREGATE_CHOICE'),
+    schemaVersion: z.literal(1),
+    occurrenceId: uuidSchema,
+    optionalCombatSnapshotChecksum: checksumSchema.nullable().optional(),
+    applicationContext: z.discriminatedUnion('kind', [
+      legendaryActionChoicePendingContextDtoSchema,
+      initiativeDeclarationAggregateChoicePendingContextDtoSchema,
+      optionalCombatCleavingChoicePendingContextDtoSchema,
+      optionalCombatPassageChoicePendingContextDtoSchema
+    ])
+  })
 export type ServerRuleExecutionPendingSnapshotDto =
   | ServerKernelRuleExecutionPendingSnapshotDto
   | ServerAggregateChoicePendingSnapshotDto
@@ -2851,6 +3988,8 @@ const receiptOrdinalSchema = z
   .min(0)
   .max(RULE_GRAPH_LIMITS.NODES - 1)
 const receiptD20FaceSchema = z.number().int().min(1).max(20)
+/** One bounded TEST/OUTCOME execution may consume no more than this many server evidence requests. */
+export const MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS = 32
 const receiptD20ContributorSchema = z.strictObject({
   sourceId: z.string().trim().min(1).max(240),
   grantId: z.string().trim().min(1).max(240).nullable(),
@@ -2883,59 +4022,88 @@ export const serverRuleExecutionD20PolicyDtoSchema = z
       })
     }
   })
-export const serverRuleExecutionD20EvidenceDtoSchema = z
-  .strictObject({
-    requestId: z.string().min(1).max(256),
-    rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-    rawFaces: z.array(receiptD20FaceSchema).min(1).max(2),
-    selectedNatural: receiptD20FaceSchema,
-    contributors: z.array(receiptD20ContributorSchema).max(RULE_GRAPH_LIMITS.NODES),
-    contributorChecksum: checksumSchema,
-    modifier: z.number().int(),
-    total: z.number().int(),
-    defenseOrDc: z.number().int(),
-    resultPath: z.string().trim().min(1).max(240)
-  })
-  .superRefine((value, context) => {
-    const expectedFaces = value.rollMode === 'NORMAL' ? 1 : 2
-    if (value.rawFaces.length !== expectedFaces)
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'd20 evidence face count is invalid.'
-      })
-    const expectedSelected =
-      value.rollMode === 'ADVANTAGE'
-        ? Math.max(...value.rawFaces)
-        : value.rollMode === 'DISADVANTAGE'
-          ? Math.min(...value.rawFaces)
-          : value.rawFaces[0]
-    if (value.selectedNatural !== expectedSelected)
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'd20 evidence selected face is invalid.'
-      })
-    if (value.total !== value.selectedNatural + value.modifier)
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'd20 evidence total is invalid.'
-      })
-    if (
-      value.contributors.some(
-        (contributor, index) =>
-          index > 0 &&
-          compareCanonicalD20Contributors(value.contributors[index - 1]!, contributor) >= 0
-      )
+const serverRuleExecutionD20EvidenceShape = z.strictObject({
+  requestId: z.string().min(1).max(256),
+  rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+  rawFaces: z.array(receiptD20FaceSchema).min(1).max(2),
+  selectedNatural: receiptD20FaceSchema,
+  contributors: z.array(receiptD20ContributorSchema).max(RULE_GRAPH_LIMITS.NODES),
+  contributorChecksum: checksumSchema,
+  modifier: z.number().int(),
+  total: z.number().int(),
+  defenseOrDc: z.number().int(),
+  resultPath: z.string().trim().min(1).max(240)
+})
+
+function validateServerRuleExecutionD20Evidence(
+  value: z.infer<typeof serverRuleExecutionD20EvidenceShape>,
+  context: z.RefinementCtx
+): void {
+  const expectedFaces = value.rollMode === 'NORMAL' ? 1 : 2
+  if (value.rawFaces.length !== expectedFaces)
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['rawFaces'],
+      message: 'd20 evidence face count is invalid.'
+    })
+  const expectedSelected =
+    value.rollMode === 'ADVANTAGE'
+      ? Math.max(...value.rawFaces)
+      : value.rollMode === 'DISADVANTAGE'
+        ? Math.min(...value.rawFaces)
+        : value.rawFaces[0]
+  if (value.selectedNatural !== expectedSelected)
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['selectedNatural'],
+      message: 'd20 evidence selected face is invalid.'
+    })
+  if (value.total !== value.selectedNatural + value.modifier)
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['total'],
+      message: 'd20 evidence total is invalid.'
+    })
+  if (
+    value.contributors.some(
+      (contributor, index) =>
+        index > 0 &&
+        compareCanonicalD20Contributors(value.contributors[index - 1]!, contributor) >= 0
     )
+  )
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['contributors'],
+      message: 'd20 evidence contributors must be strictly sorted and unique.'
+    })
+  if (checksumRuleDocument(value.contributors) !== value.contributorChecksum)
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['contributorChecksum'],
+      message: 'd20 evidence contributor checksum is invalid.'
+    })
+}
+
+export const serverRuleExecutionD20EvidenceDtoSchema =
+  serverRuleExecutionD20EvidenceShape.superRefine(validateServerRuleExecutionD20Evidence)
+
+/** Exact graph binding retained only for a direct-action OUTCOME nested d20. */
+export const serverRuleExecutionNestedD20EvidenceDtoSchema = serverRuleExecutionD20EvidenceShape
+  .extend({ requestNodeId: localNodeIdSchema })
+  .superRefine(validateServerRuleExecutionD20Evidence)
+  .superRefine((value, context) => {
+    const influences = new Set(value.contributors.map((contributor) => contributor.influence))
+    const expectedRollMode =
+      influences.size === 1
+        ? [...influences][0] === 'ADVANTAGE'
+          ? 'ADVANTAGE'
+          : 'DISADVANTAGE'
+        : 'NORMAL'
+    if (value.rollMode !== expectedRollMode)
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['contributors'],
-        message: 'd20 evidence contributors must be strictly sorted and unique.'
-      })
-    if (checksumRuleDocument(value.contributors) !== value.contributorChecksum)
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['contributorChecksum'],
-        message: 'd20 evidence contributor checksum is invalid.'
+        path: ['rollMode'],
+        message: 'Nested d20 evidence roll mode must match its contributors.'
       })
   })
 
@@ -2982,6 +4150,55 @@ const characterMechanicsApplicationDtoSchema = z.discriminatedUnion('kind', [
     afterPresent: z.literal(true),
     applied: z.boolean(),
     ...characterMechanicsApplicationTraceDtoSchema.shape
+  }),
+  z.strictObject({
+    ordinal: receiptOrdinalSchema,
+    kind: z.literal('CONDITION_REMOVE'),
+    conditionId: uuidSchema,
+    sourceActiveEffectId: uuidSchema,
+    beforePresent: z.boolean(),
+    /** A source-bound removal can be retained by another active contribution. */
+    afterPresent: z.boolean(),
+    applied: z.boolean(),
+    ...characterMechanicsApplicationTraceDtoSchema.shape
+  }),
+  z.strictObject({
+    ordinal: receiptOrdinalSchema,
+    kind: z.literal('HIT_POINT_MAXIMUM_REDUCTION'),
+    reductionAmount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+    sourceDamageOutcomeId: uuidSchema,
+    sourceDamageNodeId: z.string().trim().min(1).max(240),
+    sourceDamageOperationKey: z.string().trim().min(1).max(240),
+    recoveryTags: z.tuple([z.literal('RESTORE_HIT_POINT_MAXIMUM')]),
+    requestedAmount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+    resolvedAmount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+    appliedAmount: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+    beforeMaximumHitPoints: z.number().int().min(0),
+    afterMaximumHitPoints: z.number().int().min(0),
+    beforeCurrentHitPoints: z.number().int().min(0),
+    afterCurrentHitPoints: z.number().int().min(0),
+    beforeTemporaryHitPoints: z.number().int().min(0),
+    afterTemporaryHitPoints: z.number().int().min(0),
+    maximumHitPoints: z.number().int().min(0),
+    ...characterMechanicsApplicationTraceDtoSchema.shape
+  }),
+  z.strictObject({
+    ordinal: receiptOrdinalSchema,
+    kind: z.literal('SCALAR_REDUCTION'),
+    valueDefinitionId: uuidSchema,
+    reductionAmount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+    stacking: z.literal('ADDITIVE'),
+    floor: z.literal(0),
+    recoveryTriggers: z
+      .array(z.enum(['SHORT_REST', 'LONG_REST']))
+      .min(1)
+      .max(2),
+    terminalConsequence: z.literal('TARGET_DIED'),
+    sourceOutcomeId: uuidSchema,
+    beforeValue: z.number().int().min(0),
+    afterValue: z.number().int().min(0),
+    targetDied: z.boolean(),
+    ...characterMechanicsApplicationTraceDtoSchema.shape
   })
 ])
 const characterMechanicsTargetStateDtoSchema = z
@@ -2989,6 +4206,7 @@ const characterMechanicsTargetStateDtoSchema = z
     currentHitPoints: z.number().int().min(0),
     temporaryHitPoints: z.number().int().min(0),
     maximumHitPoints: z.number().int().min(0),
+    scalarValues: z.record(uuidSchema, z.number().int().min(0)).default({}),
     conditionIds: z.array(uuidSchema).max(200)
   })
   .superRefine((value, context) => {
@@ -3036,10 +4254,108 @@ const characterActiveEffectCreateReceiptDtoSchema = z.strictObject({
   lifecycleChecksum: checksumSchema,
   frozenSourceChecksum: checksumSchema,
   capabilityContractVersion: contractVersionSchema,
-  recurrenceStage: z.enum(['START_OF_TURN', 'END_OF_TURN']),
-  remainingTicks: z.number().int().min(1).max(10_000),
+  recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
+  remainingTicks: z.number().int().min(1).max(10_000).nullable(),
   maintainedEffectStateId: uuidSchema.nullable()
 })
+/** One target-owned recurring effect created by an Encounter Feature settlement. */
+const encounterActorActiveEffectCreateReceiptDtoSchema = z.strictObject({
+  kind: z.literal('CREATE'),
+  activeEffectId: uuidSchema,
+  targetActorId: uuidSchema,
+  createdOrdinal: z.number().int().positive(),
+  afterVersion: aggregateVersionSchema,
+  authoredEffectId: uuidSchema,
+  compiledEntryId: uuidSchema,
+  frozenGraphNodeId: localNodeIdSchema,
+  definitionChecksum: checksumSchema,
+  lifecycleChecksum: checksumSchema,
+  frozenSourceChecksum: checksumSchema,
+  capabilityContractVersion: contractVersionSchema,
+  recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
+  remainingTicks: z.number().int().min(1).max(10_000).nullable()
+})
+/** Immutable receipt for a target-owned state contribution created by an immediate outcome. */
+const stateEffectCreateReceiptDtoSchema = z.strictObject({
+  kind: z.literal('CREATE'),
+  owner: z.discriminatedUnion('kind', [
+    z.strictObject({ kind: z.literal('CHARACTER'), characterId: uuidSchema }),
+    z.strictObject({
+      kind: z.literal('ENCOUNTER_ACTOR'),
+      encounterId: uuidSchema,
+      targetActorId: uuidSchema
+    })
+  ]),
+  activeEffectId: uuidSchema,
+  createdOrdinal: z.number().int().positive(),
+  afterVersion: aggregateVersionSchema,
+  authoredEffectId: uuidSchema,
+  compiledEntryId: uuidSchema,
+  frozenGraphNodeId: localNodeIdSchema,
+  definitionChecksum: checksumSchema,
+  lifecycleChecksum: checksumSchema,
+  frozenSourceChecksum: checksumSchema,
+  capabilityContractVersion: contractVersionSchema,
+  contribution: z.discriminatedUnion('kind', [
+    activeRuleEffectStateContributionDtoSchema,
+    activeRuleEffectScalarReductionContributionDtoSchema
+  ])
+})
+
+function validateStateEffectTransitions(input: {
+  applications: readonly z.infer<typeof characterMechanicsApplicationDtoSchema>[]
+  transitions: readonly z.infer<typeof stateEffectCreateReceiptDtoSchema>[]
+  expectedOwnerKind: 'CHARACTER' | 'ENCOUNTER_ACTOR'
+  expectedTargetActorId?: string
+  context: z.RefinementCtx
+}) {
+  const reductions = input.applications.filter(
+    (application) =>
+      application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' || application.kind === 'SCALAR_REDUCTION'
+  )
+  if (reductions.length !== input.transitions.length) {
+    input.context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['stateEffectTransitions'],
+      message: 'Each target state reduction requires one matching state-effect receipt.'
+    })
+    return
+  }
+  for (const [index, reduction] of reductions.entries()) {
+    const transition = input.transitions[index]
+    if (!transition) continue
+    const contribution = transition.contribution
+    const ownerMatches =
+      input.expectedOwnerKind === 'CHARACTER'
+        ? transition.owner.kind === 'CHARACTER'
+        : transition.owner.kind === 'ENCOUNTER_ACTOR' &&
+          transition.owner.targetActorId === input.expectedTargetActorId
+    const contributionMatches =
+      reduction.kind === 'HIT_POINT_MAXIMUM_REDUCTION'
+        ? contribution.kind === 'HIT_POINT_MAXIMUM_REDUCTION' &&
+          contribution.amount === reduction.reductionAmount &&
+          contribution.sourceDamageOutcomeId === reduction.sourceDamageOutcomeId &&
+          contribution.sourceDamageNodeId === reduction.sourceDamageNodeId &&
+          contribution.sourceDamageOperationKey === reduction.sourceDamageOperationKey &&
+          contribution.recoveryTags[0] === reduction.recoveryTags[0]
+        : contribution.kind === 'SCALAR_REDUCTION' &&
+          contribution.amount === reduction.reductionAmount &&
+          contribution.valueDefinitionId === reduction.valueDefinitionId &&
+          contribution.sourceOutcomeId === reduction.sourceOutcomeId &&
+          contribution.sourceNodeId === reduction.sourceNodeId &&
+          contribution.sourceOperationKey === reduction.sourceOperationKey
+    if (
+      !ownerMatches ||
+      transition.frozenGraphNodeId !== reduction.sourceNodeId ||
+      !contributionMatches
+    )
+      input.context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['stateEffectTransitions', index],
+        message: 'State-effect receipt does not match its target state reduction.'
+      })
+  }
+}
 const maintainedEffectTransitionDtoSchema = z
   .strictObject({
     kind: z.literal('REPLACE_SAME_DEFINITION'),
@@ -3292,6 +4608,19 @@ const encounterActorMechanicsBatchApplicationOutputDtoSchema = z
     targetActorId: uuidSchema,
     sourceCharacterStreamVersion: aggregateVersionSchema.nullable(),
     resourceConsumption: characterMechanicsResourceReceiptDtoSchema.nullable(),
+    spellCastConsumption: z
+      .strictObject({
+        spellId: uuidSchema,
+        spellVersionId: uuidSchema,
+        spellVersion: z.number().int().positive(),
+        spellChecksum: checksumSchema,
+        candidateId: z.string().trim().min(1).max(1_000),
+        slotKey: z.string().trim().min(1).max(1_000).nullable(),
+        beforeUsed: z.number().int().nonnegative().nullable(),
+        afterUsed: z.number().int().nonnegative().nullable()
+      })
+      .nullable()
+      .default(null),
     featureResourceConsumption: encounterFeatureResourceReceiptDtoSchema.nullable().default(null),
     targetFeatureResourceConsumption: encounterFeatureResourceReceiptDtoSchema
       .nullable()
@@ -3323,6 +4652,12 @@ const encounterActorMechanicsBatchApplicationOutputDtoSchema = z
       .nullable()
       .default(null),
     d20: serverRuleExecutionD20EvidenceDtoSchema.nullable(),
+    nestedD20: serverRuleExecutionNestedD20EvidenceDtoSchema.nullable().default(null),
+    activeEffectTransitions: z
+      .array(encounterActorActiveEffectCreateReceiptDtoSchema)
+      .max(1)
+      .default([]),
+    stateEffectTransitions: z.array(stateEffectCreateReceiptDtoSchema).max(1).default([]),
     targetTransition: z.strictObject({
       checksum: checksumSchema,
       before: characterMechanicsTargetStateDtoSchema,
@@ -3331,10 +4666,18 @@ const encounterActorMechanicsBatchApplicationOutputDtoSchema = z
     applications: z.array(characterMechanicsApplicationDtoSchema).max(RULE_GRAPH_LIMITS.NODES)
   })
   .superRefine((value, context) => {
+    validateStateEffectTransitions({
+      applications: value.applications,
+      transitions: value.stateEffectTransitions,
+      expectedOwnerKind: 'ENCOUNTER_ACTOR',
+      expectedTargetActorId: value.targetActorId,
+      context
+    })
     let current = value.targetTransition.before.currentHitPoints
     let temporary = value.targetTransition.before.temporaryHitPoints
-    const maximum = value.targetTransition.before.maximumHitPoints
+    let maximum = value.targetTransition.before.maximumHitPoints
     const conditions = new Set(value.targetTransition.before.conditionIds)
+    const scalarValues = { ...value.targetTransition.before.scalarValues }
     for (const [index, application] of value.applications.entries()) {
       if (application.ordinal !== index)
         context.addIssue({
@@ -3342,19 +4685,69 @@ const encounterActorMechanicsBatchApplicationOutputDtoSchema = z
           path: ['applications', index, 'ordinal'],
           message: 'Encounter actor mechanics application ordinals must be contiguous.'
         })
-      if (application.kind === 'CONDITION_APPLY') {
+      if (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE') {
         const present = conditions.has(application.conditionId)
-        if (
-          application.beforePresent !== present ||
-          application.afterPresent !== true ||
-          application.applied !== !present
-        )
+        const validTransition =
+          application.kind === 'CONDITION_APPLY'
+            ? application.afterPresent && application.applied === !present
+            : application.applied
+              ? present && !application.afterPresent
+              : application.afterPresent === present
+        if (application.beforePresent !== present || !validTransition)
           context.addIssue({
             code: z.ZodIssueCode.custom,
             path: ['applications', index],
             message: 'Condition receipt presence is invalid.'
           })
-        conditions.add(application.conditionId)
+        if (application.afterPresent) conditions.add(application.conditionId)
+        else conditions.delete(application.conditionId)
+        continue
+      }
+      if (application.kind === 'HIT_POINT_MAXIMUM_REDUCTION') {
+        const afterMaximum = Math.max(
+          0,
+          application.beforeMaximumHitPoints - application.reductionAmount
+        )
+        if (
+          application.beforeMaximumHitPoints !== maximum ||
+          application.afterMaximumHitPoints !== afterMaximum ||
+          application.appliedAmount !== application.beforeMaximumHitPoints - afterMaximum ||
+          application.requestedAmount !== application.reductionAmount ||
+          application.resolvedAmount !== application.reductionAmount ||
+          application.maximumHitPoints !== maximum ||
+          application.beforeCurrentHitPoints !== current ||
+          application.afterCurrentHitPoints !== Math.min(current, afterMaximum) ||
+          application.beforeTemporaryHitPoints !== temporary ||
+          application.afterTemporaryHitPoints !== temporary
+        )
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['applications', index],
+            message: 'Hit point maximum reduction receipt arithmetic is invalid.'
+          })
+        current = application.afterCurrentHitPoints
+        maximum = application.afterMaximumHitPoints
+        continue
+      }
+      if (application.kind === 'SCALAR_REDUCTION') {
+        const beforeValue = scalarValues[application.valueDefinitionId]
+        const afterValue = Math.max(application.floor, beforeValue - application.reductionAmount)
+        if (
+          !Number.isSafeInteger(beforeValue) ||
+          beforeValue < 0 ||
+          application.stacking !== 'ADDITIVE' ||
+          application.floor !== 0 ||
+          application.afterValue !== afterValue ||
+          application.beforeValue !== beforeValue ||
+          application.targetDied !== (afterValue === application.floor)
+        )
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['applications', index],
+            message: 'Scalar reduction receipt arithmetic is invalid.'
+          })
+        scalarValues[application.valueDefinitionId] = afterValue
+        if (application.targetDied) current = 0
         continue
       }
       if (
@@ -3434,7 +4827,8 @@ const encounterActorMechanicsBatchApplicationOutputDtoSchema = z
       after.temporaryHitPoints !== temporary ||
       after.maximumHitPoints !== maximum ||
       after.conditionIds.length !== conditions.size ||
-      after.conditionIds.some((conditionId, index) => [...conditions][index] !== conditionId)
+      after.conditionIds.some((conditionId, index) => [...conditions][index] !== conditionId) ||
+      JSON.stringify(after.scalarValues) !== JSON.stringify(scalarValues)
     )
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -3551,8 +4945,248 @@ const encounterActorMechanicsBatchApplicationOutputDtoSchema = z
       })
   })
 
+const contestedActionRollDtoSchema = z
+  .strictObject({
+    actorId: uuidSchema,
+    requestNodeId: localNodeIdSchema,
+    rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+    rawFaces: z.array(receiptD20FaceSchema).min(1).max(2),
+    selectedNatural: receiptD20FaceSchema,
+    contributors: z.array(receiptD20ContributorSchema).max(RULE_GRAPH_LIMITS.NODES),
+    contributorChecksum: checksumSchema,
+    modifier: z.number().int(),
+    total: z.number().int()
+  })
+  .superRefine((value, context) => {
+    const expectedFaces = value.rollMode === 'NORMAL' ? 1 : 2
+    const expectedSelected =
+      value.rollMode === 'ADVANTAGE'
+        ? Math.max(...value.rawFaces)
+        : value.rollMode === 'DISADVANTAGE'
+          ? Math.min(...value.rawFaces)
+          : value.rawFaces[0]
+    if (value.rawFaces.length !== expectedFaces || value.selectedNatural !== expectedSelected)
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Contested-action d20 faces do not match the sealed roll mode.'
+      })
+    if (value.total !== value.selectedNatural + value.modifier)
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['total'],
+        message: 'Contested-action d20 total is invalid.'
+      })
+    if (
+      value.contributors.some(
+        (contributor, index) =>
+          index > 0 &&
+          compareCanonicalD20Contributors(value.contributors[index - 1]!, contributor) >= 0
+      )
+    )
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contributors'],
+        message: 'Contested-action contributors must be strictly sorted and unique.'
+      })
+    if (checksumRuleDocument(value.contributors) !== value.contributorChecksum)
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contributorChecksum'],
+        message: 'Contested-action contributor checksum is invalid.'
+      })
+  })
+
+const contestedActionApplicationOutputDtoSchema = z
+  .strictObject({
+    kind: z.literal('CONTESTED_ACTION'),
+    schemaVersion: z.literal(1),
+    occurrenceId: uuidSchema,
+    sourceActorId: uuidSchema,
+    targetActorId: uuidSchema,
+    sealedContextChecksum: checksumSchema,
+    policy: z.strictObject({
+      definitionId: uuidSchema,
+      definitionVersion: z.number().int().positive(),
+      definitionChecksum: checksumSchema,
+      moduleKey: capabilityKeySchema,
+      moduleContractVersion: contractVersionSchema
+    }),
+    contestGraph: z.strictObject({
+      definitionId: uuidSchema,
+      checksum: checksumSchema,
+      identityChecksum: checksumSchema
+    }),
+    sourceRoll: contestedActionRollDtoSchema,
+    targetRoll: contestedActionRollDtoSchema,
+    outcome: z.enum(['SOURCE_WIN', 'TARGET_WIN_OR_TIE']),
+    stateTransition: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('NONE') }),
+      z.strictObject({
+        kind: z.literal('CHARACTER_ITEM_USE_STATE'),
+        characterId: uuidSchema,
+        itemInstanceId: uuidSchema,
+        fromState: z.literal('EQUIPPED'),
+        toState: z.literal('CARRIED'),
+        beforeStreamVersion: aggregateVersionSchema,
+        afterStreamVersion: aggregateVersionSchema,
+        beforeStateChecksum: checksumSchema,
+        afterStateChecksum: checksumSchema
+      }),
+      z.strictObject({
+        kind: z.literal('ENCOUNTER_ACTOR_ITEM_USE_STATE'),
+        actorId: uuidSchema,
+        loadoutEntryId: uuidSchema,
+        equipmentId: uuidSchema,
+        fromState: z.literal('HELD'),
+        toState: z.literal('CARRIED'),
+        beforeStateChecksum: checksumSchema,
+        afterStateChecksum: checksumSchema
+      }),
+      z.strictObject({
+        kind: z.literal('SCENE_TOKEN_MOVED'),
+        tokenId: uuidSchema,
+        destination: z.strictObject({ x: z.number().finite(), y: z.number().finite() })
+      })
+    ]),
+    actionEconomyTransition: z
+      .strictObject({
+        definitionId: uuidSchema,
+        definitionVersion: z.number().int().positive(),
+        definitionChecksum: checksumSchema,
+        maximum: z.number().int().positive(),
+        beforeUsed: z.number().int().nonnegative(),
+        afterUsed: z.number().int().positive()
+      })
+      .nullable()
+  })
+  .superRefine((value, context) => {
+    if (value.sourceActorId === value.targetActorId)
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['targetActorId'],
+        message: 'Contested-action participants must be distinct.'
+      })
+    if (
+      value.sourceRoll.actorId !== value.sourceActorId ||
+      value.targetRoll.actorId !== value.targetActorId ||
+      value.sourceRoll.requestNodeId === value.targetRoll.requestNodeId
+    )
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['sourceRoll'],
+        message: 'Contested-action roll participants or request nodes are invalid.'
+      })
+    const sourceWon = value.sourceRoll.total > value.targetRoll.total
+    if ((value.outcome === 'SOURCE_WIN') !== sourceWon)
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['outcome'],
+        message: 'Contested-action outcome does not match roll totals.'
+      })
+    if (value.outcome === 'SOURCE_WIN' && value.stateTransition.kind === 'NONE')
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['stateTransition'],
+        message: 'A contested-action source win requires one state transition.'
+      })
+    if (value.outcome === 'TARGET_WIN_OR_TIE' && value.stateTransition.kind !== 'NONE')
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['stateTransition'],
+        message: 'A contested-action target win or tie cannot mutate item state.'
+      })
+    if (
+      value.stateTransition.kind === 'CHARACTER_ITEM_USE_STATE' &&
+      (value.stateTransition.afterStreamVersion !== value.stateTransition.beforeStreamVersion + 1 ||
+        value.stateTransition.beforeStateChecksum === value.stateTransition.afterStateChecksum)
+    )
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['stateTransition'],
+        message: 'Character contested-action item state transition is invalid.'
+      })
+    if (
+      value.stateTransition.kind === 'ENCOUNTER_ACTOR_ITEM_USE_STATE' &&
+      (value.stateTransition.actorId !== value.targetActorId ||
+        value.stateTransition.beforeStateChecksum === value.stateTransition.afterStateChecksum)
+    )
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['stateTransition'],
+        message: 'Encounter-actor contested-action item state transition is invalid.'
+      })
+    if (
+      value.stateTransition.kind === 'SCENE_TOKEN_MOVED' &&
+      value.stateTransition.tokenId.length === 0
+    )
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['stateTransition'],
+        message: 'Contested-action Scene transition is invalid.'
+      })
+    if (
+      value.actionEconomyTransition &&
+      (value.actionEconomyTransition.beforeUsed >= value.actionEconomyTransition.maximum ||
+        value.actionEconomyTransition.afterUsed !== value.actionEconomyTransition.beforeUsed + 1)
+    )
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['actionEconomyTransition'],
+        message: 'Contested-action economy transition is invalid.'
+      })
+  })
+
+const cleavingDamageApplicationOutputDtoSchema = z
+  .strictObject({
+    kind: z.literal('CLEAVING_DAMAGE'),
+    schemaVersion: z.literal(1),
+    occurrenceId: uuidSchema,
+    parentOccurrenceId: uuidSchema,
+    sourceActorId: uuidSchema,
+    targetActorId: uuidSchema.nullable(),
+    selectedOptionId: checksumSchema.nullable(),
+    sealedContextChecksum: checksumSchema,
+    outcome: z.enum(['DECLINED', 'APPLIED']),
+    damage: z.strictObject({
+      sourceNodeId: localNodeIdSchema,
+      sourceOperationKey: capabilityKeySchema,
+      damageTypeId: uuidSchema,
+      requestedAmount: z.number().int().positive(),
+      resolvedAmount: z.number().int().positive(),
+      appliedAmount: z.number().int().nonnegative()
+    }),
+    targetTransition: z
+      .strictObject({
+        checksum: checksumSchema,
+        before: characterMechanicsTargetStateDtoSchema,
+        after: characterMechanicsTargetStateDtoSchema
+      })
+      .nullable()
+  })
+  .superRefine((value, context) => {
+    const applied = value.outcome === 'APPLIED'
+    if (
+      (applied &&
+        (value.targetActorId === null ||
+          value.selectedOptionId === null ||
+          value.targetTransition === null)) ||
+      (!applied &&
+        (value.targetActorId !== null ||
+          value.selectedOptionId !== null ||
+          value.targetTransition !== null)) ||
+      value.damage.requestedAmount !== value.damage.resolvedAmount
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Cleaving settlement evidence is inconsistent.'
+      })
+    }
+  })
+
 export const serverRuleExecutionApplicationOutputsDtoSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('NONE') }),
+  cleavingDamageApplicationOutputDtoSchema,
+  contestedActionApplicationOutputDtoSchema,
   concentrationCheckApplicationOutputDtoSchema,
   encounterActorMechanicsBatchApplicationOutputDtoSchema,
   z
@@ -3567,6 +5201,19 @@ export const serverRuleExecutionApplicationOutputsDtoSchema = z.discriminatedUni
       sourceCharacterStreamVersion: aggregateVersionSchema.nullable(),
       targetCharacterStreamVersion: aggregateVersionSchema.nullable(),
       resourceConsumption: characterMechanicsResourceReceiptDtoSchema.nullable(),
+      spellCastConsumption: z
+        .strictObject({
+          spellId: uuidSchema,
+          spellVersionId: uuidSchema,
+          spellVersion: z.number().int().positive(),
+          spellChecksum: checksumSchema,
+          candidateId: z.string().trim().min(1).max(1_000),
+          slotKey: z.string().trim().min(1).max(1_000).nullable(),
+          beforeUsed: z.number().int().nonnegative().nullable(),
+          afterUsed: z.number().int().nonnegative().nullable()
+        })
+        .nullable()
+        .default(null),
       featureResourceConsumption: encounterFeatureResourceReceiptDtoSchema.nullable().default(null),
       targetFeatureResourceConsumption: encounterFeatureResourceReceiptDtoSchema
         .nullable()
@@ -3574,6 +5221,8 @@ export const serverRuleExecutionApplicationOutputsDtoSchema = z.discriminatedUni
       activeEffectTransitions: z.array(characterActiveEffectCreateReceiptDtoSchema).max(1),
       maintenanceTransition: maintainedEffectTransitionDtoSchema.nullable().optional(),
       d20: serverRuleExecutionD20EvidenceDtoSchema.nullable(),
+      nestedD20: serverRuleExecutionNestedD20EvidenceDtoSchema.nullable().default(null),
+      stateEffectTransitions: z.array(stateEffectCreateReceiptDtoSchema).max(1).default([]),
       targetTransition: z.strictObject({
         checksum: checksumSchema,
         before: characterMechanicsTargetStateDtoSchema,
@@ -3582,6 +5231,12 @@ export const serverRuleExecutionApplicationOutputsDtoSchema = z.discriminatedUni
       applications: z.array(characterMechanicsApplicationDtoSchema).max(RULE_GRAPH_LIMITS.NODES)
     })
     .superRefine((value, context) => {
+      validateStateEffectTransitions({
+        applications: value.applications,
+        transitions: value.stateEffectTransitions,
+        expectedOwnerKind: 'CHARACTER',
+        context
+      })
       const maintenance = value.maintenanceTransition ?? null
       if (maintenance) {
         if (
@@ -3619,8 +5274,9 @@ export const serverRuleExecutionApplicationOutputsDtoSchema = z.discriminatedUni
         })
       let current = value.targetTransition.before.currentHitPoints
       let temporary = value.targetTransition.before.temporaryHitPoints
-      const maximum = value.targetTransition.before.maximumHitPoints
+      let maximum = value.targetTransition.before.maximumHitPoints
       const conditions = new Set(value.targetTransition.before.conditionIds)
+      const scalarValues = { ...value.targetTransition.before.scalarValues }
       for (const [index, application] of value.applications.entries()) {
         if (application.ordinal !== index)
           context.addIssue({
@@ -3628,19 +5284,69 @@ export const serverRuleExecutionApplicationOutputsDtoSchema = z.discriminatedUni
             path: ['applications', index, 'ordinal'],
             message: 'Character mechanics application ordinals must be contiguous.'
           })
-        if (application.kind === 'CONDITION_APPLY') {
+        if (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE') {
           const present = conditions.has(application.conditionId)
-          if (
-            application.beforePresent !== present ||
-            application.afterPresent !== true ||
-            application.applied !== !present
-          )
+          const validTransition =
+            application.kind === 'CONDITION_APPLY'
+              ? application.afterPresent && application.applied === !present
+              : application.applied
+                ? present && !application.afterPresent
+                : application.afterPresent === present
+          if (application.beforePresent !== present || !validTransition)
             context.addIssue({
               code: z.ZodIssueCode.custom,
               path: ['applications', index],
               message: 'Condition receipt presence is invalid.'
             })
-          conditions.add(application.conditionId)
+          if (application.afterPresent) conditions.add(application.conditionId)
+          else conditions.delete(application.conditionId)
+          continue
+        }
+        if (application.kind === 'HIT_POINT_MAXIMUM_REDUCTION') {
+          const afterMaximum = Math.max(
+            0,
+            application.beforeMaximumHitPoints - application.reductionAmount
+          )
+          if (
+            application.beforeMaximumHitPoints !== maximum ||
+            application.afterMaximumHitPoints !== afterMaximum ||
+            application.appliedAmount !== application.beforeMaximumHitPoints - afterMaximum ||
+            application.requestedAmount !== application.reductionAmount ||
+            application.resolvedAmount !== application.reductionAmount ||
+            application.maximumHitPoints !== maximum ||
+            application.beforeCurrentHitPoints !== current ||
+            application.afterCurrentHitPoints !== Math.min(current, afterMaximum) ||
+            application.beforeTemporaryHitPoints !== temporary ||
+            application.afterTemporaryHitPoints !== temporary
+          )
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['applications', index],
+              message: 'Hit point maximum reduction receipt arithmetic is invalid.'
+            })
+          current = application.afterCurrentHitPoints
+          maximum = application.afterMaximumHitPoints
+          continue
+        }
+        if (application.kind === 'SCALAR_REDUCTION') {
+          const beforeValue = scalarValues[application.valueDefinitionId]
+          const afterValue = Math.max(application.floor, beforeValue - application.reductionAmount)
+          if (
+            !Number.isSafeInteger(beforeValue) ||
+            beforeValue < 0 ||
+            application.stacking !== 'ADDITIVE' ||
+            application.floor !== 0 ||
+            application.afterValue !== afterValue ||
+            application.beforeValue !== beforeValue ||
+            application.targetDied !== (afterValue === application.floor)
+          )
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['applications', index],
+              message: 'Scalar reduction receipt arithmetic is invalid.'
+            })
+          scalarValues[application.valueDefinitionId] = afterValue
+          if (application.targetDied) current = 0
           continue
         }
         if (
@@ -3727,7 +5433,8 @@ export const serverRuleExecutionApplicationOutputsDtoSchema = z.discriminatedUni
         transitionAfter.conditionIds.length !== conditions.size ||
         transitionAfter.conditionIds.some(
           (conditionId, index) => [...conditions][index] !== conditionId
-        )
+        ) ||
+        JSON.stringify(transitionAfter.scalarValues) !== JSON.stringify(scalarValues)
       )
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -3883,6 +5590,18 @@ export const serverRuleExecutionReceiptCommandMetadataDtoSchema = z
     }),
     z.strictObject({
       schemaVersion: z.literal(1),
+      transition: z.literal('OPTIONAL_COMBAT_CLEAVING'),
+      commandType: z.literal('RESOLVE_RULE_OCCURRENCE'),
+      expectedAggregateVersion: aggregateVersionSchema,
+      expectedOccurrenceVersion: aggregateVersionSchema,
+      response: z.discriminatedUnion('kind', [
+        z.strictObject({ kind: z.literal('DECLINE') }),
+        z.strictObject({ kind: z.literal('OPTION'), optionId: checksumSchema })
+      ]),
+      optionalCombatSnapshotChecksum: checksumSchema.nullable().optional()
+    }),
+    z.strictObject({
+      schemaVersion: z.literal(1),
       transition: z.literal('TURN_EFFECTS'),
       commandType: z.enum(['START', 'ADVANCE_TURN']),
       expectedAggregateVersion: aggregateVersionSchema,
@@ -3942,6 +5661,7 @@ export const serverRuleExecutionReceiptCommandMetadataDtoSchema = z
       transition: z.literal('MAINTENANCE_CLEANUP'),
       commandType: z.literal('REMOVE_ACTOR'),
       expectedAggregateVersion: aggregateVersionSchema,
+      expectedOccurrenceVersion: aggregateVersionSchema.nullable().default(null),
       optionalCombatSnapshotChecksum: checksumSchema.nullable().optional(),
       removedActorId: uuidSchema
     })
@@ -4368,11 +6088,13 @@ const spatialMovementExecutionDtoSchema = z
           trace.outputs.targetActorId === value.candidate.candidate.targetActorId &&
           (trace.outputs.authoredPath ?? null) === application.authoredPath &&
           (trace.outputs.resolvedPath ?? null) === application.resolvedPath &&
-          (application.kind === 'CONDITION_APPLY'
+          (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
             ? trace.outputs.conditionId === application.conditionId
-            : trace.outputs.amount === application.requestedAmount &&
-              (application.kind !== 'DAMAGE' ||
-                trace.outputs.damageTypeId === application.damageTypeId))
+            : application.kind === 'SCALAR_REDUCTION'
+              ? trace.outputs.amount === application.reductionAmount
+              : trace.outputs.amount === application.requestedAmount &&
+                (application.kind !== 'DAMAGE' ||
+                  trace.outputs.damageTypeId === application.damageTypeId))
       )
       if (
         application.sourceNodeId !== effect.frozenGraphNodeId ||
@@ -4431,16 +6153,16 @@ const turnEffectExecutionDtoSchema = z.strictObject({
       kind: z.literal('UPDATE'),
       expectedVersion: aggregateVersionSchema,
       afterVersion: aggregateVersionSchema,
-      beforeRemainingTicks: z.number().int().positive(),
-      afterRemainingTicks: z.number().int().positive(),
+      beforeRemainingTicks: z.number().int().positive().nullable(),
+      afterRemainingTicks: z.number().int().positive().nullable(),
       beforeLifecycleChecksum: checksumSchema,
       afterLifecycleChecksum: checksumSchema
     }),
     z.strictObject({
       kind: z.literal('EXPIRE'),
       expectedVersion: aggregateVersionSchema,
-      beforeRemainingTicks: z.number().int().positive(),
-      afterRemainingTicks: z.literal(0),
+      beforeRemainingTicks: z.number().int().positive().nullable(),
+      afterRemainingTicks: z.union([z.literal(0), z.null()]),
       beforeLifecycleChecksum: checksumSchema
     })
   ])
@@ -4553,6 +6275,14 @@ export const storedRuleExecutionResultDtoSchema = z
       occurrence: encounterRuleOccurrenceSummaryDtoSchema,
       /** Exact command-scoped Character mutations committed before the next pause. */
       characterTransitions: pendingSpatialCharacterTransitionsDtoSchema
+    }),
+    z.strictObject({
+      /** Terminal evidence for one sealed aggregate-owned choice. */
+      status: z.literal('AGGREGATE_CHOICE_COMPLETE'),
+      schemaVersion: z.literal(1),
+      occurrenceId: uuidSchema,
+      occurrenceVersion: aggregateVersionSchema,
+      applicationOutputs: serverRuleExecutionApplicationOutputsDtoSchema
     }),
     z.strictObject({
       status: z.literal('COMPLETE'),
@@ -5089,16 +6819,26 @@ export const storedRuleExecutionResultDtoSchema = z
               message: 'Turn-effect Character target transitions must chain.'
             })
           current.set(ownerKey, execution.targetTransition.after)
+          const updateLifecycleIsValid =
+            execution.lifecycle.kind !== 'UPDATE' ||
+            (execution.lifecycle.beforeRemainingTicks === null
+              ? execution.lifecycle.afterRemainingTicks === null
+              : execution.lifecycle.beforeRemainingTicks >= 2 &&
+                execution.lifecycle.afterRemainingTicks ===
+                  execution.lifecycle.beforeRemainingTicks - 1)
+          const expireLifecycleIsValid =
+            execution.lifecycle.kind !== 'EXPIRE' ||
+            (execution.lifecycle.beforeRemainingTicks === null
+              ? execution.lifecycle.afterRemainingTicks === null
+              : execution.lifecycle.beforeRemainingTicks >= 1 &&
+                execution.lifecycle.afterRemainingTicks === 0)
           if (
             execution.beforeVersion < 1 ||
             execution.lifecycle.expectedVersion !== execution.beforeVersion ||
             (execution.lifecycle.kind === 'UPDATE' &&
-              (execution.lifecycle.afterVersion !== execution.beforeVersion + 1 ||
-                execution.lifecycle.beforeRemainingTicks < 2 ||
-                execution.lifecycle.afterRemainingTicks !==
-                  execution.lifecycle.beforeRemainingTicks - 1)) ||
-            (execution.lifecycle.kind === 'EXPIRE' &&
-              execution.lifecycle.beforeRemainingTicks !== 1)
+              execution.lifecycle.afterVersion !== execution.beforeVersion + 1) ||
+            !updateLifecycleIsValid ||
+            !expireLifecycleIsValid
           )
             context.addIssue({
               code: z.ZodIssueCode.custom,
@@ -5318,11 +7058,13 @@ export const storedRuleExecutionResultDtoSchema = z
                 trace.outputs.targetActorId === execution.targetActorId &&
                 (trace.outputs.authoredPath ?? null) === application.authoredPath &&
                 (trace.outputs.resolvedPath ?? null) === application.resolvedPath &&
-                (application.kind === 'CONDITION_APPLY'
+                (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
                   ? trace.outputs.conditionId === application.conditionId
-                  : trace.outputs.amount === application.requestedAmount &&
-                    (application.kind !== 'DAMAGE' ||
-                      trace.outputs.damageTypeId === application.damageTypeId))
+                  : application.kind === 'SCALAR_REDUCTION'
+                    ? trace.outputs.amount === application.reductionAmount
+                    : trace.outputs.amount === application.requestedAmount &&
+                      (application.kind !== 'DAMAGE' ||
+                        trace.outputs.damageTypeId === application.damageTypeId))
             )
             if (
               matches.length !== 1 ||
@@ -5386,6 +7128,64 @@ export const storedRuleExecutionResultDtoSchema = z
   .superRefine((value, context) => {
     if (
       value.status === 'COMPLETE' &&
+      'applicationOutputs' in value &&
+      'phaseReceipts' in value &&
+      (value.applicationOutputs.kind === 'CHARACTER_MECHANICS_BATCH' ||
+        value.applicationOutputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+    ) {
+      const directBatch = value.applicationOutputs
+      const outcomeReceipt = value.phaseReceipts?.[1]
+      const outcomeExecution = outcomeReceipt?.phase === 'OUTCOME' ? outcomeReceipt.execution : null
+      const nested = directBatch.nestedD20
+      const requestTraces = outcomeExecution
+        ? outcomeExecution.evidence.trace.filter(
+            (trace) =>
+              trace.operation.key === 'evidence.integer-range' &&
+              trace.operation.contractVersion === 1 &&
+              trace.inputs.min === 1 &&
+              trace.inputs.max === 20 &&
+              trace.evidence?.kind === 'INTEGER_RANGE'
+          )
+        : []
+      const saveTraces = outcomeExecution
+        ? outcomeExecution.evidence.trace.filter(
+            (trace) =>
+              typeof trace.inputs.naturalD20 === 'number' &&
+              typeof trace.inputs.modifier === 'number' &&
+              typeof trace.inputs.threshold === 'number' &&
+              typeof trace.inputs.contributorChecksum === 'string' &&
+              typeof trace.outputs.contributorChecksum === 'string' &&
+              typeof trace.outputs.total === 'number' &&
+              typeof trace.outputs.resultPath === 'string'
+          )
+        : []
+      if (nested !== null) {
+        const requestMatches = requestTraces.filter(
+          (trace) =>
+            trace.nodeId === nested.requestNodeId &&
+            trace.evidence?.requestId === nested.requestId &&
+            trace.evidence.value === nested.selectedNatural
+        )
+        const saveMatches = saveTraces.filter(
+          (trace) =>
+            trace.inputs.naturalD20 === nested.selectedNatural &&
+            trace.inputs.modifier === nested.modifier &&
+            trace.inputs.threshold === nested.defenseOrDc &&
+            trace.inputs.contributorChecksum === nested.contributorChecksum &&
+            trace.outputs.contributorChecksum === nested.contributorChecksum &&
+            trace.outputs.total === nested.total &&
+            trace.outputs.resultPath === nested.resultPath
+        )
+        if (!outcomeExecution || requestMatches.length !== 1 || saveMatches.length !== 1)
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['applicationOutputs', 'nestedD20'],
+            message: 'Nested d20 evidence must bind one exact completed OUTCOME save trace.'
+          })
+      }
+    }
+    if (
+      value.status === 'COMPLETE' &&
       value.applicationOutputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' &&
       value.applicationOutputs.legendaryResistance
     ) {
@@ -5430,8 +7230,14 @@ export const storedRuleExecutionResultDtoSchema = z
             trace.outputs.resultPath === d20.resultPath
         ).length === 1
       if (
-        checksumRuleDocument({ outputs: value.outputs, evidence: value.evidence }) !==
-          checksumRuleDocument({ outputs: original.outputs, evidence: original.evidence }) ||
+        checksumRuleDocument({
+          outputs: value.outputs,
+          evidence: value.evidence
+        }) !==
+          checksumRuleDocument({
+            outputs: original.outputs,
+            evidence: original.evidence
+          }) ||
         value.applicationOutputs.d20 === null ||
         checksumRuleDocument(value.applicationOutputs.d20) !==
           checksumRuleDocument(legendaryResistance.originalD20) ||
@@ -5473,7 +7279,11 @@ export const storedRuleExecutionResultDtoSchema = z
         checksumRuleDocument({
           outputs: terminalReceipt.execution.outputs,
           evidence: terminalReceipt.execution.evidence
-        }) !== checksumRuleDocument({ outputs: value.outputs, evidence: value.evidence }))
+        }) !==
+          checksumRuleDocument({
+            outputs: value.outputs,
+            evidence: value.evidence
+          }))
     )
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -5540,8 +7350,10 @@ export const storedRuleExecutionResultDtoSchema = z
           )
             return false
           if ('authorized' in trace.outputs && trace.outputs.authorized !== true) return false
-          if (application.kind === 'CONDITION_APPLY')
+          if (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE')
             return trace.outputs.conditionId === application.conditionId
+          if (application.kind === 'SCALAR_REDUCTION')
+            return trace.outputs.amount === application.reductionAmount
           return (
             trace.outputs.amount === application.requestedAmount &&
             (application.kind !== 'DAMAGE' ||
@@ -5608,7 +7420,10 @@ const pendingCompletedTurnPhaseDtoSchema = z
       selectionChecksum: checksumSchema,
       result: z.lazy(() => storedRuleExecutionResultDtoSchema)
     }),
-    z.strictObject({ kind: z.literal('STAGED'), plan: stagedTurnEffectPlanDtoSchema })
+    z.strictObject({
+      kind: z.literal('STAGED'),
+      plan: stagedTurnEffectPlanDtoSchema
+    })
   ])
   .superRefine((phase, context) => {
     if (phase.kind !== 'MANUAL') return
@@ -5634,8 +7449,9 @@ export type RuleExecutionPhaseReceiptsDto = z.infer<typeof ruleExecutionPhaseRec
 export type ServerRuleExecutionContinuationDto = z.infer<
   typeof serverRuleExecutionContinuationDtoSchema
 >
-export type ServerRuleExecutionPendingApplicationContextDto = z.infer<
-  typeof serverRuleExecutionPendingApplicationContextDtoSchema
+export type ServerOptionalCombatContestPendingApplicationContextDto = Extract<
+  ServerRuleExecutionPendingApplicationContextDto,
+  { kind: 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' }
 >
 export function isServerKernelRuleExecutionPendingSnapshot(
   snapshot: ServerRuleExecutionPendingSnapshotDto
@@ -5687,5 +7503,8 @@ export type ServerRuleExecutionApplicationOutputsDto = z.infer<
 >
 export type ServerRuleExecutionD20EvidenceDto = z.infer<
   typeof serverRuleExecutionD20EvidenceDtoSchema
+>
+export type ServerRuleExecutionNestedD20EvidenceDto = z.infer<
+  typeof serverRuleExecutionNestedD20EvidenceDtoSchema
 >
 export type ServerRuleExecutionD20PolicyDto = z.infer<typeof serverRuleExecutionD20PolicyDtoSchema>

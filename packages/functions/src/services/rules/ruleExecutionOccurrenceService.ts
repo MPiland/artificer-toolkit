@@ -11,6 +11,7 @@ import {
   serverRuleExecutionCorrelationIdDtoSchema,
   requireServerKernelRuleExecutionPendingSnapshot,
   serverRuleExecutionPendingApplicationContextDtoSchema,
+  serverRuleExecutionNestedD20EvidenceDtoSchema,
   serverRuleEvidenceResponseDtoSchema,
   serverRuleExecutionReceiptCommandMetadataDtoSchema,
   serverRuleExecutionApplicationOutputsDtoSchema,
@@ -23,12 +24,14 @@ import {
   type ServerRuleExecutionReceiptCommandMetadataDto,
   type ServerPublishedRuleDefinitionDto,
   type ServerRuleExecutionApplicationOutputsDto,
+  type ServerRuleExecutionNestedD20EvidenceDto,
   type ServerRuleExecutionPendingApplicationContextDto,
   type RuleExecutionPhaseReceiptsDto,
   type ManualRuleExecutionReminderDto,
   type ServerRuleExecutionResultDto,
   type StoredRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
+import { MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS } from '@artificer-toolkit/schema/shared/rulesExecution'
 
 import { withLockedCharacterRuleExecutionCommandContext } from '../character/characterRuleExecutionCommandContext.js'
 import { lockEncounterRuleExecutionCommandContext } from '../encounter/encounterRuleExecutionCommandContext.js'
@@ -152,6 +155,12 @@ type ResolvedExecutionCommand = CommandBase & {
     | {
         /** A command-local applicator is terminal-only and cannot be resumed. */
         allowPaused: false
+        /**
+         * Exact bounded initial evidence drain for a terminal command.  The
+         * default remains one request; a two-participant contest may opt into
+         * its second, already-pinned d20 request.
+         */
+        maximumAutomaticEvidenceRequests?: 1 | 2
         completionApplicator?: RuleExecutionCompletionApplicator
         /**
          * Server-only automatic evidence for a single terminal command. The
@@ -167,6 +176,14 @@ type ResolvedExecutionCommand = CommandBase & {
           >['continuation']['request']
           occurrenceId: string
         }) => Promise<{ requestId: string; value: number }>
+        /** Returns only exact server-derived nested d20 evidence; the coordinator seals it. */
+        captureAutomaticEvidence?: (input: {
+          request: Extract<
+            ServerRuleExecutionResultDto,
+            { status: 'PAUSED' }
+          >['continuation']['request']
+          response: { requestId: string; value: number }
+        }) => Promise<ServerRuleExecutionNestedD20EvidenceDto | null>
       }
     | {
         allowPaused?: true
@@ -434,6 +451,116 @@ function receiptPayload(result: StoredRuleExecutionResult): StoredRuleExecutionR
   return storedRuleExecutionResultDtoSchema.parse(result)
 }
 
+/**
+ * Capture hooks may seal only the exact nested OUTCOME d20 evidence. The
+ * coordinator owns every other pending-context field so a domain cannot
+ * replace source, target, graph, or currentness facts while resuming.
+ */
+function sealNestedOutcomeD20Evidence(input: {
+  applicationContext: ServerRuleExecutionPendingApplicationContextDto
+  request: Extract<ServerRuleExecutionResultDto, { status: 'PAUSED' }>['continuation']['request']
+  response: { requestId: string; value: number }
+  evidence: ServerRuleExecutionNestedD20EvidenceDto | null
+}): ServerRuleExecutionPendingApplicationContextDto {
+  if (input.evidence === null) return input.applicationContext
+  const evidence = serverRuleExecutionNestedD20EvidenceDtoSchema.parse(input.evidence)
+  if (
+    (input.applicationContext.kind !== 'ENCOUNTER_CHARACTER_RULE_ACTION' &&
+      input.applicationContext.kind !== 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+      input.applicationContext.kind !== 'ENCOUNTER_CREATURE_RULE_ACTION') ||
+    input.applicationContext.twoPhase?.phase !== 'OUTCOME' ||
+    !input.applicationContext.twoPhase.nestedOutcomeD20
+  ) {
+    throw new RuleExecutionCommandMismatchError(
+      'Nested d20 evidence may be captured only for a sealed direct-action OUTCOME.'
+    )
+  }
+  const policy = input.applicationContext.twoPhase.nestedOutcomeD20
+  if (
+    input.request.nodeId !== policy.requestNodeId ||
+    evidence.requestNodeId !== policy.requestNodeId ||
+    input.request.requestId !== evidence.requestId ||
+    input.response.requestId !== evidence.requestId ||
+    input.response.value !== evidence.selectedNatural ||
+    evidence.rollMode !== policy.rollMode ||
+    checksumRuleDocument(evidence.contributors) !== policy.contributorChecksum ||
+    evidence.contributorChecksum !== policy.contributorChecksum ||
+    evidence.modifier !== policy.modifier ||
+    evidence.defenseOrDc !== policy.dc
+  ) {
+    throw new RuleExecutionCommandMismatchError(
+      'Nested d20 evidence does not bind its sealed request and policy.'
+    )
+  }
+  return serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+    ...input.applicationContext,
+    twoPhase: {
+      ...input.applicationContext.twoPhase,
+      nestedOutcomeD20Evidence: evidence
+    }
+  })
+}
+
+function sealOptionalContestD20Evidence(input: {
+  applicationContext: ServerRuleExecutionPendingApplicationContextDto
+  request: Extract<ServerRuleExecutionResultDto, { status: 'PAUSED' }>['continuation']['request']
+  response: { requestId: string; value: number }
+  rawFaces: readonly number[]
+}): ServerRuleExecutionPendingApplicationContextDto {
+  if (input.applicationContext.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST') {
+    throw new RuleExecutionCommandMismatchError(
+      'Optional-combat contest evidence requires a sealed contest occurrence.'
+    )
+  }
+  if (
+    input.request.kind !== 'INTEGER_RANGE' ||
+    input.request.min !== 1 ||
+    input.request.max !== 20 ||
+    input.request.requestId !== input.response.requestId
+  ) {
+    throw new RuleExecutionCommandMismatchError('Optional-combat contest request is invalid.')
+  }
+  const participant =
+    input.request.nodeId === input.applicationContext.initiator.requestNodeId
+      ? 'initiator'
+      : input.request.nodeId === input.applicationContext.defender.requestNodeId
+        ? 'defender'
+        : null
+  if (!participant) {
+    throw new RuleExecutionCommandMismatchError(
+      'Optional-combat contest request is not assigned to a participant.'
+    )
+  }
+  const policy = input.applicationContext[participant]
+  const expectedFaces = policy.rollMode === 'NORMAL' ? 1 : 2
+  if (
+    input.rawFaces.length !== expectedFaces ||
+    input.rawFaces.some((face) => !Number.isInteger(face) || face < 1 || face > 20)
+  ) {
+    throw new RuleExecutionCommandMismatchError('Optional-combat contest raw dice are invalid.')
+  }
+  const selected =
+    policy.rollMode === 'ADVANTAGE'
+      ? Math.max(...input.rawFaces)
+      : policy.rollMode === 'DISADVANTAGE'
+        ? Math.min(...input.rawFaces)
+        : input.rawFaces[0]
+  if (selected !== input.response.value) {
+    throw new RuleExecutionCommandMismatchError(
+      'Optional-combat contest raw dice do not match the submitted response.'
+    )
+  }
+  const evidence = { requestId: input.request.requestId, rawFaces: [...input.rawFaces] }
+  const prior = input.applicationContext.rollEvidence
+  if (prior[participant] !== null || (participant === 'defender' && prior.initiator === null)) {
+    throw new RuleExecutionCommandMismatchError('Optional-combat contest evidence is out of order.')
+  }
+  return serverRuleExecutionPendingApplicationContextDtoSchema.parse({
+    ...input.applicationContext,
+    rollEvidence: { ...prior, [participant]: evidence }
+  })
+}
+
 type ResolvedStartIntent = Readonly<Record<string, boolean | number | string>>
 type PublicPendingResult =
   | { kind: 'D20_EVIDENCE'; rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE' }
@@ -447,12 +574,28 @@ type PublicPendingResult =
   | { kind: 'LEGENDARY_RESISTANCE_CHOICE'; targetActorId: string; useOptionId: string }
 
 function outcomePendingResult(
-  request: Extract<ServerRuleExecutionResultDto, { status: 'PAUSED' }>['continuation']['request']
-): Extract<PublicPendingResult, { kind: 'INTEGER_RANGE_EVIDENCE' }> {
+  request: Extract<ServerRuleExecutionResultDto, { status: 'PAUSED' }>['continuation']['request'],
+  applicationContext: ServerRuleExecutionPendingApplicationContextDto
+): PublicPendingResult {
   if (request.kind !== 'INTEGER_RANGE' || request.min >= request.max) {
     throw new RuleExecutionCommandMismatchError(
       'An OUTCOME phase issued an invalid evidence request.'
     )
+  }
+  const nestedOutcomeD20 =
+    (applicationContext.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION' ||
+      applicationContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+      applicationContext.kind === 'ENCOUNTER_CREATURE_RULE_ACTION') &&
+    applicationContext.twoPhase?.phase === 'OUTCOME'
+      ? applicationContext.twoPhase.nestedOutcomeD20
+      : null
+  if (nestedOutcomeD20 && request.nodeId === nestedOutcomeD20.requestNodeId) {
+    if (request.min !== 1 || request.max !== 20) {
+      throw new RuleExecutionCommandMismatchError(
+        'A nested OUTCOME d20 issued an invalid evidence request.'
+      )
+    }
+    return { kind: 'D20_EVIDENCE', rollMode: nestedOutcomeD20.rollMode }
   }
   const requests = [{ requestId: request.requestId, min: request.min, max: request.max }]
   return {
@@ -503,6 +646,14 @@ type ResolvedStartSource =
           >['continuation']['request']
           occurrenceId: string
         }) => Promise<{ requestId: string; value: number }>
+        /** Returns only exact server-derived nested d20 evidence; the coordinator seals it. */
+        captureAutomaticEvidence?: (input: {
+          request: Extract<
+            ServerRuleExecutionResultDto,
+            { status: 'PAUSED' }
+          >['continuation']['request']
+          response: { requestId: string; value: number }
+        }) => Promise<ServerRuleExecutionNestedD20EvidenceDto | null>
         /**
          * Marks the only permitted TEST -> OUTCOME transition. The completed
          * TEST receipt is sealed in the occurrence snapshot until terminal
@@ -525,6 +676,14 @@ type ResolvedStartSource =
         >['continuation']['request']
         occurrenceId: string
       }) => Promise<{ requestId: string; value: number }>
+      /** Returns only exact server-derived nested d20 evidence; the coordinator seals it. */
+      captureAutomaticEvidence?: (input: {
+        request: Extract<
+          ServerRuleExecutionResultDto,
+          { status: 'PAUSED' }
+        >['continuation']['request']
+        response: { requestId: string; value: number }
+      }) => Promise<ServerRuleExecutionNestedD20EvidenceDto | null>
       manualReceipt?: never
     }
   | {
@@ -538,6 +697,7 @@ type ResolvedStartSource =
       postCompletedExecution?: never
       allowPaused?: never
       resolveAutomaticEvidence?: never
+      captureAutomaticEvidence?: never
     }
 
 /**
@@ -855,6 +1015,10 @@ export function createRuleExecutionOccurrenceService(input: {
           let pendingResult = resolved.pendingResult ?? null
           let pausedValidator = resolved.validatePausedExecution
           const allowPaused = resolved.allowPaused ?? normalizedCommand.allowPaused
+          const maximumAutomaticEvidenceRequests =
+            ('maximumAutomaticEvidenceRequests' in normalizedCommand
+              ? normalizedCommand.maximumAutomaticEvidenceRequests
+              : undefined) ?? 1
           if (allowPaused && command.completionApplicator) {
             throw new RuleExecutionCommandMismatchError(
               'A pauseable resolved command cannot carry a command-local completion applicator.'
@@ -863,23 +1027,35 @@ export function createRuleExecutionOccurrenceService(input: {
           let resolveAutomaticEvidence = allowPaused
             ? resolved.resolveAutomaticEvidence
             : (resolved.resolveAutomaticEvidence ?? normalizedCommand.resolveAutomaticEvidence)
+          let captureAutomaticEvidence = resolved.captureAutomaticEvidence
           let automaticEvidenceCount = 0
           const drainAutomaticEvidence = async (allowOutcomeDrain: boolean) => {
             while (execution.status === 'PAUSED' && resolveAutomaticEvidence) {
-              if (!allowOutcomeDrain && automaticEvidenceCount >= 1) {
+              if (
+                !allowOutcomeDrain &&
+                automaticEvidenceCount >= maximumAutomaticEvidenceRequests
+              ) {
                 throw new RuleExecutionCommandMismatchError(
                   'Automatic rule evidence may satisfy only one evidence stage.'
                 )
               }
-              if (automaticEvidenceCount >= 32) {
+              if (automaticEvidenceCount >= MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS) {
                 throw new RuleExecutionCommandMismatchError(
                   'Automatic rule evidence exceeded the bounded TEST/OUTCOME request limit.'
                 )
               }
+              const request = execution.continuation.request
               const response = await resolveAutomaticEvidence({
-                request: execution.continuation.request,
+                request,
                 occurrenceId
               })
+              if (captureAutomaticEvidence)
+                pendingApplicationContext = sealNestedOutcomeD20Evidence({
+                  applicationContext: pendingApplicationContext,
+                  request,
+                  response,
+                  evidence: await captureAutomaticEvidence({ request, response })
+                })
               const resumed = input.runtime.resumeWithGraph
                 ? await input.runtime.resumeWithGraph({
                     continuation: execution.continuation,
@@ -941,6 +1117,7 @@ export function createRuleExecutionOccurrenceService(input: {
                 execution = { status: 'PAUSED', continuation: transition.continuation }
                 pausedValidator = transition.validatePausedExecution
                 resolveAutomaticEvidence = transition.resolveAutomaticEvidence
+                captureAutomaticEvidence = transition.captureAutomaticEvidence
                 await drainAutomaticEvidence(true)
               } else {
                 throw new RuleExecutionCommandMismatchError(
@@ -969,11 +1146,16 @@ export function createRuleExecutionOccurrenceService(input: {
               applicationContext: pendingApplicationContext
             })
             if (
-              pendingApplicationContext.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION' &&
+              (pendingApplicationContext.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION' ||
+                pendingApplicationContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+                pendingApplicationContext.kind === 'ENCOUNTER_CREATURE_RULE_ACTION') &&
               pendingApplicationContext.twoPhase?.phase === 'OUTCOME' &&
               pendingResult === null
             ) {
-              pendingResult = outcomePendingResult(execution.continuation.request)
+              pendingResult = outcomePendingResult(
+                execution.continuation.request,
+                pendingApplicationContext
+              )
             }
           }
           const completionApplicator =
@@ -1091,6 +1273,15 @@ export function createRuleExecutionOccurrenceService(input: {
             { status: 'PAUSED' }
           >['continuation']['request']
         }) => Promise<unknown>
+        /** Returns only trusted nested d20 evidence; the coordinator seals it. */
+        captureDerivedResponseEvidence?: (input: {
+          resolutionIntent: unknown
+          request: Extract<
+            ServerRuleExecutionResultDto,
+            { status: 'PAUSED' }
+          >['continuation']['request']
+          response: { requestId: string; value: number }
+        }) => Promise<ServerRuleExecutionNestedD20EvidenceDto | null>
         /**
          * The single approved bounded multi-die resume path. The domain must
          * validate the complete sealed request set before this is invoked.
@@ -1103,6 +1294,21 @@ export function createRuleExecutionOccurrenceService(input: {
             { status: 'PAUSED' }
           >['continuation']['request']
         }) => Promise<readonly { requestId: string; value: number }[]>
+        /**
+         * The only resume path that may seal raw d20 faces for the two-person
+         * optional-combat contest. It cannot replace application context.
+         */
+        deriveOptionalContestD20Response?: (input: {
+          applicationContext: ServerRuleExecutionPendingApplicationContextDto
+          resolutionIntent: unknown
+          request: Extract<
+            ServerRuleExecutionResultDto,
+            { status: 'PAUSED' }
+          >['continuation']['request']
+        }) => Promise<{
+          response: { requestId: string; value: number }
+          rawFaces: readonly number[]
+        }>
         /** Re-resolves the domain source under fresh locks before kernel resume. */
         resolve?: (input: {
           db: DBLike
@@ -1130,24 +1336,34 @@ export function createRuleExecutionOccurrenceService(input: {
       }
       return withTransaction(input.db, (db) =>
         aggregatePort.withLockedAuthorized(db, async (aggregate) => {
+          const derivedResponseCount = [
+            normalizedCommand.deriveResponse,
+            normalizedCommand.deriveResponses,
+            normalizedCommand.deriveOptionalContestD20Response
+          ].filter(Boolean).length
           if (
-            (normalizedCommand.deriveResponse || normalizedCommand.deriveResponses) &&
-            normalizedCommand.response !== undefined
+            derivedResponseCount > 1 ||
+            (derivedResponseCount > 0 && normalizedCommand.response !== undefined)
           ) {
             throw new RuleExecutionCommandMismatchError(
               'A domain-derived resume response cannot also supply a direct response.'
             )
           }
           if (
-            !normalizedCommand.deriveResponse &&
-            !normalizedCommand.deriveResponses &&
-            normalizedCommand.response === undefined
+            normalizedCommand.captureDerivedResponseEvidence &&
+            (!normalizedCommand.deriveResponse || normalizedCommand.deriveResponses)
           ) {
+            throw new RuleExecutionCommandMismatchError(
+              'Derived response evidence capture requires one domain-derived response.'
+            )
+          }
+          if (derivedResponseCount === 0 && normalizedCommand.response === undefined) {
             throw new RuleExecutionCommandMismatchError('A resume command requires a response.')
           }
-          const directResponse = normalizedCommand.deriveResponse
-            ? null
-            : serverRuleEvidenceResponseDtoSchema.parse(normalizedCommand.response)
+          const directResponse =
+            derivedResponseCount > 0
+              ? null
+              : serverRuleEvidenceResponseDtoSchema.parse(normalizedCommand.response)
           const commandFingerprint = createRuleExecutionCommandFingerprint(
             aggregate,
             normalizedCommand,
@@ -1236,6 +1452,13 @@ export function createRuleExecutionOccurrenceService(input: {
           }
           let activePhase: 'TEST' | 'OUTCOME' | null =
             phasePlan?.initialPhase ?? (phaseReceipts?.length === 1 ? 'OUTCOME' : null)
+          const optionalContestResponse = normalizedCommand.deriveOptionalContestD20Response
+            ? await normalizedCommand.deriveOptionalContestD20Response({
+                applicationContext,
+                resolutionIntent: normalizedCommand.resolutionIntent,
+                request: continuation.request
+              })
+            : null
           const rawResponses = normalizedCommand.deriveResponses
             ? await normalizedCommand.deriveResponses({
                 applicationContext,
@@ -1243,13 +1466,15 @@ export function createRuleExecutionOccurrenceService(input: {
                 request: continuation.request
               })
             : [
-                normalizedCommand.deriveResponse
-                  ? await normalizedCommand.deriveResponse({
-                      applicationContext,
-                      resolutionIntent: normalizedCommand.resolutionIntent,
-                      request: continuation.request
-                    })
-                  : directResponse
+                optionalContestResponse
+                  ? optionalContestResponse.response
+                  : normalizedCommand.deriveResponse
+                    ? await normalizedCommand.deriveResponse({
+                        applicationContext,
+                        resolutionIntent: normalizedCommand.resolutionIntent,
+                        request: continuation.request
+                      })
+                    : directResponse
               ]
           if (rawResponses.length < 1 || rawResponses.length > 31) {
             throw new RuleExecutionCommandMismatchError(
@@ -1267,6 +1492,25 @@ export function createRuleExecutionOccurrenceService(input: {
             applicationContext,
             response
           })
+          const capturedApplicationContext = normalizedCommand.deriveOptionalContestD20Response
+            ? sealOptionalContestD20Evidence({
+                applicationContext,
+                request: continuation.request,
+                response,
+                rawFaces: optionalContestResponse!.rawFaces
+              })
+            : normalizedCommand.captureDerivedResponseEvidence
+              ? sealNestedOutcomeD20Evidence({
+                  applicationContext,
+                  request: continuation.request,
+                  response,
+                  evidence: await normalizedCommand.captureDerivedResponseEvidence({
+                    resolutionIntent: normalizedCommand.resolutionIntent,
+                    request: continuation.request,
+                    response
+                  })
+                })
+              : applicationContext
 
           let currentContinuation = continuation
           let compiledGraph: import('@artificer-toolkit/shared/rules').CompiledRuleGraph | undefined
@@ -1315,13 +1559,13 @@ export function createRuleExecutionOccurrenceService(input: {
             })
             activePhase = 'TEST'
           }
-          let nextApplicationContext = applicationContext
+          let nextApplicationContext = capturedApplicationContext
           let pendingResult: PublicPendingResult | null = null
           if (execution.status === 'COMPLETE' && postCompletedExecution) {
             const transition = await postCompletedExecution({
               execution,
               occurrenceId: occurrence.id,
-              applicationContext
+              applicationContext: nextApplicationContext
             })
             if (transition) {
               nextApplicationContext = serverRuleExecutionPendingApplicationContextDtoSchema.parse(
@@ -1386,7 +1630,10 @@ export function createRuleExecutionOccurrenceService(input: {
               applicationContext: nextApplicationContext
             })
             if (activePhase === 'OUTCOME' && pendingResult === null) {
-              pendingResult = outcomePendingResult(execution.continuation.request)
+              pendingResult = outcomePendingResult(
+                execution.continuation.request,
+                nextApplicationContext
+              )
             }
           }
           const completionApplicator =

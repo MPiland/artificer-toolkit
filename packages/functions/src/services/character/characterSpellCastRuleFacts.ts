@@ -56,6 +56,7 @@ export function buildCharacterSpellCastRuleFacts(params: {
 
   const append = (
     source: CharacterSpellSourceRef,
+    label: string,
     spellLevel: number,
     mode: SpellCastCandidate['castMode'],
     resourceOwnerKey: string | null,
@@ -69,6 +70,7 @@ export function buildCharacterSpellCastRuleFacts(params: {
       spellCastCandidates.push({
         sequence: spellCastCandidates.length,
         candidateId,
+        label,
         spellId: source.spellId,
         source,
         spellLevel,
@@ -83,7 +85,7 @@ export function buildCharacterSpellCastRuleFacts(params: {
   for (const source of params.snapshot.spellSources ?? []) {
     const spell = spellById.get(source.spellId)
     if (!spell) continue
-    append(source, spell.level, 'SPELL_SLOT', null)
+    append(source, spell.label, spell.level, 'SPELL_SLOT', null)
   }
 
   for (const access of params.spellAccessCandidates) {
@@ -98,6 +100,7 @@ export function buildCharacterSpellCastRuleFacts(params: {
     const mode = castMode(access)
     append(
       source,
+      spell.label,
       spell.level,
       mode,
       spellPoolByAccessId.get(access.accessId) ?? null,

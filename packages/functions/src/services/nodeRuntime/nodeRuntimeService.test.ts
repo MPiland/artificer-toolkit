@@ -65,6 +65,7 @@ describe('node runtime service', () => {
         'classResource',
         'contains',
         'creature',
+        'creatureEquipmentLoadout',
         'effect',
         'equipment',
         'facet',
@@ -541,6 +542,38 @@ describe('node runtime service', () => {
     expect(result.clearedPaths).not.toContainEqual(['carryingCapacity'])
     expect(result.clearedPaths).not.toContainEqual(['logisticsNotes'])
     expect(result.clearedPaths).toContainEqual(['mountProfile'])
+  })
+
+  it('resolves creature loadout action bindings from the current Creature feature collection', async () => {
+    const result = await resolveNodeRuntime(unusedDb, {
+      mapId: 'creatureEquipmentLoadout',
+      systemId: 'system-1',
+      values: {
+        id: 'loadout-1',
+        equipmentId: '',
+        quantity: 1,
+        useState: 'HELD',
+        attuned: false,
+        actionFeatureIds: ['action-1']
+      },
+      ancestors: [
+        {
+          features: [
+            { id: 'action-1', label: 'Claw' },
+            { id: 'trait-1', label: 'Keen Smell', section: 'TRAIT' }
+          ]
+        }
+      ]
+    })
+    const nodes = result.steps.flatMap((step) => step.sections.flatMap((section) => section.nodes))
+
+    const actionFeatureNode = nodes.find((node) => node.id === 'actionFeatureIds')
+    expect(
+      actionFeatureNode && 'options' in actionFeatureNode ? actionFeatureNode.options : null
+    ).toEqual([
+      { value: 'action-1', label: 'Claw' },
+      { value: 'trait-1', label: 'Keen Smell' }
+    ])
   })
 
   it('resolves class category branches and parent class options', async () => {

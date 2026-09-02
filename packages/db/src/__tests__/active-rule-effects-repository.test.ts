@@ -489,6 +489,47 @@ describe('active rule-effect repository', () => {
     expect(sqlState.text[0]).not.toContain('FOR UPDATE')
   })
 
+  it('keeps dependent owner locators out of strict active-effect row parsing', async () => {
+    const repository = createActiveRuleEffectRepository({} as DBLike)
+    resetSql()
+    sqlState.rows = [
+      [
+        row({
+          character_id: ids.character,
+          maintained_effect_state_id: ids.maintained,
+          source_encounter_id: ids.encounter,
+          definition: encounterDefinition,
+          definition_checksum: checksumCanonicalJson(encounterDefinition),
+          lifecycle: encounterLifecycle,
+          lifecycle_checksum: checksumCanonicalJson(encounterLifecycle)
+        })
+      ],
+      [
+        row({
+          target_actor_id: ids.actor,
+          maintained_effect_state_id: ids.maintained,
+          definition: encounterDefinition,
+          definition_checksum: checksumCanonicalJson(encounterDefinition),
+          lifecycle: encounterLifecycle,
+          lifecycle_checksum: checksumCanonicalJson(encounterLifecycle),
+          source_encounter_id: undefined
+        })
+      ]
+    ]
+
+    const effects = await repository.lockDependentEffects({
+      stateId: ids.maintained,
+      encounterId: ids.encounter
+    })
+
+    expect(effects).toHaveLength(2)
+    expect(effects.map(({ owner }) => owner)).toEqual([
+      { kind: 'CHARACTER', characterId: ids.character },
+      { kind: 'ENCOUNTER_ACTOR', encounterId: ids.encounter, targetActorId: ids.actor }
+    ])
+    expect(sqlState.text).toHaveLength(2)
+  })
+
   it('performs lifecycle-only CAS and rejects stale/mismatched updates', async () => {
     const repository = createActiveRuleEffectRepository({} as DBLike)
     resetSql()

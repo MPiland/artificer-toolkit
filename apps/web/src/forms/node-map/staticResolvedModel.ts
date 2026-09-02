@@ -44,6 +44,7 @@ import {
   resolveArrayAuthoringMeta,
   resolveInputAuthoringMeta,
   resolveNodeMapSteps,
+  resolveLocalCollectionOptions,
   resolveObjectAuthoringMeta,
   type SectionedNodeGroup,
   type SteppedNodeGroup
@@ -366,7 +367,7 @@ function toRuntimeNode<TValues extends object>(
       kind: 'INPUT',
       type: node.type,
       options: visible
-        ? (getStaticInlineOptions(node, options) ??
+        ? (getStaticSelectOptions(node, options) ??
           getStaticRelationshipOptions(node, options) ??
           [])
         : [],
@@ -418,16 +419,26 @@ function shouldEvaluateStaticConditions({
   return values !== undefined || parentValues !== undefined || ancestors !== undefined
 }
 
-function getStaticInlineOptions<TValues extends object>(
+function getStaticSelectOptions<TValues extends object>(
   node: NodeEntry<TValues>,
   options: StaticResolvedFormModelOptions
 ): NodeRuntimeOptionDto[] | undefined {
   if (
     node.kind !== 'INPUT' ||
     !('source' in node) ||
-    (node.source.kind !== 'INLINE_OPTIONS' && node.source.kind !== 'INLINE_GROUPS')
+    (node.source.kind !== 'INLINE_OPTIONS' &&
+      node.source.kind !== 'INLINE_GROUPS' &&
+      node.source.kind !== 'LOCAL_COLLECTION')
   ) {
     return undefined
+  }
+
+  if (node.source.kind === 'LOCAL_COLLECTION') {
+    return resolveLocalCollectionOptions(node.source, {
+      ancestors: options.ancestors,
+      parentValues: options.parentValues,
+      values: options.values ?? {}
+    }).map((option) => ({ value: option.value, label: option.label }))
   }
 
   if (node.source.kind === 'INLINE_OPTIONS') {

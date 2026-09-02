@@ -1,4 +1,5 @@
 import {
+  createActiveRuleEffectRepository,
   createCampaignCharacterMechanicsProjectionRepository,
   createCharacterMechanicsProjectionRepository,
   type DBLike,
@@ -9,6 +10,7 @@ import type {
   EncounterActorRuleOutput,
   EncounterActorRuleResult
 } from '@artificer-toolkit/schema/api/encounterActorRules'
+import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 
 import {
   checksumCampaignCharacterMechanicalContext,
@@ -16,7 +18,18 @@ import {
 } from '../character/campaignCharacterSheet.js'
 import { CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION } from '../campaign/campaignCharacterMechanicsProjection.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
-import { requireEncounterActorRuleResult } from './encounterActorRuleEvaluation.js'
+import {
+  evaluateEncounterActorRuleSnapshot,
+  requireEncounterActorRuleResult
+} from './encounterActorRuleEvaluation.js'
+import {
+  characterBaseScalarValues,
+  encounterActorBaseScalarValues,
+  evaluateEffectiveCharacterPolicy,
+  foldActiveScalarReductions,
+  hasActiveScalarReduction,
+  scalarValuesDiffer
+} from './encounterEffectiveScalarPolicy.js'
 
 export type LockedEncounterInitiativeCharacterSource = {
   kind: 'CHARACTER'
@@ -32,6 +45,7 @@ export type LockedEncounterInitiativeCharacterSource = {
       ReturnType<typeof createCampaignCharacterMechanicsProjectionRepository>['requireCurrent']
     >
   >
+  effectiveRulePolicyOutput?: CharacterRulePolicyOutput
 }
 
 export type LockedEncounterInitiativeActorSource =
@@ -175,6 +189,23 @@ export async function lockEncounterInitiativeFactSources(input: {
   }>
 }): Promise<LockedEncounterInitiativeFactSources> {
   const lockedCharacters = await lockEncounterInitiativeCharacterSources(input)
+  const activeEffects = createActiveRuleEffectRepository(input.trx)
+  for (const source of lockedCharacters.values()) {
+    const effects = await activeEffects.lockByOwner({
+      kind: 'CHARACTER',
+      characterId: source.characterId
+    })
+    if (!hasActiveScalarReduction(effects)) continue
+    const baseScalarValues = characterBaseScalarValues(source)
+    const effectiveScalarValues = foldActiveScalarReductions({ baseScalarValues, effects })
+    if (!scalarValuesDiffer(baseScalarValues, effectiveScalarValues)) continue
+    source.effectiveRulePolicyOutput = await evaluateEffectiveCharacterPolicy({
+      db: input.trx,
+      character: source,
+      baseScalarValues,
+      effectiveScalarValues
+    })
+  }
   const nonCharacterIds = input.actors
     .filter((actor) => actor.kind !== 'CHARACTER')
     .map((actor) => actor.id)
@@ -185,6 +216,40 @@ export async function lockEncounterInitiativeFactSources(input: {
   }
   const snapshot = nonCharacterIds.length > 0 ? await input.getEncounterActorSnapshot!() : null
   const currentActors = new Map(snapshot?.encounter.actors.map((actor) => [actor.id, actor]))
+  const effectiveScalarValuesByActorId = new Map<string, Readonly<Record<string, number>>>()
+  const baseScalarValuesByActorId = new Map<string, Readonly<Record<string, number>>>()
+  for (const actorId of nonCharacterIds) {
+    const actor = currentActors.get(actorId)
+    if (!actor || actor.kind === 'CHARACTER')
+      throw new EncounterConflictError('Encounter actor changed before initiative evaluation.')
+    const effects = await activeEffects.lockByOwner({
+      kind: 'ENCOUNTER_ACTOR',
+      encounterId: input.encounter.id,
+      targetActorId: actorId
+    })
+    if (!hasActiveScalarReduction(effects)) continue
+    const baseScalarValues = encounterActorBaseScalarValues(actor)
+    baseScalarValuesByActorId.set(actorId, baseScalarValues)
+    effectiveScalarValuesByActorId.set(
+      actorId,
+      foldActiveScalarReductions({ baseScalarValues, effects })
+    )
+  }
+  const hasEffectiveScalarChange = [...effectiveScalarValuesByActorId].some(
+    ([actorId, effectiveScalarValues]) =>
+      scalarValuesDiffer(baseScalarValuesByActorId.get(actorId) ?? {}, effectiveScalarValues)
+  )
+  const effectiveActorRules =
+    snapshot && hasEffectiveScalarChange
+      ? (
+          await evaluateEncounterActorRuleSnapshot({
+            db: input.trx,
+            encounter: snapshot.encounter,
+            revisionId: input.encounter.rulePackRevisionId,
+            effectiveScalarValuesByActorId
+          })
+        ).snapshot.output
+      : snapshot?.rules
 
   const sources = input.actors.map((actor): LockedEncounterInitiativeActorSource => {
     if (actor.kind === 'CHARACTER') return lockedCharacters.get(actor.sourceId!)!
@@ -209,7 +274,7 @@ export async function lockEncounterInitiativeFactSources(input: {
       kind: 'CREATURE',
       actor: current,
       systemId: current.systemId,
-      actorRule: requireEncounterActorRuleResult(snapshot!.rules, current.id)
+      actorRule: requireEncounterActorRuleResult(effectiveActorRules!, current.id)
     }
   })
 

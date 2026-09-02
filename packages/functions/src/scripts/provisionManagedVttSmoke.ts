@@ -29,6 +29,7 @@ import {
   executeEncounterSceneCommand,
   setCampaignLiveScenePresentation
 } from '../services/encounter/vttSceneService.js'
+import { R2VttMapStorage } from '../services/media/r2VttMapStorage.js'
 import { proveFixtureLifecycle } from './characterLifecycleIntegrationBuilderProof.js'
 import {
   findFixtureCatalog,
@@ -154,6 +155,19 @@ async function main(): Promise<void> {
     requireEnvironment(supabaseUrlName)
   )
   const supabaseSecretKey = requireEnvironment(supabaseSecretKeyName)
+  const r2 = local
+    ? null
+    : (() => {
+        const r2AccountId = requireEnvironment(`${prefix}R2_ACCOUNT_ID`)
+        return new R2VttMapStorage({
+          accessKeyId: requireEnvironment(`${prefix}R2_ACCESS_KEY_ID`),
+          bucket: requireEnvironment(`${prefix}R2_VTT_MAP_BUCKET`),
+          endpoint:
+            process.env[`${prefix}R2_S3_ENDPOINT`] ??
+            `https://${r2AccountId}.r2.cloudflarestorage.com`,
+          secretAccessKey: requireEnvironment(`${prefix}R2_SECRET_ACCESS_KEY`)
+        })
+      })()
   const gmEmail = requireEnvironment('MANAGED_VTT_GM_EMAIL')
   const gmPassword = requireEnvironment('MANAGED_VTT_GM_PASSWORD')
   const playerEmail = requireEnvironment('MANAGED_VTT_PLAYER_EMAIL')
@@ -320,6 +334,7 @@ async function main(): Promise<void> {
       ownerUserId: gm.id,
       profile: 'VTT_MAP',
       rawObjectKey: `managed-smoke/${campaign.id}/map-original.png`,
+      storageProvider: r2 ? 'R2' : 'SUPABASE',
       targetKey: `VTT_MAP:${campaign.id}`
     })
     assert.ok(await media.claimForProcessing(mapAssetId, gm.id))
@@ -358,11 +373,14 @@ async function main(): Promise<void> {
       true
     )
     for (const objectKey of [mapOverviewObjectKey, mapTileObjectKey]) {
-      const { error } = await admin.storage.from('media').upload(objectKey, mapPng, {
-        contentType: 'image/png',
-        upsert: true
-      })
-      if (error) throw error
+      if (r2) await r2.put(objectKey, mapPng, 'image/png')
+      else {
+        const { error } = await admin.storage.from('media').upload(objectKey, mapPng, {
+          contentType: 'image/png',
+          upsert: true
+        })
+        if (error) throw error
+      }
     }
 
     const doorId = randomUUID()

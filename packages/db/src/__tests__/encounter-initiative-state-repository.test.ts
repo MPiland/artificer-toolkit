@@ -2,10 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { DBLike } from '../types/index.js'
 
-const state = vi.hoisted(() => ({ results: [] as Array<{ rows: Record<string, unknown>[] }> }))
+const state = vi.hoisted(() => ({
+  queries: [] as string[],
+  results: [] as Array<{ rows: Record<string, unknown>[]; numAffectedRows?: bigint }>
+}))
 vi.mock('kysely', () => ({
-  sql: () => ({
-    execute: async () => state.results.shift() ?? { rows: [] }
+  sql: (strings: TemplateStringsArray) => ({
+    execute: async () => {
+      state.queries.push(strings.join(''))
+      return state.results.shift() ?? { rows: [] }
+    }
   })
 }))
 
@@ -139,6 +145,7 @@ function actorRow(): Record<string, unknown> {
 describe('encounter initiative state repository boundary', () => {
   beforeEach(() => {
     state.results = []
+    state.queries = []
   })
 
   it('maps a locked normalized round through strict contracts', async () => {
@@ -264,5 +271,24 @@ describe('encounter initiative state repository boundary', () => {
       })
     ).rejects.toThrow(/evaluation occurrence identity/)
     expect(state.results).toHaveLength(0)
+  })
+
+  it('replaces only the exact Creature actor snapshot and reports a stale row', async () => {
+    const repository = createEncounterRepository({} as DBLike)
+    state.results = [
+      { rows: [], numAffectedRows: 1n },
+      { rows: [], numAffectedRows: 0n }
+    ]
+
+    await expect(
+      repository.replaceCreatureActorSnapshot({ encounterId, actorId, snapshot: { overlay: true } })
+    ).resolves.toBe(true)
+    await expect(
+      repository.replaceCreatureActorSnapshot({ encounterId, actorId, snapshot: { overlay: true } })
+    ).resolves.toBe(false)
+
+    expect(state.queries[0]).toContain('WHERE encounter_id =')
+    expect(state.queries[0]).toContain('AND id =')
+    expect(state.queries[0]).toContain("AND kind = 'CREATURE'")
   })
 })

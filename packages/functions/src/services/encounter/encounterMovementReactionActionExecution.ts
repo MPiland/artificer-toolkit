@@ -2,11 +2,13 @@ import { randomInt } from 'node:crypto'
 
 import {
   serverRuleExecutionD20EvidenceDtoSchema,
+  serverRuleExecutionNestedD20EvidenceDtoSchema,
   serverRuleExecutionD20PolicyDtoSchema,
   type ServerCompletedRuleExecutionDto,
   type ServerPublishedRuleDefinitionDto,
   type ServerRuleExecutionContinuationDto,
   type ServerRuleExecutionD20EvidenceDto,
+  type ServerRuleExecutionNestedD20EvidenceDto,
   type ServerRuleExecutionD20PolicyDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -37,6 +39,7 @@ export interface PreparedEncounterMovementReactionAction {
     currentHitPoints: number
     temporaryHitPoints: number
     maximumHitPoints: number
+    scalarValues: Readonly<Record<string, number>>
     conditionIds: readonly string[]
     derivedFacts: Readonly<Record<string, unknown>>
     defenses: readonly {
@@ -182,6 +185,61 @@ export function buildEncounterActionD20Evidence(input: {
   })
 }
 
+/** Seals one nested saving-throw roll before later OUTCOME evidence is collected. */
+export function buildEncounterSaveD20Evidence(input: {
+  policy: ServerRuleExecutionD20PolicyDto
+  requestId: string
+  faces: readonly number[]
+}): ServerRuleExecutionNestedD20EvidenceDto {
+  const natural = selectEncounterActionD20Natural(input.policy.rollMode, input.faces)
+  const total = natural + input.policy.modifier
+  return serverRuleExecutionNestedD20EvidenceDtoSchema.parse({
+    requestNodeId: input.policy.requestNodeId,
+    requestId: input.requestId,
+    rollMode: input.policy.rollMode,
+    rawFaces: input.faces,
+    selectedNatural: natural,
+    contributors: input.policy.contributors,
+    contributorChecksum: input.policy.contributorChecksum,
+    modifier: input.policy.modifier,
+    total,
+    defenseOrDc: input.policy.dc,
+    resultPath: total >= input.policy.dc ? 'ON_SAVE_SUCCESS' : 'ON_SAVE_FAIL'
+  })
+}
+
+/** Rejects terminal receipts whose nested save evidence is detached from the OUTCOME trace. */
+export function requireEncounterSaveD20EvidenceTrace(input: {
+  execution: ServerCompletedRuleExecutionDto
+  policy: ServerRuleExecutionD20PolicyDto
+  evidence: ServerRuleExecutionNestedD20EvidenceDto
+}): void {
+  if (
+    input.evidence.requestNodeId !== input.policy.requestNodeId ||
+    input.evidence.rollMode !== input.policy.rollMode ||
+    input.evidence.contributorChecksum !== input.policy.contributorChecksum ||
+    checksumRuleDocument(input.evidence.contributors) !== input.policy.contributorChecksum ||
+    input.evidence.modifier !== input.policy.modifier ||
+    input.evidence.defenseOrDc !== input.policy.dc
+  )
+    throw new EncounterValidationError('The nested save d20 policy is invalid.')
+  const rollTrace = input.execution.evidence.trace.find(
+    (entry) =>
+      entry.nodeId === input.evidence.requestNodeId &&
+      entry.evidence?.requestId === input.evidence.requestId &&
+      entry.evidence.value === input.evidence.selectedNatural
+  )
+  const saveTrace = input.execution.evidence.trace.find(
+    (entry) =>
+      entry.inputs.naturalD20 === input.evidence.selectedNatural &&
+      entry.inputs.modifier === input.evidence.modifier &&
+      entry.inputs.threshold === input.evidence.defenseOrDc &&
+      entry.outputs.resultPath === input.evidence.resultPath
+  )
+  if (!rollTrace || !saveTrace)
+    throw new EncounterValidationError('The nested save d20 trace is invalid.')
+}
+
 /**
  * Executes only the selected action graph. The Encounter coordinator owns
  * source re-discovery, occurrence persistence, mechanics application, and
@@ -208,6 +266,7 @@ export async function executeEncounterMovementReactionAction(input: {
     currentHitPoints: target.currentHitPoints,
     temporaryHitPoints: target.temporaryHitPoints,
     maximumHitPoints: target.maximumHitPoints,
+    targetScalarValues: target.scalarValues,
     defenses: target.defenses,
     conditionImmunityIds: target.conditionImmunityIds
   })

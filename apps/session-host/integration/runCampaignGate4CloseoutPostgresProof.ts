@@ -415,7 +415,7 @@ async function main(): Promise<void> {
     )
     await captureCleanup(async () => {
       if (mediaKeys.size > 0) {
-        await createMediaRepository(db).completeObjectDeletions([...mediaKeys])
+        await createMediaRepository(db).completeObjectDeletions('SUPABASE', [...mediaKeys])
       }
     })
     for (const user of users) {

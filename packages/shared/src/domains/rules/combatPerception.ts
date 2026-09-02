@@ -191,24 +191,34 @@ export type CombatPerceptionContribution =
   | CombatPerceptionEmissionSuppressContribution
   | CombatPerceptionIlluminationEffectContribution
 
-/** Immutable server-owned source identity for one resolved active-effect contribution. */
+/** Immutable server-owned identity for one resolved perception contribution. */
+export type CombatPerceptionContributionSourceIdentity =
+  | {
+      kind: 'ACTIVE_EFFECT'
+      activeEffectId: string
+      activeEffectVersion: number
+      activeEffectDefinitionChecksum: string
+    }
+  | {
+      kind: 'CONDITION_DEFINITION'
+      conditionDefinitionId: string
+      conditionDefinitionVersion: number
+      conditionDefinitionChecksum: string
+    }
+
 export interface CombatPerceptionContributionSource {
-  /** Runtime UUID derived from the active-effect occurrence plus contribution identity. */
+  /** Runtime UUID derived from immutable source identity plus contribution identity. */
   instanceId: string
-  activeEffectId: string
-  activeEffectVersion: number
-  activeEffectDefinitionChecksum: string
-  createdOrdinal: number
+  source: CombatPerceptionContributionSourceIdentity
+  sourceOrdinal: number
   contribution: CombatPerceptionContribution
 }
 
 /** Safe ordered audit identity; it intentionally excludes contribution payload and labels. */
 export interface CombatPerceptionAppliedContributionSource {
   instanceId: string
-  activeEffectId: string
-  activeEffectVersion: number
-  activeEffectDefinitionChecksum: string
-  createdOrdinal: number
+  source: CombatPerceptionContributionSourceIdentity
+  sourceOrdinal: number
   contributionId: string
   contributionKind: CombatPerceptionContribution['kind']
   contributionOrder: number
@@ -821,33 +831,71 @@ function parseContributionSource(value: unknown): CombatPerceptionContributionSo
   const source = requireRecord(value, 'Combat perception contribution source')
   requireExactKeys(
     source,
-    [
-      'instanceId',
-      'activeEffectId',
-      'activeEffectVersion',
-      'activeEffectDefinitionChecksum',
-      'createdOrdinal',
-      'contribution'
-    ],
+    ['instanceId', 'source', 'sourceOrdinal', 'contribution'],
     'Combat perception contribution source'
   )
   return {
     instanceId: requireUuid(source.instanceId, 'Combat perception contribution instance ID'),
-    activeEffectId: requireUuid(source.activeEffectId, 'Combat perception active effect ID'),
-    activeEffectVersion: requirePositiveSafeInteger(
-      source.activeEffectVersion,
-      'Combat perception active effect version'
-    ),
-    activeEffectDefinitionChecksum: requireChecksum(
-      source.activeEffectDefinitionChecksum,
-      'Combat perception active effect definition checksum'
-    ),
-    createdOrdinal: requireNonnegativeSafeInteger(
-      source.createdOrdinal,
-      'Combat perception active effect created ordinal'
+    source: parseContributionSourceIdentity(source.source),
+    sourceOrdinal: requireNonnegativeSafeInteger(
+      source.sourceOrdinal,
+      'Combat perception source ordinal'
     ),
     contribution: parseContribution(source.contribution)
   }
+}
+
+function parseContributionSourceIdentity(
+  value: unknown
+): CombatPerceptionContributionSourceIdentity {
+  const source = requireRecord(value, 'Combat perception contribution source identity')
+  if (source.kind === 'ACTIVE_EFFECT') {
+    requireExactKeys(
+      source,
+      ['kind', 'activeEffectId', 'activeEffectVersion', 'activeEffectDefinitionChecksum'],
+      'Combat perception active-effect source identity'
+    )
+    return {
+      kind: 'ACTIVE_EFFECT',
+      activeEffectId: requireUuid(source.activeEffectId, 'Combat perception active effect ID'),
+      activeEffectVersion: requirePositiveSafeInteger(
+        source.activeEffectVersion,
+        'Combat perception active effect version'
+      ),
+      activeEffectDefinitionChecksum: requireChecksum(
+        source.activeEffectDefinitionChecksum,
+        'Combat perception active effect definition checksum'
+      )
+    }
+  }
+  if (source.kind === 'CONDITION_DEFINITION') {
+    requireExactKeys(
+      source,
+      [
+        'kind',
+        'conditionDefinitionId',
+        'conditionDefinitionVersion',
+        'conditionDefinitionChecksum'
+      ],
+      'Combat perception condition-definition source identity'
+    )
+    return {
+      kind: 'CONDITION_DEFINITION',
+      conditionDefinitionId: requireUuid(
+        source.conditionDefinitionId,
+        'Combat perception condition definition ID'
+      ),
+      conditionDefinitionVersion: requirePositiveSafeInteger(
+        source.conditionDefinitionVersion,
+        'Combat perception condition definition version'
+      ),
+      conditionDefinitionChecksum: requireChecksum(
+        source.conditionDefinitionChecksum,
+        'Combat perception condition definition checksum'
+      )
+    }
+  }
+  throw new Error('Combat perception contribution source identity kind is invalid.')
 }
 
 /**
@@ -954,11 +1002,19 @@ function compareContributionSources(
   right: CombatPerceptionContributionSource
 ): number {
   return (
-    left.createdOrdinal - right.createdOrdinal ||
-    left.activeEffectId.localeCompare(right.activeEffectId) ||
+    left.sourceOrdinal - right.sourceOrdinal ||
+    contributionSourceIdentityKey(left.source).localeCompare(
+      contributionSourceIdentityKey(right.source)
+    ) ||
     left.contribution.order - right.contribution.order ||
     left.contribution.id.localeCompare(right.contribution.id)
   )
+}
+
+function contributionSourceIdentityKey(source: CombatPerceptionContributionSourceIdentity): string {
+  return source.kind === 'ACTIVE_EFFECT'
+    ? `ACTIVE_EFFECT:${source.activeEffectId}`
+    : `CONDITION_DEFINITION:${source.conditionDefinitionId}`
 }
 
 function sourceKey(source: CombatPerceptionContributionSource): string {
@@ -1196,10 +1252,8 @@ export function resolveCombatPerceptionWithContributions(input: {
     finalEnvironment,
     appliedContributionSources: appliedContributionSources.map((source) => ({
       instanceId: source.instanceId,
-      activeEffectId: source.activeEffectId,
-      activeEffectVersion: source.activeEffectVersion,
-      activeEffectDefinitionChecksum: source.activeEffectDefinitionChecksum,
-      createdOrdinal: source.createdOrdinal,
+      source: source.source,
+      sourceOrdinal: source.sourceOrdinal,
       contributionId: source.contribution.id,
       contributionKind: source.contribution.kind,
       contributionOrder: source.contribution.order

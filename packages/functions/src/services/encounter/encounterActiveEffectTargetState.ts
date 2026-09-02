@@ -1,4 +1,5 @@
 import {
+  createActiveRuleEffectRepository,
   createCampaignCharacterMechanicsProjectionRepository,
   createCharacterMechanicsProjectionRepository,
   createSystemVocabularySnapshotRepository,
@@ -7,6 +8,7 @@ import {
   type EncounterRecord
 } from '@artificer-toolkit/db'
 import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
+import { type CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import { resolveCharacterEffectiveMaximumHitPoints } from '@artificer-toolkit/shared/character'
 
 import {
@@ -15,7 +17,15 @@ import {
 } from '../character/campaignCharacterSheet.js'
 import { CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION } from '../campaign/campaignCharacterMechanicsProjection.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
+import {
+  characterBaseScalarValues,
+  encounterActorBaseScalarValues,
+  evaluateEffectiveCharacterPolicy,
+  foldActiveScalarReductions,
+  scalarValuesDiffer
+} from './encounterEffectiveScalarPolicy.js'
 import { lockEncounterInitiativeCharacterSources } from './encounterInitiativeFactSources.js'
+import { evaluateEncounterActorRuleSnapshot } from './encounterActorRuleEvaluation.js'
 
 /**
  * Exact current target facts held under the established Encounter command
@@ -41,6 +51,9 @@ export type LockedEncounterActiveEffectCharacter = {
   }[]
   activeConditionDefinitionIds: readonly string[]
   maximumHitPoints: number
+  baseScalarValues?: Readonly<Record<string, number>>
+  effectiveScalarValues?: Readonly<Record<string, number>>
+  effectiveRulePolicyOutput?: CharacterRulePolicyOutput
 }
 
 export type LockedEncounterActiveEffectTargets = {
@@ -48,8 +61,35 @@ export type LockedEncounterActiveEffectTargets = {
   encounterActorIds: readonly string[]
   lockedCharacters: ReadonlyMap<string, LockedEncounterActiveEffectCharacter>
   encounterActors: ReadonlyMap<string, EncounterActorRecord>
+  baseScalarValuesByActorId?: ReadonlyMap<string, Readonly<Record<string, number>>>
+  effectiveScalarValuesByActorId?: ReadonlyMap<string, Readonly<Record<string, number>>>
+  /** Owner rows are locked with their target aggregate and are reusable for source-bound state. */
+  activeEffectsByActorId: ReadonlyMap<
+    string,
+    Awaited<ReturnType<ReturnType<typeof createActiveRuleEffectRepository>['lockByOwner']>>
+  >
   encounterActorRules: EncounterActorRuleOutput | null
 }
+
+function activeMaximumHitPointReduction(input: {
+  effects: Awaited<ReturnType<ReturnType<typeof createActiveRuleEffectRepository>['lockByOwner']>>
+}): number {
+  let reduction = 0
+  for (const effect of input.effects) {
+    if (effect.definition.schemaVersion !== 2) continue
+    for (const contribution of effect.definition.stateContributions) {
+      if (contribution.kind !== 'HIT_POINT_MAXIMUM_REDUCTION') continue
+      if (!Number.isSafeInteger(reduction + contribution.amount))
+        throw new EncounterValidationError(
+          'Active hit point maximum reductions exceed safe bounds.'
+        )
+      reduction += contribution.amount
+    }
+  }
+  return reduction
+}
+
+export { foldActiveScalarReductions } from './encounterEffectiveScalarPolicy.js'
 
 /**
  * Locks and verifies exact target facts after the caller has locked Campaign,
@@ -88,6 +128,13 @@ export async function lockEncounterActiveEffectTargets(input: {
     attunementSlotOverride: input.attunementSlotOverride
   })
   const lockedCharacters = new Map<string, LockedEncounterActiveEffectCharacter>()
+  const activeEffectsByActorId = new Map<
+    string,
+    Awaited<ReturnType<ReturnType<typeof createActiveRuleEffectRepository>['lockByOwner']>>
+  >()
+  const baseScalarValuesByActorId = new Map<string, Readonly<Record<string, number>>>()
+  const effectiveScalarValuesByActorId = new Map<string, Readonly<Record<string, number>>>()
+  const activeEffects = createActiveRuleEffectRepository(input.trx)
   for (const characterId of characterIds) {
     const source = lockedCharacterSources.get(characterId)!
     const { mechanics, overlay } = source
@@ -110,6 +157,27 @@ export async function lockEncounterActiveEffectTargets(input: {
       activeConditionDefinitionIds.some((conditionId) => !vocabularyConditionIds.has(conditionId))
     )
       throw new EncounterConflictError('The Character condition state is stale.')
+    const baseMaximumHitPoints = resolveCharacterEffectiveMaximumHitPoints(
+      overlay.rulePolicyOutput.derivedStats.maxHitPoints.effective
+    )
+    const effects = await activeEffects.lockByOwner({ kind: 'CHARACTER', characterId })
+    const baseScalarValues = characterBaseScalarValues({ mechanics, overlay })
+    activeEffectsByActorId.set(source.actor.id, effects)
+    baseScalarValuesByActorId.set(source.actor.id, baseScalarValues)
+    effectiveScalarValuesByActorId.set(
+      source.actor.id,
+      foldActiveScalarReductions({ baseScalarValues, effects })
+    )
+    const effectiveScalarValues = effectiveScalarValuesByActorId.get(source.actor.id)!
+    const effectiveRulePolicyOutput =
+      JSON.stringify(baseScalarValues) === JSON.stringify(effectiveScalarValues)
+        ? undefined
+        : await evaluateEffectiveCharacterPolicy({
+            db: input.trx,
+            character: { mechanics, overlay, systemId: source.systemId },
+            baseScalarValues,
+            effectiveScalarValues
+          })
     lockedCharacters.set(characterId, {
       id: characterId,
       systemId: source.systemId,
@@ -119,9 +187,13 @@ export async function lockEncounterActiveEffectTargets(input: {
       overlay,
       conditionDefinitions: vocabulary.document.conditionTypes,
       activeConditionDefinitionIds,
-      maximumHitPoints: resolveCharacterEffectiveMaximumHitPoints(
-        overlay.rulePolicyOutput.derivedStats.maxHitPoints.effective
-      )
+      maximumHitPoints: Math.max(
+        0,
+        baseMaximumHitPoints - activeMaximumHitPointReduction({ effects })
+      ),
+      baseScalarValues,
+      effectiveScalarValues,
+      effectiveRulePolicyOutput
     })
   }
 
@@ -136,13 +208,45 @@ export async function lockEncounterActiveEffectTargets(input: {
       encounterActors.set(reconciled.id, reconciled)
     }
   }
+  for (const actorId of encounterActorIds) {
+    const effects = await activeEffects.lockByOwner({
+      kind: 'ENCOUNTER_ACTOR',
+      encounterId: input.encounter.id,
+      targetActorId: actorId
+    })
+    activeEffectsByActorId.set(actorId, effects)
+    const baseScalarValues = encounterActorBaseScalarValues(encounterActors.get(actorId)!)
+    baseScalarValuesByActorId.set(actorId, baseScalarValues)
+    effectiveScalarValuesByActorId.set(
+      actorId,
+      foldActiveScalarReductions({ baseScalarValues, effects })
+    )
+  }
 
+  const hasEffectiveEncounterActorScalarChange = [...effectiveScalarValuesByActorId].some(
+    ([actorId, effectiveScalarValues]) =>
+      scalarValuesDiffer(baseScalarValuesByActorId.get(actorId) ?? {}, effectiveScalarValues)
+  )
+  const effectiveEncounterActorRules =
+    snapshot && hasEffectiveEncounterActorScalarChange
+      ? (
+          await evaluateEncounterActorRuleSnapshot({
+            db: input.trx,
+            encounter: snapshot.encounter,
+            revisionId: input.encounter.rulePackRevisionId,
+            effectiveScalarValuesByActorId
+          })
+        ).snapshot.output
+      : (snapshot?.rules ?? null)
   return {
     characterIds,
     encounterActorIds,
     lockedCharacters,
     encounterActors,
-    encounterActorRules: snapshot?.rules ?? null
+    activeEffectsByActorId,
+    baseScalarValuesByActorId,
+    effectiveScalarValuesByActorId,
+    encounterActorRules: effectiveEncounterActorRules
   }
 }
 
@@ -183,6 +287,13 @@ export async function refreshLockedEncounterActiveEffectTargets(input: {
   }
 
   const overlays = createCampaignCharacterMechanicsProjectionRepository(input.trx)
+  const activeEffects = createActiveRuleEffectRepository(input.trx)
+  const activeEffectsByActorId = new Map<
+    string,
+    Awaited<ReturnType<ReturnType<typeof createActiveRuleEffectRepository>['lockByOwner']>>
+  >()
+  const baseScalarValuesByActorId = new Map<string, Readonly<Record<string, number>>>()
+  const effectiveScalarValuesByActorId = new Map<string, Readonly<Record<string, number>>>()
   const lockedCharacters = new Map<string, LockedEncounterActiveEffectCharacter>()
   for (const characterId of characterIds) {
     const prior = input.targets.lockedCharacters.get(characterId)
@@ -242,6 +353,27 @@ export async function refreshLockedEncounterActiveEffectTargets(input: {
     ) {
       throw new EncounterConflictError('The Character condition state is stale.')
     }
+    const baseMaximumHitPoints = resolveCharacterEffectiveMaximumHitPoints(
+      overlay.rulePolicyOutput.derivedStats.maxHitPoints.effective
+    )
+    const effects = await activeEffects.lockByOwner({ kind: 'CHARACTER', characterId })
+    const baseScalarValues = characterBaseScalarValues({ mechanics, overlay })
+    activeEffectsByActorId.set(actor.id, effects)
+    baseScalarValuesByActorId.set(actor.id, baseScalarValues)
+    effectiveScalarValuesByActorId.set(
+      actor.id,
+      foldActiveScalarReductions({ baseScalarValues, effects })
+    )
+    const effectiveScalarValues = effectiveScalarValuesByActorId.get(actor.id)!
+    const effectiveRulePolicyOutput =
+      JSON.stringify(baseScalarValues) === JSON.stringify(effectiveScalarValues)
+        ? undefined
+        : await evaluateEffectiveCharacterPolicy({
+            db: input.trx,
+            character: { mechanics, overlay, systemId: prior.systemId },
+            baseScalarValues,
+            effectiveScalarValues
+          })
     lockedCharacters.set(characterId, {
       id: characterId,
       systemId: prior.systemId,
@@ -251,9 +383,13 @@ export async function refreshLockedEncounterActiveEffectTargets(input: {
       overlay,
       conditionDefinitions: vocabulary.document.conditionTypes,
       activeConditionDefinitionIds,
-      maximumHitPoints: resolveCharacterEffectiveMaximumHitPoints(
-        overlay.rulePolicyOutput.derivedStats.maxHitPoints.effective
-      )
+      maximumHitPoints: Math.max(
+        0,
+        baseMaximumHitPoints - activeMaximumHitPointReduction({ effects })
+      ),
+      baseScalarValues,
+      effectiveScalarValues,
+      effectiveRulePolicyOutput
     })
   }
 
@@ -268,12 +404,42 @@ export async function refreshLockedEncounterActiveEffectTargets(input: {
       throw new EncounterConflictError('Encounter actor changed during execution.')
     }
     encounterActors.set(actorId, actor)
+    const effects = await activeEffects.lockByOwner({
+      kind: 'ENCOUNTER_ACTOR',
+      encounterId: input.encounter.id,
+      targetActorId: actorId
+    })
+    activeEffectsByActorId.set(actorId, effects)
+    const baseScalarValues = encounterActorBaseScalarValues(actor)
+    baseScalarValuesByActorId.set(actorId, baseScalarValues)
+    effectiveScalarValuesByActorId.set(
+      actorId,
+      foldActiveScalarReductions({ baseScalarValues, effects })
+    )
   }
+  const hasEffectiveEncounterActorScalarChange = [...effectiveScalarValuesByActorId].some(
+    ([actorId, effectiveScalarValues]) =>
+      scalarValuesDiffer(baseScalarValuesByActorId.get(actorId) ?? {}, effectiveScalarValues)
+  )
+  const effectiveEncounterActorRules =
+    snapshot && hasEffectiveEncounterActorScalarChange
+      ? (
+          await evaluateEncounterActorRuleSnapshot({
+            db: input.trx,
+            encounter: snapshot.encounter,
+            revisionId: input.encounter.rulePackRevisionId,
+            effectiveScalarValuesByActorId
+          })
+        ).snapshot.output
+      : (snapshot?.rules ?? null)
   return {
     characterIds,
     encounterActorIds,
     lockedCharacters,
     encounterActors,
-    encounterActorRules: snapshot?.rules ?? null
+    activeEffectsByActorId,
+    baseScalarValuesByActorId,
+    effectiveScalarValuesByActorId,
+    encounterActorRules: effectiveEncounterActorRules
   }
 }

@@ -38,6 +38,16 @@ export async function resolveEncounterRuleCapabilityStates(input: {
     string,
     Pick<LockedEncounterActiveEffectCharacter, 'actor' | 'activeConditionDefinitionIds'>
   >
+  activeEffectsByActorId: ReadonlyMap<
+    string,
+    readonly {
+      id: string
+      definition: {
+        schemaVersion: number
+        stateContributions?: readonly unknown[]
+      }
+    }[]
+  >
   definitions: CurrentReusableDefinitionSource
   capabilityDefinitionIds: readonly string[]
 }): Promise<ReadonlyMap<string, EncounterRuleCapabilityActorState>> {
@@ -69,12 +79,47 @@ export async function resolveEncounterRuleCapabilityStates(input: {
             return locked.activeConditionDefinitionIds
           })()
         : encounterActorConditionDefinitionIds(actor)
+    const activeEffects = input.activeEffectsByActorId.get(actor.id)
+    if (!activeEffects) throw new Error('Encounter actor active-effect state was not locked.')
+    const activeEffectSuppressions = activeEffects.flatMap((effect) =>
+      effect.definition.schemaVersion === 2
+        ? (effect.definition.stateContributions ?? []).flatMap((contribution) => {
+            if (!contribution || typeof contribution !== 'object') return []
+            const row = contribution as {
+              kind?: unknown
+              capabilitySuppressions?: readonly {
+                contributionId?: unknown
+                capabilityDefinitionIds?: unknown
+              }[]
+            }
+            if (row.kind !== 'ACTOR_RELATIONSHIP') return []
+            return (row.capabilitySuppressions ?? []).flatMap((suppression) => {
+              const capabilityDefinitionIds = Array.isArray(suppression.capabilityDefinitionIds)
+                ? suppression.capabilityDefinitionIds.filter(
+                    (id): id is string => typeof id === 'string'
+                  )
+                : []
+              return capabilityDefinitionIds.length > 0 &&
+                typeof suppression.contributionId === 'string'
+                ? [
+                    {
+                      activeEffectId: effect.id,
+                      contributionId: suppression.contributionId,
+                      capabilityDefinitionIds
+                    }
+                  ]
+                : []
+            })
+          })
+        : []
+    )
     resolved.set(actor.id, {
       capabilityState: await resolveRuleCapabilityState({
         definitions,
         gameSystemId: input.encounter.gameSystemId,
         activeConditionDefinitionIds,
-        capabilityDefinitionIds: input.capabilityDefinitionIds
+        capabilityDefinitionIds: input.capabilityDefinitionIds,
+        activeEffectSuppressions
       }),
       ruleUsage: encounterRuleUsageSnapshot(actor)
     })

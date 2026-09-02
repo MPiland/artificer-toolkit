@@ -296,6 +296,24 @@ const dnd5eOptionalCombatBandsDtoSchema = z
  * Each supported D&D optional-rule kind has a closed parameter arm. The policy
  * module owns interpretation; authoring cannot supply an arbitrary parameter map.
  */
+const boundedCheckDefinitionChoicesSchema = z
+  .array(serverUuidIdentityDtoSchema)
+  .min(1)
+  .max(4)
+  .superRefine((definitionIds, context) => {
+    const seen = new Set<string>()
+    definitionIds.forEach((definitionId, index) => {
+      if (seen.has(definitionId)) {
+        context.addIssue({
+          code: 'custom',
+          path: [index],
+          message: 'Optional combat check-definition choices must be unique.'
+        })
+      }
+      seen.add(definitionId)
+    })
+  })
+
 export const dnd5eOptionalCombatRuleParametersDtoSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('FLANKING'),
@@ -304,11 +322,26 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = z.discriminatedUnion('
   z.strictObject({ kind: z.literal('ALTERNATING_DIAGONALS') }),
   z.strictObject({ kind: z.literal('FACING') }),
   z.strictObject({ kind: z.literal('CLIMB_ONTO_LARGER_CREATURE') }),
-  z.strictObject({ kind: z.literal('DISARM') }),
+  z.strictObject({
+    kind: z.literal('DISARM'),
+    defenderCheckDefinitionIds: boundedCheckDefinitionChoicesSchema
+  }),
   z.strictObject({ kind: z.literal('MARK') }),
-  z.strictObject({ kind: z.literal('OVERRUN') }),
-  z.strictObject({ kind: z.literal('SHOVE_ASIDE') }),
-  z.strictObject({ kind: z.literal('TUMBLE') }),
+  z.strictObject({
+    kind: z.literal('OVERRUN'),
+    initiatorCheckDefinitionId: serverUuidIdentityDtoSchema,
+    targetCheckDefinitionId: serverUuidIdentityDtoSchema
+  }),
+  z.strictObject({
+    kind: z.literal('SHOVE_ASIDE'),
+    initiatorCheckDefinitionId: serverUuidIdentityDtoSchema,
+    defenderCheckDefinitionIds: boundedCheckDefinitionChoicesSchema
+  }),
+  z.strictObject({
+    kind: z.literal('TUMBLE'),
+    initiatorCheckDefinitionId: serverUuidIdentityDtoSchema,
+    targetCheckDefinitionId: serverUuidIdentityDtoSchema
+  }),
   z.strictObject({
     kind: z.literal('HITTING_COVER'),
     qualifyingAttackKind: z.literal('RANGED'),

@@ -1,5 +1,6 @@
 import {
   ConcurrencyError,
+  createActiveRuleEffectRepository,
   createCampaignCharacterMechanicsProjectionRepository,
   createCharacterEventRepository,
   createCharacterMechanicsProjectionRepository,
@@ -97,6 +98,7 @@ import {
   carryPinnedCharacterSenseDefinitions,
   compileCharacterMechanicsProjection
 } from './characterMechanicsCompiler.js'
+import { compileCharacterSpellCastEntryPoints } from '../rules/characterActionEntryPointCompiler.js'
 import { deriveCharacterSceneVision } from './characterSceneVision.js'
 import type { SceneCharacterVision } from '@artificer-toolkit/shared/vtt'
 import {
@@ -160,6 +162,7 @@ import {
   resolveCharacterSheetCampaignContext,
   sameCharacterSheetAdjustmentSlot
 } from './campaignCharacterSheet.js'
+import type { CharacterSheetCampaignContext } from './campaignCharacterSheet.js'
 import { presentCampaignCharacterText } from './campaignCharacterPresentation.js'
 import { buildCharacterSheetPanel } from './sheetPanelService.js'
 import type { CharacterBuilderResolution } from './builderService.js'
@@ -392,6 +395,26 @@ export interface ExecuteCharacterSheetCommandParams {
   liveSessionAuthority?: LiveSessionCommandAuthority
 }
 
+export interface LockedEncounterCharacterUnequipCapability {
+  encounterId: string
+  campaignId: string
+  characterId: string
+  actorUserId: string
+  liveSessionAuthority?: LiveSessionCommandAuthority
+  expectedCharacterStreamVersion: number
+  expectedMechanicsProjectionChecksum: string
+  expectedCampaignOverlayChecksum: string
+  commandId: string
+  sourceCommandId: string
+  occurrenceId: string
+  command: Extract<CharacterSheetCommandInputDto, { type: 'UNEQUIP_ITEM' }>
+  campaignContext: CharacterSheetCampaignContext
+}
+
+type InternalExecuteCharacterSheetCommandParams = ExecuteCharacterSheetCommandParams & {
+  lockedEncounterUnequipCapability?: LockedEncounterCharacterUnequipCapability
+}
+
 export interface CharacterSheetCommittedRuleSnapshot {
   effectiveSceneVision: SceneCharacterVision
   campaignMechanicalContextChecksum: string | null
@@ -438,6 +461,7 @@ function reconstituteCommittedSnapshotMechanics(input: {
     ...input.payload,
     initiativeActorFacts: input.payload.initiativeActorFacts ?? {
       effectiveSize: null,
+      checkTotals: {},
       equippedItems: []
     }
   }
@@ -1158,11 +1182,22 @@ function assertSpellSetCommandEligibleBeforeHydration(input: {
   }
 }
 
-export async function executeCharacterSheetCommandWithRuleEvaluation(
-  params: ExecuteCharacterSheetCommandParams
+async function executeCharacterSheetCommandWithRuleEvaluationInternal(
+  params: InternalExecuteCharacterSheetCommandParams
 ): Promise<CharacterSheetCommandExecutionResult> {
   const startedAt = performance.now()
   const command = params.command
+  const lockedEncounterCapability = params.lockedEncounterUnequipCapability
+  if (
+    lockedEncounterCapability &&
+    (command.type !== 'UNEQUIP_ITEM' ||
+      params.characterId !== lockedEncounterCapability.characterId ||
+      command.commandId !== lockedEncounterCapability.commandId ||
+      JSON.stringify(command) !== JSON.stringify(lockedEncounterCapability.command) ||
+      lockedEncounterCapability.campaignContext.campaignId !== lockedEncounterCapability.campaignId)
+  ) {
+    throw new CharacterSheetCommandError('The locked Encounter Sheet command is invalid.')
+  }
   const ruleResponsibility = classifyCharacterSheetCommandRuleResponsibility(command)
   const commandCanReuseCommittedRuleEvaluation = canReuseCommittedCharacterRuleEvaluation(command)
   const repository = createCharacterRepository(params.db)
@@ -1173,19 +1208,23 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
     throw createNamedError('NotFoundError', `Character "${params.characterId}" was not found.`)
   }
   const authorityCheckStartedAt = performance.now()
-  await assertCharacterLiveSessionCommandAuthority(
-    params.db,
-    params.characterId,
-    params.liveSessionAuthority
-  )
+  if (!lockedEncounterCapability) {
+    await assertCharacterLiveSessionCommandAuthority(
+      params.db,
+      params.characterId,
+      params.liveSessionAuthority
+    )
+  }
   const authorityCheckMs = performance.now() - authorityCheckStartedAt
 
   const campaignContextStartedAt = performance.now()
-  const campaignContext = await resolveCharacterSheetCampaignContext(
-    params.db,
-    { id: row.id, userId: row.user_id },
-    params.userId
-  )
+  const campaignContext = lockedEncounterCapability
+    ? lockedEncounterCapability.campaignContext
+    : await resolveCharacterSheetCampaignContext(
+        params.db,
+        { id: row.id, userId: row.user_id },
+        params.userId
+      )
   const campaignContextMs = performance.now() - campaignContextStartedAt
   if (campaignContext.viewer === 'CAMPAIGN_OWNER') {
     if (campaignContext.campaignStatus !== 'ACTIVE') {
@@ -1196,6 +1235,15 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
 
   if (row.status !== AUTHORED_RECORD_STATUS.ACTIVE) {
     throw new CharacterSheetCommandError(`Character "${params.characterId}" is not finalized yet.`)
+  }
+  if (
+    lockedEncounterCapability &&
+    row.stream_version !== lockedEncounterCapability.expectedCharacterStreamVersion
+  ) {
+    throw new ConcurrencyError(
+      params.characterId,
+      lockedEncounterCapability.expectedCharacterStreamVersion
+    )
   }
   if (!row.rule_pack_revision_id) {
     throw createNamedError(
@@ -1331,6 +1379,17 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
       })
     }
   }
+  if (
+    lockedEncounterCapability &&
+    (!committedMechanics ||
+      committedMechanics.projectionChecksum !==
+        lockedEncounterCapability.expectedMechanicsProjectionChecksum ||
+      !campaignMechanics ||
+      campaignMechanics.projectionChecksum !==
+        lockedEncounterCapability.expectedCampaignOverlayChecksum)
+  ) {
+    throw new CharacterSheetCommandError('The locked Encounter Character capability is stale.')
+  }
   const hasMatchingCampaignMechanicsSnapshot = !campaignContext.campaignId
     ? matchingCommittedRuleSnapshot?.campaignMechanicsProjectionChecksum === null
     : matchingCommittedRuleSnapshot?.campaignMechanicsProjectionChecksum ===
@@ -1354,17 +1413,20 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
   )
   const idempotencyLookupMs = performance.now() - idempotencyLookupStartedAt
   if (priorEvent) {
-    if (priorEvent.type !== 'CHARACTER_SHEET_COMMAND_APPLIED') {
-      throw new CharacterSheetCommandError(
-        `Command "${params.command.commandId}" was already used for a different operation.`
-      )
-    }
-    if (priorEvent.commandType !== params.command.type) {
-      throw new CharacterSheetCommandError(
-        `Command "${params.command.commandId}" was already used for a different operation.`
-      )
-    }
-    if (priorEvent.commandFingerprint !== commandFingerprint) {
+    const matchingLockedEncounterEvent =
+      lockedEncounterCapability &&
+      priorEvent.type === 'CHARACTER_RULE_EQUIPMENT_STATE_APPLIED' &&
+      priorEvent.encounterId === lockedEncounterCapability.encounterId &&
+      priorEvent.occurrenceId === lockedEncounterCapability.occurrenceId &&
+      priorEvent.sourceCommandId === lockedEncounterCapability.sourceCommandId &&
+      priorEvent.itemInstanceId === lockedEncounterCapability.command.itemId &&
+      priorEvent.commandFingerprint === commandFingerprint
+    const matchingSheetEvent =
+      !lockedEncounterCapability &&
+      priorEvent.type === 'CHARACTER_SHEET_COMMAND_APPLIED' &&
+      priorEvent.commandType === params.command.type &&
+      priorEvent.commandFingerprint === commandFingerprint
+    if (!matchingLockedEncounterEvent && !matchingSheetEvent) {
       throw new CharacterSheetCommandError(
         `Command "${params.command.commandId}" was already used with different input.`
       )
@@ -1403,12 +1465,18 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
         actorId: priorEvent.actorId,
         eventType: priorEvent.type,
         summary:
-          campaignContext.contentMaturity === 'STANDARD'
-            ? maskStandardPlainText(priorEvent.summary)
-            : priorEvent.summary,
-        ...(priorEvent.result ? { result: priorEvent.result } : {})
+          priorEvent.type === 'CHARACTER_RULE_EQUIPMENT_STATE_APPLIED'
+            ? 'Rule equipment state applied'
+            : campaignContext.contentMaturity === 'STANDARD'
+              ? maskStandardPlainText(priorEvent.summary)
+              : priorEvent.summary,
+        ...(priorEvent.type === 'CHARACTER_SHEET_COMMAND_APPLIED' && priorEvent.result
+          ? { result: priorEvent.result }
+          : {})
       },
-      ...(priorEvent.result ? { result: priorEvent.result } : {})
+      ...(priorEvent.type === 'CHARACTER_SHEET_COMMAND_APPLIED' && priorEvent.result
+        ? { result: priorEvent.result }
+        : {})
     }
     return {
       replayed: true,
@@ -2252,20 +2320,50 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
   const commandResult = completedRest
     ? ({ type: 'COMPLETE_REST', rest: completedRest.result } as const)
     : undefined
-  const event = {
-    type: 'CHARACTER_SHEET_COMMAND_APPLIED',
-    eventId: crypto.randomUUID(),
-    characterId: params.characterId,
-    occurredAt: new Date().toISOString(),
-    actorId: params.userId,
-    commandId: params.command.commandId,
-    schemaVersion: 1,
-    commandType: params.command.type,
-    commandFingerprint,
-    summary:
-      campaignContext.contentMaturity === 'STANDARD' ? maskStandardPlainText(summary) : summary,
-    ...(commandResult ? { result: commandResult } : {})
-  } satisfies CharacterEvent
+  const event = lockedEncounterCapability
+    ? null
+    : ({
+        type: 'CHARACTER_SHEET_COMMAND_APPLIED',
+        eventId: crypto.randomUUID(),
+        characterId: params.characterId,
+        occurredAt: new Date().toISOString(),
+        actorId: params.userId,
+        commandId: params.command.commandId,
+        schemaVersion: 1,
+        commandType: params.command.type,
+        commandFingerprint,
+        summary:
+          campaignContext.contentMaturity === 'STANDARD' ? maskStandardPlainText(summary) : summary,
+        ...(commandResult ? { result: commandResult } : {})
+      } satisfies CharacterEvent)
+  const encounterEquipmentEvent = lockedEncounterCapability
+    ? {
+        type: 'CHARACTER_RULE_EQUIPMENT_STATE_APPLIED' as const,
+        eventId: crypto.randomUUID(),
+        characterId: params.characterId,
+        occurredAt: new Date().toISOString(),
+        actorId: lockedEncounterCapability.actorUserId,
+        commandId: lockedEncounterCapability.commandId,
+        schemaVersion: 1,
+        encounterId: lockedEncounterCapability.encounterId,
+        occurrenceId: lockedEncounterCapability.occurrenceId,
+        sourceCommandId: lockedEncounterCapability.sourceCommandId,
+        commandFingerprint,
+        committedStreamVersion: 0,
+        itemInstanceId: lockedEncounterCapability.command.itemId,
+        fromState: 'EQUIPPED' as const,
+        toState: 'CARRIED' as const,
+        beforeStateChecksum: checksumCharacterEquipmentUseState(character),
+        afterStateChecksum: checksumCharacterEquipmentUseState(nextCharacter)
+      }
+    : null
+  const historyEvent = event ?? encounterEquipmentEvent
+  if (!historyEvent) {
+    throw createNamedError(
+      'CharacterHistoryEventUnavailableError',
+      `Character "${params.characterId}" did not produce a history event.`
+    )
+  }
   const commandPreparationMs = performance.now() - commandPreparationStartedAt
   const canReuseNextBaseRuleEvaluation =
     canReuseCommittedCharacterRuleEvaluation(command) &&
@@ -2354,6 +2452,20 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
             senses: nextBaseRuleEvaluation.output.senses
           }),
           compiledActionEntryPoints: nextBaseRuleEvaluation.compiledActionEntryPoints,
+          compiledSpellActionEntryPoints: compileCharacterSpellCastEntryPoints({
+            gameSystemId: nextCharacter.systemId,
+            candidates: nextBaseRuleEvaluation.facts.spellCastCandidates,
+            decisions: nextBaseRuleEvaluation.output.spellCastDecisions,
+            mechanics: nextBaseRuleEvaluation.output.spellCastMechanics,
+            spellActionFacts: nextBaseRuleEvaluation.facts.spellActionFacts,
+            spells:
+              nextBaseRuleEvaluation.spellsWithEffects.length > 0
+                ? nextBaseRuleEvaluation.spellsWithEffects
+                : [...(nextPinnedSpellsById?.values() ?? [])],
+            authoredVersionVector:
+              nextCommittedSources?.mechanics.authoredVersionVector ??
+              committedMechanics.authoredVersionVector
+          }),
           ruleRegistry: nextBaseRuleEvaluation.registry,
           ruleSnapshot: nextBaseRuleEvaluation.snapshot,
           authoredVersionVector:
@@ -2384,7 +2496,7 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
   try {
     nextStreamVersion = await repository.patchSheetState(params.characterId, statePatches, {
       expectedStreamVersion: params.command.expectedVersion,
-      ...(campaignContext.campaignId || campaignShareUses.length > 0
+      ...(!lockedEncounterCapability && (campaignContext.campaignId || campaignShareUses.length > 0)
         ? {
             beforeCharacterLock: async (trx) => {
               const campaignId = campaignContext.campaignId
@@ -2422,11 +2534,13 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
           }
         : {}),
       afterPersist: async (trx, persistedStreamVersion) => {
-        await assertCharacterLiveSessionCommandAuthority(
-          trx,
-          params.characterId,
-          params.liveSessionAuthority
-        )
+        if (!lockedEncounterCapability) {
+          await assertCharacterLiveSessionCommandAuthority(
+            trx,
+            params.characterId,
+            params.liveSessionAuthority
+          )
+        }
         if (targetRuleBinding) {
           await resolveCharacterRuleBinding({
             db: trx,
@@ -2641,6 +2755,28 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
           }
         }
         if (command.type === 'COMPLETE_REST' && completedRest) {
+          const restTriggers =
+            command.restKind === 'LONG'
+              ? new Set(['SHORT_REST', 'LONG_REST'] as const)
+              : new Set(['SHORT_REST'] as const)
+          const activeEffects = await createActiveRuleEffectRepository(trx).lockByOwner({
+            kind: 'CHARACTER',
+            characterId: params.characterId
+          })
+          for (const effect of activeEffects) {
+            if (effect.definition.schemaVersion !== 2) continue
+            const recoversAtRest = effect.definition.stateContributions.some(
+              (contribution) =>
+                contribution.kind === 'SCALAR_REDUCTION' &&
+                contribution.recoveryTriggers.some((trigger) => restTriggers.has(trigger))
+            )
+            if (!recoversAtRest) continue
+            await createActiveRuleEffectRepository(trx).deleteCas({
+              id: effect.id,
+              owner: effect.owner,
+              expectedVersion: effect.version
+            })
+          }
           if (
             command.rollId &&
             !(await createRollHistoryRepository(trx).consumeForUser(command.rollId, params.userId))
@@ -2760,7 +2896,13 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
             performance.now() - campaignProjectionPublicationStartedAt
         }
         const eventAppendStartedAt = performance.now()
-        await createCharacterEventRepository(trx).append(event)
+        if (event) await createCharacterEventRepository(trx).append(event)
+        if (encounterEquipmentEvent) {
+          await createCharacterEventRepository(trx).append({
+            ...encounterEquipmentEvent,
+            committedStreamVersion: persistedStreamVersion
+          })
+        }
         characterEventAppendMs = performance.now() - eventAppendStartedAt
       }
     })
@@ -2771,7 +2913,7 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
         params.command.commandId
       )
       if (concurrentEvent) {
-        return executeCharacterSheetCommandWithRuleEvaluation(params)
+        return executeCharacterSheetCommandWithRuleEvaluationInternal(params)
       }
     }
     throw error
@@ -2780,11 +2922,9 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
 
   const postCommitHydrationStartedAt = performance.now()
   const postCommitCampaignContextStartedAt = performance.now()
-  const nextCampaignContext = await resolveCharacterSheetCampaignContext(
-    params.db,
-    nextCharacter,
-    params.userId
-  )
+  const nextCampaignContext = lockedEncounterCapability
+    ? campaignContext
+    : await resolveCharacterSheetCampaignContext(params.db, nextCharacter, params.userId)
   const postCommitCampaignContextMs = performance.now() - postCommitCampaignContextStartedAt
   const nextCampaignMechanics = campaignPublication.mechanics
   const nextResolution = nextCommittedResolution ?? resolution
@@ -2928,10 +3068,10 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
     campaignContext: nextCampaignContext
   })
   const historyEntry: CharacterHistoryEntryDto = {
-    eventId: event.eventId,
-    occurredAt: event.occurredAt,
-    actorId: event.actorId,
-    eventType: event.type,
+    eventId: historyEvent.eventId,
+    occurredAt: historyEvent.occurredAt,
+    actorId: historyEvent.actorId,
+    eventType: historyEvent.type,
     summary,
     ...(commandResult ? { result: commandResult } : {})
   }
@@ -3025,14 +3165,73 @@ export async function executeCharacterSheetCommandWithRuleEvaluation(
   }
 }
 
+export async function executeCharacterSheetCommandWithRuleEvaluation(
+  params: ExecuteCharacterSheetCommandParams
+): Promise<CharacterSheetCommandExecutionResult> {
+  return executeCharacterSheetCommandWithRuleEvaluationInternal(params)
+}
+
 export async function executeCharacterSheetCommand(
   params: ExecuteCharacterSheetCommandParams
 ): Promise<CharacterSheetCommandResponseDto> {
   return (await executeCharacterSheetCommandWithRuleEvaluation(params)).response
 }
 
+/**
+ * Internal Encounter-only entry point. The caller owns authorization and the
+ * canonical lock chain; this function deliberately returns no viewer sheet.
+ */
+export async function executeLockedEncounterCharacterUnequip(input: {
+  db: DBLike
+  capability: LockedEncounterCharacterUnequipCapability
+}): Promise<{
+  replayed: boolean
+  streamVersion: number
+  mechanicsProjectionChecksum: string
+  campaignMechanicsProjectionChecksum: string | null
+  beforeStateChecksum: string
+  afterStateChecksum: string
+}> {
+  const result = await executeCharacterSheetCommandWithRuleEvaluationInternal({
+    db: input.db,
+    characterId: input.capability.characterId,
+    command: input.capability.command,
+    userId: input.capability.actorUserId,
+    liveSessionAuthority: input.capability.liveSessionAuthority,
+    lockedEncounterUnequipCapability: input.capability
+  })
+  const event = await createCharacterEventRepository(input.db).findByCommandId(
+    input.capability.characterId,
+    input.capability.commandId
+  )
+  if (
+    !event ||
+    event.type !== 'CHARACTER_RULE_EQUIPMENT_STATE_APPLIED' ||
+    event.encounterId !== input.capability.encounterId ||
+    event.occurrenceId !== input.capability.occurrenceId ||
+    event.sourceCommandId !== input.capability.sourceCommandId ||
+    event.itemInstanceId !== input.capability.command.itemId
+  ) {
+    throw new CharacterSheetCommandError('The locked Encounter equipment receipt is unavailable.')
+  }
+  return {
+    replayed: result.replayed,
+    streamVersion: result.ruleSnapshot.streamVersion,
+    mechanicsProjectionChecksum: result.ruleSnapshot.mechanicsProjectionChecksum,
+    campaignMechanicsProjectionChecksum: result.ruleSnapshot.campaignMechanicsProjectionChecksum,
+    beforeStateChecksum: event.beforeStateChecksum,
+    afterStateChecksum: event.afterStateChecksum
+  }
+}
+
 function fingerprintCharacterSheetCommand(command: CharacterSheetCommandInputDto): string {
   return createHash('sha256')
     .update(JSON.stringify(sortFingerprintValue(command)))
+    .digest('hex')
+}
+
+function checksumCharacterEquipmentUseState(character: CharacterAuthored): string {
+  return createHash('sha256')
+    .update(JSON.stringify(sortFingerprintValue(character.state.equipment)))
     .digest('hex')
 }

@@ -450,15 +450,25 @@ async function proveRetainedMedia(db: DBLike, options: Gate4CloseoutProofOptions
   const objectKey = `gate4/${options.runId}/retained-object.webp`
   options.onMediaKeyCreated(objectKey)
   const media = createMediaRepository(db)
-  await media.scheduleObjectDeletions([objectKey, objectKey])
+  await media.scheduleObjectDeletions('SUPABASE', [objectKey, objectKey])
   await sql`
     update public.media_object_deletions
     set created_at = now() - interval '16 minutes'
     where object_key = ${objectKey}
   `.execute(db)
-  assert.equal((await media.listObjectDeletions()).filter((key) => key === objectKey).length, 1)
-  await media.completeObjectDeletions([objectKey])
-  assert.equal((await media.listObjectDeletions()).includes(objectKey), false)
+  assert.equal(
+    (await media.listObjectDeletions()).filter(
+      (deletion) => deletion.storageProvider === 'SUPABASE' && deletion.objectKey === objectKey
+    ).length,
+    1
+  )
+  await media.completeObjectDeletions('SUPABASE', [objectKey])
+  assert.equal(
+    (await media.listObjectDeletions()).some(
+      (deletion) => deletion.storageProvider === 'SUPABASE' && deletion.objectKey === objectKey
+    ),
+    false
+  )
 }
 
 async function proveCopyLateRollback(

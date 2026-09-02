@@ -1,9 +1,17 @@
 import type { InitiativeFactAdapter } from '../../initiativeFactAdapter.js'
 import type { InitiativeDeclarationFactsDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
-import { checksumRuleDocument, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
+import {
+  checksumRuleDocument,
+  RULE_VALUE_KIND,
+  type GameSystemRuleCapabilityContract,
+  type RuleGraphDefinition
+} from '@artificer-toolkit/shared/rules'
 
-import { RULE_RUNTIME_GRAPH_FAMILY_KEY } from '../../reusableDefinitionService.js'
+import {
+  INITIATIVE_POLICY_DEFINITION_FAMILY_KEY,
+  RULE_RUNTIME_GRAPH_FAMILY_KEY
+} from '../../reusableDefinitionService.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 
 export const DND5E_SPEED_FACTOR_INITIATIVE_GRAPH_DEFINITION_ID =
@@ -12,9 +20,44 @@ export const DND5E_SPEED_FACTOR_INITIATIVE_GRAPH_DEFINITION_ID =
 export const DND5E_INITIATIVE_FACT_KEYS = {
   automatic: 'initiative.automatic',
   modifier: 'initiative.modifier',
-  rollMode: 'initiative.rollMode',
-  speedFactorModifier: 'initiative.speed-factor.modifier'
+  rollMode: 'initiative.roll-mode',
+  speedFactorModifier: 'initiative.speed-factor.modifier',
+  orderChoiceMinimumIndex: 'initiative.choice-min-index',
+  orderChoiceMaximumIndex: 'initiative.choice-max-index'
 } as const
+
+/**
+ * D&D's System-owned capability contribution for published initiative policy
+ * graphs. Roll mode is bound at execution time and is available to published
+ * D&D initiative graphs that consume it.
+ */
+export const dnd5eInitiativeCapabilityContribution = {
+  definitionFamilyKeys: [RULE_RUNTIME_GRAPH_FAMILY_KEY, INITIATIVE_POLICY_DEFINITION_FAMILY_KEY],
+  factContracts: [
+    { key: DND5E_INITIATIVE_FACT_KEYS.automatic, valueKind: RULE_VALUE_KIND.BOOLEAN },
+    { key: DND5E_INITIATIVE_FACT_KEYS.modifier, valueKind: RULE_VALUE_KIND.NUMBER },
+    { key: DND5E_INITIATIVE_FACT_KEYS.rollMode, valueKind: RULE_VALUE_KIND.TEXT },
+    {
+      key: DND5E_INITIATIVE_FACT_KEYS.speedFactorModifier,
+      valueKind: RULE_VALUE_KIND.NUMBER
+    },
+    {
+      key: DND5E_INITIATIVE_FACT_KEYS.orderChoiceMinimumIndex,
+      valueKind: RULE_VALUE_KIND.NUMBER
+    },
+    {
+      key: DND5E_INITIATIVE_FACT_KEYS.orderChoiceMaximumIndex,
+      valueKind: RULE_VALUE_KIND.NUMBER
+    }
+  ],
+  operationContracts: [
+    { key: 'evidence.integer-range', contractVersion: 1 },
+    { key: 'number.add', contractVersion: 1 }
+  ]
+} as const satisfies Pick<
+  GameSystemRuleCapabilityContract,
+  'definitionFamilyKeys' | 'factContracts' | 'operationContracts'
+>
 
 const sizeModifiers: Readonly<Record<string, number>> = {
   TINY: 5,
@@ -235,10 +278,12 @@ export const dnd5eInitiativeFactAdapter: InitiativeFactAdapter = {
           automatic: true,
           facts: {
             [DND5E_INITIATIVE_FACT_KEYS.automatic]: true,
-            [DND5E_INITIATIVE_FACT_KEYS.modifier]:
-              source.overlay.rulePolicyOutput.derivedStats.initiative.effective,
-            [DND5E_INITIATIVE_FACT_KEYS.rollMode]:
-              source.overlay.rulePolicyOutput.rollModes.initiative
+            [DND5E_INITIATIVE_FACT_KEYS.modifier]: (
+              source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput
+            ).derivedStats.initiative.effective,
+            [DND5E_INITIATIVE_FACT_KEYS.rollMode]: (
+              source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput
+            ).rollModes.initiative
           }
         }
       case 'CREATURE':
@@ -260,12 +305,15 @@ export const dnd5eInitiativeFactAdapter: InitiativeFactAdapter = {
     if (modifier === null) return { automatic: false }
     const baseModifier =
       source.kind === 'CHARACTER'
-        ? source.overlay.rulePolicyOutput.derivedStats.initiative.effective
+        ? (source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput).derivedStats
+            .initiative.effective
         : source.kind === 'CREATURE'
           ? source.actorRule.initiativeModifier
           : 0
     const rollMode =
-      source.kind === 'CHARACTER' ? source.overlay.rulePolicyOutput.rollModes.initiative : 'NORMAL'
+      source.kind === 'CHARACTER'
+        ? (source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput).rollModes.initiative
+        : 'NORMAL'
     return {
       automatic: true,
       facts: {

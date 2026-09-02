@@ -103,6 +103,7 @@ import {
   loadCurrentCharacterAuthoredVersionVector,
   resolvePinnedCharacterSenseDefinitions
 } from './characterMechanicsCompiler.js'
+import { compileCharacterSpellCastEntryPoints } from '../rules/characterActionEntryPointCompiler.js'
 import { deriveCharacterSceneVision } from './characterSceneVision.js'
 import type { CharacterMechanicsProjection } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { AuthoredVersionVector } from '@artificer-toolkit/schema/projections/identity'
@@ -1012,6 +1013,14 @@ export async function getCharacterSheetForUser(
   return (await getCharacterSheetBundleForUser(db, characterId, userId))?.response ?? null
 }
 
+export async function getCharacterSheetActionsForUser(
+  db: Parameters<typeof createCharacterRepository>[0],
+  characterId: string,
+  userId: string
+): Promise<CharacterSheetResponseDto['actions']['items'] | null> {
+  return (await getCharacterSheetForUser(db, characterId, userId))?.actions.items ?? null
+}
+
 export async function getCharacterSheetExtraOptionsForUser(
   db: Parameters<typeof createCharacterRepository>[0],
   characterId: string,
@@ -1585,6 +1594,15 @@ export async function upsertCharacterBuilderForUser(
         rulePolicyOutput: ruleEvaluation.output,
         pinnedSenseDefinitions,
         compiledActionEntryPoints: ruleEvaluation.compiledActionEntryPoints,
+        compiledSpellActionEntryPoints: compileCharacterSpellCastEntryPoints({
+          gameSystemId: payload.character.systemId,
+          candidates: ruleEvaluation.facts.spellCastCandidates,
+          decisions: ruleEvaluation.output.spellCastDecisions,
+          mechanics: ruleEvaluation.output.spellCastMechanics,
+          spellActionFacts: ruleEvaluation.facts.spellActionFacts,
+          spells: ruleEvaluation.spellsWithEffects,
+          authoredVersionVector
+        }),
         ruleRegistry: ruleEvaluation.registry,
         ruleSnapshot: ruleEvaluation.snapshot,
         authoredVersionVector

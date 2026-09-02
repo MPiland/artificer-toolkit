@@ -107,6 +107,7 @@ describe('buildCharacterSpellCastRuleFacts', () => {
       {
         sequence: 0,
         candidateId: createCharacterSpellCastCandidateId(classSource, 2),
+        label: 'Class spell',
         spellId: classSource.spellId,
         source: classSource,
         spellLevel: 2,
@@ -118,6 +119,7 @@ describe('buildCharacterSpellCastRuleFacts', () => {
       {
         sequence: 1,
         candidateId: createCharacterSpellCastCandidateId(classSource, 3),
+        label: 'Class spell',
         spellId: classSource.spellId,
         source: classSource,
         spellLevel: 2,
@@ -130,6 +132,7 @@ describe('buildCharacterSpellCastRuleFacts', () => {
     expect(facts.spellCastCandidates.at(-1)).toEqual({
       sequence: 8,
       candidateId: createCharacterSpellCastCandidateId(featureSource, 1),
+      label: 'Feature spell',
       spellId: featureSource.spellId,
       source: featureSource,
       spellLevel: 1,

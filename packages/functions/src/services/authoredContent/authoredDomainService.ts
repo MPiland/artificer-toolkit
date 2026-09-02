@@ -1020,6 +1020,17 @@ async function creatureDetailMeta(db: DBLike, item: AuthoredRecord, keys: Set<st
     )
   }
 
+  if (hasMetaKey(keys, 'equipment')) {
+    const equipmentIds = uniqueStrings(
+      readRecordArray(record.equipmentLoadout).map((entry) => readString(entry.equipmentId))
+    )
+    queries.push(
+      selectEquipmentOptions(db, equipmentIds).then((options) => {
+        meta.equipment = options
+      })
+    )
+  }
+
   await Promise.all(queries)
   return meta
 }

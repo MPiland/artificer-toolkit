@@ -23,6 +23,7 @@ import {
   clearValuesAtPaths,
   evaluateConditionIf,
   getValueAtPath,
+  resolveLocalCollectionOptions,
   isRuntimeRecord,
   resolveArrayAuthoringMeta,
   resolveInputAuthoringMeta,
@@ -478,6 +479,8 @@ async function resolveOptions(
   switch (source.kind) {
     case 'DATA':
       return streamToOptions(await executeRelationshipPlan(db, source.relationship, scope))
+    case 'LOCAL_COLLECTION':
+      return resolveLocalCollectionOptions(source, scope)
     case 'INLINE_OPTIONS':
       return applyInlineFilter(db, toOptions(source.options), source.filter, scope)
     case 'INLINE_GROUPS': {

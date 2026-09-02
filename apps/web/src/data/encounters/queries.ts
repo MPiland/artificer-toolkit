@@ -30,7 +30,8 @@ export function getPendingEncounterRuleOccurrence(encounterId: string, client: A
   return queryOptions({
     queryKey: queryKeys.encounters.pendingOccurrence(encounterId),
     queryFn: () => client.encounters.pendingRuleOccurrence(encounterId),
-    refetchInterval: 5_000
+    refetchInterval: 5_000,
+    retry: false
   })
 }
 

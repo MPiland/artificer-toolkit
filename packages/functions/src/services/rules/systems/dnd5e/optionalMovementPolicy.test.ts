@@ -20,6 +20,8 @@ import {
 
 const ACTOR_A = '00000000-0000-4000-8000-0000000000a1'
 const ACTOR_B = '00000000-0000-4000-8000-0000000000a2'
+const ACROBATICS_DEFINITION_ID = '00000000-0000-4000-8000-0000000000a3'
+const ATHLETICS_DEFINITION_ID = '00000000-0000-4000-8000-0000000000a4'
 
 const definitions = {
   OVERRUN: { id: DND5E_OVERRUN_DEFINITION_ID, module: DND5E_OVERRUN_OPERATION_KEY },
@@ -29,13 +31,31 @@ const definitions = {
 
 function snapshot(kind: keyof typeof definitions): EncounterOptionalCombatSnapshotDto {
   const selected = definitions[kind]
+  const parameters =
+    kind === 'OVERRUN'
+      ? {
+          kind,
+          initiatorCheckDefinitionId: ATHLETICS_DEFINITION_ID,
+          targetCheckDefinitionId: ATHLETICS_DEFINITION_ID
+        }
+      : kind === 'TUMBLE'
+        ? {
+            kind,
+            initiatorCheckDefinitionId: ACROBATICS_DEFINITION_ID,
+            targetCheckDefinitionId: ACROBATICS_DEFINITION_ID
+          }
+        : {
+            kind,
+            initiatorCheckDefinitionId: ATHLETICS_DEFINITION_ID,
+            defenderCheckDefinitionIds: [ATHLETICS_DEFINITION_ID, ACROBATICS_DEFINITION_ID]
+          }
   const document = {
     schemaVersion: 1 as const,
     kind,
     id: selected.id,
     gameSystemId: DND5E_SYSTEM_ID,
     module: { policyModuleKey: selected.module, contractVersion: 1 },
-    parameters: { kind },
+    parameters,
     mutuallyExclusiveGroup: null
   }
   return {
@@ -97,8 +117,8 @@ describe('D&D optional movement policies', () => {
         pin: { definitionId: DND5E_OVERRUN_DEFINITION_ID, definitionVersion: 1 },
         consumes: { economy: 'BONUS_ACTION', amount: 1 },
         contest: {
-          initiatorCheck: 'ATHLETICS',
-          targetCheck: 'ATHLETICS',
+          initiatorCheckDefinitionId: ATHLETICS_DEFINITION_ID,
+          targetCheckDefinitionId: ATHLETICS_DEFINITION_ID,
           initiatorMode: 'ADVANTAGE'
         },
         passage: {
@@ -155,7 +175,10 @@ describe('D&D optional movement policies', () => {
     expect(resolveDnd5eTumble(input)).toMatchObject({
       kind: 'PROPOSED',
       proposal: {
-        contest: { initiatorCheck: 'ACROBATICS', targetCheck: 'ACROBATICS' },
+        contest: {
+          initiatorCheckDefinitionId: ACROBATICS_DEFINITION_ID,
+          targetCheckDefinitionId: ACROBATICS_DEFINITION_ID
+        },
         passage: { opportunityAttackSuppression: false, prohibitEndingInOccupiedSpace: true }
       }
     })
@@ -173,10 +196,11 @@ describe('D&D optional movement policies', () => {
       targetActorId: ACTOR_B,
       attackerSizeRank: 2,
       targetSizeRank: 3,
-      attackReplacementAvailable: true,
+      actionEconomy: 'ACTION' as const,
+      actionEconomyAvailable: true,
       targetInReach: true,
       targetIncapacitated: false,
-      targetCheck: 'ACROBATICS' as const,
+      targetCheckDefinitionId: ACROBATICS_DEFINITION_ID,
       contest: { initiatorTotal: 16, targetTotal: 12 },
       qualifiedInitiatorContributors: [],
       destination: { isLegal: true, remainsWithinAttackerReach: true, distanceFeet: 5 }
@@ -184,18 +208,20 @@ describe('D&D optional movement policies', () => {
     expect(resolveDnd5eShoveAside(input)).toMatchObject({
       kind: 'PROPOSED',
       proposal: {
-        replacesAttack: true,
+        consumes: { economy: 'ACTION', amount: 1 },
         contest: {
-          initiatorCheck: 'ATHLETICS',
-          targetCheck: 'ACROBATICS',
+          initiatorCheckDefinitionId: ATHLETICS_DEFINITION_ID,
+          targetCheckDefinitionId: ACROBATICS_DEFINITION_ID,
           initiatorMode: 'DISADVANTAGE'
         },
         displacement: { type: 'FORCED', distanceFeet: 5, opportunityAttackSuppression: false }
       }
     })
-    expect(resolveDnd5eShoveAside({ ...input, targetCheck: 'ATHLETICS' })).toMatchObject({
+    expect(
+      resolveDnd5eShoveAside({ ...input, targetCheckDefinitionId: ATHLETICS_DEFINITION_ID })
+    ).toMatchObject({
       kind: 'PROPOSED',
-      proposal: { contest: { targetCheck: 'ATHLETICS' } }
+      proposal: { contest: { targetCheckDefinitionId: ATHLETICS_DEFINITION_ID } }
     })
   })
 
@@ -206,10 +232,11 @@ describe('D&D optional movement policies', () => {
       targetActorId: ACTOR_B,
       attackerSizeRank: 2,
       targetSizeRank: 3,
-      attackReplacementAvailable: true,
+      actionEconomy: 'ACTION' as const,
+      actionEconomyAvailable: true,
       targetInReach: true,
       targetIncapacitated: false,
-      targetCheck: 'ATHLETICS' as const,
+      targetCheckDefinitionId: ATHLETICS_DEFINITION_ID,
       contest: { initiatorTotal: 16, targetTotal: 12 },
       qualifiedInitiatorContributors: [],
       destination: { isLegal: true, remainsWithinAttackerReach: true, distanceFeet: 5 }
@@ -225,6 +252,12 @@ describe('D&D optional movement policies', () => {
       })
     ).toEqual({ kind: 'JUDGMENT_REQUIRED', reason: 'SHOVE_ASIDE_DESTINATION_UNRESOLVED' })
     expect(resolveDnd5eShoveAside({ ...input, targetSizeRank: 4 })).toEqual({
+      kind: 'NOT_APPLICABLE'
+    })
+    expect(resolveDnd5eShoveAside({ ...input, actionEconomy: 'BONUS_ACTION' })).toEqual({
+      kind: 'NOT_APPLICABLE'
+    })
+    expect(resolveDnd5eShoveAside({ ...input, actionEconomyAvailable: false })).toEqual({
       kind: 'NOT_APPLICABLE'
     })
   })

@@ -6,6 +6,8 @@ import {
 } from '../api/encounterActorRules.js'
 
 const actorId = '00000000-0000-4000-8000-000000000001'
+const dexterityId = '00000000-0000-4000-8000-000000000002'
+const charismaId = '00000000-0000-4000-8000-000000000003'
 const targetProtection = { status: 'NOT_NORMALIZED' as const }
 
 describe('Encounter actor rule contracts', () => {
@@ -15,7 +17,7 @@ describe('Encounter actor rule contracts', () => {
       actors: [
         {
           actorId,
-          abilityScores: { DEXTERITY: 14, CHARISMA: 18 },
+          abilityScores: { [dexterityId]: 14, [charismaId]: 18 },
           targetProtection,
           featureResources: [
             {
@@ -34,7 +36,7 @@ describe('Encounter actor rule contracts', () => {
       ]
     })
 
-    expect(input.actors[0]?.abilityScores.DEXTERITY).toBe(14)
+    expect(input.actors[0]?.abilityScores[dexterityId]).toBe(14)
     expect(
       encounterActorRuleOutputSchema.parse({
         actors: [
@@ -145,5 +147,25 @@ describe('Encounter actor rule contracts', () => {
         ]
       })
     ).toThrow(/duplicated/)
+    const abilityDefinitionId = '00000000-0000-4000-8000-000000000020'
+    const savingThrow = {
+      abilityDefinitionId,
+      modifier: 2,
+      rollMode: 'NORMAL',
+      contributors: []
+    }
+    expect(() =>
+      encounterActorRuleOutputSchema.parse({
+        actors: [
+          {
+            actorId,
+            initiativeModifier: 0,
+            savingThrowDefinitions: [savingThrow, savingThrow],
+            targetProtection,
+            featureResources: []
+          }
+        ]
+      })
+    ).toThrow(/unique and canonically ordered/)
   })
 })

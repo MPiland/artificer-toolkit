@@ -15,9 +15,12 @@ import type {
   ManifestComponentAuthored,
   ManifestProximityRuleAuthored,
   ArmorClassFloorAuthored,
+  HitPointMaximumReductionAuthored,
+  ScalarReductionAuthored,
   TelepathicLinkAuthored,
   PlantPortalAuthored,
   TreeStrideAuthored,
+  ActorRelationshipAuthored,
   ClosedRuleAuthored,
   PathLifecycleAuthored,
   RangeAuthored,
@@ -159,6 +162,8 @@ export type CompiledFollowUpSave = Omit<
   FollowUpSaveAuthored,
   'onSuccess' | 'onFailure' | 'onDurationComplete'
 > & {
+  /** Preserved immutable policy for a recurring d20; evaluation stays System-owned. */
+  repeatRollInfluence?: FollowUpSaveAuthored['repeatRollInfluence']
   onSuccess: CompiledFollowUpBranch
   onFailure: CompiledFollowUpBranch
   onDurationComplete?: CompiledFollowUpBranch
@@ -172,6 +177,8 @@ export type CompiledFollowUpCheck = Omit<FollowUpCheckAuthored, 'onSuccess' | 'o
 export type CompiledEffectOutcome =
   | CompiledNoOutcome
   | CompiledDamageEffect
+  | HitPointMaximumReductionAuthored
+  | ScalarReductionAuthored
   | CompiledConditionEffect
   | HealAuthored
   | ApplyGrantAuthored
@@ -188,6 +195,7 @@ export type CompiledEffectOutcome =
   | TelepathicLinkAuthored
   | PlantPortalAuthored
   | TreeStrideAuthored
+  | ActorRelationshipAuthored
   | ClosedRuleAuthored
   | import('#authored').TeleportAuthored
   | import('#authored').ManualAdjudicationAuthored
@@ -276,6 +284,9 @@ function compileOutcomePayload(
       return compileConditionEffect(outcome)
     case EFFECT_KIND.DAMAGE:
       return compileDamageEffect(outcome)
+    case EFFECT_KIND.HIT_POINT_MAXIMUM_REDUCTION:
+    case EFFECT_KIND.SCALAR_REDUCTION:
+      return [outcome]
     case EFFECT_KIND.HEAL:
     case EFFECT_KIND.APPLY_GRANT:
     case EFFECT_KIND.FORCED_MOVEMENT:
@@ -294,6 +305,7 @@ function compileOutcomePayload(
     case EFFECT_KIND.TELEPATHIC_LINK:
     case EFFECT_KIND.PLANT_PORTAL:
     case EFFECT_KIND.TREE_STRIDE:
+    case EFFECT_KIND.ACTOR_RELATIONSHIP:
     case EFFECT_KIND.CLOSED_RULE:
     case EFFECT_KIND.MANUAL_ADJUDICATION:
       return [outcome]

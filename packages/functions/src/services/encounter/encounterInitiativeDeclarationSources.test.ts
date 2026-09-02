@@ -38,7 +38,8 @@ const featureCapability = {
   effectId: ids.effect,
   compiledEffectChecksum: 'b'.repeat(64),
   mechanicFacts: { invocation: { activation: { code: 'ACTION' } } },
-  featureResourceUse: { chargeId: '00000000-0000-4000-8000-000000000007', cost: 2 }
+  featureResourceUse: { chargeId: '00000000-0000-4000-8000-000000000007', cost: 2 },
+  label: 'Creature strike'
 }
 
 describe('Encounter initiative declaration sources', () => {
@@ -70,7 +71,11 @@ describe('Encounter initiative declaration sources', () => {
       source: source as never
     })
     expect(request.primaryOptions).toEqual([
-      expect.objectContaining({ kind: 'CREATURE_FEATURE_ACTION', optionId: 'feature-action' })
+      expect.objectContaining({
+        kind: 'CREATURE_FEATURE_ACTION',
+        optionId: 'feature-action',
+        label: 'Creature strike'
+      })
     ])
     const result = compileEncounterInitiativeDeclaration({
       source: source as never,
@@ -106,6 +111,24 @@ describe('Encounter initiative declaration sources', () => {
     expect(request.primaryOptions).toEqual([
       expect.objectContaining({ kind: 'GM_ADJUDICATED', optionId: 'GM_ADJUDICATED' })
     ])
+    expect(request.adjudicationFields).toEqual([
+      expect.objectContaining({
+        kind: 'SELECT',
+        key: 'actorSize',
+        options: expect.arrayContaining([{ value: 'MEDIUM', label: 'Medium' }])
+      }),
+      expect.objectContaining({
+        kind: 'MULTI_SELECT',
+        key: 'actionFactors',
+        maximumSelections: 4
+      }),
+      expect.objectContaining({
+        kind: 'NULLABLE_INTEGER',
+        key: 'spellLevel',
+        minimum: 0,
+        maximum: 99
+      })
+    ])
     const result = compileEncounterInitiativeDeclaration({
       source: source as never,
       primary: {
@@ -128,5 +151,77 @@ describe('Encounter initiative declaration sources', () => {
       },
       bonus: null
     })
+  })
+
+  it('projects exact Character action and spell labels, with conservative historical fallbacks', () => {
+    const actionCandidate = {
+      actionId: 'action:longsword',
+      label: 'Longsword',
+      mechanicFacts: { invocation: { activation: { code: 'ACTION' } } }
+    }
+    const spellCandidate = {
+      candidateId: 'spell:shield',
+      label: 'Shield',
+      spellId: 'spell-id',
+      castLevel: 1
+    }
+    const source = {
+      kind: 'CHARACTER' as const,
+      actor: { id: ids.actor },
+      mechanics: {
+        rulePolicyInput: {
+          actionCandidates: [actionCandidate],
+          spellCastCandidates: [spellCandidate]
+        },
+        compiledActionEntryPoints: [
+          {
+            actionId: actionCandidate.actionId,
+            schemaVersion: 3,
+            compilation: { kind: 'COMPILED', published: { checksum: 'c'.repeat(64) } }
+          }
+        ],
+        rulePolicyOutput: { spellCastMechanics: [{ candidateId: spellCandidate.candidateId }] }
+      }
+    }
+    const request = createEncounterInitiativeDeclarationRequest({
+      requestId: 'speed',
+      encounterId: ids.encounter,
+      round: 1,
+      actorId: ids.actor,
+      participantExpectedVersion: 0,
+      controllerUserId: null,
+      source: source as never
+    })
+    expect(request.primaryOptions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ optionId: actionCandidate.actionId, label: 'Longsword' }),
+        expect.objectContaining({ optionId: spellCandidate.candidateId, label: 'Shield' })
+      ])
+    )
+
+    const legacyRequest = createEncounterInitiativeDeclarationRequest({
+      requestId: 'speed',
+      encounterId: ids.encounter,
+      round: 1,
+      actorId: ids.actor,
+      participantExpectedVersion: 0,
+      controllerUserId: null,
+      source: {
+        ...source,
+        mechanics: {
+          ...source.mechanics,
+          rulePolicyInput: {
+            actionCandidates: [{ ...actionCandidate, label: undefined }],
+            spellCastCandidates: [{ ...spellCandidate, label: undefined }]
+          }
+        }
+      } as never
+    })
+    expect(legacyRequest.primaryOptions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ optionId: actionCandidate.actionId, label: 'Action' }),
+        expect.objectContaining({ optionId: spellCandidate.candidateId, label: 'Spell cast' })
+      ])
+    )
   })
 })

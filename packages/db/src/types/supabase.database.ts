@@ -7458,6 +7458,7 @@ export type Database = {
           created_at: string
           creature_type_id: string | null
           description: string | null
+          equipment_loadout: Json | null
           hit_dice: string | null
           hit_dice_count: number | null
           hit_dice_modifier: number | null
@@ -7496,6 +7497,7 @@ export type Database = {
           created_at?: string
           creature_type_id?: string | null
           description?: string | null
+          equipment_loadout?: Json | null
           hit_dice?: string | null
           hit_dice_count?: number | null
           hit_dice_modifier?: number | null
@@ -7534,6 +7536,7 @@ export type Database = {
           created_at?: string
           creature_type_id?: string | null
           description?: string | null
+          equipment_loadout?: Json | null
           hit_dice?: string | null
           hit_dice_count?: number | null
           hit_dice_modifier?: number | null
@@ -12785,6 +12788,8 @@ export type Database = {
           ready_at: string | null
           rejection_reason: string | null
           status: string
+          storage_provider: string
+          storage_upload_id: string | null
           target_key: string
           unreferenced_at: string | null
           updated_at: string
@@ -12812,6 +12817,8 @@ export type Database = {
           ready_at?: string | null
           rejection_reason?: string | null
           status?: string
+          storage_provider?: string
+          storage_upload_id?: string | null
           target_key: string
           unreferenced_at?: string | null
           updated_at?: string
@@ -12839,6 +12846,8 @@ export type Database = {
           ready_at?: string | null
           rejection_reason?: string | null
           status?: string
+          storage_provider?: string
+          storage_upload_id?: string | null
           target_key?: string
           unreferenced_at?: string | null
           updated_at?: string
@@ -12852,14 +12861,17 @@ export type Database = {
         Row: {
           created_at: string
           object_key: string
+          storage_provider: string
         }
         Insert: {
           created_at?: string
           object_key: string
+          storage_provider?: string
         }
         Update: {
           created_at?: string
           object_key?: string
+          storage_provider?: string
         }
         Relationships: []
       }

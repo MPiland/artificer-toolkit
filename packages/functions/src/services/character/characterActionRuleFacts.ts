@@ -302,6 +302,7 @@ function appendActions(params: {
   entryPoints: CharacterActionRuleEntryPoint[]
   effects: readonly CompiledEffectGroup[] | undefined
   source: { sourceId: string; mechanicSource: CharacterActionSource }
+  label: string
   mechanicsOwner: CharacterActionMechanicsOwner
   activationSourceKind: ActionCandidate['activationSourceKind']
   equipment: ActionCandidate['equipment']
@@ -338,6 +339,7 @@ function appendActions(params: {
     const candidate = {
       sequence: params.candidates.length,
       actionId: actionId(params.source.sourceId, effect.id),
+      label: params.label,
       effectId: effect.id,
       sourceId: params.source.sourceId,
       source: params.source.mechanicSource,
@@ -387,6 +389,7 @@ export function buildCharacterActionRuleFacts(params: {
         entryPoints,
         effects: definition.effects,
         source: folded.definition,
+        label: definition.label ?? 'Feature action',
         mechanicsOwner: { kind: 'FEATURE', id: feature.featureId },
         activationSourceKind: 'ACTIVE_SOURCE',
         equipment: null,
@@ -407,6 +410,7 @@ export function buildCharacterActionRuleFacts(params: {
         entryPoints,
         effects: option.effects,
         source,
+        label: option.label ?? 'Feature option action',
         mechanicsOwner: { kind: 'FEATURE_OPTION', id: option.id },
         activationSourceKind: 'ACTIVE_SOURCE',
         equipment: null,
@@ -424,6 +428,7 @@ export function buildCharacterActionRuleFacts(params: {
         entryPoints,
         effects: registry.feats[feature.source.featId]?.effects,
         source: folded.featDefinition,
+        label: registry.feats[feature.source.featId]?.label ?? 'Feat action',
         mechanicsOwner: { kind: 'FEAT', id: feature.source.featId },
         activationSourceKind: 'ACTIVE_SOURCE',
         equipment: null,
@@ -459,6 +464,7 @@ export function buildCharacterActionRuleFacts(params: {
       entryPoints,
       effects: item.compiledItem.effects,
       source: rootSource,
+      label: item.compiledItem.label ?? 'Equipment action',
       mechanicsOwner: { kind: 'EQUIPMENT', id: item.compiledItem.id },
       activationSourceKind: 'ACTIVE_EQUIPMENT',
       equipment: rootEquipment,
@@ -473,6 +479,7 @@ export function buildCharacterActionRuleFacts(params: {
         entryPoints,
         effects: feature.effects,
         source: nested,
+        label: feature.label ?? 'Feature action',
         mechanicsOwner: { kind: 'FEATURE', id: feature.id },
         activationSourceKind: 'ACTIVE_SOURCE',
         equipment: {

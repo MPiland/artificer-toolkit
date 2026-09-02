@@ -30,7 +30,16 @@ const state = vi.hoisted(() => ({
   resumeWithPause: vi.fn(),
   reconstruct: vi.fn(),
   apply: vi.fn(),
-  context: vi.fn()
+  checksum: vi.fn(),
+  context: vi.fn(),
+  adapter: undefined as unknown,
+  findEncounterBinding: vi.fn(),
+  lockLiveScene: vi.fn(),
+  listActorTokenBindings: vi.fn(),
+  lockSpatialScope: vi.fn(),
+  listSpatialEffects: vi.fn(),
+  resolveCombatPerception: vi.fn(),
+  requireCurrentDefinition: vi.fn()
 }))
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => {
@@ -51,8 +60,21 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createCharacterMechanicsProjectionRepository: () => ({
       requireCurrent: state.requireMechanics
     }),
-    createSystemVocabularySnapshotRepository: () => ({ findById: state.vocabulary }),
-    createEncounterRepository: () => ({ updateActor: state.updateActor })
+    createSystemVocabularySnapshotRepository: () => ({
+      findById: state.vocabulary
+    }),
+    createEncounterRepository: () => ({ updateActor: state.updateActor }),
+    createVttSceneRepository: () => ({
+      findEncounterBinding: state.findEncounterBinding,
+      lockLiveScene: state.lockLiveScene,
+      listActorTokenBindings: state.listActorTokenBindings
+    }),
+    createSpatialRuleEffectRepository: () => ({
+      lockScope: state.lockSpatialScope
+    }),
+    createReusableDefinitionRepository: () => ({
+      requireCurrent: state.requireCurrentDefinition
+    })
   }
 })
 
@@ -64,7 +86,10 @@ vi.mock('../campaign/campaignCharacterMechanicsProjection.js', () => ({
   CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION: 1
 }))
 vi.mock('../rules/characterRuleActionSystemAdapterRegistry.js', () => ({
-  characterRuleActionSystemAdapterRegistry: {}
+  characterRuleActionSystemAdapterRegistry: { get: () => state.adapter }
+}))
+vi.mock('./encounterCombatPerception.js', () => ({
+  resolveEncounterCombatPerception: state.resolveCombatPerception
 }))
 vi.mock('../rules/characterActiveRuleEffectExecutor.js', () => ({
   executeCharacterActiveRuleEffect: state.execute,
@@ -74,7 +99,7 @@ vi.mock('../rules/characterActiveRuleEffectExecutor.js', () => ({
 }))
 vi.mock('@artificer-toolkit/shared/rules', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@artificer-toolkit/shared/rules')>()),
-  checksumRuleDocument: () => 'c'.repeat(64)
+  checksumRuleDocument: state.checksum
 }))
 vi.mock('./encounterCharacterMechanicsBatch.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./encounterCharacterMechanicsBatch.js')>()),
@@ -83,6 +108,7 @@ vi.mock('./encounterCharacterMechanicsBatch.js', async (importOriginal) => ({
 
 import {
   __testOnlyTurnEffectEvaluator,
+  applyEvaluatedTurnEffectBatch,
   executeEncounterTurnCharacterActiveEffects,
   projectEncounterAfterEvaluatedTurnEffectBatch
 } from './encounterCharacterActiveRuleEffectService.js'
@@ -111,7 +137,12 @@ function creatureActor(id: string) {
     currentHitPoints: 5,
     tempHitPoints: 0,
     maxHitPoints: 10,
-    conditions: [{ conditionTypeId: '00000000-0000-4000-8000-000000000011', notes: 'preserve' }]
+    conditions: [
+      {
+        conditionTypeId: '00000000-0000-4000-8000-000000000011',
+        notes: 'preserve'
+      }
+    ]
   }
 }
 
@@ -139,6 +170,86 @@ function effect(id: string, stage: 'START_OF_TURN' | 'END_OF_TURN', ticks = 2, c
         capabilityContractVersion: 1
       },
       recurrence: { recurrenceStage: stage, lifetimeScope: 'OWNER' }
+    }
+  }
+}
+
+function conditionEffect(input: {
+  id: string
+  stage: 'START_OF_TURN' | 'END_OF_TURN'
+  createdOrdinal: number
+  baselinePresent?: boolean
+}) {
+  const active = effect(input.id, input.stage, 1, input.createdOrdinal)
+  return {
+    ...active,
+    definition: {
+      ...active.definition,
+      schemaVersion: 2 as const,
+      stateContributions: [
+        {
+          kind: 'CONDITION_OWNERSHIP' as const,
+          conditionId: '00000000-0000-4000-8000-000000000011',
+          baselinePresent: input.baselinePresent ?? false
+        }
+      ]
+    }
+  }
+}
+
+function completedConditionRemoval(input: { targetActorId: string; activeEffectId: string }) {
+  const conditionId = '00000000-0000-4000-8000-000000000011'
+  return {
+    execution: {
+      status: 'COMPLETE' as const,
+      outputs: { result: true },
+      evidence: {
+        source: {
+          definitionId: ids.effectA,
+          gameSystemId: ids.system,
+          definitionFamilyKey: 'effect',
+          checksum: 'f'.repeat(64)
+        },
+        capabilityContractVersion: 1,
+        facts: {},
+        sourceEntryBindings: [{ sourceEntryId: ids.effectA, nodeId: 'effect-node' }],
+        trace: [
+          {
+            nodeId: 'effect-node',
+            operation: { key: 'effect.apply', contractVersion: 1 },
+            inputs: {},
+            outputs: {
+              targetActorId: input.targetActorId,
+              conditionId,
+              sourceActiveEffectId: input.activeEffectId,
+              resolvedPath: 'ON_USE',
+              applicationCandidate: true,
+              authorized: true,
+              targetStateChecksum: 'c'.repeat(64)
+            }
+          }
+        ],
+        outputs: { result: true }
+      }
+    },
+    applications: [
+      {
+        kind: 'CONDITION_REMOVE' as const,
+        targetActorId: input.targetActorId,
+        conditionId,
+        sourceActiveEffectId: input.activeEffectId,
+        sourceNodeId: 'effect-node',
+        sourceOperationKey: 'effect.apply',
+        authoredPath: null,
+        resolvedPath: 'ON_USE'
+      }
+    ],
+    lifecycle: {
+      kind: 'EXPIRE' as const,
+      expectedVersion: 2,
+      beforeRemainingTicks: 1,
+      afterRemainingTicks: 0,
+      beforeLifecycleChecksum: 'e'.repeat(64)
     }
   }
 }
@@ -176,6 +287,7 @@ function db(characterIds: readonly string[] = [ids.characterA]) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  state.checksum.mockReturnValue('c'.repeat(64))
   state.list.mockResolvedValue([])
   state.lockByOwner.mockResolvedValue([])
   state.lockAssignment.mockResolvedValue(undefined)
@@ -185,7 +297,10 @@ beforeEach(() => {
     systemVocabularySnapshotId: ids.system,
     systemVocabularySnapshotVersion: 1,
     systemVocabularySnapshotChecksum: 'h'.repeat(64),
-    commandState: { state: { hitpoints: { current: 5, temp: 0 }, conditions: [] } }
+    rulePolicyInput: { abilityDefinitions: [] },
+    commandState: {
+      state: { hitpoints: { current: 5, temp: 0 }, conditions: [] }
+    }
   })
   state.requireOverlay.mockResolvedValue({
     campaignId: ids.campaign,
@@ -196,7 +311,10 @@ beforeEach(() => {
     projectionChecksum: 'a'.repeat(64),
     mechanicalContextChecksum: 'b'.repeat(64),
     kind: 'MATERIALIZED',
-    rulePolicyOutput: { derivedStats: { maxHitPoints: { effective: 10 } }, defenses: [] }
+    rulePolicyOutput: {
+      derivedStats: { abilities: [], maxHitPoints: { effective: 10 } },
+      defenses: []
+    }
   })
   state.vocabulary.mockResolvedValue({
     systemId: ids.system,
@@ -204,33 +322,47 @@ beforeEach(() => {
     checksum: 'h'.repeat(64),
     document: { conditionTypes: [] }
   })
-  state.context.mockResolvedValue({ adjustments: [], attunementSlotOverride: null })
-  state.apply.mockImplementation(async ({ targetActor, targetCharacterId, applications }) => ({
-    updatedActor: targetActor,
-    streamVersion: 5,
-    finalState: {
-      currentHitPoints: 5 + applications.length,
-      temporaryHitPoints: 0,
-      maximumHitPoints: 10,
-      conditionIds: []
-    },
-    receiptApplications: [],
-    targetTransition: {
-      checksum: 'c'.repeat(64),
-      before: {
-        currentHitPoints: 5,
-        temporaryHitPoints: 0,
-        conditionIds: []
-      },
-      after: {
+  state.context.mockResolvedValue({
+    adjustments: [],
+    attunementSlotOverride: null
+  })
+  state.adapter = undefined
+  state.findEncounterBinding.mockResolvedValue(null)
+  state.lockLiveScene.mockResolvedValue(null)
+  state.listActorTokenBindings.mockResolvedValue([])
+  state.lockSpatialScope.mockResolvedValue({ list: state.listSpatialEffects })
+  state.listSpatialEffects.mockResolvedValue([])
+  state.resolveCombatPerception.mockReturnValue({ satisfied: true, evidence: [] })
+  state.requireCurrentDefinition.mockRejectedValue(new Error('unexpected definition lookup'))
+  state.apply.mockImplementation(
+    async ({ targetActor, targetCharacterId, applications, evaluated }) => ({
+      updatedActor: targetActor,
+      streamVersion: 5,
+      finalState: {
         currentHitPoints: 5 + applications.length,
         temporaryHitPoints: 0,
-        conditionIds: []
-      }
-    },
-    stateChanged: false,
-    targetCharacterId
-  }))
+        maximumHitPoints: 10,
+        conditionIds: [],
+        scalarValues: evaluated.targetTransition.after.scalarValues
+      },
+      receiptApplications: [],
+      targetTransition: {
+        checksum: 'c'.repeat(64),
+        before: {
+          currentHitPoints: 5,
+          temporaryHitPoints: 0,
+          conditionIds: []
+        },
+        after: {
+          currentHitPoints: 5 + applications.length,
+          temporaryHitPoints: 0,
+          conditionIds: []
+        }
+      },
+      stateChanged: false,
+      targetCharacterId
+    })
+  )
   state.execute.mockImplementation(async (input) => {
     const expires = input.lifecycle.remainingTicks === 1
     return {
@@ -348,7 +480,11 @@ function coordinatorRoot() {
     initiatorUserId: ids.characterA,
     correlationId: null,
     expectedEncounterVersion: 3,
-    proposedTerminalTransition: { status: 'ACTIVE' as const, round: 1, currentActorId: ids.actorA }
+    proposedTerminalTransition: {
+      status: 'ACTIVE' as const,
+      round: 1,
+      currentActorId: ids.actorA
+    }
   }
 }
 
@@ -388,7 +524,11 @@ function pausedContinuation() {
         capabilityContractVersion: 1,
         factContracts: [],
         nodes: [
-          { id: 'effect-node', operation: { key: 'effect.apply', contractVersion: 1 }, inputs: {} }
+          {
+            id: 'effect-node',
+            operation: { key: 'effect.apply', contractVersion: 1 },
+            inputs: {}
+          }
         ],
         outputs: { result: { kind: 'LITERAL', value: true } },
         sourceEntryBindings: [{ sourceEntryId: ids.effectA, nodeId: 'effect-node' }]
@@ -551,7 +691,10 @@ describe('encounter turn Character active effects', () => {
             ],
             targetTransition: {
               ...execution.targetTransition,
-              after: { ...execution.targetTransition.after, currentHitPoints: 7 }
+              after: {
+                ...execution.targetTransition.after,
+                currentHitPoints: 7
+              }
             }
           }
         ]
@@ -607,7 +750,11 @@ describe('encounter turn Character active effects', () => {
         coordinatorRoot: {
           ...coordinatorRoot(),
           commandFingerprint: 'd'.repeat(64),
-          proposedTerminalTransition: { status: 'COMPLETED', round: 2, currentActorId: null }
+          proposedTerminalTransition: {
+            status: 'COMPLETED',
+            round: 2,
+            currentActorId: null
+          }
         },
         resume: {
           pendingSnapshot: initial.pendingSnapshot,
@@ -643,6 +790,207 @@ describe('encounter turn Character active effects', () => {
     ).rejects.toThrow('current candidate is stale')
     expect(state.resumeWithPause).not.toHaveBeenCalled()
     expect(state.apply).not.toHaveBeenCalled()
+  })
+
+  it('rejects a scalar-state change before resuming a pending turn effect', async () => {
+    const scalarDefinitionId = '00000000-0000-4000-8000-000000000012'
+    state.checksum.mockImplementation((value) => {
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        'scalarValues' in value &&
+        typeof value.scalarValues === 'object' &&
+        value.scalarValues !== null &&
+        !Array.isArray(value.scalarValues)
+      ) {
+        return value.scalarValues[scalarDefinitionId] === 5 ? 'd'.repeat(64) : 'e'.repeat(64)
+      }
+      return 'c'.repeat(64)
+    })
+    state.requireMechanics.mockResolvedValue({
+      characterStreamVersion: 4,
+      projectionChecksum: 'g'.repeat(64),
+      systemVocabularySnapshotId: ids.system,
+      systemVocabularySnapshotVersion: 1,
+      systemVocabularySnapshotChecksum: 'h'.repeat(64),
+      rulePolicyInput: {
+        abilityDefinitions: [{ id: scalarDefinitionId, code: scalarDefinitionId }]
+      },
+      commandState: {
+        state: { hitpoints: { current: 5, temp: 0 }, conditions: [] }
+      }
+    })
+    state.requireOverlay.mockResolvedValue({
+      campaignId: ids.campaign,
+      characterId: ids.characterA,
+      characterStreamVersion: 4,
+      baseMechanicsProjectionChecksum: 'g'.repeat(64),
+      projectionSchemaVersion: 1,
+      projectionChecksum: 'a'.repeat(64),
+      mechanicalContextChecksum: 'b'.repeat(64),
+      kind: 'MATERIALIZED',
+      rulePolicyOutput: {
+        derivedStats: {
+          maxHitPoints: { effective: 10 },
+          abilities: [{ abilityId: scalarDefinitionId, score: { effective: 5 } }]
+        },
+        defenses: []
+      }
+    })
+    const active = effect(ids.effectA, 'START_OF_TURN')
+    state.list.mockResolvedValue([active])
+    state.lockByOwner.mockResolvedValue([active])
+    state.executeWithPause.mockResolvedValue(pausedContinuation())
+    const initial = await __testOnlyTurnEffectEvaluator.evaluate(
+      assistedEvaluationInput([{ ordinal: 0, stage: 'START_OF_TURN', actorId: ids.actorA }])
+    )
+    expect(initial.kind).toBe('PENDING')
+    if (initial.kind !== 'PENDING') return
+    state.requireOverlay.mockResolvedValue({
+      ...(await state.requireOverlay.mock.results[0]!.value),
+      rulePolicyOutput: {
+        derivedStats: {
+          maxHitPoints: { effective: 10 },
+          abilities: [{ abilityId: scalarDefinitionId, score: { effective: 4 } }]
+        },
+        defenses: []
+      }
+    })
+
+    await expect(
+      __testOnlyTurnEffectEvaluator.evaluate({
+        ...assistedEvaluationInput([{ ordinal: 0, stage: 'START_OF_TURN', actorId: ids.actorA }]),
+        resume: {
+          pendingSnapshot: initial.pendingSnapshot,
+          resolution: { requestId: 'effect-d20', rawFaces: [12] }
+        }
+      })
+    ).rejects.toThrow('current candidate is stale')
+    expect(state.resumeWithPause).not.toHaveBeenCalled()
+  })
+
+  it('validates a Character terminal batch against its first scalar state, not its staged state', async () => {
+    const scalarDefinitionId = '00000000-0000-4000-8000-000000000013'
+    const active = effect(ids.effectA, 'START_OF_TURN')
+    state.list.mockResolvedValue([active])
+    state.lockByOwner.mockResolvedValue([active])
+    const evaluated = await __testOnlyTurnEffectEvaluator.evaluate(
+      assistedEvaluationInput([{ ordinal: 0, stage: 'START_OF_TURN', actorId: ids.actorA }])
+    )
+    if (evaluated.kind !== 'READY') throw new Error('Expected ready Character batch.')
+    const execution = evaluated.batch.executions[0]!
+    const batch = {
+      ...evaluated.batch,
+      executions: [
+        {
+          ...execution,
+          targetTransition: {
+            ...execution.targetTransition,
+            before: {
+              ...execution.targetTransition.before,
+              scalarValues: { [scalarDefinitionId]: 5 }
+            },
+            after: {
+              ...execution.targetTransition.after,
+              scalarValues: { [scalarDefinitionId]: 5 }
+            }
+          }
+        }
+      ],
+      executionStates: new Map([
+        [
+          `CHARACTER:${ids.characterA}`,
+          { current: 6, temporary: 0, conditions: [], scalarValues: { [scalarDefinitionId]: 4 } }
+        ]
+      ])
+    }
+
+    await applyEvaluatedTurnEffectBatch({
+      trx: db() as never,
+      actorUserId: ids.characterA,
+      encounter: encounter() as never,
+      commandType: 'START',
+      occurrenceId: ids.occurrence,
+      batch
+    })
+
+    expect(state.apply).toHaveBeenCalledWith(
+      expect.objectContaining({ effectiveScalarValues: { [scalarDefinitionId]: 5 } })
+    )
+  })
+
+  it('validates an Encounter actor terminal batch against its first scalar state, not its staged state', async () => {
+    const scalarDefinitionId = '00000000-0000-4000-8000-000000000014'
+    const target = {
+      ...creatureActor(ids.actorA),
+      snapshot: {
+        payload: { size: 'MEDIUM' },
+        ruleFacts: {
+          gameSystemId: ids.system,
+          vocabularySnapshotId: ids.system,
+          vocabularySnapshotVersion: 1,
+          vocabularySnapshotChecksum: 'b'.repeat(64),
+          abilityScores: { [scalarDefinitionId]: 5 },
+          resourceAbilityScores: {},
+          initiativeAbilityDefinitionId: scalarDefinitionId
+        }
+      }
+    }
+    const active = effect(ids.effectA, 'START_OF_TURN')
+    state.list.mockResolvedValue([active])
+    state.lockByOwner.mockResolvedValue([active])
+    const encounterActorSnapshot = async () => ({
+      encounter: { ...encounter(), actors: [target] } as never,
+      rules: {
+        actors: [
+          {
+            actorId: ids.actorA,
+            initiativeModifier: 0,
+            targetProtection: {
+              status: 'NORMALIZED' as const,
+              defenses: [],
+              conditionImmunityIds: []
+            },
+            featureResources: []
+          }
+        ]
+      }
+    })
+    const evaluationInput = {
+      trx: db([]) as never,
+      actorUserId: ids.characterA,
+      encounter: { ...encounter(), actors: [target] } as never,
+      commandType: 'START' as const,
+      boundaries: [{ ordinal: 0 as const, stage: 'START_OF_TURN' as const, actorId: ids.actorA }],
+      occurrenceId: ids.occurrence,
+      runtime: {} as never,
+      attunementSlotOverride: null,
+      getEncounterActorSnapshot: encounterActorSnapshot
+    }
+    const evaluated = await __testOnlyTurnEffectEvaluator.evaluate(evaluationInput)
+    if (evaluated.kind !== 'READY') throw new Error('Expected ready Encounter actor batch.')
+    const batch = {
+      ...evaluated.batch,
+      executionStates: new Map([
+        [
+          `ENCOUNTER_ACTOR:${ids.actorA}`,
+          { current: 6, temporary: 0, conditions: [], scalarValues: { [scalarDefinitionId]: 4 } }
+        ]
+      ])
+    }
+
+    await applyEvaluatedTurnEffectBatch({
+      trx: db([]) as never,
+      actorUserId: ids.characterA,
+      encounter: { ...encounter(), actors: [target] } as never,
+      commandType: 'START',
+      occurrenceId: ids.occurrence,
+      batch
+    })
+
+    expect(state.updateActor).toHaveBeenCalledWith(
+      expect.objectContaining({ id: ids.actorA, currentHitPoints: 6 })
+    )
   })
 
   it('rejects a changed Character projection pin or selection before resuming runtime', async () => {
@@ -748,7 +1096,11 @@ describe('encounter turn Character active effects', () => {
         initiatorUserId: ids.characterA,
         correlationId: null,
         expectedEncounterVersion: 3,
-        proposedTerminalTransition: { status: 'ACTIVE', round: 1, currentActorId: ids.actorA }
+        proposedTerminalTransition: {
+          status: 'ACTIVE',
+          round: 1,
+          currentActorId: ids.actorA
+        }
       }
     })
     expect(evaluation).toMatchObject({
@@ -824,7 +1176,10 @@ describe('encounter turn Character active effects', () => {
     state.requireMechanics.mockRejectedValue(new Error('must stay inert'))
     state.requireOverlay.mockRejectedValue(new Error('must stay inert'))
     state.vocabulary.mockRejectedValue(new Error('must stay inert'))
-    const manual = { ...encounter('MANUAL'), manualReminderMode: 'OFF' as const }
+    const manual = {
+      ...encounter('MANUAL'),
+      manualReminderMode: 'OFF' as const
+    }
     await expect(
       executeEncounterTurnCharacterActiveEffects({
         trx: db() as never,
@@ -860,6 +1215,224 @@ describe('encounter turn Character active effects', () => {
     ).rejects.toThrow('Rules runtime')
     expect(state.apply).not.toHaveBeenCalled()
     expect(state.updateLifecycleCas).not.toHaveBeenCalled()
+  })
+
+  it('locks current Scene facts before Character/effect rows and passes derived perception', async () => {
+    const active = {
+      ...effect(ids.effectA, 'START_OF_TURN'),
+      definition: {
+        ...effect(ids.effectA, 'START_OF_TURN').definition,
+        origin: {
+          kind: 'ENCOUNTER' as const,
+          sourceAggregateId: ids.encounter,
+          sourceOccurrenceId: ids.occurrence,
+          rootCommandId: ids.occurrence,
+          sourceActorId: ids.actorA
+        }
+      }
+    }
+    state.list.mockResolvedValue([active])
+    state.lockByOwner.mockResolvedValue([active])
+    state.adapter = {
+      activeEffectPerceptionRequirement: () => ({ influence: 'DISADVANTAGE', requirement: 'SEE' }),
+      combatPerceptionBaselineCapabilities: () => []
+    }
+    state.findEncounterBinding.mockResolvedValue({ sceneId: ids.effectB })
+    state.lockLiveScene.mockResolvedValue({
+      state: {
+        id: ids.effectB,
+        version: 7,
+        grid: {},
+        tokens: [{ id: 'token-a' }]
+      }
+    })
+    state.listActorTokenBindings.mockResolvedValue([{ tokenId: 'token-a', actorId: ids.actorA }])
+    state.resolveCombatPerception.mockReturnValue({ satisfied: true, evidence: ['CURRENT'] })
+
+    await executeEncounterTurnCharacterActiveEffects({
+      trx: db() as never,
+      actorUserId: ids.characterA,
+      encounter: encounter() as never,
+      commandType: 'START',
+      boundaries: [{ ordinal: 0, stage: 'START_OF_TURN', actorId: ids.actorA }],
+      occurrenceId: ids.occurrence,
+      runtime: {} as never,
+      attunementSlotOverride: null,
+      coordinatorRoot: coordinatorRoot()
+    })
+
+    const effectInput = state.executeWithPause.mock.calls[0]?.[0] as {
+      perception?: { requirement: string; satisfied: boolean; checksum: string }
+    }
+    expect(effectInput.perception).toMatchObject({ requirement: 'SEE', satisfied: true })
+    expect(effectInput.perception?.checksum).toMatch(/^[a-f0-9]{64}$/)
+    expect(state.lockLiveScene.mock.invocationCallOrder[0]).toBeLessThan(
+      state.lockAssignment.mock.invocationCallOrder[0]!
+    )
+    expect(state.lockLiveScene.mock.invocationCallOrder[0]).toBeLessThan(
+      state.lockByOwner.mock.invocationCallOrder[0]!
+    )
+  })
+
+  it('resolves locked UUID-backed condition perception policy before evaluating a dependent effect', async () => {
+    const conditionId = '00000000-0000-0000-0002-000100000000'
+    const active = {
+      ...effect(ids.effectA, 'START_OF_TURN'),
+      definition: {
+        ...effect(ids.effectA, 'START_OF_TURN').definition,
+        origin: {
+          kind: 'ENCOUNTER' as const,
+          sourceAggregateId: ids.encounter,
+          sourceOccurrenceId: ids.occurrence,
+          rootCommandId: ids.occurrence,
+          sourceActorId: ids.actorA
+        }
+      }
+    }
+    state.list.mockResolvedValue([active])
+    state.lockByOwner.mockResolvedValue([active])
+    state.adapter = {
+      activeEffectPerceptionRequirement: () => ({ influence: 'DISADVANTAGE', requirement: 'SEE' }),
+      combatPerceptionBaselineCapabilities: () => []
+    }
+    state.requireMechanics.mockResolvedValue({
+      ...(await state.requireMechanics()),
+      commandState: {
+        state: {
+          hitpoints: { current: 5, temp: 0 },
+          conditions: [{ conditionTypeId: conditionId }]
+        }
+      }
+    })
+    state.vocabulary.mockResolvedValue({
+      systemId: ids.system,
+      snapshotVersion: 1,
+      checksum: 'h'.repeat(64),
+      document: { conditionTypes: [{ id: conditionId }] }
+    })
+    state.requireCurrentDefinition.mockResolvedValue({
+      id: conditionId,
+      gameSystemId: ids.system,
+      contentSourceId: ids.system,
+      definitionFamilyKey: 'condition-rule-state',
+      label: 'ignored',
+      description: null,
+      version: 1,
+      contractVersion: 1,
+      checksum: 'c'.repeat(64),
+      publishedAt: '2026-08-31T00:00:00.000Z',
+      publishedBy: ids.characterA,
+      document: {
+        schemaVersion: 1,
+        kind: 'CONDITION_RULE_STATE',
+        id: conditionId,
+        gameSystemId: ids.system,
+        capabilitySuppressions: [],
+        perceptionContributions: [
+          {
+            id: '00000000-0000-4000-8000-000000000021',
+            order: 0,
+            kind: 'SENSE_SUPPRESS',
+            senseDefinitionIds: [],
+            channels: ['VISUAL']
+          }
+        ]
+      }
+    })
+    state.findEncounterBinding.mockResolvedValue({ sceneId: ids.effectB })
+    state.lockLiveScene.mockResolvedValue({
+      state: { id: ids.effectB, version: 7, grid: {}, tokens: [{ id: 'token-a' }] }
+    })
+    state.listActorTokenBindings.mockResolvedValue([{ tokenId: 'token-a', actorId: ids.actorA }])
+    state.resolveCombatPerception.mockReturnValue({ satisfied: false, evidence: [] })
+    state.apply.mockImplementation(async ({ targetActor, targetCharacterId }) => ({
+      updatedActor: targetActor,
+      streamVersion: 5,
+      finalState: {
+        currentHitPoints: 6,
+        temporaryHitPoints: 0,
+        maximumHitPoints: 10,
+        conditionIds: [conditionId]
+      },
+      receiptApplications: [],
+      targetTransition: {
+        checksum: 'c'.repeat(64),
+        before: { currentHitPoints: 5, temporaryHitPoints: 0, conditionIds: [conditionId] },
+        after: { currentHitPoints: 6, temporaryHitPoints: 0, conditionIds: [conditionId] }
+      },
+      stateChanged: false,
+      targetCharacterId
+    }))
+
+    await executeEncounterTurnCharacterActiveEffects({
+      trx: db() as never,
+      actorUserId: ids.characterA,
+      encounter: encounter() as never,
+      commandType: 'START',
+      boundaries: [{ ordinal: 0, stage: 'START_OF_TURN', actorId: ids.actorA }],
+      occurrenceId: ids.occurrence,
+      runtime: {} as never,
+      attunementSlotOverride: null,
+      coordinatorRoot: coordinatorRoot()
+    })
+
+    expect(state.requireCurrentDefinition).toHaveBeenCalledWith(conditionId)
+    expect(state.resolveCombatPerception).toHaveBeenCalledWith(
+      expect.objectContaining({
+        observerConditionContributions: [
+          expect.objectContaining({
+            source: expect.objectContaining({
+              kind: 'CONDITION_DEFINITION',
+              conditionDefinitionId: conditionId,
+              conditionDefinitionChecksum: 'c'.repeat(64)
+            })
+          })
+        ]
+      })
+    )
+    expect(state.executeWithPause.mock.calls[0]?.[0]).toMatchObject({
+      perception: { requirement: 'SEE', satisfied: false }
+    })
+  })
+
+  it('fails closed with derived false perception when the current Scene source is unavailable', async () => {
+    const active = {
+      ...effect(ids.effectA, 'START_OF_TURN'),
+      definition: {
+        ...effect(ids.effectA, 'START_OF_TURN').definition,
+        origin: {
+          kind: 'ENCOUNTER' as const,
+          sourceAggregateId: ids.encounter,
+          sourceOccurrenceId: ids.occurrence,
+          rootCommandId: ids.occurrence,
+          sourceActorId: '00000000-0000-4000-8000-000000000099'
+        }
+      }
+    }
+    state.list.mockResolvedValue([active])
+    state.lockByOwner.mockResolvedValue([active])
+    state.adapter = {
+      activeEffectPerceptionRequirement: () => ({ influence: 'DISADVANTAGE', requirement: 'SEE' })
+    }
+    state.findEncounterBinding.mockResolvedValue(null)
+
+    await expect(
+      executeEncounterTurnCharacterActiveEffects({
+        trx: db() as never,
+        actorUserId: ids.characterA,
+        encounter: encounter() as never,
+        commandType: 'START',
+        boundaries: [{ ordinal: 0, stage: 'START_OF_TURN', actorId: ids.actorA }],
+        occurrenceId: ids.occurrence,
+        runtime: {} as never,
+        attunementSlotOverride: null,
+        coordinatorRoot: coordinatorRoot()
+      })
+    ).resolves.toBeDefined()
+    expect(state.executeWithPause.mock.calls[0]?.[0]).toMatchObject({
+      perception: { requirement: 'SEE', satisfied: false }
+    })
+    expect(state.resolveCombatPerception).not.toHaveBeenCalled()
   })
 
   it('executes an automatic START effect once, advances the Character once, and CAS-updates lifecycle', async () => {
@@ -984,6 +1557,161 @@ describe('encounter turn Character active effects', () => {
     expect(state.updateLifecycleCas).not.toHaveBeenCalled()
   })
 
+  it('removes a shared Character condition when both owning effects expire together', async () => {
+    const conditionId = '00000000-0000-4000-8000-000000000011'
+    const effects = [
+      conditionEffect({
+        id: ids.effectA,
+        stage: 'START_OF_TURN',
+        createdOrdinal: 1
+      }),
+      conditionEffect({
+        id: ids.effectB,
+        stage: 'START_OF_TURN',
+        createdOrdinal: 2
+      })
+    ]
+    state.list.mockResolvedValue(effects)
+    state.lockByOwner.mockResolvedValue(effects)
+    state.requireMechanics.mockResolvedValue({
+      characterStreamVersion: 4,
+      projectionChecksum: 'g'.repeat(64),
+      systemVocabularySnapshotId: ids.system,
+      systemVocabularySnapshotVersion: 1,
+      systemVocabularySnapshotChecksum: 'h'.repeat(64),
+      rulePolicyInput: { abilityDefinitions: [] },
+      commandState: {
+        state: {
+          hitpoints: { current: 5, temp: 0 },
+          conditions: [{ conditionTypeId: conditionId }]
+        }
+      }
+    })
+    state.vocabulary.mockResolvedValue({
+      systemId: ids.system,
+      snapshotVersion: 1,
+      checksum: 'h'.repeat(64),
+      document: { conditionTypes: [{ id: conditionId, label: 'Poisoned' }] }
+    })
+    state.execute.mockImplementation(async (input) => completedConditionRemoval(input))
+    state.apply.mockImplementationOnce(
+      async ({ targetActor, targetCharacterId, applications, retainedConditionIds }) => {
+        expect(retainedConditionIds).toBeUndefined()
+        expect(applications).toHaveLength(2)
+        return {
+          updatedActor: targetActor,
+          streamVersion: 5,
+          finalState: {
+            currentHitPoints: 5,
+            temporaryHitPoints: 0,
+            maximumHitPoints: 10,
+            conditionIds: []
+          },
+          receiptApplications: [],
+          targetTransition: {
+            checksum: 'c'.repeat(64),
+            before: {
+              currentHitPoints: 5,
+              temporaryHitPoints: 0,
+              maximumHitPoints: 10,
+              conditionIds: [conditionId]
+            },
+            after: {
+              currentHitPoints: 5,
+              temporaryHitPoints: 0,
+              maximumHitPoints: 10,
+              conditionIds: []
+            }
+          },
+          stateChanged: true,
+          targetCharacterId
+        }
+      }
+    )
+
+    const result = await executeEncounterTurnCharacterActiveEffects({
+      trx: db() as never,
+      actorUserId: ids.characterA,
+      encounter: encounter() as never,
+      commandType: 'START',
+      boundaries: [{ ordinal: 0, stage: 'START_OF_TURN', actorId: ids.actorA }],
+      occurrenceId: ids.occurrence,
+      runtime: {} as never,
+      attunementSlotOverride: null
+    })
+
+    expect(result.result).toMatchObject({
+      status: 'BATCH_COMPLETE',
+      executions: [
+        {
+          applications: [{ kind: 'CONDITION_REMOVE', afterPresent: true, applied: false }]
+        },
+        {
+          applications: [{ kind: 'CONDITION_REMOVE', afterPresent: false, applied: true }]
+        }
+      ]
+    })
+    if (!result.result || result.result.status !== 'BATCH_COMPLETE')
+      throw new Error('Expected a completed turn-effect batch.')
+    expect(state.apply.mock.calls[0]?.[0]?.evaluated.applications).toEqual(
+      result.result.executions.flatMap((execution) => execution.applications)
+    )
+    expect(state.deleteCas).toHaveBeenCalledTimes(2)
+  })
+
+  it('removes a shared Encounter-actor condition when both owning effects expire together', async () => {
+    const target = creatureActor(ids.actorA)
+    const effects = [
+      conditionEffect({
+        id: ids.effectA,
+        stage: 'START_OF_TURN',
+        createdOrdinal: 1
+      }),
+      conditionEffect({
+        id: ids.effectB,
+        stage: 'START_OF_TURN',
+        createdOrdinal: 2
+      })
+    ]
+    state.list.mockResolvedValue(effects)
+    state.lockByOwner.mockResolvedValue(effects)
+    state.execute.mockImplementation(async (input) => completedConditionRemoval(input))
+
+    const result = await executeEncounterTurnCharacterActiveEffects({
+      trx: db([]) as never,
+      actorUserId: ids.characterA,
+      encounter: { ...encounter(), actors: [target] } as never,
+      commandType: 'START',
+      boundaries: [{ ordinal: 0, stage: 'START_OF_TURN', actorId: ids.actorA }],
+      occurrenceId: ids.occurrence,
+      runtime: {} as never,
+      attunementSlotOverride: null,
+      getEncounterActorSnapshot: async () => ({
+        encounter: { ...encounter(), actors: [target] } as never,
+        rules: {
+          actors: [
+            {
+              actorId: ids.actorA,
+              initiativeModifier: 0,
+              savingThrowDefinitions: [],
+              targetProtection: {
+                status: 'NORMALIZED',
+                defenses: [],
+                conditionImmunityIds: []
+              },
+              featureResources: []
+            }
+          ]
+        }
+      })
+    })
+
+    expect(result.result).toMatchObject({
+      encounterActorTransitions: [{ after: { conditionIds: [] } }]
+    })
+    expect(state.deleteCas).toHaveBeenCalledTimes(2)
+  })
+
   it('records an authenticated suppressed condition with no application while advancing Character lifecycle state', async () => {
     const active = effect(ids.effectA, 'START_OF_TURN')
     state.list.mockResolvedValue([active])
@@ -1072,7 +1800,11 @@ describe('encounter turn Character active effects', () => {
             {
               actorId: ids.actorA,
               initiativeModifier: 0,
-              targetProtection: { status: 'NORMALIZED', defenses: [], conditionImmunityIds: [] },
+              targetProtection: {
+                status: 'NORMALIZED',
+                defenses: [],
+                conditionImmunityIds: []
+              },
               featureResources: []
             }
           ]
@@ -1095,19 +1827,29 @@ describe('encounter turn Character active effects', () => {
     )
     expect(state.updateLifecycleCas).toHaveBeenCalledWith(
       expect.objectContaining({
-        owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ids.encounter, targetActorId: ids.actorA }
+        owner: {
+          kind: 'ENCOUNTER_ACTOR',
+          encounterId: ids.encounter,
+          targetActorId: ids.actorA
+        }
       })
     )
   })
 
   it('uses reconciled Encounter actor state and matching Encounter-lifetime provenance', async () => {
-    const target = { ...creatureActor(ids.actorA), resources: { charges: { used: 0 } } }
+    const target = {
+      ...creatureActor(ids.actorA),
+      resources: { charges: { used: 0 } }
+    }
     const active = {
       ...effect(ids.effectA, 'START_OF_TURN'),
       definition: {
         ...effect(ids.effectA, 'START_OF_TURN').definition,
         origin: { kind: 'ENCOUNTER', sourceAggregateId: ids.encounter },
-        recurrence: { recurrenceStage: 'START_OF_TURN', lifetimeScope: 'ENCOUNTER' }
+        recurrence: {
+          recurrenceStage: 'START_OF_TURN',
+          lifetimeScope: 'ENCOUNTER'
+        }
       }
     }
     const reconciled = { ...target, resources: { charges: { used: 2 } } }
@@ -1129,7 +1871,11 @@ describe('encounter turn Character active effects', () => {
             {
               actorId: ids.actorA,
               initiativeModifier: 0,
-              targetProtection: { status: 'NORMALIZED', defenses: [], conditionImmunityIds: [] },
+              targetProtection: {
+                status: 'NORMALIZED',
+                defenses: [],
+                conditionImmunityIds: []
+              },
               featureResources: []
             }
           ]
@@ -1208,7 +1954,11 @@ describe('encounter turn Character active effects', () => {
             {
               actorId: ids.actorA,
               initiativeModifier: 0,
-              targetProtection: { status: 'NORMALIZED', defenses: [], conditionImmunityIds: [] },
+              targetProtection: {
+                status: 'NORMALIZED',
+                defenses: [],
+                conditionImmunityIds: []
+              },
               featureResources: []
             }
           ]
@@ -1272,7 +2022,10 @@ describe('encounter turn Character active effects', () => {
         systemVocabularySnapshotId: ids.system,
         systemVocabularySnapshotVersion: 1,
         systemVocabularySnapshotChecksum: 'h'.repeat(64),
-        commandState: { state: { hitpoints: { current: 5, temp: 0 }, conditions: [] } }
+        rulePolicyInput: { abilityDefinitions: [] },
+        commandState: {
+          state: { hitpoints: { current: 5, temp: 0 }, conditions: [] }
+        }
       }
     })
     await expect(
@@ -1330,7 +2083,10 @@ describe('encounter turn Character active effects', () => {
       sourceEncounterId: ids.characterB,
       definition: {
         ...effect(ids.effectB, 'START_OF_TURN', 2, 3).definition,
-        recurrence: { recurrenceStage: 'START_OF_TURN', lifetimeScope: 'ENCOUNTER' }
+        recurrence: {
+          recurrenceStage: 'START_OF_TURN',
+          lifetimeScope: 'ENCOUNTER'
+        }
       }
     }
     state.list.mockImplementation(async ({ characterId }) =>
@@ -1363,14 +2119,26 @@ describe('encounter turn Character active effects', () => {
   it('projects cumulative Character and Encounter actor state without invoking writers', () => {
     const source = encounter() as unknown as EncounterRecord
     const targetEncounterActor = creatureActor(ids.actorB)
-    const unaffectedActor = { ...actor(ids.actorB, ids.characterB), id: ids.effectB }
+    const unaffectedActor = {
+      ...actor(ids.actorB, ids.characterB),
+      id: ids.effectB
+    }
     const originalActors = [source.actors[0], targetEncounterActor, unaffectedActor]
     const projected = projectEncounterAfterEvaluatedTurnEffectBatch(
-      { ...source, actors: originalActors as unknown as EncounterRecord['actors'] },
+      {
+        ...source,
+        actors: originalActors as unknown as EncounterRecord['actors']
+      },
       {
         executionStates: new Map([
-          [`CHARACTER:${ids.characterA}`, { current: 2, temporary: 4, conditions: [ids.effectA] }],
-          [`ENCOUNTER_ACTOR:${ids.actorB}`, { current: 1, temporary: 3, conditions: [] }]
+          [
+            `CHARACTER:${ids.characterA}`,
+            { current: 2, temporary: 4, conditions: [ids.effectA], scalarValues: {} }
+          ],
+          [
+            `ENCOUNTER_ACTOR:${ids.actorB}`,
+            { current: 1, temporary: 3, conditions: [], scalarValues: {} }
+          ]
         ])
       }
     )

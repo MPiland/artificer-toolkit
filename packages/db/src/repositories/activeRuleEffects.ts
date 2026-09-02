@@ -309,17 +309,16 @@ export function createActiveRuleEffectRepository(db: DBLike) {
         .object({ character_id: serverUuidIdentityDtoSchema })
         .passthrough()
         .parse(row)
-      return fromRow({ kind: 'CHARACTER', characterId: parsed.character_id }, row)
+      const { character_id: characterId, ...effectRow } = parsed
+      return fromRow({ kind: 'CHARACTER', characterId }, effectRow)
     })
     const actors = actorRows.rows.map((row) => {
       const parsed = z
         .object({ target_actor_id: serverUuidIdentityDtoSchema })
         .passthrough()
         .parse(row)
-      return fromRow(
-        { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: parsed.target_actor_id },
-        row
-      )
+      const { target_actor_id: targetActorId, ...effectRow } = parsed
+      return fromRow({ kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId }, effectRow)
     })
     return [...characters, ...actors]
   }

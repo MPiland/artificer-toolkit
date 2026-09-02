@@ -7,6 +7,7 @@ import {
   signedImageDeliveryDtoSchema,
   signedVttMapDeliveryDtoSchema,
   type AttachImageInput,
+  type CompleteVttMapMultipartUploadInput,
   type CreateCampaignFileUploadIntentInput,
   type CreateImageUploadIntentInput,
   type CreateVttMapUploadIntentInput,
@@ -194,6 +195,10 @@ export function buildPlatformApi(client: TrpcClient) {
       createVttMapUpload: (input: CreateVttMapUploadIntentInput) =>
         request('media.createVttMapUpload', createVttMapUploadIntentOutputSchema, () =>
           client.media.createVttMapUpload.mutate(input)
+        ),
+      completeVttMapUpload: (input: CompleteVttMapMultipartUploadInput) =>
+        request('media.completeVttMapUpload', okResponseSchema, () =>
+          client.media.completeVttMapUpload.mutate(input)
         ),
       finalizeVttMapUpload: (input: FinalizeImageUploadInput) =>
         request('media.finalizeVttMapUpload', finalizeVttMapUploadOutputSchema, () =>

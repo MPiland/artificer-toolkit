@@ -47,19 +47,28 @@ describe('Encounter movement rule timeline', () => {
         reaction('reaction-b', 10),
         reaction('reaction-a', 10),
         reaction('reaction-z', 5)
-      ]
+      ],
+      passageCandidate: {
+        blockerActorId: '00000000-0000-4000-8000-000000000105',
+        blockerTokenId: '00000000-0000-4000-8000-000000000106',
+        contact: { x: 10, y: 0 },
+        pathDistance: 10
+      }
     })
 
     expect(
       result.map((entry) =>
         entry.kind === 'SPATIAL'
           ? `${entry.pathDistance}:SPATIAL:${entry.candidate.effectId}`
-          : `${entry.pathDistance}:REACTION:${entry.candidate.sourceId}`
+          : entry.kind === 'PASSAGE'
+            ? `${entry.pathDistance}:PASSAGE:${entry.candidate.blockerActorId}`
+            : `${entry.pathDistance}:REACTION:${entry.candidate.sourceId}`
       )
     ).toEqual([
       '5:REACTION:reaction-z',
       '10:SPATIAL:effect-a',
       '10:SPATIAL:effect-b',
+      '10:PASSAGE:00000000-0000-4000-8000-000000000105',
       '10:REACTION:reaction-a',
       '10:REACTION:reaction-b',
       '20:SPATIAL:effect-z'

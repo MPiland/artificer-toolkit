@@ -72,6 +72,15 @@ export class SceneBarrierIndex {
   search(a: ScenePoint, b: ScenePoint): SceneBarrier[] {
     return this.#tree.search(bounds(a, b)).map((entry) => entry.barrier)
   }
+
+  searchWithin(searchBounds: {
+    minX: number
+    minY: number
+    maxX: number
+    maxY: number
+  }): SceneBarrier[] {
+    return this.#tree.search(searchBounds).map((entry) => entry.barrier)
+  }
 }
 
 function closedDoor(
@@ -91,6 +100,113 @@ function crossesBlockedOneWay(
   return barrier.blockedDirection === 'LEFT_TO_RIGHT'
     ? fromSide > 0 && toSide < 0
     : fromSide < 0 && toSide > 0
+}
+
+function footprintSideBounds(
+  position: ScenePoint,
+  width: number,
+  height: number,
+  barrier: Extract<SceneBarrier, { kind: 'ONE_WAY' }>
+): { max: number; min: number } {
+  const center = orient2d(
+    barrier.a.x,
+    barrier.a.y,
+    barrier.b.x,
+    barrier.b.y,
+    position.x,
+    position.y
+  )
+  const halfSpan =
+    (Math.abs(barrier.b.y - barrier.a.y) * width + Math.abs(barrier.b.x - barrier.a.x) * height) / 2
+  return { max: center + halfSpan, min: center - halfSpan }
+}
+
+function footprintCrossesBlockedOneWay(
+  from: ScenePoint,
+  to: ScenePoint,
+  width: number,
+  height: number,
+  barrier: Extract<SceneBarrier, { kind: 'ONE_WAY' }>
+): boolean {
+  const fromBounds = footprintSideBounds(from, width, height, barrier)
+  const toBounds = footprintSideBounds(to, width, height, barrier)
+  const fromCenter = (fromBounds.min + fromBounds.max) / 2
+  const toCenter = (toBounds.min + toBounds.max) / 2
+  return barrier.blockedDirection === 'LEFT_TO_RIGHT'
+    ? toCenter < fromCenter && fromBounds.max > 0 && toBounds.min < 0
+    : toCenter > fromCenter && fromBounds.min < 0 && toBounds.max > 0
+}
+
+function convexHull(points: readonly ScenePoint[]): ScenePoint[] {
+  const sorted = [...points].sort((left, right) => left.x - right.x || left.y - right.y)
+  const cross = (origin: ScenePoint, a: ScenePoint, b: ScenePoint) =>
+    (a.x - origin.x) * (b.y - origin.y) - (a.y - origin.y) * (b.x - origin.x)
+  const lower: ScenePoint[] = []
+  for (const point of sorted) {
+    while (lower.length >= 2 && cross(lower.at(-2)!, lower.at(-1)!, point) <= 0) lower.pop()
+    lower.push(point)
+  }
+  const upper: ScenePoint[] = []
+  for (const point of [...sorted].reverse()) {
+    while (upper.length >= 2 && cross(upper.at(-2)!, upper.at(-1)!, point) <= 0) upper.pop()
+    upper.push(point)
+  }
+  return [...lower.slice(0, -1), ...upper.slice(0, -1)]
+}
+
+function segmentIntersectsConvexPolygonInterior(
+  from: ScenePoint,
+  to: ScenePoint,
+  polygon: readonly ScenePoint[]
+): boolean {
+  const centroid = polygon.reduce(
+    (total, point) => ({
+      x: total.x + point.x / polygon.length,
+      y: total.y + point.y / polygon.length
+    }),
+    { x: 0, y: 0 }
+  )
+  let lower = 0
+  let upper = 1
+  for (let index = 0; index < polygon.length; index += 1) {
+    const edgeFrom = polygon[index]!
+    const edgeTo = polygon[(index + 1) % polygon.length]!
+    const interiorSign = Math.sign(
+      orient2d(edgeFrom.x, edgeFrom.y, edgeTo.x, edgeTo.y, centroid.x, centroid.y)
+    )
+    const start =
+      interiorSign * orient2d(edgeFrom.x, edgeFrom.y, edgeTo.x, edgeTo.y, from.x, from.y)
+    const end = interiorSign * orient2d(edgeFrom.x, edgeFrom.y, edgeTo.x, edgeTo.y, to.x, to.y)
+    const slope = end - start
+    if (slope === 0) {
+      if (start <= 0) return false
+      continue
+    }
+    const boundary = -start / slope
+    if (slope > 0) lower = Math.max(lower, boundary)
+    else upper = Math.min(upper, boundary)
+  }
+  return lower < upper && lower < 1 && upper > 0
+}
+
+function sweptFootprintIntersectsBarrier(
+  from: ScenePoint,
+  to: ScenePoint,
+  width: number,
+  height: number,
+  barrier: SceneBarrier
+): boolean {
+  const halfWidth = width / 2
+  const halfHeight = height / 2
+  const expandedBarrier = convexHull(
+    [barrier.a, barrier.b].flatMap((point) => [
+      { x: point.x - halfWidth, y: point.y - halfHeight },
+      { x: point.x + halfWidth, y: point.y - halfHeight },
+      { x: point.x + halfWidth, y: point.y + halfHeight },
+      { x: point.x - halfWidth, y: point.y + halfHeight }
+    ])
+  )
+  return segmentIntersectsConvexPolygonInterior(from, to, expandedBarrier)
 }
 
 export function movementCrossesBlockingBarrier(
@@ -122,6 +238,42 @@ export function canMoveBetween(
   return !index
     .search(from, to)
     .some((barrier) => movementCrossesBlockingBarrier(from, to, barrier, state.doorStates))
+}
+
+/** Tests a translating axis-aligned token footprint against the authoritative movement barriers. */
+export function canTokenFootprintMoveBetween(
+  state: Pick<CampaignSceneState, 'barriers' | 'doorStates'>,
+  from: ScenePoint,
+  to: ScenePoint,
+  footprint: { readonly width: number; readonly height: number },
+  index = new SceneBarrierIndex(state.barriers)
+): boolean {
+  const halfWidth = footprint.width / 2
+  const halfHeight = footprint.height / 2
+  const candidates = index.searchWithin({
+    maxX: Math.max(from.x, to.x) + halfWidth,
+    maxY: Math.max(from.y, to.y) + halfHeight,
+    minX: Math.min(from.x, to.x) - halfWidth,
+    minY: Math.min(from.y, to.y) - halfHeight
+  })
+  return !candidates.some((barrier) => {
+    if (!sweptFootprintIntersectsBarrier(from, to, footprint.width, footprint.height, barrier))
+      return false
+    switch (barrier.kind) {
+      case 'WALL':
+      case 'WINDOW':
+        return barrier.blocksMovement
+      case 'DOOR':
+        return barrier.blocksMovementWhenClosed && closedDoor(barrier, state.doorStates)
+      case 'ONE_WAY':
+        return (
+          barrier.blocksMovement &&
+          footprintCrossesBlockedOneWay(from, to, footprint.width, footprint.height, barrier)
+        )
+      case 'TERRAIN':
+        return false
+    }
+  })
 }
 
 /**

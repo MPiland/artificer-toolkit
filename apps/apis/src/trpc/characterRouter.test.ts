@@ -25,10 +25,22 @@ const getCharacterPreparationOptionsForUser = vi.hoisted(() =>
     ]
   }))
 )
+const getCharacterSheetActionsForUser = vi.hoisted(() =>
+  vi.fn(async () => [
+    {
+      id: 'action-1',
+      label: 'Strike',
+      kind: 'ACTION' as const,
+      rollable: true,
+      availability: { status: 'AVAILABLE' as const }
+    }
+  ])
+)
 
 vi.mock('@artificer-toolkit/functions', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@artificer-toolkit/functions')>()),
-  getCharacterPreparationOptionsForUser
+  getCharacterPreparationOptionsForUser,
+  getCharacterSheetActionsForUser
 }))
 
 vi.mock('./dbContext.js', async (importOriginal) => {
@@ -45,6 +57,19 @@ vi.mock('./dbContext.js', async (importOriginal) => {
 import { appRouter } from './router.js'
 
 describe('tRPC Character router', () => {
+  it('returns only the authenticated viewer action choices', async () => {
+    const caller = appRouter.createCaller(authenticatedContext)
+
+    await expect(
+      caller.characters.actions({ id: '00000000-0000-0000-0000-000000000001' })
+    ).resolves.toEqual([expect.objectContaining({ id: 'action-1', label: 'Strike' })])
+    expect(getCharacterSheetActionsForUser).toHaveBeenCalledWith(
+      {},
+      '00000000-0000-0000-0000-000000000001',
+      'user-1'
+    )
+  })
+
   it('loads preparation options for the authenticated Character viewer', async () => {
     const caller = appRouter.createCaller(authenticatedContext)
 

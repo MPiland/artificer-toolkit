@@ -93,6 +93,7 @@ type LockedTarget = {
   targetDerivedFacts: Readonly<Record<string, unknown>>
   defenses: TargetBoundActiveRuleEffectExecutionInput['defenses']
   conditionImmunityIds: readonly string[]
+  scalarValues: Readonly<Record<string, number>>
 }
 
 export type SpatialMovementRuleRoot = {
@@ -107,6 +108,13 @@ export type SpatialMovementRuleRoot = {
   expectedSceneVersion: number
   movementKind: SpatialMovementKind
   originalPath: readonly ScenePoint[]
+  terminalPassageStop?: {
+    blockerActorId: string
+    blockerTokenId: string
+    contact: ScenePoint
+    pathDistance: number
+    blockerCurrentnessChecksum: string
+  } | null
 }
 
 export type SpatialMovementRuleResolution = z.infer<typeof rawResolutionSchema>
@@ -271,7 +279,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         tokens: input.sceneTokens,
         movingTokenId: root.tokenId
       })
-  const computedSelectionChecksum = checksumRuleDocument({
+  const computedSelectionChecksum = checksumSpatialMovementSelection({
     encounterId: input.encounter.id,
     sceneId: input.sceneId,
     tokenId: root.tokenId,
@@ -488,7 +496,7 @@ export async function evaluateEncounterSpatialMovementRuleBatch(input: {
         state,
         result: reconstructed
       })
-      if (JSON.stringify(rebuilt) !== JSON.stringify(stored))
+      if (checksumRuleDocument(rebuilt) !== checksumRuleDocument(stored))
         throw new EncounterConflictError('The completed spatial execution cannot be reconstructed.')
       stageExecution({ execution: rebuilt, states, applications, executions })
       if (rebuilt.execution.movementInterruption?.kind === 'STOP') {
@@ -710,7 +718,18 @@ function frozenSpatialCandidates(
   ]
 }
 
-function checksumSpatialCurrentness(input: {
+export function checksumSpatialMovementSelection(input: {
+  encounterId: string
+  sceneId: string
+  tokenId: string
+  movementKind: SpatialMovementKind
+  path: readonly ScenePoint[]
+  candidates: readonly unknown[]
+}): string {
+  return checksumRuleDocument(input)
+}
+
+export function checksumSpatialCurrentness(input: {
   encounter: Pick<EncounterRecord, 'id' | 'version'>
   candidates: readonly unknown[]
 }): string {
@@ -741,6 +760,8 @@ function verifyFrozenReactionRoot(input: {
     context.root.expectedSceneVersion !== input.root.expectedSceneVersion ||
     context.root.currentSceneVersion !== input.sceneVersion ||
     JSON.stringify(context.root.originalPath) !== JSON.stringify(input.root.originalPath) ||
+    JSON.stringify(context.root.terminalPassageStop ?? null) !==
+      JSON.stringify(input.root.terminalPassageStop ?? null) ||
     !samePoint(context.root.currentPosition, input.currentPosition)
   )
     throw new EncounterConflictError('The frozen movement reaction root is stale.')
@@ -833,7 +854,8 @@ function createTargets(input: {
           }
         },
         defenses: character.overlay.rulePolicyOutput.defenses,
-        conditionImmunityIds: character.overlay.rulePolicyOutput.conditionImmunityIds
+        conditionImmunityIds: character.overlay.rulePolicyOutput.conditionImmunityIds,
+        scalarValues: input.locked.effectiveScalarValuesByActorId?.get(actor.id) ?? {}
       })
     } else {
       const reconciled = input.locked.encounterActors.get(actor.id)
@@ -857,7 +879,8 @@ function createTargets(input: {
           statBlock: snapshotStatBlock(reconciled ?? actor)
         },
         defenses: actorRule.targetProtection.defenses,
-        conditionImmunityIds: actorRule.targetProtection.conditionImmunityIds
+        conditionImmunityIds: actorRule.targetProtection.conditionImmunityIds,
+        scalarValues: input.locked.effectiveScalarValuesByActorId?.get(actor.id) ?? {}
       })
     }
   }
@@ -884,6 +907,7 @@ function executionInput(input: {
     currentHitPoints: input.state.current,
     temporaryHitPoints: input.state.temporary,
     maximumHitPoints: input.target.character?.maximumHitPoints ?? input.target.actor.maxHitPoints,
+    targetScalarValues: input.target.scalarValues,
     targetConditionIds: input.state.conditions,
     targetDerivedFacts: input.target.targetDerivedFacts,
     defenses: input.target.defenses,
@@ -906,7 +930,8 @@ function pendingCandidate(input: {
     currentHitPoints: input.state.current,
     temporaryHitPoints: input.state.temporary,
     maximumHitPoints: input.target.character?.maximumHitPoints ?? input.target.actor.maxHitPoints,
-    conditionIds: input.state.conditions
+    conditionIds: input.state.conditions,
+    scalarValues: input.target.scalarValues
   })
   return {
     ordinal: input.ordinal,

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { activationDtoSchema } from './effect.js'
+import { activationDtoSchema } from './activation.js'
 import { abilityCodeSchema } from '../shared/enums.js'
 import {
   authoredIdentifierSchema,

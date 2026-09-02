@@ -236,9 +236,13 @@ describe('Encounter movement reaction continuation', () => {
       context: context()
     })
     expect(pending.request).toMatchObject({ min: 0, max: 1 })
+    const pendingWithEnvelope = {
+      ...pending,
+      optionalCombatSnapshotChecksum: 'c'.repeat(64)
+    }
     const result = await resolveEncounterMovementReactionChoice({
       runtime: rulesRuntime,
-      pendingSnapshot: pending,
+      pendingSnapshot: pendingWithEnvelope,
       selection: { kind: 'OPTION', optionId: choice().options[0]!.optionId }
     })
     expect(result).toMatchObject({

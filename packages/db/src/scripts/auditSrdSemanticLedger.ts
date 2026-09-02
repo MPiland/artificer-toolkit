@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
 import { srdBaselineContent } from '../source-data/srd/index.js'
@@ -163,6 +163,33 @@ function hashSourceSpan(lines: string[], span: TextSourceReference): string {
     .digest('hex')
 }
 
+function currentRecords() {
+  return Object.entries(srdBaselineContent.subjects).flatMap(([domain, roots]) =>
+    roots.map((record: { id: string; label: string } & Record<string, unknown>) => ({
+      domain,
+      record
+    }))
+  )
+}
+
+export function refreshSrdSemanticLedgerAuthoredHashes(): number {
+  const ledger = readLedger()
+  const records = new Map(
+    currentRecords().map(({ domain, record }) => [`${domain}:${record.id}`, record])
+  )
+  let refreshed = 0
+  const entries = ledger.entries.map((entry) => {
+    const record = records.get(`${entry.domain}:${entry.id}`)
+    if (!record) return entry
+    const authoredSha256 = semanticHash(record)
+    if (authoredSha256 === entry.authoredSha256) return entry
+    refreshed += 1
+    return { ...entry, authoredSha256 }
+  })
+  writeFileSync(LEDGER_URL, `${JSON.stringify({ ...ledger, entries }, null, 2)}\n`)
+  return refreshed
+}
+
 export function auditSrdSemanticLedger(): { roots: number; manualExceptions: number } {
   const ledger = readLedger()
   const sourceText = readFileSync(SOURCE_URL, 'utf8').replace(/\r\n/g, '\n')
@@ -170,12 +197,7 @@ export function auditSrdSemanticLedger(): { roots: number; manualExceptions: num
   const normalizedSourceText = normalizeSrdProse(sourceText)
   const textSourceHash = createHash('sha256').update(sourceText).digest('hex')
   const pdfSourceHash = createHash('sha256').update(readFileSync(PDF_SOURCE_URL)).digest('hex')
-  const records = Object.entries(srdBaselineContent.subjects).flatMap(([domain, roots]) =>
-    roots.map((record: { id: string; label: string } & Record<string, unknown>) => ({
-      domain,
-      record
-    }))
-  )
+  const records = currentRecords()
   const errors: string[] = []
   const entriesByKey = new Map<string, SemanticLedgerEntry>()
 
@@ -322,10 +344,16 @@ export function auditSrdSemanticLedger(): { roots: number; manualExceptions: num
 const invokedPath = process.argv[1] ? pathToFileURL(process.argv[1]).href : ''
 if (invokedPath === import.meta.url) {
   try {
-    const result = auditSrdSemanticLedger()
-    console.log(
-      `SRD semantic ledger verified ${result.roots} roots and ${result.manualExceptions} manual exceptions.`
-    )
+    if (process.argv.includes('--write-authored-hashes')) {
+      console.log(
+        `SRD semantic ledger refreshed ${refreshSrdSemanticLedgerAuthoredHashes()} authored hashes.`
+      )
+    } else {
+      const result = auditSrdSemanticLedger()
+      console.log(
+        `SRD semantic ledger verified ${result.roots} roots and ${result.manualExceptions} manual exceptions.`
+      )
+    }
   } catch (error) {
     console.error(error instanceof Error ? error.message : error)
     process.exitCode = 1

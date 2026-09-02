@@ -1,6 +1,9 @@
 import type { RuleOccurrenceRecord } from '@artificer-toolkit/db'
 import type { EncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounters'
-import { isServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/rulesExecution'
+import {
+  isServerAggregateChoicePendingSnapshot,
+  isServerKernelRuleExecutionPendingSnapshot
+} from '@artificer-toolkit/schema/shared/rulesExecution'
 
 import { EncounterConflictError } from './encounterErrors.js'
 
@@ -23,6 +26,38 @@ export function projectEncounterSpatialOccurrenceSummary(
     }
   }
   const pendingSnapshot = occurrence.pendingSnapshot
+  if (
+    pendingSnapshot &&
+    isServerAggregateChoicePendingSnapshot(pendingSnapshot) &&
+    pendingSnapshot.applicationContext.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'
+  ) {
+    const context = pendingSnapshot.applicationContext
+    const canView =
+      viewer.membershipRole === 'OWNER' ||
+      (context.sourceControllerCharacterId !== null &&
+        context.sourceControllerCharacterId === viewer.assignedCharacterId)
+    return {
+      occurrenceId: occurrence.id,
+      occurrenceVersion: occurrence.version,
+      status: 'PENDING',
+      outcome: null,
+      pending: canView
+        ? {
+            kind: 'MOVEMENT_PASSAGE_CHOICE',
+            occurrenceId: occurrence.id,
+            occurrenceVersion: occurrence.version,
+            encounterVersion,
+            sourceActorId: context.sourceActorId,
+            options: context.options.map(({ economy, optionId, ruleKind }) => ({
+              economy,
+              optionId,
+              ruleKind
+            })),
+            allowedResponses: ['DECLINE', 'OPTION']
+          }
+        : null
+    }
+  }
   if (!pendingSnapshot || !isServerKernelRuleExecutionPendingSnapshot(pendingSnapshot)) {
     throw new EncounterConflictError('The spatial occurrence has no resolvable evidence request.')
   }

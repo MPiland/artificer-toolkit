@@ -279,13 +279,8 @@ function validCleavingChain(input: {
     eligible.add(actorId)
   }
   const visited = new Set<string>()
-  for (const [index, actorId] of input.visitedTargetActorIds.entries()) {
-    if (
-      !canonicalUuid(actorId) ||
-      actorId === input.attackerActorId ||
-      visited.has(actorId) ||
-      (index > 0 && !eligible.has(actorId))
-    ) {
+  for (const actorId of input.visitedTargetActorIds) {
+    if (!canonicalUuid(actorId) || actorId === input.attackerActorId || visited.has(actorId)) {
       return false
     }
     visited.add(actorId)

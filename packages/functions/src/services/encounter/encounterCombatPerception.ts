@@ -20,6 +20,7 @@ import {
   deriveCombatPerceptionContributionPartitions,
   type LockedCombatPerceptionEffect
 } from './encounterCombatPerceptionContributions.js'
+import type { CombatPerceptionContributionSource } from '@artificer-toolkit/shared/rules'
 
 const PINNED_SENSE_INSTANCE_NAMESPACE = 'e526f4c9-a37d-46a8-8f85-73568add6b56'
 
@@ -70,19 +71,26 @@ export function resolveEncounterCombatPerception(input: {
   sceneGrid: SceneGrid
   observerToken: PerceptionSceneToken
   subjectToken: PerceptionSceneToken
+  /** Exact System-policy baseline capabilities for this observer. */
+  baselineCapabilities?: readonly CombatPerceptionCapabilityInstance[]
   pinnedSenseDefinitions: readonly PinnedSenseDefinition[]
   observerEffects: readonly LockedCombatPerceptionEffect[]
   subjectEffects: readonly LockedCombatPerceptionEffect[]
   localAreaEffects: readonly LockedCombatPerceptionEffect[]
+  observerConditionContributions?: readonly CombatPerceptionContributionSource[]
+  subjectConditionContributions?: readonly CombatPerceptionContributionSource[]
   sharedSurface: boolean
   invisibleChannels: readonly CombatPerceptionChannel[]
   suppressedChannels: readonly CombatPerceptionChannel[]
 }): CombatPerceptionContributionResult {
-  const capabilities = combatPerceptionCapabilitiesFromPinnedSenses({
-    observerActorId: input.observerActorId,
-    sceneGrid: input.sceneGrid,
-    pinnedSenseDefinitions: input.pinnedSenseDefinitions
-  })
+  const capabilities = [
+    ...(input.baselineCapabilities ?? []),
+    ...combatPerceptionCapabilitiesFromPinnedSenses({
+      observerActorId: input.observerActorId,
+      sceneGrid: input.sceneGrid,
+      pinnedSenseDefinitions: input.pinnedSenseDefinitions
+    })
+  ]
   const environment = resolveSceneCombatPerceptionEnvironment({
     scene: { ...input.scene, grid: input.sceneGrid },
     observer: input.observerToken,
@@ -101,6 +109,14 @@ export function resolveEncounterCombatPerception(input: {
     requirement: input.requirement,
     environment,
     capabilities,
-    ...contributions
+    observerContributions: [
+      ...contributions.observerContributions,
+      ...(input.observerConditionContributions ?? [])
+    ],
+    subjectContributions: [
+      ...contributions.subjectContributions,
+      ...(input.subjectConditionContributions ?? [])
+    ],
+    localAreaContributions: contributions.localAreaContributions
   })
 }

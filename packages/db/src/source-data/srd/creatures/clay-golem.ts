@@ -175,15 +175,15 @@ export const clayGolem: CreatureAuthored = {
               id: S.actionId(3256, 3),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(3256, 3) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
-                    id: S.actionId(3256, 3),
+                    id: S.actionId(3256, 8),
                     effectKind: S.EFFECT_KIND.DAMAGE,
                     damageTypeId: S.damageTypeId('BLUDGEONING'),
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
@@ -191,58 +191,41 @@ export const clayGolem: CreatureAuthored = {
                     diceConfig: '2d10',
                     bonuses: [
                       {
-                        id: S.actionId(3256, 4),
+                        id: S.actionId(3256, 9),
                         bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
                         ability: S.ABILITY_CODE.STRENGTH,
                         order: 1
                       }
                     ]
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          id: S.actionId(3256, 101),
-          order: 2,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(3256, 102),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
-              baseDc: 15
-            },
-            activation: { code: S.ACTIVATION_CODE.FREE },
-            range: {
-              id: S.actionId(3256, 103),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(3256, 104),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${S.actionId(3256, 104)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
+                  },
                   {
-                    id: S.actionId(3256, 105),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_CLAY_GOLEM_SLAM
+                    id: S.actionId(3256, 10),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'IMMEDIATE',
+                    savingThrow: {
+                      id: S.actionId(3256, 11),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                      baseDc: 15
+                    },
+                    attempts: { kind: 'ONCE' },
+                    onSuccess: { kind: 'END' },
+                    onFailure: {
+                      kind: 'OUTCOMES',
+                      endCurrent: true,
+                      resultKind: 'SINGLE',
+                      outcomes: [
+                        {
+                          id: S.actionId(3256, 12),
+                          effectKind: S.EFFECT_KIND.HIT_POINT_MAXIMUM_REDUCTION,
+                          amountSource: {
+                            kind: 'DAMAGE_TAKEN',
+                            damageOutcomeId: S.actionId(3256, 8)
+                          },
+                          recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM']
+                        }
+                      ]
+                    }
                   }
                 ]
               }

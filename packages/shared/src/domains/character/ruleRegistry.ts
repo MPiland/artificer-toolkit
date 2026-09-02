@@ -13,6 +13,13 @@ export interface CharacterAssemblyRegistrySystemSkill {
   id: string
   code?: string
   label: string
+  governingAbilityDefinitionId?: string | null
+}
+
+export interface CharacterAssemblyRegistrySystemAbility {
+  id: string
+  code: string
+  label: string
 }
 
 export interface CharacterAssemblyRegistrySystemSpeed {
@@ -22,12 +29,15 @@ export interface CharacterAssemblyRegistrySystemSpeed {
 }
 
 export interface CharacterAssemblyRegistrySystem {
+  schemaVersion?: number
+  abilities?: ReadonlyArray<CharacterAssemblyRegistrySystemAbility>
   skills?: ReadonlyArray<CharacterAssemblyRegistrySystemSkill>
   speeds?: ReadonlyArray<CharacterAssemblyRegistrySystemSpeed>
 }
 
 export type CharacterAssemblyRegistryFeature = Pick<
   CompiledFeature,
+  | 'label'
   | 'charges'
   | 'effects'
   | 'feats'

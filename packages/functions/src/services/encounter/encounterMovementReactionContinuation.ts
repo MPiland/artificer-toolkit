@@ -358,6 +358,8 @@ export async function resolveEncounterMovementReactionChoice(input: {
   }
   const {
     applicationContext: _applicationContext,
+    optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
+    phaseReceipts: _phaseReceipts,
     snapshotKind: _snapshotKind,
     ...continuation
   } = input.pendingSnapshot

@@ -59,7 +59,8 @@ const condition = current({
         kind: 'CAPABILITY_SUPPRESS',
         capabilityDefinitionIds: [capabilityId]
       }
-    ]
+    ],
+    perceptionContributions: []
   }
 })
 

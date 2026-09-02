@@ -2,6 +2,7 @@ import { MEASUREMENT_UNIT_CODE, SIZE_CODE, type CreatureAuthored } from '@artifi
 import {
   creatureAbilityScoresDtoSchema,
   creatureCompanionProfileDtoSchema,
+  creatureEquipmentLoadoutDtoSchema,
   creatureMountProfileDtoSchema,
   creatureNpcProfileDtoSchema
 } from '@artificer-toolkit/schema/subjects/creature'
@@ -131,6 +132,7 @@ async function hydrateCreatureById(db: DBLike, id: string): Promise<CreatureAuth
       'mount_profile',
       'companion_profile',
       'npc_profile',
+      'equipment_loadout',
       'cost',
       'carrying_capacity_amount',
       'carrying_capacity_unit',
@@ -300,6 +302,12 @@ async function hydrateCreatureById(db: DBLike, id: string): Promise<CreatureAuth
         ? undefined
         : parseCreatureJson(id, 'npc_profile', row.npc_profile, (value) =>
             creatureNpcProfileDtoSchema.parse(value)
+          ),
+    equipmentLoadout:
+      row.equipment_loadout == null
+        ? undefined
+        : parseCreatureJson(id, 'equipment_loadout', row.equipment_loadout, (value) =>
+            creatureEquipmentLoadoutDtoSchema.parse(value)
           ),
     cost:
       row.cost == null

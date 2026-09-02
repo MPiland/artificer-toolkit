@@ -35,6 +35,16 @@ function creatureFixture(): CreatureAuthored {
     },
     armorClass: 14,
     hitPoints: 22,
+    equipmentLoadout: [
+      {
+        id: '00000000-0000-4000-8000-000000000101',
+        equipmentId: '00000000-0000-4000-8000-000000000102',
+        quantity: 1,
+        useState: 'WORN',
+        attuned: false,
+        actionFeatureIds: []
+      }
+    ],
     senses: ['darkvision-60'],
     damageResistances: ['FIRE'],
     features: [
@@ -90,6 +100,7 @@ describe('MVP authored-domain persistence audit', () => {
       tags: ['dragon', 'audit'],
       senses: ['darkvision-60'],
       damageResistances: ['FIRE'],
+      equipmentLoadout: initial.equipmentLoadout,
       features: [{ id: 'creature-feature-mvp-audit', section: 'ACTION' }]
     })
 

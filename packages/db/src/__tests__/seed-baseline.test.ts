@@ -88,6 +88,7 @@ import { seedBaselineContent } from '../seed/baseline.js'
 import { assignBaselineContentOwner, defineBaselineContentBundle } from '../source-data/content.js'
 import { SRD_SYSTEM_ID, srdBaselineContent } from '../source-data/srd/index.js'
 import { SRD_SENSE_DEFINITIONS } from '../source-data/srd/senses.js'
+import { SRD_DND5E_CONCENTRATION_CHECK_DEFINITION_ID } from '../source-data/srd/concentration.js'
 
 type SeedRow = Record<string, unknown>
 type SeedTables = Record<string, SeedRow[]>
@@ -363,6 +364,7 @@ describe('seedBaselineContent', () => {
 
     const executedSql = JSON.stringify(rawQueries)
     expect(executedSql).toContain(ownerUserId)
+    expect(executedSql).toContain(SRD_DND5E_CONCENTRATION_CHECK_DEFINITION_ID)
     expect(executedSql).not.toContain('VALIDATE CONSTRAINT')
   })
 
@@ -501,7 +503,7 @@ describe('seedBaselineContent', () => {
       snapshotId: 'snapshot-1',
       systemId: system.id,
       snapshotVersion: 1,
-      schemaVersion: 2,
+      schemaVersion: 4,
       checksum: '0'.repeat(64),
       document: system
     }).document
@@ -510,11 +512,11 @@ describe('seedBaselineContent', () => {
         snapshotId: 'snapshot-1',
         systemId: system.id,
         snapshotVersion: 1,
-        schemaVersion: 2,
+        schemaVersion: 4,
         document: vocabularyDocument
       }),
       document: vocabularyDocument,
-      schemaVersion: 2,
+      schemaVersion: 4,
       snapshotId: 'snapshot-1',
       snapshotVersion: 1,
       systemId: system.id

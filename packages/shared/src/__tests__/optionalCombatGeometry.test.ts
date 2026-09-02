@@ -3,11 +3,12 @@ import { describe, expect, it } from 'vitest'
 import {
   classifySquareGridFootprintFacingArcs,
   classifySquareGridFacingArc,
+  deriveSquareGridShoveAsideDestinations,
   enumerateSquareGridFootprint,
   findSquareGridCreatureCoverIntervenors,
   findSquareGridFlankingPairs
 } from '../domains/vtt/optionalCombatGeometry.js'
-import type { SceneGrid, SceneToken } from '../domains/vtt/scene.js'
+import type { CampaignSceneState, SceneGrid, SceneToken } from '../domains/vtt/scene.js'
 
 const grid: SceneGrid = {
   cellSize: 10,
@@ -29,6 +30,18 @@ function token(
 function footprint(value: ReturnType<typeof enumerateSquareGridFootprint>) {
   if (!value) throw new Error('Expected an aligned footprint')
   return value
+}
+
+function state(
+  overrides: Partial<Pick<CampaignSceneState, 'barriers' | 'doorStates' | 'grid' | 'map'>> = {}
+) {
+  return {
+    barriers: [],
+    doorStates: {},
+    grid,
+    map: { assetId: 'map', height: 100, tileManifestAssetId: null, width: 100 },
+    ...overrides
+  }
 }
 
 describe('optional combat square-grid geometry', () => {
@@ -255,5 +268,153 @@ describe('optional combat square-grid geometry', () => {
         target: { footprint: target, tokenId: 't' }
       })
     ).toEqual([])
+  })
+
+  it('derives canonical legal Shove Aside destinations and rejects collision, map, and barrier paths', () => {
+    const attacker = {
+      footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 15, y: 15 }))),
+      tokenId: 'attacker'
+    }
+    const target = {
+      footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 25, y: 15 }))),
+      tokenId: 'target'
+    }
+    const initial = deriveSquareGridShoveAsideDestinations({
+      attacker,
+      displacement: 5,
+      occupants: [],
+      state: state(),
+      target
+    })
+    expect(initial.map((candidate) => candidate.direction)).toEqual([
+      'NORTH',
+      'SOUTH',
+      'SOUTH_WEST',
+      'NORTH_WEST'
+    ])
+    expect(initial.every((candidate) => candidate.remainsAdjacentToAttacker)).toBe(true)
+
+    expect(
+      deriveSquareGridShoveAsideDestinations({
+        attacker,
+        displacement: 5,
+        occupants: [],
+        state: state(),
+        target: {
+          footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 45, y: 15 }))),
+          tokenId: 'distant-target'
+        }
+      })
+    ).toEqual([])
+
+    const occupied = deriveSquareGridShoveAsideDestinations({
+      attacker,
+      displacement: 5,
+      occupants: [
+        {
+          footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 35, y: 15 }))),
+          tokenId: 'occupant'
+        }
+      ],
+      state: state(),
+      target
+    })
+    expect(occupied.map((candidate) => candidate.direction)).not.toContain('EAST')
+
+    const blocked = deriveSquareGridShoveAsideDestinations({
+      attacker,
+      displacement: 5,
+      occupants: [],
+      state: state({
+        barriers: [
+          {
+            a: { x: 30, y: 10 },
+            b: { x: 30, y: 20 },
+            blocksLight: true,
+            blocksMovement: true,
+            id: 'wall',
+            kind: 'WALL'
+          }
+        ]
+      }),
+      target
+    })
+    expect(blocked.map((candidate) => candidate.direction)).not.toContain('EAST')
+
+    const edgeTarget = {
+      footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 5, y: 5 }))),
+      tokenId: 'edge-target'
+    }
+    const edgeAttacker = {
+      footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 15, y: 15 }))),
+      tokenId: 'edge-attacker'
+    }
+    expect(
+      deriveSquareGridShoveAsideDestinations({
+        attacker: edgeAttacker,
+        displacement: 5,
+        occupants: [],
+        state: state(),
+        target: edgeTarget
+      }).map((candidate) => candidate.direction)
+    ).not.toContain('NORTH_WEST')
+  })
+
+  it('keeps large rectangular Shove Aside footprints aligned and fails closed outside square grids', () => {
+    const attacker = {
+      footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 10, y: 10 }, 20, 20))),
+      tokenId: 'attacker'
+    }
+    const target = {
+      footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 35, y: 20 }, 30, 20))),
+      tokenId: 'target'
+    }
+    const candidates = deriveSquareGridShoveAsideDestinations({
+      attacker,
+      displacement: 5,
+      occupants: [],
+      state: state(),
+      target
+    })
+    expect(candidates).not.toHaveLength(0)
+    expect(candidates.every((candidate) => candidate.targetFootprint.cells.length === 6)).toBe(true)
+    expect(
+      deriveSquareGridShoveAsideDestinations({
+        attacker,
+        displacement: 5,
+        occupants: [],
+        state: state({ grid: { kind: 'GRIDLESS', pixelsPerUnit: 10, unit: 'FEET' } }),
+        target
+      })
+    ).toEqual([])
+  })
+
+  it('uses the sealed Scene-measurement displacement instead of treating every grid cell as five feet', () => {
+    const attacker = {
+      footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 15, y: 15 }))),
+      tokenId: 'attacker'
+    }
+    const target = {
+      footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 25, y: 15 }))),
+      tokenId: 'target'
+    }
+    expect(
+      deriveSquareGridShoveAsideDestinations({
+        attacker,
+        displacement: 5,
+        occupants: [],
+        state: state({ grid: { ...grid, distancePerCell: 10 } }),
+        target
+      })
+    ).toEqual([])
+
+    const euclidean = deriveSquareGridShoveAsideDestinations({
+      attacker,
+      displacement: 5,
+      occupants: [],
+      state: state({ grid: { ...grid, diagonalPolicy: 'EUCLIDEAN' } }),
+      target
+    })
+    expect(euclidean.map((candidate) => candidate.direction)).toEqual(['NORTH', 'SOUTH'])
   })
 })

@@ -74,7 +74,7 @@ After web viability, native iOS and Android clients become first-class play clie
 
 ### Media and supporting files
 
-The completed private-by-default asset pipeline serves account avatars, Character portraits, authored-content source images, and crop-derived variants. Campaign logos/files, Marketplace assets, and larger VTT maps add purpose-specific profiles in their owning phases without replacing that asset identity or lifecycle. Character and authored-content thumbnails derive from one source plus normalized crop metadata rather than separate uploads. The API approves every object key and domain reference; clients transfer bytes directly to Storage only through short-lived permissions.
+The completed private-by-default asset pipeline serves account avatars, Character portraits, authored-content source images, Campaign files, and VTT maps through purpose-specific profiles without replacing stable asset identity. Ordinary media uses Supabase Storage; new VTT maps use private R2. Character and authored-content thumbnails derive from one source plus normalized crop metadata rather than separate uploads. The API approves every object key and domain reference; clients transfer bytes directly to the selected store only through short-lived permissions.
 
 ### Campaigns and live play
 
@@ -128,7 +128,7 @@ flowchart LR
   Notify --> Email["Resend email"]
   Notify --> Push["Expo Push Service"]
   Push --> Mobile
-  Functions --> Storage["Private Supabase Storage<br/>asset lifecycle"]
+  Functions --> Storage["Private Supabase Storage + R2<br/>asset lifecycle"]
   Web -->|API-approved signed transfer| Storage
   Mobile -->|API-approved signed transfer| Storage
 ```
@@ -186,29 +186,29 @@ The numbered order is the default product sequence. Hard dependencies are shown 
 - Keep player-only chat operationally separate from GM-visible channels at authorization, RLS, fetch, subscription, notification, and ordinary analytics boundaries. It is not end-to-end encrypted.
 - Record exact inputs and results required for replay. Never re-run an old Encounter event against newly active content.
 - Keep entitlements provider-neutral. Phase 03's manual tier projection, then Stripe, App Store, Play Store, beta, and administrator grants project into one internal authorization model.
-- Keep originals private and asset references stable. Store asset IDs/object keys as truth, never signed URLs; domain records own visibility and references. Revisit a Cloudflare R2/provider move only when Phase 08 VTT storage evidence requires it.
+- Keep originals private and asset references stable. Store asset IDs, provider identity, and object keys as truth, never signed URLs; domain records own visibility and references. New VTT maps use R2 while ordinary media remains in Supabase Storage.
 - Use purpose-specific upload profiles. Clients cannot select arbitrary buckets/paths, and ordinary attachments cannot inherit the larger limits intended for VTT maps.
 - Bind authored artwork to its owned root or draft and Marketplace artwork to exact immutable releases. Builder replacement writes cannot delete Character portraits or Campaign-owned assets.
 
 ## Technology direction
 
-| Area                 | Direction                                                                                                                                                                             |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shared language      | TypeScript for clients, transport, orchestration, and pure domain logic                                                                                                               |
-| Persistence          | PostgreSQL, Supabase migrations/RLS, and Kysely repositories                                                                                                                          |
-| Web                  | Existing TanStack Start, React, Mantine, Vanilla Extract, TanStack Query                                                                                                              |
-| Native               | Expo, React Native, Expo Router, TanStack Query, Reanimated, Gesture Handler                                                                                                          |
-| Contracts            | Zod DTOs in `packages/schema`; typed tRPC through `packages/api-client`                                                                                                               |
-| Identity             | One Supabase user identity across web, iOS, and Android                                                                                                                               |
-| Native secrets/cache | `expo-secure-store` for session secrets; `expo-sqlite` for non-authoritative read-only projections                                                                                    |
-| Realtime             | Private Supabase Broadcast; Presence only for slow-changing connection state                                                                                                          |
-| Notifications        | Phase 05 Supabase feed/preferences/Edge delivery with Resend email and API-authorized deep links; Phase 06 Campaign and Phase 10 paid-table sources reuse it; Phase 11 adds Expo push |
-| Media and files      | Private Supabase Storage, API-issued upload intents, signed/authenticated delivery, verified profile limits, image normalization, and quarantined supporting files                    |
-| Dice                 | Restricted server-authoritative evaluation with injected cryptographic randomness and exact per-die evidence; lazy Three/Fiber/Rapier presentation on web                             |
-| VTT                  | Platform-neutral scene model; PixiJS on web and initially in an Expo DOM host; React Native Skia only if the benchmark gate fails                                                     |
-| Web payments         | Stripe Billing for Artificer subscriptions; Stripe Connect for creator and professional-GM money movement                                                                             |
-| Native subscriptions | StoreKit and Google Play Billing through RevenueCat after plan and store-policy approval                                                                                              |
-| Tests                | Vitest for shared/packages, existing web tests and Playwright, `jest-expo`/React Native Testing Library, Maestro on EAS                                                               |
+| Area                 | Direction                                                                                                                                                                               |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared language      | TypeScript for clients, transport, orchestration, and pure domain logic                                                                                                                 |
+| Persistence          | PostgreSQL, Supabase migrations/RLS, and Kysely repositories                                                                                                                            |
+| Web                  | Existing TanStack Start, React, Mantine, Vanilla Extract, TanStack Query                                                                                                                |
+| Native               | Expo, React Native, Expo Router, TanStack Query, Reanimated, Gesture Handler                                                                                                            |
+| Contracts            | Zod DTOs in `packages/schema`; typed tRPC through `packages/api-client`                                                                                                                 |
+| Identity             | One Supabase user identity across web, iOS, and Android                                                                                                                                 |
+| Native secrets/cache | `expo-secure-store` for session secrets; `expo-sqlite` for non-authoritative read-only projections                                                                                      |
+| Realtime             | Private Supabase Broadcast; Presence only for slow-changing connection state                                                                                                            |
+| Notifications        | Phase 05 Supabase feed/preferences/Edge delivery with Resend email and API-authorized deep links; Phase 06 Campaign and Phase 10 paid-table sources reuse it; Phase 11 adds Expo push   |
+| Media and files      | Private Supabase Storage plus R2 for VTT maps, API-issued upload intents, signed/authenticated delivery, verified profile limits, image normalization, and quarantined supporting files |
+| Dice                 | Restricted server-authoritative evaluation with injected cryptographic randomness and exact per-die evidence; lazy Three/Fiber/Rapier presentation on web                               |
+| VTT                  | Platform-neutral scene model; PixiJS on web and initially in an Expo DOM host; React Native Skia only if the benchmark gate fails                                                       |
+| Web payments         | Stripe Billing for Artificer subscriptions; Stripe Connect for creator and professional-GM money movement                                                                               |
+| Native subscriptions | StoreKit and Google Play Billing through RevenueCat after plan and store-policy approval                                                                                                |
+| Tests                | Vitest for shared/packages, existing web tests and Playwright, `jest-expo`/React Native Testing Library, Maestro on EAS                                                                 |
 
 Expo's current guidance supports workspace monorepos, Router-based native navigation, SecureStore, development builds, and EAS profiles. Supabase's React Native guidance requires platform storage and foreground-aware session refresh. Re-check these external contracts when Phase 11 begins because SDK behavior changes: [Expo monorepos](https://docs.expo.dev/guides/monorepos/), [Expo Router](https://docs.expo.dev/router/introduction/), [Supabase React Native Auth](https://supabase.com/docs/guides/auth/quickstarts/react-native).
 

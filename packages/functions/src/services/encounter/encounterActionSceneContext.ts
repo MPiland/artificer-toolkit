@@ -1,10 +1,12 @@
 import {
   createEncounterRepository,
   createVttSceneRepository,
+  type CampaignLiveSceneRecord,
   type DBLike
 } from '@artificer-toolkit/db'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { SceneGrid, ScenePoint, SceneToken } from '@artificer-toolkit/shared/vtt'
+import type { OptionalCombatActionIntentDto } from '@artificer-toolkit/schema/api/encounters'
 
 import { EncounterConflictError } from './encounterErrors.js'
 import { encounterSceneGridPolicyRegistry } from '../rules/sceneGridPolicyRegistry.js'
@@ -14,6 +16,8 @@ import { encounterSceneGridPolicyRegistry } from '../rules/sceneGridPolicyRegist
  * under the already locked Encounter and is never a Scene command or delta.
  */
 export interface LockedEncounterActionSceneContext {
+  /** Server-only live Scene record already locked with the action dependency. */
+  scene?: CampaignLiveSceneRecord
   sceneId: string
   sceneVersion: number
   sourceToken: EncounterActionMechanicalToken
@@ -51,6 +55,7 @@ export type EncounterActionSceneRequest = {
 export interface EncounterActionStartIntent extends Readonly<Record<string, string>> {
   actionId: string
   actorId: string
+  optionalCombatIntentChecksum: string
   sceneContextChecksum: string
   targetActorId: string
 }
@@ -89,6 +94,7 @@ function sceneDependencyFromContext(
 export function createEncounterActionStartIntent(input: {
   actionId: string
   actorId: string
+  optionalCombatIntent?: OptionalCombatActionIntentDto | null
   sceneContext:
     | EncounterActionSceneDependency
     | EncounterActionSceneRequest
@@ -98,6 +104,7 @@ export function createEncounterActionStartIntent(input: {
   return {
     actionId: input.actionId,
     actorId: input.actorId,
+    optionalCombatIntentChecksum: checksumRuleDocument(input.optionalCombatIntent ?? null),
     sceneContextChecksum: checksumRuleDocument(sceneDependencyFromContext(input.sceneContext)),
     targetActorId: input.targetActorId
   }
@@ -157,6 +164,7 @@ export async function lockEncounterActionSceneContext(input: {
     throw new EncounterConflictError('Action Scene token context is stale.')
   }
   return {
+    scene,
     sceneId: scene.state.id,
     sceneVersion: scene.state.version,
     sourceToken: mechanicalTokenFact(sourceToken, input.actorId),

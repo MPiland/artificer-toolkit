@@ -37,7 +37,7 @@ export function CreatureDetailPage({
   draft: AuthoredDraftDto | null
   references: Pick<
     AuthoredContentReferenceData,
-    'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'speeds'
+    'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'equipment' | 'speeds'
   >
   response: CreatureResponseDto
   view: 'active' | 'draft'

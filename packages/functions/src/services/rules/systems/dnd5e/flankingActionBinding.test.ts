@@ -97,7 +97,8 @@ function capabilityState(input: { available?: boolean; definitionId?: string } =
     capability,
     available: input.available ?? true,
     contributionIds: [],
-    suppressingConditionDefinitionIds: []
+    suppressingConditionDefinitionIds: [],
+    suppressingActiveEffectIds: []
   }
   return {
     schemaVersion: 1 as const,
@@ -255,6 +256,7 @@ function bind(input: {
     currentHitPoints: 10,
     temporaryHitPoints: 0,
     maximumHitPoints: 10,
+    targetScalarValues: {},
     defenses: [],
     sceneContext:
       input.sceneContext === 'ABSENT'

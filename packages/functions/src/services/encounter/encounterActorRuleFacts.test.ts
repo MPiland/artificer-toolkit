@@ -44,6 +44,16 @@ const encounter = {
       initiative: null,
       manualOrder: null,
       snapshot: {
+        ruleFacts: {
+          gameSystemId: '00000000-0000-4000-8000-000000000008',
+          vocabularySnapshotId: '00000000-0000-4000-8000-000000000021',
+          vocabularySnapshotVersion: 1,
+          vocabularySnapshotChecksum: 'a'.repeat(64),
+          abilityScores: { '00000000-0000-4000-8000-000000000020': 14 },
+          checkTotals: { '00000000-0000-4000-8000-000000000022': 3 },
+          resourceAbilityScores: { DEXTERITY: 14 },
+          initiativeAbilityDefinitionId: '00000000-0000-4000-8000-000000000020'
+        },
         payload: {
           abilityScores: { DEXTERITY: 14, UNKNOWN: 20 },
           damageImmunities: [],
@@ -80,7 +90,15 @@ describe('Encounter actor rule facts', () => {
       actors: [
         {
           actorId: '00000000-0000-4000-8000-000000000006',
-          abilityScores: { DEXTERITY: 14 },
+          abilityScores: { '00000000-0000-4000-8000-000000000020': 14 },
+          checkTotals: { '00000000-0000-4000-8000-000000000022': 3 },
+          resourceAbilityScores: { DEXTERITY: 14 },
+          initiativeAbilityDefinitionId: '00000000-0000-4000-8000-000000000020',
+          vocabularySnapshot: {
+            id: '00000000-0000-4000-8000-000000000021',
+            version: 1,
+            checksum: 'a'.repeat(64)
+          },
           targetProtection: {
             status: 'NORMALIZED',
             defenses: [],
@@ -102,6 +120,22 @@ describe('Encounter actor rule facts', () => {
         }
       ]
     })
+  })
+
+  it('uses only an exact effective UUID scalar overlay and rejects an unknown UUID', () => {
+    const abilityId = '00000000-0000-4000-8000-000000000020'
+    expect(
+      buildEncounterActorRuleFacts(
+        encounter,
+        new Map([[encounter.actors[0]!.id, { [abilityId]: 9 }]])
+      ).actors[0]?.abilityScores
+    ).toEqual({ [abilityId]: 9 })
+    expect(() =>
+      buildEncounterActorRuleFacts(
+        encounter,
+        new Map([[encounter.actors[0]!.id, { '00000000-0000-4000-8000-000000000099': 9 }]])
+      )
+    ).toThrow('scalar facts are unavailable')
   })
 
   it('requires complete, UUID-only Creature protection collections and never parses display strings', () => {
@@ -248,6 +282,14 @@ describe('Encounter actor rule facts', () => {
               {
                 actorId: encounter.actors[0].id,
                 initiativeModifier: 2,
+                savingThrowDefinitions: [
+                  {
+                    abilityDefinitionId: '00000000-0000-4000-8000-000000000020',
+                    modifier: 2,
+                    rollMode: 'NORMAL',
+                    contributors: []
+                  }
+                ],
                 targetProtection: {
                   status: 'NORMALIZED',
                   defenses: [],
@@ -287,6 +329,14 @@ describe('Encounter actor rule facts', () => {
           {
             actorId: encounter.actors[0].id,
             initiativeModifier: 2,
+            savingThrowDefinitions: [
+              {
+                abilityDefinitionId: '00000000-0000-4000-8000-000000000020',
+                modifier: 2,
+                rollMode: 'NORMAL',
+                contributors: []
+              }
+            ],
             targetProtection: {
               status: 'NORMALIZED',
               defenses: [],
@@ -306,6 +356,36 @@ describe('Encounter actor rule facts', () => {
           }
         ]
       }
+    })
+  })
+
+  it('fails closed instead of partially accepting malformed Creature rule facts', () => {
+    const actor = encounter.actors[0]!
+    const snapshot = actor.snapshot as Record<string, unknown>
+    const malformed = {
+      ...encounter,
+      actors: [
+        {
+          ...actor,
+          snapshot: {
+            ...snapshot,
+            ruleFacts: {
+              ...(snapshot.ruleFacts as Record<string, unknown>),
+              abilityScores: {
+                '00000000-0000-4000-8000-000000000020': 14,
+                'not-a-definition-id': 20
+              }
+            }
+          }
+        }
+      ]
+    } as EncounterRecord
+
+    expect(buildEncounterActorRuleFacts(malformed).actors[0]).toMatchObject({
+      abilityScores: {},
+      resourceAbilityScores: {},
+      initiativeAbilityDefinitionId: null,
+      vocabularySnapshot: null
     })
   })
 })

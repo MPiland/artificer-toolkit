@@ -11,7 +11,7 @@ import type { EncounterMovementReactionContactSource } from './encounterMovement
 
 type CompiledCharacterActionEntry = Extract<
   CompiledActionEntryPoint,
-  { compilation: { kind: 'COMPILED' } }
+  { kind: 'CHARACTER_ACTION'; compilation: { kind: 'COMPILED' } }
 >
 type CompiledCharacterTargetPolicy = NonNullable<CompiledCharacterActionEntry['targetPolicy']>
 

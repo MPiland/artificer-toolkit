@@ -1,4 +1,8 @@
-import type { NodeEntry, NodeSelectSource } from '@artificer-toolkit/shared/utils'
+import {
+  resolveLocalCollectionOptions,
+  type NodeEntry,
+  type NodeSelectSource
+} from '@artificer-toolkit/shared/utils'
 import { isConditionVisible } from './nodeVisibility'
 import type { SelectOption } from '../utils/formUtils'
 
@@ -41,6 +45,10 @@ export function defaultSourceOptionResolver<TValues extends object>({
           disabled: true
         }
       ]
+    case 'LOCAL_COLLECTION':
+      return values
+        ? resolveLocalCollectionOptions(source, { values: values as Record<string, unknown> })
+        : []
   }
 }
 

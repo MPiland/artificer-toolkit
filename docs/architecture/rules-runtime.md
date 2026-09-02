@@ -31,6 +31,26 @@ The Rules Kernel owns execution protocol only. It walks a validated bounded grap
 between ports, requests bounded evidence or decisions, and returns proposed results. It does not read
 repositories, authorize users, generate random values, mutate aggregates, or know D&D vocabulary.
 
+### Creature authored equipment identity
+
+Creature equipment is authored source data, not an Encounter inventory or a Scene object. An optional
+Creature-owned `equipmentLoadout` document records one UUID-backed occurrence, its Equipment UUID,
+quantity, carried/held/worn state, attunement state, and any Creature Feature UUIDs whose action source
+depends on that occurrence. The document is strict and versioned with the Creature source; it does not
+duplicate Equipment mechanics, derive availability from labels, or create automated loot transfer.
+Natural weapons remain Creature Features. Runtime loadout replacement, Equipment resolution, and
+Encounter actor snapshots are separate application responsibilities.
+
+### Target-owned actor relationships
+
+An `ACTOR_RELATIONSHIP` outcome compiles to one target-owned active effect. Its origin retains the
+exact source actor, occurrence, action, and authored relationship UUID; its owner is the target actor.
+The effect stores only ordered, bounded relationship modules. System adapters interpret size codes,
+action restrictions, d20 influence, capability suppression, and movement costs; generic application
+code does not rank sizes or branch on creature names, labels, or editions. Escape and release are
+terminal relationship operations. Conditions, checks, and recurring damage remain their existing typed
+documents, frozen with the active-effect graph rather than becoming relationship-specific prose.
+
 An operation is `PURE`, `EVIDENCE`, or `PROPOSAL`. A proposal is a deterministic typed scalar
 operation: the Kernel evaluates it once in graph order and retains its inputs and outputs in the
 ordered trace, but never interprets it or applies state. For a COMPLETE execution with a registered
@@ -486,6 +506,12 @@ Authored D&D saving throws select an exact System-owned ability-definition UUID,
 ability-modifier DC components. The pinned System vocabulary snapshot supplies the UUID-to-D&D policy
 fact mapping; authored codes and labels never select behavior. Persistence and hydration require the
 same authoritative parent System and fail closed for unbound or cross-System saving throws and bonuses.
+
+`FOLLOW_UP_SAVE` may carry one optional System-authored repeated-roll influence: a closed advantage or
+disadvantage policy when the target perceives the source at one closed Combat Perception requirement.
+It is valid only for a one-time target-turn-end repeat after failure. The shared Effect compiler
+preserves that authored policy but does not evaluate perception; a System adapter may retain its closed
+values in an active-effect plan without Scene reads.
 
 **CURRENT / Gate 2 policy tracer:** the D&D concentration damage-check factory produces one
 UUID-backed graph in the neutral `rules-runtime-graph` family. Its typed graph derives the D&D damage

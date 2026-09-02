@@ -1,6 +1,7 @@
 import type {
   CreatureAuthored,
   CreatureCompanionProfile,
+  CreatureEquipmentLoadoutEntry,
   CreatureMountProfile,
   CreatureNpcProfile
 } from '#authored'
@@ -34,6 +35,8 @@ export interface CompiledCreatureNpcProfile {
   personalityTraits?: string[]
 }
 
+export interface CompiledCreatureEquipmentLoadoutEntry extends CreatureEquipmentLoadoutEntry {}
+
 export interface CompiledCreatureBase {
   id: string
   category: string
@@ -44,6 +47,7 @@ export interface CompiledCreatureBase {
   speeds: CompiledSpeed[]
   features?: CompiledFeature[]
   proficiencies?: CompiledProficiencyGrant[]
+  equipmentLoadout?: CompiledCreatureEquipmentLoadoutEntry[]
   mountProfile?: CompiledCreatureMountProfile
   companionProfile?: CompiledCreatureCompanionProfile
 }
@@ -98,6 +102,109 @@ function compileNpcProfile(authored: CreatureNpcProfile): CompiledCreatureNpcPro
   }
 }
 
+function hasActionInvocation(feature: NonNullable<CreatureAuthored['features']>[number]): boolean {
+  return [
+    ...(feature.effects ?? []),
+    ...(feature.options?.flatMap((option) => option.effects ?? []) ?? [])
+  ].some((effect) => effect.invocation.kind !== 'PASSIVE')
+}
+
+const POSTGRES_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function requirePostgresUuid(creatureId: string, field: string, value: unknown): string {
+  if (typeof value !== 'string' || !POSTGRES_UUID_PATTERN.test(value)) {
+    throw new Error(`Creature "${creatureId}" has invalid ${field}.`)
+  }
+  return value
+}
+
+function compileEquipmentLoadout(
+  authored: CreatureAuthored
+): CompiledCreatureEquipmentLoadoutEntry[] | undefined {
+  if (authored.equipmentLoadout == null) return undefined
+  if (!Array.isArray(authored.equipmentLoadout)) {
+    throw new Error(`Creature "${authored.id}" has invalid equipment loadout.`)
+  }
+  if (authored.equipmentLoadout.length === 0) return undefined
+
+  const featuresById = new Map((authored.features ?? []).map((feature) => [feature.id, feature]))
+  const occurrenceIds = new Set<string>()
+  const actionFeatureIds = new Set<string>()
+
+  return authored.equipmentLoadout.map((entry) => {
+    const entryId = requirePostgresUuid(authored.id, 'equipment loadout entry ID', entry.id)
+    const equipmentId = requirePostgresUuid(
+      authored.id,
+      'equipment loadout equipment ID',
+      entry.equipmentId
+    )
+    if (!Number.isInteger(entry.quantity) || entry.quantity <= 0) {
+      throw new Error(
+        `Creature "${authored.id}" equipment loadout entry "${entryId}" must have a positive integer quantity.`
+      )
+    }
+    if (entry.useState !== 'CARRIED' && entry.useState !== 'HELD' && entry.useState !== 'WORN') {
+      throw new Error(
+        `Creature "${authored.id}" equipment loadout entry "${entryId}" has invalid use state.`
+      )
+    }
+    if (typeof entry.attuned !== 'boolean') {
+      throw new Error(
+        `Creature "${authored.id}" equipment loadout entry "${entryId}" must declare attunement.`
+      )
+    }
+    if (!Array.isArray(entry.actionFeatureIds)) {
+      throw new Error(
+        `Creature "${authored.id}" equipment loadout entry "${entryId}" has invalid action Feature bindings.`
+      )
+    }
+
+    if (occurrenceIds.has(entryId)) {
+      throw new Error(
+        `Creature "${authored.id}" has duplicate equipment loadout entry "${entryId}".`
+      )
+    }
+    occurrenceIds.add(entryId)
+
+    if (entry.useState !== 'CARRIED' && entry.quantity !== 1) {
+      throw new Error(
+        `Creature "${authored.id}" equipment loadout entry "${entryId}" must have quantity 1 when ${entry.useState}.`
+      )
+    }
+
+    for (const featureId of entry.actionFeatureIds) {
+      requirePostgresUuid(authored.id, 'equipment loadout action Feature ID', featureId)
+      if (actionFeatureIds.has(featureId)) {
+        throw new Error(
+          `Creature "${authored.id}" binds action Feature "${featureId}" to multiple equipment loadout entries.`
+        )
+      }
+      actionFeatureIds.add(featureId)
+
+      const feature = featuresById.get(featureId)
+      if (!feature) {
+        throw new Error(
+          `Creature "${authored.id}" equipment loadout entry "${entryId}" references missing action Feature "${featureId}".`
+        )
+      }
+      if (!hasActionInvocation(feature)) {
+        throw new Error(
+          `Creature "${authored.id}" equipment loadout entry "${entryId}" references Feature "${featureId}" without an ACTION invocation.`
+        )
+      }
+    }
+
+    return {
+      id: entryId,
+      equipmentId,
+      quantity: entry.quantity,
+      useState: entry.useState,
+      attuned: entry.attuned,
+      actionFeatureIds: [...entry.actionFeatureIds]
+    }
+  })
+}
+
 function compileBase(authored: CreatureAuthored): CompiledCreatureBase {
   return {
     id: authored.id,
@@ -109,6 +216,7 @@ function compileBase(authored: CreatureAuthored): CompiledCreatureBase {
     speeds: authored.speeds.map(compileSpeed),
     features: authored.features?.map(compileFeature),
     proficiencies: authored.proficiencies?.map(compileProficiencyGrant),
+    equipmentLoadout: compileEquipmentLoadout(authored),
     mountProfile: authored.mountProfile ? compileMountProfile(authored.mountProfile) : undefined,
     companionProfile: authored.companionProfile
       ? compileCompanionProfile(authored.companionProfile)

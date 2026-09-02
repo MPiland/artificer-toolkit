@@ -408,6 +408,7 @@ describe('encounter projection', () => {
           {
             actorId: ids.creature,
             abilityScores: {},
+            checkTotals: {},
             targetProtection: {
               status: 'NORMALIZED',
               defenses: [],

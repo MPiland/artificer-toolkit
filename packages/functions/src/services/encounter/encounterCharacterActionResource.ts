@@ -28,7 +28,10 @@ type CurrentOverlay = Awaited<
   >
 >
 
-type CompiledAction = Extract<CompiledActionEntryPoint, { compilation: { kind: 'COMPILED' } }>
+type CompiledAction = Extract<
+  CompiledActionEntryPoint,
+  { kind: 'CHARACTER_ACTION'; compilation: { kind: 'COMPILED' } }
+>
 
 type ActionSourceIdentity = Pick<
   CharacterActionCandidate,
@@ -156,6 +159,7 @@ export async function prepareEncounterCharacterActionState(input: {
   entry: CompiledAction
   mechanics: CharacterMechanicsProjection
   overlay: CurrentOverlay
+  effectivePolicyOutput?: CharacterActionEvaluationState['output']
   createUsageId?: () => string
 }): Promise<PreparedEncounterCharacterActionState> {
   const policyInput =
@@ -163,9 +167,10 @@ export async function prepareEncounterCharacterActionState(input: {
       ? input.overlay.rulePolicyInput
       : input.mechanics.rulePolicyInput
   const policyOutput =
-    input.overlay.kind === 'MATERIALIZED'
+    input.effectivePolicyOutput ??
+    (input.overlay.kind === 'MATERIALIZED'
       ? input.overlay.rulePolicyOutput
-      : input.mechanics.rulePolicyOutput
+      : input.mechanics.rulePolicyOutput)
   const committedCandidate = input.mechanics.rulePolicyInput.actionCandidates.find(
     (value) => value.actionId === input.actionId
   )

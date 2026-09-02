@@ -37,6 +37,7 @@
     "social:retention": "tsx src/scripts/purgeSocialRetention.ts",
     "audit:srd": "yarn audit:srd:semantic && tsx src/scripts/auditSrdData.ts",
     "audit:srd:semantic": "tsx src/scripts/auditSrdSemanticLedger.ts",
+    "generate:srd:semantic-ledger-hashes": "tsx src/scripts/auditSrdSemanticLedger.ts --write-authored-hashes",
     "audit:srd:staging": "tsx src/scripts/auditSrdData.ts --staging",
     "audit:srd:production": "tsx src/scripts/auditSrdData.ts --production",
     "test:character-sheet:integration": "tsx src/scripts/testCharacterSheetStatePatchIntegration.ts",

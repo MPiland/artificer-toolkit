@@ -223,14 +223,13 @@ describe('Encounter action Scene context', () => {
       },
       grid: scene().state.grid
     }
-    expect(
-      createEncounterActionStartIntent({
-        actionId: ids.scene,
-        actorId: ids.sourceActor,
-        sceneContext: request,
-        targetActorId: ids.targetActor
-      })
-    ).toEqual(
+    const requestIntent = createEncounterActionStartIntent({
+      actionId: ids.scene,
+      actorId: ids.sourceActor,
+      sceneContext: request,
+      targetActorId: ids.targetActor
+    })
+    expect(requestIntent).toEqual(
       createEncounterActionStartIntent({
         actionId: ids.scene,
         actorId: ids.sourceActor,
@@ -238,6 +237,20 @@ describe('Encounter action Scene context', () => {
         targetActorId: ids.targetActor
       })
     )
+    expect(
+      createEncounterActionStartIntent({
+        actionId: ids.scene,
+        actorId: ids.sourceActor,
+        optionalCombatIntent: {
+          optionId: 'a'.repeat(64),
+          definitionId: ids.encounter,
+          selectionContract: 'b'.repeat(64),
+          selections: []
+        },
+        sceneContext: request,
+        targetActorId: ids.targetActor
+      }).optionalCombatIntentChecksum
+    ).not.toBe(requestIntent.optionalCombatIntentChecksum)
   })
 
   it('uses the frozen Encounter grid policy without mutating the authored Scene grid', async () => {

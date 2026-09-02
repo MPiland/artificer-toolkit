@@ -8,6 +8,7 @@ import {
   characterListResponseDtoSchema,
   characterRestPreviewResponseDtoSchema,
   characterSheetExtraCatalogResponseDtoSchema,
+  characterSheetActionDtoSchema,
   characterSheetCommandResponseDtoSchema,
   characterSheetResponseDtoSchema,
   type CharacterBuilderCommitRequestDto,
@@ -32,6 +33,10 @@ import {
 
 export function buildCharactersApi(client: TrpcClient) {
   return {
+    actions: (id: string) =>
+      request('characters.actions', characterSheetActionDtoSchema.array().nullable(), () =>
+        client.characters.actions.query({ id })
+      ),
     command: (id: string, input: CharacterSheetCommandInputDto) =>
       request('characters.command', characterSheetCommandResponseDtoSchema, () =>
         client.characters.command.mutate({ id, input })

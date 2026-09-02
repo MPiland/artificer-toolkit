@@ -2,10 +2,15 @@ import { describe, expect, it } from 'vitest'
 
 import type { PinnedSenseDefinition } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { SenseReusableDefinitionDocumentDto } from '@artificer-toolkit/schema/shared/combatPerception'
+import type { PinnedConditionRuleStateDefinitionDto } from '@artificer-toolkit/schema/shared/ruleState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { resolveEncounterCombatPerception } from './encounterCombatPerception.js'
-import type { LockedCombatPerceptionEffect } from './encounterCombatPerceptionContributions.js'
+import { dnd5eCharacterRuleActionSystemAdapter } from '../rules/systems/dnd5e/effectActionCompiler.js'
+import {
+  deriveConditionCombatPerceptionContributions,
+  type LockedCombatPerceptionEffect
+} from './encounterCombatPerceptionContributions.js'
 
 const ids = {
   actor: '00000000-0000-4000-8000-000000000001',
@@ -70,7 +75,9 @@ function pin(document: SenseReusableDefinitionDocumentDto): PinnedSenseDefinitio
 
 function effect(
   id: string,
-  contribution: LockedCombatPerceptionEffect['definition']['perceptionContributions'][number]
+  contribution: NonNullable<
+    LockedCombatPerceptionEffect['definition']['perceptionContributions']
+  >[number]
 ): LockedCombatPerceptionEffect {
   return {
     id,
@@ -78,6 +85,28 @@ function effect(
     createdOrdinal: 1,
     definitionChecksum: 'a'.repeat(64),
     definition: { perceptionContributions: [contribution] }
+  }
+}
+
+function condition(input: {
+  id: string
+  contribution: NonNullable<
+    PinnedConditionRuleStateDefinitionDto['document']['perceptionContributions']
+  >[number]
+}): PinnedConditionRuleStateDefinitionDto {
+  return {
+    conditionDefinitionId: input.id,
+    definitionVersion: 1,
+    definitionContractVersion: 1,
+    definitionChecksum: 'b'.repeat(64),
+    document: {
+      schemaVersion: 1,
+      kind: 'CONDITION_RULE_STATE',
+      id: input.id,
+      gameSystemId: ids.system,
+      capabilitySuppressions: [],
+      perceptionContributions: [input.contribution]
+    }
   }
 }
 
@@ -123,6 +152,37 @@ function evaluate(input: {
 }
 
 describe('Encounter combat perception', () => {
+  it('composes System-policy ordinary sight with pinned senses', () => {
+    const result = resolveEncounterCombatPerception({
+      requirement: 'SEE',
+      observerActorId: ids.actor,
+      scene: {
+        ambientIllumination: 'DIM',
+        barriers: [],
+        darknessZones: [],
+        doorStates: {},
+        grid,
+        lights: []
+      },
+      sceneGrid: grid,
+      observerToken: { height: 100, position: { x: 50, y: 50 }, width: 100 },
+      subjectToken: { height: 100, position: { x: 250, y: 50 }, width: 100 },
+      baselineCapabilities:
+        dnd5eCharacterRuleActionSystemAdapter.combatPerceptionBaselineCapabilities?.({
+          observerActorId: ids.actor
+        }) ?? [],
+      pinnedSenseDefinitions: [],
+      observerEffects: [],
+      subjectEffects: [],
+      localAreaEffects: [],
+      sharedSurface: false,
+      invisibleChannels: [],
+      suppressedChannels: []
+    })
+
+    expect(result.satisfied).toBe(true)
+  })
+
   it('binds pinned Character senses to authoritative Scene facts', () => {
     const result = evaluate({})
 
@@ -161,5 +221,93 @@ describe('Encounter combat perception', () => {
     expect(suppressed.rejected.flatMap((rejection) => rejection.reasons)).toContain(
       'CHANNEL_SUPPRESSED'
     )
+  })
+
+  it('applies blinded and invisible policy from UUID-backed condition revisions', () => {
+    const blinded = condition({
+      id: '00000000-0000-0000-0002-000100000000',
+      contribution: {
+        id: '00000000-0000-4000-8000-000000000021',
+        order: 0,
+        kind: 'SENSE_SUPPRESS',
+        senseDefinitionIds: [],
+        channels: ['VISUAL']
+      }
+    })
+    const invisible = condition({
+      id: '00000000-0000-0000-0002-000800000000',
+      contribution: {
+        id: '00000000-0000-4000-8000-000000000022',
+        order: 0,
+        kind: 'EMISSION_SUPPRESS',
+        channels: ['VISUAL'],
+        bypass: 'INVISIBILITY'
+      }
+    })
+    const base = {
+      requirement: 'SEE' as const,
+      observerActorId: ids.actor,
+      scene: {
+        ambientIllumination: 'BRIGHT' as const,
+        barriers: [],
+        darknessZones: [],
+        doorStates: {},
+        grid,
+        lights: []
+      },
+      sceneGrid: grid,
+      observerToken: { height: 100, position: { x: 50, y: 50 }, width: 100 },
+      subjectToken: { height: 100, position: { x: 250, y: 50 }, width: 100 },
+      baselineCapabilities:
+        dnd5eCharacterRuleActionSystemAdapter.combatPerceptionBaselineCapabilities?.({
+          observerActorId: ids.actor
+        }) ?? [],
+      pinnedSenseDefinitions: [],
+      observerEffects: [],
+      subjectEffects: [],
+      localAreaEffects: [],
+      sharedSurface: false,
+      invisibleChannels: [],
+      suppressedChannels: []
+    }
+    const blind = resolveEncounterCombatPerception({
+      ...base,
+      observerConditionContributions: deriveConditionCombatPerceptionContributions({
+        conditionDefinitions: [blinded],
+        relation: 'OBSERVER',
+        sceneGrid: grid
+      })
+    })
+    expect(blind.satisfied).toBe(false)
+
+    const ordinarySight = resolveEncounterCombatPerception({
+      ...base,
+      subjectConditionContributions: deriveConditionCombatPerceptionContributions({
+        conditionDefinitions: [invisible],
+        relation: 'SUBJECT',
+        sceneGrid: grid
+      })
+    })
+    expect(ordinarySight.satisfied).toBe(false)
+
+    const specialSense = resolveEncounterCombatPerception({
+      ...base,
+      pinnedSenseDefinitions: [pin(blindsight)],
+      subjectConditionContributions: deriveConditionCombatPerceptionContributions({
+        conditionDefinitions: [invisible],
+        relation: 'SUBJECT',
+        sceneGrid: grid
+      })
+    })
+    expect(specialSense.satisfied).toBe(true)
+    expect(specialSense.appliedContributionSources).toEqual([
+      expect.objectContaining({
+        source: expect.objectContaining({
+          kind: 'CONDITION_DEFINITION',
+          conditionDefinitionId: invisible.conditionDefinitionId,
+          conditionDefinitionChecksum: invisible.definitionChecksum
+        })
+      })
+    ])
   })
 })

@@ -3,6 +3,8 @@ import { valuesOf } from '#utils'
 
 export const EFFECT_KIND = {
   DAMAGE: 'DAMAGE',
+  HIT_POINT_MAXIMUM_REDUCTION: 'HIT_POINT_MAXIMUM_REDUCTION',
+  SCALAR_REDUCTION: 'SCALAR_REDUCTION',
   CONDITION: 'CONDITION',
   HEAL: 'HEAL',
   APPLY_GRANT: 'APPLY_GRANT',
@@ -20,6 +22,7 @@ export const EFFECT_KIND = {
   TELEPATHIC_LINK: 'TELEPATHIC_LINK',
   PLANT_PORTAL: 'PLANT_PORTAL',
   TREE_STRIDE: 'TREE_STRIDE',
+  ACTOR_RELATIONSHIP: 'ACTOR_RELATIONSHIP',
   CLOSED_RULE: 'CLOSED_RULE',
   MANUAL_ADJUDICATION: 'MANUAL_ADJUDICATION'
 } as const
@@ -34,6 +37,19 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Damage',
     tooltip: 'This effect deals damage.',
     description: 'This effect deals damage.'
+  },
+  [EFFECT_KIND.HIT_POINT_MAXIMUM_REDUCTION]: {
+    code: EFFECT_KIND.HIT_POINT_MAXIMUM_REDUCTION,
+    label: 'Hit Point Maximum Reduction',
+    tooltip: 'Reduces a target’s hit point maximum by an already resolved damage outcome.',
+    description:
+      'References one earlier damage outcome and records the recovery tag required to end it.'
+  },
+  [EFFECT_KIND.SCALAR_REDUCTION]: {
+    code: EFFECT_KIND.SCALAR_REDUCTION,
+    label: 'Scalar Reduction',
+    tooltip: 'Reduces one UUID-backed scalar by a bounded amount.',
+    description: 'Persists an additive, recoverable reduction without changing the base value.'
   },
   [EFFECT_KIND.CONDITION]: {
     code: EFFECT_KIND.CONDITION,
@@ -141,6 +157,12 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Tree Stride',
     tooltip: 'Moves a creature between qualifying trees.',
     description: 'Defines qualifying trees, distance, movement costs, and per-round use.'
+  },
+  [EFFECT_KIND.ACTOR_RELATIONSHIP]: {
+    code: EFFECT_KIND.ACTOR_RELATIONSHIP,
+    label: 'Actor Relationship',
+    tooltip: 'Creates a target-owned, source-provenanced actor relationship.',
+    description: 'Persists bounded relationship modules as one target-owned active effect.'
   },
   [EFFECT_KIND.CLOSED_RULE]: {
     code: EFFECT_KIND.CLOSED_RULE,

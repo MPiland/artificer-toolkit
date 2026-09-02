@@ -57,10 +57,52 @@ const encounterActorFeatureResourceFactSchema = z.strictObject({
   used: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER)
 })
 
+export const encounterCreatureRuleFactsSnapshotSchema = z
+  .strictObject({
+    gameSystemId: serverUuidIdentityDtoSchema,
+    vocabularySnapshotId: serverUuidIdentityDtoSchema,
+    vocabularySnapshotVersion: z.number().int().positive(),
+    vocabularySnapshotChecksum: z.string().regex(/^[a-f0-9]{64}$/),
+    abilityScores: z.record(serverUuidIdentityDtoSchema, z.number().finite()),
+    /** UUID-backed check totals pinned with the Creature Blueprint snapshot. */
+    checkTotals: z.record(serverUuidIdentityDtoSchema, z.number().int()).optional(),
+    resourceAbilityScores: z.partialRecord(abilityCodeSchema, z.number().finite()),
+    initiativeAbilityDefinitionId: serverUuidIdentityDtoSchema
+  })
+  .superRefine((facts, ctx) => {
+    if (Object.keys(facts.abilityScores).length === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Creature rule facts require at least one normalized ability score.',
+        path: ['abilityScores']
+      })
+    }
+    if (!(facts.initiativeAbilityDefinitionId in facts.abilityScores)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Creature initiative ability must reference a normalized ability score.',
+        path: ['initiativeAbilityDefinitionId']
+      })
+    }
+  })
+
 const encounterActorRuleFactSchema = z
   .strictObject({
     actorId: z.string().uuid(),
-    abilityScores: z.partialRecord(abilityCodeSchema, z.number().finite()),
+    /** Immutable Blueprint-compiled UUID facts; legacy ability-code payloads never reach rules. */
+    abilityScores: z.record(serverUuidIdentityDtoSchema, z.number().finite()),
+    /** Immutable Blueprint-compiled UUID check totals; codes and labels are never evaluated. */
+    checkTotals: z.record(serverUuidIdentityDtoSchema, z.number().int()).default({}),
+    resourceAbilityScores: z.partialRecord(abilityCodeSchema, z.number().finite()).optional(),
+    initiativeAbilityDefinitionId: serverUuidIdentityDtoSchema.nullable().optional(),
+    vocabularySnapshot: z
+      .strictObject({
+        id: serverUuidIdentityDtoSchema,
+        version: z.number().int().positive(),
+        checksum: z.string().regex(/^[a-f0-9]{64}$/)
+      })
+      .nullable()
+      .optional(),
     targetProtection: encounterActorTargetProtectionSchema,
     featureResources: z
       .array(encounterActorFeatureResourceFactSchema)
@@ -131,12 +173,39 @@ const encounterActorRuleResultSchema = z
   .strictObject({
     actorId: z.string().uuid(),
     initiativeModifier: z.number().int(),
+    savingThrowDefinitions: z
+      .array(
+        z.strictObject({
+          abilityDefinitionId: serverUuidIdentityDtoSchema,
+          modifier: z.number().int(),
+          rollMode: z.literal('NORMAL'),
+          contributors: z.array(z.never()).max(0)
+        })
+      )
+      .max(16)
+      .optional(),
     targetProtection: encounterActorTargetProtectionSchema,
     featureResources: z
       .array(encounterActorFeatureResourceResultSchema)
       .max(AUTHORED_LIMITS.nestedCollectionItems)
   })
   .superRefine((actor, ctx) => {
+    const savingThrowIds = new Set<string>()
+    let priorSavingThrowId = ''
+    actor.savingThrowDefinitions?.forEach((savingThrow, index) => {
+      if (
+        savingThrowIds.has(savingThrow.abilityDefinitionId) ||
+        savingThrow.abilityDefinitionId <= priorSavingThrowId
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Encounter saving-throw definitions must be unique and canonically ordered.',
+          path: ['savingThrowDefinitions', index, 'abilityDefinitionId']
+        })
+      }
+      savingThrowIds.add(savingThrow.abilityDefinitionId)
+      priorSavingThrowId = savingThrow.abilityDefinitionId
+    })
     const resourceIds = new Set<string>()
     actor.featureResources.forEach((resource, index) => {
       if (resourceIds.has(resource.featureId)) {
@@ -170,6 +239,9 @@ export const encounterActorRuleOutputSchema = z
 
 export type EncounterActorRuleInput = z.infer<typeof encounterActorRuleInputSchema>
 export type EncounterActorRuleOutput = z.infer<typeof encounterActorRuleOutputSchema>
+export type EncounterCreatureRuleFactsSnapshot = z.infer<
+  typeof encounterCreatureRuleFactsSnapshotSchema
+>
 export type EncounterActorRuleResult = z.infer<typeof encounterActorRuleResultSchema>
 export type EncounterActorFeatureResourceResult = z.infer<
   typeof encounterActorFeatureResourceResultSchema

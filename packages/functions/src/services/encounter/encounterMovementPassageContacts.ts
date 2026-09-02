@@ -1,0 +1,120 @@
+import {
+  collectTokenFootprintPathCrossings,
+  type ScenePoint,
+  type SceneToken,
+  type SpatialMovementKind
+} from '@artificer-toolkit/shared/vtt'
+
+/**
+ * Geometry-only passage contact. Relationship and policy eligibility remain
+ * outside this helper so a System policy, rather than token presentation,
+ * decides whether a crossing can be attempted.
+ */
+export interface EncounterMovementPassageContact {
+  readonly blockerActorId: string
+  readonly blockerTokenId: string
+  readonly contact: ScenePoint
+  readonly pathDistance: number
+}
+
+export type EncounterMovementPassageDiscovery =
+  | { readonly kind: 'NONE' }
+  | { readonly kind: 'ENDPOINT_OCCUPIED'; readonly blockerActorIds: readonly string[] }
+  | {
+      readonly kind: 'CROSSING'
+      readonly contact: EncounterMovementPassageContact
+      readonly laterContacts: readonly EncounterMovementPassageContact[]
+    }
+
+function compareText(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0
+}
+
+function footprintsOverlapAtPosition(input: {
+  readonly movingToken: Pick<SceneToken, 'height' | 'position' | 'width'>
+  readonly position: ScenePoint
+  readonly stationaryToken: Pick<SceneToken, 'height' | 'position' | 'width'>
+}): boolean {
+  return (
+    Number.isFinite(input.movingToken.width) &&
+    Number.isFinite(input.movingToken.height) &&
+    Number.isFinite(input.stationaryToken.width) &&
+    Number.isFinite(input.stationaryToken.height) &&
+    Math.abs(input.position.x - input.stationaryToken.position.x) <
+      (input.movingToken.width + input.stationaryToken.width) / 2 - 1e-8 &&
+    Math.abs(input.position.y - input.stationaryToken.position.y) <
+      (input.movingToken.height + input.stationaryToken.height) / 2 - 1e-8
+  )
+}
+
+/**
+ * Finds the ordered hostile full-footprint passage boundaries for voluntary movement.
+ * The caller supplies already-locked relationship facts; no actor state is read
+ * or inferred here. A final occupied hostile footprint is rejected rather than
+ * converted into a passage attempt.
+ */
+export function discoverEncounterMovementPassageContact(input: {
+  readonly actorIdByTokenId: ReadonlyMap<string, string>
+  readonly isHostile: (input: {
+    readonly blockerActorId: string
+    readonly movingActorId: string
+  }) => boolean
+  readonly movementKind: SpatialMovementKind
+  readonly movingTokenId: string
+  readonly path: readonly ScenePoint[]
+  readonly tokens: readonly Pick<SceneToken, 'height' | 'id' | 'position' | 'width'>[]
+}): EncounterMovementPassageDiscovery {
+  if (input.movementKind !== 'VOLUNTARY' || input.path.length < 2) return { kind: 'NONE' }
+  const movingToken = input.tokens.find((token) => token.id === input.movingTokenId)
+  const movingActorId = movingToken ? input.actorIdByTokenId.get(movingToken.id) : null
+  if (!movingToken || !movingActorId) return { kind: 'NONE' }
+  const stationary = input.tokens.filter((token) => token.id !== movingToken.id)
+  const hostile = stationary.filter((token) => {
+    const blockerActorId = input.actorIdByTokenId.get(token.id)
+    return blockerActorId !== undefined && input.isHostile({ blockerActorId, movingActorId })
+  })
+  const endpoint = input.path.at(-1)
+  if (!endpoint) return { kind: 'NONE' }
+  const endpointBlockers = [
+    ...new Set(
+      hostile
+        .filter((token) =>
+          footprintsOverlapAtPosition({
+            movingToken,
+            stationaryToken: token,
+            position: endpoint
+          })
+        )
+        .map((token) => input.actorIdByTokenId.get(token.id)!)
+    )
+  ].sort(compareText)
+  if (endpointBlockers.length > 0) {
+    return { kind: 'ENDPOINT_OCCUPIED', blockerActorIds: endpointBlockers }
+  }
+  const crossings = collectTokenFootprintPathCrossings({
+    movingToken,
+    path: input.path,
+    stationaryTokens: hostile
+  })
+    .map((crossing) => {
+      const blockerActorId = input.actorIdByTokenId.get(crossing.stationaryTokenId)
+      return blockerActorId
+        ? {
+            blockerActorId,
+            blockerTokenId: crossing.stationaryTokenId,
+            contact: crossing.entry,
+            pathDistance: crossing.entryPathDistance
+          }
+        : null
+    })
+    .filter((value): value is EncounterMovementPassageContact => value !== null)
+    .sort(
+      (left, right) =>
+        left.pathDistance - right.pathDistance ||
+        compareText(left.blockerActorId, right.blockerActorId) ||
+        compareText(left.blockerTokenId, right.blockerTokenId)
+    )
+  return crossings[0]
+    ? { kind: 'CROSSING', contact: crossings[0], laterContacts: crossings.slice(1) }
+    : { kind: 'NONE' }
+}

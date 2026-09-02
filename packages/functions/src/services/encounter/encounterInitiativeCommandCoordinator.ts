@@ -626,7 +626,9 @@ export async function resumeEncounterInitiativeDeclarationCommand(input: {
     currentRequest.sourceOptionsChecksum !== input.request.sourceOptionsChecksum ||
     JSON.stringify(currentRequest.primaryOptions) !==
       JSON.stringify(input.request.primaryOptions) ||
-    JSON.stringify(currentRequest.bonusOptions) !== JSON.stringify(input.request.bonusOptions)
+    JSON.stringify(currentRequest.bonusOptions) !== JSON.stringify(input.request.bonusOptions) ||
+    JSON.stringify(currentRequest.adjudicationFields) !==
+      JSON.stringify(input.request.adjudicationFields)
   ) {
     throw new EncounterConflictError('Initiative declaration options are stale.')
   }

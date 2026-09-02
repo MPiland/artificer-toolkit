@@ -19,6 +19,7 @@ import {
 } from '@artificer-toolkit/db'
 import {
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
+  type OptionalCombatActionIntentDto,
   type PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type {
@@ -38,11 +39,14 @@ import {
   activeRuleEffectLifecycleDtoSchema,
   type ServerRuleExecutionApplicationOutputsDto,
   type ServerCompletedRuleExecutionDto,
+  type ServerRuleExecutionNestedD20EvidenceDto,
+  type ServerRuleExecutionD20PolicyDto,
   type ServerRuleExecutionPendingApplicationContextDto,
   type RuleExecutionPhaseReceiptsDto,
   type StoredRuleExecutionResultDto,
   type ServerPublishedRuleDefinitionDto,
-  serverPublishedRuleDefinitionDtoSchema
+  serverPublishedRuleDefinitionDtoSchema,
+  serverRuleExecutionD20PolicyDtoSchema
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { CharacterEvent } from '@artificer-toolkit/shared'
 import { resolveCharacterEffectiveMaximumHitPoints } from '@artificer-toolkit/shared/character'
@@ -63,8 +67,13 @@ import {
 } from '../campaign/campaignCharacterMechanicsProjection.js'
 import type { CharacterRuleActionSystemAdapter } from '../rules/characterRuleActionSystemAdapter.js'
 import { characterRuleActionSystemAdapterRegistry } from '../rules/characterRuleActionSystemAdapterRegistry.js'
+import { actionEconomyCapabilityRegistry } from '../rules/actionEconomyCapabilityRegistry.default.js'
 import { resolveActionPhaseExecution } from '../rules/actionPhaseExecution.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  lengthMeasurementInSceneUnits,
+  measureSceneTokenFootprintDistance
+} from '@artificer-toolkit/shared/vtt'
 import {
   createRuleExecutionOccurrenceService,
   type RuleExecutionAggregatePort
@@ -73,16 +82,33 @@ import type { RulesRuntimeService } from '../rules/rulesRuntimeService.js'
 import { refreshEncounterActorRuleSnapshot } from './encounterActorRuleEvaluation.js'
 import { evaluateEncounterActorRuleSnapshot } from './encounterActorRuleEvaluation.js'
 import { lockEncounterActiveEffectTargets } from './encounterActiveEffectTargetState.js'
+import {
+  prepareActionEconomyConsumption,
+  type PreparedEncounterActionSettlementCore
+} from './encounterActionSettlementCore.js'
+import {
+  characterBaseScalarValues,
+  evaluateEffectiveCharacterPolicy,
+  foldActiveScalarReductions,
+  scalarValuesDiffer
+} from './encounterEffectiveScalarPolicy.js'
 import { lockEncounterActionPositionalFacts } from './encounterActionPositionalFacts.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
+import { encounterRuleUsageUsed, withEncounterRuleUsageUsed } from './encounterActorState.js'
 import { compileEncounterCurrentProjection, projectGm } from './encounterProjection.js'
+import { persistEncounterCleavingChoice } from './encounterCleavingChoice.js'
 import { foldCharacterMechanicsApplications } from './encounterCharacterMechanicsBatch.js'
 import {
   persistEncounterCharacterActionResourceConsumption,
   prepareEncounterCharacterActionState,
-  type EncounterCharacterActionResourceConsumption
+  type EncounterCharacterActionResourceConsumption,
+  type PreparedEncounterCharacterActionState
 } from './encounterCharacterActionResource.js'
 import { lockEncounterRuleExecutionCommandContext } from './encounterRuleExecutionCommandContext.js'
+import {
+  buildEncounterSaveD20Evidence,
+  requireEncounterSaveD20EvidenceTrace
+} from './encounterMovementReactionActionExecution.js'
 import {
   createEncounterActionStartIntent,
   revalidateEncounterActionSceneDependency,
@@ -97,6 +123,15 @@ import {
   resolveDnd5eConcentrationSaveFacts,
   validateDnd5eConcentrationContributors
 } from '../rules/systems/dnd5e/concentrationPolicy.js'
+import {
+  cleanupConcentrationMaintainedState,
+  concentrationChildIdentity,
+  DND5E_CONCENTRATION_OCCURRENCE_NAMESPACE,
+  maintainedDependentSnapshot,
+  sameConcentrationPreflight,
+  type ConcentrationPreflight,
+  type MaintainedDependentSnapshot
+} from './encounterConcentrationState.js'
 
 interface LockedCharacterRuleAction {
   /** The acting Character owns the selected action and any resource use. */
@@ -128,6 +163,7 @@ interface LockedCharacterRuleAction {
     description?: string | null
   }> | null
   resourceConsumption: EncounterCharacterActionResourceConsumption | null
+  actionEconomyConsumption: PreparedEncounterActionSettlementCore['actionEconomyConsumption']
   /** The exact locked Character target owns all outcome state changes. */
   targetCharacterId: string
   targetConditionDefinitions: ReadonlyArray<{
@@ -143,6 +179,7 @@ interface LockedCharacterRuleAction {
     >
   >
   targetPriorProjectionChecksum: string
+  targetEffectiveScalarValues: Readonly<Record<string, number>>
   targetVocabularySnapshot: SystemVocabularySnapshot
   maintainedReplacement: MaintainedReplacementPreflight | null
   concentration: ConcentrationPreflight | null
@@ -151,14 +188,7 @@ interface LockedCharacterRuleAction {
 interface MaintainedReplacementPreflight {
   definitionChecksum: string
   definitionId: string
-  dependents: readonly {
-    activeEffectId: string
-    createdOrdinal: number
-    definitionChecksum: string
-    lifecycleChecksum: string
-    owner: string
-    version: number
-  }[]
+  dependents: readonly MaintainedDependentSnapshot[]
   prior: {
     descriptorChecksum: string
     id: string
@@ -166,213 +196,11 @@ interface MaintainedReplacementPreflight {
   } | null
 }
 
-interface ConcentrationPreflight {
-  descriptorChecksum: string
-  dependents: MaintainedReplacementPreflight['dependents']
-  id: string
-  maintenanceDefinitionId: string
-  ownerActorId: string
-  version: number
-}
-
-const DND5E_CONCENTRATION_OCCURRENCE_NAMESPACE = 'd4b06f4e-c014-49b6-8e39-3a2c790f8d57'
-
-function maintainedDependentSnapshot(
-  effect: Awaited<
-    ReturnType<ReturnType<typeof createActiveRuleEffectRepository>['listDependentEffects']>
-  >[number]
-): MaintainedReplacementPreflight['dependents'][number] {
-  return {
-    activeEffectId: effect.id,
-    createdOrdinal: effect.createdOrdinal,
-    definitionChecksum: effect.definitionChecksum,
-    lifecycleChecksum: effect.lifecycleChecksum,
-    owner:
-      effect.owner.kind === 'CHARACTER'
-        ? `CHARACTER:${effect.owner.characterId}`
-        : `ENCOUNTER_ACTOR:${effect.owner.targetActorId}`,
-    version: effect.version
-  }
-}
-
 function sameMaintainedReplacementPreflight(
   left: MaintainedReplacementPreflight,
   right: MaintainedReplacementPreflight
 ): boolean {
   return JSON.stringify(left) === JSON.stringify(right)
-}
-
-function sameConcentrationPreflight(
-  left: ConcentrationPreflight,
-  right: ConcentrationPreflight
-): boolean {
-  return (
-    left.id === right.id &&
-    left.version === right.version &&
-    left.ownerActorId === right.ownerActorId &&
-    left.maintenanceDefinitionId === right.maintenanceDefinitionId &&
-    left.descriptorChecksum === right.descriptorChecksum &&
-    JSON.stringify(left.dependents) === JSON.stringify(right.dependents)
-  )
-}
-
-function concentrationChildIdentity(input: {
-  parentOccurrenceId: string
-  ordinal: number
-  sourceNodeId: string
-  sourceOperationKey: string
-  targetActorId: string
-}): string {
-  return uuidv5(
-    `${input.parentOccurrenceId}:${input.ordinal}:${input.sourceNodeId}:${input.sourceOperationKey}:${input.targetActorId}:concentration-damage-check`,
-    DND5E_CONCENTRATION_OCCURRENCE_NAMESPACE
-  )
-}
-
-async function cleanupConcentrationMaintainedState(input: {
-  db: DBLike
-  encounter: EncounterRecord
-  attunementSlotOverride: number | null
-  concentration: ConcentrationPreflight
-}) {
-  const activeEffects = createActiveRuleEffectRepository(input.db)
-  const state = await activeEffects.lockMaintainedStateById({
-    encounterId: input.encounter.id,
-    stateId: input.concentration.id
-  })
-  const dependents = state
-    ? await activeEffects.lockDependentEffects({
-        stateId: state.id,
-        encounterId: input.encounter.id
-      })
-    : []
-  const current = state
-    ? {
-        id: state.id,
-        version: state.version,
-        ownerActorId: state.ownerActorId,
-        maintenanceDefinitionId: state.maintenanceDefinitionId,
-        descriptorChecksum: state.descriptorChecksum,
-        dependents: dependents.map(maintainedDependentSnapshot)
-      }
-    : null
-  if (!state || !current || !sameConcentrationPreflight(input.concentration, current)) {
-    throw new EncounterConflictError('Concentration state changed before cleanup.')
-  }
-  for (const dependent of dependents) {
-    await activeEffects.deleteCas({
-      id: dependent.id,
-      owner: dependent.owner,
-      expectedVersion: dependent.version
-    })
-  }
-  if (
-    state.descriptor.schemaVersion === 1 ||
-    state.descriptor.emptyDependentPolicy === 'TERMINATE_WHEN_EMPTY'
-  ) {
-    await activeEffects.deleteMaintainedStateCas({
-      id: state.id,
-      encounterId: input.encounter.id,
-      ownerActorId: state.ownerActorId,
-      expectedVersion: state.version
-    })
-  }
-
-  const transitions: {
-    characterId: string
-    beforeStreamVersion: number
-    afterStreamVersion: number
-  }[] = []
-  const characterActorVersions = new Map<string, number>()
-  const characterIds = [
-    ...new Set(
-      dependents.flatMap((dependent) =>
-        dependent.owner.kind === 'CHARACTER' ? [dependent.owner.characterId] : []
-      )
-    )
-  ].sort()
-  for (const characterId of characterIds) {
-    const owner = await input.db
-      .selectFrom('characters')
-      .select(['id', 'stream_version', 'status'])
-      .where('id', '=', characterId)
-      .forUpdate()
-      .executeTakeFirst()
-    if (!owner || owner.status !== 'ACTIVE') {
-      throw new EncounterConflictError('A concentration dependent owner is stale.')
-    }
-    const mechanics = await createCharacterMechanicsProjectionRepository(input.db).requireCurrent({
-      characterId,
-      expectedStreamVersion: owner.stream_version
-    })
-    const context = await resolveCharacterLiveSessionRuleContext(input.db, characterId, {
-      id: input.encounter.campaignId,
-      attunementSlotOverride: input.attunementSlotOverride
-    })
-    if (!context) throw new EncounterConflictError('A concentration dependent context is stale.')
-    const overlay = await createCampaignCharacterMechanicsProjectionRepository(
-      input.db
-    ).requireCurrent({
-      campaignId: input.encounter.campaignId,
-      characterId,
-      expectedBaseMechanicsProjectionChecksum: mechanics.projectionChecksum,
-      expectedCharacterStreamVersion: owner.stream_version,
-      expectedMechanicalContextChecksum: checksumCampaignCharacterMechanicalContext({
-        adjustments: context.adjustments,
-        attunementSlotOverride: context.attunementSlotOverride
-      }),
-      expectedProjectionSchemaVersion: CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
-      baseMechanicsProjection: mechanics
-    })
-    const afterStreamVersion = await createCharacterRepository(input.db).patchSheetState(
-      characterId,
-      [],
-      {
-        expectedStreamVersion: owner.stream_version,
-        afterPersist: async (trx, nextStreamVersion) => {
-          const nextMechanics = advanceCharacterMechanicsProjectionCommandState({
-            characterCommandState: mechanics.commandState,
-            characterStreamVersion: nextStreamVersion,
-            current: mechanics
-          })
-          await createCharacterMechanicsProjectionRepository(trx).advanceLiveCommandState({
-            expectedPriorProjectionChecksum: mechanics.projectionChecksum,
-            expectedPriorStreamVersion: mechanics.characterStreamVersion,
-            projection: nextMechanics
-          })
-          await createCampaignCharacterMechanicsProjectionRepository(trx).publish({
-            expectedPriorOverlayChecksum: overlay.projectionChecksum,
-            projection: compileCampaignCharacterMechanicsProjection({
-              campaignId: overlay.campaignId,
-              characterId,
-              characterStreamVersion: nextStreamVersion,
-              baseMechanicsProjectionChecksum: nextMechanics.projectionChecksum,
-              mechanicalContextChecksum: overlay.mechanicalContextChecksum,
-              manualMaximumModifierOwner: overlay.manualMaximumModifierOwner,
-              ...(overlay.kind === 'MATERIALIZED'
-                ? {
-                    rulePolicyInput: overlay.rulePolicyInput,
-                    rulePolicyOutput: overlay.rulePolicyOutput
-                  }
-                : {})
-            })
-          })
-        }
-      }
-    )
-    transitions.push({
-      characterId,
-      beforeStreamVersion: owner.stream_version,
-      afterStreamVersion
-    })
-    characterActorVersions.set(characterId, afterStreamVersion)
-  }
-  return {
-    maintainedStateId: state.id,
-    removedDependentEffectIds: dependents.map((dependent) => dependent.id),
-    characterOwnerTransitions: transitions,
-    characterActorVersions
-  }
 }
 
 function checksumStoredRuleExecutionResult(result: StoredRuleExecutionResultDto): string {
@@ -418,14 +246,21 @@ function requireValidCharacterRuleActionReceipt(
       currentHitPoints: receipt.data.targetTransition.before.currentHitPoints,
       temporaryHitPoints: receipt.data.targetTransition.before.temporaryHitPoints,
       maximumHitPoints: receipt.data.targetTransition.before.maximumHitPoints,
+      scalarValues: receipt.data.targetTransition.before.scalarValues,
       conditionIds: receipt.data.targetTransition.before.conditionIds
     })
   )
     throw invalidReceipt()
   const d20 = receipt.data.d20
   const sameTerminalExecution = (phaseExecution: ServerCompletedRuleExecutionDto) =>
-    checksumRuleDocument({ outputs: phaseExecution.outputs, evidence: phaseExecution.evidence }) ===
-    checksumRuleDocument({ outputs: execution.outputs, evidence: execution.evidence })
+    checksumRuleDocument({
+      outputs: phaseExecution.outputs,
+      evidence: phaseExecution.evidence
+    }) ===
+    checksumRuleDocument({
+      outputs: execution.outputs,
+      evidence: execution.evidence
+    })
   const testExecution = (() => {
     if (!phaseReceipts) return execution
     if (phaseReceipts.length === 1 && phaseReceipts[0]?.phase === 'TEST') {
@@ -444,6 +279,7 @@ function requireValidCharacterRuleActionReceipt(
     return test.execution
   })()
   const [activeEffectTransition] = receipt.data.activeEffectTransitions
+  const [stateEffectTransition] = receipt.data.stateEffectTransitions
   const maintenanceTransition = receipt.data.maintenanceTransition ?? null
   const sourceHasMaintainedRemoval =
     maintenanceTransition?.characterOwnerTransitions.some(
@@ -470,6 +306,22 @@ function requireValidCharacterRuleActionReceipt(
       ).length !== 1 ||
       execution.evidence.trace.filter(
         (trace) => trace.nodeId === activeEffectTransition.frozenGraphNodeId
+      ).length !== 1)
+  )
+    throw invalidReceipt()
+  if (
+    stateEffectTransition &&
+    (stateEffectTransition.authoredEffectId !== execution.evidence.source.definitionId ||
+      stateEffectTransition.frozenSourceChecksum !== execution.evidence.source.checksum ||
+      stateEffectTransition.capabilityContractVersion !==
+        execution.evidence.capabilityContractVersion ||
+      execution.evidence.sourceEntryBindings?.filter(
+        (binding) =>
+          binding.sourceEntryId === stateEffectTransition.compiledEntryId &&
+          binding.nodeId === stateEffectTransition.frozenGraphNodeId
+      ).length !== 1 ||
+      execution.evidence.trace.filter(
+        (trace) => trace.nodeId === stateEffectTransition.frozenGraphNodeId
       ).length !== 1)
   )
     throw invalidReceipt()
@@ -502,6 +354,7 @@ export interface ExecuteEncounterCharacterRuleActionInput {
   correlationId: string | null
   encounterId: string
   expectedEncounterVersion: number
+  optionalCombatIntent?: OptionalCombatActionIntentDto | null
   sceneContext?: LockedEncounterActionSceneContext | null
   liveSessionAuthority?: LiveSessionCommandAuthority
   targetActorId: string
@@ -521,11 +374,55 @@ const assistedCharacterRuleActionResolutionDtoSchema = z.discriminatedUnion('kin
   z.strictObject({
     kind: z.literal('PHYSICAL_OUTCOME'),
     values: z
-      .array(z.strictObject({ requestId: z.string().min(1).max(256), value: z.number().int() }))
+      .array(
+        z.strictObject({
+          requestId: z.string().min(1).max(256),
+          value: z.number().int()
+        })
+      )
       .min(1)
       .max(31)
   })
 ])
+
+function nestedOutcomeD20Policy(input: {
+  published: ServerPublishedRuleDefinitionDto
+  d20: {
+    rollMode: ServerRuleExecutionD20PolicyDto['rollMode']
+    contributors: readonly ServerRuleExecutionD20PolicyDto['contributors'][number][]
+    contributorChecksum: string
+    modifier: number
+    defenseOrDc: number
+  } | null
+}): ServerRuleExecutionD20PolicyDto | null {
+  const requestNode = input.published.definition.nodes?.find(
+    (node) => node.id === 'nested-save-d20'
+  )
+  if (!requestNode) return null
+  const minimum = requestNode.inputs.min
+  const maximum = requestNode.inputs.max
+  if (
+    requestNode.operation.key !== 'evidence.integer-range' ||
+    requestNode.operation.contractVersion !== 1 ||
+    minimum?.kind !== 'LITERAL' ||
+    minimum.value !== 1 ||
+    maximum?.kind !== 'LITERAL' ||
+    maximum.value !== 20
+  ) {
+    throw new EncounterValidationError('The Character action nested save request is invalid.')
+  }
+  if (!input.d20) {
+    throw new EncounterValidationError('The Character action nested save policy is unavailable.')
+  }
+  return serverRuleExecutionD20PolicyDtoSchema.parse({
+    requestNodeId: requestNode.id,
+    rollMode: input.d20.rollMode,
+    contributors: [...input.d20.contributors],
+    contributorChecksum: input.d20.contributorChecksum,
+    modifier: input.d20.modifier,
+    dc: input.d20.defenseOrDc
+  })
+}
 
 export interface ResumeEncounterCharacterRuleActionInput {
   actorUserId: string
@@ -568,7 +465,7 @@ export type EncounterCharacterRuleActionResult =
           }
         | {
             ordinal: number
-            outcomeKind: 'CONDITION_APPLY'
+            outcomeKind: 'CONDITION_APPLY' | 'CONDITION_REMOVE'
             conditionId: string
             applied: boolean
           }
@@ -583,11 +480,14 @@ export type EncounterCharacterRuleActionResult =
 function requireCommittedAction(
   mechanics: CharacterMechanicsProjection,
   actionId: string
-): Extract<CompiledActionEntryPoint, { compilation: { kind: 'COMPILED' } }> {
+): Extract<
+  CompiledActionEntryPoint,
+  { kind: 'CHARACTER_ACTION'; compilation: { kind: 'COMPILED' } }
+> {
   const entry = mechanics.compiledActionEntryPoints.find(
     (candidate) => candidate.actionId === actionId
   )
-  if (!entry || entry.compilation.kind !== 'COMPILED') {
+  if (entry?.kind !== 'CHARACTER_ACTION' || entry.compilation.kind !== 'COMPILED') {
     throw new EncounterValidationError(
       'The selected Character action is not a committed executable rule action.'
     )
@@ -601,7 +501,10 @@ function requireCommittedAction(
       'The committed Character action has an invalid rule identity.'
     )
   }
-  return entry as Extract<CompiledActionEntryPoint, { compilation: { kind: 'COMPILED' } }>
+  return entry as Extract<
+    CompiledActionEntryPoint,
+    { kind: 'CHARACTER_ACTION'; compilation: { kind: 'COMPILED' } }
+  >
 }
 
 function initialPublishedDefinition(
@@ -631,15 +534,69 @@ function actionTestOutcomePlan(
     : null
 }
 
+type CharacterActionPendingContext = Extract<
+  ServerRuleExecutionPendingApplicationContextDto,
+  { kind: 'ENCOUNTER_CHARACTER_RULE_ACTION' }
+>
+
+/**
+ * Retains only the exact compiled target range and authored trigger category
+ * a post-action rule needs. Display labels and inferred range are forbidden.
+ */
+function postActionTriggerFacts(input: {
+  entry: Extract<CompiledActionEntryPoint, { compilation: { kind: 'COMPILED' } }>
+  actionMechanic: PreparedEncounterCharacterActionState['actionMechanic']
+}): CharacterActionPendingContext['postActionTriggerFacts'] {
+  const range = input.entry.targetPolicy?.range
+  if (!range) return null
+  return {
+    attackKind:
+      input.actionMechanic.trigger === 'MELEE_WEAPON_ATTACK' ||
+      input.actionMechanic.trigger === 'UNARMED_ATTACK'
+        ? 'MELEE'
+        : input.actionMechanic.trigger === 'RANGED_WEAPON_ATTACK'
+          ? 'RANGED'
+          : 'OTHER',
+    range
+  }
+}
+
 function targetPolicyPermitsSelectedActor(input: {
   actorId: string
   entry: Extract<CompiledActionEntryPoint, { compilation: { kind: 'COMPILED' } }>
+  sceneContext: LockedEncounterActionSceneContext | null
   targetActorId: string
 }): boolean {
   const policy = input.entry.targetPolicy
   if (!policy || policy.shape !== null || policy.pathOverrides.length > 0) return false
   if (policy.range.rangeKind === 'SELF' && policy.targeting?.selectionKind === 'SELF') {
     return input.targetActorId === input.actorId
+  }
+  if (
+    policy.range.rangeKind === 'DISTANCE' &&
+    policy.targeting?.selectionKind === 'SINGLE_TARGET' &&
+    policy.targeting.dispositionKind === 'ANY' &&
+    !policy.targeting.excludedCreatureTypeIds?.length
+  ) {
+    const sceneContext = input.sceneContext
+    const scene = sceneContext?.scene
+    if (!scene || !sceneContext) return false
+    const sourceToken = scene.state.tokens.find(
+      (token) => token.id === sceneContext.sourceToken.tokenId
+    )
+    const targetToken = scene.state.tokens.find(
+      (token) => token.id === sceneContext.targetToken.tokenId
+    )
+    const range = lengthMeasurementInSceneUnits(
+      { amount: policy.range.amount, unit: policy.range.unit },
+      sceneContext.grid
+    )
+    return (
+      sourceToken !== undefined &&
+      targetToken !== undefined &&
+      range !== null &&
+      measureSceneTokenFootprintDistance(sceneContext.grid, sourceToken, targetToken) <= range
+    )
   }
   return (
     policy.range.rangeKind === 'UNLIMITED' &&
@@ -703,9 +660,7 @@ export async function executeEncounterCharacterRuleAction(input: {
   let automaticD20Audit: ReturnType<CharacterRuleActionSystemAdapter['bindFacts']>['d20Audit']
   let automaticD20RawFaces: readonly number[] | null = null
   let automaticD20RequestId: string | null = null
-  let specializedOutcomeGraph:
-    | import('@artificer-toolkit/shared/rules').CompiledRuleGraph
-    | undefined
+  let nestedOutcomeD20Evidence: ServerRuleExecutionNestedD20EvidenceDto | null = null
   let assistedConcentrationPending: PendingEncounterRuleOccurrenceSummaryDto | null = null
   let lockedCharacterAssignments: ReadonlyMap<string, string> = new Map()
   const aggregatePort: RuleExecutionAggregatePort = {
@@ -739,6 +694,7 @@ export async function executeEncounterCharacterRuleAction(input: {
     intent: createEncounterActionStartIntent({
       actionId: command.actionId,
       actorId: command.actorId,
+      optionalCombatIntent: command.optionalCombatIntent,
       sceneContext: command.sceneContext,
       targetActorId: command.targetActorId
     }),
@@ -1079,6 +1035,58 @@ export async function executeEncounterCharacterRuleAction(input: {
                 CAMPAIGN_CHARACTER_MECHANICS_PROJECTION_SCHEMA_VERSION,
               baseMechanicsProjection: targetMechanics
             })
+      const activeEffects = createActiveRuleEffectRepository(transaction)
+      const effectsByCharacterId = new Map<
+        string,
+        Awaited<ReturnType<typeof activeEffects.lockByOwner>>
+      >()
+      for (const characterId of [...new Set([actor.sourceId, targetActor.sourceId])].sort()) {
+        effectsByCharacterId.set(
+          characterId,
+          await activeEffects.lockByOwner({ kind: 'CHARACTER', characterId })
+        )
+      }
+      const sourceEffects = effectsByCharacterId.get(actor.sourceId)!
+      const sourceBaseScalarValues = characterBaseScalarValues({ mechanics, overlay })
+      const sourceEffectiveScalarValues = foldActiveScalarReductions({
+        baseScalarValues: sourceBaseScalarValues,
+        effects: sourceEffects
+      })
+      const effectiveSourcePolicy = scalarValuesDiffer(
+        sourceBaseScalarValues,
+        sourceEffectiveScalarValues
+      )
+        ? await evaluateEffectiveCharacterPolicy({
+            db: transaction,
+            character: { mechanics, overlay, systemId: character.system_id },
+            baseScalarValues: sourceBaseScalarValues,
+            effectiveScalarValues: sourceEffectiveScalarValues
+          })
+        : overlay.rulePolicyOutput
+      const targetEffects = effectsByCharacterId.get(targetActor.sourceId)!
+      const targetBaseScalarValues = characterBaseScalarValues({
+        mechanics: targetMechanics,
+        overlay: targetOverlay
+      })
+      const targetEffectiveScalarValues = foldActiveScalarReductions({
+        baseScalarValues: targetBaseScalarValues,
+        effects: targetEffects
+      })
+      const effectiveTargetPolicy = scalarValuesDiffer(
+        targetBaseScalarValues,
+        targetEffectiveScalarValues
+      )
+        ? await evaluateEffectiveCharacterPolicy({
+            db: transaction,
+            character: {
+              mechanics: targetMechanics,
+              overlay: targetOverlay,
+              systemId: targetCharacter.system_id
+            },
+            baseScalarValues: targetBaseScalarValues,
+            effectiveScalarValues: targetEffectiveScalarValues
+          })
+        : targetOverlay.rulePolicyOutput
       const entry = requireCommittedAction(mechanics, command.actionId)
       const lockedPlan = actionActiveEffectPlan(entry)
       let lockedMaintenanceReplacement: MaintainedReplacementPreflight | null = null
@@ -1191,6 +1199,7 @@ export async function executeEncounterCharacterRuleAction(input: {
         !targetPolicyPermitsSelectedActor({
           actorId: actor.id,
           entry,
+          sceneContext: lockedSceneContext,
           targetActorId: targetActor.id
         })
       ) {
@@ -1262,8 +1271,81 @@ export async function executeEncounterCharacterRuleAction(input: {
         characterId: actor.sourceId,
         entry,
         mechanics,
-        overlay
+        overlay,
+        effectivePolicyOutput: effectiveSourcePolicy
       })
+      const currentPostActionTriggerFacts = postActionTriggerFacts({
+        entry,
+        actionMechanic: preparedActionState.actionMechanic
+      })
+      if (
+        input.resume &&
+        applicationContext?.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION' &&
+        applicationContext.postActionTriggerFacts !== null &&
+        JSON.stringify(applicationContext.postActionTriggerFacts) !==
+          JSON.stringify(currentPostActionTriggerFacts)
+      ) {
+        throw new EncounterConflictError(
+          'The pending action post-action trigger facts changed before evidence resumed.'
+        )
+      }
+      const actionActivation = preparedActionState.actionMechanic.activation ?? null
+      const actionEconomyBinding =
+        encounter.automationMode === 'MANUAL' || actionActivation === null
+          ? { kind: 'NONE' as const }
+          : actionEconomyCapabilityRegistry.resolveActionEconomyCapability({
+              gameSystemId:
+                actor.systemId ??
+                (() => {
+                  throw new EncounterValidationError(
+                    'The acting Character System identity is unavailable.'
+                  )
+                })(),
+              activationKind: actionActivation.kind,
+              activationAmount: actionActivation.amount
+            })
+      const actionEconomyState =
+        actionEconomyBinding.kind === 'NONE'
+          ? null
+          : await (async () => {
+              const evaluated = await evaluateEncounterActorRuleSnapshot({
+                db: transaction,
+                encounter
+              })
+              const targets = await lockEncounterActiveEffectTargets({
+                trx: transaction,
+                encounter: evaluated.reconciledEncounter,
+                actors: evaluated.reconciledEncounter.actors,
+                attunementSlotOverride: context.attunementSlotOverride,
+                getEncounterActorSnapshot: async () => ({
+                  rules: evaluated.snapshot.output,
+                  encounter: evaluated.reconciledEncounter
+                })
+              })
+              return { encounter: evaluated.reconciledEncounter, targets }
+            })()
+      const actionEconomyConsumption =
+        actionEconomyState === null
+          ? null
+          : await prepareActionEconomyConsumption({
+              db: transaction,
+              encounter: actionEconomyState.encounter,
+              gameSystemId:
+                actor.systemId ??
+                (() => {
+                  throw new EncounterValidationError(
+                    'The acting Character System identity is unavailable.'
+                  )
+                })(),
+              activation: actionActivation
+                ? {
+                    code: actionActivation.kind,
+                    amount: actionActivation.amount
+                  }
+                : null,
+              sourceActor: actor,
+              targets: actionEconomyState.targets
+            })
       const positionalCapabilityDefinitionIds =
         lockedSceneContext === null
           ? []
@@ -1326,22 +1408,44 @@ export async function executeEncounterCharacterRuleAction(input: {
         attunementSlotOverride: context.attunementSlotOverride,
         conditionDefinitions,
         resourceConsumption,
+        actionEconomyConsumption,
         targetCharacterId: targetActor.sourceId,
         targetConditionDefinitions,
         targetMaximumHitPoints,
         targetMechanics,
         targetOverlay,
         targetPriorProjectionChecksum: targetMechanics.projectionChecksum,
+        targetEffectiveScalarValues,
         targetVocabularySnapshot,
         maintainedReplacement: lockedMaintenanceReplacement,
         concentration: lockedConcentration
       }
+      if (
+        input.resume &&
+        applicationContext?.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION' &&
+        JSON.stringify(applicationContext.actionEconomy) !==
+          JSON.stringify(
+            actionEconomyConsumption
+              ? {
+                  definitionId: actionEconomyConsumption.definitionId,
+                  definitionVersion: actionEconomyConsumption.definitionVersion,
+                  definitionChecksum: actionEconomyConsumption.definitionChecksum,
+                  maximum: actionEconomyConsumption.maximum,
+                  beforeUsed: actionEconomyConsumption.beforeUsed
+                }
+              : null
+          )
+      ) {
+        throw new EncounterConflictError(
+          'The selected action allowance changed before evidence resumed.'
+        )
+      }
       let bound = adapter.bindFacts({
         actionMechanic: preparedActionState.actionMechanic,
         published: phasePublished,
-        sourceDerivedFacts: overlay.rulePolicyOutput,
+        sourceDerivedFacts: effectiveSourcePolicy,
         targetActorId: command.targetActorId,
-        targetDerivedFacts: targetOverlay.rulePolicyOutput,
+        targetDerivedFacts: effectiveTargetPolicy,
         targetConditionIds: (targetMechanics.commandState.state.conditions ?? []).map(
           (condition) => condition.conditionTypeId
         ),
@@ -1353,6 +1457,7 @@ export async function executeEncounterCharacterRuleAction(input: {
         currentHitPoints: targetHitPoints.current,
         temporaryHitPoints: targetHitPoints.temp ?? 0,
         maximumHitPoints: targetMaximumHitPoints,
+        targetScalarValues: targetEffectiveScalarValues,
         defenses: targetOverlay.rulePolicyOutput.defenses,
         conditionImmunityIds: targetOverlay.rulePolicyOutput.conditionImmunityIds,
         sceneContext: lockedSceneContext,
@@ -1470,11 +1575,33 @@ export async function executeEncounterCharacterRuleAction(input: {
           currentHitPoints: targetHitPoints.current,
           temporaryHitPoints: targetHitPoints.temp ?? 0,
           maximumHitPoints: targetMaximumHitPoints,
+          targetScalarValues: targetEffectiveScalarValues,
           defenses: targetOverlay.rulePolicyOutput.defenses,
           conditionImmunityIds: targetOverlay.rulePolicyOutput.conditionImmunityIds,
           sceneContext: lockedSceneContext,
           positionalFacts
         })
+        const currentNestedOutcomeD20 = nestedOutcomeD20Policy({
+          published: phasePublished,
+          d20:
+            bound.d20RollMode && bound.d20Audit
+              ? {
+                  rollMode: bound.d20RollMode,
+                  contributors: bound.d20Audit.contributors,
+                  contributorChecksum: bound.d20Audit.contributorChecksum,
+                  modifier: bound.d20Audit.modifier,
+                  defenseOrDc: bound.d20Audit.defenseOrDc
+                }
+              : null
+        })
+        if (
+          checksumRuleDocument(currentNestedOutcomeD20) !==
+          checksumRuleDocument(outcomeResumeTwoPhase.nestedOutcomeD20)
+        ) {
+          throw new EncounterConflictError(
+            'The pending Character action nested save policy changed before resume.'
+          )
+        }
         locked.published = phasePublished
         resumedOutcomePhasePlan = {
           initialPhase: 'OUTCOME',
@@ -1521,6 +1648,16 @@ export async function executeEncounterCharacterRuleAction(input: {
               targetMechanicalContextChecksum: targetOverlay.mechanicalContextChecksum,
               publishedDefinitionId: phasePublished.id,
               publishedDefinitionChecksum: phasePublished.checksum,
+              postActionTriggerFacts: currentPostActionTriggerFacts,
+              actionEconomy: locked.actionEconomyConsumption
+                ? {
+                    definitionId: locked.actionEconomyConsumption.definitionId,
+                    definitionVersion: locked.actionEconomyConsumption.definitionVersion,
+                    definitionChecksum: locked.actionEconomyConsumption.definitionChecksum,
+                    maximum: locked.actionEconomyConsumption.maximum,
+                    beforeUsed: locked.actionEconomyConsumption.beforeUsed
+                  }
+                : null,
               twoPhase: testOutcomePlan
                 ? {
                     phase: 'TEST' as const,
@@ -1534,6 +1671,7 @@ export async function executeEncounterCharacterRuleAction(input: {
                 currentHitPoints: targetHitPoints.current,
                 temporaryHitPoints: targetHitPoints.temp ?? 0,
                 maximumHitPoints: targetMaximumHitPoints,
+                scalarValues: targetEffectiveScalarValues,
                 conditionIds: (targetMechanics.commandState.state.conditions ?? []).map(
                   (condition) => condition.conditionTypeId
                 )
@@ -1614,6 +1752,7 @@ export async function executeEncounterCharacterRuleAction(input: {
                   currentHitPoints: lockedTargetCurrentHitPoints,
                   temporaryHitPoints: lockedTargetHitPoints.temp ?? 0,
                   maximumHitPoints: targetMaximumHitPoints,
+                  targetScalarValues: locked.targetEffectiveScalarValues,
                   defenses: targetOverlay.rulePolicyOutput.defenses,
                   conditionImmunityIds: targetOverlay.rulePolicyOutput.conditionImmunityIds,
                   sceneContext: lockedSceneContext,
@@ -1639,6 +1778,19 @@ export async function executeEncounterCharacterRuleAction(input: {
                       }),
                       graph: undefined
                     }
+                const nestedOutcomeD20 = nestedOutcomeD20Policy({
+                  published: specialized.published,
+                  d20:
+                    outcomeBound.d20RollMode && outcomeBound.d20Audit
+                      ? {
+                          rollMode: outcomeBound.d20RollMode,
+                          contributors: outcomeBound.d20Audit.contributors,
+                          contributorChecksum: outcomeBound.d20Audit.contributorChecksum,
+                          modifier: outcomeBound.d20Audit.modifier,
+                          defenseOrDc: outcomeBound.d20Audit.defenseOrDc
+                        }
+                      : null
+                })
                 const nextContext = {
                   ...applicationContext,
                   publishedDefinitionId: specialized.published.id,
@@ -1652,6 +1804,8 @@ export async function executeEncounterCharacterRuleAction(input: {
                     boundFactsChecksum: checksumRuleDocument(bound.facts),
                     testExecution: execution,
                     testExecutionChecksum: checksumRuleDocument(execution),
+                    nestedOutcomeD20,
+                    nestedOutcomeD20Evidence: null,
                     testRollEvidence: (() => {
                       if (
                         !applicationContext.d20 ||
@@ -1694,7 +1848,6 @@ export async function executeEncounterCharacterRuleAction(input: {
                     })()
                   }
                 }
-                specializedOutcomeGraph = started.graph
                 locked.published = specialized.published
                 return {
                   ...(started.result.status === 'COMPLETE'
@@ -1704,25 +1857,64 @@ export async function executeEncounterCharacterRuleAction(input: {
                   applicationContext: nextContext,
                   ...(started.result.status === 'PAUSED'
                     ? {
-                        pendingResult: {
-                          kind: 'INTEGER_RANGE_EVIDENCE' as const,
-                          phase: 'OUTCOME' as const,
-                          requests: [
-                            {
-                              requestId: started.result.continuation.request.requestId,
-                              min: started.result.continuation.request.min,
-                              max: started.result.continuation.request.max
-                            }
-                          ],
-                          exactRequestSetChecksum: checksumRuleDocument([
-                            {
-                              requestId: started.result.continuation.request.requestId,
-                              min: started.result.continuation.request.min,
-                              max: started.result.continuation.request.max
-                            }
-                          ])
-                        },
+                        pendingResult:
+                          nestedOutcomeD20 &&
+                          started.result.continuation.request.nodeId ===
+                            nestedOutcomeD20.requestNodeId
+                            ? {
+                                kind: 'D20_EVIDENCE' as const,
+                                rollMode: nestedOutcomeD20.rollMode
+                              }
+                            : {
+                                kind: 'INTEGER_RANGE_EVIDENCE' as const,
+                                phase: 'OUTCOME' as const,
+                                requests: [
+                                  {
+                                    requestId: started.result.continuation.request.requestId,
+                                    min: started.result.continuation.request.min,
+                                    max: started.result.continuation.request.max
+                                  }
+                                ],
+                                exactRequestSetChecksum: checksumRuleDocument([
+                                  {
+                                    requestId: started.result.continuation.request.requestId,
+                                    min: started.result.continuation.request.min,
+                                    max: started.result.continuation.request.max
+                                  }
+                                ])
+                              },
                         resolveAutomaticEvidence: async ({ request }) => {
+                          if (
+                            nestedOutcomeD20 &&
+                            request.nodeId === nestedOutcomeD20.requestNodeId
+                          ) {
+                            const roll = input.rollD20 ?? (() => randomInt(1, 21))
+                            const rawFaces =
+                              nestedOutcomeD20.rollMode === 'NORMAL' ? [roll()] : [roll(), roll()]
+                            if (
+                              rawFaces.some(
+                                (value) => !Number.isSafeInteger(value) || value < 1 || value > 20
+                              )
+                            ) {
+                              throw new EncounterValidationError(
+                                'The Character action nested save roll is invalid.'
+                              )
+                            }
+                            nestedOutcomeD20Evidence = buildEncounterSaveD20Evidence({
+                              policy: nestedOutcomeD20,
+                              requestId: request.requestId,
+                              faces: rawFaces
+                            })
+                            return {
+                              requestId: request.requestId,
+                              value:
+                                nestedOutcomeD20.rollMode === 'ADVANTAGE'
+                                  ? Math.max(...rawFaces)
+                                  : nestedOutcomeD20.rollMode === 'DISADVANTAGE'
+                                    ? Math.min(...rawFaces)
+                                    : rawFaces[0]!
+                            }
+                          }
                           if (request.kind !== 'INTEGER_RANGE' || request.min >= request.max) {
                             throw new EncounterValidationError(
                               'The Character action outcome roll is invalid.'
@@ -1741,6 +1933,19 @@ export async function executeEncounterCharacterRuleAction(input: {
                             )
                           }
                           return { requestId: request.requestId, value }
+                        },
+                        captureAutomaticEvidence: async ({ request, response }) => {
+                          const evidence = nestedOutcomeD20Evidence
+                          if (!evidence || request.requestId !== evidence.requestId) return null
+                          if (
+                            response.requestId !== evidence.requestId ||
+                            response.value !== evidence.selectedNatural
+                          ) {
+                            throw new EncounterValidationError(
+                              'The Character action nested save evidence is invalid.'
+                            )
+                          }
+                          return evidence
                         }
                       }
                     : {}),
@@ -1791,7 +1996,6 @@ export async function executeEncounterCharacterRuleAction(input: {
         pendingApplicationContext,
         execution,
         phaseReceipts,
-        compiledGraph,
         proposedAggregateVersion
       }) {
         if (!locked)
@@ -1809,8 +2013,11 @@ export async function executeEncounterCharacterRuleAction(input: {
           conditionImmunityIds: locked.targetOverlay.rulePolicyOutput.conditionImmunityIds
         })
         const activeEffectPlan = locked.activeEffectPlan
-        const terminalCompiledGraph = specializedOutcomeGraph ?? compiledGraph
-        if (activeEffectPlan && !terminalCompiledGraph) {
+        if (
+          activeEffectPlan &&
+          (!activeEffectPlan.frozenGraph ||
+            activeEffectPlan.authoredEffectId !== lockedAction.published.id)
+        ) {
           throw new EncounterValidationError(
             'The active-effect action did not retain its exact compiled graph.'
           )
@@ -1908,6 +2115,37 @@ export async function executeEncounterCharacterRuleAction(input: {
             resultPath
           } as const
         })()
+        const settledActiveEffectPlan =
+          activeEffectPlan?.actorRelationshipContribution &&
+          d20?.resultPath !== 'ON_HIT' &&
+          d20?.resultPath !== 'ON_CRIT'
+            ? null
+            : activeEffectPlan
+        const nestedD20 = (() => {
+          const twoPhase =
+            pendingApplicationContext.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION' &&
+            pendingApplicationContext.twoPhase?.phase === 'OUTCOME'
+              ? pendingApplicationContext.twoPhase
+              : null
+          if (!twoPhase?.nestedOutcomeD20) {
+            if (twoPhase?.nestedOutcomeD20Evidence)
+              throw new EncounterValidationError(
+                'The Character action nested save evidence has no policy.'
+              )
+            return null
+          }
+          const evidence = twoPhase.nestedOutcomeD20Evidence
+          if (!evidence)
+            throw new EncounterValidationError(
+              'The Character action nested save evidence is unavailable.'
+            )
+          requireEncounterSaveD20EvidenceTrace({
+            execution,
+            policy: twoPhase.nestedOutcomeD20,
+            evidence
+          })
+          return evidence
+        })()
         const foldedApplications = foldCharacterMechanicsApplications({
           targetActorId: command.targetActorId,
           currentHitPoints: locked.targetMechanics.commandState.state.hitpoints.current,
@@ -1916,6 +2154,7 @@ export async function executeEncounterCharacterRuleAction(input: {
           conditionIds: (locked.targetMechanics.commandState.state.conditions ?? []).map(
             (condition) => condition.conditionTypeId
           ),
+          scalarValues: locked.targetEffectiveScalarValues,
           applications
         })
         const after = foldedApplications.after.currentHitPoints
@@ -1950,7 +2189,7 @@ export async function executeEncounterCharacterRuleAction(input: {
           )
         }
         const targetChanged = foldedApplications.stateChanged
-        const createsActiveEffect = activeEffectPlan !== null
+        const createsActiveEffect = settledActiveEffectPlan !== null
         const maintainedRemovalCharacterIds = new Set(
           (locked.maintainedReplacement?.dependents ?? []).flatMap((dependent) =>
             dependent.owner.startsWith('CHARACTER:')
@@ -1962,6 +2201,10 @@ export async function executeEncounterCharacterRuleAction(input: {
           ServerRuleExecutionApplicationOutputsDto,
           { kind: 'CHARACTER_MECHANICS_BATCH' }
         >['activeEffectTransitions'] = []
+        const createdStateEffects: Extract<
+          ServerRuleExecutionApplicationOutputsDto,
+          { kind: 'CHARACTER_MECHANICS_BATCH' }
+        >['stateEffectTransitions'] = []
         let maintenanceTransition: Extract<
           ServerRuleExecutionApplicationOutputsDto,
           { kind: 'CHARACTER_MECHANICS_BATCH' }
@@ -1972,7 +2215,11 @@ export async function executeEncounterCharacterRuleAction(input: {
         if (!currentActor)
           throw new EncounterConflictError('The Encounter Character actor is unavailable.')
         let currentActorConditions: z.infer<typeof encounterCharacterConditionsSchema> | null = null
-        if (applications.some((outcome) => outcome.kind === 'CONDITION_APPLY')) {
+        if (
+          applications.some(
+            (outcome) => outcome.kind === 'CONDITION_APPLY' || outcome.kind === 'CONDITION_REMOVE'
+          )
+        ) {
           const parsedActorConditions = encounterCharacterConditionsSchema.safeParse(
             currentActor.conditions ?? []
           )
@@ -1984,6 +2231,16 @@ export async function executeEncounterCharacterRuleAction(input: {
         const nextActorConditions = currentActorConditions ? [...currentActorConditions] : null
         if (nextActorConditions) {
           for (const application of receiptApplications) {
+            if (application.kind === 'CONDITION_REMOVE') {
+              if (application.applied)
+                nextActorConditions.splice(
+                  nextActorConditions.findIndex(
+                    (candidate) => candidate.conditionTypeId === application.conditionId
+                  ),
+                  1
+                )
+              continue
+            }
             if (application.kind !== 'CONDITION_APPLY' || !application.applied) continue
             if (
               nextActorConditions.some(
@@ -2172,9 +2429,111 @@ export async function executeEncounterCharacterRuleAction(input: {
             nextOverlay.kind === 'MATERIALIZED'
               ? nextOverlay.rulePolicyOutput
               : nextMechanics.rulePolicyOutput
-          if (activeEffectPlan && terminalCompiledGraph) {
+          const scalarApplication = receiptApplications.find(
+            (
+              application
+            ): application is Extract<typeof application, { kind: 'SCALAR_REDUCTION' }> =>
+              application.kind === 'SCALAR_REDUCTION'
+          )
+          if (scalarApplication) {
+            const bindings = (execution.evidence.sourceEntryBindings ?? []).filter(
+              (binding) => binding.nodeId === scalarApplication.sourceNodeId
+            )
+            const binding = bindings.length === 1 ? bindings[0] : null
+            const graphNode = binding
+              ? locked!.published.definition.nodes.find((node) => node.id === binding.nodeId)
+              : null
+            if (
+              !binding ||
+              !graphNode ||
+              graphNode.operation.key !== scalarApplication.sourceOperationKey
+            ) {
+              throw new EncounterConflictError('The scalar state source binding is stale.')
+            }
             const definition = activeRuleEffectDefinitionDtoSchema.parse({
-              schemaVersion: 1,
+              schemaVersion: 2,
+              origin: {
+                kind: 'ENCOUNTER',
+                sourceAggregateId: locked!.encounter.id,
+                sourceOccurrenceId: occurrenceId,
+                rootCommandId: commandId,
+                sourceActorId: locked!.sourceActor.id
+              },
+              authoredEffectId: locked!.published.id,
+              compiledEntryId: binding.sourceEntryId,
+              frozenGraphNodeId: binding.nodeId,
+              frozenGraph: {
+                schemaVersion: 1,
+                source: execution.evidence.source,
+                capabilityContractVersion: execution.evidence.capabilityContractVersion,
+                factContracts: [],
+                nodes: locked!.published.definition.nodes,
+                outputs: locked!.published.definition.outputs,
+                sourceEntryBindings: execution.evidence.sourceEntryBindings
+              },
+              adapterFacts: {},
+              perceptionContributions: [],
+              recurrence: {
+                recurrenceStage: 'NONE',
+                consumeOnFirstEvent: null,
+                endOnEvents: [],
+                lifetimeScope: 'OWNER',
+                expiration: { kind: 'INDEFINITE' }
+              },
+              stateContributions: [
+                {
+                  kind: 'SCALAR_REDUCTION',
+                  valueDefinitionId: scalarApplication.valueDefinitionId,
+                  amount: scalarApplication.reductionAmount,
+                  stacking: scalarApplication.stacking,
+                  floor: scalarApplication.floor,
+                  recoveryTriggers: scalarApplication.recoveryTriggers,
+                  terminalConsequence: scalarApplication.terminalConsequence,
+                  sourceOutcomeId: scalarApplication.sourceOutcomeId,
+                  sourceNodeId: scalarApplication.sourceNodeId,
+                  sourceOperationKey: scalarApplication.sourceOperationKey
+                }
+              ]
+            })
+            const created = await createActiveRuleEffectRepository(trx).create({
+              id: serverUuidIdentityDtoSchema.parse((input.createActiveEffectId ?? randomUUID)()),
+              owner: { kind: 'CHARACTER', characterId: locked!.targetCharacterId },
+              definition,
+              lifecycle: activeRuleEffectLifecycleDtoSchema.parse({
+                schemaVersion: 1,
+                remainingTicks: null
+              })
+            })
+            if (created.definition.schemaVersion !== 2) {
+              throw new EncounterConflictError(
+                'The created scalar state effect has an invalid schema.'
+              )
+            }
+            const contribution = created.definition.stateContributions[0]
+            if (!contribution || contribution.kind !== 'SCALAR_REDUCTION') {
+              throw new EncounterConflictError('The created scalar state effect is invalid.')
+            }
+            createdStateEffects.push({
+              kind: 'CREATE',
+              owner: { kind: 'CHARACTER', characterId: locked!.targetCharacterId },
+              activeEffectId: created.id,
+              createdOrdinal: created.createdOrdinal,
+              afterVersion: created.version,
+              authoredEffectId: created.definition.authoredEffectId,
+              compiledEntryId: created.definition.compiledEntryId,
+              frozenGraphNodeId: created.definition.frozenGraphNodeId,
+              definitionChecksum: created.definitionChecksum,
+              lifecycleChecksum: created.lifecycleChecksum,
+              frozenSourceChecksum: created.definition.frozenGraph.source.checksum,
+              capabilityContractVersion: created.definition.frozenGraph.capabilityContractVersion,
+              contribution
+            })
+          }
+          if (settledActiveEffectPlan) {
+            const activeEffectPlan = settledActiveEffectPlan
+            const relationshipContribution = activeEffectPlan.actorRelationshipContribution
+            const definition = activeRuleEffectDefinitionDtoSchema.parse({
+              schemaVersion: relationshipContribution ? 2 : 1,
               origin: {
                 kind: 'ENCOUNTER',
                 sourceAggregateId: locked!.encounter.id,
@@ -2185,19 +2544,71 @@ export async function executeEncounterCharacterRuleAction(input: {
               authoredEffectId: activeEffectPlan.authoredEffectId,
               compiledEntryId: activeEffectPlan.compiledEntryId,
               frozenGraphNodeId: activeEffectPlan.frozenGraphNodeId,
-              frozenGraph: terminalCompiledGraph,
+              frozenGraph: {
+                schemaVersion: 1,
+                source: {
+                  definitionId: activeEffectPlan.frozenGraph.id,
+                  gameSystemId: activeEffectPlan.frozenGraph.gameSystemId,
+                  definitionFamilyKey: activeEffectPlan.frozenGraph.definitionFamilyKey,
+                  checksum: activeEffectPlan.frozenGraph.checksum
+                },
+                capabilityContractVersion: activeEffectPlan.capabilityContractVersion,
+                factContracts: [],
+                nodes: activeEffectPlan.frozenGraph.definition.nodes,
+                outputs: activeEffectPlan.frozenGraph.definition.outputs,
+                sourceEntryBindings: activeEffectPlan.frozenGraph.definition.sourceEntryBindings
+              },
               adapterFacts: activeEffectPlan.adapterFacts,
               perceptionContributions: activeEffectPlan.perceptionContributions,
+              ...(relationshipContribution
+                ? {
+                    stateContributions: [
+                      {
+                        kind: 'ACTOR_RELATIONSHIP' as const,
+                        relationshipOutcomeId: relationshipContribution.relationshipOutcomeId,
+                        modules: relationshipContribution.modules,
+                        conditionIds: [
+                          ...relationshipContribution.conditionIds,
+                          ...(d20?.rollMode === 'ADVANTAGE'
+                            ? relationshipContribution.modules.flatMap((module) =>
+                                module.kind === 'CONDITIONAL_TARGET_STATE'
+                                  ? module.conditionIds
+                                  : []
+                              )
+                            : [])
+                        ],
+                        capabilitySuppressions: [
+                          ...relationshipContribution.capabilitySuppressions,
+                          ...(d20?.rollMode === 'ADVANTAGE'
+                            ? relationshipContribution.modules.flatMap((module) =>
+                                module.kind === 'CONDITIONAL_TARGET_STATE'
+                                  ? [
+                                      {
+                                        contributionId: module.id,
+                                        capabilityDefinitionIds: module.capabilityDefinitionIds
+                                      }
+                                    ]
+                                  : []
+                              )
+                            : [])
+                        ]
+                      }
+                    ]
+                  }
+                : {}),
               recurrence: {
                 recurrenceStage: activeEffectPlan.recurrenceStage,
                 consumeOnFirstEvent: null,
                 endOnEvents: [],
                 lifetimeScope: 'ENCOUNTER',
-                expiration: {
-                  kind: 'TICKS',
-                  initialRemaining: activeEffectPlan.initialRemaining,
-                  decrementStage: activeEffectPlan.recurrenceStage
-                }
+                expiration:
+                  activeEffectPlan.initialRemaining === null
+                    ? { kind: 'INDEFINITE' }
+                    : {
+                        kind: 'TICKS',
+                        initialRemaining: activeEffectPlan.initialRemaining,
+                        decrementStage: activeEffectPlan.recurrenceStage
+                      }
               }
             })
             const lifecycle = activeRuleEffectLifecycleDtoSchema.parse({
@@ -2377,39 +2788,58 @@ export async function executeEncounterCharacterRuleAction(input: {
           if (targetChanged) {
             const event: CharacterEvent = {
               ...eventCommon,
-              applications: receiptApplications.map((application) =>
-                application.kind === 'CONDITION_APPLY'
-                  ? {
-                      ordinal: application.ordinal,
-                      outcome: application.kind,
-                      conditionId: application.conditionId,
-                      beforePresent: application.beforePresent,
-                      afterPresent: application.afterPresent,
-                      applied: application.applied
-                    }
-                  : application.kind === 'DAMAGE'
+              applications: receiptApplications
+                .filter(
+                  (application) =>
+                    application.kind !== 'HIT_POINT_MAXIMUM_REDUCTION' &&
+                    application.kind !== 'SCALAR_REDUCTION'
+                )
+                .map((application) =>
+                  application.kind === 'CONDITION_APPLY'
                     ? {
                         ordinal: application.ordinal,
-                        outcome: application.kind,
-                        appliedAmount: application.appliedAmount,
-                        damageTypeId: application.damageTypeId
+                        outcome: 'CONDITION_APPLY' as const,
+                        conditionId: application.conditionId,
+                        beforePresent: application.beforePresent,
+                        afterPresent: true as const,
+                        applied: application.applied
                       }
-                    : {
-                        ordinal: application.ordinal,
-                        outcome: application.kind,
-                        appliedAmount: application.appliedAmount
-                      }
-              )
+                    : application.kind === 'CONDITION_REMOVE'
+                      ? {
+                          ordinal: application.ordinal,
+                          outcome: 'CONDITION_REMOVE' as const,
+                          conditionId: application.conditionId,
+                          beforePresent: application.beforePresent,
+                          afterPresent: false as const,
+                          applied: application.applied
+                        }
+                      : application.kind === 'DAMAGE'
+                        ? {
+                            ordinal: application.ordinal,
+                            outcome: application.kind,
+                            appliedAmount: application.appliedAmount,
+                            damageTypeId: application.damageTypeId
+                          }
+                        : {
+                            ordinal: application.ordinal,
+                            outcome: application.kind,
+                            appliedAmount: application.appliedAmount
+                          }
+                )
             }
             await createCharacterEventRepository(trx).append(event)
           }
         }
         const finalizeEncounter = async (
           trx: DBLike,
-          ruleReceipt: { occurrenceId: string; resultChecksum: string }
+          ruleReceipt: {
+            occurrenceId: string
+            result: StoredRuleExecutionResultDto
+            resultChecksum: string
+          }
         ) => {
           const finalActors = locked!.encounter.actors.map((candidate) => {
-            const actor =
+            let actor: EncounterRecord['actors'][number] =
               candidate.id === currentActor.id && targetCharacterVersion !== null
                 ? {
                     ...candidate,
@@ -2419,6 +2849,29 @@ export async function executeEncounterCharacterRuleAction(input: {
                     ...(nextActorConditions ? { conditions: nextActorConditions } : {})
                   }
                 : candidate
+            if (
+              candidate.id === locked!.sourceActor.id &&
+              locked!.actionEconomyConsumption !== null
+            ) {
+              const consumption = locked!.actionEconomyConsumption ?? null
+              if (consumption === null) {
+                throw new EncounterConflictError('The selected action allowance is unavailable.')
+              }
+              const beforeUsed = encounterRuleUsageUsed(candidate, consumption.definitionId)
+              if (beforeUsed !== consumption.beforeUsed) {
+                throw new EncounterConflictError(
+                  'The selected action allowance changed before settlement.'
+                )
+              }
+              actor = {
+                ...actor,
+                resources: withEncounterRuleUsageUsed(
+                  actor,
+                  consumption.definitionId,
+                  consumption.afterUsed
+                )
+              }
+            }
             const finalCharacterVersion =
               actor.kind === 'CHARACTER' && actor.sourceId !== null
                 ? finalCharacterActorVersions.get(actor.sourceId)
@@ -2451,6 +2904,68 @@ export async function executeEncounterCharacterRuleAction(input: {
             snapshot
           )
           await encounterRepository.publishCurrentProjection(nextProjection)
+          const postActionFacts =
+            pendingApplicationContext.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION'
+              ? pendingApplicationContext.postActionTriggerFacts
+              : null
+          if (postActionFacts !== null && lockedSceneContext !== null) {
+            const evaluated = await evaluateEncounterActorRuleSnapshot({
+              db: trx,
+              encounter: nextEncounter
+            })
+            const targets = await lockEncounterActiveEffectTargets({
+              trx,
+              encounter: evaluated.reconciledEncounter,
+              actors: evaluated.reconciledEncounter.actors,
+              attunementSlotOverride: locked!.attunementSlotOverride,
+              getEncounterActorSnapshot: async () => ({
+                rules: evaluated.snapshot.output,
+                encounter: evaluated.reconciledEncounter
+              })
+            })
+            const sourceActor = evaluated.reconciledEncounter.actors.find(
+              (actor) => actor.id === locked!.sourceActor.id
+            )
+            const targetActor = evaluated.reconciledEncounter.actors.find(
+              (actor) => actor.id === command.targetActorId
+            )
+            if (!sourceActor || !targetActor) {
+              throw new EncounterConflictError('The Cleaving action actors are unavailable.')
+            }
+            const sourceCharacter = sourceActor.sourceId
+              ? targets.lockedCharacters.get(sourceActor.sourceId)
+              : null
+            if (!sourceCharacter) {
+              throw new EncounterConflictError('The Cleaving Character source is unavailable.')
+            }
+            await persistEncounterCleavingChoice({
+              db: trx,
+              encounter: evaluated.reconciledEncounter,
+              expectedEncounterVersion: proposedAggregateVersion,
+              parentOccurrenceId: ruleReceipt.occurrenceId,
+              sourceActor,
+              action: {
+                actionId: command.actionId,
+                publishedDefinitionId: locked!.published.id,
+                publishedDefinitionChecksum: locked!.published.checksum,
+                attackKind: postActionFacts.attackKind,
+                range: postActionFacts.range
+              },
+              sourceCurrentness: {
+                kind: 'CHARACTER',
+                actorId: sourceActor.id,
+                characterId: sourceCharacter.id,
+                streamVersion: sourceCharacter.streamVersion,
+                projectionChecksum: sourceCharacter.mechanics.projectionChecksum,
+                mechanicalContextChecksum: sourceCharacter.overlay.mechanicalContextChecksum
+              },
+              targetActor,
+              targets,
+              actionMechanic: { attackKind: postActionFacts.attackKind },
+              result: ruleReceipt.result,
+              sceneContext: lockedSceneContext
+            })
+          }
           await encounterRepository.appendEvent({
             id: randomUUID(),
             encounterId: nextEncounter.id,
@@ -3099,6 +3614,7 @@ export async function executeEncounterCharacterRuleAction(input: {
                 }
               : null,
             activeEffectTransitions: createdActiveEffects,
+            stateEffectTransitions: createdStateEffects,
             maintenanceTransition: maintenanceTransition
               ? Object.assign({}, maintenanceTransition, {
                   characterOwnerTransitions: [...maintainedCharacterOwnerVersions]
@@ -3111,6 +3627,7 @@ export async function executeEncounterCharacterRuleAction(input: {
                 })
               : null,
             d20,
+            nestedD20,
             targetTransition: {
               checksum: checksumRuleDocument({
                 targetActorId: command.targetActorId,
@@ -3121,6 +3638,7 @@ export async function executeEncounterCharacterRuleAction(input: {
                 currentHitPoints: after,
                 temporaryHitPoints: afterTemporary,
                 maximumHitPoints: locked.targetMaximumHitPoints,
+                scalarValues: foldedApplications.after.scalarValues,
                 conditionIds: nextConditions.map((condition) => condition.conditionTypeId)
               }
             },
@@ -3141,6 +3659,7 @@ export async function executeEncounterCharacterRuleAction(input: {
           afterResult: async (result: StoredRuleExecutionResultDto) => {
             await finalizeEncounter(transaction, {
               occurrenceId,
+              result,
               resultChecksum: checksumStoredRuleExecutionResult(result)
             })
           }
@@ -3224,10 +3743,51 @@ export async function executeEncounterCharacterRuleAction(input: {
             if (request.kind !== 'INTEGER_RANGE' || request.min >= request.max) {
               throw new EncounterValidationError('The pending Character action outcome is invalid.')
             }
-            if (resolution.kind === 'SYSTEM_OUTCOME') {
+            const nestedOutcomeD20 = applicationContext.twoPhase.nestedOutcomeD20
+            if (nestedOutcomeD20 && request.nodeId === nestedOutcomeD20.requestNodeId) {
               if (
-                resolution.requestIds.length !== 1 ||
-                resolution.requestIds[0] !== request.requestId
+                (resolution.kind !== 'SYSTEM' && resolution.kind !== 'PHYSICAL') ||
+                resolution.requestId !== request.requestId
+              ) {
+                throw new EncounterValidationError(
+                  'The Character action nested save request does not match.'
+                )
+              }
+              const expectedFaces = nestedOutcomeD20.rollMode === 'NORMAL' ? 1 : 2
+              const roll = input.rollD20 ?? (() => randomInt(1, 21))
+              const rawFaces =
+                resolution.kind === 'SYSTEM'
+                  ? Array.from({ length: expectedFaces }, () => roll())
+                  : resolution.rawFaces
+              if (
+                rawFaces.length !== expectedFaces ||
+                rawFaces.some((value) => !Number.isSafeInteger(value) || value < 1 || value > 20)
+              ) {
+                throw new EncounterValidationError(
+                  'The Character action nested save roll is invalid.'
+                )
+              }
+              nestedOutcomeD20Evidence = buildEncounterSaveD20Evidence({
+                policy: nestedOutcomeD20,
+                requestId: request.requestId,
+                faces: rawFaces
+              })
+              return {
+                requestId: request.requestId,
+                value:
+                  nestedOutcomeD20.rollMode === 'ADVANTAGE'
+                    ? Math.max(...rawFaces)
+                    : nestedOutcomeD20.rollMode === 'DISADVANTAGE'
+                      ? Math.min(...rawFaces)
+                      : rawFaces[0]!
+              }
+            }
+            if (resolution.kind === 'SYSTEM' || resolution.kind === 'SYSTEM_OUTCOME') {
+              if (
+                resolution.kind === 'SYSTEM'
+                  ? resolution.requestId !== request.requestId
+                  : resolution.requestIds.length !== 1 ||
+                    resolution.requestIds[0] !== request.requestId
               ) {
                 throw new EncounterValidationError(
                   'The Character action outcome roll request set does not match.'
@@ -3304,6 +3864,19 @@ export async function executeEncounterCharacterRuleAction(input: {
           automaticD20RawFaces = rawFaces
           automaticD20RequestId = request.requestId
           return { requestId: request.requestId, value }
+        },
+        async captureDerivedResponseEvidence({ request, response }) {
+          const evidence = nestedOutcomeD20Evidence
+          if (!evidence || request.requestId !== evidence.requestId) return null
+          if (
+            response.requestId !== evidence.requestId ||
+            response.value !== evidence.selectedNatural
+          ) {
+            throw new EncounterValidationError(
+              'The Character action nested save evidence is invalid.'
+            )
+          }
+          return evidence
         }
       })
     : await occurrences.executeResolved(aggregatePort, executionCommand)
@@ -3318,8 +3891,10 @@ export async function executeEncounterCharacterRuleAction(input: {
         controls: ['SYSTEM_OUTCOME', 'PHYSICAL_OUTCOME']
       }
     }
+    const pausedD20RollMode =
+      result.pending?.kind === 'D20_EVIDENCE' ? result.pending.rollMode : automaticD20RollMode
     if (
-      !automaticD20RollMode ||
+      !pausedD20RollMode ||
       result.request.kind !== 'INTEGER_RANGE' ||
       result.request.min !== 1 ||
       result.request.max !== 20
@@ -3335,7 +3910,7 @@ export async function executeEncounterCharacterRuleAction(input: {
         min: result.request.min,
         max: result.request.max
       },
-      rollMode: automaticD20RollMode,
+      rollMode: pausedD20RollMode,
       controls: ['SYSTEM', 'PHYSICAL']
     }
   }
@@ -3378,20 +3953,33 @@ export async function executeEncounterCharacterRuleAction(input: {
     status: 'COMPLETE',
     occurrenceId: result.occurrenceId,
     pending: assistedConcentrationPending,
-    applications: outputs.applications.map((application) =>
-      application.kind === 'CONDITION_APPLY'
-        ? {
-            ordinal: application.ordinal,
-            outcomeKind: application.kind,
-            conditionId: application.conditionId,
-            applied: application.applied
-          }
-        : {
-            ordinal: application.ordinal,
-            outcomeKind: application.kind,
-            appliedAmount: application.appliedAmount
-          }
-    )
+    applications: outputs.applications
+      .filter(
+        (application) =>
+          application.kind !== 'HIT_POINT_MAXIMUM_REDUCTION' &&
+          application.kind !== 'SCALAR_REDUCTION'
+      )
+      .map((application) =>
+        application.kind === 'CONDITION_APPLY'
+          ? {
+              ordinal: application.ordinal,
+              outcomeKind: 'CONDITION_APPLY' as const,
+              conditionId: application.conditionId,
+              applied: application.applied
+            }
+          : application.kind === 'CONDITION_REMOVE'
+            ? {
+                ordinal: application.ordinal,
+                outcomeKind: 'CONDITION_REMOVE' as const,
+                conditionId: application.conditionId,
+                applied: application.applied
+              }
+            : {
+                ordinal: application.ordinal,
+                outcomeKind: application.kind,
+                appliedAmount: application.appliedAmount
+              }
+      )
   }
 }
 
@@ -3578,6 +4166,7 @@ export async function getPendingEncounterConcentrationRuleOccurrence(input: {
       actorUserId: input.actorUserId,
       authority: 'ACTIVE_MEMBER',
       encounterId: input.encounterId,
+      readOnly: true,
       ...(input.liveSessionAuthority ? { liveSessionAuthority: input.liveSessionAuthority } : {})
     })
     const assignments = await lockEncounterCharacterAssignments({

@@ -1,15 +1,25 @@
-import { createReusableDefinitionRepository, type DBLike } from '@artificer-toolkit/db'
+import {
+  createReusableDefinitionRepository,
+  createSystemVocabularySnapshotRepository,
+  type DBLike
+} from '@artificer-toolkit/db'
 import {
   dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema,
   DND5E_ALTERNATING_DIAGONALS_OPERATION_KEY,
+  DND5E_CLEAVING_OPERATION_KEY,
+  DND5E_DISARM_OPERATION_KEY,
   DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY,
   DND5E_FLANKING_OPERATION_KEY,
+  DND5E_OVERRUN_OPERATION_KEY,
+  DND5E_SHOVE_ASIDE_OPERATION_KEY,
+  DND5E_TUMBLE_OPERATION_KEY,
   type Dnd5eOptionalCombatReusableDefinitionDocumentDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { requireInstalledGameSystemPolicyModule } from './platformRulesRuntime.js'
+import { validateOptionalCombatCheckDefinitions } from './optionalCombatCheckDefinitions.js'
 
 export class OptionalCombatSourceError extends Error {
   constructor(message: string) {
@@ -28,7 +38,12 @@ const INTEGRATED_OPTIONAL_COMBAT_RULE_MODULES = {
   ALTERNATING_DIAGONALS: {
     key: DND5E_ALTERNATING_DIAGONALS_OPERATION_KEY,
     contractVersion: 1
-  }
+  },
+  DISARM: { key: DND5E_DISARM_OPERATION_KEY, contractVersion: 1 },
+  OVERRUN: { key: DND5E_OVERRUN_OPERATION_KEY, contractVersion: 1 },
+  SHOVE_ASIDE: { key: DND5E_SHOVE_ASIDE_OPERATION_KEY, contractVersion: 1 },
+  TUMBLE: { key: DND5E_TUMBLE_OPERATION_KEY, contractVersion: 1 },
+  CLEAVING: { key: DND5E_CLEAVING_OPERATION_KEY, contractVersion: 1 }
 } as const
 
 /** Only rules with an authoritative Encounter execution path may be selected. */
@@ -93,6 +108,18 @@ export async function resolveCurrentOptionalCombatSources(input: {
   }
   if (definitionIds.length === 0) return []
   const definitions = createReusableDefinitionRepository(input.db)
+  let systemVocabulary: unknown
+  try {
+    const snapshot = await createSystemVocabularySnapshotRepository(input.db).findActive(
+      input.gameSystemId
+    )
+    if (!snapshot) throw new Error('unavailable')
+    systemVocabulary = snapshot.document
+  } catch {
+    throw new OptionalCombatSourceError(
+      'Encounter Game System vocabulary is not currently available.'
+    )
+  }
   const resolved = await Promise.all(
     definitionIds.map(async (definitionId) => {
       try {
@@ -114,6 +141,16 @@ export async function resolveCurrentOptionalCombatSources(input: {
     if (!isIntegratedOptionalCombatRule(definition.document)) {
       throw new OptionalCombatSourceError(
         'Optional combat rule is not available for Encounter execution.'
+      )
+    }
+    try {
+      validateOptionalCombatCheckDefinitions({
+        document: definition.document,
+        systemVocabulary
+      })
+    } catch {
+      throw new OptionalCombatSourceError(
+        'Optional combat check definitions are not available in the current Game System vocabulary.'
       )
     }
     try {

@@ -128,33 +128,22 @@ export const shadow: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '2d6+2'
+                  },
+                  {
+                    id: S.actionId(250, 504),
+                    effectKind: S.EFFECT_KIND.SCALAR_REDUCTION,
+                    valueDefinitionId: S.SRD_ABILITY_DEFINITION_IDS.STRENGTH,
+                    amount: { kind: 'DICE', diceConfig: '1d4' },
+                    stacking: 'ADDITIVE',
+                    floor: 0,
+                    recoveryTriggers: ['SHORT_REST', 'LONG_REST'],
+                    terminalConsequence: 'TARGET_DIED'
                   }
                 ]
               }
             }
           ]
-        },
-        S.closedRuleEffect({
-          id: S.actionId(250, 503),
-          order: 2,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(250, 603),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          pathCode: S.PATH_CODE.ON_HIT,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHADOW_STRENGTH_DRAIN
-        })
+        }
       ],
       order: 3
     }

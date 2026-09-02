@@ -123,4 +123,136 @@ describe('buildCharacterDerivedRuleFacts', () => {
     )
     expect(facts.spellcasting?.abilityId).toBe('WISDOM')
   })
+
+  it('uses v4 System check-to-ability definitions instead of the legacy skill map', () => {
+    const snapshot: CharacterBuildSnapshot = {
+      characterId: 'character-v4',
+      systemId: 'dnd5e2014',
+      totalLevel: 1,
+      classes: [],
+      abilities: { STRENGTH: 16, DEXTERITY: 14 },
+      hitpoints: [],
+      features: [],
+      equipmentItems: []
+    }
+    const registry: CharacterAssemblyRegistry = {
+      classes: {},
+      equipment: {},
+      feats: {},
+      features: {},
+      races: {},
+      spells: {},
+      system: {
+        schemaVersion: 4,
+        abilities: [
+          { id: '00000000-0000-4000-8000-000000000001', code: 'STRENGTH', label: 'Strength' },
+          { id: '00000000-0000-4000-8000-000000000002', code: 'DEXTERITY', label: 'Dexterity' }
+        ],
+        skills: [
+          {
+            id: '00000000-0000-4000-8000-000000000011',
+            code: 'athletics',
+            label: 'Athletics',
+            governingAbilityDefinitionId: '00000000-0000-4000-8000-000000000001'
+          },
+          {
+            id: '00000000-0000-4000-8000-000000000012',
+            code: 'acrobatics',
+            label: 'Acrobatics',
+            governingAbilityDefinitionId: '00000000-0000-4000-8000-000000000002'
+          },
+          {
+            id: '00000000-0000-4000-8000-000000000013',
+            code: 'custom-check',
+            label: 'Custom Check',
+            governingAbilityDefinitionId: '00000000-0000-4000-8000-000000000002'
+          },
+          {
+            id: '00000000-0000-4000-8000-000000000014',
+            code: 'unavailable',
+            label: 'Unavailable',
+            governingAbilityDefinitionId: null
+          }
+        ]
+      }
+    }
+
+    const facts = buildCharacterDerivedRuleFacts(snapshot, registry)
+
+    expect(facts.skills).toMatchObject([
+      { skillId: 'athletics', governingAbilityId: 'STR' },
+      { skillId: 'acrobatics', governingAbilityId: 'DEX' },
+      { skillId: 'custom-check', governingAbilityId: 'DEX' }
+    ])
+    expect(facts.skills.map((skill) => skill.skillId)).not.toContain('unavailable')
+  })
+
+  it('rejects invalid v4 System check mappings', () => {
+    const snapshot: CharacterBuildSnapshot = {
+      characterId: 'character-v4-invalid',
+      systemId: 'dnd5e2014',
+      totalLevel: 1,
+      classes: [],
+      abilities: { STRENGTH: 10 },
+      hitpoints: [],
+      features: [],
+      equipmentItems: []
+    }
+    const registry: CharacterAssemblyRegistry = {
+      classes: {},
+      equipment: {},
+      feats: {},
+      features: {},
+      races: {},
+      spells: {},
+      system: {
+        schemaVersion: 4,
+        abilities: [
+          { id: '00000000-0000-4000-8000-000000000001', code: 'STRENGTH', label: 'Strength' }
+        ],
+        skills: [
+          {
+            id: '00000000-0000-4000-8000-000000000011',
+            code: 'athletics',
+            label: 'Athletics',
+            governingAbilityDefinitionId: '00000000-0000-4000-8000-000000000099'
+          }
+        ]
+      }
+    }
+
+    expect(() => buildCharacterDerivedRuleFacts(snapshot, registry)).toThrow(/invalid mapping/i)
+    expect(() =>
+      buildCharacterDerivedRuleFacts(snapshot, {
+        ...registry,
+        system: {
+          ...registry.system!,
+          skills: [
+            {
+              ...registry.system!.skills![0]!,
+              governingAbilityDefinitionId: undefined
+            }
+          ]
+        }
+      })
+    ).toThrow(/no governing ability/i)
+    expect(() =>
+      buildCharacterDerivedRuleFacts(snapshot, {
+        ...registry,
+        system: {
+          ...registry.system!,
+          abilities: [
+            ...registry.system!.abilities!,
+            { id: '00000000-0000-4000-8000-000000000001', code: 'DEXTERITY', label: 'Dexterity' }
+          ],
+          skills: [
+            {
+              ...registry.system!.skills![0]!,
+              governingAbilityDefinitionId: '00000000-0000-4000-8000-000000000001'
+            }
+          ]
+        }
+      })
+    ).toThrow(/ambiguous/i)
+  })
 })

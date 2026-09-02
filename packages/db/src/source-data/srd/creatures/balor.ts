@@ -345,12 +345,12 @@ export const balor: CreatureAuthored = {
               id: S.actionId(2128, 8),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(2128, 8) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
                     id: S.actionId(2128, 8),
@@ -375,61 +375,35 @@ export const balor: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '3d6'
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          id: S.actionId(36, 119),
-          order: 2,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(36, 120),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
-              baseDc: 20
-            },
-            activation: { code: S.ACTIVATION_CODE.FREE },
-            range: {
-              id: S.actionId(36, 121),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 30,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(36, 122),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${S.actionId(36, 122)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: S.actionId(36, 123),
-                    effectKind: S.EFFECT_KIND.FORCED_MOVEMENT,
-                    direction: 'TOWARD_SOURCE',
-                    actionEconomy: 'NONE',
-                    distanceMode: 'FIXED_DISTANCE',
-                    amount: 25,
-                    unit: S.MEASUREMENT_UNIT_CODE.FEET
                   },
                   {
-                    id: S.actionId(36, 124),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_ON_HIT_FORCED_MOVEMENT_SAVE
+                    id: S.actionId(36, 119),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'IMMEDIATE',
+                    savingThrow: {
+                      id: S.actionId(36, 120),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
+                      baseDc: 20
+                    },
+                    attempts: { kind: 'ONCE' },
+                    onSuccess: { kind: 'END' },
+                    onFailure: {
+                      kind: 'OUTCOMES',
+                      endCurrent: true,
+                      resultKind: 'SINGLE',
+                      outcomes: [
+                        {
+                          id: S.actionId(36, 123),
+                          effectKind: S.EFFECT_KIND.FORCED_MOVEMENT,
+                          direction: 'TOWARD_SOURCE',
+                          actionEconomy: 'NONE',
+                          distanceMode: 'FIXED_DISTANCE',
+                          amount: 25,
+                          unit: S.MEASUREMENT_UNIT_CODE.FEET
+                        }
+                      ]
+                    }
                   }
                 ]
               }

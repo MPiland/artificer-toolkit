@@ -697,6 +697,12 @@ const stages = [
     'yarn',
     ['tsx', 'apps/session-host/integration/runCampaignGate4CloseoutPostgresProof.ts']
   ),
+  stage(
+    'phase-8-1-postgres',
+    'Phase 8.1 lifecycle, replay, rollback, concurrency, privacy, and cleanup proof',
+    'yarn',
+    ['workspace', '@artificer-toolkit/session-host', 'proof:phase-8-1:local']
+  ),
   stage('authored-projection-verify-pre-vtt', 'Verify local authored projections', 'yarn', [
     'workspace',
     '@artificer-toolkit/functions',

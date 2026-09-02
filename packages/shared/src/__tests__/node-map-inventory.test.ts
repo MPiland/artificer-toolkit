@@ -45,6 +45,7 @@ describe('node map inventory', () => {
         'classResource',
         'contains',
         'creature',
+        'creatureEquipmentLoadout',
         'effect',
         'equipment',
         'facet',

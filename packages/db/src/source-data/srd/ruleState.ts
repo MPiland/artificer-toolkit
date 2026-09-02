@@ -12,6 +12,12 @@ export const SRD_REACTION_ALLOWANCE_DEFINITION_ID = '00000000-0000-4000-8000-000
 export const SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d4'
 export const SRD_POSITIONAL_SUPPORT_CAPABILITY_DEFINITION_ID =
   '00000000-0000-4000-8000-0000000000d5'
+/** Suppressible breathing capability used by target-owned relationship effects. */
+export const SRD_BREATHING_CAPABILITY_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d6'
+export const SRD_ACTION_ALLOWANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d7'
+export const SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d8'
+const SRD_BLINDED_CONDITION_DEFINITION_ID = '00000000-0000-0000-0002-000100000000'
+const SRD_INVISIBLE_CONDITION_DEFINITION_ID = '00000000-0000-0000-0002-000800000000'
 
 type RuleStateDocument =
   | RuleCapabilityReusableDefinitionDocumentDto
@@ -33,6 +39,20 @@ function defineRuleState(
 }
 
 export const SRD_RULE_CAPABILITY_DEFINITIONS: readonly SrdRuleStateDefinitionSeed[] = [
+  defineRuleState({
+    id: SRD_BREATHING_CAPABILITY_DEFINITION_ID,
+    definitionFamilyKey: 'rule-capability',
+    label: 'Breathing availability',
+    description:
+      'D&D actor capability used by System policy to determine whether an actor can breathe.',
+    document: ruleCapabilityReusableDefinitionDocumentDtoSchema.parse({
+      schemaVersion: 1,
+      kind: 'RULE_CAPABILITY',
+      id: SRD_BREATHING_CAPABILITY_DEFINITION_ID,
+      gameSystemId: SRD_SYSTEM_ID,
+      usage: null
+    })
+  }),
   defineRuleState({
     id: SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID,
     definitionFamilyKey: 'rule-capability',
@@ -60,6 +80,32 @@ export const SRD_RULE_CAPABILITY_DEFINITIONS: readonly SrdRuleStateDefinitionSee
     })
   }),
   defineRuleState({
+    id: SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+    definitionFamilyKey: 'rule-capability',
+    label: 'Action allowance',
+    description: 'D&D Encounter action usage refreshed at the start of the actor turn.',
+    document: ruleCapabilityReusableDefinitionDocumentDtoSchema.parse({
+      schemaVersion: 1,
+      kind: 'RULE_CAPABILITY',
+      id: SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+      gameSystemId: SRD_SYSTEM_ID,
+      usage: { maximum: 1, refreshBoundary: 'START_OF_TURN' }
+    })
+  }),
+  defineRuleState({
+    id: SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
+    definitionFamilyKey: 'rule-capability',
+    label: 'Bonus action allowance',
+    description: 'D&D Encounter bonus-action usage refreshed at the start of the actor turn.',
+    document: ruleCapabilityReusableDefinitionDocumentDtoSchema.parse({
+      schemaVersion: 1,
+      kind: 'RULE_CAPABILITY',
+      id: SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
+      gameSystemId: SRD_SYSTEM_ID,
+      usage: { maximum: 1, refreshBoundary: 'START_OF_TURN' }
+    })
+  }),
+  defineRuleState({
     id: SRD_POSITIONAL_SUPPORT_CAPABILITY_DEFINITION_ID,
     definitionFamilyKey: 'rule-capability',
     label: 'Positional support availability',
@@ -82,6 +128,27 @@ const actionSuppressingConditionCodes = new Set([
   'UNCONSCIOUS'
 ])
 
+const perceptionContributionsByConditionDefinitionId = {
+  [SRD_BLINDED_CONDITION_DEFINITION_ID]: [
+    {
+      id: '00000000-0000-4000-8000-0000000000e1',
+      order: 0,
+      kind: 'SENSE_SUPPRESS' as const,
+      senseDefinitionIds: [],
+      channels: ['VISUAL']
+    }
+  ],
+  [SRD_INVISIBLE_CONDITION_DEFINITION_ID]: [
+    {
+      id: '00000000-0000-4000-8000-0000000000e2',
+      order: 0,
+      kind: 'EMISSION_SUPPRESS' as const,
+      channels: ['VISUAL'],
+      bypass: 'INVISIBILITY' as const
+    }
+  ]
+} as const
+
 export const SRD_CONDITION_RULE_STATE_DEFINITIONS: readonly SrdRuleStateDefinitionSeed[] =
   SRD_CONDITION_TYPES.map((condition) => {
     const suppressesActions = actionSuppressingConditionCodes.has(condition.code)
@@ -98,12 +165,18 @@ export const SRD_CONDITION_RULE_STATE_DEFINITIONS: readonly SrdRuleStateDefiniti
               kind: 'CAPABILITY_SUPPRESS',
               capabilityDefinitionIds: [
                 SRD_REACTION_ALLOWANCE_DEFINITION_ID,
+                SRD_ACTION_ALLOWANCE_DEFINITION_ID,
+                SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
                 SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID,
                 SRD_POSITIONAL_SUPPORT_CAPABILITY_DEFINITION_ID
               ].sort()
             }
           ]
-        : []
+        : [],
+      perceptionContributions:
+        perceptionContributionsByConditionDefinitionId[
+          condition.id as keyof typeof perceptionContributionsByConditionDefinitionId
+        ] ?? []
     })
     return defineRuleState({
       id: condition.id,

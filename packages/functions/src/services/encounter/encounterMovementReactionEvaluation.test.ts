@@ -42,6 +42,7 @@ function availableCapabilityState(): ResolvedRuleCapabilityStateDto {
       },
       available: true,
       suppressingConditionDefinitionIds: [],
+      suppressingActiveEffectIds: [],
       contributionIds: []
     }
   }

@@ -14,6 +14,11 @@ export interface ConditionRuleStateDefinition {
 export interface RuleCapabilityAvailability {
   available: boolean
   suppressingConditionDefinitionIds: readonly string[]
+  suppressingActiveEffectIds: readonly string[]
+  activeEffectSuppressions: readonly {
+    activeEffectId: string
+    contributionId: string
+  }[]
   contributionIds: readonly string[]
 }
 
@@ -30,6 +35,11 @@ export function resolveRuleCapabilityAvailability(input: {
   gameSystemId: string
   capabilityDefinitionId: string
   conditions: readonly ConditionRuleStateDefinition[]
+  activeEffectSuppressions?: readonly {
+    activeEffectId: string
+    contributionId: string
+    capabilityDefinitionIds: readonly string[]
+  }[]
 }): RuleCapabilityAvailability {
   const gameSystemId = requireUuid(input.gameSystemId, 'Rule capability Game System identity')
   const capabilityDefinitionId = requireUuid(
@@ -42,6 +52,7 @@ export function resolveRuleCapabilityAvailability(input: {
   }[] = []
   const conditionIds = new Set<string>()
   const contributionIds = new Set<string>()
+  const activeEffectIds = new Set<string>()
 
   for (const condition of input.conditions) {
     const conditionDefinitionId = requireUuid(
@@ -84,16 +95,60 @@ export function resolveRuleCapabilityAvailability(input: {
     }
   }
 
+  const activeSuppressions = (input.activeEffectSuppressions ?? []).map((suppression) => ({
+    activeEffectId: requireUuid(suppression.activeEffectId, 'Active effect identity'),
+    contributionId: requireUuid(suppression.contributionId, 'Active effect contribution identity'),
+    capabilityDefinitionIds: suppression.capabilityDefinitionIds.map((id) =>
+      requireUuid(id, 'Active effect suppressed capability identity')
+    )
+  }))
+  activeSuppressions.sort(
+    (left, right) =>
+      left.activeEffectId.localeCompare(right.activeEffectId) ||
+      left.contributionId.localeCompare(right.contributionId)
+  )
+  for (const suppression of activeSuppressions) {
+    if (activeEffectIds.has(suppression.activeEffectId + suppression.contributionId))
+      throw new Error('Active effect suppression identities must be unique.')
+    activeEffectIds.add(suppression.activeEffectId + suppression.contributionId)
+    if (contributionIds.has(suppression.contributionId))
+      throw new Error(
+        'Active effect contribution identities must not overlap condition contributions.'
+      )
+    contributionIds.add(suppression.contributionId)
+    if (suppression.capabilityDefinitionIds.includes(capabilityDefinitionId))
+      suppressions.push({
+        conditionDefinitionId: '',
+        contributionId: suppression.contributionId
+      })
+  }
+
   suppressions.sort(
     (left, right) =>
       left.conditionDefinitionId.localeCompare(right.conditionDefinitionId) ||
       left.contributionId.localeCompare(right.contributionId)
   )
+  const selectedActiveSuppressions = activeSuppressions.filter((suppression) =>
+    suppression.capabilityDefinitionIds.includes(capabilityDefinitionId)
+  )
   return {
     available: suppressions.length === 0,
     suppressingConditionDefinitionIds: [
-      ...new Set(suppressions.map((suppression) => suppression.conditionDefinitionId))
+      ...new Set(
+        suppressions
+          .map((suppression) => suppression.conditionDefinitionId)
+          .filter((conditionDefinitionId) => conditionDefinitionId.length > 0)
+      )
     ],
+    suppressingActiveEffectIds: [
+      ...new Set(selectedActiveSuppressions.map((suppression) => suppression.activeEffectId))
+    ],
+    activeEffectSuppressions: selectedActiveSuppressions.map(
+      ({ activeEffectId, contributionId }) => ({
+        activeEffectId,
+        contributionId
+      })
+    ),
     contributionIds: suppressions.map((suppression) => suppression.contributionId)
   }
 }

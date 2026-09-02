@@ -1200,13 +1200,38 @@ export function createEncounterRepository(db: DBLike) {
     async updateActor(actor: EncounterActorRecord): Promise<void> {
       await sql`
         UPDATE public.encounter_actors
-        SET source_revision = ${actor.sourceRevision}, label = ${actor.label}, public = ${actor.public}, current_hit_points = ${actor.currentHitPoints},
+        SET side_id = COALESCE(${actor.sideId}, side_id), source_revision = ${actor.sourceRevision}, label = ${actor.label}, public = ${actor.public}, current_hit_points = ${actor.currentHitPoints},
             max_hit_points = ${actor.maxHitPoints}, temp_hit_points = ${actor.tempHitPoints},
             conditions = ${json(actor.conditions)}::jsonb, resources = ${json(actor.resources)}::jsonb,
             gm_notes = ${actor.gmNotes}, initiative = ${actor.initiative}, manual_order = ${actor.manualOrder},
             updated_at = now()
         WHERE id = ${actor.id} AND encounter_id = ${actor.encounterId}
       `.execute(db)
+    },
+
+    /** The caller already holds the Encounter root lock. */
+    async lockSide(encounterId: string, sideId: string): Promise<boolean> {
+      const result = await sql`
+        SELECT id
+        FROM public.encounter_sides
+        WHERE encounter_id = ${encounterId} AND id = ${sideId}
+        FOR SHARE
+      `.execute(db)
+      return result.rows.length === 1
+    },
+
+    /** A narrow server-only snapshot mutation for audited Creature equipment replacement. */
+    async replaceCreatureActorSnapshot(input: {
+      encounterId: string
+      actorId: string
+      snapshot: Json
+    }): Promise<boolean> {
+      const result = await sql`
+        UPDATE public.encounter_actors
+        SET snapshot = ${json(input.snapshot)}::jsonb, updated_at = now()
+        WHERE encounter_id = ${input.encounterId} AND id = ${input.actorId} AND kind = 'CREATURE'
+      `.execute(db)
+      return Number(result.numAffectedRows) === 1
     },
 
     async upsertReminder(

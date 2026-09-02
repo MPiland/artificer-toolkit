@@ -11,6 +11,8 @@ export type MediaAssetRow = {
   original_file_name: string
   declared_mime_type: string
   declared_bytes: number
+  storage_provider: 'SUPABASE' | 'R2'
+  storage_upload_id: string | null
   raw_object_key: string
   verified_mime_type: string | null
   verified_bytes: number | null
@@ -92,16 +94,17 @@ export function createMediaRepository(db: DBLike) {
       declaredBytes: number
       idempotencyKey: string
       rawObjectKey: string
+      storageProvider: 'SUPABASE' | 'R2'
       targetKey: string
     }): Promise<MediaAssetRow> {
       const result = await sql<MediaAssetRow>`
         insert into media_assets (
           id, owner_user_id, profile, original_file_name, declared_mime_type, declared_bytes,
-          idempotency_key, raw_object_key, target_key
+          idempotency_key, storage_provider, raw_object_key, target_key
         ) values (
           ${input.id}::uuid, ${input.ownerUserId}::uuid, ${input.profile}, ${input.originalFileName},
           ${input.declaredMimeType}, ${input.declaredBytes}, ${input.idempotencyKey}::uuid,
-          ${input.rawObjectKey}, ${input.targetKey}
+          ${input.storageProvider}, ${input.rawObjectKey}, ${input.targetKey}
         ) on conflict (owner_user_id, idempotency_key) do update
           set updated_at = media_assets.updated_at
         returning *
@@ -109,6 +112,20 @@ export function createMediaRepository(db: DBLike) {
       const asset = result.rows[0]
       if (!asset) throw new Error('Failed to create media asset.')
       return asset
+    },
+
+    async retainStorageUploadId(assetId: string, uploadId: string): Promise<string> {
+      await sql`
+        update media_assets set storage_upload_id = ${uploadId}, updated_at = now()
+        where id = ${assetId}::uuid and storage_provider = 'R2'
+          and status = 'PENDING_UPLOAD' and storage_upload_id is null
+      `.execute(db)
+      const result = await sql<{ storage_upload_id: string | null }>`
+        select storage_upload_id from media_assets where id = ${assetId}::uuid
+      `.execute(db)
+      const retained = result.rows[0]?.storage_upload_id
+      if (!retained) throw new Error('Unable to retain R2 multipart upload identity.')
+      return retained
     },
 
     async lockOwner(userId: string): Promise<boolean> {
@@ -181,15 +198,19 @@ export function createMediaRepository(db: DBLike) {
         )
           return false
         await sql`
-          insert into media_object_deletions (object_key)
-          select object_key from media_variants where asset_id = ${input.assetId}::uuid
-          on conflict (object_key) do nothing
+          insert into media_object_deletions (storage_provider, object_key)
+          select asset.storage_provider, variant.object_key from media_variants variant
+          join media_assets asset on asset.id = variant.asset_id
+          where variant.asset_id = ${input.assetId}::uuid
+          on conflict (storage_provider, object_key) do nothing
         `.execute(trx)
         await sql`delete from media_variants where asset_id = ${input.assetId}::uuid`.execute(trx)
         await sql`
-          insert into media_object_deletions (object_key)
-          select object_key from vtt_map_tiles where asset_id = ${input.assetId}::uuid
-          on conflict (object_key) do nothing
+          insert into media_object_deletions (storage_provider, object_key)
+          select asset.storage_provider, tile.object_key from vtt_map_tiles tile
+          join media_assets asset on asset.id = tile.asset_id
+          where tile.asset_id = ${input.assetId}::uuid
+          on conflict (storage_provider, object_key) do nothing
         `.execute(trx)
         await sql`delete from vtt_map_tiles where asset_id = ${input.assetId}::uuid`.execute(trx)
         for (const variant of input.variants)
@@ -209,7 +230,9 @@ export function createMediaRepository(db: DBLike) {
           `.execute(trx)
         for (const variant of input.variants)
           await sql`
-            delete from media_object_deletions where object_key = ${variant.object_key}
+            delete from media_object_deletions
+            where storage_provider = (select storage_provider from media_assets where id = ${input.assetId}::uuid)
+              and object_key = ${variant.object_key}
           `.execute(trx)
         const updated = await sql<{
           id: string
@@ -220,13 +243,15 @@ export function createMediaRepository(db: DBLike) {
           returning id`.execute(trx)
         if (!updated.rows[0]) throw new Error('Media asset is no longer processing.')
         await sql`
-          insert into media_object_deletions (object_key)
-          select raw_object_key from media_assets where id = ${input.assetId}::uuid
-          on conflict (object_key) do nothing
+          insert into media_object_deletions (storage_provider, object_key)
+          select storage_provider, raw_object_key from media_assets where id = ${input.assetId}::uuid
+          on conflict (storage_provider, object_key) do nothing
         `.execute(trx)
         for (const tile of input.vttMapTiles ?? [])
           await sql`
-            delete from media_object_deletions where object_key = ${tile.object_key}
+            delete from media_object_deletions
+            where storage_provider = (select storage_provider from media_assets where id = ${input.assetId}::uuid)
+              and object_key = ${tile.object_key}
           `.execute(trx)
         return true
       })
@@ -278,8 +303,10 @@ export function createMediaRepository(db: DBLike) {
         return null
       if (previous)
         await sql`
-          insert into media_object_deletions (object_key) values (${previous.object_key})
-          on conflict (object_key) do nothing
+          insert into media_object_deletions (storage_provider, object_key)
+          select storage_provider, ${previous.object_key}
+          from media_assets where id = ${assetId}::uuid
+          on conflict (storage_provider, object_key) do nothing
         `.execute(db)
       await sql`delete from media_variants where asset_id = ${assetId}::uuid and kind = 'THUMBNAIL'`.execute(
         db
@@ -289,35 +316,49 @@ export function createMediaRepository(db: DBLike) {
         values (${variant.id}::uuid, ${assetId}::uuid, 'THUMBNAIL', ${variant.object_key}, ${variant.mime_type},
           ${variant.byte_size}, ${variant.width}, ${variant.height})
       `.execute(db)
-      await sql`delete from media_object_deletions where object_key = ${variant.object_key}`.execute(
-        db
-      )
+      await sql`
+        delete from media_object_deletions
+        where storage_provider = (select storage_provider from media_assets where id = ${assetId}::uuid)
+          and object_key = ${variant.object_key}
+      `.execute(db)
       return { previousObjectKey: previous?.object_key ?? null }
     },
 
-    async scheduleObjectDeletions(objectKeys: readonly string[]): Promise<void> {
+    async scheduleObjectDeletions(
+      storageProvider: 'SUPABASE' | 'R2',
+      objectKeys: readonly string[]
+    ): Promise<void> {
       for (const objectKey of new Set(objectKeys))
         await sql`
-          insert into media_object_deletions (object_key) values (${objectKey})
-          on conflict (object_key) do nothing
+          insert into media_object_deletions (storage_provider, object_key)
+          values (${storageProvider}, ${objectKey})
+          on conflict (storage_provider, object_key) do nothing
         `.execute(db)
     },
 
-    async completeObjectDeletions(objectKeys: readonly string[]): Promise<void> {
+    async completeObjectDeletions(
+      storageProvider: 'SUPABASE' | 'R2',
+      objectKeys: readonly string[]
+    ): Promise<void> {
       const uniqueKeys = [...new Set(objectKeys)]
       if (uniqueKeys.length === 0) return
-      await sql`delete from media_object_deletions where object_key = any(${uniqueKeys})`.execute(
+      await sql`delete from media_object_deletions where storage_provider = ${storageProvider} and object_key = any(${uniqueKeys})`.execute(
         db
       )
     },
 
-    async listObjectDeletions(limit = 100): Promise<string[]> {
-      const result = await sql<{ object_key: string }>`
-        select object_key from media_object_deletions
+    async listObjectDeletions(
+      limit = 100
+    ): Promise<{ objectKey: string; storageProvider: 'SUPABASE' | 'R2' }[]> {
+      const result = await sql<{ object_key: string; storage_provider: 'SUPABASE' | 'R2' }>`
+        select storage_provider, object_key from media_object_deletions
         where created_at < now() - interval '15 minutes'
         order by created_at limit ${limit}
       `.execute(db)
-      return result.rows.map((row) => row.object_key)
+      return result.rows.map((row) => ({
+        objectKey: row.object_key,
+        storageProvider: row.storage_provider
+      }))
     },
 
     async setCrop(
@@ -380,10 +421,22 @@ export function createMediaRepository(db: DBLike) {
       )
     },
 
-    async claimCleanupObjects(
-      userId: string
-    ): Promise<{ assetId: string; rawObjectKey: string; objectKeys: string[] }[]> {
-      const result = await sql<{ asset_id: string; raw_object_key: string; object_keys: string[] }>`
+    async claimCleanupObjects(userId: string): Promise<
+      {
+        assetId: string
+        objectKeys: string[]
+        rawObjectKey: string
+        storageProvider: 'SUPABASE' | 'R2'
+        storageUploadId: string | null
+      }[]
+    > {
+      const result = await sql<{
+        asset_id: string
+        object_keys: string[]
+        raw_object_key: string
+        storage_provider: 'SUPABASE' | 'R2'
+        storage_upload_id: string | null
+      }>`
         with claimed as (
           update media_assets asset
           set status = 'DELETED', deleted_at = coalesce(asset.deleted_at, now()), updated_at = now()
@@ -413,20 +466,23 @@ export function createMediaRepository(db: DBLike) {
               )
               or (asset.status = 'REJECTED' and asset.updated_at < now() - interval '7 days')
             )
-          returning asset.id, asset.raw_object_key
+          returning asset.id, asset.raw_object_key, asset.storage_provider, asset.storage_upload_id
         )
-        select claimed.id as asset_id, claimed.raw_object_key,
+        select claimed.id as asset_id, claimed.raw_object_key, claimed.storage_provider,
+          claimed.storage_upload_id,
           coalesce(array_agg(distinct variant.object_key) filter (where variant.object_key is not null), '{}')
             || coalesce(array_agg(distinct tile.object_key) filter (where tile.object_key is not null), '{}') as object_keys
         from claimed
         left join media_variants variant on variant.asset_id = claimed.id
         left join vtt_map_tiles tile on tile.asset_id = claimed.id
-        group by claimed.id, claimed.raw_object_key
+        group by claimed.id, claimed.raw_object_key, claimed.storage_provider, claimed.storage_upload_id
       `.execute(db)
       return result.rows.map((row) => ({
         assetId: row.asset_id,
         rawObjectKey: row.raw_object_key,
-        objectKeys: row.object_keys
+        objectKeys: row.object_keys,
+        storageProvider: row.storage_provider,
+        storageUploadId: row.storage_upload_id
       }))
     },
 

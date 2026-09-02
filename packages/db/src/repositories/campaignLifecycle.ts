@@ -342,6 +342,7 @@ export function createCampaignLifecycleRepository(db: DBLike) {
         .values({ owner_user_id: ownerUserId, ...input })
         .returningAll()
         .executeTakeFirstOrThrow()
+      await db.insertInto('campaign_play_settings').values({ campaign_id: row.id }).execute()
       const route = await createAuthoredRouteIdRepository(db).ensure({
         subjectKind: 'CAMPAIGN',
         subjectId: row.id

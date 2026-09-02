@@ -35,6 +35,75 @@ function expectNoUndefined(value: unknown): void {
 }
 
 describe('effect compiler', () => {
+  it('preserves repeat roll influence in compiled follow-up saves', () => {
+    const result = compileEffectResult({
+      id: 'repeat-roll-influence-effect',
+      order: 1,
+      invocation: {
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: 'repeat-roll-influence-save',
+          dcMethod: 'FIXED_DC',
+          abilityDefinitionId: '00000000-0000-4000-8000-000000000001',
+          baseDc: 10
+        },
+        activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+        range: { id: 'repeat-roll-influence-range', rangeKind: RANGE_KIND.UNLIMITED },
+        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
+      },
+      paths: [
+        {
+          id: 'repeat-roll-influence-path',
+          order: 1,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+          selectionKind: 'FIXED',
+          resultBlock: {
+            id: 'repeat-roll-influence-result',
+            resultKind: 'SEQUENCE',
+            outcomes: [
+              {
+                id: 'repeat-roll-influence-follow-up',
+                effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+                timing: 'TARGET_TURN_END',
+                repeatRollInfluence: {
+                  influence: 'DISADVANTAGE',
+                  when: {
+                    kind: 'PERCEPTION',
+                    observer: 'TARGET',
+                    subject: 'SOURCE',
+                    requirement: 'SEE'
+                  }
+                },
+                savingThrow: {
+                  id: 'repeat-roll-influence-follow-up-save',
+                  dcMethod: 'FIXED_DC',
+                  abilityDefinitionId: '00000000-0000-4000-8000-000000000001',
+                  baseDc: 10
+                },
+                attempts: { kind: 'ONCE', repeatOnFailure: true },
+                onSuccess: { kind: 'END' },
+                onFailure: { kind: 'CONTINUE' }
+              }
+            ]
+          }
+        }
+      ]
+    })
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected compileEffectResult to succeed')
+    const entry = result.value.entries[0]
+    if (!entry || !('outcome' in entry)) throw new Error('Expected compiled follow-up-save entry.')
+    expect(entry.outcome).toMatchObject({
+      effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+      repeatRollInfluence: {
+        influence: 'DISADVANTAGE',
+        when: { kind: 'PERCEPTION', observer: 'TARGET', subject: 'SOURCE', requirement: 'SEE' }
+      }
+    })
+  })
+
   it('omits absent optional damage fields from canonical compiled output', () => {
     const result = compileEffectResult({
       id: 'canonical-damage-effect',

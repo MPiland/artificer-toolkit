@@ -32,6 +32,8 @@ describe('rule capability availability', () => {
     ).toEqual({
       available: false,
       suppressingConditionDefinitionIds: [conditionId],
+      suppressingActiveEffectIds: [],
+      activeEffectSuppressions: [],
       contributionIds: [contributionId]
     })
   })
@@ -55,7 +57,13 @@ describe('rule capability availability', () => {
         capabilityDefinitionId: capabilityId,
         conditions: [condition]
       })
-    ).toEqual({ available: true, suppressingConditionDefinitionIds: [], contributionIds: [] })
+    ).toEqual({
+      available: true,
+      suppressingConditionDefinitionIds: [],
+      suppressingActiveEffectIds: [],
+      activeEffectSuppressions: [],
+      contributionIds: []
+    })
     expect(() =>
       resolveRuleCapabilityAvailability({
         gameSystemId: '66666666-6666-4666-8666-666666666666',

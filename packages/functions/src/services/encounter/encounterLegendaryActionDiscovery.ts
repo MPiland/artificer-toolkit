@@ -23,7 +23,10 @@ import {
   snapshotFeatureDefinitions,
   withFeatureChargeUsed
 } from './encounterActorState.js'
-import type { LockedEncounterActiveEffectCharacter } from './encounterActiveEffectTargetState.js'
+import type {
+  LockedEncounterActiveEffectCharacter,
+  LockedEncounterActiveEffectTargets
+} from './encounterActiveEffectTargetState.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import { resolveEncounterRuleCapabilityStates } from './encounterRuleCapabilityState.js'
 
@@ -315,6 +318,7 @@ export async function discoverEncounterLegendaryActionCandidates(input: {
   actorRules: EncounterActorRuleOutput
   encounterFeatureCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
   lockedCharacters: ReadonlyMap<string, LockedEncounterActiveEffectCharacter>
+  activeEffectsByActorId: LockedEncounterActiveEffectTargets['activeEffectsByActorId']
   definitions: CurrentReusableDefinitionSource
   runtime: RulesRuntimeService
   windowUsed?: boolean
@@ -325,6 +329,7 @@ export async function discoverEncounterLegendaryActionCandidates(input: {
   const capabilityStates = await resolveEncounterRuleCapabilityStates({
     encounter: input.encounter,
     lockedCharacters: input.lockedCharacters,
+    activeEffectsByActorId: input.activeEffectsByActorId,
     definitions: input.definitions,
     capabilityDefinitionIds
   })

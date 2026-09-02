@@ -46,7 +46,7 @@ interface LiveSessionSocket {
   send: (data: string) => void
 }
 
-const reconnectDelay = (attempt: number) => Math.min(250 * 2 ** attempt, 5_000)
+const reconnectDelay = (attempt: number) => Math.min(1_000 * 2 ** attempt, 30_000)
 const webSocketOpenState = 1
 
 function commandId(command: LiveSessionCommandDto): string {
@@ -124,7 +124,6 @@ export function createLiveSessionConnection(
 
       nextSocket.addEventListener('open', () => {
         if (nextSocket !== socket || stopped) return
-        attempt = 0
         options.onStatus('CONNECTED')
       })
       nextSocket.addEventListener('message', (event) => {
@@ -174,6 +173,7 @@ export function createLiveSessionConnection(
             rejectPendingExecutions(new Error(message.message))
           }
         } else if (message.type === 'READY') {
+          attempt = 0
           if (reconnecting && !resumeSent) {
             resumeSent = true
             send({

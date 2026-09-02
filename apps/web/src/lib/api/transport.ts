@@ -823,6 +823,7 @@ export interface TrpcClient {
     >
   }
   characters: {
+    actions: QueryProcedure<IdProcedureInput, CharacterSheetResponseDto['actions']['items'] | null>
     command: MutationProcedure<
       { id: string; input: CharacterSheetCommandInputDto },
       CharacterSheetCommandResponseDto
@@ -940,6 +941,10 @@ export interface TrpcClient {
       z.infer<
         typeof import('@artificer-toolkit/schema/api/media').createVttMapUploadIntentOutputSchema
       >
+    >
+    completeVttMapUpload: MutationProcedure<
+      import('@artificer-toolkit/schema/api/media').CompleteVttMapMultipartUploadInput,
+      { ok: true }
     >
     finalizeVttMapUpload: MutationProcedure<FinalizeImageUploadInput, FinalizeVttMapUploadOutput>
     getVttMapDelivery: QueryProcedure<FinalizeImageUploadInput, SignedVttMapDeliveryDto>

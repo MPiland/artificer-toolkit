@@ -31,7 +31,6 @@ export const DND5E_TUMBLE_POLICY_MODULE = {
 
 type AutomationMode = 'AUTOMATIC' | 'ASSISTED' | 'MANUAL'
 type ActionEconomy = 'ACTION' | 'BONUS_ACTION'
-type AbilityCheck = 'ATHLETICS' | 'ACROBATICS'
 type PolicyDefinition = EncounterOptionalCombatSnapshotDto['definitions'][number]
 
 export interface Dnd5eOptionalMovementPin {
@@ -181,6 +180,8 @@ interface CommonPassageInput extends PolicyInput {
   readonly qualifiedInitiatorContributors: readonly Dnd5eOptionalMovementContributor[]
 }
 
+type CommonPassagePreparationInput = Omit<CommonPassageInput, 'contest'>
+
 type ValidCommonPassageInput = CommonPassageInput & {
   readonly actionEconomy: ActionEconomy
   readonly actionEconomyAvailable: boolean
@@ -190,7 +191,9 @@ type ValidCommonPassageInput = CommonPassageInput & {
   readonly targetSizeRank: number
 }
 
-function validCommonPassageFacts(input: CommonPassageInput): input is ValidCommonPassageInput {
+function validCommonPassageFacts(
+  input: CommonPassagePreparationInput
+): input is Omit<ValidCommonPassageInput, 'contest'> {
   return (
     exactUuid(input.initiatorActorId) &&
     exactUuid(input.blockerActorId) &&
@@ -199,8 +202,7 @@ function validCommonPassageFacts(input: CommonPassageInput): input is ValidCommo
     input.actionEconomyAvailable !== null &&
     input.passageAlreadyUsedThisTurn !== null &&
     validSizeRank(input.initiatorSizeRank) &&
-    validSizeRank(input.targetSizeRank) &&
-    validContest(input.contest)
+    validSizeRank(input.targetSizeRank)
   )
 }
 
@@ -216,33 +218,37 @@ function passage(blockerActorId: string): PassageProposal {
 
 export interface Dnd5eOverrunProposal {
   readonly contest: ContestEvidence & {
-    readonly initiatorCheck: 'ATHLETICS'
+    readonly initiatorCheckDefinitionId: string
     readonly initiatorContributors: readonly Dnd5eOptionalMovementContributor[]
     readonly initiatorMode: 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
-    readonly targetCheck: 'ATHLETICS'
+    readonly targetCheckDefinitionId: string
   }
   readonly consumes: { readonly amount: 1; readonly economy: ActionEconomy }
   readonly passage: PassageProposal
   readonly pin: Dnd5eOptionalMovementPin
 }
 
-/** Pure D&D policy; it proposes a one-turn passage and never changes Scene occupancy. */
-export function resolveDnd5eOverrun(
-  input: CommonPassageInput
-): Dnd5eOptionalMovementResolution<Dnd5eOverrunProposal> {
+/** Seals an available Overrun contest before either participant rolls. */
+export function prepareDnd5eOverrunContest(
+  input: CommonPassagePreparationInput
+): Dnd5eOptionalMovementResolution<
+  Omit<Dnd5eOverrunProposal, 'contest'> & {
+    readonly contest: Omit<Dnd5eOverrunProposal['contest'], 'initiatorTotal' | 'targetTotal'>
+  }
+> {
   const definition = exactDefinition({
     ...input,
     kind: 'OVERRUN',
     module: DND5E_OVERRUN_POLICY_MODULE
   })
   if (!definition) return { kind: 'INERT' }
+  const parameters = definition.document.parameters
+  if (parameters.kind !== 'OVERRUN') return { kind: 'INERT' }
   if (!validCommonPassageFacts(input)) {
     return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_OVERRUN_FACTS' }
   }
-  if (!input.actionEconomyAvailable || input.passageAlreadyUsedThisTurn) {
-    return { kind: 'NOT_APPLICABLE' }
-  }
-  if (input.contest.initiatorTotal <= input.contest.targetTotal) {
+  const economy = input.actionEconomy
+  if (economy === null || !input.actionEconomyAvailable || input.passageAlreadyUsedThisTurn) {
     return { kind: 'NOT_APPLICABLE' }
   }
   const d20 = resolvedInitiatorD20(
@@ -255,11 +261,10 @@ export function resolveDnd5eOverrun(
     kind: 'PROPOSED',
     proposal: {
       pin: pin(definition),
-      consumes: { economy: input.actionEconomy, amount: 1 },
+      consumes: { economy, amount: 1 },
       contest: {
-        ...input.contest,
-        initiatorCheck: 'ATHLETICS',
-        targetCheck: 'ATHLETICS',
+        initiatorCheckDefinitionId: parameters.initiatorCheckDefinitionId,
+        targetCheckDefinitionId: parameters.targetCheckDefinitionId,
         initiatorContributors: d20.contributors,
         initiatorMode: d20.rollMode
       },
@@ -268,10 +273,33 @@ export function resolveDnd5eOverrun(
   }
 }
 
+/** Pure D&D policy; it proposes a one-turn passage and never changes Scene occupancy. */
+export function resolveDnd5eOverrun(
+  input: CommonPassageInput
+): Dnd5eOptionalMovementResolution<Dnd5eOverrunProposal> {
+  const prepared = prepareDnd5eOverrunContest(input)
+  if (prepared.kind !== 'PROPOSED') return prepared
+  if (!validContest(input.contest))
+    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_OVERRUN_FACTS' }
+  if (input.contest.initiatorTotal <= input.contest.targetTotal) {
+    return { kind: 'NOT_APPLICABLE' }
+  }
+  return {
+    kind: 'PROPOSED',
+    proposal: {
+      ...prepared.proposal,
+      contest: {
+        ...prepared.proposal.contest,
+        ...input.contest
+      }
+    }
+  }
+}
+
 export interface Dnd5eTumbleProposal {
   readonly contest: ContestEvidence & {
-    readonly initiatorCheck: 'ACROBATICS'
-    readonly targetCheck: 'ACROBATICS'
+    readonly initiatorCheckDefinitionId: string
+    readonly targetCheckDefinitionId: string
   }
   readonly consumes: { readonly amount: 1; readonly economy: ActionEconomy }
   readonly passage: PassageProposal
@@ -297,48 +325,77 @@ function validTumbleFacts(input: TumbleInput): input is ValidTumbleInput {
     input.initiatorActorId !== input.blockerActorId &&
     input.actionEconomy !== null &&
     input.actionEconomyAvailable !== null &&
-    input.passageAlreadyUsedThisTurn !== null &&
-    validContest(input.contest)
+    input.passageAlreadyUsedThisTurn !== null
   )
 }
 
-/** Tumble uses its own Acrobatics contest and deliberately does not suppress opportunity attacks. */
-export function resolveDnd5eTumble(
-  input: TumbleInput
-): Dnd5eOptionalMovementResolution<Dnd5eTumbleProposal> {
+/** Seals an available Tumble contest before either participant rolls. */
+export function prepareDnd5eTumbleContest(
+  input: Omit<TumbleInput, 'contest'>
+): Dnd5eOptionalMovementResolution<
+  Omit<Dnd5eTumbleProposal, 'contest'> & {
+    readonly contest: Omit<Dnd5eTumbleProposal['contest'], 'initiatorTotal' | 'targetTotal'>
+  }
+> {
   const definition = exactDefinition({
     ...input,
     kind: 'TUMBLE',
     module: DND5E_TUMBLE_POLICY_MODULE
   })
   if (!definition) return { kind: 'INERT' }
-  if (!validTumbleFacts(input)) {
+  const parameters = definition.document.parameters
+  if (parameters.kind !== 'TUMBLE') return { kind: 'INERT' }
+  if (!validTumbleFacts(input as TumbleInput)) {
     return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_TUMBLE_FACTS' }
   }
-  if (!input.actionEconomyAvailable || input.passageAlreadyUsedThisTurn) {
-    return { kind: 'NOT_APPLICABLE' }
-  }
-  if (input.contest.initiatorTotal <= input.contest.targetTotal) {
+  const economy = input.actionEconomy
+  if (economy === null || !input.actionEconomyAvailable || input.passageAlreadyUsedThisTurn) {
     return { kind: 'NOT_APPLICABLE' }
   }
   return {
     kind: 'PROPOSED',
     proposal: {
       pin: pin(definition),
-      consumes: { economy: input.actionEconomy, amount: 1 },
-      contest: { ...input.contest, initiatorCheck: 'ACROBATICS', targetCheck: 'ACROBATICS' },
+      consumes: { economy, amount: 1 },
+      contest: {
+        initiatorCheckDefinitionId: parameters.initiatorCheckDefinitionId,
+        targetCheckDefinitionId: parameters.targetCheckDefinitionId
+      },
       passage: passage(input.blockerActorId)
+    }
+  }
+}
+
+/** Tumble uses its own Acrobatics contest and deliberately does not suppress opportunity attacks. */
+export function resolveDnd5eTumble(
+  input: TumbleInput
+): Dnd5eOptionalMovementResolution<Dnd5eTumbleProposal> {
+  const prepared = prepareDnd5eTumbleContest(input)
+  if (prepared.kind !== 'PROPOSED') return prepared
+  if (!validContest(input.contest))
+    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_TUMBLE_FACTS' }
+  if (input.contest.initiatorTotal <= input.contest.targetTotal) {
+    return { kind: 'NOT_APPLICABLE' }
+  }
+  return {
+    kind: 'PROPOSED',
+    proposal: {
+      ...prepared.proposal,
+      contest: {
+        ...prepared.proposal.contest,
+        ...input.contest
+      }
     }
   }
 }
 
 export interface Dnd5eShoveAsideProposal {
   readonly contest: {
-    readonly initiatorCheck: 'ATHLETICS'
+    readonly initiatorCheckDefinitionId: string
     readonly initiatorContributors: readonly Dnd5eOptionalMovementContributor[]
     readonly initiatorMode: 'DISADVANTAGE' | 'NORMAL'
     readonly initiatorTotal: number | null
-    readonly targetCheck: AbilityCheck
+    readonly targetCheckDefinitionId: string
     readonly targetTotal: number | null
   }
   readonly displacement: {
@@ -348,7 +405,7 @@ export interface Dnd5eShoveAsideProposal {
     readonly targetActorId: string
     readonly type: 'FORCED'
   }
-  readonly replacesAttack: true
+  readonly consumes: { readonly amount: 1; readonly economy: 'ACTION' }
   readonly pin: Dnd5eOptionalMovementPin
 }
 
@@ -357,7 +414,8 @@ export function resolveDnd5eShoveAside(
   input: PolicyInput & {
     readonly attackerActorId: string
     readonly attackerSizeRank: number | null
-    readonly attackReplacementAvailable: boolean | null
+    readonly actionEconomy: ActionEconomy | null
+    readonly actionEconomyAvailable: boolean | null
     readonly contest: ContestEvidence
     readonly destination: {
       readonly isLegal: boolean
@@ -365,7 +423,7 @@ export function resolveDnd5eShoveAside(
       readonly distanceFeet: number
     } | null
     readonly targetActorId: string
-    readonly targetCheck: AbilityCheck | null
+    readonly targetCheckDefinitionId: string | null
     readonly targetIncapacitated: boolean | null
     readonly targetInReach: boolean | null
     readonly targetSizeRank: number | null
@@ -378,18 +436,24 @@ export function resolveDnd5eShoveAside(
     module: DND5E_SHOVE_ASIDE_POLICY_MODULE
   })
   if (!definition) return { kind: 'INERT' }
+  const parameters = definition.document.parameters
+  if (parameters.kind !== 'SHOVE_ASIDE') return { kind: 'INERT' }
   if (
     !exactUuid(input.attackerActorId) ||
     !exactUuid(input.targetActorId) ||
     input.attackerActorId === input.targetActorId ||
     !validSizeRank(input.attackerSizeRank) ||
     !validSizeRank(input.targetSizeRank) ||
-    input.attackReplacementAvailable === null ||
+    input.actionEconomy === null ||
+    input.actionEconomyAvailable === null ||
     input.targetInReach === null ||
     input.targetIncapacitated === null ||
     input.destination === null
   ) {
     return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_SHOVE_ASIDE_FACTS' }
+  }
+  if (input.actionEconomy !== 'ACTION' || !input.actionEconomyAvailable) {
+    return { kind: 'NOT_APPLICABLE' }
   }
   if (
     !input.destination.isLegal ||
@@ -398,14 +462,16 @@ export function resolveDnd5eShoveAside(
   ) {
     return { kind: 'JUDGMENT_REQUIRED', reason: 'SHOVE_ASIDE_DESTINATION_UNRESOLVED' }
   }
-  if (
-    !input.attackReplacementAvailable ||
-    !input.targetInReach ||
-    input.targetSizeRank > input.attackerSizeRank + 1
-  ) {
+  if (!input.targetInReach || input.targetSizeRank > input.attackerSizeRank + 1) {
     return { kind: 'NOT_APPLICABLE' }
   }
-  if (!input.targetIncapacitated && (!validContest(input.contest) || input.targetCheck === null)) {
+  if (
+    !input.targetIncapacitated &&
+    (!validContest(input.contest) ||
+      input.targetCheckDefinitionId === null ||
+      !exactUuid(input.targetCheckDefinitionId) ||
+      !parameters.defenderCheckDefinitionIds.includes(input.targetCheckDefinitionId))
+  ) {
     return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_SHOVE_ASIDE_CONTEST_FACTS' }
   }
   if (
@@ -426,10 +492,11 @@ export function resolveDnd5eShoveAside(
     kind: 'PROPOSED',
     proposal: {
       pin: pin(definition),
-      replacesAttack: true,
+      consumes: { economy: 'ACTION', amount: 1 },
       contest: {
-        initiatorCheck: 'ATHLETICS',
-        targetCheck: input.targetCheck ?? 'ATHLETICS',
+        initiatorCheckDefinitionId: parameters.initiatorCheckDefinitionId,
+        targetCheckDefinitionId:
+          input.targetCheckDefinitionId ?? parameters.defenderCheckDefinitionIds[0]!,
         initiatorTotal: input.contest.initiatorTotal,
         targetTotal: input.contest.targetTotal,
         initiatorContributors: d20.contributors,

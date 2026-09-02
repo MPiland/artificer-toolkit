@@ -454,7 +454,10 @@ export function meleeWeaponAbilityModifiers(equipmentId: string): ModifierGrantA
   )
   return modifiers
 }
-export function rangedWeaponAbilityModifiers(equipmentId: string): ModifierGrantAuthored[] {
+export function rangedWeaponAbilityModifiers(
+  equipmentId: string,
+  ability: AbilityCode = 'DEXTERITY'
+): ModifierGrantAuthored[] {
   const modifiers: ModifierGrantAuthored[] = []
   modifiers.push(
     fixedAbilityWeaponModifier(
@@ -463,7 +466,7 @@ export function rangedWeaponAbilityModifiers(equipmentId: string): ModifierGrant
       1,
       VALUE_DOMAIN_CODE.ATTACK_ROLL,
       ATTACK_DOMAIN_CODE.RANGED,
-      'DEXTERITY'
+      ability
     ) as ModifierGrantAuthored
   )
   modifiers.push(
@@ -473,7 +476,7 @@ export function rangedWeaponAbilityModifiers(equipmentId: string): ModifierGrant
       2,
       VALUE_DOMAIN_CODE.DAMAGE,
       ATTACK_DOMAIN_CODE.RANGED,
-      'DEXTERITY'
+      ability
     ) as ModifierGrantAuthored
   )
   return modifiers
@@ -937,7 +940,11 @@ export function meleeWeaponEffects(
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: meleeRange(equipmentId, 0x210)
+        range: meleeRange(equipmentId, 0x210),
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        }
       },
       paths: [damagePath(equipmentId, 0x212, damageTypeCode, diceConfig)]
     }
@@ -998,7 +1005,11 @@ export function thrownWeaponEffects(
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: meleeRange(equipmentId, 0x210)
+        range: meleeRange(equipmentId, 0x210),
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        }
       },
       paths: [damagePath(equipmentId, 0x212, damageTypeCode, diceConfig)]
     },
@@ -1009,7 +1020,11 @@ export function thrownWeaponEffects(
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: distanceRange(equipmentId, 0x220, normalRangeFt)
+        range: distanceRange(equipmentId, 0x220, normalRangeFt),
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        }
       },
       paths: [damagePath(equipmentId, 0x222, damageTypeCode, diceConfig)]
     }
@@ -1061,7 +1076,11 @@ export function thrownVersatileWeaponEffects(
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: distanceRange(equipmentId, 0x230, normalRangeFt)
+        range: distanceRange(equipmentId, 0x230, normalRangeFt),
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        }
       },
       paths: [damagePath(equipmentId, 0x232, damageTypeCode, dice1h)]
     }
@@ -1081,7 +1100,11 @@ export function meleeReachWeaponEffects(
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: reachRange(equipmentId, 0x210)
+        range: reachRange(equipmentId, 0x210),
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        }
       },
       paths: [damagePath(equipmentId, 0x212, damageTypeCode, diceConfig)]
     }
@@ -1102,7 +1125,11 @@ export function rangedWeaponEffects(
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: distanceRange(equipmentId, 0x210, normalRangeFt)
+        range: distanceRange(equipmentId, 0x210, normalRangeFt),
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        }
       },
       paths: [damagePath(equipmentId, 0x212, damageTypeCode, diceConfig)]
     }
@@ -1123,7 +1150,11 @@ export function rangedFixedDamageWeaponEffects(
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
         activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-        range: distanceRange(equipmentId, 0x210, normalRangeFt)
+        range: distanceRange(equipmentId, 0x210, normalRangeFt),
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        }
       },
       paths: [fixedDamagePath(equipmentId, 0x212, damageTypeCode, amount)]
     }

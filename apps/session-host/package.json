@@ -13,6 +13,7 @@
     "test:local": "tsx integration/localPlay.ts",
     "proof:catalogue-content-source:local": "tsx integration/runCampaignCatalogueContentSourcePostgresProof.ts",
     "proof:encounter-blueprint:local": "tsx integration/runEncounterBlueprintPostgresProof.ts",
+    "proof:phase-8-1:local": "tsx integration/runPhase81PostgresAcceptanceProof.ts --group=all",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "typecheck:integration": "tsc -p tsconfig.integration.json"
   },

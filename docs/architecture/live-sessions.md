@@ -44,6 +44,8 @@ document is returned to the Worker or browser.
 
 React owns the window header, mode controls, accessible alternatives, Scene selector, and editor inspectors. PixiJS owns only frame-rate Scene rendering. GMs may switch between Play and Edit while live. Players never receive editor chrome and may use only authorized Character actions and interactive Scene elements. Reusable definitions supply initial structure; committed live edits belong to the Campaign Scene aggregate.
 
+The tabletop performs one bounded HTTP read for initial Encounter and pending-decision state, then applies the authoritative Encounter projection and pending summary carried by root WebSocket command responses. Reconnect snapshots and non-root aggregate changes invalidate the affected reads; the mounted tabletop does not poll them. Its action drawer requests only the authorized active Character's compact action choices rather than the full Character Sheet. Failed admission attempts use exponential backoff capped at 30 seconds and reset only after an authoritative `READY`, preventing an unavailable room host from amplifying ticket and API traffic.
+
 ## Remote command flow
 
 ```mermaid

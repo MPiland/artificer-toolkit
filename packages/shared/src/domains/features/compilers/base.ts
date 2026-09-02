@@ -19,6 +19,8 @@ import type { FeatureAttribute } from '#core'
 
 export type CompiledFeatureBase = {
   id: string
+  /** Retained for bounded play-surface projections; historical snapshots may omit it. */
+  label?: string
   attributes?: FeatureAttribute[]
   restrictions?: FacetAuthored
   effects?: CompiledEffectGroup[]
@@ -59,6 +61,7 @@ export function compileFeatureBase(authored: FeatureBaseAuthored): CompiledFeatu
     : undefined
   return {
     id: authored.id,
+    label: authored.label,
     attributes: authored.attributes,
     restrictions: authored.restrictions,
     effects,

@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { DBLike } from '@artificer-toolkit/db'
+import {
+  DND5E_CLEAVING_OPERATION_KEY,
+  DND5E_DISARM_OPERATION_KEY,
+  DND5E_OVERRUN_OPERATION_KEY,
+  DND5E_SHOVE_ASIDE_OPERATION_KEY,
+  DND5E_TUMBLE_OPERATION_KEY,
+  type Dnd5eOptionalCombatRuleKindDto
+} from '@artificer-toolkit/schema/shared/optionalCombat'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 const ids = {
@@ -8,13 +16,29 @@ const ids = {
   system: '00000000-0000-4000-8000-000000000002',
   source: '00000000-0000-4000-8000-000000000003',
   flanking: '00000000-0000-4000-8000-000000000004',
-  facing: '00000000-0000-4000-8000-000000000005'
+  facing: '00000000-0000-4000-8000-000000000005',
+  disarm: '00000000-0000-4000-8000-000000000006',
+  overrun: '00000000-0000-4000-8000-000000000007',
+  shoveAside: '00000000-0000-4000-8000-000000000008',
+  tumble: '00000000-0000-4000-8000-000000000009',
+  cleaving: '00000000-0000-4000-8000-00000000000a',
+  athletics: '00000000-0000-4000-8000-00000000000b',
+  acrobatics: '00000000-0000-4000-8000-00000000000c'
+}
+
+const simpleModuleKeys: Partial<Record<Dnd5eOptionalCombatRuleKindDto, string>> = {
+  DISARM: DND5E_DISARM_OPERATION_KEY,
+  OVERRUN: DND5E_OVERRUN_OPERATION_KEY,
+  SHOVE_ASIDE: DND5E_SHOVE_ASIDE_OPERATION_KEY,
+  TUMBLE: DND5E_TUMBLE_OPERATION_KEY,
+  CLEAVING: DND5E_CLEAVING_OPERATION_KEY
 }
 
 const mocks = vi.hoisted(() => ({
   requireCurrent: vi.fn(),
   listUnavailableSources: vi.fn(),
-  requirePolicyModule: vi.fn()
+  requirePolicyModule: vi.fn(),
+  findActiveVocabulary: vi.fn()
 }))
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => {
@@ -24,11 +48,55 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createReusableDefinitionRepository: () => ({
       requireCurrent: mocks.requireCurrent
     }),
+    createSystemVocabularySnapshotRepository: () => ({
+      findActive: mocks.findActiveVocabulary
+    }),
     createCampaignRepository: () => ({
       listContentSourceIdsNotEnabledForCampaign: mocks.listUnavailableSources
     })
   }
 })
+
+function systemVocabulary() {
+  return {
+    schemaVersion: 4 as const,
+    id: ids.system,
+    label: 'Test system',
+    rulesetCode: 'test',
+    rulesetVersion: '1',
+    alignments: [],
+    abilities: [{ id: '00000000-0000-4000-8000-0000000000d1', code: 'ABILITY', label: 'Ability' }],
+    challengeRatings: [],
+    conditionTypes: [],
+    creatureTypes: [],
+    currencies: [],
+    damageTypes: [],
+    heritages: [],
+    languages: [],
+    lifestyles: [],
+    magicSchools: [],
+    passives: [],
+    rarities: [],
+    senses: [],
+    skills: [
+      {
+        id: ids.athletics,
+        code: 'CHECK_A',
+        label: 'Check A',
+        governingAbilityDefinitionId: '00000000-0000-4000-8000-0000000000d1'
+      },
+      {
+        id: ids.acrobatics,
+        code: 'CHECK_B',
+        label: 'Check B',
+        governingAbilityDefinitionId: '00000000-0000-4000-8000-0000000000d1'
+      }
+    ],
+    speeds: [],
+    terrains: [],
+    userId: ids.source
+  }
+}
 
 vi.mock('../rules/platformRulesRuntime.js', () => ({
   requireInstalledGameSystemPolicyModule: mocks.requirePolicyModule
@@ -41,11 +109,11 @@ const { OptionalCombatSourceError, resolveCurrentOptionalCombatSources } =
 
 function document(
   id: string,
-  kind: 'FLANKING' | 'FACING' | 'ALTERNATING_DIAGONALS',
+  kind: Dnd5eOptionalCombatRuleKindDto,
   group: string | null = null,
   moduleKey = kind === 'FLANKING'
     ? 'd20.attack.flanking-opposition'
-    : 'scene.grid.square.alternating-diagonals'
+    : (simpleModuleKeys[kind] ?? 'scene.grid.square.alternating-diagonals')
 ) {
   return {
     schemaVersion: 1 as const,
@@ -53,20 +121,49 @@ function document(
     gameSystemId: ids.system,
     kind,
     module: { policyModuleKey: moduleKey, contractVersion: 1 },
-    parameters:
-      kind === 'FLANKING'
-        ? {
+    parameters: (() => {
+      switch (kind) {
+        case 'FLANKING':
+          return {
             kind,
             participantCapabilityDefinitionId: '00000000-0000-4000-8000-000000000006'
           }
-        : { kind },
+        case 'DISARM':
+          return {
+            kind,
+            defenderCheckDefinitionIds: [ids.athletics, ids.acrobatics]
+          }
+        case 'OVERRUN':
+          return {
+            kind,
+            initiatorCheckDefinitionId: ids.athletics,
+            targetCheckDefinitionId: ids.athletics
+          }
+        case 'SHOVE_ASIDE':
+          return {
+            kind,
+            initiatorCheckDefinitionId: ids.athletics,
+            defenderCheckDefinitionIds: [ids.athletics, ids.acrobatics]
+          }
+        case 'TUMBLE':
+          return {
+            kind,
+            initiatorCheckDefinitionId: ids.acrobatics,
+            targetCheckDefinitionId: ids.acrobatics
+          }
+        case 'CLEAVING':
+          return { kind, qualifyingAttackKind: 'MELEE', requiresUndamagedInitialTarget: true }
+        default:
+          return { kind }
+      }
+    })(),
     mutuallyExclusiveGroup: group
   }
 }
 
 function current(
   id: string,
-  kind: 'FLANKING' | 'FACING' | 'ALTERNATING_DIAGONALS',
+  kind: Dnd5eOptionalCombatRuleKindDto,
   group: string | null = null,
   moduleKey?: string
 ) {
@@ -92,6 +189,7 @@ describe('Encounter optional combat snapshot', () => {
     vi.resetAllMocks()
     mocks.listUnavailableSources.mockResolvedValue([])
     mocks.requirePolicyModule.mockReturnValue(undefined)
+    mocks.findActiveVocabulary.mockResolvedValue({ document: systemVocabulary() })
     mocks.requireCurrent.mockImplementation(async (id: string) =>
       id === ids.flanking ? current(id, 'FLANKING') : current(id, 'FACING')
     )
@@ -110,6 +208,33 @@ describe('Encounter optional combat snapshot', () => {
     ])
     expect(resolved.snapshot.definitions[0]?.document).toEqual(document(ids.flanking, 'FLANKING'))
     expect(resolved.checksum).toMatch(/^[a-f0-9]{64}$/)
+  })
+
+  it('admits every selected pre-launch optional action and resolution definition', async () => {
+    const selected = [
+      [ids.disarm, 'DISARM'],
+      [ids.overrun, 'OVERRUN'],
+      [ids.shoveAside, 'SHOVE_ASIDE'],
+      [ids.tumble, 'TUMBLE'],
+      [ids.cleaving, 'CLEAVING']
+    ] as const
+    mocks.requireCurrent.mockImplementation(async (id: string) => {
+      const entry = selected.find(([definitionId]) => definitionId === id)
+      if (!entry) throw new Error('missing fixture')
+      return current(entry[0], entry[1])
+    })
+
+    const resolved = await resolveEncounterOptionalCombatSnapshot({
+      db: {} as DBLike,
+      campaignId: ids.campaign,
+      gameSystemId: ids.system,
+      definitionIds: selected.map(([definitionId]) => definitionId)
+    })
+
+    expect(
+      resolved.snapshot.definitions.map((definition) => definition.document.kind).sort()
+    ).toEqual(selected.map(([, kind]) => kind).sort())
+    expect(mocks.requirePolicyModule).toHaveBeenCalledTimes(selected.length)
   })
 
   it('freezes a valid empty snapshot for an unregistered System without capability lookup', async () => {
@@ -230,5 +355,87 @@ describe('Encounter optional combat snapshot', () => {
       })
     ).rejects.toBeInstanceOf(OptionalCombatSourceError)
     expect(mocks.requireCurrent).toHaveBeenCalledWith(ids.flanking)
+  })
+
+  it.each([
+    ['DISARM', ids.disarm],
+    ['OVERRUN', ids.overrun],
+    ['SHOVE_ASIDE', ids.shoveAside],
+    ['TUMBLE', ids.tumble]
+  ] as const)(
+    'rejects %s when a pinned check definition is unavailable',
+    async (kind, definitionId) => {
+      const unavailableCheckId = '00000000-0000-4000-8000-0000000000dd'
+      const unavailableDocument = {
+        ...document(definitionId, kind),
+        parameters:
+          kind === 'DISARM'
+            ? { kind, defenderCheckDefinitionIds: [unavailableCheckId] }
+            : kind === 'SHOVE_ASIDE'
+              ? {
+                  kind,
+                  initiatorCheckDefinitionId: ids.athletics,
+                  defenderCheckDefinitionIds: [unavailableCheckId]
+                }
+              : {
+                  kind,
+                  initiatorCheckDefinitionId: unavailableCheckId,
+                  targetCheckDefinitionId: ids.athletics
+                }
+      }
+      mocks.requireCurrent.mockResolvedValue({
+        ...current(definitionId, kind),
+        document: unavailableDocument,
+        checksum: checksumRuleDocument(unavailableDocument)
+      })
+
+      await expect(
+        resolveCurrentOptionalCombatSources({
+          db: {} as DBLike,
+          gameSystemId: ids.system,
+          definitionIds: [definitionId]
+        })
+      ).rejects.toThrow('check definitions are not available')
+    }
+  )
+
+  it('rejects check references when the resolved vocabulary belongs to another System', async () => {
+    mocks.requireCurrent.mockResolvedValue(current(ids.disarm, 'DISARM'))
+    mocks.findActiveVocabulary.mockResolvedValue({
+      document: { ...systemVocabulary(), id: ids.facing }
+    })
+
+    await expect(
+      resolveCurrentOptionalCombatSources({
+        db: {} as DBLike,
+        gameSystemId: ids.system,
+        definitionIds: [ids.disarm]
+      })
+    ).rejects.toThrow('check definitions are not available')
+  })
+
+  it('rejects check references against a legacy untyped vocabulary', async () => {
+    mocks.requireCurrent.mockResolvedValue(current(ids.disarm, 'DISARM'))
+    const vocabulary = systemVocabulary()
+    mocks.findActiveVocabulary.mockResolvedValue({
+      document: {
+        ...vocabulary,
+        schemaVersion: 3,
+        skills: vocabulary.skills.map((skill) => ({
+          id: skill.id,
+          code: skill.code,
+          label: skill.label
+        })),
+        initiativePolicy: { defaultDefinitionId: ids.flanking }
+      }
+    })
+
+    await expect(
+      resolveCurrentOptionalCombatSources({
+        db: {} as DBLike,
+        gameSystemId: ids.system,
+        definitionIds: [ids.disarm]
+      })
+    ).rejects.toThrow('check definitions are not available')
   })
 })

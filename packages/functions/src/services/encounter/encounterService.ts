@@ -11,6 +11,7 @@ import {
   createCharacterRepository,
   createAccountEntitlementsRepository,
   createAuthoredVersionRepository,
+  createSystemVocabularySnapshotRepository,
   createEncounterRepository,
   createRulePackRepository,
   withTransaction,
@@ -51,14 +52,21 @@ import type {
   LiveSessionAggregateVersionDto,
   LiveSessionSceneVisionContextDto
 } from '@artificer-toolkit/schema/api/liveSessions'
-import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
+import { type EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
 import { encounterProjectionEventSchema } from '@artificer-toolkit/schema/projections/encounter'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { compileInstalledCreatureRuleFacts } from '../rules/platformRulesRuntime.js'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import type { RuleResolutionEvidenceDto } from '@artificer-toolkit/schema/api/rules'
 import type { MovementReactionChoiceSelectionDto } from '@artificer-toolkit/schema/shared/reaction'
 import { executeDiceConfiguration } from '../rolls/rollService.js'
+import {
+  pinCreatureEquipmentSources,
+  snapshotCreatureEquipmentLoadout,
+  snapshotCreatureEquipmentSources as parseSnapshotCreatureEquipmentSources
+} from '../rules/encounterCreatureEquipmentSources.js'
+import { assertEncounterCreatureEquipmentLoadoutCapabilities } from '../rules/encounterFeatureActionCapabilityDiscovery.js'
 import { ENTITLEMENT_LIMITS, assertEntitlementLimit } from '../account/entitlementService.js'
 import { executeCharacterSheetCommand } from '../character/sheetService.js'
 import { getCharacterSheetForUser } from '../character/characterApplicationService.js'
@@ -121,7 +129,13 @@ import { executeAutomaticEncounterMovementReaction } from './encounterAutomaticM
 import { discoverEncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
 import { startEncounterLegendaryResistanceChoice } from './encounterLegendaryResistanceChoice.js'
 import { resumeEncounterLegendaryResistanceChoice } from './encounterLegendaryResistanceChoice.js'
-import { withTargetEncounterFeatureResourceConsumption } from './encounterActionSettlementCore.js'
+import {
+  consumePreparedActionEconomy,
+  withTargetEncounterFeatureResourceConsumption
+} from './encounterActionSettlementCore.js'
+import { prepareEncounterMovementPassageContest } from './encounterMovementPassageContestPreparation.js'
+import { executeEncounterMovementPassageContest } from './encounterMovementPassageContest.js'
+import { resolveEncounterMovementPassageChoice } from './encounterMovementPassageChoice.js'
 import { prepareCurrentEncounterMovementReactionAction } from './encounterMovementReactionActionCoordinator.js'
 import { executeEncounterMovementReactionAction } from './encounterMovementReactionActionExecution.js'
 import { settleEncounterMovementReactionAction } from './encounterMovementReactionActionSettlement.js'
@@ -142,9 +156,20 @@ import {
   resumeEncounterCharacterRuleAction
 } from './encounterCharacterRuleActionService.js'
 import {
+  executeEncounterOptionalContestActionOccurrence,
+  isActiveEncounterDisarmIntent,
+  resumeEncounterOptionalContestActionOccurrence
+} from './encounterOptionalContestActionCoordinator.js'
+import {
+  executeEncounterShoveAsideOccurrence,
+  isActiveEncounterShoveAsideIntent,
+  resumeEncounterShoveAsideOccurrence
+} from './encounterShoveAsideActionCoordinator.js'
+import {
   createEncounterActionStartIntent,
   lockEncounterActionSceneContext
 } from './encounterActionSceneContext.js'
+import { settleEncounterCleavingChoice } from './encounterCleavingChoice.js'
 import { resolveEncounterInitiativePolicySnapshot } from './encounterInitiativePolicy.js'
 import { resolveEncounterOptionalCombatSnapshot } from './encounterOptionalCombatPolicy.js'
 import {
@@ -194,6 +219,8 @@ import type {
   PendingCompletedTurnPhaseDto,
   StagedInitiativeRoundStateDto,
   ServerKernelRuleExecutionPendingSnapshotDto,
+  ServerOptionalCombatContestPendingApplicationContextDto,
+  ServerRuleExecutionPendingSnapshotDto,
   ServerRuleExecutionPendingApplicationContextDto,
   ServerRuleExecutionContinuationDto,
   StoredRuleExecutionResultDto,
@@ -221,6 +248,11 @@ import {
   stageEncounterLegendaryActionRefreshes
 } from './encounterLegendaryActionDiscovery.js'
 import {
+  applyStagedActionEconomyRefreshes,
+  mergeEncounterActorTerminalUpdates,
+  stageEncounterActionEconomyRefreshes
+} from './encounterActionEconomyRefresh.js'
+import {
   encounterSystemIds,
   requireCompatibleActiveRulePackRevision,
   resolveActiveRulePackForSystems
@@ -247,6 +279,7 @@ function encounterActionStartFingerprint(
         createEncounterActionStartIntent({
           actionId: input.actionId,
           actorId: input.actorId,
+          optionalCombatIntent: input.optionalCombatIntent,
           sceneContext: input.sceneContext ?? null,
           targetActorId: input.targetActorId
         })
@@ -300,6 +333,31 @@ function encounterActionResumeFingerprint(
       occurrenceId: input.occurrenceId,
       expectedOccurrenceVersion: input.expectedOccurrenceVersion,
       resolutionIntentChecksum: checksumRuleDocument(resolutionIntent)
+    }
+  )
+}
+
+function encounterCleavingResumeFingerprint(
+  input: Extract<EncounterCommandInputDto, { type: 'RESOLVE_RULE_OCCURRENCE' }>,
+  userId: string
+): string | null {
+  if (input.resolution.kind !== 'DECLINE' && input.resolution.kind !== 'OPTION') return null
+  return createRuleExecutionCommandFingerprint(
+    { aggregateKind: 'ENCOUNTER', aggregateId: input.encounterId, actorUserId: userId },
+    {
+      commandId: input.commandId,
+      correlationId: input.correlationId,
+      expectedAggregateVersion: input.expectedVersion
+    },
+    'RULE_EXECUTION_RESUME',
+    {
+      occurrenceId: input.occurrenceId,
+      expectedOccurrenceVersion: input.expectedOccurrenceVersion,
+      resolutionIntentChecksum: checksumRuleDocument(
+        input.resolution.kind === 'DECLINE'
+          ? { kind: 'DECLINE' as const }
+          : { kind: 'OPTION' as const, optionId: input.resolution.optionId }
+      )
     }
   )
 }
@@ -497,6 +555,41 @@ interface EncounterCreatureSource {
   checksum: string
   version: number
   versionId: string
+}
+
+async function loadActiveEncounterEquipment(
+  db: DBLike,
+  userId: string,
+  equipmentIds: readonly string[]
+) {
+  if (equipmentIds.length === 0) return new Map()
+  return createAuthoredVersionRepository(db).findActiveByIds({
+    subjectKind: 'EQUIPMENT',
+    subjectIds: equipmentIds,
+    userId,
+    includeMaster: true
+  })
+}
+
+function creatureEquipmentIds(creatures: ReadonlyMap<string, EncounterCreatureSource>): string[] {
+  return [
+    ...new Set(
+      [...creatures.values()].flatMap((source) =>
+        (source.authored.equipmentLoadout ?? []).map((entry) => entry.equipmentId)
+      )
+    )
+  ]
+}
+
+function snapshotCreatureEquipmentSources(input: {
+  creature: CreatureAuthored
+  equipmentRecords: Awaited<ReturnType<typeof loadActiveEncounterEquipment>>
+}) {
+  try {
+    return pinCreatureEquipmentSources(input)
+  } catch {
+    throw new EncounterValidationError('Creature Equipment source is unavailable.')
+  }
 }
 
 async function loadActiveEncounterCreatures(
@@ -856,6 +949,14 @@ export async function createEncounterBlueprint(
       )
     ]
     const creatures = await loadActiveEncounterCreatures(trx, userId, creatureIds)
+    const equipment = await loadActiveEncounterEquipment(
+      trx,
+      userId,
+      creatureEquipmentIds(creatures)
+    )
+    const vocabulary = await createSystemVocabularySnapshotRepository(trx).findActive(
+      input.gameSystemId
+    )
     const enemies: EncounterBlueprintEnemy[] = input.enemies.map((enemy) => {
       if (enemy.kind === 'CUSTOM') {
         return {
@@ -886,6 +987,12 @@ export async function createEncounterBlueprint(
       }
       const maxHitPoints = Math.max(creature.hitPoints, 0)
       const sourceRevision = source.version
+      const equipmentSources = snapshotCreatureEquipmentSources({
+        creature,
+        equipmentRecords: equipment
+      })
+      if (!vocabulary) throw new EncounterValidationError('System vocabulary is unavailable.')
+      const ruleFacts = compileInstalledCreatureRuleFacts({ creature, vocabulary })
       return {
         kind: 'CREATURE' as const,
         sourceId: creature.id,
@@ -902,7 +1009,9 @@ export async function createEncounterBlueprint(
           sourceVersionId: source.versionId,
           sourceChecksum: source.checksum,
           maxHitPoints,
-          payload: creature as unknown as Json
+          payload: creature as unknown as Json,
+          ruleFacts,
+          ...(equipmentSources.length > 0 ? { equipmentSources } : {})
         } as unknown as Json
       }
     })
@@ -969,6 +1078,14 @@ export async function updateEncounterBlueprint(
       )
     ]
     const creatures = await loadActiveEncounterCreatures(trx, userId, creatureIds)
+    const equipment = await loadActiveEncounterEquipment(
+      trx,
+      userId,
+      creatureEquipmentIds(creatures)
+    )
+    const vocabulary = await createSystemVocabularySnapshotRepository(trx).findActive(
+      locked.gameSystemId
+    )
     const enemies: EncounterBlueprintEnemy[] = input.enemies.map((enemy) => {
       if (enemy.kind === 'CUSTOM') {
         return {
@@ -994,6 +1111,12 @@ export async function updateEncounterBlueprint(
       }
       const creature = source.authored
       const maxHitPoints = Math.max(creature.hitPoints, 0)
+      const equipmentSources = snapshotCreatureEquipmentSources({
+        creature,
+        equipmentRecords: equipment
+      })
+      if (!vocabulary) throw new EncounterValidationError('System vocabulary is unavailable.')
+      const ruleFacts = compileInstalledCreatureRuleFacts({ creature, vocabulary })
       return {
         kind: 'CREATURE',
         sourceId: creature.id,
@@ -1010,7 +1133,9 @@ export async function updateEncounterBlueprint(
           sourceVersionId: source.versionId,
           sourceChecksum: source.checksum,
           maxHitPoints,
-          payload: creature as unknown as Json
+          payload: creature as unknown as Json,
+          ruleFacts,
+          ...(equipmentSources.length > 0 ? { equipmentSources } : {})
         } as unknown as Json
       }
     })
@@ -1082,6 +1207,16 @@ type MovementReactionResolveRuleOccurrenceCommand = Omit<
   resolution: Extract<ResolveRuleOccurrenceCommand['resolution'], { kind: 'DECLINE' | 'OPTION' }>
 }
 
+type MovementPassageResolveRuleOccurrenceCommand = Omit<
+  ResolveRuleOccurrenceCommand,
+  'resolution'
+> & {
+  resolution: Extract<
+    ResolveRuleOccurrenceCommand['resolution'],
+    { kind: 'PASSAGE_DECLINE' | 'PASSAGE_OPTION' }
+  >
+}
+
 type InitiativeResolveRuleOccurrenceCommand = Omit<ResolveRuleOccurrenceCommand, 'resolution'> & {
   resolution: Extract<
     ResolveRuleOccurrenceCommand['resolution'],
@@ -1092,6 +1227,115 @@ type InitiativeResolveRuleOccurrenceCommand = Omit<ResolveRuleOccurrenceCommand,
 type MovementResolveRuleOccurrenceCommand =
   | D20ResolveRuleOccurrenceCommand
   | MovementReactionResolveRuleOccurrenceCommand
+  | MovementPassageResolveRuleOccurrenceCommand
+
+type MovementPassageContinuation = NonNullable<
+  ServerOptionalCombatContestPendingApplicationContextDto['movementContinuation']
+>
+
+type MovementPassageContestReceipt = NonNullable<
+  Extract<
+    MovementPassageContinuation['root']['resolutionCommands'][number],
+    { kind: 'PASSAGE_OPTION' }
+  >['passageContest']
+>
+
+type MovementPassageSettlement = {
+  movement: MovementPassageContinuation
+  continueMovement: boolean
+  economyConsumed: boolean
+}
+
+type CompletedMovementPassageContest = Extract<
+  Awaited<ReturnType<typeof executeEncounterMovementPassageContest>>,
+  { kind: 'COMPLETE' }
+>
+
+function movementPassageContestReceipt(input: {
+  execution: CompletedMovementPassageContest
+  pending: ServerOptionalCombatContestPendingApplicationContextDto
+}): MovementPassageContestReceipt {
+  const economy = input.pending.actionEconomy
+  if (!economy) throw new EncounterConflictError('Movement passage allowance is unavailable.')
+  const terminalPassageStop =
+    input.execution.outcome === 'SUCCESS'
+      ? (input.pending.movementContinuation?.nextPassageStop ?? null)
+      : null
+  const participant = (
+    policy: ServerOptionalCombatContestPendingApplicationContextDto['initiator'],
+    rawFaces: readonly number[],
+    total: number
+  ) => ({
+    rollMode: policy.rollMode,
+    rawFaces: [...rawFaces],
+    selectedNatural:
+      policy.rollMode === 'ADVANTAGE'
+        ? Math.max(...rawFaces)
+        : policy.rollMode === 'DISADVANTAGE'
+          ? Math.min(...rawFaces)
+          : rawFaces[0]!,
+    modifier: policy.modifier,
+    total
+  })
+  return {
+    actionKind: input.pending.actionKind as 'OVERRUN' | 'TUMBLE',
+    optionId: input.pending.optionId,
+    outcome: input.execution.outcome,
+    initiator: participant(
+      input.pending.initiator,
+      input.execution.evidence.initiatorRawFaces,
+      input.execution.evidence.initiatorTotal
+    ),
+    defender: participant(
+      input.pending.defender,
+      input.execution.evidence.defenderRawFaces,
+      input.execution.evidence.defenderTotal
+    ),
+    actionEconomy: { ...economy, afterUsed: economy.beforeUsed + 1 },
+    audit: {
+      optionalCombat: {
+        definitionId: input.pending.optionalCombat.definitionId,
+        definitionVersion: input.pending.optionalCombat.definitionVersion,
+        definitionChecksum: input.pending.optionalCombat.definitionChecksum,
+        moduleKey: input.pending.optionalCombat.moduleKey,
+        moduleContractVersion: input.pending.optionalCombat.moduleContractVersion
+      },
+      sourceActorId: input.pending.sourceActorId,
+      sourceTokenId: input.pending.movementContinuation!.root.tokenId,
+      blockerActorId: input.pending.movementContinuation!.blockerActorId,
+      blockerTokenId: input.pending.movementContinuation!.blockerTokenId,
+      contact: input.pending.movementContinuation!.contact,
+      contactPathDistance: input.pending.movementContinuation!.contactPathDistance,
+      blockerCurrentnessChecksum: input.pending.movementContinuation!.blockerCurrentnessChecksum,
+      selectionContractChecksum: input.pending.selectionContractChecksum,
+      resolvedSelectionChecksum: input.pending.resolvedSelectionChecksum,
+      spatialSelectionChecksum: input.pending.movementContinuation!.spatialSelectionChecksum,
+      spatialCurrentnessChecksum: input.pending.movementContinuation!.spatialCurrentnessChecksum,
+      originalPath: [...input.pending.movementContinuation!.root.originalPath],
+      pathChecksum: input.pending.movementContinuation!.root.pathChecksum,
+      ...(terminalPassageStop
+        ? {
+            terminalPassageStop: {
+              blockerActorId: terminalPassageStop.blockerActorId,
+              blockerTokenId: terminalPassageStop.blockerTokenId,
+              contact: terminalPassageStop.contact,
+              contactPathDistance: terminalPassageStop.pathDistance,
+              blockerCurrentnessChecksum: terminalPassageStop.blockerCurrentnessChecksum
+            },
+            terminalPosition: terminalPassageStop.contact
+          }
+        : {})
+    }
+  }
+}
+
+function isMovementPassageResolveRuleOccurrenceCommand(
+  command: ResolveRuleOccurrenceCommand
+): command is MovementPassageResolveRuleOccurrenceCommand {
+  return (
+    command.resolution.kind === 'PASSAGE_DECLINE' || command.resolution.kind === 'PASSAGE_OPTION'
+  )
+}
 
 type RechargeResolveRuleOccurrenceCommand = Omit<ResolveRuleOccurrenceCommand, 'resolution'> & {
   resolution: Extract<
@@ -1148,7 +1392,8 @@ function isEncounterActionRuleOccurrence(input: {
 }): boolean {
   if (
     input.pendingApplicationContext?.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION' ||
-    input.pendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION'
+    input.pendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+    input.pendingApplicationContext?.kind === 'ENCOUNTER_CREATURE_RULE_ACTION'
   ) {
     return true
   }
@@ -1164,7 +1409,11 @@ function isActorDirectActionOccurrence(input: {
   pendingApplicationContext: ServerRuleExecutionPendingApplicationContextDto | undefined
   receipt: RuleOccurrenceReceipt | null
 }): boolean {
-  if (input.pendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION') return true
+  if (
+    input.pendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+    input.pendingApplicationContext?.kind === 'ENCOUNTER_CREATURE_RULE_ACTION'
+  )
+    return true
   return (
     input.receipt?.resultPayload.status === 'COMPLETE' &&
     input.receipt.resultPayload.applicationOutputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
@@ -1231,10 +1480,38 @@ function actionOccurrenceSummaryFromReceipt(input: {
       }
     }
   }
+  if (result.status === 'PAUSED' && result.pending?.kind === 'INTEGER_RANGE_EVIDENCE') {
+    if (role !== 'OWNER' && receipt.actorUserId !== userId) return null
+    const request = result.pending.requests.find(
+      (candidate) => candidate.requestId === result.request.requestId
+    )
+    if (
+      !request ||
+      request.min !== result.request.min ||
+      request.max !== result.request.max ||
+      request.min >= request.max
+    )
+      return null
+    return {
+      occurrenceId: result.occurrenceId,
+      occurrenceVersion: result.occurrenceVersion,
+      status: 'PENDING',
+      outcome: null,
+      pending: {
+        kind: 'ACTION_OUTCOME_EVIDENCE',
+        occurrenceId: result.occurrenceId,
+        occurrenceVersion: result.occurrenceVersion,
+        encounterVersion: input.encounterVersion,
+        request,
+        allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
+      }
+    }
+  }
   if (
     result.status === 'COMPLETE' &&
     (result.applicationOutputs.kind === 'CHARACTER_MECHANICS_BATCH' ||
-      result.applicationOutputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+      result.applicationOutputs.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ||
+      result.applicationOutputs.kind === 'CONTESTED_ACTION')
   ) {
     return {
       occurrenceId: result.occurrenceId,
@@ -1429,6 +1706,7 @@ function actionOccurrenceSummary(input: {
   encounterVersion: number
   role: 'OWNER' | 'PLAYER'
   assignedCharacterId: string | null
+  encounterActorControllerCharacterIds?: ReadonlyMap<string, string>
 }): EncounterRuleOccurrenceSummaryDto {
   const snapshot = input.occurrence.pendingSnapshot
   const context = snapshot?.applicationContext
@@ -1437,7 +1715,8 @@ function actionOccurrenceSummary(input: {
       throw new EncounterConflictError('Rule occurrence is unavailable.')
     }
     if (
-      context?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+      (context?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+        context?.kind === 'ENCOUNTER_CREATURE_RULE_ACTION') &&
       context.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'
     ) {
       return {
@@ -1459,6 +1738,64 @@ function actionOccurrenceSummary(input: {
             : null
       }
     }
+    if (context?.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST') {
+      if (
+        snapshot.request.kind !== 'INTEGER_RANGE' ||
+        snapshot.request.min !== 1 ||
+        snapshot.request.max !== 20
+      ) {
+        throw new EncounterConflictError('Rule occurrence is unavailable.')
+      }
+      const participant =
+        snapshot.request.nodeId === context.initiator.requestNodeId
+          ? 'INITIATOR'
+          : snapshot.request.nodeId === context.defender.requestNodeId
+            ? 'DEFENDER'
+            : null
+      const characterId =
+        participant === 'INITIATOR'
+          ? context.initiatorControllerCharacterId
+          : participant === 'DEFENDER' && context.target.kind === 'CHARACTER'
+            ? context.target.characterId
+            : participant === 'DEFENDER' && context.target.kind === 'ENCOUNTER_ACTOR'
+              ? (input.encounterActorControllerCharacterIds?.get(context.targetActorId) ?? null)
+              : null
+      if (input.role !== 'OWNER' && (!characterId || input.assignedCharacterId !== characterId)) {
+        return {
+          occurrenceId: input.occurrence.id,
+          occurrenceVersion: input.occurrence.version,
+          status: 'PENDING',
+          outcome: null,
+          pending: null
+        }
+      }
+      const policy =
+        participant === 'INITIATOR'
+          ? context.initiator
+          : participant === 'DEFENDER'
+            ? context.defender
+            : null
+      if (!policy) throw new EncounterConflictError('Rule occurrence is unavailable.')
+      return {
+        occurrenceId: input.occurrence.id,
+        occurrenceVersion: input.occurrence.version,
+        status: 'PENDING',
+        outcome: null,
+        pending: {
+          kind: 'D20_EVIDENCE',
+          occurrenceId: input.occurrence.id,
+          occurrenceVersion: input.occurrence.version,
+          encounterVersion: input.encounterVersion,
+          request: {
+            requestId: snapshot.request.requestId,
+            min: 1,
+            max: 20,
+            rollMode: policy.rollMode
+          },
+          allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+        }
+      }
+    }
     const actionSourceCharacterId =
       context?.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION'
         ? context.sourceCharacterId
@@ -1466,18 +1803,72 @@ function actionOccurrenceSummary(input: {
           ? context.sourceCharacterId
           : null
     if (
-      !actionSourceCharacterId ||
-      (input.role !== 'OWNER' && input.assignedCharacterId !== actionSourceCharacterId) ||
-      snapshot.request.kind !== 'INTEGER_RANGE' ||
-      snapshot.request.min !== 1 ||
-      snapshot.request.max !== 20
+      (context?.kind === 'ENCOUNTER_CREATURE_RULE_ACTION'
+        ? input.role !== 'OWNER'
+        : !actionSourceCharacterId ||
+          (input.role !== 'OWNER' && input.assignedCharacterId !== actionSourceCharacterId)) ||
+      snapshot.request.kind !== 'INTEGER_RANGE'
     ) {
       throw new EncounterConflictError('Rule occurrence is unavailable.')
     }
+    if (
+      (context?.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION' ||
+        context?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+        context?.kind === 'ENCOUNTER_CREATURE_RULE_ACTION') &&
+      context.twoPhase?.phase === 'OUTCOME'
+    ) {
+      const nestedD20 = context.twoPhase.nestedOutcomeD20
+      if (nestedD20 && snapshot.request.nodeId === nestedD20.requestNodeId) {
+        if (snapshot.request.min !== 1 || snapshot.request.max !== 20)
+          throw new EncounterConflictError('Rule occurrence is unavailable.')
+        return {
+          occurrenceId: input.occurrence.id,
+          occurrenceVersion: input.occurrence.version,
+          status: 'PENDING',
+          outcome: null,
+          pending: {
+            kind: 'D20_EVIDENCE',
+            occurrenceId: input.occurrence.id,
+            occurrenceVersion: input.occurrence.version,
+            encounterVersion: input.encounterVersion,
+            request: {
+              requestId: snapshot.request.requestId,
+              min: 1,
+              max: 20,
+              rollMode: nestedD20.rollMode
+            },
+            allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+          }
+        }
+      }
+      if (snapshot.request.min >= snapshot.request.max)
+        throw new EncounterConflictError('Rule occurrence is unavailable.')
+      return {
+        occurrenceId: input.occurrence.id,
+        occurrenceVersion: input.occurrence.version,
+        status: 'PENDING',
+        outcome: null,
+        pending: {
+          kind: 'ACTION_OUTCOME_EVIDENCE',
+          occurrenceId: input.occurrence.id,
+          occurrenceVersion: input.occurrence.version,
+          encounterVersion: input.encounterVersion,
+          request: {
+            requestId: snapshot.request.requestId,
+            min: snapshot.request.min,
+            max: snapshot.request.max
+          },
+          allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
+        }
+      }
+    }
+    if (snapshot.request.min !== 1 || snapshot.request.max !== 20)
+      throw new EncounterConflictError('Rule occurrence is unavailable.')
     const rollMode =
       context?.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION'
         ? context.d20?.rollMode
-        : context?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+        : (context?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+              context?.kind === 'ENCOUNTER_CREATURE_RULE_ACTION') &&
             context.phase.kind === 'ACTION_EVIDENCE'
           ? context.phase.d20?.rollMode
           : null
@@ -1503,6 +1894,98 @@ function actionOccurrenceSummary(input: {
     status: 'COMPLETE',
     outcome: null,
     pending: null
+  }
+}
+
+function cleavingPendingSummary(input: {
+  occurrence: RuleOccurrenceRecord
+  encounterVersion: number
+  role: 'OWNER' | 'PLAYER'
+  assignedCharacterId: string | null
+  playerVisibleActorIds: ReadonlySet<string>
+}): EncounterRuleOccurrenceSummaryDto | null {
+  const snapshot = input.occurrence.pendingSnapshot
+  if (
+    input.occurrence.state !== 'PENDING' ||
+    !snapshot ||
+    !isServerAggregateChoicePendingSnapshot(snapshot) ||
+    snapshot.applicationContext.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING'
+  ) {
+    return null
+  }
+  const context = snapshot.applicationContext
+  if (
+    input.role !== 'OWNER' &&
+    (context.sourceControllerCharacterId === null ||
+      input.assignedCharacterId !== context.sourceControllerCharacterId)
+  ) {
+    return null
+  }
+  const options =
+    input.role === 'OWNER'
+      ? context.options
+      : context.options.filter((option) => input.playerVisibleActorIds.has(option.targetActorId))
+  // A player must never learn that private candidates exist through a zero-option
+  // pending choice. The GM retains the complete option set.
+  if (options.length === 0) return null
+  return {
+    occurrenceId: input.occurrence.id,
+    occurrenceVersion: input.occurrence.version,
+    status: 'PENDING',
+    outcome: null,
+    pending: {
+      kind: 'OPTIONAL_COMBAT_CLEAVING',
+      occurrenceId: input.occurrence.id,
+      occurrenceVersion: input.occurrence.version,
+      encounterVersion: input.encounterVersion,
+      sourceActorId: context.sourceActorId,
+      options: options.map(({ optionId, targetActorId }) => ({ optionId, targetActorId })),
+      allowedResponses: ['DECLINE', 'OPTION']
+    }
+  }
+}
+
+function movementPassagePendingSummary(input: {
+  occurrence: RuleOccurrenceRecord
+  encounterVersion: number
+  role: 'OWNER' | 'PLAYER'
+  assignedCharacterId: string | null
+}): EncounterRuleOccurrenceSummaryDto | null {
+  const snapshot = input.occurrence.pendingSnapshot
+  if (
+    input.occurrence.state !== 'PENDING' ||
+    !snapshot ||
+    !isServerAggregateChoicePendingSnapshot(snapshot) ||
+    snapshot.applicationContext.kind !== 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE'
+  ) {
+    return null
+  }
+  const context = snapshot.applicationContext
+  if (
+    input.role !== 'OWNER' &&
+    (!context.sourceControllerCharacterId ||
+      input.assignedCharacterId !== context.sourceControllerCharacterId)
+  ) {
+    return null
+  }
+  return {
+    occurrenceId: input.occurrence.id,
+    occurrenceVersion: input.occurrence.version,
+    status: 'PENDING',
+    outcome: null,
+    pending: {
+      kind: 'MOVEMENT_PASSAGE_CHOICE',
+      occurrenceId: input.occurrence.id,
+      occurrenceVersion: input.occurrence.version,
+      encounterVersion: input.encounterVersion,
+      sourceActorId: context.sourceActorId,
+      options: context.options.map(({ economy, optionId, ruleKind }) => ({
+        economy,
+        optionId,
+        ruleKind
+      })),
+      allowedResponses: ['DECLINE', 'OPTION']
+    }
   }
 }
 
@@ -1577,8 +2060,12 @@ export async function executeEncounterCommandWithRuleSnapshot(
       })
       const target = requireActor(locked.encounter, input.targetActorId)
       const result =
-        target.kind === 'CHARACTER'
-          ? await executeEncounterCharacterRuleAction({
+        locked.encounter.automationMode !== 'MANUAL' &&
+        isActiveEncounterDisarmIntent({
+          encounter: locked.encounter,
+          intent: input.optionalCombatIntent
+        })
+          ? await executeEncounterOptionalContestActionOccurrence({
               db: trx,
               runtime,
               command: {
@@ -1589,31 +2076,79 @@ export async function executeEncounterCommandWithRuleSnapshot(
                 correlationId: null,
                 encounterId: input.encounterId,
                 expectedEncounterVersion: input.expectedVersion,
+                optionalCombatIntent: input.optionalCombatIntent,
                 sceneContext: actionSceneContext,
                 targetActorId: input.targetActorId,
                 ...(options.liveSessionAuthority
                   ? { liveSessionAuthority: options.liveSessionAuthority }
                   : {})
-              }
+              },
+              ...(options.rollD20 ? { rollD20: options.rollD20 } : {})
             })
-          : await executeEncounterActorDirectRuleAction({
-              db: trx,
-              runtime,
-              command: {
-                actionId: input.actionId,
-                actorId: input.actorId,
-                actorUserId: userId,
-                commandId: input.commandId,
-                correlationId: null,
-                encounterId: input.encounterId,
-                expectedEncounterVersion: input.expectedVersion,
-                sceneContext: actionSceneContext,
-                targetActorId: input.targetActorId,
-                ...(options.liveSessionAuthority
-                  ? { liveSessionAuthority: options.liveSessionAuthority }
-                  : {})
-              }
-            })
+          : locked.encounter.automationMode !== 'MANUAL' &&
+              isActiveEncounterShoveAsideIntent({
+                encounter: locked.encounter,
+                intent: input.optionalCombatIntent
+              })
+            ? await executeEncounterShoveAsideOccurrence({
+                db: trx,
+                runtime,
+                command: {
+                  actionId: input.actionId,
+                  actorId: input.actorId,
+                  actorUserId: userId,
+                  commandId: input.commandId,
+                  correlationId: null,
+                  encounterId: input.encounterId,
+                  expectedEncounterVersion: input.expectedVersion,
+                  optionalCombatIntent: input.optionalCombatIntent,
+                  sceneContext: actionSceneContext,
+                  targetActorId: input.targetActorId,
+                  ...(options.liveSessionAuthority
+                    ? { liveSessionAuthority: options.liveSessionAuthority }
+                    : {})
+                },
+                ...(options.rollD20 ? { rollD20: options.rollD20 } : {})
+              })
+            : target.kind === 'CHARACTER'
+              ? await executeEncounterCharacterRuleAction({
+                  db: trx,
+                  runtime,
+                  command: {
+                    actionId: input.actionId,
+                    actorId: input.actorId,
+                    actorUserId: userId,
+                    commandId: input.commandId,
+                    correlationId: null,
+                    encounterId: input.encounterId,
+                    expectedEncounterVersion: input.expectedVersion,
+                    optionalCombatIntent: input.optionalCombatIntent,
+                    sceneContext: actionSceneContext,
+                    targetActorId: input.targetActorId,
+                    ...(options.liveSessionAuthority
+                      ? { liveSessionAuthority: options.liveSessionAuthority }
+                      : {})
+                  }
+                })
+              : await executeEncounterActorDirectRuleAction({
+                  db: trx,
+                  runtime,
+                  command: {
+                    actionId: input.actionId,
+                    actorId: input.actorId,
+                    actorUserId: userId,
+                    commandId: input.commandId,
+                    correlationId: null,
+                    encounterId: input.encounterId,
+                    expectedEncounterVersion: input.expectedVersion,
+                    optionalCombatIntent: input.optionalCombatIntent,
+                    sceneContext: actionSceneContext,
+                    targetActorId: input.targetActorId,
+                    ...(options.liveSessionAuthority
+                      ? { liveSessionAuthority: options.liveSessionAuthority }
+                      : {})
+                  }
+                })
       const occurrence = await receipts.lockOccurrence(
         'ENCOUNTER',
         locked.encounter.id,
@@ -1672,13 +2207,24 @@ export async function executeEncounterCommandWithRuleSnapshot(
         locked.encounter.id,
         input.commandId
       )
+      const receiptOccurrence = receipt
+        ? await occurrences.lockOccurrence('ENCOUNTER', locked.encounter.id, receipt.occurrenceId)
+        : null
+      const receiptIsOptionalContest = receiptOccurrence
+        ? receiptOccurrence.pendingSnapshot !== null &&
+          isServerKernelRuleExecutionPendingSnapshot(receiptOccurrence.pendingSnapshot) &&
+          receiptOccurrence.pendingSnapshot.applicationContext.kind ===
+            'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
+        : false
       const receiptSummary = receipt
-        ? actionOccurrenceSummaryFromReceipt({
-            receipt,
-            encounterVersion: receipt.aggregateVersion,
-            role: locked.context.role,
-            userId
-          })
+        ? receiptIsOptionalContest || receipt.commandMetadata.transition === 'SPATIAL_MOVEMENT'
+          ? null
+          : actionOccurrenceSummaryFromReceipt({
+              receipt,
+              encounterVersion: receipt.aggregateVersion,
+              role: locked.context.role,
+              userId
+            })
         : null
       if (receipt && receiptSummary) {
         if (
@@ -1706,11 +2252,10 @@ export async function executeEncounterCommandWithRuleSnapshot(
           })
         }
       }
-      const occurrence = await occurrences.lockOccurrence(
-        'ENCOUNTER',
-        locked.encounter.id,
-        input.occurrenceId
-      )
+      const occurrence =
+        receiptOccurrence && receiptOccurrence.id === input.occurrenceId
+          ? receiptOccurrence
+          : await occurrences.lockOccurrence('ENCOUNTER', locked.encounter.id, input.occurrenceId)
       if (!occurrence) throw new EncounterConflictError('Rule occurrence is unavailable.')
       const terminalReceipt =
         occurrence.state === 'COMPLETED'
@@ -1731,6 +2276,134 @@ export async function executeEncounterCommandWithRuleSnapshot(
         isServerAggregateChoicePendingSnapshot(occurrence.pendingSnapshot)
           ? occurrence.pendingSnapshot.applicationContext
           : undefined
+      const cleavingOccurrence =
+        aggregatePendingApplicationContext?.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING' ||
+        routedReceipt?.commandMetadata.transition === 'OPTIONAL_COMBAT_CLEAVING'
+      if (cleavingOccurrence) {
+        if (!isMovementReactionResolveRuleOccurrenceCommand(input)) {
+          throw new EncounterConflictError('Rule occurrence is unavailable.')
+        }
+        const commandFingerprint = encounterCleavingResumeFingerprint(input, userId)
+        if (!commandFingerprint) throw new EncounterConflictError('Rule occurrence is unavailable.')
+        if (routedReceipt) {
+          const metadata = routedReceipt.commandMetadata
+          if (
+            routedReceipt.occurrenceId !== input.occurrenceId ||
+            metadata.transition !== 'OPTIONAL_COMBAT_CLEAVING' ||
+            routedReceipt.commandFingerprint !== commandFingerprint ||
+            routedReceipt.actorUserId !== userId ||
+            routedReceipt.correlationId !== input.correlationId ||
+            metadata.expectedAggregateVersion !== input.expectedVersion ||
+            metadata.expectedOccurrenceVersion !== input.expectedOccurrenceVersion ||
+            checksumRuleDocument(metadata.response) !== checksumRuleDocument(input.resolution)
+          ) {
+            throw new EncounterConflictError('Rule occurrence is unavailable.')
+          }
+          const projection = await createEncounterRepository(trx).requireCurrentProjection({
+            encounterId: locked.encounter.id,
+            // A terminal command remains replayable after ordinary Encounter
+            // progression. Replay returns the current authorized projection,
+            // not a historical projection row that may no longer exist.
+            expectedStreamVersion: locked.context.currentVersion
+          })
+          return {
+            replayed: true,
+            response: encounterCommandResultDtoSchema.parse({
+              projection:
+                locked.context.role === 'OWNER'
+                  ? projection.projection
+                  : projectPlayerEncounterProjection(projection.projection),
+              roll: null,
+              resolution: null,
+              occurrence: actionOccurrenceSummary({
+                occurrence,
+                encounterVersion: locked.context.currentVersion,
+                role: locked.context.role,
+                assignedCharacterId: locked.context.assignedCharacterId
+              })
+            })
+          }
+        }
+        const settled = await settleEncounterCleavingChoice({
+          db: trx,
+          command: {
+            commandId: input.commandId,
+            commandFingerprint,
+            correlationId: input.correlationId,
+            expectedEncounterVersion: input.expectedVersion,
+            expectedOccurrenceVersion: input.expectedOccurrenceVersion,
+            occurrenceId: input.occurrenceId,
+            resolution:
+              input.resolution.kind === 'DECLINE'
+                ? { kind: 'DECLINE' }
+                : { kind: 'OPTION', optionId: input.resolution.optionId }
+          },
+          locked,
+          occurrence
+        })
+        const projection = await createEncounterRepository(trx).requireCurrentProjection({
+          encounterId: locked.encounter.id,
+          expectedStreamVersion: input.expectedVersion + 1
+        })
+        return {
+          replayed: false,
+          response: encounterCommandResultDtoSchema.parse({
+            projection:
+              locked.context.role === 'OWNER'
+                ? projection.projection
+                : projectPlayerEncounterProjection(projection.projection),
+            roll: null,
+            resolution: null,
+            occurrence: actionOccurrenceSummary({
+              occurrence: settled.occurrence,
+              encounterVersion: input.expectedVersion + 1,
+              role: locked.context.role,
+              assignedCharacterId: locked.context.assignedCharacterId
+            })
+          })
+        }
+      }
+      const movementPassageChoiceOccurrence =
+        aggregatePendingApplicationContext?.kind === 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' ||
+        (routedReceipt?.commandMetadata.transition === 'SPATIAL_MOVEMENT' &&
+          isMovementPassageResolveRuleOccurrenceCommand(input))
+      if (movementPassageChoiceOccurrence) {
+        if (!isMovementPassageResolveRuleOccurrenceCommand(input)) {
+          throw new EncounterConflictError('Rule occurrence is unavailable.')
+        }
+        return resolveEncounterMovementPassageChoiceOccurrence({
+          db: trx,
+          runtime: options.rulesRuntime,
+          userId,
+          command: input,
+          locked,
+          occurrence,
+          commandReceipt: routedReceipt,
+          ...(options.rollD20 ? { rollD20: options.rollD20 } : {})
+        })
+      }
+      const movementPassageContestOccurrence =
+        kernelPendingApplicationContext?.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' &&
+        (kernelPendingApplicationContext.actionKind === 'OVERRUN' ||
+          kernelPendingApplicationContext.actionKind === 'TUMBLE') &&
+        kernelPendingApplicationContext.movementContinuation !== null &&
+        kernelPendingApplicationContext.movementContinuation !== undefined
+      if (movementPassageContestOccurrence) {
+        if (!isD20ResolveRuleOccurrenceCommand(input)) {
+          throw new EncounterConflictError('Rule occurrence is unavailable.')
+        }
+        return resolveEncounterMovementPassageContestOccurrence({
+          db: trx,
+          runtime: options.rulesRuntime,
+          userId,
+          command: input,
+          locked,
+          occurrence,
+          commandReceipt: routedReceipt,
+          ...(options.rollD20 ? { rollD20: options.rollD20 } : {}),
+          sceneVisionContext: options.sceneVisionContext
+        })
+      }
       const movementOccurrence =
         kernelPendingApplicationContext?.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ||
         kernelPendingApplicationContext?.kind === 'ENCOUNTER_MOVEMENT_REACTION' ||
@@ -1753,6 +2426,107 @@ export async function executeEncounterCommandWithRuleSnapshot(
           ...(options.rollD20 ? { rollD20: options.rollD20 } : {}),
           sceneVisionContext: options.sceneVisionContext
         })
+      }
+      const optionalContestOccurrence =
+        kernelPendingApplicationContext?.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
+      if (optionalContestOccurrence) {
+        if (!isD20ResolveRuleOccurrenceCommand(input)) {
+          throw new EncounterConflictError('Rule occurrence is unavailable.')
+        }
+        if (receiptIsOptionalContest) {
+          if (
+            receipt!.occurrenceId !== input.occurrenceId ||
+            receipt!.commandFingerprint !== encounterActionResumeFingerprint(input, userId) ||
+            receipt!.actorUserId !== userId ||
+            receipt!.correlationId !== input.correlationId
+          ) {
+            throw new EncounterConflictError('Rule occurrence is unavailable.')
+          }
+          const metadata = await createEncounterRepository(trx).findVersionMetadata(
+            locked.encounter.id
+          )
+          if (!metadata) throw new EncounterNotFoundError()
+          const projection = await createEncounterRepository(trx).requireCurrentProjection({
+            encounterId: locked.encounter.id,
+            expectedStreamVersion: metadata.version
+          })
+          return {
+            replayed: true,
+            response: encounterCommandResultDtoSchema.parse({
+              projection:
+                locked.context.role === 'OWNER'
+                  ? projection.projection
+                  : projectPlayerEncounterProjection(projection.projection),
+              roll: null,
+              resolution: null,
+              occurrence: actionOccurrenceSummary({
+                occurrence,
+                encounterVersion: metadata.version,
+                role: locked.context.role,
+                assignedCharacterId: locked.context.assignedCharacterId
+              })
+            })
+          }
+        }
+        if (!options.rulesRuntime) {
+          throw new EncounterValidationError(
+            'Rule occurrence resolution requires the rules runtime.'
+          )
+        }
+        const resume =
+          kernelPendingApplicationContext.actionKind === 'SHOVE_ASIDE'
+            ? resumeEncounterShoveAsideOccurrence
+            : resumeEncounterOptionalContestActionOccurrence
+        const result = await resume({
+          db: trx,
+          runtime: options.rulesRuntime,
+          command: {
+            actorUserId: userId,
+            commandId: input.commandId,
+            correlationId: input.correlationId,
+            encounterId: input.encounterId,
+            expectedEncounterVersion: input.expectedVersion,
+            expectedOccurrenceVersion: input.expectedOccurrenceVersion,
+            occurrenceId: input.occurrenceId,
+            resolution: input.resolution,
+            ...(options.liveSessionAuthority
+              ? { liveSessionAuthority: options.liveSessionAuthority }
+              : {})
+          },
+          pending: kernelPendingApplicationContext,
+          ...(options.rollD20 ? { rollD20: options.rollD20 } : {})
+        })
+        const currentOccurrence = await occurrences.lockOccurrence(
+          'ENCOUNTER',
+          locked.encounter.id,
+          result.occurrenceId
+        )
+        if (!currentOccurrence) throw new EncounterConflictError('Rule occurrence is unavailable.')
+        const metadata = await createEncounterRepository(trx).findVersionMetadata(
+          locked.encounter.id
+        )
+        if (!metadata) throw new EncounterNotFoundError()
+        const projection = await createEncounterRepository(trx).requireCurrentProjection({
+          encounterId: locked.encounter.id,
+          expectedStreamVersion: metadata.version
+        })
+        return {
+          replayed: false,
+          response: encounterCommandResultDtoSchema.parse({
+            projection:
+              locked.context.role === 'OWNER'
+                ? projection.projection
+                : projectPlayerEncounterProjection(projection.projection),
+            roll: null,
+            resolution: null,
+            occurrence: actionOccurrenceSummary({
+              occurrence: currentOccurrence,
+              encounterVersion: metadata.version,
+              role: locked.context.role,
+              assignedCharacterId: locked.context.assignedCharacterId
+            })
+          })
+        }
       }
       const legendaryReceiptResolution =
         routedReceipt?.commandMetadata.transition === 'TURN_EFFECTS_PENDING'
@@ -1883,7 +2657,8 @@ export async function executeEncounterCommandWithRuleSnapshot(
         const actionResolution = (() => {
           if (
             actorDirect &&
-            kernelPendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' &&
+            (kernelPendingApplicationContext?.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+              kernelPendingApplicationContext?.kind === 'ENCOUNTER_CREATURE_RULE_ACTION') &&
             kernelPendingApplicationContext.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'
           ) {
             if (input.resolution.kind === 'DECLINE')
@@ -1905,6 +2680,17 @@ export async function executeEncounterCommandWithRuleSnapshot(
               kind: 'PHYSICAL' as const,
               requestId: input.resolution.requestId,
               rawFaces: input.resolution.rawFaces
+            }
+          }
+          if (input.resolution.kind === 'ENTER_INTEGER') {
+            return {
+              kind: 'PHYSICAL_OUTCOME' as const,
+              values: [
+                {
+                  requestId: input.resolution.requestId,
+                  value: input.resolution.value
+                }
+              ]
             }
           }
           throw new EncounterConflictError('Rule occurrence is unavailable.')
@@ -2064,6 +2850,9 @@ export async function executeEncounterCommandWithRuleSnapshot(
     const lockedContext = await lockEncounterRuleExecutionCommandContext(trx, {
       actorUserId: userId,
       encounterId: input.encounterId,
+      ...(input.type === 'REPLACE_CREATURE_EQUIPMENT' || input.type === 'UPDATE_ACTOR'
+        ? { authority: 'OWNER' as const }
+        : {}),
       ...(options.liveSessionAuthority
         ? { liveSessionAuthority: options.liveSessionAuthority }
         : {})
@@ -2147,6 +2936,10 @@ export async function executeEncounterCommandWithRuleSnapshot(
       }
     }
     const occurrenceRepository = createRuleOccurrenceRepository(trx)
+    let removedActorPendingConcentration: RuleOccurrenceRecord | null = null
+    let removedActorPendingConcentrationStateId: string | null = null
+    let removedActorPendingInitiative: RuleOccurrenceRecord | null = null
+    let updatedActorPendingInitiative: RuleOccurrenceRecord | null = null
     const pendingOccurrence =
       'lockPendingEncounter' in occurrenceRepository
         ? await occurrenceRepository.lockPendingEncounter(locked.id)
@@ -2201,8 +2994,7 @@ export async function executeEncounterCommandWithRuleSnapshot(
         const context = aggregateChoice.applicationContext
         if (
           pendingOccurrence.rootCommandId !== input.commandId ||
-          context.root.commandFingerprint !== commandFingerprint ||
-          (lockedContext.context.role !== 'OWNER' && context.request.controllerUserId !== userId)
+          context.root.commandFingerprint !== commandFingerprint
         ) {
           throw new EncounterConflictError('An Encounter rule occurrence is awaiting resolution.')
         }
@@ -2223,7 +3015,10 @@ export async function executeEncounterCommandWithRuleSnapshot(
               occurrenceVersion: pendingOccurrence.version,
               status: 'PENDING',
               outcome: null,
-              pending: projectEncounterInitiativePendingSummary({
+              pending: await projectEncounterInitiativePendingSummaryForAudience({
+                db: trx,
+                userId,
+                locked: lockedContext,
                 pendingSnapshot: aggregateChoice,
                 occurrenceVersion: pendingOccurrence.version,
                 encounterVersion: locked.version
@@ -2240,148 +3035,167 @@ export async function executeEncounterCommandWithRuleSnapshot(
       )
       const context = pendingSnapshot.applicationContext
       if (
-        pendingOccurrence.rootCommandId === input.commandId &&
-        context?.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE' &&
-        context.root.commandFingerprint === commandFingerprint
+        input.type === 'REMOVE_ACTOR' &&
+        context?.kind === 'ENCOUNTER_CONCENTRATION_DAMAGE_CHECK' &&
+        context.application.targetActorId === input.actorId
       ) {
-        const projection = await repository.requireCurrentProjection({
-          encounterId: locked.id,
-          expectedStreamVersion: locked.version
-        })
-        const pending = turnContinuationPendingSummary(pendingOccurrence, locked.version)
-        if (!pending)
-          throw new EncounterConflictError('Legendary Action occurrence is unavailable.')
-        return {
-          command: encounterCommandResultDtoSchema.parse({
-            projection:
-              lockedContext.context.role === 'OWNER'
-                ? projection.projection
-                : projectPlayerEncounterProjection(projection.projection),
-            roll: null,
-            resolution: null,
-            occurrence: {
-              occurrenceId: pendingOccurrence.id,
-              occurrenceVersion: pendingOccurrence.version,
-              status: 'PENDING',
-              outcome: null,
-              pending: lockedContext.context.role === 'OWNER' ? pending : null
-            }
-          }),
-          replayed: true,
-          tableEntry: null,
-          ruleSnapshot: projection.ruleSnapshot
-        }
-      }
-      if (
-        pendingOccurrence.rootCommandId === input.commandId &&
-        context?.kind === 'ENCOUNTER_INITIATIVE' &&
-        context.root.commandFingerprint === commandFingerprint
-      ) {
-        const projection = await repository.requireCurrentProjection({
-          encounterId: locked.id,
-          expectedStreamVersion: locked.version
-        })
-        const pending = projectEncounterInitiativePendingSummary({
-          pendingSnapshot,
-          occurrenceVersion: pendingOccurrence.version,
-          encounterVersion: locked.version
-        })
-        return {
-          command: encounterCommandResultDtoSchema.parse({
-            projection:
-              lockedContext.context.role === 'OWNER'
-                ? projection.projection
-                : projectPlayerEncounterProjection(projection.projection),
-            roll: null,
-            resolution: null,
-            occurrence: {
-              occurrenceId: pendingOccurrence.id,
-              occurrenceVersion: pendingOccurrence.version,
-              status: 'PENDING',
-              outcome: null,
-              pending
-            }
-          }),
-          replayed: true,
-          tableEntry: null,
-          ruleSnapshot: projection.ruleSnapshot
-        }
-      }
-      if (
-        pendingOccurrence.rootCommandId === input.commandId &&
-        context?.kind === 'ENCOUNTER_TURN_RECHARGE' &&
-        context.root.commandFingerprint === commandFingerprint
-      ) {
-        const projection = await repository.requireCurrentProjection({
-          encounterId: locked.id,
-          expectedStreamVersion: locked.version
-        })
-        const pending = rechargePendingSummary(pendingOccurrence, locked.version)
-        if (!pending) throw new EncounterConflictError('Recharge occurrence is unavailable.')
-        return {
-          command: encounterCommandResultDtoSchema.parse({
-            projection:
-              lockedContext.context.role === 'OWNER'
-                ? projection.projection
-                : projectPlayerEncounterProjection(projection.projection),
-            roll: null,
-            resolution: null,
-            occurrence: {
-              occurrenceId: pendingOccurrence.id,
-              occurrenceVersion: pendingOccurrence.version,
-              status: 'PENDING',
-              outcome: null,
-              pending
-            }
-          }),
-          replayed: true,
-          tableEntry: null,
-          ruleSnapshot: projection.ruleSnapshot
-        }
-      }
-      if (
-        pendingOccurrence.rootCommandId !== input.commandId ||
-        context?.kind !== 'ENCOUNTER_TURN_ACTIVE_EFFECTS' ||
-        context.root.commandFingerprint !== commandFingerprint
-      )
-        throw new EncounterConflictError('An Encounter rule occurrence is awaiting resolution.')
-      const projection = await repository.requireCurrentProjection({
-        encounterId: locked.id,
-        expectedStreamVersion: locked.version
-      })
-      if (!context.currentCandidate.d20Policy)
-        throw new EncounterConflictError('Turn-effect occurrence lacks d20 policy.')
-      return {
-        command: encounterCommandResultDtoSchema.parse({
-          projection:
-            lockedContext.context.role === 'OWNER'
-              ? projection.projection
-              : projectPlayerEncounterProjection(projection.projection),
-          roll: null,
-          resolution: null,
-          occurrence: {
-            occurrenceId: pendingOccurrence.id,
-            occurrenceVersion: pendingOccurrence.version,
-            status: 'PENDING',
-            outcome: null,
-            pending: {
-              kind: 'D20_EVIDENCE',
-              occurrenceId: pendingOccurrence.id,
-              occurrenceVersion: pendingOccurrence.version,
-              encounterVersion: locked.version,
-              request: {
-                requestId: pendingSnapshot.request.requestId,
-                min: 1,
-                max: 20,
-                rollMode: context.currentCandidate.d20Policy.rollMode
-              },
-              allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
-            }
+        // Actor removal is the only command permitted to supersede a pending
+        // occurrence, and only when the frozen occurrence names that actor.
+        // The locked snapshot—not client input—establishes that relationship.
+        removedActorPendingConcentration = pendingOccurrence
+        removedActorPendingConcentrationStateId = context.maintainedState.id
+      } else if (context?.kind === 'ENCOUNTER_INITIATIVE' && input.type === 'REMOVE_ACTOR') {
+        removedActorPendingInitiative = pendingOccurrence
+      } else if (context?.kind === 'ENCOUNTER_INITIATIVE' && input.type === 'UPDATE_ACTOR') {
+        updatedActorPendingInitiative = pendingOccurrence
+      } else {
+        if (
+          pendingOccurrence.rootCommandId === input.commandId &&
+          context?.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE' &&
+          context.root.commandFingerprint === commandFingerprint
+        ) {
+          const projection = await repository.requireCurrentProjection({
+            encounterId: locked.id,
+            expectedStreamVersion: locked.version
+          })
+          const pending = turnContinuationPendingSummary(pendingOccurrence, locked.version)
+          if (!pending)
+            throw new EncounterConflictError('Legendary Action occurrence is unavailable.')
+          return {
+            command: encounterCommandResultDtoSchema.parse({
+              projection:
+                lockedContext.context.role === 'OWNER'
+                  ? projection.projection
+                  : projectPlayerEncounterProjection(projection.projection),
+              roll: null,
+              resolution: null,
+              occurrence: {
+                occurrenceId: pendingOccurrence.id,
+                occurrenceVersion: pendingOccurrence.version,
+                status: 'PENDING',
+                outcome: null,
+                pending: lockedContext.context.role === 'OWNER' ? pending : null
+              }
+            }),
+            replayed: true,
+            tableEntry: null,
+            ruleSnapshot: projection.ruleSnapshot
           }
-        }),
-        replayed: true,
-        tableEntry: null,
-        ruleSnapshot: projection.ruleSnapshot
+        }
+        if (
+          pendingOccurrence.rootCommandId === input.commandId &&
+          context?.kind === 'ENCOUNTER_INITIATIVE' &&
+          context.root.commandFingerprint === commandFingerprint
+        ) {
+          const projection = await repository.requireCurrentProjection({
+            encounterId: locked.id,
+            expectedStreamVersion: locked.version
+          })
+          const pending = await projectEncounterInitiativePendingSummaryForAudience({
+            db: trx,
+            userId,
+            locked: lockedContext,
+            pendingSnapshot,
+            occurrenceVersion: pendingOccurrence.version,
+            encounterVersion: locked.version
+          })
+          return {
+            command: encounterCommandResultDtoSchema.parse({
+              projection:
+                lockedContext.context.role === 'OWNER'
+                  ? projection.projection
+                  : projectPlayerEncounterProjection(projection.projection),
+              roll: null,
+              resolution: null,
+              occurrence: {
+                occurrenceId: pendingOccurrence.id,
+                occurrenceVersion: pendingOccurrence.version,
+                status: 'PENDING',
+                outcome: null,
+                pending
+              }
+            }),
+            replayed: true,
+            tableEntry: null,
+            ruleSnapshot: projection.ruleSnapshot
+          }
+        }
+        if (
+          pendingOccurrence.rootCommandId === input.commandId &&
+          context?.kind === 'ENCOUNTER_TURN_RECHARGE' &&
+          context.root.commandFingerprint === commandFingerprint
+        ) {
+          const projection = await repository.requireCurrentProjection({
+            encounterId: locked.id,
+            expectedStreamVersion: locked.version
+          })
+          const pending = rechargePendingSummary(pendingOccurrence, locked.version)
+          if (!pending) throw new EncounterConflictError('Recharge occurrence is unavailable.')
+          return {
+            command: encounterCommandResultDtoSchema.parse({
+              projection:
+                lockedContext.context.role === 'OWNER'
+                  ? projection.projection
+                  : projectPlayerEncounterProjection(projection.projection),
+              roll: null,
+              resolution: null,
+              occurrence: {
+                occurrenceId: pendingOccurrence.id,
+                occurrenceVersion: pendingOccurrence.version,
+                status: 'PENDING',
+                outcome: null,
+                pending
+              }
+            }),
+            replayed: true,
+            tableEntry: null,
+            ruleSnapshot: projection.ruleSnapshot
+          }
+        }
+        if (
+          pendingOccurrence.rootCommandId !== input.commandId ||
+          context?.kind !== 'ENCOUNTER_TURN_ACTIVE_EFFECTS' ||
+          context.root.commandFingerprint !== commandFingerprint
+        )
+          throw new EncounterConflictError('An Encounter rule occurrence is awaiting resolution.')
+        const projection = await repository.requireCurrentProjection({
+          encounterId: locked.id,
+          expectedStreamVersion: locked.version
+        })
+        if (!context.currentCandidate.d20Policy)
+          throw new EncounterConflictError('Turn-effect occurrence lacks d20 policy.')
+        return {
+          command: encounterCommandResultDtoSchema.parse({
+            projection:
+              lockedContext.context.role === 'OWNER'
+                ? projection.projection
+                : projectPlayerEncounterProjection(projection.projection),
+            roll: null,
+            resolution: null,
+            occurrence: {
+              occurrenceId: pendingOccurrence.id,
+              occurrenceVersion: pendingOccurrence.version,
+              status: 'PENDING',
+              outcome: null,
+              pending: {
+                kind: 'D20_EVIDENCE',
+                occurrenceId: pendingOccurrence.id,
+                occurrenceVersion: pendingOccurrence.version,
+                encounterVersion: locked.version,
+                request: {
+                  requestId: pendingSnapshot.request.requestId,
+                  min: 1,
+                  max: 20,
+                  rollMode: context.currentCandidate.d20Policy.rollMode
+                },
+                allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+              }
+            }
+          }),
+          replayed: true,
+          tableEntry: null,
+          ruleSnapshot: projection.ruleSnapshot
+        }
       }
     }
     if (locked.version !== input.expectedVersion) {
@@ -2397,6 +3211,16 @@ export async function executeEncounterCommandWithRuleSnapshot(
     let rolled: RollRecordDto | null = null
     let resolution: RuleResolutionEvidenceDto | null = null
     let tableEntry: CampaignRoomEntry | null = null
+    let creatureEquipmentReplacement:
+      | {
+          actorId: string
+          loadoutEntryId: string
+          equipmentId: string
+          sourceRevision: number
+          sourceVersionId: string
+          sourceChecksum: string
+        }
+      | undefined
     let actorRuleSnapshot = matchingCommittedRuleSnapshot
     let workingEncounter = locked
     let turnOccurrenceId: string | null = null
@@ -2488,6 +3312,31 @@ export async function executeEncounterCommandWithRuleSnapshot(
     ) => {
       const actorRules = await currentActorRules(false)
       if (workingEncounter.automationMode === 'MANUAL') return actorRules
+      const stagedEconomy = await stageEncounterActionEconomyRefreshes({
+        actorId,
+        encounter: workingEncounter,
+        definitions: createReusableDefinitionRepository(trx)
+      })
+      if (stagedEconomy.refreshes.length > 0 && stagedEconomy.refreshedActor) {
+        root.stagedActionEconomyRefreshes = [
+          ...(root.stagedActionEconomyRefreshes ?? []),
+          ...stagedEconomy.refreshes.map((refresh, ordinal) => ({
+            ...refresh,
+            ordinal: (root.stagedActionEconomyRefreshes?.length ?? 0) + ordinal
+          }))
+        ]
+        stagedLegendaryRefreshActorUpdates.set(
+          stagedEconomy.refreshedActor.id,
+          stagedEconomy.refreshedActor
+        )
+        workingEncounter = {
+          ...workingEncounter,
+          actors: workingEncounter.actors.map((actor) =>
+            actor.id === stagedEconomy.refreshedActor!.id ? stagedEconomy.refreshedActor! : actor
+          )
+        }
+        actorRuleSnapshot = undefined
+      }
       const staged = await stageEncounterLegendaryActionRefreshes({
         actorId,
         encounter: workingEncounter,
@@ -2516,6 +3365,9 @@ export async function executeEncounterCommandWithRuleSnapshot(
     switch (input.type) {
       case 'UPDATE_ACTOR': {
         const current = requireActor(locked, input.actorId)
+        if (input.sideId !== undefined && !(await repository.lockSide(locked.id, input.sideId))) {
+          throw new EncounterValidationError('Encounter side was not found.')
+        }
         if (
           current.kind === 'CHARACTER' &&
           (input.currentHitPoints !== undefined ||
@@ -2541,6 +3393,7 @@ export async function executeEncounterCommandWithRuleSnapshot(
         if (input.conditions !== undefined) next = { ...next, conditions: input.conditions }
         if (input.gmNotes !== undefined) next = { ...next, gmNotes: input.gmNotes }
         if (input.public !== undefined) next = { ...next, public: input.public }
+        if (input.sideId !== undefined) next = { ...next, sideId: input.sideId }
         await repository.updateActor(next)
         if (input.characterCommand) correlationId = characterMutation.correlationId
         break
@@ -2553,12 +3406,119 @@ export async function executeEncounterCommandWithRuleSnapshot(
           removedActorId: input.actorId,
           attunementSlotOverride: lockedContext.context.attunementSlotOverride
         })
+        if (
+          removedActorPendingConcentration &&
+          (!cleanup.result ||
+            !cleanup.result.terminatedStates.some(
+              (state) =>
+                state.id === removedActorPendingConcentrationStateId &&
+                state.ownerActorId === input.actorId
+            ))
+        ) {
+          throw new EncounterConflictError(
+            'Pending concentration cleanup did not terminate its maintained state.'
+          )
+        }
         for (const actor of cleanup.changedCharacterActors) await repository.updateActor(actor)
-        maintenanceCleanup = cleanup.result
+        maintenanceCleanup =
+          cleanup.result ??
+          (removedActorPendingInitiative
+            ? { terminatedStates: [], removedEffects: [], characterOwnerTransitions: [] }
+            : null)
         if (!(await repository.removeActor(locked.id, input.actorId))) {
           throw new EncounterConflictError('Encounter actor changed before removal.')
         }
         if (nextCurrentActorId === input.actorId) nextCurrentActorId = null
+        break
+      }
+      case 'REPLACE_CREATURE_EQUIPMENT': {
+        const current = requireActor(locked, input.actorId)
+        if (
+          current.kind !== 'CREATURE' ||
+          !current.systemId ||
+          !current.sourceId ||
+          current.sourceRevision === null
+        ) {
+          throw new EncounterValidationError(
+            'Only a Creature with a frozen source can replace Equipment.'
+          )
+        }
+        const loadout = snapshotCreatureEquipmentLoadout(current)
+        const replacedEntry = loadout.find((entry) => entry.id === input.loadoutEntryId)
+        if (!replacedEntry) {
+          throw new EncounterValidationError('Creature Equipment loadout entry was not found.')
+        }
+        const equipmentRecords = await loadActiveEncounterEquipment(trx, userId, [
+          input.equipmentId
+        ])
+        let replacementSource: ReturnType<typeof pinCreatureEquipmentSources>[number] | undefined
+        try {
+          replacementSource = pinCreatureEquipmentSources({
+            creature: {
+              equipmentLoadout: [{ ...replacedEntry, equipmentId: input.equipmentId }],
+              systemId: current.systemId
+            },
+            equipmentRecords
+          })[0]
+        } catch {
+          throw new EncounterValidationError('Creature Equipment source is unavailable.')
+        }
+        if (!replacementSource) {
+          throw new EncounterValidationError('Creature Equipment source is unavailable.')
+        }
+        const currentSources = parseSnapshotCreatureEquipmentSources(current)
+        const rawSnapshot = current.snapshot as Record<string, unknown>
+        const rawSources = rawSnapshot.equipmentSources
+        if (!Array.isArray(rawSources)) {
+          throw new EncounterValidationError('Creature Equipment source snapshot is unavailable.')
+        }
+        const updatedLoadout = loadout.map((entry) =>
+          entry.id === input.loadoutEntryId ? { ...entry, equipmentId: input.equipmentId } : entry
+        )
+        const updatedSources = rawSources.map((rawSource) => {
+          const existing = currentSources.find(
+            (source) =>
+              typeof rawSource === 'object' &&
+              rawSource !== null &&
+              !Array.isArray(rawSource) &&
+              (rawSource as Record<string, unknown>).loadoutEntryId === source.loadoutEntryId
+          )
+          if (!existing)
+            throw new EncounterValidationError('Creature Equipment source snapshot is invalid.')
+          return existing.loadoutEntryId === input.loadoutEntryId ? replacementSource : rawSource
+        })
+        const next = {
+          ...current,
+          snapshot: {
+            ...rawSnapshot,
+            equipmentLoadoutOverride: updatedLoadout,
+            equipmentSources: updatedSources
+          } as Json
+        }
+        try {
+          assertEncounterCreatureEquipmentLoadoutCapabilities(next)
+        } catch {
+          throw new EncounterValidationError(
+            'Replacement Equipment is incompatible with the Creature Feature actions.'
+          )
+        }
+        if (
+          !(await repository.replaceCreatureActorSnapshot({
+            encounterId: locked.id,
+            actorId: current.id,
+            snapshot: next.snapshot
+          }))
+        ) {
+          throw new EncounterConflictError('Creature Equipment changed before replacement.')
+        }
+        creatureEquipmentReplacement = {
+          actorId: current.id,
+          loadoutEntryId: input.loadoutEntryId,
+          equipmentId: replacementSource.equipmentId,
+          sourceRevision: replacementSource.sourceRevision,
+          sourceVersionId: replacementSource.sourceVersionId,
+          sourceChecksum: replacementSource.sourceChecksum
+        }
         break
       }
       case 'SET_INITIATIVE': {
@@ -2687,7 +3647,10 @@ export async function executeEncounterCommandWithRuleSnapshot(
                 occurrenceVersion: occurrence.version,
                 status: 'PENDING',
                 outcome: null,
-                pending: projectEncounterInitiativePendingSummary({
+                pending: await projectEncounterInitiativePendingSummaryForAudience({
+                  db: trx,
+                  userId,
+                  locked: lockedContext,
                   pendingSnapshot: requireEncounterKernelPendingSnapshot(
                     occurrence.pendingSnapshot
                   ),
@@ -2766,7 +3729,10 @@ export async function executeEncounterCommandWithRuleSnapshot(
                 occurrenceVersion: occurrence.version,
                 status: 'PENDING',
                 outcome: null,
-                pending: projectEncounterInitiativePendingSummary({
+                pending: await projectEncounterInitiativePendingSummaryForAudience({
+                  db: trx,
+                  userId,
+                  locked: lockedContext,
                   pendingSnapshot: occurrence.pendingSnapshot!,
                   occurrenceVersion: occurrence.version,
                   encounterVersion: locked.version
@@ -3428,7 +4394,10 @@ export async function executeEncounterCommandWithRuleSnapshot(
                 occurrenceVersion: occurrence.version,
                 status: 'PENDING',
                 outcome: null,
-                pending: projectEncounterInitiativePendingSummary({
+                pending: await projectEncounterInitiativePendingSummaryForAudience({
+                  db: trx,
+                  userId,
+                  locked: lockedContext,
                   pendingSnapshot: requireEncounterKernelPendingSnapshot(
                     occurrence.pendingSnapshot
                   ),
@@ -3509,7 +4478,10 @@ export async function executeEncounterCommandWithRuleSnapshot(
                 occurrenceVersion: occurrence.version,
                 status: 'PENDING',
                 outcome: null,
-                pending: projectEncounterInitiativePendingSummary({
+                pending: await projectEncounterInitiativePendingSummaryForAudience({
+                  db: trx,
+                  userId,
+                  locked: lockedContext,
                   pendingSnapshot: occurrence.pendingSnapshot!,
                   occurrenceVersion: occurrence.version,
                   encounterVersion: locked.version
@@ -4181,26 +5153,42 @@ export async function executeEncounterCommandWithRuleSnapshot(
     if (maintenanceCleanup) {
       if (input.type !== 'REMOVE_ACTOR')
         throw new EncounterConflictError('Maintenance cleanup requires actor removal.')
-      const occurrenceId = options.createRuleOccurrenceId?.() ?? randomUUID()
+      const removedActorPendingOccurrence =
+        removedActorPendingConcentration ?? removedActorPendingInitiative
+      const occurrenceId =
+        removedActorPendingOccurrence?.id ?? options.createRuleOccurrenceId?.() ?? randomUUID()
+      const occurrenceVersion =
+        removedActorPendingOccurrence === null ? 0 : removedActorPendingOccurrence.version + 1
       const result = storedRuleExecutionResultDtoSchema.parse({
         status: 'MAINTENANCE_COMPLETE',
         schemaVersion: 1,
         occurrenceId,
-        occurrenceVersion: 0,
+        occurrenceVersion,
         encounterId: locked.id,
         removedActorId: input.actorId,
         reason: 'ACTOR_REMOVED',
         ...maintenanceCleanup
       })
       const occurrences = createRuleOccurrenceRepository(trx)
-      await occurrences.createCompleted({
-        aggregateKind: 'ENCOUNTER',
-        occurrenceId,
-        aggregateId: locked.id,
-        campaignId: locked.campaignId,
-        rootCommandId: input.commandId,
-        aggregateVersion: nextVersion
-      })
+      if (removedActorPendingOccurrence) {
+        await occurrences.complete({
+          aggregateKind: 'ENCOUNTER',
+          aggregateId: locked.id,
+          occurrenceId,
+          expectedOccurrenceVersion: removedActorPendingOccurrence.version,
+          expectedAggregateVersion: locked.version,
+          nextAggregateVersion: nextVersion
+        })
+      } else {
+        await occurrences.createCompleted({
+          aggregateKind: 'ENCOUNTER',
+          occurrenceId,
+          aggregateId: locked.id,
+          campaignId: locked.campaignId,
+          rootCommandId: input.commandId,
+          aggregateVersion: nextVersion
+        })
+      }
       await occurrences.appendReceipt({
         aggregateKind: 'ENCOUNTER',
         aggregateId: locked.id,
@@ -4213,6 +5201,7 @@ export async function executeEncounterCommandWithRuleSnapshot(
           transition: 'MAINTENANCE_CLEANUP',
           commandType: 'REMOVE_ACTOR',
           expectedAggregateVersion: locked.version,
+          expectedOccurrenceVersion: removedActorPendingOccurrence?.version ?? null,
           removedActorId: input.actorId
         },
         resultPayload: result,
@@ -4228,6 +5217,31 @@ export async function executeEncounterCommandWithRuleSnapshot(
     for (const actor of stagedLegendaryRefreshActorUpdates.values())
       await repository.updateActor(actor)
     for (const actor of stagedActorUpdates.values()) await repository.updateActor(actor)
+    if (updatedActorPendingInitiative) {
+      const snapshot = requireEncounterKernelPendingSnapshot(
+        updatedActorPendingInitiative.pendingSnapshot
+      )
+      if (snapshot.applicationContext.kind !== 'ENCOUNTER_INITIATIVE')
+        throw new EncounterConflictError('Pending initiative occurrence is unavailable.')
+      await createRuleOccurrenceRepository(trx).advancePending({
+        aggregateKind: 'ENCOUNTER',
+        aggregateId: locked.id,
+        occurrenceId: updatedActorPendingInitiative.id,
+        expectedOccurrenceVersion: updatedActorPendingInitiative.version,
+        expectedAggregateVersion: locked.version,
+        nextAggregateVersion: nextVersion,
+        pendingSnapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
+          ...snapshot,
+          applicationContext: {
+            ...snapshot.applicationContext,
+            root: {
+              ...snapshot.applicationContext.root,
+              expectedEncounterVersion: nextVersion
+            }
+          }
+        })
+      })
+    }
     await repository.update({
       encounterId: locked.id,
       status: nextStatus,
@@ -4272,6 +5286,7 @@ export async function executeEncounterCommandWithRuleSnapshot(
         command,
         currentProjection,
         ruleReceipt,
+        ...(creatureEquipmentReplacement === undefined ? {} : { creatureEquipmentReplacement }),
         optionalCombatSnapshotChecksum: projectionEncounter.optionalCombatSnapshotChecksum
       }) as unknown as Json,
       actorUserId: userId,
@@ -4665,6 +5680,18 @@ function currentMovementReactionTimelineDistance(
     : null
 }
 
+function nextMovementContinuationBoundaryDistance(
+  timeline: Parameters<typeof currentMovementReactionTimelineDistance>[0],
+  passageStopDistance: number | null
+): number | null {
+  const reactionDistance = currentMovementReactionTimelineDistance(timeline)
+  return reactionDistance === null
+    ? passageStopDistance
+    : passageStopDistance === null
+      ? reactionDistance
+      : Math.min(reactionDistance, passageStopDistance)
+}
+
 function stageMovementTokenPosition(
   scene: CampaignSceneState,
   tokenId: string,
@@ -4856,6 +5883,661 @@ async function appendPendingSpatialMovementResolutionReceipt(input: {
   return occurrenceSummary
 }
 
+/**
+ * Advances the single movement occurrence from its sealed passage choice into
+ * the sealed two-participant contest.  Movement itself is intentionally not
+ * evaluated here: the contest's frozen continuation remains the only source
+ * of truth for the later spatial/reaction completion path.
+ */
+async function resolveEncounterMovementPassageChoiceOccurrence(input: {
+  db: DBLike
+  runtime?: RulesRuntimeService
+  userId: string
+  command: MovementPassageResolveRuleOccurrenceCommand
+  locked: Awaited<ReturnType<typeof lockEncounterRuleExecutionCommandContext>>
+  occurrence: RuleOccurrenceRecord
+  commandReceipt: RuleOccurrenceReceipt | null
+  rollD20?: () => number
+}): Promise<{ response: EncounterCommandResultDto; replayed: boolean }> {
+  const occurrences = createRuleOccurrenceRepository(input.db)
+  const repository = createEncounterRepository(input.db)
+  const commandFingerprint = fingerprint(input.command)
+  if (input.commandReceipt) {
+    if (
+      input.commandReceipt.occurrenceId !== input.occurrence.id ||
+      input.commandReceipt.commandId !== input.command.commandId ||
+      input.commandReceipt.commandFingerprint !== commandFingerprint ||
+      input.commandReceipt.actorUserId !== input.userId ||
+      input.commandReceipt.correlationId !== input.command.correlationId
+    )
+      throw new EncounterConflictError('Rule occurrence is unavailable.')
+    const projection = await repository.requireCurrentProjection({
+      encounterId: input.locked.encounter.id,
+      expectedStreamVersion: input.locked.context.currentVersion
+    })
+    return {
+      replayed: true,
+      response: encounterCommandResultDtoSchema.parse({
+        projection:
+          input.locked.context.role === 'OWNER'
+            ? projection.projection
+            : projectPlayerEncounterProjection(projection.projection),
+        roll: null,
+        resolution: null,
+        occurrence: actionOccurrenceSummary({
+          occurrence: input.occurrence,
+          encounterVersion: input.locked.context.currentVersion,
+          role: input.locked.context.role,
+          assignedCharacterId: input.locked.context.assignedCharacterId
+        })
+      })
+    }
+  }
+  const snapshot = input.occurrence.pendingSnapshot
+  if (!snapshot || !isServerAggregateChoicePendingSnapshot(snapshot))
+    throw new EncounterConflictError('Rule occurrence is unavailable.')
+  const context = snapshot.applicationContext
+  if (context.kind !== 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE')
+    throw new EncounterConflictError('Rule occurrence is unavailable.')
+  if (
+    input.occurrence.state !== 'PENDING' ||
+    input.locked.encounter.version !== input.command.expectedVersion ||
+    input.occurrence.version !== input.command.expectedOccurrenceVersion ||
+    input.occurrence.expectedAggregateVersion !== input.locked.encounter.version ||
+    snapshot.optionalCombatSnapshotChecksum !==
+      input.locked.encounter.optionalCombatSnapshotChecksum
+  )
+    throw new EncounterConflictError('Rule occurrence is unavailable.')
+  if (
+    input.locked.context.role !== 'OWNER' &&
+    (!context.sourceControllerCharacterId ||
+      input.locked.context.assignedCharacterId !== context.sourceControllerCharacterId)
+  )
+    throw new EncounterConflictError('Movement passage authority is unavailable.')
+  if (input.locked.context.role !== 'OWNER') {
+    await assertAssignedCharacterController({
+      db: input.db,
+      actorUserId: input.userId,
+      campaignId: input.locked.context.campaignId,
+      assignedCharacterId: input.locked.context.assignedCharacterId,
+      characterId: context.sourceControllerCharacterId!
+    })
+  }
+  const resolutionCommand = {
+    commandId: input.command.commandId,
+    commandFingerprint,
+    actorUserId: input.userId,
+    correlationId: input.command.correlationId,
+    expectedOccurrenceVersion: input.occurrence.version,
+    ...(input.command.resolution.kind === 'PASSAGE_DECLINE'
+      ? { kind: 'PASSAGE_DECLINE' as const }
+      : { kind: 'PASSAGE_OPTION' as const, optionId: input.command.resolution.optionId })
+  }
+  let movement: MovementPassageContinuation = {
+    ...context.movement,
+    root: {
+      ...context.movement.root,
+      resolutionCommands: [...context.movement.root.resolutionCommands, resolutionCommand]
+    }
+  }
+  const selected = resolveEncounterMovementPassageChoice({
+    context,
+    selection:
+      input.command.resolution.kind === 'PASSAGE_DECLINE'
+        ? { kind: 'DECLINE' }
+        : { kind: 'OPTION', optionId: input.command.resolution.optionId }
+  })
+  if (selected.kind === 'DECLINED') {
+    const result = await resolveEncounterSpatialMovementRuleOccurrence({
+      ...input,
+      commandReceipt: null,
+      passageSettlement: { movement, continueMovement: false, economyConsumed: false }
+    })
+    return { response: result.response, replayed: result.replayed }
+  }
+  if (!input.runtime)
+    throw new EncounterValidationError('Movement passage resolution requires the rules runtime.')
+  await lockCurrentMovementPassageScene({
+    db: input.db,
+    encounterId: input.locked.encounter.id,
+    movement
+  })
+  const targets = await lockEncounterActiveEffectTargets({
+    trx: input.db,
+    encounter: input.locked.encounter,
+    actors: input.locked.encounter.actors,
+    attunementSlotOverride: input.locked.context.attunementSlotOverride,
+    getEncounterActorSnapshot: async () => {
+      const current = await evaluateEncounterActorRuleSnapshot({
+        db: input.db,
+        encounter: input.locked.encounter
+      })
+      return { rules: current.snapshot.output, encounter: current.reconciledEncounter }
+    }
+  })
+  const pending = await prepareEncounterMovementPassageContest({
+    choice: { ...context, movement },
+    db: input.db,
+    encounter: input.locked.encounter,
+    optionId: selected.option.optionId,
+    targets
+  })
+  const execution = await executeEncounterMovementPassageContest({
+    automationMode:
+      input.locked.encounter.automationMode === 'AUTOMATIC' ? 'AUTOMATIC' : 'ASSISTED',
+    occurrenceId: input.occurrence.id,
+    pending,
+    runtime: input.runtime,
+    ...(input.rollD20 ? { rollD20: input.rollD20 } : {})
+  })
+  if (execution.kind === 'COMPLETE') {
+    if (!pending.actionEconomy)
+      throw new EncounterConflictError('Movement passage allowance is unavailable.')
+    const sourceActor = input.locked.encounter.actors.find(
+      (actor) => actor.id === pending.sourceActorId
+    )
+    if (!sourceActor) throw new EncounterConflictError('Movement passage actor is stale.')
+    await consumePreparedActionEconomy({
+      db: input.db,
+      sourceActor,
+      consumption: {
+        ...pending.actionEconomy,
+        afterUsed: pending.actionEconomy.beforeUsed + 1
+      }
+    })
+    if (
+      input.command.resolution.kind !== 'PASSAGE_OPTION' ||
+      resolutionCommand.kind !== 'PASSAGE_OPTION'
+    ) {
+      throw new EncounterConflictError('Movement passage option is unavailable.')
+    }
+    movement = {
+      ...movement,
+      root: {
+        ...movement.root,
+        terminalPassageStop:
+          execution.outcome === 'SUCCESS' ? (movement.nextPassageStop ?? null) : null,
+        resolutionCommands: [
+          ...context.movement.root.resolutionCommands,
+          {
+            ...resolutionCommand,
+            passageContest: movementPassageContestReceipt({ execution, pending })
+          }
+        ]
+      }
+    }
+    const result = await resolveEncounterSpatialMovementRuleOccurrence({
+      ...input,
+      commandReceipt: null,
+      passageSettlement: {
+        movement,
+        continueMovement: execution.outcome === 'SUCCESS',
+        economyConsumed: true
+      }
+    })
+    return { response: result.response, replayed: result.replayed }
+  }
+  const pendingSnapshot = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
+    ...execution.continuation,
+    snapshotKind: 'KERNEL_EVIDENCE',
+    optionalCombatSnapshotChecksum: pending.optionalCombat.snapshotChecksum,
+    applicationContext: pending
+  })
+  const paused = await occurrences.advancePending({
+    aggregateKind: 'ENCOUNTER',
+    aggregateId: input.locked.encounter.id,
+    occurrenceId: input.occurrence.id,
+    expectedOccurrenceVersion: input.occurrence.version,
+    expectedAggregateVersion: input.locked.encounter.version,
+    nextAggregateVersion: input.locked.encounter.version,
+    pendingSnapshot
+  })
+  const projection = await repository.requireCurrentProjection({
+    encounterId: input.locked.encounter.id,
+    expectedStreamVersion: input.locked.encounter.version
+  })
+  const occurrenceSummary = actionOccurrenceSummary({
+    occurrence: paused,
+    encounterVersion: input.locked.encounter.version,
+    role: input.locked.context.role,
+    assignedCharacterId: input.locked.context.assignedCharacterId
+  })
+  const pendingResult = storedRuleExecutionResultDtoSchema.parse({
+    status: 'ENCOUNTER_OCCURRENCE_PENDING',
+    schemaVersion: 1,
+    occurrenceId: paused.id,
+    occurrenceVersion: paused.version,
+    encounterId: input.locked.encounter.id,
+    encounterVersion: input.locked.encounter.version,
+    occurrence: occurrenceSummary,
+    characterTransitions: []
+  })
+  await occurrences.appendReceipt({
+    aggregateKind: 'ENCOUNTER',
+    aggregateId: input.locked.encounter.id,
+    commandId: input.command.commandId,
+    commandFingerprint,
+    occurrenceId: paused.id,
+    aggregateVersion: input.locked.encounter.version,
+    commandType: input.command.type,
+    actorUserId: input.userId,
+    correlationId: input.command.correlationId,
+    commandMetadata: {
+      schemaVersion: 1,
+      transition: 'SPATIAL_MOVEMENT',
+      commandType: 'RESOLVE_RULE_OCCURRENCE',
+      rootCommandId: movement.root.commandId,
+      rootCommandFingerprint: movement.root.commandFingerprint,
+      rootInitiatorUserId: movement.root.initiatorUserId,
+      rootCorrelationId: movement.root.correlationId,
+      encounterId: movement.root.encounterId,
+      sceneId: movement.root.sceneId,
+      tokenId: movement.root.tokenId,
+      movementKind: movement.root.movementKind,
+      expectedEncounterVersion: input.command.expectedVersion,
+      expectedSceneVersion: movement.root.currentSceneVersion,
+      rootExpectedEncounterVersion: movement.root.expectedEncounterVersion,
+      rootExpectedSceneVersion: movement.root.expectedSceneVersion,
+      encounterVersionTransition: 'UNCHANGED',
+      sceneVersionTransition: 'UNCHANGED',
+      currentnessChecksum: movement.spatialCurrentnessChecksum,
+      selectionChecksum: movement.spatialSelectionChecksum,
+      occurrenceVersion: paused.version,
+      changedAggregates: [],
+      resolutionCommands: [...movement.root.resolutionCommands]
+    },
+    resultPayload: pendingResult
+  })
+  return {
+    replayed: false,
+    response: encounterCommandResultDtoSchema.parse({
+      projection:
+        input.locked.context.role === 'OWNER'
+          ? projection.projection
+          : projectPlayerEncounterProjection(projection.projection),
+      roll: null,
+      resolution: null,
+      occurrence: occurrenceSummary
+    })
+  }
+}
+
+function passageContestWithoutEvidence(
+  pending: ServerOptionalCombatContestPendingApplicationContextDto
+) {
+  return { ...pending, rollEvidence: { initiator: null, defender: null } }
+}
+
+async function lockCurrentMovementPassageScene(input: {
+  db: DBLike
+  encounterId: string
+  movement: MovementPassageContinuation
+}) {
+  const sceneRepository = createVttSceneRepository(input.db)
+  const sceneBinding = await sceneRepository.findEncounterBinding(input.encounterId)
+  const scene =
+    sceneBinding?.sceneId === input.movement.root.sceneId
+      ? await sceneRepository.lockLiveScene(sceneBinding.sceneId)
+      : null
+  const movingToken = scene?.state.tokens.find((token) => token.id === input.movement.root.tokenId)
+  const blockerToken = scene?.state.tokens.find(
+    (token) => token.id === input.movement.blockerTokenId
+  )
+  if (
+    !scene ||
+    scene.state.version !== input.movement.root.currentSceneVersion ||
+    !movingToken ||
+    !blockerToken ||
+    checksumRuleDocument(movingToken.position) !==
+      checksumRuleDocument(input.movement.root.currentPosition) ||
+    checksumRuleDocument({
+      actorId: input.movement.blockerActorId,
+      tokenId: input.movement.blockerTokenId,
+      footprint: blockerToken
+    }) !== input.movement.blockerCurrentnessChecksum
+  ) {
+    throw new EncounterConflictError('Movement passage Scene facts are stale.')
+  }
+  return scene
+}
+
+async function resolveEncounterMovementPassageContestOccurrence(input: {
+  db: DBLike
+  runtime?: RulesRuntimeService
+  userId: string
+  command: D20ResolveRuleOccurrenceCommand
+  locked: Awaited<ReturnType<typeof lockEncounterRuleExecutionCommandContext>>
+  occurrence: RuleOccurrenceRecord
+  commandReceipt: RuleOccurrenceReceipt | null
+  rollD20?: () => number
+  sceneVisionContext?: LiveSessionSceneVisionContextDto
+}): Promise<{ response: EncounterCommandResultDto; replayed: boolean }> {
+  if (!input.runtime)
+    throw new EncounterValidationError('Movement passage resolution requires the rules runtime.')
+  const repository = createEncounterRepository(input.db)
+  const occurrences = createRuleOccurrenceRepository(input.db)
+  const commandFingerprint = fingerprint(input.command)
+  if (input.commandReceipt) {
+    const receipt = input.commandReceipt
+    if (
+      receipt.occurrenceId !== input.occurrence.id ||
+      receipt.commandMetadata.transition !== 'SPATIAL_MOVEMENT' ||
+      receipt.commandMetadata.commandType !== 'RESOLVE_RULE_OCCURRENCE' ||
+      receipt.commandId !== input.command.commandId ||
+      receipt.commandFingerprint !== commandFingerprint ||
+      receipt.actorUserId !== input.userId ||
+      receipt.correlationId !== input.command.correlationId
+    )
+      throw new EncounterConflictError('Rule occurrence is unavailable.')
+    const projection = await repository.requireCurrentProjection({
+      encounterId: input.locked.encounter.id,
+      expectedStreamVersion: input.locked.context.currentVersion
+    })
+    return {
+      replayed: true,
+      response: encounterCommandResultDtoSchema.parse({
+        projection:
+          input.locked.context.role === 'OWNER'
+            ? projection.projection
+            : projectPlayerEncounterProjection(projection.projection),
+        roll: null,
+        resolution: null,
+        occurrence: actionOccurrenceSummary({
+          occurrence: input.occurrence,
+          encounterVersion: input.locked.context.currentVersion,
+          role: input.locked.context.role,
+          assignedCharacterId: input.locked.context.assignedCharacterId
+        })
+      })
+    }
+  }
+  if (
+    input.occurrence.state !== 'PENDING' ||
+    input.locked.encounter.version !== input.command.expectedVersion ||
+    input.occurrence.version !== input.command.expectedOccurrenceVersion ||
+    input.occurrence.expectedAggregateVersion !== input.locked.encounter.version
+  )
+    throw new EncounterConflictError('Rule occurrence is unavailable.')
+  const snapshot = requireEncounterKernelPendingSnapshot(input.occurrence.pendingSnapshot)
+  const pending = snapshot.applicationContext
+  if (
+    pending.kind !== 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST' ||
+    (pending.actionKind !== 'OVERRUN' && pending.actionKind !== 'TUMBLE') ||
+    (pending.selection.kind !== 'OVERRUN' && pending.selection.kind !== 'TUMBLE') ||
+    !pending.movementContinuation
+  )
+    throw new EncounterConflictError('Rule occurrence is unavailable.')
+  if (
+    snapshot.request.requestId !== input.command.resolution.requestId ||
+    input.locked.encounter.optionalCombatSnapshotChecksum !==
+      pending.optionalCombat.snapshotChecksum
+  )
+    throw new EncounterConflictError('Movement passage contest is stale.')
+  const participant =
+    snapshot.request.nodeId === pending.initiator.requestNodeId
+      ? 'INITIATOR'
+      : snapshot.request.nodeId === pending.defender.requestNodeId
+        ? 'DEFENDER'
+        : null
+  if (!participant) throw new EncounterConflictError('Movement passage request is unavailable.')
+  const participantActorId =
+    participant === 'INITIATOR' ? pending.sourceActorId : pending.targetActorId
+  const participantActor = input.locked.encounter.actors.find(
+    (actor) => actor.id === participantActorId
+  )
+  if (!participantActor) throw new EncounterConflictError('Movement passage actor is stale.')
+  const participantCharacterId =
+    participant === 'INITIATOR'
+      ? pending.initiatorControllerCharacterId
+      : participantActor.kind === 'CHARACTER'
+        ? participantActor.sourceId
+        : null
+  if (input.locked.context.role !== 'OWNER') {
+    if (
+      !participantCharacterId ||
+      input.locked.context.assignedCharacterId !== participantCharacterId
+    )
+      throw new EncounterConflictError('Movement passage authority is unavailable.')
+    await assertAssignedCharacterController({
+      db: input.db,
+      actorUserId: input.userId,
+      campaignId: input.locked.context.campaignId,
+      assignedCharacterId: input.locked.context.assignedCharacterId,
+      characterId: participantCharacterId
+    })
+  }
+  const movementCommand = {
+    commandId: input.command.commandId,
+    commandFingerprint,
+    actorUserId: input.userId,
+    correlationId: input.command.correlationId,
+    expectedOccurrenceVersion: input.occurrence.version,
+    requestId: input.command.resolution.requestId,
+    kind: input.command.resolution.kind
+  }
+  const movement: MovementPassageContinuation = {
+    ...pending.movementContinuation,
+    root: {
+      ...pending.movementContinuation.root,
+      resolutionCommands: [...pending.movementContinuation.root.resolutionCommands, movementCommand]
+    }
+  }
+  await lockCurrentMovementPassageScene({
+    db: input.db,
+    encounterId: input.locked.encounter.id,
+    movement
+  })
+  const targets = await lockEncounterActiveEffectTargets({
+    trx: input.db,
+    encounter: input.locked.encounter,
+    actors: input.locked.encounter.actors,
+    attunementSlotOverride: input.locked.context.attunementSlotOverride,
+    getEncounterActorSnapshot: async () => {
+      const current = await evaluateEncounterActorRuleSnapshot({
+        db: input.db,
+        encounter: input.locked.encounter
+      })
+      return { rules: current.snapshot.output, encounter: current.reconciledEncounter }
+    }
+  })
+  const choice = {
+    kind: 'ENCOUNTER_MOVEMENT_PASSAGE_CHOICE' as const,
+    schemaVersion: 1 as const,
+    movement,
+    sourceActorId: pending.sourceActorId,
+    sourceTokenId: movement.root.tokenId,
+    sourceControllerCharacterId: pending.initiatorControllerCharacterId,
+    options: [
+      {
+        optionId: pending.optionId,
+        ruleKind: pending.actionKind,
+        economy: pending.selection.economy,
+        definitionId: pending.optionalCombat.definitionId,
+        definitionVersion: pending.optionalCombat.definitionVersion,
+        definitionChecksum: pending.optionalCombat.definitionChecksum,
+        moduleKey: pending.optionalCombat.moduleKey,
+        moduleContractVersion: pending.optionalCombat.moduleContractVersion
+      }
+    ],
+    optionsChecksum: ''
+  }
+  choice.optionsChecksum = checksumRuleDocument(choice.options)
+  const current = await prepareEncounterMovementPassageContest({
+    choice,
+    db: input.db,
+    encounter: input.locked.encounter,
+    optionId: pending.optionId,
+    targets
+  })
+  const expectedCurrent = {
+    ...pending,
+    movementContinuation: movement,
+    rollEvidence: { ...pending.rollEvidence }
+  }
+  if (
+    checksumRuleDocument(passageContestWithoutEvidence(current)) !==
+    checksumRuleDocument(passageContestWithoutEvidence(expectedCurrent))
+  )
+    throw new EncounterConflictError('Movement passage contest facts changed.')
+  const {
+    applicationContext: _applicationContext,
+    snapshotKind: _snapshotKind,
+    ...continuation
+  } = snapshot
+  const execution = await executeEncounterMovementPassageContest({
+    automationMode: 'ASSISTED',
+    continuation,
+    occurrenceId: input.occurrence.id,
+    pending: expectedCurrent,
+    resolution:
+      input.command.resolution.kind === 'ENTER_DICE'
+        ? {
+            kind: 'ENTER_DICE',
+            requestId: input.command.resolution.requestId,
+            rawFaces: input.command.resolution.rawFaces
+          }
+        : { kind: 'SYSTEM_ROLL', requestId: input.command.resolution.requestId },
+    runtime: input.runtime,
+    ...(input.rollD20 ? { rollD20: input.rollD20 } : {})
+  })
+  if (execution.kind === 'COMPLETE') {
+    if (!current.actionEconomy)
+      throw new EncounterConflictError('Movement passage allowance is unavailable.')
+    await consumePreparedActionEconomy({
+      db: input.db,
+      sourceActor:
+        input.locked.encounter.actors.find((actor) => actor.id === pending.sourceActorId) ??
+        (() => {
+          throw new EncounterConflictError('Movement passage actor is stale.')
+        })(),
+      consumption: { ...current.actionEconomy, afterUsed: current.actionEconomy.beforeUsed + 1 }
+    })
+    const completedMovement: MovementPassageContinuation = {
+      ...movement,
+      root: {
+        ...movement.root,
+        terminalPassageStop:
+          execution.outcome === 'SUCCESS' ? (movement.nextPassageStop ?? null) : null,
+        resolutionCommands: [
+          ...pending.movementContinuation.root.resolutionCommands,
+          {
+            ...movementCommand,
+            passageContest: movementPassageContestReceipt({ execution, pending: expectedCurrent })
+          }
+        ]
+      }
+    }
+    const result = await resolveEncounterSpatialMovementRuleOccurrence({
+      ...input,
+      commandReceipt: null,
+      passageSettlement: {
+        movement: completedMovement,
+        continueMovement: execution.outcome === 'SUCCESS',
+        economyConsumed: true
+      }
+    })
+    return { response: result.response, replayed: result.replayed }
+  }
+  if (!execution.submittedEvidence)
+    throw new EncounterConflictError('Movement passage evidence is unavailable.')
+  const evidence = {
+    requestId: execution.submittedEvidence.requestId,
+    rawFaces: [...execution.submittedEvidence.rawFaces]
+  }
+  const nextPending: ServerOptionalCombatContestPendingApplicationContextDto = {
+    ...expectedCurrent,
+    rollEvidence: {
+      ...expectedCurrent.rollEvidence,
+      ...(execution.submittedEvidence.participant === 'INITIATOR'
+        ? { initiator: evidence }
+        : { defender: evidence })
+    }
+  }
+  const pendingSnapshot = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
+    ...execution.continuation,
+    snapshotKind: 'KERNEL_EVIDENCE',
+    optionalCombatSnapshotChecksum: nextPending.optionalCombat.snapshotChecksum,
+    applicationContext: nextPending
+  })
+  const paused = await occurrences.advancePending({
+    aggregateKind: 'ENCOUNTER',
+    aggregateId: input.locked.encounter.id,
+    occurrenceId: input.occurrence.id,
+    expectedOccurrenceVersion: input.occurrence.version,
+    expectedAggregateVersion: input.locked.encounter.version,
+    nextAggregateVersion: input.locked.encounter.version,
+    pendingSnapshot
+  })
+  const projection = await repository.requireCurrentProjection({
+    encounterId: input.locked.encounter.id,
+    expectedStreamVersion: input.locked.encounter.version
+  })
+  const occurrenceSummary = actionOccurrenceSummary({
+    occurrence: paused,
+    encounterVersion: input.locked.encounter.version,
+    role: input.locked.context.role,
+    assignedCharacterId: input.locked.context.assignedCharacterId
+  })
+  const pendingResult = storedRuleExecutionResultDtoSchema.parse({
+    status: 'ENCOUNTER_OCCURRENCE_PENDING',
+    schemaVersion: 1,
+    occurrenceId: paused.id,
+    occurrenceVersion: paused.version,
+    encounterId: input.locked.encounter.id,
+    encounterVersion: input.locked.encounter.version,
+    occurrence: occurrenceSummary,
+    characterTransitions: []
+  })
+  await occurrences.appendReceipt({
+    aggregateKind: 'ENCOUNTER',
+    aggregateId: input.locked.encounter.id,
+    commandId: input.command.commandId,
+    commandFingerprint,
+    occurrenceId: paused.id,
+    aggregateVersion: input.locked.encounter.version,
+    commandType: input.command.type,
+    actorUserId: input.userId,
+    correlationId: input.command.correlationId,
+    commandMetadata: {
+      schemaVersion: 1,
+      transition: 'SPATIAL_MOVEMENT',
+      commandType: 'RESOLVE_RULE_OCCURRENCE',
+      rootCommandId: movement.root.commandId,
+      rootCommandFingerprint: movement.root.commandFingerprint,
+      rootInitiatorUserId: movement.root.initiatorUserId,
+      rootCorrelationId: movement.root.correlationId,
+      encounterId: movement.root.encounterId,
+      sceneId: movement.root.sceneId,
+      tokenId: movement.root.tokenId,
+      movementKind: movement.root.movementKind,
+      expectedEncounterVersion: input.command.expectedVersion,
+      expectedSceneVersion: movement.root.currentSceneVersion,
+      rootExpectedEncounterVersion: movement.root.expectedEncounterVersion,
+      rootExpectedSceneVersion: movement.root.expectedSceneVersion,
+      encounterVersionTransition: 'UNCHANGED',
+      sceneVersionTransition: 'UNCHANGED',
+      currentnessChecksum: movement.spatialCurrentnessChecksum,
+      selectionChecksum: movement.spatialSelectionChecksum,
+      occurrenceVersion: paused.version,
+      changedAggregates: [],
+      resolutionCommands: [...movement.root.resolutionCommands]
+    },
+    resultPayload: pendingResult
+  })
+  return {
+    replayed: false,
+    response: encounterCommandResultDtoSchema.parse({
+      projection:
+        input.locked.context.role === 'OWNER'
+          ? projection.projection
+          : projectPlayerEncounterProjection(projection.projection),
+      roll: null,
+      resolution: null,
+      occurrence: occurrenceSummary
+    })
+  }
+}
+
 async function resolveEncounterSpatialMovementRuleOccurrence(input: {
   db: DBLike
   runtime?: RulesRuntimeService
@@ -4864,6 +6546,7 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
   locked: Awaited<ReturnType<typeof lockEncounterRuleExecutionCommandContext>>
   occurrence: RuleOccurrenceRecord
   commandReceipt: RuleOccurrenceReceipt | null
+  passageSettlement?: MovementPassageSettlement
   rollD20?: () => number
   sceneVisionContext?: LiveSessionSceneVisionContextDto
 }): Promise<{
@@ -4978,19 +6661,27 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
   }
   if (input.occurrence.state === 'COMPLETED')
     throw new EncounterConflictError('Rule occurrence is unavailable.')
-  const currentPendingSnapshot = requireEncounterKernelPendingSnapshot(
-    input.occurrence.pendingSnapshot
-  )
-  const pendingContext = currentPendingSnapshot.applicationContext
+  const currentPendingSnapshot = input.passageSettlement
+    ? null
+    : requireEncounterKernelPendingSnapshot(input.occurrence.pendingSnapshot)
+  const pendingContext = currentPendingSnapshot?.applicationContext
   if (
+    !input.passageSettlement &&
     pendingContext?.kind !== 'ENCOUNTER_SPATIAL_MOVEMENT' &&
     pendingContext?.kind !== 'ENCOUNTER_MOVEMENT_REACTION'
   )
     throw new EncounterConflictError('Rule occurrence is unavailable.')
+  const movementState =
+    input.passageSettlement?.movement ??
+    (pendingContext?.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ||
+    pendingContext?.kind === 'ENCOUNTER_MOVEMENT_REACTION'
+      ? pendingContext
+      : null)
+  if (!movementState) throw new EncounterConflictError('Rule occurrence is unavailable.')
   const sceneRepository = createVttSceneRepository(input.db)
   const sceneBinding = await sceneRepository.findEncounterBinding(input.locked.encounter.id)
   const scene =
-    sceneBinding?.sceneId === pendingContext.root.sceneId
+    sceneBinding && sceneBinding.sceneId === movementState.root.sceneId
       ? await sceneRepository.lockLiveScene(sceneBinding.sceneId)
       : null
   if (!scene) throw new EncounterConflictError('Scene changed before rule resolution.')
@@ -5000,26 +6691,44 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
       binding.actorId
     ])
   )
-  if (!actorIdByTokenId.has(pendingContext.root.tokenId)) {
+  if (!actorIdByTokenId.has(movementState.root.tokenId)) {
     throw new EncounterConflictError('Movement token is no longer bound to an Encounter actor.')
   }
-  const movedToken = scene.state.tokens.find((token) => token.id === pendingContext.root.tokenId)
+  const movedToken = scene.state.tokens.find((token) => token.id === movementState.root.tokenId)
   if (!movedToken) throw new EncounterValidationError('Movement token is unavailable.')
+  const terminalPassageStop = movementState.root.terminalPassageStop ?? null
+  if (terminalPassageStop) {
+    const blockerToken = scene.state.tokens.find(
+      (token) => token.id === terminalPassageStop.blockerTokenId
+    )
+    if (
+      !blockerToken ||
+      actorIdByTokenId.get(terminalPassageStop.blockerTokenId) !==
+        terminalPassageStop.blockerActorId ||
+      checksumRuleDocument({
+        actorId: terminalPassageStop.blockerActorId,
+        tokenId: terminalPassageStop.blockerTokenId,
+        footprint: blockerToken
+      }) !== terminalPassageStop.blockerCurrentnessChecksum
+    ) {
+      throw new EncounterConflictError('The later movement passage blocker is stale.')
+    }
+  }
   const context = pendingContext
-  const existing = context.root.resolutionCommands.find(
+  const existing = movementState.root.resolutionCommands.find(
     (entry) => entry.commandId === input.command.commandId
   )
-  if (existing) {
+  if (!input.passageSettlement && existing) {
     throw new EncounterConflictError('Rule occurrence receipt is unavailable.')
   }
-  if (context.kind === 'ENCOUNTER_MOVEMENT_REACTION') {
+  if (!input.passageSettlement && context?.kind === 'ENCOUNTER_MOVEMENT_REACTION') {
     await assertMovementReactionOccurrenceAuthority({
       db: input.db,
       actorUserId: input.userId,
       locked: input.locked,
       occurrence: input.occurrence
     })
-  } else {
+  } else if (!input.passageSettlement) {
     await assertSpatialOccurrenceAuthority({
       db: input.db,
       actorUserId: input.userId,
@@ -5028,13 +6737,16 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
     })
   }
   if (
-    (context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
+    !input.passageSettlement &&
+    context &&
+    ((context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
       (context.phase.kind === 'CHOICE' || context.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE') &&
       !isMovementReactionResolveRuleOccurrenceCommand(input.command)) ||
-    ((context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ||
-      (context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
-        (context.phase.kind === 'SPATIAL_EVIDENCE' || context.phase.kind === 'ACTION_EVIDENCE'))) &&
-      !isD20ResolveRuleOccurrenceCommand(input.command))
+      ((context.kind === 'ENCOUNTER_SPATIAL_MOVEMENT' ||
+        (context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
+          (context.phase.kind === 'SPATIAL_EVIDENCE' ||
+            context.phase.kind === 'ACTION_EVIDENCE'))) &&
+        !isD20ResolveRuleOccurrenceCommand(input.command)))
   ) {
     throw new EncounterConflictError('Rule occurrence is unavailable.')
   }
@@ -5045,20 +6757,25 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
   )
     throw new EncounterConflictError('Rule occurrence is unavailable.')
   if (
+    !input.passageSettlement &&
     isD20ResolveRuleOccurrenceCommand(input.command) &&
-    input.command.resolution.requestId !== currentPendingSnapshot.request.requestId
+    input.command.resolution.requestId !== currentPendingSnapshot!.request.requestId
   ) {
     throw new EncounterConflictError('Rule occurrence is unavailable.')
   }
+  const currentEvaluationEncounter = input.passageSettlement?.economyConsumed
+    ? await repository.find(input.locked.encounter.id)
+    : input.locked.encounter
+  if (!currentEvaluationEncounter) throw new EncounterNotFoundError()
   let lockedTargets = await lockEncounterActiveEffectTargets({
     trx: input.db,
-    encounter: input.locked.encounter,
-    actors: input.locked.encounter.actors,
+    encounter: currentEvaluationEncounter,
+    actors: currentEvaluationEncounter.actors,
     attunementSlotOverride: input.locked.context.attunementSlotOverride,
     getEncounterActorSnapshot: async () => {
       const snapshot = await evaluateEncounterActorRuleSnapshot({
         db: input.db,
-        encounter: input.locked.encounter
+        encounter: currentEvaluationEncounter
       })
       return { rules: snapshot.snapshot.output, encounter: snapshot.reconciledEncounter }
     }
@@ -5069,19 +6786,22 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
   })
   if (!spatialScope) throw new EncounterConflictError('Spatial rule scope is unavailable.')
   const movementRoot = {
-    commandId: context.root.commandId,
-    commandFingerprint: context.root.commandFingerprint,
-    initiatorUserId: context.root.initiatorUserId,
-    correlationId: context.root.correlationId,
-    encounterId: context.root.encounterId,
-    sceneId: context.root.sceneId,
-    tokenId: context.root.tokenId,
-    expectedEncounterVersion: context.root.expectedEncounterVersion,
-    expectedSceneVersion: context.root.expectedSceneVersion,
-    movementKind: context.root.movementKind,
-    originalPath: context.root.originalPath
+    commandId: movementState.root.commandId,
+    commandFingerprint: movementState.root.commandFingerprint,
+    initiatorUserId: movementState.root.initiatorUserId,
+    correlationId: movementState.root.correlationId,
+    encounterId: movementState.root.encounterId,
+    sceneId: movementState.root.sceneId,
+    tokenId: movementState.root.tokenId,
+    expectedEncounterVersion: movementState.root.expectedEncounterVersion,
+    expectedSceneVersion: movementState.root.expectedSceneVersion,
+    movementKind: movementState.root.movementKind,
+    originalPath: movementState.root.originalPath,
+    ...(movementState.root.terminalPassageStop
+      ? { terminalPassageStop: movementState.root.terminalPassageStop }
+      : {})
   }
-  let evaluationEncounter = input.locked.encounter
+  let evaluationEncounter = currentEvaluationEncounter
   const refreshMovementTargets = async () => {
     const currentEncounter = await repository.find(input.locked.encounter.id)
     if (!currentEncounter) throw new EncounterNotFoundError()
@@ -5100,10 +6820,28 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
       }
     })
   }
-  let completedReactionRemainder: FrozenMovementReactionRemainder | null = null
+  let completedReactionRemainder: FrozenMovementReactionRemainder | null = input.passageSettlement
+    ? {
+        root: input.passageSettlement.movement.root,
+        spatialSelectionChecksum: input.passageSettlement.movement.spatialSelectionChecksum,
+        spatialCurrentnessChecksum: input.passageSettlement.movement.spatialCurrentnessChecksum,
+        completedSpatialExecutions: [
+          ...input.passageSettlement.movement.completedSpatialExecutions
+        ],
+        appliedSpatialPrefix: input.passageSettlement.movement.appliedSpatialPrefix,
+        completedReactionExecutions: [
+          ...input.passageSettlement.movement.completedReactionExecutions
+        ],
+        currentSpatialCandidate: null,
+        remainingSpatialCandidates: [
+          ...input.passageSettlement.movement.remainingSpatialCandidates
+        ],
+        reactionTimeline: [...input.passageSettlement.movement.reactionTimeline]
+      }
+    : null
 
   if (
-    context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
+    context?.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
     context.phase.kind === 'LEGENDARY_RESISTANCE_CHOICE'
   ) {
     const legendaryPhase = context.phase
@@ -5198,7 +6936,7 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
       applicationContext: _applicationContext,
       snapshotKind: _snapshotKind,
       ...continuation
-    } = currentPendingSnapshot
+    } = currentPendingSnapshot!
     const selection = input.command.resolution.kind === 'OPTION' ? 'USE' : 'DECLINE'
     const choice = await resumeEncounterLegendaryResistanceChoice({
       runtime: input.runtime,
@@ -5290,7 +7028,7 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
   }
 
   if (
-    context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
+    context?.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
     (context.phase.kind === 'CHOICE' || context.phase.kind === 'ACTION_EVIDENCE')
   ) {
     if (!input.runtime) {
@@ -5326,7 +7064,7 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
         })
         const selected = await resolveEncounterMovementReactionChoice({
           runtime: input.runtime,
-          pendingSnapshot: currentPendingSnapshot,
+          pendingSnapshot: currentPendingSnapshot!,
           selection: input.command.resolution
         })
         if (selected.kind !== 'SELECTED') {
@@ -5379,7 +7117,7 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
         applicationContext: _applicationContext,
         snapshotKind: _snapshotKind,
         ...continuation
-      } = currentPendingSnapshot
+      } = currentPendingSnapshot!
       actionContinuation = continuation
       actionResolution =
         input.command.resolution.kind === 'ENTER_DICE'
@@ -5608,126 +7346,188 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
   }
   let continuingReactionTimeline = completedReactionRemainder
     ? completedReactionRemainder.reactionTimeline
-    : context.kind === 'ENCOUNTER_MOVEMENT_REACTION'
+    : context?.kind === 'ENCOUNTER_MOVEMENT_REACTION'
       ? context.phase.kind === 'CHOICE'
         ? context.reactionTimeline.slice(1)
         : context.reactionTimeline
       : []
+  const nextBoundaryDistance = () =>
+    nextMovementContinuationBoundaryDistance(
+      continuingReactionTimeline,
+      terminalPassageStop?.pathDistance ?? null
+    )
   const commandTransitions: MovementCommandTransition[] = [
     ...(
       completedReactionRemainder?.completedReactionExecutions ??
-      (context.kind === 'ENCOUNTER_MOVEMENT_REACTION' ? context.completedReactionExecutions : [])
+      (context?.kind === 'ENCOUNTER_MOVEMENT_REACTION' ? context.completedReactionExecutions : [])
     )
       .filter((execution) => execution.sourceCommandId === input.command.commandId)
       .map((execution) => ({ kind: 'REACTION' as const, execution }))
   ]
-  let evaluation = completedReactionRemainder
-    ? await evaluateEncounterSpatialMovementRuleBatch({
-        ...sharedEvaluationInput,
-        frozenReactionRemainder: completedReactionRemainder,
-        ...(currentMovementReactionTimelineDistance(completedReactionRemainder.reactionTimeline) !==
-        null
-          ? {
-              interruptAfterPathDistance: currentMovementReactionTimelineDistance(
-                completedReactionRemainder.reactionTimeline
-              )!
-            }
-          : {})
-      })
-    : context.kind === 'ENCOUNTER_MOVEMENT_REACTION' && context.phase.kind === 'CHOICE'
-      ? await (async () => {
-          if (!isMovementReactionResolveRuleOccurrenceCommand(input.command)) {
-            throw new EncounterConflictError('Rule occurrence is unavailable.')
-          }
-          if (input.command.resolution.kind === 'OPTION')
-            throw new EncounterConflictError('Rule occurrence is unavailable.')
-          if (!input.runtime) {
-            throw new EncounterValidationError(
-              'Movement reaction resolution requires the rules runtime.'
-            )
-          }
-          const selection: MovementReactionChoiceSelectionDto = input.command.resolution
-          const resolutionCommands = appendEncounterMovementReactionResolutionCommand({
-            history: context.root.resolutionCommands,
-            command: {
-              commandId: input.command.commandId,
-              commandFingerprint,
-              actorUserId: input.userId,
-              correlationId: input.command.correlationId,
-              expectedOccurrenceVersion: input.occurrence.version,
-              kind: selection.kind
-            },
-            selection,
-            actorUserId: input.userId,
-            proposedOccurrenceVersion: input.occurrence.version + 1
-          })
-          const settledChoice = await resolveEncounterMovementReactionChoice({
-            runtime: input.runtime,
-            pendingSnapshot: requireEncounterKernelPendingSnapshot(
-              input.occurrence.pendingSnapshot
-            ),
-            selection
-          })
-          if (settledChoice.kind !== 'DECLINED') {
-            throw new EncounterConflictError('Rule occurrence is unavailable.')
-          }
-          const remainder = movementReactionRemainderAfterCurrentChoice({
-            context: settledChoice.context,
-            resolutionCommands
-          })
-          return evaluateEncounterSpatialMovementRuleBatch({
+  let evaluation =
+    input.passageSettlement && !input.passageSettlement.continueMovement
+      ? {
+          kind: 'TERMINAL' as const,
+          result: storedRuleExecutionResultDtoSchema.parse({
+            status: 'MOVEMENT_COMPLETE',
+            schemaVersion: 1,
+            occurrenceId: input.occurrence.id,
+            occurrenceVersion: input.occurrence.version + 1,
+            encounterId: input.locked.encounter.id,
+            encounterVersion: input.locked.encounter.version + 1,
+            sceneId: scene.state.id,
+            sceneVersion: scene.state.version,
+            tokenId: movementState.root.tokenId,
+            movementKind: movementState.root.movementKind,
+            reactionExecutions: [...input.passageSettlement.movement.completedReactionExecutions],
+            terminalPosition: movementState.root.currentPosition
+          }),
+          movementIntent: {
+            tokenId: movementState.root.tokenId,
+            position: movementState.root.currentPosition
+          },
+          resolutionCommands: [...movementState.root.resolutionCommands],
+          selectionChecksum: input.passageSettlement.movement.spatialSelectionChecksum,
+          currentnessChecksum: input.passageSettlement.movement.spatialCurrentnessChecksum
+        }
+      : completedReactionRemainder
+        ? await evaluateEncounterSpatialMovementRuleBatch({
             ...sharedEvaluationInput,
-            frozenReactionRemainder: remainder,
-            ...(currentMovementReactionTimelineDistance(remainder.reactionTimeline) !== null
-              ? {
-                  interruptAfterPathDistance: currentMovementReactionTimelineDistance(
-                    remainder.reactionTimeline
-                  )!
-                }
-              : {})
+            frozenReactionRemainder: completedReactionRemainder,
+            ...(nextBoundaryDistance() === null
+              ? {}
+              : { interruptAfterPathDistance: nextBoundaryDistance()! })
           })
-        })()
-      : await (async () => {
-          if (!isD20ResolveRuleOccurrenceCommand(input.command)) {
-            throw new EncounterConflictError('Rule occurrence is unavailable.')
-          }
-          const resolutionCommand = {
-            commandId: input.command.commandId,
-            commandFingerprint,
-            actorUserId: input.userId,
-            correlationId: input.command.correlationId,
-            expectedOccurrenceVersion: input.occurrence.version,
-            requestId: input.command.resolution.requestId,
-            kind: input.command.resolution.kind
-          }
-          return evaluateEncounterSpatialMovementRuleBatch({
-            ...sharedEvaluationInput,
-            pendingSnapshot: requireEncounterKernelPendingSnapshot(
-              input.occurrence.pendingSnapshot
-            ),
-            resolution: input.command.resolution as SpatialMovementRuleResolution,
-            resolutionCommand,
-            ...(currentMovementReactionTimelineDistance(continuingReactionTimeline) !== null
-              ? {
-                  interruptAfterPathDistance: currentMovementReactionTimelineDistance(
-                    continuingReactionTimeline
-                  )!
-                }
-              : {})
-          })
-        })()
+        : context?.kind === 'ENCOUNTER_MOVEMENT_REACTION' && context.phase.kind === 'CHOICE'
+          ? await (async () => {
+              if (!isMovementReactionResolveRuleOccurrenceCommand(input.command)) {
+                throw new EncounterConflictError('Rule occurrence is unavailable.')
+              }
+              if (input.command.resolution.kind === 'OPTION')
+                throw new EncounterConflictError('Rule occurrence is unavailable.')
+              if (!input.runtime) {
+                throw new EncounterValidationError(
+                  'Movement reaction resolution requires the rules runtime.'
+                )
+              }
+              const selection: MovementReactionChoiceSelectionDto = input.command.resolution
+              const resolutionCommands = appendEncounterMovementReactionResolutionCommand({
+                history: context.root.resolutionCommands,
+                command: {
+                  commandId: input.command.commandId,
+                  commandFingerprint,
+                  actorUserId: input.userId,
+                  correlationId: input.command.correlationId,
+                  expectedOccurrenceVersion: input.occurrence.version,
+                  kind: selection.kind
+                },
+                selection,
+                actorUserId: input.userId,
+                proposedOccurrenceVersion: input.occurrence.version + 1
+              })
+              const settledChoice = await resolveEncounterMovementReactionChoice({
+                runtime: input.runtime,
+                pendingSnapshot: requireEncounterKernelPendingSnapshot(
+                  input.occurrence.pendingSnapshot
+                ),
+                selection
+              })
+              if (settledChoice.kind !== 'DECLINED') {
+                throw new EncounterConflictError('Rule occurrence is unavailable.')
+              }
+              const remainder = movementReactionRemainderAfterCurrentChoice({
+                context: settledChoice.context,
+                resolutionCommands
+              })
+              return evaluateEncounterSpatialMovementRuleBatch({
+                ...sharedEvaluationInput,
+                frozenReactionRemainder: remainder,
+                ...(nextBoundaryDistance() === null
+                  ? {}
+                  : { interruptAfterPathDistance: nextBoundaryDistance()! })
+              })
+            })()
+          : await (async () => {
+              if (!isD20ResolveRuleOccurrenceCommand(input.command)) {
+                throw new EncounterConflictError('Rule occurrence is unavailable.')
+              }
+              const resolutionCommand = {
+                commandId: input.command.commandId,
+                commandFingerprint,
+                actorUserId: input.userId,
+                correlationId: input.command.correlationId,
+                expectedOccurrenceVersion: input.occurrence.version,
+                requestId: input.command.resolution.requestId,
+                kind: input.command.resolution.kind
+              }
+              return evaluateEncounterSpatialMovementRuleBatch({
+                ...sharedEvaluationInput,
+                pendingSnapshot: requireEncounterKernelPendingSnapshot(
+                  input.occurrence.pendingSnapshot
+                ),
+                resolution: input.command.resolution as SpatialMovementRuleResolution,
+                resolutionCommand,
+                ...(nextBoundaryDistance() === null
+                  ? {}
+                  : { interruptAfterPathDistance: nextBoundaryDistance()! })
+              })
+            })()
   let stagedReactionScene = scene.state
-  while (
-    evaluation.kind === 'REACTION_BOUNDARY' &&
-    continuingReactionTimeline[0]?.kind === 'AUTOMATIC_ACTION'
-  ) {
+  while (evaluation.kind === 'REACTION_BOUNDARY') {
+    if (
+      terminalPassageStop &&
+      Math.abs(evaluation.boundaryDistance - terminalPassageStop.pathDistance) <= 1e-8
+    ) {
+      const stoppedCandidate = evaluation.appliedPrefix
+        ? storedRuleExecutionResultDtoSchema.parse({
+            ...evaluation.appliedPrefix,
+            reactionExecutions: [...evaluation.completedReactionExecutions],
+            terminalPosition: terminalPassageStop.contact
+          })
+        : storedRuleExecutionResultDtoSchema.parse({
+            status: 'MOVEMENT_COMPLETE',
+            schemaVersion: 1,
+            occurrenceId: input.occurrence.id,
+            occurrenceVersion: input.occurrence.version + 1,
+            encounterId: input.locked.encounter.id,
+            encounterVersion: evaluationEncounter.version + 1,
+            sceneId: scene.state.id,
+            sceneVersion: scene.state.version + 1,
+            tokenId: movementState.root.tokenId,
+            movementKind: movementState.root.movementKind,
+            reactionExecutions: [...evaluation.completedReactionExecutions],
+            terminalPosition: terminalPassageStop.contact
+          })
+      if (
+        stoppedCandidate.status !== 'MOVEMENT_COMPLETE' &&
+        !(
+          stoppedCandidate.status === 'BATCH_COMPLETE' &&
+          stoppedCandidate.batchKind === 'ENCOUNTER_SPATIAL_MOVEMENT'
+        )
+      ) {
+        throw new EncounterConflictError('The passage-stopped movement result is unavailable.')
+      }
+      evaluation = {
+        kind: 'TERMINAL',
+        result: stoppedCandidate,
+        movementIntent: {
+          tokenId: movementState.root.tokenId,
+          position: terminalPassageStop.contact
+        },
+        resolutionCommands: evaluation.resolutionCommands,
+        selectionChecksum: evaluation.selectionChecksum,
+        currentnessChecksum: evaluation.currentnessChecksum
+      }
+      break
+    }
+    if (continuingReactionTimeline[0]?.kind !== 'AUTOMATIC_ACTION') break
     if (!input.runtime) {
       throw new EncounterValidationError('Automatic movement reactions require the rules runtime.')
     }
     const automaticEntry = continuingReactionTimeline[0]
     stagedReactionScene = stageMovementTokenPosition(
       stagedReactionScene,
-      context.root.tokenId,
+      movementState.root.tokenId,
       evaluation.boundaryPosition
     )
     const automatic = await executeAutomaticEncounterMovementReaction({
@@ -5736,8 +7536,8 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
       encounter: evaluationEncounter,
       scene: stagedReactionScene,
       actorIdByTokenId,
-      movingTokenId: context.root.tokenId,
-      movementKind: context.root.movementKind,
+      movingTokenId: movementState.root.tokenId,
+      movementKind: movementState.root.movementKind,
       occurrenceId: input.occurrence.id,
       commandId: input.command.commandId,
       ordinal: evaluation.completedReactionExecutions.length,
@@ -5751,7 +7551,10 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
     if (automatic.kind === 'PENDING') {
       evaluation = {
         kind: 'PENDING',
-        movementIntent: { tokenId: context.root.tokenId, position: evaluation.boundaryPosition },
+        movementIntent: {
+          tokenId: movementState.root.tokenId,
+          position: evaluation.boundaryPosition
+        },
         pendingSnapshot: startEncounterAutomaticMovementReactionEvidenceAtBoundary({
           continuation: automatic.continuation.continuation,
           root: movementRoot,
@@ -5769,7 +7572,7 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
     sharedEvaluationInput.lockedTargets = lockedTargets
     if (automatic.settled.reactionExecution.execution.movementInterruption?.kind === 'STOP') {
       const terminalPosition = stagedReactionScene.tokens.find(
-        (token) => token.id === context.root.tokenId
+        (token) => token.id === movementState.root.tokenId
       )!.position
       const result = storedRuleExecutionResultDtoSchema.parse({
         status: 'MOVEMENT_COMPLETE',
@@ -5780,8 +7583,8 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
         encounterVersion: evaluationEncounter.version + 1,
         sceneId: scene.state.id,
         sceneVersion: scene.state.version + 1,
-        tokenId: context.root.tokenId,
-        movementKind: context.root.movementKind,
+        tokenId: movementState.root.tokenId,
+        movementKind: movementState.root.movementKind,
         reactionExecutions: [
           ...evaluation.completedReactionExecutions,
           automatic.settled.reactionExecution
@@ -5794,7 +7597,7 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
       evaluation = {
         kind: 'TERMINAL',
         result,
-        movementIntent: { tokenId: context.root.tokenId, position: terminalPosition },
+        movementIntent: { tokenId: movementState.root.tokenId, position: terminalPosition },
         resolutionCommands: evaluation.resolutionCommands,
         selectionChecksum: evaluation.selectionChecksum,
         currentnessChecksum: evaluation.currentnessChecksum
@@ -5832,13 +7635,9 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
       sceneTokens: stagedReactionScene.tokens,
       currentPosition: evaluation.boundaryPosition,
       frozenReactionRemainder: remainder,
-      ...(currentMovementReactionTimelineDistance(continuingReactionTimeline) === null
+      ...(nextBoundaryDistance() === null
         ? {}
-        : {
-            interruptAfterPathDistance: currentMovementReactionTimelineDistance(
-              continuingReactionTimeline
-            )!
-          })
+        : { interruptAfterPathDistance: nextBoundaryDistance()! })
     })
   }
   if (
@@ -5861,12 +7660,20 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
           return applicationContext
         })()
       : null
-  const startDistance = context.root.pathStartDistance
+  const startDistance = movementState.root.pathStartDistance
   const endDistance = pendingEvaluationContext
     ? pendingEvaluationContext.root.pathStartDistance
     : evaluation.kind === 'REACTION_BOUNDARY'
       ? evaluation.boundaryDistance
-      : spatialPathLength(context.root.originalPath)
+      : evaluation.kind === 'TERMINAL' &&
+          terminalPassageStop &&
+          evaluation.movementIntent !== null &&
+          Math.abs(evaluation.movementIntent.position.x - terminalPassageStop.contact.x) <= 1e-8 &&
+          Math.abs(evaluation.movementIntent.position.y - terminalPassageStop.contact.y) <= 1e-8
+        ? terminalPassageStop.pathDistance
+        : input.passageSettlement && !input.passageSettlement.continueMovement
+          ? movementState.root.pathStartDistance
+          : spatialPathLength(movementState.root.originalPath)
   const committed = await commitSpatialSceneMovement({
     repository: sceneRepository,
     scene,
@@ -5875,8 +7682,8 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
     commandId: input.command.commandId,
     commandType: input.command.type,
     commandFingerprint,
-    tokenId: context.root.tokenId,
-    path: context.root.originalPath,
+    tokenId: movementState.root.tokenId,
+    path: movementState.root.originalPath,
     startDistance,
     endDistance,
     endPosition: evaluation.movementIntent?.position ?? movedToken.position,
@@ -5919,7 +7726,8 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
           })
         : null
   if (pendingSnapshot) {
-    const mechanicsAppliedBeforePause = commandTransitions.length > 0
+    const mechanicsAppliedBeforePause =
+      commandTransitions.length > 0 || input.passageSettlement?.economyConsumed === true
     const pendingCharacterAggregates = movementCommandCharacterAggregateVersions(commandTransitions)
     let pendingEncounterVersion = input.locked.encounter.version
     if (mechanicsAppliedBeforePause) {
@@ -5972,7 +7780,7 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
             {
               aggregateId: committed.state.id,
               aggregateKind: 'SCENE' as const,
-              beforeVersion: context.root.currentSceneVersion,
+              beforeVersion: movementState.root.currentSceneVersion,
               version: committed.version
             }
           ])
@@ -5990,7 +7798,7 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
       paused,
       pendingEncounterVersion,
       pendingSnapshot,
-      expectedSceneVersion: context.root.currentSceneVersion,
+      expectedSceneVersion: movementState.root.currentSceneVersion,
       pendingSceneVersion: committed.version,
       changedAggregates: spatialChangedAggregates,
       viewer: {
@@ -6036,11 +7844,26 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
   if (!isEncounterMovementTerminalResult(result)) {
     throw new EncounterConflictError('Spatial movement result is unavailable.')
   }
+  const terminalPassageAudit = evaluation.resolutionCommands
+    .flatMap((command) => {
+      const audit = command.kind === 'PASSAGE_OPTION' ? command.passageContest?.audit : undefined
+      return audit?.terminalPassageStop && audit.terminalPosition
+        ? [{ stop: audit.terminalPassageStop, terminalPosition: audit.terminalPosition }]
+        : []
+    })
+    .at(-1)
+  if (
+    terminalPassageAudit &&
+    (Math.abs(result.terminalPosition.x - terminalPassageAudit.terminalPosition.x) > 1e-8 ||
+      Math.abs(result.terminalPosition.y - terminalPassageAudit.terminalPosition.y) > 1e-8)
+  ) {
+    throw new EncounterConflictError('The terminal passage stop does not match movement.')
+  }
   const terminalChangedAggregates = terminalMovementChangedAggregates({
     encounter: updatedEncounter,
     result,
     expectedEncounterVersion: input.command.expectedVersion,
-    expectedSceneVersion: context.root.currentSceneVersion,
+    expectedSceneVersion: movementState.root.currentSceneVersion,
     sourceCommandId: input.command.commandId
   })
   const completed = await occurrences.complete({
@@ -6065,21 +7888,21 @@ async function resolveEncounterSpatialMovementRuleOccurrence(input: {
       schemaVersion: 1,
       transition: 'SPATIAL_MOVEMENT',
       commandType: 'RESOLVE_RULE_OCCURRENCE',
-      rootCommandId: context.root.commandId,
-      rootCommandFingerprint: context.root.commandFingerprint,
-      rootInitiatorUserId: context.root.initiatorUserId,
-      rootCorrelationId: context.root.correlationId,
-      encounterId: context.root.encounterId,
-      sceneId: context.root.sceneId,
-      tokenId: context.root.tokenId,
-      movementKind: context.root.movementKind,
+      rootCommandId: movementState.root.commandId,
+      rootCommandFingerprint: movementState.root.commandFingerprint,
+      rootInitiatorUserId: movementState.root.initiatorUserId,
+      rootCorrelationId: movementState.root.correlationId,
+      encounterId: movementState.root.encounterId,
+      sceneId: movementState.root.sceneId,
+      tokenId: movementState.root.tokenId,
+      movementKind: movementState.root.movementKind,
       expectedEncounterVersion: input.command.expectedVersion,
-      expectedSceneVersion: context.root.currentSceneVersion,
-      rootExpectedEncounterVersion: context.root.expectedEncounterVersion,
-      rootExpectedSceneVersion: context.root.expectedSceneVersion,
+      expectedSceneVersion: movementState.root.currentSceneVersion,
+      rootExpectedEncounterVersion: movementState.root.expectedEncounterVersion,
+      rootExpectedSceneVersion: movementState.root.expectedSceneVersion,
       encounterVersionTransition: 'ADVANCED',
       sceneVersionTransition:
-        committed.version === context.root.currentSceneVersion ? 'UNCHANGED' : 'ADVANCED',
+        committed.version === movementState.root.currentSceneVersion ? 'UNCHANGED' : 'ADVANCED',
       currentnessChecksum: evaluation.currentnessChecksum,
       selectionChecksum: evaluation.selectionChecksum,
       occurrenceVersion: completed.version,
@@ -6269,7 +8092,10 @@ async function resolveEncounterInitiativeRuleOccurrence(input: {
           occurrenceVersion: input.occurrence.version,
           status: 'PENDING',
           outcome: null,
-          pending: projectEncounterInitiativePendingSummary({
+          pending: await projectEncounterInitiativePendingSummaryForAudience({
+            db: input.db,
+            userId: input.userId,
+            locked: input.locked,
             pendingSnapshot: input.occurrence.pendingSnapshot!,
             occurrenceVersion: input.occurrence.version,
             encounterVersion: input.locked.encounter.version
@@ -6318,8 +8144,7 @@ async function resolveEncounterInitiativeRuleOccurrence(input: {
     if (
       input.command.resolution.requestId !== request.requestId ||
       request.encounterId !== input.locked.encounter.id ||
-      request.round !== root.round ||
-      (input.locked.context.role !== 'OWNER' && request.controllerUserId !== input.userId)
+      request.round !== root.round
     ) {
       throw new EncounterConflictError('Rule occurrence is unavailable.')
     }
@@ -6395,7 +8220,10 @@ async function resolveEncounterInitiativeRuleOccurrence(input: {
             occurrenceVersion: paused.version,
             status: 'PENDING',
             outcome: null,
-            pending: projectEncounterInitiativePendingSummary({
+            pending: await projectEncounterInitiativePendingSummaryForAudience({
+              db: input.db,
+              userId: input.userId,
+              locked: input.locked,
               pendingSnapshot: paused.pendingSnapshot!,
               occurrenceVersion: paused.version,
               encounterVersion: input.locked.encounter.version
@@ -6480,7 +8308,10 @@ async function resolveEncounterInitiativeRuleOccurrence(input: {
           occurrenceVersion: paused.version,
           status: 'PENDING',
           outcome: null,
-          pending: projectEncounterInitiativePendingSummary({
+          pending: await projectEncounterInitiativePendingSummaryForAudience({
+            db: input.db,
+            userId: input.userId,
+            locked: input.locked,
             pendingSnapshot: requireEncounterKernelPendingSnapshot(paused.pendingSnapshot),
             occurrenceVersion: paused.version,
             encounterVersion: input.locked.encounter.version
@@ -6587,6 +8418,27 @@ async function resolveEncounterInitiativeRuleOccurrence(input: {
       })
       actorEvaluation = evaluated
     }
+    let stagedActionEconomyRefreshActors: readonly EncounterActorRecord[] = []
+    if (coordinatorRoot.stagedActionEconomyRefreshes?.length) {
+      stagedActionEconomyRefreshActors = await applyStagedActionEconomyRefreshes({
+        encounter: evaluated.reconciledEncounter,
+        definitions: createReusableDefinitionRepository(input.db),
+        refreshes: coordinatorRoot.stagedActionEconomyRefreshes
+      })
+      const refreshedEncounter = {
+        ...evaluated.reconciledEncounter,
+        actors: evaluated.reconciledEncounter.actors.map(
+          (actor) =>
+            stagedActionEconomyRefreshActors.find((candidate) => candidate.id === actor.id) ?? actor
+        )
+      }
+      evaluated = await evaluateEncounterActorRuleSnapshot({
+        db: input.db,
+        encounter: refreshedEncounter,
+        revisionId: revision.id
+      })
+      actorEvaluation = evaluated
+    }
     if (
       firstActorId &&
       input.locked.encounter.automationMode !== 'MANUAL' &&
@@ -6594,6 +8446,40 @@ async function resolveEncounterInitiativeRuleOccurrence(input: {
         (refresh) => refresh.actorId === firstActorId
       )
     ) {
+      const stagedEconomy = await stageEncounterActionEconomyRefreshes({
+        actorId: firstActorId,
+        encounter: evaluated.reconciledEncounter,
+        definitions: createReusableDefinitionRepository(input.db)
+      })
+      if (stagedEconomy.refreshes.length > 0 && stagedEconomy.refreshedActor) {
+        const ordinal = coordinatorRoot.stagedActionEconomyRefreshes?.length ?? 0
+        coordinatorRoot = {
+          ...coordinatorRoot,
+          stagedActionEconomyRefreshes: [
+            ...(coordinatorRoot.stagedActionEconomyRefreshes ?? []),
+            ...stagedEconomy.refreshes.map((refresh, index) => ({
+              ...refresh,
+              ordinal: ordinal + index
+            }))
+          ]
+        }
+        stagedActionEconomyRefreshActors = [
+          ...stagedActionEconomyRefreshActors,
+          stagedEconomy.refreshedActor
+        ]
+        const refreshedEncounter = {
+          ...evaluated.reconciledEncounter,
+          actors: evaluated.reconciledEncounter.actors.map((actor) =>
+            actor.id === stagedEconomy.refreshedActor!.id ? stagedEconomy.refreshedActor! : actor
+          )
+        }
+        evaluated = await evaluateEncounterActorRuleSnapshot({
+          db: input.db,
+          encounter: refreshedEncounter,
+          revisionId: revision.id
+        })
+        actorEvaluation = evaluated
+      }
       const staged = await stageEncounterLegendaryActionRefreshes({
         actorId: firstActorId,
         encounter: evaluated.reconciledEncounter,
@@ -6801,9 +8687,13 @@ async function resolveEncounterInitiativeRuleOccurrence(input: {
       throw new EncounterConflictError('Staged initiative did not settle the expected turn cursor.')
     }
 
-    for (const actor of stagedLegendaryRefreshActors) await repository.updateActor(actor)
-    for (const actor of evaluated.actorUpdates) await repository.updateActor(actor)
-    if (stagedRechargeActor) await repository.updateActor(stagedRechargeActor)
+    for (const actor of mergeEncounterActorTerminalUpdates([
+      evaluated.actorUpdates,
+      stagedLegendaryRefreshActors,
+      stagedActionEconomyRefreshActors,
+      ...(stagedRechargeActor ? [[stagedRechargeActor]] : [])
+    ]))
+      await repository.updateActor(actor)
     const selectionChecksum =
       turnEvaluation.kind === 'READY'
         ? turnEvaluation.batch.selectionChecksum
@@ -7067,6 +8957,38 @@ async function assertCurrentInitiativeDeclarationAuthority(input: {
   ) {
     throw new EncounterConflictError('Rule occurrence is unavailable.')
   }
+}
+
+/**
+ * Declaration options are sealed in the pending occurrence, but their audience
+ * is resolved from the current locked Character assignment on every response.
+ */
+async function projectEncounterInitiativePendingSummaryForAudience(input: {
+  db: DBLike
+  userId: string
+  locked: Awaited<ReturnType<typeof lockEncounterRuleExecutionCommandContext>>
+  pendingSnapshot: ServerRuleExecutionPendingSnapshotDto
+  occurrenceVersion: number
+  encounterVersion: number
+}) {
+  const pending = projectEncounterInitiativePendingSummary({
+    pendingSnapshot: input.pendingSnapshot,
+    occurrenceVersion: input.occurrenceVersion,
+    encounterVersion: input.encounterVersion
+  })
+  if (pending.kind !== 'INITIATIVE_DECLARATION') return pending
+  try {
+    await assertCurrentInitiativeDeclarationAuthority({
+      db: input.db,
+      userId: input.userId,
+      locked: input.locked,
+      actorId: pending.actorId
+    })
+  } catch (error) {
+    if (error instanceof EncounterConflictError) return null
+    throw error
+  }
+  return pending
 }
 
 function assertInitiativeOccurrenceAuthority(input: {
@@ -7527,9 +9449,11 @@ async function continueEncounterTurnAfterLegendaryAction(input: {
     revisionId: frozenRevisionId,
     expectedChecksum: frozenRevisionChecksum
   })
-  const initialEncounter = input.root.stagedLegendaryActionRefreshes?.length
-    ? await repository.find(input.locked.encounter.id)
-    : input.locked.encounter
+  const initialEncounter =
+    input.root.stagedLegendaryActionRefreshes?.length ||
+    input.root.stagedActionEconomyRefreshes?.length
+      ? await repository.find(input.locked.encounter.id)
+      : input.locked.encounter
   if (!initialEncounter) throw new EncounterNotFoundError()
   let currentEncounter: EncounterRecord = initialEncounter
   let actorEvaluation = await evaluateEncounterActorRuleSnapshot({
@@ -7573,6 +9497,27 @@ async function continueEncounterTurnAfterLegendaryAction(input: {
       encounter: currentEncounter,
       revisionId: frozenRevision.id,
       previousSnapshot: actorEvaluation.snapshot
+    })
+    currentEncounter = actorEvaluation.reconciledEncounter
+  }
+  let stagedActionEconomyRefreshActors: readonly EncounterActorRecord[] = []
+  if (root.stagedActionEconomyRefreshes?.length) {
+    stagedActionEconomyRefreshActors = await applyStagedActionEconomyRefreshes({
+      encounter: currentEncounter,
+      definitions: createReusableDefinitionRepository(input.trx),
+      refreshes: root.stagedActionEconomyRefreshes
+    })
+    currentEncounter = {
+      ...currentEncounter,
+      actors: currentEncounter.actors.map(
+        (actor) =>
+          stagedActionEconomyRefreshActors.find((candidate) => candidate.id === actor.id) ?? actor
+      )
+    }
+    actorEvaluation = await evaluateEncounterActorRuleSnapshot({
+      db: input.trx,
+      encounter: currentEncounter,
+      revisionId: frozenRevision.id
     })
     currentEncounter = actorEvaluation.reconciledEncounter
   }
@@ -7705,6 +9650,7 @@ async function continueEncounterTurnAfterLegendaryAction(input: {
             outgoingTurn: root.outgoingTurn,
             completedLegendaryActions: root.completedLegendaryActions,
             stagedLegendaryActionRefreshes: root.stagedLegendaryActionRefreshes,
+            stagedActionEconomyRefreshes: root.stagedActionEconomyRefreshes,
             completedRechargePlan: root.completedRechargePlan,
             resolutionCommands: history
           },
@@ -7931,9 +9877,13 @@ async function continueEncounterTurnAfterLegendaryAction(input: {
       throw new EncounterConflictError('Normalized initiative advancement did not settle exactly.')
     }
   }
-  for (const actor of stagedLegendaryRefreshActors) await repository.updateActor(actor)
-  for (const actor of actorEvaluation.actorUpdates) await repository.updateActor(actor)
-  if (stagedRechargeActor) await repository.updateActor(stagedRechargeActor)
+  for (const actor of mergeEncounterActorTerminalUpdates([
+    actorEvaluation.actorUpdates,
+    stagedLegendaryRefreshActors,
+    stagedActionEconomyRefreshActors,
+    ...(stagedRechargeActor ? [[stagedRechargeActor]] : [])
+  ]))
+    await repository.updateActor(actor)
   const outgoingTurn = root.outgoingTurn
   if (!outgoingTurn) {
     throw new EncounterConflictError('The Legendary Action outgoing turn is unavailable.')
@@ -9011,10 +10961,15 @@ async function resolveEncounterTurnRuleOccurrence(input: {
     const terminalOccurrenceVersion = occurrence.version + 1
     let appliedTurnResult: StoredRuleExecutionResultDto | null = null
     let restoredOutgoingResult: StoredRuleExecutionResultDto | null = null
+    let stagedActionEconomyRefreshActors: readonly EncounterActorRecord[] = []
     if (!outgoingBeforeIncoming) {
-      for (const actor of resumedActorEvaluation.actorUpdates) await repository.updateActor(actor)
-      for (const actor of stagedLegendaryRefreshActors) await repository.updateActor(actor)
-      if (stagedRechargeActor) await repository.updateActor(stagedRechargeActor)
+      for (const actor of mergeEncounterActorTerminalUpdates([
+        resumedActorEvaluation.actorUpdates,
+        stagedLegendaryRefreshActors,
+        stagedActionEconomyRefreshActors,
+        ...(stagedRechargeActor ? [[stagedRechargeActor]] : [])
+      ]))
+        await repository.updateActor(actor)
       if (coordinatorRoot.outgoingTurn?.kind === 'STAGED') {
         const restoredOutgoingBatch = await restoreEvaluatedEncounterTurnEffectBatch({
           trx,
@@ -9052,6 +11007,26 @@ async function resolveEncounterTurnRuleOccurrence(input: {
         occurrenceVersion: terminalOccurrenceVersion,
         batch: evaluation.batch
       })
+    }
+    if (coordinatorRoot.stagedActionEconomyRefreshes?.length) {
+      stagedActionEconomyRefreshActors = await applyStagedActionEconomyRefreshes({
+        encounter: reconciledEncounter,
+        definitions: createReusableDefinitionRepository(trx),
+        refreshes: coordinatorRoot.stagedActionEconomyRefreshes
+      })
+      reconciledEncounter = {
+        ...reconciledEncounter,
+        actors: reconciledEncounter.actors.map(
+          (actor) =>
+            stagedActionEconomyRefreshActors.find((candidate) => candidate.id === actor.id) ?? actor
+        )
+      }
+      resumedActorEvaluation = await evaluateEncounterActorRuleSnapshot({
+        db: trx,
+        encounter: reconciledEncounter,
+        revisionId: frozenRevision.id
+      })
+      reconciledEncounter = resumedActorEvaluation.reconciledEncounter
     }
     let terminalSelectionChecksum = context.selectionChecksum
     let terminalInitiative = coordinatorRoot.initiative
@@ -9119,6 +11094,7 @@ async function resolveEncounterTurnRuleOccurrence(input: {
             outgoingTurn,
             completedLegendaryActions: coordinatorRoot.completedLegendaryActions,
             stagedLegendaryActionRefreshes: coordinatorRoot.stagedLegendaryActionRefreshes,
+            stagedActionEconomyRefreshes: coordinatorRoot.stagedActionEconomyRefreshes,
             completedRechargePlan: coordinatorRoot.completedRechargePlan,
             resolutionCommands: history
           },
@@ -9151,7 +11127,10 @@ async function resolveEncounterTurnRuleOccurrence(input: {
               occurrenceVersion: paused.version,
               status: 'PENDING',
               outcome: null,
-              pending: projectEncounterInitiativePendingSummary({
+              pending: await projectEncounterInitiativePendingSummaryForAudience({
+                db: trx,
+                userId: input.userId,
+                locked,
                 pendingSnapshot: requireEncounterKernelPendingSnapshot(paused.pendingSnapshot),
                 occurrenceVersion: paused.version,
                 encounterVersion: locked.encounter.version
@@ -9182,6 +11161,41 @@ async function resolveEncounterTurnRuleOccurrence(input: {
           (refresh) => refresh.actorId === firstActorId
         )
       ) {
+        const stagedEconomy = await stageEncounterActionEconomyRefreshes({
+          actorId: firstActorId,
+          encounter: reconciledEncounter,
+          definitions: createReusableDefinitionRepository(trx)
+        })
+        if (stagedEconomy.refreshedActor && stagedEconomy.refreshes.length > 0) {
+          const ordinal = coordinatorRoot.stagedActionEconomyRefreshes?.length ?? 0
+          coordinatorRoot = {
+            ...coordinatorRoot,
+            stagedActionEconomyRefreshes: [
+              ...(coordinatorRoot.stagedActionEconomyRefreshes ?? []),
+              ...stagedEconomy.refreshes.map((refresh, index) => ({
+                ...refresh,
+                ordinal: ordinal + index
+              }))
+            ]
+          }
+          stagedActionEconomyRefreshActors = [
+            ...stagedActionEconomyRefreshActors,
+            stagedEconomy.refreshedActor
+          ]
+          reconciledEncounter = {
+            ...reconciledEncounter,
+            actors: reconciledEncounter.actors.map((actor) =>
+              actor.id === stagedEconomy.refreshedActor!.id ? stagedEconomy.refreshedActor! : actor
+            )
+          }
+          resumedActorEvaluation = await evaluateEncounterActorRuleSnapshot({
+            db: trx,
+            encounter: reconciledEncounter,
+            revisionId: frozenRevision.id,
+            previousSnapshot: resumedActorEvaluation.snapshot
+          })
+          reconciledEncounter = resumedActorEvaluation.reconciledEncounter
+        }
         const staged = await stageEncounterLegendaryActionRefreshes({
           actorId: firstActorId,
           encounter: reconciledEncounter,
@@ -9280,9 +11294,13 @@ async function resolveEncounterTurnRuleOccurrence(input: {
           })
         }
       }
-      for (const actor of resumedActorEvaluation.actorUpdates) await repository.updateActor(actor)
-      for (const actor of stagedLegendaryRefreshActors) await repository.updateActor(actor)
-      if (stagedRechargeActor) await repository.updateActor(stagedRechargeActor)
+      for (const actor of mergeEncounterActorTerminalUpdates([
+        resumedActorEvaluation.actorUpdates,
+        stagedLegendaryRefreshActors,
+        stagedActionEconomyRefreshActors,
+        ...(stagedRechargeActor ? [[stagedRechargeActor]] : [])
+      ]))
+        await repository.updateActor(actor)
       appliedTurnResult = await applyEvaluatedTurnEffectBatch({
         trx,
         actorUserId: input.userId,
@@ -9482,9 +11500,13 @@ async function resolveEncounterTurnRuleOccurrence(input: {
           })
         }
       }
-      for (const actor of resumedActorEvaluation.actorUpdates) await repository.updateActor(actor)
-      for (const actor of stagedLegendaryRefreshActors) await repository.updateActor(actor)
-      if (stagedRechargeActor) await repository.updateActor(stagedRechargeActor)
+      for (const actor of mergeEncounterActorTerminalUpdates([
+        resumedActorEvaluation.actorUpdates,
+        stagedLegendaryRefreshActors,
+        stagedActionEconomyRefreshActors,
+        ...(stagedRechargeActor ? [[stagedRechargeActor]] : [])
+      ]))
+        await repository.updateActor(actor)
       appliedTurnResult = await applyEvaluatedTurnEffectBatch({
         trx,
         actorUserId: input.userId,
@@ -9760,7 +11782,8 @@ export async function getPendingEncounterRuleOccurrence(
     const locked = await lockEncounterRuleExecutionCommandContext(trx, {
       actorUserId: userId,
       authority: 'ACTIVE_MEMBER',
-      encounterId
+      encounterId,
+      readOnly: true
     })
     const occurrence = await createRuleOccurrenceRepository(trx).lockPendingEncounter(encounterId)
     if (
@@ -9773,6 +11796,27 @@ export async function getPendingEncounterRuleOccurrence(
         ? legendaryActionPendingSummary(occurrence, locked.encounter.version)
         : null
     }
+    const passage = occurrence
+      ? movementPassagePendingSummary({
+          occurrence,
+          encounterVersion: locked.encounter.version,
+          role: locked.context.role,
+          assignedCharacterId: locked.context.assignedCharacterId
+        })
+      : null
+    if (passage) return passage.pending
+    const cleaving = occurrence
+      ? cleavingPendingSummary({
+          occurrence,
+          encounterVersion: locked.encounter.version,
+          role: locked.context.role,
+          assignedCharacterId: locked.context.assignedCharacterId,
+          playerVisibleActorIds: new Set(
+            locked.encounter.actors.filter((actor) => actor.public).map((actor) => actor.id)
+          )
+        })
+      : null
+    if (cleaving) return cleaving
     if (
       occurrence?.pendingSnapshot?.applicationContext.kind ===
       'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'
@@ -9780,6 +11824,24 @@ export async function getPendingEncounterRuleOccurrence(
       return locked.context.role === 'OWNER'
         ? legendaryActionEvidencePendingSummary(occurrence, locked.encounter.version)
         : null
+    }
+    if (
+      occurrence?.pendingSnapshot &&
+      ((isServerAggregateChoicePendingSnapshot(occurrence.pendingSnapshot) &&
+        occurrence.pendingSnapshot.applicationContext.kind ===
+          'ENCOUNTER_INITIATIVE_DECLARATION') ||
+        (isServerKernelRuleExecutionPendingSnapshot(occurrence.pendingSnapshot) &&
+          occurrence.pendingSnapshot.applicationContext?.kind === 'ENCOUNTER_INITIATIVE' &&
+          occurrence.pendingSnapshot.applicationContext.phase.kind === 'INITIATIVE_DECLARATION'))
+    ) {
+      return projectEncounterInitiativePendingSummaryForAudience({
+        db: trx,
+        userId,
+        locked,
+        pendingSnapshot: occurrence.pendingSnapshot,
+        occurrenceVersion: occurrence.version,
+        encounterVersion: locked.encounter.version
+      })
     }
     if (occurrence?.pendingSnapshot?.applicationContext.kind === 'ENCOUNTER_SPATIAL_MOVEMENT') {
       try {
@@ -9806,14 +11868,23 @@ export async function getPendingEncounterRuleOccurrence(
     }
     if (
       occurrence?.pendingSnapshot?.applicationContext.kind === 'ENCOUNTER_CHARACTER_RULE_ACTION' ||
-      occurrence?.pendingSnapshot?.applicationContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION'
+      occurrence?.pendingSnapshot?.applicationContext.kind === 'ENCOUNTER_ACTOR_RULE_ACTION' ||
+      occurrence?.pendingSnapshot?.applicationContext.kind === 'ENCOUNTER_CREATURE_RULE_ACTION' ||
+      occurrence?.pendingSnapshot?.applicationContext.kind === 'ENCOUNTER_OPTIONAL_COMBAT_CONTEST'
     ) {
       try {
         return actionOccurrenceSummary({
           occurrence,
           encounterVersion: locked.encounter.version,
           role: locked.context.role,
-          assignedCharacterId: locked.context.assignedCharacterId
+          assignedCharacterId: locked.context.assignedCharacterId,
+          encounterActorControllerCharacterIds: new Map(
+            locked.encounter.actors.flatMap((actor) =>
+              actor.kind === 'CHARACTER' && actor.sourceId
+                ? [[actor.id, actor.sourceId] as const]
+                : []
+            )
+          )
         }).pending
       } catch (error) {
         if (error instanceof EncounterConflictError) return null

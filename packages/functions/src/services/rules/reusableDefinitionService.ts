@@ -30,6 +30,7 @@ import {
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { PublishedRuleDefinitionSource } from './rulesRuntimeService.js'
+import { validateOptionalCombatCheckDefinitions } from './optionalCombatCheckDefinitions.js'
 
 export const RULE_RUNTIME_GRAPH_FAMILY_KEY = 'rules-runtime-graph'
 export const RULE_RUNTIME_GRAPH_CONTRACT_VERSION = 1
@@ -390,6 +391,7 @@ async function validateDnd5eOptionalCombatDefinition(input: {
   root: ReusableDefinitionRootRecord
   document: unknown
   capabilities: ReadonlyMap<string, GameSystemRuleCapabilityDto>
+  resolveSystemVocabulary?: (gameSystemId: string) => Promise<unknown>
 }) {
   if (input.root.definitionFamilyKey !== DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY) {
     throw new ReusableDefinitionValidationError(
@@ -406,6 +408,21 @@ async function validateDnd5eOptionalCombatDefinition(input: {
     throw new ReusableDefinitionValidationError(
       `No Rules Runtime capability is registered for Game System "${input.root.gameSystemId}".`
     )
+  }
+  if (!input.resolveSystemVocabulary) {
+    throw new ReusableDefinitionValidationError(
+      'Optional combat definition publication requires a server-owned System vocabulary resolver.'
+    )
+  }
+  try {
+    validateOptionalCombatCheckDefinitions({
+      document,
+      systemVocabulary: await input.resolveSystemVocabulary(input.root.gameSystemId)
+    })
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Optional combat check definition is invalid.'
+    throw new ReusableDefinitionValidationError(message)
   }
   return document
 }
@@ -505,6 +522,7 @@ async function validateReusableDefinition(input: {
   capabilities: ReadonlyMap<string, GameSystemRuleCapabilityDto>
   operations: ReturnType<typeof createRuleOperationRegistry>
   store: Pick<ReusableDefinitionStore, 'requireCurrent'>
+  resolveSystemVocabulary?: (gameSystemId: string) => Promise<unknown>
 }) {
   switch (input.root.definitionFamilyKey) {
     case RULE_RUNTIME_GRAPH_FAMILY_KEY:
@@ -568,6 +586,7 @@ export function createReusableDefinitionService(config: {
   store: ReusableDefinitionStore
   capabilities: readonly unknown[]
   operations?: readonly RuleOperationContract[]
+  resolveSystemVocabulary?: (gameSystemId: string) => Promise<unknown>
 }) {
   const capabilities = new Map(
     config.capabilities.map((candidate) => {
@@ -608,7 +627,8 @@ export function createReusableDefinitionService(config: {
             checksum,
             capabilities,
             operations,
-            store: config.store
+            store: config.store,
+            resolveSystemVocabulary: config.resolveSystemVocabulary
           })
         }
       })
@@ -666,6 +686,7 @@ export function createReusableDefinitionService(config: {
             checksum: draft.checksum,
             capabilities,
             operations,
+            resolveSystemVocabulary: config.resolveSystemVocabulary,
             store: {
               async requireCurrent(dependencyDefinitionId) {
                 const dependency = lockedById.get(dependencyDefinitionId)

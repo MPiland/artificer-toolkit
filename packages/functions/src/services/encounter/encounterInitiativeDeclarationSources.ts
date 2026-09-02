@@ -1,5 +1,6 @@
 import type { InitiativeDeclarationFactsDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import type { ServerInitiativeDeclarationRequestDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { InitiativeDeclarationAdjudicationFieldDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import {
@@ -31,6 +32,7 @@ export type InitiativeDeclarationSelection =
     }
 
 type DeclarationOption = ServerInitiativeDeclarationRequestDto['primaryOptions'][number]
+type AdjudicationField = InitiativeDeclarationAdjudicationFieldDto
 type CharacterActionEntry =
   LockedEncounterInitiativeCharacterSource['mechanics']['compiledActionEntryPoints'][number]
 
@@ -51,6 +53,7 @@ function featureOptions(
 ): {
   primaryOptions: DeclarationOption[]
   bonusOptions: DeclarationOption[]
+  adjudicationFields: AdjudicationField[]
   sourceOptionsChecksum: string
 } {
   const capabilities = discoverEncounterFeatureActionCapabilities({ actor: source.actor })
@@ -58,7 +61,7 @@ function featureOptions(
     .map((capability) => ({
       kind: 'CREATURE_FEATURE_ACTION' as const,
       optionId: capability.actionId,
-      label: 'Feature action',
+      label: capability.label ?? 'Feature action',
       selectionContract: checksumRuleDocument({
         kind: 'CREATURE_FEATURE_ACTION',
         actionId: capability.actionId,
@@ -76,13 +79,19 @@ function featureOptions(
   return {
     primaryOptions,
     bonusOptions: [],
-    sourceOptionsChecksum: checksumRuleDocument({ primaryOptions, bonusOptions: [] })
+    adjudicationFields: [],
+    sourceOptionsChecksum: checksumRuleDocument({
+      primaryOptions,
+      bonusOptions: [],
+      adjudicationFields: []
+    })
   }
 }
 
 function customOptions(source: Extract<LockedEncounterInitiativeActorSource, { kind: 'CUSTOM' }>): {
   primaryOptions: DeclarationOption[]
   bonusOptions: DeclarationOption[]
+  adjudicationFields: AdjudicationField[]
   sourceOptionsChecksum: string
 } {
   const primaryOptions: DeclarationOption[] = [
@@ -93,16 +102,58 @@ function customOptions(source: Extract<LockedEncounterInitiativeActorSource, { k
       selectionContract: checksumRuleDocument({ kind: 'GM_ADJUDICATED', actorId: source.actor.id })
     }
   ]
+  const adjudicationFields: AdjudicationField[] = [
+    {
+      kind: 'SELECT',
+      key: 'actorSize',
+      label: 'Actor size',
+      required: true,
+      options: [
+        { value: 'TINY', label: 'Tiny' },
+        { value: 'SMALL', label: 'Small' },
+        { value: 'MEDIUM', label: 'Medium' },
+        { value: 'LARGE', label: 'Large' },
+        { value: 'HUGE', label: 'Huge' },
+        { value: 'GARGANTUAN', label: 'Gargantuan' }
+      ]
+    },
+    {
+      kind: 'MULTI_SELECT',
+      key: 'actionFactors',
+      label: 'Action factors',
+      minimumSelections: 0,
+      maximumSelections: 4,
+      options: [
+        { value: 'MELEE_HEAVY', label: 'Melee heavy' },
+        { value: 'MELEE_LIGHT_OR_FINESSE', label: 'Melee light or finesse' },
+        { value: 'MELEE_TWO_HANDED', label: 'Melee two-handed' },
+        { value: 'RANGED_LOADING', label: 'Ranged loading' }
+      ]
+    },
+    {
+      kind: 'NULLABLE_INTEGER',
+      key: 'spellLevel',
+      label: 'Spell level',
+      minimum: 0,
+      maximum: 99
+    }
+  ]
   return {
     primaryOptions,
     bonusOptions: [],
-    sourceOptionsChecksum: checksumRuleDocument({ primaryOptions, bonusOptions: [] })
+    adjudicationFields,
+    sourceOptionsChecksum: checksumRuleDocument({
+      primaryOptions,
+      bonusOptions: [],
+      adjudicationFields
+    })
   }
 }
 
 function declarationOptions(source: LockedEncounterInitiativeActorSource): {
   primaryOptions: DeclarationOption[]
   bonusOptions: DeclarationOption[]
+  adjudicationFields: AdjudicationField[]
   sourceOptionsChecksum: string
 } {
   if (source.kind === 'CREATURE') return featureOptions(source)
@@ -117,7 +168,7 @@ function declarationOptions(source: LockedEncounterInitiativeActorSource): {
     options.push({
       kind: 'CHARACTER_ACTION',
       optionId: candidate.actionId,
-      label: activationCode === 'BONUS_ACTION' ? 'Bonus action' : 'Action',
+      label: candidate.label ?? (activationCode === 'BONUS_ACTION' ? 'Bonus action' : 'Action'),
       selectionContract: checksumRuleDocument({
         kind: 'CHARACTER_ACTION',
         optionId: candidate.actionId,
@@ -135,7 +186,7 @@ function declarationOptions(source: LockedEncounterInitiativeActorSource): {
     options.push({
       kind: 'CHARACTER_SPELL_CAST',
       optionId: candidate.candidateId,
-      label: 'Spell cast',
+      label: candidate.label ?? 'Spell cast',
       selectionContract: checksumRuleDocument({
         kind: 'CHARACTER_SPELL_CAST',
         optionId: candidate.candidateId,
@@ -155,7 +206,12 @@ function declarationOptions(source: LockedEncounterInitiativeActorSource): {
   return {
     primaryOptions,
     bonusOptions,
-    sourceOptionsChecksum: checksumRuleDocument({ primaryOptions, bonusOptions })
+    adjudicationFields: [],
+    sourceOptionsChecksum: checksumRuleDocument({
+      primaryOptions,
+      bonusOptions,
+      adjudicationFields: []
+    })
   }
 }
 
@@ -179,6 +235,7 @@ export function createEncounterInitiativeDeclarationRequest(input: {
     participantExpectedVersion: input.participantExpectedVersion,
     primaryOptions: options.primaryOptions,
     bonusOptions: options.bonusOptions,
+    adjudicationFields: options.adjudicationFields,
     controllerUserId: input.controllerUserId,
     sourceOptionsChecksum: options.sourceOptionsChecksum
   }

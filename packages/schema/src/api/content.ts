@@ -304,6 +304,7 @@ export const creatureDetailMetaDtoSchema = z.object({
   conditionTypes: z.array(detailReferenceOptionDtoSchema).optional(),
   creatureTypes: z.array(detailReferenceOptionDtoSchema).optional(),
   damageTypes: z.array(detailReferenceOptionDtoSchema).optional(),
+  equipment: z.array(detailReferenceOptionDtoSchema).optional(),
   speeds: z.array(detailReferenceOptionDtoSchema).optional()
 })
 

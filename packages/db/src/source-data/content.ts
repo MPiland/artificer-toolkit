@@ -76,6 +76,10 @@ export interface VocabularySeedRecord {
   short?: string | null
 }
 
+export interface SystemCheckSeedRecord extends VocabularySeedRecord {
+  governingAbilityDefinitionId: string | null
+}
+
 interface SystemSeedRecordBase {
   id: string
   label: string
@@ -120,7 +124,18 @@ interface SystemSeedRecordV3 extends SystemSeedRecordBase {
   initiativePolicy: { defaultDefinitionId: string }
 }
 
-export type SystemSeedRecord = SystemSeedRecordV1 | SystemSeedRecordV2 | SystemSeedRecordV3
+interface SystemSeedRecordV4 extends Omit<SystemSeedRecordBase, 'skills'> {
+  schemaVersion: 4
+  abilities: VocabularySeedRecord[]
+  skills: SystemCheckSeedRecord[]
+  initiativePolicy?: { defaultDefinitionId: string }
+}
+
+export type SystemSeedRecord =
+  | SystemSeedRecordV1
+  | SystemSeedRecordV2
+  | SystemSeedRecordV3
+  | SystemSeedRecordV4
 
 /**
  * This is the repo-owned seed/import artifact for SRD baseline content.

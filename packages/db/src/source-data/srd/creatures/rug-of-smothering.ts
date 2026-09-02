@@ -1,4 +1,7 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { conditionTypeId } from '../equipment/shared.js'
+import { SRD_BREATHING_CAPABILITY_DEFINITION_ID } from '../ruleState.js'
 import * as S from './shared.js'
 export const rugOfSmothering: CreatureAuthored = {
   id: S.CREATURE_IDS.RUG_OF_SMOTHERING,
@@ -89,38 +92,76 @@ export const rugOfSmothering: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(7705, 3),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('BLUDGEONING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d6+3'
+                    effectKind: S.EFFECT_KIND.ACTOR_RELATIONSHIP,
+                    modules: [
+                      {
+                        id: S.actionId(7705, 4),
+                        order: 1,
+                        kind: 'TARGET_SIZE_MAXIMUM',
+                        sizeCode: S.SIZE_CODE.MEDIUM
+                      },
+                      {
+                        id: S.actionId(7705, 5),
+                        order: 2,
+                        kind: 'SOURCE_EXCLUSIVE_TARGET',
+                        maximum: 1
+                      },
+                      {
+                        id: S.actionId(7705, 6),
+                        order: 3,
+                        kind: 'SOURCE_ACTION_TARGET_RESTRICTION',
+                        actionEffectIds: [S.actionId(7705, 1)]
+                      },
+                      {
+                        id: S.actionId(7705, 7),
+                        order: 4,
+                        kind: 'ESCAPE_CHECK',
+                        activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+                        abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
+                        fixedDc: 13,
+                        actorKinds: ['TARGET']
+                      },
+                      {
+                        id: S.actionId(7705, 8),
+                        order: 5,
+                        kind: 'TARGET_CAPABILITY_SUPPRESSION',
+                        capabilityDefinitionIds: [SRD_BREATHING_CAPABILITY_DEFINITION_ID]
+                      }
+                    ],
+                    conditions: [
+                      {
+                        id: S.actionId(7705, 9),
+                        effectKind: S.EFFECT_KIND.CONDITION,
+                        conditionId: conditionTypeId('GRAPPLED')
+                      },
+                      {
+                        id: S.actionId(7705, 10),
+                        effectKind: S.EFFECT_KIND.CONDITION,
+                        conditionId: conditionTypeId('RESTRAINED')
+                      },
+                      {
+                        id: S.actionId(7705, 11),
+                        effectKind: S.EFFECT_KIND.CONDITION,
+                        conditionId: conditionTypeId('BLINDED')
+                      }
+                    ],
+                    recurrence: {
+                      stage: 'START_OF_TURN',
+                      damage: {
+                        id: S.actionId(7705, 12),
+                        effectKind: S.EFFECT_KIND.DAMAGE,
+                        damageTypeId: S.damageTypeId('BLUDGEONING'),
+                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                        scalingKind: S.SCALING.NONE,
+                        diceConfig: '2d6+3'
+                      }
+                    }
                   }
                 ]
               }
             }
           ]
-        },
-        S.closedRuleEffect({
-          id: S.actionId(240, 502),
-          order: 2,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(240, 602),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          pathCode: S.PATH_CODE.ON_HIT,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_RUG_OF_SMOTHERING_SMOTHER
-        })
+        }
       ],
       order: 2
     }

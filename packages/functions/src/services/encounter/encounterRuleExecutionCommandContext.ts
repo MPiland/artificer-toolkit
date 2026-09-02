@@ -52,6 +52,7 @@ export async function lockEncounterRuleExecutionCommandContext(
     authority?: 'ACTIVE_MEMBER' | 'OWNER'
     encounterId: string
     liveSessionAuthority?: LiveSessionCommandAuthority
+    readOnly?: boolean
   }
 ): Promise<{
   encounter: EncounterRecord
@@ -82,7 +83,13 @@ export async function lockEncounterRuleExecutionCommandContext(
   if (session.rows[0]?.status !== 'OPEN') {
     throw new EncounterConflictError('Finished Sessions cannot change Encounters.')
   }
-  await assertSessionLiveSessionCommandAuthority(db, located.session_id, input.liveSessionAuthority)
+  if (!input.readOnly) {
+    await assertSessionLiveSessionCommandAuthority(
+      db,
+      located.session_id,
+      input.liveSessionAuthority
+    )
+  }
 
   const encounter = await createEncounterRepository(db).lock(input.encounterId)
   if (
@@ -98,6 +105,9 @@ export async function lockEncounterRuleExecutionCommandContext(
   let effectiveVersion = encounter.version
 
   function createReceiptOnlyChildOccurrencePort(): RuleExecutionAggregatePort {
+    if (input.readOnly) {
+      throw new EncounterConflictError('Read-only Encounter access cannot create rule occurrences.')
+    }
     const childEffectiveVersion = effectiveVersion
     return {
       async withLockedAuthorized(childDb, run) {
@@ -141,6 +151,9 @@ export async function lockEncounterRuleExecutionCommandContext(
       },
       encounterId,
       async advanceVersion(expectedVersion) {
+        if (input.readOnly) {
+          throw new EncounterConflictError('Read-only Encounter access cannot change an Encounter.')
+        }
         if (expectedVersion !== effectiveVersion) {
           throw new EncounterConflictError('Encounter changed before execution.')
         }

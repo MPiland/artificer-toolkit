@@ -140,6 +140,11 @@ describe('node map sections', () => {
 
     expect(sectionNode.kind).toBe('INPUT')
     expect(CREATURE_NODE_MAP.nodes.features.kind).toBe('GROUP')
+    expect(CREATURE_NODE_MAP.nodes.equipmentLoadout).toMatchObject({
+      kind: 'GROUP',
+      groupKind: 'ARRAY',
+      presentation: 'table'
+    })
     expect('actions' in CREATURE_NODE_MAP.nodes).toBe(false)
     expect('legendaryProfile' in CREATURE_NODE_MAP.nodes).toBe(false)
   })
@@ -291,6 +296,7 @@ describe('node map sections', () => {
       'defenses',
       'details',
       'features',
+      'equipment',
       'proficiencies',
       'profiles'
     ])

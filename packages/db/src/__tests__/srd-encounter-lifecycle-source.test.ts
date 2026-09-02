@@ -11,6 +11,7 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { describe, expect, it } from 'vitest'
 
 import { srdCreatureRecords } from '../source-data/srd/creatures/index.js'
+import { quasit } from '../source-data/srd/creatures/quasit.js'
 
 const restRecoveryRechargeExclusions = [
   {
@@ -1873,6 +1874,113 @@ const rechargeDefinitionIds = new Set([
 const allFeatures = srdCreatureRecords.flatMap((creature) => creature.features ?? [])
 
 describe('SRD encounter lifecycle source bindings', () => {
+  it('retains canonical Cloaker, Rug, and Clay creature action source facts for the Functions-local tracers', () => {
+    const creature = (label: string) => {
+      const value = srdCreatureRecords.find((candidate) => candidate.label === label)
+      if (!value) throw new Error(`Missing canonical SRD creature: ${label}.`)
+      return value
+    }
+    const actionEffect = (label: string, featureLabel: string) => {
+      const feature = (creature(label).features ?? []).find(
+        (candidate) => candidate.label === featureLabel
+      )
+      const effect = feature?.effects?.[0]
+      if (!feature || !effect) throw new Error(`Missing ${label} ${featureLabel} action Effect.`)
+      expect(feature.id).toMatch(/^[0-9a-f-]{36}$/)
+      expect(effect.id).toMatch(/^[0-9a-f-]{36}$/)
+      expect(effect.invocation.kind).toBe('ACTION')
+      return effect
+    }
+
+    const bite = actionEffect('Cloaker', 'Bite')
+    expect(bite).toMatchObject({
+      invocation: {
+        triggerCode: 'MELEE_WEAPON_ATTACK',
+        targeting: { selectionKind: 'SINGLE_TARGET' }
+      },
+      paths: [
+        expect.objectContaining({
+          pathCode: 'ON_HIT',
+          resultBlock: expect.objectContaining({
+            outcomes: expect.arrayContaining([
+              expect.objectContaining({
+                effectKind: 'DAMAGE',
+                diceConfig: '2d6',
+                bonuses: [
+                  expect.objectContaining({ bonusKind: 'ABILITY_BONUS', ability: 'STRENGTH' })
+                ]
+              }),
+              expect.objectContaining({
+                effectKind: 'ACTOR_RELATIONSHIP',
+                modules: expect.arrayContaining([
+                  expect.objectContaining({ kind: 'TARGET_SIZE_MAXIMUM', sizeCode: 'LARGE' })
+                ])
+              })
+            ])
+          })
+        })
+      ]
+    })
+
+    const smother = actionEffect('Rug Of Smothering', 'Smother')
+    const smotherOutcomes = smother.paths.flatMap((path) =>
+      'resultBlock' in path ? path.resultBlock.outcomes : []
+    )
+    const relationship = smotherOutcomes.find(
+      (outcome) => outcome.effectKind === 'ACTOR_RELATIONSHIP'
+    )
+    if (!relationship || relationship.effectKind !== 'ACTOR_RELATIONSHIP') {
+      throw new Error('Missing Rug Smother relationship outcome.')
+    }
+    expect(relationship).toMatchObject({
+      modules: expect.arrayContaining([
+        expect.objectContaining({ kind: 'TARGET_SIZE_MAXIMUM', sizeCode: 'MEDIUM' }),
+        expect.objectContaining({ kind: 'SOURCE_EXCLUSIVE_TARGET', maximum: 1 }),
+        expect.objectContaining({ kind: 'TARGET_CAPABILITY_SUPPRESSION' })
+      ]),
+      conditions: expect.arrayContaining([
+        expect.objectContaining({ conditionId: expect.any(String) })
+      ]),
+      recurrence: {
+        stage: 'START_OF_TURN',
+        damage: expect.objectContaining({ diceConfig: '2d6+3' })
+      }
+    })
+    expect(smotherOutcomes.filter((outcome) => outcome.effectKind === 'DAMAGE')).toEqual([])
+    const restriction = relationship.modules.find(
+      (module) => module.kind === 'SOURCE_ACTION_TARGET_RESTRICTION'
+    )
+    expect(restriction).toMatchObject({ actionEffectIds: [smother.id] })
+
+    const slam = actionEffect('Clay Golem', 'Slam')
+    expect(slam).toMatchObject({
+      paths: [
+        expect.objectContaining({
+          pathCode: 'ON_HIT',
+          resultBlock: expect.objectContaining({
+            outcomes: expect.arrayContaining([
+              expect.objectContaining({
+                effectKind: 'DAMAGE',
+                diceConfig: '2d10',
+                bonuses: [
+                  expect.objectContaining({ bonusKind: 'ABILITY_BONUS', ability: 'STRENGTH' })
+                ]
+              }),
+              expect.objectContaining({
+                effectKind: 'FOLLOW_UP_SAVE',
+                savingThrow: expect.objectContaining({ baseDc: 15 }),
+                onFailure: expect.objectContaining({
+                  outcomes: [expect.objectContaining({ effectKind: 'HIT_POINT_MAXIMUM_REDUCTION' })]
+                })
+              })
+            ])
+          })
+        })
+      ]
+    })
+    for (const effect of [bite, smother, slam]) compileEffect(effect)
+  })
+
   it('matches the authoritative lifecycle catalogue without inferred source bindings', () => {
     const expectedByFeatureId = new Map(
       authoritativeLifecycleFeatureCatalogue.map((entry) => [entry.featureId, entry])
@@ -2053,5 +2161,70 @@ describe('SRD encounter lifecycle source bindings', () => {
       )
     ].sort()
     expect(actualLifecycleIds).toEqual(expectedLifecycleIds)
+  })
+
+  it('models Quasit Claws and Scare through structured follow-up saves', () => {
+    const claws = quasit.features?.find((feature) => feature.label === 'Claws')
+    const scare = quasit.features?.find((feature) => feature.label === 'Scare')
+    const clawsEffect = claws?.effects?.[0]
+    const clawsPath = clawsEffect?.paths?.[0]
+    const clawsOutcomes =
+      clawsPath && 'resultBlock' in clawsPath ? clawsPath.resultBlock.outcomes : undefined
+    const scareEffect = scare?.effects?.[0]
+    const scarePath = scareEffect?.paths?.[0]
+    const scareResourceUse =
+      scareEffect && 'resourceUse' in scareEffect.invocation
+        ? scareEffect.invocation.resourceUse
+        : undefined
+    const scareResultBlock =
+      scarePath && 'resultBlock' in scarePath ? scarePath.resultBlock : undefined
+
+    expect(claws?.effects).toHaveLength(1)
+    expect(clawsOutcomes).toMatchObject([
+      { effectKind: 'DAMAGE', diceConfig: '1d4' },
+      {
+        effectKind: 'FOLLOW_UP_SAVE',
+        timing: 'IMMEDIATE',
+        repeatTiming: 'TARGET_TURN_END',
+        savingThrow: { baseDc: 10 },
+        attempts: { kind: 'ONCE', repeatOnFailure: true },
+        onSuccess: { kind: 'END' },
+        onFailure: {
+          kind: 'OUTCOMES',
+          outcomes: [{ effectKind: 'DAMAGE', diceConfig: '2d4' }, { effectKind: 'CONDITION' }]
+        }
+      }
+    ])
+    expect(JSON.stringify(clawsEffect)).not.toContain('CREATURE_QUASIT_CLAWS')
+    expect(() => compileEffect(clawsEffect!)).not.toThrow()
+
+    expect(scare).toMatchObject({
+      attributes: ['LIMITED_USE'],
+      charges: { limitKind: 'FIXED_AMOUNT', resetKind: 'DAILY', amount: 1 }
+    })
+    expect(scareResourceUse).toEqual({
+      chargeId: scare?.charges?.id,
+      cost: 1
+    })
+    expect(scareResultBlock).toMatchObject({
+      duration: { durationKind: 'ROUND', amount: 10 },
+      outcomes: [
+        { effectKind: 'CONDITION' },
+        {
+          effectKind: 'FOLLOW_UP_SAVE',
+          timing: 'TARGET_TURN_END',
+          attempts: { kind: 'ONCE', repeatOnFailure: true },
+          repeatRollInfluence: {
+            influence: 'DISADVANTAGE',
+            when: { kind: 'PERCEPTION', observer: 'TARGET', subject: 'SOURCE', requirement: 'SEE' }
+          },
+          onSuccess: { kind: 'END' },
+          onFailure: { kind: 'CONTINUE' },
+          onDurationComplete: { kind: 'END' }
+        }
+      ]
+    })
+    expect(JSON.stringify(scareEffect)).not.toContain('CREATURE_QUASIT_SCARE')
+    expect(() => compileEffect(scareEffect!)).not.toThrow()
   })
 })

@@ -20,6 +20,7 @@ import type {
 } from '../core/CharacterSheet.types'
 import { getInventoryCurrencyTotals } from './characterSheetInventory.utils'
 import { toNumber } from '../core/characterSheet.utils'
+import { AppSelect } from '#ui/primitives/Select'
 
 export function CharacterSheetInventory({
   editable = true,
@@ -188,7 +189,7 @@ export function CharacterSheetInventory({
         <div className={detailStyles.drawerStack}>
           <section className={detailStyles.drawerSection}>
             <Text fw={700}>Add an item</Text>
-            <Select
+            <AppSelect
               data={sheet.reference.equipmentOptions.map((option) => ({
                 value: option.id,
                 label: option.label

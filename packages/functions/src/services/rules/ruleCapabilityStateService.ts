@@ -39,12 +39,24 @@ export function requireResolvedRuleCapabilityStateIntegrity(
     const resolved = resolveRuleCapabilityAvailability({
       gameSystemId: state.gameSystemId,
       capabilityDefinitionId: capability.capability.capabilityDefinitionId,
-      conditions: state.conditionDefinitions.map((definition) => definition.document)
+      conditions: state.conditionDefinitions.map((definition) => definition.document),
+      activeEffectSuppressions: (capability.activeEffectSuppressions ?? []).map((suppression) => ({
+        ...suppression,
+        capabilityDefinitionIds: [capability.capability.capabilityDefinitionId]
+      }))
     })
     if (
       capability.available !== resolved.available ||
       capability.suppressingConditionDefinitionIds.join('\0') !==
         resolved.suppressingConditionDefinitionIds.join('\0') ||
+      capability.suppressingActiveEffectIds.join('\0') !==
+        resolved.suppressingActiveEffectIds.join('\0') ||
+      (capability.activeEffectSuppressions ?? [])
+        .map(({ activeEffectId, contributionId }) => `${activeEffectId}:${contributionId}`)
+        .join('\0') !==
+        resolved.activeEffectSuppressions
+          .map(({ activeEffectId, contributionId }) => `${activeEffectId}:${contributionId}`)
+          .join('\0') ||
       capability.contributionIds.join('\0') !== resolved.contributionIds.join('\0')
     )
       throw new Error('Resolved rule capability availability is inconsistent with its definitions.')
@@ -72,6 +84,11 @@ export async function resolveRuleCapabilityState(input: {
   gameSystemId: string
   activeConditionDefinitionIds: readonly string[]
   capabilityDefinitionIds: readonly string[]
+  activeEffectSuppressions?: readonly {
+    activeEffectId: string
+    contributionId: string
+    capabilityDefinitionIds: readonly string[]
+  }[]
 }): Promise<ResolvedRuleCapabilityStateDto> {
   const gameSystemId = serverUuidIdentityDtoSchema.parse(input.gameSystemId)
   const conditionDefinitionIds = uniqueSortedIds(
@@ -117,7 +134,8 @@ export async function resolveRuleCapabilityState(input: {
     const availability = resolveRuleCapabilityAvailability({
       gameSystemId,
       capabilityDefinitionId: definitionId,
-      conditions: conditionDefinitions.map((condition) => condition.document)
+      conditions: conditionDefinitions.map((condition) => condition.document),
+      activeEffectSuppressions: input.activeEffectSuppressions ?? []
     })
     capabilities.push({
       capability: {
@@ -129,6 +147,10 @@ export async function resolveRuleCapabilityState(input: {
       },
       available: availability.available,
       suppressingConditionDefinitionIds: [...availability.suppressingConditionDefinitionIds],
+      suppressingActiveEffectIds: [...availability.suppressingActiveEffectIds],
+      activeEffectSuppressions: availability.activeEffectSuppressions.map((suppression) => ({
+        ...suppression
+      })),
       contributionIds: [...availability.contributionIds]
     })
   }

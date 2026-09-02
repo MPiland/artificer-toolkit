@@ -20,7 +20,7 @@ Creature Spellcasting and Innate Spellcasting features reuse feature-owned spell
 
 ## DSL and registry
 
-`buildNodeMap()` provides typed builders for strict `INPUT` and `GROUP` variants. Scalar inputs are `TEXT`, `NUMBER`, `RICH_TEXT`, or `TOGGLE`; select inputs are `SELECT_SINGLE`, `SELECT_NUMBER`, or `SELECT_MULTI` and require exactly one source. `SELECT_NUMBER` keeps numeric domain values while option codes remain serialized strings. Sources are explicitly discriminated as `INLINE_OPTIONS`, `INLINE_GROUPS`, or `DATA`. Non-select inputs cannot declare a source. Object and array groups require a child map and accept only their own metadata.
+`buildNodeMap()` provides typed builders for strict `INPUT` and `GROUP` variants. Scalar inputs are `TEXT`, `NUMBER`, `RICH_TEXT`, or `TOGGLE`; select inputs are `SELECT_SINGLE`, `SELECT_NUMBER`, or `SELECT_MULTI` and require exactly one source. `SELECT_NUMBER` keeps numeric domain values while option codes remain serialized strings. Sources are explicitly discriminated as `INLINE_OPTIONS`, `INLINE_GROUPS`, `DATA`, or `LOCAL_COLLECTION`. `LOCAL_COLLECTION` reads value/label pairs from one bounded collection on the current authored root; it does not execute queries or accept expressions. Non-select inputs cannot declare a source. Object and array groups require a child map and accept only their own metadata.
 
 The schema package exports the canonical authored limits used by all eight root contracts and their nested authored graphs. Node-runtime inputs carry only the corresponding text-length and numeric-bound metadata so web controls can mirror server validation with native bounds and the shared rich-text character counter. The server contracts remain authoritative for direct API clients.
 
@@ -76,7 +76,8 @@ Maps live in `packages/shared/src/domains/{subjects,features,grants,effects,shar
 - loads the map by ID;
 - turns map nodes into ordered steps and sections (with a default section when none is declared);
 - evaluates visibility and required state against `values`, `parentValues`, and `ancestors`;
-- executes relationship plans for data-backed options and inline filters;
+- executes relationship plans for data-backed options and inline filters, and resolves bounded
+  `LOCAL_COLLECTION` options from the current authored root;
 - returns the root runtime DTO plus paths that should be cleared when hidden;
 - recursively emits flat resolved scopes for every visible, populated nested object or array row, keyed by absolute path.
 
@@ -110,7 +111,25 @@ The renderer must use resolved semantics rather than child-map IDs for collectio
 
 ## Intent and boundaries
 
-Authoring Schemas are ideal for reusable content authoring (spell details, grants, effects, starting equipment). Character Builder uses explicit domain DTOs and services because its steps are about build intent, provenance, prerequisites, reconciliation, and play-state transitions. A character may contain Authoring Schema-authored content, but the Builder itself is intentionally distinct from Authoring Schema authoring.
+Authoring Schemas are the default for reusable authored roots and mechanics-bearing children, including
+Creature content, spell details, grants, effects, equipment/loadouts, and starting equipment. Those
+domains keep separate domain schemas; the web reuses mechanics-neutral controls, collection editors,
+layout, and accessibility behavior rather than merging roots into one frontend-owned form model.
+
+Character Builder currently uses explicit domain DTOs and services because its steps include build
+intent, provenance, prerequisites, reconciliation, and play-state transitions. This current boundary
+does not permit System-specific branching in React. As guided Character contracts mature, new
+System-dependent step structure, choices, requirements, and guidance should be projected by the
+backend through typed descriptors so the existing renderer can adopt them incrementally. This is a
+convergence direction, not authorization for a Character rewrite or for treating Creature and
+Character authoring as the same domain schema.
+
+Current System vocabulary snapshots use version 4 for mechanics-bearing check definitions. A check
+definition has its own UUID and a required governing-ability UUID-or-null value: a non-null UUID
+references an ability in the same System snapshot, while null is authoritative abilityless semantics.
+D&D's seeded checks use explicit non-null ability UUIDs. Optional-rule documents pin check UUIDs;
+publication and Encounter admission resolve them server-side against the active System snapshot.
+Codes, labels, and tooltips remain catalogue metadata and never select mechanics.
 
 Starting-equipment option maps expose optional `eligibility` through the shared character-facet map. Authors can therefore express exact equipment proficiency, category-scoped equipment-property proficiency, and other supported character predicates without adding bespoke option fields. Builder evaluates the authored facet; node runtime only renders and normalizes it.
 

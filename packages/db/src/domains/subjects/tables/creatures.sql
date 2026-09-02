@@ -17,7 +17,7 @@
  *   creatures → damage_resistances/immunities/vulnerabilities (owned)
  *   creatures → condition_immunities (owned)
  *   Optional profiles stored as jsonb (tightly owned, rarely queried):
- *     mount_profile, companion_profile, npc_profile
+ *     mount_profile, companion_profile, npc_profile, equipment_loadout
  * ────────────────────────────────────────────── */
 
 CREATE TABLE IF NOT EXISTS public.creatures (
@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS public.creatures (
   mount_profile jsonb, -- CreatureMountProfile | null
   companion_profile jsonb, -- CreatureCompanionProfile | null
   npc_profile jsonb, -- CreatureNpcProfile | null
+  equipment_loadout jsonb, -- CreatureEquipmentLoadoutEntry[] | null; authored source only
   is_master BOOLEAN,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),

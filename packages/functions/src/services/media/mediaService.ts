@@ -10,6 +10,7 @@ import {
 import { assertWritableAuthoredSubject } from '../authoredContent/authoredContentService.js'
 import type {
   AttachImageInput,
+  CompleteVttMapMultipartUploadInput,
   CreateCampaignFileUploadIntentInput,
   CreateImageUploadIntentInput,
   CreateVttMapUploadIntentInput,
@@ -30,6 +31,10 @@ import {
   assertCampaignWritable,
   resolveCampaignAuthority
 } from '../campaign/campaignService.js'
+import {
+  createR2VttMapStorageFromEnvironment,
+  vttMapMultipartChunkBytes
+} from './r2VttMapStorage.js'
 
 const bucket = 'media' as const
 const maxBytes = 6 * 1024 * 1024
@@ -169,8 +174,74 @@ export async function createVttMapUploadIntent(
   assertActiveCampaignMember(authority)
   assertCampaignOwner(authority)
   assertCampaignWritable(authority)
-  const upload = await createImageUploadIntent(db, userId, input)
-  return { ...upload, resumable: { chunkBytes: 6 * 1024 * 1024, protocol: 'TUS' as const } }
+  const asset = await reserveMediaUpload(db, userId, input, 'R2')
+  const r2 = createR2VttMapStorageFromEnvironment()
+  let uploadId = asset.storage_upload_id
+  if (!uploadId) {
+    const createdUploadId = await r2.createMultipartUpload(
+      asset.raw_object_key,
+      asset.declared_mime_type
+    )
+    uploadId = await createMediaRepository(db).retainStorageUploadId(asset.id, createdUploadId)
+    if (uploadId !== createdUploadId) {
+      await r2.abortMultipartUpload(asset.raw_object_key, createdUploadId)
+    }
+  }
+  const expiresInSeconds = 2 * 60 * 60
+  const partCount = Math.ceil(asset.declared_bytes / vttMapMultipartChunkBytes)
+  return {
+    assetId: asset.id,
+    storageProvider: 'R2' as const,
+    objectKey: asset.raw_object_key,
+    expiresAt: isoAfter(expiresInSeconds * 1000),
+    resumable: {
+      chunkBytes: vttMapMultipartChunkBytes as 6291456,
+      protocol: 'R2_MULTIPART' as const,
+      parts: await r2.createMultipartPartUrls(
+        asset.raw_object_key,
+        uploadId,
+        partCount,
+        expiresInSeconds
+      )
+    }
+  }
+}
+
+export async function completeVttMapMultipartUpload(
+  db: DBLike,
+  userId: string,
+  input: CompleteVttMapMultipartUploadInput
+): Promise<void> {
+  const asset = await createMediaRepository(db).findById(input.assetId)
+  if (!asset || asset.owner_user_id !== userId || asset.profile !== 'VTT_MAP') {
+    throw new MediaAccessError()
+  }
+  const campaignId = asset.target_key.slice(asset.target_key.indexOf(':') + 1)
+  const authority = await resolveCampaignAuthority(db, campaignId, userId)
+  assertActiveCampaignMember(authority)
+  assertCampaignOwner(authority)
+  assertCampaignWritable(authority)
+  if (asset.status !== 'PENDING_UPLOAD') {
+    if (asset.status === 'READY') return
+    throw new MediaConflictError('This map upload cannot be completed.')
+  }
+  if (asset.storage_provider !== 'R2' || !asset.storage_upload_id) {
+    throw new MediaConflictError('This map does not have an active R2 upload.')
+  }
+  const expectedPartCount = Math.ceil(asset.declared_bytes / vttMapMultipartChunkBytes)
+  const parts = [...input.parts].sort((left, right) => left.partNumber - right.partNumber)
+  if (
+    parts.length !== expectedPartCount ||
+    parts.some((part, index) => part.partNumber !== index + 1)
+  ) {
+    throw new MediaValidationError('The completed R2 part set does not match the upload intent.')
+  }
+  const r2 = createR2VttMapStorageFromEnvironment()
+  try {
+    await r2.completeMultipartUpload(asset.raw_object_key, asset.storage_upload_id, parts)
+  } catch (error) {
+    if (!(await r2.exists(asset.raw_object_key))) throw error
+  }
 }
 
 function assertReadyOwnedAsset(
@@ -197,14 +268,26 @@ function isStorageNotFound(error: unknown): boolean {
   return String(statusCode ?? status) === '404'
 }
 
-async function removeMediaObjects(db: DBLike, objectKeys: readonly string[]): Promise<boolean> {
+async function removeMediaObjects(
+  db: DBLike,
+  objectKeys: readonly string[],
+  storageProvider: 'SUPABASE' | 'R2' = 'SUPABASE'
+): Promise<boolean> {
   const keys = [...new Set(objectKeys)]
   if (keys.length === 0) return true
   const media = createMediaRepository(db)
-  await media.scheduleObjectDeletions(keys)
-  const { error } = await createSupabaseClient().storage.from(bucket).remove(keys)
-  if (error) return false
-  await media.completeObjectDeletions(keys)
+  await media.scheduleObjectDeletions(storageProvider, keys)
+  if (storageProvider === 'R2') {
+    try {
+      await createR2VttMapStorageFromEnvironment().remove(keys)
+    } catch {
+      return false
+    }
+  } else {
+    const { error } = await createSupabaseClient().storage.from(bucket).remove(keys)
+    if (error) return false
+  }
+  await media.completeObjectDeletions(storageProvider, keys)
   return true
 }
 
@@ -248,10 +331,31 @@ async function signedDelivery(
 export async function createImageUploadIntent(
   db: DBLike,
   userId: string,
+  input: CreateImageUploadIntentInput | CreateCampaignFileUploadIntentInput
+) {
+  const asset = await reserveMediaUpload(db, userId, input, 'SUPABASE')
+  const supabase = createSupabaseClient()
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUploadUrl(asset.raw_object_key, { upsert: false })
+  if (error || !data?.token) throw new Error('Unable to create image upload URL.')
+  return {
+    assetId: asset.id,
+    bucket,
+    objectKey: asset.raw_object_key,
+    token: data.token,
+    expiresAt: isoAfter(2 * 60 * 60 * 1000)
+  }
+}
+
+async function reserveMediaUpload(
+  db: DBLike,
+  userId: string,
   input:
     | CreateImageUploadIntentInput
     | CreateCampaignFileUploadIntentInput
-    | CreateVttMapUploadIntentInput
+    | CreateVttMapUploadIntentInput,
+  storageProvider: 'SUPABASE' | 'R2'
 ) {
   const targetKey = mediaTargetKey(input.target)
   if (input.target.type === 'CHARACTER_PORTRAIT') {
@@ -287,23 +391,16 @@ export async function createImageUploadIntent(
       id: assetId,
       ownerUserId: userId,
       rawObjectKey: `raw/${userId}/${assetId}`,
+      storageProvider,
       targetKey
     })
   })
-  const supabase = createSupabaseClient()
   if (asset.status !== 'PENDING_UPLOAD')
     throw new MediaConflictError('This upload key has already been finalized.')
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .createSignedUploadUrl(asset.raw_object_key, { upsert: false })
-  if (error || !data?.token) throw new Error('Unable to create image upload URL.')
-  return {
-    assetId: asset.id,
-    bucket,
-    objectKey: asset.raw_object_key,
-    token: data.token,
-    expiresAt: isoAfter(2 * 60 * 60 * 1000)
+  if (asset.storage_provider !== storageProvider) {
+    throw new MediaConflictError('This upload key belongs to another storage provider.')
   }
+  return asset
 }
 
 export async function finalizeImageUpload(
@@ -406,7 +503,7 @@ export async function finalizeImageUpload(
       const id = randomUUID()
       const objectKey = `ready/${userId}/${assetId}/${id}.webp`
       newKeys.push(objectKey)
-      await media.scheduleObjectDeletions([objectKey])
+      await media.scheduleObjectDeletions('SUPABASE', [objectKey])
       const { error } = await supabase.storage
         .from(bucket)
         .upload(objectKey, body, { contentType: 'image/webp', upsert: false })
@@ -477,28 +574,37 @@ export async function finalizeVttMapUpload(
   if (found.status === 'READY') return { assetId, status: 'READY' }
   const asset = await media.claimForProcessing(assetId, userId)
   if (!asset) throw new MediaConflictError()
-  const supabase = createSupabaseClient()
+  const supabase = asset.storage_provider === 'SUPABASE' ? createSupabaseClient() : null
+  const r2 = asset.storage_provider === 'R2' ? createR2VttMapStorageFromEnvironment() : null
   const newKeys: string[] = []
   let isReady = false
   try {
     const readyPrefix = `ready/${userId}/${assetId}`
-    const stale = await supabase.storage.from(bucket).list(readyPrefix, { limit: 1000 })
-    if (stale.error) throw new Error('Unable to clear interrupted map processing.')
-    const staleKeys = (stale.data ?? []).map((object) => `${readyPrefix}/${object.name}`)
-    if (!(await removeMediaObjects(db, staleKeys))) {
+    const staleKeys = r2
+      ? await r2.list(readyPrefix)
+      : await supabase!.storage
+          .from(bucket)
+          .list(readyPrefix, { limit: 1000 })
+          .then(({ data, error }) => {
+            if (error) throw new Error('Unable to clear interrupted map processing.')
+            return (data ?? []).map((object) => `${readyPrefix}/${object.name}`)
+          })
+    if (!(await removeMediaObjects(db, staleKeys, asset.storage_provider))) {
       throw new Error('Unable to clear interrupted map processing.')
     }
-    const { data: file, error: downloadError } = await supabase.storage
-      .from(bucket)
-      .download(asset.raw_object_key)
-    if (downloadError) {
-      if (isStorageNotFound(downloadError)) {
-        throw new MediaValidationError('Upload data was not found.')
-      }
-      throw new Error('Unable to load uploaded map.')
-    }
-    if (!file) throw new MediaValidationError('Upload data was not found.')
-    const source = Buffer.from(await file.arrayBuffer())
+    const source = r2
+      ? await r2.download(asset.raw_object_key)
+      : await supabase!.storage
+          .from(bucket)
+          .download(asset.raw_object_key)
+          .then(({ data, error }) => {
+            if (error) {
+              if (isStorageNotFound(error)) return null
+              throw new Error('Unable to load uploaded map.')
+            }
+            return data ? data.arrayBuffer().then((value) => Buffer.from(value)) : null
+          })
+    if (!source) throw new MediaValidationError('Upload data was not found.')
     if (source.byteLength > vttMapMaxBytes) {
       throw new MediaValidationError('Map exceeds the 25 MiB limit.')
     }
@@ -556,11 +662,14 @@ export async function finalizeVttMapUpload(
         .toBuffer()
       const objectKey = `ready/${userId}/${assetId}/${randomUUID()}.webp`
       newKeys.push(objectKey)
-      await media.scheduleObjectDeletions([objectKey])
-      const { error } = await supabase.storage
-        .from(bucket)
-        .upload(objectKey, body, { contentType: 'image/webp', upsert: false })
-      if (error) throw new Error('Unable to store processed map.')
+      await media.scheduleObjectDeletions(asset.storage_provider, [objectKey])
+      if (r2) await r2.put(objectKey, body, 'image/webp')
+      else {
+        const { error } = await supabase!.storage
+          .from(bucket)
+          .upload(objectKey, body, { contentType: 'image/webp', upsert: false })
+        if (error) throw new Error('Unable to store processed map.')
+      }
       variants.push({
         id: randomUUID(),
         kind,
@@ -598,11 +707,14 @@ export async function finalizeVttMapUpload(
           .toBuffer()
         const objectKey = `ready/${userId}/${assetId}/tile-${row}-${column}-${randomUUID()}.webp`
         newKeys.push(objectKey)
-        await media.scheduleObjectDeletions([objectKey])
-        const { error } = await supabase.storage
-          .from(bucket)
-          .upload(objectKey, body, { contentType: 'image/webp', upsert: false })
-        if (error) throw new Error('Unable to store map tile.')
+        await media.scheduleObjectDeletions(asset.storage_provider, [objectKey])
+        if (r2) await r2.put(objectKey, body, 'image/webp')
+        else {
+          const { error } = await supabase!.storage
+            .from(bucket)
+            .upload(objectKey, body, { contentType: 'image/webp', upsert: false })
+          if (error) throw new Error('Unable to store map tile.')
+        }
         tiles.push({
           byte_size: body.byteLength,
           column_index: column,
@@ -631,16 +743,16 @@ export async function finalizeVttMapUpload(
     })
     if (!ready) throw new MediaQuotaError()
     isReady = true
-    await removeMediaObjects(db, [asset.raw_object_key])
+    await removeMediaObjects(db, [asset.raw_object_key], asset.storage_provider)
     return { assetId, status: 'READY' }
   } catch (error) {
     if (isReady) throw error
     if (error instanceof MediaValidationError || error instanceof MediaQuotaError) {
-      await removeMediaObjects(db, [...newKeys, asset.raw_object_key])
+      await removeMediaObjects(db, [...newKeys, asset.raw_object_key], asset.storage_provider)
       await media.reject(assetId, error.message)
       return { assetId, status: 'REJECTED' }
     }
-    await removeMediaObjects(db, newKeys)
+    await removeMediaObjects(db, newKeys, asset.storage_provider)
     await media.resetPending(assetId)
     throw error
   }
@@ -687,33 +799,31 @@ export async function getVttMapDelivery(
   }
   const expiresInSeconds = 5 * 60
   const expiresAt = isoAfter(expiresInSeconds * 1000)
-  const supabase = createSupabaseClient()
-  const overviewUrl = await supabase.storage
-    .from(bucket)
-    .createSignedUrl(overview.object_key, expiresInSeconds)
-  if (overviewUrl.error || !overviewUrl.data?.signedUrl) {
-    throw new Error('Unable to create map overview URL.')
+  const r2 = asset.storage_provider === 'R2' ? createR2VttMapStorageFromEnvironment() : null
+  const supabase = r2 ? null : createSupabaseClient()
+  const sign = async (objectKey: string) => {
+    if (r2) return r2.signedDownloadUrl(objectKey, expiresInSeconds)
+    const signed = await supabase!.storage.from(bucket).createSignedUrl(objectKey, expiresInSeconds)
+    if (signed.error || !signed.data?.signedUrl) throw new Error('Unable to create map URL.')
+    return signed.data.signedUrl
   }
-  const signedTiles: SignedVttMapDeliveryDto['tiles'] = []
-  for (const tile of tiles) {
-    const signed = await supabase.storage
-      .from(bucket)
-      .createSignedUrl(tile.object_key, expiresInSeconds)
-    if (signed.error || !signed.data?.signedUrl) throw new Error('Unable to create map tile URL.')
-    signedTiles.push({
-      column: tile.column_index,
-      height: tile.height,
-      row: tile.row_index,
-      url: signed.data.signedUrl,
-      width: tile.width
-    })
-  }
+  const [overviewUrl, ...tileUrls] = await Promise.all([
+    sign(overview.object_key),
+    ...tiles.map((tile) => sign(tile.object_key))
+  ])
+  const signedTiles: SignedVttMapDeliveryDto['tiles'] = tiles.map((tile, index) => ({
+    column: tile.column_index,
+    height: tile.height,
+    row: tile.row_index,
+    url: tileUrls[index]!,
+    width: tile.width
+  }))
   if (asset.width === null || asset.height === null) throw new MediaNotFoundError()
   return {
     assetId,
     expiresAt,
     height: asset.height,
-    overview: { height: overview.height, url: overviewUrl.data.signedUrl, width: overview.width },
+    overview: { height: overview.height, url: overviewUrl, width: overview.width },
     tiles: signedTiles,
     width: asset.width
   }
@@ -781,7 +891,7 @@ export async function finalizeCampaignFileUpload(
     const body = Buffer.from(text, 'utf8')
     readyKey = `ready/${userId}/${assetId}/${randomUUID()}.txt`
     const objectKey = readyKey
-    await media.scheduleObjectDeletions([objectKey])
+    await media.scheduleObjectDeletions('SUPABASE', [objectKey])
     const upload = await createSupabaseClient().storage.from(bucket).upload(objectKey, body, {
       contentType: 'text/plain; charset=utf-8',
       upsert: false
@@ -943,7 +1053,7 @@ export async function attachImage(
   const body = output.data
   const id = randomUUID()
   const objectKey = `ready/${userId}/${asset.id}/${id}.webp`
-  await media.scheduleObjectDeletions([objectKey])
+  await media.scheduleObjectDeletions('SUPABASE', [objectKey])
   const upload = await supabase.storage
     .from(bucket)
     .upload(objectKey, body, { contentType: 'image/webp', upsert: false })
@@ -1081,27 +1191,41 @@ export async function getImage(
 export async function purgeOwnedMedia(db: DBLike, userId: string): Promise<number> {
   const media = createMediaRepository(db)
   const assets = await media.claimCleanupObjects(userId)
-  const supabase = createSupabaseClient()
   for (const asset of assets) {
     const readyPrefix = `ready/${userId}/${asset.assetId}`
-    const listed = await supabase.storage.from(bucket).list(readyPrefix, { limit: 1000 })
-    if (listed.error) throw new Error('Unable to list media files for cleanup.')
-    const objectKeys = [
-      asset.rawObjectKey,
-      ...asset.objectKeys,
-      ...(listed.data ?? []).map((object) => `${readyPrefix}/${object.name}`)
-    ]
-    const { error } = await supabase.storage.from(bucket).remove([...new Set(objectKeys)])
-    if (error) throw new Error('Unable to remove media files.')
+    const r2 = asset.storageProvider === 'R2' ? createR2VttMapStorageFromEnvironment() : null
+    if (r2 && asset.storageUploadId) {
+      await r2.abortMultipartUpload(asset.rawObjectKey, asset.storageUploadId)
+    }
+    const listedKeys = r2
+      ? await r2.list(readyPrefix)
+      : await createSupabaseClient()
+          .storage.from(bucket)
+          .list(readyPrefix, { limit: 1000 })
+          .then(({ data, error }) => {
+            if (error) throw new Error('Unable to list media files for cleanup.')
+            return (data ?? []).map((object) => `${readyPrefix}/${object.name}`)
+          })
+    const objectKeys = [asset.rawObjectKey, ...asset.objectKeys, ...listedKeys]
+    if (!(await removeMediaObjects(db, objectKeys, asset.storageProvider))) {
+      throw new Error('Unable to remove media files.')
+    }
     await media.deleteAsset(asset.assetId)
-    await media.completeObjectDeletions(objectKeys)
+    await media.completeObjectDeletions(asset.storageProvider, objectKeys)
   }
   return assets.length
 }
 
 export async function cleanupScheduledMediaObjects(db: DBLike): Promise<number> {
-  const keys = await createMediaRepository(db).listObjectDeletions()
-  if (keys.length === 0) return 0
-  if (!(await removeMediaObjects(db, keys))) throw new Error('Unable to remove queued media files.')
-  return keys.length
+  const deletions = await createMediaRepository(db).listObjectDeletions()
+  if (deletions.length === 0) return 0
+  for (const storageProvider of ['SUPABASE', 'R2'] as const) {
+    const keys = deletions
+      .filter((entry) => entry.storageProvider === storageProvider)
+      .map((entry) => entry.objectKey)
+    if (!(await removeMediaObjects(db, keys, storageProvider))) {
+      throw new Error('Unable to remove queued media files.')
+    }
+  }
+  return deletions.length
 }

@@ -17,7 +17,8 @@ const state = vi.hoisted(() => ({
   requireOverlay: vi.fn(),
   lockRoot: vi.fn(),
   vocabulary: vi.fn(),
-  ruleContext: vi.fn()
+  ruleContext: vi.fn(),
+  lockActiveEffects: vi.fn()
 }))
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => {
@@ -29,6 +30,7 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
       requireCurrent: state.requireOverlay
     }),
     createCharacterMechanicsProjectionRepository: () => ({ requireCurrent: state.requireCurrent }),
+    createActiveRuleEffectRepository: () => ({ lockByOwner: state.lockActiveEffects }),
     createSystemVocabularySnapshotRepository: () => ({ findById: state.vocabulary })
   }
 })
@@ -41,6 +43,7 @@ vi.mock('../campaign/campaignCharacterMechanicsProjection.js', () => ({
 }))
 
 import {
+  foldActiveScalarReductions,
   lockEncounterActiveEffectTargets,
   refreshLockedEncounterActiveEffectTargets
 } from './encounterActiveEffectTargetState.js'
@@ -111,6 +114,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   state.lockAssignment.mockResolvedValue(undefined)
   state.lockRoot.mockReset()
+  state.lockActiveEffects.mockResolvedValue([])
   state.requireCurrent.mockImplementation(async ({ characterId }: { characterId: string }) => ({
     characterStreamVersion: 4,
     projectionChecksum: 'b'.repeat(64),
@@ -118,11 +122,12 @@ beforeEach(() => {
     systemVocabularySnapshotVersion: 1,
     systemVocabularySnapshotChecksum: 'c'.repeat(64),
     commandState: { state: { hitpoints: { current: 5, temp: 0 } } },
+    rulePolicyInput: { abilityDefinitions: [] },
     characterId
   }))
   state.requireOverlay.mockImplementation(async ({ characterId }: { characterId: string }) => ({
     characterId,
-    rulePolicyOutput: { derivedStats: { maxHitPoints: { effective: 10 } } }
+    rulePolicyOutput: { derivedStats: { maxHitPoints: { effective: 10 }, abilities: [] } }
   }))
   state.vocabulary.mockResolvedValue({
     systemId: ids.system,
@@ -134,6 +139,130 @@ beforeEach(() => {
 })
 
 describe('lockEncounterActiveEffectTargets', () => {
+  it('seeds exact base and effective Character scalar facts before the first reduction', async () => {
+    const abilityId = '00000000-0000-4000-8000-000000000071'
+    state.requireCurrent.mockResolvedValueOnce({
+      characterStreamVersion: 4,
+      projectionChecksum: 'b'.repeat(64),
+      systemVocabularySnapshotId: ids.system,
+      systemVocabularySnapshotVersion: 1,
+      systemVocabularySnapshotChecksum: 'c'.repeat(64),
+      commandState: { state: { hitpoints: { current: 5, temp: 0 } } },
+      rulePolicyInput: { abilityDefinitions: [{ id: abilityId, code: 'STRENGTH' }] },
+      characterId: ids.characterA
+    })
+    state.requireOverlay.mockResolvedValueOnce({
+      characterId: ids.characterA,
+      rulePolicyOutput: {
+        derivedStats: {
+          maxHitPoints: { effective: 10 },
+          abilities: [{ abilityId: 'STRENGTH', score: { effective: 4 } }]
+        }
+      }
+    })
+    const result = await lockEncounterActiveEffectTargets({
+      trx: db() as never,
+      encounter: encounter as never,
+      actors: [actor(ids.actorA, ids.characterA)] as never,
+      attunementSlotOverride: null
+    })
+    expect(result.baseScalarValuesByActorId?.get(ids.actorA)).toEqual({ [abilityId]: 4 })
+    expect(result.effectiveScalarValuesByActorId?.get(ids.actorA)).toEqual({ [abilityId]: 4 })
+    expect(result.lockedCharacters.get(ids.characterA)?.effectiveRulePolicyOutput).toBeUndefined()
+  })
+
+  it('retains only instantiated Character ability facts from a larger System vocabulary', async () => {
+    const abilityId = '00000000-0000-4000-8000-000000000071'
+    state.requireCurrent.mockResolvedValueOnce({
+      characterStreamVersion: 4,
+      projectionChecksum: 'b'.repeat(64),
+      systemVocabularySnapshotId: ids.system,
+      systemVocabularySnapshotVersion: 1,
+      systemVocabularySnapshotChecksum: 'c'.repeat(64),
+      commandState: { state: { hitpoints: { current: 5, temp: 0 } } },
+      rulePolicyInput: {
+        abilityDefinitions: [
+          { id: abilityId, code: 'STRENGTH' },
+          { id: '00000000-0000-4000-8000-000000000072', code: 'DEXTERITY' }
+        ]
+      },
+      characterId: ids.characterA
+    })
+    state.requireOverlay.mockResolvedValueOnce({
+      characterId: ids.characterA,
+      rulePolicyOutput: {
+        derivedStats: {
+          maxHitPoints: { effective: 10 },
+          abilities: [{ abilityId: 'STRENGTH', score: { effective: 4 } }]
+        }
+      }
+    })
+
+    const result = await lockEncounterActiveEffectTargets({
+      trx: db() as never,
+      encounter: encounter as never,
+      actors: [actor(ids.actorA, ids.characterA)] as never,
+      attunementSlotOverride: null
+    })
+
+    expect(result.baseScalarValuesByActorId?.get(ids.actorA)).toEqual({ [abilityId]: 4 })
+  })
+
+  it('folds ordered target-owned scalar effects without mutating UUID-backed base facts', () => {
+    const scalarDefinitionId = '00000000-0000-4000-8000-000000000071'
+    const baseScalarValues = { [scalarDefinitionId]: 4 }
+    const effective = foldActiveScalarReductions({
+      baseScalarValues,
+      effects: [
+        {
+          id: '00000000-0000-4000-8000-000000000072',
+          createdOrdinal: 2,
+          definition: {
+            schemaVersion: 2,
+            stateContributions: [
+              {
+                kind: 'SCALAR_REDUCTION',
+                valueDefinitionId: scalarDefinitionId,
+                amount: 3,
+                stacking: 'ADDITIVE',
+                floor: 0,
+                recoveryTriggers: ['SHORT_REST', 'LONG_REST'],
+                terminalConsequence: 'TARGET_DIED',
+                sourceOutcomeId: '00000000-0000-4000-8000-000000000073',
+                sourceNodeId: 'scalar-node',
+                sourceOperationKey: 'dnd5e.scalar-reduction-proposal'
+              }
+            ]
+          }
+        },
+        {
+          id: '00000000-0000-4000-8000-000000000074',
+          createdOrdinal: 1,
+          definition: {
+            schemaVersion: 2,
+            stateContributions: [
+              {
+                kind: 'SCALAR_REDUCTION',
+                valueDefinitionId: scalarDefinitionId,
+                amount: 2,
+                stacking: 'ADDITIVE',
+                floor: 0,
+                recoveryTriggers: ['SHORT_REST', 'LONG_REST'],
+                terminalConsequence: 'TARGET_DIED',
+                sourceOutcomeId: '00000000-0000-4000-8000-000000000075',
+                sourceNodeId: 'scalar-node',
+                sourceOperationKey: 'dnd5e.scalar-reduction-proposal'
+              }
+            ]
+          }
+        }
+      ] as never
+    })
+
+    expect(baseScalarValues).toEqual({ [scalarDefinitionId]: 4 })
+    expect(effective).toEqual({ [scalarDefinitionId]: 0 })
+  })
+
   it('locks assignments and Character roots in sorted identity order', async () => {
     const result = await lockEncounterActiveEffectTargets({
       trx: db() as never,
@@ -278,6 +407,8 @@ describe('lockEncounterActiveEffectTargets', () => {
       actor: { sourceRevision: 5, currentHitPoints: 1 },
       mechanics: { characterStreamVersion: 5 }
     })
+    expect(refreshed.activeEffectsByActorId?.get(ids.actorA)).toEqual([])
+    expect(state.lockActiveEffects).toHaveBeenCalledTimes(2)
     expect(state.lockRoot).toHaveBeenCalledTimes(1)
     expect(state.lockAssignment).toHaveBeenCalledTimes(1)
     expect(state.requireCurrent).toHaveBeenLastCalledWith({

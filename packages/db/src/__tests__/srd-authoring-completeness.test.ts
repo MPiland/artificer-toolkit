@@ -776,6 +776,8 @@ function collectInlineOptionValues(
 ): ReadonlySet<string> | undefined {
   if (source.kind === 'DATA') return undefined
 
+  if (source.kind === 'LOCAL_COLLECTION') return undefined
+
   if (source.kind === 'INLINE_OPTIONS') {
     return new Set(source.options.map((option) => String(option.code)))
   }

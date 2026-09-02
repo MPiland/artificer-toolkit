@@ -27,6 +27,7 @@ import type { CharacterMechanicsProjection } from '@artificer-toolkit/schema/pro
 import type { CharacterSheetCommittedRuleSnapshot } from './sheetService.js'
 
 const mocks = vi.hoisted(() => ({
+  deleteActiveRuleEffect: vi.fn(),
   appendEvent: vi.fn(),
   advanceMechanicsProjection: vi.fn(),
   advanceLiveMechanicsProjection: vi.fn(),
@@ -39,6 +40,7 @@ const mocks = vi.hoisted(() => ({
   extendCommittedSources: vi.fn(),
   reduceCommittedSources: vi.fn(),
   lockCampaignShareUses: vi.fn(),
+  lockActiveRuleEffects: vi.fn(),
   lockCurrentSourceUses: vi.fn(),
   lockCampaignMemberForContentRead: vi.fn(),
   lockCampaignAssignment: vi.fn(),
@@ -103,6 +105,10 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createCharacterEventRepository: () => ({
       append: mocks.appendEvent,
       findByCommandId: mocks.findByCommandId
+    }),
+    createActiveRuleEffectRepository: () => ({
+      lockByOwner: mocks.lockActiveRuleEffects,
+      deleteCas: mocks.deleteActiveRuleEffect
     }),
     createCharacterRepository: () => ({
       findById: mocks.findById,
@@ -327,7 +333,7 @@ function createCharacter(overrides: Partial<CharacterAuthored> = {}): CharacterA
     label: 'Aria',
     status: 'ACTIVE',
     profile: {},
-    systemId: 'system-1',
+    systemId: '00000000-0000-0000-0000-000000000001',
     primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000302',
     userId: 'user-1',
     intent: {
@@ -372,7 +378,7 @@ function createPinnedVisionSense(rangeFeet: number) {
       schemaVersion: 1 as const,
       kind: 'SENSE' as const,
       id: senseDefinitionId,
-      gameSystemId: 'system-1',
+      gameSystemId: '00000000-0000-0000-0000-000000000001',
       capabilities: [
         {
           channel: 'VISUAL' as const,
@@ -421,7 +427,7 @@ function createCharacterRow(
     rule_pack_revision_id: 'revision-1',
     status: 'ACTIVE',
     stream_version: 1,
-    system_id: 'system-1',
+    system_id: '00000000-0000-0000-0000-000000000001',
     user_id: 'user-1',
     ...overrides
   }
@@ -504,7 +510,7 @@ function createCommittedMechanicsPayload(evaluation: CharacterRuleEvaluationResu
   return {
     ruleSnapshot: {
       characterId: 'character-1',
-      systemId: 'system-1',
+      systemId: '00000000-0000-0000-0000-000000000001',
       classes: [{ classId: 'class-1' }],
       features: [],
       equipmentItems: []
@@ -513,6 +519,7 @@ function createCommittedMechanicsPayload(evaluation: CharacterRuleEvaluationResu
     rulePolicyOutput: evaluation.output,
     initiativeActorFacts: {
       effectiveSize: null,
+      checkTotals: {},
       equippedItems: []
     },
     pinnedSenseDefinitions: [],
@@ -526,7 +533,7 @@ function createCreature(overrides: Partial<CreatureAuthored> = {}): CreatureAuth
     id: 'creature-1',
     label: 'Owl',
     userId: 'user-1',
-    systemId: 'system-1',
+    systemId: '00000000-0000-0000-0000-000000000001',
     category: 'COMPANION',
     creatureTypeId: '00000000-0000-4000-8000-000000000021',
     size: 'SMALL',
@@ -647,6 +654,9 @@ describe('executeCharacterSheetCommand persistence', () => {
   beforeEach(() => {
     mocks.assertCommandAuthority.mockResolvedValue(undefined)
     mocks.appendEvent.mockReset()
+    mocks.deleteActiveRuleEffect.mockReset()
+    mocks.lockActiveRuleEffects.mockReset()
+    mocks.lockActiveRuleEffects.mockResolvedValue([])
     mocks.assembleSheetBundleForRuleContext.mockReset()
     mocks.findAllCreatures.mockReset()
     mocks.findAllCreatures.mockResolvedValue([])
@@ -724,7 +734,7 @@ describe('executeCharacterSheetCommand persistence', () => {
     mocks.findById.mockResolvedValue({
       id: 'character-1',
       status: 'ACTIVE',
-      system_id: 'system-1',
+      system_id: '00000000-0000-0000-0000-000000000001',
       stream_version: 1,
       rule_pack_revision_id: 'revision-1',
       user_id: 'user-1'
@@ -758,8 +768,16 @@ describe('executeCharacterSheetCommand persistence', () => {
       ruleRevisionChecksum: 'a'.repeat(64),
       evaluatorVersion: '0.54.0',
       modelContractVersion: 5,
-      rulePolicyInput: { spellPreparationClasses: [] },
-      rulePolicyOutput: { spellPreparation: { sources: [] } },
+      rulePolicyInput: {
+        spellActionFacts: [],
+        spellCastCandidates: [],
+        spellPreparationClasses: []
+      },
+      rulePolicyOutput: {
+        spellCastDecisions: [],
+        spellCastMechanics: [],
+        spellPreparation: { sources: [] }
+      },
       ruleRegistry: {},
       ruleSnapshot: { characterId: 'character-1' }
     }
@@ -2239,7 +2257,7 @@ describe('executeCharacterSheetCommand persistence', () => {
           level: 1,
           classIds: ['class-1'],
           magicSchoolId: 'evocation',
-          systemId: 'system-1',
+          systemId: '00000000-0000-0000-0000-000000000001',
           userId: 'campaign-owner'
         }
       ],
@@ -2254,7 +2272,7 @@ describe('executeCharacterSheetCommand persistence', () => {
           level: 1,
           classIds: ['class-1'],
           magicSchoolId: 'evocation',
-          systemId: 'system-1',
+          systemId: '00000000-0000-0000-0000-000000000001',
           userId: 'user-1'
         }
       ],
@@ -2269,7 +2287,7 @@ describe('executeCharacterSheetCommand persistence', () => {
           level: 1,
           classIds: ['class-1'],
           magicSchoolId: 'evocation',
-          systemId: 'system-1',
+          systemId: '00000000-0000-0000-0000-000000000001',
           userId: 'user-1'
         }
       ]
@@ -2677,7 +2695,7 @@ describe('executeCharacterSheetCommand persistence', () => {
         level: 1,
         classIds: ['class-1'],
         magicSchoolId: 'evocation',
-        systemId: 'system-1',
+        systemId: '00000000-0000-0000-0000-000000000001',
         userId: 'user-1'
       })
       const fullSpellDocuments = new Map<string, SpellAuthored>([
@@ -3336,7 +3354,7 @@ describe('executeCharacterSheetCommand persistence', () => {
           id: 'wizard-multiclass',
           requirementGroups: { groups: [] }
         },
-        systemId: 'system-1',
+        systemId: '00000000-0000-0000-0000-000000000001',
         userId: 'user-1'
       }
     ]

@@ -3,6 +3,8 @@
 - **Status:** decision
 - **Date:** 2026-08-05
 
+> `VTT_MAP` byte storage is amended by [ADR 0028](0028-r2-vtt-map-storage.md). Stable asset identity and domain-owned references remain unchanged.
+
 ## Context
 
 Account avatars, Character portraits, authored artwork, future Campaign files, Marketplace releases, and VTT maps need shared upload and delivery mechanics. Their authorization and lifecycle semantics belong to different product domains. Temporary signed URLs cannot serve as durable identity, and a generic polymorphic attachment row cannot enforce those domain relationships.

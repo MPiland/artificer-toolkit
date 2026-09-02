@@ -75,6 +75,9 @@ const RULE_BOUND_HOST_P95_LIMIT_MS = 250
 const SCENE_HOST_P95_LIMIT_MS = 100
 const VTT_USAGE_WARMUP_PAIRS = 2
 const VTT_USAGE_MEASURED_PAIRS = 10
+const runsEncounterTrafficSimulation = process.argv.includes('--encounter-traffic-simulation')
+const ENCOUNTER_TRAFFIC_SIMULATION_ROUNDS = 8
+const ENCOUNTER_TRAFFIC_SIMULATION_EVENTS_PER_ACTOR_ROUND = 3
 const DIRECT_HOST_LEASE_RELEASE_TIMEOUT_MS = 2_500
 const DURABLE_OBJECT_LEASE_RELEASE_TIMEOUT_MS = 45_000
 const LOCAL_INTEGRATION_TICKET_SECRET =
@@ -91,6 +94,18 @@ interface CommandMeasurement {
   durationMs: number
   replayed: boolean
   streamVersion: number
+}
+
+interface WebSocketTraffic {
+  receivedBytes: number
+  receivedMessages: number
+  sentBytes: number
+  sentMessages: number
+}
+
+function rawDataByteLength(raw: RawData): number {
+  if (Array.isArray(raw)) return raw.reduce((total, part) => total + part.byteLength, 0)
+  return raw.byteLength
 }
 
 function localSupabaseConfig() {
@@ -220,6 +235,12 @@ class LocalLiveRoom {
   #deliverySequence = 0
   #reconnecting = false
   #socket: WebSocket | null = null
+  #traffic: WebSocketTraffic = {
+    receivedBytes: 0,
+    receivedMessages: 0,
+    sentBytes: 0,
+    sentMessages: 0
+  }
   lastReady: Extract<LiveSessionWebSocketServerMessageDto, { type: 'READY' }> | null = null
   readonly roomId: string
   readonly state = {
@@ -252,6 +273,14 @@ class LocalLiveRoom {
   send(command: LiveSessionCommandDto): void {
     this.#pendingCommandIds.add(command.command.commandId)
     this.#sendOrQueue({ command, type: 'COMMAND' })
+  }
+
+  resetTraffic(): void {
+    this.#traffic = { receivedBytes: 0, receivedMessages: 0, sentBytes: 0, sentMessages: 0 }
+  }
+
+  traffic(): WebSocketTraffic {
+    return { ...this.#traffic }
   }
 
   simulateDrop(): void {
@@ -328,6 +357,8 @@ class LocalLiveRoom {
 
   #receive(raw: RawData, binary: boolean): void {
     if (binary) throw new Error('The local integration received a binary WebSocket message.')
+    this.#traffic.receivedBytes += rawDataByteLength(raw)
+    this.#traffic.receivedMessages += 1
     const message = liveSessionWebSocketServerMessageDtoSchema.parse(
       JSON.parse(raw.toString()) as unknown
     )
@@ -363,7 +394,10 @@ class LocalLiveRoom {
 
   #sendOrQueue(message: LiveSessionWebSocketClientMessageDto): void {
     if (this.#socket?.readyState === WebSocket.OPEN && !this.#reconnecting) {
-      this.#socket.send(JSON.stringify(message))
+      const serialized = JSON.stringify(message)
+      this.#traffic.sentBytes += Buffer.byteLength(serialized)
+      this.#traffic.sentMessages += 1
+      this.#socket.send(serialized)
       return
     }
     if (message.type !== 'RESUME') this.#queuedMessages.push(message)
@@ -715,6 +749,7 @@ async function main(): Promise<void> {
   const runId = randomUUID()
   const characterId = randomUUID()
   const playerBCharacterId = randomUUID()
+  const additionalCharacterIds = Array.from({ length: 3 }, () => randomUUID())
   const mapAssetId = randomUUID()
   const mapOverviewObjectKey = `integration/${runId}/map-display.png`
   const mapTileObjectKey = `integration/${runId}/map-tile-0-0.png`
@@ -799,6 +834,25 @@ async function main(): Promise<void> {
       ruleTimings
     )
     assert.equal(playerBInitialSheet.meta.streamVersion, 1)
+    if (runsEncounterTrafficSimulation) {
+      for (const [index, additionalCharacterId] of additionalCharacterIds.entries()) {
+        const currentPlayer = players[index + 2]
+        assert.ok(currentPlayer)
+        const sheet = await proveFixtureLifecycle(
+          db,
+          {
+            ...fixture,
+            characterId: additionalCharacterId,
+            label: `Local Live Session Player ${index + 3} ${runId}`,
+            userId: currentPlayer.id
+          },
+          builderTimings,
+          sheetTimings,
+          ruleTimings
+        )
+        assert.equal(sheet.meta.streamVersion, 1)
+      }
+    }
 
     const campaign = await createCampaign(db, gm.id, {
       name: `Local live-session integration ${runId}`,
@@ -819,6 +873,7 @@ async function main(): Promise<void> {
       ownerUserId: gm.id,
       profile: 'VTT_MAP',
       rawObjectKey: `integration/${runId}/map-original.png`,
+      storageProvider: 'SUPABASE',
       targetKey: `VTT_MAP:${campaign.id}`
     })
     assert.ok(await media.claimForProcessing(mapAssetId, gm.id))
@@ -876,6 +931,11 @@ async function main(): Promise<void> {
     }
     await assignCampaignCharacter(db, gm.id, campaign.id, characterId)
     await assignCampaignCharacter(db, gm.id, campaign.id, playerBCharacterId)
+    if (runsEncounterTrafficSimulation) {
+      for (const additionalCharacterId of additionalCharacterIds) {
+        await assignCampaignCharacter(db, gm.id, campaign.id, additionalCharacterId)
+      }
+    }
     const session = await createCampaignSession(
       db,
       { campaignId: campaign.id, title: 'Local integration session' },
@@ -893,7 +953,10 @@ async function main(): Promise<void> {
     const encounterBlueprint = await createEncounterBlueprint(db, gm.id, {
       gameSystemId: encounterCreature.systemId,
       name: `Local encounter ${runId}`,
-      enemies: [{ kind: 'CREATURE', sourceId: encounterCreature.id }],
+      enemies: Array.from({ length: runsEncounterTrafficSimulation ? 6 : 1 }, () => ({
+        kind: 'CREATURE' as const,
+        sourceId: encounterCreature.id
+      })),
       commandId: randomUUID()
     })
     encounterBlueprintId = encounterBlueprint.id
@@ -908,6 +971,7 @@ async function main(): Promise<void> {
       (feature) => feature.resource !== null && feature.resource.remaining > 0
     )
     assert.ok(encounterActor && encounterFeature)
+    if (runsEncounterTrafficSimulation) assert.equal(encounter.actors.length, 11)
     const sceneTokenId = randomUUID()
     const hiddenTokenId = randomUUID()
     const doorId = randomUUID()
@@ -1150,6 +1214,68 @@ async function main(): Promise<void> {
       type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE'
     })
     assert.equal(sceneBinding.replayed, false)
+    if (runsEncounterTrafficSimulation) {
+      const rooms = [gmRoom, ...playerRooms]
+      for (const room of rooms) room.resetTraffic()
+      const enemyActors = encounter.actors.filter((actor) => actor.kind === 'CREATURE')
+      assert.equal(enemyActors.length, 6)
+      const commandDurations: number[] = []
+      const commandCount =
+        encounter.actors.length *
+        ENCOUNTER_TRAFFIC_SIMULATION_ROUNDS *
+        ENCOUNTER_TRAFFIC_SIMULATION_EVENTS_PER_ACTOR_ROUND
+      let expectedEncounterVersion = sceneBinding.streamVersion
+      const startedAt = performance.now()
+      for (let index = 0; index < commandCount; index += 1) {
+        const target = enemyActors[index % enemyActors.length]
+        assert.ok(target)
+        const measurement = await sendEncounterCommand(gmRoom, playerRooms, {
+          actorId: target.id,
+          commandId: randomUUID(),
+          currentHitPoints:
+            Math.floor(index / enemyActors.length) % 2 === 0
+              ? Math.max(0, target.maxHitPoints - 1)
+              : target.maxHitPoints,
+          encounterId: encounter.id,
+          expectedVersion: expectedEncounterVersion,
+          type: 'UPDATE_ACTOR'
+        })
+        expectedEncounterVersion = measurement.streamVersion
+        commandDurations.push(measurement.durationMs)
+      }
+      const durationMs = performance.now() - startedAt
+      const traffic = rooms.map((room) => room.traffic())
+      const total = traffic.reduce<WebSocketTraffic>(
+        (sum, value) => ({
+          receivedBytes: sum.receivedBytes + value.receivedBytes,
+          receivedMessages: sum.receivedMessages + value.receivedMessages,
+          sentBytes: sum.sentBytes + value.sentBytes,
+          sentMessages: sum.sentMessages + value.sentMessages
+        }),
+        { receivedBytes: 0, receivedMessages: 0, sentBytes: 0, sentMessages: 0 }
+      )
+      console.info(
+        JSON.stringify({
+          encounterTrafficSimulation: {
+            actors: encounter.actors.length,
+            clients: rooms.length,
+            commands: commandCount,
+            durationMs,
+            eventsPerActorPerRound: ENCOUNTER_TRAFFIC_SIMULATION_EVENTS_PER_ACTOR_ROUND,
+            latencyMs: {
+              maximum: Math.max(...commandDurations),
+              p50: percentile(commandDurations, 0.5),
+              p95: percentile(commandDurations, 0.95)
+            },
+            perClient: traffic,
+            rounds: ENCOUNTER_TRAFFIC_SIMULATION_ROUNDS,
+            traffic: total
+          },
+          localDatabaseOnly: true
+        })
+      )
+      return
+    }
     const gmSceneSnapshot = scenePresentationMessages[0]
     if (
       !gmSceneSnapshot ||

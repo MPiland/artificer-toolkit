@@ -134,7 +134,7 @@ function createCharacter(overrides: Partial<CharacterAuthored> = {}): CharacterA
     label: 'Aria',
     status: 'ACTIVE',
     profile: {},
-    systemId: 'dnd5e2014',
+    systemId: '00000000-0000-0000-0000-000000000001',
     primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301',
     userId: 'user-1',
     intent: {
@@ -174,7 +174,7 @@ function createResolution(): CharacterBuilderResolution {
     },
     registry: {
       system: {
-        id: 'dnd5e2014',
+        id: '00000000-0000-0000-0000-000000000001',
         label: 'D&D 5e 2014',
         rulesetCode: 'dnd5e',
         rulesetVersion: '2014',
@@ -204,7 +204,7 @@ function createResolution(): CharacterBuilderResolution {
     },
     sourceRegistry: {
       system: {
-        id: 'dnd5e2014',
+        id: '00000000-0000-0000-0000-000000000001',
         label: 'D&D 5e 2014',
         rulesetCode: 'dnd5e',
         rulesetVersion: '2014',
@@ -369,8 +369,15 @@ describe('MVP character Sheet command audit', () => {
       ruleRevisionChecksum: 'a'.repeat(64),
       evaluatorVersion: '0.54.0',
       modelContractVersion: 5,
-      rulePolicyInput: { spellPreparationClasses: [] },
-      rulePolicyOutput: {},
+      rulePolicyInput: {
+        spellActionFacts: [],
+        spellCastCandidates: [],
+        spellPreparationClasses: []
+      },
+      rulePolicyOutput: {
+        spellCastDecisions: [],
+        spellCastMechanics: []
+      },
       pinnedSenseDefinitions: [],
       ruleRegistry: {},
       ruleSnapshot: { characterId: 'character-1' }
@@ -388,8 +395,16 @@ describe('MVP character Sheet command audit', () => {
     })
     mocks.createCommittedSpells.mockReturnValue(new Map())
     mocks.compileMechanicsProjection.mockReturnValue({
-      rulePolicyInput: { spellPreparationClasses: [] },
-      rulePolicyOutput: { senses: [] },
+      rulePolicyInput: {
+        spellActionFacts: [],
+        spellCastCandidates: [],
+        spellPreparationClasses: []
+      },
+      rulePolicyOutput: {
+        senses: [],
+        spellCastDecisions: [],
+        spellCastMechanics: []
+      },
       pinnedSenseDefinitions: [],
       compiledActionEntryPoints: []
     })
@@ -414,9 +429,15 @@ describe('MVP character Sheet command audit', () => {
           }
         },
         ruleEvaluation: {
-          facts: { spellPreparationClasses: [] },
+          facts: {
+            spellActionFacts: [],
+            spellCastCandidates: [],
+            spellPreparationClasses: []
+          },
           output: {
             rest: { attunementSlotLimit: 3 },
+            spellCastDecisions: [],
+            spellCastMechanics: [],
             spellPreparation: { sources: [] },
             senses: []
           }
@@ -428,9 +449,15 @@ describe('MVP character Sheet command audit', () => {
         bundle: {
           sheet: createAuditSheet(params.character, params.row.stream_version),
           ruleEvaluation: {
-            facts: { spellPreparationClasses: [] },
+            facts: {
+              spellActionFacts: [],
+              spellCastCandidates: [],
+              spellPreparationClasses: []
+            },
             output: {
               rest: { attunementSlotLimit: 3 },
+              spellCastDecisions: [],
+              spellCastMechanics: [],
               spellPreparation: { sources: [] },
               senses: []
             }
@@ -440,8 +467,15 @@ describe('MVP character Sheet command audit', () => {
           projectionChecksum: 'mechanics-checksum',
           commandLaneChecksum: 'mechanics-lane-checksum',
           ruleSnapshot: { characterId: params.character.id },
-          rulePolicyInput: { spellPreparationClasses: [] },
-          rulePolicyOutput: {},
+          rulePolicyInput: {
+            spellActionFacts: [],
+            spellCastCandidates: [],
+            spellPreparationClasses: []
+          },
+          rulePolicyOutput: {
+            spellCastDecisions: [],
+            spellCastMechanics: []
+          },
           pinnedSenseDefinitions: [],
           ruleRegistry: {}
         },

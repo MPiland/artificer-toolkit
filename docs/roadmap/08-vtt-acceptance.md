@@ -283,23 +283,23 @@ privacy/redaction, and deterministic-concurrency subchecks where applicable.
     fixtures, Campaign Scene rows, media references, events, authority leases, and Worker state are
     cleaned or isolated exactly; no staging or production operation was performed.
 
-## Phase 8.1 — Pre-launch combat completeness addendum (5/73)
+## Phase 8.1 — Pre-launch combat completeness addendum (71/73)
 
 This is a separate, fixed addendum to the accepted 54/54 Phase 8 baseline. Its denominator was frozen
 on 2026-08-30. Defects found while proving a case remain subchecks of that case; genuinely new product
 scope requires another explicitly approved addendum and cannot silently increase this total. The
 machine-readable case ledger is the `addenda` section of `08-vtt-acceptance.json`.
 
-| Workstream | Accepted | Total | Current boundary |
-| --- | ---: | ---: | --- |
-| Current Phase 8.1 packet | 5 | 5 | **ACCEPTED** after focused proof and clean repeat review |
-| Creature special mechanics | 0 | 13 | Exact semantics frozen below |
-| Creature UUID-backed equipment | 0 | 5 | Contract, SRD audit, shared derivation, actor pin, GM replacement |
-| Speed Factor initiative | 0 | 4 | Declaration, ordering, ties, declared-action enforcement |
-| High-value optional combat rules | 0 | 10 | Disarm, Overrun, Shove Aside, Tumble, Cleaving |
-| Final PostgreSQL lifecycle | 0 | 6 | Lifecycle, replay, rollback, concurrency, privacy, cleanup |
-| Managed-host proof | 0 | 2 | Rule-bound and Scene latency/delivery |
-| Exhaustive race schedules | 0 | 28 | Fourteen fixed races in both lock orderings |
+| Workstream                       | Accepted | Total | Current boundary                                                                                              |
+| -------------------------------- | -------: | ----: | ------------------------------------------------------------------------------------------------------------- |
+| Current Phase 8.1 packet         |        5 |     5 | **ACCEPTED** after focused proof and clean repeat review                                                      |
+| Creature special mechanics       |       13 |    13 | **ACCEPTED**; combined reduced-target turn-effect integration remains in the fixed final PostgreSQL lifecycle |
+| Creature UUID-backed equipment   |        5 |     5 | **ACCEPTED**; exact actor pins and audited GM replacement passed the final lifecycle                          |
+| Speed Factor initiative          |        4 |     4 | **ACCEPTED**; declaration, ordering, ties, and declared-action enforcement passed                             |
+| High-value optional combat rules |       10 |    10 | **ACCEPTED**; Disarm, Overrun, Shove Aside, Tumble, and Cleaving passed the final lifecycle                   |
+| Final PostgreSQL lifecycle       |        6 |     6 | **ACCEPTED**; reset, seed, audit, replay, rollback, concurrency, privacy, cleanup, and browser gates passed   |
+| Managed-host proof               |        0 |     2 | Rule-bound and Scene latency/delivery                                                                         |
+| Exhaustive race schedules        |       28 |    28 | **ACCEPTED**; fourteen fixed races passed in both lock orderings                                              |
 
 The thirteen Creature cases are thirteen unique source semantics, not thirteen manifest rows. Nested
 save branches expand some semantics into multiple manifest leaves:
@@ -322,6 +322,8 @@ Creature equipment coverage includes mechanically relevant held or worn weapons,
 foci, and action-referenced items. Natural weapons remain Creature actions. Shared equipment mechanics
 must use the same modular equipment path as Characters; Creature-specific differences must use existing
 typed Feature, effect, grant, modifier, and action primitives. No automated loot transfer is included.
+The strict UUID-backed authored loadout contract, exact SRD source audit, and shared modular derivation
+are **ACCEPTED**. Encounter actor pinning and audited GM replacement remain separate database cases.
 
 The selected optional rules use these fixed product contracts:
 
@@ -335,15 +337,27 @@ The selected optional rules use these fixed product contracts:
 
 ### Deferred implementation gaps
 
-- Speed Factor initiative declarations remain fail-closed in the VTT decision drawer because the
-  public pending-occurrence projection currently exposes only option IDs, while resolution requires
-  exact authored option kinds. Post-MVP work must project sanitized option labels, kinds, and
-  selection contracts from the frozen occurrence rather than infer them from IDs. Other initiative
-  evidence/order decisions remain available. This deferral does not add a Phase 8 acceptance case or
-  change the fixed denominator.
-
 - The thirteen 2014 SRD Creature semantics formerly deferred from Phase 8 are now the fixed Creature
-  portion of Phase 8.1. Until each case is accepted, its unresolved path continues to fail closed.
+  portion of Phase 8.1. All thirteen REVIEW-tier cases are accepted. The final PostgreSQL lifecycle
+  must still exercise a pre-reduced Character and Creature receiving a recurring turn effect so the
+  real transaction path proves the scalar-currentness composition without expanding the mock service
+  harness.
+
+- Automatic derivation of a Dryad's active Shillelagh state and a Duergar's active Enlarge state is
+  deferred. In the MVP Creature stat-block flow, the GM selects the exact normal or enhanced authored
+  action option; each option retains typed attack, damage, Equipment provenance, and critical
+  mechanics. The runtime must not infer the selection from labels. This deferral does not add a Phase
+  8.1 acceptance case or change the fixed denominator.
+
+- Action-originated forced movement that intersects a configured spatial rule effect fails closed
+  until a same-occurrence spatial continuation is implemented. Intermediate third-party token
+  collision and exploration deltas are also deferred.
+
+- Exact per-attack substitution inside a multiattack or Extra Attack action remains deferred. The
+  Phase 8.1 Shove Aside path uses the current System-selected Action allowance and records that
+  consumption; it does not invent an unpersisted attack-count economy or silently grant additional
+  attacks. A later System action-plan contract must model individual attack opportunities before
+  Shove Aside can replace only one attack within a larger action.
 
 - Seven optional-combat definitions remain foundation-only after Phase 8.1: Facing, Climb Onto a
   Bigger Creature, Mark, Hitting Cover, Injuries, Massive Damage, and Morale, plus any definition not named

@@ -139,6 +139,7 @@ export async function discoverEncounterLegendaryActionWindows(input: {
     actorRules: input.actorRules,
     encounterFeatureCapabilities: capabilities,
     lockedCharacters: targets.lockedCharacters,
+    activeEffectsByActorId: targets.activeEffectsByActorId,
     definitions: createReusableDefinitionRepository(input.trx),
     runtime: input.runtime
   })

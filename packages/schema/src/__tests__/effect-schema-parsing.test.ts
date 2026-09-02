@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { effectDtoSchema } from '../effects/effect.js'
+import { hitPointMaximumReductionDtoSchema } from '../effects/hitPointMaximumReduction.js'
 import { spellAuthoredDtoSchema } from '../subjects/spell.js'
 
 type ParsedEffectForAssertions = {
@@ -107,6 +108,28 @@ function exactRollTablePath(
 }
 
 describe('effect schema parsing', () => {
+  it('accepts one UUID-backed maximum hit point reduction source and canonical recovery tag', () => {
+    const valid = {
+      id: '00000000-0000-4000-8000-0000000000f0',
+      effectKind: 'HIT_POINT_MAXIMUM_REDUCTION',
+      amountSource: {
+        kind: 'DAMAGE_TAKEN',
+        damageOutcomeId: '00000000-0000-4000-8000-0000000000f1'
+      },
+      recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM']
+    }
+    expect(hitPointMaximumReductionDtoSchema.safeParse(valid).success).toBe(true)
+    expect(
+      hitPointMaximumReductionDtoSchema.safeParse({ ...valid, recoveryTags: [] }).success
+    ).toBe(false)
+    expect(
+      hitPointMaximumReductionDtoSchema.safeParse({
+        ...valid,
+        amountSource: { kind: 'DAMAGE_TAKEN', damageOutcomeId: 'damage-1' }
+      }).success
+    ).toBe(false)
+  })
+
   it('rejects a cylinder shape without its authored height', () => {
     expect(
       effectDtoSchema.safeParse({
@@ -294,6 +317,79 @@ describe('effect schema parsing', () => {
     expect(parsed.paths[0]).toMatchObject({
       pathCode: 'ON_SAVE_FAIL'
     })
+  })
+
+  it('accepts repeat roll influence only on a target-turn-end repeated follow-up save', () => {
+    const followUpSave = {
+      id: '00000000-0000-4000-8000-0000000000e4',
+      effectKind: 'FOLLOW_UP_SAVE',
+      timing: 'TARGET_TURN_END',
+      repeatRollInfluence: {
+        influence: 'DISADVANTAGE',
+        when: {
+          kind: 'PERCEPTION',
+          observer: 'TARGET',
+          subject: 'SOURCE',
+          requirement: 'SEE'
+        }
+      },
+      savingThrow: {
+        id: '00000000-0000-4000-8000-0000000000e5',
+        dcMethod: 'FIXED_DC',
+        abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
+        baseDc: 13
+      },
+      attempts: { kind: 'ONCE', repeatOnFailure: true },
+      onSuccess: { kind: 'END' },
+      onFailure: { kind: 'CONTINUE' }
+    }
+    const conditionOutcome = {
+      id: '00000000-0000-4000-8000-0000000000e8',
+      effectKind: 'CONDITION',
+      conditionId: '00000000-0000-4000-8000-0000000000e9'
+    }
+    const effect = {
+      id: '00000000-0000-4000-8000-0000000000e6',
+      order: 1,
+      invocation: {
+        triggerCode: 'SAVING_THROW',
+        savingThrow: {
+          id: '00000000-0000-4000-8000-0000000000e7',
+          dcMethod: 'FIXED_DC',
+          abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
+          baseDc: 13
+        },
+        activation: { code: 'ACTION', amount: 1 },
+        range: { id: 'repeat-save-range', rangeKind: 'UNLIMITED' },
+        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
+      },
+      paths: [
+        fixedPath(
+          'repeat-save-path',
+          1,
+          'ON_SAVE_FAIL',
+          sequenceResultBlock('repeat-save-result', [conditionOutcome, followUpSave])
+        )
+      ]
+    }
+
+    expect(effectDtoSchema.safeParse(effect).success).toBe(true)
+    expect(
+      effectDtoSchema.safeParse({
+        ...effect,
+        paths: [
+          fixedPath(
+            'repeat-save-path',
+            1,
+            'ON_SAVE_FAIL',
+            sequenceResultBlock('repeat-save-result', [
+              conditionOutcome,
+              { ...followUpSave, timing: 'TARGET_TURN_START' }
+            ])
+          )
+        ]
+      }).success
+    ).toBe(false)
   })
 
   it('parses passive effects with saving throw invocations', () => {

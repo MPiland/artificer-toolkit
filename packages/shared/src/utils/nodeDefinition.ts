@@ -1218,7 +1218,14 @@ export type NodeDataSource = {
   preserveUnknownOptions?: boolean
 }
 
-export type NodeSelectSource = NodeInlineSource | NodeDataSource
+export type NodeLocalCollectionSource = {
+  kind: 'LOCAL_COLLECTION'
+  rootCollectionPath: ShallowPath
+  valuePath: ShallowPath
+  labelPath: ShallowPath
+}
+
+export type NodeSelectSource = NodeInlineSource | NodeDataSource | NodeLocalCollectionSource
 
 /* ──────────────────────────────────────────────────────────────
  * Node specs (nodeId is record key; node value has path)

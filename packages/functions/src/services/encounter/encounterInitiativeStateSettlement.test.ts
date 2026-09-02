@@ -240,6 +240,26 @@ describe('settleEncounterInitiativeRound', () => {
 })
 
 describe('Encounter initiative turn advancement', () => {
+  it('advances actor-roll initiative without side-state writes', async () => {
+    const current = activeState({ procedure: 'ACTOR_ROLL', activeActorId: actorC })
+    const plan = planEncounterInitiativeAdvance({ state: current, currentActorId: actorC })
+    const repo = repository('ACTOR_ROLL')
+    const advanced = await applyEncounterInitiativeAdvance({
+      repository: repo,
+      state: current,
+      plan
+    })
+
+    expect(advanced.participants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ actorId: actorC, status: 'ACTED' }),
+        expect.objectContaining({ actorId: actorA, status: 'ACTIVE' })
+      ])
+    )
+    expect(advanced.sides).toEqual([])
+    expect(repo.updateInitiativeSide).not.toHaveBeenCalled()
+  })
+
   it('seals and applies the exact next participant and side transition', async () => {
     const current = activeState({ procedure: 'SIDE_ROLL', activeActorId: actorC })
     const plan = planEncounterInitiativeAdvance({ state: current, currentActorId: actorC })

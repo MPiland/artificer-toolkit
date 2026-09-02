@@ -35,6 +35,13 @@ export function getCharacterSheet(id: string, client: Api = api) {
   })
 }
 
+export function getCharacterSheetActions(id: string, client: Api = api) {
+  return queryOptions({
+    queryKey: queryKeys.characters.actions(id),
+    queryFn: async () => await client.characters.actions(id)
+  })
+}
+
 export function getCharacterPreparationOptions(id: string, client: Api = api) {
   return queryOptions({
     queryKey: queryKeys.characters.preparationOptions(id),

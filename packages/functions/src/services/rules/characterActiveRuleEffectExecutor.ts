@@ -28,8 +28,8 @@ export type CharacterActiveRuleEffectLifecycleProposal =
       activeEffectId: string
       expectedVersion: number
       proposedAfterVersion: number
-      beforeRemainingTicks: number
-      afterRemainingTicks: number
+      beforeRemainingTicks: number | null
+      afterRemainingTicks: number | null
       beforeLifecycleChecksum: string
       afterLifecycle: ActiveRuleEffectLifecycleDto
       afterLifecycleChecksum: string
@@ -38,8 +38,8 @@ export type CharacterActiveRuleEffectLifecycleProposal =
       kind: 'EXPIRE'
       activeEffectId: string
       expectedVersion: number
-      beforeRemainingTicks: number
-      afterRemainingTicks: 0
+      beforeRemainingTicks: number | null
+      afterRemainingTicks: 0 | null
       beforeLifecycleChecksum: string
     }
 
@@ -63,23 +63,28 @@ function requireStage(value: string): ActiveEffectStage {
   return value
 }
 
-function requireFirstTracerContract(input: CharacterActiveRuleEffectExecutionInput): number {
+function requireFirstTracerContract(input: CharacterActiveRuleEffectExecutionInput): number | null {
   const stage = requireStage(input.stage)
   const { recurrence } = input.definition
   if (
     recurrence.recurrenceStage !== stage ||
     recurrence.consumeOnFirstEvent !== null ||
     recurrence.endOnEvents.length !== 0 ||
-    recurrence.expiration.kind !== 'TICKS' ||
-    recurrence.expiration.decrementStage !== stage ||
-    input.lifecycle.remainingTicks === null ||
-    input.lifecycle.remainingTicks < 1
+    (recurrence.expiration.kind === 'TICKS' &&
+      (recurrence.expiration.decrementStage !== stage ||
+        input.lifecycle.remainingTicks === null ||
+        input.lifecycle.remainingTicks < 1)) ||
+    (recurrence.expiration.kind === 'INDEFINITE' && input.lifecycle.remainingTicks !== null)
   ) {
     throw new CharacterActiveRuleEffectExecutionError(
       'Active-effect lifecycle is not supported by the fixed recurring-effect executor.'
     )
   }
-  if (input.lifecycle.remainingTicks > 1 && !Number.isSafeInteger(input.activeEffectVersion + 1)) {
+  if (
+    input.lifecycle.remainingTicks !== null &&
+    input.lifecycle.remainingTicks > 1 &&
+    !Number.isSafeInteger(input.activeEffectVersion + 1)
+  ) {
     throw new CharacterActiveRuleEffectExecutionError(
       'Active-effect version cannot advance beyond the supported safe integer range.'
     )
@@ -89,8 +94,36 @@ function requireFirstTracerContract(input: CharacterActiveRuleEffectExecutionInp
 
 function lifecycleProposal(
   input: CharacterActiveRuleEffectExecutionInput,
-  beforeRemainingTicks: number
+  beforeRemainingTicks: number | null,
+  terminal: boolean
 ): CharacterActiveRuleEffectLifecycleProposal {
+  if (terminal) {
+    return {
+      kind: 'EXPIRE',
+      activeEffectId: input.activeEffectId,
+      expectedVersion: input.activeEffectVersion,
+      beforeRemainingTicks,
+      afterRemainingTicks: beforeRemainingTicks === null ? null : 0,
+      beforeLifecycleChecksum: input.lifecycleChecksum
+    }
+  }
+  if (beforeRemainingTicks === null) {
+    const afterLifecycle = activeRuleEffectLifecycleDtoSchema.parse({
+      schemaVersion: 1,
+      remainingTicks: null
+    })
+    return {
+      kind: 'UPDATE',
+      activeEffectId: input.activeEffectId,
+      expectedVersion: input.activeEffectVersion,
+      proposedAfterVersion: input.activeEffectVersion + 1,
+      beforeRemainingTicks: null,
+      afterRemainingTicks: null,
+      beforeLifecycleChecksum: input.lifecycleChecksum,
+      afterLifecycle,
+      afterLifecycleChecksum: checksumRuleDocument(afterLifecycle)
+    }
+  }
   if (beforeRemainingTicks === 1) {
     return {
       kind: 'EXPIRE',
@@ -121,9 +154,9 @@ function lifecycleProposal(
 function withLifecycle(
   input: CharacterActiveRuleEffectExecutionInput,
   result: TargetBoundActiveRuleEffectExecutionResult,
-  beforeRemainingTicks: number
+  beforeRemainingTicks: number | null
 ): CharacterActiveRuleEffectExecutionResult {
-  return { ...result, lifecycle: lifecycleProposal(input, beforeRemainingTicks) }
+  return { ...result, lifecycle: lifecycleProposal(input, beforeRemainingTicks, result.terminal) }
 }
 
 /** Reconstructs a completed turn-boundary effect without calling the runtime. */

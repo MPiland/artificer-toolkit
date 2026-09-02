@@ -530,7 +530,7 @@
           "sha256": "47c22959ea12be2386dd0dd85c9e5e894680325fbf68bdfaf2d97c2bd1745a29"
         }
       ],
-      "authoredSha256": "03457306e42d11a699f4ecf3e47dfe8ca8ec44068d8277dcede2447ecbe76cdf",
+      "authoredSha256": "0342adeee61c1dee2ff56d859e372f40202ee3543185379deac3a0f8e8528438",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -972,7 +972,7 @@
           "sha256": "9f2f2038321038d55925432b64da1c9c1bd6afd155c318d1250e1ad5fba087ea"
         }
       ],
-      "authoredSha256": "3e3add469cf921c78e1ca2257024b2dcb243fca8dafe573bb0bd28fda5667495",
+      "authoredSha256": "103f2a48b0954385e9e132fb634576618d28cc66fcf873c3aa7150f6d1b74b44",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -989,7 +989,7 @@
           "sha256": "17023b1453391f1a21a1ddc4846e7748805eb499dc31b845363d3bebd628b642"
         }
       ],
-      "authoredSha256": "ff21520be9155fe25f731433fb71c119bca87e1e550cdf07dc804b231716a0af",
+      "authoredSha256": "2860ab4c9f3578c722c95f627f5dcfa9f65bbb7ca3f1ec07754076373c125586",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1057,7 +1057,7 @@
           "sha256": "2de366873b15117047e09faf08d2ee9e373382f3838a1c60d4d0d473c61f0cba"
         }
       ],
-      "authoredSha256": "2e8cf3a0f62228636aad7c6e423ed755a25213aecc61ec38f63adace441eeedc",
+      "authoredSha256": "720fb084406c39172f4e299114817e5adb624735f1a01bb1049a3254fa94674d",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1108,7 +1108,7 @@
           "sha256": "01906fe694c333492707a66375fae8d0dc4066be0e4a740473ef2eb7446d3bd5"
         }
       ],
-      "authoredSha256": "fc610a902ee2daf0c9939fa168ffd222b61edffea99b7f383b4b4a53c245228c",
+      "authoredSha256": "71d26c4054bb18610130173de69f56e31c0d1a1e8a3a8e295df0ac9454d5c3d1",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1125,7 +1125,7 @@
           "sha256": "711e1a4bd9a633e7eca2cfa908e8f8c5794aeda7d199698b2740488a6cfbb93f"
         }
       ],
-      "authoredSha256": "c8d1edc1e74514896e9d37eb7d6218fa4c2aa4782bb7333a15924d32262e8f91",
+      "authoredSha256": "97e04cf80e5f7c68baf108a0382eec3b8cb2b4baf9827cb9449d33b7f803a1a8",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1142,7 +1142,7 @@
           "sha256": "a7bed1220de73d98be9dbe7ce9a988170dcc949fb33416c86bbc4387bbb7f98c"
         }
       ],
-      "authoredSha256": "721b5331955594541318701b97b38e9bd0f10ea0cf5eb74fa99a1e531c43f389",
+      "authoredSha256": "6f8298a68475dae69d7d747d028deec04937f89a29b2f71cf0556a9aba8c295f",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1210,7 +1210,7 @@
           "sha256": "834756e9351bd099ef13345a62bae3bf476686ec758defb6d6636f4f564bc2cf"
         }
       ],
-      "authoredSha256": "3f11abd0635da9c68a58df9afb3ac1ec3a0919c39055fd74324de50d1038ca88",
+      "authoredSha256": "75de32f4ea6c65e9bb675b40df3bcba5757cb2387a997141d58a19487617407c",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1249,7 +1249,7 @@
           "sha256": "c01a09c8b124caf07bc07177477b8e57d64634d23c53e2221e9432c877b4d013"
         }
       ],
-      "authoredSha256": "e3374a89a5488366b8eb0b36182d7d4265a2020fa94e23cb780a2707e7203d2d",
+      "authoredSha256": "b9ddd046e124c011bc0e3f9d484cb0797623ebb5428c1d2ba1f9de3f8201dfaf",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1453,7 +1453,7 @@
           "sha256": "3fa346d2e1aee137b477db63bb948d8b9df28f002e8a85489f9df08a27316f36"
         }
       ],
-      "authoredSha256": "0c0a6a8f908be13952f4272450bf76085223e1f5c1fa61f0a0b8b6a045d681c9",
+      "authoredSha256": "67e919ebce743d3ff703efaa5147604763c099ba0432c8620a2f590b41d5fc6c",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1526,7 +1526,7 @@
           "sha256": "387b56d3a90e06952775691b5cba4a972c8501b360fad547528a34234b6f94fb"
         }
       ],
-      "authoredSha256": "787222d9138beaf779d584791b4f1e37d70544e47f8cc2eca07331ec2e954ba4",
+      "authoredSha256": "a0c652a2302deb800a51dee3418c9239f8eaa4464e09441110096857490e40e5",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1594,7 +1594,7 @@
           "sha256": "7d432dfe80484d72023ec6e2d1c36290580500fc191e21ed2c33a2c4482e3b25"
         }
       ],
-      "authoredSha256": "533e3e2115638cfded5b2c9796e362b9fbcaf21b9e03e100ff2c4ab55ffb45ab",
+      "authoredSha256": "e987221b12ede43225fdcf74dfe1f3ec160e2081202006789385c93459dd1f2d",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1611,7 +1611,7 @@
           "sha256": "dae69eacf69ac4792242efa425a5ed1695e67d21818c3ea5dc2173cfb70dcee1"
         }
       ],
-      "authoredSha256": "bfb8c21b6e9a7db8e356a35eb173de5263b0b051e20aa0e8b170239435596e21",
+      "authoredSha256": "2922c8015beb0cdf3a1fed4f1b125fc7b2543302c4e850196e6b06189fad62ce",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1628,7 +1628,7 @@
           "sha256": "934aca1ee388b7d11eecb348a3abdce1d1670a7cb58e13ed50157442c6ba5db5"
         }
       ],
-      "authoredSha256": "59e6887df4270cb214231fb2d238efeea64e1734edc35746a0268a4359c5e552",
+      "authoredSha256": "0636b4e174090975e7146d4f11c709c36c3c8e1221f1a1970c63c8e96500e249",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1662,7 +1662,7 @@
           "sha256": "d198ae9274486eb2125d9a38137a6c7a3da06f1e943989aae2ec1c240354f610"
         }
       ],
-      "authoredSha256": "260b08e8840306aeecf2cffb5fa349c8c033c5653f7ee95588c917bea9b6604d",
+      "authoredSha256": "8a6093238cc94389adae0fafcca3f7751c1ff4142764aa795b15575d23a414f5",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1764,7 +1764,7 @@
           "sha256": "46f4285fb569bc9fe96e02def94ef5503529c584aa1c637014fa8157d469b121"
         }
       ],
-      "authoredSha256": "435d8f8a8b3921aa1e0814891a7108e9df10e97cb6446e1438e4d1bcdfd63e91",
+      "authoredSha256": "6f0fe3cd174d06160776d23fc57f22469fcf7c800ffaa90eb0c47167369e1f6e",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1781,7 +1781,7 @@
           "sha256": "26c4765849fa06768a7588853f04e56a980a1160d7264891b8ebca005bdcbc17"
         }
       ],
-      "authoredSha256": "4b5f6a8f1e5530a3f8e7d7edf2c83a733818a4ec417d80ffe542dc0f2ed7f6ec",
+      "authoredSha256": "8891e95fc9e154f166f194400c5b4a8a3f61de62783b931a540a3625025ebb17",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1832,7 +1832,7 @@
           "sha256": "b5e3c8befe1726064fc2742bae93d8c5a96c50bef8c09ca896c798007af5662a"
         }
       ],
-      "authoredSha256": "11d1dcd8438a93e96ab221c3d6f8154b9e0574095a54e7b4bb98297cdc43437e",
+      "authoredSha256": "dd0611381c9d8e5358d30212b3fc4a5c044267cccffdd6e1460587e183dba2e7",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1866,7 +1866,7 @@
           "sha256": "fbf93e747197f3e4d491cc956a53aee71d57c03ce769c47116c8c706b22c8658"
         }
       ],
-      "authoredSha256": "1290c03062898f80489673ba725880a502adfb4b0499a7d41d677640b4b58663",
+      "authoredSha256": "f622f34425ef255c6a2cebb3231eb26b21eed28380fda28ac45f9e410b88adfe",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1900,7 +1900,7 @@
           "sha256": "ff6d61280fa609a2fd14cb3f454009303be5dce9edd243e69ae894521b1e853f"
         }
       ],
-      "authoredSha256": "cf915253a03cebbbba476298a4ca1cdb3e233b59c333d34a021da3967e78260b",
+      "authoredSha256": "11fc64222adb0c17c96a7d36be4d077a3114ed8b7d3a7500f07a8392401d22cf",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -1985,7 +1985,7 @@
           "sha256": "addb2b84e686e92af80ca214fc2c0a2b8097b2b7e708d0f33bd135aeb191efdb"
         }
       ],
-      "authoredSha256": "dde55eefcee842c320e81d621e03119c5e953430056ee3ce5212600af919b353",
+      "authoredSha256": "6910b5aa5da6a7682d8843025522f0b44b6d02991a1982d7ccb410099f1b8867",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -2002,7 +2002,7 @@
           "sha256": "52c2866c8c6312d7d44b982bb5fbfe7f0c6ac86cdb530001e11382c3e13d8f63"
         }
       ],
-      "authoredSha256": "308c5894c34dbb7912801fada3bda5db6a3c6592e5f2b42983785f3dd85bb460",
+      "authoredSha256": "0e88c037ff0274aa754f3592bb1c3147424d52b5aa72f3e11df639a1eb796f89",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -2019,7 +2019,7 @@
           "sha256": "4ea2c238fe9563e2cc3a7afa96533b212ae0f76cc1b5101601a9b294fd5f4791"
         }
       ],
-      "authoredSha256": "d44c98171e36de0df4f353ab4477eb1915e0c746ca5ed4cac77cb6223baac6be",
+      "authoredSha256": "a5f04482f106accfbccf4a9b4a263e2cc1541541d918af14d04f81f1b313e257",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -2036,7 +2036,7 @@
           "sha256": "249a9ab401b126566ce69e6f44e1d7c5d14def1a9f061b49d64de5769d6e9510"
         }
       ],
-      "authoredSha256": "830072b39a97127bcb3c84aa7917c9f6c590e26428543e2bfd5374420441fb13",
+      "authoredSha256": "a0dd8c03a90cbe9eca07286bbc21c7f368862717b260873a33608b079150b4df",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -2053,7 +2053,7 @@
           "sha256": "50e6b04f19b38af2796708c730aa37bfd74ac926207d1293db602ae4dd166f96"
         }
       ],
-      "authoredSha256": "109807a1f7b21cfec61624d93f1bebe88c6034418f6b52578b5ac6323e37fe55",
+      "authoredSha256": "78437f9488532b61eaa47ae2807034066479c3afa1e1b65f3edb5dd7facc443e",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -2121,7 +2121,7 @@
           "sha256": "9f215ef82a247512aa9508828a976255f6c4e17ed6887ad15bfe6e0b1477cf83"
         }
       ],
-      "authoredSha256": "48cb509be5f348cbeaf261fc96fd167eb57ee344966b5f6000177eabeaed47fe",
+      "authoredSha256": "15cde9acf3b370d580af14e568bedf7de6643c620de35874c0cd261c0e369d45",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -2172,7 +2172,7 @@
           "sha256": "3d5d2ee8f1762a03cf7c1873217659a3d9efc337e0a158dede5b17dc961a93a7"
         }
       ],
-      "authoredSha256": "b5a4726df17840b05e499a5c08ce0703a0325fc33dc0b7c37ba0888e1cbd2a92",
+      "authoredSha256": "38aa5102b1a95491b03179bbc90b09e33160003f3923bc75a09a2a7d70e35673",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -2206,7 +2206,7 @@
           "sha256": "0f06332308560bc851a438c7ad0d31472bdcc1669f3f3e0aa19d02f44f8938a6"
         }
       ],
-      "authoredSha256": "9fe68b75b6c10c4611ed495c0f285b1eb2745f74522ae0cdaec2a553973b0ed8",
+      "authoredSha256": "a2078372fd0b96c6480857663dd256fd5a466ebf5c4a4c8d6ce143aa32312c50",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -2240,7 +2240,7 @@
           "sha256": "cafa94b526a4ea4dc72982a859c3830d931905fcc7e125e0cd1e61d12666576d"
         }
       ],
-      "authoredSha256": "6a67aa30b07b96b5218447f76fbc6ca42d0b9e40012e2882095eb9a7896198c9",
+      "authoredSha256": "26f2e2faf437056fdd4992a542dd7a3d83cd23a7b206dbd9a6f6beed5a07fba8",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -2988,7 +2988,7 @@
           "sha256": "d944e116f1a73e86a2d8ff333c6449a76045173b52949bedd2594ad8e681ce58"
         }
       ],
-      "authoredSha256": "b9aa15a99a33ca9d02145782e5ce56f0aeb9050fa0bac272231efac8177822c1",
+      "authoredSha256": "f8be54c45ff4da8b5a62cc5f3cf4497a70c4877b0be5501d6c8b9be9d3986e82",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3124,7 +3124,7 @@
           "sha256": "2e4d51d3b8b661f8f08fd0af2358f7aedbc6d5540714a5430c89470d35e90fe1"
         }
       ],
-      "authoredSha256": "617f479470f073aeb382be47b7a5f124f1c160d77b091cf67243abf1884564ac",
+      "authoredSha256": "c2c3de611cd6b72eaabe88e54577986e5e8850beb7fefd88e7004a0989c7a9be",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3141,7 +3141,7 @@
           "sha256": "99d9c28491b5b0700ba667c4e75fe39109f0d505e4b9385f735fada721a37bfe"
         }
       ],
-      "authoredSha256": "f6836d185ffd9191d5ca4d706de36a864b74e80468a2c168c4f76637ea79788f",
+      "authoredSha256": "20cb20d90cade57ae09df9cbecd018b5b835dae0116cb8d9424860a2e78a62cc",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3192,7 +3192,7 @@
           "sha256": "f7199fc35b2f2c505a7104833dc448ed7d11f929830bd0a056d523cac0d39bdd"
         }
       ],
-      "authoredSha256": "f57534b15683f96a01748e1e52a3b7fbfb42b3278643d516da44f1df48d3b160",
+      "authoredSha256": "eaa1190b686ffb5cf380a64b987e9000c6ad1a831e9191fa288e8acba286e606",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3282,7 +3282,7 @@
           "sha256": "6b2bf1877745e66bc8a09d0e9857a87c995ee21422643837c3ad2cd19c58b324"
         }
       ],
-      "authoredSha256": "24addd8de4f2bd036b9d68ee1ac6e155c7a780e798bfa16d0ca7be884823c4e0",
+      "authoredSha256": "3730d15eae414d5a0116c404f61310629580cc845581a49f45ed309ed1356d42",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3316,7 +3316,7 @@
           "sha256": "ac26888bdd743bb9aca512ddcdf5605e322cfeebc876bf41bf1ac6f8af422a22"
         }
       ],
-      "authoredSha256": "cbf23ced086a68162a16257a405f3acb367e818bc88224f531d6c7ea193ca18a",
+      "authoredSha256": "2f0f10b1026cb44cf171496b79725db65b25237fcd6f4bdb737de2bab9434e0e",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3486,7 +3486,7 @@
           "sha256": "26b0dbbb61266195e7f1e3ac4cef3190326919c830037875ed70cf1f4a33b1ee"
         }
       ],
-      "authoredSha256": "9d6eceb2161841e8f9b1c8c327db9862f897b04c96a2fe624269c4419ffc4af1",
+      "authoredSha256": "362c2c3d22c744c41b4018586fbdee5335ef0fd55b93e88a15591c1ad27370b2",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3537,7 +3537,7 @@
           "sha256": "445e97a989ac4b04c50d843839a4f3546371942932c3631b7b94186b22b42451"
         }
       ],
-      "authoredSha256": "b37972f8a8f227d713f26552283496acf650d30c95fe9875a98e113ba9a63878",
+      "authoredSha256": "35ed871fe6ec3bf96262a7b2721d7c13b7ef7ea30176cd625886148fd38b6556",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3554,7 +3554,7 @@
           "sha256": "815826ccce3247a323355ad32c38dc7626fb7dff2ef8ca4dabe6226df8497150"
         }
       ],
-      "authoredSha256": "f25dbf7d10390b50ec8fbbdfe6c5103d0e1fee1a499d99e6f6e7264e20c1ee3f",
+      "authoredSha256": "c8bcad28bd0403102a806cdb414a323184871aeaa5402d724058d56da8e6a750",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3571,7 +3571,7 @@
           "sha256": "8947b33a6d1f30f5076382cc991e037969c9b1d0a32f8f77c7a862ea2130d5b0"
         }
       ],
-      "authoredSha256": "de23252d8c52d932af54bd477c5279ae417c5625ca2ca9fff96c0dd5ccd2d12a",
+      "authoredSha256": "5b33129e107a15ad4c97c2395a5fbaa81d6c3c54929c9956e423187b2945f64c",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3588,7 +3588,7 @@
           "sha256": "6d0bbe253887273cd21ff329a3bc7dfbcc1e0d5f2a629e055b0c5d78890db565"
         }
       ],
-      "authoredSha256": "0effacdae97e1a32be67290048d0395eb52d9b8939b1b0682f96589a42f89e8e",
+      "authoredSha256": "3d28c89df6197e52a4792ad77b0f6175cddabcea6cec420dc430cd0ba596b6fa",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3673,7 +3673,7 @@
           "sha256": "57b6a450b8ca4e1eb64584d3c4d117f043acba61d191b4ebc57aaaa45d194386"
         }
       ],
-      "authoredSha256": "33e67b51f2907da148ac8f03ac75c84a9afdad09521c104cc9b10b4f28186d91",
+      "authoredSha256": "e97a66153b25a7a31f410be015900cb48aba8e7eab153e1debf37963fea26ffd",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3690,7 +3690,7 @@
           "sha256": "e4b40ced3576978d6e8115a7a58df5cc241218d09175337f30d6e9b4a84ca557"
         }
       ],
-      "authoredSha256": "fdd07e82cc5752d4795935f4dbfd1562cc3db0a9344452dd3ff05316467f2036",
+      "authoredSha256": "bc30d83672d448fa939f0e775c1fd1dd7b3ffef046b39b571d8767175b4ba7c1",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3775,7 +3775,7 @@
           "sha256": "2ab118dcea2c5430ce8350b051f6e89722a46c64d50d371a05dad31f77f58fdb"
         }
       ],
-      "authoredSha256": "7e204b3c486ec92a4fcb33205fb89728642fbd1111f6fb364f70e4fcd9cc51ec",
+      "authoredSha256": "a9c5ccca05259c9c7a8eefe5972ff746c0a666c625bf670fc38998733998bfd3",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3809,7 +3809,7 @@
           "sha256": "cc3610854ddb91c22861f8d746861a77c0140fc0211cbedfb8eb2bff3669cbcc"
         }
       ],
-      "authoredSha256": "89a010c1505e42a3d25f7a90aa71614d06dd5ff876e71354709c7f9090136000",
+      "authoredSha256": "07651502f1b73bfcec0c2cc76e0ff790cd8ad07dc85149700a80b0e9f4dccb4a",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3826,7 +3826,7 @@
           "sha256": "9934f7bd177ce3e678fa11b1a88e15443c899fe983c43677baa991a297d24c55"
         }
       ],
-      "authoredSha256": "4644a93c6791a8715692b723a82c816ef1313b1ee21c2085da6614b337cb63a7",
+      "authoredSha256": "e3bd9d7bc6d5a0f29d7ac14a7a339a8d35dddef4cdb357640469d4e1da89d59e",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3887,7 +3887,7 @@
           "sha256": "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0"
         }
       ],
-      "authoredSha256": "cc32a43ac5a466a2f2380c44a9728c4e211e56ba7b5c9d03b87470eb283ee4a4",
+      "authoredSha256": "8d7eca13923c82f3a080bed7223fbd03a6f23aa9b17a6e9ad721481641af442f",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -3904,7 +3904,7 @@
           "sha256": "2203aced7148d0bd7424162be916c07ab99215c01149056b96ca14d1a832cf23"
         }
       ],
-      "authoredSha256": "dd359f350a1b4abe9737b15c61de4da9f48d46c9c4f9f2463570164c310f92a3",
+      "authoredSha256": "83f9b83bd8c9f5a752e955bc33941a597d1cad46f63fdcce68c5225bcf1bc13a",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4023,7 +4023,7 @@
           "sha256": "c72bfc1a0243009779f709f20ff73acc5af0aa3563abdd388b5d3ce196ed8c2a"
         }
       ],
-      "authoredSha256": "5f806cea13923a5d0071a95c77b014d312985f291383be5fb28dd971da7aaf1d",
+      "authoredSha256": "3ca8ec35ac9eb9568c58ae8d27e427898c908515647464c1869e9c7e43f6c6b2",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4074,7 +4074,7 @@
           "sha256": "263777b609bc41d5b6e3df3cb8e8707c4a270729d81a5dfecd687d95dd5ec747"
         }
       ],
-      "authoredSha256": "b5c6641ce6027a186592057155416d86ed24a3dd75c57c59438eca94c31d12c3",
+      "authoredSha256": "d1ace0949dbd8a6b5cdf2a55dbb863185fa0c52ffe340ff7e2d3e589866979ff",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4091,7 +4091,7 @@
           "sha256": "cc978e6a9b776aed71d55aa6bd3da88e2bfa83edec866e60dbedefee435f9698"
         }
       ],
-      "authoredSha256": "b279ee9c6f135b67f6d564d7328edf3ba024a7994cb795ab42f58185d18e5c9d",
+      "authoredSha256": "500714b07754feaedcbe99968f61edc99d379cfddb74a082e5b710b168f6ce50",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4125,7 +4125,7 @@
           "sha256": "88de293557af7b522821972e9734fb84cd475b8a0e1f61209aa16d67fca5e1f9"
         }
       ],
-      "authoredSha256": "bd64ff3a0c9760ea96a12853fff0bddec6c78d06b75435674c559b3123015c29",
+      "authoredSha256": "6799fe181cc16a8b63301e3b4a24a102ec73791dd385c396b7fe498b5d27754d",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4244,7 +4244,7 @@
           "sha256": "7ef4c74acc3416eca45847ce371eed93af4e314a659bb6d8ab1504ff960575c7"
         }
       ],
-      "authoredSha256": "71c94a7b7988d22e2160819bf9276b5118171f0b58dfa67e0934241c5dbef6e2",
+      "authoredSha256": "b6ad41281764d414f08052da9d5469ba3147bf39efdb5860af4966fa32573e0f",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4261,7 +4261,7 @@
           "sha256": "93d8c29964ec43142b4812c27978a0b5f5365ee37e2b2dacf7fa26a4352aa0fc"
         }
       ],
-      "authoredSha256": "6da410697bb3d35d555de5155faf902f56a371bccdb267c7f33ac8fc59ce14c6",
+      "authoredSha256": "6811ae419d596b77d9187cf18628490e198c78907e05d507da0dac3fc30b6d6f",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4346,7 +4346,7 @@
           "sha256": "3334ba2c1b4d46976cc8073c8fe17f30b131bfc8825f3e815d6e4edef1e0ef4c"
         }
       ],
-      "authoredSha256": "b6c63c73b87a601f8cdcfce4ec37de7b524a9add16ff685b38150538ac4d4e10",
+      "authoredSha256": "1975354576502965c60c6e372ae2a97d180c71a7f6c4d67407319d9a698b3193",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4380,7 +4380,7 @@
           "sha256": "2c756d41c4fc5ad173a3797912175ea10c9897c6970b2a59248842f4c32a6ce2"
         }
       ],
-      "authoredSha256": "c5251553e9a2846ba34c91e210ead4607bb33b4068d37a1027c998fa91e41f8c",
+      "authoredSha256": "5658c236bae4ec6208e0f6a453457212353b364722394ef0bbcfd2e2880f8b99",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4397,7 +4397,7 @@
           "sha256": "af06f0a739cba8da280e0bbbcf13cfba3e564610dacc0c774c5577870abe2dd5"
         }
       ],
-      "authoredSha256": "4b147676227979f5ec3054037a6e855242f4e45fadf5a13f5261a44b8847333c",
+      "authoredSha256": "f8b7e6a5643a869b6a5fca2fa150899720a71ff80dcec4c1c413404dc07e863a",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4601,7 +4601,7 @@
           "sha256": "65d53861e68b65477251ce16455f60cdc072033c5f0ad19d3652d786d8518505"
         }
       ],
-      "authoredSha256": "8db23412e62807f544671a4af578e35c269068bdabbb382f7159521362e897ae",
+      "authoredSha256": "72366ec8fd262ecbc11437992df224fbc3cfb2680a2f32d8e9d3fb8114b0d5e8",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4652,7 +4652,7 @@
           "sha256": "47190cf84584fd3158a84ff590869852747852ed570ab6f9b96850226a0ae588"
         }
       ],
-      "authoredSha256": "f16c2e71a0853c3351a7eb785d6a7ea0657d576334fb2a75a3fff1ffbbf52dd7",
+      "authoredSha256": "8be66ab3d24afada93e818d43ffc598969e1165399cfdbf74b1a4d70c258ad8a",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4686,7 +4686,7 @@
           "sha256": "f9ba689e73a8dbb6b5ab3c04d164a8c349d87e824a63ccd3350e0e3b1414a592"
         }
       ],
-      "authoredSha256": "a0a1d8cd69aa8f5fb3e7d33dab0eb01557d1e047b3853852ba585b9e274ca499",
+      "authoredSha256": "04db861673042110129e274c84e270e4695ec0cb3e373514fddcc0ba9ef107a9",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4720,7 +4720,7 @@
           "sha256": "f813cc1c06b88f7cbc84d8a91865e84c1b2f31235965c0f3f4081a89625f17f1"
         }
       ],
-      "authoredSha256": "4c8c1342b13db4521e925ac7dcc5f7b400e1967c1d0158edbc148efe31ef37ef",
+      "authoredSha256": "00111dd5d5a667515f07fc7dc6813c9d3214c350ffe3609dbfe76e5073b13420",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4776,7 +4776,7 @@
           "sha256": "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0"
         }
       ],
-      "authoredSha256": "ffc133c9ad0ee8036d010b92a7a29dc0716979b45c7dfb58b25caff863f09745",
+      "authoredSha256": "3d61a76713f82606b9811c43cf1a007b8e28a0952da00cdd936dc7358608aad5",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4866,7 +4866,7 @@
           "sha256": "e247a884cd0311cd4f21201a30faaadda93d7dba2b82aaaca54650489536d8af"
         }
       ],
-      "authoredSha256": "b52e3f28b3b59d7b570d202dd92741c99391dc53cf1bd17db6b2c9332f932821",
+      "authoredSha256": "e2804c406f2d091c6a804c6fb25186c8aa4be975c1e4723a1a3ddae05c4c64c7",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4883,7 +4883,7 @@
           "sha256": "cf5af279c36c909382d0aa6786fdec83e853432ef068370d09bfdaf1f1569fd4"
         }
       ],
-      "authoredSha256": "82c94591fed5775c2580a49238ae83aea268137bcc543a07408e7d905b124aa5",
+      "authoredSha256": "7eef8e02dbdf08b5c3c02e503b1fd531ec4640c9c174a0269bc82311ecb209cf",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
       "manualExceptionIds": ["00000000-0002-00ce-0070-010000000000"]
@@ -4934,7 +4934,7 @@
           "sha256": "43d59453ec3d364212138afe964810d95b45749280091030d9c20957fa11375e"
         }
       ],
-      "authoredSha256": "1f9791f40b5f2cd80db1cd481efcc13df81f84ac7872ec0e1226998c6eefa181",
+      "authoredSha256": "bcaa8c5092309471eaebb37dea0447b961082786590aca3403918fefa0dcd53d",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -4951,7 +4951,7 @@
           "sha256": "26d849b1706f976b6fbd30119202023b7ece77867bd8adf8e759f81a863405e6"
         }
       ],
-      "authoredSha256": "46f49b0c8301117fdbeed79b70987185055ac111c1f8cf61042f866a66976336",
+      "authoredSha256": "9c59c6676a8134e2c1b05a3a3711298cdf4921744b1e4bb71495c1a31bad6a8b",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
       "manualExceptionIds": [
@@ -4971,7 +4971,7 @@
           "sha256": "c66cd6b30f311c6c0f98f55e43b63a475c72bafc863e16f59e5668c5505173ac"
         }
       ],
-      "authoredSha256": "4ed82b4a80756e1748157aa7a4d0021b2b530000062ea14b65b4c1d007b22bde",
+      "authoredSha256": "89c0a97ad62d6262dad4102450c1ad5828f6b9a32f02e0e7ffd3e261f383120a",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -5022,7 +5022,7 @@
           "sha256": "aacd00575daf9545b6264d6dced5332982b5de0ebe7bdb3dc24fe381a6927808"
         }
       ],
-      "authoredSha256": "702c1a2603186a4821579d917b0a04e01326c58146c7d73664dd650854975c40",
+      "authoredSha256": "9f67c943e2a106ffb1c1631042f621774a8324ab4831b5c849e81c6d45f717a1",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -5056,7 +5056,7 @@
           "sha256": "94b28db9224addd614f88c23d0996ba0ec13fc2e879df5a27f9ea86e0936914f"
         }
       ],
-      "authoredSha256": "f1291dc908a7d41813aa72c7d7de2be0d0ce51a4ee7b66f08e933fd4fde6e267",
+      "authoredSha256": "35276dcda8b70dafa343645847d19a58dfb2f482f1f2d2d530047676ec06c709",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -5158,7 +5158,7 @@
           "sha256": "cf71111dbf8f8e6180451ce8e036edfd275e4aa1283c0d276c0a41bdeaec430f"
         }
       ],
-      "authoredSha256": "34c94fd271b69fc216ddcc6dbd64bb8817bf5d5ec14ec40dd18d15d110970ef9",
+      "authoredSha256": "e43a98c3491c619904063dd255e83d430ba0ce34e069721e14d31c09eca04dda",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -5277,7 +5277,7 @@
           "sha256": "e3725f49a934f256ea8f8cec678b7f578d67aabb5c4ea70996dec1824400678d"
         }
       ],
-      "authoredSha256": "6eabfde005efbf8daf4c4525f296537acb97f4aa9ef9f40b51e6f8e6d87e4098",
+      "authoredSha256": "eefc0c03697096c55ecdbb8fbb66d5f56c4543512773a327cf3d673b07e9e12e",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -5430,7 +5430,7 @@
           "sha256": "79298b039df27a52af487206911fd40824510c876501822e221549b66173fd5d"
         }
       ],
-      "authoredSha256": "ec83811119982d6ce2ad582f2b797acb7e7482e2fbe94fd4a6e2d46351fa981b",
+      "authoredSha256": "01329b0ddb89aacf0df7424123c9b85abb972ef6f93f74ff03c72504c9c11e4c",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -5515,7 +5515,7 @@
           "sha256": "e6ae03c14bab41722d22cbd0de3ebcc5a12410e2e9ed7ab8ff6feaf479125244"
         }
       ],
-      "authoredSha256": "5caf91a2e12dda38fcce629bdab3e8ffbe60cfa5a7d2ea0a926b83fca35417fc",
+      "authoredSha256": "5141d20b89a4fc36a00bc68c057116b16198f7dcf1a677250f9e7edff9a8937b",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -5848,7 +5848,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "5ad3f9b4fb2890e19a21d4dbdf5f6d57279c121bdc0fc1ecdd2940093578aa70",
+      "authoredSha256": "e13b553db3843ba6396487dc889365174c82a9440b6fa15f5c3a23015f5326d6",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -5865,7 +5865,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "5dfdcd667222fc4dec1f3d1d4bd7a170adb64decacc537f2c94f92767bf0c875",
+      "authoredSha256": "37aadda059220a4550261b1b61d97ffc4037a0428c9dff74ff53d90a29b03d4d",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -5882,7 +5882,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "82ab7697298c46e6889a0bcf2697b50f5c0e454249a167a8ba00dc1b046d5232",
+      "authoredSha256": "2e0ccf59d6598582ee88797bb70d57924c5be7b800e757cc2b07603ec1fd6b0a",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -5899,7 +5899,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "304e8a03de78bffd1f0e3a4613eff6c6910acd70742639160f9ec237e11d21c1",
+      "authoredSha256": "c0a9e1f3a07b9bd6809462415e49fe575b5c8050afcce9eb495c7ad6b06bbb9c",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -5916,7 +5916,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "76e424f0b49fade0a16993fcf00a31bab47a6e1cf746f92b02ed1f68a1774514",
+      "authoredSha256": "78002412c636f3f77e1b77a4880454ce039201b7cf4ade5b7af98c2789d5463f",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -5933,7 +5933,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "a1684a27ef39290b5cb7eb55dd14567dc65d88b4eb370d7a7051407d04cbc7d8",
+      "authoredSha256": "3402beceb028839ec974bcad59bfd6bdfa8d55471a38f555ee50d335c553f8cc",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -5950,7 +5950,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "ffc076904232a5e29707fec82877ce651ecfd734ce18401ba63507c74a952c58",
+      "authoredSha256": "0d3252f7ada8c900cf983a725785c5a168a0c55a7e13dede012f1e23359e89f7",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -5984,7 +5984,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "c8dd18710b5e8a4da27ce04d90e24f69ca1194b4b83b6e345c4121e9650f110e",
+      "authoredSha256": "4c09ed300bcb40ad3a8ec3225d768bac749e6d7b7029cd35ab3322cae48a13ae",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6001,7 +6001,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "345825c101a3aebed76ea4d1cd545d2aec68fcaf64309f917aa062b38e0e4429",
+      "authoredSha256": "88332357e8fc49e3210d4a2b150e1cc60c09ad6240e1359686a89d924c482147",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6018,7 +6018,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "72517a60e3018ef6bae566a6a277d13e434861b76551d74e73455bcf169f1ad4",
+      "authoredSha256": "482ee3ef4a1e0dee117e7ee11530e55d13f632d822b0a5fa0ad5489da5b95929",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6035,7 +6035,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "6aa4b836f38d169d293ea30ab24b097453c8a59189659fac31426bc55eff9c8d",
+      "authoredSha256": "2ea4768a3684a850a9a6f555f017ecd6bdd7ed4a1fbae47707e5d05d64855828",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6052,7 +6052,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "9e11ad75f30f6aa9f4135eec516b274e2a6b89993280faa3c6252b1578cda160",
+      "authoredSha256": "fa8c2f2debf49b6d57f76ad9cbea1aa9ecfa724fa86515cccb9d5ca1e2ae78f2",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6069,7 +6069,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "34d6f7ffc1ce98a03f81dcaebe564d773d9916610a02822ee57692ab138e9092",
+      "authoredSha256": "75a97705731dc3081109904d8c0984f1fa3ccc3dfddade049f9dffada618b5bc",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6103,7 +6103,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "43506bb50122222efc61e8b01216a00d83f3d87f4fa6de9ff61645c19697e936",
+      "authoredSha256": "632eeaf534d8aa0f44e8b1a1782f98172ec6c62f1ebc2ba8d98f361960fa68e4",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6120,7 +6120,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "463c0e6d6cf058c9e90f49274a0e02675a7f9b7ea5116425ad7cd3c55940e0ab",
+      "authoredSha256": "66d88708eafaaada53af659007af342a2a2ab126b382329cc8030f9ff1fd8669",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6137,7 +6137,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "447b05cfcc027c94d5eb58be5ff2c48efcf1a02b276400ed20be7d7457c05b2e",
+      "authoredSha256": "484051f4e9775ac0ff1843d7c76d607935d27fcc08494afab46c384c05421447",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6154,7 +6154,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "7c0556ec9c33b483a3ec03e268a4a8f4b625cf9a500f9697f72a736247e7b1dc",
+      "authoredSha256": "bd462a2cd798a5848c750fab58b0df66468be07a53eb2b8a414908dccba6885e",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6171,7 +6171,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "b1b6361954256479a59e88364a5fb9f2fb540102581fcd7893d8cbe2d9bfbbfe",
+      "authoredSha256": "7645bd71864a2dc3a2fa21a93394df8a9e79e570705a574f070cf36fdd2919c1",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6188,7 +6188,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "fc2f230f30a98454c0946b6dba05e7978e4b3a8cc7a56fd362c5534dc7b1cbe8",
+      "authoredSha256": "696f7cab2923ae24b008442cc65fd9824e0c6948669bd7360c5a11f3064edd2e",
       "proseStatus": "COMPLETE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6222,7 +6222,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "7f3a43787d7ce0a34306d76fb241a2fdcd89ceb2b37a912e8d92dc17bda5715f",
+      "authoredSha256": "a94a0277ef47921eb80fd84df3e053bc00d059478a1853466b2c538376fbd0fa",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6239,7 +6239,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "d7d04849c2cb2f320e1e20792a637c93bf89a966fc92ea6eace4bdc0cbc688a4",
+      "authoredSha256": "b206e3b0e8b1340c08157c62a67ff66ea0f1dd8a4f8e3f61a11ba18a79f77683",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6256,7 +6256,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "3d26c07ac932f0940d867544922f055a4dcb579a02bc092045507e9168020b2f",
+      "authoredSha256": "aa7fc32537607387b39939de516b29e0f32caf721e2d5f47b3d177fd50c42377",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6273,7 +6273,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "86038b61266e44fdaaac7cb22f31b0fd5b6065f6e4e85474423490c109dcf6e3",
+      "authoredSha256": "80f926e28ec801d0b4d32d79abd07f1273af7515bdca66b0a7cf1937135904ce",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6290,7 +6290,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "02a4539acfe61be9e31ab997a966d3de0759348dbefdfae764bd63c45e47d6c6",
+      "authoredSha256": "fc6e4592401c4909cac04e8e3ae0965d18d54fb0ce1f6dc8ea673e1796060283",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6307,7 +6307,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "f18c422071e56337d08a35cd03bdbfe2eba6cdd848914dfef27bc636784f9980",
+      "authoredSha256": "72e3c322a33420d0d600c0a492584591141f6b024c9557314abd2d1b0fa415a8",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6324,7 +6324,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "759ec709f530e6f86dcd5a5e83130e9d709555432e3f90ba2413691c2fc20d76",
+      "authoredSha256": "85c8e82e0e1b476922f684f88d7523c796eb1dacfa912ba515fddc34e323db54",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6341,7 +6341,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "b2f6ad00efcde112e488766e6181315c8490438091ef1dd6c60bd5e256c8292d",
+      "authoredSha256": "09a12dcfc84d743398b91882cb28ba844ed624b774fa4bea8e64fd94214d9861",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6375,7 +6375,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "02bfb84e152a02a0afef9a70e4807437caaeec7334520c48cc533c7c497d13c0",
+      "authoredSha256": "ea4e78c3430c83d2cac1f47b1a96dfcbd32abaa8853397e20fea1dbe94d5145b",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6392,7 +6392,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "17d5045d21cb1d3d59ec0d27af705e0607ac24ccfa8f8a03fa93c0eea7f529b7",
+      "authoredSha256": "24591947f93b05792353d7acaff2d479f82ab35689e6f2126ed57eafdd3de970",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6409,7 +6409,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "46c886c17978dbf9f78513d074679c970e90dcbdc2e43b0022313048ef5ff06d",
+      "authoredSha256": "96c2d3f2dff3320b16d6a7b53829ed0b04567a9f08bcabc371b53986a503ee76",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6426,7 +6426,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "bb4e209f8a01b9e0a720f6e9c853ed182d88bfe6755115427223e5e7d6d1c289",
+      "authoredSha256": "f69d35afcf4a9ba00e13626c44c8181fe9ec4bdec1c8929cdd0bcf9faa1c94cf",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -6443,7 +6443,7 @@
           "sha256": "af0c751006675b2a29e13130d62687cb843e75c6efa0aec41cc9f6f31270911b"
         }
       ],
-      "authoredSha256": "ea242498de56bbf1ee848c2de7b5aefb35a911c6123681569cfbcc41aab5a6f2",
+      "authoredSha256": "afcd429c3ae62a37774f6b674144c24460743ed28857bd66f476972cc4416150",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []
@@ -9442,6 +9442,91 @@
         }
       ],
       "authoredSha256": "81da6e8404daafccdbb89a81dc76ee4317cfa8ed0f2ab027e2529777c9c94c7f",
+      "proseStatus": "NOT_APPLICABLE",
+      "mechanicsStatus": "COMPLETE",
+      "manualExceptionIds": []
+    },
+    {
+      "domain": "equipment",
+      "id": "00000000-0000-0000-0060-017c00000000",
+      "label": "Spiked Bone Club",
+      "sourceReferences": [
+        {
+          "sourceFile": "SRD_CC_v5.1.txt",
+          "startLine": 14828,
+          "endLine": 14828,
+          "sha256": "9eea8df647316b18196aefcdd62d87eaff85c2b5ecde5b001207cb77371a00f7"
+        }
+      ],
+      "authoredSha256": "5b1f4481d65cfc2fefb989d0ccec18a677a9a69b86ac3bd1af18fb127b5e63bb",
+      "proseStatus": "NOT_APPLICABLE",
+      "mechanicsStatus": "COMPLETE",
+      "manualExceptionIds": []
+    },
+    {
+      "domain": "equipment",
+      "id": "00000000-0000-0000-0060-017d00000000",
+      "label": "Heavy Club",
+      "sourceReferences": [
+        {
+          "sourceFile": "SRD_CC_v5.1.txt",
+          "startLine": 15289,
+          "endLine": 15289,
+          "sha256": "6735630c5638cbb249df51f104ec11d4aed9bddd74749741b9b7d9ccac38c47b"
+        }
+      ],
+      "authoredSha256": "a6c941c16acff1c16bc9356eda209da8906ff5b4360ea3055ac270ee0c25e8e1",
+      "proseStatus": "NOT_APPLICABLE",
+      "mechanicsStatus": "COMPLETE",
+      "manualExceptionIds": []
+    },
+    {
+      "domain": "equipment",
+      "id": "00000000-0000-0000-0060-017e00000000",
+      "label": "Spiked Shield",
+      "sourceReferences": [
+        {
+          "sourceFile": "SRD_CC_v5.1.txt",
+          "startLine": 15291,
+          "endLine": 15291,
+          "sha256": "e84acb3e8a64a5373cda7836f20138cc418a5f85ef1713315899fbfef343cbbf"
+        }
+      ],
+      "authoredSha256": "9501a60f62c95b2e7fcb6abc27de83b02c4e3d8f0e4e3324008767810367eec8",
+      "proseStatus": "NOT_APPLICABLE",
+      "mechanicsStatus": "COMPLETE",
+      "manualExceptionIds": []
+    },
+    {
+      "domain": "equipment",
+      "id": "00000000-0000-0000-0060-017f00000000",
+      "label": "Iron Golem Sword",
+      "sourceReferences": [
+        {
+          "sourceFile": "SRD_CC_v5.1.txt",
+          "startLine": 14711,
+          "endLine": 14711,
+          "sha256": "903edf6476617efaae4f7901ed6d211077166492345248ea662dd8d893b40b0a"
+        }
+      ],
+      "authoredSha256": "4d07a342c1b8aa9b9cc99e8fca1660e9a032b059dafa828455302833a7d5974e",
+      "proseStatus": "NOT_APPLICABLE",
+      "mechanicsStatus": "COMPLETE",
+      "manualExceptionIds": []
+    },
+    {
+      "domain": "equipment",
+      "id": "00000000-0000-0000-0060-018000000000",
+      "label": "Storm Giant Rock",
+      "sourceReferences": [
+        {
+          "sourceFile": "SRD_CC_v5.1.txt",
+          "startLine": 14537,
+          "endLine": 14537,
+          "sha256": "d61c9abbcac59b29e95d4d8ea076f50eb17ac732e3741a89f19b4344199e6c11"
+        }
+      ],
+      "authoredSha256": "f7c2f576006ebeeda8ef50d59248b2761d130b324cee4280c26bb686ca6ee979",
       "proseStatus": "NOT_APPLICABLE",
       "mechanicsStatus": "COMPLETE",
       "manualExceptionIds": []

@@ -255,6 +255,17 @@ export const encounterProjectionEventSchema = z
         resultChecksum: projectionChecksumSchema
       })
       .nullable(),
+    /** Server-only provenance for an Encounter-owned Creature equipment overlay. */
+    creatureEquipmentReplacement: z
+      .strictObject({
+        actorId: serverUuidIdentityDtoSchema,
+        loadoutEntryId: serverUuidIdentityDtoSchema,
+        equipmentId: serverUuidIdentityDtoSchema,
+        sourceRevision: z.number().int().positive(),
+        sourceVersionId: serverUuidIdentityDtoSchema,
+        sourceChecksum: projectionChecksumSchema
+      })
+      .optional(),
     /** Optional for historical events; new mechanics-bearing events pin the effective combat policy. */
     optionalCombatSnapshotChecksum: projectionChecksumSchema.nullable().optional()
   })

@@ -90,6 +90,9 @@ export function useCampaignLiveSession({
             })
             for (const characterId of changedCharacterIds) {
               void queryClient.invalidateQueries({
+                queryKey: queryKeys.characters.actions(characterId)
+              })
+              void queryClient.invalidateQueries({
                 queryKey: queryKeys.characters.sheet(characterId)
               })
               void queryClient.invalidateQueries({
@@ -115,15 +118,24 @@ export function useCampaignLiveSession({
             ) {
               void queryClient.invalidateQueries({ queryKey: queryKeys.campaigns.all() })
             }
+            const changedEncounterIds = [...changed].flatMap((key) => {
+              if (!key.startsWith('ENCOUNTER:')) return []
+              return previousVersions.get(key) === nextVersions.get(key) ? [] : [key.slice(10)]
+            })
             if (
+              changedEncounterIds.length > 0 ||
               [...changed].some(
                 (key) =>
-                  (key.startsWith('ENCOUNTER:') || key.startsWith('SCENE:')) &&
-                  previousVersions.get(key) !== nextVersions.get(key)
+                  key.startsWith('SCENE:') && previousVersions.get(key) !== nextVersions.get(key)
               )
             ) {
               void queryClient.invalidateQueries({
                 queryKey: queryKeys.encounters.list(campaignId)
+              })
+            }
+            for (const encounterId of changedEncounterIds) {
+              void queryClient.invalidateQueries({
+                queryKey: queryKeys.encounters.pendingOccurrence(encounterId)
               })
             }
           }
@@ -161,6 +173,9 @@ export function useCampaignLiveSession({
           )
           for (const characterId of changedCharacterIds) {
             void queryClient.invalidateQueries({
+              queryKey: queryKeys.characters.actions(characterId)
+            })
+            void queryClient.invalidateQueries({
               queryKey: queryKeys.characters.sheet(characterId)
             })
             void queryClient.invalidateQueries({
@@ -177,16 +192,18 @@ export function useCampaignLiveSession({
           if (changedCharacterIds.length > 0) {
             void queryClient.invalidateQueries({ queryKey: queryKeys.characters.list() })
           }
-          if (
-            message.changedAggregates.some((aggregate) => aggregate.aggregateKind === 'ENCOUNTER')
-          ) {
+          const nonRootEncounterIds = message.changedAggregates.flatMap((aggregate) =>
+            aggregate.aggregateKind === 'ENCOUNTER' &&
+            (message.aggregateKind !== 'ENCOUNTER' || aggregate.aggregateId !== message.aggregateId)
+              ? [aggregate.aggregateId]
+              : []
+          )
+          if (nonRootEncounterIds.length > 0) {
             void queryClient.invalidateQueries({ queryKey: queryKeys.encounters.list(campaignId) })
-            for (const aggregate of message.changedAggregates) {
-              if (aggregate.aggregateKind === 'ENCOUNTER') {
-                void queryClient.invalidateQueries({
-                  queryKey: queryKeys.encounters.pendingOccurrence(aggregate.aggregateId)
-                })
-              }
+            for (const encounterId of nonRootEncounterIds) {
+              void queryClient.invalidateQueries({
+                queryKey: queryKeys.encounters.pendingOccurrence(encounterId)
+              })
             }
           }
           if (message.aggregateKind === 'ENCOUNTER') {
@@ -197,12 +214,10 @@ export function useCampaignLiveSession({
                   candidate.aggregateKind === 'ENCOUNTER' &&
                   candidate.aggregateId === message.aggregateId
               )?.version ?? message.version
-            if (
-              message.response &&
-              'projection' in message.response &&
-              message.version >= knownVersion
-            ) {
-              const projection = message.response.projection
+            const encounterResponse =
+              message.response && 'projection' in message.response ? message.response : null
+            if (encounterResponse && message.version >= knownVersion) {
+              const projection = encounterResponse.projection
               queryClient.setQueryData<
                 Array<EncounterGmProjectionDto | EncounterPlayerProjectionDto>
               >(queryKey, (current) =>
@@ -210,8 +225,15 @@ export function useCampaignLiveSession({
                   encounter.id === projection.id ? projection : encounter
                 )
               )
+              queryClient.setQueryData(
+                queryKeys.encounters.pendingOccurrence(message.aggregateId),
+                encounterResponse.occurrence?.pending ?? null
+              )
             } else {
               void queryClient.invalidateQueries({ queryKey })
+              void queryClient.invalidateQueries({
+                queryKey: queryKeys.encounters.pendingOccurrence(message.aggregateId)
+              })
             }
           } else if (message.aggregateKind === 'CHARACTER') {
             const sheetKey = queryKeys.characters.sheet(message.aggregateId)

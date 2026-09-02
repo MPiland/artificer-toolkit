@@ -43,6 +43,7 @@ import { SRD_RULE_STATE_DEFINITIONS } from '../source-data/srd/ruleState.js'
 import { SRD_SENSE_DEFINITIONS } from '../source-data/srd/senses.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '../source-data/srd/optionalCombat.js'
 import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from '../source-data/srd/encounterLifecycle.js'
+import { SRD_CONCENTRATION_DEFINITIONS } from '../source-data/srd/concentration.js'
 import {
   checksumCanonicalJson,
   checksumCompiledAuthoredProjection,
@@ -83,7 +84,7 @@ interface StaleBaselineSubjectSet extends BaselineSubjectSet {
 }
 
 const BASELINE_DOCUMENT_SCHEMA_VERSION = 1
-const BASELINE_SYSTEM_VOCABULARY_SCHEMA_VERSION = 2
+const BASELINE_SYSTEM_VOCABULARY_SCHEMA_VERSION = 4
 const BASELINE_PROJECTION_SCHEMA_VERSION = 1
 const BASELINE_PROJECTION_COMPILER_VERSION = 'subject-compiler-v1'
 const SRD_51_CONTENT_SOURCE_ID = '00000000-0000-4000-8000-000000000302'
@@ -549,7 +550,8 @@ const seedBaselineContentInTransaction: SeedBaselineContent = async (context, bu
       })),
       ...SRD_RULE_STATE_DEFINITIONS,
       ...SRD_OPTIONAL_COMBAT_DEFINITIONS,
-      ...SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS
+      ...SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS,
+      ...SRD_CONCENTRATION_DEFINITIONS
     ])
   }
 

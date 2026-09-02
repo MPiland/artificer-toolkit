@@ -3,6 +3,7 @@ import type { EncounterRecord } from '@artificer-toolkit/db'
 import { requireMovementReactionCapabilityDefinitionIds } from '../rules/movementReactionEligibilityRegistry.js'
 import type { CurrentReusableDefinitionSource } from '../rules/ruleCapabilityStateService.js'
 import type { LockedEncounterActiveEffectCharacter } from './encounterActiveEffectTargetState.js'
+import type { LockedEncounterActiveEffectTargets } from './encounterActiveEffectTargetState.js'
 import {
   resolveEncounterRuleCapabilityStates,
   type EncounterRuleCapabilityActorState
@@ -21,6 +22,7 @@ export async function resolveEncounterMovementReactionRuleStates(input: {
     string,
     Pick<LockedEncounterActiveEffectCharacter, 'actor' | 'activeConditionDefinitionIds'>
   >
+  activeEffectsByActorId: LockedEncounterActiveEffectTargets['activeEffectsByActorId']
   definitions: CurrentReusableDefinitionSource
 }): Promise<ReadonlyMap<string, EncounterMovementReactionActorRuleState>> {
   const capabilityDefinitionIds = requireMovementReactionCapabilityDefinitionIds(

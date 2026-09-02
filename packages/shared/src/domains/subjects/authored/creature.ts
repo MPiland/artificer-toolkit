@@ -34,6 +34,15 @@ export interface CreatureNpcProfile {
   personalityTraits?: string[]
 }
 
+export interface CreatureEquipmentLoadoutEntry {
+  id: string
+  equipmentId: string
+  quantity: number
+  useState: 'CARRIED' | 'HELD' | 'WORN'
+  attuned: boolean
+  actionFeatureIds: string[]
+}
+
 export interface CreatureBaseAuthored {
   id: string
   label: string
@@ -54,6 +63,7 @@ export interface CreatureBaseAuthored {
   speeds: SpeedAuthored[]
   cost?: CostAuthored
   carryingCapacity?: CapacityAuthored
+  equipmentLoadout?: CreatureEquipmentLoadoutEntry[]
   logisticsNotes?: string[]
   mountProfile?: CreatureMountProfile
   companionProfile?: CreatureCompanionProfile

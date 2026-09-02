@@ -1,6 +1,9 @@
-import type { CreateVttMapUploadIntentOutput } from '@artificer-toolkit/schema/api/media'
+import type {
+  CompleteVttMapMultipartUploadInput,
+  CreateVttMapUploadIntentOutput
+} from '@artificer-toolkit/schema/api/media'
 
-const retryDelays = [0, 3_000, 5_000, 10_000, 20_000]
+const retryDelays = [0, 1_000, 3_000, 5_000]
 const idempotencyKeyPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -29,87 +32,123 @@ export function getOrCreateVttMapUploadIdempotencyKey(
   return idempotencyKey
 }
 
-export function clearVttMapUploadIdempotencyKey(campaignId: string, file: File): void {
+export function clearVttMapUploadIdempotencyKey(
+  campaignId: string,
+  file: File,
+  assetId?: string
+): void {
   sessionStorage.removeItem(mapUploadStorageKey(campaignId, file))
+  if (assetId) sessionStorage.removeItem(completedPartsStorageKey(assetId))
 }
 
 export function createVttMapUploadFingerprint(
-  intent: Pick<CreateVttMapUploadIntentOutput, 'bucket' | 'objectKey'>
+  intent: Pick<CreateVttMapUploadIntentOutput, 'storageProvider' | 'objectKey'>
 ): string {
-  return `vtt-map:${intent.bucket}:${intent.objectKey}`
+  return `vtt-map:${intent.storageProvider}:${intent.objectKey}`
 }
 
-export function resolveVttMapTusEndpoint(supabaseUrl: string): string {
-  const url = new URL(supabaseUrl)
-  const hosted = url.hostname.match(/^([^.]+)\.supabase\.co$/)
-  if (hosted) return `https://${hosted[1]}.storage.supabase.co/storage/v1/upload/resumable/sign`
-  return new URL('/storage/v1/upload/resumable/sign', url).toString()
+function completedPartsStorageKey(assetId: string): string {
+  return `vtt-map-r2-parts:${assetId}`
 }
 
-export function createVttMapUploadOptions({
-  file,
-  intent,
-  onError,
-  onProgress,
-  onSuccess,
-  supabaseUrl
-}: {
-  file: File
-  intent: CreateVttMapUploadIntentOutput
-  onError: (error: unknown) => void
-  onProgress: (percentage: number) => void
-  onSuccess: () => void
-  supabaseUrl: string
-}) {
-  return {
-    chunkSize: intent.resumable.chunkBytes,
-    endpoint: resolveVttMapTusEndpoint(supabaseUrl),
-    fingerprint: async () => createVttMapUploadFingerprint(intent),
-    headers: { 'x-signature': intent.token },
-    metadata: {
-      bucketName: intent.bucket,
-      cacheControl: '3600',
-      contentType: file.type,
-      objectName: intent.objectKey
-    },
-    onError,
-    onProgress: (uploaded: number, total: number) =>
-      onProgress(total === 0 ? 0 : (uploaded / total) * 100),
-    onSuccess,
-    removeFingerprintOnSuccess: true,
-    retryDelays,
-    uploadDataDuringCreation: true
+function readCompletedParts(assetId: string): CompleteVttMapMultipartUploadInput['parts'] {
+  const stored = sessionStorage.getItem(completedPartsStorageKey(assetId))
+  if (!stored) return []
+  try {
+    const parsed: unknown = JSON.parse(stored)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(
+      (part): part is CompleteVttMapMultipartUploadInput['parts'][number] =>
+        typeof part === 'object' &&
+        part !== null &&
+        'partNumber' in part &&
+        Number.isInteger(part.partNumber) &&
+        'etag' in part &&
+        typeof part.etag === 'string' &&
+        part.etag.length > 0
+    )
+  } catch {
+    return []
   }
+}
+
+function retainCompletedParts(
+  assetId: string,
+  parts: CompleteVttMapMultipartUploadInput['parts']
+): void {
+  sessionStorage.setItem(completedPartsStorageKey(assetId), JSON.stringify(parts))
+}
+
+async function uploadPart(
+  url: string,
+  body: Blob,
+  onProgress: (uploadedBytes: number) => void
+): Promise<string> {
+  let lastError: unknown
+  for (const delay of retryDelays) {
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay))
+    try {
+      return await new Promise<string>((resolve, reject) => {
+        const request = new XMLHttpRequest()
+        request.open('PUT', url)
+        request.upload.onprogress = (event) => onProgress(event.loaded)
+        request.onerror = () => reject(new Error('R2 map part upload failed.'))
+        request.onload = () => {
+          if (request.status < 200 || request.status >= 300) {
+            reject(new Error(`R2 map part upload failed (${request.status}).`))
+            return
+          }
+          const etag = request.getResponseHeader('etag')?.trim()
+          if (!etag) {
+            reject(new Error('R2 map part upload did not return an ETag.'))
+            return
+          }
+          resolve(etag)
+        }
+        request.send(body)
+      })
+    } catch (error) {
+      lastError = error
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('R2 map part upload failed.')
 }
 
 export async function uploadVttMap({
   file,
   intent,
-  onProgress,
-  supabaseUrl
+  onProgress
 }: {
   file: File
   intent: CreateVttMapUploadIntentOutput
   onProgress: (percentage: number) => void
-  supabaseUrl: string
-}): Promise<void> {
-  const { Upload } = await import('tus-js-client')
-  await new Promise<void>((resolve, reject) => {
-    const upload = new Upload(
-      file,
-      createVttMapUploadOptions({
-        file,
-        intent,
-        onError: reject,
-        onProgress,
-        onSuccess: resolve,
-        supabaseUrl
-      })
-    )
+}): Promise<CompleteVttMapMultipartUploadInput['parts']> {
+  const completed = new Map(
+    readCompletedParts(intent.assetId).map((part) => [part.partNumber, part.etag])
+  )
+  let completedBytes = intent.resumable.parts.reduce((total, part) => {
+    if (!completed.has(part.partNumber)) return total
+    const start = (part.partNumber - 1) * intent.resumable.chunkBytes
+    return total + Math.min(intent.resumable.chunkBytes, file.size - start)
+  }, 0)
+  onProgress((completedBytes / file.size) * 100)
 
-    void upload.findPreviousUploads().then((previous) => {
-      if (previous[0]) upload.resumeFromPreviousUpload(previous[0])
-      upload.start()
-    }, reject)
-  })
+  for (const part of intent.resumable.parts) {
+    if (completed.has(part.partNumber)) continue
+    const start = (part.partNumber - 1) * intent.resumable.chunkBytes
+    const body = file.slice(start, Math.min(file.size, start + intent.resumable.chunkBytes))
+    const etag = await uploadPart(part.url, body, (uploadedBytes) =>
+      onProgress(((completedBytes + uploadedBytes) / file.size) * 100)
+    )
+    completed.set(part.partNumber, etag)
+    completedBytes += body.size
+    retainCompletedParts(
+      intent.assetId,
+      [...completed].map(([partNumber, retainedEtag]) => ({ etag: retainedEtag, partNumber }))
+    )
+  }
+  onProgress(100)
+  return [...completed]
+    .map(([partNumber, etag]) => ({ etag, partNumber }))
+    .sort((left, right) => left.partNumber - right.partNumber)
 }

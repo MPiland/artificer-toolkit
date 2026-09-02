@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => {
     encounter: { lock: vi.fn() },
     update: vi.fn(),
     sessionExecute: vi.fn(),
+    liveSessionAuthority: vi.fn(),
     repository: {
       findReceipt: vi.fn(
         async (_kind: string, aggregateId: string, commandId: string) =>
@@ -94,7 +95,7 @@ vi.mock('../campaign/campaignService.js', () => ({
 }))
 
 vi.mock('../campaign/liveSessionCommandAuthority.js', () => ({
-  assertSessionLiveSessionCommandAuthority: vi.fn()
+  assertSessionLiveSessionCommandAuthority: mocks.liveSessionAuthority
 }))
 
 import { EncounterConflictError } from './encounterErrors.js'
@@ -162,7 +163,7 @@ function completeExecution() {
 }
 
 describe('lockEncounterRuleExecutionCommandContext receipt-only child capability', () => {
-  async function lock(transactionDb: DBLike) {
+  async function lock(transactionDb: DBLike, readOnly = false) {
     mocks.campaign.lockCampaign.mockResolvedValue({
       id: ids.campaign,
       attunementSlotOverride: null
@@ -178,7 +179,8 @@ describe('lockEncounterRuleExecutionCommandContext receipt-only child capability
     return lockEncounterRuleExecutionCommandContext(transactionDb, {
       actorUserId: ids.user,
       authority: 'OWNER',
-      encounterId: ids.encounter
+      encounterId: ids.encounter,
+      ...(readOnly ? { readOnly: true } : {})
     })
   }
 
@@ -197,6 +199,20 @@ describe('lockEncounterRuleExecutionCommandContext receipt-only child capability
     expect(selectFrom).not.toHaveBeenCalled()
     expect(mocks.campaign.lockCampaign).not.toHaveBeenCalled()
     expect(mocks.encounter.lock).not.toHaveBeenCalled()
+  })
+
+  it('allows reads without the live-session command lease or mutation capabilities', async () => {
+    mocks.liveSessionAuthority.mockClear()
+    mocks.update.mockClear()
+    const transactionDb = transaction()
+    const { context } = await lock(transactionDb, true)
+
+    expect(mocks.liveSessionAuthority).not.toHaveBeenCalled()
+    await expect(context.advanceVersion(3)).rejects.toThrow('Read-only Encounter access')
+    expect(mocks.update).not.toHaveBeenCalled()
+    expect(() => context.createReceiptOnlyChildOccurrencePort()).toThrow(
+      'Read-only Encounter access'
+    )
   })
 
   it('issues transaction-bound child capabilities at the concrete initial and post-CAS versions', async () => {

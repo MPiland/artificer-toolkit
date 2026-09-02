@@ -1,6 +1,7 @@
 import { aboleth } from './aboleth.js'
 import { acolyte } from './acolyte.js'
 import { normalizeLegendaryActionOptions } from './shared.js'
+import { applyCreatureEquipmentLoadouts } from './equipment-loadouts.js'
 import { adultBlackDragon } from './adult-black-dragon.js'
 import { adultBlueDragon } from './adult-blue-dragon.js'
 import { adultBrassDragon } from './adult-brass-dragon.js'
@@ -625,5 +626,7 @@ const rawSrdCreatureRecords = [
   zombie
 ]
 
-export const srdCreatureRecords = rawSrdCreatureRecords.map(normalizeLegendaryActionOptions)
+export const srdCreatureRecords = rawSrdCreatureRecords
+  .map(normalizeLegendaryActionOptions)
+  .map(applyCreatureEquipmentLoadouts)
 export const srdCreatures = srdCreatureRecords

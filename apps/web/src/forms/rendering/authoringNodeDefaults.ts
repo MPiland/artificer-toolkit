@@ -49,6 +49,24 @@ export function createDefaultAuthoringNodeValue(
         proficiencies: [],
         senses: []
       }
+    case 'actorRelationshipModule':
+      return {
+        id: crypto.randomUUID(),
+        order,
+        kind: 'SOURCE_FOLLOWS_TARGET'
+      }
+    case 'actorRelationshipRecurrence':
+      return {
+        stage: 'START_OF_TURN',
+        damage: {
+          id: crypto.randomUUID(),
+          effectKind: 'DAMAGE',
+          damageTypeId: '',
+          valueKind: 'DICE',
+          diceConfig: '1d6',
+          scalingKind: 'NONE'
+        }
+      }
     case 'chargeBonus':
       return createChargeBonus(order)
     case 'chargeLevelScaling':
@@ -153,6 +171,15 @@ export function createDefaultAuthoringNodeValue(
         bondType: 'ANIMAL_COMPANION',
         initiativeMode: 'USES_PC_INITIATIVE',
         notes: ''
+      }
+    case 'creatureEquipmentLoadout':
+      return {
+        id: crypto.randomUUID(),
+        equipmentId: '',
+        quantity: 1,
+        useState: 'HELD',
+        attuned: false,
+        actionFeatureIds: []
       }
     case 'creatureHitDice':
       return {
@@ -401,6 +428,18 @@ export function createDefaultAuthoringNodeValue(
       return { kind: 'END' }
     case 'followUpSaveAttempts':
       return { kind: 'ONCE' }
+    case 'followUpSaveRepeatRollInfluence':
+      return {
+        influence: 'ADVANTAGE',
+        when: createFollowUpSaveRepeatRollInfluenceWhen()
+      }
+    case 'followUpSaveRepeatRollInfluenceWhen':
+      return createFollowUpSaveRepeatRollInfluenceWhen()
+    case 'hitPointMaximumReductionAmountSource':
+      return {
+        kind: 'DAMAGE_TAKEN',
+        damageOutcomeId: ''
+      }
     case 'pathChoiceOption':
       return {
         id: crypto.randomUUID(),
@@ -487,6 +526,11 @@ export function createDefaultAuthoringNodeValue(
         id: crypto.randomUUID(),
         bonusKind: 'PROFICIENCY_BONUS'
       }
+    case 'scalarReductionAmount':
+      return {
+        kind: 'DICE',
+        diceConfig: '1d6'
+      }
     case 'senseGrant':
       return createScalingGrant('SENSE_GRANT', order)
     case 'senseGrantLevel':
@@ -563,6 +607,15 @@ export function createDefaultAuthoringNodeValue(
 
 function assertUnreachableDefaultKind(kind: never): never {
   throw new Error(`Unsupported authoring default kind: ${String(kind)}`)
+}
+
+function createFollowUpSaveRepeatRollInfluenceWhen() {
+  return {
+    kind: 'PERCEPTION',
+    observer: 'TARGET',
+    subject: 'SOURCE',
+    requirement: 'SEE'
+  }
 }
 
 export function createDefaultEffect(order: number): EffectDto {

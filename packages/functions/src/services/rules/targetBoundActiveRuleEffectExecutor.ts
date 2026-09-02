@@ -10,6 +10,7 @@ import {
   type ServerRuleExecutionD20PolicyDto,
   type ServerRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import {
   checksumRuleDocument,
   type CompiledRuleGraph,
@@ -50,10 +51,20 @@ export interface TargetBoundActiveRuleEffectExecutionInput {
   currentHitPoints: number
   temporaryHitPoints: number
   maximumHitPoints: number
+  targetScalarValues: Readonly<Record<string, number>>
   targetConditionIds: readonly string[]
   targetDerivedFacts: Readonly<Record<string, unknown>>
   defenses: readonly ActiveRuleEffectTargetDefense[]
   conditionImmunityIds?: readonly string[]
+  /**
+   * Current application-layer perception result for one System-authored
+   * recurring dependency. Scene geometry never enters the shared executor.
+   */
+  perception?: {
+    requirement: CombatPerceptionRequirementDto
+    satisfied: boolean
+    checksum: string
+  } | null
   runtime: RulesRuntimeService
   adapters: CharacterRuleActionSystemAdapterRegistry
 }
@@ -61,6 +72,7 @@ export interface TargetBoundActiveRuleEffectExecutionInput {
 export interface TargetBoundActiveRuleEffectExecutionResult {
   execution: ServerCompletedRuleExecutionDto
   applications: readonly CharacterRuleActionApplication[]
+  terminal: boolean
   d20: ServerRuleExecutionD20EvidenceDto | null
 }
 
@@ -113,6 +125,7 @@ function normalizedTargetState(input: {
   currentHitPoints: number
   temporaryHitPoints: number
   maximumHitPoints: number
+  targetScalarValues: Readonly<Record<string, number>>
   targetConditionIds: readonly string[]
   targetDerivedFacts: Readonly<Record<string, unknown>>
   defenses: readonly ActiveRuleEffectTargetDefense[]
@@ -170,6 +183,7 @@ function normalizedTargetState(input: {
     currentHitPoints,
     temporaryHitPoints,
     maximumHitPoints,
+    targetScalarValues: immutableCopy(input.targetScalarValues),
     targetConditionIds: canonicalConditionIds(input.targetConditionIds),
     targetDerivedFacts: immutableCopy(input.targetDerivedFacts),
     defenses: Object.freeze(defenses),
@@ -247,8 +261,11 @@ function requireSupportedApplications(input: {
   applications: readonly CharacterRuleActionApplication[]
   execution: Extract<ServerRuleExecutionResultDto, { status: 'COMPLETE' }>
   frozenGraphNodeId: string
+  activeEffectId: string
+  emptyApplicationAllowed?: boolean
 }): void {
-  const { applications, execution, frozenGraphNodeId } = input
+  const { applications, execution, frozenGraphNodeId, activeEffectId, emptyApplicationAllowed } =
+    input
   const suppressedCondition =
     applications.length === 0 &&
     execution.evidence.trace.filter(
@@ -258,11 +275,15 @@ function requireSupportedApplications(input: {
         entry.outputs.authorized === false
     ).length === 1
   if (
-    (!suppressedCondition && applications.length === 0) ||
+    (!suppressedCondition && !emptyApplicationAllowed && applications.length === 0) ||
     applications.some(
       (application) =>
         application.sourceNodeId !== frozenGraphNodeId ||
-        !['HEAL', 'TEMPORARY_HIT_POINTS', 'DAMAGE', 'CONDITION_APPLY'].includes(application.kind)
+        (application.kind === 'CONDITION_REMOVE' &&
+          application.sourceActiveEffectId !== activeEffectId) ||
+        !['HEAL', 'TEMPORARY_HIT_POINTS', 'DAMAGE', 'CONDITION_APPLY', 'CONDITION_REMOVE'].includes(
+          application.kind
+        )
     )
   ) {
     throw new CharacterActiveRuleEffectExecutionError(
@@ -302,6 +323,7 @@ function prepare(input: TargetBoundActiveRuleEffectExecutionInput) {
     targetDerivedFacts: target.targetDerivedFacts
   })
   const bound = bindActiveEffectFacts({
+    activeEffectId,
     definition,
     lifecycle,
     targetActorId,
@@ -310,8 +332,10 @@ function prepare(input: TargetBoundActiveRuleEffectExecutionInput) {
     currentHitPoints: target.currentHitPoints,
     temporaryHitPoints: target.temporaryHitPoints,
     maximumHitPoints: target.maximumHitPoints,
+    targetScalarValues: target.targetScalarValues,
     defenses: target.defenses,
-    conditionImmunityIds: target.conditionImmunityIds
+    conditionImmunityIds: target.conditionImmunityIds,
+    perception: input.perception ?? null
   })
   return {
     activeEffectId,
@@ -427,10 +451,12 @@ function complete(input: {
 }): TargetBoundActiveRuleEffectExecutionResult {
   const { prepared, execution, graph } = input
   requireTraceBinding({ execution, definition: prepared.definition })
-  const applications = prepared.interpretActiveEffect({
+  const interpreted = prepared.interpretActiveEffect({
     execution,
     occurrenceId: prepared.occurrenceId,
+    activeEffectId: prepared.activeEffectId,
     definition: prepared.definition,
+    lifecycle: prepared.lifecycle,
     graph,
     targetActorId: prepared.targetActorId,
     currentHitPoints: prepared.target.currentHitPoints,
@@ -440,13 +466,16 @@ function complete(input: {
     conditionImmunityIds: prepared.target.conditionImmunityIds
   })
   requireSupportedApplications({
-    applications,
+    applications: interpreted.applications,
     execution,
-    frozenGraphNodeId: prepared.definition.frozenGraphNodeId
+    frozenGraphNodeId: prepared.definition.frozenGraphNodeId,
+    activeEffectId: prepared.activeEffectId,
+    emptyApplicationAllowed: interpreted.emptyApplicationAllowed
   })
   return {
     execution,
-    applications,
+    applications: interpreted.applications,
+    terminal: interpreted.terminal,
     d20: d20EvidenceForCompletion({
       policy: prepared.evidencePolicy,
       execution,

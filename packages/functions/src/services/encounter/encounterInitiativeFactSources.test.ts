@@ -17,7 +17,8 @@ const state = vi.hoisted(() => ({
   lockAssignment: vi.fn(),
   requireCurrent: vi.fn(),
   requireOverlay: vi.fn(),
-  ruleContext: vi.fn()
+  ruleContext: vi.fn(),
+  lockActiveEffects: vi.fn()
 }))
 
 vi.mock('@artificer-toolkit/db', async (importOriginal) => {
@@ -30,7 +31,8 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     }),
     createCharacterMechanicsProjectionRepository: () => ({
       requireCurrent: state.requireCurrent
-    })
+    }),
+    createActiveRuleEffectRepository: () => ({ lockByOwner: state.lockActiveEffects })
   }
 })
 vi.mock('../character/campaignCharacterSheet.js', () => ({
@@ -102,6 +104,7 @@ function db() {
 beforeEach(() => {
   vi.clearAllMocks()
   state.lockAssignment.mockResolvedValue(undefined)
+  state.lockActiveEffects.mockResolvedValue([])
   state.requireCurrent.mockImplementation(async ({ characterId }: { characterId: string }) => ({
     characterId,
     projectionChecksum: 'b'.repeat(64)

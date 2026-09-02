@@ -79,8 +79,6 @@ export function CampaignScenePreparation({
       if (!file || fileError) throw new Error(fileError ?? 'Choose a map image.')
       const mimeType = acceptedMapType(file.type)
       if (!mimeType) throw new Error('Maps must be JPEG, PNG, or WebP images.')
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      if (!supabaseUrl) throw new Error('Supabase Storage is not configured.')
       setUploadProgress(0)
       const intent = await api.media.createVttMapUpload({
         declaredBytes: file.size,
@@ -90,14 +88,14 @@ export function CampaignScenePreparation({
         profile: 'VTT_MAP',
         target: { campaignId, type: 'VTT_MAP' }
       })
-      await uploadVttMap({
+      const parts = await uploadVttMap({
         file,
         intent,
-        onProgress: setUploadProgress,
-        supabaseUrl
+        onProgress: setUploadProgress
       })
+      await api.media.completeVttMapUpload({ assetId: intent.assetId, parts })
       const finalized = await api.media.finalizeVttMapUpload({ assetId: intent.assetId })
-      clearVttMapUploadIdempotencyKey(campaignId, file)
+      clearVttMapUploadIdempotencyKey(campaignId, file, intent.assetId)
       if (finalized.status !== 'READY') {
         throw new Error('That map could not be processed. Check its dimensions and try again.')
       }

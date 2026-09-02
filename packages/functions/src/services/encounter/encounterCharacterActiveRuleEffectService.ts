@@ -1,6 +1,9 @@
 import {
   createActiveRuleEffectRepository,
   createEncounterRepository,
+  createSpatialRuleEffectRepository,
+  createReusableDefinitionRepository,
+  createVttSceneRepository,
   checksumCanonicalJson,
   type DBLike,
   type EncounterActorRecord,
@@ -37,6 +40,10 @@ import {
   resumeCharacterActiveRuleEffectWithPause
 } from '../rules/characterActiveRuleEffectExecutor.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  effectiveSpatialGeometry,
+  spatialGeometryIntersectsTokenFootprint
+} from '@artificer-toolkit/shared/vtt'
 import type { RulesRuntimeService } from '../rules/rulesRuntimeService.js'
 import {
   applyLockedEncounterActorMechanicsBatch,
@@ -51,6 +58,12 @@ import {
   lockEncounterActiveEffectTargets,
   type LockedEncounterActiveEffectCharacter
 } from './encounterActiveEffectTargetState.js'
+import { resolveEncounterCombatPerception } from './encounterCombatPerception.js'
+import {
+  deriveConditionCombatPerceptionContributions,
+  type LockedCombatPerceptionEffect
+} from './encounterCombatPerceptionContributions.js'
+import { resolveRuleCapabilityState } from '../rules/ruleCapabilityStateService.js'
 
 type TurnBoundary = {
   ordinal: 0 | 1
@@ -101,7 +114,16 @@ export type EvaluatedTurnEffectBatch = {
   effects: ReturnType<typeof createActiveRuleEffectRepository>
   pendingApplications: ReadonlyMap<string, readonly CharacterRuleActionApplication[]>
   pendingEncounterActorApplications: ReadonlyMap<string, readonly CharacterRuleActionApplication[]>
-  executionStates: ReadonlyMap<string, { current: number; temporary: number; conditions: string[] }>
+  retainedConditionIdsByActorId: ReadonlyMap<string, readonly string[]>
+  executionStates: ReadonlyMap<
+    string,
+    {
+      current: number
+      temporary: number
+      conditions: string[]
+      scalarValues: Record<string, number>
+    }
+  >
   initialEncounterActorConditions: ReadonlyMap<string, unknown[]>
   executions: readonly BatchExecution[]
   selectionChecksum: string
@@ -161,7 +183,10 @@ export type TurnEffectBatchEvaluation =
       selectionChecksum: string | null
     }
   | { kind: 'READY'; batch: EvaluatedTurnEffectBatch }
-  | { kind: 'PENDING'; pendingSnapshot: ServerKernelRuleExecutionPendingSnapshotDto }
+  | {
+      kind: 'PENDING'
+      pendingSnapshot: ServerKernelRuleExecutionPendingSnapshotDto
+    }
 
 export type TurnEffectCoordinatorRoot = {
   rootCommandId: string
@@ -217,11 +242,49 @@ function ownerForActor(actor: EncounterActorRecord, encounterId: string) {
     if (!actor.sourceId) throw new EncounterValidationError('Character effect owner is incomplete.')
     return { kind: 'CHARACTER' as const, characterId: actor.sourceId }
   }
-  return { kind: 'ENCOUNTER_ACTOR' as const, encounterId, targetActorId: actor.id }
+  return {
+    kind: 'ENCOUNTER_ACTOR' as const,
+    encounterId,
+    targetActorId: actor.id
+  }
 }
 
 function ownerKey(actor: EncounterActorRecord): string {
   return actor.kind === 'CHARACTER' ? `CHARACTER:${actor.sourceId}` : `ENCOUNTER_ACTOR:${actor.id}`
+}
+
+/**
+ * An expiring effect may remove only the condition state it owns.  A prior
+ * manual condition (the baseline) or another locked contribution retains the
+ * flat projection and turns the removal into a receipt-visible no-op.
+ */
+function retainedConditionIdsForEffect(input: {
+  effect: TurnEffectCandidate['effect']
+  ownerEffects: readonly TurnEffectCandidate['effect'][]
+  excludedEffectIds?: ReadonlySet<string>
+}): readonly string[] {
+  if (input.effect.definition.schemaVersion !== 2) return []
+  const retained = new Set<string>()
+  for (const contribution of input.effect.definition.stateContributions) {
+    if (contribution.kind !== 'CONDITION_OWNERSHIP') continue
+    if (contribution.baselinePresent) retained.add(contribution.conditionId)
+    if (
+      input.ownerEffects.some(
+        (other) =>
+          other.id !== input.effect.id &&
+          !input.excludedEffectIds?.has(other.id) &&
+          other.definition.schemaVersion === 2 &&
+          other.definition.stateContributions.some(
+            (candidate) =>
+              candidate.kind === 'CONDITION_OWNERSHIP' &&
+              candidate.conditionId === contribution.conditionId
+          )
+      )
+    ) {
+      retained.add(contribution.conditionId)
+    }
+  }
+  return [...retained].sort()
 }
 
 function isEligibleTurnEffect(input: {
@@ -245,10 +308,78 @@ function isEligibleTurnEffect(input: {
   )
 }
 
+function perceptionDependency(effect: TurnEffectCandidate['effect']) {
+  // Compatibility fixtures and legacy rows are validated by the executor;
+  // they cannot declare a System-owned perception dependency here.
+  if (!effect.definition?.frozenGraph) return null
+  return characterRuleActionSystemAdapterRegistry
+    .get(effect.definition.frozenGraph.source.gameSystemId)
+    ?.activeEffectPerceptionRequirement?.({
+      definition: effect.definition,
+      lifecycle: effect.lifecycle
+    })
+}
+
+function perceptionSourceActor(input: {
+  encounter: EncounterRecord
+  effect: TurnEffectCandidate['effect']
+}): EncounterActorRecord | null {
+  const { origin } = input.effect.definition
+  if (origin.kind === 'ENCOUNTER') {
+    return origin.sourceActorId
+      ? (input.encounter.actors.find((actor) => actor.id === origin.sourceActorId) ?? null)
+      : null
+  }
+  return (
+    input.encounter.actors.find(
+      (actor) => actor.kind === 'CHARACTER' && actor.sourceId === origin.sourceAggregateId
+    ) ?? null
+  )
+}
+
+function combatPerceptionEffect(
+  input: TurnEffectCandidate['effect']
+): LockedCombatPerceptionEffect {
+  return {
+    id: input.id,
+    version: input.version,
+    createdOrdinal: input.createdOrdinal,
+    definitionChecksum: input.definitionChecksum,
+    definition: input.definition
+  }
+}
+
+function lockedConditionDefinitionIds(input: {
+  actor: EncounterActorRecord
+  lockedCharacters: ReadonlyMap<string, LockedEncounterActiveEffectCharacter>
+  encounterActors: ReadonlyMap<string, EncounterActorRecord>
+}): readonly string[] {
+  if (input.actor.kind === 'CHARACTER') {
+    if (!input.actor.sourceId) {
+      throw new EncounterConflictError('Encounter Character perception observer is incomplete.')
+    }
+    const character = input.lockedCharacters.get(input.actor.sourceId)
+    if (!character || character.actor.id !== input.actor.id) {
+      throw new EncounterConflictError('Encounter Character perception observer was not locked.')
+    }
+    return character.activeConditionDefinitionIds
+  }
+  const actor = input.encounterActors.get(input.actor.id)
+  if (!actor || actor.kind === 'CHARACTER') {
+    throw new EncounterConflictError('Encounter actor perception observer was not locked.')
+  }
+  return readEncounterActorConditionState(actor.conditions ?? []).ids
+}
+
 function pendingCandidateSnapshot(input: {
   ordinal: number
   candidate: TurnEffectCandidate
-  state: { current: number; temporary: number; conditions: string[] }
+  state: {
+    current: number
+    temporary: number
+    conditions: string[]
+    scalarValues: Record<string, number>
+  }
   character: LockedCharacter | null
   d20Policy?: Extract<
     Awaited<ReturnType<typeof executeCharacterActiveRuleEffectWithPause>>,
@@ -280,6 +411,7 @@ function pendingCandidateSnapshot(input: {
       currentHitPoints: input.state.current,
       temporaryHitPoints: input.state.temporary,
       maximumHitPoints: input.character?.maximumHitPoints ?? input.candidate.actor.maxHitPoints,
+      scalarValues: input.state.scalarValues,
       conditionIds: input.state.conditions
     }),
     d20Policy: input.d20Policy ?? null
@@ -292,18 +424,21 @@ function currentStateEquals(
     temporaryHitPoints: number
     maximumHitPoints: number
     conditionIds: readonly string[]
+    scalarValues: Readonly<Record<string, number>>
   },
   right: {
     currentHitPoints: number
     temporaryHitPoints: number
     maximumHitPoints: number
     conditionIds: readonly string[]
+    scalarValues: Readonly<Record<string, number>>
   }
 ): boolean {
   return (
     left.currentHitPoints === right.currentHitPoints &&
     left.temporaryHitPoints === right.temporaryHitPoints &&
     left.maximumHitPoints === right.maximumHitPoints &&
+    checksumRuleDocument(left.scalarValues) === checksumRuleDocument(right.scalarValues) &&
     left.conditionIds.length === right.conditionIds.length &&
     left.conditionIds.every((conditionId, index) => conditionId === right.conditionIds[index])
   )
@@ -317,7 +452,12 @@ function matchesPendingCandidate(input: {
   ordinal: number
   candidate: TurnEffectCandidate
   character: LockedCharacter | null
-  state: { current: number; temporary: number; conditions: string[] }
+  state: {
+    current: number
+    temporary: number
+    conditions: string[]
+    scalarValues: Record<string, number>
+  }
   requireTargetState: boolean
 }): boolean {
   const { expected, candidate, character } = input
@@ -355,6 +495,7 @@ function matchesPendingCandidate(input: {
         currentHitPoints: input.state.current,
         temporaryHitPoints: input.state.temporary,
         maximumHitPoints: character?.maximumHitPoints ?? candidate.actor.maxHitPoints,
+        scalarValues: input.state.scalarValues,
         conditionIds: input.state.conditions
       })
   )
@@ -364,11 +505,25 @@ function appendStoredExecution(input: {
   execution: BatchExecution
   candidate: TurnEffectCandidate
   character: LockedCharacter | null
-  state: { current: number; temporary: number; conditions: string[] }
+  state: {
+    current: number
+    temporary: number
+    conditions: string[]
+    scalarValues: Record<string, number>
+  }
+  retainedConditionIds: readonly string[]
   effectInput: CharacterActiveRuleEffectExecutionInput
   pendingApplications: Map<string, readonly CharacterRuleActionApplication[]>
   pendingEncounterActorApplications: Map<string, readonly CharacterRuleActionApplication[]>
-  executionStates: Map<string, { current: number; temporary: number; conditions: string[] }>
+  executionStates: Map<
+    string,
+    {
+      current: number
+      temporary: number
+      conditions: string[]
+      scalarValues: Record<string, number>
+    }
+  >
   executions: BatchExecution[]
 }): void {
   const { execution, candidate, character, state } = input
@@ -390,25 +545,35 @@ function appendStoredExecution(input: {
         binding.nodeId === expectedBindings[index]?.nodeId
     )
   const remainingTicks = candidate.effect.lifecycle.remainingTicks
-  if (remainingTicks === null) {
-    throw new EncounterConflictError('A recurring turn effect must retain a finite lifecycle.')
-  }
-  const expectedAfterLifecycle =
-    remainingTicks === 1 ? null : { schemaVersion: 1 as const, remainingTicks: remainingTicks - 1 }
   const lifecycleMatches =
-    execution.lifecycle.kind === 'EXPIRE'
-      ? remainingTicks === 1 &&
-        execution.lifecycle.expectedVersion === candidate.effect.version &&
-        execution.lifecycle.beforeRemainingTicks === 1 &&
-        execution.lifecycle.afterRemainingTicks === 0 &&
-        execution.lifecycle.beforeLifecycleChecksum === candidate.effect.lifecycleChecksum
-      : expectedAfterLifecycle !== null &&
-        execution.lifecycle.expectedVersion === candidate.effect.version &&
-        execution.lifecycle.afterVersion === candidate.effect.version + 1 &&
-        execution.lifecycle.beforeRemainingTicks === remainingTicks &&
-        execution.lifecycle.afterRemainingTicks === expectedAfterLifecycle.remainingTicks &&
-        execution.lifecycle.beforeLifecycleChecksum === candidate.effect.lifecycleChecksum &&
-        execution.lifecycle.afterLifecycleChecksum === checksumRuleDocument(expectedAfterLifecycle)
+    remainingTicks === null
+      ? execution.lifecycle.kind === 'EXPIRE'
+        ? execution.lifecycle.expectedVersion === candidate.effect.version &&
+          execution.lifecycle.beforeRemainingTicks === null &&
+          execution.lifecycle.afterRemainingTicks === null &&
+          execution.lifecycle.beforeLifecycleChecksum === candidate.effect.lifecycleChecksum
+        : execution.lifecycle.expectedVersion === candidate.effect.version &&
+          execution.lifecycle.afterVersion === candidate.effect.version + 1 &&
+          execution.lifecycle.beforeRemainingTicks === null &&
+          execution.lifecycle.afterRemainingTicks === null &&
+          execution.lifecycle.beforeLifecycleChecksum === candidate.effect.lifecycleChecksum &&
+          execution.lifecycle.afterLifecycleChecksum ===
+            checksumRuleDocument({ schemaVersion: 1, remainingTicks: null })
+      : execution.lifecycle.kind === 'EXPIRE'
+        ? execution.lifecycle.expectedVersion === candidate.effect.version &&
+          execution.lifecycle.beforeRemainingTicks === remainingTicks &&
+          execution.lifecycle.afterRemainingTicks === 0 &&
+          execution.lifecycle.beforeLifecycleChecksum === candidate.effect.lifecycleChecksum
+        : execution.lifecycle.expectedVersion === candidate.effect.version &&
+          execution.lifecycle.afterVersion === candidate.effect.version + 1 &&
+          execution.lifecycle.beforeRemainingTicks === remainingTicks &&
+          execution.lifecycle.afterRemainingTicks === remainingTicks - 1 &&
+          execution.lifecycle.beforeLifecycleChecksum === candidate.effect.lifecycleChecksum &&
+          execution.lifecycle.afterLifecycleChecksum ===
+            checksumRuleDocument({
+              schemaVersion: 1,
+              remainingTicks: remainingTicks - 1
+            })
   const applications: CharacterRuleActionApplication[] = execution.applications.map(
     (application): CharacterRuleActionApplication => ({
       ...application,
@@ -420,7 +585,9 @@ function appendStoredExecution(input: {
     currentHitPoints: state.current,
     temporaryHitPoints: state.temporary,
     maximumHitPoints: character?.maximumHitPoints ?? candidate.actor.maxHitPoints,
+    scalarValues: state.scalarValues,
     conditionIds: state.conditions,
+    retainedConditionIds: input.retainedConditionIds,
     applications
   })
   const reconstructedFolded = foldCharacterMechanicsApplications({
@@ -428,7 +595,9 @@ function appendStoredExecution(input: {
     currentHitPoints: state.current,
     temporaryHitPoints: state.temporary,
     maximumHitPoints: character?.maximumHitPoints ?? candidate.actor.maxHitPoints,
+    scalarValues: state.scalarValues,
     conditionIds: state.conditions,
+    retainedConditionIds: input.retainedConditionIds,
     applications: reconstructed.applications
   })
   const reconstructedLifecycleMatches =
@@ -479,7 +648,10 @@ function appendStoredExecution(input: {
     !currentStateEquals(execution.targetTransition.before, folded.before) ||
     !currentStateEquals(execution.targetTransition.after, folded.after) ||
     execution.targetTransition.checksum !==
-      checksumRuleDocument({ targetActorId: candidate.actor.id, ...folded.before }) ||
+      checksumRuleDocument({
+        targetActorId: candidate.actor.id,
+        ...folded.before
+      }) ||
     JSON.stringify(execution.applications) !== JSON.stringify(folded.applications) ||
     JSON.stringify(execution.applications) !== JSON.stringify(reconstructedFolded.applications) ||
     JSON.stringify(execution.d20) !== JSON.stringify(reconstructed.d20 ?? null) ||
@@ -488,6 +660,7 @@ function appendStoredExecution(input: {
       currentHitPoints: state.current,
       temporaryHitPoints: state.temporary,
       maximumHitPoints: character?.maximumHitPoints ?? candidate.actor.maxHitPoints,
+      scalarValues: state.scalarValues,
       conditionIds: state.conditions
     })
   ) {
@@ -499,7 +672,8 @@ function appendStoredExecution(input: {
   input.executionStates.set(key, {
     current: execution.targetTransition.after.currentHitPoints,
     temporary: execution.targetTransition.after.temporaryHitPoints,
-    conditions: [...execution.targetTransition.after.conditionIds]
+    conditions: [...execution.targetTransition.after.conditionIds],
+    scalarValues: { ...execution.targetTransition.after.scalarValues }
   })
   if (character) {
     input.pendingApplications.set(character.id, [
@@ -529,10 +703,28 @@ export async function applyEvaluatedTurnEffectBatch(input: {
   const transitions: BatchResult['characterTransitions'] = []
   const encounterActorTransitions: BatchResult['encounterActorTransitions'] = []
   const encounterRepository = createEncounterRepository(input.trx)
+  const evaluatedForActor = (targetActorId: string) => {
+    const executions = input.batch.executions.filter(
+      (execution) => execution.targetActorId === targetActorId
+    )
+    const first = executions[0]
+    const last = executions.at(-1)
+    if (!first || !last)
+      throw new EncounterConflictError('Turn effect evaluated mechanics are unavailable.')
+    return {
+      applications: executions.flatMap((execution) => execution.applications),
+      targetTransition: {
+        checksum: first.targetTransition.checksum,
+        before: first.targetTransition.before,
+        after: last.targetTransition.after
+      }
+    }
+  }
   for (const characterId of input.batch.characterIds) {
     const applications = input.batch.pendingApplications.get(characterId)
     if (!applications) continue
     const character = input.batch.lockedCharacters.get(characterId)!
+    const evaluated = evaluatedForActor(character.actor.id)
     const applied = await applyLockedEncounterCharacterMechanicsBatch({
       trx: input.trx,
       actorUserId: input.actorUserId,
@@ -546,7 +738,10 @@ export async function applyEvaluatedTurnEffectBatch(input: {
       overlay: character.overlay,
       effectiveMaximumHitPoints: character.maximumHitPoints,
       conditionDefinitions: character.conditionDefinitions,
+      retainedConditionIds: input.batch.retainedConditionIdsByActorId.get(character.actor.id),
+      effectiveScalarValues: evaluated.targetTransition.before.scalarValues,
       applications,
+      evaluated,
       forceVersionAdvance: true
     })
     if (applied.streamVersion === null)
@@ -570,11 +765,15 @@ export async function applyEvaluatedTurnEffectBatch(input: {
     const initialConditions = input.batch.initialEncounterActorConditions.get(targetActorId)
     if (!initialConditions)
       throw new EncounterConflictError('Encounter actor conditions are unavailable.')
+    const evaluated = evaluatedForActor(targetActorId)
     const applied = await applyLockedEncounterActorMechanicsBatch({
       trx: input.trx,
       targetActor: actor,
       initialConditionRows: initialConditions,
-      applications
+      retainedConditionIds: input.batch.retainedConditionIdsByActorId.get(targetActorId),
+      effectiveScalarValues: evaluated.targetTransition.before.scalarValues,
+      applications,
+      evaluated
     })
     encounterActorTransitions.push({
       targetActorId,
@@ -591,7 +790,10 @@ export async function applyEvaluatedTurnEffectBatch(input: {
         id: candidate.effect.id,
         owner: ownerForActor(candidate.actor, input.encounter.id),
         expectedVersion: candidate.effect.version,
-        lifecycle: { schemaVersion: 1, remainingTicks: execution.lifecycle.afterRemainingTicks }
+        lifecycle: {
+          schemaVersion: 1,
+          remainingTicks: execution.lifecycle.afterRemainingTicks
+        }
       })
     } else {
       await input.batch.effects.deleteCas({
@@ -673,9 +875,10 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
   )
   if (!hasRecognizedCandidate) return { kind: 'TERMINAL', result: null, selectionChecksum: null }
 
-  const targetActors = selected
-    .filter(({ boundary, actor }) =>
-      preliminaryEffects.get(ownerKey(actor))!.some((effect) =>
+  const preliminaryCandidates = selected.flatMap(({ boundary, actor }) =>
+    preliminaryEffects
+      .get(ownerKey(actor))!
+      .filter((effect) =>
         isEligibleTurnEffect({
           effect,
           actor,
@@ -683,55 +886,85 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
           encounterId: input.encounter.id
         })
       )
-    )
-    .map(({ actor }) => actor)
-  const targetActorsByCharacter = new Map<string, EncounterActorRecord>()
-  const targetEncounterActors = new Map<string, EncounterActorRecord>()
-  for (const actor of targetActors) {
-    if (actor.kind !== 'CHARACTER') {
-      targetEncounterActors.set(actor.id, actor)
-      continue
-    }
-    if (!actor.sourceId) throw new EncounterValidationError('Character effect owner is incomplete.')
-    const prior = targetActorsByCharacter.get(actor.sourceId)
-    if (prior && prior.id !== actor.id)
-      throw new EncounterConflictError('A Character may appear only once in a turn-effect batch.')
-    targetActorsByCharacter.set(actor.sourceId, actor)
-  }
-  const targetCharacterIds = [...targetActorsByCharacter.keys()].sort()
-  const targetEncounterActorIds = [...targetEncounterActors.keys()].sort()
-
-  const effects = activeEffects
-  const effectsByCharacter = new Map<string, Awaited<ReturnType<typeof effects.lockByOwner>>>()
-  for (const characterId of targetCharacterIds) {
-    effectsByCharacter.set(
-      characterId,
-      await effects.lockByOwner({ kind: 'CHARACTER', characterId })
-    )
-  }
-  const effectsByEncounterActor = new Map<string, Awaited<ReturnType<typeof effects.lockByOwner>>>()
-  for (const targetActorId of targetEncounterActorIds) {
-    effectsByEncounterActor.set(
-      targetActorId,
-      await effects.lockByOwner({
-        kind: 'ENCOUNTER_ACTOR',
-        encounterId: input.encounter.id,
-        targetActorId
-      })
-    )
-  }
-  const candidates = selected
-    .filter(({ actor }) =>
-      actor.kind === 'CHARACTER'
-        ? targetActorsByCharacter.has(actor.sourceId!)
-        : targetEncounterActors.has(actor.id)
-    )
-    .flatMap(({ boundary, actor }) => {
-      return (
-        actor.kind === 'CHARACTER'
-          ? effectsByCharacter.get(actor.sourceId!)!
-          : effectsByEncounterActor.get(actor.id)!
+      .map((effect) => ({ boundary, actor, effect }))
+  )
+  const preliminarySelectionChecksum = checksumCanonicalJson({
+    commandType: input.commandType,
+    boundaries: preliminaryCandidates
+      .sort(
+        (left, right) =>
+          left.boundary.ordinal - right.boundary.ordinal ||
+          left.effect.createdOrdinal - right.effect.createdOrdinal ||
+          left.effect.id.localeCompare(right.effect.id)
       )
+      .map(({ boundary, actor, effect }) => ({
+        boundaryOrdinal: boundary.ordinal,
+        stage: boundary.stage,
+        targetActorId: actor.id,
+        owner: ownerForActor(actor, input.encounter.id),
+        activeEffectId: effect.id,
+        createdOrdinal: effect.createdOrdinal
+      }))
+  })
+  if (input.encounter.automationMode === 'MANUAL') {
+    return input.encounter.manualReminderMode === 'OFF'
+      ? { kind: 'TERMINAL', result: null, selectionChecksum: preliminarySelectionChecksum }
+      : {
+          kind: 'TERMINAL',
+          selectionChecksum: preliminarySelectionChecksum,
+          result: storedRuleExecutionResultDtoSchema.parse({
+            status: 'MANUAL',
+            occurrenceId: input.occurrenceId,
+            occurrenceVersion: 0,
+            reminder: { kind: 'MANUAL_RULE_REVIEW' }
+          })
+        }
+  }
+  const actorsToLock = new Map<string, EncounterActorRecord>()
+  for (const candidate of preliminaryCandidates) {
+    actorsToLock.set(candidate.actor.id, candidate.actor)
+    if (!perceptionDependency(candidate.effect)) continue
+    const source = perceptionSourceActor({ encounter: input.encounter, effect: candidate.effect })
+    if (source) actorsToLock.set(source.id, source)
+  }
+  const perceptionRequired = preliminaryCandidates.some((candidate) =>
+    perceptionDependency(candidate.effect)
+  )
+  const sceneRepository = perceptionRequired ? createVttSceneRepository(input.trx) : null
+  const sceneBinding = sceneRepository
+    ? await sceneRepository.findEncounterBinding(input.encounter.id)
+    : null
+  const lockedScene = sceneBinding
+    ? await sceneRepository!.lockLiveScene(sceneBinding.sceneId)
+    : null
+  const actorIdByTokenId = new Map<string, string>()
+  if (lockedScene && sceneRepository) {
+    for (const binding of await sceneRepository.listActorTokenBindings(input.encounter.id)) {
+      if (actorIdByTokenId.has(binding.tokenId))
+        throw new EncounterConflictError('Encounter perception token binding is ambiguous.')
+      actorIdByTokenId.set(binding.tokenId, binding.actorId)
+    }
+  }
+  const targetState = await lockEncounterActiveEffectTargets({
+    trx: input.trx,
+    encounter: input.encounter,
+    actors: [...actorsToLock.values()],
+    attunementSlotOverride: input.attunementSlotOverride,
+    getEncounterActorSnapshot: input.getEncounterActorSnapshot
+  })
+  const effects = activeEffects
+  const {
+    characterIds,
+    encounterActorIds,
+    lockedCharacters,
+    encounterActors,
+    effectiveScalarValuesByActorId,
+    activeEffectsByActorId,
+    encounterActorRules
+  } = targetState
+  const candidates = selected
+    .flatMap(({ boundary, actor }) =>
+      (activeEffectsByActorId?.get(actor.id) ?? [])
         .filter((effect) =>
           isEligibleTurnEffect({
             effect,
@@ -740,16 +973,26 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
             encounterId: input.encounter.id
           })
         )
-        .map((effect) => ({ boundary, actor, effect }))
-    })
+        .map((effect) => ({
+          boundary,
+          actor: actor.kind === 'CHARACTER' ? actor : (encounterActors.get(actor.id) ?? actor),
+          effect
+        }))
+    )
     .sort(
       (left, right) =>
         left.boundary.ordinal - right.boundary.ordinal ||
         left.effect.createdOrdinal - right.effect.createdOrdinal ||
         left.effect.id.localeCompare(right.effect.id)
     )
-  if (candidates.length > 128) {
+  if (candidates.length > 128)
     throw new EncounterValidationError('A turn may execute at most 128 active effects.')
+  for (const candidate of candidates) {
+    if (!perceptionDependency(candidate.effect)) continue
+    const source = perceptionSourceActor({ encounter: input.encounter, effect: candidate.effect })
+    if (source && !actorsToLock.has(source.id)) {
+      throw new EncounterConflictError('Active-effect perception source changed before execution.')
+    }
   }
   const selectionChecksum = checksumCanonicalJson({
     commandType: input.commandType,
@@ -763,49 +1006,161 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
     }))
   })
   if (candidates.length === 0) return { kind: 'TERMINAL', result: null, selectionChecksum }
-  if (input.encounter.automationMode === 'MANUAL') {
-    if (input.encounter.manualReminderMode === 'OFF') {
-      return { kind: 'TERMINAL', result: null, selectionChecksum }
-    }
-    return {
-      kind: 'TERMINAL',
-      selectionChecksum,
-      result: storedRuleExecutionResultDtoSchema.parse({
-        status: 'MANUAL',
-        occurrenceId: input.occurrenceId,
-        occurrenceVersion: 0,
-        reminder: { kind: 'MANUAL_RULE_REVIEW' }
-      })
-    }
-  }
   if (!input.runtime) {
     throw new EncounterValidationError('A Rules runtime is required for active Character effects.')
+  }
+  const perceptionByEffectId = new Map<
+    string,
+    { requirement: 'DETECT' | 'LOCATE' | 'PRECISE' | 'SEE'; satisfied: boolean; checksum: string }
+  >()
+  const lockedSpatialEffects =
+    lockedScene && perceptionRequired
+      ? await createSpatialRuleEffectRepository(input.trx).lockScope({
+          encounterId: input.encounter.id,
+          sceneId: lockedScene.state.id
+        })
+      : null
+  const spatialEffects = lockedSpatialEffects ? await lockedSpatialEffects.list() : []
+  const currentDefinitionsById = new Map<
+    string,
+    ReturnType<ReturnType<typeof createReusableDefinitionRepository>['requireCurrent']>
+  >()
+  const conditionStateByActorId = new Map<string, ReturnType<typeof resolveRuleCapabilityState>>()
+  const conditionDefinitions = {
+    requireCurrent(definitionId: string) {
+      let current = currentDefinitionsById.get(definitionId)
+      if (!current) {
+        current = createReusableDefinitionRepository(input.trx).requireCurrent(definitionId)
+        currentDefinitionsById.set(definitionId, current)
+      }
+      return current
+    }
+  }
+  const conditionStateForActor = (actor: EncounterActorRecord) => {
+    if (!actor.systemId) {
+      throw new EncounterConflictError('Encounter actor System identity is unavailable.')
+    }
+    let state = conditionStateByActorId.get(actor.id)
+    if (!state) {
+      state = resolveRuleCapabilityState({
+        definitions: conditionDefinitions,
+        gameSystemId: actor.systemId,
+        activeConditionDefinitionIds: lockedConditionDefinitionIds({
+          actor,
+          lockedCharacters,
+          encounterActors
+        }),
+        capabilityDefinitionIds: []
+      })
+      conditionStateByActorId.set(actor.id, state)
+    }
+    return state
+  }
+  for (const candidate of candidates) {
+    const dependency = perceptionDependency(candidate.effect)
+    if (!dependency) continue
+    const source = perceptionSourceActor({ encounter: input.encounter, effect: candidate.effect })
+    const targetToken = lockedScene?.state.tokens.find(
+      (token) => actorIdByTokenId.get(token.id) === candidate.actor.id
+    )
+    const sourceToken = source
+      ? lockedScene?.state.tokens.find((token) => actorIdByTokenId.get(token.id) === source.id)
+      : undefined
+    if (!lockedScene || !source || !targetToken || !sourceToken) {
+      perceptionByEffectId.set(candidate.effect.id, {
+        requirement: dependency.requirement,
+        satisfied: false,
+        checksum: checksumRuleDocument({
+          requirement: dependency.requirement,
+          targetActorId: candidate.actor.id,
+          sourceActorId: source?.id ?? null,
+          reason: 'UNAVAILABLE'
+        })
+      })
+      continue
+    }
+    const localAreaEffects = spatialEffects
+      .filter((effect) => {
+        const geometry = effectiveSpatialGeometry(
+          {
+            anchorKind: effect.placement.anchorKind,
+            geometry: effect.placement.geometry,
+            sourceTokenId: effect.placement.sourceTokenId
+          },
+          lockedScene.state.tokens
+        )
+        return (
+          geometry !== null &&
+          (spatialGeometryIntersectsTokenFootprint({ geometry, token: targetToken }) ||
+            spatialGeometryIntersectsTokenFootprint({ geometry, token: sourceToken }))
+        )
+      })
+      .map((effect) => ({
+        id: effect.id,
+        version: effect.version,
+        createdOrdinal: effect.createdOrdinal,
+        definitionChecksum: effect.definitionChecksum,
+        definition: effect.definition
+      }))
+    const targetCharacter =
+      candidate.actor.kind === 'CHARACTER' && candidate.actor.sourceId
+        ? lockedCharacters.get(candidate.actor.sourceId)
+        : null
+    const baselineCapabilities = candidate.actor.systemId
+      ? (characterRuleActionSystemAdapterRegistry
+          .get(candidate.actor.systemId)
+          ?.combatPerceptionBaselineCapabilities?.({ observerActorId: candidate.actor.id }) ?? [])
+      : []
+    const [observerConditionState, subjectConditionState] = await Promise.all([
+      conditionStateForActor(candidate.actor),
+      conditionStateForActor(source)
+    ])
+    const result = resolveEncounterCombatPerception({
+      requirement: dependency.requirement,
+      observerActorId: candidate.actor.id,
+      scene: lockedScene.state,
+      sceneGrid: lockedScene.state.grid,
+      observerToken: targetToken,
+      subjectToken: sourceToken,
+      baselineCapabilities,
+      pinnedSenseDefinitions: targetCharacter?.mechanics.pinnedSenseDefinitions ?? [],
+      observerEffects: (activeEffectsByActorId?.get(candidate.actor.id) ?? []).map(
+        combatPerceptionEffect
+      ),
+      subjectEffects: (activeEffectsByActorId?.get(source.id) ?? []).map(combatPerceptionEffect),
+      localAreaEffects,
+      observerConditionContributions: deriveConditionCombatPerceptionContributions({
+        conditionDefinitions: observerConditionState.conditionDefinitions,
+        relation: 'OBSERVER',
+        sceneGrid: lockedScene.state.grid
+      }),
+      subjectConditionContributions: deriveConditionCombatPerceptionContributions({
+        conditionDefinitions: subjectConditionState.conditionDefinitions,
+        relation: 'SUBJECT',
+        sceneGrid: lockedScene.state.grid
+      }),
+      sharedSurface: true,
+      invisibleChannels: [],
+      suppressedChannels: []
+    })
+    perceptionByEffectId.set(candidate.effect.id, {
+      requirement: dependency.requirement,
+      satisfied: result.satisfied,
+      checksum: checksumRuleDocument({
+        requirement: dependency.requirement,
+        targetActorId: candidate.actor.id,
+        sourceActorId: source.id,
+        sceneId: lockedScene.state.id,
+        sceneVersion: lockedScene.state.version,
+        result
+      })
+    })
   }
   if (input.resume && input.encounter.automationMode !== 'ASSISTED') {
     throw new EncounterConflictError(
       'Only Assisted turn-effect batches may resume a pending occurrence.'
     )
   }
-  const targetState = await lockEncounterActiveEffectTargets({
-    trx: input.trx,
-    encounter: input.encounter,
-    actors: candidates.map((candidate) => candidate.actor),
-    attunementSlotOverride: input.attunementSlotOverride,
-    getEncounterActorSnapshot: input.getEncounterActorSnapshot
-  })
-  const {
-    characterIds,
-    encounterActorIds,
-    lockedCharacters,
-    encounterActors,
-    encounterActorRules
-  } = targetState
-  for (const candidate of candidates) {
-    if (candidate.actor.kind !== 'CHARACTER') {
-      candidate.actor = encounterActors.get(candidate.actor.id)!
-    }
-  }
-
   const resumeContext = input.resume?.pendingSnapshot.applicationContext
   if (resumeContext && resumeContext.kind !== 'ENCOUNTER_TURN_ACTIVE_EFFECTS') {
     throw new EncounterValidationError('The pending rule occurrence is not a turn-effect batch.')
@@ -867,9 +1222,16 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
     string,
     readonly CharacterRuleActionApplication[]
   >()
+  const retainedConditionIdsByActorId = new Map<string, readonly string[]>()
+  const stagedExpiredEffectIds = new Set<string>()
   const executionStates = new Map<
     string,
-    { current: number; temporary: number; conditions: string[] }
+    {
+      current: number
+      temporary: number
+      conditions: string[]
+      scalarValues: Record<string, number>
+    }
   >()
   const initialEncounterActorConditions = new Map<string, unknown[]>()
   const executions: BatchExecution[] = []
@@ -899,6 +1261,14 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
         ? {
             current: character.mechanics.commandState.state.hitpoints.current,
             temporary: character.mechanics.commandState.state.hitpoints.temp ?? 0,
+            scalarValues: {
+              ...(effectiveScalarValuesByActorId?.get(candidate.actor.id) ??
+                (() => {
+                  throw new EncounterConflictError(
+                    'The active-effect scalar target state is unavailable.'
+                  )
+                })())
+            },
             conditions: (character.mechanics.commandState.state.conditions ?? []).map(
               (condition) => condition.conditionTypeId
             )
@@ -906,10 +1276,23 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
         : {
             current: candidate.actor.currentHitPoints,
             temporary: candidate.actor.tempHitPoints,
+            scalarValues: {
+              ...(effectiveScalarValuesByActorId?.get(candidate.actor.id) ??
+                (() => {
+                  throw new EncounterConflictError(
+                    'The active-effect scalar target state is unavailable.'
+                  )
+                })())
+            },
             conditions: actorConditions!.ids
           })
     const protections =
       actorRule?.targetProtection.status === 'NORMALIZED' ? actorRule.targetProtection : null
+    const retainedConditionIds = retainedConditionIdsForEffect({
+      effect: candidate.effect,
+      ownerEffects: activeEffectsByActorId?.get(candidate.actor.id) ?? [],
+      excludedEffectIds: stagedExpiredEffectIds
+    })
     const effectInput = {
       activeEffectId: candidate.effect.id,
       activeEffectVersion: candidate.effect.version,
@@ -922,6 +1305,7 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
       currentHitPoints: state.current,
       temporaryHitPoints: state.temporary,
       maximumHitPoints: character?.maximumHitPoints ?? candidate.actor.maxHitPoints,
+      targetScalarValues: state.scalarValues,
       targetConditionIds: state.conditions,
       targetDerivedFacts: character
         ? {
@@ -934,6 +1318,7 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
           }
         : {
             targetProtection: actorRule!.targetProtection,
+            savingThrowDefinitions: actorRule!.savingThrowDefinitions ?? [],
             statBlock: snapshotStatBlock(candidate.actor)
           },
       defenses: character?.overlay.rulePolicyOutput.defenses ?? protections?.defenses ?? [],
@@ -941,6 +1326,7 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
         character?.overlay.rulePolicyOutput.conditionImmunityIds ??
         protections?.conditionImmunityIds ??
         [],
+      perception: perceptionByEffectId.get(candidate.effect.id) ?? null,
       runtime: input.runtime,
       adapters: characterRuleActionSystemAdapterRegistry
     }
@@ -951,12 +1337,15 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
         candidate,
         character,
         state,
+        retainedConditionIds,
         effectInput,
         pendingApplications,
         pendingEncounterActorApplications,
         executionStates,
         executions
       })
+      if (stagedExecution.lifecycle.kind === 'EXPIRE')
+        stagedExpiredEffectIds.add(candidate.effect.id)
       continue
     }
     if (resumeContext && ordinal < resumeContext.currentCandidate.ordinal) {
@@ -971,12 +1360,15 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
         candidate,
         character,
         state,
+        retainedConditionIds,
         effectInput,
         pendingApplications,
         pendingEncounterActorApplications,
         executionStates,
         executions
       })
+      if (storedExecution.lifecycle.kind === 'EXPIRE')
+        stagedExpiredEffectIds.add(candidate.effect.id)
       continue
     }
     if (resumeContext && ordinal > resumeContext.currentCandidate.ordinal) {
@@ -1048,7 +1440,8 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
       const stateForCandidate = {
         current: state.current,
         temporary: state.temporary,
-        conditions: [...state.conditions]
+        conditions: [...state.conditions],
+        scalarValues: { ...state.scalarValues }
       }
       const remainingCandidates = candidates.slice(ordinal + 1).map((remaining, offset) => {
         const remainingCharacter =
@@ -1061,6 +1454,14 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
             ? {
                 current: remainingCharacter.mechanics.commandState.state.hitpoints.current,
                 temporary: remainingCharacter.mechanics.commandState.state.hitpoints.temp ?? 0,
+                scalarValues: {
+                  ...(effectiveScalarValuesByActorId?.get(remaining.actor.id) ??
+                    (() => {
+                      throw new EncounterConflictError(
+                        'The active-effect scalar target state is unavailable.'
+                      )
+                    })())
+                },
                 conditions: (remainingCharacter.mechanics.commandState.state.conditions ?? []).map(
                   (condition) => condition.conditionTypeId
                 )
@@ -1068,6 +1469,14 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
             : {
                 current: remaining.actor.currentHitPoints,
                 temporary: remaining.actor.tempHitPoints,
+                scalarValues: {
+                  ...(effectiveScalarValuesByActorId?.get(remaining.actor.id) ??
+                    (() => {
+                      throw new EncounterConflictError(
+                        'The active-effect scalar target state is unavailable.'
+                      )
+                    })())
+                },
                 conditions: readEncounterActorConditionState(remaining.actor.conditions ?? []).ids
               })
         return pendingCandidateSnapshot({
@@ -1105,7 +1514,9 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
       currentHitPoints: state.current,
       temporaryHitPoints: state.temporary,
       maximumHitPoints: character?.maximumHitPoints ?? candidate.actor.maxHitPoints,
+      scalarValues: state.scalarValues,
       conditionIds: state.conditions,
+      retainedConditionIds,
       applications: effectResult.applications
     })
     if (
@@ -1121,7 +1532,8 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
     executionStates.set(targetKey, {
       current: folded.after.currentHitPoints,
       temporary: folded.after.temporaryHitPoints,
-      conditions: folded.after.conditionIds
+      conditions: folded.after.conditionIds,
+      scalarValues: { ...folded.after.scalarValues }
     })
     if (character) {
       pendingApplications.set(character.id, [
@@ -1157,7 +1569,10 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
       execution: effectResult.execution,
       d20: effectResult.d20 ?? null,
       targetTransition: {
-        checksum: checksumRuleDocument({ targetActorId: candidate.actor.id, ...folded.before }),
+        checksum: checksumRuleDocument({
+          targetActorId: candidate.actor.id,
+          ...folded.before
+        }),
         before: folded.before,
         after: folded.after
       },
@@ -1181,6 +1596,19 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
               beforeLifecycleChecksum: effectResult.lifecycle.beforeLifecycleChecksum
             }
     })
+    if (effectResult.lifecycle.kind === 'EXPIRE') stagedExpiredEffectIds.add(candidate.effect.id)
+  }
+
+  for (const candidate of candidates) {
+    const retainedConditionIds = retainedConditionIdsForEffect({
+      effect: candidate.effect,
+      ownerEffects: activeEffectsByActorId?.get(candidate.actor.id) ?? [],
+      excludedEffectIds: stagedExpiredEffectIds
+    })
+    if (retainedConditionIds.length === 0) continue
+    const current = new Set(retainedConditionIdsByActorId.get(candidate.actor.id) ?? [])
+    retainedConditionIds.forEach((conditionId) => current.add(conditionId))
+    retainedConditionIdsByActorId.set(candidate.actor.id, [...current].sort())
   }
 
   return {
@@ -1194,6 +1622,7 @@ export async function evaluateEncounterTurnCharacterActiveEffects(input: {
       effects,
       pendingApplications,
       pendingEncounterActorApplications,
+      retainedConditionIdsByActorId,
       executionStates,
       initialEncounterActorConditions,
       executions,
@@ -1214,7 +1643,10 @@ export async function executeEncounterTurnCharacterActiveEffects(
 }> {
   const evaluation = await evaluateEncounterTurnCharacterActiveEffects(input)
   if (evaluation.kind === 'TERMINAL')
-    return { result: evaluation.result, selectionChecksum: evaluation.selectionChecksum }
+    return {
+      result: evaluation.result,
+      selectionChecksum: evaluation.selectionChecksum
+    }
   if (evaluation.kind === 'PENDING') {
     throw new EncounterConflictError(
       'Assisted turn-effect execution requires the dedicated occurrence coordinator.'

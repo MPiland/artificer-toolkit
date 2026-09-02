@@ -6,6 +6,7 @@ import {
   getCharacterForUser,
   getCharacterHistoryForUser,
   getCharacterPreparationOptionsForUser,
+  getCharacterSheetActionsForUser,
   getCharacterSheetExtraOptionsForUser,
   getCharacterSheetPanelForUser,
   getCharacterSheetForUser,
@@ -37,6 +38,7 @@ import {
   characterRuleUpgradePreviewResponseDtoSchema,
   characterSheetExtraCatalogInputDtoSchema,
   characterSheetExtraCatalogResponseDtoSchema,
+  characterSheetActionDtoSchema,
   characterSheetCommandInputDtoSchema,
   characterSheetCommandResponseDtoSchema,
   characterSheetResponseDtoSchema
@@ -137,6 +139,15 @@ export const characterRouter = createTRPCRouter({
     .output(characterSheetResponseDtoSchema.nullable())
     .query(({ ctx, input }) =>
       withAuthenticatedDb(ctx, async (db, userId) => getCharacterSheetForUser(db, input.id, userId))
+    ),
+
+  actions: authenticatedProcedure
+    .input(idInputSchema)
+    .output(z.array(characterSheetActionDtoSchema).nullable())
+    .query(({ ctx, input }) =>
+      withAuthenticatedDb(ctx, async (db, userId) =>
+        getCharacterSheetActionsForUser(db, input.id, userId)
+      )
     ),
 
   preparationOptions: authenticatedProcedure

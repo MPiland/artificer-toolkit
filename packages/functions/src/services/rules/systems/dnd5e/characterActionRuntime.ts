@@ -9,7 +9,9 @@ import {
   dnd5eAttackTestOperation,
   dnd5eConditionApplyProposalOperation,
   dnd5eDamageProposalOperation,
+  dnd5eHitPointMaximumReductionProposalOperation,
   dnd5eDamageTotalOperation,
+  dnd5eSaveDamageTotalOperation,
   dnd5eEffectActionCapability,
   dnd5eHealProposalOperation,
   dnd5eHealTotalOperation,
@@ -26,14 +28,28 @@ import { dnd5eMovementReactionEligibilityOperation } from './reactionEligibility
 import { DND5E_FLANKING_POLICY_MODULE } from './flankingPolicy.js'
 import { DND5E_FACING_POLICY_MODULE } from './facingPolicy.js'
 import { DND5E_ALTERNATING_DIAGONALS_OPERATION_KEY } from './optionalCombatPolicy.js'
+import { DND5E_DISARM_POLICY_MODULE } from './optionalActionPolicy.js'
+import {
+  DND5E_OVERRUN_POLICY_MODULE,
+  DND5E_SHOVE_ASIDE_POLICY_MODULE,
+  DND5E_TUMBLE_POLICY_MODULE
+} from './optionalMovementPolicy.js'
+import { DND5E_CLEAVING_POLICY_MODULE } from './optionalResolutionPolicy.js'
+import { compileDnd5eCreatureRuleFacts } from './creatureRuleFacts.js'
 
 export const dnd5eRulesRuntimeRegistration = {
   capabilities: [dnd5eEffectActionCapability],
   gameSystemId: dnd5eEffectActionCapability.gameSystemId,
+  compileCreatureRuleFacts: compileDnd5eCreatureRuleFacts,
   policyModules: [
     { key: DND5E_ALTERNATING_DIAGONALS_OPERATION_KEY, contractVersion: 1 },
     DND5E_FLANKING_POLICY_MODULE,
-    DND5E_FACING_POLICY_MODULE
+    DND5E_FACING_POLICY_MODULE,
+    DND5E_DISARM_POLICY_MODULE,
+    DND5E_OVERRUN_POLICY_MODULE,
+    DND5E_SHOVE_ASIDE_POLICY_MODULE,
+    DND5E_TUMBLE_POLICY_MODULE,
+    DND5E_CLEAVING_POLICY_MODULE
   ],
   operations: [
     dnd5eConcentrationDamageDcOperation,
@@ -42,7 +58,9 @@ export const dnd5eRulesRuntimeRegistration = {
     dnd5eHealProposalOperation,
     dnd5eTemporaryHitPointsProposalOperation,
     dnd5eDamageProposalOperation,
+    dnd5eHitPointMaximumReductionProposalOperation,
     dnd5eDamageTotalOperation,
+    dnd5eSaveDamageTotalOperation,
     dnd5eHealTotalOperation,
     dnd5eConditionApplyProposalOperation,
     dnd5eAttackTestOperation,

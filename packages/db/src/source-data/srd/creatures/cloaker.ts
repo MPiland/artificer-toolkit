@@ -1,6 +1,7 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
+import { SRD_BREATHING_CAPABILITY_DEFINITION_ID } from '../ruleState.js'
 import * as S from './shared.js'
 export const cloaker: CreatureAuthored = {
   id: S.CREATURE_IDS.CLOAKER,
@@ -287,12 +288,12 @@ export const cloaker: CreatureAuthored = {
               id: S.actionId(9141, 3),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(9141, 3) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
                     id: S.actionId(9141, 3),
@@ -309,51 +310,56 @@ export const cloaker: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          id: S.actionId(9141, 101),
-          order: 2,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: { code: S.ACTIVATION_CODE.FREE },
-            range: {
-              id: S.actionId(9141, 102),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(9141, 103),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${S.actionId(9141, 103)}__result`,
-                resultKind: 'SEQUENCE',
-                outcomes: [
-                  {
-                    id: S.actionId(9141, 104),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('BLINDED')
                   },
                   {
                     id: S.actionId(9141, 105),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_CLOAKER_BITE
+                    effectKind: S.EFFECT_KIND.ACTOR_RELATIONSHIP,
+                    modules: [
+                      {
+                        id: S.actionId(9141, 106),
+                        order: 1,
+                        kind: 'TARGET_SIZE_MAXIMUM',
+                        sizeCode: S.SIZE_CODE.LARGE
+                      },
+                      {
+                        id: S.actionId(9141, 107),
+                        order: 2,
+                        kind: 'SOURCE_ACTION_TARGET_RESTRICTION',
+                        actionEffectIds: [S.actionId(9141, 1)]
+                      },
+                      {
+                        id: S.actionId(9141, 108),
+                        order: 3,
+                        kind: 'SOURCE_ATTACK_ROLL_INFLUENCE',
+                        actionEffectIds: [S.actionId(9141, 1)],
+                        influence: 'ADVANTAGE'
+                      },
+                      { id: S.actionId(9141, 109), order: 4, kind: 'SOURCE_FOLLOWS_TARGET' },
+                      {
+                        id: S.actionId(9141, 110),
+                        order: 5,
+                        kind: 'SOURCE_RELEASE_MOVEMENT_COST',
+                        amount: 5,
+                        unit: S.MEASUREMENT_UNIT_CODE.FEET
+                      },
+                      {
+                        id: S.actionId(9141, 111),
+                        order: 6,
+                        kind: 'ESCAPE_CHECK',
+                        activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+                        abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
+                        fixedDc: 16,
+                        actorKinds: ['TARGET', 'CREATURE_WITHIN_REACH']
+                      },
+                      {
+                        id: S.actionId(9141, 112),
+                        order: 7,
+                        kind: 'CONDITIONAL_TARGET_STATE',
+                        whenResolvedAttackD20Mode: 'ADVANTAGE',
+                        conditionIds: [conditionTypeId('BLINDED')],
+                        capabilityDefinitionIds: [SRD_BREATHING_CAPABILITY_DEFINITION_ID]
+                      }
+                    ]
                   }
                 ]
               }

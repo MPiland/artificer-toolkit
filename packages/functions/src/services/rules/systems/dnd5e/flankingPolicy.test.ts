@@ -72,6 +72,7 @@ function capability(input: { available?: boolean; definitionId?: string; systemI
     },
     available: input.available ?? true,
     suppressingConditionDefinitionIds: [],
+    suppressingActiveEffectIds: [],
     contributionIds: []
   }
   return { availability, availabilityChecksum: checksumRuleDocument(availability) }

@@ -52,13 +52,15 @@ import {
 const actorId = '00000000-0000-4000-8000-000000000001'
 const conditionId = '00000000-0000-4000-8000-000000000002'
 const damageTypeId = '00000000-0000-4000-8000-000000000003'
+const damageOutcomeId = '00000000-0000-4000-8000-000000000004'
 const characterId = '00000000-0000-4000-8000-000000000010'
 
 const trace = {
   sourceNodeId: 'effect-node',
   sourceOperationKey: 'effect.apply',
   authoredPath: null,
-  resolvedPath: 'ON_USE'
+  resolvedPath: 'ON_USE',
+  sourceActiveEffectId: '00000000-0000-4000-8000-000000000005'
 }
 
 type BatchInput = Parameters<typeof applyLockedEncounterCharacterMechanicsBatch>[0]
@@ -209,6 +211,7 @@ describe('foldCharacterMechanicsApplications', () => {
       currentHitPoints: 11,
       temporaryHitPoints: 0,
       maximumHitPoints: 12,
+      scalarValues: {},
       conditionIds: [conditionId]
     })
     expect(result.applications.map((application) => application.ordinal)).toEqual([0, 1, 2])
@@ -231,6 +234,127 @@ describe('foldCharacterMechanicsApplications', () => {
       applied: false
     })
     expect(result.stateChanged).toBe(false)
+  })
+
+  it('removes an owned condition and records the terminal condition state', () => {
+    const result = foldCharacterMechanicsApplications({
+      targetActorId: actorId,
+      currentHitPoints: 10,
+      temporaryHitPoints: 0,
+      maximumHitPoints: 10,
+      conditionIds: [conditionId],
+      applications: [{ ...trace, kind: 'CONDITION_REMOVE', targetActorId: actorId, conditionId }]
+    })
+
+    expect(result.after.conditionIds).toEqual([])
+    expect(result.applications).toEqual([
+      expect.objectContaining({
+        kind: 'CONDITION_REMOVE',
+        beforePresent: true,
+        afterPresent: false,
+        applied: true
+      })
+    ])
+  })
+
+  it('records a source-bound removal as a no-op while another contribution retains it', () => {
+    const result = foldCharacterMechanicsApplications({
+      targetActorId: actorId,
+      currentHitPoints: 10,
+      temporaryHitPoints: 0,
+      maximumHitPoints: 10,
+      conditionIds: [conditionId],
+      retainedConditionIds: [conditionId],
+      applications: [{ ...trace, kind: 'CONDITION_REMOVE', targetActorId: actorId, conditionId }]
+    })
+
+    expect(result.after.conditionIds).toEqual([conditionId])
+    expect(result.applications).toEqual([
+      expect.objectContaining({
+        kind: 'CONDITION_REMOVE',
+        beforePresent: true,
+        afterPresent: true,
+        applied: false
+      })
+    ])
+  })
+
+  it('reduces maximum hit points from resolved damage and clamps current hit points', () => {
+    const result = foldCharacterMechanicsApplications({
+      targetActorId: actorId,
+      currentHitPoints: 10,
+      temporaryHitPoints: 0,
+      maximumHitPoints: 10,
+      conditionIds: [],
+      applications: [
+        {
+          ...trace,
+          kind: 'HIT_POINT_MAXIMUM_REDUCTION',
+          targetActorId: actorId,
+          sourceDamageNodeId: 'damage-node',
+          sourceDamageOperationKey: 'dnd5e.damage-proposal',
+          sourceDamageOutcomeId: damageOutcomeId,
+          reductionAmount: 4,
+          recoveryTags: ['RESTORE_HIT_POINT_MAXIMUM']
+        }
+      ]
+    })
+
+    expect(result.after).toMatchObject({ currentHitPoints: 6, maximumHitPoints: 6 })
+    expect(result.applications[0]).toMatchObject({
+      kind: 'HIT_POINT_MAXIMUM_REDUCTION',
+      beforeMaximumHitPoints: 10,
+      afterMaximumHitPoints: 6,
+      sourceDamageOutcomeId: damageOutcomeId
+    })
+  })
+
+  it('stacks UUID-backed scalar reductions, clamps at zero, and records terminal hit-point zero', () => {
+    const scalarDefinitionId = '00000000-0000-4000-8000-000000000061'
+    const result = foldCharacterMechanicsApplications({
+      targetActorId: actorId,
+      currentHitPoints: 10,
+      temporaryHitPoints: 0,
+      maximumHitPoints: 10,
+      conditionIds: [],
+      scalarValues: { [scalarDefinitionId]: 3 },
+      applications: [
+        {
+          ...trace,
+          kind: 'SCALAR_REDUCTION',
+          targetActorId: actorId,
+          valueDefinitionId: scalarDefinitionId,
+          reductionAmount: 1,
+          stacking: 'ADDITIVE',
+          floor: 0,
+          recoveryTriggers: ['SHORT_REST', 'LONG_REST'],
+          terminalConsequence: 'TARGET_DIED',
+          sourceOutcomeId: damageOutcomeId
+        },
+        {
+          ...trace,
+          kind: 'SCALAR_REDUCTION',
+          targetActorId: actorId,
+          valueDefinitionId: scalarDefinitionId,
+          reductionAmount: 4,
+          stacking: 'ADDITIVE',
+          floor: 0,
+          recoveryTriggers: ['SHORT_REST', 'LONG_REST'],
+          terminalConsequence: 'TARGET_DIED',
+          sourceOutcomeId: '00000000-0000-4000-8000-000000000062'
+        }
+      ]
+    })
+
+    expect(result.before.scalarValues).toEqual({ [scalarDefinitionId]: 3 })
+    expect(result.after).toMatchObject({
+      currentHitPoints: 0,
+      scalarValues: { [scalarDefinitionId]: 0 }
+    })
+    expect(result.applications).toMatchObject([
+      { kind: 'SCALAR_REDUCTION', beforeValue: 3, afterValue: 2, targetDied: false },
+      { kind: 'SCALAR_REDUCTION', beforeValue: 2, afterValue: 0, targetDied: true }
+    ])
   })
 
   it('rejects stale hit-point chaining before persistence', () => {
@@ -402,6 +526,21 @@ describe('applyLockedEncounterCharacterMechanicsBatch', () => {
     ])
   })
 
+  it('commits a sealed terminal spell-slot transition exactly once', async () => {
+    await applyLockedEncounterCharacterMechanicsBatch(
+      makeBatchInput({
+        forceVersionAdvance: true,
+        spellSlotUsage: [{ slotKey: 'STANDARD:1', used: 1 }]
+      })
+    )
+
+    expect(state.patch).toHaveBeenCalledTimes(1)
+    const patches = state.patch.mock.calls[0]?.[1] as Array<{ kind: string; value: unknown }>
+    expect(patches.find((patch) => patch.kind === 'SPELL_SLOTS')?.value).toEqual([
+      { slotKey: 'STANDARD:1', used: 1 }
+    ])
+  })
+
   it('does not write an empty non-forced batch', async () => {
     const result = await applyLockedEncounterCharacterMechanicsBatch(makeBatchInput())
 
@@ -433,6 +572,44 @@ describe('applyLockedEncounterCharacterMechanicsBatch', () => {
         commandId,
         sourceCommandId: '00000000-0000-4000-8000-000000000016',
         occurrenceId: '00000000-0000-4000-8000-000000000013'
+      })
+    )
+  })
+
+  it('records the retained condition state truthfully in Character history', async () => {
+    await applyLockedEncounterCharacterMechanicsBatch(
+      makeBatchInput({
+        retainedConditionIds: [conditionId],
+        applications: [
+          {
+            ...trace,
+            kind: 'TEMPORARY_HIT_POINTS',
+            targetActorId: actorId,
+            requestedAmount: 1,
+            resolvedAmount: 1,
+            appliedAmount: 1,
+            beforeCurrentHitPoints: 10,
+            afterCurrentHitPoints: 10,
+            beforeTemporaryHitPoints: 0,
+            afterTemporaryHitPoints: 1,
+            maximumHitPoints: 10
+          },
+          { ...trace, kind: 'CONDITION_REMOVE', targetActorId: actorId, conditionId }
+        ]
+      })
+    )
+
+    expect(state.event).toHaveBeenCalledWith(
+      expect.objectContaining({
+        applications: expect.arrayContaining([
+          expect.objectContaining({
+            outcome: 'CONDITION_REMOVE',
+            conditionId,
+            beforePresent: true,
+            afterPresent: true,
+            applied: false
+          })
+        ])
       })
     )
   })
@@ -535,6 +712,7 @@ describe('applyLockedEncounterActorMechanicsBatch', () => {
       currentHitPoints: 8,
       temporaryHitPoints: 0,
       maximumHitPoints: 10,
+      scalarValues: {},
       conditionIds: [conditionId, addedConditionId]
     })
     expect(result.receiptApplications.map((application) => application.ordinal)).toEqual([0, 1])

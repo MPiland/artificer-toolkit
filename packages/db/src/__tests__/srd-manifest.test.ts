@@ -236,6 +236,28 @@ describe('SRD manifest coverage', () => {
     ])
   })
 
+  it('gives every authored SRD equipment attack an explicit target policy', () => {
+    const attacks = srdEquipment
+      .flatMap((equipment) => collectEffects(equipment))
+      .filter(
+        (effect) =>
+          effect.invocation.kind === 'ACTION' &&
+          (effect.invocation.triggerCode === 'MELEE_WEAPON_ATTACK' ||
+            effect.invocation.triggerCode === 'RANGED_WEAPON_ATTACK')
+      )
+
+    expect(attacks.length).toBeGreaterThan(0)
+    expect(
+      attacks
+        .filter(
+          (attack) =>
+            attack.invocation.targeting?.selectionKind !== TARGET_SELECTION_KIND.SINGLE_TARGET ||
+            attack.invocation.targeting.dispositionKind !== TARGET_DISPOSITION_KIND.ANY
+        )
+        .map(({ id }) => id)
+    ).toEqual([])
+  })
+
   it('declares target eligibility for every non-self SRD targeting record', () => {
     const missingEligibility = allSrdRecords().flatMap((record) =>
       collectTargetingRecords(record)

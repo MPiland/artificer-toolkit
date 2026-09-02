@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  completeVttMapMultipartUploadInputSchema,
   createVttMapUploadIntentInputSchema,
   createVttMapUploadIntentOutputSchema,
   signedVttMapDeliveryDtoSchema
@@ -31,17 +32,34 @@ describe('VTT map media contracts', () => {
     ).toBe(false)
   })
 
-  it('advertises the fixed TUS chunking contract without exposing delivery keys', () => {
+  it('advertises bounded R2 multipart uploads without exposing storage credentials', () => {
+    const output = createVttMapUploadIntentOutputSchema.parse({
+      assetId: uuid,
+      storageProvider: 'R2',
+      objectKey: `raw/${uuid}/${uuid}`,
+      expiresAt: '2026-08-15T12:00:00.000Z',
+      resumable: {
+        protocol: 'R2_MULTIPART',
+        chunkBytes: 6 * 1024 * 1024,
+        parts: [{ partNumber: 1, url: 'https://storage.example/part-1' }]
+      }
+    })
+
+    expect(output.resumable.protocol).toBe('R2_MULTIPART')
+    expect(output).not.toHaveProperty('token')
+    expect(output).not.toHaveProperty('bucket')
+  })
+
+  it('rejects duplicate multipart completion parts', () => {
     expect(
-      createVttMapUploadIntentOutputSchema.parse({
+      completeVttMapMultipartUploadInputSchema.safeParse({
         assetId: uuid,
-        bucket: 'media',
-        objectKey: `raw/${uuid}/${uuid}`,
-        token: 'signed-upload-token',
-        expiresAt: '2026-08-15T12:00:00.000Z',
-        resumable: { protocol: 'TUS', chunkBytes: 6 * 1024 * 1024 }
-      }).resumable
-    ).toEqual({ protocol: 'TUS', chunkBytes: 6 * 1024 * 1024 })
+        parts: [
+          { partNumber: 1, etag: 'first' },
+          { partNumber: 1, etag: 'duplicate' }
+        ]
+      }).success
+    ).toBe(false)
   })
 
   it('delivers only stable map metadata and signed URLs', () => {

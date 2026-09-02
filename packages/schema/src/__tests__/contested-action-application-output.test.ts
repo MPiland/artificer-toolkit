@@ -1,0 +1,143 @@
+import { describe, expect, it } from 'vitest'
+
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+
+import { serverRuleExecutionApplicationOutputsDtoSchema } from '../shared/rulesExecution.js'
+
+const ids = {
+  occurrence: '00000000-0000-4000-8000-000000000001',
+  sourceActor: '00000000-0000-4000-8000-000000000002',
+  targetActor: '00000000-0000-4000-8000-000000000003',
+  character: '00000000-0000-4000-8000-000000000004',
+  item: '00000000-0000-4000-8000-000000000005',
+  definition: '00000000-0000-4000-8000-000000000006',
+  graph: '00000000-0000-4000-8000-000000000007',
+  loadout: '00000000-0000-4000-8000-000000000008'
+} as const
+const checksum = (character: string) => character.repeat(64)
+
+function roll(actorId: string, requestNodeId: 'initiator_d20' | 'target_d20', selected: number) {
+  const contributors: [] = []
+  return {
+    actorId,
+    requestNodeId,
+    rollMode: 'NORMAL' as const,
+    rawFaces: [selected],
+    selectedNatural: selected,
+    contributors,
+    contributorChecksum: checksumRuleDocument(contributors),
+    modifier: 2,
+    total: selected + 2
+  }
+}
+
+function receipt() {
+  return {
+    kind: 'CONTESTED_ACTION' as const,
+    schemaVersion: 1 as const,
+    occurrenceId: ids.occurrence,
+    sourceActorId: ids.sourceActor,
+    targetActorId: ids.targetActor,
+    sealedContextChecksum: checksum('a'),
+    policy: {
+      definitionId: ids.definition,
+      definitionVersion: 1,
+      definitionChecksum: checksum('b'),
+      moduleKey: 'd20.action.disarm',
+      moduleContractVersion: 1
+    },
+    contestGraph: {
+      definitionId: ids.graph,
+      checksum: checksum('c'),
+      identityChecksum: checksum('d')
+    },
+    sourceRoll: roll(ids.sourceActor, 'initiator_d20', 15),
+    targetRoll: roll(ids.targetActor, 'target_d20', 10),
+    outcome: 'SOURCE_WIN' as const,
+    stateTransition: {
+      kind: 'CHARACTER_ITEM_USE_STATE' as const,
+      characterId: ids.character,
+      itemInstanceId: ids.item,
+      fromState: 'EQUIPPED' as const,
+      toState: 'CARRIED' as const,
+      beforeStreamVersion: 4,
+      afterStreamVersion: 5,
+      beforeStateChecksum: checksum('e'),
+      afterStateChecksum: checksum('f')
+    },
+    actionEconomyTransition: {
+      definitionId: ids.definition,
+      definitionVersion: 1,
+      definitionChecksum: checksum('0'),
+      maximum: 1,
+      beforeUsed: 0,
+      afterUsed: 1
+    }
+  }
+}
+
+describe('contested-action application output', () => {
+  it('accepts Character and Encounter-actor wins plus target win or tie with no transition', () => {
+    expect(serverRuleExecutionApplicationOutputsDtoSchema.parse(receipt()).kind).toBe(
+      'CONTESTED_ACTION'
+    )
+    expect(
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...receipt(),
+        stateTransition: {
+          kind: 'ENCOUNTER_ACTOR_ITEM_USE_STATE',
+          actorId: ids.targetActor,
+          loadoutEntryId: ids.loadout,
+          equipmentId: ids.item,
+          fromState: 'HELD',
+          toState: 'CARRIED',
+          beforeStateChecksum: checksum('e'),
+          afterStateChecksum: checksum('f')
+        }
+      }).kind
+    ).toBe('CONTESTED_ACTION')
+    expect(
+      serverRuleExecutionApplicationOutputsDtoSchema.parse({
+        ...receipt(),
+        sourceRoll: roll(ids.sourceActor, 'initiator_d20', 10),
+        targetRoll: roll(ids.targetActor, 'target_d20', 10),
+        outcome: 'TARGET_WIN_OR_TIE',
+        stateTransition: { kind: 'NONE' },
+        actionEconomyTransition: null
+      }).kind
+    ).toBe('CONTESTED_ACTION')
+  })
+
+  it('rejects invalid roll bindings, totals, checksums, outcomes, and transitions', () => {
+    const valid = receipt()
+    const invalid = [
+      { ...valid, sourceRoll: { ...valid.sourceRoll, actorId: ids.targetActor } },
+      {
+        ...valid,
+        targetRoll: { ...valid.targetRoll, requestNodeId: valid.sourceRoll.requestNodeId }
+      },
+      { ...valid, sourceRoll: { ...valid.sourceRoll, rawFaces: [15, 12] } },
+      { ...valid, sourceRoll: { ...valid.sourceRoll, total: 99 } },
+      { ...valid, sourceRoll: { ...valid.sourceRoll, contributorChecksum: checksum('9') } },
+      { ...valid, outcome: 'TARGET_WIN_OR_TIE', stateTransition: { kind: 'NONE' } },
+      { ...valid, stateTransition: { kind: 'NONE' } },
+      {
+        ...valid,
+        sourceRoll: roll(ids.sourceActor, 'initiator_d20', 10),
+        targetRoll: roll(ids.targetActor, 'target_d20', 10),
+        outcome: 'TARGET_WIN_OR_TIE',
+        stateTransition: valid.stateTransition
+      },
+      {
+        ...valid,
+        stateTransition: { ...valid.stateTransition, afterStreamVersion: 4 }
+      },
+      {
+        ...valid,
+        actionEconomyTransition: { ...valid.actionEconomyTransition, afterUsed: 2 }
+      }
+    ]
+    for (const value of invalid)
+      expect(serverRuleExecutionApplicationOutputsDtoSchema.safeParse(value).success).toBe(false)
+  })
+})

@@ -146,6 +146,7 @@ function featureCapability(): EncounterFeatureActionCapabilityDescriptor {
   })
   return {
     kind: 'ENCOUNTER_FEATURE',
+    label: 'Reaction feature',
     gameSystemId: SYSTEM_ID,
     authoredRootKind: 'effect',
     entryPointDefinitionId: EFFECT_ID,
@@ -174,7 +175,8 @@ function featureCapability(): EncounterFeatureActionCapabilityDescriptor {
     sourceChecksum: 'a'.repeat(64),
     authoredEffectChecksum: 'b'.repeat(64),
     compiledEffectChecksum: 'c'.repeat(64),
-    featureResourceUse: null
+    featureResourceUse: null,
+    attackMechanic: null
   }
 }
 
@@ -227,6 +229,34 @@ describe('Encounter movement reaction source discovery', () => {
         lockedCharacters: new Map([[CHARACTER_ID, characterLocked({ rangeAmount: 10 })]])
       })
     ).toThrow('range does not match')
+  })
+
+  it('never treats a compiled spell cast as a movement-reaction candidate', () => {
+    const currentActor = actor()
+    const locked = characterLocked() as unknown as {
+      mechanics: { rulePolicyInput: Record<string, unknown>; compiledActionEntryPoints: unknown[] }
+    }
+    locked.mechanics.rulePolicyInput = { actionCandidates: [] }
+    locked.mechanics.compiledActionEntryPoints = [
+      {
+        schemaVersion: 4,
+        kind: 'CHARACTER_SPELL_CAST',
+        actionId: 'spell-candidate',
+        effectId: EFFECT_ID,
+        spell: {},
+        targetPolicy: {},
+        compilation: { kind: 'COMPILED', activeEffectPlan: null, executionPlan: {} }
+      }
+    ]
+    expect(
+      discoverEncounterMovementReactionSources({
+        encounter: { actors: [currentActor], gameSystemId: SYSTEM_ID },
+        actorIdByTokenId: new Map([[TOKEN_A_ID, ACTOR_ID]]),
+        tokens: [{ id: TOKEN_A_ID }],
+        lockedCharacters: new Map([[CHARACTER_ID, locked as LockedEncounterActiveEffectCharacter]]),
+        encounterFeatureCapabilities: []
+      })
+    ).toEqual([])
   })
 
   it('uses immutable Encounter feature capabilities without parsing actor labels', () => {

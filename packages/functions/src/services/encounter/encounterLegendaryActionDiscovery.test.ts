@@ -305,6 +305,7 @@ async function discover(
         }))
       : encounterFeatureCapabilities,
     lockedCharacters: new Map(),
+    activeEffectsByActorId: new Map([[actor.id, []]]),
     definitions: state.source,
     runtime: state.runtime,
     windowUsed: input.windowUsed
@@ -394,6 +395,7 @@ describe('Encounter Legendary Action discovery', () => {
         actorRules: actorRules(),
         encounterFeatureCapabilities: discoverEncounterFeatureActionCapabilities({ actor: owner }),
         lockedCharacters: new Map(),
+        activeEffectsByActorId: new Map([[owner.id, []]]),
         definitions: state.source,
         runtime: state.runtime
       })
@@ -411,6 +413,7 @@ describe('Encounter Legendary Action discovery', () => {
       actorRules: actorRules(),
       encounterFeatureCapabilities: capabilities,
       lockedCharacters: new Map(),
+      activeEffectsByActorId: new Map([[owner.id, []]]),
       definitions: sourceWithSeededFeatureDefinitions(state),
       runtime: state.runtime
     })
@@ -439,6 +442,7 @@ describe('Encounter Legendary Action discovery', () => {
           actor: replayState
         }),
         lockedCharacters: new Map(),
+        activeEffectsByActorId: new Map([[replayState.id, []]]),
         definitions: sourceWithSeededFeatureDefinitions(state),
         runtime: state.runtime
       })
@@ -460,6 +464,7 @@ describe('Encounter Legendary Action discovery', () => {
       actorRules: actorRules(),
       encounterFeatureCapabilities: discoverEncounterFeatureActionCapabilities({ actor: owner }),
       lockedCharacters: new Map(),
+      activeEffectsByActorId: new Map([[owner.id, []]]),
       definitions: sourceWithSeededFeatureDefinitions(state),
       runtime: state.runtime
     })
@@ -517,6 +522,7 @@ describe('Encounter Legendary Action discovery', () => {
           actor: refreshed!
         }),
         lockedCharacters: new Map(),
+        activeEffectsByActorId: new Map([[refreshed!.id, []]]),
         definitions: state.source,
         runtime: state.runtime
       })

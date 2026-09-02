@@ -61,6 +61,35 @@ describe('dnd5eInitiativeFactAdapter', () => {
     })
   })
 
+  it('uses a transient effective Character policy when active scalar state changes it', () => {
+    const binding = dnd5eInitiativeFactAdapter.bindActor({
+      kind: 'CHARACTER',
+      actor: { id: 'actor' },
+      characterId: 'character',
+      systemId: DND5E_SYSTEM_ID,
+      streamVersion: 4,
+      mechanics: {},
+      overlay: {
+        rulePolicyOutput: {
+          derivedStats: { initiative: { effective: 4 } },
+          rollModes: { initiative: 'NORMAL' }
+        }
+      },
+      effectiveRulePolicyOutput: {
+        derivedStats: { initiative: { effective: 1 } },
+        rollModes: { initiative: 'DISADVANTAGE' }
+      }
+    } as never)
+    expect(binding).toEqual({
+      automatic: true,
+      facts: {
+        [DND5E_INITIATIVE_FACT_KEYS.automatic]: true,
+        [DND5E_INITIATIVE_FACT_KEYS.modifier]: 1,
+        [DND5E_INITIATIVE_FACT_KEYS.rollMode]: 'DISADVANTAGE'
+      }
+    })
+  })
+
   it('uses pinned Creature policy and never parses Creature prose', () => {
     const binding = dnd5eInitiativeFactAdapter.bindActor({
       kind: 'CREATURE',

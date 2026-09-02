@@ -158,6 +158,21 @@ export interface CharacterSheetCommandAppliedEvent extends CharacterEventEnvelop
   result?: CharacterSheetCommandResult
 }
 
+/** A rules-runtime equipment-use-state transition committed on a Character. */
+export interface CharacterRuleEquipmentStateAppliedEvent extends CharacterEventEnvelope {
+  type: 'CHARACTER_RULE_EQUIPMENT_STATE_APPLIED'
+  encounterId: string
+  occurrenceId: string
+  sourceCommandId: string
+  commandFingerprint: string
+  committedStreamVersion: number
+  itemInstanceId: string
+  fromState: 'EQUIPPED'
+  toState: 'CARRIED'
+  beforeStateChecksum: string
+  afterStateChecksum: string
+}
+
 /** A rules-runtime batch applied through one owning aggregate command. */
 interface CharacterRuleOutcomeAppliedEventBase extends CharacterEventEnvelope {
   type: 'CHARACTER_RULE_OUTCOME_APPLIED'
@@ -185,6 +200,14 @@ export type CharacterRuleOutcomeAppliedEvent = CharacterRuleOutcomeAppliedEventB
         afterPresent: true
         applied: boolean
       }
+    | {
+        ordinal: number
+        outcome: 'CONDITION_REMOVE'
+        conditionId: string
+        beforePresent: boolean
+        afterPresent: boolean
+        applied: boolean
+      }
   )[]
 }
 
@@ -208,4 +231,5 @@ export type CharacterEvent =
   | ItemEquippedEvent
   | ItemUnequippedEvent
   | CharacterSheetCommandAppliedEvent
+  | CharacterRuleEquipmentStateAppliedEvent
   | CharacterRuleOutcomeAppliedEvent

@@ -150,6 +150,7 @@ function harness(input?: {
       currentHitPoints: 10,
       temporaryHitPoints: 0,
       maximumHitPoints: 10,
+      scalarValues: {},
       conditionIds: [],
       derivedFacts: {},
       defenses: [],

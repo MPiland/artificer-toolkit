@@ -76,6 +76,8 @@ export type ResolvedEquipment = Omit<BaseEquipmentAuthored, 'category' | 'proper
 
 export type CompiledEquipmentBase = {
   id: string
+  /** Retained for bounded play-surface projections; historical snapshots may omit it. */
+  label?: string
   restrictions?: BaseEquipmentAuthored['restrictions']
   requiresAttunement?: BaseEquipmentAuthored['requiresAttunement']
   cost?: CompiledCost
@@ -140,6 +142,7 @@ function compileEquipmentBase(
 
   return {
     id: authored.id,
+    label: authored.label,
     restrictions: authored.restrictions,
     requiresAttunement: authored.requiresAttunement,
     cost: 'cost' in authored ? authored.cost : undefined,

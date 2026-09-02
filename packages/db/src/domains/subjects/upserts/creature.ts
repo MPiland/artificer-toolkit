@@ -7,6 +7,8 @@ import {
   SIZE_CODE,
   type CreatureAuthored
 } from '@artificer-toolkit/shared'
+import { compileCreature } from '@artificer-toolkit/shared/compilers'
+import { creatureEquipmentLoadoutDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { upsertDetail } from '../../shared/upserts/index.js'
 import { upsertFeature } from '../../features/upserts/index.js'
 import { upsertProficiencyGrant } from '../../grants/upserts/index.js'
@@ -41,6 +43,7 @@ type CreatureRow = {
   mount_profile: Json | null
   companion_profile: Json | null
   npc_profile: Json | null
+  equipment_loadout: Json | null
   cost: Json | null
   carrying_capacity_amount: number | null
   carrying_capacity_unit: string | null
@@ -139,6 +142,9 @@ function buildBaseRow(jsonData: CreatureAuthored, contentSourceId: string): Crea
       ? (jsonData.companionProfile as unknown as Json)
       : null,
     npc_profile: jsonData.npcProfile ? (jsonData.npcProfile as unknown as Json) : null,
+    equipment_loadout: jsonData.equipmentLoadout
+      ? (jsonData.equipmentLoadout as unknown as Json)
+      : null,
     cost: jsonData.cost ? (jsonData.cost as unknown as Json) : null,
     carrying_capacity_amount: jsonData.carryingCapacity?.amount ?? null,
     carrying_capacity_unit: requireMeasurementUnit(
@@ -185,6 +191,7 @@ function buildCreatureUpdateRow(
     mount_profile: row.mount_profile,
     companion_profile: row.companion_profile,
     npc_profile: row.npc_profile,
+    equipment_loadout: row.equipment_loadout,
     cost: row.cost,
     carrying_capacity_amount: row.carrying_capacity_amount,
     carrying_capacity_unit: row.carrying_capacity_unit,
@@ -198,7 +205,15 @@ export async function upsertCreature(
   _systemId: string,
   contentSourceId: string
 ) {
-  const creatureRow = buildCreatureRow(jsonData, contentSourceId)
+  const creature = {
+    ...jsonData,
+    equipmentLoadout:
+      jsonData.equipmentLoadout === undefined
+        ? undefined
+        : creatureEquipmentLoadoutDtoSchema.parse(jsonData.equipmentLoadout)
+  }
+  compileCreature(creature)
+  const creatureRow = buildCreatureRow(creature, contentSourceId)
 
   const detailRows: CreatureDetailRow[] = (jsonData.details ?? []).map((detail) => ({
     creature_id: jsonData.id,

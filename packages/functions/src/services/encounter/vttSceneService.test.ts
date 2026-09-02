@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 import { canonicalizeJson } from '@artificer-toolkit/db'
 import type { SceneCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { MovementReactionTimelineDto } from '@artificer-toolkit/schema/shared/reaction'
 import {
   applySceneEvent,
   materializeCampaignScene,
@@ -106,6 +107,72 @@ function definition(): SceneDefinition {
 }
 
 describe('VTT scene command helpers', () => {
+  it('keeps a later passage boundary after an earlier automatic reaction and consumes it once', () => {
+    const timeline: MovementReactionTimelineDto = [
+      {
+        kind: 'AUTOMATIC_ACTION',
+        option: {
+          optionId: 'a'.repeat(64),
+          contactSourceId: 'b'.repeat(64),
+          actionId: 'earlier-automatic-reaction',
+          actionSourceKind: 'ENCOUNTER_FEATURE',
+          actionSourceCurrentnessChecksum: 'c'.repeat(64),
+          candidate: {
+            contact: { x: 1, y: 0 },
+            movingActorId: ids.encounter,
+            pathDistance: 1,
+            reactorActorId: ids.campaign,
+            reactorTokenId: ids.barrier,
+            sourceId: 'b'.repeat(64),
+            stage: 'BEFORE_LEAVE_REACH'
+          },
+          binding: {
+            kind: 'MOVEMENT',
+            stage: 'BEFORE_LEAVE_REACH',
+            perceptionRequirement: null,
+            eligibilityDefinitionId: ids.scene,
+            movementInterruption: null
+          },
+          policy: {
+            eligible: true,
+            allowanceDefinitionId: ids.command,
+            allowanceMaximum: 1,
+            allowanceRefreshBoundary: 'START_OF_TURN',
+            selectionPolicy: 'AUTOMATIC',
+            choiceDefinitionId: null,
+            targetPolicy: 'MOVER'
+          },
+          eligibilityEvidenceChecksum: 'd'.repeat(64),
+          authority: { kind: 'GM' },
+          visibility: 'GM_ONLY'
+        }
+      }
+    ]
+
+    expect(vttSceneServiceInternals.nextMovementTimelineBoundaryDistance(timeline, 2)).toBe(1)
+    expect(
+      vttSceneServiceInternals.nextMovementTimelineBoundaryDistance(timeline.slice(1), 2)
+    ).toBe(2)
+    expect(vttSceneServiceInternals.nextMovementTimelineBoundaryDistance([], null)).toBeNull()
+  })
+
+  it('continues after an ineligible passage contact instead of re-interrupting it', () => {
+    expect(vttSceneServiceInternals.nextMovementTimelineBoundaryDistance([], 2)).toBe(2)
+    expect(vttSceneServiceInternals.nextMovementTimelineBoundaryDistance([], null)).toBeNull()
+  })
+
+  it('does not issue passage options whose authoritative contest facts are unavailable', async () => {
+    const options = ['overrun', 'tumble'] as const
+    await expect(
+      vttSceneServiceInternals.filterExecutableMovementPassageOptions({
+        options,
+        prepare: async () => {
+          throw new EncounterValidationError('Custom actor contest facts are unavailable.')
+        }
+      })
+    ).resolves.toEqual([])
+  })
+
   it('maps a durable movement command to its renderer-neutral delta', () => {
     const input: SceneCommandInputDto = {
       commandId: ids.command,

@@ -322,6 +322,8 @@ export function restoreEncounterInitiativePending(input: {
     throw new Error('Pending occurrence is not an Encounter initiative lifecycle.')
   const {
     applicationContext: _applicationContext,
+    optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
+    phaseReceipts: _phaseReceipts,
     snapshotKind: _snapshotKind,
     ...continuationInput
   } = snapshot
@@ -472,8 +474,9 @@ export function projectEncounterInitiativePendingSummary(input: {
       encounterVersion: input.encounterVersion,
       actorId: request.actorId,
       requestId: request.requestId,
-      primaryOptionIds: request.primaryOptions.map((option) => option.optionId),
-      bonusOptionIds: request.bonusOptions.map((option) => option.optionId),
+      primaryOptions: request.primaryOptions,
+      bonusOptions: request.bonusOptions,
+      adjudicationFields: request.adjudicationFields,
       allowedResponses: ['INITIATIVE_DECLARATION']
     })
   }
@@ -490,8 +493,9 @@ export function projectEncounterInitiativePendingSummary(input: {
       encounterVersion: input.encounterVersion,
       actorId: context.phase.actorId,
       requestId: context.phase.requestId,
-      primaryOptionIds: context.phase.allowedPrimaryOptionIds,
-      bonusOptionIds: context.phase.allowedBonusOptionIds,
+      primaryOptions: context.phase.primaryOptions,
+      bonusOptions: context.phase.bonusOptions,
+      adjudicationFields: context.phase.adjudicationFields,
       allowedResponses: ['INITIATIVE_DECLARATION']
     })
   }

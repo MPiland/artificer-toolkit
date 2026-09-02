@@ -474,6 +474,7 @@ function legacyProjection(input: {
           {
             actorId: input.actorId,
             abilityScores: {},
+            checkTotals: {},
             targetProtection: { status: 'NOT_NORMALIZED' },
             featureResources: []
           }

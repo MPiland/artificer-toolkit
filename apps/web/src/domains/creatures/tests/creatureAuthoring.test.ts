@@ -26,6 +26,7 @@ describe('creature authoring helpers', () => {
       category: 'MONSTER',
       size: 'MEDIUM',
       systemId: 'dnd-5e-srd',
+      equipmentLoadout: [],
       abilityScores: createDefaultAbilityScores()
     })
   })
@@ -94,6 +95,35 @@ describe('creature authoring helpers', () => {
         personalityTraits: ['Never names a source.']
       }
     })
+  })
+
+  it('preserves advanced equipment loadouts through guided-compatible normalization', () => {
+    const formValues = toCreatureFormValues({
+      ...normalizeCreatureForSubmit(createEmptyCreature({ systemId: 'dnd-5e-srd' })),
+      features: [
+        {
+          id: '00000000-0000-4000-8000-000000000002',
+          label: 'Sword',
+          description: 'Makes a weapon attack.',
+          section: 'ACTION',
+          order: 1
+        }
+      ],
+      equipmentLoadout: [
+        {
+          id: '00000000-0000-4000-8000-000000000003',
+          equipmentId: '00000000-0000-4000-8000-000000000004',
+          quantity: 1,
+          useState: 'HELD',
+          attuned: false,
+          actionFeatureIds: ['00000000-0000-4000-8000-000000000002']
+        }
+      ]
+    })
+
+    expect(normalizeCreatureForSubmit(formValues).equipmentLoadout).toEqual(
+      formValues.equipmentLoadout
+    )
   })
 
   it('creates schema-valid active creature defaults when required fields are selected', () => {

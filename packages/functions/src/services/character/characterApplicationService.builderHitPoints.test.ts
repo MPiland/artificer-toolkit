@@ -250,9 +250,15 @@ async function finalizeWithMaximum(
       evaluatorVersion: '0.54.0',
       modelContractVersion: 4
     },
+    facts: {
+      spellActionFacts: [],
+      spellCastCandidates: []
+    },
     output: {
       derivedStats: { maxHitPoints: { effective: effectiveMaxHitPoints } },
-      senses: []
+      senses: [],
+      spellCastDecisions: [],
+      spellCastMechanics: []
     },
     vocabularySnapshot: retainedVocabularySnapshot,
     compiledActionEntryPoints: [retainedConditionEntry]
@@ -322,7 +328,16 @@ describe('Builder hit point reconciliation', () => {
         evaluatorVersion: '0.54.0',
         modelContractVersion: 4
       },
-      output: { derivedStats: { maxHitPoints: { effective: 9 } }, senses: [] },
+      facts: {
+        spellActionFacts: [],
+        spellCastCandidates: []
+      },
+      output: {
+        derivedStats: { maxHitPoints: { effective: 9 } },
+        senses: [],
+        spellCastDecisions: [],
+        spellCastMechanics: []
+      },
       vocabularySnapshot: retainedVocabularySnapshot,
       compiledActionEntryPoints: [retainedConditionEntry]
     })
@@ -487,7 +502,16 @@ describe('Builder hit point reconciliation', () => {
         evaluatorVersion: '0.54.0',
         modelContractVersion: 4
       },
-      output: { derivedStats: { maxHitPoints: { effective: 9 } }, senses: [] },
+      facts: {
+        spellActionFacts: [],
+        spellCastCandidates: []
+      },
+      output: {
+        derivedStats: { maxHitPoints: { effective: 9 } },
+        senses: [],
+        spellCastDecisions: [],
+        spellCastMechanics: []
+      },
       vocabularySnapshot: retainedVocabularySnapshot,
       compiledActionEntryPoints: [retainedConditionEntry]
     })

@@ -13,7 +13,7 @@ import type { CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/cre
 type CreatureFeature = NonNullable<CreatureAuthoredDto['features']>[number]
 type CreatureReferences = Pick<
   AuthoredContentReferenceData,
-  'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'speeds'
+  'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'equipment' | 'speeds'
 >
 
 const abilityOrder = [
@@ -86,7 +86,7 @@ export function buildCreatureDetailModel(
           }))
         }
       : null,
-    profileItems: getCreatureProfileItems(creature),
+    profileItems: getCreatureProfileItems(creature, references),
     reactionItems: featureBuckets.reactions,
     regionalEffectItems: featureBuckets.regionalEffects,
     stats: {
@@ -215,7 +215,11 @@ function hasFeatureActivation(
   )
 }
 
-function getCreatureProfileItems(creature: CreatureAuthoredDto) {
+function getCreatureProfileItems(creature: CreatureAuthoredDto, references: CreatureReferences) {
+  const featureLabels = new Map(
+    (creature.features ?? []).map((feature) => [feature.id, feature.label])
+  )
+
   return [
     ...(creature.npcProfile?.personalityTraits ?? []).map((trait, index) => ({
       id: `personality-${index}`,
@@ -261,6 +265,19 @@ function getCreatureProfileItems(creature: CreatureAuthoredDto) {
       id: `logistics-${index}`,
       title: 'Logistics Note',
       description: note
+    })),
+    ...(creature.equipmentLoadout ?? []).map((entry) => ({
+      id: `equipment-loadout-${entry.id}`,
+      title: formatReferenceLabel(entry.equipmentId, 'Equipment', references.equipment),
+      meta: [formatEnumLabel(entry.useState), entry.attuned ? 'Attuned' : null]
+        .filter((value): value is string => value !== null)
+        .join(' · '),
+      description:
+        entry.actionFeatureIds.length > 0
+          ? `Bound actions: ${entry.actionFeatureIds
+              .map((featureId) => featureLabels.get(featureId) ?? 'Action feature')
+              .join(', ')}`
+          : `${entry.quantity} item${entry.quantity === 1 ? '' : 's'}`
     }))
   ]
 }

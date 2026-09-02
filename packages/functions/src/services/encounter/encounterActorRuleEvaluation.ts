@@ -91,6 +91,15 @@ function requireExactActorResourceIdentity(
         `Encounter actor "${factActor.actorId}" target protections do not match input facts.`
       )
     }
+    const expectedSavingThrowIds = Object.keys(factActor.abilityScores).sort()
+    const actualSavingThrowIds = (outputActor.savingThrowDefinitions ?? []).map(
+      (savingThrow) => savingThrow.abilityDefinitionId
+    )
+    if (JSON.stringify(actualSavingThrowIds) !== JSON.stringify(expectedSavingThrowIds)) {
+      throw new EncounterValidationError(
+        `Encounter actor "${factActor.actorId}" saving throws do not match input facts.`
+      )
+    }
     if (factActor.featureResources.length !== outputActor.featureResources.length) {
       throw new EncounterValidationError(
         `Encounter actor "${factActor.actorId}" rule resources do not match input facts.`
@@ -119,6 +128,7 @@ function reconcileEncounterActorRuleOutput(
       const previousActor = previousSnapshot?.output.actors[actorIndex]
       return {
         ...actor,
+        savingThrowDefinitions: actor.savingThrowDefinitions ?? [],
         featureResources: actor.featureResources.map((resource, resourceIndex) => {
           const fact = actorFacts.featureResources[resourceIndex]!
           if (resource.rawUsed !== fact.used) {
@@ -147,6 +157,7 @@ function bindEncounterActorRuleOutputToFacts(
   return encounterActorRuleOutputSchema.parse({
     actors: output.actors.map((actor, actorIndex) => ({
       ...actor,
+      savingThrowDefinitions: actor.savingThrowDefinitions ?? [],
       featureResources: actor.featureResources.map((resource, resourceIndex) => {
         const used = facts.actors[actorIndex]!.featureResources[resourceIndex]!.used
         if (resource.maximum !== null && used > resource.maximum) {
@@ -216,6 +227,7 @@ export function refreshEncounterActorRuleSnapshot(
         return {
           actorId: actor.id,
           initiativeModifier: previous.initiativeModifier,
+          savingThrowDefinitions: previous.savingThrowDefinitions ?? [],
           targetProtection: previous.targetProtection,
           featureResources: snapshotFeatureDefinitions(actor).map((feature) => {
             const resource = previous.featureResources.find(
@@ -248,6 +260,7 @@ export async function evaluateEncounterActorRuleSnapshot(input: {
   encounter: EncounterRecord
   revisionId?: string | null
   previousSnapshot?: EncounterActorRuleSnapshot
+  effectiveScalarValuesByActorId?: ReadonlyMap<string, Readonly<Record<string, number>>>
 }): Promise<EncounterActorRuleEvaluationResult> {
   let revisionId = input.revisionId ?? input.encounter.rulePackRevisionId
   if (!revisionId && input.encounter.status === 'PREPARED') {
@@ -258,7 +271,10 @@ export async function evaluateEncounterActorRuleSnapshot(input: {
   if (!revisionId)
     throw new EncounterValidationError('This Encounter does not have a pinned rule revision.')
   try {
-    const sourceFacts = buildEncounterActorRuleFacts(input.encounter)
+    const sourceFacts = buildEncounterActorRuleFacts(
+      input.encounter,
+      input.effectiveScalarValuesByActorId
+    )
     const evaluated = await evaluateRuleRevision({
       db: input.db,
       revisionId,
@@ -272,7 +288,10 @@ export async function evaluateEncounterActorRuleSnapshot(input: {
       input.previousSnapshot
     )
     const reconciled = applyReconciledActorUsage(input.encounter, reconciledOutput)
-    const facts = buildEncounterActorRuleFacts(reconciled.encounter)
+    const facts = buildEncounterActorRuleFacts(
+      reconciled.encounter,
+      input.effectiveScalarValuesByActorId
+    )
     const output = bindEncounterActorRuleOutputToFacts(reconciledOutput, facts)
     return {
       snapshot: {

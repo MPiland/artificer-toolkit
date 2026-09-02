@@ -32,36 +32,60 @@ auditable even when Manual makes them inactive.
 
 ## Variant policy matrix
 
-| Definition                 | Automatic inputs and result                                                                                                                                                             | Bounded GM judgment / exclusion                                                                              |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Flanking                   | Adjacent occupied squares, opposite side/corner, visibility, and non-incapacitation produce melee advantage; reach alone is insufficient.                                               | Unusual geometry or visibility not represented by authoritative Scene facts is manual.                       |
-| Alternating diagonals      | Path parity applies the 5/10-foot diagonal sequence consistently to movement and range.                                                                                                 | Uncalibrated or unsupported grid facts are manual.                                                           |
-| Facing                     | Authoritative orientation and occupied footprint select front/side/rear arcs; rear attacks and permitted sight checks use the pinned policy.                                            | Unusual arcs, shield-side interpretation, and presentation choices require GM policy/data.                   |
-| Climb onto larger creature | Size/suitability and an Athletics/Acrobatics contest create a bounded attached state; movement follows the pinned policy.                                                               | Whether a body is suitable, landing, and dislodging choices can be GM decisions.                             |
-| Disarm                     | A qualifying attack replaces damage with an Athletics/Acrobatics contest; size, handedness, and advantage/disadvantage facts are evaluated; success creates a dropped-item disposition. | Item grip, unusual anatomy, and unsupported item state are manual.                                           |
-| Mark                       | A qualifying melee attack creates a bounded marker and permits the next eligible opportunity attack under the pinned resource/turn limit.                                               | Mark targets or timing unavailable in structured facts are manual.                                           |
-| Overrun                    | A movement attempt resolves the Athletics contest and size modifier, then permits one bounded passage when successful.                                                                  | Legal passage space and unusual body/terrain facts are manual.                                               |
-| Shove aside                | A qualifying shove contest resolves the target's legal 5-foot displacement.                                                                                                             | Space selection with no authoritative legal destination is manual.                                           |
-| Tumble                     | A movement attempt resolves the Acrobatics contest and permits one bounded passage.                                                                                                     | Unsupported movement/space conditions are manual.                                                            |
-| Hitting cover              | For ranged attacks, creature-provided cover is evaluated against the original attack total and cover creature defense; only the typed creature-cover case is automatic.                 | Barriers, terrain, objects, and multiple unmodeled cover providers are manual.                               |
-| Cleaving                   | A qualifying melee hit that reduces an eligible target to zero carries remaining damage to a chosen in-reach target through a bounded chain.                                            | Rider interactions, mixed damage, and target selection without structured facts are manual.                  |
-| Injuries                   | A configured trigger creates a persistent UUID-backed injury with a finite consequence and recovery state.                                                                              | Trigger discretion, table choice, and recovery adjudication outside the closed consequence set are GM-owned. |
-| Massive damage             | A qualifying damage event reaches the configured threshold, then resolves the pinned Constitution check and finite consequence.                                                         | Unavailable Constitution or consequence facts are manual.                                                    |
-| Morale                     | A configured morale trigger resolves the pinned check and records a bounded flee/surrender/continue result.                                                                             | Triggering, group leadership, route, surrender terms, and narrative consequences are GM-owned.               |
+| Definition                 | Automatic inputs and result                                                                                                                                                                                                                    | Bounded GM judgment / exclusion                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Flanking                   | Adjacent occupied squares, opposite side/corner, visibility, and non-incapacitation produce melee advantage; reach alone is insufficient.                                                                                                      | Unusual geometry or visibility not represented by authoritative Scene facts is manual.                       |
+| Alternating diagonals      | Path parity applies the 5/10-foot diagonal sequence consistently to movement and range.                                                                                                                                                        | Uncalibrated or unsupported grid facts are manual.                                                           |
+| Facing                     | Authoritative orientation and occupied footprint select front/side/rear arcs; rear attacks and permitted sight checks use the pinned policy.                                                                                                   | Unusual arcs, shield-side interpretation, and presentation choices require GM policy/data.                   |
+| Climb onto larger creature | Size/suitability and an Athletics/Acrobatics contest create a bounded attached state; movement follows the pinned policy.                                                                                                                      | Whether a body is suitable, landing, and dislodging choices can be GM decisions.                             |
+| Disarm                     | A qualifying attack replaces damage with a contest using the exact UUID-backed defender check definitions pinned by System data; size, handedness, and advantage/disadvantage facts are evaluated; success creates a dropped-item disposition. | Item grip, unusual anatomy, and unsupported item state are manual.                                           |
+| Mark                       | A qualifying melee attack creates a bounded marker and permits the next eligible opportunity attack under the pinned resource/turn limit.                                                                                                      | Mark targets or timing unavailable in structured facts are manual.                                           |
+| Overrun                    | A movement attempt resolves the exact UUID-backed contest definitions pinned by System data and the size modifier, then permits one bounded passage when successful.                                                                           | Legal passage space and unusual body/terrain facts are manual.                                               |
+| Shove aside                | A qualifying shove contest resolves the target's legal 5-foot displacement.                                                                                                                                                                    | Space selection with no authoritative legal destination is manual.                                           |
+| Tumble                     | A movement attempt resolves the exact UUID-backed contest definitions pinned by System data and permits one bounded passage.                                                                                                                   | Unsupported movement/space conditions are manual.                                                            |
+| Hitting cover              | For ranged attacks, creature-provided cover is evaluated against the original attack total and cover creature defense; only the typed creature-cover case is automatic.                                                                        | Barriers, terrain, objects, and multiple unmodeled cover providers are manual.                               |
+| Cleaving                   | A qualifying melee hit that reduces an eligible target to zero carries remaining damage to a chosen in-reach target through a bounded chain.                                                                                                   | Rider interactions, mixed damage, and target selection without structured facts are manual.                  |
+| Injuries                   | A configured trigger creates a persistent UUID-backed injury with a finite consequence and recovery state.                                                                                                                                     | Trigger discretion, table choice, and recovery adjudication outside the closed consequence set are GM-owned. |
+| Massive damage             | A qualifying damage event reaches the configured threshold, then resolves the pinned Constitution check and finite consequence.                                                                                                                | Unavailable Constitution or consequence facts are manual.                                                    |
+| Morale                     | A configured morale trigger resolves the pinned check and records a bounded flee/surrender/continue result.                                                                                                                                    | Triggering, group leadership, route, surrender terms, and narrative consequences are GM-owned.               |
 
 Damage types, resistance, immunity, vulnerability, reduction, critical handling, and authored
 advantage/disadvantage contributors remain shared stage facts or D&D policy modules; they are not
 silently redefined by an optional variant. Optional action definitions must use the same action,
 target, range, shape, modifier, resource, and effect primitives as ordinary authored content.
 
+Optional-action availability and required selections are projected by the server from the exact
+Encounter snapshot and current actor facts. Frontend controls render those closed descriptors; they
+do not identify a D&D rule, calculate a modifier, or decide which fields a rule requires. This is the
+same backend-described authoring/runtime boundary used by other schema-driven domains and leaves a
+future System free to project a different action vocabulary through the same controls.
+
+Action economy is System policy over shared aggregate-owned usage state. D&D supplies UUID-backed
+Action and Bonus Action allowance definitions with bounded usage and a start-of-turn refresh. The
+Encounter coordinator consumes only the exact definition selected by the System adapter; it does not
+assume that another game has actions, bonus actions, reactions, spell slots, or any other D&D economy.
+Overrun and Tumble first resolve against an exact hostile actor and a selected available allowance.
+A declined opportunity consumes nothing; once the player starts either contest, the selected Action
+or Bonus Action is consumed on success, tie, or failure. Success alone authorizes passage.
+A success authorizes only the frozen remainder of that same submitted movement path and occurrence;
+no later command inherits passage permission. The resumed path may cross that hostile footprint,
+cannot end in an occupied footprint, and does not suppress an otherwise eligible opportunity attack.
+The Scene supplies geometry while the Encounter occurrence owns the sealed continuation and receipt.
+
 ## Persistence and ownership
 
 Campaigns store explicit optional-definition selections. Encounters store the effective snapshot,
 source revision/checksum, and audited override receipt. Aggregate-owned state is used for persistent
-consequences: item dispositions for disarm, attachment for climbing, marks and passage usage for
-turn-scoped options, and versioned injury/morale state where the policy requires it. Scene owns
+consequences: item dispositions for disarm, attachment for climbing, marks for turn-scoped options,
+and versioned injury/morale state where the policy requires it. Overrun and Tumble keep only their
+pending frozen path continuation; they add no cross-command passage state. Scene owns
 orientation, footprint, grid calibration, and other factual position data. No global workflow table,
 feature-name branch, or client-trusted modifier is introduced.
+
+Cleaving never silently chooses the next target, including when only one eligible target remains.
+The acting Character controller or GM confirms the exact server-issued candidate. When mixed damage
+types interact differently with candidate defenses, only the GM receives the allocation choice;
+riders never transfer.
 
 A disarmed Character's held/equipped disposition is a Character Sheet mutation through the scoped
 Encounter capability; a Creature or Custom actor's disposition remains Encounter-actor state. This
@@ -88,6 +112,14 @@ revision, checksum, and capability validation path.
 The fixed Phase 8 acceptance ledger remains the quantitative source of completion. Adding a
 definition to this guide does not mark its case accepted; each case must advance through its stated
 focused, review, and database evidence.
+
+## Deferred execution variants
+
+- Exact substitution for one attack inside Multiattack, Extra Attack, or a reaction attack remains
+  deferred. The current packet admits an optional contested action only through an exact
+  System-defined allowance already selected by the action resolver; FREE, REACTION, and
+  no-activation sources cannot initiate it. Supporting individual-attack substitution requires a
+  separately authored attack-allocation contract rather than approximating it as another Action.
 
 ## Sources
 

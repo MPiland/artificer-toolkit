@@ -2,6 +2,8 @@ import type { ApplyGrantAuthored } from './applyGrant.js'
 import type { CommandManifestAuthored } from './commandManifest.js'
 import type { ConditionAuthored } from './condition.js'
 import type { DamageAuthored } from './damage.js'
+import type { HitPointMaximumReductionAuthored } from './hitPointMaximumReduction.js'
+import type { ScalarReductionAuthored } from './scalarReduction.js'
 import type { ForcedMovementAuthored } from './forcedMovement.js'
 import type { FollowUpSaveAuthored } from './followUpSave.js'
 import type { FollowUpCheckAuthored } from './followUpCheck.js'
@@ -18,6 +20,7 @@ import type { TelepathicLinkAuthored } from './telepathicLink.js'
 import type { PlantPortalAuthored } from './plantPortal.js'
 import type { TreeStrideAuthored } from './treeStride.js'
 import type { ClosedRuleAuthored } from './closedRule.js'
+import type { ActorRelationshipAuthored } from './actorRelationship.js'
 
 export type OutcomeRowMetadataAuthored = {
   label?: string
@@ -26,6 +29,8 @@ export type OutcomeRowMetadataAuthored = {
 
 export type OutcomeAuthored =
   | DamageAuthored
+  | HitPointMaximumReductionAuthored
+  | ScalarReductionAuthored
   | ConditionAuthored
   | HealAuthored
   | ApplyGrantAuthored
@@ -43,6 +48,7 @@ export type OutcomeAuthored =
   | TelepathicLinkAuthored
   | PlantPortalAuthored
   | TreeStrideAuthored
+  | ActorRelationshipAuthored
   | ClosedRuleAuthored
   | ManualAdjudicationAuthored
 

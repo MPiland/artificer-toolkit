@@ -4,6 +4,8 @@ import { applyGrantDtoSchema } from './applyGrant.js'
 import { commandManifestDtoSchema } from './commandManifest.js'
 import { conditionDtoSchema } from './condition.js'
 import { damageDtoSchema } from './damage.js'
+import { hitPointMaximumReductionDtoSchema } from './hitPointMaximumReduction.js'
+import { scalarReductionDtoSchema } from './scalarReduction.js'
 import { forcedMovementDtoSchema } from './forcedMovement.js'
 import { createFollowUpSaveDtoSchema } from './followUpSave.js'
 import { createFollowUpCheckDtoSchema } from './followUpCheck.js'
@@ -19,6 +21,7 @@ import { telepathicLinkDtoSchema } from './telepathicLink.js'
 import { plantPortalDtoSchema } from './plantPortal.js'
 import { treeStrideDtoSchema } from './treeStride.js'
 import { closedRuleDtoSchema } from './closedRule.js'
+import { actorRelationshipDtoSchema } from './actorRelationship.js'
 import { targetingDtoSchema } from './targeting.js'
 import { teleportDtoSchema } from './teleport.js'
 import { durationDtoSchema } from '../shared/duration.js'
@@ -47,6 +50,8 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
       includeManifest
         ? [
             damageDtoSchema,
+            hitPointMaximumReductionDtoSchema,
+            scalarReductionDtoSchema,
             conditionDtoSchema,
             healDtoSchema,
             applyGrantDtoSchema,
@@ -64,11 +69,14 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             telepathicLinkDtoSchema,
             plantPortalDtoSchema,
             treeStrideDtoSchema,
+            actorRelationshipDtoSchema,
             closedRuleDtoSchema,
             manualAdjudicationDtoSchema
           ]
         : [
             damageDtoSchema,
+            hitPointMaximumReductionDtoSchema,
+            scalarReductionDtoSchema,
             conditionDtoSchema,
             healDtoSchema,
             applyGrantDtoSchema,
@@ -85,6 +93,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             telepathicLinkDtoSchema,
             plantPortalDtoSchema,
             treeStrideDtoSchema,
+            actorRelationshipDtoSchema,
             closedRuleDtoSchema,
             manualAdjudicationDtoSchema
           ]

@@ -9,7 +9,16 @@ import {
   type EncounterOptionalCombatSnapshotDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_PROPERTY_CODE,
+  TRIGGER
+} from '@artificer-toolkit/shared/core'
+import {
+  checksumRuleDocument,
+  compareCanonicalD20Contributors
+} from '@artificer-toolkit/shared/rules'
+import { resolveD20Contributors } from '@artificer-toolkit/shared/rolls'
 
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 
@@ -33,6 +42,21 @@ type D20Influence = 'ADVANTAGE' | 'DISADVANTAGE'
 type D20Mode = 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
 type AbilityCheckKind = 'ATHLETICS' | 'ACROBATICS'
 
+const DND5E_SIZE_RANK = {
+  TINY: 0,
+  SMALL: 1,
+  MEDIUM: 2,
+  LARGE: 3,
+  HUGE: 4,
+  GARGANTUAN: 5
+} as const
+
+function dnd5eSizeRank(size: string | null): number | null {
+  return size !== null && size in DND5E_SIZE_RANK
+    ? DND5E_SIZE_RANK[size as keyof typeof DND5E_SIZE_RANK]
+    : null
+}
+
 export interface Dnd5eOptionalActionPin {
   readonly definitionChecksum: string
   readonly definitionId: string
@@ -41,8 +65,11 @@ export interface Dnd5eOptionalActionPin {
 }
 
 export interface Dnd5eOptionalActionContributor {
+  readonly domainKey: string | null
+  readonly grantId: string | null
   readonly influence: D20Influence
-  readonly reason: 'TARGET_HELD_WITH_TWO_OR_MORE_HANDS' | 'SIZE_RELATION'
+  readonly reason?: 'TARGET_HELD_WITH_TWO_OR_MORE_HANDS' | 'SIZE_RELATION'
+  readonly sourceId: string
 }
 
 interface D20ContestEvidence {
@@ -123,12 +150,37 @@ function validContest(evidence: D20ContestEvidence): boolean {
   )
 }
 
+function canonicalContributors(
+  contributors: readonly Dnd5eOptionalActionContributor[]
+): readonly Dnd5eOptionalActionContributor[] | null {
+  const ordered = [...contributors].sort(compareCanonicalD20Contributors)
+  for (let index = 1; index < ordered.length; index += 1) {
+    if (compareCanonicalD20Contributors(ordered[index - 1]!, ordered[index]!) === 0) return null
+  }
+  return ordered
+}
+
 function resolveMode(contributors: readonly Dnd5eOptionalActionContributor[]): D20Mode {
-  const hasAdvantage = contributors.some((contributor) => contributor.influence === 'ADVANTAGE')
-  const hasDisadvantage = contributors.some(
-    (contributor) => contributor.influence === 'DISADVANTAGE'
-  )
-  return hasAdvantage === hasDisadvantage ? 'NORMAL' : hasAdvantage ? 'ADVANTAGE' : 'DISADVANTAGE'
+  return resolveD20Contributors(contributors).rollMode
+}
+
+function contributor(input: {
+  definition: PolicyDefinition
+  influence: D20Influence
+  reason: Dnd5eOptionalActionContributor['reason']
+}): Dnd5eOptionalActionContributor {
+  return {
+    sourceId: checksumRuleDocument({
+      definitionChecksum: input.definition.definitionChecksum,
+      definitionId: input.definition.definitionId,
+      definitionVersion: input.definition.definitionVersion,
+      reason: input.reason
+    }),
+    grantId: null,
+    domainKey: input.reason ?? null,
+    influence: input.influence,
+    reason: input.reason
+  }
 }
 
 export interface Dnd5eClimbAttachmentProposal {
@@ -277,7 +329,7 @@ export function resolveDnd5eClimbDislodge(
 
 export interface Dnd5eDisarmProposal {
   readonly contest: D20ContestEvidence & {
-    readonly targetCheck: AbilityCheckKind
+    readonly targetCheckDefinitionId: string
     readonly initiatorMode: D20Mode
     readonly targetMode: D20Mode
     readonly initiatorContributors: readonly Dnd5eOptionalActionContributor[]
@@ -293,71 +345,150 @@ export interface Dnd5eDisarmProposal {
   readonly pin: Dnd5eOptionalActionPin
 }
 
-/** Pure D&D policy: a successful disarm leaves item placement to table adjudication. */
-export function resolveDnd5eDisarm(
-  input: Dnd5ePolicyInput & {
-    readonly attackerActorId: string
-    readonly attackerSizeRank: number | null
-    readonly contest: D20ContestEvidence
-    readonly heldItemId: string | null
-    readonly targetActorId: string
-    readonly targetCheck: AbilityCheckKind | null
-    readonly targetHoldsItemWithTwoOrMoreHands: boolean | null
-    readonly targetItemOwnerState: 'CHARACTER_SHEET' | 'ENCOUNTER_ACTOR' | null
-    readonly targetSizeRank: number | null
-    readonly qualifyingWeaponAttack: boolean | null
-  }
-): Dnd5eOptionalActionResolution<Dnd5eDisarmProposal> {
+export type Dnd5eDisarmPreparation = Omit<Dnd5eDisarmProposal, 'contest'> & {
+  readonly contest: Omit<Dnd5eDisarmProposal['contest'], 'initiatorTotal' | 'targetTotal'>
+}
+
+type Dnd5eDisarmPolicyFacts = Dnd5ePolicyInput & {
+  readonly attackerActorId: string
+  /** Exact authored size code; D&D policy alone owns category ordering. */
+  readonly attackerSize: string | null
+  readonly heldItemId: string | null
+  readonly targetActorId: string
+  readonly targetCheckDefinitionId: string | null
+  /** Exact target item facts; D&D policy owns handedness interpretation. */
+  readonly targetEquipment: {
+    readonly properties: readonly string[]
+  } | null
+  readonly targetItemOwnerState: 'CHARACTER_SHEET' | 'ENCOUNTER_ACTOR' | null
+  /** Exact authored size code; D&D policy alone owns category ordering. */
+  readonly targetSize: string | null
+  /** Exact authored action trigger; D&D policy owns its interpretation. */
+  readonly triggerCode: string | null
+  /** Exact selected action's Equipment binding; labels never participate. */
+  readonly sourceEquipment: {
+    readonly category: string | null
+    readonly id: string
+    readonly properties: readonly string[]
+    readonly state: 'EQUIPPED' | 'HELD'
+  } | null
+  /** Exact source policy plus target-specific active relationship contributors. */
+  readonly attack: {
+    readonly modifier: number | null
+    readonly rollMode: D20Mode | null
+    readonly baseContributors: Readonly<
+      Record<'MELEE' | 'RANGED' | 'SPELL' | 'UNARMED', readonly Dnd5eOptionalActionContributor[]>
+    > | null
+    readonly relationshipContributors: readonly Dnd5eOptionalActionContributor[]
+  } | null
+}
+
+/**
+ * Resolves every pinned D&D policy fact required before contest dice exist.
+ * The Encounter layer carries this opaque result into its one-stage graph; it
+ * never reconstructs size, handedness, or UUID check policy itself.
+ */
+export function prepareDnd5eDisarmContest(
+  input: Dnd5eDisarmPolicyFacts
+): Dnd5eOptionalActionResolution<Dnd5eDisarmPreparation> {
   const definition = exactDefinition({
     ...input,
     kind: 'DISARM',
     module: DND5E_DISARM_POLICY_MODULE
   })
   if (!definition) return { kind: 'INERT' }
+  const parameters = definition.document.parameters
+  if (parameters.kind !== 'DISARM') return { kind: 'INERT' }
+  const attackerSizeRank = dnd5eSizeRank(input.attackerSize)
+  const targetSizeRank = dnd5eSizeRank(input.targetSize)
   if (
     !exactUuid(input.attackerActorId) ||
     !exactUuid(input.targetActorId) ||
     input.attackerActorId === input.targetActorId ||
-    input.qualifyingWeaponAttack === null ||
-    input.targetHoldsItemWithTwoOrMoreHands === null ||
-    input.targetCheck === null ||
+    input.triggerCode === null ||
+    input.targetEquipment === null ||
+    input.targetCheckDefinitionId === null ||
+    !exactUuid(input.targetCheckDefinitionId) ||
+    !parameters.defenderCheckDefinitionIds.includes(input.targetCheckDefinitionId) ||
     input.heldItemId === null ||
     !exactUuid(input.heldItemId) ||
     input.targetItemOwnerState === null ||
-    input.attackerSizeRank === null ||
-    input.targetSizeRank === null ||
-    !Number.isInteger(input.attackerSizeRank) ||
-    !Number.isInteger(input.targetSizeRank) ||
-    !validContest(input.contest)
+    attackerSizeRank === null ||
+    targetSizeRank === null ||
+    input.sourceEquipment === null ||
+    input.attack === null ||
+    input.attack.modifier === null ||
+    !Number.isSafeInteger(input.attack.modifier) ||
+    input.attack.rollMode === null ||
+    input.attack.baseContributors === null
   ) {
     return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_DISARM_FACTS' }
   }
-  if (!input.qualifyingWeaponAttack) return { kind: 'NOT_APPLICABLE' }
-  const initiatorContributors: Dnd5eOptionalActionContributor[] = []
-  const targetContributors: Dnd5eOptionalActionContributor[] = []
-  if (input.targetHoldsItemWithTwoOrMoreHands)
-    initiatorContributors.push({
-      influence: 'DISADVANTAGE',
-      reason: 'TARGET_HELD_WITH_TWO_OR_MORE_HANDS'
-    })
-  if (input.attackerSizeRank > input.targetSizeRank)
-    initiatorContributors.push({ influence: 'ADVANTAGE', reason: 'SIZE_RELATION' })
-  if (input.targetSizeRank > input.attackerSizeRank)
-    targetContributors.push({ influence: 'ADVANTAGE', reason: 'SIZE_RELATION' })
-  const { initiatorTotal, targetTotal } = input.contest
-  if (initiatorTotal === null || targetTotal === null || initiatorTotal <= targetTotal)
+  if (
+    (input.triggerCode !== TRIGGER.MELEE_WEAPON_ATTACK &&
+      input.triggerCode !== TRIGGER.RANGED_WEAPON_ATTACK) ||
+    input.sourceEquipment.category !== EQUIPMENT_CATEGORY_CODE.WEAPON ||
+    (input.sourceEquipment.state !== 'EQUIPPED' && input.sourceEquipment.state !== 'HELD')
+  )
     return { kind: 'NOT_APPLICABLE' }
+  const attackKind =
+    input.triggerCode === TRIGGER.MELEE_WEAPON_ATTACK
+      ? 'MELEE'
+      : input.triggerCode === TRIGGER.RANGED_WEAPON_ATTACK
+        ? 'RANGED'
+        : null
+  if (attackKind === null) return { kind: 'NOT_APPLICABLE' }
+  const baseContributors = canonicalContributors(input.attack.baseContributors[attackKind])
+  const relationshipContributors = canonicalContributors(input.attack.relationshipContributors)
+  if (
+    baseContributors === null ||
+    relationshipContributors === null ||
+    resolveMode(baseContributors) !== input.attack.rollMode
+  ) {
+    return { kind: 'JUDGMENT_REQUIRED', reason: 'DISARM_ATTACK_POLICY_UNRESOLVED' }
+  }
+  if (
+    input.targetEquipment.properties.includes(EQUIPMENT_PROPERTY_CODE.VERSATILE) &&
+    !input.targetEquipment.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
+  ) {
+    return { kind: 'JUDGMENT_REQUIRED', reason: 'DISARM_GRIP_UNRESOLVED' }
+  }
+  const initiatorContributors: Dnd5eOptionalActionContributor[] = [
+    ...baseContributors,
+    ...relationshipContributors
+  ]
+  const targetContributors: Dnd5eOptionalActionContributor[] = []
+  if (input.targetEquipment.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED))
+    initiatorContributors.push(
+      contributor({
+        definition,
+        influence: 'DISADVANTAGE',
+        reason: 'TARGET_HELD_WITH_TWO_OR_MORE_HANDS'
+      })
+    )
+  if (attackerSizeRank > targetSizeRank)
+    targetContributors.push(
+      contributor({ definition, influence: 'DISADVANTAGE', reason: 'SIZE_RELATION' })
+    )
+  if (targetSizeRank > attackerSizeRank)
+    targetContributors.push(
+      contributor({ definition, influence: 'ADVANTAGE', reason: 'SIZE_RELATION' })
+    )
+  const canonicalInitiatorContributors = canonicalContributors(initiatorContributors)
+  const canonicalTargetContributors = canonicalContributors(targetContributors)
+  if (canonicalInitiatorContributors === null || canonicalTargetContributors === null) {
+    return { kind: 'JUDGMENT_REQUIRED', reason: 'DISARM_ATTACK_POLICY_UNRESOLVED' }
+  }
   return {
     kind: 'PROPOSED',
     proposal: {
       pin: pin(definition),
       contest: {
-        ...input.contest,
-        targetCheck: input.targetCheck,
-        initiatorContributors,
-        targetContributors,
-        initiatorMode: resolveMode(initiatorContributors),
-        targetMode: resolveMode(targetContributors)
+        targetCheckDefinitionId: input.targetCheckDefinitionId,
+        initiatorContributors: canonicalInitiatorContributors,
+        targetContributors: canonicalTargetContributors,
+        initiatorMode: resolveMode(canonicalInitiatorContributors),
+        targetMode: resolveMode(canonicalTargetContributors)
       },
       disposition: {
         heldItemId: input.heldItemId,
@@ -366,6 +497,31 @@ export function resolveDnd5eDisarm(
         transition: 'NO_LONGER_HELD',
         placement: 'JUDGMENT_REQUIRED'
       }
+    }
+  }
+}
+
+/** Pure D&D policy: a successful disarm leaves item placement to table adjudication. */
+export function resolveDnd5eDisarm(
+  input: Dnd5eDisarmPolicyFacts & { readonly contest: D20ContestEvidence }
+): Dnd5eOptionalActionResolution<Dnd5eDisarmProposal> {
+  const prepared = prepareDnd5eDisarmContest(input)
+  if (prepared.kind !== 'PROPOSED') return prepared
+  if (!validContest(input.contest)) {
+    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_DISARM_FACTS' }
+  }
+  const { initiatorTotal, targetTotal } = input.contest
+  if (initiatorTotal === null || targetTotal === null || initiatorTotal <= targetTotal)
+    return { kind: 'NOT_APPLICABLE' }
+  return {
+    kind: 'PROPOSED',
+    proposal: {
+      pin: prepared.proposal.pin,
+      contest: {
+        ...input.contest,
+        ...prepared.proposal.contest
+      },
+      disposition: prepared.proposal.disposition
     }
   }
 }

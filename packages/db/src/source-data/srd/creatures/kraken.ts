@@ -289,12 +289,12 @@ export const kraken: CreatureAuthored = {
               id: S.actionId(180, 806),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(180, 806) + '__result',
-                resultKind: 'SEQUENCE' as const,
+                resultKind: 'SINGLE' as const,
                 outcomes: [
                   {
                     id: S.actionId(180, 960),
@@ -303,11 +303,6 @@ export const kraken: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '4d10'
-                  },
-                  {
-                    id: S.actionId(180, 968),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_KRAKEN_LIGHTNING_STORM
                   }
                 ]
               }
@@ -316,12 +311,12 @@ export const kraken: CreatureAuthored = {
               id: S.actionId(180, 807),
               order: 2,
               pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(180, 807) + '__result',
-                resultKind: 'SEQUENCE' as const,
+                resultKind: 'SINGLE' as const,
                 outcomes: [
                   {
                     id: S.actionId(180, 970),
@@ -331,11 +326,6 @@ export const kraken: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '4d10',
                     multiplier: 0.5
-                  },
-                  {
-                    id: S.actionId(180, 978),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_KRAKEN_LIGHTNING_STORM
                   }
                 ]
               }

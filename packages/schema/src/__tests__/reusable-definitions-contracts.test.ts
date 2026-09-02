@@ -154,7 +154,8 @@ describe('reusable definition contracts', () => {
           kind: 'CAPABILITY_SUPPRESS' as const,
           capabilityDefinitionIds: [sourceId]
         }
-      ]
+      ],
+      perceptionContributions: []
     }
     expect(reusableDefinitionDocumentDtoSchema.parse(condition)).toEqual(condition)
     expect(() =>

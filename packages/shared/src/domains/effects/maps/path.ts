@@ -1,7 +1,13 @@
 import type {
   ApplyGrantAuthored,
+  ActorRelationshipAuthored,
+  ActorRelationshipModuleAuthored,
+  ConditionAuthored,
+  DamageAuthored,
   FollowUpSaveAuthored,
   FollowUpSaveBranchAuthored,
+  FollowUpSaveRepeatRollInfluenceAuthored,
+  HitPointMaximumReductionAuthored,
   ManifestComponentAuthored,
   ManifestDestructionCriterionAuthored,
   ManifestLightAuthored,
@@ -14,6 +20,7 @@ import type {
   PathChoiceOptionAuthored,
   PathRollTableRowAuthored,
   ResultBlockAuthored,
+  ScalarReductionAuthored,
   SummonStatBlockAuthored
 } from '#authored'
 import {
@@ -55,7 +62,14 @@ import {
   SIZE_OPTIONS,
   type Trigger
 } from '#core'
-import { AUTHORED_LIMITS, buildNodeMap, type BuildNodeMap, type NodeMap, valuesOf } from '#utils'
+import {
+  AUTHORED_LIMITS,
+  buildNodeMap,
+  type BuildNodeMap,
+  type NodeEntry,
+  type NodeMap,
+  valuesOf
+} from '#utils'
 import type { AllUnionFields } from 'type-fest'
 import {
   DURATION_NODE_MAP,
@@ -86,12 +100,16 @@ type FollowUpSaveAttemptsNode = AllUnionFields<FollowUpSaveAuthored['attempts']>
 type ManifestDestructionCriterionNode = AllUnionFields<ManifestDestructionCriterionAuthored>
 type ManifestProximityRuleNode = ManifestProximityRuleAuthored
 type RollTableRepeatNode = NonNullable<AllUnionFields<PathRollTableRowAuthored>['repeat']>
+type ActorRelationshipModuleNode = AllUnionFields<ActorRelationshipModuleAuthored>
+type ActorRelationshipRecurrenceNode = NonNullable<ActorRelationshipAuthored['recurrence']>
+type FollowUpSaveRepeatRollInfluenceWhenNode = FollowUpSaveRepeatRollInfluenceAuthored['when']
 type NodeMapBuildApi<NLocal extends object> = Parameters<
   BuildNodeMap<NLocal>['define']
 >[1] extends (api: infer TApi) => void
   ? TApi
   : never
 type OutcomeNodeMapApi = NodeMapBuildApi<OutcomeNode>
+type ScalarReductionNodeMapApi = NodeMapBuildApi<ScalarReductionAuthored>
 
 const PATH_SELECTION_KIND_OPTIONS = [
   {
@@ -205,6 +223,14 @@ const rollTableRepeat = buildNodeMap<RollTableRepeatNode>()
 const effectPath = buildNodeMap<EffectPathAuthored>()
 const manifestNestedPath = buildNodeMap<EffectPathAuthored<Trigger, NonManifestOutcomeAuthored>>()
 const manifestBehavior = buildNodeMap<ManifestBehaviorAuthored>()
+const hitPointMaximumReductionAmountSource =
+  buildNodeMap<HitPointMaximumReductionAuthored['amountSource']>()
+const scalarReductionAmount = buildNodeMap<ScalarReductionAuthored['amount']>()
+const actorRelationshipModule = buildNodeMap<ActorRelationshipModuleNode>()
+const actionEffectId = buildNodeMap<{ value: string }>()
+const actorRelationshipRecurrence = buildNodeMap<ActorRelationshipRecurrenceNode>()
+const followUpSaveRepeatRollInfluence = buildNodeMap<FollowUpSaveRepeatRollInfluenceAuthored>()
+const followUpSaveRepeatRollInfluenceWhen = buildNodeMap<FollowUpSaveRepeatRollInfluenceWhenNode>()
 
 const OUTCOME_BREAKPOINT_VALUE_NODE_MAP: NodeMap<OutcomeBreakpointValueNode> =
   outcomeBreakpointValue.define('outcomeBreakpointValue', ({ map, nodes, cond }) => {
@@ -722,6 +748,294 @@ const MANIFEST_PROXIMITY_RULE_NODE_MAP: NodeMap<ManifestProximityRuleNode> =
       )
   })
 
+const HIT_POINT_MAXIMUM_REDUCTION_AMOUNT_SOURCE_NODE_MAP =
+  hitPointMaximumReductionAmountSource.define(
+    'hitPointMaximumReductionAmountSource',
+    ({ map, nodes }) => {
+      const { text, selectSingle } = nodes
+      map
+        .set(
+          'kind',
+          selectSingle(['kind'], 'Amount Source', {
+            kind: 'INLINE_OPTIONS',
+            options: [{ code: 'DAMAGE_TAKEN', label: 'Damage Taken' }]
+          })
+        )
+        .set('damageOutcomeId', text(['damageOutcomeId'], 'Damage Outcome ID'))
+    }
+  )
+
+const ACTION_EFFECT_ID_NODE_MAP = actionEffectId.define('actionEffectId', ({ map, nodes }) => {
+  map.set('value', nodes.text(['value'], 'Effect ID'))
+})
+
+const SCALAR_REDUCTION_AMOUNT_NODE_MAP = scalarReductionAmount.define(
+  'scalarReductionAmount',
+  ({ map, nodes }) => {
+    const { text, selectSingle } = nodes
+    map
+      .set(
+        'kind',
+        selectSingle(['kind'], 'Amount Kind', {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'DICE', label: 'Dice' }]
+        })
+      )
+      .set('diceConfig', text(['diceConfig'], 'Dice Config'))
+  }
+)
+
+const FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_WHEN_NODE_MAP =
+  followUpSaveRepeatRollInfluenceWhen.define(
+    'followUpSaveRepeatRollInfluenceWhen',
+    ({ map, nodes }) => {
+      const { selectSingle } = nodes
+      map
+        .set(
+          'kind',
+          selectSingle(['kind'], 'Condition', {
+            kind: 'INLINE_OPTIONS',
+            options: [{ code: 'PERCEPTION', label: 'Perception' }]
+          })
+        )
+        .set(
+          'observer',
+          selectSingle(['observer'], 'Observer', {
+            kind: 'INLINE_OPTIONS',
+            options: [{ code: 'TARGET', label: 'Target' }]
+          })
+        )
+        .set(
+          'subject',
+          selectSingle(['subject'], 'Subject', {
+            kind: 'INLINE_OPTIONS',
+            options: [{ code: 'SOURCE', label: 'Source' }]
+          })
+        )
+        .set(
+          'requirement',
+          selectSingle(['requirement'], 'Requirement', {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'DETECT', label: 'Detect' },
+              { code: 'LOCATE', label: 'Locate' },
+              { code: 'PRECISE', label: 'Precisely Locate' },
+              { code: 'SEE', label: 'See' }
+            ]
+          })
+        )
+    }
+  )
+
+const FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP = followUpSaveRepeatRollInfluence.define(
+  'followUpSaveRepeatRollInfluence',
+  ({ map, nodes }) => {
+    const { selectSingle, groupObject } = nodes
+    map
+      .set(
+        'influence',
+        selectSingle(['influence'], 'Influence', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'ADVANTAGE', label: 'Advantage' },
+            { code: 'DISADVANTAGE', label: 'Disadvantage' }
+          ]
+        })
+      )
+      .set(
+        'when',
+        groupObject(['when'], 'When', () => FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_WHEN_NODE_MAP, {
+          presentation: 'inline'
+        })
+      )
+  }
+)
+
+const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
+  'actorRelationshipModule',
+  ({ map, nodes, cond, logic, data }) => {
+    const { text, number, selectSingle, selectMulti, groupObject, groupArray } = nodes
+    const local = cond.local()
+    const { or } = logic
+    const { table } = data
+    const isActionEffectModule = or([
+      local.field(['kind']).eq('SOURCE_ACTION_TARGET_RESTRICTION'),
+      local.field(['kind']).eq('SOURCE_ATTACK_ROLL_INFLUENCE')
+    ])
+    const isCapabilityModule = or([
+      local.field(['kind']).eq('TARGET_CAPABILITY_SUPPRESSION'),
+      local.field(['kind']).eq('CONDITIONAL_TARGET_STATE')
+    ])
+
+    map
+      .set('id', text(['id'], 'ID'))
+      .set('order', number(['order'], 'Order'))
+      .set(
+        'kind',
+        selectSingle(['kind'], 'Module', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'TARGET_SIZE_MAXIMUM', label: 'Target Size Maximum' },
+            { code: 'SOURCE_EXCLUSIVE_TARGET', label: 'Source Exclusive Target' },
+            { code: 'SOURCE_ACTION_TARGET_RESTRICTION', label: 'Source Action Restriction' },
+            { code: 'SOURCE_ATTACK_ROLL_INFLUENCE', label: 'Source Attack Influence' },
+            { code: 'SOURCE_FOLLOWS_TARGET', label: 'Source Follows Target' },
+            { code: 'SOURCE_RELEASE_MOVEMENT_COST', label: 'Release Movement Cost' },
+            { code: 'ESCAPE_CHECK', label: 'Escape Check' },
+            { code: 'TARGET_CAPABILITY_SUPPRESSION', label: 'Capability Suppression' },
+            { code: 'CONDITIONAL_TARGET_STATE', label: 'Conditional Target State' }
+          ]
+        })
+      )
+      .set(
+        'sizeCode',
+        selectSingle(
+          ['sizeCode'],
+          'Maximum Size',
+          { kind: 'INLINE_OPTIONS', options: SIZE_OPTIONS },
+          { showIf: local.field(['kind']).eq('TARGET_SIZE_MAXIMUM') }
+        )
+      )
+      .set(
+        'maximum',
+        number(['maximum'], 'Maximum Targets', {
+          constraints: { minimum: 1, maximum: 1 },
+          showIf: local.field(['kind']).eq('SOURCE_EXCLUSIVE_TARGET')
+        })
+      )
+      .set(
+        'actionEffectIds',
+        groupArray(['actionEffectIds'], 'Action Effects', () => ACTION_EFFECT_ID_NODE_MAP, {
+          presentation: 'inline',
+          showIf: isActionEffectModule
+        })
+      )
+      .set(
+        'influence',
+        selectSingle(
+          ['influence'],
+          'Influence',
+          { kind: 'INLINE_OPTIONS', options: [{ code: 'ADVANTAGE', label: 'Advantage' }] },
+          { showIf: local.field(['kind']).eq('SOURCE_ATTACK_ROLL_INFLUENCE') }
+        )
+      )
+      .set(
+        'amount',
+        number(['amount'], 'Movement Cost', {
+          constraints: { minimum: 0 },
+          showIf: local.field(['kind']).eq('SOURCE_RELEASE_MOVEMENT_COST')
+        })
+      )
+      .set(
+        'unit',
+        selectSingle(
+          ['unit'],
+          'Unit',
+          { kind: 'INLINE_OPTIONS', options: MEASUREMENT_UNIT_OPTIONS },
+          { showIf: local.field(['kind']).eq('SOURCE_RELEASE_MOVEMENT_COST') }
+        )
+      )
+      .set(
+        'activation',
+        groupObject(['activation'], 'Activation', () => ACTIVATION_NODE_MAP, {
+          presentation: 'inline',
+          showIf: local.field(['kind']).eq('ESCAPE_CHECK')
+        })
+      )
+      .set(
+        'abilityDefinitionId',
+        selectSingle(
+          ['abilityDefinitionId'],
+          'Ability',
+          {
+            kind: 'DATA',
+            relationship: table('ability_definitions', { selectColumns: ['id', 'label'] })
+          },
+          { showIf: local.field(['kind']).eq('ESCAPE_CHECK') }
+        )
+      )
+      .set(
+        'fixedDc',
+        number(['fixedDc'], 'DC', {
+          constraints: { minimum: 1 },
+          showIf: local.field(['kind']).eq('ESCAPE_CHECK')
+        })
+      )
+      .set(
+        'actorKinds',
+        selectMulti(
+          ['actorKinds'],
+          'Eligible Actors',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'TARGET', label: 'Target' },
+              { code: 'CREATURE_WITHIN_REACH', label: 'Creature Within Reach' }
+            ]
+          },
+          { showIf: local.field(['kind']).eq('ESCAPE_CHECK') }
+        )
+      )
+      .set(
+        'capabilityDefinitionIds',
+        selectMulti(
+          ['capabilityDefinitionIds'],
+          'Capabilities',
+          {
+            kind: 'DATA',
+            relationship: table('reusable_definitions', { selectColumns: ['id', 'label'] })
+          },
+          { showIf: isCapabilityModule }
+        )
+      )
+      .set(
+        'conditionIds',
+        selectMulti(
+          ['conditionIds'],
+          'Conditions',
+          {
+            kind: 'DATA',
+            relationship: table('condition_types', { selectColumns: ['id', 'label'] })
+          },
+          { showIf: local.field(['kind']).eq('CONDITIONAL_TARGET_STATE') }
+        )
+      )
+      .set(
+        'whenResolvedAttackD20Mode',
+        selectSingle(
+          ['whenResolvedAttackD20Mode'],
+          'When Attack Mode Is',
+          { kind: 'INLINE_OPTIONS', options: [{ code: 'ADVANTAGE', label: 'Advantage' }] },
+          { showIf: local.field(['kind']).eq('CONDITIONAL_TARGET_STATE') }
+        )
+      )
+  }
+)
+
+const ACTOR_RELATIONSHIP_RECURRENCE_NODE_MAP = actorRelationshipRecurrence.define(
+  'actorRelationshipRecurrence',
+  ({ map, nodes }) => {
+    const { selectSingle, groupObject } = nodes
+    map
+      .set(
+        'stage',
+        selectSingle(['stage'], 'Stage', {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'START_OF_TURN', label: 'Start of Turn' }]
+        })
+      )
+      .set(
+        'damage',
+        groupObject(
+          ['damage'],
+          'Damage',
+          () => OUTCOME_NODE_MAP as unknown as NodeMap<DamageAuthored>,
+          { presentation: 'inline' }
+        )
+      )
+  }
+)
+
 function registerOutcomeFields(
   map: OutcomeNodeMapApi['map'],
   nodes: OutcomeNodeMapApi['nodes'],
@@ -735,6 +1049,8 @@ function registerOutcomeFields(
   const { and, or, not } = logic
   const local = cond.local()
   const { table } = data
+  const scalarReductionGroupObject =
+    groupObject as unknown as ScalarReductionNodeMapApi['nodes']['groupObject']
 
   map
     .set('id', text(['id'], 'ID'))
@@ -751,6 +1067,127 @@ function registerOutcomeFields(
           requiredIf: true
         }
       )
+    )
+    .set(
+      'hitPointMaximumReductionAmountSource',
+      groupObject(
+        ['amountSource'],
+        'Amount Source',
+        () => HIT_POINT_MAXIMUM_REDUCTION_AMOUNT_SOURCE_NODE_MAP,
+        {
+          presentation: 'inline',
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.HIT_POINT_MAXIMUM_REDUCTION)
+        }
+      )
+    )
+    .set(
+      'hitPointMaximumReductionRecoveryTags',
+      selectMulti(
+        ['recoveryTags'],
+        'Recovery',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'RESTORE_HIT_POINT_MAXIMUM', label: 'Restore Hit Point Maximum' }]
+        },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.HIT_POINT_MAXIMUM_REDUCTION) }
+      )
+    )
+    .set(
+      'scalarReductionValueDefinitionId',
+      selectSingle(
+        ['valueDefinitionId'],
+        'Value',
+        {
+          kind: 'DATA',
+          relationship: table('ability_definitions', { selectColumns: ['id', 'label'] })
+        },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.SCALAR_REDUCTION) }
+      )
+    )
+    .set(
+      'scalarReductionAmount',
+      scalarReductionGroupObject(['amount'], 'Reduction', () => SCALAR_REDUCTION_AMOUNT_NODE_MAP, {
+        presentation: 'inline',
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.SCALAR_REDUCTION)
+      }) as unknown as NodeEntry<OutcomeNode>
+    )
+    .set(
+      'scalarReductionStacking',
+      selectSingle(
+        ['stacking'],
+        'Stacking',
+        { kind: 'INLINE_OPTIONS', options: [{ code: 'ADDITIVE', label: 'Additive' }] },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.SCALAR_REDUCTION) }
+      )
+    )
+    .set(
+      'scalarReductionFloor',
+      number(['floor'], 'Floor', {
+        constraints: { minimum: 0, maximum: 0 },
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.SCALAR_REDUCTION)
+      })
+    )
+    .set(
+      'scalarReductionRecoveryTriggers',
+      selectMulti(
+        ['recoveryTriggers'],
+        'Recovery Triggers',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'SHORT_REST', label: 'Short Rest' },
+            { code: 'LONG_REST', label: 'Long Rest' }
+          ]
+        },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.SCALAR_REDUCTION) }
+      )
+    )
+    .set(
+      'scalarReductionTerminalConsequence',
+      selectSingle(
+        ['terminalConsequence'],
+        'Terminal Consequence',
+        { kind: 'INLINE_OPTIONS', options: [{ code: 'TARGET_DIED', label: 'Target Dies' }] },
+        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.SCALAR_REDUCTION) }
+      )
+    )
+    .set(
+      'followUpSaveRepeatRollInfluence',
+      groupObject(
+        ['repeatRollInfluence'],
+        'Repeat Roll Influence',
+        () => FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP,
+        {
+          presentation: 'inline',
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
+        }
+      )
+    )
+    .set(
+      'actorRelationshipModules',
+      groupArray(['modules'], 'Relationship Modules', () => ACTOR_RELATIONSHIP_MODULE_NODE_MAP, {
+        presentation: 'summary',
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.ACTOR_RELATIONSHIP)
+      })
+    )
+    .set(
+      'actorRelationshipConditions',
+      groupArray(
+        ['conditions'],
+        'Conditions',
+        () => OUTCOME_NODE_MAP as unknown as NodeMap<ConditionAuthored>,
+        {
+          presentation: 'summary',
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.ACTOR_RELATIONSHIP)
+        }
+      )
+    )
+    .set(
+      'actorRelationshipRecurrence',
+      groupObject(['recurrence'], 'Recurrence', () => ACTOR_RELATIONSHIP_RECURRENCE_NODE_MAP, {
+        presentation: 'inline',
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.ACTOR_RELATIONSHIP)
+      })
     )
     .set(
       'bonuses',
@@ -1371,6 +1808,17 @@ function registerOutcomeFields(
         () => FOLLOW_UP_SAVE_BRANCH_NODE_MAP,
         {
           presentation: 'inline',
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
+        }
+      )
+    )
+    .set(
+      'repeatTiming',
+      selectSingle(
+        ['repeatTiming'],
+        'Repeat Timing',
+        { kind: 'INLINE_OPTIONS', options: FOLLOW_UP_SAVE_TIMING_OPTIONS },
+        {
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
         }
       )

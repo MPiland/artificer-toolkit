@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   collectSpatialMovementCandidates,
+  collectTokenFootprintPathCrossings,
   effectiveSpatialGeometry,
   type SpatialEffectInstance,
   type SpatialSceneToken,
@@ -366,6 +367,89 @@ describe('spatial movement candidates', () => {
           { x: 5, y: 0 }
         ],
         tokens: [{ ...token(ids.targetToken, -5), width: subMinimum }]
+      })
+    ).toEqual([])
+  })
+})
+
+describe('token footprint path crossings', () => {
+  it('uses both occupied footprints and excludes a destination that remains occupied', () => {
+    const moving = token(ids.sourceToken, -5)
+    const blocker = token(ids.targetToken, 0)
+
+    expect(
+      collectTokenFootprintPathCrossings({
+        movingToken: moving,
+        path: [
+          { x: -5, y: 0 },
+          { x: 5, y: 0 }
+        ],
+        stationaryTokens: [blocker]
+      })
+    ).toMatchObject([
+      {
+        entry: { x: -2, y: 0 },
+        entryPathDistance: 3,
+        exit: { x: 2, y: 0 },
+        exitPathDistance: 7,
+        stationaryTokenId: ids.targetToken
+      }
+    ])
+
+    expect(
+      collectTokenFootprintPathCrossings({
+        movingToken: moving,
+        path: [
+          { x: -5, y: 0 },
+          { x: 0, y: 0 }
+        ],
+        stationaryTokens: [blocker]
+      })
+    ).toEqual([])
+  })
+
+  it('uses a large moving footprint across waypoint segments', () => {
+    const moving = { ...token(ids.sourceToken, -5, -5), height: 4, width: 4 }
+    const crossings = collectTokenFootprintPathCrossings({
+      movingToken: moving,
+      path: [
+        { x: -5, y: -5 },
+        { x: -5, y: 0 },
+        { x: 5, y: 0 }
+      ],
+      stationaryTokens: [token(ids.targetToken, 0)]
+    })
+
+    expect(crossings[0]?.entry).toEqual({ x: -3, y: 0 })
+    expect(crossings[0]?.entryPathDistance).toBeCloseTo(7)
+    expect(crossings[0]?.exit).toEqual({ x: 3, y: 0 })
+    expect(crossings[0]?.exitPathDistance).toBeCloseTo(13)
+  })
+
+  it('orders simultaneous crossings by stationary token identity and fails closed on invalid input', () => {
+    const moving = token(ids.sourceToken, -5)
+    const lowerId = token(ids.effect, 0)
+    const higherId = token(ids.effectTwo, 0)
+
+    expect(
+      collectTokenFootprintPathCrossings({
+        movingToken: moving,
+        path: [
+          { x: -5, y: 0 },
+          { x: 5, y: 0 }
+        ],
+        stationaryTokens: [higherId, lowerId]
+      }).map((crossing) => crossing.stationaryTokenId)
+    ).toEqual([ids.effect, ids.effectTwo])
+
+    expect(
+      collectTokenFootprintPathCrossings({
+        movingToken: moving,
+        path: [
+          { x: -4, y: 0 },
+          { x: 5, y: 0 }
+        ],
+        stationaryTokens: [lowerId]
       })
     ).toEqual([])
   })

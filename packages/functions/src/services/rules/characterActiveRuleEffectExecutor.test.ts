@@ -397,6 +397,7 @@ async function execute(input?: {
   currentHitPoints?: number
   temporaryHitPoints?: number
   maximumHitPoints?: number
+  targetScalarValues?: Readonly<Record<string, number>>
   lifecycleChecksum?: string
   activeEffectVersion?: number
   runtime?: RulesRuntimeService
@@ -421,6 +422,7 @@ async function execute(input?: {
     currentHitPoints: input?.currentHitPoints ?? 3,
     temporaryHitPoints: input?.temporaryHitPoints ?? 0,
     maximumHitPoints: input?.maximumHitPoints ?? 10,
+    targetScalarValues: input?.targetScalarValues ?? {},
     targetConditionIds: [],
     targetDerivedFacts: input?.targetDerivedFacts ?? {},
     defenses: input?.defenses ?? [],
@@ -579,6 +581,7 @@ describe('character active-rule-effect executor', () => {
       currentHitPoints: 3,
       temporaryHitPoints: 0,
       maximumHitPoints: 10,
+      targetScalarValues: {},
       targetConditionIds: [] as const,
       targetDerivedFacts: {},
       defenses: [] as const,
@@ -634,6 +637,7 @@ describe('character active-rule-effect executor', () => {
       currentHitPoints: 3,
       temporaryHitPoints: 0,
       maximumHitPoints: 10,
+      targetScalarValues: {},
       targetConditionIds: [] as const,
       targetDerivedFacts: {
         savingThrowDefinitions: [
@@ -710,6 +714,7 @@ describe('character active-rule-effect executor', () => {
       currentHitPoints: 3,
       temporaryHitPoints: 0,
       maximumHitPoints: 10,
+      targetScalarValues: {},
       targetConditionIds: [] as const,
       targetDerivedFacts: {
         savingThrowDefinitions: [
@@ -984,7 +989,7 @@ describe('character active-rule-effect executor', () => {
     const unsupportedAdapter = {
       ...dnd5eCharacterRuleActionSystemAdapter,
       interpretActiveEffect() {
-        return []
+        return { applications: [], terminal: false }
       }
     }
     await expect(

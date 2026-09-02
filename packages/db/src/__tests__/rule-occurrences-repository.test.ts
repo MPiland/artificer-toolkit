@@ -279,6 +279,7 @@ function batchReceipt(): RuleOccurrenceReceipt {
     currentHitPoints: 10,
     temporaryHitPoints: 0,
     maximumHitPoints: 10,
+    scalarValues: {},
     conditionIds: []
   }
   const conditionId = '00000000-0000-4000-8000-000000000005'
@@ -420,6 +421,7 @@ function spatialBatchReceipt(): RuleOccurrenceReceipt {
     currentHitPoints: 10,
     temporaryHitPoints: 0,
     maximumHitPoints: 10,
+    scalarValues: {},
     conditionIds: []
   }
   const sceneId = '00000000-0000-4000-8000-000000000008'
@@ -1300,6 +1302,77 @@ describe('rule occurrence repository schema boundary', () => {
     )
       expiry.resultPayload.executions[0]!.lifecycle.beforeLifecycleChecksum = 'c'.repeat(64)
     expect(() => validateRuleOccurrenceReceiptEnvelope(expiry)).toThrow()
+  })
+
+  it('binds terminal Cleaving receipts to their choice response and occurrence', () => {
+    const receipt: RuleOccurrenceReceipt = {
+      aggregateKind: 'ENCOUNTER',
+      aggregateId: ids.aggregate,
+      commandId: ids.command,
+      commandFingerprint: 'a'.repeat(64),
+      occurrenceId: ids.occurrence,
+      aggregateVersion: 2,
+      commandType: 'RESOLVE_RULE_OCCURRENCE',
+      actorUserId: ids.actor,
+      correlationId: null,
+      commandMetadata: {
+        schemaVersion: 1,
+        transition: 'OPTIONAL_COMBAT_CLEAVING',
+        commandType: 'RESOLVE_RULE_OCCURRENCE',
+        expectedAggregateVersion: 1,
+        expectedOccurrenceVersion: 0,
+        response: { kind: 'OPTION', optionId: 'b'.repeat(64) }
+      },
+      resultPayload: {
+        status: 'AGGREGATE_CHOICE_COMPLETE',
+        schemaVersion: 1,
+        occurrenceId: ids.occurrence,
+        occurrenceVersion: 1,
+        applicationOutputs: {
+          kind: 'CLEAVING_DAMAGE',
+          schemaVersion: 1,
+          occurrenceId: ids.occurrence,
+          parentOccurrenceId: ids.actor,
+          sourceActorId: ids.actor,
+          targetActorId: ids.command,
+          selectedOptionId: 'b'.repeat(64),
+          sealedContextChecksum: 'c'.repeat(64),
+          outcome: 'APPLIED',
+          damage: {
+            sourceNodeId: 'damage',
+            sourceOperationKey: 'damage.apply',
+            damageTypeId: ids.actor,
+            requestedAmount: 5,
+            resolvedAmount: 5,
+            appliedAmount: 5
+          },
+          targetTransition: {
+            checksum: 'd'.repeat(64),
+            before: {
+              currentHitPoints: 5,
+              temporaryHitPoints: 0,
+              maximumHitPoints: 5,
+              scalarValues: {},
+              conditionIds: []
+            },
+            after: {
+              currentHitPoints: 0,
+              temporaryHitPoints: 0,
+              maximumHitPoints: 5,
+              scalarValues: {},
+              conditionIds: []
+            }
+          }
+        }
+      }
+    }
+    expect(validateRuleOccurrenceReceiptEnvelope(receipt)).toBe(receipt)
+    const malformed = structuredClone(receipt)
+    if (malformed.commandMetadata.transition === 'OPTIONAL_COMBAT_CLEAVING')
+      malformed.commandMetadata.response = { kind: 'DECLINE' }
+    expect(() => validateRuleOccurrenceReceiptEnvelope(malformed)).toThrow(
+      'Optional-combat Cleaving rule receipt'
+    )
   })
 
   it('round-trips spatial movement receipts and rejects mixed receipt envelopes', async () => {

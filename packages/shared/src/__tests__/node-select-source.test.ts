@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { resolveLocalCollectionOptions } from '../utils/nodeRuntime.js'
 import type { NodeSelectSource } from '../utils/nodeDefinition.js'
 
 function acceptSource(source: NodeSelectSource): NodeSelectSource {
@@ -33,5 +34,34 @@ describe('node select source discriminators', () => {
 
     expect(legacySource.kind).toBe('INLINE')
     expect(crossedSource.kind).toBe('INLINE_OPTIONS')
+  })
+
+  it('resolves local collection values and fails closed on malformed rows', () => {
+    const source = {
+      kind: 'LOCAL_COLLECTION' as const,
+      rootCollectionPath: ['features'],
+      valuePath: ['id'],
+      labelPath: ['label']
+    } as const satisfies NodeSelectSource
+
+    expect(
+      resolveLocalCollectionOptions(source, {
+        values: {
+          features: [
+            { id: 'action-1', label: 'Claw', section: 'ACTION' },
+            { id: 'trait-1', label: 'Keen Smell', section: 'TRAIT' }
+          ]
+        }
+      })
+    ).toEqual([
+      { value: 'action-1', label: 'Claw' },
+      { value: 'trait-1', label: 'Keen Smell' }
+    ])
+
+    expect(
+      resolveLocalCollectionOptions(source, {
+        values: { features: [{ id: 'action-1', section: 'ACTION' }] }
+      })
+    ).toEqual([])
   })
 })

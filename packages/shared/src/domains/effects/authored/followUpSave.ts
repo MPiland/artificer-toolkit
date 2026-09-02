@@ -5,6 +5,17 @@ import {
   type FollowUpSaveBranchKind,
   type FollowUpSaveTiming
 } from '#core'
+import type { CombatPerceptionRequirement } from '../../rules/combatPerception.js'
+
+export type FollowUpSaveRepeatRollInfluenceAuthored = {
+  influence: 'ADVANTAGE' | 'DISADVANTAGE'
+  when: {
+    kind: 'PERCEPTION'
+    observer: 'TARGET'
+    subject: 'SOURCE'
+    requirement: CombatPerceptionRequirement
+  }
+}
 
 export type FollowUpSaveBranchAuthored =
   | {
@@ -21,6 +32,10 @@ export type FollowUpSaveAuthored = {
   id: string
   effectKind: typeof EFFECT_KIND.FOLLOW_UP_SAVE
   timing: FollowUpSaveTiming
+  /** Required only when a one-time immediate save repeats after a failure. */
+  repeatTiming?: FollowUpSaveTiming
+  /** System-authored policy for a repeated save; runtime evaluation stays outside this contract. */
+  repeatRollInfluence?: FollowUpSaveRepeatRollInfluenceAuthored
   savingThrow: SavingThrowAuthored
   attempts:
     | {

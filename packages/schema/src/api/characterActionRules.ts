@@ -316,6 +316,8 @@ export const characterActionCandidatesSchema = z
     z.strictObject({
       sequence: z.number().int().min(0).max(9_999),
       actionId: identitySchema,
+      /** Optional display label retained for snapshot compatibility. */
+      label: z.string().trim().min(1).max(500).optional(),
       effectId: postgresUuidSchema,
       sourceId: identitySchema,
       source: characterMechanicSourceSchema,
@@ -481,6 +483,8 @@ export const characterSpellCastCandidateIdSchema = z.string().trim().min(1).max(
 export const characterSpellCastCandidateSchema = z.strictObject({
   sequence: z.number().int().min(0).max(4_999),
   candidateId: characterSpellCastCandidateIdSchema,
+  /** Optional display label retained for snapshot compatibility. */
+  label: z.string().trim().min(1).max(500).optional(),
   spellId: identitySchema,
   source: characterActionSpellSourceSchema,
   spellLevel: z.number().int().min(0).max(9),

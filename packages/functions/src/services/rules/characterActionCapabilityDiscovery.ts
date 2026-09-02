@@ -7,7 +7,7 @@ import type { CharacterActionRuleEntryPoint } from '../character/characterAction
  * extend this boundary without creating a second Effect compiler.
  */
 export interface EffectActionCapabilityDescriptor {
-  kind: 'CHARACTER_ACTION' | 'ENCOUNTER_FEATURE'
+  kind: 'CHARACTER_ACTION' | 'CHARACTER_SPELL_CAST' | 'ENCOUNTER_FEATURE'
   gameSystemId: string
   authoredRootKind: 'effect'
   entryPointDefinitionId: string

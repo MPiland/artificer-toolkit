@@ -54,6 +54,15 @@ export interface SpatialMovementCandidate {
   readonly trigger: SpatialTriggerMode
 }
 
+/** One complete outside-to-outside crossing of a stationary token's occupied footprint. */
+export interface TokenFootprintPathCrossing {
+  readonly entry: ScenePoint
+  readonly entryPathDistance: number
+  readonly exit: ScenePoint
+  readonly exitPathDistance: number
+  readonly stationaryTokenId: string
+}
+
 interface Footprint {
   readonly center: ScenePoint
   readonly halfHeight: number
@@ -539,6 +548,72 @@ function pathPointAtDistance(path: readonly ScenePoint[], distance: number): Sce
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0
+}
+
+/**
+ * Collect full-footprint path crossings against stationary token footprints. This reports geometry
+ * only; callers own relationship, movement-kind, action-economy, and rules-policy decisions.
+ */
+export function collectTokenFootprintPathCrossings(input: {
+  readonly movingToken: SpatialSceneToken
+  readonly path: readonly ScenePoint[]
+  readonly stationaryTokens: readonly SpatialSceneToken[]
+}): TokenFootprintPathCrossing[] {
+  const stationaryIds = new Set(input.stationaryTokens.map((token) => token.id))
+  if (
+    !validSpatialToken(input.movingToken) ||
+    input.path.length < 2 ||
+    !input.path.every(isAbsolutePoint) ||
+    Math.abs(input.path[0]!.x - input.movingToken.position.x) > EPSILON ||
+    Math.abs(input.path[0]!.y - input.movingToken.position.y) > EPSILON ||
+    stationaryIds.size !== input.stationaryTokens.length ||
+    stationaryIds.has(input.movingToken.id) ||
+    input.stationaryTokens.some((token) => !validSpatialToken(token))
+  )
+    return []
+
+  const start = input.path[0]!
+  const end = input.path.at(-1)!
+  return input.stationaryTokens
+    .flatMap((stationaryToken): TokenFootprintPathCrossing[] => {
+      const geometry: SpatialGeometry = {
+        kind: 'POLYGON',
+        points: footprintCorners(footprint(stationaryToken))
+      }
+      if (
+        footprintIntersectsSpatialGeometry(footprint(input.movingToken, start), geometry) ||
+        footprintIntersectsSpatialGeometry(footprint(input.movingToken, end), geometry)
+      )
+        return []
+      const entry = candidateContact({
+        geometry,
+        path: input.path,
+        token: input.movingToken,
+        trigger: 'ENTER'
+      })
+      const exit = candidateContact({
+        geometry,
+        path: input.path,
+        token: input.movingToken,
+        trigger: 'EXIT'
+      })
+      return entry && exit && entry.pathDistance + EPSILON < exit.pathDistance
+        ? [
+            {
+              entry: entry.contact,
+              entryPathDistance: entry.pathDistance,
+              exit: exit.contact,
+              exitPathDistance: exit.pathDistance,
+              stationaryTokenId: stationaryToken.id
+            }
+          ]
+        : []
+    })
+    .sort(
+      (left, right) =>
+        left.entryPathDistance - right.entryPathDistance ||
+        compareText(left.stationaryTokenId, right.stationaryTokenId)
+    )
 }
 
 /**

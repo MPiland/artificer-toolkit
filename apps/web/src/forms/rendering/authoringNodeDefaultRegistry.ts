@@ -2,6 +2,8 @@ export type AuthoringDefaultKind =
   | 'abilityScores'
   | 'activation'
   | 'applyGrants'
+  | 'actorRelationshipModule'
+  | 'actorRelationshipRecurrence'
   | 'capacity'
   | 'chargeBonus'
   | 'chargeLevelScaling'
@@ -24,6 +26,7 @@ export type AuthoringDefaultKind =
   | 'cost'
   | 'creatureAction'
   | 'creatureCompanionProfile'
+  | 'creatureEquipmentLoadout'
   | 'creatureHitDice'
   | 'creatureLairProfile'
   | 'creatureLegendaryProfile'
@@ -52,6 +55,9 @@ export type AuthoringDefaultKind =
   | 'featGrantProgression'
   | 'followUpSaveAttempts'
   | 'followUpSaveBranch'
+  | 'followUpSaveRepeatRollInfluence'
+  | 'followUpSaveRepeatRollInfluenceWhen'
+  | 'hitPointMaximumReductionAmountSource'
   | 'invocation'
   | 'manifestBehavior'
   | 'manifestComponent'
@@ -83,6 +89,7 @@ export type AuthoringDefaultKind =
   | 'rollTableRerollValue'
   | 'savingThrow'
   | 'savingThrowDcBonus'
+  | 'scalarReductionAmount'
   | 'senseGrant'
   | 'senseGrantLevel'
   | 'senseGrantProgression'
@@ -108,6 +115,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   abilityScores: ['abilityScores', 'summonAbilityScores'],
   activation: ['activation', 'castingTime'],
   applyGrants: ['applyGrants'],
+  actorRelationshipModule: ['actorRelationshipModule'],
+  actorRelationshipRecurrence: ['actorRelationshipRecurrence'],
   capacity: ['capacity', 'creatureCapacity'],
   chargeBonus: ['chargeBonus'],
   chargeLevelScaling: ['levels'],
@@ -137,6 +146,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   cost: ['cost', 'creatureCost'],
   creatureAction: ['creatureAction'],
   creatureCompanionProfile: ['creatureCompanionProfile'],
+  creatureEquipmentLoadout: ['creatureEquipmentLoadout'],
   creatureHitDice: ['creatureHitDice'],
   creatureLairProfile: ['creatureLairProfile'],
   creatureLegendaryProfile: ['creatureLegendaryProfile'],
@@ -165,6 +175,9 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   featGrantProgression: ['featGrantProgression'],
   followUpSaveAttempts: ['followUpSaveAttempts'],
   followUpSaveBranch: ['followUpSaveBranch'],
+  followUpSaveRepeatRollInfluence: ['followUpSaveRepeatRollInfluence'],
+  followUpSaveRepeatRollInfluenceWhen: ['followUpSaveRepeatRollInfluenceWhen'],
+  hitPointMaximumReductionAmountSource: ['hitPointMaximumReductionAmountSource'],
   invocation: ['invocation'],
   manifestBehavior: ['manifestBehavior'],
   manifestComponent: ['manifestComponent'],
@@ -196,6 +209,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   rollTableRerollValue: ['rollTableRerollValue'],
   savingThrow: ['savingThrow'],
   savingThrowDcBonus: ['savingThrowDcBonus'],
+  scalarReductionAmount: ['scalarReductionAmount'],
   senseGrant: ['senseGrant'],
   senseGrantLevel: ['senseGrantLevel'],
   senseGrantProgression: ['senseGrantProgression'],
@@ -210,7 +224,15 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   startingEquipmentItem: ['startingEquipmentItem'],
   startingEquipmentOption: ['startingEquipmentOption'],
   startingEquipmentSet: ['startingEquipmentSet'],
-  string: ['vehicleString', 'string', 'logisticsNote', 'regionalEffect', 'sense', 'tag'],
+  string: [
+    'actionEffectId',
+    'vehicleString',
+    'string',
+    'logisticsNote',
+    'regionalEffect',
+    'sense',
+    'tag'
+  ],
   summonStatBlock: ['summonStatBlock'],
   targetCount: ['targetCount'],
   targeting: ['targeting'],

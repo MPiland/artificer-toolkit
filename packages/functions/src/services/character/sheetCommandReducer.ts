@@ -247,6 +247,29 @@ function updateSpellSlotUsage(
   })
 }
 
+/** Applies the already-authorized spell-slot transition used by CAST_SPELL. */
+export function applyApprovedSpellCastState(input: {
+  character: CharacterAuthored
+  slotKey: string | null
+}): CharacterAuthored {
+  if (input.slotKey === null) return clearEmptyStateArrays(input.character)
+  return updateSpellSlotUsage(input.character, input.slotKey, (used) => used + 1)
+}
+
+/** Returns the exact persisted spell-slot usage after one approved slot cast. */
+export function nextApprovedSpellCastSlotUsage(
+  spellSlots: CharacterAuthored['state']['spellSlots'] | undefined,
+  slotKey: string | null
+): CharacterAuthored['state']['spellSlots'] | undefined {
+  if (slotKey === null) return spellSlots
+  const next = new Map((spellSlots ?? []).map((slot) => [slot.slotKey, slot.used]))
+  next.set(slotKey, (next.get(slotKey) ?? 0) + 1)
+  const entries = [...next.entries()]
+    .filter(([, used]) => used > 0)
+    .map(([key, used]) => ({ slotKey: key, used }))
+  return entries.length ? entries : undefined
+}
+
 function setOptionalText(value: string | null | undefined): string | undefined {
   return value == null || value.trim().length === 0 ? undefined : value
 }
@@ -683,7 +706,7 @@ export function applyCharacterSheetCommand(
       const cast = resolveAvailableSpellCast(sheet, command)
       if (!cast.slotKey) return clearEmptyStateArrays(next)
       ensureSpellSlot(sheet, cast.slotKey)
-      return updateSpellSlotUsage(next, cast.slotKey, (used) => used + 1)
+      return applyApprovedSpellCastState({ character: next, slotKey: cast.slotKey })
     }
 
     case 'SET_PREPARED_SPELLS': {

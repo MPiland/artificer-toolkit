@@ -1,5 +1,6 @@
 import {
   createReusableDefinitionRepository,
+  createSystemVocabularySnapshotRepository,
   type DBLike,
   type ReusableDefinitionRootRecord
 } from '@artificer-toolkit/db'
@@ -127,7 +128,12 @@ export async function saveReusableDefinitionDraft(
   const input = saveReusableDefinitionDraftInputDtoSchema.parse(rawInput)
   const parsedUserId = serverUuidIdentityDtoSchema.parse(actorUserId)
   const repository = createReusableDefinitionRepository(db)
-  await createPlatformReusableDefinitionService(repository).saveDraft({
+  await createPlatformReusableDefinitionService(repository, async (gameSystemId) => {
+    const snapshot =
+      await createSystemVocabularySnapshotRepository(db).findActiveForPublication(gameSystemId)
+    if (!snapshot) throw new ReusableDefinitionAuthoringAccessError('Game System is unavailable.')
+    return snapshot.document
+  }).saveDraft({
     ...input,
     actorUserId: parsedUserId
   })
@@ -142,7 +148,12 @@ export async function publishReusableDefinitionDraft(
   const input = publishReusableDefinitionDraftInputDtoSchema.parse(rawInput)
   const parsedUserId = serverUuidIdentityDtoSchema.parse(actorUserId)
   const repository = createReusableDefinitionRepository(db)
-  await createPlatformReusableDefinitionService(repository).publishDraft({
+  await createPlatformReusableDefinitionService(repository, async (gameSystemId) => {
+    const snapshot =
+      await createSystemVocabularySnapshotRepository(db).findActiveForPublication(gameSystemId)
+    if (!snapshot) throw new ReusableDefinitionAuthoringAccessError('Game System is unavailable.')
+    return snapshot.document
+  }).publishDraft({
     ...input,
     actorUserId: parsedUserId
   })

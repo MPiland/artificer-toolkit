@@ -152,12 +152,12 @@ export const spiritNaga: CreatureAuthored = {
               id: S.actionId(259, 3),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
                 id: S.actionId(259, 3) + '__result',
-                resultKind: 'SINGLE' as const,
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
                     id: S.actionId(259, 3),
@@ -174,88 +174,49 @@ export const spiritNaga: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          id: S.actionId(259, 205),
-          order: 2,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(259, 206),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
-              baseDc: 13
-            },
-            activation: { code: S.ACTIVATION_CODE.FREE },
-            range: {
-              id: S.actionId(259, 207),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 10,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(259, 208),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: S.actionId(259, 209),
-                resultKind: 'SEQUENCE',
-                outcomes: [
-                  {
-                    id: S.actionId(259, 210),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('POISON'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '7d8'
                   },
                   {
-                    id: S.actionId(259, 211),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIRIT_NAGA_BITE_POISON
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(259, 212),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: S.actionId(259, 213),
-                resultKind: 'SEQUENCE',
-                outcomes: [
-                  {
-                    id: S.actionId(259, 214),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('POISON'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '7d8',
-                    multiplier: 0.5
-                  },
-                  {
-                    id: S.actionId(259, 215),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIRIT_NAGA_BITE_POISON
+                    id: S.actionId(259, 205),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'IMMEDIATE',
+                    savingThrow: {
+                      id: S.actionId(259, 206),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                      baseDc: 13
+                    },
+                    attempts: { kind: 'ONCE' },
+                    onFailure: {
+                      kind: 'OUTCOMES',
+                      endCurrent: false,
+                      resultKind: 'SINGLE',
+                      outcomes: [
+                        {
+                          id: S.actionId(259, 210),
+                          effectKind: S.EFFECT_KIND.DAMAGE,
+                          damageTypeId: S.damageTypeId('POISON'),
+                          valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                          scalingKind: S.SCALING.NONE,
+                          diceConfig: '7d8'
+                        }
+                      ]
+                    },
+                    onSuccess: {
+                      kind: 'OUTCOMES',
+                      endCurrent: false,
+                      resultKind: 'SINGLE',
+                      outcomes: [
+                        {
+                          id: S.actionId(259, 214),
+                          effectKind: S.EFFECT_KIND.DAMAGE,
+                          damageTypeId: S.damageTypeId('POISON'),
+                          valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                          scalingKind: S.SCALING.NONE,
+                          diceConfig: '7d8',
+                          multiplier: 0.5
+                        }
+                      ]
+                    }
                   }
                 ]
               }

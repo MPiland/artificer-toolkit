@@ -110,12 +110,12 @@ export const quasit: CreatureAuthored = {
               id: S.actionId(2663, 3),
               order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(2663, 3) + '__result',
-                resultKind: 'SINGLE' as const,
+                id: S.actionId(228, 933),
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
                     id: S.actionId(2663, 3),
@@ -132,84 +132,40 @@ export const quasit: CreatureAuthored = {
                         order: 1
                       }
                     ]
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          id: S.actionId(228, 503),
-          order: 2,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            savingThrow: {
-              id: S.actionId(228, 603),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
-              baseDc: 10
-            },
-            range: {
-              id: S.actionId(228, 653),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(228, 803),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(228, 803) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
+                  },
                   {
                     id: S.actionId(228, 930),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('POISON'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d4'
-                  },
-                  {
-                    id: S.actionId(228, 931),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('POISONED')
-                  },
-                  {
-                    id: S.actionId(228, 938),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_QUASIT_CLAWS
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(228, 823),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(228, 823) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(228, 958),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_QUASIT_CLAWS
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: S.FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
+                    repeatTiming: S.FOLLOW_UP_SAVE_TIMING.TARGET_TURN_END,
+                    savingThrow: {
+                      id: S.actionId(228, 603),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                      baseDc: 10
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: {
+                      kind: 'OUTCOMES',
+                      endCurrent: false,
+                      resultKind: 'SEQUENCE',
+                      outcomes: [
+                        {
+                          id: S.actionId(228, 931),
+                          effectKind: S.EFFECT_KIND.DAMAGE,
+                          damageTypeId: S.damageTypeId('POISON'),
+                          valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                          scalingKind: S.SCALING.NONE,
+                          diceConfig: '2d4'
+                        },
+                        {
+                          id: S.actionId(228, 932),
+                          effectKind: S.EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('POISONED')
+                        }
+                      ]
+                    }
                   }
                 ]
               }
@@ -232,6 +188,7 @@ export const quasit: CreatureAuthored = {
             kind: 'ACTION',
             triggerCode: S.TRIGGER.SAVING_THROW,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            resourceUse: { chargeId: S.actionId(228, 954), cost: 1 },
             savingThrow: {
               id: S.actionId(228, 604),
               dcMethod: 'FIXED_DC',
@@ -260,6 +217,11 @@ export const quasit: CreatureAuthored = {
               resultBlock: {
                 id: S.actionId(228, 804) + '__result',
                 resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(228, 947),
+                  durationKind: 'ROUND',
+                  amount: 10
+                },
                 outcomes: [
                   {
                     id: S.actionId(228, 940),
@@ -268,8 +230,27 @@ export const quasit: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(228, 948),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_QUASIT_SCARE
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: S.FOLLOW_UP_SAVE_TIMING.TARGET_TURN_END,
+                    savingThrow: {
+                      id: S.actionId(228, 624),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
+                      baseDc: 10
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    repeatRollInfluence: {
+                      influence: 'DISADVANTAGE',
+                      when: {
+                        kind: 'PERCEPTION',
+                        observer: 'TARGET',
+                        subject: 'SOURCE',
+                        requirement: 'SEE'
+                      }
+                    },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' },
+                    onDurationComplete: { kind: 'END' }
                   }
                 ]
               }
@@ -277,6 +258,14 @@ export const quasit: CreatureAuthored = {
           ]
         }
       ],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: S.actionId(228, 954),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: S.SCALING.NONE,
+        resetKind: S.CHARGE_RESET_KIND.DAILY,
+        amount: 1
+      },
       order: 4
     },
     {

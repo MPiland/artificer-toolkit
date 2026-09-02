@@ -44,6 +44,8 @@ describe('useCampaignLiveSession', () => {
     queryClient.setQueryData(queryKeys.encounters.list(tabletopGmEncounter.campaignId), [
       tabletopGmEncounter
     ])
+    const pendingOccurrenceKey = queryKeys.encounters.pendingOccurrence(tabletopGmEncounter.id)
+    queryClient.setQueryData(pendingOccurrenceKey, { stale: true })
     const wrapper = ({ children }: PropsWithChildren) => (
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     )
@@ -107,6 +109,11 @@ describe('useCampaignLiveSession', () => {
         queryKeys.encounters.list(tabletopGmEncounter.campaignId)
       )?.[0]?.currentActorId
     ).toBe(projection.currentActorId)
+    expect(
+      queryClient.getQueryState(queryKeys.encounters.list(tabletopGmEncounter.campaignId))
+        ?.isInvalidated
+    ).toBe(false)
+    expect(queryClient.getQueryData(pendingOccurrenceKey)).toBeNull()
   })
 
   it('treats a delayed Character replay older than READY as a receipt instead of regressing the Sheet', async () => {
@@ -191,20 +198,24 @@ describe('useCampaignLiveSession', () => {
   it('invalidates cached aggregates when a refreshed READY advances authoritative versions', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const characterId = characterSheetFixture.meta.characterId
+    const actionsKey = queryKeys.characters.actions(characterId)
     const sheetKey = queryKeys.characters.sheet(characterId)
     const panelsKey = queryKeys.characters.panels(characterId)
     const detailKey = queryKeys.characters.detail(characterId)
     const draftKey = queryKeys.characters.draft(characterId)
     const preparationOptionsKey = queryKeys.characters.preparationOptions(characterId)
     const encounterKey = queryKeys.encounters.list(tabletopGmEncounter.campaignId)
+    const pendingOccurrenceKey = queryKeys.encounters.pendingOccurrence(tabletopGmEncounter.id)
     const campaignKey = queryKeys.campaigns.detail(tabletopGmEncounter.campaignId)
     for (const key of [
       sheetKey,
+      actionsKey,
       panelsKey,
       detailKey,
       draftKey,
       preparationOptionsKey,
       encounterKey,
+      pendingOccurrenceKey,
       campaignKey
     ]) {
       queryClient.setQueryData(key, { cached: true })
@@ -252,11 +263,13 @@ describe('useCampaignLiveSession', () => {
     act(() => options.onMessage(ready(1, tabletopGmEncounter.version, 3)))
     for (const key of [
       sheetKey,
+      actionsKey,
       panelsKey,
       detailKey,
       draftKey,
       preparationOptionsKey,
       encounterKey,
+      pendingOccurrenceKey,
       campaignKey
     ]) {
       expect(queryClient.getQueryState(key)?.isInvalidated).toBe(false)
@@ -266,11 +279,13 @@ describe('useCampaignLiveSession', () => {
     await waitFor(() => {
       for (const key of [
         sheetKey,
+        actionsKey,
         panelsKey,
         detailKey,
         draftKey,
         preparationOptionsKey,
         encounterKey,
+        pendingOccurrenceKey,
         campaignKey
       ]) {
         expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true)

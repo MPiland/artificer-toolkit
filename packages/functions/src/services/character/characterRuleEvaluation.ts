@@ -51,6 +51,8 @@ export interface CharacterRuleEvaluationResult {
   discoveredActionCapabilities: readonly CharacterActionCapabilityDescriptor[]
   /** Server-only committed action execution sources aligned with action candidates. */
   compiledActionEntryPoints: readonly CompiledActionEntryPoint[]
+  /** Exact hydrated spell documents retained only until a committed projection seals their pins. */
+  spellsWithEffects: readonly SpellAuthored[]
   output: CharacterRulePolicyOutput
   evaluation: {
     revisionId: string
@@ -311,6 +313,7 @@ export async function evaluateCharacterRulePolicy(
     facts: factsResult.facts,
     discoveredActionCapabilities,
     compiledActionEntryPoints,
+    spellsWithEffects,
     output,
     evaluation: {
       revisionId: evaluation.revisionId,

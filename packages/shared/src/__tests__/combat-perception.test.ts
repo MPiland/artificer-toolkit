@@ -23,10 +23,13 @@ function source(
 ): CombatPerceptionContributionSource {
   return {
     instanceId: contribution.id,
-    activeEffectId: '44444444-4444-4444-8444-444444444444',
-    activeEffectVersion: 1,
-    activeEffectDefinitionChecksum: otherChecksum,
-    createdOrdinal: 1,
+    source: {
+      kind: 'ACTIVE_EFFECT',
+      activeEffectId: '44444444-4444-4444-8444-444444444444',
+      activeEffectVersion: 1,
+      activeEffectDefinitionChecksum: otherChecksum
+    },
+    sourceOrdinal: 1,
     contribution,
     ...overrides
   }
@@ -396,7 +399,15 @@ describe('combat perception', () => {
             document: senseDocument(),
             range: 90
           },
-          { activeEffectId: '44444444-4444-4444-8444-444444444445', createdOrdinal: 2 }
+          {
+            source: {
+              kind: 'ACTIVE_EFFECT',
+              activeEffectId: '44444444-4444-4444-8444-444444444445',
+              activeEffectVersion: 1,
+              activeEffectDefinitionChecksum: otherChecksum
+            },
+            sourceOrdinal: 2
+          }
         ),
         source(
           {
@@ -409,7 +420,15 @@ describe('combat perception', () => {
             maximumObscurementAccess: null,
             perceivesInvisible: false
           },
-          { activeEffectId: '44444444-4444-4444-8444-444444444446', createdOrdinal: 3 }
+          {
+            source: {
+              kind: 'ACTIVE_EFFECT',
+              activeEffectId: '44444444-4444-4444-8444-444444444446',
+              activeEffectVersion: 1,
+              activeEffectDefinitionChecksum: otherChecksum
+            },
+            sourceOrdinal: 3
+          }
         )
       ],
       subjectContributions: [],
@@ -443,13 +462,23 @@ describe('combat perception', () => {
       observerContributions: [
         source(repeatedGrant, {
           instanceId: '77777777-7777-4777-8777-777777777771',
-          activeEffectId: '44444444-4444-4444-8444-444444444447',
-          createdOrdinal: 4
+          source: {
+            kind: 'ACTIVE_EFFECT',
+            activeEffectId: '44444444-4444-4444-8444-444444444447',
+            activeEffectVersion: 1,
+            activeEffectDefinitionChecksum: otherChecksum
+          },
+          sourceOrdinal: 4
         }),
         source(repeatedGrant, {
           instanceId: '77777777-7777-4777-8777-777777777772',
-          activeEffectId: '44444444-4444-4444-8444-444444444448',
-          createdOrdinal: 5
+          source: {
+            kind: 'ACTIVE_EFFECT',
+            activeEffectId: '44444444-4444-4444-8444-444444444448',
+            activeEffectVersion: 1,
+            activeEffectDefinitionChecksum: otherChecksum
+          },
+          sourceOrdinal: 5
         })
       ],
       subjectContributions: [],
@@ -517,7 +546,15 @@ describe('combat perception', () => {
             obscurement: 'LIGHT',
             precedence: 4
           },
-          { activeEffectId: '44444444-4444-4444-8444-444444444447', createdOrdinal: 2 }
+          {
+            source: {
+              kind: 'ACTIVE_EFFECT',
+              activeEffectId: '44444444-4444-4444-8444-444444444447',
+              activeEffectVersion: 1,
+              activeEffectDefinitionChecksum: otherChecksum
+            },
+            sourceOrdinal: 2
+          }
         ),
         source(
           {
@@ -528,7 +565,15 @@ describe('combat perception', () => {
             obscurement: 'HEAVY',
             precedence: 4
           },
-          { activeEffectId: '44444444-4444-4444-8444-444444444446', createdOrdinal: 1 }
+          {
+            source: {
+              kind: 'ACTIVE_EFFECT',
+              activeEffectId: '44444444-4444-4444-8444-444444444446',
+              activeEffectVersion: 1,
+              activeEffectDefinitionChecksum: otherChecksum
+            },
+            sourceOrdinal: 1
+          }
         )
       ]
     })
@@ -536,9 +581,15 @@ describe('combat perception', () => {
       illumination: 'ORDINARY_DARKNESS',
       obscurement: 'HEAVY'
     })
-    expect(local.appliedContributionSources.map((entry) => entry.activeEffectId)).toEqual([
-      '44444444-4444-4444-8444-444444444446',
-      '44444444-4444-4444-8444-444444444447'
+    expect(local.appliedContributionSources.map((entry) => entry.source)).toEqual([
+      expect.objectContaining({
+        kind: 'ACTIVE_EFFECT',
+        activeEffectId: '44444444-4444-4444-8444-444444444446'
+      }),
+      expect.objectContaining({
+        kind: 'ACTIVE_EFFECT',
+        activeEffectId: '44444444-4444-4444-8444-444444444447'
+      })
     ])
     expect(local.appliedContributionSources[0]).not.toHaveProperty('contribution')
   })
@@ -565,7 +616,17 @@ describe('combat perception', () => {
     expect(() =>
       resolveCombatPerceptionWithContributions({
         ...base,
-        subjectContributions: [{ ...valid, activeEffectVersion: 0 }]
+        subjectContributions: [
+          {
+            ...valid,
+            source: {
+              kind: 'ACTIVE_EFFECT',
+              activeEffectId: '44444444-4444-4444-8444-444444444444',
+              activeEffectVersion: 0,
+              activeEffectDefinitionChecksum: otherChecksum
+            }
+          }
+        ]
       })
     ).toThrow(/positive safe integer/)
     expect(() =>
@@ -610,7 +671,12 @@ describe('combat perception', () => {
         subjectContributions: [
           {
             ...valid,
-            activeEffectDefinitionChecksum: valid.activeEffectDefinitionChecksum.toUpperCase()
+            source: {
+              kind: 'ACTIVE_EFFECT',
+              activeEffectId: '44444444-4444-4444-8444-444444444444',
+              activeEffectVersion: 1,
+              activeEffectDefinitionChecksum: otherChecksum.toUpperCase()
+            }
           }
         ]
       })

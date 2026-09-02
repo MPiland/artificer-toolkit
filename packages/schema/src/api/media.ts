@@ -190,12 +190,42 @@ export const createImageUploadIntentOutputSchema = z.strictObject({
   expiresAt: z.string().datetime()
 })
 
-export const createVttMapUploadIntentOutputSchema = createImageUploadIntentOutputSchema.extend({
+export const vttMapMultipartPartUploadSchema = z.strictObject({
+  partNumber: z.number().int().min(1).max(5),
+  url: z.string().url()
+})
+
+export const createVttMapUploadIntentOutputSchema = z.strictObject({
+  assetId: z.string().uuid(),
+  storageProvider: z.literal('R2'),
+  objectKey: z.string().min(1),
+  expiresAt: z.string().datetime(),
   resumable: z.strictObject({
     chunkBytes: z.literal(6 * 1024 * 1024),
-    protocol: z.literal('TUS')
+    protocol: z.literal('R2_MULTIPART'),
+    parts: z.array(vttMapMultipartPartUploadSchema).min(1).max(5)
   })
 })
+
+export const completeVttMapMultipartUploadInputSchema = z
+  .strictObject({
+    assetId: z.string().uuid(),
+    parts: z
+      .array(
+        z.strictObject({
+          partNumber: z.number().int().min(1).max(5),
+          etag: z.string().trim().min(1).max(128)
+        })
+      )
+      .min(1)
+      .max(5)
+  })
+  .superRefine((input, context) => {
+    const partNumbers = input.parts.map((part) => part.partNumber)
+    if (new Set(partNumbers).size !== partNumbers.length) {
+      context.addIssue({ code: 'custom', path: ['parts'], message: 'Upload parts must be unique.' })
+    }
+  })
 
 export const finalizeImageUploadInputSchema = z.strictObject({
   assetId: z.string().uuid()
@@ -321,6 +351,9 @@ export type SignedImageDeliveryDto = z.infer<typeof signedImageDeliveryDtoSchema
 export type CreateImageUploadIntentInput = z.infer<typeof createImageUploadIntentInputSchema>
 export type CreateImageUploadIntentOutput = z.infer<typeof createImageUploadIntentOutputSchema>
 export type CreateVttMapUploadIntentOutput = z.infer<typeof createVttMapUploadIntentOutputSchema>
+export type CompleteVttMapMultipartUploadInput = z.infer<
+  typeof completeVttMapMultipartUploadInputSchema
+>
 export type FinalizeImageUploadInput = z.infer<typeof finalizeImageUploadInputSchema>
 export type FinalizeImageUploadOutput = z.infer<typeof finalizeImageUploadOutputSchema>
 export type FinalizeVttMapUploadOutput = z.infer<typeof finalizeVttMapUploadOutputSchema>

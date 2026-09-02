@@ -102,6 +102,22 @@ export function buildSkillSubjectAliasMap(
 ): Map<string, string> {
   const aliases = new Map<string, string>()
 
+  if (registry.system?.schemaVersion === 4) {
+    for (const skill of registry.system.skills ?? []) {
+      const canonical = toSkillCanonicalId(skill.code ?? '')
+      if (!canonical) throw new Error(`System check definition "${skill.id}" has no code.`)
+      for (const alias of [skill.id, skill.code, skill.code?.toUpperCase(), canonical]) {
+        if (!alias) continue
+        const existing = aliases.get(alias)
+        if (existing && existing !== canonical) {
+          throw new Error(`System check alias "${alias}" is ambiguous.`)
+        }
+        aliases.set(alias, canonical)
+      }
+    }
+    return aliases
+  }
+
   for (const canonical of Object.keys(SKILL_ABILITY_MAP)) {
     aliases.set(canonical, canonical)
     aliases.set(canonical.toUpperCase(), canonical)

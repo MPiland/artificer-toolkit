@@ -9,6 +9,7 @@ import { encounterInitiativePolicySummaryDtoSchema } from '../shared/initiativeP
 import { encounterOptionalCombatSummaryDtoSchema } from '../shared/optionalCombat.js'
 import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/rulesExecution.js'
 import { sizeCodeSchema } from '../shared/enums.js'
+import { spatialPointDtoSchema } from '../shared/spatialFacts.js'
 import {
   encounterRuleOccurrenceSummaryDtoSchema,
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
@@ -23,13 +24,14 @@ const uuidSchema = z.string().uuid()
 const versionSchema = z.number().int().nonnegative()
 const timestampSchema = z.string().datetime()
 const jsonSchema = z.json()
+const checksumSchema = z.string().regex(/^[a-f0-9]{64}$/)
 const speedFactorActionFactorDtoSchema = z.enum([
   'MELEE_HEAVY',
   'MELEE_LIGHT_OR_FINESSE',
   'MELEE_TWO_HANDED',
   'RANGED_LOADING'
 ])
-const initiativeDeclarationSelectionDtoSchema = z.discriminatedUnion('kind', [
+export const initiativeDeclarationSelectionDtoSchema = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.enum(['CHARACTER_ACTION', 'CHARACTER_SPELL_CAST', 'CREATURE_FEATURE_ACTION']),
     optionId: z.string().trim().min(1).max(1_000)
@@ -52,6 +54,9 @@ const initiativeDeclarationSelectionDtoSchema = z.discriminatedUnion('kind', [
       }
     })
 ])
+export type InitiativeDeclarationSelectionDto = z.infer<
+  typeof initiativeDeclarationSelectionDtoSchema
+>
 export {
   automationModeDtoSchema as encounterAutomationModeDtoSchema,
   manualReminderModeDtoSchema as encounterManualReminderModeDtoSchema
@@ -279,6 +284,8 @@ export const updateEncounterBlueprintInputDtoSchema = z.strictObject({
 export const updateEncounterActorInputDtoSchema = commandBaseDtoSchema.extend({
   type: z.literal('UPDATE_ACTOR'),
   actorId: uuidSchema,
+  /** GM-only prospective side correction; existing initiative snapshots remain immutable. */
+  sideId: uuidSchema.optional(),
   currentHitPoints: z.number().int().nonnegative().optional(),
   tempHitPoints: z.number().int().nonnegative().optional(),
   conditions: jsonSchema.optional(),
@@ -290,6 +297,13 @@ export const updateEncounterActorInputDtoSchema = commandBaseDtoSchema.extend({
 export const removeEncounterActorInputDtoSchema = commandBaseDtoSchema.extend({
   type: z.literal('REMOVE_ACTOR'),
   actorId: uuidSchema
+})
+
+export const replaceCreatureEquipmentInputDtoSchema = commandBaseDtoSchema.extend({
+  type: z.literal('REPLACE_CREATURE_EQUIPMENT'),
+  actorId: uuidSchema,
+  loadoutEntryId: postgresUuidSchema,
+  equipmentId: postgresUuidSchema
 })
 
 export const setEncounterInitiativeInputDtoSchema = commandBaseDtoSchema.extend({
@@ -384,11 +398,48 @@ export const upgradeEncounterRulePackInputDtoSchema = commandBaseDtoSchema.exten
   type: z.literal('UPGRADE_RULE_PACK'),
   revisionId: uuidSchema
 })
+
+const optionalCombatActionIntentSelectionValueDtoSchema = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.literal('ENTITY'),
+    entityId: postgresUuidSchema
+  }),
+  z.strictObject({
+    kind: z.literal('POSITION'),
+    position: spatialPointDtoSchema
+  })
+])
+const optionalCombatActionIntentSelectionDtoSchema = z.strictObject({
+  fieldId: checksumSchema,
+  value: optionalCombatActionIntentSelectionValueDtoSchema
+})
+
+export const optionalCombatActionIntentDtoSchema = z
+  .strictObject({
+    optionId: checksumSchema,
+    definitionId: postgresUuidSchema,
+    selectionContract: checksumSchema,
+    selections: z.array(optionalCombatActionIntentSelectionDtoSchema).max(4)
+  })
+  .superRefine((intent, context) => {
+    for (let index = 1; index < intent.selections.length; index += 1) {
+      if (intent.selections[index - 1]!.fieldId >= intent.selections[index]!.fieldId) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['selections', index, 'fieldId'],
+          message: 'Optional combat intent selection field IDs must be unique and ascending.'
+        })
+      }
+    }
+  })
+export type OptionalCombatActionIntentDto = z.infer<typeof optionalCombatActionIntentDtoSchema>
+
 export const resolveEncounterActionInputDtoSchema = commandBaseDtoSchema.extend({
   type: z.literal('RESOLVE_ACTION'),
   actorId: uuidSchema,
   actionId: z.string().trim().min(1).max(240),
   targetActorId: uuidSchema,
+  optionalCombatIntent: optionalCombatActionIntentDtoSchema.nullable().optional(),
   /**
    * Required only by action policies that consume exact Scene position. The
    * server locks and validates this dependency before it constructs facts.
@@ -436,13 +487,16 @@ export const resolveRuleOccurrenceInputDtoSchema = commandBaseDtoSchema.extend({
       primary: initiativeDeclarationSelectionDtoSchema,
       bonus: initiativeDeclarationSelectionDtoSchema.nullable()
     }),
-    ...movementReactionChoiceSelectionDtoSchema.options
+    ...movementReactionChoiceSelectionDtoSchema.options,
+    z.strictObject({ kind: z.literal('PASSAGE_DECLINE') }),
+    z.strictObject({ kind: z.literal('PASSAGE_OPTION'), optionId: checksumSchema })
   ])
 })
 
 export const encounterCommandInputDtoSchema = z.discriminatedUnion('type', [
   updateEncounterActorInputDtoSchema,
   removeEncounterActorInputDtoSchema,
+  replaceCreatureEquipmentInputDtoSchema,
   setEncounterInitiativeInputDtoSchema,
   rollEncounterActorInitiativeInputDtoSchema,
   reorderEncounterInputDtoSchema,
@@ -506,6 +560,9 @@ export type UpdateEncounterBlueprintInputDto = z.infer<
 >
 export type UpdateEncounterActorInputDto = z.infer<typeof updateEncounterActorInputDtoSchema>
 export type RemoveEncounterActorInputDto = z.infer<typeof removeEncounterActorInputDtoSchema>
+export type ReplaceCreatureEquipmentInputDto = z.infer<
+  typeof replaceCreatureEquipmentInputDtoSchema
+>
 export type SetEncounterInitiativeInputDto = z.infer<typeof setEncounterInitiativeInputDtoSchema>
 export type SetEncounterRoundInputDto = z.infer<typeof setEncounterRoundInputDtoSchema>
 export type ReorderEncounterInputDto = z.infer<typeof reorderEncounterInputDtoSchema>

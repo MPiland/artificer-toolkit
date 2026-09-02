@@ -47,6 +47,33 @@ const initiativePending = {
   allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
 } satisfies PendingEncounterRuleOccurrenceSummaryDto
 
+const declarationPending = {
+  kind: 'INITIATIVE_DECLARATION',
+  occurrenceId,
+  occurrenceVersion: 2,
+  encounterVersion: tabletopGmEncounter.version,
+  actorId: tabletopGmEncounter.actors[0]!.id,
+  requestId: 'speed-factor-declaration',
+  primaryOptions: [
+    {
+      kind: 'CHARACTER_ACTION' as const,
+      optionId: 'action:longsword',
+      label: 'Longsword',
+      selectionContract: 'a'.repeat(64)
+    }
+  ],
+  bonusOptions: [
+    {
+      kind: 'CHARACTER_SPELL_CAST' as const,
+      optionId: 'spell:misty-step',
+      label: 'Misty Step',
+      selectionContract: 'b'.repeat(64)
+    }
+  ],
+  adjudicationFields: [],
+  allowedResponses: ['INITIATIVE_DECLARATION']
+} satisfies PendingEncounterRuleOccurrenceSummaryDto
+
 async function resolveDecisionCommand(
   command: ResolveRuleOccurrenceInputDto
 ): Promise<LiveSessionCommittedMessage> {
@@ -150,6 +177,31 @@ export const InitiativeSystemRoll: Story = {
     await expect(resolveDecision).toHaveBeenCalledWith(
       expect.objectContaining({
         resolution: { kind: 'SYSTEM_ROLL', requestId: 'initiative-roll' }
+      })
+    )
+  }
+}
+
+export const InitiativeDeclaration: Story = {
+  args: { pending: declarationPending },
+  play: async ({ canvasElement }) => {
+    resolveDecision.mockClear()
+    const page = within(canvasElement.ownerDocument.body)
+    const drawer = await openDecision(page)
+    await userEvent.click(drawer.getByRole('combobox', { name: 'Primary action' }))
+    await userEvent.keyboard('{ArrowDown}{Enter}')
+    await userEvent.click(drawer.getByRole('combobox', { name: 'Bonus action' }))
+    await userEvent.keyboard('{ArrowDown}{Enter}')
+    await userEvent.click(drawer.getByRole('button', { name: 'Declare actions' }))
+    await waitFor(() => expect(resolveDecision).toHaveBeenCalledTimes(1))
+    await expect(resolveDecision).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolution: {
+          kind: 'INITIATIVE_DECLARATION',
+          requestId: 'speed-factor-declaration',
+          primary: { kind: 'CHARACTER_ACTION', optionId: 'action:longsword' },
+          bonus: { kind: 'CHARACTER_SPELL_CAST', optionId: 'spell:misty-step' }
+        }
       })
     )
   }

@@ -66,4 +66,26 @@ describe('defaultSourceOptionResolver', () => {
       }
     ])
   })
+
+  it('resolves local collection options from current authored values', () => {
+    expect(
+      defaultSourceOptionResolver({
+        source: {
+          kind: 'LOCAL_COLLECTION',
+          rootCollectionPath: ['features'],
+          valuePath: ['id'],
+          labelPath: ['label']
+        },
+        values: {
+          features: [
+            { id: 'action-1', label: 'Claw', section: 'ACTION' },
+            { id: 'trait-1', label: 'Keen Smell', section: 'TRAIT' }
+          ]
+        }
+      })
+    ).toEqual([
+      { value: 'action-1', label: 'Claw' },
+      { value: 'trait-1', label: 'Keen Smell' }
+    ])
+  })
 })

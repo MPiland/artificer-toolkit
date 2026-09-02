@@ -52,10 +52,11 @@ Set these values in the Netlify UI rather than in `netlify.toml`:
 - `SUPABASE_URL` and `SUPABASE_SECRET_KEY` for server-only request authentication. They are required by the current server functions; make them available to Functions at runtime only. The application reads that exact secret-key name and does not fall back to `SUPABASE_SERVICE_ROLE_KEY`.
 - `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, `AUTH_EMAIL_FROM`, and the canonical public app origin as `SITE_URL` for the server-only Supabase Auth Send Email Hook in `netlify/functions`. These values must be available to Functions at runtime only.
 - `DATABASE_CONNECTION_STRING` for database-backed server routes. Use Supabase's Transaction Pooler connection string for Netlify's transient serverless functions. Make it available during the build and to Functions at runtime.
+- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and `R2_VTT_MAP_BUCKET` for private VTT map multipart upload, processing, and delivery. Use separate bucket-scoped values for staging and production; see [`docs/runbooks/vtt-map-r2.md`](../../docs/runbooks/vtt-map-r2.md).
 - `PUBLIC_SIGN_UP_ENABLED=false` for closed alpha. Make it available during the build and to Functions at runtime.
 - `LIBRARY_IMPORT_ENABLED=false` until the importer is ready for public use. Make it available during the build and to Functions at runtime.
 
-Do not set `SUPABASE_SECRET_KEY`, `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, `SENTRY_AUTH_TOKEN`, or any database credential in a `VITE_` variable. These values must remain build or server secrets and must never reach browser code. Redeploy after changing an environment variable. Once the first production URL exists, add its `/auth/confirmed`, `/update-password`, and `/settings/account` paths to Supabase Auth's redirect URL allow list before sending invitations, password-recovery emails, or email-change confirmations.
+Do not set `SUPABASE_SECRET_KEY`, any `R2_*` credential, `RESEND_API_KEY`, `SEND_EMAIL_HOOK_SECRET`, `SENTRY_AUTH_TOKEN`, or any database credential in a `VITE_` variable. These values must remain build or server secrets and must never reach browser code. Redeploy after changing an environment variable. Once the first production URL exists, add its `/auth/confirmed`, `/update-password`, and `/settings/account` paths to Supabase Auth's redirect URL allow list before sending invitations, password-recovery emails, or email-change confirmations.
 
 ## Canonical references
 

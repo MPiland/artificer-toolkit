@@ -29,6 +29,7 @@ import {
   serverUuidIdentityDtoSchema
 } from '../shared/rulesExecution.js'
 import { equipmentPropertyCodeSchema, sizeCodeSchema } from '../shared/enums.js'
+import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 
 const nonNegativeStreamVersionSchema = z.number().int().min(0)
 const compiledActionResourceIdentitySchema = z.string().trim().min(1).max(240)
@@ -110,6 +111,7 @@ export type PinnedSenseDefinition = z.infer<typeof pinnedSenseDefinitionSchema>
 export const characterInitiativeActorFactsSchema = z
   .strictObject({
     effectiveSize: sizeCodeSchema.nullable(),
+    checkTotals: z.record(serverUuidIdentityDtoSchema, z.number().int()).default({}),
     equippedItems: z
       .array(
         z.strictObject({
@@ -168,10 +170,32 @@ const compiledActionActiveEffectPlanSchema = z.strictObject({
   authoredEffectId: serverUuidIdentityDtoSchema,
   compiledEntryId: serverUuidIdentityDtoSchema,
   frozenGraphNodeId: z.string().regex(/^[a-z][a-z0-9_-]{0,79}$/),
-  recurrenceStage: z.enum(['START_OF_TURN', 'END_OF_TURN']),
-  initialRemaining: z.number().int().min(1).max(10_000),
+  frozenGraph: serverPublishedRuleDefinitionDtoSchema,
+  capabilityContractVersion: z.number().int().positive().max(10_000),
+  recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
+  initialRemaining: z.number().int().min(1).max(10_000).nullable(),
   adapterFacts: z.record(z.string().regex(/^[a-z][a-z0-9.-]{0,79}$/), ruleValueDtoSchema),
   perceptionContributions: combatPerceptionContributionsDtoSchema,
+  conditionContribution: z
+    .strictObject({ conditionId: serverUuidIdentityDtoSchema })
+    .nullable()
+    .default(null),
+  actorRelationshipContribution: z
+    .strictObject({
+      relationshipOutcomeId: serverUuidIdentityDtoSchema,
+      modules: z.array(actorRelationshipModuleDtoSchema).min(1).max(32),
+      conditionIds: z.array(serverUuidIdentityDtoSchema).max(32),
+      capabilitySuppressions: z
+        .array(
+          z.strictObject({
+            contributionId: serverUuidIdentityDtoSchema,
+            capabilityDefinitionIds: z.array(serverUuidIdentityDtoSchema).min(1).max(32)
+          })
+        )
+        .max(32)
+    })
+    .nullable()
+    .default(null),
   maintenance: z
     .strictObject({
       definitionId: serverUuidIdentityDtoSchema,
@@ -292,6 +316,40 @@ const compiledActionEntryPointSchema = z.union([
   }),
   z.strictObject({
     schemaVersion: z.literal(4),
+    kind: z.literal('CHARACTER_SPELL_CAST'),
+    /** The exact current Character spell-cast candidate identity. */
+    actionId: z.string().trim().min(1).max(1_000),
+    effectId: serverUuidIdentityDtoSchema,
+    spell: z.strictObject({
+      spellId: projectionIdentifierSchema,
+      versionId: projectionIdentifierSchema,
+      version: projectionSchemaVersionSchema,
+      checksum: projectionChecksumSchema,
+      sourceKind: z.enum([
+        'BACKGROUND',
+        'CLASS',
+        'FEAT',
+        'FEATURE',
+        'ITEM',
+        'OPTION',
+        'RACE',
+        'SUBCLASS'
+      ]),
+      sourceInstanceId: projectionIdentifierSchema,
+      castLevel: z.number().int().min(0).max(9),
+      castMode: z.enum(['SPELL_SLOT', 'AT_WILL', 'RITUAL', 'FIXED_LEVEL', 'LIMITED_USE']),
+      slotKey: projectionIdentifierSchema.nullable(),
+      resourceOwnerKey: projectionIdentifierSchema.nullable()
+    }),
+    targetPolicy: compiledActionTargetPolicySchema,
+    compilation: z.strictObject({
+      kind: z.literal('COMPILED'),
+      activeEffectPlan: compiledActionActiveEffectPlanSchema.nullable(),
+      executionPlan: compiledActionExecutionPlanSchema
+    })
+  }),
+  z.strictObject({
+    schemaVersion: z.literal(4),
     kind: z.literal('CHARACTER_ACTION'),
     actionId: z.string().trim().min(1).max(240),
     effectId: serverUuidIdentityDtoSchema,
@@ -408,6 +466,7 @@ const characterMechanicsProjectionObjectSchema = z.strictObject({
   rulePolicyOutput: characterRulePolicyOutputSchema,
   initiativeActorFacts: characterInitiativeActorFactsSchema.default({
     effectiveSize: null,
+    checkTotals: {},
     equippedItems: []
   }),
   pinnedSenseDefinitions: z.array(pinnedSenseDefinitionSchema).max(100),
@@ -471,7 +530,9 @@ export const characterMechanicsProjectionSchema =
     }
     const candidates = projection.rulePolicyInput.actionCandidates
     const entries = projection.compiledActionEntryPoints
-    if (entries.length !== candidates.length) {
+    const actionEntries = entries.filter((entry) => entry.kind === 'CHARACTER_ACTION')
+    const spellEntries = entries.filter((entry) => entry.kind === 'CHARACTER_SPELL_CAST')
+    if (actionEntries.length !== candidates.length) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Compiled action entries must align with action candidates.',
@@ -480,7 +541,7 @@ export const characterMechanicsProjectionSchema =
       return
     }
     const seenActionIds = new Set<string>()
-    for (const [index, entry] of entries.entries()) {
+    for (const [index, entry] of actionEntries.entries()) {
       const candidate = candidates[index]
       if (
         !candidate ||
@@ -542,7 +603,7 @@ export const characterMechanicsProjectionSchema =
         if (
           activeEffectPlan &&
           (activeEffectPlan.authoredEffectId !== entry.effectId ||
-            activeEffectPlan.initialRemaining < 1)
+            (activeEffectPlan.initialRemaining !== null && activeEffectPlan.initialRemaining < 1))
         ) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -575,6 +636,44 @@ export const characterMechanicsProjectionSchema =
           path: ['compiledActionEntryPoints', index]
         })
       }
+    }
+    const spellCandidates = projection.rulePolicyInput.spellCastCandidates
+    const spellMechanics = projection.rulePolicyOutput.spellCastMechanics
+    const spellDecisions = projection.rulePolicyOutput.spellCastDecisions
+    const expectedSpellEntries = new Map(
+      spellCandidates.map((candidate) => [candidate.candidateId, candidate])
+    )
+    for (const [index, entry] of spellEntries.entries()) {
+      const candidate = expectedSpellEntries.get(entry.actionId)
+      const mechanics = spellMechanics.find((value) => value.candidateId === entry.actionId)
+      const decision = spellDecisions.find((value) => value.candidateId === entry.actionId)
+      const published =
+        entry.compilation.executionPlan.kind === 'SINGLE_GRAPH'
+          ? entry.compilation.executionPlan.published
+          : entry.compilation.executionPlan.test.published
+      if (
+        !candidate ||
+        !mechanics ||
+        !decision ||
+        candidate.spellId !== entry.spell.spellId ||
+        candidate.source.sourceKind !== entry.spell.sourceKind ||
+        candidate.source.sourceInstanceId !== entry.spell.sourceInstanceId ||
+        candidate.castLevel !== entry.spell.castLevel ||
+        candidate.castMode !== entry.spell.castMode ||
+        candidate.resourceOwnerKey !== entry.spell.resourceOwnerKey ||
+        decision.slotKey !== entry.spell.slotKey ||
+        mechanics.mechanics.filter((value) => value.effectId === entry.effectId).length !== 1 ||
+        published.id !== entry.effectId ||
+        published.gameSystemId !== projection.commandState.systemId
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            'Compiled spell action entry must match one current spell-cast candidate, decision, and Effect.',
+          path: ['compiledActionEntryPoints', actionEntries.length + index]
+        })
+      }
+      expectedSpellEntries.delete(entry.actionId)
     }
   })
 

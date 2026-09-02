@@ -428,6 +428,22 @@ describe('D&D optional resolution policies', () => {
         visitedTargetActorIds: [ACTOR_B, ACTOR_C]
       }
     })
+    expect(
+      resolveDnd5eCleaving({
+        ...input,
+        chainStep: 1,
+        eligibleTargetActorIds: [ACTOR_D],
+        visitedTargetActorIds: [ACTOR_B, ACTOR_C],
+        nextTarget: { ...input.nextTarget, actorId: ACTOR_D }
+      })
+    ).toMatchObject({
+      kind: 'PROPOSED',
+      proposal: {
+        chainStep: 2,
+        nextTargetActorId: ACTOR_D,
+        visitedTargetActorIds: [ACTOR_B, ACTOR_C, ACTOR_D]
+      }
+    })
     expect(resolveDnd5eCleaving({ ...input, nextTarget: null })).toEqual({
       kind: 'JUDGMENT_REQUIRED',
       reason: 'CLEAVING_TARGET_REQUIRED'

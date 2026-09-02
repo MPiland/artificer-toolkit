@@ -14,6 +14,7 @@ import type {
   CostAuthored,
   CreatureAuthored,
   CreatureCompanionProfile,
+  CreatureEquipmentLoadoutEntry,
   CreatureMountProfile,
   CreatureNpcProfile,
   DetailAuthored
@@ -25,8 +26,9 @@ export const CREATURE_SECTIONS = {
   defenses: { id: 'defenses', label: 'Defenses', order: 30 },
   details: { id: 'details', label: 'Details', order: 40 },
   features: { id: 'features', label: 'Features', order: 50 },
-  proficiencies: { id: 'proficiencies', label: 'Proficiencies', order: 60 },
-  profiles: { id: 'profiles', label: 'Profiles', order: 70 }
+  equipment: { id: 'equipment', label: 'Equipment / Loadout', order: 60 },
+  proficiencies: { id: 'proficiencies', label: 'Proficiencies', order: 70 },
+  profiles: { id: 'profiles', label: 'Profiles', order: 80 }
 } as const
 
 const detailNode = buildNodeMap<DetailAuthored>()
@@ -188,6 +190,45 @@ export const CREATURE_CAPACITY_NODE_MAP = capacityNode.define(
 
 const creatureNode = buildNodeMap<CreatureAuthored>()
 
+const creatureEquipmentLoadoutNode = buildNodeMap<CreatureEquipmentLoadoutEntry>()
+
+export const CREATURE_EQUIPMENT_LOADOUT_NODE_MAP = creatureEquipmentLoadoutNode.define(
+  'creatureEquipmentLoadout',
+  ({ map, nodes, data }) => {
+    map
+      .set('id', nodes.text(['id'], 'ID'))
+      .set(
+        'equipmentId',
+        nodes.selectSingle(['equipmentId'], 'Equipment', {
+          kind: 'DATA',
+          relationship: data.table('equipment', { selectColumns: ['id', 'label'] })
+        })
+      )
+      .set('quantity', nodes.number(['quantity'], 'Quantity', { constraints: { minimum: 1 } }))
+      .set(
+        'useState',
+        nodes.selectSingle(['useState'], 'Use State', {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'HELD', label: 'Held' },
+            { code: 'WORN', label: 'Worn' },
+            { code: 'CARRIED', label: 'Carried' }
+          ]
+        })
+      )
+      .set('attuned', nodes.toggle(['attuned'], 'Attuned'))
+      .set(
+        'actionFeatureIds',
+        nodes.selectMulti(['actionFeatureIds'], 'Bound Action Features', {
+          kind: 'LOCAL_COLLECTION',
+          rootCollectionPath: ['features'],
+          valuePath: ['id'],
+          labelPath: ['label']
+        })
+      )
+  }
+)
+
 const diceExpressionNode = buildNodeMap<DiceExpression>()
 
 export const CREATURE_HIT_DICE_NODE_MAP = diceExpressionNode.define(
@@ -252,6 +293,19 @@ export const CREATURE_NODE_MAP = creatureNode.define(
           section: CREATURE_SECTIONS.features,
           order: 10
         })
+      )
+      .set(
+        'equipmentLoadout',
+        groupArray(
+          ['equipmentLoadout'],
+          'Equipment Loadout',
+          () => CREATURE_EQUIPMENT_LOADOUT_NODE_MAP,
+          {
+            presentation: 'table',
+            section: CREATURE_SECTIONS.equipment,
+            order: 10
+          }
+        )
       )
       .set(
         'proficiencies',

@@ -105,6 +105,8 @@ Each initiative round is aggregate-owned current state, not a workflow or event 
 the Encounter's initiative-policy checksum and owns the current procedure, cadence, lifecycle status,
 version, and monotonic next-turn ordinal. Participant rows snapshot exact actor/side membership and
 retain only current score, final turn ordinal, lifecycle status, and checksum-bound occurrence pointers.
+An actor-side correction updates only the Encounter actor for future-round construction; it never
+rewrites a non-completed round's participant side snapshot, side order, or pending side-order choice.
 Side rows provide the equivalent normalized state for side-roll procedures. Exact rule receipts remain
 the evidence and replay authority; round rows never embed executable graphs, continuations, or mutable
 decision history. A new round either evaluates according to `EACH_ROUND` cadence or carries forward the

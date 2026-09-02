@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { manifestBehaviorPathDtoSchema, pathDtoSchema } from './path.js'
 import { activationCodeSchema, invocationKindSchema, triggerCodeSchema } from '../shared/enums.js'
+import { activationDtoSchema } from './activation.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { shapeDtoSchema } from '../shared/shape.js'
@@ -14,23 +15,7 @@ import {
   authoredNestedCollectionSchema
 } from '../shared/authoredLimits.js'
 
-export const activationDtoSchema = z.discriminatedUnion('code', [
-  z.object({
-    code: z.literal(activationCodeSchema.enum.FREE)
-  }),
-  z.object({
-    code: z.literal(activationCodeSchema.enum.ACTION),
-    amount: z.number()
-  }),
-  z.object({
-    code: z.literal(activationCodeSchema.enum.BONUS_ACTION),
-    amount: z.number()
-  }),
-  z.object({
-    code: z.literal(activationCodeSchema.enum.REACTION),
-    amount: z.number()
-  })
-])
+export { activationDtoSchema }
 
 const reactionActivationDtoSchema = z.object({
   code: z.literal(activationCodeSchema.enum.REACTION),

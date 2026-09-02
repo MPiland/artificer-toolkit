@@ -3,7 +3,14 @@ import type {
   SpatialMovementCandidate
 } from '@artificer-toolkit/shared/vtt'
 
+import type { EncounterMovementPassageContact } from './encounterMovementPassageContacts.js'
+
 export type EncounterMovementRuleTimelineEntry =
+  | {
+      kind: 'PASSAGE'
+      pathDistance: number
+      candidate: EncounterMovementPassageContact
+    }
   | {
       kind: 'SPATIAL'
       pathDistance: number
@@ -27,6 +34,7 @@ function compareText(left: string, right: string): number {
 export function createEncounterMovementRuleTimeline(input: {
   spatialCandidates: readonly SpatialMovementCandidate[]
   reactionCandidates: readonly ReactionReachCandidate[]
+  passageCandidate?: EncounterMovementPassageContact | null
 }): readonly EncounterMovementRuleTimelineEntry[] {
   return [
     ...input.spatialCandidates.map(
@@ -42,10 +50,20 @@ export function createEncounterMovementRuleTimeline(input: {
         pathDistance: candidate.pathDistance,
         candidate
       })
-    )
+    ),
+    ...(input.passageCandidate
+      ? [
+          {
+            kind: 'PASSAGE' as const,
+            pathDistance: input.passageCandidate.pathDistance,
+            candidate: input.passageCandidate
+          }
+        ]
+      : [])
   ].sort((left, right) => {
     if (left.pathDistance !== right.pathDistance) return left.pathDistance - right.pathDistance
-    if (left.kind !== right.kind) return left.kind === 'SPATIAL' ? -1 : 1
+    const kindOrder = { SPATIAL: 0, PASSAGE: 1, REACTION: 2 } as const
+    if (left.kind !== right.kind) return kindOrder[left.kind] - kindOrder[right.kind]
     if (left.kind === 'SPATIAL' && right.kind === 'SPATIAL') {
       return (
         compareText(left.candidate.effectId, right.candidate.effectId) ||
@@ -58,6 +76,12 @@ export function createEncounterMovementRuleTimeline(input: {
         compareText(left.candidate.sourceId, right.candidate.sourceId) ||
         compareText(left.candidate.reactorTokenId, right.candidate.reactorTokenId) ||
         compareText(left.candidate.stage, right.candidate.stage)
+      )
+    }
+    if (left.kind === 'PASSAGE' && right.kind === 'PASSAGE') {
+      return (
+        compareText(left.candidate.blockerActorId, right.candidate.blockerActorId) ||
+        compareText(left.candidate.blockerTokenId, right.candidate.blockerTokenId)
       )
     }
     return 0

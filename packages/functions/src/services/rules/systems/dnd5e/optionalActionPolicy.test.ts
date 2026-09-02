@@ -13,6 +13,7 @@ import { describe, expect, it } from 'vitest'
 
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import {
+  prepareDnd5eDisarmContest,
   resolveDnd5eClimbOntoLargerCreature,
   resolveDnd5eClimbDislodge,
   resolveDnd5eDisarm,
@@ -23,6 +24,8 @@ import {
 const ACTOR_A = '00000000-0000-4000-8000-0000000000a1'
 const ACTOR_B = '00000000-0000-4000-8000-0000000000a2'
 const ITEM = '00000000-0000-4000-8000-0000000000a3'
+const ACROBATICS_DEFINITION_ID = '00000000-0000-4000-8000-0000000000a4'
+const ATHLETICS_DEFINITION_ID = '00000000-0000-4000-8000-0000000000a5'
 
 const documents = {
   CLIMB_ONTO_LARGER_CREATURE: {
@@ -35,13 +38,20 @@ const documents = {
 
 function snapshot(kind: keyof typeof documents): EncounterOptionalCombatSnapshotDto {
   const selected = documents[kind]
+  const parameters =
+    kind === 'DISARM'
+      ? {
+          kind,
+          defenderCheckDefinitionIds: [ATHLETICS_DEFINITION_ID, ACROBATICS_DEFINITION_ID]
+        }
+      : { kind }
   const document = {
     schemaVersion: 1 as const,
     kind,
     id: selected.id,
     gameSystemId: DND5E_SYSTEM_ID,
     module: { policyModuleKey: selected.module, contractVersion: 1 },
-    parameters: { kind },
+    parameters,
     mutuallyExclusiveGroup: null
   }
   return {
@@ -70,7 +80,13 @@ function base(
     automationMode,
     gameSystemId: DND5E_SYSTEM_ID,
     optionalCombatSnapshot,
-    optionalCombatSnapshotChecksum: checksumCanonicalJson(optionalCombatSnapshot)
+    optionalCombatSnapshotChecksum: checksumCanonicalJson(optionalCombatSnapshot),
+    attack: {
+      modifier: 5,
+      rollMode: 'NORMAL' as const,
+      baseContributors: { MELEE: [], RANGED: [], SPELL: [], UNARMED: [] },
+      relationshipContributors: []
+    }
   } as const
 }
 
@@ -147,13 +163,14 @@ describe('D&D optional action policies', () => {
       ...base('DISARM'),
       attackerActorId: ACTOR_A,
       targetActorId: ACTOR_B,
-      attackerSizeRank: 4,
-      targetSizeRank: 2,
+      attackerSize: 'HUGE',
+      targetSize: 'MEDIUM',
       heldItemId: ITEM,
       targetItemOwnerState: 'CHARACTER_SHEET' as const,
-      targetCheck: 'ATHLETICS' as const,
-      targetHoldsItemWithTwoOrMoreHands: true,
-      qualifyingWeaponAttack: true,
+      targetCheckDefinitionId: ATHLETICS_DEFINITION_ID,
+      targetEquipment: { properties: ['TWO_HANDED'] },
+      triggerCode: 'MELEE_WEAPON_ATTACK',
+      sourceEquipment: { id: ITEM, category: 'WEAPON', properties: [], state: 'EQUIPPED' as const },
       contest: { initiatorTotal: 16, targetTotal: 10 }
     }
     const resolution = resolveDnd5eDisarm(input)
@@ -162,17 +179,163 @@ describe('D&D optional action policies', () => {
       proposal: {
         pin: { definitionId: DND5E_DISARM_DEFINITION_ID },
         contest: {
-          initiatorMode: 'NORMAL',
-          targetMode: 'NORMAL',
+          targetCheckDefinitionId: ATHLETICS_DEFINITION_ID,
+          initiatorMode: 'DISADVANTAGE',
+          targetMode: 'DISADVANTAGE',
           initiatorContributors: [
-            { influence: 'DISADVANTAGE', reason: 'TARGET_HELD_WITH_TWO_OR_MORE_HANDS' },
-            { influence: 'ADVANTAGE', reason: 'SIZE_RELATION' }
-          ]
+            { influence: 'DISADVANTAGE', reason: 'TARGET_HELD_WITH_TWO_OR_MORE_HANDS' }
+          ],
+          targetContributors: [{ influence: 'DISADVANTAGE', reason: 'SIZE_RELATION' }]
         },
         disposition: { transition: 'NO_LONGER_HELD', ownerState: 'CHARACTER_SHEET' }
       }
     })
     expect(resolveDnd5eDisarm({ ...input, automationMode: 'ASSISTED' })).toEqual(resolution)
+    if (resolution.kind !== 'PROPOSED') throw new Error('Expected a Disarm proposal.')
+    const repeated = resolveDnd5eDisarm(input)
+    if (repeated.kind !== 'PROPOSED') throw new Error('Expected a repeated Disarm proposal.')
+    expect(repeated.proposal.contest.initiatorContributors).toEqual(
+      resolution.proposal.contest.initiatorContributors
+    )
+    expect(resolution.proposal.contest.initiatorContributors[0]).toMatchObject({
+      grantId: null,
+      domainKey: 'TARGET_HELD_WITH_TWO_OR_MORE_HANDS'
+    })
+    const revisedSnapshot = snapshot('DISARM')
+    revisedSnapshot.definitions[0] = {
+      ...revisedSnapshot.definitions[0]!,
+      definitionVersion: 2
+    }
+    const revised = resolveDnd5eDisarm({
+      ...input,
+      optionalCombatSnapshot: revisedSnapshot,
+      optionalCombatSnapshotChecksum: checksumCanonicalJson(revisedSnapshot)
+    })
+    if (revised.kind !== 'PROPOSED') throw new Error('Expected a revised Disarm proposal.')
+    expect(revised.proposal.contest.initiatorContributors[0]?.sourceId).not.toBe(
+      resolution.proposal.contest.initiatorContributors[0]?.sourceId
+    )
+  })
+
+  it('prepares disarm policy before contest totals exist', () => {
+    expect(
+      prepareDnd5eDisarmContest({
+        ...base('DISARM'),
+        attackerActorId: ACTOR_A,
+        targetActorId: ACTOR_B,
+        attackerSize: 'MEDIUM',
+        targetSize: 'HUGE',
+        heldItemId: ITEM,
+        targetItemOwnerState: 'ENCOUNTER_ACTOR',
+        targetCheckDefinitionId: ACROBATICS_DEFINITION_ID,
+        targetEquipment: { properties: ['TWO_HANDED'] },
+        triggerCode: 'RANGED_WEAPON_ATTACK',
+        sourceEquipment: { id: ITEM, category: 'WEAPON', properties: [], state: 'EQUIPPED' }
+      })
+    ).toMatchObject({
+      kind: 'PROPOSED',
+      proposal: {
+        contest: {
+          initiatorMode: 'DISADVANTAGE',
+          targetMode: 'ADVANTAGE',
+          targetCheckDefinitionId: ACROBATICS_DEFINITION_ID
+        }
+      }
+    })
+  })
+
+  it('applies handedness only to the attack and size only to the target check', () => {
+    const input = {
+      ...base('DISARM'),
+      attackerActorId: ACTOR_A,
+      targetActorId: ACTOR_B,
+      attackerSize: 'MEDIUM',
+      targetSize: 'MEDIUM',
+      heldItemId: ITEM,
+      targetItemOwnerState: 'ENCOUNTER_ACTOR' as const,
+      targetCheckDefinitionId: ACROBATICS_DEFINITION_ID,
+      targetEquipment: { properties: [] },
+      triggerCode: 'MELEE_WEAPON_ATTACK',
+      sourceEquipment: { id: ITEM, category: 'WEAPON', properties: [], state: 'HELD' as const },
+      contest: { initiatorTotal: 16, targetTotal: 10 }
+    }
+    expect(resolveDnd5eDisarm(input)).toMatchObject({
+      kind: 'PROPOSED',
+      proposal: {
+        contest: {
+          initiatorMode: 'NORMAL',
+          targetMode: 'NORMAL',
+          initiatorContributors: [],
+          targetContributors: []
+        }
+      }
+    })
+    expect(resolveDnd5eDisarm({ ...input, targetSize: 'HUGE' })).toMatchObject({
+      kind: 'PROPOSED',
+      proposal: {
+        contest: {
+          initiatorMode: 'NORMAL',
+          targetMode: 'ADVANTAGE',
+          targetContributors: [{ influence: 'ADVANTAGE', reason: 'SIZE_RELATION' }]
+        }
+      }
+    })
+    expect(
+      resolveDnd5eDisarm({ ...input, targetEquipment: { properties: ['TWO_HANDED'] } })
+    ).toMatchObject({
+      kind: 'PROPOSED',
+      proposal: {
+        contest: {
+          initiatorMode: 'DISADVANTAGE',
+          targetMode: 'NORMAL',
+          initiatorContributors: [
+            { influence: 'DISADVANTAGE', reason: 'TARGET_HELD_WITH_TWO_OR_MORE_HANDS' }
+          ]
+        }
+      }
+    })
+  })
+
+  it('combines exact base and relationship attack contributors before disarm handedness', () => {
+    const input = {
+      ...base('DISARM'),
+      attackerActorId: ACTOR_A,
+      targetActorId: ACTOR_B,
+      attackerSize: 'MEDIUM',
+      targetSize: 'MEDIUM',
+      heldItemId: ITEM,
+      targetItemOwnerState: 'ENCOUNTER_ACTOR' as const,
+      targetCheckDefinitionId: ACROBATICS_DEFINITION_ID,
+      targetEquipment: { properties: ['TWO_HANDED'] },
+      triggerCode: 'MELEE_WEAPON_ATTACK',
+      sourceEquipment: { id: ITEM, category: 'WEAPON', properties: [], state: 'HELD' as const },
+      contest: { initiatorTotal: 16, targetTotal: 10 },
+      attack: {
+        modifier: 5,
+        rollMode: 'ADVANTAGE' as const,
+        baseContributors: {
+          MELEE: [
+            {
+              sourceId: 'base-advantage',
+              grantId: 'grant-a',
+              domainKey: 'base',
+              influence: 'ADVANTAGE' as const
+            }
+          ],
+          RANGED: [],
+          SPELL: [],
+          UNARMED: []
+        },
+        relationshipContributors: []
+      }
+    }
+    expect(resolveDnd5eDisarm(input)).toMatchObject({
+      kind: 'PROPOSED',
+      proposal: { contest: { initiatorMode: 'NORMAL' } }
+    })
+    expect(
+      resolveDnd5eDisarm({ ...input, attack: { ...input.attack, rollMode: 'NORMAL' } })
+    ).toEqual({ kind: 'JUDGMENT_REQUIRED', reason: 'DISARM_ATTACK_POLICY_UNRESOLVED' })
   })
 
   it('preserves held state on disarm tie/failure and requires exact held facts', () => {
@@ -180,13 +343,14 @@ describe('D&D optional action policies', () => {
       ...base('DISARM'),
       attackerActorId: ACTOR_A,
       targetActorId: ACTOR_B,
-      attackerSizeRank: 2,
-      targetSizeRank: 3,
+      attackerSize: 'MEDIUM',
+      targetSize: 'LARGE',
       heldItemId: ITEM,
       targetItemOwnerState: 'ENCOUNTER_ACTOR' as const,
-      targetCheck: 'ACROBATICS' as const,
-      targetHoldsItemWithTwoOrMoreHands: false,
-      qualifyingWeaponAttack: true,
+      targetCheckDefinitionId: ACROBATICS_DEFINITION_ID,
+      targetEquipment: { properties: [] },
+      triggerCode: 'MELEE_WEAPON_ATTACK',
+      sourceEquipment: { id: ITEM, category: 'WEAPON', properties: [], state: 'HELD' as const },
       contest: { initiatorTotal: 11, targetTotal: 11 }
     }
     expect(resolveDnd5eDisarm(input)).toEqual({ kind: 'NOT_APPLICABLE' })
@@ -194,6 +358,18 @@ describe('D&D optional action policies', () => {
       kind: 'JUDGMENT_REQUIRED',
       reason: 'MISSING_DISARM_FACTS'
     })
+    expect(resolveDnd5eDisarm({ ...input, triggerCode: 'MELEE_SPELL_ATTACK' })).toEqual({
+      kind: 'NOT_APPLICABLE'
+    })
+    expect(
+      resolveDnd5eDisarm({ ...input, targetEquipment: { properties: ['VERSATILE'] } })
+    ).toEqual({ kind: 'JUDGMENT_REQUIRED', reason: 'DISARM_GRIP_UNRESOLVED' })
+    expect(
+      resolveDnd5eDisarm({
+        ...input,
+        targetCheckDefinitionId: '00000000-0000-4000-8000-0000000000ff'
+      })
+    ).toEqual({ kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_DISARM_FACTS' })
   })
 
   it('marks both melee hits and misses, with a bounded independent marked OA use', () => {

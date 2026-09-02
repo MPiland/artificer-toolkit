@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 
 const uuidSchema = postgresUuidSchema.transform((value) => value.toLowerCase())
@@ -53,7 +54,9 @@ export const conditionRuleStateReusableDefinitionDocumentDtoSchema = z
     kind: z.literal('CONDITION_RULE_STATE'),
     id: uuidSchema,
     gameSystemId: uuidSchema,
-    capabilitySuppressions: z.array(ruleCapabilitySuppressionDtoSchema).max(32)
+    capabilitySuppressions: z.array(ruleCapabilitySuppressionDtoSchema).max(32),
+    /** Optional for legacy reads; current documents explicitly materialize an ordered empty array. */
+    perceptionContributions: combatPerceptionContributionsDtoSchema.optional()
   })
   .superRefine((document, context) => {
     const contributionIds = new Set<string>()
@@ -117,6 +120,17 @@ export const resolvedRuleCapabilityAvailabilityDtoSchema = z.strictObject({
   capability: pinnedRuleCapabilityDefinitionDtoSchema,
   available: z.boolean(),
   suppressingConditionDefinitionIds: z.array(uuidSchema).max(32),
+  suppressingActiveEffectIds: z.array(uuidSchema).max(32),
+  /** Optional only for legacy snapshots created before active-effect provenance was retained. */
+  activeEffectSuppressions: z
+    .array(
+      z.strictObject({
+        activeEffectId: uuidSchema,
+        contributionId: uuidSchema
+      })
+    )
+    .max(32)
+    .optional(),
   contributionIds: z.array(uuidSchema).max(32)
 })
 

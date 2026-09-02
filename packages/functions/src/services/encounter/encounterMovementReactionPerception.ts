@@ -14,6 +14,7 @@ import {
 } from '@artificer-toolkit/shared/vtt'
 
 import type { LockedEncounterActiveEffectCharacter } from './encounterActiveEffectTargetState.js'
+import { characterRuleActionSystemAdapterRegistry } from '../rules/characterRuleActionSystemAdapterRegistry.js'
 import { resolveEncounterCombatPerception } from './encounterCombatPerception.js'
 import type { LockedCombatPerceptionEffect } from './encounterCombatPerceptionContributions.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
@@ -137,6 +138,12 @@ export async function lockEncounterMovementReactionPerceptionResolver(input: {
       sceneGrid: input.sceneGrid,
       observerToken,
       subjectToken,
+      baselineCapabilities:
+        (observerActor.systemId
+          ? characterRuleActionSystemAdapterRegistry
+              .get(observerActor.systemId)
+              ?.combatPerceptionBaselineCapabilities?.({ observerActorId: observerActor.id })
+          : undefined) ?? [],
       pinnedSenseDefinitions,
       observerEffects: activeEffectsByActorId.get(observerActor.id) ?? [],
       subjectEffects: activeEffectsByActorId.get(contact.candidate.movingActorId) ?? [],

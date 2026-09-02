@@ -20,6 +20,8 @@ import {
 
 export type CompiledFeat = {
   id: string
+  /** Retained for bounded play-surface projections; historical snapshots may omit it. */
+  label?: string
   prerequisites?: FeatAuthored['prerequisites']
   effects?: CompiledEffectGroup[]
   charges?: CompiledCharge
@@ -68,6 +70,7 @@ export function compileFeat(authored: FeatAuthored): CompiledFeat {
 
   return {
     id: authored.id,
+    label: authored.label,
     prerequisites: authored.prerequisites,
     feats,
     modifiers,

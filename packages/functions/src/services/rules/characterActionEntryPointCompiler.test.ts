@@ -394,11 +394,13 @@ describe('compileCharacterActionEntryPoints', () => {
           ]
         }
       },
-      activeEffectPlans: () => [
+      activeEffectPlans: ({ published }) => [
         {
           authoredEffectId: EFFECT_ID,
           compiledEntryId: 'compiled-entry',
           frozenGraphNodeId: 'frozen-node',
+          frozenGraph: published,
+          capabilityContractVersion: 1,
           recurrenceStage: 'START_OF_TURN',
           initialRemaining: 1,
           adapterFacts: {},

@@ -67,7 +67,7 @@ describe('media service safety contracts', () => {
   })
 
   it('durably records uploaded object keys until their metadata commits', () => {
-    expect(source).toContain('await media.scheduleObjectDeletions([objectKey])')
+    expect(source).toContain("await media.scheduleObjectDeletions('SUPABASE', [objectKey])")
     expect(source).toContain('await removeMediaObjects(db, newKeys)')
   })
 
@@ -95,7 +95,9 @@ describe('media service safety contracts', () => {
     expect(source).toContain('const vttMapMaxBytes = 25 * 1024 * 1024')
     expect(source).toContain('const vttMapMaxPixels = 64_000_000')
     expect(source).toContain('const vttMapTileSize = 1024')
-    expect(source).toContain("protocol: 'TUS' as const")
+    expect(source).toContain("protocol: 'R2_MULTIPART' as const")
+    expect(source).toContain("reserveMediaUpload(db, userId, input, 'R2')")
+    expect(vttMapFinalizer).toContain("asset.storage_provider === 'R2'")
     expect(vttMapFinalizer).toContain('if (rows * columns > vttMapTileLimit)')
     expect(vttMapFinalizer).toContain('vttMapTiles: tiles')
     expect(vttMapFinalizer).not.toContain('.resize(4096, 4096')
@@ -110,6 +112,7 @@ describe('media service safety contracts', () => {
     expect(delivery).toContain("session.status = 'OPEN'")
     expect(delivery).toContain("scene.definition_snapshot #>> '{map,assetId}'")
     expect(delivery).not.toContain('encounter_scenes')
-    expect(source).toContain('createSignedUrl(tile.object_key, expiresInSeconds)')
+    expect(delivery).toContain('createSignedUrl(objectKey, expiresInSeconds)')
+    expect(delivery).toContain('r2.signedDownloadUrl(objectKey, expiresInSeconds)')
   })
 })

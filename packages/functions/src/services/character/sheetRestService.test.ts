@@ -5,7 +5,9 @@ import type { CharacterBuilderResolution } from './builderService.js'
 import type { CharacterSheetRuleContext } from './characterSheetBundleAssembly.js'
 
 const mocks = vi.hoisted(() => ({
+  deleteActiveRuleEffect: vi.fn(),
   appendEvent: vi.fn(),
+  lockActiveRuleEffects: vi.fn(),
   assembleSheetBundleForRuleContext: vi.fn(),
   createCommittedSheetExtras: vi.fn(),
   createCommittedSheetResolution: vi.fn(),
@@ -51,6 +53,10 @@ vi.mock('@artificer-toolkit/db', async (importOriginal) => {
     createCharacterEventRepository: () => ({
       append: mocks.appendEvent,
       findByCommandId: mocks.findByCommandId
+    }),
+    createActiveRuleEffectRepository: () => ({
+      lockByOwner: mocks.lockActiveRuleEffects,
+      deleteCas: mocks.deleteActiveRuleEffect
     }),
     createCharacterRepository: () => ({
       findById: mocks.findById,
@@ -172,7 +178,7 @@ function createCharacter(overrides: Partial<CharacterAuthored> = {}): CharacterA
     label: 'Aria',
     status: 'ACTIVE',
     profile: {},
-    systemId: 'system-1',
+    systemId: '00000000-0000-0000-0000-000000000001',
     primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000302',
     userId: 'user-1',
     intent: {
@@ -299,6 +305,9 @@ async function buildPolicyTestSheetBundle(
 
 describe('character sheet rest policy', () => {
   beforeEach(() => {
+    mocks.deleteActiveRuleEffect.mockReset()
+    mocks.lockActiveRuleEffects.mockReset()
+    mocks.lockActiveRuleEffects.mockResolvedValue([])
     mocks.appendEvent.mockReset()
     mocks.assembleSheetBundleForRuleContext.mockReset()
     mocks.findAllCreatures.mockReset()
@@ -493,6 +502,31 @@ describe('character sheet rest policy', () => {
         total: 4
       }
     })
+    mocks.lockActiveRuleEffects.mockResolvedValue([
+      {
+        id: '00000000-0000-4000-8000-000000000201',
+        owner: { kind: 'CHARACTER', characterId: 'character-1' },
+        version: 1,
+        definition: {
+          schemaVersion: 2,
+          stateContributions: [
+            {
+              kind: 'SCALAR_REDUCTION',
+              recoveryTriggers: ['SHORT_REST']
+            }
+          ]
+        }
+      },
+      {
+        id: '00000000-0000-4000-8000-000000000202',
+        owner: { kind: 'CHARACTER', characterId: 'character-1' },
+        version: 1,
+        definition: {
+          schemaVersion: 2,
+          stateContributions: [{ kind: 'HIT_POINT_MAXIMUM_REDUCTION' }]
+        }
+      }
+    ])
 
     const preview = await previewCharacterRest({
       db: db as unknown as DBLike,
@@ -566,6 +600,12 @@ describe('character sheet rest policy', () => {
       })
     )
     expect(mocks.consumeRollForUser).toHaveBeenCalledWith(rollId, 'user-1')
+    expect(mocks.deleteActiveRuleEffect).toHaveBeenCalledTimes(1)
+    expect(mocks.deleteActiveRuleEffect).toHaveBeenCalledWith({
+      id: '00000000-0000-4000-8000-000000000201',
+      owner: { kind: 'CHARACTER', characterId: 'character-1' },
+      expectedVersion: 1
+    })
     expect(response.result).toEqual(
       expect.objectContaining({
         type: 'COMPLETE_REST',

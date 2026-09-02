@@ -66,6 +66,7 @@ export function createEmptyCreature({ systemId }: CreateEmptyCreatureInput): Cre
     conditionImmunities: [],
     details: [],
     features: [],
+    equipmentLoadout: [],
     proficiencies: []
   }
 }

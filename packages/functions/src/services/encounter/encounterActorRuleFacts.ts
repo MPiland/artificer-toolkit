@@ -1,36 +1,49 @@
 import type { EncounterActorRecord, EncounterRecord } from '@artificer-toolkit/db'
 import {
+  encounterCreatureRuleFactsSnapshotSchema,
   encounterActorRuleInputSchema,
   type EncounterActorRuleInput
 } from '@artificer-toolkit/schema/api/encounterActorRules'
-import { abilityCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/rulesExecution'
 
 import { featureChargeUsed, snapshotFeatureDefinitions } from './encounterActorState.js'
 
-function snapshotAbilityScores(actor: EncounterActorRecord): Record<string, number> {
+function snapshotRuleFacts(actor: EncounterActorRecord): {
+  abilityScores: Record<string, number>
+  checkTotals: Record<string, number>
+  resourceAbilityScores: Record<string, number>
+  initiativeAbilityDefinitionId: string | null
+  vocabularySnapshot: { id: string; version: number; checksum: string } | null
+} {
+  const empty = {
+    abilityScores: {},
+    checkTotals: {},
+    resourceAbilityScores: {},
+    initiativeAbilityDefinitionId: null,
+    vocabularySnapshot: null
+  }
   if (
     actor.kind !== 'CREATURE' ||
     typeof actor.snapshot !== 'object' ||
     actor.snapshot === null ||
     Array.isArray(actor.snapshot)
   ) {
-    return {}
+    return empty
   }
-  const payload = actor.snapshot.payload
-  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) return {}
-  const abilityScores = payload.abilityScores
-  if (typeof abilityScores !== 'object' || abilityScores === null || Array.isArray(abilityScores)) {
-    return {}
+  const parsed = encounterCreatureRuleFactsSnapshotSchema.safeParse(actor.snapshot.ruleFacts)
+  if (!parsed.success || parsed.data.gameSystemId !== actor.systemId) return empty
+  const ruleFacts = parsed.data
+  return {
+    abilityScores: ruleFacts.abilityScores ?? {},
+    checkTotals: ruleFacts.checkTotals ?? {},
+    resourceAbilityScores: ruleFacts.resourceAbilityScores ?? {},
+    initiativeAbilityDefinitionId: ruleFacts.initiativeAbilityDefinitionId,
+    vocabularySnapshot: {
+      id: ruleFacts.vocabularySnapshotId,
+      version: ruleFacts.vocabularySnapshotVersion,
+      checksum: ruleFacts.vocabularySnapshotChecksum
+    }
   }
-  return Object.fromEntries(
-    Object.entries(abilityScores).filter(
-      (entry): entry is [string, number] =>
-        abilityCodeSchema.safeParse(entry[0]).success &&
-        typeof entry[1] === 'number' &&
-        Number.isFinite(entry[1])
-    )
-  )
 }
 
 function normalizedIdentityList(value: unknown): string[] | null {
@@ -84,20 +97,38 @@ function snapshotTargetProtection(actor: EncounterActorRecord) {
   return { status: 'NORMALIZED' as const, defenses, conditionImmunityIds }
 }
 
-export function buildEncounterActorRuleFacts(encounter: EncounterRecord): EncounterActorRuleInput {
+export function buildEncounterActorRuleFacts(
+  encounter: EncounterRecord,
+  effectiveScalarValuesByActorId: ReadonlyMap<string, Readonly<Record<string, number>>> = new Map()
+): EncounterActorRuleInput {
   return encounterActorRuleInputSchema.parse({
     contractVersion: 1,
     actors: encounter.actors
       .filter((actor) => actor.kind !== 'CHARACTER')
-      .map((actor) => ({
-        actorId: actor.id,
-        abilityScores: snapshotAbilityScores(actor),
-        targetProtection: snapshotTargetProtection(actor),
-        featureResources: snapshotFeatureDefinitions(actor).map((feature) => ({
-          featureId: feature.id,
-          charge: feature.charges ?? null,
-          used: featureChargeUsed(actor, feature.id)
-        }))
-      }))
+      .map((actor) => {
+        const facts = snapshotRuleFacts(actor)
+        const effective = effectiveScalarValuesByActorId.get(actor.id)
+        if (
+          effective &&
+          Object.entries(effective).some(([id, value]) => facts.abilityScores[id] !== value)
+        ) {
+          for (const [id, value] of Object.entries(effective)) {
+            if (!(id in facts.abilityScores) || !Number.isSafeInteger(value) || value < 0) {
+              throw new Error('Encounter actor scalar facts are unavailable.')
+            }
+          }
+          facts.abilityScores = { ...facts.abilityScores, ...effective }
+        }
+        return {
+          actorId: actor.id,
+          ...facts,
+          targetProtection: snapshotTargetProtection(actor),
+          featureResources: snapshotFeatureDefinitions(actor).map((feature) => ({
+            featureId: feature.id,
+            charge: feature.charges ?? null,
+            used: featureChargeUsed(actor, feature.id)
+          }))
+        }
+      })
   })
 }

@@ -95,7 +95,7 @@ describe('live-session browser connection', () => {
     })
 
     first?.close(1012, 'restart')
-    await vi.advanceTimersByTimeAsync(250)
+    await vi.advanceTimersByTimeAsync(1_000)
     await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(2))
     const second = FakeSocket.instances[1]
     expect(second?.protocols[1]).toBe('artificer.ticket.ticket-2')
@@ -143,6 +143,42 @@ describe('live-session browser connection', () => {
     await expect(pending).resolves.toMatchObject({ originCommandId: commandId, replayed: true })
     expect(messages.map(({ type }) => type)).toEqual(['READY', 'READY', 'COMMAND_COMMITTED'])
     expect(statuses).toContain('RECONNECTING')
+    connection.close()
+  })
+
+  it('backs off failed admission attempts and resets only after an authoritative READY', async () => {
+    vi.useFakeTimers()
+    const connection = createLiveSessionConnection({
+      createSocket: (url, protocols) => new FakeSocket(url, protocols),
+      getTicket: vi.fn(async () => ({
+        expiresAt: '2026-08-15T12:01:00.000Z',
+        ticket: `ticket-${FakeSocket.instances.length + 1}`
+      })),
+      onError: () => undefined,
+      onMessage: () => undefined,
+      onStatus: () => undefined,
+      onTransient: () => undefined,
+      url: resolveLiveSessionWebSocketUrl('https://live.example.test/', sessionId)
+    })
+
+    await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(1))
+    const delays = [1_000, 2_000, 4_000, 8_000, 16_000, 30_000, 30_000]
+    for (const [index, delay] of delays.entries()) {
+      FakeSocket.instances.at(-1)?.close(1012, 'unavailable')
+      await vi.advanceTimersByTimeAsync(delay - 1)
+      expect(FakeSocket.instances).toHaveLength(index + 1)
+      await vi.advanceTimersByTimeAsync(1)
+      await vi.waitFor(() => expect(FakeSocket.instances).toHaveLength(index + 2))
+    }
+
+    const admitted = FakeSocket.instances.at(-1)!
+    admitted.open()
+    admitted.receive(readyMessage)
+    admitted.close(1012, 'restart')
+    await vi.advanceTimersByTimeAsync(999)
+    expect(FakeSocket.instances.at(-1)).toBe(admitted)
+    await vi.advanceTimersByTimeAsync(1)
+    await vi.waitFor(() => expect(FakeSocket.instances.at(-1)).not.toBe(admitted))
     connection.close()
   })
 

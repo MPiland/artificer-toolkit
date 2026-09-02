@@ -270,6 +270,8 @@ export const spellGrantAttributeSchema = z.enum([
 
 export const effectKindSchema = z.enum([
   'DAMAGE',
+  'HIT_POINT_MAXIMUM_REDUCTION',
+  'SCALAR_REDUCTION',
   'CONDITION',
   'HEAL',
   'APPLY_GRANT',

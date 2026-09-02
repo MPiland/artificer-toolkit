@@ -15,6 +15,7 @@ import {
   carryPinnedCharacterSenseDefinitions,
   compileCharacterMechanicsProjection
 } from './characterMechanicsCompiler.js'
+import { characterInitiativeActorFactsSchema } from '@artificer-toolkit/schema/projections/characterMechanics'
 
 const checksum = (value: string) => value.repeat(64)
 const SYSTEM_ID = '00000000-0000-4000-8000-000000000301'
@@ -196,7 +197,7 @@ describe('compileCharacterMechanicsProjection', () => {
     expect(rebuilt).toEqual(first)
     expect(rebuilt.projectionChecksum).toMatch(/^[a-f0-9]{64}$/)
     expect(first.projectionChecksum).toBe(
-      'd5e2769165804693e0ecd365b160bc41faf48677d5fcf07de9ed8a5c09c93fcc'
+      '6e1d04094b7ed5ae3b053640602c11fabaab0bfb3bdfe77155048ad79d92b10a'
     )
     expect(rebuilt.commandStateChecksum).toMatch(/^[a-f0-9]{64}$/)
     expect(rebuilt.commandLaneChecksum).toMatch(/^[a-f0-9]{64}$/)
@@ -330,6 +331,7 @@ describe('compileCharacterMechanicsProjection', () => {
 
     expect(projection.initiativeActorFacts).toEqual({
       effectiveSize: 'MEDIUM',
+      checkTotals: {},
       equippedItems: [
         {
           itemInstanceId: 'item-initiative',
@@ -338,6 +340,118 @@ describe('compileCharacterMechanicsProjection', () => {
         }
       ]
     })
+  })
+
+  it('pins v4 System check totals by definition UUID', () => {
+    const policy = policyFixture()
+    const calculation = (value: number) => ({
+      base: value,
+      effective: value,
+      contributions: [],
+      override: null
+    })
+    const rulePolicyOutput = {
+      ...policy.output,
+      derivedStats: {
+        ...policy.output.derivedStats,
+        skills: [
+          {
+            skillId: 'athletics',
+            governingAbility: { base: 'STR', effective: 'STR', override: null },
+            proficiency: {
+              base: 'NONE' as const,
+              effective: 'FULL' as const,
+              contributions: [],
+              override: null
+            },
+            total: calculation(3),
+            passive: calculation(13)
+          },
+          {
+            skillId: 'acrobatics',
+            governingAbility: { base: 'DEX', effective: 'DEX', override: null },
+            proficiency: {
+              base: 'NONE' as const,
+              effective: 'DOUBLE' as const,
+              contributions: [],
+              override: null
+            },
+            total: calculation(7),
+            passive: calculation(17)
+          }
+        ]
+      }
+    }
+    const projection = compileCharacterMechanicsProjection({
+      characterId: 'character-v4-checks',
+      characterCommandState,
+      characterStreamVersion: 1,
+      vocabularySnapshot: {
+        snapshotId: 'system-snapshot-v4-checks',
+        snapshotVersion: 1,
+        checksum: checksum('a')
+      },
+      ruleBinding: {
+        revisionId: 'revision-v4-checks',
+        checksum: checksum('b'),
+        evaluatorKind: 'ZEN',
+        evaluatorVersion: '1.0.0',
+        modelContractVersion: 4
+      },
+      rulePolicyInput: policy.input,
+      rulePolicyOutput,
+      compiledActionEntryPoints: [],
+      ruleRegistry: {
+        ...registry,
+        system: {
+          schemaVersion: 4,
+          abilities: [
+            { id: '00000000-0000-4000-8000-000000000001', code: 'STRENGTH', label: 'Strength' },
+            { id: '00000000-0000-4000-8000-000000000002', code: 'DEXTERITY', label: 'Dexterity' }
+          ],
+          skills: [
+            {
+              id: '00000000-0000-4000-8000-000000000011',
+              code: 'athletics',
+              label: 'Athletics',
+              governingAbilityDefinitionId: '00000000-0000-4000-8000-000000000001'
+            },
+            {
+              id: '00000000-0000-4000-8000-000000000012',
+              code: 'acrobatics',
+              label: 'Acrobatics',
+              governingAbilityDefinitionId: '00000000-0000-4000-8000-000000000002'
+            },
+            {
+              id: '00000000-0000-4000-8000-000000000013',
+              code: 'unavailable',
+              label: 'Unavailable',
+              governingAbilityDefinitionId: null
+            }
+          ]
+        }
+      },
+      ruleSnapshot: {
+        characterId: 'character-v4-checks',
+        systemId: SYSTEM_ID,
+        totalLevel: 1,
+        classes: [],
+        abilities: {},
+        hitpoints: [],
+        features: [],
+        equipmentItems: []
+      },
+      authoredVersionVector: []
+    })
+
+    expect(projection.initiativeActorFacts.checkTotals).toEqual({
+      '00000000-0000-4000-8000-000000000011': 3,
+      '00000000-0000-4000-8000-000000000012': 7
+    })
+    expect(
+      characterInitiativeActorFactsSchema.parse({ effectiveSize: null, equippedItems: [] })
+        .checkTotals
+    ).toEqual({})
   })
 
   it('pins exact sense documents and rejects a mismatched effective range', () => {

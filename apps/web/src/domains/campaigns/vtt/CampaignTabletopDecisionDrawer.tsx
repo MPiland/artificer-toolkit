@@ -5,7 +5,9 @@ import {
   Drawer,
   Group,
   Indicator,
+  MultiSelect,
   NumberInput,
+  Select,
   Stack,
   Text,
   Tooltip
@@ -18,8 +20,14 @@ import type {
   EncounterPlayerProjectionDto,
   ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
+import { initiativeDeclarationSelectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { LiveSessionCommittedMessage } from './liveSessionClient'
+import {
+  adjudicationSelectionValues,
+  decisionTitle,
+  type InitiativeDeclarationAdjudicationValues
+} from './CampaignTabletopDecisionDrawer.model'
 
 export function CampaignTabletopDecisionDrawer({
   connected,
@@ -39,6 +47,10 @@ export function CampaignTabletopDecisionDrawer({
   const [firstFace, setFirstFace] = useState<number | string>('')
   const [secondFace, setSecondFace] = useState<number | string>('')
   const [integerValue, setIntegerValue] = useState<number | string>('')
+  const [primaryOptionId, setPrimaryOptionId] = useState<string | null>(null)
+  const [bonusOptionId, setBonusOptionId] = useState<string | null>(null)
+  const [adjudicationValues, setAdjudicationValues] =
+    useState<InitiativeDeclarationAdjudicationValues>({})
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const disabled = !connected || submitting || localPending
@@ -47,6 +59,9 @@ export function CampaignTabletopDecisionDrawer({
     setFirstFace('')
     setSecondFace('')
     setIntegerValue('')
+    setPrimaryOptionId(null)
+    setBonusOptionId(null)
+    setAdjudicationValues({})
     setFeedback(null)
     setError(null)
   }, [pending.occurrenceId, pending.occurrenceVersion])
@@ -281,12 +296,19 @@ export function CampaignTabletopDecisionDrawer({
                 </Button>
               ))}
             </Stack>
-          ) : (
-            <Alert color='yellow'>
-              This initiative declaration needs its authored option labels before it can be resolved
-              here.
-            </Alert>
-          )}
+          ) : pending.kind === 'INITIATIVE_DECLARATION' ? (
+            <InitiativeDeclarationControls
+              adjudicationValues={adjudicationValues}
+              bonusOptionId={bonusOptionId}
+              disabled={disabled}
+              pending={pending}
+              primaryOptionId={primaryOptionId}
+              onAdjudicationValuesChange={setAdjudicationValues}
+              onBonusOptionIdChange={setBonusOptionId}
+              onPrimaryOptionIdChange={setPrimaryOptionId}
+              onSubmit={(resolution) => void resolve(resolution)}
+            />
+          ) : null}
           {feedback ? (
             <Alert aria-live='polite' color='green'>
               {feedback}
@@ -303,13 +325,137 @@ export function CampaignTabletopDecisionDrawer({
   )
 }
 
-function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['kind']): string {
-  if (kind === 'D20_EVIDENCE') return 'Roll required'
-  if (kind === 'MOVEMENT_REACTION') return 'Reaction available'
-  if (kind === 'LEGENDARY_RESISTANCE_CHOICE') return 'Legendary Resistance'
-  if (kind === 'LEGENDARY_ACTION_CHOICE') return 'Legendary Action'
-  if (kind === 'INITIATIVE_EVIDENCE') return 'Initiative roll required'
-  if (kind === 'INITIATIVE_DECLARATION') return 'Initiative declaration required'
-  if (kind === 'RECHARGE_EVIDENCE') return 'Recharge roll required'
-  return 'Initiative order required'
+function InitiativeDeclarationControls({
+  adjudicationValues,
+  bonusOptionId,
+  disabled,
+  pending,
+  primaryOptionId,
+  onAdjudicationValuesChange,
+  onBonusOptionIdChange,
+  onPrimaryOptionIdChange,
+  onSubmit
+}: {
+  adjudicationValues: InitiativeDeclarationAdjudicationValues
+  bonusOptionId: string | null
+  disabled: boolean
+  pending: Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'INITIATIVE_DECLARATION' }>
+  primaryOptionId: string | null
+  onAdjudicationValuesChange: (value: InitiativeDeclarationAdjudicationValues) => void
+  onBonusOptionIdChange: (value: string | null) => void
+  onPrimaryOptionIdChange: (value: string | null) => void
+  onSubmit: (resolution: ResolveRuleOccurrenceInputDto['resolution']) => void
+}) {
+  const primary =
+    pending.primaryOptions.find((option) => option.optionId === primaryOptionId) ?? null
+  const bonus = pending.bonusOptions.find((option) => option.optionId === bonusOptionId) ?? null
+  const needsAdjudication = primary?.kind === 'GM_ADJUDICATED' || bonus?.kind === 'GM_ADJUDICATED'
+
+  function selection(option: NonNullable<typeof primary>) {
+    if (option.kind !== 'GM_ADJUDICATED') return { kind: option.kind, optionId: option.optionId }
+    const parsed = initiativeDeclarationSelectionDtoSchema.safeParse({
+      kind: 'GM_ADJUDICATED' as const,
+      optionId: 'GM_ADJUDICATED' as const,
+      ...adjudicationSelectionValues(pending.adjudicationFields, adjudicationValues)
+    })
+    return parsed.success ? parsed.data : null
+  }
+
+  const primarySelection = primary ? selection(primary) : null
+  const bonusSelection = bonus ? selection(bonus) : null
+  const canSubmit = primarySelection !== null && (bonus === null || bonusSelection !== null)
+
+  return (
+    <Stack gap='sm'>
+      <Select
+        data={pending.primaryOptions.map((option) => ({
+          value: option.optionId,
+          label: option.label
+        }))}
+        disabled={disabled}
+        label='Primary action'
+        value={primaryOptionId}
+        onChange={onPrimaryOptionIdChange}
+      />
+      <Select
+        clearable
+        data={pending.bonusOptions.map((option) => ({
+          value: option.optionId,
+          label: option.label
+        }))}
+        disabled={disabled}
+        label='Bonus action'
+        value={bonusOptionId}
+        onChange={onBonusOptionIdChange}
+      />
+      {needsAdjudication ? (
+        <>
+          {pending.adjudicationFields.map((field) => {
+            const value = adjudicationValues[field.key]
+            if (field.kind === 'SELECT') {
+              return (
+                <Select
+                  data={field.options}
+                  disabled={disabled}
+                  key={field.key}
+                  label={field.label}
+                  value={typeof value === 'string' ? value : null}
+                  onChange={(nextValue) =>
+                    onAdjudicationValuesChange({ ...adjudicationValues, [field.key]: nextValue })
+                  }
+                />
+              )
+            }
+            if (field.kind === 'MULTI_SELECT') {
+              return (
+                <MultiSelect
+                  data={field.options}
+                  disabled={disabled}
+                  key={field.key}
+                  label={field.label}
+                  maxValues={field.maximumSelections}
+                  value={Array.isArray(value) ? value : []}
+                  onChange={(nextValue) =>
+                    onAdjudicationValuesChange({ ...adjudicationValues, [field.key]: nextValue })
+                  }
+                />
+              )
+            }
+            return (
+              <NumberInput
+                disabled={disabled}
+                key={field.key}
+                label={field.label}
+                max={field.maximum}
+                min={field.minimum}
+                value={typeof value === 'number' ? value : ''}
+                onChange={(nextValue) =>
+                  onAdjudicationValuesChange({
+                    ...adjudicationValues,
+                    [field.key]: typeof nextValue === 'number' ? nextValue : null
+                  })
+                }
+              />
+            )
+          })}
+        </>
+      ) : null}
+      <Button
+        disabled={disabled || !canSubmit}
+        onClick={() => {
+          if (!primary) return
+          if (!primarySelection) return
+          if (bonus && !bonusSelection) return
+          onSubmit({
+            kind: 'INITIATIVE_DECLARATION',
+            requestId: pending.requestId,
+            primary: primarySelection,
+            bonus: bonusSelection
+          })
+        }}
+      >
+        Declare actions
+      </Button>
+    </Stack>
+  )
 }

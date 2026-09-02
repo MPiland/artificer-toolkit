@@ -72,7 +72,10 @@ vi.mock('./encounterCharacterMechanicsBatch.js', async (importOriginal) => {
           },
           receiptApplications: folded.applications,
           targetTransition: {
-            checksum: 'a'.repeat(64),
+            checksum: checksumRuleDocument({
+              targetActorId: targetActor.id,
+              ...folded.before
+            }),
             before: folded.before,
             after: folded.after
           },
@@ -103,7 +106,10 @@ vi.mock('./encounterCharacterMechanicsBatch.js', async (importOriginal) => {
           finalState: folded.after,
           receiptApplications: folded.applications,
           targetTransition: {
-            checksum: 'a'.repeat(64),
+            checksum: checksumRuleDocument({
+              targetActorId: targetActor.id,
+              ...folded.before
+            }),
             before: folded.before,
             after: folded.after
           },
@@ -766,7 +772,8 @@ describe('real spatial movement executor integration', () => {
         currentHitPoints: 10,
         temporaryHitPoints: 0,
         maximumHitPoints: 10,
-        conditionIds: []
+        conditionIds: [],
+        scalarValues: {}
       })
     )
     const terminal = await evaluateEncounterSpatialMovementRuleBatch({

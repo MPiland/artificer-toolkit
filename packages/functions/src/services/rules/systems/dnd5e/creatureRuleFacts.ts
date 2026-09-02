@@ -1,0 +1,136 @@
+import {
+  encounterCreatureRuleFactsSnapshotSchema,
+  type EncounterCreatureRuleFactsSnapshot
+} from '@artificer-toolkit/schema/api/encounterActorRules'
+import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
+import { challengeRatings } from '@artificer-toolkit/shared/authored'
+import {
+  PROFICIENCY_KIND,
+  ROUNDING_CODE,
+  SCALING_AMOUNT_KIND
+} from '@artificer-toolkit/shared/core'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
+
+import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
+
+function abilityModifier(score: number): number {
+  return Math.floor((score - 10) / 2)
+}
+
+function scaleProficiency(input: { bonus: number; level: string; rounding?: string }): number {
+  switch (input.level) {
+    case SCALING_AMOUNT_KIND.FULL:
+      return input.bonus
+    case SCALING_AMOUNT_KIND.DOUBLE:
+      return input.bonus * 2
+    case SCALING_AMOUNT_KIND.HALF:
+      switch (input.rounding) {
+        case ROUNDING_CODE.UP:
+          return Math.ceil(input.bonus / 2)
+        case ROUNDING_CODE.NEAREST:
+          return Math.round(input.bonus / 2)
+        case ROUNDING_CODE.DOWN:
+          return Math.floor(input.bonus / 2)
+        default:
+          throw new Error('Half proficiency requires an authored rounding policy.')
+      }
+    default:
+      throw new Error('Creature skill proficiency uses an unsupported scale.')
+  }
+}
+
+/** D&D-specific compilation of legacy Creature authoring into pinned UUID facts. */
+export function compileDnd5eCreatureRuleFacts(input: {
+  creature: CreatureAuthored
+  vocabulary: SystemVocabularySnapshot
+}): EncounterCreatureRuleFactsSnapshot {
+  const { creature, vocabulary } = input
+  const document = vocabulary.document
+  if (
+    vocabulary.systemId !== DND5E_SYSTEM_ID ||
+    !('schemaVersion' in document) ||
+    document.schemaVersion !== 4
+  ) {
+    throw new Error('D&D Creature rule facts require the current D&D System vocabulary.')
+  }
+
+  const abilitiesByCode = new Map(document.abilities.map((ability) => [ability.code, ability]))
+  const normalizedAbilities = Object.entries(creature.abilityScores).map(([code, score]) => {
+    const definition = abilitiesByCode.get(code)
+    if (!definition || !Number.isFinite(score)) {
+      throw new Error('Creature ability facts are not normalized by the pinned System vocabulary.')
+    }
+    return [definition.id, score] as const
+  })
+  if (new Set(normalizedAbilities.map(([id]) => id)).size !== normalizedAbilities.length) {
+    throw new Error('Creature ability definitions are duplicated.')
+  }
+  const abilityScores = Object.fromEntries(normalizedAbilities)
+  const initiativeAbility = abilitiesByCode.get('DEXTERITY')
+  if (!initiativeAbility || !(initiativeAbility.id in abilityScores)) {
+    throw new Error('D&D Creature initiative requires a normalized Dexterity score.')
+  }
+
+  const checksById = new Map(document.skills.map((check) => [check.id, check]))
+  const proficiencyByCheckId = new Map<string, NonNullable<typeof creature.proficiencies>[number]>()
+  for (const proficiency of creature.proficiencies ?? []) {
+    if (proficiency.proficiencyKind !== PROFICIENCY_KIND.SKILL) continue
+    const skillIds =
+      proficiency.authoringModeKind === 'ALL'
+        ? [...checksById.keys()]
+        : (proficiency.skillIds ?? [])
+    for (const skillId of skillIds) {
+      if (!checksById.has(skillId)) {
+        throw new Error('Creature skill proficiency references a missing or foreign System check.')
+      }
+      if (proficiencyByCheckId.has(skillId)) {
+        throw new Error('Creature check proficiency coverage is duplicated.')
+      }
+      proficiencyByCheckId.set(skillId, proficiency)
+    }
+  }
+
+  const challengeRatingDefinition = creature.challengeRatingId
+    ? (document.challengeRatings.find((candidate) => candidate.id === creature.challengeRatingId) ??
+      null)
+    : null
+  const challengeRating = challengeRatingDefinition
+    ? (challengeRatings.find((candidate) => candidate.code === challengeRatingDefinition.code) ??
+      null)
+    : null
+  if (creature.challengeRatingId && (!challengeRatingDefinition || !challengeRating)) {
+    throw new Error('Creature challenge rating is unavailable for D&D proficiency.')
+  }
+
+  const checkTotals: Record<string, number> = {}
+  for (const check of document.skills) {
+    if (check.governingAbilityDefinitionId === null) continue
+    const score = abilityScores[check.governingAbilityDefinitionId]
+    if (score === undefined) continue
+    const proficiency = proficiencyByCheckId.get(check.id)
+    if (proficiency && challengeRating === null) continue
+    const proficiencyBonus = proficiency ? (challengeRating?.proficiencyBonus ?? 0) : 0
+    checkTotals[check.id] =
+      abilityModifier(score) +
+      (proficiency
+        ? scaleProficiency({
+            bonus: proficiencyBonus,
+            level: proficiency.level,
+            ...(proficiency.level === SCALING_AMOUNT_KIND.HALF
+              ? { rounding: proficiency.rounding }
+              : {})
+          })
+        : 0)
+  }
+
+  return encounterCreatureRuleFactsSnapshotSchema.parse({
+    gameSystemId: vocabulary.systemId,
+    vocabularySnapshotId: vocabulary.snapshotId,
+    vocabularySnapshotVersion: vocabulary.snapshotVersion,
+    vocabularySnapshotChecksum: vocabulary.checksum,
+    abilityScores,
+    checkTotals,
+    resourceAbilityScores: creature.abilityScores,
+    initiativeAbilityDefinitionId: initiativeAbility.id
+  })
+}

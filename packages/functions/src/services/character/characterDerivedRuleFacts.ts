@@ -189,87 +189,117 @@ export function buildCharacterDerivedRuleFacts(
     }
   )
 
-  const skills: DerivedFacts['skills'] = Object.entries(SKILL_ABILITY_MAP).map(
-    ([skillId, defaultAbilityId]) => {
-      const skillAdjustments = adjustments.filter(
-        (adjustment) =>
-          (adjustment.family === 'SKILL' || adjustment.family === 'PASSIVE') &&
-          resolveSkillAlias(adjustment.skillId, skillAliases) === skillId
-      )
-      const governingOverride = skillAdjustments.find(
-        (adjustment) =>
-          adjustment.family === 'SKILL' && adjustment.field === 'GOVERNING_ABILITY_OVERRIDE'
-      )
-      const proficiencyOverride = skillAdjustments.find(
-        (adjustment) => adjustment.family === 'SKILL' && adjustment.field === 'PROFICIENCY_OVERRIDE'
-      )
-      const totalOverride = skillAdjustments.find(
-        (adjustment) => adjustment.family === 'SKILL' && adjustment.field === 'TOTAL_OVERRIDE'
-      )
-      const passiveOverride = skillAdjustments.find(
-        (adjustment) => adjustment.family === 'PASSIVE' && adjustment.field === 'TOTAL_OVERRIDE'
-      )
-      const manualBonuses = skillAdjustments.filter(
-        (adjustment) =>
-          adjustment.family === 'SKILL' &&
-          (adjustment.field === 'MAGIC_BONUS' || adjustment.field === 'MISC_BONUS')
-      )
+  const systemSkills =
+    registry.system?.schemaVersion === 4
+      ? (() => {
+          const abilitiesById = new Map<string, string>()
+          const skillCodes = new Set<string>()
+          for (const ability of registry.system.abilities ?? []) {
+            const abilityCode = normalizeAbilityKey(ability.code)
+            if (!abilityCode || abilitiesById.has(ability.id)) {
+              throw new Error(`System ability definition "${ability.id}" is ambiguous.`)
+            }
+            abilitiesById.set(ability.id, abilityCode)
+          }
+          return [...(registry.system.skills ?? [])]
+            .sort((left, right) => left.id.localeCompare(right.id))
+            .flatMap((skill) => {
+              if (skill.governingAbilityDefinitionId === null) return []
+              if (!skill.governingAbilityDefinitionId) {
+                throw new Error(`System check definition "${skill.id}" has no governing ability.`)
+              }
+              const skillId = skill.code
+                ?.toLowerCase()
+                .trim()
+                .replace(/_/g, '-')
+                .replace(/\s+/g, '-')
+              const governingAbilityId = abilitiesById.get(skill.governingAbilityDefinitionId)
+              if (!skillId || !governingAbilityId || skillCodes.has(skillId)) {
+                throw new Error(`System check definition "${skill.id}" has an invalid mapping.`)
+              }
+              skillCodes.add(skillId)
+              return [[skillId, governingAbilityId] as const]
+            })
+        })()
+      : Object.entries(SKILL_ABILITY_MAP)
 
-      return {
-        skillId,
-        governingAbilityId: defaultAbilityId,
-        governingAbilityIndex: abilityRecordIndex(snapshot.abilities, defaultAbilityId),
-        governingAbilityOverride: governingOverride
+  const skills: DerivedFacts['skills'] = systemSkills.map(([skillId, defaultAbilityId]) => {
+    const skillAdjustments = adjustments.filter(
+      (adjustment) =>
+        (adjustment.family === 'SKILL' || adjustment.family === 'PASSIVE') &&
+        resolveSkillAlias(adjustment.skillId, skillAliases) === skillId
+    )
+    const governingOverride = skillAdjustments.find(
+      (adjustment) =>
+        adjustment.family === 'SKILL' && adjustment.field === 'GOVERNING_ABILITY_OVERRIDE'
+    )
+    const proficiencyOverride = skillAdjustments.find(
+      (adjustment) => adjustment.family === 'SKILL' && adjustment.field === 'PROFICIENCY_OVERRIDE'
+    )
+    const totalOverride = skillAdjustments.find(
+      (adjustment) => adjustment.family === 'SKILL' && adjustment.field === 'TOTAL_OVERRIDE'
+    )
+    const passiveOverride = skillAdjustments.find(
+      (adjustment) => adjustment.family === 'PASSIVE' && adjustment.field === 'TOTAL_OVERRIDE'
+    )
+    const manualBonuses = skillAdjustments.filter(
+      (adjustment) =>
+        adjustment.family === 'SKILL' &&
+        (adjustment.field === 'MAGIC_BONUS' || adjustment.field === 'MISC_BONUS')
+    )
+
+    return {
+      skillId,
+      governingAbilityId: defaultAbilityId,
+      governingAbilityIndex: abilityRecordIndex(snapshot.abilities, defaultAbilityId),
+      governingAbilityOverride: governingOverride
+        ? {
+            sourceId: governingOverride.id,
+            value: governingOverride.value,
+            abilityIndex: abilityRecordIndex(snapshot.abilities, governingOverride.value)
+          }
+        : null,
+      proficiencySubjectIds: [
+        ...[...skillAliases.entries()]
+          .filter(([, canonicalSkillId]) => canonicalSkillId === skillId)
+          .map(([alias]) => alias)
+      ],
+      proficiencyOverride: proficiencyOverride
+        ? {
+            sourceId: proficiencyOverride.id,
+            source: manualSource(proficiencyOverride.id),
+            value: proficiencyOverride.value
+          }
+        : null,
+      bonuses: [
+        {
+          kind: 'PROFICIENCY' as const,
+          sourceId: `skill-proficiency:${skillId}`,
+          operation: 'ADD' as const
+        },
+        ...modifierBonuses('SKILL_MODIFIER', { skillId }, false),
+        ...manualBonuses.flatMap((adjustment) =>
+          typeof adjustment.value === 'number' ? [fixedBonus(adjustment.id, adjustment.value)] : []
+        )
+      ],
+      totalOverride:
+        totalOverride && typeof totalOverride.value === 'number'
           ? {
-              sourceId: governingOverride.id,
-              value: governingOverride.value,
-              abilityIndex: abilityRecordIndex(snapshot.abilities, governingOverride.value)
+              sourceId: totalOverride.id,
+              source: manualSource(totalOverride.id),
+              value: totalOverride.value
             }
           : null,
-        proficiencySubjectIds: [
-          ...[...skillAliases.entries()]
-            .filter(([, canonicalSkillId]) => canonicalSkillId === skillId)
-            .map(([alias]) => alias)
-        ],
-        proficiencyOverride: proficiencyOverride
+      passiveOverride:
+        passiveOverride && typeof passiveOverride.value === 'number'
           ? {
-              sourceId: proficiencyOverride.id,
-              source: manualSource(proficiencyOverride.id),
-              value: proficiencyOverride.value
+              sourceId: passiveOverride.id,
+              source: manualSource(passiveOverride.id),
+              value: passiveOverride.value
             }
-          : null,
-        bonuses: [
-          {
-            kind: 'PROFICIENCY' as const,
-            sourceId: `skill-proficiency:${skillId}`,
-            operation: 'ADD' as const
-          },
-          ...modifierBonuses('SKILL_MODIFIER', { skillId }, false),
-          ...manualBonuses.flatMap((adjustment) =>
-            typeof adjustment.value === 'number'
-              ? [fixedBonus(adjustment.id, adjustment.value)]
-              : []
-          )
-        ],
-        totalOverride:
-          totalOverride && typeof totalOverride.value === 'number'
-            ? {
-                sourceId: totalOverride.id,
-                source: manualSource(totalOverride.id),
-                value: totalOverride.value
-              }
-            : null,
-        passiveOverride:
-          passiveOverride && typeof passiveOverride.value === 'number'
-            ? {
-                sourceId: passiveOverride.id,
-                source: manualSource(passiveOverride.id),
-                value: passiveOverride.value
-              }
-            : null
-      }
+          : null
     }
-  )
+  })
 
   const spellcastingAbility = snapshot.classes.flatMap(({ classId }) => {
     const abilityId = registry.classes[classId]?.spellcasting?.ability

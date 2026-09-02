@@ -11,10 +11,13 @@ import type {
   EffectActionCapabilityDescriptor
 } from './characterActionCapabilityDiscovery.js'
 import {
+  assertEncounterCreatureEquipmentLoadoutCapabilities,
+  assertEncounterFeatureActionCapabilityCurrent,
   createEncounterFeatureActionCapabilityDiscoveryRegistry,
   type EncounterFeatureEffectCompilerInput,
   type EncounterFeatureActionCapabilityAdapter
 } from './encounterFeatureActionCapabilityDiscovery.js'
+import { snapshotCreatureEquipmentLoadout } from './encounterCreatureEquipmentSources.js'
 import { discoverEncounterFeatureActionCapabilities } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { discoverMovementReactionCapabilities } from './movementReactionCapabilityDiscovery.js'
 import { DND5E_SYSTEM_ID } from './systems/dnd5e/characterActionCapabilityDiscovery.js'
@@ -28,6 +31,9 @@ const OWNER_RULE_DEFINITION_ID = '00000000-0000-4000-8000-000000000014'
 const OPTION_ID = '00000000-0000-4000-8000-000000000015'
 const OPTION_EFFECT_ID = '00000000-0000-4000-8000-000000000016'
 const OPTION_RULE_DEFINITION_ID = '00000000-0000-4000-8000-000000000017'
+const LOADOUT_ID = '00000000-0000-4000-8000-000000000018'
+const EQUIPMENT_ID = '00000000-0000-4000-8000-000000000019'
+const EQUIPMENT_VERSION_ID = '00000000-0000-4000-8000-000000000020'
 
 type Assert<T extends true> = T
 type CompilerInputDoesNotExposeMutableActorState = Assert<
@@ -219,7 +225,242 @@ function creatureActor(): EncounterActorRecord {
   }
 }
 
+function weaponEffect(input: { id: string; diceConfig: string; extraOutcome?: boolean }) {
+  return {
+    id: input.id,
+    order: 0,
+    invocation: {
+      kind: 'ACTION' as const,
+      triggerCode: 'MELEE_WEAPON_ATTACK' as const,
+      activation: { code: 'ACTION' as const, amount: 1 },
+      range: {
+        id: `${input.id}-range`,
+        rangeKind: 'DISTANCE' as const,
+        amount: 5,
+        unit: 'FEET' as const
+      }
+    },
+    paths: [
+      {
+        id: `${input.id}-path`,
+        order: 0,
+        pathCode: 'ON_HIT' as const,
+        groupType: input.extraOutcome ? ('SEQUENTIAL' as const) : ('SINGLE' as const),
+        originKind: 'SOURCE' as const,
+        selectionKind: 'FIXED' as const,
+        resultBlock: {
+          id: `${input.id}-result`,
+          resultKind: input.extraOutcome ? ('SEQUENCE' as const) : ('SINGLE' as const),
+          outcomes: [
+            {
+              id: `${input.id}-damage`,
+              effectKind: 'DAMAGE' as const,
+              damageTypeId: '00000000-0000-4000-8000-000000000021',
+              valueKind: 'DICE' as const,
+              scalingKind: 'NONE' as const,
+              diceConfig: input.diceConfig
+            },
+            ...(input.extraOutcome
+              ? [
+                  {
+                    id: `${input.id}-condition`,
+                    effectKind: 'CONDITION' as const,
+                    conditionId: '00000000-0000-4000-8000-000000000030'
+                  }
+                ]
+              : [])
+          ]
+        }
+      }
+    ]
+  }
+}
+
+function equipmentBoundCreatureActor(input: { extraOutcome?: boolean } = {}): EncounterActorRecord {
+  const actor = creatureActor()
+  const normal = weaponEffect({
+    id: '00000000-0000-4000-8000-000000000022',
+    diceConfig: '1d4+2',
+    extraOutcome: input.extraOutcome
+  })
+  const variant = weaponEffect({ id: '00000000-0000-4000-8000-000000000023', diceConfig: '2d4+2' })
+  const equipmentPayload = {
+    kind: 'EQUIPMENT' as const,
+    id: EQUIPMENT_ID,
+    label: 'Equipment',
+    description: null,
+    rarityId: '00000000-0000-4000-8000-000000000024',
+    userId: '00000000-0000-4000-8000-000000000025',
+    systemId: DND5E_SYSTEM_ID,
+    category: 'WEAPON' as const,
+    properties: [],
+    effects: [weaponEffect({ id: '00000000-0000-4000-8000-000000000026', diceConfig: '1d4' })]
+  }
+  actor.snapshot = {
+    kind: 'CREATURE',
+    id: actor.sourceId!,
+    systemId: DND5E_SYSTEM_ID,
+    sourceRevision: 1,
+    sourceVersionId: SOURCE_VERSION_ID,
+    sourceChecksum: 'a'.repeat(64),
+    payload: {
+      features: [
+        {
+          id: FEATURE_ID,
+          label: 'Weapon',
+          description: '',
+          order: 0,
+          rollDefinitions: [
+            {
+              id: '00000000-0000-4000-8000-000000000027',
+              label: 'Weapon attack',
+              kind: 'ATTACK',
+              expression: { count: 1, die: 20, modifier: 4 },
+              rollMode: 'NORMAL',
+              chargeCost: null,
+              order: 1
+            }
+          ],
+          effects: [normal, variant]
+        }
+      ],
+      equipmentLoadout: [
+        {
+          id: LOADOUT_ID,
+          equipmentId: EQUIPMENT_ID,
+          quantity: 1,
+          useState: 'HELD',
+          attuned: false,
+          actionFeatureIds: [FEATURE_ID]
+        }
+      ]
+    },
+    equipmentSources: [
+      {
+        loadoutEntryId: LOADOUT_ID,
+        equipmentId: EQUIPMENT_ID,
+        sourceRevision: 2,
+        sourceVersionId: EQUIPMENT_VERSION_ID,
+        sourceChecksum: checksumRuleDocument(equipmentPayload),
+        payload: equipmentPayload
+      }
+    ]
+  } as Json
+  return actor
+}
+
 describe('movement reaction capability discovery', () => {
+  it('binds structured Feature variants to the exact pinned base Equipment source', () => {
+    const actor = equipmentBoundCreatureActor()
+    const descriptors = createEncounterFeatureActionCapabilityDiscoveryRegistry([
+      testCreatureFeatureAdapter
+    ]).discover({ actor })
+    expect(descriptors).toHaveLength(2)
+    expect(descriptors.map((descriptor) => descriptor.equipmentBinding)).toEqual([
+      expect.objectContaining({
+        loadoutEntryId: LOADOUT_ID,
+        equipmentId: EQUIPMENT_ID,
+        sourceVersionId: EQUIPMENT_VERSION_ID
+      }),
+      expect.objectContaining({
+        loadoutEntryId: LOADOUT_ID,
+        equipmentId: EQUIPMENT_ID,
+        sourceVersionId: EQUIPMENT_VERSION_ID
+      })
+    ])
+    expect(descriptors.map((descriptor) => descriptor.attackMechanic)).toEqual([
+      expect.objectContaining({ attackBonus: 4, rollMode: 'NORMAL' }),
+      expect.objectContaining({ attackBonus: 4, rollMode: 'NORMAL' })
+    ])
+    const baseEquipmentEffect = compileEffect(
+      (actor.snapshot as { equipmentSources: Array<{ payload: { effects: unknown[] } }> })
+        .equipmentSources[0]!.payload.effects[0] as Parameters<typeof compileEffect>[0]
+    )
+    expect(descriptors[0]?.compiledEffect).toMatchObject({
+      id: '00000000-0000-4000-8000-000000000022',
+      entries: [
+        {
+          id: baseEquipmentEffect.entries[0]?.id,
+          pathGroupId: baseEquipmentEffect.entries[0]?.pathGroupId,
+          outcome: { dice: '1d4+2' }
+        }
+      ]
+    })
+    expect(descriptors[1]?.compiledEffect.id).toBe('00000000-0000-4000-8000-000000000023')
+    expect(descriptors[1]?.compiledEffect).toMatchObject({
+      entries: [{ outcome: { dice: '2d4+2' } }]
+    })
+    for (const descriptor of descriptors) {
+      assertEncounterFeatureActionCapabilityCurrent({ actor, capability: descriptor })
+    }
+    const snapshot = actor.snapshot as { equipmentSources: Array<Record<string, unknown>> }
+    snapshot.equipmentSources[0]!.sourceChecksum = 'c'.repeat(64)
+    expect(() =>
+      assertEncounterFeatureActionCapabilityCurrent({ actor, capability: descriptors[0]! })
+    ).toThrow('checksum does not match')
+  })
+
+  it('preserves additional typed outcomes on an Equipment-backed Creature action', () => {
+    const actor = equipmentBoundCreatureActor({ extraOutcome: true })
+    const [descriptor] = createEncounterFeatureActionCapabilityDiscoveryRegistry([
+      testCreatureFeatureAdapter
+    ]).discover({ actor })
+
+    expect(
+      descriptor?.compiledEffect.entries.map((entry) =>
+        'outcome' in entry ? entry.outcome.effectKind : null
+      )
+    ).toEqual(['DAMAGE', 'CONDITION'])
+    assertEncounterFeatureActionCapabilityCurrent({ actor, capability: descriptor! })
+  })
+
+  it('prefers the Encounter-owned loadout overlay and rejects incompatible bound Equipment', () => {
+    const actor = equipmentBoundCreatureActor()
+    const snapshot = actor.snapshot as {
+      equipmentLoadoutOverride?: Array<Record<string, unknown>>
+      equipmentSources: Array<Record<string, unknown>>
+    }
+    const replacementEquipmentId = '00000000-0000-4000-8000-000000000028'
+    const replacementPayload = {
+      ...(snapshot.equipmentSources[0]!.payload as Record<string, unknown>),
+      id: replacementEquipmentId
+    }
+    snapshot.equipmentLoadoutOverride = [
+      {
+        id: LOADOUT_ID,
+        equipmentId: replacementEquipmentId,
+        quantity: 1,
+        useState: 'HELD',
+        attuned: false,
+        actionFeatureIds: [FEATURE_ID]
+      }
+    ]
+    snapshot.equipmentSources[0] = {
+      ...snapshot.equipmentSources[0]!,
+      equipmentId: replacementEquipmentId,
+      sourceVersionId: '00000000-0000-4000-8000-000000000029',
+      payload: replacementPayload,
+      sourceChecksum: checksumRuleDocument(replacementPayload)
+    }
+    expect(snapshotCreatureEquipmentLoadout(actor)[0]?.equipmentId).toBe(replacementEquipmentId)
+    expect(
+      createEncounterFeatureActionCapabilityDiscoveryRegistry([
+        testCreatureFeatureAdapter
+      ]).discover({ actor })[0]?.equipmentBinding
+    ).toMatchObject({ equipmentId: replacementEquipmentId })
+    assertEncounterCreatureEquipmentLoadoutCapabilities(actor)
+
+    const incompatiblePayload = { ...replacementPayload, effects: [] }
+    snapshot.equipmentSources[0] = {
+      ...snapshot.equipmentSources[0]!,
+      payload: incompatiblePayload,
+      sourceChecksum: checksumRuleDocument(incompatiblePayload)
+    }
+    expect(() => assertEncounterCreatureEquipmentLoadoutCapabilities(actor)).toThrow(
+      'has no compiled action mechanics'
+    )
+  })
+
   it('uses the production D&D adapter without replacing the generic compiled Effect', () => {
     const [descriptor] = discoverEncounterFeatureActionCapabilities({ actor: creatureActor() })
 

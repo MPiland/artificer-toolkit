@@ -9,6 +9,7 @@ import { ruleGraphDefinitionDtoSchema } from '@artificer-toolkit/schema/api/rule
 import {
   conditionRuleStateReusableDefinitionDocumentDtoSchema,
   dnd5eEncounterLifecycleReusableDefinitionDocumentDtoSchema,
+  dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema,
   ruleCapabilityReusableDefinitionDocumentDtoSchema,
   senseReusableDefinitionDocumentDtoSchema,
   initiativePolicyReusableDefinitionDocumentDtoSchema
@@ -21,12 +22,15 @@ import {
   ReusableDefinitionValidationError,
   CONDITION_RULE_STATE_DEFINITION_FAMILY_KEY,
   DND5E_ENCOUNTER_LIFECYCLE_DEFINITION_FAMILY_KEY,
+  DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY,
   INITIATIVE_POLICY_DEFINITION_FAMILY_KEY,
   RULE_CAPABILITY_DEFINITION_FAMILY_KEY,
   RULE_RUNTIME_GRAPH_FAMILY_KEY,
   SENSE_DEFINITION_FAMILY_KEY,
   type ReusableDefinitionStore
 } from './reusableDefinitionService.js'
+import { DND5E_INITIATIVE_FACT_KEYS } from './systems/dnd5e/initiativeFactAdapter.js'
+import { dnd5eEffectActionCapability } from './systems/dnd5e/effectActionCompiler.js'
 
 const systemId = '11111111-1111-4111-8111-111111111111'
 const definitionId = '22222222-2222-4222-8222-222222222222'
@@ -37,6 +41,10 @@ const tieGraphId = '66666666-6666-4666-8666-666666666666'
 const orderChoiceGraphId = '77777777-7777-4777-8777-777777777777'
 const orderChoiceMinimumIndexFact = 'initiative.choice-min-index'
 const orderChoiceMaximumIndexFact = 'initiative.choice-max-index'
+const dnd5eInitiativePolicyId = '88888888-8888-4888-8888-888888888888'
+const dnd5eInitiativeScoreGraphId = '99999999-9999-4999-8999-999999999999'
+const dnd5eInitiativeTieGraphId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+const dnd5eInitiativeOrderChoiceGraphId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 
 const capability = {
   gameSystemId: systemId,
@@ -48,7 +56,8 @@ const capability = {
     RULE_CAPABILITY_DEFINITION_FAMILY_KEY,
     CONDITION_RULE_STATE_DEFINITION_FAMILY_KEY,
     INITIATIVE_POLICY_DEFINITION_FAMILY_KEY,
-    DND5E_ENCOUNTER_LIFECYCLE_DEFINITION_FAMILY_KEY
+    DND5E_ENCOUNTER_LIFECYCLE_DEFINITION_FAMILY_KEY,
+    DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY
   ],
   factContracts: [
     { key: orderChoiceMinimumIndexFact, valueKind: 'NUMBER' },
@@ -262,6 +271,103 @@ function initiativePolicy() {
   })
 }
 
+function dnd5eInitiativeScoreGraph(id: string) {
+  return ruleGraphDefinitionDtoSchema.parse({
+    schemaVersion: 1,
+    id,
+    gameSystemId: dnd5eEffectActionCapability.gameSystemId,
+    definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
+    nodes: [
+      {
+        id: 'd20',
+        operation: { key: 'evidence.integer-range', contractVersion: 1 },
+        inputs: { min: { kind: 'LITERAL', value: 1 }, max: { kind: 'LITERAL', value: 20 } }
+      },
+      {
+        id: 'score',
+        operation: { key: 'number.add', contractVersion: 1 },
+        inputs: {
+          left: { kind: 'NODE_OUTPUT', nodeId: 'd20', port: 'value' },
+          right: { kind: 'FACT', factKey: DND5E_INITIATIVE_FACT_KEYS.modifier }
+        }
+      }
+    ],
+    outputs: {
+      automatic: { kind: 'LITERAL', value: true },
+      score: { kind: 'NODE_OUTPUT', nodeId: 'score', port: 'value' }
+    }
+  })
+}
+
+function dnd5eInitiativeOrderChoiceGraph() {
+  return ruleGraphDefinitionDtoSchema.parse({
+    schemaVersion: 1,
+    id: dnd5eInitiativeOrderChoiceGraphId,
+    gameSystemId: dnd5eEffectActionCapability.gameSystemId,
+    definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
+    nodes: [
+      {
+        id: 'selected-index',
+        operation: { key: 'number.add', contractVersion: 1 },
+        inputs: {
+          left: {
+            kind: 'FACT',
+            factKey: DND5E_INITIATIVE_FACT_KEYS.orderChoiceMinimumIndex
+          },
+          right: {
+            kind: 'FACT',
+            factKey: DND5E_INITIATIVE_FACT_KEYS.orderChoiceMaximumIndex
+          }
+        }
+      }
+    ],
+    outputs: { selectedIndex: { kind: 'NODE_OUTPUT', nodeId: 'selected-index', port: 'value' } }
+  })
+}
+
+function dnd5eSideRollInitiativePolicy() {
+  const evaluationGraph = dnd5eInitiativeScoreGraph(dnd5eInitiativeScoreGraphId)
+  const tieGraph = dnd5eInitiativeScoreGraph(dnd5eInitiativeTieGraphId)
+  const orderChoiceGraph = dnd5eInitiativeOrderChoiceGraph()
+  return initiativePolicyReusableDefinitionDocumentDtoSchema.parse({
+    schemaVersion: 1,
+    kind: 'INITIATIVE_POLICY',
+    id: dnd5eInitiativePolicyId,
+    gameSystemId: dnd5eEffectActionCapability.gameSystemId,
+    procedure: 'SIDE_ROLL',
+    cadence: 'ENCOUNTER_START',
+    evaluationGraph: {
+      definitionId: evaluationGraph.id,
+      definitionVersion: 1,
+      definitionChecksum: checksumRuleDocument(evaluationGraph),
+      scoreOutput: 'score',
+      sortDirection: 'DESCENDING',
+      automaticOutput: 'automatic'
+    },
+    orderChoiceGraph: {
+      definitionId: orderChoiceGraph.id,
+      definitionVersion: 1,
+      definitionChecksum: checksumRuleDocument(orderChoiceGraph),
+      selectionOutput: 'selectedIndex',
+      minimumIndexFact: DND5E_INITIATIVE_FACT_KEYS.orderChoiceMinimumIndex,
+      maximumIndexFact: DND5E_INITIATIVE_FACT_KEYS.orderChoiceMaximumIndex
+    },
+    tieResolvers: [
+      {
+        definitionId: tieGraph.id,
+        definitionVersion: 1,
+        definitionChecksum: checksumRuleDocument(tieGraph),
+        scoreOutput: 'score',
+        sortDirection: 'DESCENDING',
+        automaticOutput: 'automatic',
+        repeatOnTie: true,
+        maximumAttempts: 20
+      }
+    ],
+    defaultTieResolverDefinitionId: tieGraph.id
+  })
+}
+
 function encounterLifecycle(
   kind: 'LEGENDARY_ACTION' | 'LEGENDARY_RESISTANCE' | 'RECHARGE' = 'LEGENDARY_ACTION'
 ) {
@@ -339,8 +445,8 @@ function store(
       await input.authorize(record)
       if (input.expectedDefinitionVersion !== record.version) throw new Error('stale root')
       return {
-        definitionId,
-        gameSystemId: systemId,
+        definitionId: record.id,
+        gameSystemId: record.gameSystemId,
         authorUserId: input.actorUserId,
         document: input.document as ReusableDefinitionDocumentDto,
         checksum: input.checksum,
@@ -353,8 +459,8 @@ function store(
     async publishDraft(input) {
       await input.authorize(record)
       const draft = {
-        definitionId,
-        gameSystemId: systemId,
+        definitionId: record.id,
+        gameSystemId: record.gameSystemId,
         authorUserId: ownerId,
         document,
         checksum: checksumRuleDocument(document),
@@ -371,9 +477,9 @@ function store(
       })
       await input.validate(record, draft, lockedDependencies)
       return {
-        id: definitionId,
-        gameSystemId: systemId,
-        contentSourceId: sourceId,
+        id: record.id,
+        gameSystemId: record.gameSystemId,
+        contentSourceId: record.contentSourceId,
         definitionFamilyKey: record.definitionFamilyKey,
         label: record.label,
         description: null,
@@ -393,6 +499,159 @@ function service(record = root()) {
 }
 
 describe('reusable definition service', () => {
+  it('publishes an exact D&D side-roll initiative policy through the registered System capability', async () => {
+    const policy = dnd5eSideRollInitiativePolicy()
+    const evaluationGraph = dnd5eInitiativeScoreGraph(dnd5eInitiativeScoreGraphId)
+    const tieGraph = dnd5eInitiativeScoreGraph(dnd5eInitiativeTieGraphId)
+    const orderChoiceGraph = dnd5eInitiativeOrderChoiceGraph()
+    const current = (
+      document: typeof evaluationGraph,
+      version: number
+    ): ReusableDefinitionCurrentDto => ({
+      id: document.id,
+      gameSystemId: document.gameSystemId,
+      contentSourceId: sourceId,
+      definitionFamilyKey: RULE_RUNTIME_GRAPH_FAMILY_KEY,
+      label: 'D&D initiative graph',
+      description: null,
+      document,
+      checksum: checksumRuleDocument(document),
+      contractVersion: 1,
+      version,
+      publishedAt: '2026-09-01T00:00:00.000Z',
+      publishedBy: ownerId
+    })
+    const currents = new Map<string, ReusableDefinitionCurrentDto>([
+      [evaluationGraph.id, current(evaluationGraph, 1)],
+      [tieGraph.id, current(tieGraph, 1)],
+      [orderChoiceGraph.id, current(orderChoiceGraph, 1)]
+    ])
+    const policyRoot = root({
+      id: policy.id,
+      gameSystemId: policy.gameSystemId,
+      definitionFamilyKey: INITIATIVE_POLICY_DEFINITION_FAMILY_KEY,
+      label: 'D&D side initiative'
+    })
+    const publish = (capabilityContract: unknown) =>
+      createReusableDefinitionService({
+        store: store(policyRoot, policy, currents),
+        capabilities: [capabilityContract]
+      }).publishDraft({
+        definitionId: policy.id,
+        actorUserId: ownerId,
+        expectedDefinitionVersion: 0,
+        expectedDraftVersion: 0
+      })
+
+    await expect(publish(dnd5eEffectActionCapability)).resolves.toMatchObject({ document: policy })
+
+    await expect(
+      publish({
+        ...dnd5eEffectActionCapability,
+        factContracts: dnd5eEffectActionCapability.factContracts.filter(
+          (fact) => fact.key !== DND5E_INITIATIVE_FACT_KEYS.modifier
+        )
+      })
+    ).rejects.toThrow('Initiative policy graph pins must reference executable Rules Runtime graphs')
+
+    await expect(
+      publish({
+        ...dnd5eEffectActionCapability,
+        factContracts: dnd5eEffectActionCapability.factContracts.map((fact) =>
+          fact.key === DND5E_INITIATIVE_FACT_KEYS.orderChoiceMaximumIndex
+            ? { ...fact, valueKind: 'TEXT' }
+            : fact
+        )
+      })
+    ).rejects.toThrow(
+      'Initiative order-choice bound facts must resolve to registered NUMBER System facts'
+    )
+
+    expect(dnd5eEffectActionCapability.factContracts).toEqual(
+      expect.arrayContaining([
+        { key: DND5E_INITIATIVE_FACT_KEYS.automatic, valueKind: 'BOOLEAN' },
+        { key: DND5E_INITIATIVE_FACT_KEYS.modifier, valueKind: 'NUMBER' },
+        { key: DND5E_INITIATIVE_FACT_KEYS.speedFactorModifier, valueKind: 'NUMBER' },
+        {
+          key: DND5E_INITIATIVE_FACT_KEYS.orderChoiceMinimumIndex,
+          valueKind: 'NUMBER'
+        },
+        {
+          key: DND5E_INITIATIVE_FACT_KEYS.orderChoiceMaximumIndex,
+          valueKind: 'NUMBER'
+        }
+      ])
+    )
+    expect(dnd5eEffectActionCapability.operationContracts).toEqual(
+      expect.arrayContaining([
+        { key: 'evidence.integer-range', contractVersion: 1 },
+        { key: 'number.add', contractVersion: 1 }
+      ])
+    )
+  })
+
+  it('rejects optional-combat publication when its check UUID is absent from the System vocabulary', async () => {
+    const optionalRoot = root({
+      definitionFamilyKey: DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY,
+      label: 'Disarm'
+    })
+    const document = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.parse({
+      schemaVersion: 1,
+      id: definitionId,
+      gameSystemId: systemId,
+      kind: 'DISARM',
+      module: { policyModuleKey: 'd20.action.disarm', contractVersion: 1 },
+      parameters: {
+        kind: 'DISARM',
+        defenderCheckDefinitionIds: ['99999999-9999-4999-8999-999999999999']
+      },
+      mutuallyExclusiveGroup: null
+    })
+    const definitionService = createReusableDefinitionService({
+      store: store(optionalRoot, document),
+      capabilities: [capability],
+      resolveSystemVocabulary: async () => ({
+        schemaVersion: 4,
+        id: systemId,
+        label: 'Test',
+        rulesetCode: 'test',
+        rulesetVersion: '1',
+        alignments: [],
+        abilities: [
+          {
+            id: '88888888-8888-4888-8888-888888888888',
+            code: 'ABILITY',
+            label: 'Ability'
+          }
+        ],
+        challengeRatings: [],
+        conditionTypes: [],
+        creatureTypes: [],
+        currencies: [],
+        damageTypes: [],
+        heritages: [],
+        languages: [],
+        lifestyles: [],
+        magicSchools: [],
+        passives: [],
+        rarities: [],
+        senses: [],
+        skills: [],
+        speeds: [],
+        terrains: [],
+        userId: ownerId
+      })
+    })
+    await expect(
+      definitionService.publishDraft({
+        definitionId,
+        actorUserId: ownerId,
+        expectedDefinitionVersion: 0,
+        expectedDraftVersion: 0
+      })
+    ).rejects.toThrow('check definition is unavailable')
+  })
+
   it('validates a user-owned draft and atomically consumes its checked draft on publish', async () => {
     const definitionService = service()
     await expect(

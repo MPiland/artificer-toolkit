@@ -107,6 +107,7 @@ export async function prepareCurrentEncounterMovementReactionAction(input: {
     tokens: input.scene.tokens,
     actorIdByTokenId: input.actorIdByTokenId,
     lockedCharacters: targets.lockedCharacters,
+    activeEffectsByActorId: targets.activeEffectsByActorId,
     encounterFeatureCapabilities,
     definitions: createReusableDefinitionRepository(input.trx),
     runtime: input.runtime,

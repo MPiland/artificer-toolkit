@@ -39,7 +39,11 @@ type LegendaryResistanceSettlementEvidence = {
   originalD20: ServerRuleExecutionD20EvidenceDto
 }
 
-export interface PreparedEncounterMovementReactionSettlement extends PreparedEncounterActionSettlementCore {
+export type PreparedEncounterMovementReactionSettlement = Omit<
+  PreparedEncounterActionSettlementCore,
+  'actionSource'
+> & {
+  actionSource: EncounterMovementReactionActionSource
   option: MovementReactionChoiceOptionDto
   movementInterruption: MovementReactionChoiceOptionDto['binding']['movementInterruption']
   allowance: {

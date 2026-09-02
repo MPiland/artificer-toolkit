@@ -51,6 +51,7 @@ describe('dnd5e/2014 Encounter actor policy', () => {
           {
             actorId: '00000000-0000-4000-8000-000000000001',
             abilityScores: {},
+            initiativeAbilityDefinitionId: null,
             targetProtection: {
               status: 'NORMALIZED',
               defenses: [],
@@ -100,6 +101,7 @@ describe('dnd5e/2014 Encounter actor policy', () => {
         {
           actorId: '00000000-0000-4000-8000-000000000001',
           initiativeModifier: 0,
+          savingThrowDefinitions: [],
           targetProtection: {
             status: 'NORMALIZED',
             defenses: [],
@@ -154,6 +156,7 @@ describe('dnd5e/2014 Encounter actor policy', () => {
           {
             actorId: '00000000-0000-4000-8000-000000000111',
             abilityScores: {},
+            initiativeAbilityDefinitionId: null,
             targetProtection: {
               status: 'NORMALIZED',
               defenses: [
@@ -169,6 +172,7 @@ describe('dnd5e/2014 Encounter actor policy', () => {
           {
             actorId: '00000000-0000-4000-8000-000000000114',
             abilityScores: {},
+            initiativeAbilityDefinitionId: null,
             targetProtection: { status: 'NOT_NORMALIZED' },
             featureResources: []
           }
