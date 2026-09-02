@@ -1,5 +1,5 @@
 [build]
-command = "yarn build:web"
+command = "yarn build:web --concurrency=1"
 publish = "apps/web/dist/client"
 
 [functions]
