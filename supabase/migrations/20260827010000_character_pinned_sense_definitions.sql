@@ -278,7 +278,7 @@ SET
   projection = normalized.projection,
   projection_schema_version = 2,
   projection_checksum = encode(
-    digest(
+    extensions.digest(
       public.scene_projection_canonical_json(
         jsonb_build_object(
           'sceneId',

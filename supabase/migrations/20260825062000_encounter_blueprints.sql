@@ -136,7 +136,7 @@ $$;
 
 UPDATE public.encounter_blueprints AS blueprint
 SET setup_checksum = encode(
-  digest(
+  extensions.digest(
     public.encounter_blueprint_canonical_json(
       jsonb_build_object('name', blueprint.name, 'enemies', blueprint.enemies)
     ),

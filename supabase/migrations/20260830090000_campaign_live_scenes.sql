@@ -168,8 +168,8 @@ INSERT INTO public.campaign_live_scenes (
 )
 SELECT scene_id, campaign_id, definition_id, definition_version, definition_snapshot,
   normalized_projection, 0, 2,
-  encode(digest(public.scene_projection_canonical_json(jsonb_build_object('sceneId', scene_id::text, 'streamVersion', 0, 'projectionSchemaVersion', 2, 'projection', normalized_projection)), 'sha256'), 'hex'),
-  gen_random_uuid(), encode(digest('default-campaign-live-scene:' || definition_id::text, 'sha256'), 'hex')
+  encode(extensions.digest(public.scene_projection_canonical_json(jsonb_build_object('sceneId', scene_id::text, 'streamVersion', 0, 'projectionSchemaVersion', 2, 'projection', normalized_projection)), 'sha256'), 'hex'),
+  gen_random_uuid(), encode(extensions.digest('default-campaign-live-scene:' || definition_id::text, 'sha256'), 'hex')
 FROM normalized;
 
 WITH normalized AS (
@@ -182,7 +182,7 @@ WITH normalized AS (
 UPDATE public.campaign_live_scenes scene
 SET projection = normalized.projection,
     definition_snapshot = scene.definition_snapshot - 'encounterId',
-    projection_checksum = encode(digest(public.scene_projection_canonical_json(jsonb_build_object('sceneId', scene.id::text, 'streamVersion', scene.version, 'projectionSchemaVersion', scene.projection_schema_version, 'projection', normalized.projection)), 'sha256'), 'hex')
+    projection_checksum = encode(extensions.digest(public.scene_projection_canonical_json(jsonb_build_object('sceneId', scene.id::text, 'streamVersion', scene.version, 'projectionSchemaVersion', scene.projection_schema_version, 'projection', normalized.projection)), 'sha256'), 'hex')
 FROM normalized WHERE normalized.id = scene.id;
 DROP FUNCTION public.scene_projection_canonical_json(jsonb);
 

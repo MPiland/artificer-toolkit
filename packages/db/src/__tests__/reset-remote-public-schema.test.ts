@@ -54,4 +54,10 @@ describe('remote public-schema reset target', () => {
       stages.some((stage) => stage.sql.includes('add column command_state jsonb not null'))
     ).toBe(true)
   })
+
+  it('qualifies pgcrypto functions outside the reset search path', async () => {
+    const stages = await readCanonicalMigrationStages()
+
+    expect(stages.filter((stage) => /(^|[^.\w])digest\s*\(/im.test(stage.sql))).toEqual([])
+  })
 })
