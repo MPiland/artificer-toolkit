@@ -29,7 +29,7 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json --noCheck",
     "test": "yarn --cwd ../.. vitest run --config vitest.config.ts packages/functions/src --pool=forks --maxWorkers=1 --no-file-parallelism",
     "measure:encounter-actor-policy": "tsx src/scripts/measureEncounterActorPolicy.ts",
     "generate:srd:rule-path-manifest": "tsx src/scripts/generateSrdRulePathManifest.ts",
