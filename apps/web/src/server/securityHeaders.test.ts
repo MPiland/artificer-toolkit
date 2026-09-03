@@ -59,6 +59,23 @@ describe('security headers', () => {
     }
   })
 
+  it('allows the configured R2 map origin', () => {
+    const originalAccountId = process.env.R2_ACCOUNT_ID
+    process.env.R2_ACCOUNT_ID = '0123456789abcdef0123456789abcdef'
+
+    try {
+      const csp = createSecurityHeaders()['Content-Security-Policy']
+
+      expect(csp).toContain('https://0123456789abcdef0123456789abcdef.r2.cloudflarestorage.com')
+    } finally {
+      if (originalAccountId === undefined) {
+        delete process.env.R2_ACCOUNT_ID
+      } else {
+        process.env.R2_ACCOUNT_ID = originalAccountId
+      }
+    }
+  })
+
   it('keeps local Supabase origins out of production CSP', () => {
     const originalNodeEnv = process.env.NODE_ENV
     process.env.NODE_ENV = 'production'

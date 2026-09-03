@@ -85,12 +85,20 @@ function getLiveSessionConnectSource() {
   }
 }
 
+function getVttMapSource() {
+  const accountId = process.env.R2_ACCOUNT_ID?.trim()
+  if (!accountId || !/^[a-f0-9]{32}$/iu.test(accountId)) return []
+
+  return [`https://${accountId}.r2.cloudflarestorage.com`]
+}
+
 function getConnectSrc() {
   return [
     "connect-src 'self' blob:",
     ...SUPABASE_CONNECT_SOURCES,
     ...getSentryConnectSource(),
     ...getLiveSessionConnectSource(),
+    ...getVttMapSource(),
     ...getDevelopmentConnectSources()
   ].join(' ')
 }
@@ -99,6 +107,7 @@ function getImgSrc() {
   return [
     "img-src 'self' data: blob:",
     'https://*.supabase.co',
+    ...getVttMapSource(),
     ...getDevelopmentConnectSources().filter((source) => source.startsWith('http'))
   ].join(' ')
 }

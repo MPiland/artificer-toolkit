@@ -21,6 +21,8 @@ const movementScene = {
   tokens: [tabletopLiveScene.tokens[0]!]
 } satisfies CampaignSceneStateDto
 
+let nextPointerId = 1
+
 function MovementFixture() {
   const host = useRef<HTMLDivElement | null>(null)
   const renderer = useRef<VttSceneRenderer | null>(null)
@@ -97,7 +99,7 @@ export const StraightDrag: Story = {
     const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
     const from = sceneToClient(rendererCanvas, movementScene.tokens[0]!.position)
     const to = sceneToClient(rendererCanvas, { x: 420, y: 230 })
-    drag(rendererCanvas, [from, to])
+    await drag(rendererCanvas, [from, to])
 
     await waitFor(() =>
       expect(canvas.getByTestId('movement-preview')).not.toHaveTextContent('No movement')
@@ -114,7 +116,7 @@ export const WaypointDrag: Story = {
     const canvas = within(canvasElement)
     await expect(await canvas.findByText('Movement scene ready.')).toBeVisible()
     const rendererCanvas = canvas.getByRole('img', { name: 'Interactive campaign scene' })
-    drag(rendererCanvas, [
+    await drag(rendererCanvas, [
       sceneToClient(rendererCanvas, movementScene.tokens[0]!.position),
       sceneToClient(rendererCanvas, { x: 450, y: 100 }),
       sceneToClient(rendererCanvas, { x: 550, y: 100 }),
@@ -142,25 +144,28 @@ function sceneToClient(canvas: HTMLElement, point: ScenePoint): ScenePoint {
   }
 }
 
-function drag(canvas: HTMLElement, points: ScenePoint[]): void {
+async function drag(canvas: HTMLElement, points: ScenePoint[]): Promise<void> {
   const [first, ...rest] = points
   if (!first) return
+  const pointerId = nextPointerId++
   fireEvent.pointerDown(canvas, {
     button: 0,
     buttons: 1,
     clientX: first.x,
     clientY: first.y,
-    pointerId: 1,
+    pointerId,
     pointerType: 'mouse'
   })
+  await nextFrame()
   for (const point of rest) {
     fireEvent.pointerMove(canvas, {
       buttons: 1,
       clientX: point.x,
       clientY: point.y,
-      pointerId: 1,
+      pointerId,
       pointerType: 'mouse'
     })
+    await nextFrame()
   }
   const last = points.at(-1)!
   fireEvent.pointerUp(canvas, {
@@ -168,9 +173,13 @@ function drag(canvas: HTMLElement, points: ScenePoint[]): void {
     buttons: 0,
     clientX: last.x,
     clientY: last.y,
-    pointerId: 1,
+    pointerId,
     pointerType: 'mouse'
   })
+}
+
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()))
 }
 
 function committedPath(value: string | null): ScenePoint[] {
