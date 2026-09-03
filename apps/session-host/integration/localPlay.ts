@@ -69,6 +69,8 @@ import { replaySceneEvents } from '@artificer-toolkit/shared/vtt'
 
 import { proveCompactCharacterPostgresSemantics } from './compactCharacterPostgresProof.js'
 
+process.env.ARTIFICER_DB_QUERY_TRACE ??= '1'
+
 const MESSAGE_TIMEOUT_MS = 15_000
 const WARM_COMMAND_P95_LIMIT_MS = 500
 const RULE_BOUND_HOST_P95_LIMIT_MS = 250

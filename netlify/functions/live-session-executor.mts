@@ -14,6 +14,7 @@ import { ZodError } from 'zod'
 
 const MAX_EXECUTOR_REQUEST_BYTES = 512 * 1024
 let database: KyselyDatabase | undefined
+let invocationCount = 0
 
 function getDatabase(): KyselyDatabase {
   database ??= createDb()
@@ -116,6 +117,7 @@ function domainError(error: unknown): Response {
 }
 
 export default async function liveSessionExecutor(request: Request): Promise<Response> {
+  const runtimeCold = invocationCount++ === 0
   if (request.method !== 'POST') {
     return new Response(null, { headers: { allow: 'POST' }, status: 405 })
   }
@@ -136,8 +138,18 @@ export default async function liveSessionExecutor(request: Request): Promise<Res
   try {
     const input = liveSessionExecutorRequestDtoSchema.parse(rawRequest)
     const commandStartedAt = input.operation === 'COMMAND' ? performance.now() : null
-    const result = await withUserContext(getDatabase(), input.userId, (db) =>
-      executeLiveSessionExecutorRequest(db, input)
+    const result = await withUserContext(
+      getDatabase(),
+      input.userId,
+      (db) => executeLiveSessionExecutorRequest(db, input),
+      {
+        operation:
+          input.operation === 'COMMAND'
+            ? `LIVE_${input.command.aggregateKind}`
+            : `LIVE_${input.operation}`,
+        runtimeCold,
+        traceId: input.operation === 'COMMAND' ? input.command.command.commandId : undefined
+      }
     )
     return jsonResponse(
       commandStartedAt !== null && result.operation === 'COMMAND'

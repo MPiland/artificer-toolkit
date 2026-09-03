@@ -131,28 +131,35 @@ export function createLiveSessionRoomDependencies(
       injectedRulesRuntime
     ) => {
       const startedAt = command.aggregateKind === 'SCENE' ? performance.now() : null
-      return withUserContext(db, userId, (scopedDb) =>
-        executeLiveSessionCommand(
-          scopedDb,
-          userId,
-          roomOptions,
-          command,
-          authorityId,
-          sceneVisionContext,
-          committedRuleSnapshot,
-          (service) =>
-            options.onCharacterCommandTiming?.({
-              commandId: command.command.commandId,
-              service
-            }),
-          committedEncounterRuleSnapshot,
-          (service) =>
-            options.onEncounterCommandTiming?.({
-              commandId: command.command.commandId,
-              service
-            }),
-          injectedRulesRuntime ?? rulesRuntime
-        )
+      return withUserContext(
+        db,
+        userId,
+        (scopedDb) =>
+          executeLiveSessionCommand(
+            scopedDb,
+            userId,
+            roomOptions,
+            command,
+            authorityId,
+            sceneVisionContext,
+            committedRuleSnapshot,
+            (service) =>
+              options.onCharacterCommandTiming?.({
+                commandId: command.command.commandId,
+                service
+              }),
+            committedEncounterRuleSnapshot,
+            (service) =>
+              options.onEncounterCommandTiming?.({
+                commandId: command.command.commandId,
+                service
+              }),
+            injectedRulesRuntime ?? rulesRuntime
+          ),
+        {
+          operation: `LIVE_${command.aggregateKind}`,
+          traceId: command.command.commandId
+        }
       ).finally(() => {
         if (startedAt !== null) {
           options.onSceneCommandTiming?.({

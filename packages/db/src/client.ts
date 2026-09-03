@@ -1,5 +1,6 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { Kysely, PostgresDialect, sql } from 'kysely'
-import { Pool } from 'pg'
+import { Pool, type PoolClient } from 'pg'
 import type { Database } from '#types'
 
 interface CreateDbOptions {
@@ -8,6 +9,23 @@ interface CreateDbOptions {
 }
 
 const DB_QUERY_TRACE_ENV = 'ARTIFICER_DB_QUERY_TRACE'
+
+export interface DbTraceMetadata {
+  operation?: string
+  runtimeCold?: boolean
+  traceId?: string
+}
+
+interface DbTraceContext extends DbTraceMetadata {
+  poolAcquireDurationMs: number
+  queryCount: number
+  queryDurationMs: number
+  startedAt: number
+  transactionId: number
+}
+
+const dbTraceContext = new AsyncLocalStorage<DbTraceContext>()
+let transactionCount = 0
 
 function readPoolMax(): number {
   const value = Number.parseInt(process.env.DATABASE_POOL_MAX ?? '5', 10)
@@ -61,30 +79,88 @@ function readQueryRelation(args: readonly unknown[]): string | undefined {
   return match?.[1]
 }
 
+function resultMetrics(value: unknown): { resultBytes?: number; rowCount?: number } {
+  if (typeof value !== 'object' || value === null || !('rows' in value)) return {}
+  const rows = (value as { rows?: unknown }).rows
+  if (!Array.isArray(rows)) return {}
+  try {
+    return {
+      resultBytes: Buffer.byteLength(JSON.stringify(rows), 'utf8'),
+      rowCount: rows.length
+    }
+  } catch {
+    return { rowCount: rows.length }
+  }
+}
+
+function installPoolTrace(pool: Pool): Pool {
+  const originalConnect = pool.connect.bind(pool) as () => Promise<PoolClient>
+
+  pool.connect = (() => {
+    const startedAt = performance.now()
+    return originalConnect().then((client) => {
+      const durationMs = performance.now() - startedAt
+      const context = dbTraceContext.getStore()
+      if (context) context.poolAcquireDurationMs += durationMs
+      console.info(
+        '[artificer-db-pool]',
+        JSON.stringify({
+          durationMs,
+          idleCount: pool.idleCount,
+          operation: context?.operation,
+          runtimeCold: context?.runtimeCold,
+          totalCount: pool.totalCount,
+          traceId: context?.traceId,
+          transactionId: context?.transactionId,
+          waitingCount: pool.waitingCount
+        })
+      )
+      return client
+    })
+  }) as Pool['connect']
+
+  return pool
+}
+
 function installQueryTrace(pool: Pool): Pool {
   if (!shouldTraceDbQueries()) {
     return pool
   }
 
   let queryCount = 0
+  installPoolTrace(pool)
   pool.on('connect', (client) => {
     const originalQuery = client.query.bind(client) as (...args: unknown[]) => unknown
 
     client.query = ((...args: unknown[]) => {
       const operation = readQueryOperation(args)
       const relation = readQueryRelation(args)
-      const startedAt = Date.now()
+      const startedAt = performance.now()
       const sequence = ++queryCount
       const result = originalQuery(...args)
-      const logQuery = (ok: boolean) => {
+      const logQuery = (ok: boolean, value?: unknown) => {
+        const completedAt = performance.now()
+        const durationMs = completedAt - startedAt
+        const context = dbTraceContext.getStore()
+        if (context) {
+          context.queryCount += 1
+          context.queryDurationMs += durationMs
+        }
         console.info(
           '[artificer-db-query]',
           JSON.stringify({
-            durationMs: Date.now() - startedAt,
+            durationMs,
             ok,
             operation,
+            requestOperation: context?.operation,
             relation,
-            sequence
+            runtimeCold: context?.runtimeCold,
+            sequence,
+            startedOffsetMs: context ? startedAt - context.startedAt : undefined,
+            completedOffsetMs: context ? completedAt - context.startedAt : undefined,
+            traceId: context?.traceId,
+            transactionId: context?.transactionId,
+            ...resultMetrics(value)
           })
         )
       }
@@ -92,7 +168,7 @@ function installQueryTrace(pool: Pool): Pool {
       if (isPromiseLike(result)) {
         return result.then(
           (value) => {
-            logQuery(true)
+            logQuery(true, value)
             return value
           },
           (error: unknown) => {
@@ -129,10 +205,54 @@ export function createDb(options: CreateDbOptions = {}) {
 export async function withUserContext<T>(
   db: Kysely<Database>,
   userId: string,
-  fn: (ctx: Kysely<Database>) => Promise<T>
+  fn: (ctx: Kysely<Database>) => Promise<T>,
+  trace: DbTraceMetadata = {}
 ) {
-  return db.transaction().execute(async (trx) => {
-    await sql`select set_config('request.jwt.claim.sub', ${userId}, true)`.execute(trx)
-    return fn(trx)
+  if (!shouldTraceDbQueries()) {
+    return db.transaction().execute(async (trx) => {
+      await sql`select set_config('request.jwt.claim.sub', ${userId}, true)`.execute(trx)
+      return fn(trx)
+    })
+  }
+
+  const context: DbTraceContext = {
+    ...trace,
+    poolAcquireDurationMs: 0,
+    queryCount: 0,
+    queryDurationMs: 0,
+    startedAt: performance.now(),
+    transactionId: ++transactionCount
+  }
+
+  return dbTraceContext.run(context, async () => {
+    let ok = false
+    try {
+      const result = await db.transaction().execute(async (trx) => {
+        await sql`select set_config('request.jwt.claim.sub', ${userId}, true)`.execute(trx)
+        return fn(trx)
+      })
+      ok = true
+      return result
+    } finally {
+      const durationMs = performance.now() - context.startedAt
+      console.info(
+        '[artificer-db-transaction]',
+        JSON.stringify({
+          applicationDurationMs: Math.max(
+            0,
+            durationMs - context.poolAcquireDurationMs - context.queryDurationMs
+          ),
+          durationMs,
+          ok,
+          operation: context.operation,
+          poolAcquireDurationMs: context.poolAcquireDurationMs,
+          queryCount: context.queryCount,
+          queryDurationMs: context.queryDurationMs,
+          runtimeCold: context.runtimeCold,
+          traceId: context.traceId,
+          transactionId: context.transactionId
+        })
+      )
+    }
   })
 }

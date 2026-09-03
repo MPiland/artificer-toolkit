@@ -18,6 +18,8 @@ commands record the implementation being replaced. New rules/content persistence
 
 `createDb` builds a Postgres Kysely instance from `DATABASE_CONNECTION_STRING` and a bounded `pg` pool. `withUserContext(db, userId, fn)` starts a transaction, sets `request.jwt.claim.sub` with `set_config(..., true)`, and invokes `fn` with the transaction handle. This is how ordinary API calls execute under the caller’s Supabase RLS identity. Campaign procedures instead use explicit service authorization with the top-level server handle so their service-owned transaction commits before Broadcast; direct browser access to those product tables remains revoked.
 
+Set `ARTIFICER_DB_QUERY_TRACE=1` to emit structured `artificer-db-pool`, `artificer-db-query`, and `artificer-db-transaction` timing records. Live commands attach the command ID and aggregate kind so pool acquisition, SQL duration/count, result row/byte counts, application time between statements, and total transaction time can be correlated without logging SQL text, parameters, user IDs, or row values. Local VTT integration enables this trace automatically. Netlify staging must set the variable with Functions scope; production leaves it unset.
+
 Do not call repository writes outside the context selected by the API/service layer. A transaction can be passed as `DBLike` (`Kysely<Database> | Transaction<Database>`). Transactional repository operations reuse an incoming transaction and open one only for a top-level Kysely instance.
 
 ## Repository boundary
