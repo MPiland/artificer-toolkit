@@ -60,6 +60,7 @@ describe('database tracing', () => {
       '6d66346c-9a56-4a74-af2e-e8ed23df8c06',
       async (trx) => {
         await sql`select ${'private-parameter'}`.execute(trx)
+        await sql`select 1 from "public"."characters"`.execute(trx)
       },
       {
         operation: 'LIVE_SCENE',
@@ -77,6 +78,7 @@ describe('database tracing', () => {
     expect(output).toContain('"operation":"LIVE_SCENE"')
     expect(output).toContain('"runtimeCold":true')
     expect(output).toContain('"rowCount":1')
+    expect(output).toContain('"relation":"characters"')
     expect(output).toContain('"startedOffsetMs":')
     expect(output).not.toContain('private-parameter')
     expect(output).not.toContain('never-log-row-values')

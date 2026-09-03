@@ -277,6 +277,7 @@ describe('Character Sheet shell', () => {
     sheet.meta.characterId = liveCharacterId
     let httpCommandCalled = false
     let refetchQueries: ReturnType<typeof vi.spyOn> | undefined
+    liveSessionMocks.getAggregateVersion.mockReturnValue(5)
 
     server.use(
       http.all('*/api/trpc/campaigns.sessions.list', () => trpcJson([tabletopSession])),
@@ -322,7 +323,7 @@ describe('Character Sheet shell', () => {
     expect(liveSessionMocks.executeCommand).toHaveBeenCalledWith({
       aggregateKind: 'CHARACTER',
       characterId: sheet.meta.characterId,
-      command: expect.objectContaining({ expectedVersion: 4, type: 'ADJUST_HIT_POINTS' })
+      command: expect.objectContaining({ expectedVersion: 5, type: 'ADJUST_HIT_POINTS' })
     })
     expect(httpCommandCalled).toBe(false)
     await waitFor(() =>

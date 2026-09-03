@@ -75,8 +75,10 @@ function readQueryOperation(args: readonly unknown[]): string {
 }
 
 function readQueryRelation(args: readonly unknown[]): string | undefined {
-  const match = readQueryText(args).match(/\b(?:from|into|update|join)\s+"?([a-z_][a-z0-9_]*)"?/i)
-  return match?.[1]
+  const match = readQueryText(args).match(
+    /\b(?:from|into|update|join)\s+"?([a-z_][a-z0-9_]*)"?(?:\s*\.\s*"?([a-z_][a-z0-9_]*)"?)?/i
+  )
+  return match?.[2] ?? match?.[1]
 }
 
 function resultMetrics(value: unknown): { resultBytes?: number; rowCount?: number } {

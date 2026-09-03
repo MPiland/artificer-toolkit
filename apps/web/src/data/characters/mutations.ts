@@ -124,10 +124,11 @@ export function useCharacterSheetCommandMutation(
     mutationKey: ['characters', 'sheet', 'command', characterId],
     mutationFn: async (input: CharacterSheetCommandInputDto) => {
       if (!options.executeLiveCommand) return api.characters.command(characterId, input)
+      const liveVersion = options.getLiveAggregateVersion?.()
       const committed = await options.executeLiveCommand({
         aggregateKind: 'CHARACTER',
         characterId,
-        command: input
+        command: liveVersion == null ? input : { ...input, expectedVersion: liveVersion }
       })
       if (committed.aggregateKind !== 'CHARACTER') {
         throw new Error('The live session committed a different aggregate.')
