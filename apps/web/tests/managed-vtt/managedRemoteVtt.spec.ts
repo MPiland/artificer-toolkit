@@ -11,6 +11,7 @@ import {
   campaignSceneStateDtoSchema,
   type CampaignSceneStateDto
 } from '@artificer-toolkit/schema/api/vttScenes'
+import { signedVttMapDeliveryDtoSchema } from '@artificer-toolkit/schema/api/media'
 
 const campaignName = requiredValue('MANAGED_VTT_CAMPAIGN_NAME')
 const gmCredentials = credentials('GM')
@@ -29,6 +30,12 @@ const warmupPairs = boundedSampleCount('VTT_USAGE_WARMUP_PAIRS', 2, 0)
 const measuredPairs = boundedSampleCount('VTT_USAGE_MEASURED_PAIRS', 10, 1)
 const hostTimingP95Limits =
   topology === 'MANAGED' ? { ruleBound: 250, sceneOnly: 100 } : { ruleBound: 1_500, sceneOnly: 500 }
+const managedLaunchP95Limits = {
+  localPaint: 100,
+  peerCommit: 1_500,
+  peerPreview: 250,
+  peerVisual: 1_500
+}
 const signInReadyTimeoutMs = topology === 'LOCAL' ? 60_000 : 15_000
 
 test('connects three users through the live room and recovers a reversible scene commit', async ({
@@ -108,6 +115,20 @@ test('connects three users through the live room and recovers a reversible scene
     console.info(`Managed VTT host timings: ${JSON.stringify(hostTimingSummary)}`)
     expect(hostTimingSummary.sceneOnly.p95).toBeLessThan(hostTimingP95Limits.sceneOnly)
     expect(hostTimingSummary.ruleBound.p95).toBeLessThan(hostTimingP95Limits.ruleBound)
+    if (topology === 'MANAGED') {
+      expect(summarizeTimings(peerVisualTimings).p95).toBeLessThan(
+        managedLaunchP95Limits.peerVisual
+      )
+      expect(summarizeTimings(tokenDragTimings.localPaint).p95).toBeLessThan(
+        managedLaunchP95Limits.localPaint
+      )
+      expect(summarizeTimings(tokenDragTimings.peerPreview).p95).toBeLessThan(
+        managedLaunchP95Limits.peerPreview
+      )
+      expect(summarizeTimings(tokenDragTimings.peerCommit).p95).toBeLessThan(
+        managedLaunchP95Limits.peerCommit
+      )
+    }
 
     await Promise.all([gm.context.close(), player.context.close(), player2.context.close()])
     timings.authorityReleaseWaitMs = authorityReleaseWaitMs
@@ -913,6 +934,11 @@ async function openManagedClient(
       )
     })
     page.on('response', (response) => {
+      if (!response.ok()) {
+        client.failedRequests.push(
+          `${response.request().method()} ${safeRequestUrl(response.url())}: HTTP ${response.status()}`
+        )
+      }
       if (isVttMapAsset(response)) client.assetResponses.push(response)
       if (response.url().includes('media.getVttMapDelivery')) {
         client.deliveryResponses.push(response)
@@ -1112,15 +1138,19 @@ async function expectExactVttMapDelivery(client: ManagedClient): Promise<void> {
 }
 
 function collectSignedMediaUrls(value: unknown, urls: Set<string>): void {
-  if (typeof value === 'string') {
-    if (value.includes('/storage/v1/object/sign/media/')) urls.add(value)
-    return
-  }
   if (Array.isArray(value)) {
     for (const item of value) collectSignedMediaUrls(item, urls)
     return
   }
   if (!value || typeof value !== 'object') return
+
+  const delivery = signedVttMapDeliveryDtoSchema.safeParse(value)
+  if (delivery.success) {
+    urls.add(delivery.data.overview.url)
+    for (const tile of delivery.data.tiles) urls.add(tile.url)
+    return
+  }
+
   for (const item of Object.values(value)) collectSignedMediaUrls(item, urls)
 }
 
@@ -1236,7 +1266,7 @@ function oppositeDoorAction(action: string): string {
 }
 
 function isVttMapAsset(response: Response): boolean {
-  return response.url().includes('/storage/v1/object/sign/media/')
+  return response.headers()['content-type']?.startsWith('image/') ?? false
 }
 
 function isLiveSessionSocket(value: string): boolean {

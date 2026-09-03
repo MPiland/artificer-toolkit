@@ -41,6 +41,8 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0025](0025-game-system-catalogues-and-encounter-blueprints.md)        | Game Systems, Rules Catalogues, Campaign binding, and Blueprints       | decision     |
 | [0026](0026-bounded-action-phase-specialization.md)                    | Bounded action test/outcome specialization                             | decision     |
 | [0027](0027-campaign-scenes-and-encounter-bindings.md)                 | Campaign-owned live Scenes and optional Encounter bindings             | decision     |
+| [0028](0028-r2-vtt-map-storage.md)                                     | Cloudflare R2 storage for VTT maps                                     | decision     |
+| [0029](0029-convex-backend-cutover.md)                                 | Convex, Better Auth, and TypeScript Rules Kernel backend cutover       | transitional |
 
 ## Updating an ADR
 

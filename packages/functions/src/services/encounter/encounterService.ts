@@ -2058,6 +2058,7 @@ export async function executeEncounterCommandWithRuleSnapshot(
         targetActorId: input.targetActorId,
         request: input.sceneContext ?? null
       })
+      const sourceActor = requireActor(locked.encounter, input.actorId)
       const target = requireActor(locked.encounter, input.targetActorId)
       const result =
         locked.encounter.automationMode !== 'MANUAL' &&
@@ -2110,7 +2111,7 @@ export async function executeEncounterCommandWithRuleSnapshot(
                 },
                 ...(options.rollD20 ? { rollD20: options.rollD20 } : {})
               })
-            : target.kind === 'CHARACTER'
+            : sourceActor.kind === 'CHARACTER' && target.kind === 'CHARACTER'
               ? await executeEncounterCharacterRuleAction({
                   db: trx,
                   runtime,
@@ -2133,6 +2134,7 @@ export async function executeEncounterCommandWithRuleSnapshot(
               : await executeEncounterActorDirectRuleAction({
                   db: trx,
                   runtime,
+                  lockedEncounter: locked,
                   command: {
                     actionId: input.actionId,
                     actorId: input.actorId,

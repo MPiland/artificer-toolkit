@@ -1,6 +1,13 @@
 {
-  "version": 3,
-  "statusVocabulary": ["NOT_STARTED", "IN_PROGRESS", "READY_FOR_ACCEPTANCE", "ACCEPTED", "BLOCKED"],
+  "version": 4,
+  "statusVocabulary": [
+    "NOT_STARTED",
+    "IN_PROGRESS",
+    "READY_FOR_ACCEPTANCE",
+    "ACCEPTED",
+    "BLOCKED",
+    "SUPERSEDED"
+  ],
   "proofTiers": {
     "FOCUSED": "Focused contract/unit/property tests plus affected package typecheck/build and diff checks.",
     "REVIEW": "FOCUSED evidence plus independent targeted review of the complete scenario seam.",
@@ -1405,13 +1412,17 @@
           "id": "P81-MANAGED-RULE-LATENCY",
           "title": "Managed-host 250 ms rule-bound latency proof",
           "proofTier": "LOCAL_E2E",
-          "status": "NOT_STARTED"
+          "status": "SUPERSEDED",
+          "supersededAt": "2026-09-03",
+          "supersededBy": ["08.2/V15", "08.2/R09"]
         },
         {
           "id": "P81-MANAGED-SCENE-LATENCY",
           "title": "Managed-host Scene latency and delivery proof",
           "proofTier": "LOCAL_E2E",
-          "status": "NOT_STARTED"
+          "status": "SUPERSEDED",
+          "supersededAt": "2026-09-03",
+          "supersededBy": ["08.2/V15", "08.2/R09"]
         },
 
         {

@@ -1,0 +1,495 @@
+{
+  "version": 1,
+  "phase": "8.2",
+  "title": "Complete Convex cutover",
+  "fixedTotal": 75,
+  "denominatorPolicy": "Frozen by explicit user approval on 2026-09-03. Defects attach to an existing case. Any denominator change requires explicit user approval.",
+  "statusVocabulary": ["NOT_STARTED", "IN_PROGRESS", "READY_FOR_ACCEPTANCE", "ACCEPTED", "BLOCKED"],
+  "gates": [
+    {
+      "id": 1,
+      "title": "Foundation, auth, operations",
+      "total": 15,
+      "cases": [
+        {
+          "id": "F01",
+          "title": "Local Convex development and code generation",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "F02",
+          "title": "Schema, validators, indexes, and bounded contracts",
+          "proofTier": "REVIEW",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "F03",
+          "title": "Better Auth SSR and native-compatible bearer authentication",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "F04",
+          "title": "Server-controlled signup defaults closed",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "F05",
+          "title": "Verified signup",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "F06",
+          "title": "Initial account invitations",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "F07",
+          "title": "Login",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "F08",
+          "title": "Password reset and session revocation",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "F09",
+          "title": "Usernames",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "F10",
+          "title": "Profile privacy",
+          "proofTier": "AUTHORIZATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "F11",
+          "title": "Superadmin authorization",
+          "proofTier": "AUTHORIZATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "F12",
+          "title": "Account deletion",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "F13",
+          "title": "React Email and Resend delivery",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "F14",
+          "title": "R2 upload, authorized read, and deletion",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "F15",
+          "title": "Deterministic source-data import and audit",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Content and rules",
+      "total": 16,
+      "cases": [
+        {
+          "id": "C01",
+          "title": "Game Systems and Rules Catalogues",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C02",
+          "title": "Public UUID and checksum stability",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C03",
+          "title": "Background authoring and publication",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C04",
+          "title": "Class authoring and publication",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C05",
+          "title": "Creature authoring and publication",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C06",
+          "title": "Equipment authoring and publication",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C07",
+          "title": "Feat authoring and publication",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C08",
+          "title": "Race authoring and publication",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C09",
+          "title": "Spell authoring and publication",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C10",
+          "title": "Vehicle authoring and publication",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C11",
+          "title": "Effects, grants, modifiers, and reusable definitions",
+          "proofTier": "REVIEW",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C12",
+          "title": "Draft create, save, discard, and recovery",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C13",
+          "title": "Publication validation and mechanics compilation",
+          "proofTier": "REVIEW",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C14",
+          "title": "Deep UUID-safe duplication",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C15",
+          "title": "Owner, Campaign-share, and master-content authorization",
+          "proofTier": "AUTHORIZATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "C16",
+          "title": "Node runtime and Rules Kernel execution, pause, and resume",
+          "proofTier": "REVIEW",
+          "status": "NOT_STARTED"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Characters, Campaigns, Social",
+      "total": 19,
+      "cases": [
+        {
+          "id": "P01",
+          "title": "Character drafts",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P02",
+          "title": "Character Builder choices, readiness, and commit",
+          "proofTier": "LOCAL_E2E",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P03",
+          "title": "Character reconciliation",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P04",
+          "title": "Character Sheet projection and commands",
+          "proofTier": "LOCAL_E2E",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P05",
+          "title": "Hit points, resources, and rests",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P06",
+          "title": "Authoritative rolls and evidence",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P07",
+          "title": "Equipment, inventory state, and grants",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P08",
+          "title": "Character replay, concurrency, and rollback",
+          "proofTier": "CONCURRENCY",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P09",
+          "title": "Campaign lifecycle",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P10",
+          "title": "Campaign membership and authority",
+          "proofTier": "AUTHORIZATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P11",
+          "title": "Campaign content and settings",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P12",
+          "title": "Campaign inventory",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P13",
+          "title": "Campaign vehicles",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P14",
+          "title": "Campaign collaboration",
+          "proofTier": "LOCAL_E2E",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P15",
+          "title": "Sessions and control",
+          "proofTier": "CONCURRENCY",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P16",
+          "title": "Announcements",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P17",
+          "title": "Social profiles, listings, applications, and blocks",
+          "proofTier": "LOCAL_E2E",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P18",
+          "title": "Notifications and preferences",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "P19",
+          "title": "Entitlements and capacity enforcement",
+          "proofTier": "AUTHORIZATION",
+          "status": "NOT_STARTED"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Scene, Encounter, VTT",
+      "total": 15,
+      "cases": [
+        {
+          "id": "V01",
+          "title": "Encounter Blueprints",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "V02",
+          "title": "Campaign Scenes independent of Encounters",
+          "proofTier": "LOCAL_E2E",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "V03",
+          "title": "Scene entities, geometry, and visibility facts",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "V04",
+          "title": "R2-backed maps and Scene media lifecycle",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "V05",
+          "title": "Session admission and presence",
+          "proofTier": "AUTHORIZATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "V06",
+          "title": "Transient collaboration through the Durable Object",
+          "proofTier": "LOCAL_E2E",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "V07",
+          "title": "Committed token movement and multi-client convergence",
+          "proofTier": "LOCAL_E2E",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "V08",
+          "title": "Encounter lifecycle and optional Scene binding",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "V09",
+          "title": "Encounter actors and initiative",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "V10",
+          "title": "Actions, reactions, effects, and selected optional combat rules",
+          "proofTier": "LOCAL_E2E",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "V11",
+          "title": "Decisions, pause, and resume",
+          "proofTier": "LOCAL_INTEGRATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "V12",
+          "title": "Player and GM privacy and redaction",
+          "proofTier": "AUTHORIZATION",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "V13",
+          "title": "Receipts, replay, and reconnect",
+          "proofTier": "LOCAL_E2E",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "V14",
+          "title": "Same-aggregate contention and unrelated concurrency",
+          "proofTier": "CONCURRENCY",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "V15",
+          "title": "Local and managed performance simulation",
+          "proofTier": "PERFORMANCE",
+          "status": "NOT_STARTED"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Cutover and release",
+      "total": 10,
+      "cases": [
+        {
+          "id": "R01",
+          "title": "All product data flows through Convex",
+          "proofTier": "RELEASE",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "R02",
+          "title": "Zero Supabase runtime dependency",
+          "proofTier": "RELEASE",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "R03",
+          "title": "Zero Kysely, PostgreSQL application SQL, migrations, and generated Supabase types",
+          "proofTier": "RELEASE",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "R04",
+          "title": "Zero GoRules runtime dependency",
+          "proofTier": "RELEASE",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "R05",
+          "title": "Zero tRPC and product Netlify functions",
+          "proofTier": "RELEASE",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "R06",
+          "title": "Durable Object is transient-only",
+          "proofTier": "REVIEW",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "R07",
+          "title": "Canonical docs, ADRs, ERDs, deployment guides, and runbooks match the final system",
+          "proofTier": "REVIEW",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "R08",
+          "title": "Complete local lifecycle passes from a fresh local Convex deployment",
+          "proofTier": "RELEASE",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "R09",
+          "title": "One staging integration/performance promotion and explicit Supabase retirement decision",
+          "proofTier": "STAGING",
+          "status": "NOT_STARTED"
+        },
+        {
+          "id": "R10",
+          "title": "Production deployment and bounded smoke verification",
+          "proofTier": "PRODUCTION",
+          "status": "NOT_STARTED"
+        }
+      ]
+    }
+  ]
+}

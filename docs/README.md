@@ -57,6 +57,7 @@ Keep intent at the interface it explains. Cross-module flows belong in architect
 
 - [Future platform roadmap](roadmap/README.md) — transitional, phase-oriented planning for Character Sheet play depth and overrides, media/files, native clients, Campaigns, notifications, Encounters, commerce, Social Hub, Marketplace, and VTT
 - [Phase 08 fixed acceptance ledger](roadmap/08-vtt-acceptance.md) — frozen 12/14/10/8/10 scenarios and gate governance
+- [Phase 8.2 Convex cutover acceptance](roadmap/08-2-convex-cutover-acceptance.md) — fixed 75-case pre-launch replacement ledger
 
 ## Decisions
 

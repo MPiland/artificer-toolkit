@@ -1341,6 +1341,8 @@ export async function executeEncounterActorDirectRuleAction(input: {
   db: DBLike
   runtime: RulesRuntimeService
   command: ExecuteEncounterActorDirectRuleActionInput
+  /** Existing transaction-bound Encounter context from an owning command coordinator. */
+  lockedEncounter?: Awaited<ReturnType<typeof lockEncounterRuleExecutionCommandContext>>
   rollD20?: () => number
   /** Test-only bounded integer source for a specialized OUTCOME graph. */
   rollInteger?: (min: number, max: number) => number
@@ -1355,32 +1357,49 @@ export async function executeEncounterActorDirectRuleAction(input: {
   let exposeLegendaryResistance = false
   let selectedLegendaryResistance: 'DECLINE' | 'USE' | null = null
   let lockedSceneContext: LockedEncounterActionSceneContext | null = null
-  let attunementSlotOverride: number | null = null
-  let concentrationPreflight: ConcentrationPreflight | null = null
-  let createChildOccurrencePort: (() => RuleExecutionAggregatePort) | null = null
-  const aggregatePort: RuleExecutionAggregatePort = {
-    async withLockedAuthorized(transaction, run) {
-      const locked = await lockEncounterRuleExecutionCommandContext(transaction, {
-        actorUserId: input.command.actorUserId,
-        authority: 'ACTIVE_MEMBER',
-        encounterId: input.command.encounterId,
-        ...(input.command.liveSessionAuthority
-          ? { liveSessionAuthority: input.command.liveSessionAuthority }
-          : {})
-      })
-      exposeLegendaryResistance = locked.context.role === 'OWNER'
-      attunementSlotOverride = locked.context.attunementSlotOverride
-      createChildOccurrencePort = () => locked.context.createReceiptOnlyChildOccurrencePort()
-      return run({
-        aggregateKind: 'ENCOUNTER',
-        aggregateId: locked.context.encounterId,
-        campaignId: locked.context.campaignId,
-        actorUserId: locked.context.actorUserId,
-        currentVersion: locked.context.currentVersion,
-        advanceVersion: (_db, expectedVersion) => locked.context.advanceVersion(expectedVersion)
-      })
-    }
+  const initialLockedEncounter = input.lockedEncounter ?? null
+  let lockedEncounterContext: Awaited<
+    ReturnType<typeof lockEncounterRuleExecutionCommandContext>
+  > | null = initialLockedEncounter
+  if (
+    lockedEncounterContext &&
+    (lockedEncounterContext.context.encounterId !== input.command.encounterId ||
+      lockedEncounterContext.context.actorUserId !== input.command.actorUserId)
+  ) {
+    throw new EncounterConflictError('Direct Encounter action context is stale.')
   }
+  let attunementSlotOverride = lockedEncounterContext?.context.attunementSlotOverride ?? null
+  let concentrationPreflight: ConcentrationPreflight | null = null
+  let createChildOccurrencePort: (() => RuleExecutionAggregatePort) | null = initialLockedEncounter
+    ? () => initialLockedEncounter.context.createReceiptOnlyChildOccurrencePort()
+    : null
+  exposeLegendaryResistance = lockedEncounterContext?.context.role === 'OWNER'
+  const aggregatePort: RuleExecutionAggregatePort = initialLockedEncounter
+    ? initialLockedEncounter.context.createRootOccurrencePort()
+    : {
+        async withLockedAuthorized(transaction, run) {
+          const locked = await lockEncounterRuleExecutionCommandContext(transaction, {
+            actorUserId: input.command.actorUserId,
+            authority: 'ACTIVE_MEMBER',
+            encounterId: input.command.encounterId,
+            ...(input.command.liveSessionAuthority
+              ? { liveSessionAuthority: input.command.liveSessionAuthority }
+              : {})
+          })
+          lockedEncounterContext = locked
+          exposeLegendaryResistance = locked.context.role === 'OWNER'
+          attunementSlotOverride = locked.context.attunementSlotOverride
+          createChildOccurrencePort = () => locked.context.createReceiptOnlyChildOccurrencePort()
+          return run({
+            aggregateKind: 'ENCOUNTER',
+            aggregateId: locked.context.encounterId,
+            campaignId: locked.context.campaignId,
+            actorUserId: locked.context.actorUserId,
+            currentVersion: locked.context.currentVersion,
+            advanceVersion: (_db, expectedVersion) => locked.context.advanceVersion(expectedVersion)
+          })
+        }
+      }
   const occurrences = createRuleExecutionOccurrenceService({
     db: input.db,
     runtime: input.runtime,
@@ -1750,14 +1769,8 @@ export async function executeEncounterActorDirectRuleAction(input: {
     }),
     allowPaused: true,
     async resolve({ db, aggregate }) {
-      const locked = await lockEncounterRuleExecutionCommandContext(db, {
-        actorUserId: input.command.actorUserId,
-        authority: 'ACTIVE_MEMBER',
-        encounterId: input.command.encounterId,
-        ...(input.command.liveSessionAuthority
-          ? { liveSessionAuthority: input.command.liveSessionAuthority }
-          : {})
-      })
+      const locked = lockedEncounterContext
+      if (!locked) throw new EncounterConflictError('Encounter command context was not locked.')
       if (locked.context.encounterId !== aggregate.aggregateId) {
         throw new EncounterConflictError('Direct Encounter action context is stale.')
       }
@@ -1826,7 +1839,7 @@ export async function executeEncounterActorDirectRuleAction(input: {
         })
       ) {
         throw new EncounterValidationError(
-          'The selected Character action cannot target this Encounter actor.'
+          'The selected Encounter action cannot target this actor.'
         )
       }
       concentrationPreflight = await lockDirectActionConcentrationPreflight({

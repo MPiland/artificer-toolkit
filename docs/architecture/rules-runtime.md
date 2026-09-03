@@ -63,6 +63,8 @@ applicator never runs for a pause or receipt replay.
 The concrete locked Encounter command context alone may issue an opaque receipt-only child-occurrence
 capability at its private effective version; that capability is bound to the same transaction, becomes
 stale after a later parent version advance, and cannot reacquire roots or advance the Encounter.
+An owning command coordinator may pass the context's transaction-bound root-occurrence capability to
+a nested executor so the same Encounter is not reauthorized or rehydrated inside one transaction.
 
 The reusable mechanics library owns typed operations whose meaning is portable: comparison, result
 bands, opposed tests, dice-pool evidence, contributor aggregation, bounded choices, generic state

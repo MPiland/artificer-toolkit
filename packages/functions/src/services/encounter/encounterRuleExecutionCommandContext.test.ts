@@ -162,7 +162,7 @@ function completeExecution() {
   }
 }
 
-describe('lockEncounterRuleExecutionCommandContext receipt-only child capability', () => {
+describe('lockEncounterRuleExecutionCommandContext occurrence capabilities', () => {
   async function lock(transactionDb: DBLike, readOnly = false) {
     mocks.campaign.lockCampaign.mockResolvedValue({
       id: ids.campaign,
@@ -213,6 +213,35 @@ describe('lockEncounterRuleExecutionCommandContext receipt-only child capability
     expect(() => context.createReceiptOnlyChildOccurrencePort()).toThrow(
       'Read-only Encounter access'
     )
+    expect(() => context.createRootOccurrencePort()).toThrow('Read-only Encounter access')
+  })
+
+  it('issues a transaction-bound root capability over the live Encounter version', async () => {
+    const transactionDb = transaction()
+    const { context } = await lock(transactionDb)
+    const rootPort = context.createRootOccurrencePort()
+
+    await rootPort.withLockedAuthorized(transactionDb, async (aggregate) => {
+      expect(aggregate).toMatchObject({
+        aggregateKind: 'ENCOUNTER',
+        aggregateId: ids.encounter,
+        campaignId: ids.campaign,
+        actorUserId: ids.user,
+        currentVersion: 3
+      })
+      expect(await aggregate.advanceVersion(transactionDb, 3)).toBe(4)
+      expect(aggregate.currentVersion).toBe(4)
+    })
+    expect(context.currentVersion).toBe(4)
+
+    await expect(
+      rootPort.withLockedAuthorized(transaction(), async () => undefined)
+    ).rejects.toBeInstanceOf(EncounterConflictError)
+    await expect(
+      rootPort.withLockedAuthorized(transactionDb, async (aggregate) =>
+        aggregate.advanceVersion(transaction(), 4)
+      )
+    ).rejects.toBeInstanceOf(EncounterConflictError)
   })
 
   it('issues transaction-bound child capabilities at the concrete initial and post-CAS versions', async () => {

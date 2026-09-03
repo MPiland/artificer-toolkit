@@ -283,7 +283,7 @@ privacy/redaction, and deterministic-concurrency subchecks where applicable.
     fixtures, Campaign Scene rows, media references, events, authority leases, and Worker state are
     cleaned or isolated exactly; no staging or production operation was performed.
 
-## Phase 8.1 — Pre-launch combat completeness addendum (71/73)
+## Phase 8.1 — Pre-launch combat completeness addendum (closed: 71 accepted, 2 superseded)
 
 This is a separate, fixed addendum to the accepted 54/54 Phase 8 baseline. Its denominator was frozen
 on 2026-08-30. Defects found while proving a case remain subchecks of that case; genuinely new product
@@ -298,7 +298,7 @@ machine-readable case ledger is the `addenda` section of `08-vtt-acceptance.json
 | Speed Factor initiative          |        4 |     4 | **ACCEPTED**; declaration, ordering, ties, and declared-action enforcement passed                             |
 | High-value optional combat rules |       10 |    10 | **ACCEPTED**; Disarm, Overrun, Shove Aside, Tumble, and Cleaving passed the final lifecycle                   |
 | Final PostgreSQL lifecycle       |        6 |     6 | **ACCEPTED**; reset, seed, audit, replay, rollback, concurrency, privacy, cleanup, and browser gates passed   |
-| Managed-host proof               |        0 |     2 | Rule-bound and Scene latency/delivery                                                                         |
+| Managed-host proof               |        0 |     2 | **SUPERSEDED** by Phase 8.2 `V15` and `R09`; not counted as passed                                            |
 | Exhaustive race schedules        |       28 |    28 | **ACCEPTED**; fourteen fixed races passed in both lock orderings                                              |
 
 The thirteen Creature cases are thirteen unique source semantics, not thirteen manifest rows. Nested
@@ -365,8 +365,9 @@ The selected optional rules use these fixed product contracts:
   Shove Aside, Tumble, and Cleaving are Phase 8.1 work and must remain unavailable until accepted.
 
 - D&D 2024 catalogue ingestion and a second product Game System.
-- The previously deferred exhaustive PostgreSQL race permutations and managed-host latency proof are
-  now fixed Phase 8.1 cases. They are no longer post-launch deferrals.
+- The exhaustive PostgreSQL race permutations are accepted historical evidence. The two unrun
+  managed-Supabase latency cases are superseded by the approved Phase 8.2 Convex cutover and map to
+  its `V15` performance simulation and `R09` staging promotion. They were not passed.
 - User-created Systems, plugins, or arbitrary scripts.
 - Campaign epic-level and spell-rank overrides.
 - General targetable environment/object/material simulation.

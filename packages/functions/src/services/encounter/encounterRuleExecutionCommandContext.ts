@@ -35,6 +35,11 @@ export interface LockedEncounterRuleExecutionCommandContext {
   encounterId: string
   advanceVersion(expectedVersion: number): Promise<number>
   /**
+   * Root-occurrence capability for this exact locked Encounter transaction.
+   * It reuses the existing authorization and may advance the Encounter.
+   */
+  createRootOccurrencePort(): RuleExecutionAggregatePort
+  /**
    * Server-only child-occurrence capability for this exact locked Encounter
    * transaction. It cannot acquire roots, reauthorize, or advance the Encounter.
    */
@@ -104,6 +109,58 @@ export async function lockEncounterRuleExecutionCommandContext(
   const actorUserId = input.actorUserId
   let effectiveVersion = encounter.version
 
+  async function advanceVersion(expectedVersion: number): Promise<number> {
+    if (input.readOnly) {
+      throw new EncounterConflictError('Read-only Encounter access cannot change an Encounter.')
+    }
+    if (expectedVersion !== effectiveVersion) {
+      throw new EncounterConflictError('Encounter changed before execution.')
+    }
+    const updated = await db
+      .updateTable('encounters')
+      .set({ version: effectiveVersion + 1 })
+      .where('id', '=', encounterId)
+      .where('campaign_id', '=', campaignId)
+      .where('version', '=', expectedVersion)
+      .returning('version')
+      .executeTakeFirst()
+    if (!updated) throw new EncounterConflictError('Encounter changed before execution.')
+    effectiveVersion = updated.version
+    return effectiveVersion
+  }
+
+  function createRootOccurrencePort(): RuleExecutionAggregatePort {
+    if (input.readOnly) {
+      throw new EncounterConflictError('Read-only Encounter access cannot create rule occurrences.')
+    }
+    return {
+      async withLockedAuthorized(rootDb, run) {
+        if (rootDb !== db) {
+          throw new EncounterConflictError(
+            'Encounter root occurrence escaped its owning transaction.'
+          )
+        }
+        return run({
+          aggregateKind: 'ENCOUNTER',
+          aggregateId: encounterId,
+          campaignId,
+          actorUserId,
+          get currentVersion() {
+            return effectiveVersion
+          },
+          async advanceVersion(advanceDb, expectedVersion) {
+            if (advanceDb !== db) {
+              throw new EncounterConflictError(
+                'Encounter root occurrence escaped its owning transaction.'
+              )
+            }
+            return advanceVersion(expectedVersion)
+          }
+        })
+      }
+    }
+  }
+
   function createReceiptOnlyChildOccurrencePort(): RuleExecutionAggregatePort {
     if (input.readOnly) {
       throw new EncounterConflictError('Read-only Encounter access cannot create rule occurrences.')
@@ -150,25 +207,8 @@ export async function lockEncounterRuleExecutionCommandContext(
         return effectiveVersion
       },
       encounterId,
-      async advanceVersion(expectedVersion) {
-        if (input.readOnly) {
-          throw new EncounterConflictError('Read-only Encounter access cannot change an Encounter.')
-        }
-        if (expectedVersion !== effectiveVersion) {
-          throw new EncounterConflictError('Encounter changed before execution.')
-        }
-        const updated = await db
-          .updateTable('encounters')
-          .set({ version: effectiveVersion + 1 })
-          .where('id', '=', encounterId)
-          .where('campaign_id', '=', campaignId)
-          .where('version', '=', expectedVersion)
-          .returning('version')
-          .executeTakeFirst()
-        if (!updated) throw new EncounterConflictError('Encounter changed before execution.')
-        effectiveVersion = updated.version
-        return effectiveVersion
-      },
+      advanceVersion,
+      createRootOccurrencePort,
       createReceiptOnlyChildOccurrencePort
     }
   }

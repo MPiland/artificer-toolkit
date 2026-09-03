@@ -21,6 +21,7 @@ const ids = {
 }
 
 const state = vi.hoisted(() => {
+  const receipts = new Map<string, Record<string, unknown>>()
   const calls = {
     appendEvent: vi.fn(),
     compileProjection: vi.fn((value: unknown) => value),
@@ -42,6 +43,7 @@ const state = vi.hoisted(() => {
   }
   return {
     calls,
+    receipts,
     currentEncounter: null as unknown,
     d20: null as null | { rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE' },
     executeMode: 'COMPLETE' as 'COMPLETE' | 'PAUSE' | 'BAD_PAUSE' | 'LR_PAUSE' | 'OUTCOME_PAUSE',
@@ -63,7 +65,20 @@ vi.mock('@artificer-toolkit/db', () => ({
     appendEvent: state.calls.appendEvent,
     publishCurrentProjection: state.calls.publishProjection,
     updateActor: state.calls.updateActor
-  })
+  }),
+  createRuleOccurrenceRepository: () => ({
+    findReceipt: async (_kind: string, aggregateId: string, commandId: string) =>
+      state.receipts.get(`${aggregateId}:${commandId}`) ?? null,
+    lockPendingEncounter: async () => null,
+    createCompleted: async (input: Record<string, unknown>) => ({
+      id: input.occurrenceId,
+      version: 0
+    }),
+    appendReceipt: async (input: Record<string, unknown>) => {
+      state.receipts.set(`${input.aggregateId}:${input.commandId}`, input)
+    }
+  }),
+  withTransaction: async (db: DBLike, run: (transaction: DBLike) => Promise<unknown>) => run(db)
 }))
 vi.mock('../rules/encounterFeatureActionCapabilityDiscoveryRegistry.js', () => ({
   discoverEncounterFeatureActionCapabilities: state.calls.discoverFeatureActions
@@ -574,7 +589,7 @@ function setup(
   }))
   Object.assign(testRuntime, {
     executeResolvedWithGraph: vi.fn(
-      async ({ published: selected }: { published: { id: string } }) => ({
+      async ({ published: selected }: { published: ReturnType<typeof published> }) => ({
         result:
           state.executeMode === 'OUTCOME_PAUSE' && selected.id === ids.outcomeFail
             ? {
@@ -592,7 +607,18 @@ function setup(
             : {
                 status: 'COMPLETE' as const,
                 outputs: { outcomeDefinitionId: selected.id },
-                evidence: { source: {}, trace: [], outputs: { outcomeDefinitionId: selected.id } }
+                evidence: {
+                  source: {
+                    definitionId: selected.id,
+                    gameSystemId: selected.gameSystemId,
+                    definitionFamilyKey: selected.definitionFamilyKey,
+                    checksum: selected.checksum
+                  },
+                  capabilityContractVersion: 1,
+                  facts: {},
+                  trace: [],
+                  outputs: { outcomeDefinitionId: selected.id }
+                }
               },
         graph: {}
       })
@@ -611,7 +637,7 @@ function setup(
         occurrenceId: ids.occurrence,
         sourceActorId: ids.actor,
         targetActorId: target.id,
-        sourceCharacterStreamVersion: 2,
+        sourceCharacterStreamVersion: null,
         resourceConsumption: null,
         spellCastConsumption:
           input.prepared.actionSource.kind === 'CHARACTER_SPELL_CAST'
@@ -629,7 +655,21 @@ function setup(
         featureResourceConsumption: null,
         targetFeatureResourceConsumption: null,
         d20: null,
-        targetTransition: { before: {}, after: {}, checksum: 'd'.repeat(64) },
+        targetTransition: {
+          before: {
+            currentHitPoints: 8,
+            temporaryHitPoints: 0,
+            maximumHitPoints: 8,
+            conditionIds: []
+          },
+          after: {
+            currentHitPoints: 8,
+            temporaryHitPoints: 0,
+            maximumHitPoints: 8,
+            conditionIds: []
+          },
+          checksum: 'd'.repeat(64)
+        },
         applications: []
       },
       sourceActor: { ...sourceActor, sourceRevision: 2 },
@@ -1035,6 +1075,149 @@ function resumeCommand(resolution: unknown = { kind: 'SYSTEM', requestId: ids.re
 }
 
 describe('encounter actor direct rule actions', () => {
+  it('reuses a supplied locked Encounter for one terminal settlement and CAS', async () => {
+    setup(creatureActor)
+    state.receipts.clear()
+    const { createRuleExecutionOccurrenceService } = await vi.importActual<
+      typeof import('../rules/ruleExecutionOccurrenceService.js')
+    >('../rules/ruleExecutionOccurrenceService.js')
+    const prepare = state.calls.prepare.getMockImplementation()!
+    state.calls.prepare.mockImplementation(async (input: Record<string, unknown>) => {
+      const prepared = await prepare(input)
+      return {
+        ...prepared,
+        action: {
+          ...prepared.action,
+          published: {
+            ...prepared.action.published,
+            definition: {
+              schemaVersion: 1,
+              id: ids.definition,
+              gameSystemId: prepared.action.published.gameSystemId,
+              definitionFamilyKey: prepared.action.published.definitionFamilyKey,
+              nodes: [
+                {
+                  id: 'result',
+                  operation: { key: 'number.add', contractVersion: 1 },
+                  inputs: {
+                    left: { kind: 'LITERAL', value: 1 },
+                    right: { kind: 'LITERAL', value: 1 }
+                  }
+                }
+              ],
+              outputs: { result: { kind: 'NODE_OUTPUT', nodeId: 'result', port: 'value' } }
+            }
+          }
+        }
+      }
+    })
+    let currentVersion = 4
+    const advanceVersion = vi.fn(async (expectedVersion: number) => {
+      if (expectedVersion !== currentVersion) throw new Error('Encounter changed before execution.')
+      return ++currentVersion
+    })
+    const rootPort = {
+      async withLockedAuthorized(
+        db: DBLike,
+        run: (aggregate: {
+          aggregateId: string
+          aggregateKind: 'ENCOUNTER'
+          actorUserId: string
+          campaignId: string
+          currentVersion: number
+          advanceVersion: (_advanceDb: unknown, expectedVersion: number) => Promise<number>
+        }) => Promise<unknown>
+      ) {
+        if (db !== testDb)
+          throw new Error('Encounter root occurrence escaped its owning transaction.')
+        return run({
+          aggregateId: ids.encounter,
+          aggregateKind: 'ENCOUNTER',
+          actorUserId: ids.user,
+          campaignId: ids.campaign,
+          get currentVersion() {
+            return currentVersion
+          },
+          advanceVersion: (advanceDb, expectedVersion) => {
+            if (advanceDb !== testDb)
+              throw new Error('Encounter root occurrence escaped its owning transaction.')
+            return advanceVersion(expectedVersion)
+          }
+        })
+      }
+    }
+    const createRootOccurrencePort = vi.fn(() => rootPort)
+    const createReceiptOnlyChildOccurrencePort = vi.fn(() => rootPort)
+    const lockedEncounter = {
+      context: {
+        encounterId: ids.encounter,
+        campaignId: ids.campaign,
+        actorUserId: ids.user,
+        currentVersion: 4,
+        role: 'OWNER',
+        assignedCharacterId: ids.character,
+        attunementSlotOverride: null,
+        advanceVersion,
+        createRootOccurrencePort,
+        createReceiptOnlyChildOccurrencePort
+      },
+      encounter: state.currentEncounter
+    } as unknown as NonNullable<
+      Parameters<typeof executeEncounterActorDirectRuleAction>[0]['lockedEncounter']
+    >
+    state.calls.occurrenceFactory.mockImplementation(
+      (input: Parameters<typeof createRuleExecutionOccurrenceService>[0]) =>
+        createRuleExecutionOccurrenceService({ ...input, createOccurrenceId: () => ids.occurrence })
+    )
+
+    const completed = await executeEncounterActorDirectRuleAction({
+      db: testDb,
+      runtime: testRuntime,
+      command: command(),
+      lockedEncounter
+    })
+    await expect(
+      executeEncounterActorDirectRuleAction({
+        db: testDb,
+        runtime: testRuntime,
+        command: command(),
+        lockedEncounter
+      })
+    ).resolves.toEqual(completed)
+
+    expect(state.calls.lockContext).not.toHaveBeenCalled()
+    expect(createRootOccurrencePort).toHaveBeenCalledTimes(2)
+    expect(advanceVersion).toHaveBeenCalledTimes(1)
+    expect(state.calls.settle).toHaveBeenCalledTimes(1)
+    expect(state.calls.prepare).toHaveBeenCalledTimes(1)
+
+    const wrongIdentity = {
+      ...lockedEncounter,
+      context: { ...lockedEncounter.context, actorUserId: ids.character }
+    }
+    await expect(
+      executeEncounterActorDirectRuleAction({
+        db: testDb,
+        runtime: testRuntime,
+        command: command(),
+        lockedEncounter: wrongIdentity
+      })
+    ).rejects.toThrow('context is stale')
+
+    const resolverCalls = state.calls.prepare.mock.calls.length
+    await expect(
+      executeEncounterActorDirectRuleAction({
+        db: testDb,
+        runtime: testRuntime,
+        command: { ...command(), commandId: ids.request },
+        lockedEncounter
+      })
+    ).rejects.toThrow('expected aggregate version 4, but found 5')
+    expect(state.calls.prepare).toHaveBeenCalledTimes(resolverCalls)
+    expect(advanceVersion).toHaveBeenCalledTimes(1)
+    expect(state.calls.settle).toHaveBeenCalledTimes(1)
+  })
+
   it('resolves an exact compiled spell-cast source through the direct-action lane', async () => {
     setup(creatureActor, 'AUTOMATIC', { spellCast: true })
     installOccurrenceSeam()

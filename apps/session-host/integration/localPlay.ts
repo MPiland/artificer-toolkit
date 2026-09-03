@@ -6,10 +6,12 @@ import { randomUUID } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import {
   createCampaignRepository,
+  createCharacterMechanicsProjectionRepository,
   createCharacterRepository,
   createEncounterRepository,
   createLiveSessionCommandLeaseRepository,
   createMediaRepository,
+  createRuleOccurrenceRepository,
   createVttSceneRepository,
   createDb,
   srdBaselineContent,
@@ -30,9 +32,11 @@ import {
   executeEncounterSceneCommandWithState,
   deleteCampaign,
   getCampaign,
+  getCampaignPlaySettings,
   getVttMapDelivery,
   issueLiveSessionTicket,
   removeCampaignMember,
+  saveCampaignPlaySettings,
   setCampaignLiveScenePresentation
 } from '@artificer-toolkit/functions/services'
 import { sql } from 'kysely'
@@ -57,6 +61,7 @@ import {
   type CharacterRuleEvaluationTiming,
   type SheetReadTiming
 } from '../../../packages/functions/src/scripts/characterLifecycleIntegrationFixtures.js'
+import { dispatchAndReloadSheetCommand } from '../../../packages/functions/src/scripts/characterLifecycleIntegrationAssertions.js'
 import { proveFixtureLifecycle } from '../../../packages/functions/src/scripts/characterLifecycleIntegrationBuilderProof.js'
 import { createSessionHostServer } from '../src/app.js'
 import {
@@ -68,6 +73,7 @@ import {
 import { replaySceneEvents } from '@artificer-toolkit/shared/vtt'
 
 import { proveCompactCharacterPostgresSemantics } from './compactCharacterPostgresProof.js'
+import { discoverEncounterFeatureActionCapabilities } from '../../../packages/functions/src/services/rules/encounterFeatureActionCapabilityDiscoveryRegistry.js'
 
 process.env.ARTIFICER_DB_QUERY_TRACE ??= '1'
 
@@ -78,6 +84,8 @@ const SCENE_HOST_P95_LIMIT_MS = 100
 const VTT_USAGE_WARMUP_PAIRS = 2
 const VTT_USAGE_MEASURED_PAIRS = 10
 const runsEncounterTrafficSimulation = process.argv.includes('--encounter-traffic-simulation')
+const runsEncounterRoundBenchmark = process.argv.includes('--encounter-round-benchmark')
+const runsExpandedEncounterFixture = runsEncounterTrafficSimulation || runsEncounterRoundBenchmark
 const ENCOUNTER_TRAFFIC_SIMULATION_ROUNDS = 8
 const ENCOUNTER_TRAFFIC_SIMULATION_EVENTS_PER_ACTOR_ROUND = 3
 const DIRECT_HOST_LEASE_RELEASE_TIMEOUT_MS = 2_500
@@ -751,7 +759,10 @@ async function main(): Promise<void> {
   const runId = randomUUID()
   const characterId = randomUUID()
   const playerBCharacterId = randomUUID()
-  const additionalCharacterIds = Array.from({ length: 3 }, () => randomUUID())
+  const additionalCharacterIds = Array.from(
+    { length: runsEncounterTrafficSimulation ? 3 : runsEncounterRoundBenchmark ? 1 : 0 },
+    () => randomUUID()
+  )
   const mapAssetId = randomUUID()
   const mapOverviewObjectKey = `integration/${runId}/map-display.png`
   const mapTileObjectKey = `integration/${runId}/map-tile-0-0.png`
@@ -780,7 +791,7 @@ async function main(): Promise<void> {
   try {
     gm = await createDisposableUser(admin.auth.admin, runId, 'gm')
     outsider = await createDisposableUser(admin.auth.admin, runId, 'player', 'outsider')
-    for (let index = 0; index < 5; index += 1) {
+    for (let index = 0; index < (runsEncounterRoundBenchmark ? 3 : 5); index += 1) {
       players.push(await createDisposableUser(admin.auth.admin, runId, 'player', `${index + 1}`))
     }
     player = players[0] ?? null
@@ -793,21 +804,25 @@ async function main(): Promise<void> {
       ...catalog,
       userId: player.id,
       characterId,
-      classes: [
-        {
-          classId: catalog.clericId,
-          classLabel: 'Cleric',
-          classLevel: 1,
-          subclassId: catalog.lifeDomainId,
-          subclassLabel: 'Life Domain'
-        }
-      ],
-      expectedMaxHitPoints: 9,
-      hitpointLevels: [{ level: 1, classId: catalog.clericId, classLevel: 1, value: 9 }],
+      classes: runsEncounterRoundBenchmark
+        ? [{ classId: catalog.fighterId, classLabel: 'Fighter', classLevel: 1 }]
+        : [
+            {
+              classId: catalog.clericId,
+              classLabel: 'Cleric',
+              classLevel: 1,
+              subclassId: catalog.lifeDomainId,
+              subclassLabel: 'Life Domain'
+            }
+          ],
+      expectedMaxHitPoints: runsEncounterRoundBenchmark ? 12 : 9,
+      hitpointLevels: runsEncounterRoundBenchmark
+        ? [{ level: 1, classId: catalog.fighterId, classLevel: 1, value: 12 }]
+        : [{ level: 1, classId: catalog.clericId, classLevel: 1, value: 9 }],
       label: `Local Live Session ${runId}`,
-      preparedCasterClassId: catalog.clericId,
-      raceId: catalog.dragonbornId,
-      raceLabel: 'Dragonborn'
+      ...(runsEncounterRoundBenchmark ? {} : { preparedCasterClassId: catalog.clericId }),
+      raceId: runsEncounterRoundBenchmark ? catalog.humanId : catalog.dragonbornId,
+      raceLabel: runsEncounterRoundBenchmark ? 'Human' : 'Dragonborn'
     }
     const builderTimings: BuilderResolutionTiming[] = []
     const sheetTimings: SheetReadTiming[] = []
@@ -836,7 +851,11 @@ async function main(): Promise<void> {
       ruleTimings
     )
     assert.equal(playerBInitialSheet.meta.streamVersion, 1)
-    if (runsEncounterTrafficSimulation) {
+    const characterSheets = new Map<string, typeof initialSheet>([
+      [characterId, initialSheet],
+      [playerBCharacterId, playerBInitialSheet]
+    ])
+    if (runsExpandedEncounterFixture) {
       for (const [index, additionalCharacterId] of additionalCharacterIds.entries()) {
         const currentPlayer = players[index + 2]
         assert.ok(currentPlayer)
@@ -853,6 +872,47 @@ async function main(): Promise<void> {
           ruleTimings
         )
         assert.equal(sheet.meta.streamVersion, 1)
+        characterSheets.set(additionalCharacterId, sheet)
+      }
+    }
+    if (runsEncounterRoundBenchmark) {
+      const benchmarkWeapon = srdBaselineContent.subjects.equipment.find(
+        ({ label }) => label === 'Light Crossbow'
+      )
+      assert.ok(benchmarkWeapon)
+      for (const [index, benchmarkCharacterId] of [
+        characterId,
+        playerBCharacterId,
+        ...additionalCharacterIds
+      ].entries()) {
+        const owner = players[index]
+        let sheet = characterSheets.get(benchmarkCharacterId)
+        assert.ok(owner && sheet)
+        const mechanics = await createCharacterMechanicsProjectionRepository(db).requireCurrent({
+          characterId: benchmarkCharacterId,
+          expectedStreamVersion: sheet.meta.streamVersion
+        })
+        const actionCandidate = mechanics.rulePolicyInput.actionCandidates.find(
+          (candidate) => candidate.equipment?.equipmentId === benchmarkWeapon.id
+        )
+        assert.ok(actionCandidate?.equipment)
+        if (!actionCandidate.equipment.equipped) {
+          sheet = await dispatchAndReloadSheetCommand(
+            db,
+            {
+              ...fixture,
+              characterId: benchmarkCharacterId,
+              label: `Local benchmark Character ${index + 1} ${runId}`,
+              userId: owner.id
+            },
+            sheet,
+            {
+              type: 'EQUIP_ITEM',
+              itemId: actionCandidate.equipment.itemInstanceId
+            }
+          )
+          characterSheets.set(benchmarkCharacterId, sheet)
+        }
       }
     }
 
@@ -865,6 +925,21 @@ async function main(): Promise<void> {
       primaryRulesCatalogueId: '00000000-0000-4000-8000-000000000301'
     })
     campaignId = campaign.id
+    if (runsEncounterRoundBenchmark) {
+      const currentSettings = await getCampaignPlaySettings(db, gm.id, campaign.id)
+      const {
+        campaignId: _campaignId,
+        updatedAt: _updatedAt,
+        version: settingsVersion,
+        ...settings
+      } = currentSettings
+      await saveCampaignPlaySettings(db, gm.id, {
+        ...settings,
+        automationMode: 'AUTOMATIC',
+        campaignId: campaign.id,
+        expectedVersion: settingsVersion
+      })
+    }
     const media = createMediaRepository(db)
     await media.createPending({
       declaredBytes: 1_024,
@@ -933,7 +1008,7 @@ async function main(): Promise<void> {
     }
     await assignCampaignCharacter(db, gm.id, campaign.id, characterId)
     await assignCampaignCharacter(db, gm.id, campaign.id, playerBCharacterId)
-    if (runsEncounterTrafficSimulation) {
+    if (runsExpandedEncounterFixture) {
       for (const additionalCharacterId of additionalCharacterIds) {
         await assignCampaignCharacter(db, gm.id, campaign.id, additionalCharacterId)
       }
@@ -943,22 +1018,27 @@ async function main(): Promise<void> {
       { campaignId: campaign.id, title: 'Local integration session' },
       gm.id
     )
-    const encounterCreature = srdBaselineContent.subjects.creatures.find((creature) =>
-      (creature.features ?? []).some(
-        (feature) =>
-          feature.charges?.limitKind === 'FIXED_AMOUNT' &&
-          feature.charges.scalingKind === 'NONE' &&
-          feature.charges.amount > 0
-      )
-    )
-    assert.ok(encounterCreature, 'The SRD fixture must include a fixed-use creature feature.')
+    const encounterCreature = runsEncounterRoundBenchmark
+      ? srdBaselineContent.subjects.creatures.find((creature) => creature.label === 'Goblin')
+      : srdBaselineContent.subjects.creatures.find((creature) =>
+          (creature.features ?? []).some(
+            (feature) =>
+              feature.charges?.limitKind === 'FIXED_AMOUNT' &&
+              feature.charges.scalingKind === 'NONE' &&
+              feature.charges.amount > 0
+          )
+        )
+    assert.ok(encounterCreature, 'The required SRD Creature fixture is unavailable.')
     const encounterBlueprint = await createEncounterBlueprint(db, gm.id, {
       gameSystemId: encounterCreature.systemId,
       name: `Local encounter ${runId}`,
-      enemies: Array.from({ length: runsEncounterTrafficSimulation ? 6 : 1 }, () => ({
-        kind: 'CREATURE' as const,
-        sourceId: encounterCreature.id
-      })),
+      enemies: Array.from(
+        { length: runsEncounterTrafficSimulation ? 6 : runsEncounterRoundBenchmark ? 4 : 1 },
+        () => ({
+          kind: 'CREATURE' as const,
+          sourceId: encounterCreature.id
+        })
+      ),
       commandId: randomUUID()
     })
     encounterBlueprintId = encounterBlueprint.id
@@ -972,8 +1052,12 @@ async function main(): Promise<void> {
     const encounterFeature = encounterActor?.features.find(
       (feature) => feature.resource !== null && feature.resource.remaining > 0
     )
-    assert.ok(encounterActor && encounterFeature)
+    assert.ok(encounterActor)
     if (runsEncounterTrafficSimulation) assert.equal(encounter.actors.length, 11)
+    if (runsEncounterRoundBenchmark) assert.equal(encounter.actors.length, 7)
+    const benchmarkTokenIds = new Map(
+      encounter.actors.map((actor) => [actor.id, randomUUID()] as const)
+    )
     const sceneTokenId = randomUUID()
     const hiddenTokenId = randomUUID()
     const doorId = randomUUID()
@@ -1019,34 +1103,56 @@ async function main(): Promise<void> {
         width: 1_000
       },
       name: 'Local live Scene integration',
-      tokens: [
-        {
-          assetId: null,
-          controlledByUserIds: [player.id],
-          height: 1,
-          hidden: false,
-          id: sceneTokenId,
-          label: 'Player token',
-          locked: false,
-          position: { x: 20, y: 20 },
-          rotationDegrees: 0,
-          vision: null,
-          width: 1
-        },
-        {
-          assetId: null,
-          controlledByUserIds: [],
-          height: 1,
-          hidden: true,
-          id: hiddenTokenId,
-          label: 'Hidden GM token',
-          locked: false,
-          position: { x: 80, y: 20 },
-          rotationDegrees: 0,
-          vision: null,
-          width: 1
-        }
-      ],
+      tokens: runsEncounterRoundBenchmark
+        ? encounter.actors.map((actor, index) => {
+            const peerIndex = encounter.actors
+              .filter((candidate) => candidate.kind === actor.kind)
+              .findIndex((candidate) => candidate.id === actor.id)
+            return {
+              assetId: null,
+              controlledByUserIds: [],
+              height: 50,
+              hidden: false,
+              id: benchmarkTokenIds.get(actor.id)!,
+              label: `Benchmark actor ${index + 1}`,
+              locked: false,
+              position: {
+                x: 120 + Math.floor(peerIndex / (actor.kind === 'CHARACTER' ? 1 : 2)) * 150,
+                y: actor.kind === 'CHARACTER' ? 20 : 70 + (peerIndex % 2) * 50
+              },
+              rotationDegrees: 0,
+              vision: null,
+              width: 50
+            }
+          })
+        : [
+            {
+              assetId: null,
+              controlledByUserIds: [player.id],
+              height: 1,
+              hidden: false,
+              id: sceneTokenId,
+              label: 'Player token',
+              locked: false,
+              position: { x: 20, y: 20 },
+              rotationDegrees: 0,
+              vision: null,
+              width: 1
+            },
+            {
+              assetId: null,
+              controlledByUserIds: [],
+              height: 1,
+              hidden: true,
+              id: hiddenTokenId,
+              label: 'Hidden GM token',
+              locked: false,
+              position: { x: 80, y: 20 },
+              rotationDegrees: 0,
+              vision: null,
+              width: 1
+            }
+          ],
       visionRevealMode: 'ON_DRAG'
     })
     const liveScene = (await createVttSceneRepository(db).listLiveScenes(campaign.id)).find(
@@ -1067,13 +1173,18 @@ async function main(): Promise<void> {
       const admissionDependencies = createLiveSessionRoomDependencies({ ticketSecret })
       try {
         const firstPlayerSnapshot = await admissionDependencies.loadSnapshot(player.id, options)
-        for (const aggregateId of [characterId, playerBCharacterId]) {
+        const expectedCharacterIds = runsEncounterRoundBenchmark
+          ? [...characterSheets.keys()]
+          : [characterId, playerBCharacterId]
+        for (const aggregateId of expectedCharacterIds) {
+          const expectedSheet = characterSheets.get(aggregateId)
+          assert.ok(expectedSheet)
           assert.ok(
             firstPlayerSnapshot.aggregateVersions.some(
               (version) =>
                 version.aggregateKind === 'CHARACTER' &&
                 version.aggregateId === aggregateId &&
-                version.version === 1
+                version.version === expectedSheet.meta.streamVersion
             ),
             `Player A did not hydrate present Character ${aggregateId}.`
           )
@@ -1149,10 +1260,21 @@ async function main(): Promise<void> {
     playerRooms.push(firstJoin.room)
     playerRoom = firstJoin.room
     const playerBCharacterAggregateKey = `CHARACTER:${playerBCharacterId}`
-    await Promise.all([
-      waitForAggregateVersion(playerRoom, `CHARACTER:${characterId}`, 1),
-      waitForAggregateVersion(playerRoom, playerBCharacterAggregateKey, 1)
-    ])
+    const expectedCharacterVersions = runsEncounterRoundBenchmark
+      ? [...characterSheets.entries()].map(([id, sheet]) => ({
+          aggregateKey: `CHARACTER:${id}`,
+          id,
+          version: sheet.meta.streamVersion
+        }))
+      : [
+          { aggregateKey: `CHARACTER:${characterId}`, id: characterId, version: 1 },
+          { aggregateKey: playerBCharacterAggregateKey, id: playerBCharacterId, version: 1 }
+        ]
+    await Promise.all(
+      expectedCharacterVersions.map(({ aggregateKey, version }) =>
+        waitForAggregateVersion(playerRoom!, aggregateKey, version)
+      )
+    )
     const firstReady = playerRoom.lastReady
     assert.ok(firstReady)
     assert.ok(
@@ -1160,7 +1282,7 @@ async function main(): Promise<void> {
         (version) =>
           version.aggregateKind === 'CHARACTER' &&
           version.aggregateId === playerBCharacterId &&
-          version.version === 1
+          version.version === characterSheets.get(playerBCharacterId)?.meta.streamVersion
       )
     )
     for (const ticket of playerTickets.slice(1)) {
@@ -1176,12 +1298,14 @@ async function main(): Promise<void> {
     const encounterAggregateKey = `ENCOUNTER:${encounter.id}`
     await Promise.all([
       ...playerRooms.flatMap((room) => [
-        waitForAggregateVersion(room, aggregateKey, 1),
-        waitForAggregateVersion(room, playerBCharacterAggregateKey, 1),
+        ...expectedCharacterVersions.map(({ aggregateKey: key, version }) =>
+          waitForAggregateVersion(room, key, version)
+        ),
         waitForAggregateVersion(room, encounterAggregateKey, encounter.version)
       ]),
-      waitForAggregateVersion(gmRoom, aggregateKey, 1),
-      waitForAggregateVersion(gmRoom, playerBCharacterAggregateKey, 1),
+      ...expectedCharacterVersions.map(({ aggregateKey: key, version }) =>
+        waitForAggregateVersion(gmRoom!, key, version)
+      ),
       waitForAggregateVersion(gmRoom, encounterAggregateKey, encounter.version)
     ])
     const characterWitnesses = [...playerRooms.slice(1), gmRoom]
@@ -1216,6 +1340,171 @@ async function main(): Promise<void> {
       type: 'BIND_ENCOUNTER_TO_PRESENTED_SCENE'
     })
     assert.equal(sceneBinding.replayed, false)
+    if (runsEncounterRoundBenchmark) {
+      const characterActors = encounter.actors.filter((actor) => actor.kind === 'CHARACTER')
+      const enemyActors = encounter.actors.filter((actor) => actor.kind === 'CREATURE')
+      assert.equal(characterActors.length, 3)
+      assert.equal(enemyActors.length, 4)
+      const actorOrder = [...characterActors, ...enemyActors]
+      const actionIds = new Map<string, string>()
+      for (const actor of characterActors) {
+        assert.ok(actor.sourceId)
+        const sheet = characterSheets.get(actor.sourceId)
+        assert.ok(sheet, `Missing finalized Character sheet for actor ${actor.id}.`)
+        const action = sheet.actions.items.find(
+          (candidate) =>
+            candidate.availability.status === 'AVAILABLE' &&
+            typeof candidate.mechanic?.attackBonus === 'number'
+        )
+        assert.ok(action, `Character actor ${actor.id} has no available attack action.`)
+        actionIds.set(actor.id, action.id)
+      }
+      const persistedEncounter = await createEncounterRepository(db).find(encounter.id)
+      assert.ok(persistedEncounter)
+      const persistedActors = new Map(
+        persistedEncounter.actors.map((actor) => [actor.id, actor] as const)
+      )
+      for (const actor of enemyActors) {
+        const persistedActor = persistedActors.get(actor.id)
+        assert.ok(persistedActor?.kind === 'CREATURE')
+        const action = discoverEncounterFeatureActionCapabilities({ actor: persistedActor }).find(
+          (candidate) => candidate.attackMechanic !== null
+        )
+        assert.ok(action, `Creature actor ${actor.id} has no executable attack action.`)
+        actionIds.set(actor.id, action.actionId)
+      }
+
+      let expectedVersion = sceneBinding.streamVersion
+      for (const actor of actorOrder) {
+        const tokenId = benchmarkTokenIds.get(actor.id)
+        assert.ok(tokenId)
+        const binding = await sendEncounterCommand(gmRoom, playerRooms, {
+          actorId: actor.id,
+          commandId: randomUUID(),
+          encounterId: encounter.id,
+          expectedEncounterVersion: expectedVersion,
+          sceneId,
+          tokenId,
+          type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
+        })
+        expectedVersion = binding.streamVersion
+      }
+      const reordered = await sendEncounterCommand(gmRoom, playerRooms, {
+        actorIds: actorOrder.map(({ id }) => id),
+        commandId: randomUUID(),
+        encounterId: encounter.id,
+        expectedVersion,
+        type: 'REORDER'
+      })
+      expectedVersion = reordered.streamVersion
+      const started = await sendEncounterCommand(gmRoom, playerRooms, {
+        commandId: randomUUID(),
+        encounterId: encounter.id,
+        expectedVersion,
+        systemId: fixture.systemId,
+        type: 'START'
+      })
+      expectedVersion = started.streamVersion
+
+      const actions: Array<CommandMeasurement & { actorKind: 'CHARACTER' | 'CREATURE' }> = []
+      const advances: CommandMeasurement[] = []
+      for (const [index, actor] of actorOrder.entries()) {
+        const enemyIndex = enemyActors.findIndex((enemy) => enemy.id === actor.id)
+        const target: (typeof actorOrder)[number] | undefined =
+          actor.kind === 'CHARACTER'
+            ? enemyActors[index % enemyActors.length]
+            : characterActors[Math.floor(enemyIndex / 2)]
+        assert.ok(target)
+        const actionId = actionIds.get(actor.id)
+        assert.ok(actionId)
+        const sourceTokenId = benchmarkTokenIds.get(actor.id)
+        const targetTokenId = benchmarkTokenIds.get(target.id)
+        assert.ok(sourceTokenId && targetTokenId)
+        const action = await sendEncounterCommand(gmRoom, playerRooms, {
+          actionId,
+          actorId: actor.id,
+          commandId: randomUUID(),
+          encounterId: encounter.id,
+          expectedVersion,
+          sceneContext: {
+            expectedSceneVersion: liveScene.state.version,
+            sceneId,
+            sourceTokenId,
+            targetTokenId
+          },
+          targetActorId: target.id,
+          type: 'RESOLVE_ACTION'
+        })
+        assert.equal(action.replayed, false)
+        assert.equal(action.streamVersion, expectedVersion + 1)
+        const ruleOccurrences = createRuleOccurrenceRepository(db)
+        const actionOccurrence = await ruleOccurrences.findEncounterByRootCommand(
+          encounter.id,
+          action.commandId
+        )
+        assert.equal(actionOccurrence?.state, 'COMPLETED')
+        const actionReceipt = await ruleOccurrences.findReceipt(
+          'ENCOUNTER',
+          encounter.id,
+          action.commandId
+        )
+        assert.equal(actionReceipt?.occurrenceId, actionOccurrence?.id)
+        assert.equal(actionReceipt?.aggregateVersion, action.streamVersion)
+        assert.ok(actionReceipt?.resultPayload.status === 'COMPLETE')
+        assert.equal(
+          actionReceipt.resultPayload.applicationOutputs.kind,
+          target.kind === 'CHARACTER'
+            ? 'CHARACTER_MECHANICS_BATCH'
+            : 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
+        )
+        actions.push({
+          ...action,
+          actorKind: actor.kind === 'CHARACTER' ? 'CHARACTER' : 'CREATURE'
+        })
+        expectedVersion = action.streamVersion
+        const advance = await sendEncounterCommand(gmRoom, playerRooms, {
+          commandId: randomUUID(),
+          encounterId: encounter.id,
+          expectedVersion,
+          type: 'ADVANCE_TURN'
+        })
+        advances.push(advance)
+        expectedVersion = advance.streamVersion
+      }
+      const actionDurations = actions.map(({ durationMs }) => durationMs)
+      const advanceDurations = advances.map(({ durationMs }) => durationMs)
+      console.info(
+        JSON.stringify({
+          encounterRoundBenchmark: {
+            actions: actions.map((action) => ({
+              actorKind: action.actorKind,
+              commandId: action.commandId,
+              durationMs: action.durationMs,
+              service: encounterCommandTimings.find(
+                ({ commandId }) => commandId === action.commandId
+              )?.service
+            })),
+            actionLatencyMs: {
+              maximum: Math.max(...actionDurations),
+              p50: percentile(actionDurations, 0.5),
+              p95: percentile(actionDurations, 0.95)
+            },
+            actors: actorOrder.length,
+            advanceLatencyMs: {
+              maximum: Math.max(...advanceDurations),
+              p50: percentile(advanceDurations, 0.5),
+              p95: percentile(advanceDurations, 0.95)
+            },
+            enemies: enemyActors.length,
+            playerCharacters: characterActors.length,
+            roundCompleted: 1
+          },
+          localDatabaseOnly: true
+        })
+      )
+      return
+    }
+    assert.ok(encounterFeature)
     if (runsEncounterTrafficSimulation) {
       const rooms = [gmRoom, ...playerRooms]
       for (const room of rooms) room.resetTraffic()
