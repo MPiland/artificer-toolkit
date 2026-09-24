@@ -112,3 +112,24 @@ export async function setupCharacterRun(
     throw new Error('Fixture Character actor is unavailable.')
   return { ...base, player, owner, campaign, run, actor, actorSourceRevision: actor.sourceRevision }
 }
+
+/** Declared weapon actions compile only from equipped item facts. */
+export async function equipAllCharacterItems(base: Awaited<ReturnType<typeof setupCharacterRun>>) {
+  const sheet = await base.player.caller.query(api.characters.sheet.get, {
+    id: base.character.id
+  })
+  if (!sheet) throw new Error('Expected Character Sheet.')
+  let characterVersion = base.actorSourceRevision
+  for (const item of sheet.inventory.items) {
+    await base.player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: base.character.id,
+      command: {
+        type: 'EQUIP_ITEM',
+        commandId: crypto.randomUUID(),
+        expectedVersion: characterVersion,
+        itemId: item.id
+      }
+    })
+    characterVersion += 1
+  }
+}

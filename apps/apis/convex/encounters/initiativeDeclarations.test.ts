@@ -31,7 +31,7 @@ import type {
 import { api, components, internal } from '../_generated/api'
 import { fixture } from '../../tests/fixtures/characters'
 import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
-import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
+import { equipAllCharacterItems, setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import {
   automaticChargedBiteEffectId,
   automaticChargedBiteFeatureId,
@@ -58,6 +58,11 @@ import {
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -200,27 +205,6 @@ async function storedInitiative<T extends { t: Awaited<ReturnType<typeof fixture
     occurrences: await ctx.db.query('encounterRuleOccurrences').collect(),
     receipts: await ctx.db.query('encounterRuleReceipts').collect()
   }))
-}
-
-/** Declared weapon actions compile only from equipped item facts. */
-async function equipAllCharacterItems(base: Awaited<ReturnType<typeof setupCharacterRun>>) {
-  const sheet = await base.player.caller.query(api.characters.sheet.get, {
-    id: base.character.id
-  })
-  if (!sheet) throw new Error('Expected Character Sheet.')
-  let characterVersion = base.actorSourceRevision
-  for (const item of sheet.inventory.items) {
-    await base.player.caller.mutation(api.characters.sheetCommands.execute, {
-      id: base.character.id,
-      command: {
-        type: 'EQUIP_ITEM',
-        commandId: crypto.randomUUID(),
-        expectedVersion: characterVersion,
-        itemId: item.id
-      }
-    })
-    characterVersion += 1
-  }
 }
 
 describe('native initiative declarations', () => {
@@ -751,50 +735,38 @@ describe('native initiative declarations', () => {
       expect(current.occurrence.pending.actorId === characterActor.id).toBe(firstRole === 'PLAYER')
       const epoch = crypto.randomUUID()
       await base.t.run((ctx) =>
-        ctx.db.insert('campaignLiveAuthorities', {
+        insertActiveLiveAuthority(ctx, {
           campaignId: base.campaign.id,
           sessionId: run.sessionId,
           epoch,
-          phase: 'DO_ACTIVE',
-          activationFingerprint: '0'.repeat(64),
-          persistedSequence: 0,
-          persistedStateChecksum: '0'.repeat(64),
-          createdAt: base.campaign.createdAt,
-          updatedAt: base.campaign.createdAt
+          createdAt: base.campaign.createdAt
         })
       )
-      const environment = {
-        CONVEX_SITE_URL: 'https://convex.example.test',
-        LIVE_SESSION_WORKER_SECRET: workerSecret
-      }
-      vi.stubGlobal(
-        'fetch',
-        vi.fn((url: string | URL | Request, init?: RequestInit) => {
-          const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-          if (
-            ![
-              '/live-sessions/encounter-rules',
-              '/live-sessions/character-rules',
-              '/live-sessions/encounter-turn-pending',
-              '/live-sessions/encounter-turn'
-            ].includes(pathname)
-          )
-            throw new Error(`Unexpected private declaration request: ${pathname}`)
-          if (
-            new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token' ||
-            new Headers(init?.headers).get('x-artificer-live-session-secret') !== workerSecret ||
-            typeof init?.body !== 'string'
-          )
-            throw new Error('Private declaration credentials or body are missing.')
-          const input = JSON.parse(init.body) as { expectedRole: 'OWNER' | 'PLAYER' }
-          if (pathname === '/live-sessions/encounter-rules')
-            liveSessionEncounterRulesInputSchema.parse(input)
-          return (input.expectedRole === 'PLAYER' ? base.player.caller : base.owner.caller).fetch(
-            pathname,
-            init
-          )
-        })
-      )
+      const environment = workerEnvironment(workerSecret)
+      stubLiveSessionFetch((pathname, init) => {
+        if (
+          ![
+            '/live-sessions/encounter-rules',
+            '/live-sessions/character-rules',
+            '/live-sessions/encounter-turn-pending',
+            '/live-sessions/encounter-turn'
+          ].includes(pathname)
+        )
+          throw new Error(`Unexpected private declaration request: ${pathname}`)
+        if (
+          new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token' ||
+          new Headers(init?.headers).get('x-artificer-live-session-secret') !== workerSecret ||
+          typeof init?.body !== 'string'
+        )
+          throw new Error('Private declaration credentials or body are missing.')
+        const input = JSON.parse(init.body) as { expectedRole: 'OWNER' | 'PLAYER' }
+        if (pathname === '/live-sessions/encounter-rules')
+          liveSessionEncounterRulesInputSchema.parse(input)
+        return (input.expectedRole === 'PLAYER' ? base.player.caller : base.owner.caller).fetch(
+          pathname,
+          init
+        )
+      })
       const runtime = createPlatformRulesRuntime({
         continuationIntegrityKey: await deriveRulesContinuationKey(
           process.env.RULES_CONTINUATION_SECRET

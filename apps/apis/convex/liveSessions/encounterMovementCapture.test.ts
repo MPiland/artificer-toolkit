@@ -22,12 +22,14 @@ import { createSpatialPreparationFixture } from '../../tests/fixtures/spatialPre
 import { readRunProjection, readRunState } from '../encounters/documents'
 import { readCurrentEntities } from '../scenes/currentEntities'
 import { readLiveScene } from '../scenes/liveDocuments'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 const secret = 'private-movement-capture-test-secret-at-least-32-bytes'
-const environment = {
-  CONVEX_SITE_URL: 'https://convex.example.test',
-  LIVE_SESSION_WORKER_SECRET: secret
-}
+const environment = workerEnvironment(secret)
 const capturePath = '/live-sessions/encounter-rules'
 
 afterEach(() => {
@@ -62,16 +64,11 @@ async function setup() {
   const actorIds = base.run.actors.slice(0, 2).map((actor) => actor.id)
   if (actorIds.length !== 2) throw new Error('Missing fixture Encounter actors.')
   await base.t.run(async (ctx) => {
-    await ctx.db.insert('campaignLiveAuthorities', {
+    await insertActiveLiveAuthority(ctx, {
       campaignId: base.campaign.id,
       sessionId: base.session.id,
       epoch,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: base.campaign.createdAt,
-      updatedAt: base.campaign.createdAt
+      createdAt: base.campaign.createdAt
     })
     for (const [index, actorId] of actorIds.entries())
       await ctx.db.insert('encounterActorTokenBindings', {
@@ -211,22 +208,18 @@ it('prepares Worker movement from current private captures and rejects stale roo
   })
   const requests: string[] = []
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', secret)
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      if (pathname !== capturePath)
-        throw new Error(`Unexpected private movement request: ${pathname}`)
-      if (new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token')
-        throw new Error('Missing private movement bearer token.')
-      if (new Headers(init?.headers).get('x-artificer-live-session-secret') !== secret)
-        throw new Error('Missing private movement secret.')
-      if (typeof init?.body !== 'string') throw new Error('Missing private movement body.')
-      const request = liveSessionEncounterRulesInputSchema.parse(JSON.parse(init.body)).request
-      requests.push(request.kind)
-      return base.other.caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch((pathname, init) => {
+    if (pathname !== capturePath)
+      throw new Error(`Unexpected private movement request: ${pathname}`)
+    if (new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token')
+      throw new Error('Missing private movement bearer token.')
+    if (new Headers(init?.headers).get('x-artificer-live-session-secret') !== secret)
+      throw new Error('Missing private movement secret.')
+    if (typeof init?.body !== 'string') throw new Error('Missing private movement body.')
+    const request = liveSessionEncounterRulesInputSchema.parse(JSON.parse(init.body)).request
+    requests.push(request.kind)
+    return base.other.caller.fetch(pathname, init)
+  })
   const scope = {
     ...base.ownerCapture,
     movement: { ...base.ownerCapture.movement!, saveId: staged.saveId }

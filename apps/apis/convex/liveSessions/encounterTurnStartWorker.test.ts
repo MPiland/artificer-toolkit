@@ -45,13 +45,15 @@ import { importedSubject } from '../../tests/fixtures/publication'
 import { internal } from '../_generated/api'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 const workerSecret = 'private-start-worker-test-secret-at-least-32-bytes'
 const authSecret = 'private-start-continuation-test-secret-at-least-32-bytes'
-const environment = {
-  CONVEX_SITE_URL: 'https://convex.example.test',
-  LIVE_SESSION_WORKER_SECRET: workerSecret
-}
+const environment = workerEnvironment(workerSecret)
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
 )
@@ -138,16 +140,11 @@ async function preparedRun(mode: 'MANUAL' | 'ASSISTED') {
   })
   const epoch = crypto.randomUUID()
   await base.t.run((ctx) =>
-    ctx.db.insert('campaignLiveAuthorities', {
+    insertActiveLiveAuthority(ctx, {
       campaignId: campaign.id,
       sessionId: session.id,
       epoch,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: campaign.createdAt,
-      updatedAt: campaign.createdAt
+      createdAt: campaign.createdAt
     })
   )
   const scope: Omit<LiveSessionEncounterRulesInput, 'request'> = {
@@ -168,24 +165,20 @@ async function preparedRun(mode: 'MANUAL' | 'ASSISTED') {
   }
   vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      if (
-        ![
-          '/live-sessions/encounter-rules',
-          '/live-sessions/encounter-turn',
-          '/live-sessions/encounter-turn-pending'
-        ].includes(pathname)
-      )
-        throw new Error(`Unexpected private START request: ${pathname}`)
-      if (typeof init?.body !== 'string') throw new Error('Private START body is missing.')
-      if (pathname === '/live-sessions/encounter-rules')
-        liveSessionEncounterRulesInputSchema.parse(JSON.parse(init.body))
-      return base.owner.caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch((pathname, init) => {
+    if (
+      ![
+        '/live-sessions/encounter-rules',
+        '/live-sessions/encounter-turn',
+        '/live-sessions/encounter-turn-pending'
+      ].includes(pathname)
+    )
+      throw new Error(`Unexpected private START request: ${pathname}`)
+    if (typeof init?.body !== 'string') throw new Error('Private START body is missing.')
+    if (pathname === '/live-sessions/encounter-rules')
+      liveSessionEncounterRulesInputSchema.parse(JSON.parse(init.body))
+    return base.owner.caller.fetch(pathname, init)
+  })
   const runtime = createPlatformRulesRuntime({
     continuationIntegrityKey: await deriveRulesContinuationKey(
       process.env.RULES_CONTINUATION_SECRET

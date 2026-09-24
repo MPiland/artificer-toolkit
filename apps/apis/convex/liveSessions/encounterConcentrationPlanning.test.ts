@@ -39,6 +39,11 @@ import { consumeNativeActionEconomy } from '../encounters/actionEconomyPersisten
 import { startNativeConcentrationChecks } from '../encounters/concentration'
 import { projectNativeGm } from '../encounters/nativeProjection'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 19) }))
 
@@ -80,31 +85,20 @@ it.each([
         .unique()
       if (!run) throw new Error('Concentration fixture Run is unavailable.')
       await seedActiveInitiative(ctx, readRunState(run), [fixture.actor.id, fixture.target.id])
-      await ctx.db.insert('campaignLiveAuthorities', {
+      await insertActiveLiveAuthority(ctx, {
         campaignId: fixture.campaign.id,
         sessionId: fixture.run.sessionId,
         epoch: fixture.run.id,
-        phase: 'DO_ACTIVE',
-        activationFingerprint: '0'.repeat(64),
-        persistedSequence: 0,
-        persistedStateChecksum: '0'.repeat(64),
-        createdAt: fixture.campaign.createdAt,
-        updatedAt: fixture.campaign.createdAt
+        createdAt: fixture.campaign.createdAt
       })
     })
     vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
     vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string | URL | Request, init?: RequestInit) => {
-        const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-        return fixture.owner.caller.fetch(pathname, init)
-      })
-    )
+    stubLiveSessionFetch((pathname, init) => fixture.owner.caller.fetch(pathname, init))
     const command = concentrationAction(fixture)
     const before = await concentrationRecords(fixture)
     const planned = await planNativeLiveEncounterAction(
-      { CONVEX_SITE_URL: 'https://convex.example.test', LIVE_SESSION_WORKER_SECRET: workerSecret },
+      workerEnvironment(workerSecret),
       'fixture-access-token',
       {
         campaignId: fixture.campaign.id,
@@ -373,31 +367,17 @@ it.each([
         .unique()
       if (!row) throw new Error('Concentration fixture Run is unavailable.')
       await seedActiveInitiative(ctx, readRunState(row), [fixture.actor.id, fixture.target.id])
-      await ctx.db.insert('campaignLiveAuthorities', {
+      await insertActiveLiveAuthority(ctx, {
         campaignId: fixture.campaign.id,
         sessionId: fixture.run.sessionId,
         epoch: fixture.run.id,
-        phase: 'DO_ACTIVE',
-        activationFingerprint: '0'.repeat(64),
-        persistedSequence: 0,
-        persistedStateChecksum: '0'.repeat(64),
-        createdAt: fixture.campaign.createdAt,
-        updatedAt: fixture.campaign.createdAt
+        createdAt: fixture.campaign.createdAt
       })
     })
     vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
     vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string | URL | Request, init?: RequestInit) => {
-        const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-        return fixture.owner.caller.fetch(pathname, init)
-      })
-    )
-    const environment = {
-      CONVEX_SITE_URL: 'https://convex.example.test',
-      LIVE_SESSION_WORKER_SECRET: workerSecret
-    }
+    stubLiveSessionFetch((pathname, init) => fixture.owner.caller.fetch(pathname, init))
+    const environment = workerEnvironment(workerSecret)
     const scope = {
       campaignId: fixture.campaign.id,
       sessionId: fixture.run.sessionId,

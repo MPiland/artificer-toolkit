@@ -22,12 +22,10 @@ import { readCurrentEntities } from '../../convex/scenes/currentEntities'
 import { readLiveScene } from '../../convex/scenes/liveDocuments'
 import type { setupAutomaticCharacterMovement } from './automaticCharacterMovement'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
+import { stubLiveSessionFetch, workerEnvironment } from './liveSessionWorker'
 
 export const privateMovementWorkerSecret = 'private-movement-child-worker-secret-at-least-32-bytes'
-export const privateMovementEnvironment = {
-  CONVEX_SITE_URL: 'https://convex.example.test',
-  LIVE_SESSION_WORKER_SECRET: privateMovementWorkerSecret
-}
+export const privateMovementEnvironment = workerEnvironment(privateMovementWorkerSecret)
 
 type AutomaticFixture = Awaited<ReturnType<typeof setupAutomaticCharacterMovement>>
 type MovementFixture = {
@@ -59,29 +57,25 @@ export async function preparePrivateMovementResponse(input: {
   const { value, caller, userId, role, epoch, authSecret, command } = input
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', privateMovementWorkerSecret)
   vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      if (
-        ![
-          '/live-sessions/encounter-rules',
-          '/live-sessions/character-rules',
-          '/live-sessions/encounter-movement-begin',
-          '/live-sessions/encounter-movement-prepare',
-          '/live-sessions/encounter-movement'
-        ].includes(pathname)
-      )
-        throw new Error(`Unexpected private movement response request: ${pathname}`)
-      if (
-        new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token' ||
-        new Headers(init?.headers).get('x-artificer-live-session-secret') !==
-          privateMovementWorkerSecret
-      )
-        throw new Error('Private movement response credentials are missing.')
-      return caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch((pathname, init) => {
+    if (
+      ![
+        '/live-sessions/encounter-rules',
+        '/live-sessions/character-rules',
+        '/live-sessions/encounter-movement-begin',
+        '/live-sessions/encounter-movement-prepare',
+        '/live-sessions/encounter-movement'
+      ].includes(pathname)
+    )
+      throw new Error(`Unexpected private movement response request: ${pathname}`)
+    if (
+      new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token' ||
+      new Headers(init?.headers).get('x-artificer-live-session-secret') !==
+        privateMovementWorkerSecret
+    )
+      throw new Error('Private movement response credentials are missing.')
+    return caller.fetch(pathname, init)
+  })
   const common = {
     campaignId: value.base.campaign.id,
     sessionId: value.base.run.sessionId,

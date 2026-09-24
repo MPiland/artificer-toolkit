@@ -22,6 +22,11 @@ import {
 } from '../../../session-worker/src/nativeConcentrationResponse'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 type Fixture = Awaited<ReturnType<typeof turnConcentrationFixture>>
 
@@ -540,22 +545,14 @@ describe('turn damage concentration ordering', () => {
       if (!parentReceipt) throw new Error('Missing immutable turn receipt.')
       const authorityEpoch = crypto.randomUUID()
       await base.t.run((ctx) =>
-        ctx.db.insert('campaignLiveAuthorities', {
+        insertActiveLiveAuthority(ctx, {
           campaignId: base.campaign.id,
           sessionId: base.run.sessionId,
           epoch: authorityEpoch,
-          phase: 'DO_ACTIVE',
-          activationFingerprint: '0'.repeat(64),
-          persistedSequence: 0,
-          persistedStateChecksum: '0'.repeat(64),
-          createdAt: base.campaign.createdAt,
-          updatedAt: base.campaign.createdAt
+          createdAt: base.campaign.createdAt
         })
       )
-      const environment = {
-        CONVEX_SITE_URL: 'https://convex.example.test',
-        LIVE_SESSION_WORKER_SECRET: workerSecret
-      }
+      const environment = workerEnvironment(workerSecret)
       const runtime = createPlatformRulesRuntime({
         continuationIntegrityKey: await deriveRulesContinuationKey(
           process.env.RULES_CONTINUATION_SECRET
@@ -576,13 +573,7 @@ describe('turn damage concentration ordering', () => {
         },
         face: number
       ) => {
-        vi.stubGlobal(
-          'fetch',
-          vi.fn((url: string | URL | Request, init?: RequestInit) => {
-            const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-            return controller.caller.fetch(pathname, init)
-          })
-        )
+        stubLiveSessionFetch((pathname, init) => controller.caller.fetch(pathname, init))
         const command = response(base.run.id, pending, face).command
         if (command.type !== 'RESOLVE_RULE_OCCURRENCE')
           throw new Error('Expected concentration response command.')
@@ -660,13 +651,7 @@ describe('turn damage concentration ordering', () => {
       for (const child of [firstChild, secondChild]) {
         const controller =
           child === firstChild ? prepared.aOwner.controller : prepared.bOwner.controller
-        vi.stubGlobal(
-          'fetch',
-          vi.fn((url: string | URL | Request, init?: RequestInit) => {
-            const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-            return controller.caller.fetch(pathname, init)
-          })
-        )
+        stubLiveSessionFetch((pathname, init) => controller.caller.fetch(pathname, init))
         const replay = await planNativeLiveConcentrationResponse(
           environment,
           'fixture-access-token',
@@ -709,39 +694,27 @@ it('commits ordered Automatic turn concentration through the private DO terminal
     const before = await records(base)
     const authorityEpoch = crypto.randomUUID()
     await base.t.run((ctx) =>
-      ctx.db.insert('campaignLiveAuthorities', {
+      insertActiveLiveAuthority(ctx, {
         campaignId: base.campaign.id,
         sessionId: base.run.sessionId,
         epoch: authorityEpoch,
-        phase: 'DO_ACTIVE',
-        activationFingerprint: '0'.repeat(64),
-        persistedSequence: 0,
-        persistedStateChecksum: '0'.repeat(64),
-        createdAt: base.campaign.createdAt,
-        updatedAt: base.campaign.createdAt
+        createdAt: base.campaign.createdAt
       })
     )
-    const environment = {
-      CONVEX_SITE_URL: 'https://convex.example.test',
-      LIVE_SESSION_WORKER_SECRET: workerSecret
-    }
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string | URL | Request, init?: RequestInit) => {
-        const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-        if (
-          pathname !== '/live-sessions/encounter-rules' &&
-          pathname !== '/live-sessions/encounter-turn' &&
-          pathname !== '/live-sessions/character-rules'
-        )
-          throw new Error(`Unexpected private turn request: ${pathname}`)
-        if (new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token')
-          throw new Error('Missing private turn bearer token.')
-        if (new Headers(init?.headers).get('x-artificer-live-session-secret') !== workerSecret)
-          throw new Error('Missing private turn secret.')
-        return base.owner.caller.fetch(pathname, init)
-      })
-    )
+    const environment = workerEnvironment(workerSecret)
+    stubLiveSessionFetch((pathname, init) => {
+      if (
+        pathname !== '/live-sessions/encounter-rules' &&
+        pathname !== '/live-sessions/encounter-turn' &&
+        pathname !== '/live-sessions/character-rules'
+      )
+        throw new Error(`Unexpected private turn request: ${pathname}`)
+      if (new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token')
+        throw new Error('Missing private turn bearer token.')
+      if (new Headers(init?.headers).get('x-artificer-live-session-secret') !== workerSecret)
+        throw new Error('Missing private turn secret.')
+      return base.owner.caller.fetch(pathname, init)
+    })
     const runtime = createPlatformRulesRuntime({
       continuationIntegrityKey: await deriveRulesContinuationKey(
         process.env.RULES_CONTINUATION_SECRET

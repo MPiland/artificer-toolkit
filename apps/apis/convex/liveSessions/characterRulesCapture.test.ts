@@ -27,6 +27,7 @@ import { readCampaignCurrencyOptions } from '../campaigns/currencySystemDocument
 import { requireSystem } from '../content/systemDocuments'
 import { insertAuthoredVersion } from '../content/documents'
 import * as publicationDocuments from '../content/documents'
+import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 
 const capture = makeFunctionReference<
   'query',
@@ -62,16 +63,11 @@ async function setup() {
       joinedAt: campaign.createdAt,
       leftAt: null
     })
-    await ctx.db.insert('campaignLiveAuthorities', {
+    await insertActiveLiveAuthority(ctx, {
       campaignId: campaign.id,
       sessionId: session.id,
       epoch,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: campaign.createdAt,
-      updatedAt: campaign.createdAt
+      createdAt: campaign.createdAt
     })
     return ctx.db.insert('campaignCharacterAssignments', {
       campaignId: campaign.id,

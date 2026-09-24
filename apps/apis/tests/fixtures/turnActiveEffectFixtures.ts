@@ -47,7 +47,7 @@ import {
   createDnd5eRechargeLifecycleDefinition
 } from '@artificer-toolkit/rules-runtime/systems/dnd5e/encounterLifecyclePolicy'
 import { fixture } from './characters'
-import { setupCharacterRun } from './encounterCharacter'
+import { equipAllCharacterItems, setupCharacterRun } from './encounterCharacter'
 import {
   automaticChargedBiteFeatureId,
   automaticChargedCreature,
@@ -200,21 +200,7 @@ export async function turnActiveEffectFixture(
 
 export async function turnCharacterEffectFixture() {
   const base = await setupCharacterRun()
-  const sheet = await base.player.caller.query(api.characters.sheet.get, { id: base.character.id })
-  if (!sheet) throw new Error('Expected the assigned Character Sheet.')
-  let characterVersion = base.actorSourceRevision
-  for (const item of sheet.inventory.items) {
-    await base.player.caller.mutation(api.characters.sheetCommands.execute, {
-      id: base.character.id,
-      command: {
-        type: 'EQUIP_ITEM',
-        commandId: crypto.randomUUID(),
-        expectedVersion: characterVersion,
-        itemId: item.id
-      }
-    })
-    characterVersion += 1
-  }
+  await equipAllCharacterItems(base)
   const initiative = createEncounterInitiativeDefinitions([
     { procedure: 'DECLARED_ACTION_ROLL', cadence: 'ENCOUNTER_START' }
   ])

@@ -41,13 +41,15 @@ import { commitLiveMovement } from './encounterMovementCommit'
 import { readCurrentEntities } from '../scenes/currentEntities'
 import { readLiveScene } from '../scenes/liveDocuments'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 const workerSecret = 'private-movement-worker-test-secret-at-least-32-bytes'
 const authSecret = 'private-movement-continuation-test-secret-at-least-32-bytes'
-const environment = {
-  CONVEX_SITE_URL: 'https://convex.example.test',
-  LIVE_SESSION_WORKER_SECRET: workerSecret
-}
+const environment = workerEnvironment(workerSecret)
 const stage = makeFunctionReference<
   'mutation',
   LiveSessionMovementPrepareInput,
@@ -172,16 +174,11 @@ it.each([
         .unique()
       if (!oldSave) throw new Error('Fixture geometry save is unavailable.')
       await ctx.db.delete(oldSave._id)
-      await ctx.db.insert('campaignLiveAuthorities', {
+      await insertActiveLiveAuthority(ctx, {
         campaignId: value.base.campaign.id,
         sessionId: session.id,
         epoch,
-        phase: 'DO_ACTIVE',
-        activationFingerprint: '0'.repeat(64),
-        persistedSequence: 0,
-        persistedStateChecksum: '0'.repeat(64),
-        createdAt: value.base.campaign.createdAt,
-        updatedAt: value.base.campaign.createdAt
+        createdAt: value.base.campaign.createdAt
       })
     })
     const sessionScope = {
@@ -191,37 +188,33 @@ it.each([
     }
     const requests: string[] = []
     vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string | URL | Request, init?: RequestInit) => {
-        const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-        if (
-          ![
-            '/live-sessions/encounter-rules',
-            '/live-sessions/character-rules',
-            '/live-sessions/encounter-movement-begin',
-            '/live-sessions/encounter-movement-prepare',
-            '/live-sessions/encounter-movement'
-          ].includes(pathname)
+    stubLiveSessionFetch((pathname, init) => {
+      if (
+        ![
+          '/live-sessions/encounter-rules',
+          '/live-sessions/character-rules',
+          '/live-sessions/encounter-movement-begin',
+          '/live-sessions/encounter-movement-prepare',
+          '/live-sessions/encounter-movement'
+        ].includes(pathname)
+      )
+        throw new Error(`Unexpected private movement request: ${pathname}`)
+      if (
+        new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token' ||
+        new Headers(init?.headers).get('x-artificer-live-session-secret') !== workerSecret
+      )
+        throw new Error('Private movement client credentials are missing.')
+      if (typeof init?.body !== 'string') throw new Error('Private movement body is missing.')
+      if (pathname === '/live-sessions/encounter-rules')
+        requests.push(
+          liveSessionEncounterRulesInputSchema.parse(JSON.parse(init.body)).request.kind
         )
-          throw new Error(`Unexpected private movement request: ${pathname}`)
-        if (
-          new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token' ||
-          new Headers(init?.headers).get('x-artificer-live-session-secret') !== workerSecret
+      if (pathname === '/live-sessions/character-rules')
+        requests.push(
+          liveSessionCharacterRulesInputSchema.parse(JSON.parse(init.body)).request.kind
         )
-          throw new Error('Private movement client credentials are missing.')
-        if (typeof init?.body !== 'string') throw new Error('Private movement body is missing.')
-        if (pathname === '/live-sessions/encounter-rules')
-          requests.push(
-            liveSessionEncounterRulesInputSchema.parse(JSON.parse(init.body)).request.kind
-          )
-        if (pathname === '/live-sessions/character-rules')
-          requests.push(
-            liveSessionCharacterRulesInputSchema.parse(JSON.parse(init.body)).request.kind
-          )
-        return initiator.caller.fetch(pathname, init)
-      })
-    )
+      return initiator.caller.fetch(pathname, init)
+    })
     const staged = await callLiveSessionRoute(
       environment,
       'fixture-access-token',

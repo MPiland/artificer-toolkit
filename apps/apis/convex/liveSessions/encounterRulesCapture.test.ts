@@ -19,6 +19,7 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDefinition'
 import { internal } from '../_generated/api'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 
 const capture = makeFunctionReference<
   'query',
@@ -35,16 +36,11 @@ async function setup() {
   const base = await setupCharacterRun()
   const epoch = crypto.randomUUID()
   await base.t.run((ctx) =>
-    ctx.db.insert('campaignLiveAuthorities', {
+    insertActiveLiveAuthority(ctx, {
       campaignId: base.campaign.id,
       sessionId: base.run.sessionId,
       epoch,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: base.campaign.createdAt,
-      updatedAt: base.campaign.createdAt
+      createdAt: base.campaign.createdAt
     })
   )
   const input: LiveSessionEncounterRulesInput = {

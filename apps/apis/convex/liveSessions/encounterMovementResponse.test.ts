@@ -10,6 +10,7 @@ import type { sceneSpatialPrepareInputSchema } from '@artificer-toolkit/schema/a
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { setupAutomaticSceneMovement } from '../../tests/fixtures/automaticSceneMovement'
+import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
 
@@ -64,16 +65,11 @@ it('stages a current movement choice only for its live authority and actor, with
   }
   const epoch = crypto.randomUUID()
   await value.base.t.run((ctx) =>
-    ctx.db.insert('campaignLiveAuthorities', {
+    insertActiveLiveAuthority(ctx, {
       campaignId: value.base.campaign.id,
       sessionId: value.base.run.sessionId,
       epoch,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: value.base.campaign.createdAt,
-      updatedAt: value.base.campaign.createdAt
+      createdAt: value.base.campaign.createdAt
     })
   )
   const input: LiveSessionMovementBeginInput = {

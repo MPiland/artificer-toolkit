@@ -47,6 +47,7 @@ import { commitPreparedSpatialTerminal } from './spatialCommit.helper'
 import { commitPreparedMovementResponse } from './movementResolutionCommit.helper'
 import { readResponse } from './movementResolutionDocuments'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
+import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn() }))
 afterEach(() => {
@@ -808,16 +809,11 @@ it.each(['native', 'private'] as const)(
       vi.stubEnv('LIVE_SESSION_WORKER_SECRET', privateMovementWorkerSecret)
       const epoch = crypto.randomUUID()
       await value.base.t.run((ctx) =>
-        ctx.db.insert('campaignLiveAuthorities', {
+        insertActiveLiveAuthority(ctx, {
           campaignId: value.base.campaign.id,
           sessionId: value.base.run.sessionId,
           epoch,
-          phase: 'DO_ACTIVE',
-          activationFingerprint: '0'.repeat(64),
-          persistedSequence: 0,
-          persistedStateChecksum: '0'.repeat(64),
-          createdAt: value.base.campaign.createdAt,
-          updatedAt: value.base.campaign.createdAt
+          createdAt: value.base.campaign.createdAt
         })
       )
       const denied = await value.owner.caller.fetch('/live-sessions/encounter-movement-begin', {

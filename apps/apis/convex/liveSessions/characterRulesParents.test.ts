@@ -18,6 +18,11 @@ import { readCharacterRecord } from '../characters/stateDocuments'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { deleteAuthoredVersion, insertAuthoredVersion } from '../content/documents'
 import { withSceneVisionTracking } from '../lib/mutations'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -28,16 +33,11 @@ async function setup() {
   const fixture = await setupCharacterRun()
   const authorityEpoch = crypto.randomUUID()
   await fixture.t.run((ctx) =>
-    ctx.db.insert('campaignLiveAuthorities', {
+    insertActiveLiveAuthority(ctx, {
       campaignId: fixture.campaign.id,
       sessionId: fixture.run.sessionId,
       epoch: authorityEpoch,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: fixture.campaign.createdAt,
-      updatedAt: fixture.campaign.createdAt
+      createdAt: fixture.campaign.createdAt
     })
   )
   const scope: Omit<LiveSessionCharacterRulesInput, 'request'> = {
@@ -56,8 +56,7 @@ async function setup() {
     afterResponse?: (request: LiveSessionCharacterRulesRequest) => Promise<void>
   ) {
     requests.length = 0
-    vi.stubGlobal('fetch', async (url: string | URL | Request, init?: RequestInit) => {
-      const path = new URL(url instanceof Request ? url.url : url.toString()).pathname
+    stubLiveSessionFetch(async (path, init) => {
       expect(path).toBe('/live-sessions/character-rules')
       const headers = new Headers(init?.headers)
       expect(headers.get('authorization')).toBe('Bearer fixture-access-token')
@@ -69,11 +68,7 @@ async function setup() {
       await afterResponse?.(input.request)
       return response
     })
-    return prepareNativeLiveCharacterSheet(
-      { CONVEX_SITE_URL: 'https://convex.example.test', LIVE_SESSION_WORKER_SECRET: secret },
-      'fixture-access-token',
-      scope
-    )
+    return prepareNativeLiveCharacterSheet(workerEnvironment(secret), 'fixture-access-token', scope)
   }
   async function share(
     subjectKind: 'EQUIPMENT' | 'RACE' | 'CLASS',

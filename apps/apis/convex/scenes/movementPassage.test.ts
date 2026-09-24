@@ -38,6 +38,7 @@ import {
 } from '../../tests/fixtures/liveMovementResponse'
 import { prepareSceneMovement } from './movementPerceptionAction'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
+import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 
 type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
 
@@ -556,16 +557,11 @@ describe('native Scene movement passage', () => {
       if (route === 'private') {
         const epoch = crypto.randomUUID()
         await value.base.t.run((ctx) =>
-          ctx.db.insert('campaignLiveAuthorities', {
+          insertActiveLiveAuthority(ctx, {
             campaignId: value.base.campaign.id,
             sessionId: value.base.run.sessionId,
             epoch,
-            phase: 'DO_ACTIVE',
-            activationFingerprint: '0'.repeat(64),
-            persistedSequence: 0,
-            persistedStateChecksum: '0'.repeat(64),
-            createdAt: value.base.campaign.createdAt,
-            updatedAt: value.base.campaign.createdAt
+            createdAt: value.base.campaign.createdAt
           })
         )
         const command: ResolveRuleOccurrenceInputDto = {

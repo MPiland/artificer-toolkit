@@ -24,6 +24,7 @@ import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
 import { readRunActors, readRunState } from '../encounters/documents'
 import { commitLiveMovement } from './encounterMovementCommit'
 import { readLiveSessionRulesRevisions } from './rulesRevisions'
+import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 
 type Fixture = Awaited<ReturnType<typeof setupAutomaticSceneMovement>>
 type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
@@ -125,16 +126,11 @@ async function preparePrivateCommit(value: Fixture) {
   expect(await records(value)).toEqual(beforePreparation)
   const epoch = crypto.randomUUID()
   await value.base.t.run((ctx) =>
-    ctx.db.insert('campaignLiveAuthorities', {
+    insertActiveLiveAuthority(ctx, {
       campaignId: value.base.campaign.id,
       sessionId: value.base.run.sessionId,
       epoch,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: value.base.campaign.createdAt,
-      updatedAt: value.base.campaign.createdAt
+      createdAt: value.base.campaign.createdAt
     })
   )
   const revisions = await value.owner.caller.run((ctx) =>

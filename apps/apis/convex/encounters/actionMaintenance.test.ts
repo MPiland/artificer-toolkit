@@ -52,6 +52,11 @@ import { loadMovementTargets } from './movementTargets'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
 import { sourceImportBatches } from '../content/importBatches'
 import { withSceneVisionTracking } from '../lib/mutations'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 const creatureId = '00000000-0000-4000-8000-0000000008e0'
 const featureId = '00000000-0000-4000-8000-0000000008e1'
@@ -1003,16 +1008,11 @@ async function setupMaintenanceCapture(
   await resetActionAllowance(base)
   const authorityEpoch = crypto.randomUUID()
   await base.t.run((ctx) =>
-    ctx.db.insert('campaignLiveAuthorities', {
+    insertActiveLiveAuthority(ctx, {
       campaignId: base.campaign.id,
       sessionId: base.run.sessionId,
       epoch: authorityEpoch,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: base.campaign.createdAt,
-      updatedAt: base.campaign.createdAt
+      createdAt: base.campaign.createdAt
     })
   )
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
@@ -1031,17 +1031,8 @@ async function setupMaintenanceCapture(
 it('commits a maintained Character action from the Worker plan with one atomic replacement', async () => {
   const { base, state, scope } = await setupMaintenanceCapture(5, 'CHARACTER')
   const command = action(base, scope.expectedVersion, base.characterTarget.id)
-  const environment = {
-    CONVEX_SITE_URL: 'https://convex.example.test',
-    LIVE_SESSION_WORKER_SECRET: workerSecret
-  }
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      return base.owner.caller.fetch(pathname, init)
-    })
-  )
+  const environment = workerEnvironment(workerSecret)
+  stubLiveSessionFetch((pathname, init) => base.owner.caller.fetch(pathname, init))
   const before = await records(base)
   const plan = await planNativeLiveEncounterAction(
     environment,
@@ -1135,17 +1126,13 @@ it('captures five real maintained dependents and matches native action preflight
   expect(second.effects).toHaveLength(1)
   expect(second.continueCursor).toBeNull()
   const requests: string[] = []
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      requests.push(pathname)
-      return base.owner.caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch((pathname, init) => {
+    requests.push(pathname)
+    return base.owner.caller.fetch(pathname, init)
+  })
   const beforePlanning = await records(base)
   const actual = await planNativeLiveEncounterAction(
-    { CONVEX_SITE_URL: 'https://convex.example.test', LIVE_SESSION_WORKER_SECRET: workerSecret },
+    workerEnvironment(workerSecret),
     'fixture-access-token',
     scope,
     command,
@@ -1313,16 +1300,10 @@ it('projects the same post-mechanics maintenance settlement as native writes', a
     return { characterDependent, actorDependent, independent }
   })
   const command = action(base, scope.expectedVersion, base.characterTarget.id)
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      return base.owner.caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch((pathname, init) => base.owner.caller.fetch(pathname, init))
   const beforePlanning = await records(base)
   const planned = await planNativeLiveEncounterAction(
-    { CONVEX_SITE_URL: 'https://convex.example.test', LIVE_SESSION_WORKER_SECRET: workerSecret },
+    workerEnvironment(workerSecret),
     'fixture-access-token',
     scope,
     command,
@@ -1624,38 +1605,34 @@ it('refuses a maintained action when a dependent link changes between capture pa
   const { base, state, scope } = await setupMaintenanceCapture(5)
   const command = action(base, scope.expectedVersion, base.actor.id)
   let changed = false
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      if (typeof init?.body !== 'string') throw new Error('Missing capture request.')
-      const input = JSON.parse(init.body) as LiveSessionEncounterRulesInput
-      const response = await base.owner.caller.fetch(pathname, init)
-      if (
-        input.request.kind === 'MAINTENANCE_DEPENDENTS' &&
-        input.request.cursor === null &&
-        !changed
-      ) {
-        changed = true
-        await base.t.run(async (rawCtx) => {
-          const ctx = withSceneVisionTracking(rawCtx)
-          const row = await ctx.db
-            .query('encounterActiveRuleEffects')
-            .withIndex('by_encounterId_targetActorId_id', (q) =>
-              q.eq('encounterId', base.run.id).eq('targetActorId', base.actor.id)
-            )
-            .filter((q) => q.eq(q.field('maintainedEffectStateId'), state.id))
-            .first()
-          if (!row) throw new Error('Missing linked dependent page row.')
-          await ctx.db.patch(row._id, { maintainedEffectStateId: null })
-        })
-      }
-      return response
-    })
-  )
+  stubLiveSessionFetch(async (pathname, init) => {
+    if (typeof init?.body !== 'string') throw new Error('Missing capture request.')
+    const input = JSON.parse(init.body) as LiveSessionEncounterRulesInput
+    const response = await base.owner.caller.fetch(pathname, init)
+    if (
+      input.request.kind === 'MAINTENANCE_DEPENDENTS' &&
+      input.request.cursor === null &&
+      !changed
+    ) {
+      changed = true
+      await base.t.run(async (rawCtx) => {
+        const ctx = withSceneVisionTracking(rawCtx)
+        const row = await ctx.db
+          .query('encounterActiveRuleEffects')
+          .withIndex('by_encounterId_targetActorId_id', (q) =>
+            q.eq('encounterId', base.run.id).eq('targetActorId', base.actor.id)
+          )
+          .filter((q) => q.eq(q.field('maintainedEffectStateId'), state.id))
+          .first()
+        if (!row) throw new Error('Missing linked dependent page row.')
+        await ctx.db.patch(row._id, { maintainedEffectStateId: null })
+      })
+    }
+    return response
+  })
   await expect(
     planNativeLiveEncounterAction(
-      { CONVEX_SITE_URL: 'https://convex.example.test', LIVE_SESSION_WORKER_SECRET: workerSecret },
+      workerEnvironment(workerSecret),
       'fixture-access-token',
       scope,
       command,
@@ -1695,16 +1672,11 @@ it('reads a detached Character owner only through its live maintained dependent'
   )
   const authorityEpoch = crypto.randomUUID()
   await base.t.run((ctx) =>
-    ctx.db.insert('campaignLiveAuthorities', {
+    insertActiveLiveAuthority(ctx, {
       campaignId: base.campaign.id,
       sessionId: base.run.sessionId,
       epoch: authorityEpoch,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: base.campaign.createdAt,
-      updatedAt: base.campaign.createdAt
+      createdAt: base.campaign.createdAt
     })
   )
   const scope = {

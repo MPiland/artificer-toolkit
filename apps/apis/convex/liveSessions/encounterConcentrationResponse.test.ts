@@ -30,15 +30,17 @@ import {
 import { seedActiveInitiative } from '../../tests/fixtures/activeInitiative'
 import { api, components, internal } from '../_generated/api'
 import { resumeNativeConcentration } from '../encounters/concentrationResponses'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: vi.fn(() => 19) }))
 
 const workerSecret = 'private-concentration-response-test-secret-at-least-32-bytes'
 const authSecret = 'private-concentration-response-continuation-test-secret-at-least-32-bytes'
-const environment = {
-  CONVEX_SITE_URL: 'https://convex.example.test',
-  LIVE_SESSION_WORKER_SECRET: workerSecret
-}
+const environment = workerEnvironment(workerSecret)
 const capture = makeFunctionReference<
   'query',
   LiveSessionEncounterRulesInput,
@@ -77,35 +79,26 @@ async function pendingFixture() {
       fixture.actor.id,
       fixture.target.id
     ])
-    await ctx.db.insert('campaignLiveAuthorities', {
+    await insertActiveLiveAuthority(ctx, {
       campaignId: fixture.campaign.id,
       sessionId: fixture.run.sessionId,
       epoch: fixture.run.id,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: fixture.campaign.createdAt,
-      updatedAt: fixture.campaign.createdAt
+      createdAt: fixture.campaign.createdAt
     })
   })
   vi.stubEnv('BETTER_AUTH_SECRET', authSecret)
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      const token = new Headers(init?.headers).get('authorization')
-      const caller =
-        token === 'Bearer fixture-player-token'
-          ? fixture.player.caller
-          : token === 'Bearer fixture-owner-token'
-            ? fixture.owner.caller
-            : null
-      if (!caller) throw new Error('Unknown fixture access token.')
-      return caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch((pathname, init) => {
+    const token = new Headers(init?.headers).get('authorization')
+    const caller =
+      token === 'Bearer fixture-player-token'
+        ? fixture.player.caller
+        : token === 'Bearer fixture-owner-token'
+          ? fixture.owner.caller
+          : null
+    if (!caller) throw new Error('Unknown fixture access token.')
+    return caller.fetch(pathname, init)
+  })
   const ownerScope = {
     campaignId: fixture.campaign.id,
     sessionId: fixture.run.sessionId,

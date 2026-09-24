@@ -59,6 +59,11 @@ import { fixture } from '../../tests/fixtures/characters'
 import { importedSubject } from '../../tests/fixtures/publication'
 import { api, internal } from '../_generated/api'
 import { readRunActor, readRunState } from '../encounters/documents'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -89,10 +94,7 @@ const commitAction = makeFunctionReference<
   EncounterCommandResultDto
 >('liveSessions/encounterActionCommit:commit')
 const secret = 'private-action-admission-test-secret-at-least-32-bytes'
-const environment = {
-  CONVEX_SITE_URL: 'https://convex.example.test',
-  LIVE_SESSION_WORKER_SECRET: secret
-}
+const environment = workerEnvironment(secret)
 const path = '/live-sessions/encounter-rules'
 const pendingPath = '/live-sessions/encounter-action-pending'
 
@@ -268,16 +270,11 @@ async function setup(pending = false, fresh = false, diceDamage = false) {
   }
   const authorityEpoch = crypto.randomUUID()
   await base.t.run((ctx) =>
-    ctx.db.insert('campaignLiveAuthorities', {
+    insertActiveLiveAuthority(ctx, {
       campaignId: campaign.id,
       sessionId: session.id,
       epoch: authorityEpoch,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: campaign.createdAt,
-      updatedAt: campaign.createdAt
+      createdAt: campaign.createdAt
     })
   )
   const scope = {
@@ -345,23 +342,19 @@ async function storedActionState(base: Awaited<ReturnType<typeof setup>>) {
 it('replays the exact committed action before reading mutable rules inputs', async () => {
   const base = await setup()
   const requests: string[] = []
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      requests.push(pathname)
-      expect(pathname).toBe(path)
-      expect(new Headers(init?.headers).get('authorization')).toBe('Bearer fixture-access-token')
-      if (typeof init?.body !== 'string') throw new Error('Missing capture body.')
-      const input = liveSessionEncounterRulesInputSchema.parse(JSON.parse(init.body))
-      expect(input.request.kind).toBe('ACTION_COMMAND')
-      if (input.request.kind === 'ACTION_COMMAND') {
-        expect(input.request.command.commandId.toLowerCase()).toBe(base.command.commandId)
-        expect(input.request.command.expectedVersion).toBe(base.command.expectedVersion)
-      }
-      return base.owner.caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch(async (pathname, init) => {
+    requests.push(pathname)
+    expect(pathname).toBe(path)
+    expect(new Headers(init?.headers).get('authorization')).toBe('Bearer fixture-access-token')
+    if (typeof init?.body !== 'string') throw new Error('Missing capture body.')
+    const input = liveSessionEncounterRulesInputSchema.parse(JSON.parse(init.body))
+    expect(input.request.kind).toBe('ACTION_COMMAND')
+    if (input.request.kind === 'ACTION_COMMAND') {
+      expect(input.request.command.commandId.toLowerCase()).toBe(base.command.commandId)
+      expect(input.request.command.expectedVersion).toBe(base.command.expectedVersion)
+    }
+    return base.owner.caller.fetch(pathname, init)
+  })
   const runtime = testRuntime()
   const executeResolved = vi.spyOn(runtime, 'executeResolved')
   const resume = vi.spyOn(runtime, 'resume')
@@ -401,14 +394,10 @@ it('replays the exact committed action before reading mutable rules inputs', asy
 it('replays a stored Assisted pending result without preparing or rolling again', async () => {
   const base = await setup(true)
   const requests: string[] = []
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      requests.push(pathname)
-      return base.owner.caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch((pathname, init) => {
+    requests.push(pathname)
+    return base.owner.caller.fetch(pathname, init)
+  })
   const runtime = testRuntime()
   const executeResolved = vi.spyOn(runtime, 'executeResolved')
   const resume = vi.spyOn(runtime, 'resume')
@@ -432,15 +421,11 @@ it('plans a fresh Automatic action with damage and feature charge without publis
   const base = await setup(false, true)
   const before = await storedActionState(base)
   const requests: string[] = []
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      requests.push(pathname)
-      if (pathname !== path) throw new Error(`Unexpected capture: ${pathname}`)
-      return base.owner.caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch((pathname, init) => {
+    requests.push(pathname)
+    if (pathname !== path) throw new Error(`Unexpected capture: ${pathname}`)
+    return base.owner.caller.fetch(pathname, init)
+  })
   const runtime = testRuntime()
   const executeResolved = vi.spyOn(runtime, 'executeResolved')
   const uppercase = {
@@ -481,14 +466,10 @@ it('plans a fresh Automatic action with damage and feature charge without publis
 it('plans a sealed Assisted pending action without mechanics, spending, or writes', async () => {
   const base = await setup(true, true)
   const before = await storedActionState(base)
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      if (pathname !== path) throw new Error(`Unexpected capture: ${pathname}`)
-      return base.owner.caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch((pathname, init) => {
+    if (pathname !== path) throw new Error(`Unexpected capture: ${pathname}`)
+    return base.owner.caller.fetch(pathname, init)
+  })
   const runtime = testRuntime()
   const planned = await planNativeLiveEncounterAction(
     environment,
@@ -518,22 +499,16 @@ it('commits one sealed Assisted pending root and replays before stale revisions'
   const before = await storedActionState(base)
   const pendingBodies: LiveSessionEncounterActionPendingInput[] = []
   const requests: string[] = []
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      requests.push(pathname)
-      if (pathname === pendingPath) {
-        if (typeof init?.body !== 'string') throw new Error('Missing pending commit body.')
-        pendingBodies.push(
-          liveSessionEncounterActionPendingInputSchema.parse(JSON.parse(init.body))
-        )
-      } else if (pathname !== path) {
-        throw new Error(`Unexpected capture: ${pathname}`)
-      }
-      return base.owner.caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch((pathname, init) => {
+    requests.push(pathname)
+    if (pathname === pendingPath) {
+      if (typeof init?.body !== 'string') throw new Error('Missing pending commit body.')
+      pendingBodies.push(liveSessionEncounterActionPendingInputSchema.parse(JSON.parse(init.body)))
+    } else if (pathname !== path) {
+      throw new Error(`Unexpected capture: ${pathname}`)
+    }
+    return base.owner.caller.fetch(pathname, init)
+  })
   const runtime = testRuntime()
   const executeResolved = vi.spyOn(runtime, 'executeResolved')
   const resume = vi.spyOn(runtime, 'resume')
@@ -616,21 +591,17 @@ it('resumes each Assisted evidence through the Worker and commits only the compl
   const requests: string[] = []
   let captureTerminal = false
   const terminalCapture: { body?: LiveSessionEncounterActionCommitInput } = {}
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      requests.push(pathname)
-      if (captureTerminal && pathname === '/live-sessions/encounter-action') {
-        if (typeof init?.body !== 'string') throw new Error('Missing terminal commit body.')
-        terminalCapture.body = liveSessionEncounterActionCommitInputSchema.parse(
-          JSON.parse(init.body)
-        )
-        return Promise.resolve(new Response('Captured terminal input.', { status: 503 }))
-      }
-      return base.owner.caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch((pathname, init) => {
+    requests.push(pathname)
+    if (captureTerminal && pathname === '/live-sessions/encounter-action') {
+      if (typeof init?.body !== 'string') throw new Error('Missing terminal commit body.')
+      terminalCapture.body = liveSessionEncounterActionCommitInputSchema.parse(
+        JSON.parse(init.body)
+      )
+      return Promise.resolve(new Response('Captured terminal input.', { status: 503 }))
+    }
+    return base.owner.caller.fetch(pathname, init)
+  })
   const runtime = testRuntime()
   const random = vi.fn(() => 0)
   const options = { runtime, random }
@@ -768,7 +739,7 @@ it('resumes each Assisted evidence through the Worker and commits only the compl
       captureTerminal = true
       await expect(
         commitNativeLiveEncounterAction(environment, 'fixture-access-token', base.scope, next)
-      ).rejects.toThrow('Live Session transient request failed.')
+      ).rejects.toThrow('Live Session route request failed.')
       captureTerminal = false
       const capturedTerminalBody = terminalCapture.body
       if (!capturedTerminalBody) throw new Error('Missing captured terminal input.')
@@ -889,21 +860,15 @@ it('rejects unauthorized and altered pending commits before writing an occurrenc
   const base = await setup(true, true)
   const before = await storedActionState(base)
   const pendingBodies: LiveSessionEncounterActionPendingInput[] = []
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      if (pathname === pendingPath) {
-        if (typeof init?.body !== 'string') throw new Error('Missing pending commit body.')
-        pendingBodies.push(
-          liveSessionEncounterActionPendingInputSchema.parse(JSON.parse(init.body))
-        )
-        return Promise.resolve(new Response('Captured pending input.', { status: 503 }))
-      }
-      if (pathname !== path) throw new Error(`Unexpected capture: ${pathname}`)
-      return base.owner.caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch((pathname, init) => {
+    if (pathname === pendingPath) {
+      if (typeof init?.body !== 'string') throw new Error('Missing pending commit body.')
+      pendingBodies.push(liveSessionEncounterActionPendingInputSchema.parse(JSON.parse(init.body)))
+      return Promise.resolve(new Response('Captured pending input.', { status: 503 }))
+    }
+    if (pathname !== path) throw new Error(`Unexpected capture: ${pathname}`)
+    return base.owner.caller.fetch(pathname, init)
+  })
   const plan = await planNativeLiveEncounterAction(
     environment,
     'fixture-access-token',
@@ -914,7 +879,7 @@ it('rejects unauthorized and altered pending commits before writing an occurrenc
   if (plan.kind !== 'PENDING') throw new Error('Expected pending Assisted action.')
   await expect(
     commitNativeLiveEncounterActionPending(environment, 'fixture-access-token', base.scope, plan)
-  ).rejects.toThrow('Live Session transient request failed.')
+  ).rejects.toThrow('Live Session route request failed.')
   const body = pendingBodies[0]
   if (!body) throw new Error('Missing captured pending input.')
   const post = (
@@ -976,14 +941,10 @@ it('rejects unauthorized and altered pending commits before writing an occurrenc
 })
 it('rejects reused IDs, stale new commands, unauthorized replay, and a corrupt real receipt', async () => {
   const base = await setup()
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      if (pathname !== path) throw new Error(`Unexpected capture: ${pathname}`)
-      return base.owner.caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch((pathname, init) => {
+    if (pathname !== path) throw new Error(`Unexpected capture: ${pathname}`)
+    return base.owner.caller.fetch(pathname, init)
+  })
   const admit = (command: ResolveEncounterActionInputDto, scope = base.scope) =>
     base.owner.caller.query(capture, { ...scope, request: { kind: 'ACTION_COMMAND', command } })
   const unauthorized = await base.other.caller.fetch(path, {

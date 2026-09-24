@@ -74,6 +74,11 @@ import {
   planNativeLiveConcentrationResponse
 } from '../../../session-worker/src/nativeConcentrationResponse'
 import { executeNativeEncounterAction } from './actionCommands'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -727,16 +732,11 @@ describe('native Cleaving action settlement', () => {
     const authSecret = 'private-cleaving-continuation-test-secret-at-least-32-bytes'
     const authorityEpoch = crypto.randomUUID()
     await base.t.run((ctx) =>
-      ctx.db.insert('campaignLiveAuthorities', {
+      insertActiveLiveAuthority(ctx, {
         campaignId: base.campaign.id,
         sessionId: base.session.id,
         epoch: authorityEpoch,
-        phase: 'DO_ACTIVE',
-        activationFingerprint: '0'.repeat(64),
-        persistedSequence: 0,
-        persistedStateChecksum: '0'.repeat(64),
-        createdAt: base.campaign.createdAt,
-        updatedAt: base.campaign.createdAt
+        createdAt: base.campaign.createdAt
       })
     )
     const scope = {
@@ -765,13 +765,7 @@ describe('native Cleaving action settlement', () => {
         request: { kind: 'CLEAVING_BINDINGS' }
       })
     ).rejects.toThrow()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string | URL | Request, init?: RequestInit) => {
-        const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-        return base.owner.caller.fetch(pathname, init)
-      })
-    )
+    stubLiveSessionFetch((pathname, init) => base.owner.caller.fetch(pathname, init))
     try {
       const before = await records(base)
       const continuationIntegrityKey = await deriveRulesContinuationKey(
@@ -788,10 +782,7 @@ describe('native Cleaving action settlement', () => {
       const occurrenceId = crypto.randomUUID()
       const planUuid = vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(occurrenceId)
       const planned = await planNativeLiveEncounterAction(
-        {
-          CONVEX_SITE_URL: 'https://convex.example.test',
-          LIVE_SESSION_WORKER_SECRET: workerSecret
-        },
+        workerEnvironment(workerSecret),
         'fixture-access-token',
         scope,
         command,
@@ -858,10 +849,7 @@ describe('native Cleaving action settlement', () => {
       expect(nativeProbe.result).toEqual(planned.result)
       expect(await records(base)).toEqual(before)
       const committed = await commitNativeLiveEncounterAction(
-        {
-          CONVEX_SITE_URL: 'https://convex.example.test',
-          LIVE_SESSION_WORKER_SECRET: workerSecret
-        },
+        workerEnvironment(workerSecret),
         'fixture-access-token',
         scope,
         planned
@@ -1028,22 +1016,14 @@ describe('native Cleaving action settlement', () => {
       if (transport === 'DO') {
         const authorityEpoch = crypto.randomUUID()
         await base.t.run((ctx) =>
-          ctx.db.insert('campaignLiveAuthorities', {
+          insertActiveLiveAuthority(ctx, {
             campaignId: base.campaign.id,
             sessionId: base.session.id,
             epoch: authorityEpoch,
-            phase: 'DO_ACTIVE',
-            activationFingerprint: '0'.repeat(64),
-            persistedSequence: 0,
-            persistedStateChecksum: '0'.repeat(64),
-            createdAt: base.campaign.createdAt,
-            updatedAt: base.campaign.createdAt
+            createdAt: base.campaign.createdAt
           })
         )
-        const environment = {
-          CONVEX_SITE_URL: 'https://convex.example.test',
-          LIVE_SESSION_WORKER_SECRET: workerSecret
-        }
+        const environment = workerEnvironment(workerSecret)
         const scope = {
           campaignId: base.campaign.id,
           sessionId: base.session.id,
@@ -1053,13 +1033,7 @@ describe('native Cleaving action settlement', () => {
           encounterId: base.run.id,
           expectedVersion: pending.encounterVersion
         }
-        vi.stubGlobal(
-          'fetch',
-          vi.fn((url: string | URL | Request, init?: RequestInit) => {
-            const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-            return base.other.caller.fetch(pathname, init)
-          })
-        )
+        stubLiveSessionFetch((pathname, init) => base.other.caller.fetch(pathname, init))
         const runtime = async () =>
           createPlatformRulesRuntime({
             continuationIntegrityKey: await deriveRulesContinuationKey(

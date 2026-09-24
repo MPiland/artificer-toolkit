@@ -26,15 +26,17 @@ import { readCurrentEntities } from '../scenes/currentEntities'
 import { readLiveScene } from '../scenes/liveDocuments'
 import { prepareNativeLiveMovement } from '../../../session-worker/src/nativeEncounterMovement'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 vi.mock('../lib/rollRandom', () => ({ nextRollInt: () => 0 }))
 
 const workerSecret = 'private-movement-response-worker-secret-at-least-32-bytes'
 const authSecret = 'private-movement-response-continuation-secret-at-least-32-bytes'
-const environment = {
-  CONVEX_SITE_URL: 'https://convex.example.test',
-  LIVE_SESSION_WORKER_SECRET: workerSecret
-}
+const environment = workerEnvironment(workerSecret)
 type Request = ReturnType<typeof sceneSpatialPrepareInputSchema.parse>
 const observe = makeFunctionReference<
   'mutation',
@@ -140,16 +142,11 @@ it('publishes a sealed movement response through the private DO path without rep
 
   const epoch = crypto.randomUUID()
   await value.base.t.run((ctx) =>
-    ctx.db.insert('campaignLiveAuthorities', {
+    insertActiveLiveAuthority(ctx, {
       campaignId: value.base.campaign.id,
       sessionId: value.base.run.sessionId,
       epoch,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: value.base.campaign.createdAt,
-      updatedAt: value.base.campaign.createdAt
+      createdAt: value.base.campaign.createdAt
     })
   )
   const baseline = await records()
@@ -179,27 +176,23 @@ it('publishes a sealed movement response through the private DO path without rep
     expectedRole: 'OWNER' as const
   }
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', workerSecret)
-  vi.stubGlobal(
-    'fetch',
-    vi.fn((url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      if (
-        ![
-          '/live-sessions/encounter-rules',
-          '/live-sessions/encounter-movement-begin',
-          '/live-sessions/encounter-movement-prepare',
-          '/live-sessions/encounter-movement'
-        ].includes(pathname)
-      )
-        throw new Error(`Unexpected private movement response request: ${pathname}`)
-      if (
-        new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token' ||
-        new Headers(init?.headers).get('x-artificer-live-session-secret') !== workerSecret
-      )
-        throw new Error('Private movement response credentials are missing.')
-      return value.owner.caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch((pathname, init) => {
+    if (
+      ![
+        '/live-sessions/encounter-rules',
+        '/live-sessions/encounter-movement-begin',
+        '/live-sessions/encounter-movement-prepare',
+        '/live-sessions/encounter-movement'
+      ].includes(pathname)
+    )
+      throw new Error(`Unexpected private movement response request: ${pathname}`)
+    if (
+      new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token' ||
+      new Headers(init?.headers).get('x-artificer-live-session-secret') !== workerSecret
+    )
+      throw new Error('Private movement response credentials are missing.')
+    return value.owner.caller.fetch(pathname, init)
+  })
   const staged = await callLiveSessionRoute(
     environment,
     'fixture-access-token',

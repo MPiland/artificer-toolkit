@@ -8,6 +8,7 @@ import type {
 import { createSpatialPreparationFixture } from '../../tests/fixtures/spatialPreparation'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { createActiveRuleEffectStore } from '../rules/effectStore'
+import { insertActiveLiveAuthority } from '../../tests/fixtures/liveSessionWorker'
 
 const capture = makeFunctionReference<
   'query',
@@ -22,16 +23,11 @@ async function setup() {
   if (actorIds.length !== 2) throw new Error('Missing fixture Encounter actors.')
   const tokenIds = base.tokens.slice(0, 2).map((token) => token.id.toLowerCase())
   await base.t.run(async (ctx) => {
-    await ctx.db.insert('campaignLiveAuthorities', {
+    await insertActiveLiveAuthority(ctx, {
       campaignId: base.campaign.id,
       sessionId: base.session.id,
       epoch,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: base.campaign.createdAt,
-      updatedAt: base.campaign.createdAt
+      createdAt: base.campaign.createdAt
     })
     for (const [index, actorId] of actorIds.entries())
       await ctx.db.insert('encounterActorTokenBindings', {
@@ -101,10 +97,10 @@ it('rejects player, concentration-child, stale epoch, and stale Run scopes befor
         concentrationResponse,
         request
       })
-    ).rejects.toThrow('owner scope')
+    ).rejects.toThrow('Turn capture requires owner or admitted response scope.')
     await expect(
       base.other.caller.query(capture, { ...base.input, concentrationResponse, request })
-    ).rejects.toThrow('owner scope')
+    ).rejects.toThrow('Turn capture requires owner or admitted response scope.')
   }
   await expect(
     base.other.caller.query(capture, {

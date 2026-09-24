@@ -5,6 +5,11 @@ import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { readCharacterRulesCapture } from './characterRulesCapture'
 import { withSceneVisionTracking } from '../lib/mutations'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -15,16 +20,11 @@ it('prepares the same Character facts in the Worker through authenticated captur
   const fixture = await setupCharacterRun()
   const authorityEpoch = crypto.randomUUID()
   await fixture.t.run((ctx) =>
-    ctx.db.insert('campaignLiveAuthorities', {
+    insertActiveLiveAuthority(ctx, {
       campaignId: fixture.campaign.id,
       sessionId: fixture.run.sessionId,
       epoch: authorityEpoch,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: fixture.campaign.createdAt,
-      updatedAt: fixture.campaign.createdAt
+      createdAt: fixture.campaign.createdAt
     })
   )
   const scope = {
@@ -51,24 +51,17 @@ it('prepares the same Character facts in the Worker through authenticated captur
   expect(missingIdentity.headers.get('Cache-Control')).toBe('no-store')
 
   const requests: ReturnType<typeof liveSessionCharacterRulesInputSchema.parse>[] = []
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-      const target = new URL(url instanceof Request ? url.url : url.toString())
-      expect(target.pathname).toBe(path)
-      const headers = new Headers(init?.headers)
-      expect(headers.get('authorization')).toBe('Bearer fixture-access-token')
-      expect(headers.get('x-artificer-live-session-secret')).toBe(secret)
-      if (typeof init?.body !== 'string') throw new Error('Missing capture body.')
-      requests.push(liveSessionCharacterRulesInputSchema.parse(JSON.parse(init.body)))
-      return fixture.owner.caller.fetch(target.pathname, init)
-    })
-  )
+  stubLiveSessionFetch(async (pathname, init) => {
+    expect(pathname).toBe(path)
+    const headers = new Headers(init?.headers)
+    expect(headers.get('authorization')).toBe('Bearer fixture-access-token')
+    expect(headers.get('x-artificer-live-session-secret')).toBe(secret)
+    if (typeof init?.body !== 'string') throw new Error('Missing capture body.')
+    requests.push(liveSessionCharacterRulesInputSchema.parse(JSON.parse(init.body)))
+    return fixture.owner.caller.fetch(pathname, init)
+  })
   const actual = await prepareNativeLiveCharacterSheet(
-    {
-      CONVEX_SITE_URL: 'https://convex.example.test',
-      LIVE_SESSION_WORKER_SECRET: secret
-    },
+    workerEnvironment(secret),
     'fixture-access-token',
     scope
   )
@@ -100,8 +93,7 @@ it('prepares the same Character facts in the Worker through authenticated captur
   })
 
   // A later source page must not combine a changed Campaign with the old Sheet inputs.
-  vi.stubGlobal('fetch', async (url: string | URL | Request, init?: RequestInit) => {
-    const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
+  stubLiveSessionFetch(async (pathname, init) => {
     const response = await fixture.owner.caller.fetch(pathname, init)
     if (typeof init?.body !== 'string') throw new Error('Missing capture body.')
     const input = liveSessionCharacterRulesInputSchema.parse(JSON.parse(init.body))
@@ -119,10 +111,6 @@ it('prepares the same Character facts in the Worker through authenticated captur
     return response
   })
   await expect(
-    prepareNativeLiveCharacterSheet(
-      { CONVEX_SITE_URL: 'https://convex.example.test', LIVE_SESSION_WORKER_SECRET: secret },
-      'fixture-access-token',
-      scope
-    )
+    prepareNativeLiveCharacterSheet(workerEnvironment(secret), 'fixture-access-token', scope)
   ).rejects.toThrow(/revision|changed/i)
 })

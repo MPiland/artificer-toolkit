@@ -38,6 +38,11 @@ import { withSceneVisionTracking } from '../lib/mutations'
 import { ensureSystemVocabularySnapshot } from '../content/systemVocabulary'
 import { assertLiveSessionRulesRevisions, readLiveSessionRulesRevisions } from './rulesRevisions'
 import { api, internal } from '../_generated/api'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -110,16 +115,11 @@ it('plans the same Character action and target facts in the Worker using private
     width: 1
   }))
   await fixture.t.run(async (ctx) => {
-    await ctx.db.insert('campaignLiveAuthorities', {
+    await insertActiveLiveAuthority(ctx, {
       campaignId: fixture.campaign.id,
       sessionId: fixture.run.sessionId,
       epoch: authorityEpoch,
-      phase: 'DO_ACTIVE',
-      activationFingerprint: '0'.repeat(64),
-      persistedSequence: 0,
-      persistedStateChecksum: '0'.repeat(64),
-      createdAt: fixture.campaign.createdAt,
-      updatedAt: fixture.campaign.createdAt
+      createdAt: fixture.campaign.createdAt
     })
     const row = await ctx.db
       .query('encounterRuns')
@@ -403,19 +403,13 @@ it('plans the same Character action and target facts in the Worker using private
   expect(await systemRevisionRow()).toEqual(beforeVocabularyCaptureRevision)
   expect(await storedRecords()).toEqual(beforePlanning)
   vi.stubEnv('LIVE_SESSION_WORKER_SECRET', secret)
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-      const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-      expect(['/live-sessions/encounter-rules', '/live-sessions/character-rules']).toContain(
-        pathname
-      )
-      expect(new Headers(init?.headers).get('authorization')).toBe('Bearer fixture-access-token')
-      return fixture.owner.caller.fetch(pathname, init)
-    })
-  )
+  stubLiveSessionFetch(async (pathname, init) => {
+    expect(['/live-sessions/encounter-rules', '/live-sessions/character-rules']).toContain(pathname)
+    expect(new Headers(init?.headers).get('authorization')).toBe('Bearer fixture-access-token')
+    return fixture.owner.caller.fetch(pathname, init)
+  })
   const actual = await planNativeLiveEncounterAction(
-    { CONVEX_SITE_URL: 'https://convex.example.test', LIVE_SESSION_WORKER_SECRET: secret },
+    workerEnvironment(secret),
     'fixture-access-token',
     scope,
     command,
@@ -681,7 +675,7 @@ it('plans the same Character action and target facts in the Worker using private
   await fixture.t.run((rawCtx) => withSceneVisionTracking(rawCtx).db.delete(initiativeHeader._id))
   await expect(
     planNativeLiveEncounterAction(
-      { CONVEX_SITE_URL: 'https://convex.example.test', LIVE_SESSION_WORKER_SECRET: secret },
+      workerEnvironment(secret),
       'fixture-access-token',
       scope,
       command,
@@ -711,13 +705,13 @@ it('plans the same Character action and target facts in the Worker using private
   ).rejects.toThrow(/initiative|policy|checksum/i)
   await expect(
     planNativeLiveEncounterAction(
-      { CONVEX_SITE_URL: 'https://convex.example.test', LIVE_SESSION_WORKER_SECRET: secret },
+      workerEnvironment(secret),
       'fixture-access-token',
       scope,
       command,
       executionOptions
     )
-  ).rejects.toThrow('Live Session transient request failed.')
+  ).rejects.toThrow('Live Session route request failed.')
   await fixture.t.run((rawCtx) =>
     withSceneVisionTracking(rawCtx).db.patch(restoredHeader._id, {
       policySnapshotChecksum: initiativeHeader.policySnapshotChecksum
@@ -746,8 +740,7 @@ it('plans the same Character action and target facts in the Worker using private
 
   // Deletion from a page already read must invalidate the entire prepared action.
   let deleted = false
-  vi.stubGlobal('fetch', async (url: string | URL | Request, init?: RequestInit) => {
-    const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
+  stubLiveSessionFetch(async (pathname, init) => {
     if (typeof init?.body !== 'string') throw new Error('Missing capture body.')
     const input: { request: { kind: string } } = JSON.parse(init.body)
     if (input.request.kind === 'EFFECTS' && !deleted) {
@@ -768,7 +761,7 @@ it('plans the same Character action and target facts in the Worker using private
   })
   await expect(
     planNativeLiveEncounterAction(
-      { CONVEX_SITE_URL: 'https://convex.example.test', LIVE_SESSION_WORKER_SECRET: secret },
+      workerEnvironment(secret),
       'fixture-access-token',
       scope,
       command,

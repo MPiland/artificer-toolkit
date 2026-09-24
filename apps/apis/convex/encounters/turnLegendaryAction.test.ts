@@ -74,6 +74,11 @@ import * as rollRandom from '../lib/rollRandom'
 import * as movementTargets from './movementTargets'
 import { planNativeLiveEncounterTurn } from '../../../session-worker/src/nativeEncounterTurn'
 import { callLiveSessionRoute } from '../../../session-worker/src/liveSessionRoutes'
+import {
+  insertActiveLiveAuthority,
+  stubLiveSessionFetch,
+  workerEnvironment
+} from '../../tests/fixtures/liveSessionWorker'
 
 const rechargeFeatureId = '00000000-0000-4000-8000-000000000a21'
 const rechargeChargeId = '00000000-0000-4000-8000-000000000a22'
@@ -1073,49 +1078,37 @@ describe('private DO turn Legendary Action response', () => {
     const started = await start(base)
     const epoch = crypto.randomUUID()
     await base.t.run((ctx) =>
-      ctx.db.insert('campaignLiveAuthorities', {
+      insertActiveLiveAuthority(ctx, {
         campaignId: base.campaign.id,
         sessionId: base.run.sessionId,
         epoch,
-        phase: 'DO_ACTIVE',
-        activationFingerprint: '0'.repeat(64),
-        persistedSequence: 0,
-        persistedStateChecksum: '0'.repeat(64),
-        createdAt: base.campaign.createdAt,
-        updatedAt: base.campaign.createdAt
+        createdAt: base.campaign.createdAt
       })
     )
     const secret = 'private-legendary-turn-test-secret-at-least-32-bytes'
-    const environment = {
-      CONVEX_SITE_URL: 'https://convex.example.test',
-      LIVE_SESSION_WORKER_SECRET: secret
-    }
+    const environment = workerEnvironment(secret)
     vi.stubEnv('LIVE_SESSION_WORKER_SECRET', secret)
     const routes: string[] = []
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string | URL | Request, init?: RequestInit) => {
-        const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-        if (
-          pathname !== '/live-sessions/encounter-rules' &&
-          pathname !== '/live-sessions/encounter-turn-pending' &&
-          pathname !== '/live-sessions/encounter-turn'
-        )
-          throw new Error(`Unexpected private turn request: ${pathname}`)
-        if (new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token')
-          throw new Error('Missing private turn bearer token.')
-        if (new Headers(init?.headers).get('x-artificer-live-session-secret') !== secret)
-          throw new Error('Missing private turn secret.')
-        if (typeof init?.body !== 'string') throw new Error('Missing private turn body.')
-        if (pathname === '/live-sessions/encounter-rules')
-          liveSessionEncounterRulesInputSchema.parse(JSON.parse(init.body))
-        else if (pathname === '/live-sessions/encounter-turn-pending')
-          liveSessionEncounterTurnPendingInputSchema.parse(JSON.parse(init.body))
-        else liveSessionEncounterTurnCommitInputSchema.parse(JSON.parse(init.body))
-        routes.push(pathname)
-        return base.owner.caller.fetch(pathname, init)
-      })
-    )
+    stubLiveSessionFetch((pathname, init) => {
+      if (
+        pathname !== '/live-sessions/encounter-rules' &&
+        pathname !== '/live-sessions/encounter-turn-pending' &&
+        pathname !== '/live-sessions/encounter-turn'
+      )
+        throw new Error(`Unexpected private turn request: ${pathname}`)
+      if (new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token')
+        throw new Error('Missing private turn bearer token.')
+      if (new Headers(init?.headers).get('x-artificer-live-session-secret') !== secret)
+        throw new Error('Missing private turn secret.')
+      if (typeof init?.body !== 'string') throw new Error('Missing private turn body.')
+      if (pathname === '/live-sessions/encounter-rules')
+        liveSessionEncounterRulesInputSchema.parse(JSON.parse(init.body))
+      else if (pathname === '/live-sessions/encounter-turn-pending')
+        liveSessionEncounterTurnPendingInputSchema.parse(JSON.parse(init.body))
+      else liveSessionEncounterTurnCommitInputSchema.parse(JSON.parse(init.body))
+      routes.push(pathname)
+      return base.owner.caller.fetch(pathname, init)
+    })
     const scope = {
       campaignId: base.campaign.id,
       sessionId: base.run.sessionId,
@@ -1371,39 +1364,27 @@ describe('private DO turn Legendary Action response', () => {
 
     const epoch = crypto.randomUUID()
     await base.t.run((ctx) =>
-      ctx.db.insert('campaignLiveAuthorities', {
+      insertActiveLiveAuthority(ctx, {
         campaignId: base.campaign.id,
         sessionId: base.run.sessionId,
         epoch,
-        phase: 'DO_ACTIVE',
-        activationFingerprint: '0'.repeat(64),
-        persistedSequence: 0,
-        persistedStateChecksum: '0'.repeat(64),
-        createdAt: base.campaign.createdAt,
-        updatedAt: base.campaign.createdAt
+        createdAt: base.campaign.createdAt
       })
     )
     const secret = 'private-legendary-turn-test-secret-at-least-32-bytes'
-    const environment = {
-      CONVEX_SITE_URL: 'https://convex.example.test',
-      LIVE_SESSION_WORKER_SECRET: secret
-    }
+    const environment = workerEnvironment(secret)
     vi.stubEnv('LIVE_SESSION_WORKER_SECRET', secret)
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string | URL | Request, init?: RequestInit) => {
-        const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname
-        if (pathname !== '/live-sessions/encounter-rules')
-          throw new Error(`Unexpected private turn request: ${pathname}`)
-        if (new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token')
-          throw new Error('Missing private turn bearer token.')
-        if (new Headers(init?.headers).get('x-artificer-live-session-secret') !== secret)
-          throw new Error('Missing private turn secret.')
-        if (typeof init?.body !== 'string') throw new Error('Missing private turn body.')
-        liveSessionEncounterRulesInputSchema.parse(JSON.parse(init.body))
-        return base.owner.caller.fetch(pathname, init)
-      })
-    )
+    stubLiveSessionFetch((pathname, init) => {
+      if (pathname !== '/live-sessions/encounter-rules')
+        throw new Error(`Unexpected private turn request: ${pathname}`)
+      if (new Headers(init?.headers).get('authorization') !== 'Bearer fixture-access-token')
+        throw new Error('Missing private turn bearer token.')
+      if (new Headers(init?.headers).get('x-artificer-live-session-secret') !== secret)
+        throw new Error('Missing private turn secret.')
+      if (typeof init?.body !== 'string') throw new Error('Missing private turn body.')
+      liveSessionEncounterRulesInputSchema.parse(JSON.parse(init.body))
+      return base.owner.caller.fetch(pathname, init)
+    })
     const scope = {
       campaignId: base.campaign.id,
       sessionId: base.run.sessionId,
